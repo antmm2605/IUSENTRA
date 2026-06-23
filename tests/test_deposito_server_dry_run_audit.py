@@ -52,7 +52,7 @@ def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invi
             INDICE_DOCUMENTI_FILENAME: b"%PDF-1.4\nindice\n%%EOF",
         },
     )
-    evidence_send = _eml_with_attachments(tmp_path / "invio-reale.eml", {"Atto.enc": b"encrypted"})
+    evidence_send = _eml_with_attachments(tmp_path / "invio-reale.eml", {"Atto.enc": package.read_bytes()})
 
     report = audit_deposito_package(package, [evidence_copy, evidence_send])
 

@@ -140,13 +140,15 @@ def document_bytes_have_real_digital_signature(data: bytes, *display_names: Any)
     """Verifica CAdES/PAdES sui byte reali; il nome file da solo non basta."""
     if not data:
         return False
-    if is_signed_container_name(*display_names):
-        try:
-            from pct.firma import busta_cades_valida
+    try:
+        from pct.firma import busta_cades_valida
 
-            return bool(busta_cades_valida(data))
-        except Exception:
-            return False
+        if busta_cades_valida(data):
+            return True
+    except Exception:
+        pass
+    if is_signed_container_name(*display_names):
+        return False
     if data[:8].startswith(b"%PDF-"):
         try:
             from pct.firma import analizza_firma_documento

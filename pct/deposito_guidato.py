@@ -78,14 +78,22 @@ def _contains_any(text: str, needles: Iterable[str]) -> bool:
     return any(_slug(needle) in base for needle in needles if needle)
 
 
-def _is_signed_container_document(doc: dict[str, Any], path: Path | None = None) -> bool:
-    values = [
-        str(doc.get("nome") or ""),
-        str(doc.get("filename") or ""),
-        str(doc.get("percorso") or ""),
-        str(path or ""),
-    ]
-    return any(value.lower().endswith((".p7m", ".sig", ".pkcs7")) for value in values if value)
+def _document_has_verified_signature(doc: dict[str, Any], path: Path | None = None) -> bool:
+    """Verifica CAdES/PAdES sui byte: il flag storico non e' una prova."""
+    if path is None or not path.is_file():
+        return False
+    try:
+        from .document_signature_state import document_bytes_have_real_digital_signature
+
+        return document_bytes_have_real_digital_signature(
+            path.read_bytes(),
+            str(doc.get("nome") or ""),
+            str(doc.get("filename") or ""),
+            str(doc.get("percorso") or ""),
+            str(path),
+        )
+    except Exception:
+        return False
 
 
 def _guess_comune_from_label(label: str) -> str:
@@ -1354,7 +1362,7 @@ class DocumentValidator:
                 )
 
             if doc.get("id") == main_doc_id:
-                if not bool(doc.get("firmato_digitalmente")) and not _is_signed_container_document(doc, path):
+                if not _document_has_verified_signature(doc, path):
                     issues.append(
                         ValidationIssue(
                             service=SERVICE_DOCUMENTALE,

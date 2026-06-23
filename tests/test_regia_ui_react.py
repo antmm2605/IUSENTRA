@@ -132,11 +132,16 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "simula_invio_pec: '1'" in deposit_page
     assert "Simulazione PEC in corso" in deposit_page
     assert "Message-ID fittizio" not in deposit_page
-    assert "isSignedContainerDocument" in deposit_page
-    assert "!isSignedContainerDocument(doc)" in deposit_page
     assert "packageDocumentSignatureLabel" in deposit_page
-    assert "Contenitore .p7m" in deposit_page
-    assert "File .p7m presente: non viene rifirmato" in deposit_page
+    assert "isSignedContainerDocument" not in deposit_page
+    assert "Contenitore .p7m" not in deposit_page
+    assert "File .p7m presente: non viene rifirmato" not in deposit_page
+    assert "function documentHasSignedContainerExtension" in source
+    assert "function documentExplicitlyRequiresSignature" in source
+    assert "documentExplicitlyRequiresSignature(doc)" in source
+    assert "role === 'atto_principale' || role === 'procura' || documentExplicitlyRequiresSignature(doc)" in source
+    assert "already_signed: Boolean(doc.signed)" in deposit_page
+    assert "doc?.name.toLowerCase().match(/\\.(p7m|sig|pkcs7)$/)" not in source
     assert "Report compatibilità" in deposit_page
     assert "{pecWorkflowAvailable ? (" in deposit_page
     assert "deposito/indice-documenti" in deposit_page
@@ -148,22 +153,28 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "Prova senza invio PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
     assert "Documenti indicati nel pacchetto" in deposit_page
-    assert "progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}" in deposit_page
+    assert "progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}" in deposit_page
     assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
     assert "iu-fas-package-progress__ticker" in action_button
     assert "const pctJsonPackageChannel" in deposit_page
     assert "const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction" in deposit_page
     assert "result.requires_local_pec && completeLocalPec" in action_button
-    assert "setConfirming(false)\n          const message = await completeLocalPec(result, payload)" in action_button
-    assert "await completeLocalPec(result, payload)" in action_button
+    assert "setConfirming(false)\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
+    assert "await completeLocalPec(result, submittedPayload)" in action_button
     assert "result.package_ready || result.requires_guided_completion || result.requires_local_pec" in action_button
     assert action_button.index("result.requires_local_pec && completeLocalPec") < action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec")
-    assert action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec") < action_button.index("!response.ok || result.ok === false")
+    assert action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec") < action_button.index("!responseOk || result.ok === false")
     assert "requiresGuidedCompletion: Boolean(payload.requires_guided_completion)" in deposit_page
     assert "requiresLocalPec: Boolean(payload.requires_local_pec)" in deposit_page
     assert "localPec: payload.local_pec" in deposit_page
     assert "completeDepositLocalPec" in deposit_page
     assert "localSignerEndpoint('/pec/send')" in deposit_page
+    assert "assertLocalPecAttoEncBase64(localPayload)" in deposit_page
+    assert "function assertLocalPecAttoEncBase64" in source
+    assert "Allegato Atto.enc non è base64 valido" in source
+    assert "looksLikeCmsEnvelopedData" in source
+    assert "CMS_ENVELOPED_DATA_OID" in source
+    assert "Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido" in source
     assert "window.prompt" not in deposit_page
     assert "Password PEC locale" in deposit_page
     assert "Invia dal PC locale" in deposit_page

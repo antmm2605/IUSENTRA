@@ -1,4 +1,4 @@
-import os
+﻿import os
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -28,6 +28,40 @@ def _pdf_base(pdfa_part: str = "2", pdfa_conf: str = "B") -> bytes:
         b"<?xpacket end='w'?>"
     )
     return b"%PDF-1.4\n" + xmp + b"\n%%EOF"
+
+
+def _cades_signed_payload(documento: bytes) -> bytes:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes
+    from tools import local_signer as local_signer_mod
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Deposito Guidato")])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    return _build_cades_bes(
+        documento=documento,
+        signature_bytes=signature,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -96,7 +130,7 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
         fasc.id,
         "comparsa.pdf",
         TipoDocumento.COMPARSA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
 
@@ -147,7 +181,7 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     assert "pst_official_runtime" in run.resolver
     assert "getRegistriFromUfficio" in run.resolver["pst_official_runtime"]["methods"] or run.resolver["pst_official_runtime"]["methods"] == {}
     assert "effective_allowed_registries" in run.resolver
-    assert run.snapshot["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+    assert run.snapshot["pst_busta_audit"]["transport_mode"] == "atto_enc_non_generato"
     assert run.snapshot["pst_busta_audit"]["formal_checks"]["T003"]["status"] == "ok"
 
 
@@ -183,7 +217,7 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
         fasc.id,
         "comparsa.pdf",
         TipoDocumento.COMPARSA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
@@ -220,14 +254,15 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["ok"] is True
     assert data["validation"]["can_prepare_deposit"] is True
     assert data["validation"]["semaforo"]["tecnico_pst"] == "ok"
-    assert data["validation"]["semaforo"]["documentale"] == "ok"
+    assert data["validation"]["semaforo"]["documentale"] == "warning"
     assert data["validation"]["semaforo"]["giuridico"] == "warning"
     assert not any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert data["validation"]["context"]["codice_oggetto_pst"] == "014001"
-    assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "atto_enc_non_generato"
     assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_busta_generated"] is True
-    assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_busta_filename"] == "IndiceDocumentiDepositati.PDF"
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_busta_filename"] == "IndiceBusta.xml"
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["indice_documenti_filename"] == "IndiceDocumentiDepositati.PDF"
 
 
 def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch):
@@ -261,14 +296,14 @@ def test_generazione_busta_usa_codice_oggetto_pst_validato(tmp_path, monkeypatch
         fasc.id,
         "Ricorso.PDF",
         TipoDocumento.ATTO_GIUDIZIARIO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
         fasc.id,
         "Procura.PDF",
         TipoDocumento.PROCURA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     captured: dict[str, str] = {}
@@ -340,14 +375,14 @@ def test_generazione_busta_blocca_se_selezione_video_non_coincide_con_busta(tmp_
         fasc.id,
         "Ricorso.PDF",
         TipoDocumento.ATTO_GIUDIZIARIO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
         fasc.id,
         "Procura.PDF",
         TipoDocumento.PROCURA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     ricevuta = gf.aggiungi_documento(
@@ -411,7 +446,7 @@ def test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst(tmp_path):
         fasc.id,
         "comparsa.pdf",
         TipoDocumento.COMPARSA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
@@ -471,7 +506,7 @@ def test_orchestratore_pct_contributo_mancante_usa_policy_pagopa_pst(tmp_path):
         fasc.id,
         "ricorso.pdf",
         TipoDocumento.RICORSO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
@@ -552,7 +587,7 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
         fasc.id,
         "atto_principale.pdf",
         TipoDocumento.ATTO_GIUDIZIARIO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
 
@@ -615,7 +650,7 @@ def test_deposito_prova_genera_ricevuta_accettazione_senza_invio_reale(tmp_path)
         fasc.id,
         "comparsa.pdf",
         TipoDocumento.COMPARSA,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
@@ -784,7 +819,7 @@ def test_ricevuta_prova_rifiuta_depositi_non_simulati(tmp_path):
     assert "solo per depositi senza invio reale" in payload["errore"]
 
 
-def test_orchestratore_non_blocca_atto_principale_cades_p7m_senza_flag_storico(tmp_path):
+def test_orchestratore_blocca_atto_principale_p7m_non_cades_senza_prova_tecnica(tmp_path):
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),
         documents_dir=str(tmp_path / "docs"),
@@ -804,6 +839,56 @@ def test_orchestratore_non_blocca_atto_principale_cades_p7m_senza_flag_storico(t
         "attoACQ.pdf.p7m",
         TipoDocumento.RICORSO,
         _pdf_base(),
+        firmato=False,
+    )
+    docs = [_doc_payload(gf, fasc.id, atto)]
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "RG",
+            "oggetto": "Ricorso",
+            "codice_oggetto_pst": "222050",
+            "numero_rg": "466",
+            "anno_rg": 2023,
+            "atto_principale_id": atto.id,
+            "allegati_ids": [],
+            "operatore": "admin",
+        },
+        selected_documents=docs,
+        all_documents=docs,
+    )
+
+    codes = {issue["code"] for issue in run.issues}
+    assert "atto_principale_non_firmato" in codes
+    assert run.semaforo["documentale"] == "blocco"
+
+
+def test_orchestratore_non_blocca_atto_principale_cades_reale_senza_flag_storico(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Alessi Robertino c. Zurich",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Giudice di Pace - Palmi",
+        numero_rg="466",
+        anno_rg=2023,
+        controparte="Zurich Ass.ni",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "attoACQ.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _cades_signed_payload(_pdf_base()),
         firmato=False,
     )
     docs = [_doc_payload(gf, fasc.id, atto)]
@@ -853,7 +938,7 @@ def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):
         fasc.id,
         "ricorso_tributario.pdf.p7m",
         TipoDocumento.RICORSO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(
@@ -884,7 +969,7 @@ def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):
         fasc.id,
         "NIR_nota_iscrizione_a_ruolo_firmata.pdf.p7m",
         TipoDocumento.ALLEGATO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     docs = [
@@ -947,7 +1032,7 @@ def test_orchestratore_tributario_blocca_ricorso_senza_nir(tmp_path):
         fasc.id,
         "ricorso_tributario.pdf.p7m",
         TipoDocumento.RICORSO,
-        _pdf_base(),
+        _cades_signed_payload(_pdf_base()),
         firmato=True,
     )
     procura = gf.aggiungi_documento(

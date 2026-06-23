@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Deposito PCT Atto.enc CMS e token firma 2.253.97 - 2026-06-23
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Esito PST `-1` / indice busta non trovato | Fascicolo produzione `F08F92A2`, ricevute PEC utente | Risolto nel codice locale, da verificare dopo deploy | Il flusso non considera più sufficiente `Atto.enc` base64: richiede `IndiceBusta.xml`, `DatiAtto.xml.p7m` coerente con la stessa busta e `Atto.enc` CMS/PKCS#7 `EnvelopedData` prima della password PEC. | Commit, push branch gemelli, deploy Hetzner e prova produzione sullo stesso commit prima di dichiarare la correzione operativa disponibile sul server. |
+| Firma locale `DatiAtto.xml` | Browser reale `127.0.0.1:8080`, fascicolo `DC5BF1DB` | Aperto per requisito fisico | La UI si ferma correttamente con `Token non pronto per la firma`; senza pen drive/token disponibile non può produrre `DatiAtto.xml.p7m`, generare `Atto.enc` finale e arrivare alla password PEC. | Ripetere la prova con token fisico pronto e PIN inserito nella UI; non salvare il PIN e verificare `DatiAtto.xml.p7m`, `Atto.enc` CMS e ramo `Invia deposito reale` fino alla finestra password PEC locale. |
+| Allegati ricevuta `postacert.eml`, `EsitoAtto.xml`, `daticert.xml`, `smime.p7s` | File `pec_283b464edebba9fe474159e5.eml` | Governato, non bug deposito | Il file fornito è una copia testuale piccola e non multipart: quegli allegati non sono dentro il file disponibile, quindi la UI deve indicarli come `Da recuperare con la sincronizzazione` finché la casella PEC non fornisce il MIME originale completo. | Usare la sincronizzazione PEC della casella reale per acquisire il messaggio completo; se dopo sync restano assenti, verificare direttamente la presenza nella casella. |
+
 ## PEC presidiate e presidio documentale Lex - 2026-06-20
 
 | Area | Gate | Stato | Nota | Azione |

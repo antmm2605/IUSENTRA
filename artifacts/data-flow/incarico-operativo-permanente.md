@@ -29,6 +29,8 @@ Per la firma digitale vale una regola assoluta: la UI può mostrare `Firmato` so
 
 Regola permanente invio PEC: per depositi, notifiche legali e verifiche operative PEC il server non è mai il canale SMTP reale. Il comportamento corretto è quello dichiarato in `/impostazioni?tab=pec`, sezione `Verifiche PEC`: `Il controllo dell'invio parte dal PC in uso: la password resta sul dispositivo locale.` Quindi anche quando IUSENTRA gira su `https://app.iusentra.it`, il server prepara e verifica busta, destinatario, oggetto, corpo PEC, allegato `Atto.enc` e ricevute, ma l'invio effettivo parte dal PC dell'avvocato tramite Local Signer/servizio locale. Qualunque variabile, rotta legacy o scorciatoia che abiliti SMTP server-side per un invio legale è da trattare come regressione.
 
+Regola permanente `Atto.enc`: nome file, estensione, dimensione o base64 valido non bastano mai per abilitare l'invio reale. Prima della password PEC locale il software deve verificare che l'allegato `Atto.enc` sia un CMS/PKCS#7 `EnvelopedData` ministeriale riconoscibile, generato da `Atto.msg` contenente `IndiceBusta.xml`, `DatiAtto.xml.p7m` firmato CAdES e `IndiceDocumentiDepositati.PDF`. Il report deve mostrare algoritmo CMS effettivo e presenza dell'indice ministeriale; se il payload non è CMS, se `IndiceBusta.xml` manca o se `DatiAtto.xml.p7m` non incapsula il metadato della stessa busta, il flusso blocca prima della password PEC e non registra il deposito come valido.
+
 La prova reale del deposito deve coprire almeno:
 
 - apertura React, senza fallback legacy e senza HTML grezzo visibile;

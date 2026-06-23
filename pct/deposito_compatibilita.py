@@ -6,6 +6,8 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from pct.atto_enc_validation import inspect_atto_enc_payload
+
 
 REFERENCE_SAMPLES: tuple[dict[str, Any], ...] = (
     {
@@ -76,11 +78,16 @@ def _file_info(path_value: str) -> dict[str, Any]:
     if not path.is_file():
         return {"exists": False, "name": path.name, "size_bytes": 0, "sha256": ""}
     payload = path.read_bytes()
+    cms_info = inspect_atto_enc_payload(payload) if path.name.lower() == "atto.enc" else {"valid": False}
     return {
         "exists": True,
         "name": path.name,
         "size_bytes": len(payload),
         "sha256": hashlib.sha256(payload).hexdigest().upper(),
+        "cms_enveloped_data": cms_info.get("valid") is True,
+        "cms_content_type": cms_info.get("content_type", ""),
+        "cms_encryption_algorithm": cms_info.get("encryption_algorithm", ""),
+        "cms_encryption_algorithm_oid": cms_info.get("encryption_algorithm_oid", ""),
     }
 
 
@@ -142,13 +149,20 @@ def build_deposito_compatibility_report(
     pec = _clean(pec_dest)
     file_info = _file_info(attachment_path)
     checks: list[dict[str, Any]] = []
+    has_indice_busta = any(item.casefold() == "indicebusta.xml" for item in docs)
+    has_datiatto_signed = any(item.casefold() == "datiatto.xml.p7m" for item in docs)
+    audit_indice_busta = audit.get("indice_busta_xml_generated", audit.get("indice_busta_generated")) is True
+    audit_datiatto_signed = audit.get("dati_atto_signed") is True
 
     real_enc = (
         audit.get("uses_real_encryption") is True
         and str(audit.get("required_encryption_algorithm") or "").upper() == "AES256"
         and "AES256" in str(audit.get("transport_mode") or "").upper()
+        and audit_indice_busta
+        and audit_datiatto_signed
         and file_info["exists"]
         and file_info["name"] == "Atto.enc"
+        and file_info.get("cms_enveloped_data") is True
     )
     _check(
         checks,
@@ -159,23 +173,36 @@ def build_deposito_compatibility_report(
         detail=(
             "Atto.msg cifrato in Atto.enc con algoritmo AES256 e certificato PST."
             if real_enc
-            else "Atto.enc AES256 non risulta generato o collegato come allegato ministeriale."
+            else "Atto.enc AES256 non risulta generato, collegato o riconoscibile come CMS ministeriale."
         ),
-        evidence=str(audit.get("transport_mode") or ""),
+        evidence=str(audit.get("content_encryption_algorithm") or file_info.get("cms_encryption_algorithm") or audit.get("transport_mode") or ""),
     )
 
-    has_datiatto = any(item.casefold() == "datiatto.xml" for item in docs)
+    has_datiatto = has_datiatto_signed
     _check(
         checks,
-        code="DATI_ATTO_XML",
-        label="DatiAtto.xml presente",
-        ok=has_datiatto,
+        code="DATI_ATTO_XML_P7M",
+        label="DatiAtto.xml.p7m firmato",
+        ok=has_datiatto and has_datiatto_signed and audit_datiatto_signed,
         weight=10,
         detail="DatiAtto.xml è incluso nella busta." if has_datiatto else "DatiAtto.xml non compare tra i documenti busta.",
     )
 
+    _check(
+        checks,
+        code="INDICE_BUSTA_XML",
+        label="IndiceBusta.xml ministeriale",
+        ok=has_indice_busta and audit_indice_busta,
+        weight=12,
+        detail=(
+            "IndiceBusta.xml ministeriale generato e incluso in Atto.msg."
+            if has_indice_busta and audit_indice_busta
+            else "IndiceBusta.xml ministeriale non risulta incluso: il PST può rifiutare la busta."
+        ),
+    )
+
     has_index = any(item.casefold() == "indicedocumentidepositati.pdf" for item in docs)
-    audit_index = audit.get("indice_busta_generated") is not False
+    audit_index = audit.get("indice_documenti_generated") is not False
     _check(
         checks,
         code="INDICE_DOCUMENTI",
@@ -189,7 +216,11 @@ def build_deposito_compatibility_report(
         ),
     )
 
-    operational_docs = [item for item in docs if item.casefold() not in {"datiatto.xml", "indicedocumentidepositati.pdf"}]
+    operational_docs = [
+        item
+        for item in docs
+        if item.casefold() not in {"datiatto.xml", "datiatto.xml.p7m", "indicebusta.xml", "indicedocumentidepositati.pdf"}
+    ]
     _check(
         checks,
         code="DOCUMENTI_SELEZIONATI",

@@ -508,6 +508,25 @@ def busta_cades_valida(data: bytes) -> bool:
         return False
 
 
+def estrai_contenuto_cades(data: bytes) -> bytes | None:
+    """Estrae il contenuto incapsulato da una busta CAdES/PKCS#7 signed-data."""
+    try:
+        from asn1crypto import cms
+
+        ci = cms.ContentInfo.load(data)
+        if ci["content_type"].native != "signed_data":
+            return None
+        signed_data = ci["content"]
+        content = signed_data["encap_content_info"]["content"]
+        if content.native is None:
+            return None
+        if isinstance(content.native, bytes):
+            return content.native
+        return bytes(content.contents)
+    except Exception:
+        return None
+
+
 def _dn_campo(asn1_name, campo_hf: str) -> str:
     """Estrae un campo dal Distinguished Name tramite human_friendly label."""
     try:

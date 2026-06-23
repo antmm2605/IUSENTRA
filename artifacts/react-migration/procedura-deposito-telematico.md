@@ -1,6 +1,52 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-20.
+Aggiornato: 2026-06-23.
+
+## Aggiornamento 2026-06-23 - Esito PST reale e blocco Atto.enc non CMS
+
+Caso reale da presidiare: fascicolo server `F08F92A2`, deposito PCT Vicenza, messaggio PST `Codice esito: -1`, `IDBUSTA: 152329542`, testo `Indice busta non trovato, necessario effettuare nuovamente il deposito`. Questo esito supera il precedente falso-verde sul solo payload base64: un `Atto.enc` con nome e base64 valido non basta se il contenitore ministeriale o l'indice interno non sono riconoscibili dal PST.
+
+Evidenze controllate:
+
+- `pec_d60f8a7029ed933e57059b90 (1).eml` e `pec_8a5787494a7faee804e79394 (2).eml` sono ricevute PST/Legalmail con `EsitoAtto.xml`, `daticert.xml` e `smime.p7s`; non contengono l'originale `Atto.enc` inviato e non contengono `postacert.eml` nella copia locale disponibile;
+- `pec_283b464edebba9fe474159e5.eml` è una copia testuale piccola, non multipart: se la UI mostra `postacert.eml`, `EsitoAtto.xml`, `daticert.xml` o `smime.p7s` come `Da recuperare con la sincronizzazione`, quel messaggio è corretto finché la sincronizzazione della casella PEC non recupera il MIME originale completo con allegati;
+- verifica tecnica dei file utente del 23/06/2026: `pec_283b464edebba9fe474159e5.eml` ha `content_type=text/plain`, `multipart=false`, `attachments=0`; `pec_d60f8a7029ed933e57059b90 (1).eml` contiene `EsitoAtto.xml`, `daticert.xml` e `smime.p7s`; `pec_8a5787494a7faee804e79394 (2).eml` contiene `EsitoAtto.xml`, `daticert.xml` e `smime.p7s`;
+- la copia non crittografata accettata `COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO_ Ricorso Romeo ... .EML` mostra il contenuto logico accettato, compreso `DatiAtto.xml.p7m` e `IndiceDocumentiDepositati.PDF`;
+- gli originali di deposito accettati presenti in `Downloads` trasportano un solo allegato `Atto.enc` CMS `EnvelopedData`; alcuni campioni usano `tripledes_3key`, uno usa `aes256_cbc`, quindi la guardia decisiva è la struttura CMS ministeriale e non il solo nome file.
+
+Correzione ulteriore applicata:
+
+- `web.services.local_pec_runtime` rifiuta `Atto.enc` non CMS prima di costruire il payload Local Signer;
+- `local_signer_mod.pec_bridge` rifiuta `Atto.enc` non CMS anche se un futuro ramo provasse ad aggirare il controllo server/UI;
+- `frontend/src/components/FascicoliPage.tsx` verifica lato browser che il base64 di `Atto.enc` decodifichi in un DER CMS `EnvelopedData` prima di chiedere la password PEC;
+- `pct.busta` valida il CMS prodotto dalla cifratura e registra algoritmo, OID e numero destinatari nell'audit tecnico;
+- `pct.deposito_compatibilita` e `scripts/audit_deposito_server_dry_run.py` considerano conforme il trasporto reale solo se `Atto.enc` è CMS e se l'indice ministeriale è presente.
+
+Stato prova reale locale `2.253.97`: Docker reale locale ricostruito su `127.0.0.1:8080`, `/api/pronto` `ok=true`, `versione=2.253.97`; nella UI React del deposito locale `DC5BF1DB` il click reale su `Simula invio PEC` non è passato a un falso invio, ma ha richiesto la firma locale di `DatiAtto.xml` e si è fermato con messaggio visibile `Token non pronto per la firma: verifica che il dispositivo fisico sia inserito`. Questo è il blocco corretto prima della password PEC quando manca il token fisico. Screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-225397-deposito-token-block-locale.png`. Restano da completare commit, push branch gemelli, deploy Hetzner, prova produzione sullo stesso commit e prova firma/invio quando la pen drive è fisicamente pronta.
+
+## Aggiornamento 2026-06-23 - IndiceBusta ministeriale e firma DatiAtto
+
+Caso reale analizzato: deposito PCT Vicenza rifiutato con `Codice esito: -1`, `IDBUSTA: 152329542`, messaggio `Indice busta non trovato, necessario effettuare nuovamente il deposito`. Il controllo degli EML allegati ha confermato che l'esito proveniva dai controlli automatici del Tribunale di Vicenza; il confronto con la copia non crittografata di un deposito accettato ha mostrato la presenza del metadato firmato `DatiAtto.xml.p7m`.
+
+Correzione applicata:
+
+- `Atto.msg` include ora sempre `IndiceBusta.xml` ministeriale conforme alla DTD locale `docs/specs/ministero/DTD_20180328/IndiceBusta.dtd`, distinto dal PDF leggibile `IndiceDocumentiDepositati.PDF`;
+- prima di generare `Atto.enc` il flusso PCT richiede la firma CAdES di `DatiAtto.xml` e rigenera la busta con `DatiAtto.xml.p7m`;
+- il backend conserva `id_busta` e timestamp tra richiesta firma e creazione `Atto.enc`, evitando che il file firmato appartenga a una busta diversa;
+- il backend calcola e verifica l'hash del `DatiAtto.xml` e controlla che il `.p7m` incapsuli proprio il metadato generato per quella busta; un `.p7m` valido ma riferito a XML diverso viene rifiutato;
+- l'indice PDF è generato in modo deterministico, così l'hash inserito in `DatiAtto.xml` resta stabile durante il passaggio Local Signer;
+- la progress bar di deposito mostra anche `DatiAtto.xml.p7m` e `IndiceBusta.xml`, oltre a `IndiceDocumentiDepositati.PDF`, documenti selezionati e `Atto.enc`;
+- gli atti o allegati già `.p7m` restano documenti firmati e non vengono rifirmati; la nuova firma obbligatoria riguarda il metadato ministeriale `DatiAtto.xml`.
+
+Test tecnici eseguiti:
+
+- `python -m pytest tests/test_busta.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente -q` (`22/22`);
+- `python -m pytest tests/test_deposito.py tests/test_busta.py tests/test_deposito_server_dry_run_audit.py tests/test_profilo_deposito.py -q` (`56/56`);
+- `python -m pytest tests/test_deposito_server_dry_run_audit.py tests/test_regia_ui_react.py -q` (`9/9`);
+- `pnpm --dir frontend run build`;
+- `pnpm --dir frontend run test`.
+
+Stato prova reale locale `2.253.97`: eseguita su copia Docker reale `http://127.0.0.1:8080` dopo rebuild; la UI React mostra `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `Atto.enc` e il controllo si ferma prima dell'invio perché il token fisico non è disponibile. Non dichiarare invio reale completato finché il token viene rilevato, il PIN viene inserito nella UI, `DatiAtto.xml.p7m` viene prodotto, `Atto.enc` CMS viene generato e il ramo `Invia deposito reale` arriva alla password PEC locale senza errori.
 
 ## Aggiornamento PEC presidiate - Lex AI, RAG e recupero documentale
 

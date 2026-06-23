@@ -12,6 +12,7 @@ from typing import Any
 
 DEFAULT_TIMEOUT_SECONDS = 25
 MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
+CMS_ENVELOPED_DATA_OID = b"\x06\x09*\x86H\x86\xf7\r\x01\x07\x03"
 
 
 class PecBridgeValidationError(ValueError):
@@ -20,6 +21,21 @@ class PecBridgeValidationError(ValueError):
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _is_cms_enveloped_data(content: bytes) -> bool:
+    if len(content) <= 128 or content[:1] != b"\x30":
+        return False
+    try:
+        from asn1crypto import cms
+
+        content_info = cms.ContentInfo.load(content)
+        if content_info["content_type"].native != "enveloped_data":
+            return False
+        encrypted_info = content_info["content"]["encrypted_content_info"]
+        return encrypted_info["content_type"].native == "data"
+    except Exception:
+        return CMS_ENVELOPED_DATA_OID in content[:512]
 
 
 def _coerce_bool(value: Any, default: bool) -> bool:
@@ -190,6 +206,10 @@ def _attachment_parts(item: dict[str, Any]) -> tuple[str, bytes, str]:
         content = base64.b64decode(encoded, validate=True)
     except Exception as exc:
         raise PecBridgeValidationError(f"Allegato {filename} non e' base64 valido.") from exc
+    if filename.lower() == "atto.enc" and not _is_cms_enveloped_data(content):
+        raise PecBridgeValidationError(
+            "Allegato Atto.enc non conforme: il file non e' un CMS EnvelopedData ministeriale valido."
+        )
     mime_type = _text(item.get("mime_type") or item.get("content_type")) or (
         mimetypes.guess_type(filename)[0] or "application/octet-stream"
     )

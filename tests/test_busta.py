@@ -7,7 +7,17 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 
-from pct.busta import BustaTelematica, DatiBusta, Allegato, ATTO_MSG_FILENAME
+from pct.busta import (
+    BustaTelematica,
+    DatiBusta,
+    Allegato,
+    ATTO_MSG_FILENAME,
+    DATI_ATTO_FILENAME,
+    DATI_ATTO_FIRMATO_FILENAME,
+    INDICE_BUSTA_FILENAME,
+    INDICE_DOCUMENTI_FILENAME,
+)
+from pct.firma import estrai_contenuto_cades
 from pct.pst_cifratura import PSTCifraturaError
 
 
@@ -62,14 +72,107 @@ def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
     }
 
 
+def _cades_signed_payload(payload: bytes) -> bytes:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes
+    from tools import local_signer as local_signer_mod
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Firma DatiAtto")]
+    )
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(payload)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    return _build_cades_bes(
+        documento=payload,
+        signature_bytes=signature,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
+
+
 def test_busta_contiene_xml(dati_busta, tmp_path):
     """Verifica che la busta contenga il file DatiAtto.xml."""
     busta = BustaTelematica(dati_busta)
     busta_path = busta.crea_busta(str(tmp_path))
 
     attachments = _atto_msg_attachments(busta_path)
-    assert "DatiAtto.xml" in attachments
-    assert "IndiceDocumentiDepositati.PDF" in attachments
+    assert DATI_ATTO_FILENAME in attachments
+    assert INDICE_BUSTA_FILENAME in attachments
+    assert INDICE_DOCUMENTI_FILENAME in attachments
+
+
+def test_busta_contiene_indice_busta_ministeriale(dati_busta, tmp_path):
+    """Verifica che Atto.msg contenga IndiceBusta.xml, distinto dal PDF indice."""
+    from lxml import etree
+
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path))
+
+    attachments = _atto_msg_attachments(busta_path)
+    root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
+    assert root.tag == "IndiceBusta"
+    atto = root.find("Atto")
+    assert atto is not None
+    assert atto.get("Nome") == "atto.pdf"
+    dati = [node for node in root.findall("Allegato") if node.get("Tipo") == "DA"]
+    assert dati
+    assert dati[0].get("Nome") == DATI_ATTO_FILENAME
+
+
+def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_path):
+    """Quando DatiAtto.xml è firmato, Atto.msg usa il .p7m e l'indice ministeriale lo richiama."""
+    from lxml import etree
+
+    busta = BustaTelematica(
+        dati_busta,
+        id_busta="D78E4A75-B17D-428B-9DE7-DCFFD20959CD",
+        timestamp="2026-06-23T09:10:00",
+    )
+    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+    dati_atto_firmato = _cades_signed_payload(dati_atto_xml)
+    busta_path = busta.crea_busta(
+        str(tmp_path),
+        dati_atto_firmato=dati_atto_firmato,
+        require_dati_atto_firmato=True,
+    )
+
+    attachments = _atto_msg_attachments(busta_path)
+    assert DATI_ATTO_FIRMATO_FILENAME in attachments
+    assert DATI_ATTO_FILENAME not in attachments
+    assert estrai_contenuto_cades(attachments[DATI_ATTO_FIRMATO_FILENAME]) == dati_atto_xml
+    root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
+    dati = [node for node in root.findall("Allegato") if node.get("Tipo") == "DA"]
+    assert dati[0].get("Nome") == DATI_ATTO_FIRMATO_FILENAME
+    audit = busta.audit_conformita_pst()
+    assert audit["dati_atto_signed"] is True
+    assert not any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
+
+
+def test_dati_atto_per_firma_e_deterministico_con_stessa_busta(dati_busta):
+    id_busta = "D78E4A75-B17D-428B-9DE7-DCFFD20959CD"
+    timestamp = "2026-06-23T09:10:00"
+    busta_a = BustaTelematica(dati_busta, id_busta=id_busta, timestamp=timestamp)
+    busta_b = BustaTelematica(dati_busta, id_busta=id_busta, timestamp=timestamp)
+
+    assert busta_a.crea_dati_atto_xml_per_firma() == busta_b.crea_dati_atto_xml_per_firma()
 
 
 def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
@@ -80,12 +183,12 @@ def test_datiatto_contiene_indice_documenti_generato(dati_busta, tmp_path):
     busta_path = busta.crea_busta(str(tmp_path))
 
     attachments = _atto_msg_attachments(busta_path)
-    xml_bytes = attachments["DatiAtto.xml"]
-    indice_bytes = attachments["IndiceDocumentiDepositati.PDF"]
+    xml_bytes = attachments[DATI_ATTO_FILENAME]
+    indice_bytes = attachments[INDICE_DOCUMENTI_FILENAME]
 
     root = etree.fromstring(xml_bytes)
     ns = {"p": "http://www.giustizia.it/processo_telematico"}
-    indice_node = root.find(".//p:Documenti/p:Allegato[p:NomeFile='IndiceDocumentiDepositati.PDF']", ns)
+    indice_node = root.find(f".//p:Documenti/p:Allegato[p:NomeFile='{INDICE_DOCUMENTI_FILENAME}']", ns)
     assert indice_node is not None
     assert indice_node.findtext("p:Tipo", namespaces=ns) == "INDICE_DOCUMENTI"
     assert indice_node.findtext("p:Hash", namespaces=ns) == BustaTelematica._hash_bytes(indice_bytes)
@@ -122,7 +225,8 @@ def test_verifica_busta_valida(dati_busta, tmp_path):
     assert risultato["audit_tecnico"]["uses_real_encryption"] is True
     assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "ok"
     assert risultato["audit_tecnico"]["indice_busta_generated"] is True
-    assert "IndiceDocumentiDepositati.PDF" in risultato["documenti"]
+    assert INDICE_BUSTA_FILENAME in _atto_msg_attachments(busta_path)
+    assert INDICE_DOCUMENTI_FILENAME in risultato["documenti"]
 
 
 def test_audit_busta_blocca_prima_della_generazione_reale(dati_busta):
@@ -136,7 +240,9 @@ def test_audit_busta_blocca_prima_della_generazione_reale(dati_busta):
     assert audit["blocks_direct_send"] is True
     assert audit["guided_completion_required"] is True
     assert audit["indice_busta_generated"] is True
-    assert audit["indice_busta_filename"] == "IndiceDocumentiDepositati.PDF"
+    assert audit["indice_busta_filename"] == INDICE_BUSTA_FILENAME
+    assert audit["dati_atto_signed"] is False
+    assert any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
     assert any("Atto.enc" in action and "AES256" in action for action in audit["guided_next_actions"])
     assert audit["formal_checks"]["T002"]["status"] == "warning"
     issue = next(issue for issue in audit["issues"] if issue["code"] == "ATTO-ENC-MISSING")

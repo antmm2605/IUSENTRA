@@ -334,6 +334,7 @@ type ActionPayload = {
   error?: string
   redirect_url?: string
   requires_guided_completion?: boolean
+  requires_local_signature?: boolean
   requires_local_pec?: boolean
   package_ready?: boolean
   id_deposito?: string
@@ -345,6 +346,7 @@ type ActionPayload = {
   busta_audit?: Record<string, unknown>
   pec_sender_ready?: boolean
   local_pec?: Record<string, unknown>
+  local_signature?: Record<string, unknown>
   compatibility_report?: Record<string, unknown>
 }
 
@@ -406,6 +408,7 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
 
 type DepositActionPayload = Record<string, string | string[]>
 type BatchSignatureAction = () => Promise<void>
+type LocalSignatureCompletion = { payload: ActionPayload; submittedPayload: DepositActionPayload }
 type DepositDocumentRole = 'atto_principale' | 'procura' | 'allegato_prova' | 'allegato' | 'prova_notifica' | 'fuori_busta'
 
 type DepositPackagePreview = {
@@ -587,6 +590,7 @@ function DepositActionButton({
   onDone,
   onError,
   onPackageReady,
+  completeLocalSignature,
   completeLocalPec,
   progressItems = [],
   progressLabel = 'Preparazione deposito in corso',
@@ -603,6 +607,7 @@ function DepositActionButton({
   onDone?: (message?: string) => void
   onError?: (message: string) => void
   onPackageReady?: (payload: ActionPayload) => void
+  completeLocalSignature?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<LocalSignatureCompletion>
   completeLocalPec?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
   progressItems?: string[]
   progressLabel?: string
@@ -611,7 +616,7 @@ function DepositActionButton({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [progressIndex, setProgressIndex] = useState(0)
-  const progressQueue = progressItems.length ? progressItems : ['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', 'Atto.enc']
+  const progressQueue = progressItems.length ? progressItems : ['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', 'Atto.enc']
   const currentProgressItem = progressQueue[progressIndex % progressQueue.length] || 'Pacchetto deposito'
   useEffect(() => {
     if (!busy) {
@@ -624,6 +629,34 @@ function DepositActionButton({
     return () => window.clearInterval(timer)
   }, [busy, progressQueue.length])
   if (!action) return null
+  const handleJsonResult = async (result: ActionPayload, submittedPayload: DepositActionPayload, responseOk = true) => {
+    if (result.requires_local_signature && completeLocalSignature) {
+      const completion = await completeLocalSignature(result, submittedPayload)
+      return handleJsonResult(completion.payload, completion.submittedPayload, true)
+    }
+    if (result.requires_local_pec && completeLocalPec) {
+      setConfirming(false)
+      const message = await completeLocalPec(result, submittedPayload)
+      onDone?.(message || String(result.messaggio || result.message || 'Invio PEC locale confermato.'))
+      return undefined
+    }
+    if (result.package_ready || result.requires_guided_completion || result.requires_local_pec) {
+      setConfirming(false)
+      onPackageReady?.(result)
+      if (!onPackageReady) onDone?.(String(result.messaggio || result.message || 'Pacchetto deposito preparato.'))
+      return undefined
+    }
+    if (!responseOk || result.ok === false) {
+      const nextActions = Array.isArray(result.next_actions)
+        ? result.next_actions.map((item) => String(item || '').trim()).filter(Boolean)
+        : []
+      const baseMessage = String(result.message || result.messaggio || result.errore || result.error || 'Deposito non completato.')
+      throw new Error(nextActions.length ? `${baseMessage} Prossimi passi: ${nextActions.join(' ')}` : baseMessage)
+    }
+    setConfirming(false)
+    onDone?.(String(result.messaggio || result.message || 'Operazione deposito completata.'))
+    return undefined
+  }
   const run = async () => {
     setBusy(true)
     setError('')
@@ -643,27 +676,7 @@ function DepositActionButton({
       const contentType = response.headers.get('content-type') || ''
       if (contentType.includes('application/json')) {
         const result = (await response.json().catch(() => ({}))) as ActionPayload
-        if (result.requires_local_pec && completeLocalPec) {
-          setConfirming(false)
-          const message = await completeLocalPec(result, payload)
-          onDone?.(message || String(result.messaggio || result.message || 'Invio PEC locale confermato.'))
-          return
-        }
-        if (result.package_ready || result.requires_guided_completion || result.requires_local_pec) {
-          setConfirming(false)
-          onPackageReady?.(result)
-          if (!onPackageReady) onDone?.(String(result.messaggio || result.message || 'Pacchetto deposito preparato.'))
-          return
-        }
-        if (!response.ok || result.ok === false) {
-          const nextActions = Array.isArray(result.next_actions)
-            ? result.next_actions.map((item) => String(item || '').trim()).filter(Boolean)
-            : []
-          const baseMessage = String(result.message || result.messaggio || result.errore || result.error || 'Deposito non completato.')
-          throw new Error(nextActions.length ? `${baseMessage} Prossimi passi: ${nextActions.join(' ')}` : baseMessage)
-        }
-        setConfirming(false)
-        onDone?.(String(result.messaggio || result.message || 'Operazione deposito completata.'))
+        await handleJsonResult(result, payload, response.ok)
         return
       }
       if (!response.ok) throw new Error(`Operazione non riuscita: HTTP ${response.status}`)
@@ -1652,6 +1665,13 @@ function dateInputValue(value: string | number | boolean | undefined): string {
   const italian = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
   if (italian) return `${italian[3]}-${italian[2]}-${italian[1]}`
   return ''
+}
+
+type LocalSignaturePinRequest = {
+  filename: string
+  outputFilename: string
+  resolve: (pin: string) => void
+  reject: (error: Error) => void
 }
 
 function Field({ label, name, defaultValue = '', type = 'text', required = false, readOnly = false, placeholder = '', children }:{label:string; name:string; defaultValue?:string|number|boolean; type?:string; required?:boolean; readOnly?:boolean; placeholder?:string; children?:ReactNode}) {
@@ -2830,6 +2850,9 @@ function DepositPreparePage({ id }:{id:string}) {
   const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
   const [localPecPassword, setLocalPecPassword] = useState('')
   const [localPecPasswordError, setLocalPecPasswordError] = useState('')
+  const [localSignaturePinRequest, setLocalSignaturePinRequest] = useState<LocalSignaturePinRequest | null>(null)
+  const [localSignaturePin, setLocalSignaturePin] = useState('')
+  const [localSignaturePinError, setLocalSignaturePinError] = useState('')
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
 
   const refreshDetail = (message?: string) => {
@@ -2893,8 +2916,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const visibleRg = depositVisibleReference(f.rg, f.ref || f.id)
   const portalCatalog = buildPortalCatalogRows(data)
   const depositCandidateDocuments = data.documents.filter(isDepositCandidateDocument)
-  const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed || isSignedContainerDocument(doc)).length
-  const unsignedCandidateDocuments = depositCandidateDocuments.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc)).length
+  const signedCandidateDocuments = depositCandidateDocuments.filter((doc) => doc.signed).length
+  const unsignedCandidateDocuments = depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length
   const communicationDocuments = data.documents.filter(isCommunicationDocument)
   const documentsToClassify = data.documents.filter((doc) => documentOperationalRole(doc).label === 'Da classificare')
   const mainActs = depositCandidateDocuments.filter((doc) => {
@@ -3049,6 +3072,84 @@ function DepositPreparePage({ id }:{id:string}) {
       reject,
     })
   })
+  const requestLocalSignaturePin = (localSignature: Record<string, unknown>) => new Promise<string>((resolve, reject) => {
+    setLocalSignaturePin('')
+    setLocalSignaturePinError('')
+    setLocalSignaturePinRequest({
+      filename: recordText(localSignature, 'filename', 'DatiAtto.xml'),
+      outputFilename: recordText(localSignature, 'output_filename', 'DatiAtto.xml.p7m'),
+      resolve,
+      reject,
+    })
+  })
+  const completeDepositLocalSignature = async (payload: ActionPayload, submittedPayload: DepositActionPayload): Promise<LocalSignatureCompletion> => {
+    const localSignature = payload.local_signature && typeof payload.local_signature === 'object' && !Array.isArray(payload.local_signature)
+      ? payload.local_signature as Record<string, unknown>
+      : {}
+    const signPayload = localSignature.payload && typeof localSignature.payload === 'object' && !Array.isArray(localSignature.payload)
+      ? localSignature.payload as Record<string, unknown>
+      : null
+    const endpoint = recordText(localSignature, 'endpoint', localSignerEndpoint('/firma'))
+    if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
+      throw new Error('Payload firma DatiAtto.xml non disponibile. Ripeti la prova deposito.')
+    }
+    let signerStatus = await fetchLocalSignerStatus(4500)
+    if (!signerStatus || signerStatus.ok === false) {
+      requestLocalSignerStart()
+      await sleep(900)
+      signerStatus = await fetchLocalSignerStatus(4500)
+    }
+    signerStatus = signerStatus ? await recoverLocalSignerAutomatically(signerStatus, {
+      onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
+    }) : signerStatus
+    const windowsCertificate = localSignerWindowsCertificate(signerStatus)
+    const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
+    const pin = await requestLocalSignaturePin(localSignature)
+    if (!pin.trim()) {
+      throw new Error('PIN firma mancante. Inseriscilo per firmare DatiAtto.xml e proseguire.')
+    }
+    const signatureResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...signPayload,
+        pin: pin.trim(),
+        slot_id: token?.slot_id,
+        cert_thumbprint: windowsCertificate?.thumbprint,
+        visible_signature_mode: 'nessuna',
+        visible_signature_datetime_mode: 'nessuna',
+      }),
+    })
+    const signaturePayload = await signatureResponse.json().catch(() => ({} as Record<string, unknown>))
+    const signedB64 = recordText(signaturePayload, 'firmato_b64')
+    if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
+      throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma DatiAtto.xml non completata dal Local Signer.')))
+    }
+    const nextSubmittedPayload: DepositActionPayload = {
+      ...submittedPayload,
+      busta_id: recordText(payload, 'busta_id', recordText(localSignature, 'busta_id')),
+      busta_timestamp: recordText(payload, 'busta_timestamp', recordText(localSignature, 'busta_timestamp')),
+      dati_atto_sha256: recordText(payload, 'dati_atto_sha256', recordText(localSignature, 'dati_atto_sha256')),
+      dati_atto_signature_confirmed: '1',
+      dati_atto_firmato_b64: signedB64,
+    }
+    const confirmation = new FormData()
+    Object.entries(nextSubmittedPayload).forEach(([key, value]) => {
+      if (Array.isArray(value)) value.forEach((item: string) => confirmation.append(key, item))
+      else confirmation.append(key, value)
+    })
+    const response = await fetch(jsonPecAction, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: confirmation,
+    })
+    const nextPayload = await response.json().catch(() => ({})) as ActionPayload
+    if (!response.ok && !nextPayload.requires_local_pec && !nextPayload.package_ready && !nextPayload.requires_guided_completion) {
+      throw new Error(String(nextPayload.messaggio || nextPayload.message || nextPayload.errore || nextPayload.error || `Deposito non completato dopo firma DatiAtto.xml: HTTP ${response.status}`))
+    }
+    return { payload: nextPayload, submittedPayload: nextSubmittedPayload }
+  }
   const completeDepositLocalPec = async (payload: ActionPayload, submittedPayload: DepositActionPayload) => {
     const localPec = payload.local_pec && typeof payload.local_pec === 'object' && !Array.isArray(payload.local_pec)
       ? payload.local_pec as Record<string, unknown>
@@ -3060,6 +3161,7 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!localPayload || !endpoint) {
       throw new Error('Payload Local Signer PEC non disponibile. Ripeti la prova senza invio reale.')
     }
+    assertLocalPecAttoEncBase64(localPayload)
     const password = await requestLocalPecPassword(localPayload)
     if (!password.trim()) {
       throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
@@ -3173,15 +3275,14 @@ function DepositPreparePage({ id }:{id:string}) {
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
       const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
-      const signedContainerPresent = isSignedContainerDocument(doc)
       const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, role)
       const requestedSignature = selected && Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature)
       return {
         document_id: doc.id,
         selected,
         role: normaliseDepositRoleForUi(role),
-        already_signed: Boolean(doc.signed || signedContainerPresent),
-        requires_signature: Boolean(!signedContainerPresent && (mandatorySignature || requestedSignature)),
+        already_signed: Boolean(doc.signed),
+        requires_signature: Boolean(mandatorySignature || requestedSignature),
       }
     }),
   })
@@ -3462,6 +3563,27 @@ function DepositPreparePage({ id }:{id:string}) {
     setLocalPecPasswordRequest(null)
     request.reject(new Error('Invio PEC annullato: password non inserita.'))
   }
+  const submitLocalSignaturePin = () => {
+    if (!localSignaturePinRequest) return
+    if (!localSignaturePin.trim()) {
+      setLocalSignaturePinError('Inserisci il PIN per firmare DatiAtto.xml e proseguire.')
+      return
+    }
+    const request = localSignaturePinRequest
+    const pinValue = localSignaturePin
+    setLocalSignaturePin('')
+    setLocalSignaturePinError('')
+    setLocalSignaturePinRequest(null)
+    request.resolve(pinValue)
+  }
+  const cancelLocalSignaturePin = () => {
+    if (!localSignaturePinRequest) return
+    const request = localSignaturePinRequest
+    setLocalSignaturePin('')
+    setLocalSignaturePinError('')
+    setLocalSignaturePinRequest(null)
+    request.reject(new Error('Firma DatiAtto.xml annullata: PIN non inserito.'))
+  }
 
   useEffect(() => {
     if (loading || typeof window === 'undefined') return undefined
@@ -3581,6 +3703,47 @@ function DepositPreparePage({ id }:{id:string}) {
                 Annulla
               </button>
               <button className="is-danger" type="button" onClick={submitLocalPecPassword}>Invia dal PC locale</button>
+            </footer>
+          </form>
+        </div>
+      ) : null}
+
+      {localSignaturePinRequest ? (
+        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="PIN firma DatiAtto">
+          <form
+            className="iu-fas-confirm-modal__box"
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitLocalSignaturePin()
+            }}
+          >
+            <strong>Firma metadato ministeriale</strong>
+            <p>Il deposito riprende solo dopo la firma locale di {localSignaturePinRequest.filename}. Il PIN resta sul PC in uso e non viene salvato.</p>
+            <div className="iu-fas-local-pec-summary" aria-label="Riepilogo firma metadato">
+              <span>Da firmare</span>
+              <strong>{localSignaturePinRequest.filename}</strong>
+              <span>File prodotto</span>
+              <strong>{localSignaturePinRequest.outputFilename}</strong>
+              <span>Passaggio successivo</span>
+              <strong>IndiceBusta.xml e Atto.enc</strong>
+            </div>
+            <label className="iu-fas-local-pec-password">
+              <span>PIN firma</span>
+              <input
+                type="password"
+                value={localSignaturePin}
+                autoFocus
+                autoComplete="off"
+                onChange={(event) => {
+                  setLocalSignaturePin(event.currentTarget.value)
+                  if (localSignaturePinError) setLocalSignaturePinError('')
+                }}
+              />
+            </label>
+            {localSignaturePinError ? <span className="iu-fas-inline-error" role="alert">{localSignaturePinError}</span> : null}
+            <footer>
+              <button type="button" onClick={cancelLocalSignaturePin}>Annulla</button>
+              <button className="is-danger" type="button" onClick={submitLocalSignaturePin}>Firma e continua</button>
             </footer>
           </form>
         </div>
@@ -3733,14 +3896,13 @@ function DepositPreparePage({ id }:{id:string}) {
                   const selected = Boolean(classification.selected)
                   const isMainAct = mainActDocument?.id === doc.id
                   const roleValue = normaliseDepositRoleForUi(classification.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id))
-                  const signedContainerPresent = isSignedContainerDocument(doc)
-                  const canRequestSignature = !doc.signed && !signedContainerPresent && requiresPackageSignature(doc)
+                  const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
                   const signatureLabel = doc.signed
                     ? 'Firmato'
-                    : signedContainerPresent ? 'Contenitore .p7m' : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
-                  const showSignatureControl = selected || doc.signed || signedContainerPresent
+                    : canRequestSignature ? (signatureRequested ? 'Da firmare' : 'Firma facoltativa') : 'Firma non necessaria'
+                  const showSignatureControl = selected || doc.signed || canRequestSignature
                   return (
                     <article className={`iu-fas-deposit-selection__row${selected ? ' is-selected' : ''}${isMainAct ? ' is-main' : ''}`} key={`select-${doc.id}`}>
                       <label className="iu-fas-deposit-selection__include">
@@ -3756,7 +3918,6 @@ function DepositPreparePage({ id }:{id:string}) {
                         <strong>{doc.name}</strong>
                         <span>{[doc.type, doc.statusLabel, doc.size].filter(Boolean).join(' - ')}</span>
                         {doc.signed ? <em>Firma digitale verificata</em> : null}
-                        {signedContainerPresent && !doc.signed ? <em>File .p7m presente: non viene rifirmato</em> : null}
                         {selected && signatureRequested ? <small>Il comando finale lo firma in lotto prima di generare la busta.</small> : null}
                       </div>
                       <div className="iu-fas-deposit-document-actions" aria-label={`Azioni documento ${doc.name}`}>
@@ -3835,10 +3996,10 @@ function DepositPreparePage({ id }:{id:string}) {
             </div>
             <div className="iu-fas-package-board">
               <article className="iu-fas-package-main">
-                <Badge tone={mainActDocument ? (mainActDocument.signed || isSignedContainerDocument(mainActDocument) ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
+                <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
                 <strong>{mainActDocument?.name || 'Da selezionare'}</strong>
                 <span>{mainActDocument ? [mainActDocument.type, packageDocumentSignatureLabel(mainActDocument), mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
-                {mainActDocument && !mainActDocument.signed && !isSignedContainerDocument(mainActDocument) ? <small>Firma prevista nel comando finale.</small> : null}
+                {mainActDocument && !mainActDocument.signed ? <small>Firma prevista nel comando finale.</small> : null}
               </article>
               <article>
                 <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
@@ -3898,7 +4059,6 @@ function DepositPreparePage({ id }:{id:string}) {
                       <span>{[proofLabel, doc.type, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
                     {willSign ? <small>Firma nel comando busta</small> : null}
-                    {!doc.signed && isSignedContainerDocument(doc) ? <small>File .p7m presente: non viene rifirmato</small> : null}
                   </article>
                 )
               })}
@@ -3971,7 +4131,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked}
                 disabledReason={actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
                 tone="primary"
                 confirm={
                   signatureBatchRequired
@@ -3982,6 +4142,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 onDone={refreshDetail}
                 onError={failDetail}
                 onPackageReady={handlePackageReady}
+                completeLocalSignature={completeDepositLocalSignature}
               >
                 <FileArchive size={15}/> {signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio reale'}
               </DepositActionButton>
@@ -3991,7 +4152,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked}
                 disabledReason={actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
                 progressLabel="Simulazione PEC in corso"
                 tone="secondary"
                 confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software prepara Atto.enc, controlla corpo e destinatario, confronta la prova con i campioni reali e registra solo una prova senza invio."
@@ -3999,6 +4160,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 onDone={refreshDetail}
                 onError={failDetail}
                 onPackageReady={handlePackageReady}
+                completeLocalSignature={completeDepositLocalSignature}
               >
                 <Mail size={15}/> Simula invio PEC
               </DepositActionButton>
@@ -4008,7 +4170,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked || !packagePreview?.packageReady || !realSendAvailable}
                 disabledReason={realSendDisabledReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
                 progressLabel="Invio deposito in corso"
                 tone="secondary"
                 confirm="Inviare realmente il deposito con la PEC configurata? Usa questo comando solo dopo avere controllato indice, destinatario, oggetto, testo PEC e documenti della prova."
@@ -4016,6 +4178,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 onDone={refreshDetail}
                 onError={failDetail}
                 onPackageReady={handlePackageReady}
+                completeLocalSignature={completeDepositLocalSignature}
                 completeLocalPec={completeDepositLocalPec}
               >
                 <Send size={15}/> Invia deposito reale
@@ -4285,7 +4448,7 @@ function DepositBatchSignaturePanel({
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const signableDocuments = documents.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc))
+  const signableDocuments = documents.filter((doc) => !doc.signed && requiresPackageSignature(doc))
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
@@ -4358,9 +4521,9 @@ function DepositBatchSignaturePanel({
   }
 
   const signAll = async () => {
-    const targetDocuments = documents.filter((doc) => !doc.signed && !isSignedContainerDocument(doc) && requiresPackageSignature(doc))
+    const targetDocuments = documents.filter((doc) => !doc.signed && requiresPackageSignature(doc))
     if (!targetDocuments.length) {
-      const message = 'Nessun documento da firmare: i file già firmati o i contenitori .p7m non vengono rifirmati.'
+      const message = 'Nessun documento da firmare: tutti i documenti selezionati hanno già una firma digitale verificata.'
       setMessage(message)
       onDone(message)
       return
@@ -4806,30 +4969,32 @@ function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: 
   return /(atto principale|codice oggetto|catalogo ufficiale|ufficio|registro|rg|documento selezionato|file|percorso|hash|datiatto|xml|schema|busta|indice|pdf\/?a|dimensione|slot|obbligator)/.test(text)
 }
 
-function isSignedContainerName(value: string): boolean {
-  return /\.(p7m|sig|pkcs7)$/i.test(String(value || '').trim().split(/[?#]/)[0])
-}
-
-function isSignedContainerDocument(doc: FascicoloDocument): boolean {
-  return [doc.name, doc.portalName, doc.actions?.download || ''].some((value) => isSignedContainerName(value))
-}
-
 function requiresPackageSignature(doc: FascicoloDocument): boolean {
-  if (isSignedContainerDocument(doc)) return false
   const proofKind = notificationProofKind(doc)
   if (proofKind && proofKind !== 'relata') return false
   return !doc.signed
 }
 
+function documentHasSignedContainerExtension(doc: FascicoloDocument | undefined): boolean {
+  return Boolean(doc?.name && /\.(p7m|sig|pkcs7)$/i.test(doc.name.trim()))
+}
+
+function documentExplicitlyRequiresSignature(doc: FascicoloDocument | undefined): boolean {
+  if (!doc) return false
+  const text = normaliseText(`${doc.name} ${doc.type} ${doc.statusLabel} ${doc.tags.join(' ')}`)
+  return documentHasSignedContainerExtension(doc)
+    || /(da firmare|firma richiesta|firma obbligatoria|non firmato|senza firma)/.test(text)
+}
+
 function packageDocumentSignatureLabel(doc: FascicoloDocument): string {
   if (doc.signed) return 'Firmato'
-  if (isSignedContainerDocument(doc)) return 'Contenitore .p7m'
+  if (documentExplicitlyRequiresSignature(doc)) return 'Da firmare'
   return doc.statusLabel || 'Firma non necessaria'
 }
 
 function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefined, role: DepositDocumentRole): boolean {
   if (!doc || doc.signed || !requiresPackageSignature(doc)) return false
-  return role === 'atto_principale' || role === 'procura'
+  return role === 'atto_principale' || role === 'procura' || documentExplicitlyRequiresSignature(doc)
 }
 
 function buildDepositPecBody(documenti: string[]): string {
@@ -5496,6 +5661,52 @@ function base64ToUint8Array(value: string): Uint8Array {
   return bytes
 }
 
+const CMS_ENVELOPED_DATA_OID = [0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x03]
+
+function bytesIncludeSequence(bytes: Uint8Array, sequence: number[], limit = bytes.length): boolean {
+  const end = Math.min(bytes.length, limit)
+  if (!sequence.length || end < sequence.length) return false
+  for (let index = 0; index <= end - sequence.length; index += 1) {
+    let ok = true
+    for (let offset = 0; offset < sequence.length; offset += 1) {
+      if (bytes[index + offset] !== sequence[offset]) {
+        ok = false
+        break
+      }
+    }
+    if (ok) return true
+  }
+  return false
+}
+
+function looksLikeCmsEnvelopedData(bytes: Uint8Array): boolean {
+  return bytes.length > 128 && bytes[0] === 0x30 && bytesIncludeSequence(bytes, CMS_ENVELOPED_DATA_OID, 512)
+}
+
+function assertLocalPecAttoEncBase64(localPayload: Record<string, unknown>): void {
+  const attachments = Array.isArray(localPayload.attachments) ? localPayload.attachments : []
+  const attoEnc = attachments.find((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+    return recordText(item as Record<string, unknown>, 'filename').toLowerCase() === 'atto.enc'
+  })
+  if (!attoEnc || typeof attoEnc !== 'object' || Array.isArray(attoEnc)) {
+    throw new Error('Allegato Atto.enc mancante nel payload Local Signer. Rigenera la prova deposito prima dell’invio reale.')
+  }
+  const contentBase64 = recordText(attoEnc as Record<string, unknown>, 'content_base64').trim()
+  if (!contentBase64) {
+    throw new Error('Allegato Atto.enc non contiene il payload base64. Rigenera la prova deposito prima dell’invio reale.')
+  }
+  let decoded: Uint8Array
+  try {
+    decoded = base64ToUint8Array(contentBase64)
+  } catch {
+    throw new Error('Allegato Atto.enc non è base64 valido. Rigenera la prova deposito prima dell’invio reale.')
+  }
+  if (!decoded.length || !looksLikeCmsEnvelopedData(decoded)) {
+    throw new Error('Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido. Rigenera la busta prima dell’invio reale.')
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -5759,7 +5970,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token PKCS#11 disponibile.'
       : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
   const signatureCount = info?.firme?.length || 0
-  const alreadySigned = Boolean(doc?.signed || signatureCount > 0 || doc?.name.toLowerCase().match(/\.(p7m|sig|pkcs7)$/))
+  const alreadySigned = Boolean(doc?.signed || signatureCount > 0)
   const setVisibleSignatureChoice = (mode: VisibleSignatureMode) => {
     const normalized = normalizeVisibleSignatureMode(mode)
     setVisibleSignatureMode(normalized)

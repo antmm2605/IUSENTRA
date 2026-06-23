@@ -17,8 +17,11 @@ import sys
 import zipfile
 from xml.etree import ElementTree as ET
 
+from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
+
 
 INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
+INDICE_BUSTA_FILENAME = "IndiceBusta.xml"
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,7 @@ class EvidenceAttachment:
     content_type: str
     size: int
     sha256: str
+    cms_enveloped_data: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -36,6 +40,7 @@ class EvidenceAttachment:
             "content_type": self.content_type,
             "size": self.size,
             "sha256": self.sha256,
+            "cms_enveloped_data": self.cms_enveloped_data,
         }
 
 
@@ -75,8 +80,10 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
         "document_names_from_xml": [],
         "has_dati_atto_xml": False,
         "has_dati_atto_signed": False,
+        "has_indice_busta_xml": False,
         "has_indice_documenti": False,
         "has_atto_enc_inside": False,
+        "atto_enc_cms_enveloped_data": False,
     }
     try:
         with zipfile.ZipFile(package_path, "r") as zf:
@@ -85,6 +92,7 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             result["entries"] = names
             result["has_dati_atto_xml"] = "DatiAtto.xml" in names
             result["has_dati_atto_signed"] = any(name.lower() == "datiatto.xml.p7m" for name in names)
+            result["has_indice_busta_xml"] = INDICE_BUSTA_FILENAME in names
             result["has_indice_documenti"] = INDICE_DOCUMENTI_FILENAME in names
             result["has_atto_enc_inside"] = any(Path(name).name.lower() == "atto.enc" for name in names)
             if "DatiAtto.xml" in names:
@@ -106,8 +114,12 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             result["entries"] = entries
             result["has_dati_atto_xml"] = "DatiAtto.xml" in attachments
             result["has_dati_atto_signed"] = any(name.lower() == "datiatto.xml.p7m" for name in entries)
+            result["has_indice_busta_xml"] = INDICE_BUSTA_FILENAME in attachments
             result["has_indice_documenti"] = INDICE_DOCUMENTI_FILENAME in attachments
             result["has_atto_enc_inside"] = result["is_atto_enc"]
+            result["atto_enc_cms_enveloped_data"] = bool(
+                result["is_atto_enc"] and is_atto_enc_cms_enveloped_data(package_bytes)
+            )
             if "DatiAtto.xml" in attachments:
                 result["document_names_from_xml"] = _parse_xml_document_names(attachments["DatiAtto.xml"])
     return result
@@ -134,6 +146,7 @@ def _parse_evidence_file(path: Path) -> list[EvidenceAttachment]:
                     content_type=part.get_content_type(),
                     size=len(content),
                     sha256=_sha256(content),
+                    cms_enveloped_data=name.lower() == "atto.enc" and is_atto_enc_cms_enveloped_data(content),
                 )
             )
     if attachments:
@@ -145,6 +158,7 @@ def _parse_evidence_file(path: Path) -> list[EvidenceAttachment]:
             content_type="application/octet-stream",
             size=len(payload),
             sha256=_sha256(payload),
+            cms_enveloped_data=path.name.lower() == "atto.enc" and is_atto_enc_cms_enveloped_data(payload),
         )
     ]
 
@@ -161,6 +175,7 @@ def inspect_evidence(paths: list[Path]) -> dict[str, object]:
         "attachments": [item.to_dict() for item in attachments],
         "attachment_names": names,
         "has_real_atto_enc": any(name == "atto.enc" for name in lower_names),
+        "has_real_atto_enc_cms": any(item.name.lower() == "atto.enc" and item.cms_enveloped_data for item in attachments),
         "has_copy_dati_atto": any(name in {"datiatto.xml", "datiatto.xml.p7m"} for name in lower_names),
         "has_copy_indice": any(name == INDICE_DOCUMENTI_FILENAME.lower() for name in lower_names),
         "has_notification_receipts": any(
@@ -176,7 +191,8 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     generated_names = {Path(str(name)).name.lower() for name in entries}
 
     control_matches = bool(
-        generated.get("has_dati_atto_xml")
+        (generated.get("has_dati_atto_xml") or generated.get("has_dati_atto_signed"))
+        and generated.get("has_indice_busta_xml")
         and generated.get("has_indice_documenti")
         and evidence.get("has_copy_dati_atto")
         and evidence.get("has_copy_indice")
@@ -184,7 +200,8 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     real_transport_matches = bool(
         generated.get("is_atto_enc")
         and generated.get("has_atto_enc_inside")
-        and evidence.get("has_real_atto_enc")
+        and generated.get("atto_enc_cms_enveloped_data")
+        and evidence.get("has_real_atto_enc_cms")
         and not generated.get("is_zip_package")
     )
     differences: list[dict[str, str]] = []
@@ -213,6 +230,15 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
                 "code": "INDICE_MISSING",
                 "message": "IndiceDocumentiDepositati.PDF non presente nel pacchetto generato.",
                 "action": "Rigenerare la busta includendo l'indice documenti.",
+            }
+        )
+    if INDICE_BUSTA_FILENAME.lower() not in generated_names:
+        differences.append(
+            {
+                "level": "block_control",
+                "code": "INDICE_BUSTA_XML_MISSING",
+                "message": "IndiceBusta.xml ministeriale non presente nel pacchetto generato.",
+                "action": "Rigenerare Atto.msg includendo IndiceBusta.xml prima della cifratura in Atto.enc.",
             }
         )
 

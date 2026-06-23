@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
@@ -39,6 +40,11 @@ def build_local_pec_payload(
         raise ValueError("Allegato PEC non disponibile.")
     # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e radici runtime consentite.
     filename = attachment_name or path.name
+    attachment_bytes = path.read_bytes()
+    if filename.lower() == "atto.enc" and not is_atto_enc_cms_enveloped_data(attachment_bytes):
+        raise ValueError(
+            "Allegato Atto.enc non conforme: il file non è un CMS EnvelopedData ministeriale valido."
+        )
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     attachment = {
         "filename": filename,
@@ -46,7 +52,7 @@ def build_local_pec_payload(
         "size_bytes": path.stat().st_size,
     }
     if include_attachment_content:
-        attachment["content_base64"] = base64.b64encode(path.read_bytes()).decode("ascii")
+        attachment["content_base64"] = base64.b64encode(attachment_bytes).decode("ascii")
     smtp_port = int(getattr(pec_cfg, "smtp_port", 465) or 465)
     use_ssl = bool(getattr(pec_cfg, "use_ssl", smtp_port == 465))
     use_tls = bool(getattr(pec_cfg, "use_tls", not use_ssl))

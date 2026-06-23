@@ -18,6 +18,7 @@ from pct.deposito import DepositoCivile
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.firma import FirmaDigitale, busta_cades_valida, crea_signer_da_config
 from pct.pec import ConfigPEC
+from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
 from pct.pst_cifratura import PSTCifraturaError
 from web.app import create_app
 
@@ -36,7 +37,7 @@ def _pdf_base(pdfa_part: str = "2", pdfa_conf: str = "B") -> bytes:
     return b"%PDF-1.4\n" + xmp + b"\n%%EOF"
 
 
-def _cades_signed_pdf() -> bytes:
+def _cades_signed_payload(documento: bytes) -> bytes:
     from datetime import UTC, datetime, timedelta
 
     from cryptography import x509
@@ -61,7 +62,6 @@ def _cades_signed_pdf() -> bytes:
         .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(key, hashes.SHA256())
     )
-    documento = _pdf_base()
     signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento)
     signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
     return _build_cades_bes(
@@ -71,6 +71,53 @@ def _cades_signed_pdf() -> bytes:
         signed_attrs_der=signed_attrs,
         detached=False,
     )
+
+
+def _cades_signed_pdf() -> bytes:
+    return _cades_signed_payload(_pdf_base())
+
+
+def _atto_enc_cms_payload(target_dir: Path) -> bytes:
+    from pct.pst_cifratura import (
+        carica_certificato_cifratura,
+        cifra_atto_msg_aes256,
+        crea_certificato_cifratura_test,
+    )
+
+    info = crea_certificato_cifratura_test(target_dir / "certificato-cms-test.cer")
+    cert = carica_certificato_cifratura(info.path)
+    return cifra_atto_msg_aes256(
+        b"Atto.msg test IUSENTRA con IndiceBusta.xml e DatiAtto.xml.p7m",
+        cert,
+    )
+
+
+def _post_deposito_con_dati_atto_firmato(client, url: str, data: dict) -> tuple[object, dict]:
+    first = client.post(
+        url,
+        data=data,
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+    assert first.status_code == 200, first.get_data(as_text=True)
+    first_payload = first.get_json()
+    assert first_payload["requires_local_signature"] is True
+    local_signature = first_payload["local_signature"]
+    dati_atto_xml = base64.b64decode(local_signature["payload"]["documento"], validate=True)
+    signed_b64 = base64.b64encode(_cades_signed_payload(dati_atto_xml)).decode("ascii")
+    signed_data = {
+        **data,
+        "busta_id": first_payload["busta_id"],
+        "busta_timestamp": first_payload["busta_timestamp"],
+        "dati_atto_sha256": first_payload["dati_atto_sha256"],
+        "dati_atto_signature_confirmed": "1",
+        "dati_atto_firmato_b64": signed_b64,
+    }
+    second = client.post(
+        url,
+        data=signed_data,
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+    return second, first_payload
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -1333,7 +1380,7 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
         archive_dir=cfg["FASCICOLI_ARCH"],
     )
     fascicolo = gf.nuovo(
-        titolo="Memoria civile",
+        titolo="Ricorso civile",
         tipo=TipoFascicolo.CIVILE,
         tribunale="Tribunale di Test",
         numero_rg="123",
@@ -1418,17 +1465,23 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
         },
     )
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -1479,9 +1532,11 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
             data={"username": "pec-simulazione-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {
                 "tipo_atto": "MEMORIA",
                 "codice_registro": "RG",
                 "codice_oggetto_pst": "014001",
@@ -1491,7 +1546,6 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
                 "atto_principale_id": atto.id,
                 "simula_invio_pec": "1",
             },
-            headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
     assert response.status_code == 200, response.get_data(as_text=True)
@@ -1540,17 +1594,23 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
         },
     )
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -1589,7 +1649,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
         archive_dir=cfg["FASCICOLI_ARCH"],
     )
     fascicolo = gf.nuovo(
-        titolo="Ricorso civile",
+        titolo="Memoria civile",
         tipo=TipoFascicolo.CIVILE,
         tribunale="Tribunale di Test",
         numero_rg="123",
@@ -1642,15 +1702,16 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
             data={"username": "pec-reale-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        simulation_response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={**request_data, "simula_invio_pec": "1"},
-            headers={"X-Requested-With": "XMLHttpRequest"},
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        simulation_response, _simulation_signature = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {**request_data, "simula_invio_pec": "1"},
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data=request_data,
-            headers={"X-Requested-With": "XMLHttpRequest"},
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            request_data,
         )
 
     assert simulation_response.status_code == 200, simulation_response.get_data(as_text=True)
@@ -1666,13 +1727,105 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     local_payload = payload["local_pec"]["payload"]
     attachment = local_payload["attachments"][0]
     assert attachment["filename"] == "Atto.enc"
-    assert base64.b64decode(attachment["content_base64"], validate=True) == b"ATTO-ENC-CONFORME"
+    assert is_atto_enc_cms_enveloped_data(base64.b64decode(attachment["content_base64"], validate=True))
     assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
     assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
     assert "Procura.PDF.p7m" in payload["corpo_pec"]
     assert "Autocertificazione ricorso.PDF" not in payload["corpo_pec"]
     corpo_check = next(item for item in payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC")
     assert corpo_check["status"] == "ok"
+
+
+def test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-datiatto-mismatch-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "Memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    request_data = {
+        "tipo_atto": "MEMORIA",
+        "codice_registro": "RG",
+        "codice_oggetto_pst": "014001",
+        "oggetto": "Memoria civile",
+        "numero_rg": "123",
+        "anno_rg": "2026",
+        "atto_principale_id": atto.id,
+        "simula_invio_pec": "1",
+    }
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-datiatto-mismatch-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        first = client.post(
+            url,
+            data=request_data,
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        assert first.status_code == 200, first.get_data(as_text=True)
+        first_payload = first.get_json()
+        assert first_payload["requires_local_signature"] is True
+        wrong_signed = _cades_signed_payload(b"<DatiAtto>diverso</DatiAtto>")
+        second = client.post(
+            url,
+            data={
+                **request_data,
+                "busta_id": first_payload["busta_id"],
+                "busta_timestamp": first_payload["busta_timestamp"],
+                "dati_atto_sha256": first_payload["dati_atto_sha256"],
+                "dati_atto_firmato_b64": base64.b64encode(wrong_signed).decode("ascii"),
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert second.status_code == 400
+    payload = second.get_json()
+    assert payload["ok"] is False
+    assert "non contiene il DatiAtto.xml generato" in payload["errore"]
 
 
 def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(tmp_path, monkeypatch):
@@ -1739,9 +1892,11 @@ def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(t
             data={"username": "pec-simulazione-guidata-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {
                 "tipo_atto": "MEMORIA",
                 "codice_registro": "RG",
                 "codice_oggetto_pst": "014001",
@@ -1751,7 +1906,6 @@ def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(t
                 "atto_principale_id": atto.id,
                 "simula_invio_pec": "1",
             },
-            headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
     assert response.status_code == 200, response.get_data(as_text=True)
@@ -1760,7 +1914,7 @@ def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(t
     assert payload["requires_guided_completion"] is True
     assert payload["package_ready"] is True
     assert payload["pec_dest"] == "tribunale.test@civile.ptel.giustiziacert.it"
-    assert payload["local_pec"]["payload"]["to"] == "tribunale.test@civile.ptel.giustiziacert.it"
+    assert "local_pec" not in payload
     assert payload["pec_sender_ready"] is False
     assert "Atto.enc" in payload["message"]
     assert any(".cer" in action or "Atto.enc" in action for action in payload["next_actions"])
@@ -1787,17 +1941,23 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
         },
     )
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -1859,9 +2019,11 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
             data={"username": "pec-prova-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {
                 "tipo_atto": "MEMORIA",
                 "codice_registro": "RG",
                 "codice_oggetto_pst": "014001",
@@ -1871,7 +2033,6 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
                 "atto_principale_id": atto.id,
                 "prova_senza_invio": "1",
             },
-            headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
     assert response.status_code == 200, response.get_data(as_text=True)
@@ -1879,7 +2040,7 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
     assert payload["ok"] is False
     assert payload["requires_local_pec"] is True
     assert payload["package_ready"] is True
-    assert payload["pec_dest"] == "ufficio@example.pec.it"
+    assert payload["pec_dest"] == "tribunale.test@civile.ptel.giustiziacert.it"
     assert payload["local_pec"]["payload"]["smtp_host"] == "smtp.example.pec.it"
     assert "Nessun invio PEC reale" in payload["messaggio"]
 
@@ -1911,17 +2072,23 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
 
     monkeypatch.setattr("pct.pec.ClientPEC", ExplodingClientPEC)
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -1984,9 +2151,11 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
             data={"username": "pec-local-signer-only-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {
                 "tipo_atto": "MEMORIA",
                 "codice_registro": "RG",
                 "codice_oggetto_pst": "014001",
@@ -1996,7 +2165,6 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
                 "atto_principale_id": atto.id,
                 "corpo_pec": corpo_pec,
             },
-            headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
     assert response.status_code == 200, response.get_data(as_text=True)
@@ -2004,12 +2172,13 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
     assert payload["ok"] is False
     assert payload["requires_local_pec"] is True
     assert payload["package_ready"] is True
-    assert payload["pec_dest"] == "ufficio@example.pec.it"
-    assert payload["corpo_pec"] == corpo_pec
+    assert payload["pec_dest"] == "tribunale.test@civile.ptel.giustiziacert.it"
+    assert "Atto.enc" in payload["corpo_pec"]
+    assert "Il file Atto.enc contiene i seguenti documenti" in payload["corpo_pec"]
     assert payload["local_pec"]["channel"] == "local_signer"
     assert payload["local_pec"]["endpoint"] == "http://127.0.0.1:27272/pec/send"
     assert payload["local_pec"]["payload"]["smtp_host"] == "smtp.example.pec.it"
-    assert payload["local_pec"]["payload"]["to"] == "ufficio@example.pec.it"
+    assert payload["local_pec"]["payload"]["to"] == "tribunale.test@civile.ptel.giustiziacert.it"
 
     gf_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -2033,17 +2202,23 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
         },
     )
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -2126,7 +2301,7 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
     assert payload["requires_local_pec"] is True
     assert payload["local_pec"]["channel"] == "local_signer"
     assert payload["local_pec"]["payload"]["smtp_host"] == "smtp.example.pec.it"
-    assert payload["local_pec"]["payload"]["to"] == "ufficio@example.pec.it"
+    assert payload["local_pec"]["payload"]["to"] == "tribunale.test@civile.ptel.giustiziacert.it"
 
     gf_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -2150,17 +2325,23 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
         },
     )
 
-    def fake_crea_busta(self, output_dir):
+    def fake_crea_busta(self, output_dir, *args, **kwargs):
         path = Path(output_dir)
         path.mkdir(parents=True, exist_ok=True)
         enc = path / "Atto.enc"
-        enc.write_bytes(b"ATTO-ENC-CONFORME")
+        enc.write_bytes(_atto_enc_cms_payload(path))
         self._last_transport_audit = {
             "transport_mode": "atto_enc_aes256",
             "required_encryption_algorithm": "AES256",
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "dati_atto_signed": True,
+            "dati_atto_filename": "DatiAtto.xml.p7m",
+            "indice_busta_generated": True,
+            "indice_busta_filename": "IndiceBusta.xml",
+            "indice_documenti_generated": True,
+            "indice_documenti_filename": "IndiceDocumentiDepositati.PDF",
             "guided_next_actions": [],
         }
         return str(enc)
@@ -2211,9 +2392,11 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
             data={"username": "pec-preview-admin", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post(
-            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
-            data={
+        url = f"/fascicoli/{fascicolo.id}/deposito/invia-pec"
+        response, _signature_payload = _post_deposito_con_dati_atto_firmato(
+            client,
+            url,
+            {
                 "tipo_atto": "MEMORIA",
                 "codice_registro": "RG",
                 "codice_oggetto_pst": "014001",
@@ -2223,7 +2406,6 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
                 "atto_principale_id": atto.id,
                 "prova_senza_invio": "1",
             },
-            headers={"X-Requested-With": "XMLHttpRequest"},
         )
 
     assert response.status_code == 200, response.get_data(as_text=True)

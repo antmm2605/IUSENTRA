@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Deposito PCT Atto.enc CMS, IndiceBusta e DatiAtto firmato 2.253.97 - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -X utf8 -m py_compile pct\atto_enc_validation.py pct\busta.py pct\deposito_compatibilita.py scripts\audit_deposito_server_dry_run.py web\services\local_pec_runtime.py web\bootstrap\deposito_routes.py local_signer_mod\pec_bridge.py tools\dist\local_signer_mod\pec_bridge.py` | OK | Sintassi confermata per validazione CMS `Atto.enc`, busta PCT, dry-run server, route deposito React e ponte PEC locale. |
+| `python -X utf8 -m pytest tests\test_local_pec_runtime.py tests\test_local_pec_bridge.py tests\test_regia_ui_react.py -q --tb=short` | OK | `13/13` passati: `Atto.enc` non CMS viene bloccato anche nel runtime PEC locale e nel bridge Local Signer; guardrail React aggiornati. |
+| `python -X utf8 -m pytest tests\test_busta.py tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `19/19` passati: `Atto.msg` contiene `IndiceBusta.xml`, `DatiAtto.xml.p7m`, indice PDF e audit `Atto.enc` CMS. |
+| `python -X utf8 -m pytest tests\test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests\test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests\test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests\test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests\test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente -q --tb=short` | OK | `7/7` passati: la route richiede firma locale di `DatiAtto.xml`, rifiuta metadati firmati su busta diversa e mantiene invio PEC demandato al PC locale. |
+| `pnpm --filter @iusentra/studio build`; `pnpm --dir frontend run test`; `python -m pytest tests/test_react_asset_retention.py -q --tb=short` | OK | Build Vite/React, test frontend e retention asset hashati passati dopo la nuova UI di firma metadato e validazione `Atto.enc`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale aggiornata; `/api/pronto` risponde `ok=true`, `versione=2.253.97`; `app`, `scheduler-worker` e `ocr-worker` healthy. |
+| Browser integrato reale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` | OK osservato come blocco corretto | Click reale su `Simula invio PEC`: la UI non procede a un falso invio e blocca prima della password PEC perché il token fisico non è pronto, con messaggio visibile `Token non pronto per la firma`. Screenshot fuori repository: `C:/Users/antmm/AppData/Local/Temp/iusentra-225397-deposito-token-block-locale.png`. |
+
 ## PEC presidiate e presidio documentale Lex - 2026-06-20
 
 | Comando / verifica | Esito | Nota |
@@ -5485,6 +5497,15 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build --no-cache app`; `docker compose up -d --force-recreate app nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale aggiornata su porta `8080`; `/api/pronto` risponde `versione=2.253.95`, container `app` healthy e Nginx riavviato. |
 | Browser integrato visibile su `http://127.0.0.1:8080/fatturazione` | OK osservato | Route autenticata full React con `#root`, 12 card compatte operative, click su `Bonifico registrato` e `Parcella emessa` collegati ai select reali, `Azzera filtri`, anchor `Numerazione`, link `Nuova parcella`, focus visibile sui filtri, console senza errori. Desktop senza overflow. |
 | Browser integrato mobile `390x844` su `http://127.0.0.1:8080/fatturazione` | OK osservato | Card in colonna singola, filtri visibili, click `Bonifico registrato` imposta il select a `Sì`, focus search con bordo/ombra visibile, `scrollWidth=375` e `clientWidth=375`, console senza errori. |
+## Deposito PCT IndiceBusta e DatiAtto firmato - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_busta.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests/test_deposito.py::test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente -q` | OK | 22/22 passati: Atto.msg contiene `IndiceBusta.xml`, `DatiAtto.xml.p7m` viene usato nella busta, la route richiede firma metadato e rifiuta `.p7m` valido ma generato su XML diverso. |
+| `python -m pytest tests/test_deposito.py tests/test_busta.py tests/test_deposito_server_dry_run_audit.py tests/test_profilo_deposito.py -q` | OK | 56/56 passati: deposito, profilo deposito, busta e dry-run server coerenti dopo la firma del metadato ministeriale. |
+| `python -m pytest tests/test_deposito_server_dry_run_audit.py tests/test_regia_ui_react.py -q` | OK | 9/9 passati: guardrail React aggiornati con `DatiAtto.xml.p7m` e `IndiceBusta.xml` nella progress bar. |
+| `pnpm --dir frontend run build`; `pnpm --dir frontend run test` | OK | TypeScript/build Vite e contratti React/frontend verdi dopo l'handshake Local Signer per `DatiAtto.xml`. |
+
 ## Deposito reale Atto.enc base64 e corpo PEC 2.253.96 - 2026-06-23
 
 | Comando / verifica | Esito | Nota |

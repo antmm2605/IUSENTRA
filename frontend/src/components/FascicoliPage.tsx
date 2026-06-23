@@ -632,6 +632,7 @@ function DepositActionButton({
   if (!action) return null
   const handleJsonResult = async (result: ActionPayload, submittedPayload: DepositActionPayload, responseOk = true) => {
     if (result.requires_local_signature && completeLocalSignature) {
+      setConfirming(false)
       const completion = await completeLocalSignature(result, submittedPayload)
       return handleJsonResult(completion.payload, completion.submittedPayload, true)
     }

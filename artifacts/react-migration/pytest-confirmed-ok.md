@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Deposito simulazione PEC e firma DatiAtto 2.253.101 - 2026-06-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q --tb=short` | OK | Guardrail React: quando la route chiede `requires_local_signature`, il modal di conferma della simulazione si chiude prima della firma locale di `DatiAtto.xml`; il modal PIN si chiude prima della chiamata al Local Signer. |
+| `python -m pytest tests/test_deposito_guidato.py::test_orchestratore_blocca_atto_principale_p7m_non_cades_senza_prova_tecnica tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_reale_senza_flag_storico tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_cifrato_a_riposo -q --tb=short` | OK | Validator orchestratore: blocca `.p7m` non CAdES, accetta CAdES reale e accetta CAdES cifrato a riposo solo dopo decifratura. |
+| `python -m pytest tests/test_regia_api_payloads.py -q --tb=short` | OK | Payload React deposito/fascicoli confermato: nessun ritorno a flag storico per mostrare `Firmato`. |
+| `python -m pytest tests/test_deposito.py tests/test_busta.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | Busta/PEC mirate: `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `Atto.enc`, simulazione senza invio e invio PEC sempre demandato al PC locale. |
+| `pnpm --filter @iusentra/studio build` | OK | Bundle React rigenerato con `FascicoliPage` aggiornato. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py tests/test_react_asset_retention.py -q --tb=short`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\check_repo_governance.py`; `git diff --check` | OK | Packaging, release, UTF-8, asset React, OpenAPI e governance allineati; `git diff --check` ha mostrato solo avvisi CRLF, nessun errore. |
+
 ## Deposito PCT Atto.enc CMS, IndiceBusta e DatiAtto firmato 2.253.97 - 2026-06-23
 
 | Comando / verifica | Esito | Nota |

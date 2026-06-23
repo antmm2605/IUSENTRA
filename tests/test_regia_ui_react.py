@@ -176,6 +176,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "iu-fas-package-progress__ticker" in action_button
     assert "const pctJsonPackageChannel" in deposit_page
     assert "const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction" in deposit_page
+    assert "result.requires_local_signature && completeLocalSignature" in action_button
+    assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
+    assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
     assert "result.requires_local_pec && completeLocalPec" in action_button
     assert "setConfirming(false)\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
     assert "await completeLocalPec(result, submittedPayload)" in action_button

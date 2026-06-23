@@ -2209,3 +2209,20 @@ Stato tecnico prima del deploy:
 - test busta/PEC mirati verdi;
 - versione portata a `2.253.100`;
 - prova visiva produzione da ripetere dopo deploy, con chiusura del vecchio alert e nuova simulazione sul fascicolo `F08F92A2`.
+
+## Deposito simulazione PEC e firma DatiAtto senza modali sovrapposte 2.253.101 - 2026-06-23
+
+Difetto reale visto nella prova produzione `2.253.100`: il vecchio blocco `Atto principale non firmato digitalmente` non compariva più, quindi il validator CAdES cifrato era corretto. La UI però manteneva ancora aperto il modal di conferma della simulazione (`Operazione...`) mentre richiedeva il PIN per firmare `DatiAtto.xml`, creando due stati visivi sovrapposti e impedendo una prova chiara del confezionamento.
+
+Correzione applicata:
+
+- quando la route restituisce `requires_local_signature`, il componente React `DepositActionButton` chiude subito la conferma iniziale prima di aprire il passaggio Local Signer;
+- la progress bar del pacchetto resta attiva e continua a mostrare i file in lavorazione (`DatiAtto.xml`, `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF`, documenti e `Atto.enc`);
+- il modal PIN di `DatiAtto.xml` continua a chiudersi prima della chiamata al Local Signer e non salva il PIN;
+- non sono state cambiate le regole di firma dei documenti: gli allegati non diventano obbligatori per effetto del vecchio testo `Da firmare`, e `Firmato` resta ammesso solo con prova tecnica CAdES/PAdES.
+
+Stato tecnico prima del deploy:
+
+- guardrail React aggiornato per verificare che il modal di conferma si chiuda prima della firma locale di `DatiAtto.xml`;
+- versione portata a `2.253.101`;
+- prova visiva produzione da ripetere su `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara#generazione-busta`, verificando simulazione PEC, firma `DatiAtto.xml`, generazione `IndiceBusta.xml`/`Atto.enc` e assenza del vecchio alert sull'atto principale.

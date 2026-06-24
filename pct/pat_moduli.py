@@ -438,8 +438,26 @@ def suggest_pat_modules(*values: str, limit: int = 3) -> list[dict[str, Any]]:
 def build_pat_siga_payload() -> dict[str, Any]:
     """Payload JSON serializzabile per la superficie React PAT/SIGA."""
 
+    from pct.pat_xfa_schema import build_pat_xfa_schema_payload
+
     documents = [asdict(item) for item in OFFICIAL_DOCUMENTS]
-    modules = [asdict(item) for item in PAT_MODULES]
+    modules: list[dict[str, Any]] = []
+    for item in PAT_MODULES:
+        module = asdict(item)
+        module["xfa_schema"] = (
+            build_pat_xfa_schema_payload(item.id)
+            if item.id != "foglio_excel_parti"
+            else {
+                "moduleId": item.id,
+                "templateFile": "",
+                "rawFieldCount": len(item.fillable_fields),
+                "fieldCount": len(item.fillable_fields),
+                "actionCount": 0,
+                "repeatableGroups": [],
+                "sections": [],
+            }
+        )
+        modules.append(module)
     deposits = [asdict(item) for item in FORMWEB_DEPOSITS]
     steps = [asdict(item) for item in WORKFLOW_STEPS]
     return {

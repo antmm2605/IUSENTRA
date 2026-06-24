@@ -5,6 +5,7 @@ import io
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
 
@@ -40,6 +41,41 @@ def _xfa_template_text(pdf_bytes: bytes) -> str:
         if str(xfa[index]) == "template":
             return xfa[index + 1].get_object().get_data().decode("utf-8", errors="ignore")
     return ""
+
+
+def _xfa_template_root(pdf_bytes: bytes) -> ET.Element:
+    return ET.fromstring(_xfa_template_text(pdf_bytes))
+
+
+def _xfa_node_value(root: ET.Element, path: str) -> str:
+    from pct.pat_pdf_templates import _find_xfa_element, _local_name
+
+    element = _find_xfa_element(root, path)
+    if element is None:
+        return ""
+    for node in list(element):
+        if _local_name(node.tag) != "value":
+            continue
+        for child in node.iter():
+            if child is not node and child.text and child.text.strip():
+                return child.text.strip()
+    return ""
+
+
+def _xfa_radio_selected_values(root: ET.Element, path: str) -> list[str]:
+    from pct.pat_pdf_templates import _find_xfa_element, _local_name
+
+    element = _find_xfa_element(root, path)
+    if element is None:
+        return []
+    values: list[str] = []
+    for field in list(element):
+        if _local_name(field.tag) != "field":
+            continue
+        value = _xfa_node_value(root, f"{path}/{field.attrib.get('name')}")
+        if value:
+            values.append(value)
+    return values
 
 
 def _xfa_template_has_text(pdf_bytes: bytes, value: str) -> bool:
@@ -1513,6 +1549,11 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "Avvia SIGA" in pat_workspace_source
     assert "Documenti del fascicolo" in pat_workspace_source
     assert "Genera modulo ufficiale" in pat_workspace_source
+    assert "buildCurrentXfaValues" in pat_workspace_source
+    assert "activeModule?.xfaSchema.sections" in pat_workspace_source
+    assert "Aggiungi riga" in pat_workspace_source
+    assert "Rimuovi riga" in pat_workspace_source
+    assert "xfaValues: buildCurrentXfaValues()" in pat_workspace_source
     assert "documentSelectionLimit" in pat_workspace_source
     assert "docs.slice(0, documentSelectionLimit)" in pat_workspace_source
     assert "Limite Formweb raggiunto" in pat_workspace_source
@@ -1584,6 +1625,151 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert _xfa_template_has_text(response.data, "Zurich Ass.Ni")
     assert _xfa_template_has_text(response.data, "RSSMRA80A01H501U")
     assert not _embedded_file_names(response.data)
+
+
+def test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.post(
+        "/api/v1/ui/pat/moduli/compila",
+        headers={"X-API-Key": "react-test-key"},
+        json={
+            "moduleId": "deposito_atto",
+            "fields": {
+                "sede": "TAR LAZIO ROMA",
+                "parte_depositante": "Speranza Carmelina",
+                "codice_fiscale": "SPRCML74D66E041U",
+                "oggetto": "222050 - Retribuzione",
+                "nrg": "1480",
+                "anno_rg": "2026",
+                "tipologia_atto": "Istanza cautelare",
+                "descrizione_allegati": "primo.pdf; secondo.pdf",
+            },
+            "xfaValues": {
+                "template/ricorso/subform/selectSede": "TAR LAZIO ROMA",
+                "template/ricorso/subform/subFormRicorso/annoRicorso": "2026",
+                "template/ricorso/subform/subFormRicorso/numeroRicorso": "1480",
+                "template/ricorso/subform/tableAtti/rigaAtto[0]/tipoAtto": "Istanza cautelare",
+                "template/ricorso/subform/tableIndiceDocumenti/rigaDocumenti[0]/descrizione": "Documento prova 1",
+                "template/ricorso/subform/tableIndiceDocumenti/rigaDocumenti[0]/txtAllegatoIndice": "primo.pdf",
+                "template/ricorso/subform/tableIndiceDocumenti/rigaDocumenti[1]/descrizione": "Documento prova 2",
+                "template/ricorso/subform/tableIndiceDocumenti/rigaDocumenti[1]/txtAllegatoIndice": "secondo.pdf",
+                "template/ricorso/subform/checkBoxTutteLePartiDifese": "S",
+                "template/ricorso/subform/subFormRicorrente/rbTipoRicorrente": "fisica",
+                "template/ricorso/subform/tableRelazione/rigaRelazione[0]/subRelazione02/dateNotifica": "2026-06-20",
+                "template/ricorso/subform/tableRelazione/rigaRelazione[0]/subRelazione04/txtModalita": "PEC",
+                "template/ricorso/subform/tableRelazione/rigaRelazione[1]/subRelazione02/dateNotifica": "2026-06-21",
+                "template/ricorso/subform/tableRelazione/rigaRelazione[1]/subRelazione04/txtModalita": "UNEP",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert "ModuloDepositoAtto_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
+    xfa_xml = _xfa_template_text(response.data)
+    assert re.search(r'name="selectSede"[\s\S]{0,900}<value><text>tar_rm</text></value>', xfa_xml)
+    assert "Speranza" in xfa_xml
+    assert "Carmelina" in xfa_xml
+    assert "SPRCML74D66E041U" in xfa_xml
+    assert "222050 - Retribuzione" in xfa_xml
+    assert "1480" in xfa_xml
+    assert "2026" in xfa_xml
+    assert "Istanza cautelare" in xfa_xml
+    assert "Documento prova 1" in xfa_xml
+    assert "Documento prova 2" in xfa_xml
+    assert "primo.pdf" in xfa_xml
+    assert "secondo.pdf" in xfa_xml
+    assert "2026-06-20" in xfa_xml
+    assert "2026-06-21" in xfa_xml
+    assert "UNEP" in xfa_xml
+    assert xfa_xml.count('name="rigaDocumenti"') >= 2
+    assert xfa_xml.count('name="rigaRelazione"') >= 2
+
+
+def test_react_pat_moduli_ufficiali_scrivono_tutti_i_campi_xfa_operativi():
+    from pct.pat_moduli import build_pat_siga_payload
+    from pct.pat_pdf_templates import build_pat_official_pdf
+
+    def indexed_path(field: dict[str, object], row_index: int = 0) -> str:
+        path = str(field["path"])
+        group = str(field.get("repeatableGroup") or "")
+        if not group:
+            return path
+        return path.replace(group, f"{group}[{row_index}]", 1)
+
+    def sample_value(field: dict[str, object], index: int) -> str:
+        options = [
+            option for option in field.get("options", [])
+            if isinstance(option, dict) and str(option.get("value") or "").strip()
+        ]
+        if field["type"] in {"select", "checkbox"} and options:
+            if field.get("name") == "selectSede":
+                roma = next((option for option in options if option.get("value") == "tar_rm"), None)
+                return str((roma or options[-1])["value"])
+            return str(options[-1]["value"])
+        if field["type"] == "radio" and options:
+            return str(options[0]["value"])
+        if field["type"] == "date":
+            return f"2026-06-{(index % 20) + 1:02d}"
+        if field["type"] == "document":
+            return f"documento_pat_{index:03d}.pdf"
+        return f"VALORE_PAT_{index:03d}"
+
+    payload = build_pat_siga_payload()
+    modules = [module for module in payload["modules"] if module.get("xfa_schema", {}).get("templateFile")]
+
+    assert modules
+    for module in modules:
+        schema = module["xfa_schema"]
+        fields = [
+            field
+            for section in schema["sections"]
+            for field in section["fields"]
+            if not field.get("technical")
+        ]
+        xfa_values: dict[str, str] = {}
+        expected_values: dict[str, str] = {}
+        expected_radios: dict[str, set[str]] = {}
+        first_field_by_group: dict[str, dict[str, object]] = {}
+
+        for index, field in enumerate(fields, start=1):
+            path = indexed_path(field)
+            value = sample_value(field, index)
+            xfa_values[path] = value
+            if field["type"] == "radio":
+                option = next(option for option in field["options"] if option["value"] == value)
+                expected_radios[path] = {str(option.get("export") or value), value}
+            else:
+                expected_values[path] = value
+            if field.get("repeatableGroup") and field["repeatableGroup"] not in first_field_by_group:
+                first_field_by_group[str(field["repeatableGroup"])] = field
+
+        for clone_index, field in enumerate(first_field_by_group.values(), start=1):
+            path = indexed_path(field, 1)
+            value = sample_value(field, 500 + clone_index)
+            xfa_values[path] = value
+            if field["type"] == "radio":
+                option = next(option for option in field["options"] if option["value"] == value)
+                expected_radios[path] = {str(option.get("export") or value), value}
+            else:
+                expected_values[path] = value
+
+        pdf_buffer, output_name = build_pat_official_pdf(module["id"], {"xfaValues": xfa_values}, [])
+        root = _xfa_template_root(pdf_buffer.getvalue())
+
+        assert output_name.endswith("_compilato_iusentra.pdf")
+        assert len(fields) == schema["operationalFieldCount"], module["id"]
+        assert schema["fieldCount"] == schema["operationalFieldCount"] + schema["technicalFieldCount"], module["id"]
+
+        for path, expected in expected_values.items():
+            assert _xfa_node_value(root, path) == expected, (module["id"], path, expected)
+
+        for path, expected_set in expected_radios.items():
+            selected = _xfa_radio_selected_values(root, path)
+            assert len(selected) == 1, (module["id"], path, selected)
+            assert selected[0] in expected_set, (module["id"], path, selected, expected_set)
 
 
 def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: Path):

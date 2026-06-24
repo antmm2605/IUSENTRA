@@ -31,6 +31,8 @@ import {
   type OfficeRow,
   type PatProcedureField,
   type PatProcedureModule,
+  type PatXfaField,
+  type PatXfaSection,
   type SurfaceAction,
   type SurfaceCard,
   type TelematicoSurfaceData,
@@ -1265,6 +1267,8 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const [documentRoles, setDocumentRoles] = useState<Record<string, PatDocumentRole>>({})
   const [documentSignatureRequired, setDocumentSignatureRequired] = useState<Record<string, boolean>>({})
   const [draftValues, setDraftValues] = useState<Record<string, string>>({})
+  const [xfaValues, setXfaValues] = useState<Record<string, string>>({})
+  const [xfaRowCounts, setXfaRowCounts] = useState<Record<string, number>>({})
   const [prefillMatters, setPrefillMatters] = useState<PatPrefillMatter[]>([])
   const [prefillBusy, setPrefillBusy] = useState(false)
   const [prefillMessage, setPrefillMessage] = useState('')
@@ -1336,6 +1340,26 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     [requiredFields, draftValues],
   )
   const requiredCompletion = `${Math.max(0, requiredFields.length - missingRequiredFields.length)}/${requiredFields.length}`
+  const activeXfaSections = useMemo(
+    () => (activeModule?.xfaSchema.sections || []).filter((section) => section.fields.length || section.actions.length),
+    [activeModule],
+  )
+  const activeXfaBoundFieldIds = useMemo(() => {
+    const ids = new Set<string>()
+    activeXfaSections.forEach((section) => {
+      section.fields.forEach((field) => {
+        if (field.bindingFieldId) ids.add(field.bindingFieldId)
+      })
+    })
+    return ids
+  }, [activeXfaSections])
+  const unmappedModuleFields = useMemo(
+    () => (activeModule?.fillableFields || []).filter((field) => !activeXfaBoundFieldIds.has(field.id)),
+    [activeModule, activeXfaBoundFieldIds],
+  )
+  const activeXfaFieldCount = activeModule?.xfaSchema.fieldCount || activeModule?.fillableFields.length || 0
+  const activeXfaRawFieldCount = activeModule?.xfaSchema.rawFieldCount || activeXfaFieldCount
+  const activeXfaOperationalFieldCount = activeModule?.xfaSchema.operationalFieldCount || activeXfaFieldCount
 
   useEffect(() => {
     if (!procedure) return
@@ -1350,6 +1374,10 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         : procedure.formwebDeposits[0]?.moduleId || procedure.modules[0]?.id || ''
     ))
   }, [procedure])
+
+  useEffect(() => {
+    setXfaRowCounts({})
+  }, [activeModule?.id])
 
   useEffect(() => {
     if (!procedure) return
@@ -1442,6 +1470,48 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     setDraftValues((current) => ({ ...current, [fieldId]: value }))
   }
 
+  const xfaPathForField = (field: PatXfaField, rowIndex = 0) => {
+    if (!field.repeatableGroup) return field.path
+    return field.path.replace(field.repeatableGroup, `${field.repeatableGroup}[${rowIndex}]`)
+  }
+
+  const xfaValueForField = (field: PatXfaField, path = field.path) => (
+    field.bindingFieldId && (!field.repeatableGroup || path.includes('[0]'))
+      ? xfaValues[path] || draftValues[field.bindingFieldId] || ''
+      : xfaValues[path] || ''
+  )
+
+  const updateXfaField = (field: PatXfaField, path: string, value: string) => {
+    if (field.bindingFieldId && (!field.repeatableGroup || path.includes('[0]'))) updateDraftField(field.bindingFieldId, value)
+    setXfaValues((current) => ({ ...current, [path]: value }))
+  }
+
+  const xfaRowsForGroup = (groupPath: string) => Math.max(1, xfaRowCounts[groupPath] || 1)
+
+  const addXfaRow = (groupPath: string) => {
+    setXfaRowCounts((current) => ({ ...current, [groupPath]: Math.min(50, xfaRowsForGroup(groupPath) + 1) }))
+  }
+
+  const removeXfaRow = (groupPath: string) => {
+    setXfaRowCounts((current) => ({ ...current, [groupPath]: Math.max(1, xfaRowsForGroup(groupPath) - 1) }))
+  }
+
+  const buildCurrentXfaValues = () => {
+    const values: Record<string, string> = {}
+    activeXfaSections.forEach((section) => {
+      section.fields.forEach((field) => {
+        if (!field.path) return
+        const rowCount = field.repeatableGroup ? xfaRowsForGroup(field.repeatableGroup) : 1
+        for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+          const path = xfaPathForField(field, rowIndex)
+          const value = xfaValueForField(field, path).trim()
+          if (value) values[path] = value
+        }
+      })
+    })
+    return values
+  }
+
   const toggleDocument = (documentId: string, checked: boolean) => {
     if (checked && !selectedDocumentIds.includes(documentId) && selectedDocumentIds.length >= documentSelectionLimit) {
       setDraftMessage(`Limite Formweb raggiunto: puoi allegare al massimo ${documentSelectionLimit} file. Deseleziona un documento prima di aggiungerne un altro.`)
@@ -1529,6 +1599,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           depositId: activeDeposit?.id || '',
           fascicoloId: selectedFascicoloId,
           fields: draftValues,
+          xfaValues: buildCurrentXfaValues(),
           documents: selectedPatDocuments.map((doc) => ({
             id: doc.id,
             name: doc.name,
@@ -1587,6 +1658,173 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         onChange={(event) => updateDraftField(field.id, event.target.value)}
         placeholder={field.placeholder}
       />
+    )
+  }
+
+  const renderXfaFieldControl = (field: PatXfaField, path: string, technical = false) => {
+    const value = xfaValueForField(field, path)
+    const disabled = technical
+    const controlId = `pat-xfa-${path.replace(/[^a-zA-Z0-9_-]+/g, '-')}`
+    if (field.type === 'textarea') {
+      return (
+        <textarea
+          value={value}
+          onChange={(event) => updateXfaField(field, path, event.target.value)}
+          rows={3}
+          disabled={disabled}
+        />
+      )
+    }
+    if (field.type === 'radio') {
+      return (
+        <div className="iu-pat-xfa-radio-group">
+          {field.options.map((option) => (
+            <label key={`${path}-${option.value}`}>
+              <input
+                type="radio"
+                name={path}
+                value={option.value}
+                checked={value === option.value || value === option.export}
+                disabled={disabled}
+                onChange={(event) => updateXfaField(field, path, event.target.value)}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+    if (field.type === 'checkbox') {
+      const checkedValue = field.options[0]?.value || field.options[0]?.export || 'S'
+      return (
+        <label className="iu-pat-xfa-checkbox">
+          <input
+            type="checkbox"
+            checked={value === checkedValue || value === 'true'}
+            disabled={disabled}
+            onChange={(event) => updateXfaField(field, path, event.target.checked ? checkedValue : '')}
+          />
+          <span>{value ? 'Sì' : 'No'}</span>
+        </label>
+      )
+    }
+    if (field.type === 'select' && field.options.length) {
+      return (
+        <select value={value} disabled={disabled} onChange={(event) => updateXfaField(field, path, event.target.value)}>
+          <option value="">Seleziona</option>
+          {field.options.map((option) => <option value={option.value} key={`${path}-${option.value}`}>{option.label}</option>)}
+        </select>
+      )
+    }
+    if (field.type === 'document') {
+      return (
+        <>
+          <input
+            type="text"
+            list={`${controlId}-docs`}
+            value={value}
+            disabled={disabled}
+            onChange={(event) => updateXfaField(field, path, event.target.value)}
+            placeholder="Nome file dal fascicolo"
+          />
+          <datalist id={`${controlId}-docs`}>
+            {selectedMatterDocuments.map((doc) => <option value={doc.name} key={`${path}-${doc.id}`} />)}
+          </datalist>
+        </>
+      )
+    }
+    return (
+      <input
+        type={field.type === 'date' ? 'date' : 'text'}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => updateXfaField(field, path, event.target.value)}
+      />
+    )
+  }
+
+  const renderXfaFields = (fields: PatXfaField[], technical = false) => {
+    const singles: PatXfaField[] = []
+    const groups = new Map<string, PatXfaField[]>()
+    fields.forEach((field) => {
+      if (field.repeatableGroup) {
+        groups.set(field.repeatableGroup, [...(groups.get(field.repeatableGroup) || []), field])
+      } else {
+        singles.push(field)
+      }
+    })
+    return (
+      <>
+        {singles.length ? (
+          <div className="iu-pat-form-grid iu-pat-xfa-field-grid">
+            {singles.map((field) => (
+              <label className={`iu-pat-field ${field.type === 'textarea' || field.type === 'radio' ? 'iu-pat-field--wide' : ''} ${field.technical ? 'iu-pat-xfa-field--technical' : ''}`} key={field.id}>
+                <span>{field.label}{field.required ? ' *' : ''}</span>
+                {renderXfaFieldControl(field, field.path, technical || field.technical)}
+                {technical || field.technical ? <small>{field.path}</small> : null}
+              </label>
+            ))}
+          </div>
+        ) : null}
+        {[...groups.entries()].map(([groupPath, groupFields]) => {
+          const rows = xfaRowsForGroup(groupPath)
+          const label = groupFields[0]?.repeatableLabel || 'Riga ministeriale'
+          return (
+            <section className="iu-pat-xfa-repeatable" key={groupPath}>
+              <header>
+                <div>
+                  <strong>{label}</strong>
+                  <small>{technical ? groupPath : 'Sezione ripetibile del modello ministeriale'}</small>
+                </div>
+                {!technical ? (
+                  <div>
+                    <button type="button" onClick={() => addXfaRow(groupPath)}>Aggiungi riga</button>
+                    <button type="button" disabled={rows <= 1} onClick={() => removeXfaRow(groupPath)}>Rimuovi riga</button>
+                  </div>
+                ) : null}
+              </header>
+              {Array.from({ length: rows }).map((_, rowIndex) => (
+                <div className="iu-pat-xfa-repeatable-row" key={`${groupPath}-${rowIndex}`}>
+                  <span>Riga {rowIndex + 1}</span>
+                  <div className="iu-pat-form-grid iu-pat-xfa-field-grid">
+                    {groupFields.map((field) => {
+                      const path = xfaPathForField(field, rowIndex)
+                      return (
+                        <label className={`iu-pat-field ${field.type === 'textarea' || field.type === 'radio' ? 'iu-pat-field--wide' : ''} ${field.technical ? 'iu-pat-xfa-field--technical' : ''}`} key={`${field.id}-${rowIndex}`}>
+                          <span>{field.label}{field.required ? ' *' : ''}</span>
+                          {renderXfaFieldControl(field, path, technical || field.technical)}
+                          {technical || field.technical ? <small>{path}</small> : null}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </section>
+          )
+        })}
+      </>
+    )
+  }
+
+  const renderXfaSection = (section: PatXfaSection, index: number) => {
+    const operationalFields = section.fields.filter((field) => !field.technical)
+    const technicalFields = section.fields.filter((field) => field.technical)
+    const defaultOpen = operationalFields.length > 0 && ['sede', 'ricorso', 'atti', 'documenti'].includes(section.id)
+    return (
+      <details className="iu-pat-xfa-section" open={defaultOpen} key={section.id}>
+        <summary>
+          <span>{section.title}</span>
+          <small>{operationalFields.length} campi, {technicalFields.length} tecnici, {section.actions.length} azioni</small>
+        </summary>
+        {operationalFields.length ? renderXfaFields(operationalFields) : <p className="iu-pat-state-note">Questa sezione contiene solo campi tecnici del modello.</p>}
+        {technicalFields.length ? (
+          <details className="iu-pat-xfa-technical">
+            <summary>Campi tecnici del modello ({technicalFields.length})</summary>
+            {renderXfaFields(technicalFields, true)}
+          </details>
+        ) : null}
+      </details>
     )
   }
 
@@ -1899,17 +2137,43 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
             <div>
               <strong>{activeModule?.title || 'Modulo PAT'}</strong>
               <span>{activeModule?.note || 'Compila i campi richiesti con dati del fascicolo.'}</span>
+              {activeModule?.xfaSchema.templateFile ? (
+                <small>{activeModule.xfaSchema.templateFile}: {activeXfaRawFieldCount} campi XFA, {activeXfaOperationalFieldCount} campi operativi, {activeModule.xfaSchema.actionCount} azioni ministeriali.</small>
+              ) : null}
             </div>
           </div>
-          <div className="iu-pat-form-grid">
-            {(activeModule?.fillableFields || []).map((field) => (
-              <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
-                <span>{field.label}{field.required ? ' *' : ''}</span>
-                {renderFieldControl(field)}
-                {field.help ? <small>{field.help}</small> : null}
-              </label>
-            ))}
-          </div>
+          {activeXfaSections.length ? (
+            <div className="iu-pat-xfa-schema">
+              {unmappedModuleFields.length ? (
+                <section className="iu-pat-xfa-required-bridge">
+                  <header>
+                    <strong>Dati obbligatori IUSENTRA</strong>
+                    <span>Campi necessari alla validazione interna che non duplicano un campo XFA già esposto.</span>
+                  </header>
+                  <div className="iu-pat-form-grid">
+                    {unmappedModuleFields.map((field) => (
+                      <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
+                        <span>{field.label}{field.required ? ' *' : ''}</span>
+                        {renderFieldControl(field)}
+                        {field.help ? <small>{field.help}</small> : null}
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+              {activeXfaSections.map((section, index) => renderXfaSection(section, index))}
+            </div>
+          ) : (
+            <div className="iu-pat-form-grid">
+              {(activeModule?.fillableFields || []).map((field) => (
+                <label className={`iu-pat-field ${field.type === 'textarea' ? 'iu-pat-field--wide' : ''}`} key={field.id}>
+                  <span>{field.label}{field.required ? ' *' : ''}</span>
+                  {renderFieldControl(field)}
+                  {field.help ? <small>{field.help}</small> : null}
+                </label>
+              ))}
+            </div>
+          )}
           <div className="iu-pat-compiler-actions">
             <button type="button" disabled={!activeModule || pdfBusy || selectedDocumentsOverLimit} onClick={generateInternalPdf}>
               <FileCheck2 size={16}/> {pdfBusy ? 'Genero modulo...' : 'Genera modulo ufficiale'}

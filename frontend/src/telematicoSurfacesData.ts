@@ -99,6 +99,7 @@ export type PatProcedureModule = {
   requiredData: string[]
   attachments: string[]
   fillableFields: PatProcedureField[]
+  xfaSchema: PatXfaSchema
   keywords: string[]
   note: string
 }
@@ -111,6 +112,65 @@ export type PatProcedureField = {
   placeholder: string
   help: string
   options: string[]
+}
+
+export type PatXfaOption = {
+  value: string
+  label: string
+  export: string
+  path: string
+}
+
+export type PatXfaField = {
+  id: string
+  path: string
+  name: string
+  label: string
+  type: 'text' | 'textarea' | 'select' | 'date' | 'checkbox' | 'radio' | 'document'
+  required: boolean
+  technical: boolean
+  readOnly: boolean
+  presence: string
+  bindingFieldId: string
+  sectionId: string
+  sectionTitle: string
+  repeatableGroup: string
+  repeatableLabel: string
+  options: PatXfaOption[]
+}
+
+export type PatXfaAction = {
+  id: string
+  path: string
+  name: string
+  label: string
+  sectionId: string
+  sectionTitle: string
+  repeatableGroup: string
+  repeatableLabel: string
+  presence: string
+}
+
+export type PatXfaSection = {
+  id: string
+  title: string
+  fields: PatXfaField[]
+  actions: PatXfaAction[]
+  fieldCount: number
+  technicalCount: number
+}
+
+export type PatXfaSchema = {
+  moduleId: string
+  templateFile: string
+  officialCode: string
+  rawFieldCount: number
+  fieldCount: number
+  operationalFieldCount: number
+  technicalFieldCount: number
+  actionCount: number
+  repeatableGroups: Array<{ path: string; label: string }>
+  sections: PatXfaSection[]
 }
 
 export type PatFormwebDeposit = {
@@ -449,6 +509,88 @@ function normaliseLocalSigner(value: unknown): TelematicoSurfaceData['localSigne
   }
 }
 
+function normalisePatXfaOption(value: unknown, index: number): PatXfaOption {
+  const item = isRecord(value) ? value : {}
+  return {
+    value: text(item.value, `opzione-${index}`),
+    label: display(item.label, `Opzione ${index + 1}`),
+    export: text(item.export),
+    path: text(item.path),
+  }
+}
+
+function normalisePatXfaField(value: unknown, index: number): PatXfaField {
+  const item = isRecord(value) ? value : {}
+  const rawType = text(item.type).toLowerCase()
+  const type = ['textarea', 'select', 'date', 'checkbox', 'radio', 'document'].includes(rawType) ? rawType : 'text'
+  return {
+    id: text(item.id, `xfa-campo-${index}`),
+    path: text(item.path),
+    name: text(item.name),
+    label: display(item.label, `Campo ministeriale ${index + 1}`),
+    type: type as PatXfaField['type'],
+    required: bool(item.required),
+    technical: bool(item.technical),
+    readOnly: bool(item.readOnly ?? item.read_only),
+    presence: text(item.presence),
+    bindingFieldId: text(item.bindingFieldId ?? item.binding_field_id),
+    sectionId: text(item.sectionId ?? item.section_id),
+    sectionTitle: display(item.sectionTitle ?? item.section_title),
+    repeatableGroup: text(item.repeatableGroup ?? item.repeatable_group),
+    repeatableLabel: display(item.repeatableLabel ?? item.repeatable_label),
+    options: asList(item.options).map(normalisePatXfaOption),
+  }
+}
+
+function normalisePatXfaAction(value: unknown, index: number): PatXfaAction {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `xfa-azione-${index}`),
+    path: text(item.path),
+    name: text(item.name),
+    label: display(item.label, `Azione ${index + 1}`),
+    sectionId: text(item.sectionId ?? item.section_id),
+    sectionTitle: display(item.sectionTitle ?? item.section_title),
+    repeatableGroup: text(item.repeatableGroup ?? item.repeatable_group),
+    repeatableLabel: display(item.repeatableLabel ?? item.repeatable_label),
+    presence: text(item.presence),
+  }
+}
+
+function normalisePatXfaSection(value: unknown, index: number): PatXfaSection {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `xfa-sezione-${index}`),
+    title: display(item.title, `Sezione ${index + 1}`),
+    fields: asList(item.fields).map(normalisePatXfaField),
+    actions: asList(item.actions).map(normalisePatXfaAction),
+    fieldCount: number(item.fieldCount ?? item.field_count),
+    technicalCount: number(item.technicalCount ?? item.technical_count),
+  }
+}
+
+function normalisePatXfaSchema(value: unknown): PatXfaSchema {
+  const item = isRecord(value) ? value : {}
+  return {
+    moduleId: text(item.moduleId ?? item.module_id),
+    templateFile: text(item.templateFile ?? item.template_file),
+    officialCode: text(item.officialCode ?? item.official_code),
+    rawFieldCount: number(item.rawFieldCount ?? item.raw_field_count),
+    fieldCount: number(item.fieldCount ?? item.field_count),
+    operationalFieldCount: number(item.operationalFieldCount ?? item.operational_field_count),
+    technicalFieldCount: number(item.technicalFieldCount ?? item.technical_field_count),
+    actionCount: number(item.actionCount ?? item.action_count),
+    repeatableGroups: asList(item.repeatableGroups ?? item.repeatable_groups).map((value, index) => {
+      const row = isRecord(value) ? value : {}
+      return {
+        path: text(row.path, `ripetibile-${index}`),
+        label: display(row.label, `Riga ${index + 1}`),
+      }
+    }),
+    sections: asList(item.sections).map(normalisePatXfaSection),
+  }
+}
+
 function normalisePatModule(value: unknown, index: number): PatProcedureModule {
   const item = isRecord(value) ? value : {}
   return {
@@ -461,6 +603,7 @@ function normalisePatModule(value: unknown, index: number): PatProcedureModule {
     requiredData: asList(item.requiredData ?? item.required_data).map((row) => display(row)).filter(Boolean),
     attachments: asList(item.attachments).map((row) => display(row)).filter(Boolean),
     fillableFields: asList(item.fillableFields ?? item.fillable_fields).map(normalisePatField),
+    xfaSchema: normalisePatXfaSchema(item.xfaSchema ?? item.xfa_schema),
     keywords: asList(item.keywords).map((row) => display(row)).filter(Boolean),
     note: display(item.note),
   }

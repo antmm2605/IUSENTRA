@@ -4178,9 +4178,20 @@ def pat_moduli_compila_pdf():
     fields_payload = payload.get("fields") if isinstance(payload.get("fields"), dict) else {}
     fields = dict(prefill_fields)
     for key, value in fields_payload.items():
+        if key in {"xfa_values", "xfaValues"}:
+            continue
         cleaned = _pat_pdf_text(value)
         if cleaned:
             fields[str(key)] = cleaned
+    xfa_values_payload = payload.get("xfa_values") or payload.get("xfaValues")
+    if isinstance(xfa_values_payload, dict):
+        xfa_values: dict[str, str] = {}
+        for key, value in xfa_values_payload.items():
+            cleaned = _pat_pdf_text(value)
+            if cleaned:
+                xfa_values[str(key)] = cleaned
+        if xfa_values:
+            fields["xfa_values"] = xfa_values
     if fields.get("parte") and not fields.get("parte_depositante"):
         fields["parte_depositante"] = fields["parte"]
     resistente_alias = fields.get("amministrazione") or fields.get("controparte") or fields.get("resistente")

@@ -8,6 +8,7 @@ ministeriale e aggiornare i valori XFA, preservando struttura e script del PDF.
 from __future__ import annotations
 
 import io
+import copy
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -113,6 +114,141 @@ def _iter_fields(root: ET.Element) -> Iterable[tuple[ET.Element, tuple[str, ...]
     yield from walk(root, ())
 
 
+def _element_name(element: ET.Element) -> str:
+    return element.attrib.get("name") or _local_name(element.tag)
+
+
+def _path_token(part: str) -> tuple[str, int, bool]:
+    match = re.fullmatch(r"(.+?)(?:\[(\d+)])?", part.strip())
+    if not match:
+        return part, 0, False
+    return match.group(1), int(match.group(2) or 0), match.group(2) is not None
+
+
+def _field_caption(field: ET.Element) -> str:
+    captions: list[str] = []
+    for node in field.iter():
+        if _local_name(node.tag) == "caption":
+            for child in node.iter():
+                if _local_name(child.tag) == "text" and child.text and child.text.strip():
+                    captions.append(child.text.strip())
+    return _clean(" ".join(captions))
+
+
+def _clear_field_values(element: ET.Element) -> None:
+    for field in element.iter():
+        if _local_name(field.tag) == "field":
+            _set_field_text(field, "")
+
+
+def _matching_children(parent: ET.Element, name: str) -> list[ET.Element]:
+    return [child for child in list(parent) if _element_name(child) == name]
+
+
+def _ensure_child_instance(parent: ET.Element, name: str, index: int, *, create: bool) -> ET.Element | None:
+    matches = _matching_children(parent, name)
+    if not matches:
+        return None
+    if create:
+        while len(matches) <= index:
+            clone = copy.deepcopy(matches[-1])
+            _clear_field_values(clone)
+            children = list(parent)
+            insertion_index = children.index(matches[-1]) + 1
+            parent.insert(insertion_index, clone)
+            matches.append(clone)
+    if index >= len(matches):
+        return None
+    return matches[index]
+
+
+def _find_xfa_element(root: ET.Element, xfa_path: str, *, create: bool = False) -> ET.Element | None:
+    raw = str(xfa_path or "").strip().replace(".", "/")
+    if not raw:
+        return None
+    parts = [part for part in raw.split("/") if part]
+    if not parts:
+        return None
+    root_name, root_index, root_index_explicit = _path_token(parts[0])
+    if root_name == _element_name(root):
+        if root_index_explicit and root_index != 0:
+            return None
+        parts = parts[1:]
+
+    def descend(current: ET.Element, remaining: list[str]) -> ET.Element | None:
+        if not remaining:
+            return current
+        name, index, index_explicit = _path_token(remaining[0])
+        if index_explicit:
+            child = _ensure_child_instance(current, name, index, create=create)
+            return descend(child, remaining[1:]) if child is not None else None
+        matches = _matching_children(current, name)
+        if not matches:
+            return None
+        if len(remaining) == 1:
+            return matches[0]
+        for child in matches:
+            found = descend(child, remaining[1:])
+            if found is not None:
+                return found
+        return None
+
+    return descend(root, parts)
+
+
+def _set_xfa_field_value(field: ET.Element, value: Any) -> None:
+    text = _clean(value)
+    if _field_items(field):
+        text = _choice_export(field, text)
+    _set_field_text(field, text)
+
+
+def _set_radio_group_value(group: ET.Element, value: Any) -> bool:
+    wanted = _normalise(_clean(value))
+    if not wanted:
+        return False
+    matched = False
+    for child in list(group):
+        if _local_name(child.tag) != "field":
+            continue
+        name = child.attrib.get("name") or _element_name(child)
+        caption = _field_caption(child)
+        exports = _field_items(child)
+        export = exports[0] if exports else name
+        tokens = {_normalise(name), _normalise(caption), _normalise(export)}
+        selected = wanted in tokens or any(wanted and wanted in token for token in tokens)
+        _set_field_text(child, export if selected else "")
+        matched = matched or selected
+    return matched
+
+
+def _set_xfa_path_value(root: ET.Element, xfa_path: str, value: Any) -> bool:
+    element = _find_xfa_element(root, xfa_path, create=True)
+    if element is None:
+        return False
+    if _local_name(element.tag) == "field":
+        _set_xfa_field_value(element, value)
+        return True
+    if _set_radio_group_value(element, value):
+        return True
+    fields = [child for child in list(element) if _local_name(child.tag) == "field"]
+    if len(fields) == 1:
+        _set_xfa_field_value(fields[0], value)
+        return True
+    return False
+
+
+def _apply_explicit_xfa_values(root: ET.Element, fields: Mapping[str, Any]) -> None:
+    raw_values = fields.get("xfa_values") or fields.get("xfaValues")
+    if not isinstance(raw_values, Mapping):
+        return
+    for xfa_path, value in raw_values.items():
+        text = _clean(value)
+        if not text:
+            continue
+        _set_xfa_path_value(root, str(xfa_path), text)
+
+
 def _set_first(root: ET.Element, name: str, value: Any, *, path_contains: str = "", allow_empty: bool = False) -> bool:
     text = _clean(value)
     if not text and not allow_empty:
@@ -125,27 +261,49 @@ def _set_first(root: ET.Element, name: str, value: Any, *, path_contains: str = 
 
 
 def _field_items(field: ET.Element) -> list[str]:
+    export_values: list[str] = []
+    label_values: list[str] = []
     values: list[str] = []
     for child in list(field):
         if _local_name(child.tag) != "items":
             continue
+        bucket = export_values if child.attrib.get("save") == "1" else label_values
         for item in list(child):
             if item.text and item.text.strip():
+                bucket.append(item.text.strip())
                 values.append(item.text.strip())
-    return values
+    return export_values or label_values or values
+
+
+def _choice_item_pairs(field: ET.Element) -> list[tuple[str, str]]:
+    labels: list[str] = []
+    exports: list[str] = []
+    fallback: list[str] = []
+    for child in list(field):
+        if _local_name(child.tag) != "items":
+            continue
+        values = [item.text.strip() for item in list(child) if item.text and item.text.strip()]
+        if not values:
+            continue
+        fallback.extend(values)
+        if child.attrib.get("save") == "1":
+            exports = values
+        elif not labels:
+            labels = values
+    if labels and exports and len(labels) == len(exports):
+        return list(zip(labels, exports))
+    if exports:
+        return [(value, value) for value in exports]
+    return [(value, value) for value in (labels or fallback)]
 
 
 def _choice_export(field: ET.Element, wanted: str) -> str:
     cleaned = _normalise(wanted)
     if not cleaned:
         return ""
-    items = _field_items(field)
-    if not items:
+    label_pairs = _choice_item_pairs(field)
+    if not label_pairs:
         return wanted
-    midpoint = len(items) // 2 if len(items) % 2 == 0 else len(items)
-    labels = items[:midpoint]
-    exports = items[midpoint:] if midpoint < len(items) else labels
-    label_pairs = list(zip(labels, exports))
     for label, export in label_pairs:
         if _normalise(label) == cleaned or _normalise(export) == cleaned:
             return export
@@ -416,6 +574,7 @@ def _build_xfa_pdf(template: PatPdfTemplate, module_id: str, fields: Mapping[str
         if namespace:
             ET.register_namespace("", namespace)
         _apply_module_values(module_id, root, fields, docs)
+        _apply_explicit_xfa_values(root, fields)
         compiled_xml = ET.tostring(root, encoding="utf-8", xml_declaration=False)
         stream = DecodedStreamObject()
         stream.set_data(compiled_xml)

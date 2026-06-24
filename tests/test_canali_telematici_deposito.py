@@ -95,6 +95,31 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
     assert modules["deposito_ricorso"]["fillable_fields"]
     assert any(field["id"] == "tipo_ricorso" for field in modules["deposito_ricorso"]["fillable_fields"])
     assert any(field["id"] == "contributo_unificato" for field in modules["deposito_ricorso"]["fillable_fields"])
+    atto_schema = modules["deposito_atto"]["xfa_schema"]
+    atto_paths = {
+        field["path"]
+        for section in atto_schema["sections"]
+        for field in section["fields"]
+    }
+    atto_actions = {
+        action["path"]
+        for section in atto_schema["sections"]
+        for action in section["actions"]
+    }
+    assert atto_schema["templateFile"] == "ModuloDepositoAtto_4.02.pdf"
+    assert atto_schema["rawFieldCount"] >= 180
+    assert atto_schema["fieldCount"] >= 130
+    assert atto_schema["operationalFieldCount"] >= 100
+    assert atto_schema["technicalFieldCount"] >= 30
+    assert atto_schema["fieldCount"] == atto_schema["operationalFieldCount"] + atto_schema["technicalFieldCount"]
+    assert atto_schema["actionCount"] >= 29
+    assert "template/ricorso/subform/selectSede" in atto_paths
+    assert "template/ricorso/subform/subFormRicorso/annoRicorso" in atto_paths
+    assert "template/ricorso/subform/subFormRicorso/numeroRicorso" in atto_paths
+    assert "template/ricorso/subform/tableAtti/rigaAtto/tipoAtto" in atto_paths
+    assert "template/ricorso/subform/tableIndiceDocumenti/rigaDocumenti/descrizione" in atto_paths
+    assert "template/ricorso/subform/tableRelazione/rigaRelazione/subRelazione04/txtModalita" in atto_paths
+    assert "template/ricorso/subform/subFormIndiceDocumenti/btnAggiungiDocumento" in atto_actions
     assert modules["foglio_excel_parti"]["url"].endswith("t=1748183957377")
     assert deposits["ricorso"]["module_id"] == "deposito_ricorso"
     assert deposits["successivo_notifiche"]["module_id"] == "deposito_atto"

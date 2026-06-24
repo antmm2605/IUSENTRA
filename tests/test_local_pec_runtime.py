@@ -57,3 +57,23 @@ def test_payload_local_pec_include_atto_enc_cms_base64(tmp_path):
     attachment = payload["payload"]["attachments"][0]
     assert attachment["filename"] == "Atto.enc"
     assert base64.b64decode(attachment["content_base64"], validate=True) == atto_enc.read_bytes()
+
+
+def test_payload_local_pec_usa_username_smtp_separato_dal_mittente(tmp_path):
+    atto_enc = tmp_path / "Atto.enc"
+    atto_enc.write_bytes(_atto_enc_cms_payload(tmp_path))
+    cfg = _pec_cfg()
+    cfg.username = "utente-login-pec"
+
+    payload = build_local_pec_payload(
+        pec_cfg=cfg,
+        destinatario="tribunale@example.pec.it",
+        oggetto="DEPOSITO TELEMATICO - RICORSO",
+        corpo="Deposito",
+        attachment_path=str(atto_enc),
+        attachment_name="Atto.enc",
+    )
+
+    assert payload["payload"]["from"] == "studio@example.pec.it"
+    assert payload["payload"]["indirizzo"] == "studio@example.pec.it"
+    assert payload["payload"]["username"] == "utente-login-pec"

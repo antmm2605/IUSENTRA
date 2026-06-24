@@ -60,6 +60,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
   ],
   pec: [
     { name: 'indirizzo', label: 'Indirizzo PEC', type: 'email', required: true, width: 'half' },
+    { name: 'username', label: 'Username PEC', width: 'half', help: "Compila solo se il provider richiede un utente diverso dall'indirizzo PEC." },
     { name: 'password', label: 'Password PEC', type: 'password', width: 'half' },
     { name: 'smtp_host', label: 'Server invio PEC', required: true, width: 'half' },
     { name: 'smtp_port', label: 'Porta invio PEC', type: 'number', width: 'third', min: 1, max: 65535 },

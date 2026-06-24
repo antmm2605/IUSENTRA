@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pct.config_studio import GestioneConfigStudio
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
@@ -23,11 +24,13 @@ def test_react_pec_test_usa_local_signer_ma_composizione_usa_canale_pec_dedicato
     assert 'onTest("pec-smtp"' not in actions
     assert "/pec/smtp/test" in local_signer
     assert "/impostazioni/pec/local-smtp-payload" in local_signer
+    assert "username: text(values.username, text(values.indirizzo))" in local_signer
     assert "viene inviata solo al Local Signer" in local_signer
     assert "/api/v1/ui/impostazioni/test/pec-smtp" in guard
     assert "/pec/smtp/test" in guard
     assert "iusentra-local-signer://restart" in guard
     assert "/impostazioni/pec/local-smtp-payload" in guard
+    assert "username: text(values.username, values.indirizzo)" in guard
     assert "react-pec-local-signer-guard.js" in shell
     assert "/pec/send" not in compose
     assert "submitPecViaLocalSigner" not in compose
@@ -57,3 +60,29 @@ def test_api_react_pec_smtp_non_esegue_verifica_sul_server(tmp_path: Path):
     assert payload["local_signer_required"] is True
     assert "PC in uso" in payload["message"]
     assert "Local Signer" in payload["message"]
+
+
+def test_api_react_pec_salva_username_smtp_separato(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.post(
+        "/api/v1/ui/impostazioni/pec",
+        json={
+            "indirizzo": "studio@pec.example.it",
+            "username": "login-provider-pec",
+            "password": "segreta",
+            "smtp_host": "smtp.pec.example.it",
+            "smtp_port": 465,
+            "imap_host": "imap.pec.example.it",
+            "imap_port": 993,
+            "use_ssl": True,
+        },
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["ok"] is True
+    saved = GestioneConfigStudio(str(tmp_path / "config" / "studio.json")).config
+    assert saved.pec.indirizzo == "studio@pec.example.it"
+    assert saved.pec.username == "login-provider-pec"

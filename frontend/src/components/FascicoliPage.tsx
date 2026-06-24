@@ -431,6 +431,7 @@ type DepositPackagePreview = {
 
 type LocalPecPasswordRequest = {
   from: string
+  username: string
   to: string
   subject: string
   attachments: string[]
@@ -3068,6 +3069,7 @@ function DepositPreparePage({ id }:{id:string}) {
     setLocalPecPasswordError('')
     setLocalPecPasswordRequest({
       from: recordText(localPayload, 'from', recordText(localPayload, 'indirizzo', recordText(localPayload, 'username'))),
+      username: recordText(localPayload, 'username', recordText(localPayload, 'indirizzo')),
       to: recordText(localPayload, 'to'),
       subject: recordText(localPayload, 'subject'),
       attachments,
@@ -3105,6 +3107,13 @@ function DepositPreparePage({ id }:{id:string}) {
     signerStatus = signerStatus ? await recoverLocalSignerAutomatically(signerStatus, {
       onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
     }) : signerStatus
+    if (!signerStatus || signerStatus.ok === false) {
+      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Avvia il servizio locale sul PC in uso e ripeti la prova deposito.')
+    }
+    if (!localSignerStatusCanSign(signerStatus)) {
+      const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
+      throw new Error(signerDetail ? `Token non pronto per firmare DatiAtto.xml: ${signerDetail}` : 'Token non pronto per firmare DatiAtto.xml. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
+    }
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
     const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
     const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
@@ -3112,19 +3121,24 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!reusablePinSessionId && !pin.trim()) {
       throw new Error('PIN firma mancante. Inseriscilo per firmare DatiAtto.xml e proseguire.')
     }
-    const signatureResponse = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...signPayload,
-        pin: reusablePinSessionId ? '' : pin.trim(),
-        pin_session_id: reusablePinSessionId || undefined,
-        slot_id: token?.slot_id,
-        cert_thumbprint: windowsCertificate?.thumbprint,
-        visible_signature_mode: 'nessuna',
-        visible_signature_datetime_mode: 'nessuna',
-      }),
-    })
+    let signatureResponse: Response
+    try {
+      signatureResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...signPayload,
+          pin: reusablePinSessionId ? '' : pin.trim(),
+          pin_session_id: reusablePinSessionId || undefined,
+          slot_id: token?.slot_id,
+          cert_thumbprint: windowsCertificate?.thumbprint,
+          visible_signature_mode: 'nessuna',
+          visible_signature_datetime_mode: 'nessuna',
+        }),
+      })
+    } catch {
+      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Verifica che il servizio locale sia attivo su 127.0.0.1:27272 e ripeti la prova deposito.')
+    }
     const signaturePayload = await signatureResponse.json().catch(() => ({} as Record<string, unknown>))
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
     if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
@@ -3682,6 +3696,8 @@ function DepositPreparePage({ id }:{id:string}) {
             <div className="iu-fas-local-pec-summary" aria-label="Riepilogo invio PEC locale">
               <span>Mittente</span>
               <strong>{localPecPasswordRequest.from || 'PEC studio configurata'}</strong>
+              <span>Username SMTP locale</span>
+              <strong>{localPecPasswordRequest.username || localPecPasswordRequest.from || 'Username PEC configurato'}</strong>
               <span>Destinatario</span>
               <strong>{localPecPasswordRequest.to || data.depositOffice.pec || 'PEC ufficio verificata'}</strong>
               <span>Oggetto</span>

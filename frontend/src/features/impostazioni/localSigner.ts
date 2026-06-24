@@ -197,7 +197,7 @@ export async function testPecSmtpViaLocalSigner(
 
   let payload: Record<string, unknown> = {
     indirizzo: text(values.indirizzo),
-    username: text(values.indirizzo),
+    username: text(values.username, text(values.indirizzo)),
     password: text(values.password),
     smtp_host: text(values.smtp_host),
     smtp_port: integerValue(values.smtp_port, 465),
@@ -211,6 +211,7 @@ export async function testPecSmtpViaLocalSigner(
       headers: new Headers({ 'Content-Type': 'application/json', Accept: 'application/json' }),
       body: JSON.stringify({
         indirizzo: payload.indirizzo,
+        username: payload.username,
         smtp_host: payload.smtp_host,
         smtp_port: payload.smtp_port,
         use_ssl: payload.use_ssl,
@@ -228,7 +229,7 @@ export async function testPecSmtpViaLocalSigner(
       ...payload,
       ...savedPayload,
       indirizzo: text(payload.indirizzo, text(savedPayload.indirizzo)),
-      username: text(payload.indirizzo, text(savedPayload.username, text(savedPayload.indirizzo))),
+      username: text(payload.username, text(savedPayload.username, text(payload.indirizzo, text(savedPayload.indirizzo)))),
       password: text(savedPayload.password),
       smtp_host: text(payload.smtp_host, text(savedPayload.smtp_host)),
       smtp_port: integerValue(payload.smtp_port, integerValue(savedPayload.smtp_port, 465)),

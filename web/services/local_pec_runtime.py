@@ -20,6 +20,14 @@ from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 LOCAL_SIGNER_BASE_URL = "http://127.0.0.1:27272"
 
 
+def _pec_smtp_username(pec_cfg: Any, indirizzo: str) -> str:
+    for attr in ("username", "smtp_username", "pec_username"):
+        value = str(getattr(pec_cfg, attr, "") or "").strip()
+        if value:
+            return value
+    return indirizzo
+
+
 def build_local_pec_payload(
     *,
     pec_cfg: Any,
@@ -57,6 +65,7 @@ def build_local_pec_payload(
     use_ssl = bool(getattr(pec_cfg, "use_ssl", smtp_port == 465))
     use_tls = bool(getattr(pec_cfg, "use_tls", not use_ssl))
     indirizzo = str(getattr(pec_cfg, "indirizzo", "") or "").strip()
+    username = _pec_smtp_username(pec_cfg, indirizzo)
     smtp_host = str(getattr(pec_cfg, "smtp_host", "") or "").strip()
 
     return {
@@ -69,7 +78,7 @@ def build_local_pec_payload(
         ),
         "payload": {
             "indirizzo": indirizzo,
-            "username": indirizzo,
+            "username": username,
             "from": indirizzo,
             "smtp_host": smtp_host,
             "smtp_port": smtp_port,

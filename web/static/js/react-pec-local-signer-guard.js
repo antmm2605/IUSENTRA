@@ -142,6 +142,7 @@
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         indirizzo: payload.indirizzo,
+        username: payload.username,
         smtp_host: payload.smtp_host,
         smtp_port: payload.smtp_port,
         use_ssl: payload.use_ssl,
@@ -160,7 +161,7 @@
     return {
       payload: Object.assign({}, payload, saved.payload, {
         indirizzo: text(payload.indirizzo, saved.payload.indirizzo),
-        username: text(payload.indirizzo, text(saved.payload.username, saved.payload.indirizzo)),
+        username: text(payload.username, text(saved.payload.username, text(payload.indirizzo, saved.payload.indirizzo))),
         password: text(saved.payload.password),
         smtp_host: text(payload.smtp_host, saved.payload.smtp_host),
         smtp_port: intValue(payload.smtp_port, intValue(saved.payload.smtp_port, 465)),
@@ -183,7 +184,7 @@
 
     var payload = {
       indirizzo: text(values.indirizzo),
-      username: text(values.indirizzo, values.username),
+      username: text(values.username, values.indirizzo),
       password: text(values.password),
       smtp_host: text(values.smtp_host),
       smtp_port: intValue(values.smtp_port, 465),

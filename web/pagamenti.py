@@ -123,6 +123,7 @@ def index():
             pwd = f.get("pec_password", "").strip()
             cfg.pec = ConfigPEC(
                 indirizzo=f.get("pec_indirizzo", "").strip(),
+                username=f.get("pec_username", "").strip(),
                 password=pwd if pwd else cfg.pec.password,
                 smtp_host=f.get("pec_smtp_host", "smtp.pec.aruba.it").strip(),
                 smtp_port=int(f.get("pec_smtp_port", 465)),
@@ -196,6 +197,7 @@ def test_pec_smtp():
     cfg_pec = gs.config.pec
     pec = ConfigPEC(
         indirizzo=data.get("indirizzo") or cfg_pec.indirizzo,
+        username=data.get("username") or getattr(cfg_pec, "username", ""),
         password=data.get("password") or cfg_pec.password,
         smtp_host=data.get("smtp_host") or cfg_pec.smtp_host,
         smtp_port=int(data.get("smtp_port") or cfg_pec.smtp_port),
@@ -215,6 +217,7 @@ def test_pec_imap():
     cfg_pec = gs.config.pec
     pec = ConfigPEC(
         indirizzo=data.get("indirizzo") or cfg_pec.indirizzo,
+        username=data.get("username") or getattr(cfg_pec, "username", ""),
         password=data.get("password") or cfg_pec.password,
         smtp_host=cfg_pec.smtp_host,
         smtp_port=cfg_pec.smtp_port,

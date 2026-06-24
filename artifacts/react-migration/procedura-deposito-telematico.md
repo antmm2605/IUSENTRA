@@ -2226,3 +2226,76 @@ Stato tecnico prima del deploy:
 - guardrail React aggiornato per verificare che il modal di conferma si chiuda prima della firma locale di `DatiAtto.xml`;
 - versione portata a `2.253.101`;
 - prova visiva produzione da ripetere su `https://app.iusentra.it/fascicoli/F08F92A2/deposito/prepara#generazione-busta`, verificando simulazione PEC, firma `DatiAtto.xml`, generazione `IndiceBusta.xml`/`Atto.enc` e assenza del vecchio alert sull'atto principale.
+
+## Deposito PEC locale e username SMTP separato 2.253.102 - 2026-06-24
+
+Difetto segnalato in prova reale: durante il click su `Invia deposito reale` la UI riportava `Autenticazione SMTP PEC non riuscita. Verifica indirizzo, username e password.` Il messaggio nasce dal Local Signer sul PC in uso, non dal server, ma era ambiguo e il payload del deposito usava sempre l'indirizzo PEC come username SMTP.
+
+Correzione applicata:
+
+- `ConfigPEC` ora conserva anche `username` opzionale, mantenuto in fondo alla dataclass per non rompere gli usi posizionali storici;
+- Impostazioni React mostra e salva `Username PEC` solo come dato opzionale, da compilare quando il provider richiede un login diverso dall'indirizzo PEC;
+- il test `Verifica invio PEC` su `/impostazioni?tab=pec`, il guard runtime e il payload deposito usano lo stesso username: se configurato viene passato al Local Signer, altrimenti resta l'indirizzo PEC;
+- il mittente PEC (`from` / `indirizzo`) resta separato dallo username di autenticazione SMTP;
+- il modal di invio reale mostra anche `Username SMTP locale`, così prima della password è visibile quale login verrà usato dal PC locale;
+- il messaggio di autenticazione fallita ora dichiara esplicitamente che l'errore è locale: l'invio parte dal PC in uso tramite Local Signer;
+- la route deposito continua a non spedire SMTP dal server: senza `local_pec_confirmed=1` restituisce `requires_local_pec`; registra il deposito solo dopo Message-ID confermato dal Local Signer.
+
+Stato anti-regressione:
+
+- test mirati Local Signer PEC aggiornati per username separato e messaggio di autenticazione locale;
+- test React impostazioni PEC aggiornati per impedire il ritorno a verifica SMTP server-side;
+- test React deposito aggiornato per mostrare lo username SMTP locale nel modal di invio reale;
+- resta vietato usare lo SMTP server-side per depositi, notifiche legali e invii PEC operativi.
+
+## PAT / SIGA - struttura XFA ministeriale e compilazione moduli 4.x - 2026-06-23
+
+Obiettivo operativo: IUSENTRA deve preparare il deposito PAT dentro il software e lasciare il portale ufficiale SIGA/Formweb solo come fase finale di consegna. Il modulo non deve essere ricostruito con un layout imitato: il PDF prodotto deve restare il modello ministeriale originale, con i valori scritti nei campi XFA ufficiali.
+
+Correzione strutturale applicata:
+
+- aggiunto estrattore XFA dei moduli PAT ufficiali in `pct/pat_xfa_schema.py`;
+- il catalogo PAT espone per ogni modulo il numero di campi XFA, controlli compilabili, azioni ministeriali e gruppi ripetibili;
+- la UI React `TelematicoSurfacePage` costruisce dinamicamente le sezioni operative in base al modulo selezionato: sede, ricorso, atti, documenti, notifiche, parti, campi flag/radio/select e gruppi con `Aggiungi riga`;
+- i percorsi tecnici XFA restano fuori dalla vista operativa e non vengono mostrati all'avvocato;
+- la rotta `/api/v1/ui/pat/moduli/compila` accetta `xfaValues` e li passa al compilatore PDF;
+- il compilatore `pct/pat_pdf_templates.py` scrive valori su path XFA esatti, clona le righe ripetibili indicizzate e gestisce radio, checkbox e select;
+- corretta la scrittura delle select XFA: ora usa i valori `save="1"` del modello ministeriale, quindi ad esempio `TAR Lazio - Roma` viene scritto come `tar_rm` e non resta sul default `tar_bz`;
+- corretto il resolver dei path XFA quando il modello contiene sottoform fratelli con lo stesso nome: il compilatore segue il ramo che contiene davvero il campo successivo e usa l'indice solo quando il path lo richiede;
+- la UI distingue i campi tecnici del PDF dai campi operativi compilabili dall'avvocato;
+- il modulo Excel parti resta catalogato come supporto dati, non come PDF XFA.
+
+Copertura tecnica dei moduli ufficiali presenti in `pct/data/pat_moduli`:
+
+- `ModuloDepositoRicorso_4.02.pdf`: 210 campi XFA grezzi, 107 campi operativi, 54 tecnici, 35 azioni;
+- `ModuloDepositoAtto_4.02.pdf`: 188 campi XFA grezzi, 105 campi operativi, 35 tecnici, 30 azioni;
+- `ModuloDepositoRichiesteSegreteria_4.01.pdf`: 110 campi XFA grezzi, 57 campi operativi, 19 tecnici, 23 azioni;
+- `ModuloDepositoPerAusiliariDelGiudiceEPartiNonRituali_4.01.pdf`: 101 campi XFA grezzi, 54 campi operativi, 18 tecnici, 21 azioni;
+- `ModuloDepositoIstanza_4.01.pdf`: 150 campi XFA grezzi, 85 campi operativi, 25 tecnici, 27 azioni;
+- `ModuloDepositoRimborso_4.01_2026.pdf`: 77 campi XFA grezzi, 55 campi operativi, 11 tecnici, 11 azioni;
+- `FoglioExcelParti_2025.xlsx`: 5 colonne operative, senza XFA.
+
+Verifiche automatiche eseguite:
+
+- `python -m pytest -q tests\test_canali_telematici_deposito.py::test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali tests\test_react_shell.py::test_react_pat_modulo_compilabile_produce_pdf tests\test_react_shell.py::test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte tests\test_react_shell.py::test_react_superfici_telematiche_api_payload_reale --tb=short`;
+- `python -m pytest -q tests\test_react_shell.py::test_react_pat_moduli_ufficiali_scrivono_tutti_i_campi_xfa_operativi --tb=short`;
+- `python -m pytest -q tests\test_canali_telematici_deposito.py::test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali tests\test_react_shell.py::test_react_pat_modulo_compilabile_produce_pdf tests\test_react_shell.py::test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte tests\test_react_shell.py::test_react_pat_moduli_ufficiali_scrivono_tutti_i_campi_xfa_operativi tests\test_react_shell.py::test_react_superfici_telematiche_api_payload_reale --tb=short`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- `docker compose up -d --build app`;
+- `http://127.0.0.1:8080/api/pronto` ha risposto `ok=true`, `versione=2.253.101`.
+
+Nota sul test campo-per-campo: `test_react_pat_moduli_ufficiali_scrivono_tutti_i_campi_xfa_operativi` attraversa tutti i moduli PDF ufficiali, genera valori coerenti per campi testo, data, documento, select, checkbox e radio, compila il PDF ministeriale originale e rilegge il template XFA prodotto. Il test copre anche almeno una seconda riga per ogni gruppo ripetibile con path indicizzato, quindi blocca regressioni sui pulsanti `Aggiungi`.
+
+Prova reale locale eseguita su `http://127.0.0.1:8080/pat` nel browser integrato:
+
+- selezione `Modulo PDF deposito atto` visibile con conteggio `ModuloDepositoAtto_4.02.pdf: 188 campi XFA, 105 campi operativi, 30 azioni ministeriali`;
+- sezioni operative visibili e ordinate: `Sede`, `Ricorso`, `Atti di causa`, `Documenti di causa`, sezioni parti/notifica richiudibili;
+- sezione tecnica `Intestazione modulo` chiusa di default;
+- click reale su `Aggiungi riga`: la UI passa da una a due righe e abilita `Rimuovi riga`;
+- compilati in UI i dati `Speranza Carmelina`, `tar_rm`, `2026`, `1480`, `Istanza cautelare`, `222050 - Retribuzione`;
+- click reale su `Genera modulo ufficiale`: la UI mostra `Modulo ministeriale XFA compilato` e il link `ModuloDepositoAtto_4.02_compilato_iusentra.pdf`;
+- hover reale su `Aggiungi riga`, `Genera modulo ufficiale` e `Avvia SIGA`: testo leggibile, contrasto professionale, nessun salto dimensionale;
+- responsive reale controllato su tablet `768x1024` e mobile `390x844`: nessun overflow orizzontale, pulsanti ripetibili non tagliati, nessun path XFA tecnico visibile nella superficie operativa.
+
+Limite residuo da non dichiarare chiuso: il PDF generato dopo il fix è stato verificato via generatore backend e test XFA sui byte, ma non è ancora stato aperto davanti all'utente in Acrobat Reader con ispezione visiva campo per campo. Prima di dichiarare copertura PAT 100% servono ancora matrice modulo/campo obbligatorio/percorso XFA/campo IUSENTRA/dato DB/prova PDF/prova visiva Acrobat e prova reale su tutti i moduli, inclusi radio, checkbox, select e gruppi `Aggiungi`.

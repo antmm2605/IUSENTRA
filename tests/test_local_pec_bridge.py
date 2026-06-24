@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import socket
+import smtplib
 from pathlib import Path
 
 from local_signer_mod.pec_bridge import send_pec_local, test_pec_smtp_local as _test_pec_smtp_local
@@ -91,6 +92,19 @@ def test_smtp_locale_timeout_parla_del_pc_locale_senza_railway():
     assert "questo PC" in result["messaggio"]
     assert "Railway" not in result["messaggio"]
     assert "Brevo" not in result["messaggio"]
+
+
+def test_smtp_locale_autenticazione_fallita_parla_di_local_signer():
+    class AuthFailSmtp(_FakeSmtp):
+        def login(self, username: str, password: str):
+            raise smtplib.SMTPAuthenticationError(535, b"Authentication failed")
+
+    result = _test_pec_smtp_local(_payload(username="utente-login-pec"), smtp_ssl_factory=AuthFailSmtp)
+
+    assert result["ok"] is False
+    assert "Autenticazione SMTP PEC locale non riuscita" in result["messaggio"]
+    assert "smtp.example.test:465" in result["messaggio"]
+    assert "PC in uso tramite Local Signer" in result["messaggio"]
 
 
 def test_invio_pec_locale_invia_allegato_base64():

@@ -348,6 +348,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
         },
         "pec": {
             "indirizzo": cfg.pec.indirizzo,
+            "username": getattr(cfg.pec, "username", ""),
             "smtp_host": cfg.pec.smtp_host,
             "smtp_port": cfg.pec.smtp_port,
             "imap_host": cfg.pec.imap_host,
@@ -606,6 +607,7 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
         password = _text(data.get("pec_password") or data.get("password"))
         cfg.pec = ConfigPEC(
             indirizzo=_text(data.get("indirizzo")),
+            username=_text(data.get("username")),
             password=password or cfg.pec.password,
             smtp_host=_text(data.get("smtp_host"), cfg.pec.smtp_host),
             smtp_port=_int(data.get("smtp_port"), cfg.pec.smtp_port, minimum=1),
@@ -767,6 +769,7 @@ def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[s
     elif test_id == "pec-imap":
         result = test_pec_imap(ConfigPEC(
             indirizzo=_text(data.get("indirizzo"), cfg.pec.indirizzo),
+            username=_text(data.get("username"), getattr(cfg.pec, "username", "")),
             password=_text(data.get("password"), cfg.pec.password) or cfg.pec.password,
             smtp_host=cfg.pec.smtp_host,
             smtp_port=cfg.pec.smtp_port,

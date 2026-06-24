@@ -179,6 +179,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "result.requires_local_signature && completeLocalSignature" in action_button
     assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
     assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
+    assert "if (!localSignerStatusCanSign(signerStatus))" in deposit_page
+    assert "Token non pronto per firmare DatiAtto.xml" in deposit_page
+    assert "Local Signer non raggiungibile dal browser per firmare DatiAtto.xml" in deposit_page
     assert "result.requires_local_pec && completeLocalPec" in action_button
     assert "setConfirming(false)\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
     assert "await completeLocalPec(result, submittedPayload)" in action_button
@@ -199,6 +202,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido" in source
     assert "window.prompt" not in deposit_page
     assert "Password PEC locale" in deposit_page
+    assert "Username SMTP locale" in deposit_page
+    assert "recordText(localPayload, 'username'" in deposit_page
     assert "Invia dal PC locale" in deposit_page
     assert "local_pec_confirmed" in deposit_page
     assert "local_pec_message_id" in deposit_page

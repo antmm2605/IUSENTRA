@@ -132,7 +132,11 @@ def _human_error(error: Exception, *, host: str = "", port: int | None = None) -
     if isinstance(error, PecBridgeValidationError):
         return str(error)
     if isinstance(error, smtplib.SMTPAuthenticationError):
-        return "Autenticazione SMTP PEC non riuscita. Verifica indirizzo, username e password."
+        return (
+            "Autenticazione SMTP PEC locale non riuscita"
+            f"{endpoint}. Verifica username PEC, password e indirizzo mittente: "
+            "l'invio parte dal PC in uso tramite Local Signer."
+        )
     if isinstance(error, (socket.timeout, TimeoutError)):
         return (
             "Timeout SMTP PEC locale"

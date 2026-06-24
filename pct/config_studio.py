@@ -139,6 +139,7 @@ class ConfigPEC:
     imap_port: int = 993
     use_ssl: bool = True
     use_tls: bool = False
+    username: str = ""
 
 
 @dataclass
@@ -504,6 +505,7 @@ class GestioneConfigStudio:
             ),
             pec=ConfigPEC(
                 indirizzo=os.getenv("PCT_PEC_INDIRIZZO", ""),
+                username=os.getenv("PCT_PEC_USERNAME", ""),
                 password=os.getenv("PCT_PEC_PASSWORD", ""),
                 smtp_host=os.getenv("PCT_PEC_SMTP_HOST", "smtp.pec.aruba.it"),
                 smtp_port=int(os.getenv("PCT_PEC_SMTP_PORT", "465")),
@@ -814,14 +816,15 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
 def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione SMTP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
     try:
+        username = cfg.username or cfg.indirizzo
         ctx = _crea_contesto_tls_sicuro()
         if cfg.use_ssl:
             with _SMTP_SSLv4(cfg.smtp_host, cfg.smtp_port, context=ctx, timeout=10) as s:
-                s.login(cfg.indirizzo, cfg.password)
+                s.login(username, cfg.password)
         else:
             with _SMTPv4(cfg.smtp_host, cfg.smtp_port, timeout=10) as s:
                 s.starttls(context=ctx)
-                s.login(cfg.indirizzo, cfg.password)
+                s.login(username, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP PEC riuscita."}
     except Exception as e:
         return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP PEC")}
@@ -831,10 +834,11 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione IMAP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
     import imaplib
     try:
+        username = cfg.username or cfg.indirizzo
         ctx = _crea_contesto_tls_sicuro()
         with imaplib.IMAP4_SSL(cfg.imap_host, cfg.imap_port,
                                 ssl_context=ctx) as m:
-            m.login(cfg.indirizzo, cfg.password)
+            m.login(username, cfg.password)
         return {"ok": True, "messaggio": "Connessione IMAP PEC riuscita."}
     except Exception as e:
         return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore IMAP PEC")}

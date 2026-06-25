@@ -74,6 +74,19 @@ def _fascicolo(cliente_id: str) -> SimpleNamespace:
     )
 
 
+def _fascicolo_rg_separato(cliente_id: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        id="FC81009F",
+        id_cliente=cliente_id,
+        titolo="Montagnese R. C. MIM",
+        numero_rg="697",
+        anno_rg=2025,
+        tribunale="Tribunale di Vicenza",
+        giudice="",
+        oggetto="222050 - Retribuzione",
+    )
+
+
 def _studio_config() -> dict[str, str]:
     return {
         "STUDIO_NOME": "Studio Legale Rossi",
@@ -192,6 +205,34 @@ def test_bridge_fatturazione_payload_espone_riferimento_fascicolo_per_filtri(tmp
     assert record["caseRg"] == "120/2026"
     assert "FAS-001" in record["caseReference"]
     assert "RG 120/2026" in record["caseReference"]
+
+
+def test_bridge_fatturazione_ricostruisce_rg_completo_da_numero_e_anno(tmp_path):
+    cliente = _cliente()
+    fascicolo = _fascicolo_rg_separato(cliente.id)
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    parcella = manager.crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=321.50)],
+        data_emissione="2025-09-23",
+    )
+
+    payload = build_react_fatturazione_payload(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(fascicolo),
+        current_user=_User(),
+        route="/fatturazione",
+        config=_studio_config(),
+    )
+
+    record = next(item for item in payload["records"] if item["id"] == parcella.id)
+
+    assert record["caseId"] == "FC81009F"
+    assert record["caseRg"] == "697/2025"
+    assert "RG 697/2025" in record["caseReference"]
+    assert "RG 697/2025" in record["caseTitle"]
 
 
 def test_bridge_fatturazione_configura_numerazione_fatture(tmp_path):

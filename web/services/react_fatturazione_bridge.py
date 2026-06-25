@@ -291,7 +291,7 @@ def _client_label(cliente: Any) -> str:
 
 def _case_label(fascicolo: Any) -> str:
     title = _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "oggetto", ""))
-    rg = _text(getattr(fascicolo, "numero_rg", ""))
+    rg = _case_rg_value(fascicolo)
     if title and rg:
         return f"{title} - RG {rg}"
     return title or rg or "Pratica senza titolo"
@@ -299,10 +299,25 @@ def _case_label(fascicolo: Any) -> str:
 
 def _case_reference(fascicolo: Any, fallback_id: str = "") -> str:
     fid = _text(getattr(fascicolo, "id", "") or fallback_id)
-    rg = _text(getattr(fascicolo, "numero_rg", ""))
+    rg = _case_rg_value(fascicolo)
     title = _text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", ""), limit=120)
     parts = [part for part in (fid, f"RG {rg}" if rg else "", title) if part]
     return " - ".join(parts)
+
+
+def _case_rg_value(fascicolo: Any) -> str:
+    full = _text(getattr(fascicolo, "rg_completo", ""))
+    if full.casefold().startswith("rg "):
+        full = full[3:].strip()
+    if full:
+        return full
+    rg = _text(getattr(fascicolo, "numero_rg", ""))
+    if rg.casefold().startswith("rg "):
+        rg = rg[3:].strip()
+    anno = _text(getattr(fascicolo, "anno_rg", ""))
+    if rg and anno and "/" not in rg:
+        return f"{rg}/{anno}"
+    return rg
 
 
 def _client_option(cliente: Any) -> dict[str, Any]:
@@ -323,7 +338,7 @@ def _matter_option(fascicolo: Any) -> dict[str, Any]:
         "value": fid,
         "idCliente": _text(getattr(fascicolo, "id_cliente", "")),
         "label": _case_label(fascicolo),
-        "description": _text(getattr(fascicolo, "numero_rg", "")),
+        "description": _case_rg_value(fascicolo),
     }
 
 
@@ -396,7 +411,7 @@ def _matter_profile(fascicolo: Any) -> dict[str, Any]:
     return {
         "id": _text(getattr(fascicolo, "id", "")),
         "titolo": _case_label(fascicolo),
-        "numero_rg": _text(getattr(fascicolo, "numero_rg", ""), limit=80),
+        "numero_rg": _text(_case_rg_value(fascicolo), limit=80),
         "tribunale": _text(getattr(fascicolo, "tribunale", ""), limit=120),
         "giudice": _text(getattr(fascicolo, "giudice", ""), limit=120),
         "oggetto": _text(getattr(fascicolo, "oggetto", ""), limit=240),
@@ -552,7 +567,7 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "customerName": _client_label(clienti.get(id_cliente)),
         "caseId": id_fascicolo,
         "caseReference": _case_reference(fascicolo, id_fascicolo) if id_fascicolo else "",
-        "caseRg": _text(getattr(fascicolo, "numero_rg", "")) if fascicolo else "",
+        "caseRg": _case_rg_value(fascicolo) if fascicolo else "",
         "caseTitle": _case_label(fascicolo) if id_fascicolo and fascicolo else "",
         "amountDisplay": _money(getattr(parcella, "totale", 0)),
         "issuedAt": _date_label(getattr(parcella, "data_emissione", "")),
@@ -912,7 +927,7 @@ def build_react_fatturazione_payload(
             _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)), f"Anno {stats.get('anno', anno)}", "primary"),
             _metric("incassato", "Incassato", _money(stats.get("incassato", 0)), "Valori dal servizio fatturazione", "success"),
             _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
-            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal servizio", "danger" if stats.get("scaduto", 0) else "neutral"),
+            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle già marcate scadute dal servizio", "danger" if stats.get("scaduto", 0) else "neutral"),
         ],
         "sections": [
             _section("stati", "Stato parcelle", "distribution", state_items, "Nessuna parcella nell'archivio."),

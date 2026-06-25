@@ -327,3 +327,20 @@ Prova reale obbligatoria:
 - Correzione scheduler: `lex_sentenza_economia_auto` resta automatico ogni dieci minuti, ma viene sfalsato sui minuti `7-57/10` per non partire insieme ai job PEC, mailbox e manutenzione AI. La migrazione del registry aggiorna gli studi già salvati con la vecchia schedulazione `*/10`.
 - Correzione PEC aggiuntiva: gli allegati `.p7m` non CAdES/PKCS#7 non vengono più passati al controllo firma/PDF; restano `non_applicabile` con dettaglio `contenuto non CAdES/PKCS#7`, evitando warning pypdf su payload come `PCTEN`.
 - Il gate `scripts/check_runtime_services.py` accetta il cron sfalsato come intervallo reale di dieci minuti e continua a bloccare se il worker non produce una run `completed` con `totals`, `errors=0` e `vector_embedding_errors=0`.
+
+## Filtro fatturazione RG completo 2.253.114
+
+- Durante la prova visiva reale di produzione su `https://app.iusentra.it/fascicoli?vista=economica` il fascicolo `FC81009F` / `RG 697/2025` risultava corretto nella matrice economica: `Spese/esborsi` `EUR 21,50`, `Liquidazione giudice` `EUR 321,50`, `Parcella` `EUR 490,61`, totale `EUR 343,00`, data `23/09/2025`.
+- La stessa prova su `/fatturazione` ha trovato un difetto reale di filtro: la proforma Montagnese esisteva, ma il filtro `Nr fascicolo` trovava il record con `697` o `FC81009F` e non con `697/2025`, perché il bridge fatturazione esponeva solo `numero_rg` quando `numero_rg` e `anno_rg` erano salvati in campi separati.
+- Correzione: `react_fatturazione_bridge` ricostruisce sempre il RG completo da `rg_completo` oppure da `numero_rg` + `anno_rg`; `caseRg`, `caseReference`, `caseTitle`, opzioni fascicolo e profilo fascicolo usano lo stesso valore. La card proforma deve quindi mostrare e filtrare `RG 697/2025`, non solo `RG 697`.
+- Test aggiunto: `test_bridge_fatturazione_ricostruisce_rg_completo_da_numero_e_anno` presidia il caso Montagnese con `numero_rg=697` e `anno_rg=2025`.
+
+## Gerarchia operativa fatturazione 2.253.115
+
+- Segnalazione utente del 25/06/2026 su `https://app.iusentra.it/fatturazione`: i blocchi informativi `PDF, XML ed export restano governati`, `Avvisi economici` e `Invio e monitoraggio SdI` occupavano la pagina prima delle funzioni realmente usate.
+- Correzione React: nella vista archivio di `/fatturazione` la prima parte mostra indicatori, card operative, filtri e archivio parcelle/proforme; numerazione resta subito dopo l'archivio; i presidi fiscali e SdI vengono conservati in un pannello compatto richiudibile a fondo flusso.
+- Il percorso di recupero legacy non viene più mostrato nella vista archivio fatturazione: non deve sembrare una soluzione operativa alternativa rispetto al flusso React principale.
+- La regola da preservare è funzione prima di spiegazione: filtri per bonifico, parcella emessa, cliente e nr fascicolo, record proforma/parcella e azioni `Emetti parcella` / `Registra bonifico` devono restare più in alto dei presidi informativi.
+- Correzione visuale successiva richiesta dall'utente: i KPI a `EUR 0,00` non vengono più mostrati quando sono tutti a zero; i chip operativi restano in alto e il record archivio resta subito leggibile. Il titolo `Archivio parcelle e fatture` non viene più spostato sotto i record perché `Panel` usa l'header sezione senza riordino route-sequence.
+- La testata `/fatturazione` usa un override circoscritto alla pagina: altezza reale `72px`, padding `12px 18px`, titolo `24px`, senza cambiare le altre route React.
+- Prova reale locale su Docker `http://127.0.0.1:8080/fatturazione`, versione `2.253.115`: browser integrato visibile, `#root` presente, nessun pannello informativo obsoleto sopra l'archivio, nessun KPI zero, click reali su `Bonifico registrato`, `Parcella emessa` e `Azzera filtri` con select e conteggi aggiornati, tablet `768x1024` e mobile `390x844` senza overflow orizzontale.

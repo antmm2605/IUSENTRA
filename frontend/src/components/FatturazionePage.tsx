@@ -43,7 +43,6 @@ import {
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
@@ -180,6 +179,12 @@ const fallbackFormState: FormState = {
 function displayValue(value: string | number): string {
   if (typeof value === 'number') return new Intl.NumberFormat('it-IT').format(value)
   return value
+}
+
+function hasMetricValue(value: string | number): boolean {
+  if (typeof value === 'number') return value !== 0
+  const normalized = value.replace(/\s+/g, '').replace('€', 'EUR').toUpperCase()
+  return !['0', '0,00', '0.00', 'EUR0', 'EUR0,00', 'EUR0.00'].includes(normalized)
 }
 
 function requestedFatturazioneDetailId(): string {
@@ -380,6 +385,63 @@ function ContractPanel({ data }: { data: FatturazionePageData }) {
   )
 }
 
+function FiscalGuardrailsPanel({ data }: { data: FatturazionePageData }) {
+  const hasSdi = data.sdiWorkflow.length > 0 || data.officialSources.length > 0
+  const hasWarnings = data.warnings.length > 0
+  if (!hasSdi && !hasWarnings) return null
+
+  return (
+    <details className="iu-fatt-presidi">
+      <summary>
+        <span>
+          <FileText size={16} />
+          <strong>Presidi fiscali e SdI</strong>
+        </span>
+        <small>{data.sdiChannel.message || data.sdiChannel.label}</small>
+      </summary>
+      <div className="iu-fatt-presidi__body">
+        {hasWarnings ? (
+          <section className="iu-fatt-presidi__group" aria-label="Avvisi economici">
+            {data.warnings.map((warning) => (
+              <div className="iu-fatt-presidi__row" key={`${warning.code}-${warning.message}`}>
+                <Badge tone="warning">Avviso</Badge>
+                <span>{warning.message}</span>
+              </div>
+            ))}
+          </section>
+        ) : null}
+        <section className="iu-fatt-presidi__group" aria-label="Canale SdI">
+          <div className="iu-fatt-presidi__row">
+            <Badge tone={data.sdiChannel.configured ? 'success' : 'warning'}>{data.sdiChannel.label}</Badge>
+            <span>
+              {data.sdiChannel.configured
+                ? 'Canale configurato. XML, identificativi ed esiti restano collegati ai documenti.'
+                : 'XML FatturaPA e identificativi restano disponibili; invio solo con canale o intermediario configurato.'}
+            </span>
+          </div>
+          {data.sdiWorkflow.map((step) => (
+            <div className="iu-fatt-presidi__row" key={step.id}>
+              <Badge tone={step.tone}>{step.label}</Badge>
+              <span>{step.message}</span>
+            </div>
+          ))}
+        </section>
+        {data.officialSources.length ? (
+          <nav className="iu-fatt-presidi__sources" aria-label="Fonti tecniche fatturazione">
+            {data.officialSources.map((source) => (
+              <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>
+                <FileText size={15} />
+                <span>{source.label}</span>
+                <small>{source.authority}</small>
+              </a>
+            ))}
+          </nav>
+        ) : null}
+      </div>
+    </details>
+  )
+}
+
 function normalizeFilterValue(value: string | number | null | undefined) {
   return String(value || '').trim().toLowerCase()
 }
@@ -426,104 +488,86 @@ function CompactOperations({
   const issuedCount = data.records.filter(isIssuedInvoice).length
 
   return (
-    <Panel title="Azioni rapide fatturazione" subtitle={`${visibleRecords} elementi filtrati su ${totalRecords}`}>
-      <div className="iu-fatt-quick-grid" aria-label="Filtri rapidi per stato parcella">
+    <section className="iu-fatt-ops" aria-label="Azioni rapide fatturazione">
+      <header className="iu-fatt-ops__head">
+        <strong>Azioni rapide</strong>
+        <span>{visibleRecords} filtrati su {totalRecords}</span>
+      </header>
+      <div className="iu-fatt-chipbar" aria-label="Filtri rapidi per stato parcella">
         <button
           type="button"
-          className={`iu-fatt-quick-card ${stateFilter === allStatesFilter ? 'is-active' : ''}`}
+          className={`iu-fatt-chip ${stateFilter === allStatesFilter ? 'is-active' : ''}`}
           onClick={() => onStateFilter(allStatesFilter)}
           data-tone="neutral"
+          aria-pressed={stateFilter === allStatesFilter}
         >
-          <header>
-            <Hash size={16} />
-            <span>{totalRecords}</span>
-          </header>
-          <strong>Tutte</strong>
-          <small>Archivio completo</small>
+          <Hash size={15} />
+          <span>Tutte</span>
+          <strong>{totalRecords}</strong>
         </button>
         {stateItems.map((item) => {
           const code = item.id.toUpperCase()
           return (
             <button
               type="button"
-              className={`iu-fatt-quick-card ${selectedState === item.id ? 'is-active' : ''}`}
+              className={`iu-fatt-chip ${selectedState === item.id ? 'is-active' : ''}`}
               onClick={() => onStateFilter(code)}
               data-tone={item.tone}
+              aria-pressed={selectedState === item.id}
               key={item.id}
             >
-              <header>
-                <ReceiptText size={16} />
-                <span>{item.value}</span>
-              </header>
-              <strong>{item.label}</strong>
-              <small>{item.note || 'Filtra archivio'}</small>
+              <ReceiptText size={15} />
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
             </button>
           )
         })}
       </div>
-      <div className="iu-fatt-quick-grid iu-fatt-quick-grid--actions" aria-label="Azioni operative fatturazione">
+      <div className="iu-fatt-chipbar iu-fatt-chipbar--actions" aria-label="Azioni operative fatturazione">
         <button
           type="button"
-          className={`iu-fatt-quick-card ${paymentFilter === 'bonifico' ? 'is-active' : ''}`}
+          className={`iu-fatt-chip ${paymentFilter === 'bonifico' ? 'is-active' : ''}`}
           onClick={() => onPaymentFilter(paymentFilter === 'bonifico' ? 'all' : 'bonifico')}
           data-tone="success"
+          aria-pressed={paymentFilter === 'bonifico'}
         >
-          <header>
-            <CheckCircle2 size={16} />
-            <span>{bonificoCount}</span>
-          </header>
-          <strong>Bonifico registrato</strong>
-          <small>Mostra documenti incassati con pagamento tracciato</small>
+          <CheckCircle2 size={15} />
+          <span>Bonifico registrato</span>
+          <strong>{bonificoCount}</strong>
         </button>
         <button
           type="button"
-          className={`iu-fatt-quick-card ${issueFilter === 'emessa' ? 'is-active' : ''}`}
+          className={`iu-fatt-chip ${issueFilter === 'emessa' ? 'is-active' : ''}`}
           onClick={() => onIssueFilter(issueFilter === 'emessa' ? 'all' : 'emessa')}
           data-tone="primary"
+          aria-pressed={issueFilter === 'emessa'}
         >
-          <header>
-            <ReceiptText size={16} />
-            <span>{issuedCount}</span>
-          </header>
-          <strong>Parcella emessa</strong>
-          <small>Nasconde bozze e proforme da emettere</small>
+          <ReceiptText size={15} />
+          <span>Parcella emessa</span>
+          <strong>{issuedCount}</strong>
         </button>
-        <a className="iu-fatt-quick-card" href="/fatturazione/nuova" data-tone="primary">
-          <header>
-            <Plus size={16} />
-            <span>Nuova</span>
-          </header>
-          <strong>Nuova parcella</strong>
-          <small>Apri il form operativo</small>
+        <a className="iu-fatt-chip" href="/fatturazione/nuova" data-tone="primary">
+          <Plus size={15} />
+          <span>Nuova parcella</span>
         </a>
         {exportAction ? (
-          <a className="iu-fatt-quick-card" href={exportAction.href} data-tone="warning">
-            <header>
-              <Download size={16} />
-              <span>CSV</span>
-            </header>
-            <strong>Export CSV</strong>
-            <small>Scarica l'archivio fatturazione</small>
+          <a className="iu-fatt-chip" href={exportAction.href} data-tone="warning">
+            <Download size={15} />
+            <span>Export CSV</span>
           </a>
         ) : null}
-        <a className="iu-fatt-quick-card" href="#fatturazione-numerazione" data-tone="info">
-          <header>
-            <Save size={16} />
-            <span>{data.nextNumber || 'n.d.'}</span>
-          </header>
-          <strong>Numerazione</strong>
-          <small>Inizializza o verifica il prossimo numero</small>
+        <a className="iu-fatt-chip" href="#fatturazione-numerazione" data-tone="info">
+          <Save size={15} />
+          <span>Numerazione</span>
+          <strong>{data.nextNumber || 'n.d.'}</strong>
         </a>
-        <a className="iu-fatt-quick-card" href="/impostazioni/sdi" data-tone={data.sdiChannel.configured ? 'success' : 'warning'}>
-          <header>
-            <Mail size={16} />
-            <span>{data.sdiChannel.configured ? 'Attivo' : 'Da fare'}</span>
-          </header>
-          <strong>Canale SdI</strong>
-          <small>{data.sdiChannel.configured ? 'Apri la configurazione' : 'Configura canale o intermediario'}</small>
+        <a className="iu-fatt-chip" href="/impostazioni/sdi" data-tone={data.sdiChannel.configured ? 'success' : 'warning'}>
+          <Mail size={15} />
+          <span>Canale SdI</span>
+          <strong>{data.sdiChannel.configured ? 'Attivo' : 'Da fare'}</strong>
         </a>
       </div>
-    </Panel>
+    </section>
   )
 }
 
@@ -691,16 +735,16 @@ function NumberingPanel({
 }
 
 function MetricGrid({ data }: { data: FatturazionePageData }) {
+  const metrics = data.metrics.filter((metric) => hasMetricValue(metric.value))
+  if (!metrics.length) return null
   return (
-    <section className="iu-fatt-kpis" aria-label="Indicatori fatturazione">
-      {data.metrics.map((metric) => (
-        <KpiCard
-          label={metric.label}
-          value={displayValue(metric.value)}
-          note={metric.note}
-          badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
-          key={metric.id}
-        />
+    <section className="iu-fatt-metrics-strip" aria-label="Indicatori fatturazione">
+      {metrics.map((metric) => (
+        <article className="iu-fatt-metric-pill" data-tone={metric.tone} key={metric.id}>
+          <span>{metric.label}</span>
+          <strong>{displayValue(metric.value)}</strong>
+          <small>{metric.note}</small>
+        </article>
       ))}
     </section>
   )
@@ -1714,13 +1758,6 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
 
   return (
     <>
-      <section className="iu-fatt-banner" aria-label="Documenti economici">
-        <strong>PDF, XML ed export restano governati</strong>
-        <span>Archivio, indicatori, dettaglio sintetico e azioni di stato usano controlli protetti.</span>
-      </section>
-      <WarningPanel data={data} />
-      <SdiWorkflowPanel data={data} />
-      <MetricGrid data={data} />
       <CompactOperations
         data={data}
         totalRecords={data.records.length}
@@ -1733,9 +1770,6 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         onIssueFilter={setIssueFilter}
         exportAction={exportAction}
       />
-      <div id="fatturazione-numerazione">
-        <NumberingPanel data={data} onSaved={handleNumberingSaved} />
-      </div>
       <Panel
         title="Archivio parcelle e fatture"
         subtitle={`${records.length} elementi visualizzati su ${data.records.length}`}
@@ -1826,9 +1860,12 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
           />
         )}
       </Panel>
+      <div id="fatturazione-numerazione">
+        <NumberingPanel data={data} onSaved={handleNumberingSaved} />
+      </div>
+      <MetricGrid data={data} />
       <ArchiveDetailPanel detail={detail} loading={detailLoading} />
-      <ContractPanel data={data} />
-      <TechnicalRollback />
+      <FiscalGuardrailsPanel data={data} />
     </>
   )
 }
@@ -1869,7 +1906,8 @@ export function FatturazionePage() {
   return (
     <Page
       title={isNew ? 'Nuova parcella' : 'Fatturazione'}
-      subtitle={isNew ? 'Pagina operativa con salvataggio validato e calcolo fiscale governato.' : 'Archivio economico con indicatori reali e documenti avanzati governati.'}
+      subtitle={isNew ? 'Pagina operativa con salvataggio validato e calcolo fiscale governato.' : 'Proforme, parcelle e incassi collegati ai fascicoli.'}
+      className={isNew ? undefined : 'iu-fatt-page'}
       actions={
         isNew ? (
           <ButtonLink href="/fatturazione" tone="neutral">

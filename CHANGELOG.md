@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.111 - 2026-06-25
+
+- Vista economica fascicoli: quando la sentenza classifica la voce come `Spese/esborsi`, il payload React e la cella della matrice mostrano quell'etichetta reale invece della voce storica `Contributo unificato`.
+- UI desktop/mobile: la colonna diventa `Contributo / spese` e le card compatte riportano le singole voci economiche con stato e importo.
+
 ## 2.253.110 - 2026-06-25
 
 - Sentenze Lex AI: la quota `di cui € 21,50 per esborsi/per spese` viene classificata come `Spese/esborsi`, non come contributo unificato, anche quando esiste un PDF CU nel fascicolo.

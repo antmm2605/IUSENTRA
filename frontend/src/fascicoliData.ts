@@ -25,6 +25,8 @@ export type FascicoloPaymentHistoryItem = {
 export type FascicoloPaymentItem = {
   kind: FascicoloPaymentKind
   label: string
+  displayLabel: string
+  natura: string
   status: FascicoloPaymentStatus
   statusLabel: string
   tone: Tone
@@ -713,6 +715,8 @@ function emptyPaymentItem(kind: FascicoloPaymentKind, id = ''): FascicoloPayment
   return {
     kind,
     label: paymentKindLabels[kind],
+    displayLabel: paymentKindLabels[kind],
+    natura: '',
     status,
     statusLabel: paymentStatusLabels[status],
     tone: paymentStatusTones[status],
@@ -981,9 +985,12 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
   const row = isRecord(value) ? value : {}
   const status = normalizePaymentStatus(row.status ?? row.stato, paymentDefaultStatus[kind])
   const importo = paymentAmount(row.importo ?? row.amount)
+  const label = text(row.displayLabel ?? row.display_label ?? row.label, paymentKindLabels[kind])
   return {
     kind,
-    label: text(row.label, paymentKindLabels[kind]),
+    label,
+    displayLabel: label,
+    natura: text(row.natura ?? row.nature),
     status,
     statusLabel: text(row.statusLabel ?? row.status_label, paymentStatusLabels[status]),
     tone: (text(row.tone, paymentStatusTones[status]) as Tone) || paymentStatusTones[status],

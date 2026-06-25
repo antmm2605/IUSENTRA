@@ -132,6 +132,9 @@
 .iu-fas-economic-cell--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.045)}
 .iu-fas-economic-cell--warning,.iu-fas-economic-cell--orange{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.06)}
 .iu-fas-economic-cell--neutral{background:#f8fafc}
+.iu-fas-economic-cell__kind{grid-column:1/-1;min-width:0;display:flex;align-items:center;gap:6px}
+.iu-fas-economic-cell__kind .iu-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-economic-cell__kind small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10px;font-weight:820;text-transform:none}
 .iu-fas-economic-cell label{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-cell label>span{color:var(--iu-slate-500);font-size:9px;font-weight:950;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
 .iu-fas-economic-cell select,.iu-fas-economic-cell input{width:100%;min-height:28px;border:1px solid var(--iu-border);border-radius:7px;background:#fff;padding:0 5px;color:#111827;font-size:10.5px;font-weight:800}
@@ -1929,7 +1932,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-economic-filters select{min-height:34px;padding:0 8px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;font:inherit;font-size:12.5px;font-weight:750;color:var(--iu-slate-700)}
 @media(max-width:860px){.iu-fas-economic-filters{grid-template-columns:repeat(2,1fr)}}
 
-/* ===== Card mobile: totale economico in vista economica ===== */
-.iu-fas-mobile-card__economic{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid rgba(37,99,235,.16);border-radius:10px;background:rgba(239,246,255,.5)}
-.iu-fas-mobile-card__economic span{color:var(--iu-slate-500);font-size:11px;font-weight:850}
-.iu-fas-mobile-card__economic strong{font-size:13px;margin-left:auto}
+/* ===== Card mobile: matrice economica compatta ===== */
+.iu-fas-mobile-card__economic{display:grid;gap:8px;padding:8px 10px;border:1px solid rgba(37,99,235,.16);border-radius:10px;background:rgba(239,246,255,.5)}
+.iu-fas-mobile-card__economic>div,.iu-fas-mobile-card__economic li{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
+.iu-fas-mobile-card__economic span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:850}
+.iu-fas-mobile-card__economic strong{font-size:13px;white-space:nowrap}
+.iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}

@@ -204,7 +204,7 @@ const paymentFullLabels: Record<FascicoloPaymentKind, string> = {
 }
 
 const paymentColumnLabels: Record<FascicoloPaymentKind, string> = {
-  contributo_unificato: 'Contributo',
+  contributo_unificato: 'Contributo / spese',
   fondo_spese: 'Fondo spese',
   liquidazione_giudice: 'Liquidazione',
   parcella: 'Parcella',
@@ -999,8 +999,16 @@ function paymentAmountDraft(item: FascicoloPaymentItem): string {
   return item.importo === null || item.importo === undefined ? '' : String(item.importo).replace('.', ',')
 }
 
+function compactPaymentLabel(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
+}
+
 function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
   const payment = row.paymentSummary.items[kind]
+  const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
+  const paymentNatureLabel = payment.natura ? payment.natura.replace(/_/g, ' ') : ''
+  const showPaymentNature = Boolean(paymentNatureLabel && compactPaymentLabel(paymentNatureLabel) !== compactPaymentLabel(paymentLabel))
+  const showSpecificLabel = Boolean(showPaymentNature || paymentLabel !== paymentFullLabels[kind])
   const [status, setStatus] = useState<FascicoloPaymentStatus>(payment.status)
   const [amount, setAmount] = useState(paymentAmountDraft(payment))
   const [date, setDate] = useState(payment.dataPagamentoIso || '')
@@ -1046,21 +1054,27 @@ function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; 
 
   return (
     <form className={`iu-fas-economic-cell iu-fas-economic-cell--${payment.tone}`} onSubmit={(event) => { void submit(event) }}>
+      {showSpecificLabel ? (
+        <div className="iu-fas-economic-cell__kind">
+          <Badge tone={payment.tone}>{paymentLabel}</Badge>
+          {showPaymentNature ? <small>{paymentNatureLabel}</small> : null}
+        </div>
+      ) : null}
       <label>
         <span>Stato</span>
-        <select value={status} onChange={(event) => setStatus(event.target.value as FascicoloPaymentStatus)} aria-label={`${paymentFullLabels[kind]} - stato`}>
+        <select value={status} onChange={(event) => setStatus(event.target.value as FascicoloPaymentStatus)} aria-label={`${paymentLabel} - stato`}>
           {availableStatuses.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
         </select>
       </label>
       <label>
         <span>Importo</span>
-        <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="vuoto" aria-label={`${paymentFullLabels[kind]} - importo`}/>
+        <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="vuoto" aria-label={`${paymentLabel} - importo`}/>
       </label>
       <label>
         <span>Data</span>
-        <input value={date} onChange={(event) => setDate(event.target.value)} type="date" aria-label={`${paymentFullLabels[kind]} - data`}/>
+        <input value={date} onChange={(event) => setDate(event.target.value)} type="date" aria-label={`${paymentLabel} - data`}/>
       </label>
-      <button type="submit" disabled={saving || !dirty} title="Salva aggiornamento economico" aria-label={`Salva ${paymentFullLabels[kind]} per ${row.ref}`}>
+      <button type="submit" disabled={saving || !dirty} title="Salva aggiornamento economico" aria-label={`Salva ${paymentLabel} per ${row.ref}`}>
         {saving ? <RefreshCw size={14}/> : <Save size={14}/>}
       </button>
       <details className="iu-fas-economic-cell__details">
@@ -1071,11 +1085,11 @@ function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; 
         <div>
           <label>
             <span>Metodo</span>
-            <input value={method} onChange={(event) => setMethod(event.target.value)} placeholder="F24, bonifico..." aria-label={`${paymentFullLabels[kind]} - metodo`}/>
+            <input value={method} onChange={(event) => setMethod(event.target.value)} placeholder="F24, bonifico..." aria-label={`${paymentLabel} - metodo`}/>
           </label>
           <label>
             <span>Note</span>
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="nota interna" aria-label={`${paymentFullLabels[kind]} - note`}/>
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="nota interna" aria-label={`${paymentLabel} - note`}/>
           </label>
         </div>
       </details>
@@ -1110,9 +1124,24 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
       </dl>
       {economic ? (
         <div className="iu-fas-mobile-card__economic">
-          <span>Totale registrato</span>
-          <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
-          <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
+          <div>
+            <span>Totale registrato</span>
+            <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
+            <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
+          </div>
+          <ul>
+            {fascicoloPaymentKinds.map((kind) => {
+              const payment = item.paymentSummary.items[kind]
+              const label = payment.displayLabel || payment.label || paymentFullLabels[kind]
+              return (
+                <li key={kind}>
+                  <span>{label}</span>
+                  <strong>{payment.importoLabel || 'vuoto'}</strong>
+                  <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       ) : null}
       <footer>
@@ -1183,7 +1212,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       subtitle={archive
         ? 'Archivio pratiche chiuse'
         : economic
-          ? 'Elenco unico dello studio — vista economica (contributo unificato, fondo spese, liquidazione, parcella)'
+          ? 'Elenco unico dello studio — vista economica (contributo/spese, fondo spese, liquidazione, parcella)'
           : 'Elenco unico dello studio — vista operativa'}
       toolbar={viewToggle || pageSizeControl ? (
         <div className="iu-fas-table-toolbar">
@@ -1555,7 +1584,7 @@ function FascicoliListPage() {
             <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
             <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
             <div className="iu-fas-economic-filters" role="group" aria-label="Filtri per voce economica">
-              <label><span>Contributo unificato</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+              <label><span>Contributo / spese</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Fondo spese</span><select value={fondoFilter} onChange={(event) => updateFondoFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Liquidazione</span><select value={liquidazioneFilter} onChange={(event) => updateLiquidazioneFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Parcella</span><select value={parcellaFilter} onChange={(event) => updateParcellaFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>

@@ -13,7 +13,7 @@ from pct.fascicolo_sentenza_economica import (
     extract_contributo_unificato_document_evidence,
 )
 from pct.fatturazione import GestioneFatturazione, StatoParcella, VoceParcella
-from web.services.react_fascicoli_bridge import update_react_fascicolo_payment
+from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo, update_react_fascicolo_payment
 
 
 SENTENZA_TEXT = """
@@ -436,6 +436,10 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
     assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 21.50
     assert fascicolo.pagamenti["contributo_unificato"]["natura"] == "spese_esborsi"
     assert fascicolo.pagamenti["contributo_unificato"]["label"] == "Spese/esborsi"
+    react_payment = payment_summary_for_fascicolo(fascicolo)["items"]["contributo_unificato"]
+    assert react_payment["label"] == "Spese/esborsi"
+    assert react_payment["displayLabel"] == "Spese/esborsi"
+    assert react_payment["natura"] == "spese_esborsi"
     assert fascicolo.pagamenti["parcella"]["importo"] == updated_proforma.totale
     assert any(
         voce.tipo == "ANTICIPO"

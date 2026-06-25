@@ -1031,6 +1031,8 @@ def _payment_history(raw: dict[str, Any]) -> list[dict[str, str]]:
 
 def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     default_status = PAYMENT_DEFAULT_STATUS[kind]
+    label = _short(raw.get("label") or raw.get("etichetta"), 80) or PAYMENT_KIND_LABELS[kind]
+    natura = _short(raw.get("natura") or raw.get("nature"), 80)
     status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
     if not status:
         if raw.get("previsto") is False or raw.get("prevista") is False:
@@ -1045,7 +1047,9 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     payment_date = _text(raw.get("data_pagamento") or raw.get("dataPagamento") or raw.get("date"))
     return {
         "kind": kind,
-        "label": PAYMENT_KIND_LABELS[kind],
+        "label": label,
+        "displayLabel": label,
+        "natura": natura,
         "status": status,
         "statusLabel": PAYMENT_STATUS_LABELS[status],
         "tone": PAYMENT_STATUS_TONES[status],

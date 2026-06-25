@@ -5565,3 +5565,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_deposito_guidato.py::test_orchestratore_blocca_atto_principale_p7m_non_cades_senza_prova_tecnica tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_reale_senza_flag_storico tests/test_deposito_guidato.py::test_orchestratore_non_blocca_atto_principale_cades_cifrato_a_riposo -q --tb=short` | OK | 3/3 passati: il validator blocca un `.p7m` senza prova tecnica, accetta CAdES reale e accetta CAdES reale cifrato a riposo dopo decifratura. |
 | `python -m pytest tests/test_regia_api_payloads.py -q --tb=short` | OK | 8/8 passati: payload React e stato `Firmato` restano basati su prova tecnica reale. |
 | `python -m pytest tests/test_deposito.py tests/test_busta.py -q --tb=short -k "dati_atto or DatiAtto or busta_reale_usa_dati_atto_firmato or invia_pec_simula or local_pec or atto_enc or IndiceBusta"` | OK | 6/6 passati: busta ministeriale, DatiAtto, IndiceBusta e Atto.enc non regrediscono. |
+
+## Sentenza Lex AI RG Vicenza e importi 2.253.106 - 2026-06-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py tests\test_react_fatturazione_bridge.py -q` | OK | 23/23 passati: il documento strategico resta bloccato se RG/cliente non coincidono, il backfill distingue raw/accettate e il parser legge `€ 1030,00` come `1030.00`. |
+| `python -m py_compile pct\fascicolo_sentenza_economica.py scripts\backfill_sentenza_lex_economics.py web\services\document_intelligence_runtime.py web\services\react_fatturazione_bridge.py` | OK | Sintassi confermata su parser, backfill, runtime Lex e bridge fatturazione. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Packaging sincronizzato, OpenAPI valido, 14/14 release/UTF-8 passati e diff senza whitespace error. |
+| `docker compose build --no-cache app`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale aggiornata: `/api/pronto` `versione=2.253.106`, `app` healthy; parser nel container conferma `€ 1030,00 -> 1030.0`. |
+| Bonifica server Hetzner `Sentenza Tribunale Vicenza.PDF` / RG `1548/2023` | OK | Apply senza backup: `9` proforme in bozza annullate, `9` fascicoli ripuliti, `11` documenti vettoriali Lex rimossi. |
+| Post-check server Hetzner falso RG `1548/2023` | OK | A freddo: `bad_bozza_proforme=0`, `bad_active_proforme=0`, `bad_fascicoli=0`, `bad_vector_docs=0`. |

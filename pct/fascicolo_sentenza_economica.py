@@ -24,14 +24,15 @@ _SENTENZA_DATE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _RG_RE = re.compile(r"\bR\.?\s*G\.?\s*n\.?\s*(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})", re.IGNORECASE)
+_MONEY_AMOUNT_PATTERN = r"(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{2})?"
 _MONEY_RE = re.compile(
-    r"(?:\u20ac|EUR)\s*(?P<amount>\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[,.]\d{2})?)",
+    r"(?:\u20ac|EUR)\s*(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
     re.IGNORECASE,
 )
 _LIQUIDAZIONE_RE = re.compile(
     r"\bliquid(?:a|ando|ata|ato|ate|ati)\b.{0,160}?"
     r"(?:(?:complessiv[aoei]\s+)?(?:somma|importo)\s+(?:di\s+)?|(?:in\s+)?complessiv[aoei]\s+)(?:\u20ac|EUR)\s*"
-    r"(?P<amount>\d{1,3}(?:\.\d{3})*(?:,\d{2})?|\d+(?:[,.]\d{2})?)",
+    r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
     re.IGNORECASE | re.DOTALL,
 )
 _CU_PATTERNS = (
@@ -612,6 +613,8 @@ def _parse_money(value: str) -> float | None:
         return None
     if "," in raw:
         raw = raw.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"\d{1,3}(?:\.\d{3})+", raw):
+        raw = raw.replace(".", "")
     try:
         return round(float(raw), 2)
     except ValueError:

@@ -88,6 +88,22 @@ def test_estrazione_contributo_unificato_non_prende_importo_liquidazione():
     assert extraction.contributo_unificato_importo is None
 
 
+def test_estrazione_liquidazione_quattro_cifre_senza_punto_migliaia():
+    text = """
+    Firmato Da: GIUDICE TEST Emesso Da: TRUSTPRO QUALIFIED CA Serial#: 123
+    Sentenza n. 588/2025 pubbl. il 04/11/2025
+    RG n. 1916/2024
+    condanna la resistente alla rifusione delle spese sostenute dalla parte ricorrente
+    a tale titolo liquidando la complessiva somma di € 1030,00, oltre a spese
+    generali ed accessori di legge.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(text, {})
+
+    assert extraction.found is True
+    assert extraction.liquidazione_importo == 1030.00
+
+
 def test_estrazione_rg_preferisce_intestazione_sentenza():
     text = """
     Nel corpo della motivazione viene richiamato il precedente RG n. 4593/2022.

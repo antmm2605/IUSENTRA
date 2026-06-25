@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.106 - 2026-06-25
+
+- Sentenze Lex AI: bonificati sul server i falsi positivi collegati a `Sentenza Tribunale Vicenza.PDF` / RG `1548/2023` quando il fascicolo ha RG diverso; annullate le proforme in bozza collegate, ripulita l'economia dei fascicoli e rimossi i documenti vettoriali Lex AI errati.
+- Sentenze Lex AI: il parser della liquidazione legge correttamente importi a quattro cifre senza separatore migliaia, per esempio `€ 1030,00`, evitando il taglio a `€ 103,00`.
+- Anti-regressione: aggiunto test mirato per la liquidazione a quattro cifre e rieseguiti parser/backfill/bridge fatturazione.
+
 ## 2.253.96 - 2026-06-23
 
 - Deposito telematico: il payload `Atto.enc` consegnato al Local Signer resta base64 valido anche dopo la redazione JSON tecnica, evitando l'errore `Allegato Atto.enc non e' base64 valido` al click su `Invia deposito reale`.

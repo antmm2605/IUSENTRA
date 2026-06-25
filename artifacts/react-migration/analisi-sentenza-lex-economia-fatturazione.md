@@ -254,3 +254,12 @@ Prova reale obbligatoria:
 - Aggiunti filtri locali dell'archivio per `Bonifico registrato`, `Parcella emessa`, `Cliente` e `Nr fascicolo`, oltre alla ricerca generale. I filtri lavorano sul payload React reale già caricato, senza introdurre dati paralleli.
 - Il filtro `Nr fascicolo` non dipende più dal solo titolo pratica: il payload React espone `caseId`, `caseReference` e `caseRg` per ogni parcella collegata a un fascicolo, così la ricerca per ID fascicolo o RG resta verificabile e non ambigua.
 - Prova reale locale eseguita dopo rebuild Docker `2.253.95` su `http://127.0.0.1:8080/fatturazione`: 12 card compatte operative, nessun overflow desktop/mobile, click su `Bonifico registrato` e `Parcella emessa` con select reali aggiornati, `Azzera filtri`, anchor `Numerazione`, link `Nuova parcella`, focus visibile sui filtri e mobile `390x844` con `scrollWidth=clientWidth=375`.
+
+## Bonifica RG Vicenza e parser importi 2.253.106
+
+- Segnalazione utente del 25/06/2026: il documento `Sentenza Tribunale Vicenza.PDF` risultava ancora usato per il calcolo economico, pur essendo materiale strategico della causa e riportando `VERBALE DELLA CAUSA n. r.g. 1548/2023`, non il numero RG del fascicolo corrente.
+- Verifica server reale: il codice corrente scarta già quel documento quando il fascicolo ha RG diverso (`rg_sentenza_non_coincidente_con_fascicolo`), ma erano rimasti dati scritti dal backfill precedente del 22/06/2026.
+- Bonifica applicata sul server Hetzner senza creare backup: `9` proforme Lex AI in bozza annullate, `9` fascicoli ripuliti da economia/proforme/automation collegate al falso RG, `11` documenti vettoriali `lex_sentenza_tribunale` rimossi da Lex AI.
+- Post-check server a freddo: `bad_bozza_proforme=0`, `bad_active_proforme=0`, `bad_fascicoli=0`, `bad_vector_docs=0` per la chiave `2024-05-07 / Sentenza 230/2024 / RG 1548/2023` su fascicoli con RG diverso.
+- Corretto anche il parser importi: una liquidazione come `€ 1030,00` viene letta come `1030.00` e non più come `103.00`; questo evita errori economici sulle sentenze corrette che non usano il punto migliaia.
+- Regola operativa confermata: una sentenza entra nella matrice economica solo se il suo RG coincide con il fascicolo; il nome cliente resta controllo aggiuntivo, ma il mismatch RG è da solo sufficiente a bloccare economia, proforma e indicizzazione vettoriale come sentenza del fascicolo.

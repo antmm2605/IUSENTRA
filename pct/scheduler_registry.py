@@ -1306,6 +1306,20 @@ class SchedulerRegistryRepository:
             ).fetchall()
         return {str(row["job_id"]): self._normalize_run(dict(row)) for row in rows}
 
+    def latest_completed_run(self, job_id: str) -> dict[str, Any]:
+        with self.connect() as conn:
+            row = conn.execute(
+                """
+                SELECT *
+                FROM scheduled_job_runs
+                WHERE job_id=? AND status='completed'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (str(job_id or ""),),
+            ).fetchone()
+        return self._normalize_run(dict(row)) if row else {}
+
     def totals(self) -> dict[str, int]:
         with self.connect() as conn:
             jobs = conn.execute(

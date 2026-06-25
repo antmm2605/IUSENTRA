@@ -15,7 +15,11 @@ class LexOcrQuestion:
 
 
 DEFAULT_QUESTIONS = (
-    LexOcrQuestion("numero_ruolo", "Qual è il numero di ruolo o R.G. del documento?", (r"\bR\.?\s*G\.?.{0,40}\d{1,7}\s*/\s*\d{2,4}",)),
+    LexOcrQuestion(
+        "numero_ruolo",
+        "Qual è il numero di ruolo o R.G. del documento?",
+        (r"\b(?:proc\.?\s*n\.?\s*)?(?:R\.?\s*G\.?\s*A\.?\s*C\.?|RGAC|R\.?\s*G\.?).{0,40}\d{1,7}\s*/\s*\d{2,4}",),
+    ),
     LexOcrQuestion(
         "ufficio",
         "Quale ufficio giudiziario emerge dal documento?",
@@ -28,11 +32,18 @@ DEFAULT_QUESTIONS = (
             r"\bConsiglio\s+di\s+Stato\b.{0,80}",
         ),
     ),
-    LexOcrQuestion("parti", "Quali parti o soggetti principali sono citati?", (r".{0,80}\b(?:contro| c/ | vs\.? )\b.{0,100}",)),
+    LexOcrQuestion(
+        "parti",
+        "Quali parti o soggetti principali sono citati?",
+        (
+            r".{0,80}\b(?:contro| c/ | vs\.? )\b.{0,100}",
+            r"\bparti\s*:\s*[^\n]{6,220}",
+        ),
+    ),
     LexOcrQuestion("date", "Quali date o scadenze processuali sono presenti?", (r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", r"\b\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4}\b")),
-    LexOcrQuestion("norme", "Quali articoli o riferimenti normativi sono richiamati?", (r"\b(?:art\.?|artt\.?|articolo)\s+\d+[^.;\n]{0,80}", r"\b(?:D\.Lgs\.|D\.L\.|L\.|D\.P\.R\.|D\.M\.)\s*n\.?\s*\d+/\d{4}")),
+    LexOcrQuestion("norme", "Quali articoli o riferimenti normativi sono richiamati?", (r"\b(?:art\.?|artt\.?|articolo)\s+\d+[^.;\n]{0,80}", r"\b(?:D\.Lgs\.?|D\.L\.?|L\.|DPR|D\.P\.R\.?|DM|D\.M\.?)\s*n\.?\s*\d+/\d{4}")),
     LexOcrQuestion("pec", "Sono presenti indirizzi PEC o riferimenti di comunicazione?", (r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",)),
-    LexOcrQuestion("importi", "Sono presenti importi economici rilevanti?", (r"(?:€|euro)\s*\d[\d\.\s]*(?:,\d{2})?", r"\b\d[\d\.\s]*(?:,\d{2})\s*(?:euro|EUR)\b")),
+    LexOcrQuestion("importi", "Sono presenti importi economici rilevanti?", (r"(?:€|EUR|euro)\s*[\.,]?\s*\d[\d\.\s]*(?:,\d{2})?", r"\b\d[\d\.\s]*(?:,\d{2})\s*(?:€|euro|EUR)\b")),
 )
 
 
@@ -112,6 +123,8 @@ def _entity_answer(question_id: str, entities: dict[str, Any]) -> str:
         return "; ".join(str(item) for item in entities["date"][:5])
     if question_id == "norme" and entities.get("riferimenti"):
         return "; ".join(str(item) for item in entities["riferimenti"][:5])
+    if question_id == "importi" and entities.get("importi"):
+        return "; ".join(str(item) for item in entities["importi"][:5])
     return ""
 
 

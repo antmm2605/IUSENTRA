@@ -2348,6 +2348,26 @@ Prova reale locale eseguita su `http://127.0.0.1:8080/pat` nel browser integrato
 
 Limite residuo da non dichiarare chiuso: il PDF generato dopo il fix è stato verificato via generatore backend e test XFA sui byte, ma non è ancora stato aperto davanti all'utente in Acrobat Reader con ispezione visiva campo per campo. Prima di dichiarare copertura PAT 100% servono ancora matrice modulo/campo obbligatorio/percorso XFA/campo IUSENTRA/dato DB/prova PDF/prova visiva Acrobat e prova reale su tutti i moduli, inclusi radio, checkbox, select e gruppi `Aggiungi`.
 
+## OCR comune per PEC, notifiche e deposito - 2.253.118 - 2026-06-25
+
+Richiesta utente: PEC, notifiche e deposito devono dipendere dalla stessa pipeline OCR nuova, così i dati riportati nei fascicoli, nella busta e nella conoscenza Lex AI non divergono.
+
+Correzione applicata:
+
+- `pct.ocr.estrai_testo` non è più un percorso OCR separato: per PDF e immagini delega prima a `pct.document_intelligence.extraction.extract_text_from_document`, quindi usa Unlimited-OCR quando self-hosted e pronto, oppure il fallback locale ibrido governato;
+- `pct.pec_pipeline.extract_text_with_coverage` continua a usare `pct.ocr.estrai_testo`, ma ora passa dall'adapter comune e non da una lettura PDF parallela;
+- il recupero documentale per notifiche/scadenze/agenda da fascicolo usa già `DocumentAIService.process_lex_indexing_sources` e quindi la stessa estrazione Document AI;
+- il flusso React `Prepara deposito`, indice documenti e controlli documentali leggono i testi Document AI indicizzati del fascicolo: non devono reintrodurre OCR diretto o parser PDF non governati;
+- se Unlimited-OCR non è configurato, il sistema non dichiara un risultato Baidu finto: usa fallback locale e warning, mantenendo testo completo, pagine, hash e manifest come sorgente per Lex AI.
+
+Stato anti-regressione:
+
+- `tests/test_ocr_pipeline_adapter.py` presidia la delega da `pct.ocr.estrai_testo` a Document AI e il supporto path locale;
+- `tests/test_ocr_pipeline_adapter.py` presidia anche la configurazione Tesseract locale senza `--tessdata-dir` quotato, dopo la prova reale su `Sentenza_3080731.pdf`, `depositoMinutaSentenzaSemplificata.pdf`, `attoACQ.pdf` e `attoACQ.pdf.p7m`;
+- `tests/test_pec_audit_pipeline.py::test_extract_text_with_coverage_pdf_usa_adapter_ocr_pipeline` blocca il ritorno della PEC a un OCR parallelo;
+- `tests/test_pec_audit_pipeline.py::test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag` conferma il percorso Document AI usato per recupero udienze/scadenze;
+- verifica reale locale eseguita sul browser integrato dopo rebuild Docker `2.253.118`: `/email` e `/notifiche-legali` aprono superfici React senza errori; `/fascicoli/DC5BF1DB/deposito/prepara` mostra `RG 466/2023 - Alessi Robertino`, `20` documenti nel fascicolo, `8` documenti in busta e indice generato dal software in tempo reale.
+
 ## Certificati PST `.cer` e job reali scheduler - 2026-06-25
 
 Durante il gate operativo `2.253.108` il controllo reale dei job ha bloccato il rilascio su `pst_certificati_cifratura_weekly`: il worker era vivo, ha eseguito il job, ma il report ha restituito `errori=1` per il codice ministeriale `0651160115` (`Tribunale per i Minorenni-Salerno`) perché il certificato in cache era scaduto.
@@ -2368,3 +2388,30 @@ Prova reale locale su Docker `127.0.0.1:8080`, versione `2.253.108`:
 - gate worker Lex successivo: `lex_sentenza_economia_auto` `completed` con `errors=0` e `vector_embedding_errors=0`.
 
 Regola operativa da mantenere: la cache tecnica `.cer` è una risorsa valida solo se il certificato è temporalmente valido e utilizzabile per cifratura; un singolo ufficio con certificato scaduto non deve essere mascherato come successo globale, ma deve essere rinfrescato o indicato come blocco puntuale per quell'ufficio/canale.
+
+## Presidio PEC e job incrementali comuni - 2.253.117 - 2026-06-25
+
+Il presidio PEC alimenta scadenziario, agenda, notifiche, Web Push, fascicoli, Lex AI e controlli di deposito. Per questo non deve diventare un ciclo pesante che rilegge tutta la casella a ogni run.
+
+Correzione applicata:
+
+- `pec_audit_pipeline_workers` mantiene i lotti piccoli, ma ora salva anche un cursore operativo nel repository PEC audit;
+- dopo il bootstrap e l'esaurimento dell'arretrato, il worker acquisisce solo PEC nuove e la boundary di sicurezza, lasciando i job già accodati alla coda `pec_jobs`;
+- se il batch si riempie, il cursore non avanza: il giro successivo riprende la stessa finestra, scarta ciò che è già presidiato e lavora gli arretrati rimasti;
+- il risultato espone `scan_mode` (`bootstrap`, `incremental`, `incremental_backlog`), `archive_seen`, `scanned`, `cursor_saved`, così il gate può distinguere un worker realmente incrementale da una scansione completa;
+- la full scan PEC è consentita solo con `IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN=1`;
+- `lex_sentenza_economia_auto` usa la stessa disciplina sui Document AI: legge il cursore `mtime_ns` dall'ultimo run completato nel registro scheduler e apre solo `extracted_text.json` modificati dopo quel valore;
+- la full scan Lex Sentenze è consentita solo con `IUSENTRA_SENTENZA_LEX_FULL_SCAN=1`;
+- il gate runtime deve accettare run incrementali senza nuovi documenti (`documents_seen=0`) se il riepilogo operativo esiste e `errors=0`, `vector_embedding_errors=0`;
+- `pec_audit_pipeline_workers`, `mailbox_sync_runtime`, `calendar_sync_engine_retry` e `local_ai_maintenance` restituiscono ora un report scheduler con `scan_mode`, `totals`, stato del tenant e motivi di skip/errore;
+- `scripts/check_runtime_services.py --require-all-due-jobs` blocca i job operativi frequenti completati senza `totals` oppure con errori nel riepilogo, quindi il rilascio non può passare con worker vivi ma opachi.
+
+Guardrail eseguiti prima del deploy:
+
+- `python -m pytest tests\test_pec_auto_acquire.py tests\test_backfill_sentenza_lex_economics.py tests\test_scheduler.py tests\test_runtime_service_checks.py tests\test_pec_audit_pipeline.py tests\test_scheduler_worker.py tests\test_scheduler_registry.py -q --tb=short`;
+- `python tools\sync_packaging_files.py --check`;
+- `python scripts\validate_openapi.py docs\openapi.yaml`;
+- `python -m pytest tests\test_pec_auto_acquire.py tests\test_backfill_sentenza_lex_economics.py tests\test_scheduler.py tests\test_runtime_service_checks.py -q --tb=short`;
+- `git diff --check -- pct\incremental_jobs.py pct\pec_pipeline.py web\services\pec_pipeline_runtime.py scripts\backfill_sentenza_lex_economics.py pct\scheduler.py pct\scheduler_registry.py scripts\check_runtime_services.py tests\test_pec_auto_acquire.py tests\test_backfill_sentenza_lex_economics.py tests\test_scheduler.py tests\test_runtime_service_checks.py`.
+
+Stato residuo: codice e test locali sono verdi, ma la consegna non è chiusa finché Docker locale reale e Hetzner non mostrano run `completed` dei worker sullo stesso commit, senza `missed` per istanza precedente ancora in corso.

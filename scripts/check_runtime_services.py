@@ -22,6 +22,13 @@ from pct import __version__ as APP_VERSION
 APPLICATION_SERVICES = ("app", "scheduler-worker", "ocr-worker")
 DEFAULT_SCHEDULER_JOB = "lex_sentenza_economia_auto"
 INTERNAL_CONTROL_JOBS = {"scheduler_registry_reload"}
+OPERATIONAL_RESULT_REQUIRED_JOBS = {
+    DEFAULT_SCHEDULER_JOB,
+    "calendar_sync_engine_retry",
+    "mailbox_sync_runtime",
+    "pec_audit_pipeline_workers",
+    "local_ai_maintenance",
+}
 
 
 def _compose_base(compose_file: str = "", env_file: str = "") -> list[str]:
@@ -431,6 +438,27 @@ def validate_scheduler_run_audit(
                 )
                 entry["status"] = "failed"
                 entry["reason"] = "Indicizzazione vettoriale non completata."
+            entry["totals"] = totals
+        elif (
+            require_all_due
+            and due_since_worker_start
+            and status == "completed"
+            and current_job_id in OPERATIONAL_RESULT_REQUIRED_JOBS
+        ):
+            if result.get("ok") is False:
+                reason = str(result.get("error") or entry["latest_error"] or "Esito job negativo.")
+                errors.append(f"{current_job_id}: risultato interno negativo: {reason}")
+                entry["status"] = "failed"
+                entry["reason"] = reason
+            totals = result.get("totals") if isinstance(result.get("totals"), dict) else {}
+            if not totals:
+                errors.append(f"{current_job_id}: run completato senza riepilogo operativo totals.")
+                entry["status"] = "failed"
+                entry["reason"] = "Manca il riepilogo operativo del job."
+            elif int(totals.get("errors") or 0) > 0:
+                errors.append(f"{current_job_id}: job con {int(totals.get('errors') or 0)} errori.")
+                entry["status"] = "failed"
+                entry["reason"] = "Il job ha registrato errori nel riepilogo operativo."
             entry["totals"] = totals
         audited.append(entry)
     if job_id and not any(str(job.get("job_id") or "") == job_id for job in jobs):

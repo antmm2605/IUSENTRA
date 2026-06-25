@@ -15,7 +15,7 @@ from pct.fatturazione import StatoParcella, VoceParcella
 
 ORIGIN = "lex_ai_sentenza_tribunale"
 AUTOMATION_KEY = "_sentenza_tribunale_lex_ai"
-SENTENZA_VECTOR_SCHEMA_VERSION = "sentenza_tribunale_compact_v3"
+SENTENZA_VECTOR_SCHEMA_VERSION = "sentenza_tribunale_compact_v4"
 ROME = ZoneInfo("Europe/Rome")
 
 _ITALIAN_MONTHS = {
@@ -49,7 +49,7 @@ _RG_RE = re.compile(
     r"\b(?:n\.?\s*)?R\.?\s*G\.?\s*(?:n\.?\s*)?(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})",
     re.IGNORECASE,
 )
-_MONEY_AMOUNT_PATTERN = r"(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{2})?"
+_MONEY_AMOUNT_PATTERN = r"(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[,.]\d{2})?"
 _MOJIBAKE_EURO = "\u00e2\u201a\u00ac"
 _MONEY_PREFIX_PATTERN = r"(?:\u20ac|EUR|euro|" + re.escape(_MOJIBAKE_EURO) + r"|\?)"
 _MONEY_RE = re.compile(
@@ -62,6 +62,21 @@ _LIQUIDAZIONE_RE = re.compile(
     + _MONEY_PREFIX_PATTERN
     + r"\s*"
     r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
+    re.IGNORECASE | re.DOTALL,
+)
+_LIQUIDAZIONE_WORD_RE = re.compile(r"\bliquid(?:a|ando|ata|ato|ate|ati)\b", re.IGNORECASE)
+_LIQUIDAZIONE_CONTEXT_RE = re.compile(
+    r"\b(?:spese\s+di\s+lite|rifusione\s+delle\s+spese|compensi\s+professionali|onorari|"
+    r"p\.?\s*q\.?\s*m\.?|definitivamente\s+pronunciando)\b",
+    re.IGNORECASE,
+)
+_COMPENSI_AFTER_AMOUNT_RE = re.compile(
+    r"^[\s,;:.]*(?:per|a\s+titolo\s+di)\s+(?:compensi(?:\s+professionali)?|onorari)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_NON_COMPENSI_AFTER_AMOUNT_RE = re.compile(
+    r"^[\s,;:.]*(?:per|a\s+titolo\s+di)\s+"
+    r"(?:spese(?!\s+generali)|esbors[oi]|spese\s+vive|contribut[oi]\s+unificat[oi]|c\.?\s*u\.?)\b",
     re.IGNORECASE | re.DOTALL,
 )
 _CU_PATTERNS = (
@@ -100,6 +115,33 @@ _CONTRIBUTO_DOCUMENT_HINT_RE = re.compile(
 )
 _CONTRIBUTO_DOCUMENT_REJECT_RE = re.compile(
     r"\b(?:carta\s+(?:elettronica|docente)|aggiornamento\s+e\s+formazione\s+del\s+docente)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_SCAGLIONE_RE = re.compile(
+    r"\b(?:scaglione|valore\s+(?:della\s+)?(?:domanda|causa|controversia)|"
+    r"compreso\s+nello\s+scaglione|superiore\s+a|fino\s+a|tra\s+"
+    + _MONEY_PREFIX_PATTERN
+    + r")\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_CONTRIBUTO_DOCUMENT_DIRECT_NEAR_RE = re.compile(
+    r"\b(?:importo|totale|pagamento|versamento|versato|pagato|dovuto|pari|"
+    r"contributo\s+unificat[oi]|c\.?\s*u\.?)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
+    r"\b(?:"
+    r"contributo\s+unificat[oi]\s+non\s+dovut[oaie]|"
+    r"non\s+dovut[oaie]\s+(?:il\s+)?contributo\s+unificat[oi]|"
+    r"esente\s+dal\s+pagamento\s+(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"esenzione\s+(?:dal\s+pagamento\s+)?(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
+    r"prenotazione\s+a\s+debito"
+    r")\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE = re.compile(
+    r"\b(?:non\s+esente|nessuna\s+esenzione|esenzione\s+non\s+(?:riconosciuta|ammessa))\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_AMOUNT_RE = re.compile(
@@ -167,6 +209,9 @@ class SentenzaEconomicaExtraction:
     contributo_unificato_titolo: str = ""
     contributo_unificato_natura: str = ""
     contributo_unificato_label: str = ""
+    contributo_unificato_esente: bool = False
+    spese_esborsi_importo: float | None = None
+    spese_esborsi_titolo: str = ""
     fondo_spese_importo: float | None = None
     fondo_spese_titolo: str = ""
     beneficio_cliente_importo: float | None = None
@@ -256,8 +301,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
 
     rg_match = _extract_rg_near_sentence(compact, date_match)
     liquidation_amount, liquidation_title = _extract_liquidazione(compact)
-    cu_amount, cu_title = _extract_contributo_unificato(compact)
-    cu_natura = _classify_contributo_recovery(cu_title) if cu_amount is not None else ""
+    spese_esborsi_amount, spese_esborsi_title = _extract_contributo_unificato(compact)
     fondo_amount, fondo_title = _extract_amount_near(compact, _FONDO_PATTERNS)
     beneficio_amount, beneficio_title, beneficio_tipo = _extract_beneficio_cliente(compact)
     groups = date_match.groupdict()
@@ -271,10 +315,12 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
         rg_year=str(rg_match.group("year") or "").strip() if rg_match else "",
         liquidazione_importo=liquidation_amount,
         liquidazione_titolo=liquidation_title,
-        contributo_unificato_importo=cu_amount,
-        contributo_unificato_titolo=cu_title,
-        contributo_unificato_natura=cu_natura,
-        contributo_unificato_label=_contributo_recovery_label(cu_natura),
+        contributo_unificato_importo=None,
+        contributo_unificato_titolo="",
+        contributo_unificato_natura="",
+        contributo_unificato_label="",
+        spese_esborsi_importo=spese_esborsi_amount,
+        spese_esborsi_titolo=spese_esborsi_title,
         fondo_spese_importo=fondo_amount,
         fondo_spese_titolo=fondo_title,
         beneficio_cliente_importo=beneficio_amount,
@@ -411,6 +457,43 @@ def apply_sentenza_tribunale_automation(
         )
         if cu_changed:
             changes["payments"].append("contributo_unificato")
+    elif extraction.contributo_unificato_esente:
+        cu_changed = _upsert_payment(
+            payments,
+            "contributo_unificato",
+            status="non_previsto",
+            amount=None,
+            date_iso=extraction.sentence_date,
+            note=extraction.contributo_unificato_titolo,
+            operator=operator,
+            now=now,
+            document_key=document_key,
+            extra={
+                "natura": extraction.contributo_unificato_natura or "esenzione_contributo_unificato",
+                "label": extraction.contributo_unificato_label or "Contributo unificato esente",
+            },
+        )
+        if cu_changed:
+            changes["payments"].append("contributo_unificato")
+
+    if extraction.spese_esborsi_importo is not None:
+        spese_changed = _upsert_payment(
+            payments,
+            "spese_esborsi",
+            status="pagato",
+            amount=extraction.spese_esborsi_importo,
+            date_iso=extraction.sentence_date,
+            note=extraction.spese_esborsi_titolo,
+            operator=operator,
+            now=now,
+            document_key=document_key,
+            extra={
+                "natura": "spese_esborsi",
+                "label": "Spese/esborsi",
+            },
+        )
+        if spese_changed:
+            changes["payments"].append("spese_esborsi")
 
     fondo_changed = False
     if extraction.fondo_spese_importo is not None:
@@ -759,12 +842,39 @@ def _snippet(text: str, start: int, end: int, *, window: int = 90) -> str:
 
 
 def _extract_liquidazione(text: str) -> tuple[float | None, str]:
-    match = _LIQUIDAZIONE_RE.search(text)
-    if not match:
+    compensation_candidates: list[tuple[int, re.Match[str]]] = []
+    for money in _MONEY_RE.finditer(text):
+        amount = _parse_money(money.group("amount"))
+        if amount is None:
+            continue
+        after = text[money.end() : min(len(text), money.end() + 120)]
+        if not _COMPENSI_AFTER_AMOUNT_RE.match(after):
+            continue
+        context = text[max(0, money.start() - 260) : min(len(text), money.end() + 180)]
+        if not (_LIQUIDAZIONE_WORD_RE.search(context) or _LIQUIDAZIONE_CONTEXT_RE.search(context)):
+            continue
+        before = text[max(0, money.start() - 260) : money.start()]
+        liquidazione_words = list(_LIQUIDAZIONE_WORD_RE.finditer(before))
+        distance = money.start() - liquidazione_words[-1].start() if liquidazione_words else 9999
+        compensation_candidates.append((distance, money))
+    if compensation_candidates:
+        _, match = min(compensation_candidates, key=lambda item: (item[0], item[1].start()))
+        return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=180)
+
+    total_candidates: list[tuple[int, re.Match[str]]] = []
+    for match in _LIQUIDAZIONE_RE.finditer(text):
+        amount = _parse_money(match.group("amount"))
+        if amount is None:
+            continue
+        amount_end = match.end("amount")
+        after = text[amount_end : min(len(text), amount_end + 90)]
+        if _NON_COMPENSI_AFTER_AMOUNT_RE.match(after):
+            continue
+        total_candidates.append((match.start(), match))
+    if not total_candidates:
         return None, ""
-    amount = _parse_money(match.group("amount"))
-    title = _snippet(text, match.start(), match.end(), window=40)
-    return amount, title
+    _, match = min(total_candidates, key=lambda item: item[0])
+    return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=90)
 
 
 def _extract_beneficio_cliente(text: str) -> tuple[float | None, str, str]:
@@ -790,6 +900,8 @@ def _contributo_recovery_label(natura: str) -> str:
         return "Spese/esborsi"
     if natura == "pdf_contributo_unificato":
         return "Contributo unificato da PDF"
+    if natura == "esenzione_contributo_unificato":
+        return "Contributo unificato esente"
     return "Spese da recuperare"
 
 
@@ -809,6 +921,56 @@ def _contributo_voice_tokens(extraction: SentenzaEconomicaExtraction) -> tuple[s
     return ("spese", "esborsi")
 
 
+def _spese_esborsi_voice_description() -> str:
+    return "Spese ed esborsi riconosciuti in sentenza"
+
+
+def _spese_esborsi_voice_tokens() -> tuple[str, ...]:
+    return ("spese", "esborsi")
+
+
+def _contributo_document_candidate_rejected(compact: str, match: re.Match[str]) -> bool:
+    amount_start = match.start("amount")
+    amount_end = match.end("amount")
+    snippet = _snippet(compact, match.start(), match.end(), window=70)
+    if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(snippet):
+        return True
+    left = compact[max(0, amount_start - 140) : amount_start]
+    near_left = compact[max(0, amount_start - 75) : amount_start]
+    plain_left = _plain(left)
+    plain_near_left = _plain(near_left)
+    if re.search(r"\b(?:scaglione|compreso|superiore|fino|tra)\b", plain_near_left):
+        return True
+    if "valore" in plain_left and "scaglione" in plain_left:
+        return True
+    if "valore" in plain_near_left and not _CONTRIBUTO_DOCUMENT_DIRECT_NEAR_RE.search(near_left):
+        return True
+    near = compact[max(0, amount_start - 85) : min(len(compact), amount_end + 45)]
+    if _CONTRIBUTO_DOCUMENT_SCAGLIONE_RE.search(near):
+        return True
+    return False
+
+
+def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    if _CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE.search(compact):
+        return {}
+    match = _CONTRIBUTO_DOCUMENT_EXEMPT_RE.search(compact)
+    if not match:
+        return {}
+    title = _snippet(compact, match.start(), match.end(), window=90)
+    return {
+        "esente": True,
+        "importo": None,
+        "titolo": title,
+        "natura": "esenzione_contributo_unificato",
+        "label": "Contributo unificato esente",
+        "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+        "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+        "sha256": _text(metadata.get("sha256")),
+        "origine": "pdf_contributo_unificato_esente",
+    }
+
+
 def extract_contributo_unificato_document_evidence(
     text: str,
     metadata: dict[str, Any] | None = None,
@@ -822,14 +984,17 @@ def extract_contributo_unificato_document_evidence(
         for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
     )
     probe = f"{label} {compact}"
-    if not _CONTRIBUTO_DOCUMENT_HINT_RE.search(probe):
-        return {}
     if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(probe) and not re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", probe, re.IGNORECASE):
         return {}
+    exemption = _extract_contributo_exemption_evidence(compact, meta)
+    if not _CONTRIBUTO_DOCUMENT_HINT_RE.search(probe):
+        return exemption
+    if exemption:
+        return exemption
     candidates: list[tuple[int, re.Match[str]]] = []
     for match in _CONTRIBUTO_DOCUMENT_AMOUNT_RE.finditer(compact):
         snippet = _snippet(compact, match.start(), match.end(), window=60)
-        if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(snippet):
+        if _contributo_document_candidate_rejected(compact, match):
             continue
         priority = 0 if re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", snippet, re.IGNORECASE) else 1
         candidates.append((priority, match))
@@ -838,6 +1003,8 @@ def extract_contributo_unificato_document_evidence(
         if len(money) != 1:
             return {}
         match = money[0]
+        if _contributo_document_candidate_rejected(compact, match):
+            return {}
     else:
         _, match = min(candidates, key=lambda item: (item[0], item[1].start()))
     amount = _parse_money(match.group("amount"))
@@ -862,11 +1029,29 @@ def apply_contributo_unificato_pdf_evidence(
     raw = metadata.get("contributo_unificato_pdf")
     if not isinstance(raw, dict):
         return
+    filename = _text(raw.get("filename") or raw.get("document_id") or "PDF contributo unificato")
+    title = _text(raw.get("titolo")) or f"Evidenza confermata da {filename}"
+    if raw.get("esente") is True or _text(raw.get("natura")) == "esenzione_contributo_unificato":
+        extraction.contributo_unificato_importo = None
+        extraction.contributo_unificato_titolo = f"{title} (fonte: {filename})"
+        extraction.contributo_unificato_natura = "esenzione_contributo_unificato"
+        extraction.contributo_unificato_label = _text(raw.get("label")) or "Contributo unificato esente"
+        extraction.contributo_unificato_esente = True
+        if "contributo_unificato_esente_da_pdf" not in extraction.warnings:
+            extraction.warnings.append("contributo_unificato_esente_da_pdf")
+        return
     amount = _parse_money(str(raw.get("importo") or ""))
     if amount is None:
         return
-    filename = _text(raw.get("filename") or raw.get("document_id") or "PDF contributo unificato")
     title = _text(raw.get("titolo")) or f"Importo confermato da {filename}"
+    extraction.contributo_unificato_esente = False
+    if extraction.spese_esborsi_importo is not None:
+        if abs(float(extraction.spese_esborsi_importo) - amount) <= 0.01:
+            extraction.spese_esborsi_importo = None
+            extraction.spese_esborsi_titolo = ""
+            extraction.warnings.append("spese_esborsi_riclassificate_cu_pdf")
+        else:
+            extraction.warnings.append("contributo_unificato_pdf_distinto_da_spese_sentenza")
     if extraction.contributo_unificato_importo is None:
         extraction.contributo_unificato_importo = amount
         extraction.contributo_unificato_titolo = f"{title} (fonte: {filename})"
@@ -878,28 +1063,14 @@ def apply_contributo_unificato_pdf_evidence(
         if not extraction.contributo_unificato_natura:
             extraction.contributo_unificato_natura = _classify_contributo_recovery(extraction.contributo_unificato_titolo)
             extraction.contributo_unificato_label = _contributo_recovery_label(extraction.contributo_unificato_natura)
-        confirmation_label = (
-            "PDF del fascicolo"
-            if extraction.contributo_unificato_natura == "spese_esborsi"
-            else "PDF contributo unificato"
-        )
+        confirmation_label = "PDF contributo unificato"
         if f"confermato da {confirmation_label}" not in extraction.contributo_unificato_titolo:
             extraction.contributo_unificato_titolo = (
                 f"{extraction.contributo_unificato_titolo} - confermato da {confirmation_label}: {filename}"
             ).strip(" -")
-        extraction.warnings.append(
-            "spese_esborsi_confermate_pdf" if extraction.contributo_unificato_natura == "spese_esborsi" else "contributo_unificato_confermato_pdf"
-        )
+        extraction.warnings.append("contributo_unificato_confermato_pdf")
         return
     sentenza_amount = extraction.contributo_unificato_importo
-    if extraction.contributo_unificato_natura == "spese_esborsi":
-        extraction.warnings.append("contributo_unificato_pdf_diverso_da_spese_sentenza")
-        if "PDF contributo unificato discordante" not in extraction.contributo_unificato_titolo:
-            extraction.contributo_unificato_titolo = (
-                f"{extraction.contributo_unificato_titolo} - PDF contributo unificato discordante: "
-                f"{filename} importo {amount}"
-            ).strip(" -")
-        return
     extraction.warnings.append("contributo_unificato_pdf_diverso_da_sentenza")
     extraction.contributo_unificato_importo = amount
     extraction.contributo_unificato_titolo = (
@@ -926,33 +1097,15 @@ def _extract_amount_near(text: str, patterns: tuple[re.Pattern[str], ...], *, wi
 
 
 def _extract_contributo_unificato(text: str, *, window: int = 140) -> tuple[float | None, str]:
-    candidates: list[tuple[int, int, re.Match[str]]] = []
-    for pattern in _CU_PATTERNS:
-        for keyword in pattern.finditer(text):
-            right = min(len(text), keyword.end() + window)
-            for money in _MONEY_RE.finditer(text, keyword.end(), right):
-                between = text[keyword.end() : money.start()]
-                if _CU_BACKWARD_REJECT_RE.search(between):
-                    continue
-                candidates.append((0, money.start() - keyword.end(), money))
-
-            left = max(0, keyword.start() - window)
-            for money in _MONEY_RE.finditer(text, left, keyword.start()):
-                between = text[money.end() : keyword.start()]
-                if not _is_valid_contributo_unificato_before(between):
-                    continue
-                candidates.append((1, keyword.start() - money.end(), money))
-
-    if not candidates:
-        esborsi_amount, esborsi_title = _extract_amount_near(text, _ESBORSI_PATTERNS, window=110)
-        if esborsi_amount is not None:
-            return esborsi_amount, esborsi_title
-        spese_match = _SPESE_LITE_QUOTA_RE.search(text)
-        if spese_match:
-            return _parse_money(spese_match.group("amount")), _snippet(text, spese_match.start(), spese_match.end(), window=70)
-        return None, ""
-    _, _, match = min(candidates, key=lambda item: (item[0], item[1]))
-    return _parse_money(match.group("amount")), _snippet(text, match.start(), match.end(), window=70)
+    esborsi_amount, esborsi_title = _extract_amount_near(text, _ESBORSI_PATTERNS, window=110)
+    if esborsi_amount is not None and not _sentenza_spese_context_is_cu(esborsi_title):
+        return esborsi_amount, esborsi_title
+    spese_match = _SPESE_LITE_QUOTA_RE.search(text)
+    if spese_match:
+        title = _snippet(text, spese_match.start(), spese_match.end(), window=70)
+        if not _sentenza_spese_context_is_cu(title):
+            return _parse_money(spese_match.group("amount")), title
+    return None, ""
 
 
 def _is_valid_contributo_unificato_before(between: str) -> bool:
@@ -960,6 +1113,10 @@ def _is_valid_contributo_unificato_before(between: str) -> bool:
     if not compact_between or _CU_BACKWARD_REJECT_RE.search(compact_between):
         return False
     return bool(_CU_BACKWARD_ACCEPT_RE.search(compact_between))
+
+
+def _sentenza_spese_context_is_cu(value: str) -> bool:
+    return any(pattern.search(value) for pattern in _CU_PATTERNS)
 
 
 def _document_key(metadata: dict[str, Any]) -> str:
@@ -1178,6 +1335,20 @@ def _sync_existing_proforma_from_extraction(
             )
         )
         changed = True
+    if extraction.spese_esborsi_importo is not None and not _has_voice(
+        voci,
+        extraction.spese_esborsi_importo,
+        _spese_esborsi_voice_tokens(),
+    ):
+        voci.append(
+            VoceParcella(
+                descrizione=_spese_esborsi_voice_description(),
+                quantita=1.0,
+                prezzo_unitario=extraction.spese_esborsi_importo,
+                tipo="ANTICIPO",
+            )
+        )
+        changed = True
     if extraction.fondo_spese_importo is not None and not _has_voice(
         voci,
         extraction.fondo_spese_importo,
@@ -1241,6 +1412,15 @@ def _create_proforma(
                 descrizione=_contributo_voice_description(extraction),
                 quantita=1.0,
                 prezzo_unitario=extraction.contributo_unificato_importo,
+                tipo="ANTICIPO",
+            )
+        )
+    if extraction.spese_esborsi_importo is not None:
+        voci.append(
+            VoceParcella(
+                descrizione=_spese_esborsi_voice_description(),
+                quantita=1.0,
+                prezzo_unitario=extraction.spese_esborsi_importo,
                 tipo="ANTICIPO",
             )
         )

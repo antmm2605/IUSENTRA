@@ -354,3 +354,28 @@ Prova reale obbligatoria:
 - Integrazione Unlimited-OCR: il motore `unlimited-ocr` è disponibile ma spento di default, local/private-first e con fallback corrente. È pensato per benchmark OCR+Lex su PDF lunghi/scansionati; non invia documenti legali a endpoint esterni senza `IUSENTRA_UNLIMITED_OCR_EXTERNAL_ALLOWED`.
 - La pipeline OCR produce anche `vector_index_manifest` e `vector_chunks.jsonl`, così i testi OCR validati hanno una base strutturata per l'indicizzazione Lex/vector DB senza sostituire SQL o i repository documentali come fonte di verità.
 - Nessun backup creato per questa release. La verifica deve includere test mirati PEC/OCR/runtime, build React, Docker locale reale su `127.0.0.1:8080`, prova visiva `/fatturazione`, gate worker locale e gate worker Hetzner dopo deploy.
+
+## Cursore incrementale job Lex Sentenze 2.253.117
+
+- Chiarimento utente del 25/06/2026: tutti i job frequenti devono usare la stessa logica operativa, altrimenti il software diventa pesante. Dopo che un archivio è stato letto e completato, i giri successivi devono lavorare solo nuovi arrivi o pendenti, non ripartire da capo.
+- `lex_sentenza_economia_auto` ora legge dall'ultimo run completato il cursore `mtime_ns` e passa al backfill solo gli `extracted_text.json` modificati dopo quel valore. I documenti invariati restano catalogati nei conteggi, ma non vengono aperti e parsati.
+- La full scan resta possibile solo con `IUSENTRA_SENTENZA_LEX_FULL_SCAN=1`, quindi un controllo completo è una manutenzione esplicita e non il comportamento ordinario ogni dieci minuti.
+- Il report espone `scan_mode`, `incremental`, `documents_catalogued`, `documents_seen` e `skipped_by_cursor`; il gate runtime accetta un run incrementale con `documents_seen=0` solo se esiste il riepilogo operativo e `errors=0`, `vector_embedding_errors=0`.
+- La stessa disciplina di audit è stata estesa ai job frequenti collegati: `pec_audit_pipeline_workers`, `mailbox_sync_runtime`, `calendar_sync_engine_retry` e `local_ai_maintenance` restituiscono `scan_mode`/`totals` e non restano più righe scheduler mute.
+- Con `--require-all-due-jobs`, il gate blocca i job operativi frequenti completati senza `totals` o con `errors>0`, così il worker deve dimostrare cosa ha fatto davvero.
+- Test mirati aggiunti: `test_backfill_sentenza_incrementale_salta_documenti_invariati`, `test_lex_sentenza_economia_job_riusa_cursore_ultimo_run` e `test_validate_scheduler_run_audit_accetta_job_sentenza_incrementale_senza_nuovi_documenti`.
+
+## CU da PDF, esenzione e bonifica vettori RAG 2.253.118
+
+- Chiarimento utente del 25/06/2026: gli importi economici della sentenza devono essere corretti al 100% perché alimentano fatturazione e DB vettoriale Lex AI. In particolare il contributo unificato non deve essere inventato da valore causa, scaglione o importi generici della sentenza; può essere riportato solo se esiste prova nel fascicolo.
+- Il parser distingue ora tre voci:
+  - `liquidazione_giudice`: importo spettante allo studio, estratto da formule come `Euro 1500,00 per compensi professionali`;
+  - `spese_esborsi`: spese vive/esborsi riconosciuti in sentenza, per esempio `Euro 125,00 per spese`;
+  - `contributo_unificato`: importo CU solo da PDF/documento PagoPA/CU del fascicolo, oppure stato esente se il fascicolo contiene `contributo unificato non dovuto`, `esente dal pagamento del contributo unificato`, `patrocinio a spese dello Stato` o `prenotazione a debito`.
+- Se il cliente è esente dal CU, la matrice salva `contributo_unificato` con `status=non_previsto`, `previsto=false`, `importo=null`, `natura=esenzione_contributo_unificato` e label `Contributo unificato esente`. Non viene creata una voce proforma CU senza importo.
+- Lo schema vettoriale passa a `sentenza_tribunale_compact_v4` e include `contributo_unificato_esente`, `contributo_unificato_natura`, `contributo_unificato_label` e `spese_esborsi`, così Lex AI non può riusare schede v3 con semantica economica vecchia.
+- Il reset `--reset-lex-amounts` cancella ora anche i documenti RAG rigenerabili `source_type=lex_sentenza_tribunale` del tenant. Questo evita che vecchie risposte Lex continuino a usare importi sbagliati anche dopo la pulizia dei pagamenti fascicolo.
+- Prova locale dati del tenant `tenant-8bf98719c459`: `studio.db` e `intelligence/local_ai.db` con `PRAGMA integrity_check=ok`; backfill full scan con report `artifacts/unlimited-ocr/sentenza-economia-reset-apply-v5-rag-clean-20260625.json`, `documents_seen=667`, `raw_sentenze_found=14`, `sentenze_found=7`, `applied=1`, `matrix_confirmed=1`, `vector_indexed=1`, `vector_embedding_errors=0`.
+- Caso `DC5BF1DB`: `liquidazione_giudice=1500,00`, `contributo_unificato=98,00` da PDF fascicolo, `spese_esborsi=125,00`, proforma `c6a1c268-2f55-4583-9ac9-ca2d90c316c1` con voci `1500,00`, `98,00`, `125,00`, totale `2126,20`.
+- Caso `AF656B01`: nessun pagamento Lex residuo, nessuna proforma Lex residua e nessun documento RAG `lex_sentenza_tribunale` residuo con il falso `5200,00`.
+- Audit dati dopo la bonifica: `audit_data_flow_contract.py` repair e cold ok; `audit_tenant_data_structure.py` repair e cold ok, `source_of_truth=sqlite`, `json_authoritative=false`, `operational_untracked=0`, zero warning e zero errori.

@@ -309,6 +309,8 @@ def _contributo_evidence_score(evidence: dict[str, Any]) -> int:
     score = 0
     if "contributo" in probe:
         score += 30
+    if evidence.get("esente") is True or "esente" in probe or "non dovuto" in probe or "prenotazione a debito" in probe:
+        score += 25
     if "c.u" in probe or " c u " in probe:
         score += 20
     if "pagopa" in probe or "pago pa" in probe:
@@ -427,8 +429,10 @@ def _feed_sentenza_vector_index(
             "cliente": str(getattr(fascicolo, "nome_cliente", "") or metadata.get("cliente") or ""),
             "importo_liquidazione": extraction.liquidazione_importo,
             "contributo_unificato": extraction.contributo_unificato_importo,
+            "contributo_unificato_esente": getattr(extraction, "contributo_unificato_esente", False),
             "contributo_unificato_natura": extraction.contributo_unificato_natura,
             "contributo_unificato_label": extraction.contributo_unificato_label,
+            "spese_esborsi": getattr(extraction, "spese_esborsi_importo", None),
             "fondo_spese": extraction.fondo_spese_importo,
             "beneficio_cliente": extraction.beneficio_cliente_importo,
             "beneficio_cliente_tipo": extraction.beneficio_cliente_tipo,
@@ -523,6 +527,8 @@ def _sentenza_vector_index_ok(
     if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
         return False
     embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
+    if str(embedding.get("status") or "").lower() == "error":
+        return False
     return int(embedding.get("pending_remaining") or 0) <= 0
 
 
@@ -557,8 +563,10 @@ def _sentenza_vector_text(
         f"RG: {_rg_label(extraction) or metadata.get('numero_rg', '')}",
         f"Data sentenza: {extraction.sentence_date}",
         f"Liquidazione giudice: {extraction.liquidazione_importo if extraction.liquidazione_importo is not None else 'n.d.'}",
-        f"Spese/contributo da recuperare: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
-        f"Natura spese/contributo: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
+        f"Contributo unificato da fascicolo: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Contributo unificato esente: {'si' if getattr(extraction, 'contributo_unificato_esente', False) else 'no'}",
+        f"Natura contributo unificato: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
+        f"Spese/esborsi da sentenza: {getattr(extraction, 'spese_esborsi_importo', None) if getattr(extraction, 'spese_esborsi_importo', None) is not None else 'n.d.'}",
         f"Fondo spese: {extraction.fondo_spese_importo if extraction.fondo_spese_importo is not None else 'n.d.'}",
         f"Beneficio cliente: {extraction.beneficio_cliente_importo if extraction.beneficio_cliente_importo is not None else 'n.d.'}",
         f"Tipo beneficio cliente: {extraction.beneficio_cliente_tipo or 'n.d.'}",

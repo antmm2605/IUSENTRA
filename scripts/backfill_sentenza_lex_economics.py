@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -29,11 +30,13 @@ from pct.fascicolo_sentenza_economica import (
     validate_sentenza_fascicolo_context,
 )
 from pct.fatturazione import GestioneFatturazione
+from pct.incremental_jobs import file_mtime_ns, newest_file_cursor
 from pct.local_ai import LocalAIService
 from pct.storage import StudioDB
 
 
 ROME = ZoneInfo("Europe/Rome")
+LEX_PAYMENT_KEYS = {"liquidazione_giudice", "contributo_unificato", "spese_esborsi", "fondo_spese", "parcella"}
 
 
 @dataclass(slots=True)
@@ -161,6 +164,10 @@ def _candidate_score(extraction: SentenzaEconomicaExtraction, text: str) -> int:
         score += 100
     if extraction.contributo_unificato_importo is not None:
         score += 40
+    if getattr(extraction, "contributo_unificato_esente", False):
+        score += 25
+    if getattr(extraction, "spese_esborsi_importo", None) is not None:
+        score += 30
     if extraction.fondo_spese_importo is not None:
         score += 30
     if extraction.spese_generali:
@@ -219,8 +226,10 @@ def _vector_text(
         f"RG: {_rg_label(extraction) or metadata.get('numero_rg', '')}",
         f"Data sentenza: {extraction.sentence_date}",
         f"Liquidazione giudice: {extraction.liquidazione_importo if extraction.liquidazione_importo is not None else 'n.d.'}",
-        f"Spese/contributo da recuperare: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
-        f"Natura spese/contributo: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
+        f"Contributo unificato da fascicolo: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Contributo unificato esente: {'si' if getattr(extraction, 'contributo_unificato_esente', False) else 'no'}",
+        f"Natura contributo unificato: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
+        f"Spese/esborsi da sentenza: {getattr(extraction, 'spese_esborsi_importo', None) if getattr(extraction, 'spese_esborsi_importo', None) is not None else 'n.d.'}",
         f"Fondo spese: {extraction.fondo_spese_importo if extraction.fondo_spese_importo is not None else 'n.d.'}",
         f"Beneficio cliente: {extraction.beneficio_cliente_importo if extraction.beneficio_cliente_importo is not None else 'n.d.'}",
         f"Tipo beneficio cliente: {extraction.beneficio_cliente_tipo or 'n.d.'}",
@@ -259,12 +268,171 @@ def _existing_vector_result(fascicolo: Any, document_key: str) -> dict[str, Any]
     return dict(result) if isinstance(result, dict) else {}
 
 
+def _is_lex_payment(value: Any) -> bool:
+    return isinstance(value, dict) and _text(value.get("origine") or value.get("origin")) == ORIGIN
+
+
+def _proforma_is_lex_sentenza(item: Any) -> bool:
+    if _text(getattr(item, "origine", "")) == ORIGIN:
+        return True
+    data = getattr(item, "dati_personalizzati", {}) or {}
+    lex = data.get("lex_sentenza") if isinstance(data, dict) else {}
+    return isinstance(lex, dict) and _text(lex.get("origin")) == ORIGIN
+
+
+def _reset_sentenza_lex_amounts_for_tenant(
+    *,
+    fascicoli: GestioneFascicoli,
+    fatturazione: GestioneFatturazione,
+    apply: bool,
+) -> dict[str, Any]:
+    """Rimuove solo importi/proforme generati dall'automazione Lex Sentenza."""
+
+    report: dict[str, Any] = {
+        "applied": bool(apply),
+        "fascicoli_touched": 0,
+        "payment_entries_removed": 0,
+        "automation_states_removed": 0,
+        "proforme_removed": 0,
+        "fascicoli": [],
+        "proforme": [],
+    }
+    proforma_ids_from_payments: set[str] = set()
+    for fascicolo in fascicoli.tutti(archiviati=True):
+        payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
+        if not payments:
+            continue
+        removed_keys: list[str] = []
+        automation = payments.get(AUTOMATION_KEY)
+        if isinstance(automation, dict):
+            for value in (automation.get("proforme") or {}).values():
+                proforma_id = _text(value)
+                if proforma_id:
+                    proforma_ids_from_payments.add(proforma_id)
+        for key in list(payments.keys()):
+            if key == AUTOMATION_KEY:
+                removed_keys.append(key)
+                del payments[key]
+                report["automation_states_removed"] += 1
+                continue
+            value = payments.get(key)
+            if key in LEX_PAYMENT_KEYS and _is_lex_payment(value):
+                proforma_id = _text(value.get("proforma_id") if isinstance(value, dict) else "")
+                if proforma_id:
+                    proforma_ids_from_payments.add(proforma_id)
+                removed_keys.append(key)
+                del payments[key]
+                report["payment_entries_removed"] += 1
+        if not removed_keys:
+            continue
+        report["fascicoli_touched"] += 1
+        report["fascicoli"].append(
+            {
+                "id": _text(getattr(fascicolo, "id", "")),
+                "titolo": _text(getattr(fascicolo, "titolo", "")),
+                "removed_keys": removed_keys,
+            }
+        )
+        if apply:
+            fascicoli.aggiorna(_text(getattr(fascicolo, "id", "")), pagamenti=payments)
+
+    proforma_ids: set[str] = set(proforma_ids_from_payments)
+    for item in fatturazione.tutte():
+        item_id = _text(getattr(item, "id", ""))
+        if not item_id:
+            continue
+        if item_id in proforma_ids_from_payments or _proforma_is_lex_sentenza(item):
+            proforma_ids.add(item_id)
+            report["proforme"].append(
+                {
+                    "id": item_id,
+                    "numero": _text(getattr(item, "numero", "")),
+                    "fascicolo_id": _text(getattr(item, "id_fascicolo", "")),
+                    "stato": _text(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", ""))),
+                    "totale": getattr(item, "totale", None),
+                }
+            )
+    for proforma_id in sorted(proforma_ids):
+        if apply:
+            fatturazione.elimina(proforma_id)
+        report["proforme_removed"] += 1
+    return report
+
+
+def _reset_sentenza_vector_documents_for_tenant(
+    *,
+    tenant: TenantBackfillTarget,
+    apply: bool,
+) -> dict[str, Any]:
+    """Rimuove documenti RAG Lex Sentenza rigenerabili del tenant."""
+
+    report: dict[str, Any] = {
+        "applied": bool(apply),
+        "db_path": str(tenant.root / "intelligence" / "local_ai.db"),
+        "documents_removed": 0,
+        "chunks_removed": 0,
+        "documents": [],
+    }
+    db_path = tenant.root / "intelligence" / "local_ai.db"
+    if not db_path.exists():
+        report["status"] = "missing_db"
+        return report
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT id, source_id, practice_id, title
+                FROM rag_documents
+                WHERE source_type = ?
+                  AND (source_id LIKE ? OR source_id LIKE ?)
+                ORDER BY practice_id, updated_at
+                """,
+                (
+                    "lex_sentenza_tribunale",
+                    f"{tenant.storage_key}:%",
+                    f"{tenant.tenant}:%",
+                ),
+            ).fetchall()
+            document_ids = [str(row["id"]) for row in rows if row["id"]]
+            report["documents_removed"] = len(document_ids)
+            report["documents"] = [
+                {
+                    "id": str(row["id"]),
+                    "source_id": str(row["source_id"] or ""),
+                    "fascicolo_id": str(row["practice_id"] or ""),
+                    "title": str(row["title"] or ""),
+                }
+                for row in rows
+            ]
+            if not document_ids:
+                report["status"] = "empty"
+                return report
+            placeholders = ",".join("?" for _ in document_ids)
+            chunk_row = conn.execute(
+                f"SELECT COUNT(*) AS total FROM rag_chunks WHERE document_id IN ({placeholders})",
+                document_ids,
+            ).fetchone()
+            report["chunks_removed"] = int(chunk_row["total"] or 0) if chunk_row else 0
+            if apply:
+                conn.execute(f"DELETE FROM rag_chunks WHERE document_id IN ({placeholders})", document_ids)
+                conn.execute(f"DELETE FROM rag_documents WHERE id IN ({placeholders})", document_ids)
+                conn.commit()
+            report["status"] = "removed" if apply else "dry_run"
+    except sqlite3.Error as exc:
+        report["status"] = "error"
+        report["error"] = str(exc)
+    return report
+
+
 def _vector_result_current(result: dict[str, Any]) -> bool:
     if not (result.get("ok") and result.get("document_id")):
         return False
     if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
         return False
     embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
+    if str(embedding.get("status") or "").lower() == "error":
+        return False
     return int(embedding.get("pending_remaining") or 0) <= 0
 
 
@@ -325,8 +493,10 @@ def _feed_vector_index(
                 "cliente": _text(getattr(fascicolo, "nome_cliente", "")),
                 "importo_liquidazione": extraction.liquidazione_importo,
                 "contributo_unificato": extraction.contributo_unificato_importo,
+                "contributo_unificato_esente": getattr(extraction, "contributo_unificato_esente", False),
                 "contributo_unificato_natura": extraction.contributo_unificato_natura,
                 "contributo_unificato_label": extraction.contributo_unificato_label,
+                "spese_esborsi": getattr(extraction, "spese_esborsi_importo", None),
                 "fondo_spese": extraction.fondo_spese_importo,
                 "beneficio_cliente": extraction.beneficio_cliente_importo,
                 "beneficio_cliente_tipo": extraction.beneficio_cliente_tipo,
@@ -397,6 +567,8 @@ def _contributo_evidence_score(evidence: dict[str, Any]) -> int:
     score = 0
     if "contributo" in probe:
         score += 30
+    if evidence.get("esente") is True or "esente" in probe or "non dovuto" in probe or "prenotazione a debito" in probe:
+        score += 25
     if "c.u" in probe or " c u " in probe:
         score += 20
     if "pagopa" in probe or "pago pa" in probe:
@@ -436,8 +608,10 @@ def run_backfill(
     repo_root: Path,
     tenants: set[str] | None = None,
     apply: bool = False,
+    reset_lex_amounts: bool = False,
     skip_lex: bool = False,
     limit: int = 0,
+    modified_after_ns: int = 0,
     lex_embed_batch_size: int = 64,
     lex_embed_max_batches: int = 3,
 ) -> dict[str, Any]:
@@ -454,9 +628,18 @@ def run_backfill(
         "started_at": _now_rome(),
         "data_root": str(data_root),
         "registry": str(registry),
+        "scan_mode": "incremental" if int(modified_after_ns or 0) > 0 else "full",
+        "incremental": {
+            "enabled": int(modified_after_ns or 0) > 0,
+            "modified_after_ns": int(modified_after_ns or 0),
+            "newest_mtime_ns": 0,
+            "newest_path": "",
+        },
         "tenants": [],
         "totals": {
+            "documents_catalogued": 0,
             "documents_seen": 0,
+            "skipped_by_cursor": 0,
             "raw_sentenze_found": 0,
             "sentenze_found": 0,
             "fascicoli_found": 0,
@@ -464,6 +647,12 @@ def run_backfill(
             "matrix_confirmed": 0,
             "vector_indexed": 0,
             "vector_embedding_errors": 0,
+            "reset_fascicoli_touched": 0,
+            "reset_payment_entries_removed": 0,
+            "reset_automation_states_removed": 0,
+            "reset_proforme_removed": 0,
+            "reset_vector_documents_removed": 0,
+            "reset_vector_chunks_removed": 0,
             "skipped_missing_fascicolo": 0,
             "context_mismatch_skipped": 0,
             "duplicates_skipped": 0,
@@ -492,7 +681,53 @@ def run_backfill(
             "summary": {},
         }
         fascicoli, fatturazione = _build_repositories(tenant)
+        if reset_lex_amounts:
+            reset_report = _reset_sentenza_lex_amounts_for_tenant(
+                fascicoli=fascicoli,
+                fatturazione=fatturazione,
+                apply=apply,
+            )
+            tenant_report["reset_lex_amounts"] = reset_report
+            report["totals"]["reset_fascicoli_touched"] += int(reset_report.get("fascicoli_touched") or 0)
+            report["totals"]["reset_payment_entries_removed"] += int(reset_report.get("payment_entries_removed") or 0)
+            report["totals"]["reset_automation_states_removed"] += int(reset_report.get("automation_states_removed") or 0)
+            report["totals"]["reset_proforme_removed"] += int(reset_report.get("proforme_removed") or 0)
+            reset_vector_report = _reset_sentenza_vector_documents_for_tenant(
+                tenant=tenant,
+                apply=apply,
+            )
+            tenant_report["reset_sentenza_vectors"] = reset_vector_report
+            report["totals"]["reset_vector_documents_removed"] += int(
+                reset_vector_report.get("documents_removed") or 0
+            )
+            report["totals"]["reset_vector_chunks_removed"] += int(reset_vector_report.get("chunks_removed") or 0)
         paths = _iter_extracted_texts(tenant.root)
+        report["totals"]["documents_catalogued"] += len(paths)
+        tenant_cursor = newest_file_cursor(paths)
+        if int(tenant_cursor.get("mtime_ns") or 0) > int(report["incremental"].get("newest_mtime_ns") or 0):
+            report["incremental"]["newest_mtime_ns"] = int(tenant_cursor.get("mtime_ns") or 0)
+            report["incremental"]["newest_path"] = str(tenant_cursor.get("path") or "")
+        if int(modified_after_ns or 0) > 0:
+            all_paths = paths
+            paths = [path for path in all_paths if file_mtime_ns(path) > int(modified_after_ns or 0)]
+            skipped_by_cursor = len(all_paths) - len(paths)
+            report["totals"]["skipped_by_cursor"] += skipped_by_cursor
+            tenant_report["incremental"] = {
+                "enabled": True,
+                "modified_after_ns": int(modified_after_ns or 0),
+                "documents_catalogued": len(all_paths),
+                "documents_after_cursor": len(paths),
+                "skipped_by_cursor": skipped_by_cursor,
+                "newest_mtime_ns": int(tenant_cursor.get("mtime_ns") or 0),
+                "newest_path": str(tenant_cursor.get("path") or ""),
+            }
+        else:
+            tenant_report["incremental"] = {
+                "enabled": False,
+                "documents_catalogued": len(paths),
+                "newest_mtime_ns": int(tenant_cursor.get("mtime_ns") or 0),
+                "newest_path": str(tenant_cursor.get("path") or ""),
+            }
         contributo_pdf_by_fascicolo: dict[str, dict[str, Any]] = {}
         candidates: list[BackfillCandidate] = []
         best_by_sentenza_key: dict[str, BackfillCandidate] = {}
@@ -681,10 +916,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--registry", default="data/tenants.json", help="Registro tenant.")
     parser.add_argument("--tenant", action="append", default=[], help="Tenant/storage_key da processare; ripetibile.")
     parser.add_argument("--apply", action="store_true", help="Applica realmente la matrice. Senza questo flag esegue solo dry-run.")
+    parser.add_argument(
+        "--reset-lex-amounts",
+        "--reset-sentenza-economics",
+        action="store_true",
+        help="Prima del backfill elimina solo importi/proforme generati da Lex Sentenza e li rigenera.",
+    )
     parser.add_argument("--skip-lex", action="store_true", help="Non alimenta il DB vettoriale Lex AI durante --apply.")
     parser.add_argument("--lex-embed-batch-size", type=int, default=64, help="Chunk Lex AI per batch embedding durante --apply.")
     parser.add_argument("--lex-embed-max-batches", type=int, default=3, help="Numero massimo batch embedding per sentenza durante --apply.")
     parser.add_argument("--limit", type=int, default=0, help="Limite globale documenti letti, utile per diagnosi mirate.")
+    parser.add_argument("--modified-after-ns", type=int, default=0, help="Cursore incrementale: legge solo extracted_text.json modificati dopo questo mtime_ns.")
     parser.add_argument("--report", default="", help="Percorso file JSON report.")
     args = parser.parse_args(argv)
 
@@ -697,8 +939,10 @@ def main(argv: list[str] | None = None) -> int:
         repo_root=repo_root,
         tenants=set(args.tenant or []),
         apply=bool(args.apply),
+        reset_lex_amounts=bool(args.reset_lex_amounts),
         skip_lex=bool(args.skip_lex),
         limit=max(0, int(args.limit or 0)),
+        modified_after_ns=max(0, int(args.modified_after_ns or 0)),
         lex_embed_batch_size=max(1, int(args.lex_embed_batch_size or 64)),
         lex_embed_max_batches=max(1, int(args.lex_embed_max_batches or 3)),
     )

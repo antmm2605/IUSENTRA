@@ -543,10 +543,14 @@ def _extract_image(content: bytes, ext: str) -> ExtractionResult:
             str(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_LANG") or "ita").strip() or "ita",
             tess_config,
         )
-        try:
-            text = pytesseract.image_to_string(image, lang=lang, config=tess_config).strip()
-        except TypeError:
-            text = pytesseract.image_to_string(image, lang=lang).strip()
+        text, ocr_warnings = _read_tesseract_text_best(
+            pytesseract,
+            image,
+            lang=lang,
+            base_config=tess_config,
+            page_number=1,
+        )
+        warnings.extend(ocr_warnings)
     except Exception as exc:
         return _extract_binary_best_effort(
             content,
@@ -913,7 +917,7 @@ def _extract_scanned_pdf_with_ocr(
         tess_config,
     )
     max_pages = _int_from_env("IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES", default=0, minimum=0, maximum=1000)
-    scale = _float_from_env("IUSENTRA_DOCUMENT_AI_OCR_SCALE", default=2.2, minimum=1.0, maximum=4.0)
+    scale = _float_from_env("IUSENTRA_DOCUMENT_AI_OCR_SCALE", default=3.0, minimum=2.0, maximum=6.0)
     pdf = None
     pages: list[DocumentAIPageText] = []
     warnings = list(base_warnings)
@@ -933,10 +937,14 @@ def _extract_scanned_pdf_with_ocr(
                 page = pdf[page_index]
                 bitmap = page.render(scale=scale)
                 image = bitmap.to_pil()
-                try:
-                    text = pytesseract.image_to_string(image, lang=lang, config=tess_config).strip()
-                except TypeError:
-                    text = pytesseract.image_to_string(image, lang=lang).strip()
+                text, ocr_warnings = _read_tesseract_text_best(
+                    pytesseract,
+                    image,
+                    lang=lang,
+                    base_config=tess_config,
+                    page_number=page_index + 1,
+                )
+                warnings.extend(ocr_warnings)
             except Exception as exc:
                 warnings.append(f"Pagina {page_index + 1}: OCR non completato ({exc}).")
                 text = ""
@@ -982,8 +990,7 @@ def _configure_tesseract_runtime(pytesseract: Any) -> str:
         pytesseract_module.tesseract_cmd = command
     tessdata_dir = _resolve_tessdata_dir(command)
     if tessdata_dir:
-        os.environ.setdefault("TESSDATA_PREFIX", tessdata_dir)
-        return f"--tessdata-dir {tessdata_dir}"
+        os.environ["TESSDATA_PREFIX"] = tessdata_dir
     return ""
 
 
@@ -1012,7 +1019,7 @@ def _resolve_tesseract_command() -> str:
 def _resolve_tessdata_dir(command: str) -> str:
     candidates: list[Path] = []
     for name in ("IUSENTRA_TESSDATA_PREFIX", "TESSDATA_PREFIX"):
-        configured = str(os.environ.get(name) or "").strip()
+        configured = str(os.environ.get(name) or "").strip().strip('"')
         if configured:
             candidates.append(Path(configured))
     local_app_data = str(os.environ.get("LOCALAPPDATA") or "").strip()
@@ -1048,6 +1055,144 @@ def _resolve_tesseract_language(pytesseract: Any, preferred: str, config: str) -
     if "eng" in available:
         return "eng"
     return "+".join(requested) or "ita"
+
+
+def _read_tesseract_text_best(
+    pytesseract: Any,
+    image: Any,
+    *,
+    lang: str,
+    base_config: str,
+    page_number: int,
+) -> tuple[str, list[str]]:
+    warnings: list[str] = []
+    prepared = _preprocess_ocr_image(image)
+    image_to_data = getattr(pytesseract, "image_to_data", None)
+    if not callable(image_to_data):
+        return _read_tesseract_text_fallback(pytesseract, prepared, lang=lang, config=base_config, page_number=page_number)
+    output = getattr(pytesseract, "Output", None)
+    if output is None:
+        try:
+            from pytesseract import Output as output  # type: ignore
+        except Exception:
+            return _read_tesseract_text_fallback(
+                pytesseract,
+                prepared,
+                lang=lang,
+                config=base_config,
+                page_number=page_number,
+            )
+    output_dict = getattr(output, "DICT", "dict")
+    candidates: list[tuple[float, str]] = []
+    for config_name, config in _document_ai_tesseract_configs(base_config):
+        try:
+            data = image_to_data(prepared, lang=lang, config=config, output_type=output_dict)
+        except TypeError:
+            try:
+                data = image_to_data(prepared, lang=lang, output_type=output_dict)
+            except Exception as exc:
+                warnings.append(f"Pagina {page_number}: OCR {config_name} non completato ({exc}).")
+                continue
+        except Exception as exc:
+            warnings.append(f"Pagina {page_number}: OCR {config_name} non completato ({exc}).")
+            continue
+        text, avg_confidence = _text_from_tesseract_data(data)
+        candidates.append((_score_document_ai_ocr_text(text, avg_confidence), text))
+    if candidates:
+        return max(candidates, key=lambda item: item[0])[1].strip(), warnings
+    text, fallback_warnings = _read_tesseract_text_fallback(
+        pytesseract,
+        prepared,
+        lang=lang,
+        config=base_config,
+        page_number=page_number,
+    )
+    warnings.extend(fallback_warnings)
+    return text, warnings
+
+
+def _read_tesseract_text_fallback(
+    pytesseract: Any,
+    image: Any,
+    *,
+    lang: str,
+    config: str,
+    page_number: int,
+) -> tuple[str, list[str]]:
+    image_to_string = getattr(pytesseract, "image_to_string", None)
+    if not callable(image_to_string):
+        return "", [f"Pagina {page_number}: runtime Tesseract senza image_to_string."]
+    try:
+        return str(image_to_string(image, lang=lang, config=config) or "").strip(), []
+    except TypeError:
+        try:
+            return str(image_to_string(image, lang=lang) or "").strip(), []
+        except Exception as exc:
+            return "", [f"Pagina {page_number}: OCR fallback non completato ({exc})."]
+    except Exception as exc:
+        return "", [f"Pagina {page_number}: OCR fallback non completato ({exc})."]
+
+
+def _preprocess_ocr_image(image: Any) -> Any:
+    try:
+        from PIL import ImageEnhance, ImageOps  # type: ignore
+
+        gray = ImageOps.grayscale(image)
+        gray = ImageOps.autocontrast(gray)
+        gray = ImageEnhance.Sharpness(gray).enhance(1.8)
+        return ImageEnhance.Contrast(gray).enhance(1.08)
+    except Exception:
+        return image
+
+
+def _document_ai_tesseract_configs(base_config: str) -> list[tuple[str, str]]:
+    prefix = (base_config.strip() + " ") if str(base_config or "").strip() else ""
+    return [
+        ("psm6", prefix + "--oem 1 --psm 6 -c preserve_interword_spaces=1"),
+        ("psm4", prefix + "--oem 1 --psm 4 -c preserve_interword_spaces=1"),
+        ("psm3", prefix + "--oem 1 --psm 3 -c preserve_interword_spaces=1"),
+        ("psm11", prefix + "--oem 1 --psm 11 -c preserve_interword_spaces=1"),
+    ]
+
+
+def _text_from_tesseract_data(data: Any) -> tuple[str, float]:
+    if not isinstance(data, dict):
+        return "", 0.0
+    words: list[str] = []
+    confidences: list[float] = []
+    raw_texts = list(data.get("text") or [])
+    raw_confidences = list(data.get("conf") or [])
+    for index, raw in enumerate(raw_texts):
+        token = str(raw or "").strip()
+        if not token:
+            continue
+        words.append(token)
+        try:
+            confidence = float(raw_confidences[index]) / 100.0
+        except (IndexError, TypeError, ValueError):
+            confidence = 0.0
+        if confidence >= 0:
+            confidences.append(max(0.0, min(1.0, confidence)))
+    average = sum(confidences) / len(confidences) if confidences else 0.0
+    return " ".join(words), average
+
+
+def _score_document_ai_ocr_text(text: str, avg_confidence: float) -> float:
+    normalized = str(text or "")
+    score = min(len(normalized), 2500) / 120.0 + max(0.0, min(1.0, avg_confidence)) * 25.0
+    patterns = [
+        (r"\btribunale\s+di\s+[a-zàèéìòù' ]+", 8),
+        (r"\b(proc\.?\s*n\.?|r\.?\s*g\.?|rgac)\s*[\w./-]+", 14),
+        (r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b", 12),
+        (r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", 14),
+        (r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b", 8),
+        (r"\b(?:euro|€)\s*[\.,]?\s*\d", 8),
+        (r"\b(?:art\.?|dpr|c\.p\.c\.|c\.c\.)\b", 8),
+    ]
+    for pattern, weight in patterns:
+        score += len(re.findall(pattern, normalized, flags=re.IGNORECASE)) * weight
+    score -= len(re.findall(r"[|~{}_\[\]]", normalized)) * 0.75
+    return score
 
 
 def _extract_docx(content: bytes) -> ExtractionResult:

@@ -879,6 +879,29 @@ def test_extract_text_with_coverage_skips_pcten_mislabeled_pdf():
     assert coverage == 0.0
 
 
+def test_extract_text_with_coverage_pdf_usa_adapter_ocr_pipeline(monkeypatch):
+    calls: list[tuple[bytes, str]] = []
+
+    def fake_estrai_testo(data: bytes, nome_file: str, lang: str = "ita") -> str:
+        calls.append((bytes(data), nome_file))
+        return "Testo letto dalla pipeline OCR DocumentAI."
+
+    monkeypatch.setattr("pct.ocr.estrai_testo", fake_estrai_testo)
+
+    text, coverage = extract_text_with_coverage(
+        AttachmentPayload(
+            index=1,
+            filename="Atto.pdf",
+            content_type="application/pdf",
+            data=b"%PDF-1.7\nfake-pdf-for-ocr-adapter\n%%EOF",
+        )
+    )
+
+    assert calls == [(b"%PDF-1.7\nfake-pdf-for-ocr-adapter\n%%EOF", "Atto.pdf")]
+    assert "pipeline OCR DocumentAI" in text
+    assert coverage > 0
+
+
 def test_verify_signature_skips_pcten_mislabeled_pdf():
     status, details = verify_signature(
         AttachmentPayload(

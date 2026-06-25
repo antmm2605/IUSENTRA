@@ -60,6 +60,13 @@ def _parse_positive_int(value: object, default: int) -> int:
         return default
 
 
+def _as_int(value: object, default: int = 0) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return default
+
+
 def _runtime_path(app, key: str, env_key: str, default: str) -> str:
     return str(app.config.get(key) or os.getenv(env_key) or default)
 
@@ -852,6 +859,8 @@ def start_scheduler(app):
                 from pct.calendar_sync_engine import CalendarSyncEngine
 
                 processed = 0
+                targets = 0
+                target_reports: list[dict[str, object]] = []
                 for target in _calendar_engine_targets():
                     engine = CalendarSyncEngine.from_paths(
                         agenda_db=target["agenda_db"],
@@ -860,11 +869,31 @@ def start_scheduler(app):
                         tenant_id=target["tenant_id"],
                     )
                     report = engine.sync_due_jobs()
-                    processed += int(report.get("processed") or 0)
+                    processed += _as_int(report.get("processed"))
+                    targets += 1
+                    target_reports.append(
+                        {
+                            "tenant": str(target.get("label") or target.get("tenant_id") or ""),
+                            "processed": _as_int(report.get("processed")),
+                            "failed": _as_int(report.get("failed")),
+                            "report": report,
+                        }
+                    )
                 if processed:
                     logger.info("[scheduler] Calendar retry completato: %d job", processed)
+                failed = sum(_as_int(item.get("failed")) for item in target_reports)
+                return {
+                    "ok": failed == 0,
+                    "job": "calendar_sync_engine_retry",
+                    "scan_mode": "pending_jobs_only",
+                    "source_of_truth": "calendar_sync_engine repository",
+                    "targets": targets,
+                    "totals": {"targets": targets, "processed": processed, "failed": failed, "errors": failed},
+                    "tenants": target_reports,
+                }
             except Exception as e:
                 logger.error("[scheduler] Calendar retry fallito: %s", e)
+                return {"ok": False, "job": "calendar_sync_engine_retry", "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="mailbox_sync_runtime")
     def _mailbox_sync_runtime():
@@ -873,11 +902,51 @@ def start_scheduler(app):
                 from web.services.mailbox_sync_runtime import sync_mailboxes_for_paths
 
                 processed_targets = 0
+                tenant_reports: list[dict[str, object]] = []
+                totals = {
+                    "targets": 0,
+                    "channels": 0,
+                    "skipped": 0,
+                    "nuove": 0,
+                    "pst_trovate": 0,
+                    "allegati_salvati": 0,
+                    "warnings": 0,
+                    "errors": 0,
+                }
                 for label, paths in _mailbox_sync_targets():
                     report = sync_mailboxes_for_paths(paths, tenant_label=label, cooldown_seconds=180.0)
                     processed_targets += 1
+                    totals["targets"] += 1
                     pec = report.get("pec") or {}
                     ordinary = report.get("ordinary") or {}
+                    tenant_item: dict[str, object] = {"tenant": label, "channels": {}}
+                    for channel_name, channel_report in (("pec", pec), ("ordinary", ordinary)):
+                        channel = channel_report if isinstance(channel_report, dict) else {}
+                        result = channel.get("result") if isinstance(channel.get("result"), dict) else {}
+                        errore = str(result.get("errore") or result.get("sync_errore") or "").strip()
+                        warning = bool(result.get("warning")) or bool(errore)
+                        channel_payload = {
+                            "ok": channel.get("ok"),
+                            "skipped": bool(channel.get("skipped")),
+                            "reason": str(channel.get("reason") or ""),
+                            "nuove": _as_int(result.get("nuove")),
+                            "pst_trovate": _as_int(result.get("pst_trovate")),
+                            "allegati_salvati": _as_int(result.get("allegati_salvati")),
+                            "warning": warning,
+                            "errore": errore,
+                        }
+                        tenant_item["channels"][channel_name] = channel_payload
+                        totals["channels"] += 1
+                        totals["nuove"] += int(channel_payload["nuove"])
+                        totals["pst_trovate"] += int(channel_payload["pst_trovate"])
+                        totals["allegati_salvati"] += int(channel_payload["allegati_salvati"])
+                        if channel_payload["skipped"]:
+                            totals["skipped"] += 1
+                        if warning:
+                            totals["warnings"] += 1
+                        if channel.get("ok") is False and not str(channel_payload["reason"]).strip() and "non configurato" not in errore.lower():
+                            totals["errors"] += 1
+                    tenant_reports.append(tenant_item)
                     logger.info(
                         "[scheduler] Mailbox sync %s: pec=%s/%s ordinary=%s/%s",
                         label,
@@ -888,8 +957,18 @@ def start_scheduler(app):
                     )
                 if processed_targets:
                     logger.info("[scheduler] Mailbox sync completata per %d target", processed_targets)
+                return {
+                    "ok": totals["errors"] == 0,
+                    "job": "mailbox_sync_runtime",
+                    "scan_mode": "incremental_runtime_guard",
+                    "source_of_truth": "mailbox UID/Message-ID tenant-aware",
+                    "targets": processed_targets,
+                    "totals": totals,
+                    "tenants": tenant_reports,
+                }
             except Exception as e:
                 logger.error("[scheduler] Mailbox sync fallita: %s", e)
+                return {"ok": False, "job": "mailbox_sync_runtime", "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="pec_audit_pipeline_workers")
     def _pec_audit_pipeline_workers():
@@ -901,23 +980,60 @@ def start_scheduler(app):
                 )
 
                 try:
-                    auto_batch = int(os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_BATCH", "10") or 10)
+                    auto_batch = int(os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_BATCH", "5") or 5)
                 except (TypeError, ValueError):
-                    auto_batch = 10
+                    auto_batch = 5
                 try:
-                    worker_jobs = int(os.environ.get("IUSENTRA_PEC_WORKER_JOBS_PER_TICK", "60") or 60)
+                    worker_jobs = int(os.environ.get("IUSENTRA_PEC_WORKER_JOBS_PER_TICK", "20") or 20)
                 except (TypeError, ValueError):
-                    worker_jobs = 60
+                    worker_jobs = 20
+                try:
+                    document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "5") or 5)
+                except (TypeError, ValueError):
+                    document_presidio_limit = 5
                 processed_targets = 0
                 processed_jobs = 0
+                tenant_reports: list[dict[str, object]] = []
+                totals = {
+                    "targets": 0,
+                    "archive_seen": 0,
+                    "scanned": 0,
+                    "relevant": 0,
+                    "ingested": 0,
+                    "duplicates": 0,
+                    "skipped_presided": 0,
+                    "missing_mime": 0,
+                    "acquire_errors": 0,
+                    "processed_jobs": 0,
+                    "failed_jobs": 0,
+                    "document_errors": 0,
+                    "notification_errors": 0,
+                    "errors": 0,
+                }
+                scan_modes: set[str] = set()
                 for label, paths in _mailbox_sync_targets():
                     # Prima l'acquisizione automatica delle PEC archiviate non ancora
                     # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
                     # classificazione, scadenze automatiche e collegamento fascicoli.
                     # Budget prudenti: l'OCR degli allegati gira in questo processo e
                     # un arretrato grande deve scalare in più giri senza saturare RAM.
+                    acquired: dict[str, object] = {
+                        "scan_mode": "disabled",
+                        "skipped": True,
+                        "reason": "acquisizione automatica disattivata",
+                    }
                     if auto_batch > 0:
+                        logger.info("[scheduler] Presidio PEC %s: acquisizione batch=%d", label, auto_batch)
                         acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
+                        scan_modes.add(str(acquired.get("scan_mode") or "unknown"))
+                        totals["archive_seen"] += _as_int(acquired.get("archive_seen"))
+                        totals["scanned"] += _as_int(acquired.get("scanned"))
+                        totals["relevant"] += _as_int(acquired.get("relevant"))
+                        totals["ingested"] += _as_int(acquired.get("ingested"))
+                        totals["duplicates"] += _as_int(acquired.get("duplicates"))
+                        totals["skipped_presided"] += _as_int(acquired.get("skipped_presided"))
+                        totals["missing_mime"] += _as_int(acquired.get("missing_mime"))
+                        totals["acquire_errors"] += _as_int(acquired.get("errors"))
                         if acquired.get("ingested") or acquired.get("missing_mime") or acquired.get("errors"):
                             logger.info(
                                 "[scheduler] Presidio PEC %s: %d acquisite, %d duplicate, %d senza MIME, %d errori",
@@ -927,20 +1043,81 @@ def start_scheduler(app):
                                 acquired.get("missing_mime", 0),
                                 acquired.get("errors", 0),
                             )
-                    report = run_workers_for_paths(paths, tenant_label=label, limit=max(1, worker_jobs))
+                    logger.info(
+                        "[scheduler] Presidio PEC %s: worker limit=%d, documenti Lex limit=%d",
+                        label,
+                        max(1, worker_jobs),
+                        max(0, document_presidio_limit),
+                    )
+                    report = run_workers_for_paths(
+                        paths,
+                        tenant_label=label,
+                        limit=max(1, worker_jobs),
+                        document_presidio_limit=max(0, document_presidio_limit),
+                    )
                     processed_targets += 1
                     processed_jobs += int(report.get("processed") or 0)
-                    if report.get("processed") or report.get("failed"):
-                        logger.info(
-                            "[scheduler] Pipeline PEC %s: %d job completati, %d errori",
-                            label,
-                            report.get("processed", 0),
-                            report.get("failed", 0),
-                        )
+                    totals["targets"] += 1
+                    totals["processed_jobs"] += _as_int(report.get("processed"))
+                    totals["failed_jobs"] += _as_int(report.get("failed"))
+                    document_presidio = report.get("document_presidio") if isinstance(report.get("document_presidio"), dict) else {}
+                    document_errors = _as_int(document_presidio.get("errors"))
+                    if isinstance(document_presidio.get("errors"), list):
+                        document_errors = len(document_presidio.get("errors") or [])
+                    totals["document_errors"] += document_errors
+                    notifications = report.get("auto_deadline_notifications") if isinstance(report.get("auto_deadline_notifications"), dict) else {}
+                    totals["notification_errors"] += _as_int(notifications.get("errors"))
+                    tenant_reports.append(
+                        {
+                            "tenant": label,
+                            "acquired": acquired,
+                            "workers": {
+                                "processed": _as_int(report.get("processed")),
+                                "failed": _as_int(report.get("failed")),
+                                "document_presidio": document_presidio,
+                                "auto_deadline_notifications": notifications,
+                            },
+                        }
+                    )
+                    logger.info(
+                        "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, notifiche=%s/%s",
+                        label,
+                        report.get("processed", 0),
+                        report.get("failed", 0),
+                        document_presidio.get("checked_documents", 0),
+                        document_presidio.get("checked_fascicoli", 0),
+                        (report.get("auto_deadline_notifications") or {}).get("created", 0)
+                        if isinstance(report.get("auto_deadline_notifications"), dict)
+                        else 0,
+                        (report.get("auto_deadline_notifications") or {}).get("errors", 0)
+                        if isinstance(report.get("auto_deadline_notifications"), dict)
+                        else 0,
+                    )
                 if processed_targets:
                     logger.info("[scheduler] Pipeline PEC controllata per %d target; job=%d", processed_targets, processed_jobs)
+                totals["errors"] = (
+                    int(totals["acquire_errors"])
+                    + int(totals["failed_jobs"])
+                    + int(totals["document_errors"])
+                    + int(totals["notification_errors"])
+                )
+                ordered_modes = sorted(mode for mode in scan_modes if mode)
+                return {
+                    "ok": totals["errors"] == 0,
+                    "job": "pec_audit_pipeline_workers",
+                    "scan_mode": ordered_modes[0] if len(ordered_modes) == 1 else ("mixed:" + ",".join(ordered_modes) if ordered_modes else "workers_only"),
+                    "source_of_truth": "pec_audit.sqlite + email tenant-aware",
+                    "batch_size": max(0, auto_batch),
+                    "worker_limit": max(1, worker_jobs),
+                    "document_presidio_limit": max(0, document_presidio_limit),
+                    "targets": processed_targets,
+                    "processed_jobs": processed_jobs,
+                    "totals": totals,
+                    "tenants": tenant_reports,
+                }
             except Exception as e:
                 logger.error("[scheduler] Pipeline PEC fallita: %s", e)
+                return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(hour=8, minute=0, timezone="Europe/Rome"), id="pec_audit_digest_daily")
     def _pec_audit_digest_daily():
@@ -1030,12 +1207,20 @@ def start_scheduler(app):
                     logger.info(
                         "[scheduler] Local AI maintenance disabilitata su runtime cloud-hosted: AI delegata al companion locale del cliente."
                     )
-                    return
+                    return {
+                        "ok": True,
+                        "job": "local_ai_maintenance",
+                        "status": "disabled_cloud_hosted",
+                        "scan_mode": "not_applicable",
+                        "totals": {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0},
+                    }
 
                 from pct.fascicoli import GestioneFascicoli
                 from pct.local_ai import LocalAIService
 
                 processed_targets = 0
+                tenant_reports: list[dict[str, object]] = []
+                totals = {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0}
                 for target in _workspace_intelligence_targets():
                     service = LocalAIService(
                         db_path=target["local_ai_db"],
@@ -1053,6 +1238,21 @@ def start_scheduler(app):
                         )
                     report = service.scheduled_maintenance(fascicoli, target["fascicoli_docs"])
                     processed_targets += 1
+                    embeddings = report.get("embeddings") if isinstance(report.get("embeddings"), dict) else {}
+                    target_errors = _as_int(report.get("errors")) + _as_int(embeddings.get("errors"))
+                    totals["targets"] += 1
+                    totals["indexed"] += _as_int(report.get("indexed"))
+                    totals["embedded"] += _as_int(embeddings.get("embedded"))
+                    totals["errors"] += target_errors
+                    tenant_reports.append(
+                        {
+                            "tenant": str(target.get("label") or target.get("tenant_id") or ""),
+                            "status": str(report.get("status") or ""),
+                            "indexed": _as_int(report.get("indexed")),
+                            "embedded": _as_int(embeddings.get("embedded")),
+                            "errors": target_errors,
+                        }
+                    )
                     logger.info(
                         "[scheduler] Local AI %s: stato=%s, indexed=%s, embed=%s",
                         target["label"],
@@ -1062,8 +1262,18 @@ def start_scheduler(app):
                     )
                 if processed_targets:
                     logger.info("[scheduler] Local AI maintenance completata per %d target", processed_targets)
+                return {
+                    "ok": totals["errors"] == 0,
+                    "job": "local_ai_maintenance",
+                    "scan_mode": "maintenance_incremental",
+                    "source_of_truth": "local_ai.db tenant-aware",
+                    "targets": processed_targets,
+                    "totals": totals,
+                    "tenants": tenant_reports,
+                }
             except Exception as e:
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
+                return {"ok": False, "job": "local_ai_maintenance", "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(minute="7-57/10"), id="lex_sentenza_economia_auto")
     def _lex_sentenza_economia_auto():
@@ -1076,6 +1286,7 @@ def start_scheduler(app):
                     return {"ok": True, "status": "disabled", "job": "lex_sentenza_economia_auto"}
 
                 from scripts.backfill_sentenza_lex_economics import run_backfill
+                from pct.scheduler_registry import scheduler_registry_repository
 
                 registry = Path(
                     app.config.get("TENANTS_REGISTRY")
@@ -1093,6 +1304,21 @@ def start_scheduler(app):
                     app.config.get("IUSENTRA_SENTENZA_LEX_SKIP_VECTOR")
                     or os.getenv("IUSENTRA_SENTENZA_LEX_SKIP_VECTOR")
                 )
+                force_full_scan = _flag_enabled(
+                    app.config.get("IUSENTRA_SENTENZA_LEX_FULL_SCAN")
+                    or os.getenv("IUSENTRA_SENTENZA_LEX_FULL_SCAN")
+                )
+                modified_after_ns = 0
+                if not force_full_scan:
+                    try:
+                        last_run = scheduler_registry_repository(app.config).latest_completed_run(
+                            "lex_sentenza_economia_auto"
+                        )
+                        incremental = (last_run.get("result") or {}).get("incremental")
+                        if isinstance(incremental, dict):
+                            modified_after_ns = int(incremental.get("newest_mtime_ns") or 0)
+                    except Exception:
+                        modified_after_ns = 0
                 report = run_backfill(
                     data_root=data_root,
                     registry=registry,
@@ -1104,6 +1330,7 @@ def start_scheduler(app):
                         or os.getenv("IUSENTRA_SENTENZA_LEX_AUTO_LIMIT"),
                         0,
                     ),
+                    modified_after_ns=max(0, modified_after_ns),
                     lex_embed_batch_size=_parse_positive_int(
                         app.config.get("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE")
                         or os.getenv("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE"),
@@ -1130,6 +1357,9 @@ def start_scheduler(app):
                     "ok": bool(report.get("ok")),
                     "job": "lex_sentenza_economia_auto",
                     "source_of_truth": report.get("source_of_truth"),
+                    "scan_mode": report.get("scan_mode"),
+                    "incremental": report.get("incremental"),
+                    "force_full_scan": force_full_scan,
                     "totals": totals,
                     "skip_lex": skip_lex,
                 }

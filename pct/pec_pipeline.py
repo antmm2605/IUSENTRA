@@ -6158,6 +6158,59 @@ class PecAuditRepository:
                         presided.add(imap_uid.removeprefix("legacy:"))
         return presided
 
+    def latest_local_acquire_cursor(self, *, origin: str = "auto", limit: int = 50) -> dict[str, Any]:
+        """Ultimo cursore completato dell'acquisizione locale automatica."""
+
+        wanted_origin = clean_text(origin) or "auto"
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT payload_json
+                FROM pec_local_acquire_runs
+                WHERE tenant_id=? AND status='completed'
+                ORDER BY updated_at DESC, rowid DESC
+                LIMIT ?
+                """,
+                (self.tenant_id, max(1, int(limit or 50))),
+            ).fetchall()
+        for row in rows:
+            payload = _json_loads(str(row["payload_json"] or "{}"))
+            if clean_text(payload.get("origin")) != wanted_origin:
+                continue
+            if bool(payload.get("batch_exhausted")):
+                continue
+            cursor = payload.get("cursor")
+            if isinstance(cursor, dict) and clean_text(cursor.get("sort_key")):
+                return dict(cursor)
+        return {}
+
+    def record_local_acquire_cursor(
+        self,
+        cursor: dict[str, Any],
+        *,
+        payload: dict[str, Any] | None = None,
+        actor: str = "scheduler",
+    ) -> dict[str, Any]:
+        """Registra un giro senza candidati ma con cursore avanzato.
+
+        Serve al worker automatico: se una finestra e' gia' completata, il giro
+        successivo non deve ripartire da capo.
+        """
+
+        run = self.start_local_acquire_run(total_emails=0, batch_size=0, actor=actor)
+        run_id = clean_text(run.get("id"))
+        data = {"origin": "auto", **(payload or {}), "cursor": dict(cursor or {})}
+        return self.update_local_acquire_run(
+            run_id,
+            cursor_index=0,
+            total_emails=0,
+            batch_size=0,
+            deltas={},
+            status="completed",
+            payload=data,
+            actor=actor,
+        )
+
     def original_mime(self, message_id: str) -> tuple[bytes, dict[str, Any]]:
         with self.connect() as conn:
             row = self.get_message_row(conn, message_id)
@@ -7188,6 +7241,7 @@ class PecAuditRepository:
     def start_local_acquire_run(self, *, total_emails: int, batch_size: int, actor: str = "pec-api") -> dict[str, Any]:
         run_id = f"plar_{uuid.uuid4().hex[:24]}"
         now = iso_now()
+        batch_value = int(batch_size if batch_size is not None else 50)
         with self.connect() as conn:
             conn.execute(
                 """
@@ -7195,14 +7249,14 @@ class PecAuditRepository:
                 (id, tenant_id, status, started_at, updated_at, cursor_index, total_emails, batch_size)
                 VALUES (?,?,?,?,?,?,?,?)
                 """,
-                (run_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), int(batch_size or 50)),
+                (run_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), batch_value),
             )
             self.append_audit(
                 conn,
                 action="pec.local_acquire.started",
                 resource_type="pec_local_acquire_run",
                 resource_id=run_id,
-                payload={"total_emails": int(total_emails or 0), "batch_size": int(batch_size or 50)},
+                payload={"total_emails": int(total_emails or 0), "batch_size": batch_value},
                 actor=actor,
             )
         return self.get_local_acquire_run(run_id)
@@ -7237,6 +7291,7 @@ class PecAuditRepository:
         now = iso_now()
         status = clean_text(status) or "running"
         finished_at = now if status in {"completed", "failed", "cancelled"} else ""
+        batch_value = int(batch_size if batch_size is not None else 50)
         payload_json = canonical_json(payload or {})
         with self.connect() as conn:
             row = conn.execute(
@@ -7250,7 +7305,7 @@ class PecAuditRepository:
                     (id, tenant_id, status, started_at, updated_at, cursor_index, total_emails, batch_size, payload_json)
                     VALUES (?,?,?,?,?,?,?,?,?)
                     """,
-                    (clean_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), int(batch_size or 50), "{}"),
+                    (clean_id, self.tenant_id, "running", now, now, 0, int(total_emails or 0), batch_value, "{}"),
                 )
             assignments = [
                 "status=?",
@@ -7261,7 +7316,7 @@ class PecAuditRepository:
                 "batch_size=?",
                 "payload_json=?",
             ]
-            args: list[Any] = [status, now, finished_at, finished_at, int(cursor_index or 0), int(total_emails or 0), int(batch_size or 50), payload_json]
+            args: list[Any] = [status, now, finished_at, finished_at, int(cursor_index or 0), int(total_emails or 0), batch_value, payload_json]
             for key, value in (deltas or {}).items():
                 if key not in allowed:
                     continue

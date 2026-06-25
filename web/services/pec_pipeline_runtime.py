@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Mapping
 
 from flask import current_app, g, has_app_context
 
+from pct.incremental_jobs import cursor_tuple, is_after_cursor
 from pct.pec_pipeline import PecAuditRepository
 
 
@@ -38,7 +40,13 @@ def repository_for_current_request() -> PecAuditRepository:
     return repository_from_paths(paths or {}, tenant_label="default")
 
 
-def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit: int = 200) -> dict[str, Any]:
+def run_workers_for_paths(
+    paths: Mapping[str, Any],
+    *,
+    tenant_label: str,
+    limit: int = 200,
+    document_presidio_limit: int | None = None,
+) -> dict[str, Any]:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     report = repo.run_pending_jobs(limit=limit, actor="scheduler")
     try:
@@ -48,16 +56,28 @@ def run_workers_for_paths(paths: Mapping[str, Any], *, tenant_label: str, limit:
     except Exception as exc:
         report["legacy_cleanup"] = {"errors": 1, "message": str(exc)[:180]}
     try:
-        document_presidio = repo.recover_missing_hearings_from_fascicolo_documents(
-            limit=max(10, min(int(limit or 200), 80)),
-            actor="scheduler",
-        )
-        if (
-            document_presidio.get("scheduled")
-            or document_presidio.get("already_presided")
-            or document_presidio.get("errors")
-        ):
-            report["document_presidio"] = document_presidio
+        if document_presidio_limit is None:
+            effective_document_limit = max(10, min(int(limit or 200), 80))
+        else:
+            effective_document_limit = max(0, int(document_presidio_limit or 0))
+        if effective_document_limit <= 0:
+            report["document_presidio"] = {
+                "skipped_service": True,
+                "reason": "budget_scheduler_esaurito",
+                "limit": 0,
+            }
+        else:
+            document_presidio = repo.recover_missing_hearings_from_fascicolo_documents(
+                limit=effective_document_limit,
+                actor="scheduler",
+            )
+            if (
+                document_presidio.get("scheduled")
+                or document_presidio.get("already_presided")
+                or document_presidio.get("errors")
+                or document_presidio.get("checked_fascicoli")
+            ):
+                report["document_presidio"] = document_presidio
     except Exception as exc:
         report["document_presidio"] = {"ok": False, "errors": [str(exc)]}
     try:
@@ -226,6 +246,17 @@ def local_email_sort_key(email_obj: Any) -> str:
     )
 
 
+def _local_email_cursor(email_obj: Any) -> dict[str, str]:
+    return {
+        "sort_key": local_email_sort_key(email_obj),
+        "item_id": str(getattr(email_obj, "id", "") or ""),
+    }
+
+
+def _full_scan_enabled(value: object) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si"}
+
+
 def email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
     allegati = " ".join(
         str(item.get("nome") or item.get("nome_file") or "")
@@ -321,6 +352,8 @@ def acquire_local_pec_for_paths(
     from pct.email_client import GestioneEmailRicevute
 
     report: dict[str, Any] = {
+        "scan_mode": "not_started",
+        "archive_seen": 0,
         "scanned": 0,
         "relevant": 0,
         "ingested": 0,
@@ -328,21 +361,123 @@ def acquire_local_pec_for_paths(
         "skipped_presided": 0,
         "missing_mime": 0,
         "errors": 0,
+        "cursor_saved": False,
     }
     email_db = _path_from_mapping(paths, "EMAIL_CASELLA_DB", "./email/casella.json")
     if not Path(email_db).exists():
         return {**report, "skipped": True, "reason": "archivio email assente"}
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     gestore = GestioneEmailRicevute(db_path=email_db)
-    emails = sorted(
+    all_emails = sorted(
         gestore._carica().values(),  # noqa: SLF001 - presidio tenant-aware sulla casella locale
-        key=local_email_sort_key,
+        key=lambda item: cursor_tuple(local_email_sort_key(item), getattr(item, "id", "")),
         reverse=True,
-    )[: max(1, int(scan_limit or 250))]
-    report["scanned"] = len(emails)
+    )
+    report["archive_seen"] = len(all_emails)
+    if not all_emails:
+        return report
+    effective_scan_limit = max(1, int(scan_limit or 250))
+    cursor = repo.latest_local_acquire_cursor(origin="auto")
+    full_scan = _full_scan_enabled(
+        os.environ.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN")
+        or (current_app.config.get("IUSENTRA_PEC_AUTO_ACQUIRE_FULL_SCAN") if has_app_context() else "")
+    )
+    newest_cursor = _local_email_cursor(all_emails[0])
+    selected_emails: list[Any] = []
+    backlog_window: list[Any] = []
+    backlog_attempted = False
+    if full_scan or not cursor:
+        selected_emails = all_emails[:effective_scan_limit]
+        report["scan_mode"] = "full_scan" if full_scan else "bootstrap"
+    else:
+        report["scan_mode"] = "incremental"
+        for item in all_emails:
+            item_cursor = _local_email_cursor(item)
+            if is_after_cursor(
+                item_cursor.get("sort_key"),
+                item_cursor.get("item_id"),
+                cursor,
+                include_boundary=True,
+            ):
+                selected_emails.append(item)
+                if len(selected_emails) >= effective_scan_limit:
+                    break
+            else:
+                break
+        if not cursor.get("backlog_complete"):
+            boundary = {
+                "sort_key": cursor.get("backlog_sort_key") or cursor.get("sort_key"),
+                "item_id": cursor.get("backlog_item_id") or cursor.get("item_id"),
+            }
+            boundary_tuple = cursor_tuple(boundary.get("sort_key"), boundary.get("item_id"))
+            seen_ids = {str(getattr(item, "id", "") or "") for item in selected_emails}
+            if len(selected_emails) < effective_scan_limit:
+                backlog_attempted = True
+                for item in all_emails:
+                    email_id = str(getattr(item, "id", "") or "")
+                    if email_id in seen_ids:
+                        continue
+                    if cursor_tuple(local_email_sort_key(item), email_id) < boundary_tuple:
+                        backlog_window.append(item)
+                        if len(selected_emails) + len(backlog_window) >= effective_scan_limit:
+                            break
+            selected_emails.extend(backlog_window)
+            report["scan_mode"] = "incremental_backlog"
+    report["scanned"] = len(selected_emails)
+    if cursor:
+        report["cursor_sort_key"] = str(cursor.get("sort_key") or "")
+        report["cursor_email_id"] = str(cursor.get("item_id") or "")
+        report["backlog_complete"] = bool(cursor.get("backlog_complete"))
+    report["newest_sort_key"] = newest_cursor.get("sort_key", "")
+    report["newest_email_id"] = newest_cursor.get("item_id", "")
+
+    def save_cursor_if_safe(*, batch_exhausted: bool) -> None:
+        if batch_exhausted:
+            return
+        next_cursor = dict(cursor or {})
+        if not cursor or cursor_tuple(newest_cursor.get("sort_key"), newest_cursor.get("item_id")) >= cursor_tuple(
+            cursor.get("sort_key"),
+            cursor.get("item_id"),
+        ):
+            next_cursor.update(newest_cursor)
+        if report["scan_mode"] in {"bootstrap", "full_scan"}:
+            boundary_items = selected_emails
+        else:
+            boundary_items = backlog_window
+        if boundary_items:
+            boundary = _local_email_cursor(boundary_items[-1])
+            next_cursor["backlog_sort_key"] = boundary["sort_key"]
+            next_cursor["backlog_item_id"] = boundary["item_id"]
+            if report["scan_mode"] in {"bootstrap", "full_scan"}:
+                next_cursor["backlog_complete"] = len(boundary_items) >= int(report.get("archive_seen") or 0)
+            else:
+                next_cursor["backlog_complete"] = len(boundary_items) < effective_scan_limit
+        else:
+            next_cursor["backlog_complete"] = bool(cursor.get("backlog_complete")) or backlog_attempted
+        next_cursor["generation"] = "pec_local_acquire_v2"
+        try:
+            repo.record_local_acquire_cursor(
+                next_cursor,
+                payload={
+                    "tenant_label": tenant_label,
+                    "scan_mode": report["scan_mode"],
+                    "archive_seen": report["archive_seen"],
+                    "scanned": report["scanned"],
+                },
+                actor="scheduler",
+            )
+            report["cursor_saved"] = True
+        except Exception:
+            report["cursor_saved"] = False
+
+    if not selected_emails:
+        save_cursor_if_safe(batch_exhausted=False)
+        return report
+    emails = selected_emails
     relevant = [item for item in emails if email_rilevante_per_presidio_pec(item)]
     report["relevant"] = len(relevant)
     if not relevant:
+        save_cursor_if_safe(batch_exhausted=False)
         return report
     known_headers = repo.ids_by_header_message_ids(
         str(getattr(item, "message_id", "") or "").strip() for item in relevant
@@ -351,6 +486,7 @@ def acquire_local_pec_for_paths(
         str(getattr(item, "id", "") or "") for item in relevant
     )
     candidates: list[Any] = []
+    batch_exhausted = False
     for item in relevant:
         email_id = str(getattr(item, "id", "") or "")
         header = str(getattr(item, "message_id", "") or "").strip()
@@ -359,8 +495,10 @@ def acquire_local_pec_for_paths(
             continue
         candidates.append(item)
         if len(candidates) >= max(1, int(batch_size or 10)):
+            batch_exhausted = True
             break
     if not candidates:
+        save_cursor_if_safe(batch_exhausted=False)
         return report
     run_id = ""
     try:
@@ -428,9 +566,19 @@ def acquire_local_pec_for_paths(
                     "errors": int(report["errors"]),
                 },
                 status="completed",
-                payload={"origin": "auto", "tenant_label": tenant_label},
+                payload={
+                    "origin": "auto",
+                    "tenant_label": tenant_label,
+                    "scan_mode": report["scan_mode"],
+                    "archive_seen": report["archive_seen"],
+                    "scanned": report["scanned"],
+                    "cursor": dict(cursor or newest_cursor),
+                    "batch_exhausted": batch_exhausted,
+                },
                 actor="scheduler",
             )
+            if not batch_exhausted:
+                save_cursor_if_safe(batch_exhausted=False)
         except Exception:
             pass
     return report

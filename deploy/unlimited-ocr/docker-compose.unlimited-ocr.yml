@@ -1,0 +1,49 @@
+name: iusentra-unlimited-ocr
+
+services:
+  unlimited-ocr:
+    profiles: ["unlimited-ocr"]
+    image: ${IUSENTRA_UNLIMITED_OCR_IMAGE:-lmsysorg/sglang:latest}
+    restart: unless-stopped
+    gpus: all
+    shm_size: ${IUSENTRA_UNLIMITED_OCR_SHM_SIZE:-16gb}
+    environment:
+      HF_HOME: /models/huggingface
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-${HUGGING_FACE_HUB_TOKEN:-}}
+      CUDA_VISIBLE_DEVICES: ${IUSENTRA_UNLIMITED_OCR_CUDA_VISIBLE_DEVICES:-0}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${IUSENTRA_UNLIMITED_OCR_MODEL_CACHE:-../../data/models/unlimited-ocr}:/models
+    ports:
+      - "${IUSENTRA_UNLIMITED_OCR_BIND:-127.0.0.1}:${IUSENTRA_UNLIMITED_OCR_PORT:-10000}:10000"
+    command:
+      - python3
+      - -m
+      - sglang.launch_server
+      - --model
+      - ${IUSENTRA_UNLIMITED_OCR_MODEL_DIR:-baidu/Unlimited-OCR}
+      - --served-model-name
+      - ${IUSENTRA_UNLIMITED_OCR_MODEL:-Unlimited-OCR}
+      - --attention-backend
+      - ${IUSENTRA_UNLIMITED_OCR_ATTENTION_BACKEND:-fa3}
+      - --page-size
+      - "1"
+      - --mem-fraction-static
+      - ${IUSENTRA_UNLIMITED_OCR_MEM_FRACTION_STATIC:-0.8}
+      - --context-length
+      - ${IUSENTRA_UNLIMITED_OCR_CONTEXT_LENGTH:-32768}
+      - --enable-custom-logit-processor
+      - --disable-overlap-schedule
+      - --skip-server-warmup
+      - --host
+      - 0.0.0.0
+      - --port
+      - "10000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/v1/models', timeout=5).read()"
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s

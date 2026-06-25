@@ -15,6 +15,7 @@ from web.services.pec_pipeline_runtime import (
     acquire_local_pec_for_paths,
     repository_from_paths,
 )
+from web.services import pec_pipeline_runtime
 
 
 def _paths(tmp_path: Path) -> dict[str, str]:
@@ -44,7 +45,15 @@ def _pec_mime(message_id: str, subject: str) -> bytes:
     return msg.as_bytes()
 
 
-def _archivia_pec(gestore: GestioneEmailRicevute, *, email_id: str, message_id: str, subject: str, with_eml: bool = True) -> None:
+def _archivia_pec(
+    gestore: GestioneEmailRicevute,
+    *,
+    email_id: str,
+    message_id: str,
+    subject: str,
+    with_eml: bool = True,
+    data: str = "",
+) -> None:
     eml_file = ""
     eml_sha = ""
     if with_eml:
@@ -59,6 +68,7 @@ def _archivia_pec(gestore: GestioneEmailRicevute, *, email_id: str, message_id: 
             mittente="Per conto di: tribunale.palmi@civile.ptel.giustiziacert.it",
             destinatari="studio@example.pec.it",
             oggetto=subject,
+            data=data,
             corpo_testo=f"Messaggio di posta certificata. {subject}.",
             message_id=message_id,
             allegati=[{"nome": "daticert.xml", "mime": "application/xml", "size": 48}],
@@ -105,7 +115,8 @@ def test_acquisizione_automatica_ingerisce_solo_pec_nuove(tmp_path: Path) -> Non
 
     second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
     assert second["ingested"] == 0, "una PEC già presidiata non va riacquisita"
-    assert second["skipped_presided"] == 1
+    assert second["scan_mode"] in {"incremental", "incremental_backlog"}
+    assert second["scanned"] <= first["scanned"]
 
 
 def test_acquisizione_automatica_non_ritenta_le_missing_mime(tmp_path: Path) -> None:
@@ -126,7 +137,8 @@ def test_acquisizione_automatica_non_ritenta_le_missing_mime(tmp_path: Path) -> 
         assert first["ingested"] == 1
     second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
     assert second["ingested"] == 0
-    assert second["skipped_presided"] == 1, "l'esito registrato evita nuovi tentativi a ogni giro"
+    assert second["scan_mode"] in {"incremental", "incremental_backlog"}
+    assert second["scanned"] <= first["scanned"], "l'esito registrato evita nuovi tentativi a ogni giro"
 
 
 def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
@@ -145,6 +157,87 @@ def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
     second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=2)
     assert second["ingested"] == 1, "il giro successivo completa l'arretrato"
     assert second["skipped_presided"] == 2
+
+
+def test_acquisizione_incrementale_legge_solo_nuovi_arrivi_dopo_cursor(tmp_path: Path) -> None:
+    paths = _paths(tmp_path)
+    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    _archivia_pec(
+        gestore,
+        email_id="MAIL-CURSOR-1",
+        message_id="<cursor-1@example.test>",
+        subject="POSTA CERTIFICATA: primo arrivo",
+        data="2026-06-25T10:00:00",
+    )
+    _archivia_pec(
+        gestore,
+        email_id="MAIL-CURSOR-2",
+        message_id="<cursor-2@example.test>",
+        subject="POSTA CERTIFICATA: secondo arrivo",
+        data="2026-06-25T10:05:00",
+    )
+
+    first = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+    assert first["ingested"] == 2
+    assert first["cursor_saved"] is True
+
+    second = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+    assert second["scan_mode"] == "incremental"
+    assert second["ingested"] == 0
+    assert second["scanned"] < first["archive_seen"], "dopo il cursore non deve rileggere tutta la casella"
+
+    _archivia_pec(
+        gestore,
+        email_id="MAIL-CURSOR-3",
+        message_id="<cursor-3@example.test>",
+        subject="POSTA CERTIFICATA: nuovo arrivo",
+        data="2026-06-25T10:10:00",
+    )
+
+    third = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+    assert third["scan_mode"] == "incremental"
+    assert third["ingested"] == 1
+    assert third["relevant"] <= 2, "il giro nuovo controlla arrivo e boundary, non l'archivio intero"
+
+
+def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkeypatch) -> None:
+    paths = _paths(tmp_path)
+    recovered_limits: list[int] = []
+
+    class FakeRepository:
+        def run_pending_jobs(self, *, limit: int, actor: str) -> dict[str, object]:
+            return {"processed": 0, "failed": 0, "jobs": [], "limit": limit, "actor": actor}
+
+        def cleanup_legacy_pec_operational_items(self, *, actor: str) -> dict[str, int]:
+            return {"scadenziario_removed": 0, "agenda_removed": 0, "errors": 0}
+
+        def recover_missing_hearings_from_fascicolo_documents(self, *, limit: int, actor: str) -> dict[str, int]:
+            recovered_limits.append(limit)
+            return {"checked_fascicoli": limit, "checked_documents": limit * 2, "scheduled": 0, "already_presided": 0}
+
+    monkeypatch.setattr(
+        pec_pipeline_runtime,
+        "repository_from_paths",
+        lambda _paths, *, tenant_label: FakeRepository(),
+    )
+
+    report = pec_pipeline_runtime.run_workers_for_paths(
+        paths,
+        tenant_label="default",
+        limit=60,
+        document_presidio_limit=5,
+    )
+    assert recovered_limits == [5]
+    assert report["document_presidio"]["checked_fascicoli"] == 5
+
+    skipped = pec_pipeline_runtime.run_workers_for_paths(
+        paths,
+        tenant_label="default",
+        limit=60,
+        document_presidio_limit=0,
+    )
+    assert recovered_limits == [5], "limite 0: il presidio documentale non deve partire"
+    assert skipped["document_presidio"]["reason"] == "budget_scheduler_esaurito"
 
 
 def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) -> None:

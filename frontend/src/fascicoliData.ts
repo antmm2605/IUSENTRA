@@ -4,7 +4,7 @@ import { csrfToken } from './formSubmit'
 
 export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
-export type FascicoloPaymentKind = 'contributo_unificato' | 'fondo_spese' | 'liquidazione_giudice' | 'parcella'
+export type FascicoloPaymentKind = 'contributo_unificato' | 'spese_esborsi' | 'fondo_spese' | 'liquidazione_giudice' | 'parcella'
 export type FascicoloPaymentStatus = 'non_previsto' | 'da_registrare' | 'pagato' | 'parziale' | 'da_emettere'
 
 export type Facet<T extends string> = { value: T; label: string; count: number }
@@ -680,6 +680,7 @@ const emptySummary: FascicoliSummary = {
 
 const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
   contributo_unificato: 'Contributo unificato',
+  spese_esborsi: 'Spese/esborsi',
   fondo_spese: 'Fondo spese',
   liquidazione_giudice: 'Liquidazione giudice',
   parcella: 'Parcella',
@@ -687,6 +688,7 @@ const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
 
 const paymentDefaultStatus: Record<FascicoloPaymentKind, FascicoloPaymentStatus> = {
   contributo_unificato: 'da_registrare',
+  spese_esborsi: 'non_previsto',
   fondo_spese: 'da_registrare',
   liquidazione_giudice: 'non_previsto',
   parcella: 'da_emettere',
@@ -708,7 +710,7 @@ const paymentStatusTones: Record<FascicoloPaymentStatus, Tone> = {
   da_emettere: 'warning',
 }
 
-export const fascicoloPaymentKinds: FascicoloPaymentKind[] = ['contributo_unificato', 'fondo_spese', 'liquidazione_giudice', 'parcella']
+export const fascicoloPaymentKinds: FascicoloPaymentKind[] = ['contributo_unificato', 'spese_esborsi', 'fondo_spese', 'liquidazione_giudice', 'parcella']
 
 function emptyPaymentItem(kind: FascicoloPaymentKind, id = ''): FascicoloPaymentItem {
   const status = paymentDefaultStatus[kind]

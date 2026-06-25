@@ -124,6 +124,135 @@ def test_lex_sentenza_economia_job_lancia_backfill_automatico(monkeypatch, tmp_p
         assert call["skip_lex"] is False
         assert call["data_root"] == tmp_path
         assert call["registry"] == registry
+        assert call["modified_after_ns"] == 0
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+def test_lex_sentenza_economia_job_riusa_cursore_ultimo_run(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    registry = tmp_path / "tenants.json"
+    registry.write_text("{}", encoding="utf-8")
+    calls: list[dict] = []
+
+    import scripts.backfill_sentenza_lex_economics as backfill_module
+    from pct.scheduler_registry import scheduler_registry_repository
+
+    def fake_run_backfill(**kwargs):
+        calls.append(kwargs)
+        return {
+            "ok": True,
+            "source_of_truth": "sqlite/postgresql runtime repositories",
+            "scan_mode": "incremental",
+            "incremental": {"newest_mtime_ns": 456},
+            "totals": {
+                "documents_catalogued": 4,
+                "documents_seen": 1,
+                "skipped_by_cursor": 3,
+                "sentenze_found": 0,
+                "unique_fascicoli_confirmed": 0,
+                "applied": 0,
+                "vector_indexed": 0,
+                "context_mismatch_skipped": 0,
+            },
+        }
+
+    monkeypatch.setattr(backfill_module, "run_backfill", fake_run_backfill)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        PCT_DATA_ROOT=str(tmp_path),
+        TENANTS_REGISTRY=str(registry),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        repo = scheduler_registry_repository(app.config)
+        repo.record_scheduler_event(
+            "lex_sentenza_economia_auto",
+            status="completed",
+            result={
+                "ok": True,
+                "incremental": {"newest_mtime_ns": 123},
+                "totals": {"documents_seen": 10, "errors": 0, "vector_embedding_errors": 0},
+            },
+        )
+        result = scheduler.get_job("lex_sentenza_economia_auto").func()
+
+        assert result["scan_mode"] == "incremental"
+        assert result["incremental"]["newest_mtime_ns"] == 456
+        assert calls[0]["modified_after_ns"] == 123
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+    import web.services.pec_pipeline_runtime as pec_runtime
+
+    def fake_acquire(paths, *, tenant_label: str, batch_size: int):
+        return {
+            "scan_mode": "incremental",
+            "archive_seen": 12,
+            "scanned": 1,
+            "relevant": 1,
+            "ingested": 0,
+            "duplicates": 0,
+            "skipped_presided": 1,
+            "missing_mime": 0,
+            "errors": 0,
+            "cursor_saved": True,
+            "newest_sort_key": "2026-06-25T12:00:00Z",
+        }
+
+    def fake_workers(paths, *, tenant_label: str, limit: int, document_presidio_limit: int):
+        return {
+            "processed": 2,
+            "failed": 0,
+            "jobs": [],
+            "document_presidio": {"checked_fascicoli": 1, "checked_documents": 2, "errors": 0},
+            "auto_deadline_notifications": {"created": 1, "errors": 0},
+        }
+
+    monkeypatch.setattr(pec_runtime, "acquire_local_pec_for_paths", fake_acquire)
+    monkeypatch.setattr(pec_runtime, "run_workers_for_paths", fake_workers)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        EMAIL_CASELLA_DB=str(tmp_path / "email" / "casella.json"),
+        EMAIL_ORDINARIA_DB=str(tmp_path / "email" / "ordinaria.json"),
+        FASCICOLI_DB=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        FASCICOLI_DOCS=str(tmp_path / "fascicoli" / "documenti"),
+        FASCICOLI_ARCH=str(tmp_path / "fascicoli" / "archivio"),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        result = scheduler.get_job("pec_audit_pipeline_workers").func()
+
+        assert result["ok"] is True
+        assert result["job"] == "pec_audit_pipeline_workers"
+        assert result["scan_mode"] == "incremental"
+        assert result["totals"]["archive_seen"] == 12
+        assert result["totals"]["scanned"] == 1
+        assert result["totals"]["processed_jobs"] == 2
+        assert result["totals"]["errors"] == 0
+        assert result["tenants"][0]["acquired"]["cursor_saved"] is True
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)

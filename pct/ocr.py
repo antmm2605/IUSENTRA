@@ -15,9 +15,7 @@ from __future__ import annotations
 
 import io
 import logging
-import os
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ ESTENSIONI_SUPPORTATE = ESTENSIONI_PDF | ESTENSIONI_IMG
 
 # ------------------------------------------------------------------ API pubblica
 
-def estrai_testo(data: bytes, nome_file: str, lang: str = "ita") -> str:
+def estrai_testo(data: bytes | bytearray | str | Path, nome_file: str = "", lang: str = "ita") -> str:
     """
     Estrae il testo da bytes di un documento.
 
@@ -40,11 +38,19 @@ def estrai_testo(data: bytes, nome_file: str, lang: str = "ita") -> str:
     Returns:
         Testo estratto; stringa vuota se il tipo non è supportato o se fallisce.
     """
-    ext = Path(nome_file).suffix.lower()
+    if isinstance(data, (str, Path)) and not nome_file:
+        return estrai_testo_da_percorso(str(data), lang=lang)
+    payload = bytes(data or b"") if isinstance(data, (bytes, bytearray)) else b""
+    clean_name = str(nome_file or "").strip()
+    ext = Path(clean_name).suffix.lower()
+    if ext in ESTENSIONI_SUPPORTATE:
+        text = _da_document_intelligence(payload, clean_name, lang=lang)
+        if text.strip():
+            return text
     if ext in ESTENSIONI_PDF:
-        return _da_pdf(data, lang)
+        return _da_pdf(payload, lang)
     if ext in ESTENSIONI_IMG:
-        return _da_immagine(data, lang)
+        return _da_immagine(payload, lang)
     return ""
 
 
@@ -67,6 +73,20 @@ def estrai_testo_da_percorso(percorso: str, lang: str = "ita") -> str:
 def estensione_supportata(nome_file: str) -> bool:
     """True se il file può essere processato dal modulo OCR."""
     return Path(nome_file).suffix.lower() in ESTENSIONI_SUPPORTATE
+
+
+def _da_document_intelligence(data: bytes, nome_file: str, *, lang: str) -> str:
+    """Adapter compatibile verso la pipeline OCR completa usata da Lex AI."""
+
+    try:
+        from pct.document_intelligence.extraction import extract_text_from_document
+
+        result = extract_text_from_document(data, nome_file, Path(nome_file).suffix.lower().lstrip("."))
+        if result.text:
+            return result.text
+    except Exception as exc:
+        logger.debug("Pipeline DocumentAI OCR non disponibile per %s: %s", nome_file, exc)
+    return ""
 
 
 # ------------------------------------------------------------------ PDF

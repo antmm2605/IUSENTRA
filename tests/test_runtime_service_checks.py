@@ -432,3 +432,129 @@ def test_validate_scheduler_run_audit_accetta_job_sentenza_eseguito_con_totals()
     assert report["ok"] is True
     assert report["jobs"][0]["status"] == "ok"
     assert report["jobs"][0]["totals"]["matrix_confirmed"] == 1
+
+
+def test_validate_scheduler_run_audit_accetta_job_sentenza_incrementale_senza_nuovi_documenti():
+    now = datetime(2026, 6, 25, 10, 40, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job()],
+            "latest_runs": {
+                "lex_sentenza_economia_auto": {
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:39:00Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "scan_mode": "incremental",
+                        "incremental": {"newest_mtime_ns": 123},
+                        "totals": {
+                            "documents_catalogued": 4408,
+                            "documents_seen": 0,
+                            "skipped_by_cursor": 4408,
+                            "sentenze_found": 0,
+                            "matrix_confirmed": 0,
+                            "vector_indexed": 0,
+                            "errors": 0,
+                            "vector_embedding_errors": 0,
+                        },
+                    },
+                }
+            },
+        },
+        now=now,
+    )
+
+    assert report["ok"] is True
+    assert report["jobs"][0]["status"] == "ok"
+    assert report["jobs"][0]["totals"]["documents_seen"] == 0
+
+
+def test_validate_scheduler_run_audit_blocca_job_operativo_senza_totals():
+    now = datetime(2026, 6, 25, 10, 40, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job("pec_audit_pipeline_workers", minute="*/5"), _job(minute="7-57/10")],
+            "latest_runs": {
+                "pec_audit_pipeline_workers": {
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:39:00Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {"ok": True},
+                },
+                "lex_sentenza_economia_auto": {
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:37:00Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "totals": {
+                            "documents_seen": 0,
+                            "errors": 0,
+                            "vector_embedding_errors": 0,
+                        },
+                    },
+                },
+            },
+        },
+        job_id="lex_sentenza_economia_auto",
+        now=now,
+        require_all_due=True,
+        worker_started_at=now - timedelta(minutes=20),
+    )
+
+    assert report["ok"] is False
+    assert any("senza riepilogo operativo" in error for error in report["errors"])
+    assert report["jobs"][0]["status"] == "failed"
+
+
+def test_validate_scheduler_run_audit_accetta_job_operativo_con_totals():
+    now = datetime(2026, 6, 25, 10, 40, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job("pec_audit_pipeline_workers", minute="*/5"), _job(minute="7-57/10")],
+            "latest_runs": {
+                "pec_audit_pipeline_workers": {
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:39:00Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "scan_mode": "incremental",
+                        "totals": {
+                            "archive_seen": 667,
+                            "scanned": 1,
+                            "ingested": 0,
+                            "processed_jobs": 0,
+                            "failed_jobs": 0,
+                            "errors": 0,
+                        },
+                    },
+                },
+                "lex_sentenza_economia_auto": {
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:37:00Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "totals": {
+                            "documents_seen": 0,
+                            "errors": 0,
+                            "vector_embedding_errors": 0,
+                        },
+                    },
+                },
+            },
+        },
+        job_id="lex_sentenza_economia_auto",
+        now=now,
+        require_all_due=True,
+        worker_started_at=now - timedelta(minutes=20),
+    )
+
+    assert report["ok"] is True
+    assert report["jobs"][0]["status"] == "ok"
+    assert report["jobs"][0]["totals"]["scanned"] == 1

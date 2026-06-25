@@ -198,13 +198,15 @@ const sortLabels: Record<SortKey, string> = {
 
 const paymentFullLabels: Record<FascicoloPaymentKind, string> = {
   contributo_unificato: 'Contributo unificato',
+  spese_esborsi: 'Spese/esborsi',
   fondo_spese: 'Fondo spese',
   liquidazione_giudice: 'Liquidazione giudice',
   parcella: 'Parcella',
 }
 
 const paymentColumnLabels: Record<FascicoloPaymentKind, string> = {
-  contributo_unificato: 'Contributo / spese',
+  contributo_unificato: 'Contributo',
+  spese_esborsi: 'Spese/esborsi',
   fondo_spese: 'Fondo spese',
   liquidazione_giudice: 'Liquidazione',
   parcella: 'Parcella',
@@ -1584,7 +1586,7 @@ function FascicoliListPage() {
             <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
             <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
             <div className="iu-fas-economic-filters" role="group" aria-label="Filtri per voce economica">
-              <label><span>Contributo / spese</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+              <label><span>Contributo</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Fondo spese</span><select value={fondoFilter} onChange={(event) => updateFondoFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Liquidazione</span><select value={liquidazioneFilter} onChange={(event) => updateLiquidazioneFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Parcella</span><select value={parcellaFilter} onChange={(event) => updateParcellaFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>

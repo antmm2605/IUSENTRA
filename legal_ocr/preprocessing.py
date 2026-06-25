@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import io
 import math
+import os
 from pathlib import Path
 
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+from PIL import Image, ImageEnhance, ImageOps
 
 from legal_document_ingestion.evidence_hash import sha256_bytes
 from legal_document_ingestion.repository import safe_join, sanitize_filename
@@ -32,8 +33,9 @@ def _rasterize_pdf(data: bytes, pages_dir: Path) -> list[PageArtifact]:
         return [_write_text_placeholder(b"", "documento.txt", pages_dir)]
     doc = fitz.open(stream=data, filetype="pdf")
     pages: list[PageArtifact] = []
+    scale = _float_env("IUSENTRA_LEGAL_OCR_RENDER_SCALE", default=3.0, minimum=2.0, maximum=6.0)
     for index, page in enumerate(doc, start=1):
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+        pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
         image = Image.open(io.BytesIO(pix.tobytes("png")))
         pages.extend(_write_preprocessed_pages(image, pages_dir, index, text_hint=page.get_text("text") or ""))
     return pages
@@ -75,7 +77,7 @@ def _write_preprocessed_pages(image: Image.Image, pages_dir: Path, page_number: 
                 candidate.height,
                 "raster",
                 text_hint,
-                ["deskew-lite", "denoise", "adaptive-contrast", "binarize", "speckle-removal"] + (["page-split"] if len(candidates) > 1 else []),
+                ["grayscale", "adaptive-contrast", "sharpen-for-ocr"] + (["page-split"] if len(candidates) > 1 else []),
             )
         )
     return pages
@@ -83,9 +85,9 @@ def _write_preprocessed_pages(image: Image.Image, pages_dir: Path, page_number: 
 
 def _preprocess_image(image: Image.Image) -> Image.Image:
     gray = ImageOps.grayscale(image)
-    gray = ImageOps.autocontrast(gray).filter(ImageFilter.MedianFilter(size=3))
-    gray = ImageEnhance.Contrast(gray).enhance(1.35)
-    return gray.point(lambda pixel: 255 if pixel > 180 else 0).filter(ImageFilter.MinFilter(size=3)).filter(ImageFilter.MaxFilter(size=3))
+    gray = ImageOps.autocontrast(gray)
+    gray = ImageEnhance.Sharpness(gray).enhance(1.8)
+    return ImageEnhance.Contrast(gray).enhance(1.08)
 
 
 def _split_two_up(image: Image.Image) -> list[Image.Image]:
@@ -93,3 +95,11 @@ def _split_two_up(image: Image.Image) -> list[Image.Image]:
     if width < height * 1.35:
         return [image]
     return [image.crop((0, 0, math.floor(width / 2), height)), image.crop((math.floor(width / 2), 0, width, height))]
+
+
+def _float_env(name: str, *, default: float, minimum: float, maximum: float) -> float:
+    try:
+        value = float(str(os.getenv(name, "") or "").strip() or default)
+    except ValueError:
+        value = default
+    return min(max(value, minimum), maximum)

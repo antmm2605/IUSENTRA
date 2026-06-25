@@ -1,8 +1,10 @@
 import json
+import os
 from pathlib import Path
 
 from pct.fascicoli import Fascicolo, StatoFascicolo, TipoFascicolo
-from pct.fascicolo_sentenza_economica import SENTENZA_VECTOR_SCHEMA_VERSION
+from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, ORIGIN, SENTENZA_VECTOR_SCHEMA_VERSION
+from pct.fatturazione import GestioneFatturazione, VoceParcella
 from scripts.backfill_sentenza_lex_economics import (
     TenantBackfillTarget,
     _metadata_for_text,
@@ -89,6 +91,12 @@ def test_vector_result_current_richiede_schema_compatto_e_pending_zero():
         "document_id": "rag-new",
         "embedding": {"pending_remaining": 1},
     }
+    error_result = {
+        "ok": True,
+        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
+        "document_id": "rag-new",
+        "embedding": {"status": "error"},
+    }
     current_result = {
         "ok": True,
         "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
@@ -98,6 +106,7 @@ def test_vector_result_current_richiede_schema_compatto_e_pending_zero():
 
     assert _vector_result_current(old_result) is False
     assert _vector_result_current(pending_result) is False
+    assert _vector_result_current(error_result) is False
     assert _vector_result_current(current_result) is True
 
 
@@ -112,6 +121,98 @@ def test_metadata_senza_classificazione_non_inventa_sentenza(tmp_path: Path):
     )
 
     assert metadata["tipo_documento"] == ""
+
+
+def test_backfill_sentenza_incrementale_salta_documenti_invariati(tmp_path: Path):
+    data_root = tmp_path / "data"
+    tenant_root = data_root / "tenants" / "tenant-test"
+    registry = data_root / "tenants.json"
+    _write_json(
+        registry,
+        {"tenant-test": {"slug": "tenant-test", "storage_key": "tenant-test", "nome": "Studio Test"}},
+    )
+    first_doc = (
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-1"
+        / "documenti_ai"
+        / "DOC-1"
+        / "v1"
+        / "extracted_text.json"
+    )
+    _write_json(
+        first_doc,
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-1",
+            "document_id": "DOC-1",
+            "text": "Memoria istruttoria senza intestazione di sentenza.",
+        },
+    )
+
+    first = run_backfill(
+        data_root=data_root,
+        registry=registry,
+        repo_root=Path(__file__).resolve().parents[1],
+        tenants={"tenant-test"},
+        apply=False,
+        skip_lex=True,
+    )
+    cursor = int(first["incremental"]["newest_mtime_ns"])
+    second = run_backfill(
+        data_root=data_root,
+        registry=registry,
+        repo_root=Path(__file__).resolve().parents[1],
+        tenants={"tenant-test"},
+        apply=False,
+        skip_lex=True,
+        modified_after_ns=cursor,
+    )
+
+    assert second["scan_mode"] == "incremental"
+    assert second["totals"]["documents_catalogued"] == 1
+    assert second["totals"]["documents_seen"] == 0
+    assert second["totals"]["skipped_by_cursor"] == 1
+
+    second_doc = (
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-1"
+        / "documenti_ai"
+        / "DOC-2"
+        / "v1"
+        / "extracted_text.json"
+    )
+    _write_json(
+        second_doc,
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-1",
+            "document_id": "DOC-2",
+            "text": "Nuovo documento arrivato dopo il cursore.",
+        },
+    )
+    os.utime(second_doc, ns=(cursor + 1_000_000, cursor + 1_000_000))
+
+    third = run_backfill(
+        data_root=data_root,
+        registry=registry,
+        repo_root=Path(__file__).resolve().parents[1],
+        tenants={"tenant-test"},
+        apply=False,
+        skip_lex=True,
+        modified_after_ns=cursor,
+    )
+
+    assert third["totals"]["documents_catalogued"] == 2
+    assert third["totals"]["documents_seen"] == 1
+    assert third["totals"]["skipped_by_cursor"] == 1
 
 
 def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path: Path):
@@ -172,6 +273,25 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
             "fascicolo_id": "FASC-1",
             "document_id": "DOC-1",
             "text": SENTENZA_TEXT,
+        },
+    )
+    _write_json(
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-1"
+        / "documenti_ai"
+        / "DOC-CU-1"
+        / "v1"
+        / "extracted_text.json",
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-1",
+            "document_id": "DOC-CU-1",
+            "filename": "CU.pdf",
+            "text": "Ricevuta pagamento PagoPA contributo unificato. Importo versato euro 98,00.",
         },
     )
     _write_json(
@@ -275,10 +395,111 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
     assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
     assert aggiornato_2["stato"] == StatoFascicolo.DEFINITO.value
     assert aggiornato_2["data_prossima_udienza"] == "2024-05-08"
-    assert aggiornato_2["pagamenti"]["contributo_unificato"]["importo"] == 49.0
     assert aggiornato_2["pagamenti"]["liquidazione_giudice"]["importo"] == 900.0
+    assert "contributo_unificato" not in aggiornato_2["pagamenti"]
     parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
     assert len(parcelle) == 2
+
+
+def test_backfill_reset_elimina_importi_lex_errati_e_rigenera_compensi(tmp_path: Path):
+    data_root = tmp_path / "data"
+    tenant_root = data_root / "tenants" / "tenant-test"
+    registry = data_root / "tenants.json"
+    _write_json(
+        registry,
+        {"tenant-test": {"slug": "tenant-test", "storage_key": "tenant-test", "nome": "Studio Test"}},
+    )
+    fatturazione = GestioneFatturazione(str(tenant_root / "fatturazione" / "parcelle.json"))
+    old_proforma = fatturazione.crea(
+        id_cliente="CLI-RESET",
+        id_fascicolo="FASC-RESET",
+        data_emissione="2026-02-01",
+        voci=[VoceParcella(descrizione="Compensi liquidati in sentenza", prezzo_unitario=2454.68)],
+        origine=ORIGIN,
+        dati_personalizzati={"lex_sentenza": {"origin": ORIGIN, "document_key": "document_id:DOC-RESET"}},
+    )
+    fascicolo = Fascicolo(
+        id="FASC-RESET",
+        numero="2026/RESET",
+        titolo="Rossi Mario c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        stato=StatoFascicolo.IN_CORSO,
+        id_cliente="CLI-RESET",
+        nome_cliente="Rossi Mario",
+        numero_rg="466",
+        anno_rg=2023,
+        data_prossima_udienza="n.d.",
+        pagamenti={
+            "liquidazione_giudice": {"status": "pagato", "importo": 2454.68, "origine": ORIGIN},
+            "contributo_unificato": {"status": "pagato", "importo": 5200.00, "origine": ORIGIN},
+            "parcella": {
+                "status": "da_emettere",
+                "importo": 3239.50,
+                "origine": ORIGIN,
+                "proforma_id": old_proforma.id,
+            },
+            AUTOMATION_KEY: {
+                "processed_documents": ["document_id:DOC-RESET"],
+                "proforme": {"document_id:DOC-RESET": old_proforma.id},
+            },
+        },
+    )
+    _write_json(tenant_root / "fascicoli" / "fascicoli.json", {fascicolo.id: fascicolo.to_dict()})
+    _write_json(
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-RESET"
+        / "documenti_ai"
+        / "DOC-RESET"
+        / "v1"
+        / "extracted_text.json",
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-RESET",
+            "document_id": "DOC-RESET",
+            "filename": "Sentenza.pdf",
+            "text": """
+            Tribunale di Palmi
+            Sentenza n. 10/2026 pubbl. il 01/02/2026
+            RG n. 466/2023
+            procedimento promosso da Rossi Mario contro Ministero dell'Istruzione.
+            P.Q.M. condanna al pagamento delle spese processuali che liquida in complessivi
+            Euro 2.454,68, di cui Euro 125,00 per spese ed Euro 1.500,00 per compensi
+            professionali ed Euro 829,68 per spese generali e accessori.
+            """,
+        },
+    )
+
+    report = run_backfill(
+        data_root=data_root,
+        registry=registry,
+        repo_root=Path(__file__).resolve().parents[1],
+        tenants={"tenant-test"},
+        apply=True,
+        reset_lex_amounts=True,
+        skip_lex=True,
+    )
+
+    assert report["totals"]["reset_fascicoli_touched"] == 1
+    assert report["totals"]["reset_payment_entries_removed"] == 3
+    assert report["totals"]["reset_automation_states_removed"] == 1
+    assert report["totals"]["reset_proforme_removed"] == 1
+    fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))
+    aggiornato = fascicoli["FASC-RESET"]
+    assert aggiornato["pagamenti"]["liquidazione_giudice"]["importo"] == 1500.0
+    assert "contributo_unificato" not in aggiornato["pagamenti"]
+    assert aggiornato["pagamenti"]["spese_esborsi"]["importo"] == 125.0
+    assert aggiornato["pagamenti"]["spese_esborsi"]["natura"] == "spese_esborsi"
+    assert aggiornato["pagamenti"]["parcella"]["proforma_id"] != old_proforma.id
+    parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
+    assert old_proforma.id not in parcelle
+    assert len(parcelle) == 1
+    voci = next(iter(parcelle.values()))["voci"]
+    assert any(voce["tipo"] == "ONORARIO" and voce["prezzo_unitario"] == 1500.0 for voce in voci)
+    assert not any(voce["prezzo_unitario"] == 2454.68 for voce in voci)
 
 
 def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Path):
@@ -359,11 +580,12 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
     assert aggiornato["pagamenti"]["liquidazione_giudice"]["importo"] == 321.5
     assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "pagato"
     assert aggiornato["pagamenti"]["contributo_unificato"]["importo"] == 21.5
-    assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "spese_esborsi"
-    assert aggiornato["pagamenti"]["contributo_unificato"]["label"] == "Spese/esborsi"
+    assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "pdf_contributo_unificato"
+    assert aggiornato["pagamenti"]["contributo_unificato"]["label"] == "Contributo unificato da PDF"
+    assert "spese_esborsi" not in aggiornato["pagamenti"]
     last_extraction = aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]["last_extraction"]
     assert last_extraction["beneficio_cliente_importo"] == 500.0
-    assert "spese_esborsi_confermate_pdf" in last_extraction["warnings"]
+    assert "spese_esborsi_riclassificate_cu_pdf" in last_extraction["warnings"]
     assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
     assert aggiornato["pagamenti"]["parcella"]["importo"] > 321.5
     parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
@@ -372,7 +594,7 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
     assert any(
         voce["tipo"] == "ANTICIPO"
         and voce["prezzo_unitario"] == 21.5
-        and "Spese ed esborsi" in voce["descrizione"]
+        and "Contributo unificato" in voce["descrizione"]
         for voce in voci
     )
-    assert not any("Contributo unificato" in voce["descrizione"] and voce["prezzo_unitario"] == 21.5 for voce in voci)
+    assert not any("Spese ed esborsi" in voce["descrizione"] and voce["prezzo_unitario"] == 21.5 for voce in voci)

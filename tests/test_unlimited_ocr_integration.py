@@ -159,3 +159,25 @@ def test_qa_lex_su_testo_ocr_risponde_con_citazioni():
     assert answers["numero_ruolo"]["status"] == "answered"
     assert answers["norme"]["citations"]
     assert "R.G." in json.dumps(answers["numero_ruolo"], ensure_ascii=False)
+
+
+def test_qa_lex_su_scansione_giudiziaria_rgac_parti_importi():
+    text = (
+        "TRIBUNALE DI VIBO VALENTIA, UFFICIO DEL CONTENZIOSO CIVILE "
+        "Ufficio Recupero Spese di Giustizia. Proc. N. RGAC 139/2023 - iscritto il 3.2.2023. "
+        "Parti: MONTAGNESE ELISABETTA E ARRUZZOLO FRANCESCO Dos /CHIARINI MARCO "
+        "Per l'inoltro si richiede il versamento di €. 27,00 ai sensi dell'art 30 DPR 115/2002. "
+        "PEC roberto.montagnese@coapalmi.legalmail.it"
+    )
+
+    report = answer_questions_from_text(text)
+    answers = {item["id"]: item for item in report["answers"]}
+
+    assert report["answered"] == report["total"]
+    assert "RGAC 139/2023" in answers["numero_ruolo"]["answer"]
+    assert "MONTAGNESE ELISABETTA" in answers["parti"]["answer"]
+    assert "ARRUZZOLO FRANCESCO" in answers["parti"]["answer"]
+    assert "CHIARINI MARCO" in answers["parti"]["answer"]
+    assert "27,00" in answers["importi"]["answer"]
+    assert "DPR 115/2002" in answers["norme"]["answer"]
+    assert "legalmail.it" in answers["pec"]["answer"]

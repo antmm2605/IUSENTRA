@@ -31,7 +31,7 @@ def main() -> int:
     parser.add_argument("target", help="PDF, immagine, TXT, ZIP o cartella da processare.")
     parser.add_argument("--tenant", required=True, help="Identificativo tenant/studio.")
     parser.add_argument("--storage-root", default="./data/legal_document_evidence/unlimited_ocr_benchmark", help="Archivio evidenze OCR benchmark.")
-    parser.add_argument("--fallback", default="native-text-fallback", help="Motore fallback corrente.")
+    parser.add_argument("--fallback", default="local-hybrid-ocr", help="Motore fallback corrente: testo nativo + OCR locale per scansioni.")
     parser.add_argument("--questions-file", default="", help="File JSON/lista testo con domande da porre sul contenuto OCR.")
     parser.add_argument("--output-report", default="", help="Percorso JSON report. Se omesso stampa solo stdout/JSON.")
     parser.add_argument("--run-page-batch", action="store_true", help="Esegue anche benchmark concorrente stile repo Baidu su pagine/immagini.")

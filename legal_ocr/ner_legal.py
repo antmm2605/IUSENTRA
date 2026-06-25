@@ -39,7 +39,8 @@ _UFFICIO_TIPI = (
 
 # R.G. / Ruolo Generale: numero/anno con molte varianti di scrittura.
 _RG_RE = re.compile(
-    r"\b(?:n\.?\s*)?(?:R\.?\s*G\.?(?:\s*N\.?\s*R\.?\s*)?|R\.?G\.?N\.?R\.?|"
+    r"\b(?:proc\.?\s*n\.?\s*)?(?:n\.?\s*)?(?:R\.?\s*G\.?\s*A\.?\s*C\.?|RGAC|"
+    r"R\.?\s*G\.?(?:\s*N\.?\s*R\.?\s*)?|R\.?G\.?N\.?R\.?|"
     r"ruolo\s+generale|reg\.?\s*gen\.?)\s*(?:n\.?|numero)?\s*"
     r"(?P<num>\d{1,6})\s*/\s*(?P<anno>\d{2,4})\b",
     re.IGNORECASE,
@@ -60,6 +61,11 @@ _PARTI_RE = re.compile(
     r"(?:\bc/\b|\bC/\b|\bcontro\b|\bc\.\s|\bvs\.?\b)\s*"
     r"(?P<convenuto>[A-ZÀ-Ù][A-Za-zÀ-ù'’.\- ]{1,60}?)(?=[\s,;.\n]|$)"
 )
+_PARTI_LABEL_RE = re.compile(
+    r"\bparti\s*:\s*(?P<block>.{6,260}?)(?=\b(?:per\s+l['’]inoltro|tenuti|oggetto|"
+    r"l['’]originale|il\s+funzionario|avviso|proc\.|ufficio)\b|$)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 _DATA_NUM_RE = re.compile(r"\b(?P<g>\d{1,2})[/\-.](?P<m>\d{1,2})[/\-.](?P<a>\d{2,4})\b")
 _DATA_ESTESA_RE = re.compile(
@@ -74,8 +80,14 @@ _RIF_ART_RE = re.compile(
     re.IGNORECASE,
 )
 _RIF_NORMA_RE = re.compile(
-    r"\b(?P<tipo>L\.|Legge|D\.?\s*Lgs\.|D\.?\s*L\.|D\.?\s*P\.?\s*R\.|D\.?\s*M\.|"
-    r"D\.?\s*P\.?\s*C\.?\s*M\.)\s*(?:n\.?\s*)?(?P<num>\d{1,4})\s*/\s*(?P<anno>\d{2,4})\b",
+    r"\b(?P<tipo>L\.|Legge|D\.?\s*Lgs\.?|D\.?\s*L\.?|DPR|D\.?\s*P\.?\s*R\.?|"
+    r"DM|D\.?\s*M\.?|DPCM|D\.?\s*P\.?\s*C\.?\s*M\.?)\s*(?:n\.?\s*)?"
+    r"(?P<num>\d{1,4})\s*/\s*(?P<anno>\d{2,4})\b",
+    re.IGNORECASE,
+)
+_IMPORTO_RE = re.compile(
+    r"(?:(?:€|EUR|euro)\s*[\.,]?\s*\d{1,3}(?:[\.\s]\d{3})*(?:,\d{2})?|"
+    r"\b\d{1,3}(?:[\.\s]\d{3})*,\d{2}\s*(?:€|EUR|euro)\b)",
     re.IGNORECASE,
 )
 
@@ -138,7 +150,49 @@ def extract_parti(text: str) -> list[dict[str, str]]:
             continue
         seen.add(key)
         out.append({"attore": attore, "convenuto": convenuto})
+    for match in _PARTI_LABEL_RE.finditer(text or ""):
+        names = _party_names_from_labeled_block(match.group("block"))
+        if len(names) < 2:
+            continue
+        attore = names[0]
+        convenuto = "; ".join(names[1:])
+        key = (attore.lower(), convenuto.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"attore": attore, "convenuto": convenuto, "testo": "Parti: " + "; ".join(names)})
     return out
+
+
+def _party_names_from_labeled_block(block: str) -> list[str]:
+    raw = re.sub(r"\s+", " ", str(block or " ")).strip(" .,;:/")
+    raw = re.sub(r"\b(?:dos|dott\.?|dott\.ssa|avv\.?|sig\.?|sig\.ra|sigg\.?)\b", " ", raw, flags=re.IGNORECASE)
+    raw = re.sub(r"\s+(?:e|contro|c/|vs\.?)\s+", " / ", raw, flags=re.IGNORECASE)
+    pieces = re.split(r"\s*(?:/|;|,)\s*", raw)
+    names: list[str] = []
+    seen: set[str] = set()
+    for piece in pieces:
+        clean = re.sub(r"[^A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+", " ", piece)
+        clean = re.sub(r"\s+", " ", clean).strip(" .,-")
+        clean = re.sub(r"\b(?:l['’]?originale|per|tenuti|oggetto|ufficio)\b.*$", "", clean, flags=re.IGNORECASE).strip()
+        if not _looks_like_party_name(clean):
+            continue
+        key = clean.lower()
+        if key not in seen:
+            seen.add(key)
+            names.append(clean)
+    return names
+
+
+def _looks_like_party_name(value: str) -> bool:
+    clean = str(value or "").strip()
+    if not (4 <= len(clean) <= 90):
+        return False
+    words = [word for word in re.split(r"\s+", clean) if re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", word)]
+    if len(words) < 2:
+        return False
+    stop_words = {"parti", "proc", "ufficio", "tribunale", "originale", "inoltro"}
+    return not any(word.lower().strip(".") in stop_words for word in words[:2])
 
 
 def extract_date(text: str) -> list[str]:
@@ -161,6 +215,10 @@ def extract_riferimenti(text: str) -> list[str]:
     return _dedupe(out)
 
 
+def extract_importi(text: str) -> list[str]:
+    return _dedupe([re.sub(r"\s+", " ", match.group(0)).strip(" ,;") for match in _IMPORTO_RE.finditer(text or "")])
+
+
 def extract_legal_entities(text: str) -> dict[str, Any]:
     """Estrae le entità legali principali dal testo. Mai inventate: solo match reali."""
 
@@ -171,6 +229,7 @@ def extract_legal_entities(text: str) -> dict[str, Any]:
         "parti": extract_parti(clean),
         "date": extract_date(clean),
         "riferimenti": extract_riferimenti(clean),
+        "importi": extract_importi(clean),
     }
     entities["counts"] = {key: len(value) for key, value in entities.items()}
     return entities
@@ -183,4 +242,5 @@ __all__ = [
     "extract_parti",
     "extract_date",
     "extract_riferimenti",
+    "extract_importi",
 ]

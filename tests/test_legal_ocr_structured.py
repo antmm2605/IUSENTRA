@@ -5,7 +5,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 
 from legal_ocr.alto import build_alto_xml
-from legal_ocr.engines import EasyOcrEngine, PaddleOcrEngine, build_engine
+from legal_ocr.engines import EasyOcrEngine, HybridLocalOcrEngine, PaddleOcrEngine, build_engine
 from legal_ocr.models import PageArtifact
 from legal_ocr.ner_legal import extract_legal_entities
 from legal_ocr.tables import reconstruct_tables, table_to_csv, table_to_html
@@ -120,12 +120,33 @@ def test_ner_anno_a_due_cifre_normalizzato():
     assert ent["numero_ruolo"][0]["anno"] == "2024"
 
 
+def test_ner_copre_scansioni_con_rgac_parti_importi_e_dpr():
+    testo = (
+        "TRIBUNALE DI VIBO VALENTIA Ufficio Recupero Spese di Giustizia "
+        "Proc. N. RGAC 139/2023 - iscritto il 3.2.2023 "
+        "Parti: MONTAGNESE ELISABETTA E ARRUZZOLO FRANCESCO Dos /CHIARINI MARCO "
+        "per il versamento di €. 27,00 ai sensi dell'art 30 DPR 115/2002. "
+        "PEC roberto.montagnese@coapalmi.legalmail.it"
+    )
+
+    ent = extract_legal_entities(testo)
+
+    assert ent["numero_ruolo"][0]["numero"] == "139"
+    assert ent["numero_ruolo"][0]["anno"] == "2023"
+    assert "MONTAGNESE ELISABETTA" in ent["parti"][0]["attore"]
+    assert "ARRUZZOLO FRANCESCO" in ent["parti"][0]["convenuto"]
+    assert "CHIARINI MARCO" in ent["parti"][0]["convenuto"]
+    assert any("DPR 115/2002" in ref for ref in ent["riferimenti"])
+    assert "€. 27,00" in ent["importi"]
+
+
 # ---------------------------------------------------------------- Adapter motori esterni
 
 def test_build_engine_riconosce_easyocr_e_paddleocr():
     assert isinstance(build_engine("easyocr"), EasyOcrEngine)
     assert isinstance(build_engine("paddleocr"), PaddleOcrEngine)
     assert isinstance(build_engine("pp-ocr"), PaddleOcrEngine)
+    assert isinstance(build_engine("local-hybrid-ocr"), HybridLocalOcrEngine)
 
 
 def test_pipeline_e2e_produce_alto_tabelle_ed_entita_legali(tmp_path):

@@ -902,6 +902,7 @@ def _euro(value: Any) -> str:
 
 PAYMENT_KINDS = (
     "contributo_unificato",
+    "spese_esborsi",
     "fondo_spese",
     "liquidazione_giudice",
     "parcella",
@@ -909,6 +910,7 @@ PAYMENT_KINDS = (
 
 PAYMENT_KIND_LABELS = {
     "contributo_unificato": "Contributo unificato",
+    "spese_esborsi": "Spese/esborsi",
     "fondo_spese": "Fondo spese",
     "liquidazione_giudice": "Liquidazione giudice",
     "parcella": "Parcella",
@@ -919,6 +921,10 @@ PAYMENT_KIND_ALIASES = {
     "contributo": "contributo_unificato",
     "contributo_unificato": "contributo_unificato",
     "contributo unificato": "contributo_unificato",
+    "spese": "spese_esborsi",
+    "esborsi": "spese_esborsi",
+    "spese_esborsi": "spese_esborsi",
+    "spese esborsi": "spese_esborsi",
     "fondo": "fondo_spese",
     "fondo_spese": "fondo_spese",
     "fondo spese": "fondo_spese",
@@ -949,6 +955,7 @@ PAYMENT_STATUS_TONES = {
 
 PAYMENT_DEFAULT_STATUS = {
     "contributo_unificato": "da_registrare",
+    "spese_esborsi": "non_previsto",
     "fondo_spese": "da_registrare",
     "liquidazione_giudice": "non_previsto",
     "parcella": "da_emettere",
@@ -1100,7 +1107,7 @@ def payment_summary_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
     advances_to_recover = sum(
         float(item["importo"] or 0.0)
         for kind, item in items.items()
-        if kind in {"contributo_unificato", "fondo_spese"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
+        if kind in {"contributo_unificato", "spese_esborsi", "fondo_spese"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
     )
     latest = max((_text(item["updatedAt"]) for item in items.values()), default="")
     updated_by = ""

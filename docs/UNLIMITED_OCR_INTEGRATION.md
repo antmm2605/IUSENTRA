@@ -12,8 +12,9 @@ controlli di qualità.
 
 Il target operativo è leggere il 100% delle pagine utili senza successi
 silenziosi: testo nativo quando affidabile, AI solo sulle pagine scansionate,
-fallback se l'endpoint non risponde, revisione umana quando confidenza,
-coordinate o campi obbligatori non sono abbastanza solidi.
+fallback ibrido locale (`local-hybrid-ocr`) se l'endpoint non risponde,
+revisione umana quando confidenza, coordinate o campi obbligatori non sono
+abbastanza solidi.
 
 Per Lex AI e il futuro database vettoriale, l'output OCR resta integrale: testo
 completo, mappa pagine, hash e stato qualità. La lettura OCR non viene spezzata
@@ -32,6 +33,9 @@ Codice nostro, ispirato alla logica della repo Baidu ma senza vendoring:
 | `legal_ocr/unlimited/qa.py` | domande Lex-style su testo OCR con citazioni dal documento |
 | `legal_ocr/unlimited_ocr.py` | adapter `EngineRun` per la pipeline OCR legale |
 | `scripts/benchmark_unlimited_ocr_lex.py` | benchmark OCR + domande Lex sui PDF letti |
+| `scripts/manage_unlimited_ocr.ps1` | doctor/start/health/logs/stop del servizio self-hosted |
+| `scripts/check_unlimited_ocr_endpoint.py` | healthcheck OpenAI-compatible e smoke OCR |
+| `deploy/unlimited-ocr/docker-compose.unlimited-ocr.yml` | sidecar SGLang isolato per host GPU |
 
 ## Configurazione
 
@@ -57,10 +61,32 @@ Endpoint pubblici o cloud restano bloccati senza policy privacy esplicita.
 
 ## Uso
 
-Pipeline legal-grade con fallback:
+Doctor/avvio endpoint self-hosted:
 
 ```powershell
-python scripts/run_legal_ocr.py .\documento.pdf --tenant tenant-demo --primary unlimited-ocr --fallback native-text-fallback --json
+.\scripts\manage_unlimited_ocr.ps1 doctor
+.\scripts\manage_unlimited_ocr.ps1 start
+.\scripts\manage_unlimited_ocr.ps1 health
+```
+
+Il comando `start` usa il compose isolato `deploy/unlimited-ocr/docker-compose.unlimited-ocr.yml`.
+Il container espone un server SGLang OpenAI-compatible su `127.0.0.1:10000`.
+Se l'host non espone un acceleratore compatibile, il comando si ferma prima
+dell'avvio e IUSENTRA resta fail-closed: nessun risultato viene marcato
+`unlimited-ocr` senza modello reale.
+
+Profilo Hetzner/host GPU:
+
+```bash
+COMPOSE_PROFILES=ai,unlimited-ocr
+IUSENTRA_UNLIMITED_OCR_ENABLED=1
+IUSENTRA_UNLIMITED_OCR_ENDPOINT=http://unlimited-ocr:10000
+```
+
+Pipeline legal-grade con fallback ibrido:
+
+```powershell
+python scripts/run_legal_ocr.py .\documento.pdf --tenant tenant-demo --primary unlimited-ocr --fallback local-hybrid-ocr --json
 ```
 
 Benchmark OCR + domande Lex:
@@ -82,7 +108,7 @@ python scripts/benchmark_unlimited_ocr_lex.py .\documento.pdf --tenant tenant-de
   privata dello studio.
 - I PDF con testo nativo affidabile vengono letti senza GPU.
 - Le pagine scansionate vengono inviate al motore AI e ricomposte nel testo OCR.
-- Se il motore non risponde, il fallback corrente resta operativo.
+- Se il motore non risponde, il fallback ibrido corrente resta operativo.
 - Anche quando il motore risponde, la confidenza sintetica predefinita resta
   sotto la soglia di fallback: il motore corrente può quindi confrontare il
   risultato invece di essere sostituito secco.
@@ -99,3 +125,51 @@ python scripts/benchmark_unlimited_ocr_lex.py .\documento.pdf --tenant tenant-de
 4. Tempi per pagina e coda OCR sotto soglia rispetto al baseline.
 5. Nessun provider esterno senza autorizzazione.
 6. Fallback corrente verificato quando endpoint o modello non sono disponibili.
+
+## Prova fascicolo reale del 25 giugno 2026
+
+Fascicolo locale: `data/fascicoli/documenti/4AC27E0B`.
+
+Report salvati in `artifacts/unlimited-ocr/real-fascicolo-2026-06-25/`.
+
+- `Citazione_53242802.pdf`: fallback ibrido `native=6 tesseract=0`, `6/6` pagine con testo, `11438` caratteri nel manifest sorgente, domande Lex `5/7`.
+- `Memoria183_68894819.pdf`: fallback ibrido `native=9 tesseract=0`, `9/9` pagine con testo, `13099` caratteri nel manifest sorgente, domande Lex `6/7`.
+- `Documento_65209905.pdf`: candidato scansionato; fallback ibrido `native=0 tesseract=1`, `1100` caratteri nel benchmark, domande Lex `4/7`, confidenza media `0.5173`, token sotto `0.75` pari a `55.696%`, PEC letta in modo rumoroso. Questo documento resta il campione negativo per misurare l'upgrade Baidu.
+- Indice `Documenti AI`: `3/3` documenti `ready`; `Documento_65209905.pdf` indicizzato con `pdfplumber+ocr`, `1` pagina, `1124` caratteri e warning OCR espliciti.
+- `--require-unlimited` su endpoint non pronto fallisce con blocco esplicito: non sono ammessi successi finti.
+
+Questa prova conferma l'indice fascicolo e i guardrail, non la qualità del
+modello Baidu. La qualità Baidu va misurata solo dopo `manage_unlimited_ocr.ps1
+health` con smoke OCR positivo.
+
+## Aggiornamento pipeline comune del 25 giugno 2026
+
+La logica OCR comune è ora raggiunta anche dai flussi che prima usavano
+l'adapter storico `pct.ocr.estrai_testo`:
+
+- PEC e allegati: `pct.pec_pipeline.extract_text_with_coverage` passa da
+  `pct.ocr.estrai_testo`, che delega prima a `pct.document_intelligence.extraction`;
+- notifiche e recupero scadenze da documenti fascicolo: il presidio documentale
+  continua a usare `DocumentAIService.process_lex_indexing_sources` e quindi la
+  stessa estrazione Document AI;
+- deposito e indice documenti: il flusso React `Prepara deposito` legge il
+  fascicolo tramite Document AI e i testi OCR indicizzati, non tramite un percorso
+  parallelo;
+- route manuali e worker OCR che chiamano `pct.ocr.estrai_testo` ricevono lo
+  stesso comportamento: Document AI/Unlimited-OCR quando disponibile, fallback
+  locale storico solo se il motore primario non produce testo.
+
+La correzione è intenzionalmente conservativa: Unlimited-OCR resta spento di
+default e self-hosted, ma quando viene configurato non serve duplicare codice nei
+flussi PEC, notifiche o deposito. Tutti usano la stessa sorgente OCR integrale:
+testo completo, pagine, hash, warning e manifest, prima dell'eventuale indice
+Lex o vettoriale.
+
+Guardrail eseguiti:
+
+- `tests/test_ocr_pipeline_adapter.py`: verifica che `pct.ocr.estrai_testo`
+  deleghi a Document AI e accetti anche path locali;
+- `tests/test_pec_audit_pipeline.py::test_extract_text_with_coverage_pdf_usa_adapter_ocr_pipeline`:
+  verifica che un PDF allegato PEC passi dall'adapter OCR comune;
+- `tests/test_pec_audit_pipeline.py::test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag`:
+  conferma che il recupero documentale per agenda/scadenze/Lex usa Document AI.

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.253.108 - 2026-06-25
+
+- Runtime job: `scripts/check_runtime_services.py` ora verifica anche le esecuzioni reali registrate dal worker scheduler, non solo presenza del job; il gate fallisce con causa leggibile se un job obbligatorio non parte, fallisce, resta in corso troppo a lungo o produce un risultato operativo incompleto.
+- Runtime job: aggiunto controllo degli ultimi esiti per tutte le pianificazioni attive, con distinzione fra `non ancora dovuto`, `mai eseguito`, `fallito`, `saltato`, `in corso` e `ok`.
+- Runtime job: il job obbligatorio non viene più considerato verde quando è solo `running`; il gate aspetta `completed` con `totals` operativi, errori a zero e `vector_embedding_errors=0`.
+- Runtime job: la lettura degli output Docker usa UTF-8 esplicito anche su Windows, così nomi job e motivi con accenti non vengono alterati nel report operativo.
+- Scheduler: gli eventi APScheduler registrano anche l'avvio del job e le esecuzioni saltate per `max_instances`, così un worker bloccato resta visibile nel registro.
+- Certificati PST: il job `pst_certificati_cifratura_weekly` tenta il refresh ministeriale, ma se il PST non risponde e il certificato `.cer` già in cache è valido, registra l'uso della cache valida invece di marcare fallito l'intero perimetro operativo.
+- Certificati PST: se la cache contiene un `.cer` scaduto o non valido, il resolver non si ferma più alla cache ma tenta il refresh remoto mirato; il caso reale `0651160115` ha recuperato il certificato valido pubblicato dal PST.
+- Anti-regressione: aggiunti test per job mai eseguito, run fallito, run solo avviato, run senza riepilogo operativo, run valido, payload reale delle run manuali e fallback/refresh cache PST.
+
+## 2.253.107 - 2026-06-25
+
+- Sentenze Lex AI: aggiunto job automatico `lex_sentenza_economia_auto` nel worker scheduler; ogni 10 minuti legge i documenti AI già estratti, applica la matrice economia/fascicolo solo se RG e cliente coincidono col fascicolo e alimenta Lex AI in modo idempotente.
+- Sentenze Lex AI: la procedura non dipende più da lancio manuale Codex/script; il backfill resta lo stesso motore governato, ma viene eseguito dal software come pianificazione built-in visibile nella console scheduler.
+- Runtime Docker: aggiunto `scripts/check_runtime_services.py` per bloccare il caso in cui `app`, `scheduler-worker` e `ocr-worker` non siano sulla stessa versione o il job automatico sentenze non sia registrato.
+- Anti-regressione: aggiunti test su scheduler, registry e worker per impedire che il job automatico venga rimosso o scollegato dalla modalità `apply`.
+
 ## 2.253.106 - 2026-06-25
 
 - Sentenze Lex AI: bonificati sul server i falsi positivi collegati a `Sentenza Tribunale Vicenza.PDF` / RG `1548/2023` quando il fascicolo ha RG diverso; annullate le proforme in bozza collegate, ripulita l'economia dei fascicoli e rimossi i documenti vettoriali Lex AI errati.

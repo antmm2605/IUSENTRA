@@ -6,6 +6,7 @@ import pytest
 
 from pct.scheduler_registry import (
     SchedulerRegistryRepository,
+    _run_existing_scheduler_job,
     apply_scheduler_registry,
     default_scheduler_templates,
     delegated_operational_agent_specs,
@@ -253,6 +254,7 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
 
     assert "lex_operational_agents_nightly" in templates
     assert "lex_dataset_nightly" in templates
+    assert "lex_sentenza_economia_auto" in templates
     assert "pst_certificati_cifratura_weekly" in templates
     assert templates["pst_certificati_cifratura_weekly"].family == "Depositi telematici"
     assert ".cer" in templates["pst_certificati_cifratura_weekly"].description
@@ -261,6 +263,9 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
     assert templates["lex_dataset_nightly"].hour == "1"
     assert templates["lex_dataset_nightly"].minute == "45"
     assert "senza avviare addestramento automatico" in templates["lex_dataset_nightly"].description
+    assert templates["lex_sentenza_economia_auto"].family == "Lex AI"
+    assert templates["lex_sentenza_economia_auto"].minute == "*/10"
+    assert "RG e cliente coincidenti" in templates["lex_sentenza_economia_auto"].description
     assert {
         "cliente_soggetti",
         "fascicoli_documenti_timeline",
@@ -356,3 +361,42 @@ def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_
     assert finished["run_id"] == request["run_id"]
     assert finished["status"] == "failed"
     assert "punti da verificare" in finished["message"]
+
+
+def test_scheduler_registry_manuale_builtin_conserva_payload_reale(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    request = repo.request_manual_run("pst_certificati_cifratura_weekly", requested_by="superadmin")
+
+    def fake_builtin_job():
+        return {
+            "ok": True,
+            "totale": 1,
+            "scaricati_o_validi": 1,
+            "errori": 0,
+            "fallback_cache_validi": 1,
+        }
+
+    _run_existing_scheduler_job(fake_builtin_job, [], {}, repo.db_path, request["run_id"])
+
+    finished = repo.list_recent_runs(limit=1)[0]
+    assert finished["run_id"] == request["run_id"]
+    assert finished["status"] == "completed"
+    assert finished["result"]["scaricati_o_validi"] == 1
+    assert finished["result"]["fallback_cache_validi"] == 1
+
+
+def test_scheduler_registry_manuale_builtin_fallisce_se_payload_ok_false(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    request = repo.request_manual_run("pst_certificati_cifratura_weekly", requested_by="superadmin")
+
+    def fake_builtin_job():
+        return {"ok": False, "error": "PST non raggiungibile"}
+
+    _run_existing_scheduler_job(fake_builtin_job, [], {}, repo.db_path, request["run_id"])
+
+    finished = repo.list_recent_runs(limit=1)[0]
+    assert finished["run_id"] == request["run_id"]
+    assert finished["status"] == "failed"
+    assert finished["error_message"] == "PST non raggiungibile"

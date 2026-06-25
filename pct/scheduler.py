@@ -275,8 +275,9 @@ def start_scheduler(app):
                     esegui_controllo_settimanale_certificati_cifratura,
                 )
 
-                force_refresh = not _flag_enabled(
-                    os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_NO_FORCE_REFRESH")
+                force_refresh = _flag_enabled(
+                    app.config.get("PCT_PST_CERTIFICATI_CIFRATURA_FORCE_REFRESH")
+                    or os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_FORCE_REFRESH")
                 )
                 report = esegui_controllo_settimanale_certificati_cifratura(
                     force_refresh=force_refresh,
@@ -1064,6 +1065,78 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(minute="*/10"), id="lex_sentenza_economia_auto")
+    def _lex_sentenza_economia_auto():
+        with app.app_context():
+            try:
+                if _flag_enabled(
+                    app.config.get("IUSENTRA_DISABLE_SENTENZA_LEX_AUTO")
+                    or os.getenv("IUSENTRA_DISABLE_SENTENZA_LEX_AUTO")
+                ):
+                    return {"ok": True, "status": "disabled", "job": "lex_sentenza_economia_auto"}
+
+                from scripts.backfill_sentenza_lex_economics import run_backfill
+
+                registry = Path(
+                    app.config.get("TENANTS_REGISTRY")
+                    or os.getenv("PCT_TENANTS_REGISTRY")
+                    or "/data/tenants.json"
+                ).expanduser()
+                data_root = Path(
+                    app.config.get("PCT_DATA_ROOT")
+                    or app.config.get("DATA_ROOT")
+                    or os.getenv("PCT_DATA_ROOT")
+                    or registry.parent
+                ).expanduser()
+                repo_root = Path(__file__).resolve().parents[1]
+                skip_lex = _flag_enabled(
+                    app.config.get("IUSENTRA_SENTENZA_LEX_SKIP_VECTOR")
+                    or os.getenv("IUSENTRA_SENTENZA_LEX_SKIP_VECTOR")
+                )
+                report = run_backfill(
+                    data_root=data_root,
+                    registry=registry,
+                    repo_root=repo_root,
+                    apply=True,
+                    skip_lex=skip_lex,
+                    limit=_parse_positive_int(
+                        app.config.get("IUSENTRA_SENTENZA_LEX_AUTO_LIMIT")
+                        or os.getenv("IUSENTRA_SENTENZA_LEX_AUTO_LIMIT"),
+                        0,
+                    ),
+                    lex_embed_batch_size=_parse_positive_int(
+                        app.config.get("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE")
+                        or os.getenv("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE"),
+                        64,
+                    ),
+                    lex_embed_max_batches=_parse_positive_int(
+                        app.config.get("IUSENTRA_SENTENZA_LEX_EMBED_MAX_BATCHES")
+                        or os.getenv("IUSENTRA_SENTENZA_LEX_EMBED_MAX_BATCHES"),
+                        3,
+                    ),
+                )
+                totals = report.get("totals") or {}
+                logger.info(
+                    "[scheduler] Sentenze Lex/economia: %d documenti, %d sentenze confermate, "
+                    "%d fascicoli confermati, %d applicati, %d Lex, %d salti contesto RG/cliente",
+                    int(totals.get("documents_seen") or 0),
+                    int(totals.get("sentenze_found") or 0),
+                    int(totals.get("unique_fascicoli_confirmed") or 0),
+                    int(totals.get("applied") or 0),
+                    int(totals.get("vector_indexed") or 0),
+                    int(totals.get("context_mismatch_skipped") or 0),
+                )
+                return {
+                    "ok": bool(report.get("ok")),
+                    "job": "lex_sentenza_economia_auto",
+                    "source_of_truth": report.get("source_of_truth"),
+                    "totals": totals,
+                    "skip_lex": skip_lex,
+                }
+            except Exception as e:
+                logger.error("[scheduler] Sentenze Lex/economia automatiche fallite: %s", e)
+                return {"ok": False, "job": "lex_sentenza_economia_auto", "error": str(e)}
+
     @scheduler.scheduled_job(CronTrigger(hour=1, minute=20), id="lex_operational_agents_nightly")
     def _lex_operational_agents_nightly():
         with app.app_context():
@@ -1323,7 +1396,13 @@ def start_scheduler(app):
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
 
     try:
-        from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_MISSED
+        from apscheduler.events import (
+            EVENT_JOB_ERROR,
+            EVENT_JOB_EXECUTED,
+            EVENT_JOB_MAX_INSTANCES,
+            EVENT_JOB_MISSED,
+            EVENT_JOB_SUBMITTED,
+        )
         from pct.scheduler_registry import (
             apply_scheduler_registry,
             dispatch_requested_manual_runs,
@@ -1374,7 +1453,26 @@ def start_scheduler(app):
                 if not job_row or not job_row.get("built_in"):
                     return
                 scheduled_at = str(getattr(event, "scheduled_run_time", "") or "")
-                if getattr(event, "exception", None):
+                if not scheduled_at:
+                    scheduled_times = list(getattr(event, "scheduled_run_times", None) or [])
+                    scheduled_at = str(scheduled_times[-1] if scheduled_times else "")
+                event_code = getattr(event, "code", None)
+                if event_code == EVENT_JOB_SUBMITTED:
+                    registry_repo.record_scheduler_event(
+                        job_id,
+                        status="running",
+                        scheduled_at=scheduled_at,
+                        message="Esecuzione avviata dal worker.",
+                        result={"ok": True, "event": "submitted"},
+                    )
+                elif event_code == EVENT_JOB_MAX_INSTANCES:
+                    registry_repo.record_scheduler_event(
+                        job_id,
+                        status="missed",
+                        scheduled_at=scheduled_at,
+                        message="Esecuzione non avviata: istanza precedente ancora in corso.",
+                    )
+                elif getattr(event, "exception", None):
                     registry_repo.record_scheduler_event(
                         job_id,
                         status="failed",
@@ -1410,7 +1508,11 @@ def start_scheduler(app):
 
         scheduler.add_listener(
             _record_scheduler_event,
-            EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_MISSED,
+            EVENT_JOB_SUBMITTED
+            | EVENT_JOB_EXECUTED
+            | EVENT_JOB_ERROR
+            | EVENT_JOB_MISSED
+            | EVENT_JOB_MAX_INSTANCES,
         )
         apply_scheduler_registry(scheduler, app, registry_repo)
         dispatch_requested_manual_runs(scheduler, app, registry_repo)

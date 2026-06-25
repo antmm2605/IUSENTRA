@@ -263,3 +263,23 @@ Prova reale obbligatoria:
 - Post-check server a freddo: `bad_bozza_proforme=0`, `bad_active_proforme=0`, `bad_fascicoli=0`, `bad_vector_docs=0` per la chiave `2024-05-07 / Sentenza 230/2024 / RG 1548/2023` su fascicoli con RG diverso.
 - Corretto anche il parser importi: una liquidazione come `€ 1030,00` viene letta come `1030.00` e non più come `103.00`; questo evita errori economici sulle sentenze corrette che non usano il punto migliaia.
 - Regola operativa confermata: una sentenza entra nella matrice economica solo se il suo RG coincide con il fascicolo; il nome cliente resta controllo aggiuntivo, ma il mismatch RG è da solo sufficiente a bloccare economia, proforma e indicizzazione vettoriale come sentenza del fascicolo.
+
+## Automazione scheduler 2.253.107
+
+- Dopo l'ulteriore chiarimento dell'utente, la procedura non deve dipendere da lancio manuale Codex o da script richiamati a console.
+- Aggiunto job built-in `lex_sentenza_economia_auto` nel worker `pct.scheduler`: ogni 10 minuti esegue il motore `run_backfill(..., apply=True)` sul registry tenant-aware, applica la matrice solo alle sentenze con contesto valido e alimenta Lex AI con deduplica.
+- Il job non crea backup e non usa una fonte dati parallela: legge Document AI tenant-aware, repository fascicoli/fatturazione e DB vettoriale del tenant; SQL/SQLite resta fonte di verità.
+- La console pianificazioni espone `Sentenze Lex ed economia` nella famiglia `Lex AI`, così l'automazione è visibile come presidio di sistema e non resta una manutenzione nascosta.
+- I test `tests/test_scheduler.py`, `tests/test_scheduler_worker.py` e `tests/test_scheduler_registry.py` presidiano presenza del job, frequenza ogni 10 minuti e chiamata in modalità `apply=True`.
+- Aggiunto `scripts/check_runtime_services.py`: dopo rebuild/deploy controlla tutti i servizi Docker attivi, confronta `app`, `scheduler-worker` e `ocr-worker` con la stessa versione `pct.__version__` e fallisce se il job `lex_sentenza_economia_auto` non è registrato. Questo presidia il caso reale emerso in locale, in cui l'app era aggiornata ma il worker scheduler stava ancora girando con immagine vecchia.
+
+## Gate job reali 2.253.108
+
+- Estensione richiesta dall'utente: non basta che un job sia registrato o che il container sia healthy; il controllo operativo deve dimostrare che il worker vivo ha eseguito davvero il job previsto oppure bloccare il rilascio indicando la causa.
+- `scripts/check_runtime_services.py` ora legge il registro `scheduled_job_runs` dal container `scheduler-worker`, controlla gli ultimi esiti di tutte le pianificazioni attive e blocca se il job obbligatorio non ha una prova reale recente, è fallito, è saltato, è rimasto in corso oltre il tempo atteso o ha restituito un risultato privo del riepilogo operativo.
+- Il gate può attendere una nuova esecuzione automatica con `--wait-job-seconds`, così per `lex_sentenza_economia_auto` la prova resta del software che gira da solo e non di uno script lanciato manualmente.
+- Primo esito locale del gate: `lex_sentenza_economia_auto` ha scritto un run reale con `documents_seen=667`, `matrix_confirmed=1`, `vector_indexed=1`, `errors=0`; il gate ha però bloccato il rilascio su `pst_certificati_cifratura_weekly`, che risultava ultimo run fallito.
+- Risoluzione immediata del problema job PST: il refresh ministeriale resta tentato, ma se il PST non risponde e il certificato `.cer` in cache è valido, il job registra `fallback_cache_valida` e non marca fallito l'intero perimetro operativo coperto dalla cache tecnica.
+- Rafforzamento successivo: `running` non basta più come esito positivo del job obbligatorio. Il gate resta rosso finché `lex_sentenza_economia_auto` non registra `completed` con `totals`, `errors=0` e `vector_embedding_errors=0`.
+- Il controllo locale reale del 25/06/2026 su Docker `127.0.0.1:8080`, versione `2.253.108`, ha prima trovato un problema reale su `pst_certificati_cifratura_weekly`: il codice `0651160115` aveva un certificato scaduto in cache. Il fix fa proseguire al refresh remoto quando la cache è scaduta; il worker ha poi registrato una run manuale reale `completed`, `scaricati_o_validi=593`, `errori=0`, `cache_cer_presenti=913`.
+- Lo stesso gate locale ha atteso una nuova run automatica del worker per `lex_sentenza_economia_auto`: run `completed` alle `10:40:08Z`, `documents_seen=667`, `raw_sentenze_found=12`, `sentenze_found=7`, `fascicoli_found=7`, `matrix_confirmed=1`, `vector_indexed=1`, `errors=0`, `vector_embedding_errors=0`. Questo è il controllo minimo da ripetere dopo deploy, non un semplice check di registrazione.

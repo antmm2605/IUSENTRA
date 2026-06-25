@@ -293,7 +293,7 @@ def certificato_cifratura_in_cache(
     *,
     cache_dir: str | Path | None = None,
 ) -> CertificatoCifratura | None:
-    """Restituisce il certificato gia' presente in cache senza interrogare il PST."""
+    """Restituisce il certificato già presente in cache senza interrogare il PST."""
 
     codice = _codice_certificato_download(str(codice_ufficio or "").strip())
     if not codice:
@@ -746,25 +746,36 @@ def scarica_certificato_cifratura_ufficio(
     cert_path = _cert_cache_file(target_dir, codice, ".cer")
     meta_path = _cert_cache_file(target_dir, codice, ".json")
 
+    cache_error: Exception | None = None
     if cert_path.exists() and not force_refresh:
-        cached = certificato_cifratura_in_cache(codice, cache_dir=target_dir)
-        if cached:
-            return cached
+        try:
+            cached = certificato_cifratura_in_cache(codice, cache_dir=target_dir)
+            if cached:
+                return cached
+        except PSTCifraturaError as exc:
+            cache_error = exc
 
-    direct = _scarica_certificato_da_nome_catalogo(codice, cache_dir=target_dir)
-    if direct:
-        return direct
+    try:
+        direct = _scarica_certificato_da_nome_catalogo(codice, cache_dir=target_dir)
+        if direct:
+            return direct
 
-    detail_url = _detail_url_for_office(codice)
-    detail_html = _request_bytes(_quote_url(detail_url)).decode("utf-8", errors="replace")
-    download_url = _download_url_from_detail(detail_html, detail_url=detail_url, codice_ufficio=codice)
-    payload = _request_bytes(download_url)
-    return salva_certificato_cifratura_ufficio(
-        codice,
-        payload,
-        source_url=download_url,
-        cache_dir=target_dir,
-    )
+        detail_url = _detail_url_for_office(codice)
+        detail_html = _request_bytes(_quote_url(detail_url)).decode("utf-8", errors="replace")
+        download_url = _download_url_from_detail(detail_html, detail_url=detail_url, codice_ufficio=codice)
+        payload = _request_bytes(download_url)
+        return salva_certificato_cifratura_ufficio(
+            codice,
+            payload,
+            source_url=download_url,
+            cache_dir=target_dir,
+        )
+    except Exception as exc:
+        if cache_error:
+            raise PSTCifraturaError(
+                f"{cache_error} Refresh remoto PST non riuscito: {exc}"
+            ) from exc
+        raise
 
 
 def risolvi_certificato_cifratura_ufficio(
@@ -904,6 +915,24 @@ def precarica_certificati_cifratura(
                 "certificato": asdict(info),
             }
         except Exception as exc:
+            try:
+                cached = certificato_cifratura_in_cache(codice, cache_dir=cache_dir)
+            except Exception:
+                cached = None
+            if cached is not None:
+                return {
+                    "codice_ufficio": codice,
+                    "descrizione": row.get("descrizione", ""),
+                    "ok": True,
+                    "certificato": asdict(cached),
+                    "fallback_cache_valida": True,
+                    "refresh_remoto_fallito": True,
+                    "avviso": (
+                        "Refresh PST non completato; usato certificato valido già presente "
+                        "nella cache tecnica."
+                    ),
+                    "errore_refresh": str(exc),
+                }
             if _is_certificato_non_pubblicato(exc):
                 return {
                     "codice_ufficio": codice,
@@ -941,6 +970,8 @@ def precarica_certificati_cifratura(
             saltati_senza_certificato += 1
         else:
             errori += 1
+    fallback_cache_validi = sum(1 for result in risultati if result.get("fallback_cache_valida"))
+    refresh_remoti_falliti = sum(1 for result in risultati if result.get("refresh_remoto_fallito"))
     finished = datetime.now(ROME_TZ)
     scope_mode = "mirato" if target_codes else "completo"
     return {
@@ -959,6 +990,8 @@ def precarica_certificati_cifratura(
         "totale": len(risultati),
         "saltati_non_pct_o_non_operativi": saltati,
         "saltati_senza_certificato_pubblicato": saltati_senza_certificato,
+        "fallback_cache_validi": fallback_cache_validi,
+        "refresh_remoti_falliti_con_cache_valida": refresh_remoti_falliti,
         "perimetro": (
             "solo uffici dei canali PCT/SIGP che richiedono certificato .cer PST "
             "per Atto.enc; PDP, PAT e PTT usano regole e trasporti separati"

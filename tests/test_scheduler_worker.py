@@ -29,6 +29,7 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler is not None
         assert scheduler.get_job("backup_giornaliero") is not None
         assert scheduler.get_job("local_ai_maintenance") is not None
+        assert scheduler.get_job("lex_sentenza_economia_auto") is not None
         assert scheduler.get_job("lex_operational_agents_nightly") is not None
         assert scheduler.get_job("lex_dataset_nightly") is not None
         assert scheduler.get_job("legal_official_archives_daily") is not None
@@ -41,6 +42,7 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert "hour='23'" in str(scheduler.get_job("legal_updates_batch").trigger)
         assert "hour='1'" in str(scheduler.get_job("lex_dataset_nightly").trigger)
         assert "minute='45'" in str(scheduler.get_job("lex_dataset_nightly").trigger)
+        assert "minute='*/10'" in str(scheduler.get_job("lex_sentenza_economia_auto").trigger)
         assert scheduler.get_job("operational_crash_morning") is not None
         assert scheduler.get_job("operational_crash_midday") is not None
         assert scheduler.get_job("operational_crash_evening") is not None

@@ -236,6 +236,89 @@ def test_precarico_cer_scheduler_tratta_certificato_non_pubblicato_come_salto(
     assert report["scope_mode"] == "completo"
 
 
+def test_precarico_cer_scheduler_usa_cache_valida_se_refresh_pst_fallisce(
+    monkeypatch, tmp_path
+):
+    rows = [
+        {
+            "codice_ufficio": "0241160092",
+            "descrizione": "Tribunale Ordinario - Vicenza",
+            "sezione_catalogo": "civili",
+            "stato_prudenziale": "pst_visibile",
+            "deposito_prudenziale": True,
+        }
+    ]
+    origin = crea_certificato_cifratura_test(tmp_path / "origine.cer")
+    salva_certificato_cifratura_ufficio(
+        "0241160092",
+        (tmp_path / "origine.cer").read_bytes(),
+        source_url="cache-test",
+        cache_dir=tmp_path / "cache",
+    )
+
+    def fake_catalogo():
+        return iter(rows)
+
+    def fake_resolver(codice_ufficio, *, cache_dir=None, force_refresh=False):
+        raise PSTCifraturaError("Download PST non riuscito: servizio ministeriale non disponibile")
+
+    monkeypatch.setattr(pst_cifratura, "iter_uffici_pst_catalogo", fake_catalogo)
+    monkeypatch.setattr(pst_cifratura, "_iter_ministero_cert_target_rows", lambda: iter(()))
+    monkeypatch.setattr(pst_cifratura, "risolvi_certificato_cifratura_ufficio", fake_resolver)
+
+    report = precarica_certificati_cifratura(
+        cache_dir=tmp_path / "cache",
+        limit=1,
+        force_refresh=True,
+    )
+
+    assert report["ok"] is True
+    assert report["scaricati_o_validi"] == 1
+    assert report["errori"] == 0
+    assert report["fallback_cache_validi"] == 1
+    assert report["refresh_remoti_falliti_con_cache_valida"] == 1
+    assert report["risultati"][0]["fallback_cache_valida"] is True
+    assert report["risultati"][0]["certificato"]["sha256"] == origin.sha256
+
+
+def test_scarica_certificato_refresha_cache_scaduta(monkeypatch, tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "0651160115.cer").write_bytes(b"certificato-scaduto")
+    nuovo = CertificatoCifratura(
+        codice_ufficio="0651160115",
+        path=str(cache_dir / "0651160115.cer"),
+        subject="CN=glsa_tribunale_minori_sa_cifra",
+        issuer="CN=Certification Authority Extranet 2",
+        serial_number="2500029A37",
+        not_valid_after="2029-06-18T07:30:01+00:00",
+        source_url="https://servizipst.giustizia.it/PST/do/ufficiepda/uffici/ricerca/download.action",
+        sha256="07D8ACD6F0A537C5E066356ACAB713DF04B7CBD6A83BEB151A83F76503706309",
+    )
+    calls: list[str] = []
+
+    def fake_cache(codice_ufficio, *, cache_dir=None):
+        raise PSTCifraturaError(
+            f"Il certificato di cifratura PST per l'ufficio {codice_ufficio} è scaduto."
+        )
+
+    def fake_direct(codice_ufficio, *, cache_dir):
+        calls.append(codice_ufficio)
+        return nuovo
+
+    monkeypatch.setattr(pst_cifratura, "certificato_cifratura_in_cache", fake_cache)
+    monkeypatch.setattr(pst_cifratura, "_scarica_certificato_da_nome_catalogo", fake_direct)
+
+    result = pst_cifratura.scarica_certificato_cifratura_ufficio(
+        "0651160115",
+        cache_dir=cache_dir,
+        force_refresh=False,
+    )
+
+    assert result.sha256 == nuovo.sha256
+    assert calls == ["0651160115"]
+
+
 def test_controllo_cer_mirato_non_sovrascrive_audit_completo(monkeypatch, tmp_path):
     rows = [
         {

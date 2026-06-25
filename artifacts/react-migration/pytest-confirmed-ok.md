@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Scheduler job reali Lex/PST 2.253.108 - 2026-06-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_runtime_service_checks.py tests\test_scheduler.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_canali_telematici_deposito.py -q --tb=short` | OK | `56/56` passati: il gate blocca job mai eseguito, ultimo run fallito, run solo `running`, run senza `totals`, run con errori Lex, distingue i job non ancora dovuti dopo riavvio, decodifica UTF-8 da Docker senza mojibake, conserva il payload reale delle run manuali e rinfresca la cache PST scaduta. |
+| `python -m pytest tests\test_runtime_service_checks.py tests\test_canali_telematici_deposito.py tests\test_scheduler.py tests\test_scheduler_worker.py tests\test_scheduler_registry.py tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py -q --tb=short` | OK | `73/73` passati: matrice sentenza Lex, backfill automatico, scheduler e certificati PST coerenti. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`; `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | `14/14` passati; packaging sincronizzato e OpenAPI valido. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Docker reale locale su `127.0.0.1:8080`, versione `2.253.108`; `app`, `scheduler-worker` e `ocr-worker` healthy e allineati a `pct.__version__=2.253.108`. |
+| Run reale worker `pst_certificati_cifratura_weekly` richiesta dal registro scheduler | OK dopo fix | Prima run reale fallita su `.cer` scaduto `0651160115`; corretto il resolver per rinfrescare la cache scaduta. Seconda run reale del worker `completed`, `scaricati_o_validi=593`, `errori=0`, `cache_cer_presenti=913`. |
+| `python scripts\check_runtime_services.py --wait-job-seconds 900 --require-all-due-jobs` | OK | Il gate ha atteso una nuova esecuzione automatica di `lex_sentenza_economia_auto` e l'ha accettata solo dopo `completed`: `documents_seen=667`, `raw_sentenze_found=12`, `sentenze_found=7`, `matrix_confirmed=1`, `vector_indexed=1`, `errors=0`, `vector_embedding_errors=0`. |
+| `python scripts\check_runtime_services.py --require-all-due-jobs` | OK | Controllo rapido successivo con ultimi run reali: PST `completed` alle `10:26:05Z`, Lex `completed` alle `10:40:08Z`; i job giornalieri non ancora arrivati alla prossima finestra utile dopo il riavvio sono segnalati come `not_due_after_restart`, non come esito verde indistinto. |
+
 ## Deposito simulazione PEC e firma DatiAtto 2.253.101 - 2026-06-23
 
 | Comando / verifica | Esito | Nota |
@@ -5576,3 +5588,12 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build --no-cache app`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` | OK | Copia Docker reale locale aggiornata: `/api/pronto` `versione=2.253.106`, `app` healthy; parser nel container conferma `€ 1030,00 -> 1030.0`. |
 | Bonifica server Hetzner `Sentenza Tribunale Vicenza.PDF` / RG `1548/2023` | OK | Apply senza backup: `9` proforme in bozza annullate, `9` fascicoli ripuliti, `11` documenti vettoriali Lex rimossi. |
 | Post-check server Hetzner falso RG `1548/2023` | OK | A freddo: `bad_bozza_proforme=0`, `bad_active_proforme=0`, `bad_fascicoli=0`, `bad_vector_docs=0`. |
+
+## Sentenza Lex AI automatica scheduler 2.253.107 - 2026-06-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\scheduler.py pct\scheduler_registry.py` | OK | Sintassi confermata dopo l'aggiunta del job built-in `lex_sentenza_economia_auto`. |
+| `python -m pytest tests\test_scheduler.py tests\test_scheduler_worker.py tests\test_scheduler_registry.py tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py -q --tb=short` | OK | 38/38 passati: il worker registra il job automatico, il registry lo espone come pianificazione Lex AI ogni 10 minuti, il job chiama `run_backfill(..., apply=True)` e la regola RG/cliente continua a scartare le sentenze strategiche. |
+| `python -m pytest tests\test_runtime_service_checks.py tests\test_scheduler.py tests\test_scheduler_worker.py tests\test_scheduler_registry.py -q --tb=short` | OK | 25/25 passati: coperto il caso anti-recidiva in cui `scheduler-worker` resta su immagine vecchia mentre `app` è aggiornata. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `python scripts\check_runtime_services.py` | OK | Copia Docker reale locale su `127.0.0.1:8080`: tutti i servizi attivi sono running, `app`, `scheduler-worker` e `ocr-worker` sono `2.253.107`, e `scheduler-worker` espone `lex_sentenza_economia_auto` con trigger `cron[minute='*/10']`. |

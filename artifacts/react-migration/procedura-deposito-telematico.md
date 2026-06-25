@@ -2347,3 +2347,24 @@ Prova reale locale eseguita su `http://127.0.0.1:8080/pat` nel browser integrato
 - responsive reale controllato su tablet `768x1024` e mobile `390x844`: nessun overflow orizzontale, pulsanti ripetibili non tagliati, nessun path XFA tecnico visibile nella superficie operativa.
 
 Limite residuo da non dichiarare chiuso: il PDF generato dopo il fix è stato verificato via generatore backend e test XFA sui byte, ma non è ancora stato aperto davanti all'utente in Acrobat Reader con ispezione visiva campo per campo. Prima di dichiarare copertura PAT 100% servono ancora matrice modulo/campo obbligatorio/percorso XFA/campo IUSENTRA/dato DB/prova PDF/prova visiva Acrobat e prova reale su tutti i moduli, inclusi radio, checkbox, select e gruppi `Aggiungi`.
+
+## Certificati PST `.cer` e job reali scheduler - 2026-06-25
+
+Durante il gate operativo `2.253.108` il controllo reale dei job ha bloccato il rilascio su `pst_certificati_cifratura_weekly`: il worker era vivo, ha eseguito il job, ma il report ha restituito `errori=1` per il codice ministeriale `0651160115` (`Tribunale per i Minorenni-Salerno`) perché il certificato in cache era scaduto.
+
+Correzione applicata:
+
+- se un `.cer` in cache è valido, il job può usarlo senza forzare il download remoto;
+- se un `.cer` in cache è scaduto, non ancora valido o illeggibile, il resolver non si ferma più sulla cache e tenta subito il refresh remoto mirato dal PST;
+- se anche il refresh remoto non produce un certificato valido, il job resta bloccante e deve indicare codice ufficio e causa puntuale;
+- le run manuali richieste dal registro scheduler salvano il payload reale del job, non solo una stringa di sintesi;
+- il gate `scripts/check_runtime_services.py` non considera più sufficiente lo stato `running` per il job obbligatorio: serve `completed` con riepilogo operativo.
+
+Prova reale locale su Docker `127.0.0.1:8080`, versione `2.253.108`:
+
+- run worker PST precedente: `failed`, causa `Il certificato di cifratura PST per l'ufficio 0651160115 è scaduto.`;
+- refresh mirato del codice `0651160115`: nuovo certificato PST valido fino al `18/06/2029`;
+- run worker PST successiva: `completed`, `scaricati_o_validi=593`, `errori=0`, `cache_cer_presenti=913`;
+- gate worker Lex successivo: `lex_sentenza_economia_auto` `completed` con `errors=0` e `vector_embedding_errors=0`.
+
+Regola operativa da mantenere: la cache tecnica `.cer` è una risorsa valida solo se il certificato è temporalmente valido e utilizzabile per cifratura; un singolo ufficio con certificato scaduto non deve essere mascherato come successo globale, ma deve essere rinfrescato o indicato come blocco puntuale per quell'ufficio/canale.

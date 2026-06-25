@@ -475,6 +475,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("pec_audit_digest_daily", "Digest PEC giornaliero", "Comunicazioni", "Prepara il riepilogo giornaliero del presidio PEC con nuovi messaggi e anomalie.", "cron", "8", "0", built_in=True),
         SchedulerTemplate("workspace_intelligence_snapshot", "Quadro studio", "Lex AI", "Aggiorna inventario operativo dei fascicoli.", "cron", "", "*/20", built_in=True),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
+        SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica automaticamente la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo.", "cron", "", "*/10", built_in=True),
         SchedulerTemplate("lex_dataset_nightly", "Dataset Lex notturno", "Lex AI", "Prepara dataset locali di revisione da Documenti AI senza avviare addestramento automatico.", "cron", "1", "45", built_in=True),
         SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
         SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Verifica e ripara mojibake, accenti italiani e caratteri sostitutivi nei dati testuali.", "cron", "0", "35", built_in=True),
@@ -1794,11 +1795,14 @@ def _run_existing_scheduler_job(func, args: list[Any], kwargs: dict[str, Any], d
     started = time.monotonic()
     try:
         result = func(*(args or []), **(kwargs or {}))
+        result_payload = result if isinstance(result, dict) else {"summary": "" if result is None else str(result)[:4000]}
+        result_ok = result_payload.get("ok") if isinstance(result_payload, dict) else True
         repo.mark_run_finished(
             run_id,
-            status="completed",
+            status="completed" if result_ok is not False else "failed",
             message=f"Esecuzione completata in {time.monotonic() - started:.1f}s.",
-            result={"summary": "" if result is None else str(result)[:4000]},
+            result=result_payload,
+            error_message=str(result_payload.get("error") or "") if result_ok is False else "",
         )
     except Exception as exc:
         repo.mark_run_finished(

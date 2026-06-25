@@ -2625,6 +2625,22 @@ def verify_signature(item: AttachmentPayload) -> tuple[str, dict[str, Any]]:
     if b"IUSENTRA_INVALID_SIGNATURE" in item.data or "firma_invalida" in name or "invalid" in name:
         details["checks"].append({"name": "contenuto", "status": "invalid", "detail": "marcatore di firma non valida nel dataset di controllo"})
         return "non_valida", details
+    if name.endswith(".p7m"):
+        try:
+            from pct.firma import busta_cades_valida
+
+            is_cades = busta_cades_valida(item.data)
+        except Exception:
+            is_cades = False
+        if not is_cades:
+            details["checks"].append(
+                {
+                    "name": "CAdES",
+                    "status": "not_applicable",
+                    "detail": "contenuto non CAdES/PKCS#7",
+                }
+            )
+            return "non_applicabile", details
     if name.endswith(".pdf") and not _looks_like_pdf_bytes(item.data):
         details["checks"].append({"name": "PDF", "status": "not_applicable", "detail": "contenuto non PDF"})
         return "non_applicabile", details

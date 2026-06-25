@@ -475,7 +475,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("pec_audit_digest_daily", "Digest PEC giornaliero", "Comunicazioni", "Prepara il riepilogo giornaliero del presidio PEC con nuovi messaggi e anomalie.", "cron", "8", "0", built_in=True),
         SchedulerTemplate("workspace_intelligence_snapshot", "Quadro studio", "Lex AI", "Aggiorna inventario operativo dei fascicoli.", "cron", "", "*/20", built_in=True),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
-        SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica automaticamente la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo.", "cron", "", "*/10", built_in=True),
+        SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica automaticamente la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo.", "cron", "", "7-57/10", built_in=True),
         SchedulerTemplate("lex_dataset_nightly", "Dataset Lex notturno", "Lex AI", "Prepara dataset locali di revisione da Documenti AI senza avviare addestramento automatico.", "cron", "1", "45", built_in=True),
         SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
         SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Verifica e ripara mojibake, accenti italiani e caratteri sostitutivi nei dati testuali.", "cron", "0", "35", built_in=True),
@@ -689,6 +689,18 @@ class SchedulerRegistryRepository:
                         now,
                     ),
                 )
+            conn.execute(
+                """
+                UPDATE scheduled_jobs
+                SET minute='7-57/10',
+                    updated_at=?,
+                    updated_by='system'
+                WHERE job_id='lex_sentenza_economia_auto'
+                  AND built_in=1
+                  AND minute='*/10'
+                """,
+                (now,),
+            )
             conn.execute(
                 """
                 UPDATE scheduled_jobs

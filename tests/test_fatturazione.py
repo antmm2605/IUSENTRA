@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pct.fatturazione import GestioneFatturazione, VoceParcella
 from pct.preventivi import GestionePreventivi, VocePreventivo
+from pct.storage import StudioDB
 
 
 def test_preventivo_salva_log_calcolo(tmp_path: Path):
@@ -192,3 +193,40 @@ def test_parcella_forfettaria_non_calcola_iva_anche_se_opzione_attiva(tmp_path: 
     assert parcella.iva == 0.0
     assert parcella.totale_documento == 308.57
     assert parcella.totale == 308.57
+
+
+def test_parcella_sqlite_aggiorna_singolo_record_senza_full_replace(tmp_path: Path):
+    studio_db_path = tmp_path / "studio.db"
+    studio_db = StudioDB.get(str(studio_db_path))
+    try:
+        gf = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"), studio_db=studio_db)
+        prima = gf.crea(
+            id_cliente="cliente-1",
+            voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=100.0)],
+        )
+        seconda = gf.crea(
+            id_cliente="cliente-2",
+            voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=200.0)],
+        )
+
+        calls = []
+        original_salva_tabella = studio_db.salva_tabella
+
+        def spy_salva_tabella(table, rows, inserter, delete_all=True):
+            calls.append((table, len(rows), delete_all))
+            return original_salva_tabella(table, rows, inserter, delete_all)
+
+        studio_db.salva_tabella = spy_salva_tabella  # type: ignore[method-assign]
+
+        gf.aggiorna(prima.id, note="Aggiornata senza sostituire tutta la tabella")
+
+        assert calls == [("parcelle", 1, False)]
+        rows = studio_db.conn.execute("SELECT id, dati_json FROM parcelle ORDER BY id").fetchall()
+        assert {row["id"] for row in rows} == {prima.id, seconda.id}
+        payload = {
+            row["id"]: row["dati_json"]
+            for row in rows
+        }
+        assert "Aggiornata senza sostituire tutta la tabella" in payload[prima.id]
+    finally:
+        StudioDB.invalidate(str(studio_db_path))

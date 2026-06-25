@@ -212,7 +212,7 @@ def validate_scheduler_job(payload: dict[str, Any], *, job_id: str = DEFAULT_SCH
     errors: list[str] = []
     if job != job_id:
         errors.append(f"scheduler-worker: job {job_id} non registrato.")
-    if job_id == DEFAULT_SCHEDULER_JOB and "*/10" not in trigger:
+    if job_id == DEFAULT_SCHEDULER_JOB and "*/10" not in trigger and "7-57/10" not in trigger:
         errors.append(f"scheduler-worker: trigger inatteso per {job_id}: {trigger or 'n.d.'}.")
     return {"ok": not errors, "job": job, "trigger": trigger, "errors": errors}
 
@@ -234,6 +234,12 @@ def expected_job_interval_seconds(job: dict[str, Any]) -> int:
         return 8 * 24 * 60 * 60
     if re.fullmatch(r"\*/([1-9]\d?)", minute):
         interval = int(minute[2:])
+        if not hour:
+            return interval * 60
+        if re.fullmatch(r"\d{1,2}(,\d{1,2})*", hour):
+            return 24 * 60 * 60
+    if re.fullmatch(r"\d{1,2}-\d{1,2}/([1-9]\d?)", minute):
+        interval = int(minute.rsplit("/", 1)[1])
         if not hour:
             return interval * 60
         if re.fullmatch(r"\d{1,2}(,\d{1,2})*", hour):

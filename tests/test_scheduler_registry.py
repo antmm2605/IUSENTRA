@@ -264,7 +264,7 @@ def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
     assert templates["lex_dataset_nightly"].minute == "45"
     assert "senza avviare addestramento automatico" in templates["lex_dataset_nightly"].description
     assert templates["lex_sentenza_economia_auto"].family == "Lex AI"
-    assert templates["lex_sentenza_economia_auto"].minute == "*/10"
+    assert templates["lex_sentenza_economia_auto"].minute == "7-57/10"
     assert "RG e cliente coincidenti" in templates["lex_sentenza_economia_auto"].description
     assert {
         "cliente_soggetti",

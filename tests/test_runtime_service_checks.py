@@ -6,6 +6,7 @@ import json
 from scripts.check_runtime_services import (
     _compose_base,
     _run,
+    expected_job_interval_seconds,
     filter_latest_runs_for_wait,
     parse_compose_ps_json,
     validate_compose_services,
@@ -95,10 +96,19 @@ def test_validate_scheduler_job_richiede_sentenza_automatica_ogni_dieci_minuti()
         {"job": "lex_sentenza_economia_auto", "trigger": "cron[minute='*/10']"},
         job_id="lex_sentenza_economia_auto",
     )
+    ok_staggered = validate_scheduler_job(
+        {"job": "lex_sentenza_economia_auto", "trigger": "cron[minute='7-57/10']"},
+        job_id="lex_sentenza_economia_auto",
+    )
 
     assert missing["ok"] is False
     assert wrong_trigger["ok"] is False
     assert ok["ok"] is True
+    assert ok_staggered["ok"] is True
+
+
+def test_expected_job_interval_accetta_cron_sfalsato_ogni_dieci_minuti():
+    assert expected_job_interval_seconds(_job(minute="7-57/10")) == 600
 
 
 def test_filter_latest_runs_for_wait_filtra_solo_job_obbligatorio():

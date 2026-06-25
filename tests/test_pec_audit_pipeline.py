@@ -893,6 +893,21 @@ def test_verify_signature_skips_pcten_mislabeled_pdf():
     assert details["checks"][0]["detail"] == "contenuto non PDF"
 
 
+def test_verify_signature_skips_non_cades_pdf_p7m_without_pdf_probe():
+    status, details = verify_signature(
+        AttachmentPayload(
+            index=1,
+            filename="Atto.pdf.p7m",
+            content_type="application/pkcs7-mime",
+            data=b"PCTENCRYPTED-PAYLOAD-NOT-A-CADES",
+        )
+    )
+
+    assert status == "non_applicabile"
+    assert details["checks"][0]["name"] == "CAdES"
+    assert details["checks"][0]["detail"] == "contenuto non CAdES/PKCS#7"
+
+
 def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_path):
     exact_link = "https://teams.microsoft.com/l/meetup-join/abc?context=%7B%22Tid%22%3A%22123%22%7D&anon=true"
     xml_text = """

@@ -384,6 +384,82 @@ class GestioneFatturazione:
                 f, ensure_ascii=False, indent=2
             )
 
+    def _salva_parcella(self, parcella: Parcella) -> None:
+        if self._studio_db is None:
+            self._salva()
+            return
+
+        def _insert(conn, item: Parcella) -> None:
+            payload = item.to_dict()
+            conn.execute(
+                """
+                INSERT INTO parcelle
+                (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+                 stato, totale, imponibile, origine, id_preventivo, id_pratica,
+                 area_pratica, procedura_operativa_codice, procedura_operativa_nome,
+                 canale_operativo, registro_operativo, tipo_compenso,
+                 tipo_procedimento, valore_controversia, complessita,
+                 data_pagamento, metodo_pagamento, creato_da, creato_il, dati_json)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(id) DO UPDATE SET
+                    numero=excluded.numero,
+                    id_cliente=excluded.id_cliente,
+                    id_fascicolo=excluded.id_fascicolo,
+                    data_emissione=excluded.data_emissione,
+                    data_scadenza=excluded.data_scadenza,
+                    stato=excluded.stato,
+                    totale=excluded.totale,
+                    imponibile=excluded.imponibile,
+                    origine=excluded.origine,
+                    id_preventivo=excluded.id_preventivo,
+                    id_pratica=excluded.id_pratica,
+                    area_pratica=excluded.area_pratica,
+                    procedura_operativa_codice=excluded.procedura_operativa_codice,
+                    procedura_operativa_nome=excluded.procedura_operativa_nome,
+                    canale_operativo=excluded.canale_operativo,
+                    registro_operativo=excluded.registro_operativo,
+                    tipo_compenso=excluded.tipo_compenso,
+                    tipo_procedimento=excluded.tipo_procedimento,
+                    valore_controversia=excluded.valore_controversia,
+                    complessita=excluded.complessita,
+                    data_pagamento=excluded.data_pagamento,
+                    metodo_pagamento=excluded.metodo_pagamento,
+                    creato_da=excluded.creato_da,
+                    creato_il=excluded.creato_il,
+                    dati_json=excluded.dati_json
+                """,
+                (
+                    item.id,
+                    item.numero,
+                    item.id_cliente,
+                    item.id_fascicolo or None,
+                    item.data_emissione,
+                    item.data_scadenza or "",
+                    item.stato.value,
+                    float(item.totale or 0.0),
+                    float(item.imponibile or 0.0),
+                    item.origine,
+                    item.id_preventivo or "",
+                    item.id_pratica,
+                    item.area_pratica,
+                    item.procedura_operativa_codice,
+                    item.procedura_operativa_nome,
+                    item.canale_operativo,
+                    item.registro_operativo,
+                    item.tipo_compenso,
+                    item.tipo_procedimento,
+                    float(item.valore_controversia or 0.0),
+                    item.complessita,
+                    item.data_pagamento or "",
+                    item.metodo_pagamento or "",
+                    item.creato_da,
+                    item.creato_il,
+                    json.dumps(payload, ensure_ascii=False),
+                ),
+            )
+
+        self._studio_db.salva_tabella("parcelle", [parcella], _insert, delete_all=False)
+
     # ---------------------------------------------------------------- Numerazione
 
     def _numbering_fallback_path(self) -> str:
@@ -661,7 +737,7 @@ class GestioneFatturazione:
             dati_personalizzati=dict(dati_personalizzati or {}),
         )
         self._parcelle[p.id] = p
-        self._salva()
+        self._salva_parcella(p)
         return p
 
     def get(self, id_parcella: str) -> Optional[Parcella]:
@@ -681,7 +757,7 @@ class GestioneFatturazione:
         for k, v in kwargs.items():
             if hasattr(p, k):
                 setattr(p, k, v)
-        self._salva()
+        self._salva_parcella(p)
         return p
 
     def cambia_stato(self, id_parcella: str, stato: StatoParcella,
@@ -694,7 +770,7 @@ class GestioneFatturazione:
             if metodo_pagamento:
                 p.metodo_pagamento = metodo_pagamento
         self._converti_proforma_se_fiscale(p, stato)
-        self._salva()
+        self._salva_parcella(p)
 
     def elimina(self, id_parcella: str):
         if id_parcella in self._parcelle:

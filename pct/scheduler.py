@@ -1065,7 +1065,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/10"), id="lex_sentenza_economia_auto")
+    @scheduler.scheduled_job(CronTrigger(minute="7-57/10"), id="lex_sentenza_economia_auto")
     def _lex_sentenza_economia_auto():
         with app.app_context():
             try:

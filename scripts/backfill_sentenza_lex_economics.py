@@ -24,6 +24,7 @@ from pct.fascicolo_sentenza_economica import (
     SentenzaEconomicaExtraction,
     analyze_sentenza_tribunale_text,
     apply_sentenza_tribunale_automation,
+    extract_contributo_unificato_document_evidence,
     sentenza_vector_relevant_excerpt,
     validate_sentenza_fascicolo_context,
 )
@@ -218,8 +219,11 @@ def _vector_text(
         f"RG: {_rg_label(extraction) or metadata.get('numero_rg', '')}",
         f"Data sentenza: {extraction.sentence_date}",
         f"Liquidazione giudice: {extraction.liquidazione_importo if extraction.liquidazione_importo is not None else 'n.d.'}",
-        f"Contributo unificato: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Spese/contributo da recuperare: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Natura spese/contributo: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
         f"Fondo spese: {extraction.fondo_spese_importo if extraction.fondo_spese_importo is not None else 'n.d.'}",
+        f"Beneficio cliente: {extraction.beneficio_cliente_importo if extraction.beneficio_cliente_importo is not None else 'n.d.'}",
+        f"Tipo beneficio cliente: {extraction.beneficio_cliente_tipo or 'n.d.'}",
         f"Proforma collegata: {outcome.proforma_id or 'n.d.'}",
         f"Documento fonte: {metadata.get('filename') or metadata.get('document_id') or 'n.d.'}",
         "",
@@ -321,7 +325,11 @@ def _feed_vector_index(
                 "cliente": _text(getattr(fascicolo, "nome_cliente", "")),
                 "importo_liquidazione": extraction.liquidazione_importo,
                 "contributo_unificato": extraction.contributo_unificato_importo,
+                "contributo_unificato_natura": extraction.contributo_unificato_natura,
+                "contributo_unificato_label": extraction.contributo_unificato_label,
                 "fondo_spese": extraction.fondo_spese_importo,
+                "beneficio_cliente": extraction.beneficio_cliente_importo,
+                "beneficio_cliente_tipo": extraction.beneficio_cliente_tipo,
                 "proforma_id": outcome.proforma_id,
                 "origin": ORIGIN,
                 "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
@@ -382,6 +390,32 @@ def _metadata_for_text(payload: dict[str, Any], path: Path, tenant: TenantBackfi
         "extracted_text_path": str(path),
         "tipo_documento": _text(payload.get("tipo_documento") or payload.get("classification") or "Sentenza Tribunale"),
     }
+
+
+def _contributo_evidence_score(evidence: dict[str, Any]) -> int:
+    probe = f"{_text(evidence.get('filename'))} {_text(evidence.get('titolo'))}".casefold()
+    score = 0
+    if "contributo" in probe:
+        score += 30
+    if "c.u" in probe or " c u " in probe:
+        score += 20
+    if "pagopa" in probe or "pago pa" in probe:
+        score += 10
+    if evidence.get("document_id"):
+        score += 1
+    return score
+
+
+def _remember_contributo_pdf_evidence(
+    evidences: dict[str, dict[str, Any]],
+    fascicolo_id: str,
+    evidence: dict[str, Any],
+) -> None:
+    if not fascicolo_id or not evidence:
+        return
+    current = evidences.get(fascicolo_id)
+    if current is None or _contributo_evidence_score(evidence) > _contributo_evidence_score(current):
+        evidences[fascicolo_id] = evidence
 
 
 def run_backfill(
@@ -448,6 +482,22 @@ def run_backfill(
         }
         fascicoli, fatturazione = _build_repositories(tenant)
         paths = _iter_extracted_texts(tenant.root)
+        contributo_pdf_by_fascicolo: dict[str, dict[str, Any]] = {}
+        for evidence_path in paths:
+            try:
+                evidence_payload = _load_json(evidence_path)
+                if not isinstance(evidence_payload, dict):
+                    continue
+                evidence_text = _text(evidence_payload.get("text") or evidence_payload.get("testo"))
+                evidence_metadata = _metadata_for_text(evidence_payload, evidence_path, tenant)
+                evidence = extract_contributo_unificato_document_evidence(evidence_text, evidence_metadata)
+                _remember_contributo_pdf_evidence(
+                    contributo_pdf_by_fascicolo,
+                    _text(evidence_metadata.get("fascicolo_id")),
+                    evidence,
+                )
+            except Exception:
+                continue
         candidates: list[BackfillCandidate] = []
         best_by_sentenza_key: dict[str, BackfillCandidate] = {}
         for path in paths:
@@ -469,6 +519,8 @@ def run_backfill(
                 sentenza_key = _sentenza_key(tenant, metadata, extraction)
                 fascicolo_key = f"{tenant.storage_key}:{fascicolo_id}"
                 metadata["sentenza_key"] = sentenza_key
+                if fascicolo_id in contributo_pdf_by_fascicolo:
+                    metadata["contributo_unificato_pdf"] = dict(contributo_pdf_by_fascicolo[fascicolo_id])
                 result = BackfillDocumentResult(
                     tenant=tenant.storage_key,
                     fascicolo_id=fascicolo_id,

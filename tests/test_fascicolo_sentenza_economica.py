@@ -8,7 +8,9 @@ from pct.fascicolo_sentenza_economica import (
     SENTENZA_VECTOR_SCHEMA_VERSION,
     SentenzaAutomationOutcome,
     analyze_sentenza_tribunale_text,
+    apply_contributo_unificato_pdf_evidence,
     apply_sentenza_tribunale_automation,
+    extract_contributo_unificato_document_evidence,
 )
 from pct.fatturazione import GestioneFatturazione, StatoParcella, VoceParcella
 from web.services.react_fascicoli_bridge import update_react_fascicolo_payment
@@ -24,6 +26,30 @@ liquidando la complessiva somma di € 1.100,00, oltre ad € 98,00 per spese
 (sommatoria di tutti i c.u. versati dai ricorrenti), con maggiorazione di spese
 generali ed accessori di legge (iva e cpa) e con distrazione della somma in favore
 del difensore dichiaratosi antistatario.
+"""
+
+MONTAGNESE_TEXT = """
+N. R.G 697/2025
+REPUBBLICA ITALIANA
+IN NOME DEL POPOLO ITALIANO
+TRIBUNALE ORDINARIO di VICENZA
+Il Tribunale, nella persona del Giudice dott. Caterina Neri ha pronunciato la seguente
+SENTENZA
+nella causa di lavoro di I Grado iscritta al n. r.g. 697/2025 promossa da:
+ROBERTA MONTAGNESE (C.F. MNTRRT98P65G791Q), con il patrocinio dell'avv.
+MONTAGNESE GIUSEPPE
+P.Q.M.
+Il Giudice del Lavoro, definitivamente pronunciando:
+- condanna il Ministero a costituire in favore di parte ricorrente la Carta elettronica
+con accredito/assegnazione della somma pari a complessivi euro 500,00;
+- condanna parte resistente alla rifusione delle spese di lite sostenute dalla parte ricorrente
+a tale titolo liquidando la complessiva somma di € 321,50, di cui € 21,50 per esborsi,
+oltre a spese generali ed accessori di legge (iva e cpa), con distrazione in favore
+del difensore antistatario.
+Sentenza resa ex art. 127 ter c.p.c.
+Vicenza, 23 settembre 2025
+Sentenza n. 465/2025 pubbl. il 23/09/2025
+RG n. 697/2025
 """
 
 
@@ -102,6 +128,133 @@ def test_estrazione_liquidazione_quattro_cifre_senza_punto_migliaia():
 
     assert extraction.found is True
     assert extraction.liquidazione_importo == 1030.00
+
+
+def test_estrazione_sentenza_carta_docente_con_esborsi_senza_prendere_beneficio():
+    extraction = analyze_sentenza_tribunale_text(
+        MONTAGNESE_TEXT,
+        {"tipo_documento": "provvedimento Sentenza Tribunale", "filename": "Sentenza.pdf"},
+    )
+
+    assert extraction.found is True
+    assert extraction.sentence_date == "2025-09-23"
+    assert extraction.sentence_number == "465"
+    assert extraction.rg_number == "697"
+    assert extraction.liquidazione_importo == 321.50
+    assert extraction.contributo_unificato_importo == 21.50
+    assert extraction.contributo_unificato_natura == "spese_esborsi"
+    assert extraction.contributo_unificato_label == "Spese/esborsi"
+    assert extraction.beneficio_cliente_importo == 500.00
+    assert extraction.beneficio_cliente_tipo == "carta_docente"
+    assert extraction.fondo_spese_importo is None
+    assert extraction.spese_generali is True
+    assert extraction.antistatario is True
+
+
+def test_estrazione_sentenza_carta_docente_con_quota_spese_senza_prendere_beneficio():
+    text = MONTAGNESE_TEXT.replace("per esborsi", "per spese")
+
+    extraction = analyze_sentenza_tribunale_text(
+        text,
+        {"tipo_documento": "provvedimento Sentenza Tribunale", "filename": "Sentenza.pdf"},
+    )
+
+    assert extraction.found is True
+    assert extraction.sentence_date == "2025-09-23"
+    assert extraction.rg_number == "697"
+    assert extraction.liquidazione_importo == 321.50
+    assert extraction.contributo_unificato_importo == 21.50
+    assert extraction.contributo_unificato_natura == "spese_esborsi"
+    assert extraction.fondo_spese_importo is None
+
+
+def test_pdf_contributo_unificato_fornisce_doppia_prova_senza_carta_docente():
+    evidence = extract_contributo_unificato_document_evidence(
+        "Ricevuta pagamento PagoPA Contributo unificato. Importo versato euro 21,50.",
+        {"filename": "CU.pdf", "document_id": "DOC-CU"},
+    )
+    carta = extract_contributo_unificato_document_evidence(
+        "Accredito Carta elettronica docente con importo euro 500,00.",
+        {"filename": "Bonifico carta docente.pdf", "document_id": "DOC-CARTA"},
+    )
+
+    assert evidence["importo"] == 21.50
+    assert evidence["natura"] == "pdf_contributo_unificato"
+    assert evidence["document_id"] == "DOC-CU"
+    assert carta == {}
+
+
+def test_pdf_contributo_non_sovrascrive_esborsi_sentenza_se_importo_diverge():
+    extraction = analyze_sentenza_tribunale_text(
+        MONTAGNESE_TEXT,
+        {"tipo_documento": "provvedimento Sentenza Tribunale", "filename": "Sentenza.pdf"},
+    )
+
+    apply_contributo_unificato_pdf_evidence(
+        extraction,
+        {
+            "contributo_unificato_pdf": {
+                "importo": 49.00,
+                "filename": "CU.pdf",
+                "natura": "pdf_contributo_unificato",
+                "label": "Contributo unificato da PDF",
+            }
+        },
+    )
+
+    assert extraction.contributo_unificato_importo == 21.50
+    assert extraction.contributo_unificato_natura == "spese_esborsi"
+    assert extraction.contributo_unificato_label == "Spese/esborsi"
+    assert "contributo_unificato_pdf_diverso_da_spese_sentenza" in extraction.warnings
+
+
+def test_pdf_contributo_conferma_esborsi_senza_rinominarli_contributo_unificato():
+    extraction = analyze_sentenza_tribunale_text(
+        MONTAGNESE_TEXT,
+        {"tipo_documento": "provvedimento Sentenza Tribunale", "filename": "Sentenza.pdf"},
+    )
+
+    apply_contributo_unificato_pdf_evidence(
+        extraction,
+        {
+            "contributo_unificato_pdf": {
+                "importo": 21.50,
+                "filename": "CU.pdf",
+                "natura": "pdf_contributo_unificato",
+                "label": "Contributo unificato da PDF",
+            }
+        },
+    )
+
+    assert extraction.contributo_unificato_importo == 21.50
+    assert extraction.contributo_unificato_natura == "spese_esborsi"
+    assert extraction.contributo_unificato_label == "Spese/esborsi"
+    assert "spese_esborsi_confermate_pdf" in extraction.warnings
+    assert "confermato da PDF del fascicolo" in extraction.contributo_unificato_titolo
+
+
+def test_estrazione_sentenza_resa_con_data_testuale_e_rg_iniziale():
+    text = """
+    N. R.G 697/2025
+    TRIBUNALE ORDINARIO di VICENZA
+    SENTENZA
+    ROBERTA MONTAGNESE contro MINISTERO DELL'ISTRUZIONE E DEL MERITO
+    Il Giudice del Lavoro, definitivamente pronunciando:
+    condanna parte resistente a tale titolo liquidando la complessiva somma di € 321,50,
+    di cui € 21,50 per esborsi, oltre a spese generali ed accessori di legge.
+    Sentenza resa ex art. 127 ter c.p.c.
+    Vicenza, 23 settembre 2025.
+    """
+
+    extraction = analyze_sentenza_tribunale_text(text, {"tipo_documento": "Sentenza Tribunale"})
+
+    assert extraction.found is True
+    assert extraction.sentence_date == "2025-09-23"
+    assert extraction.sentence_number == ""
+    assert extraction.rg_number == "697"
+    assert extraction.liquidazione_importo == 321.50
+    assert extraction.contributo_unificato_importo == 21.50
+    assert extraction.contributo_unificato_natura == "spese_esborsi"
 
 
 def test_estrazione_rg_preferisce_intestazione_sentenza():
@@ -224,6 +377,73 @@ def test_documento_duplicato_stessa_sentenza_riusa_proforma_esistente(tmp_path: 
     assert len(fatturazione.per_fascicolo("FASC-1")) == 1
     assert set(automation["processed_documents"]) == {"document_id:DOC-1", "document_id:DOC-2"}
     assert automation["proforme"]["document_id:DOC-2"] == first.proforma_id
+
+
+def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fascicoli.fascicolo.titolo = "Montagnese Roberta c. MIM"
+    fascicoli.fascicolo.nome_cliente = "Montagnese Roberta"
+    fascicoli.fascicolo.numero_rg = "697"
+    fascicoli.fascicolo.anno_rg = 2025
+    fascicoli.fascicolo.stato = StatoFascicolo.DEFINITO
+    fascicoli.fascicolo.data_prossima_udienza = "2025-09-23"
+    document_key = "document_id:DOC-MONTAGNESE"
+    fascicoli.fascicolo.pagamenti = {
+        "liquidazione_giudice": {
+            "kind": "liquidazione_giudice",
+            "status": "pagato",
+            "importo": 321.50,
+            "data_pagamento": "2025-09-23",
+        },
+        "parcella": {
+            "kind": "parcella",
+            "status": "da_emettere",
+            "importo": None,
+            "data_pagamento": "2025-09-23",
+        },
+        AUTOMATION_KEY: {"processed_documents": [document_key], "proforme": {}},
+    }
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    proforma = fatturazione.crea(
+        id_cliente="CLI-1",
+        id_fascicolo="FASC-1",
+        data_emissione="2025-09-23",
+        voci=[VoceParcella(descrizione="Compensi liquidati in sentenza", prezzo_unitario=321.50)],
+        percentuale_spese_generali=15.0,
+        origine=ORIGIN,
+        dati_personalizzati={
+            "document": {"documento_operativo": "PROFORMA", "tipo_documento_label": "Proforma"},
+            "lex_sentenza": {"origin": ORIGIN, "document_key": document_key},
+        },
+    )
+    fascicoli.fascicolo.pagamenti[AUTOMATION_KEY]["proforme"][document_key] = proforma.id
+
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=MONTAGNESE_TEXT,
+        document_metadata={"document_id": "DOC-MONTAGNESE", "filename": "Sentenza.pdf", "tipo_documento": "Sentenza Tribunale"},
+        actor="Lex AI",
+    )
+
+    fascicolo = fascicoli.get("FASC-1")
+    updated_proforma = fatturazione.get(proforma.id)
+    assert outcome.applied is True
+    assert "contributo_unificato" in outcome.changes["payments"]
+    assert "parcella" in outcome.changes["payments"]
+    assert fascicolo.pagamenti["contributo_unificato"]["status"] == "pagato"
+    assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 21.50
+    assert fascicolo.pagamenti["contributo_unificato"]["natura"] == "spese_esborsi"
+    assert fascicolo.pagamenti["contributo_unificato"]["label"] == "Spese/esborsi"
+    assert fascicolo.pagamenti["parcella"]["importo"] == updated_proforma.totale
+    assert any(
+        voce.tipo == "ANTICIPO"
+        and voce.prezzo_unitario == 21.50
+        and "Spese ed esborsi" in voce.descrizione
+        for voce in updated_proforma.voci
+    )
+    assert updated_proforma.dati_personalizzati["lex_sentenza"]["extraction"]["contributo_unificato_importo"] == 21.50
 
 
 def test_sentenza_strategica_senza_nome_cliente_non_aggiorna_economia(tmp_path: Path):

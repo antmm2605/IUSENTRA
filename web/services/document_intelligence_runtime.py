@@ -16,6 +16,7 @@ from pct.fascicolo_sentenza_economica import (
     SENTENZA_VECTOR_SCHEMA_VERSION,
     SentenzaAutomationOutcome,
     apply_sentenza_tribunale_automation,
+    extract_contributo_unificato_document_evidence,
     sentenza_vector_relevant_excerpt,
 )
 from web.helpers import get_fascicoli, get_fatturazione
@@ -264,12 +265,22 @@ def _apply_sentenza_automations_for_ready_documents(
         current_app.logger.exception("Lettura documenti AI non riuscita per automazione sentenza")
         return applied
     source_index = _source_metadata_index(sources)
+    contributo_pdf_evidence = _collect_contributo_pdf_evidence_for_records(
+        service=service,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        records=records,
+        source_index=source_index,
+        user_context=user_context,
+    )
     for record in records:
         if str(getattr(record, "status", "") or "") != "ready":
             continue
         try:
             text_record = service.get_fascicolo_document_text(tenant_id, fascicolo_id, record.id, user_context)
             metadata = _metadata_for_record(record, source_index)
+            if contributo_pdf_evidence:
+                metadata["contributo_unificato_pdf"] = dict(contributo_pdf_evidence)
             result = apply_sentenza_automation_for_document_text(
                 fascicolo_id=fascicolo_id,
                 tenant_id=tenant_id,
@@ -291,6 +302,42 @@ def _apply_sentenza_automations_for_ready_documents(
                 }
             )
     return applied
+
+
+def _contributo_evidence_score(evidence: dict[str, Any]) -> int:
+    probe = f"{str(evidence.get('filename') or '')} {str(evidence.get('titolo') or '')}".casefold()
+    score = 0
+    if "contributo" in probe:
+        score += 30
+    if "c.u" in probe or " c u " in probe:
+        score += 20
+    if "pagopa" in probe or "pago pa" in probe:
+        score += 10
+    return score
+
+
+def _collect_contributo_pdf_evidence_for_records(
+    *,
+    service: DocumentAIService,
+    tenant_id: str,
+    fascicolo_id: str,
+    records: list[Any],
+    source_index: dict[str, dict[str, Any]],
+    user_context: object,
+) -> dict[str, Any]:
+    best: dict[str, Any] = {}
+    for record in records:
+        if str(getattr(record, "status", "") or "") != "ready":
+            continue
+        try:
+            metadata = _metadata_for_record(record, source_index)
+            text_record = service.get_fascicolo_document_text(tenant_id, fascicolo_id, record.id, user_context)
+            evidence = extract_contributo_unificato_document_evidence(text_record.text, metadata)
+        except Exception:
+            continue
+        if evidence and (not best or _contributo_evidence_score(evidence) > _contributo_evidence_score(best)):
+            best = evidence
+    return best
 
 
 def _source_metadata_index(sources: list[DocumentAISource]) -> dict[str, dict[str, Any]]:
@@ -380,7 +427,11 @@ def _feed_sentenza_vector_index(
             "cliente": str(getattr(fascicolo, "nome_cliente", "") or metadata.get("cliente") or ""),
             "importo_liquidazione": extraction.liquidazione_importo,
             "contributo_unificato": extraction.contributo_unificato_importo,
+            "contributo_unificato_natura": extraction.contributo_unificato_natura,
+            "contributo_unificato_label": extraction.contributo_unificato_label,
             "fondo_spese": extraction.fondo_spese_importo,
+            "beneficio_cliente": extraction.beneficio_cliente_importo,
+            "beneficio_cliente_tipo": extraction.beneficio_cliente_tipo,
             "proforma_id": outcome.proforma_id,
             "origin": ORIGIN,
             "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
@@ -506,8 +557,11 @@ def _sentenza_vector_text(
         f"RG: {_rg_label(extraction) or metadata.get('numero_rg', '')}",
         f"Data sentenza: {extraction.sentence_date}",
         f"Liquidazione giudice: {extraction.liquidazione_importo if extraction.liquidazione_importo is not None else 'n.d.'}",
-        f"Contributo unificato: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Spese/contributo da recuperare: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
+        f"Natura spese/contributo: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
         f"Fondo spese: {extraction.fondo_spese_importo if extraction.fondo_spese_importo is not None else 'n.d.'}",
+        f"Beneficio cliente: {extraction.beneficio_cliente_importo if extraction.beneficio_cliente_importo is not None else 'n.d.'}",
+        f"Tipo beneficio cliente: {extraction.beneficio_cliente_tipo or 'n.d.'}",
         f"Proforma collegata: {outcome.proforma_id or 'n.d.'}",
         f"Documento fonte: {metadata.get('filename') or metadata.get('document_id') or 'n.d.'}",
         "",

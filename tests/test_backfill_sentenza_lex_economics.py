@@ -28,6 +28,28 @@ liquidando la complessiva somma di € 900,00, oltre ad € 49,00 per spese di c
 e con maggiorazione di spese generali ed accessori di legge.
 """
 
+MONTAGNESE_TEXT = """
+N. R.G 697/2025
+REPUBBLICA ITALIANA
+IN NOME DEL POPOLO ITALIANO
+TRIBUNALE ORDINARIO di VICENZA
+SENTENZA
+nella causa di lavoro di I Grado iscritta al n. r.g. 697/2025 promossa da:
+ROBERTA MONTAGNESE, con il patrocinio dell'avv. MONTAGNESE GIUSEPPE
+P.Q.M.
+Il Giudice del Lavoro, definitivamente pronunciando:
+- condanna il Ministero a costituire in favore di parte ricorrente la Carta elettronica
+con accredito/assegnazione della somma pari a complessivi euro 500,00;
+- condanna parte resistente alla rifusione delle spese di lite sostenute dalla parte ricorrente
+a tale titolo liquidando la complessiva somma di € 321,50, di cui € 21,50 per esborsi,
+oltre a spese generali ed accessori di legge (iva e cpa), con distrazione in favore
+del difensore antistatario.
+Sentenza resa ex art. 127 ter c.p.c.
+Vicenza, 23 settembre 2025
+Sentenza n. 465/2025 pubbl. il 23/09/2025
+RG n. 697/2025
+"""
+
 
 def _write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -238,3 +260,98 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
     assert aggiornato_2["pagamenti"]["liquidazione_giudice"]["importo"] == 900.0
     parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
     assert len(parcelle) == 2
+
+
+def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Path):
+    data_root = tmp_path / "data"
+    tenant_root = data_root / "tenants" / "tenant-test"
+    registry = data_root / "tenants.json"
+    _write_json(
+        registry,
+        {"tenant-test": {"slug": "tenant-test", "storage_key": "tenant-test", "nome": "Studio Test"}},
+    )
+    fascicolo = Fascicolo(
+        id="FASC-MONT",
+        numero="2025/697",
+        titolo="Montagnese Roberta c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        stato=StatoFascicolo.IN_CORSO,
+        id_cliente="CLI-MONT",
+        nome_cliente="Montagnese Roberta",
+        numero_rg="697",
+        anno_rg=2025,
+        data_prossima_udienza="n.d.",
+    )
+    _write_json(tenant_root / "fascicoli" / "fascicoli.json", {fascicolo.id: fascicolo.to_dict()})
+    _write_json(
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-MONT"
+        / "documenti_ai"
+        / "DOC-MONT"
+        / "v1"
+        / "extracted_text.json",
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-MONT",
+            "document_id": "DOC-MONT",
+            "filename": "Sentenza.pdf",
+            "text": MONTAGNESE_TEXT,
+        },
+    )
+    _write_json(
+        tenant_root
+        / "fascicoli"
+        / "documenti_ai"
+        / "tenant-test"
+        / "fascicoli"
+        / "FASC-MONT"
+        / "documenti_ai"
+        / "DOC-CU"
+        / "v1"
+        / "extracted_text.json",
+        {
+            "tenant_id": "tenant-test",
+            "fascicolo_id": "FASC-MONT",
+            "document_id": "DOC-CU",
+            "filename": "CU.pdf",
+            "text": "Ricevuta PagoPA contributo unificato. Importo versato euro 21,50.",
+        },
+    )
+
+    applied = run_backfill(
+        data_root=data_root,
+        registry=registry,
+        repo_root=Path(__file__).resolve().parents[1],
+        tenants={"tenant-test"},
+        apply=True,
+        skip_lex=True,
+    )
+
+    assert applied["totals"]["raw_sentenze_found"] == 1
+    assert applied["totals"]["sentenze_found"] == 1
+    assert applied["totals"]["matrix_confirmed"] == 1
+    fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))
+    aggiornato = fascicoli["FASC-MONT"]
+    assert aggiornato["data_prossima_udienza"] == "2025-09-23"
+    assert aggiornato["pagamenti"]["liquidazione_giudice"]["importo"] == 321.5
+    assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "pagato"
+    assert aggiornato["pagamenti"]["contributo_unificato"]["importo"] == 21.5
+    assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "spese_esborsi"
+    assert aggiornato["pagamenti"]["contributo_unificato"]["label"] == "Spese/esborsi"
+    assert aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]["last_extraction"]["beneficio_cliente_importo"] == 500.0
+    assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
+    assert aggiornato["pagamenti"]["parcella"]["importo"] > 321.5
+    parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
+    assert len(parcelle) == 1
+    voci = next(iter(parcelle.values()))["voci"]
+    assert any(
+        voce["tipo"] == "ANTICIPO"
+        and voce["prezzo_unitario"] == 21.5
+        and "Spese ed esborsi" in voce["descrizione"]
+        for voce in voci
+    )
+    assert not any("Contributo unificato" in voce["descrizione"] and voce["prezzo_unitario"] == 21.5 for voce in voci)

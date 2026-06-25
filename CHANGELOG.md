@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.253.110 - 2026-06-25
+
+- Sentenze Lex AI: la quota `di cui € 21,50 per esborsi/per spese` viene classificata come `Spese/esborsi`, non come contributo unificato, anche quando esiste un PDF CU nel fascicolo.
+- Carta docente: il beneficio `euro 500,00` viene salvato nei metadati Lex come beneficio del cliente e non entra in parcella/proforma o bonifico dello studio.
+- PDF CU/PagoPA: il job automatico legge anche il PDF del contributo unificato nello stesso fascicolo come doppia prova; se l'importo conferma la sentenza aggiunge audit, se diverge dagli esborsi non sovrascrive la voce sentenza e segnala la discordanza.
+- Lex AI: lo schema vettoriale passa a `sentenza_tribunale_compact_v3` con metadati su natura spese/contributo e beneficio cliente, così le vecchie schede incomplete vengono reindicizzate.
+
+## 2.253.109 - 2026-06-25
+
+- Sentenze Lex AI: il parser legge anche le sentenze Carta docente con data testuale (`23 settembre 2025`), intestazione `N. R.G`, importi `euro` e formule `di cui ... per esborsi`, senza usare il beneficio `euro 500,00` come importo di liquidazione o contributo.
+- Matrice economica: gli esborsi riconosciuti in sentenza alimentano il campo contributo/spese vive e i fascicoli già processati in modo parziale vengono completati alla run successiva del job automatico.
+- Parcella/proforma: la voce `parcella` della matrice non resta più con importo vuoto quando esiste una proforma Lex collegata; le proforme in bozza già create vengono integrate con gli esborsi mancanti e Lex AI reindicizza la scheda sentenza con schema `sentenza_tribunale_compact_v2`.
+- Anti-regressione: aggiunti test mirati sul caso Montagnese/`RG 697/2025`, sulla data testuale, sul backfill tenant-aware e sulla ripresa di record già segnati come processati.
+
 ## 2.253.108 - 2026-06-25
 
 - Runtime job: `scripts/check_runtime_services.py` ora verifica anche le esecuzioni reali registrate dal worker scheduler, non solo presenza del job; il gate fallisce con causa leggibile se un job obbligatorio non parte, fallisce, resta in corso troppo a lungo o produce un risultato operativo incompleto.

@@ -59,7 +59,8 @@ def _errore(detail: str, code: str, status: int):
 
 def _handle_error(exc: Exception):
     if isinstance(exc, DocumentAIValidationError):
-        return _errore(str(exc) or "Richiesta non valida.", "validation_error", 400)
+        current_app.logger.info("Validazione Documenti AI non superata: %s", exc)
+        return _errore("Richiesta non valida.", "validation_error", 400)
     if isinstance(exc, DocumentAIPermissionDenied):
         return _errore("Operazione non autorizzata", "permission_denied", 403)
     if isinstance(exc, DocumentAINotFound):

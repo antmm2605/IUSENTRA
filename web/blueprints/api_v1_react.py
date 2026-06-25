@@ -4170,7 +4170,8 @@ def pat_moduli_compila_pdf():
         try:
             selected_documents = _pat_selected_documents_from_payload(gestore_fascicoli, fascicolo, payload)
         except ValueError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 422
+            current_app.logger.info("PAT compila: selezione allegati non valida per %s: %s", fascicolo_id, exc)
+            return jsonify({"ok": False, "errore": "Selezione documenti non valida."}), 422
         except Exception as exc:
             current_app.logger.exception("PAT compila: lettura allegati fascicolo %s fallita: %s", fascicolo_id, exc)
             return jsonify({"ok": False, "errore": "Impossibile leggere uno o più documenti del fascicolo selezionato."}), 500
@@ -5236,7 +5237,7 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
             id_fasc,
             str(result.get("message") or "Controllo economico aggiornato."),
         )
-    return jsonify(result), status
+    return redacted_json_response(result, status)
 
 
 @api_v1_react.get("/fascicoli/nuovo")

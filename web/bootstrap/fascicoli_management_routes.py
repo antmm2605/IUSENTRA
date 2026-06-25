@@ -14,6 +14,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, sen
 
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.app_v2_routing import is_safe_internal_path
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 
 
@@ -44,6 +45,11 @@ def _form_result(message: str, *, status: int, redirect_to: str = "", category: 
     if redirect_to:
         return redirect(redirect_to)
     return None
+
+
+def _safe_internal_redirect(target: str, fallback: str) -> str:
+    cleaned = str(target or "").strip()
+    return cleaned if cleaned and is_safe_internal_path(cleaned) else fallback
 
 
 def register_fascicoli_management_routes(
@@ -209,7 +215,8 @@ def register_fascicoli_management_routes(
                     return result
                 return redirect(redirect_to)
             except (ValueError, KeyError) as exc:
-                result = _form_result(str(exc), status=400)
+                app.logger.info("Validazione modifica_fascicolo %s non superata: %s", id_fasc, exc)
+                result = _form_result("Dati fascicolo non validi.", status=400)
                 if result is not None:
                     return result
             except sqlite3.OperationalError as exc:
@@ -249,7 +256,8 @@ def register_fascicoli_management_routes(
             )
             flash("Stato aggiornato.", "success")
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.info("Cambio stato fascicolo %s non valido: %s", id_fasc, exc)
+            flash("Stato fascicolo non aggiornato.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/conformita/controlli", methods=["POST"])
@@ -271,10 +279,10 @@ def register_fascicoli_management_routes(
                 "success",
             )
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
-        if next_url:
-            return redirect(next_url)
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-responsabile-conformita")
+            app.logger.info("Controlli conformita fascicolo %s non aggiornati: %s", id_fasc, exc)
+            flash("Controlli automatici non aggiornati.", "danger")
+        fallback_url = url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-responsabile-conformita"
+        return redirect(_safe_internal_redirect(next_url, fallback_url))
 
     @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
     def definisci_fascicolo(id_fasc: str):
@@ -290,7 +298,8 @@ def register_fascicoli_management_routes(
             )
             flash("Fascicolo definito. Pronto per l'archiviazione.", "success")
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.info("Definizione fascicolo %s non valida: %s", id_fasc, exc)
+            flash("Dati di definizione fascicolo non validi.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/archivia", methods=["POST"])
@@ -305,7 +314,8 @@ def register_fascicoli_management_routes(
             flash("Fascicolo archiviato con successo.", "success")
             return redirect(url_for("lista_archivio"))
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.info("Archiviazione fascicolo %s non completata: %s", id_fasc, exc)
+            flash("Fascicolo non archiviato.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/ripristina", methods=["POST"])
@@ -315,7 +325,8 @@ def register_fascicoli_management_routes(
             flash("Fascicolo ripristinato dall'archivio.", "success")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.info("Ripristino fascicolo %s non completato: %s", id_fasc, exc)
+            flash("Fascicolo non ripristinato.", "danger")
             return redirect(url_for("lista_archivio"))
 
     @app.route("/fascicoli/<id_fasc>/elimina", methods=["POST"])
@@ -334,8 +345,9 @@ def register_fascicoli_management_routes(
                 return jsonify({"ok": True, "messaggio": msg, "redirect_url": url_for("lista_fascicoli")})
         except KeyError as exc:
             if _wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 404
-            flash(str(exc), "danger")
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+            app.logger.info("Eliminazione fascicolo %s non completata: %s", id_fasc, exc)
+            flash("Fascicolo non trovato.", "danger")
         return redirect(url_for("lista_fascicoli"))
 
     @app.route("/fascicoli/<id_fasc>/archivio/contenuto")
@@ -344,14 +356,15 @@ def register_fascicoli_management_routes(
             return jsonify(get_fascicoli().contenuto_archivio(id_fasc))
         except Exception as exc:
             app.logger.exception("archivio_contenuto %s: %s", id_fasc, exc)
-            return jsonify({"errore": str(exc)}), 200
+            return jsonify({"errore": "Archivio non leggibile in questo momento."}), 200
 
     @app.route("/fascicoli/<id_fasc>/archivio/file/<path:nome_file>")
     def archivio_scarica_file(id_fasc: str, nome_file: str):
         try:
             dati = get_fascicoli().estrai_file_archivio(id_fasc, nome_file)
         except FileNotFoundError as exc:
-            flash(str(exc), "warning")
+            app.logger.info("File archivio non trovato %s/%s: %s", id_fasc, nome_file, exc)
+            flash("File archivio non trovato.", "warning")
             return redirect(url_for("lista_archivio"))
 
         mime, _ = mimetypes.guess_type(nome_file)
@@ -398,7 +411,7 @@ def register_fascicoli_management_routes(
             return jsonify(fascicolo.to_dict())
         except Exception as exc:
             app.logger.exception("Errore api_fascicolo: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Fascicolo non leggibile in questo momento."})
 
     @app.route("/api/fascicoli/statistiche")
     def api_fascicoli_statistiche():
@@ -406,4 +419,4 @@ def register_fascicoli_management_routes(
             return jsonify(get_fascicoli().statistiche())
         except Exception as exc:
             app.logger.exception("Errore api_fascicoli_statistiche: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Statistiche fascicoli non disponibili in questo momento."})

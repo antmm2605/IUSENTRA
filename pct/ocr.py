@@ -17,6 +17,8 @@ import io
 import logging
 from pathlib import Path
 
+from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
+
 logger = logging.getLogger(__name__)
 
 ESTENSIONI_PDF = {".pdf"}
@@ -59,13 +61,17 @@ def estrai_testo_da_percorso(percorso: str, lang: str = "ita") -> str:
     Estrae il testo leggendo direttamente dal disco (per file NON cifrati).
     Usato principalmente durante il rebuild dell'indice.
     """
-    path = Path(percorso)
+    try:
+        path = resolve_runtime_path(percorso, allowed_suffixes=ESTENSIONI_SUPPORTATE).resolve()
+    except (UnsafeRuntimePath, OSError, RuntimeError, ValueError):
+        logger.warning("Percorso OCR non autorizzato o non valido.")
+        return ""
     if not path.is_file():
         return ""
     try:
         data = path.read_bytes()
     except Exception as e:
-        logger.warning("Impossibile leggere %s: %s", percorso, e)
+        logger.warning("Impossibile leggere il documento OCR autorizzato %s: %s", path.name, e)
         return ""
     return estrai_testo(data, path.name, lang)
 

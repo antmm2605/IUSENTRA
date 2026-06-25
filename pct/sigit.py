@@ -310,7 +310,7 @@ class ClientSIGIT:
         if not Path(atto_path).exists():
             return {
                 "codiceEsito": "E_FILE",
-                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "descrizioneEsito": "File atto non disponibile.",
                 "stato": "ERRORE",
             }
 
@@ -356,10 +356,10 @@ class ClientSIGIT:
                 resp.raise_for_status()
                 return resp.json()
 
-        except Exception as e:
+        except Exception:
             return {
                 "codiceEsito": "E_CONN",
-                "descrizioneEsito": f"Errore connessione SIGIT: {e}",
+                "descrizioneEsito": "Connessione SIGIT non completata.",
                 "stato": "ERRORE",
             }
 
@@ -603,7 +603,7 @@ class ClientSIGITDemo(ClientSIGIT):
         if not Path(atto_path).exists():
             return {
                 "codiceEsito":      "E_FILE",
-                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "descrizioneEsito": "File atto non disponibile.",
                 "stato":            "ERRORE",
             }
 

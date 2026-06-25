@@ -15,6 +15,7 @@ from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
     resolve_nome_ufficio,
 )
+from web.services.app_v2_routing import is_safe_internal_path
 
 _PAGOPA_SAFE_PATH_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,512}$")
 _PAGOPA_ALLOWED_PATH_PREFIXES = ("it/pagopa_", "resources/", "dwr/")
@@ -50,6 +51,14 @@ def register_telematico_portali_routes(
                 return value
         return ""
 
+    def _pagopa_safe_query_pairs() -> list[tuple[str, str]]:
+        fascicolo_id = (
+            str(request.args.get("iusentra_fascicolo") or "").strip()
+            or str(session.get("pst_pagopa_fascicolo_id") or "").strip()
+            or _pagopa_fascicolo_from_referrer().strip()
+        )
+        return [("iusentra_fascicolo", fascicolo_id)] if fascicolo_id else []
+
     def _pagopa_safe_pst_path(raw_path: str) -> str:
         cleaned = str(raw_path or "it/pagopa_altripag.wp").strip().replace("\\", "/")
         if cleaned.startswith("PST/"):
@@ -71,18 +80,13 @@ def register_telematico_portali_routes(
     def pst_pagopa_absolute_escape(pst_path: str):
         cleaned = _pagopa_safe_pst_path(pst_path)
 
-        query_pairs = list(request.args.items(multi=True))
-        fascicolo_id = (
-            str(request.args.get("iusentra_fascicolo") or "").strip()
-            or str(session.get("pst_pagopa_fascicolo_id") or "").strip()
-            or _pagopa_fascicolo_from_referrer().strip()
-        )
-        if fascicolo_id and not any(key == "iusentra_fascicolo" for key, _value in query_pairs):
-            query_pairs.append(("iusentra_fascicolo", fascicolo_id))
+        query_pairs = _pagopa_safe_query_pairs()
         query = urlencode(query_pairs, doseq=True)
         target = url_for("api_v1_react.pst_pagopa_proxy", pst_path=cleaned)
         if query:
             target = f"{target}?{query}"
+        if not is_safe_internal_path(target):
+            target = url_for("api_v1_react.pst_pagopa_proxy", pst_path="it/pagopa_altripag.wp")
         return redirect(target, code=307 if request.method == "POST" else 302)
 
     @app.route("/pdp", methods=["GET"])
@@ -129,7 +133,7 @@ def register_telematico_portali_routes(
                 flash(portale_browser_guided_message("pdp"), "warning")
                 return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
             documenti = []
-            flash(str(exc), "danger")
+            flash("Documenti PDP non disponibili in questo momento.", "danger")
 
         return render_template(
             "pdp_documenti.html",
@@ -211,8 +215,8 @@ def register_telematico_portali_routes(
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=risultato.id_fascicolo_locale))
             flash(risultato.messaggio, "danger")
-        except Exception as exc:
-            flash(str(exc), "danger")
+        except Exception:
+            flash("Importazione PDP non completata.", "danger")
         return redirect(url_for("pdp_home"))
 
     @app.route("/pat", methods=["GET"])
@@ -318,8 +322,8 @@ def register_telematico_portali_routes(
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=risultato.id_fascicolo_locale))
             flash(risultato.messaggio, "danger")
-        except Exception as exc:
-            flash(str(exc), "danger")
+        except Exception:
+            flash("Importazione PAT non completata.", "danger")
         return redirect(url_for("pat_home"))
 
     @app.route("/sigit", methods=["GET"])
@@ -432,6 +436,6 @@ def register_telematico_portali_routes(
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=risultato.id_fascicolo_locale))
             flash(risultato.messaggio, "danger")
-        except Exception as exc:
-            flash(str(exc), "danger")
+        except Exception:
+            flash("Importazione SIGIT non completata.", "danger")
         return redirect(url_for("sigit_home"))

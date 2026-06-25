@@ -1272,8 +1272,12 @@ def _sync_linked_proforma_payment(
             "state": _enum_value(getattr(updated, "stato", "")),
             "number": _text(getattr(updated, "numero", "")),
         }
-    except Exception as exc:
-        return {"ok": False, "id": proforma_id, "message": str(exc)}
+    except Exception:
+        return {
+            "ok": False,
+            "id": proforma_id,
+            "message": "Proforma collegata non aggiornata automaticamente.",
+        }
 
 
 # Stati modificabili inline dall'elenco fascicoli: chiave = valore frontend

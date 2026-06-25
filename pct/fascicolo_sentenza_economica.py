@@ -214,9 +214,23 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     """Estrae data e importi da una sentenza del Tribunale con regole deterministiche."""
 
     raw_text = str(text or "")
-    compact = _compact(raw_text)
     meta = metadata or {}
     meta_text = " ".join(str(value or "") for value in meta.values()).casefold()
+    raw_probe = raw_text[:240000].casefold()
+    has_metadata_sentence_signal = any(token in meta_text for token in ("sentenza", "provvedimento"))
+    if "sentenza" not in raw_probe and not has_metadata_sentence_signal:
+        return SentenzaEconomicaExtraction(found=False)
+    if "sentenza" not in raw_probe and not any(
+        token in raw_probe
+        for token in (
+            "definitivamente pronunciando",
+            "in nome del popolo italiano",
+            "p.q.m",
+            "p. q. m",
+        )
+    ):
+        return SentenzaEconomicaExtraction(found=False)
+    compact = _compact(raw_text)
     date_match = _SENTENZA_DATE_RE.search(compact)
     if not date_match:
         date_match = _SENTENZA_TEXTUAL_DATE_RE.search(compact)

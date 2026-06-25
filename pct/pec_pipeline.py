@@ -2533,6 +2533,10 @@ def _append_pdf_uri_links(text: str, data: bytes) -> str:
     return "\n".join(part for part in (text, link_text) if str(part or "").strip())
 
 
+def _looks_like_pdf_bytes(data: bytes) -> bool:
+    return bytes(data or b"").lstrip()[:5] == b"%PDF-"
+
+
 def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
     name = item.filename
     lower = name.lower()
@@ -2549,13 +2553,17 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
         except Exception:
             text = item.data.decode("utf-8", errors="replace")
     elif lower.endswith((".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")):
-        try:
-            from pct.ocr import estrai_testo
-
-            text = estrai_testo(item.data, name)
-        except Exception:
+        if lower.endswith(".pdf") and not _looks_like_pdf_bytes(item.data):
+            allow_binary_fallback = False
             text = ""
-        if lower.endswith(".pdf"):
+        else:
+            try:
+                from pct.ocr import estrai_testo
+
+                text = estrai_testo(item.data, name)
+            except Exception:
+                text = ""
+        if lower.endswith(".pdf") and text:
             text = _append_pdf_uri_links(text, item.data)
     elif is_zip:
         allow_binary_fallback = False
@@ -2581,6 +2589,8 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
                         except Exception:
                             entry_text = payload.decode("utf-8", errors="replace")
                     elif entry_lower.endswith(".pdf"):
+                        if not _looks_like_pdf_bytes(payload):
+                            continue
                         try:
                             from pct.ocr import estrai_testo
 
@@ -2615,6 +2625,9 @@ def verify_signature(item: AttachmentPayload) -> tuple[str, dict[str, Any]]:
     if b"IUSENTRA_INVALID_SIGNATURE" in item.data or "firma_invalida" in name or "invalid" in name:
         details["checks"].append({"name": "contenuto", "status": "invalid", "detail": "marcatore di firma non valida nel dataset di controllo"})
         return "non_valida", details
+    if name.endswith(".pdf") and not _looks_like_pdf_bytes(item.data):
+        details["checks"].append({"name": "PDF", "status": "not_applicable", "detail": "contenuto non PDF"})
+        return "non_applicabile", details
     if not (name.endswith((".p7m", ".pdf")) or item.data.startswith(b"%PDF")):
         return "non_applicabile", details
     try:

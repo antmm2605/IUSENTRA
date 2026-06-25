@@ -3,7 +3,13 @@ from pathlib import Path
 
 from pct.fascicoli import Fascicolo, StatoFascicolo, TipoFascicolo
 from pct.fascicolo_sentenza_economica import SENTENZA_VECTOR_SCHEMA_VERSION
-from scripts.backfill_sentenza_lex_economics import _vector_relevant_excerpt, _vector_result_current, run_backfill
+from scripts.backfill_sentenza_lex_economics import (
+    TenantBackfillTarget,
+    _metadata_for_text,
+    _vector_relevant_excerpt,
+    _vector_result_current,
+    run_backfill,
+)
 
 
 SENTENZA_TEXT = """
@@ -93,6 +99,19 @@ def test_vector_result_current_richiede_schema_compatto_e_pending_zero():
     assert _vector_result_current(old_result) is False
     assert _vector_result_current(pending_result) is False
     assert _vector_result_current(current_result) is True
+
+
+def test_metadata_senza_classificazione_non_inventa_sentenza(tmp_path: Path):
+    path = tmp_path / "fascicoli" / "documenti_ai" / "tenant" / "fascicoli" / "FASC-1" / "documenti_ai" / "DOC-1" / "v1" / "extracted_text.json"
+    tenant = TenantBackfillTarget(tenant="tenant", storage_key="tenant", root=tmp_path)
+
+    metadata = _metadata_for_text(
+        {"tenant_id": "tenant", "fascicolo_id": "FASC-1", "document_id": "DOC-1", "text": "Memoria difensiva"},
+        path,
+        tenant,
+    )
+
+    assert metadata["tipo_documento"] == ""
 
 
 def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path: Path):
@@ -342,7 +361,9 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
     assert aggiornato["pagamenti"]["contributo_unificato"]["importo"] == 21.5
     assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "spese_esborsi"
     assert aggiornato["pagamenti"]["contributo_unificato"]["label"] == "Spese/esborsi"
-    assert aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]["last_extraction"]["beneficio_cliente_importo"] == 500.0
+    last_extraction = aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]["last_extraction"]
+    assert last_extraction["beneficio_cliente_importo"] == 500.0
+    assert "spese_esborsi_confermate_pdf" in last_extraction["warnings"]
     assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
     assert aggiornato["pagamenti"]["parcella"]["importo"] > 321.5
     parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))

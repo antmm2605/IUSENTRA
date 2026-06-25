@@ -37,6 +37,7 @@ from pct.pec_pipeline import (
     ingest_synthetic_dataset,
     parse_pec_message,
     synthetic_pec_messages,
+    verify_signature,
 )
 
 
@@ -862,6 +863,34 @@ def test_extract_text_with_coverage_reads_clickable_pdf_link_inside_zip():
     assert "20200029s.pdf" in text
     assert "STANZA VIRTUALE DOTT. NICOLA TRITTA" in text
     assert exact_link in text
+
+
+def test_extract_text_with_coverage_skips_pcten_mislabeled_pdf():
+    text, coverage = extract_text_with_coverage(
+        AttachmentPayload(
+            index=1,
+            filename="Atto.pdf",
+            content_type="application/pdf",
+            data=b"PCTENCRYPTED-PAYLOAD-NOT-A-PDF" + (b"\x00" * 200),
+        )
+    )
+
+    assert text == ""
+    assert coverage == 0.0
+
+
+def test_verify_signature_skips_pcten_mislabeled_pdf():
+    status, details = verify_signature(
+        AttachmentPayload(
+            index=1,
+            filename="Atto.pdf",
+            content_type="application/pdf",
+            data=b"PCTENCRYPTED-PAYLOAD-NOT-A-PDF",
+        )
+    )
+
+    assert status == "non_applicabile"
+    assert details["checks"][0]["detail"] == "contenuto non PDF"
 
 
 def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_path):

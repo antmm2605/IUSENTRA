@@ -388,7 +388,7 @@ def _metadata_for_text(payload: dict[str, Any], path: Path, tenant: TenantBackfi
         "filename": _text(payload.get("filename") or payload.get("original_filename") or path.parent.parent.name),
         "sha256": _text(payload.get("sha256")),
         "extracted_text_path": str(path),
-        "tipo_documento": _text(payload.get("tipo_documento") or payload.get("classification") or "Sentenza Tribunale"),
+        "tipo_documento": _text(payload.get("tipo_documento") or payload.get("classification")),
     }
 
 
@@ -416,6 +416,17 @@ def _remember_contributo_pdf_evidence(
     current = evidences.get(fascicolo_id)
     if current is None or _contributo_evidence_score(evidence) > _contributo_evidence_score(current):
         evidences[fascicolo_id] = evidence
+
+
+def _looks_like_contributo_evidence(text: str, metadata: dict[str, Any]) -> bool:
+    probe = " ".join(
+        _text(metadata.get(key))
+        for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
+    ).casefold()
+    if any(marker in probe for marker in ("contributo", "c.u", "pagopa", "pago pa", "ricevuta pagamento")):
+        return True
+    sample = str(text or "")[:24000].casefold()
+    return any(marker in sample for marker in ("contributo unificat", "c.u.", "pagopa", "pago pa"))
 
 
 def run_backfill(
@@ -483,21 +494,6 @@ def run_backfill(
         fascicoli, fatturazione = _build_repositories(tenant)
         paths = _iter_extracted_texts(tenant.root)
         contributo_pdf_by_fascicolo: dict[str, dict[str, Any]] = {}
-        for evidence_path in paths:
-            try:
-                evidence_payload = _load_json(evidence_path)
-                if not isinstance(evidence_payload, dict):
-                    continue
-                evidence_text = _text(evidence_payload.get("text") or evidence_payload.get("testo"))
-                evidence_metadata = _metadata_for_text(evidence_payload, evidence_path, tenant)
-                evidence = extract_contributo_unificato_document_evidence(evidence_text, evidence_metadata)
-                _remember_contributo_pdf_evidence(
-                    contributo_pdf_by_fascicolo,
-                    _text(evidence_metadata.get("fascicolo_id")),
-                    evidence,
-                )
-            except Exception:
-                continue
         candidates: list[BackfillCandidate] = []
         best_by_sentenza_key: dict[str, BackfillCandidate] = {}
         for path in paths:
@@ -510,6 +506,13 @@ def run_backfill(
                     continue
                 text = _text(payload.get("text") or payload.get("testo"))
                 metadata = _metadata_for_text(payload, path, tenant)
+                if _looks_like_contributo_evidence(text, metadata):
+                    evidence = extract_contributo_unificato_document_evidence(text, metadata)
+                    _remember_contributo_pdf_evidence(
+                        contributo_pdf_by_fascicolo,
+                        _text(metadata.get("fascicolo_id")),
+                        evidence,
+                    )
                 extraction = analyze_sentenza_tribunale_text(text, metadata)
                 if not extraction.found:
                     continue
@@ -519,8 +522,6 @@ def run_backfill(
                 sentenza_key = _sentenza_key(tenant, metadata, extraction)
                 fascicolo_key = f"{tenant.storage_key}:{fascicolo_id}"
                 metadata["sentenza_key"] = sentenza_key
-                if fascicolo_id in contributo_pdf_by_fascicolo:
-                    metadata["contributo_unificato_pdf"] = dict(contributo_pdf_by_fascicolo[fascicolo_id])
                 result = BackfillDocumentResult(
                     tenant=tenant.storage_key,
                     fascicolo_id=fascicolo_id,
@@ -589,6 +590,9 @@ def run_backfill(
                 )
         for candidate in candidates:
             result = candidate.result
+            fascicolo_id = _text(candidate.metadata.get("fascicolo_id"))
+            if fascicolo_id in contributo_pdf_by_fascicolo:
+                candidate.metadata["contributo_unificato_pdf"] = dict(contributo_pdf_by_fascicolo[fascicolo_id])
             if best_by_sentenza_key.get(candidate.sentenza_key) is not candidate:
                 result.message = "Duplicato della stessa sentenza: matrice già contabilizzata sul documento migliore."
                 result.warnings.append("duplicato_sentenza_saltato")

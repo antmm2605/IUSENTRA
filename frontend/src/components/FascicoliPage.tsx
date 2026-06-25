@@ -3445,8 +3445,10 @@ function DepositPreparePage({ id }:{id:string}) {
   const compatibilityReceipts = Array.isArray(compatibilityReport.ricevute_attese)
     ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : []
+  const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)
+  const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend
-  const realSendDisabledReason = !packagePreview?.packageReady
+  const realSendDisabledReason = !packageReadyForRealSend
     ? 'Esegui prima la prova senza invio reale.'
     : proofBlocksDirectSend
       ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
@@ -4195,7 +4197,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <DepositActionButton
                 action={realSendAction}
                 payload={depositActionPayload}
-                disabled={actionBlocked || !packagePreview?.packageReady || !realSendAvailable}
+                disabled={actionBlocked || !packageReadyForRealSend || !realSendAvailable}
                 disabledReason={realSendDisabledReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
@@ -5374,6 +5376,11 @@ function depositStatusLabel(status: string): string {
     .split(/\s+/)
     .map((word) => word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : word)
     .join(' ')
+}
+
+function depositHasPersistedDryRunProof(dep: FascicoloDeposit): boolean {
+  const text = normaliseText(`${dep.status} ${dep.message} ${dep.checks} ${dep.source}`)
+  return dep.simulated || /prova\s+senza\s+invio/.test(text)
 }
 
 function isCancelleriaCommunication(dep: FascicoloDeposit): boolean {

@@ -2248,6 +2248,24 @@ Stato anti-regressione:
 - test React deposito aggiornato per mostrare lo username SMTP locale nel modal di invio reale;
 - resta vietato usare lo SMTP server-side per depositi, notifiche legali e invii PEC operativi.
 
+## Deposito reale dopo prova senza invio persistita 2.253.103 - 2026-06-25
+
+Difetto reale rilevato su produzione: nella pagina React `Prepara deposito` il fascicolo mostrava una ricevuta `PROVA SENZA INVIO`, PEC ufficio verificata, documenti in busta, `DatiAtto.xml`, `IndiceDocumentiDepositati.PDF` e corpo PEC presenti, ma il pulsante `Invia deposito reale` restava disabilitato con tooltip `Esegui prima la prova senza invio reale.`.
+
+Correzione applicata:
+
+- il prerequisito UI della prova senza invio ora riconosce anche una prova già persistita nel fascicolo, tramite deposito marcato come simulato o stato/messaggio `prova senza invio`;
+- la prova persistita non viene mai trattata come invio valido e non registra ricevute reali;
+- al click su `Invia deposito reale` il software rigenera comunque classificazione, firme richieste, `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `Atto.enc` CMS/PKCS#7 AES256 e corpo PEC;
+- l'invio reale continua a fermarsi prima dello SMTP server-side e richiede sempre `requires_local_pec`/Local Signer sul PC locale, con password inserita al momento;
+- se la prova non esiste, oppure se manca PEC ufficio, Atto.enc conforme, PEC mittente locale o altro requisito obbligatorio, il pulsante resta bloccato o il backend restituisce il requisito preciso.
+
+Stato anti-regressione:
+
+- aggiunto guardrail React perché `Invia deposito reale` usi `packageReadyForRealSend`, cioè preview corrente oppure prova senza invio persistita;
+- il guardrail conserva il divieto di `packageConfirmedForReal` manuale e il divieto di invio SMTP dal server;
+- prova visiva da ripetere dopo build/deploy su `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#generazione-busta`: con `Ricevute 1 PROVA SENZA INVIO`, il pulsante reale deve risultare cliccabile e, al click, deve aprire la richiesta password PEC locale/Local Signer oppure indicare un requisito tecnico mancante puntuale.
+
 ## PAT / SIGA - struttura XFA ministeriale e compilazione moduli 4.x - 2026-06-23
 
 Obiettivo operativo: IUSENTRA deve preparare il deposito PAT dentro il software e lasciare il portale ufficiale SIGA/Formweb solo come fase finale di consegna. Il modulo non deve essere ricostruito con un layout imitato: il PDF prodotto deve restare il modello ministeriale originale, con i valori scritti nei campi XFA ufficiali.

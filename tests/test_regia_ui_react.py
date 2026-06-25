@@ -210,6 +210,10 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "completeLocalPec={completeDepositLocalPec}" in deposit_page
     assert "bustaAudit: payload.busta_audit" in deposit_page
     assert "const proofBlocksDirectSend = Boolean(" in deposit_page
+    assert "function depositHasPersistedDryRunProof" in source
+    assert "const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)" in deposit_page
+    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)" in deposit_page
+    assert "disabled={actionBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
     assert "directPecReady && !guidedCompletion" not in deposit_page
     assert "Invio reale non attivo: manca ancora il trasporto ministeriale conforme." not in deposit_page

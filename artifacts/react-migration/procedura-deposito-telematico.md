@@ -2266,6 +2266,36 @@ Stato anti-regressione:
 - il guardrail conserva il divieto di `packageConfirmedForReal` manuale e il divieto di invio SMTP dal server;
 - prova visiva da ripetere dopo build/deploy su `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#generazione-busta`: con `Ricevute 1 PROVA SENZA INVIO`, il pulsante reale deve risultare cliccabile e, al click, deve aprire la richiesta password PEC locale/Local Signer oppure indicare un requisito tecnico mancante puntuale.
 
+## Simula invio PEC: firma DatiAtto.xml e certificato Windows di firma 2.253.105 / Local Signer 1.6.80 - 2026-06-25
+
+Difetto reale segnalato nel click `Simula invio PEC`: prima della simulazione il frontend riceveva `requires_local_signature` e chiedeva al Local Signer di firmare `DatiAtto.xml`; il Local Signer entrava nel ramo Windows Certificate Store e PowerShell restituiva l'errore tecnico `ComputeSignature` con codice `-1073741275`. Nessuna PEC veniva inviata, ma il messaggio grezzo rendeva la fase inutilizzabile.
+
+Distinzione operativa:
+
+- il rifiuto ministeriale `Indice busta non trovato` riguarda la presenza di `IndiceBusta.xml` dentro `Atto.enc`;
+- l'errore `ComputeSignature` riguarda la firma locale CAdES di `DatiAtto.xml`, necessaria per creare poi `IndiceBusta.xml` e `Atto.enc`;
+- i due problemi sono collegati nella sequenza del deposito, ma non hanno la stessa causa.
+
+Correzione applicata:
+
+- Local Signer `1.6.80` separa il certificato Windows usato per autenticazione PST dal certificato Windows usato per firma CAdES;
+- per firmare `DatiAtto.xml` vengono esclusi certificati con indizi `auth`, `autenticazione`, `authentication`, `client`, `web`, `login` e viene preferito un certificato di firma qualificata;
+- la risposta `/ping` espone `certificato_windows_firma_selezionato`; la UI React lo usa prima del vecchio `certificato_windows_selezionato`;
+- la PowerShell di firma Windows Store non viene più lanciata come subprocess nascosto, così eventuali prompt PIN/driver possono apparire sul PC reale;
+- l'errore `ComputeSignature` viene trasformato in un messaggio operativo: firma Windows non completata dal provider del token, verificare certificato di firma qualificata, prompt PIN e token; nessuna PEC inviata.
+
+Guardrail anti-regressione:
+
+- test Local Signer per impedire che un certificato `AUTENTICAZIONE WEB` venga scelto come certificato di firma;
+- test Local Signer per impedire il ritorno alla firma Windows nascosta;
+- test Local Signer per impedire la ricomparsa dello stack PowerShell grezzo nel messaggio utente;
+- test React per assicurare che il frontend preferisca `certificato_windows_firma_selezionato`;
+- `Simula invio PEC` deve restare senza SMTP reale: prepara/firma metadato, genera `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF`, `Atto.enc`, corpo PEC e report di compatibilità, ma non spedisce PEC.
+
+Aggiornamento reale `1.6.80`: dopo installazione sulla macchina locale, `/ping?auto=1` su `127.0.0.1:27272` conferma token Bit4id presente, libreria `C:\Windows\System32\bit4xpki.dll`, certificato di autenticazione separato e certificato di firma qualificata `GIUSEPPE MONTAGNESE` esposto come `certificato_windows_firma_selezionato`. La chiamata reale `/firma` su un metadato minimo `DatiAtto.xml` non produce più lo stack `ComputeSignature`; il provider PKCS#11 restituisce `PinLocked` e il Local Signer risponde in JSON con messaggio operativo `PIN del dispositivo di firma bloccato... Nessuna PEC è stata inviata.`. Nessuna PEC è stata inviata durante la prova. La firma reale resta fisicamente bloccata finché il dispositivo dell'avvocato non viene sbloccato con procedura del fornitore/PUK.
+
+Guardrail aggiunto in `1.6.80`: gli errori PKCS#11 vuoti o tecnici (`PinIncorrect`, `PinLocked`, token assente, sessione scaduta) vengono trasformati in messaggi operativi non vuoti; la UI React legge anche risposte Local Signer testuali, non solo JSON, per non perdere il messaggio reale nel click `Simula invio PEC`, firma multipla, firma singola o invio PEC locale.
+
 ## PAT / SIGA - struttura XFA ministeriale e compilazione moduli 4.x - 2026-06-23
 
 Obiettivo operativo: IUSENTRA deve preparare il deposito PAT dentro il software e lasciare il portale ufficiale SIGA/Formweb solo come fase finale di consegna. Il modulo non deve essere ricostruito con un layout imitato: il PDF prodotto deve restare il modello ministeriale originale, con i valori scritti nei campi XFA ufficiali.

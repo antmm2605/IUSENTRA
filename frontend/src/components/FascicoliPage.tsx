@@ -2682,6 +2682,20 @@ function recordText(row: Record<string, unknown> | undefined, key: string, fallb
   return String(value ?? fallback).trim()
 }
 
+async function parseLocalSignerResponse(response: Response): Promise<Record<string, unknown>> {
+  const rawText = await response.text().catch(() => '')
+  const text = rawText.trim()
+  if (!text) return {}
+  try {
+    const payload = JSON.parse(text)
+    return payload && typeof payload === 'object' && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : { errore: text }
+  } catch {
+    return { errore: text }
+  }
+}
+
 function recordBool(row: Record<string, unknown> | undefined, key: string) {
   const value = row?.[key]
   return value === true || value === 'true' || value === '1' || value === 1
@@ -3139,7 +3153,7 @@ function DepositPreparePage({ id }:{id:string}) {
     } catch {
       throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Verifica che il servizio locale sia attivo su 127.0.0.1:27272 e ripeti la prova deposito.')
     }
-    const signaturePayload = await signatureResponse.json().catch(() => ({} as Record<string, unknown>))
+    const signaturePayload = await parseLocalSignerResponse(signatureResponse)
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
     if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
       throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma DatiAtto.xml non completata dal Local Signer.')))
@@ -3192,7 +3206,7 @@ function DepositPreparePage({ id }:{id:string}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...localPayload, password }),
     })
-    const localResult = await localResponse.json().catch(() => ({})) as Record<string, unknown>
+    const localResult = await parseLocalSignerResponse(localResponse)
     if (!localResponse.ok || localResult.ok === false) {
       throw new Error(recordText(localResult, 'messaggio', recordText(localResult, 'errore', 'Local Signer non ha confermato l’invio PEC.')))
     }
@@ -4632,7 +4646,7 @@ function DepositBatchSignaturePanel({
       } finally {
         window.clearTimeout(timeout)
       }
-      const payload = await signResponse.json().catch(() => ({} as Record<string, unknown>))
+      const payload = await parseLocalSignerResponse(signResponse)
       const pinSessionId = recordText(payload, 'pin_session_id')
       const pinSessionTtlSeconds = recordNumber(payload, 'pin_session_ttl_seconds', 0)
       const risultati = Array.isArray(payload.risultati) ? payload.risultati as Array<Record<string, unknown>> : []
@@ -5663,6 +5677,7 @@ type LocalSignerStatus = {
   ok?: boolean
   token?: LocalSignerToken[]
   token_probe_fresh?: LocalSignerToken[]
+  certificato_windows_firma_selezionato?: LocalSignerWindowsCertificate
   certificato_windows_selezionato?: LocalSignerWindowsCertificate
   versione?: string
   version?: string
@@ -5795,7 +5810,7 @@ function localSignerTokenLabel(token?: LocalSignerToken): string {
 }
 
 function localSignerWindowsCertificate(status?: LocalSignerStatus | null): LocalSignerWindowsCertificate | null {
-  const cert = status?.certificato_windows_selezionato
+  const cert = status?.certificato_windows_firma_selezionato || status?.certificato_windows_selezionato
   return cert?.thumbprint ? cert : null
 }
 
@@ -6136,7 +6151,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           visible_signature_datetime_mode: visibleSignatureDatetimeMode,
         }),
       })
-      const signedPayload = await signResponse.json()
+      const signedPayload = await parseLocalSignerResponse(signResponse)
       if (!signResponse.ok || !signedPayload.ok) {
         throw new Error(String(signedPayload.errore || signedPayload.messaggio || `Firma non riuscita: HTTP ${signResponse.status}`))
       }

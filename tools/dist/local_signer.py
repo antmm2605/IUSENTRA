@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.78
+IUSENTRA Local Signer - v1.6.80
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -115,7 +115,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.78"
+VERSION = "1.6.80"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2549,6 +2549,78 @@ def _certificato_windows_compatibile_pst(
     return True
 
 
+def _certificato_windows_firma_candidato(cert: Optional[dict], *, prefer_cf: str = "") -> bool:
+    """True only for Windows Store certificates usable as signing candidates."""
+    if not cert or not str(cert.get("thumbprint") or "").strip():
+        return False
+    if _cert_scaduto(cert):
+        return False
+
+    subject_raw = _cert_subject_text(cert)
+    subject_norm = _cert_match_normalized(subject_raw)
+    issuer_norm = _cert_issuer_norm(cert)
+
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+    if prefer_cf_norm and prefer_cf_norm not in subject_raw.upper():
+        return False
+
+    authentication_hints = (
+        "auth",
+        "autenticazione",
+        "authentication",
+        "authentica",
+        "client",
+        "web",
+        "login",
+    )
+    if _cert_is_authentication_issuer(issuer_norm):
+        return False
+    if any(hint in subject_norm for hint in authentication_hints):
+        return False
+
+    return True
+
+
+def _cert_firma_preferred_score(cert: dict, *, prefer_cf: str = "") -> int:
+    subject_norm = _cert_match_normalized(_cert_subject_text(cert))
+    issuer_norm = _cert_issuer_norm(cert)
+    score = 1
+
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+    if prefer_cf_norm and prefer_cf_norm in _cert_subject_text(cert).upper():
+        score += 500
+
+    for hint in ("qualified", "qualificato", "firma", "signature", "sign", "qcert"):
+        if hint in issuer_norm:
+            score += 30
+        if hint in subject_norm:
+            score += 20
+
+    for provider in ("arubapec", "aruba", "infocert", "namirial", "actalis", "poste", "trustpro"):
+        if provider in issuer_norm:
+            score += 5
+
+    return score
+
+
+def _pick_preferred_windows_signature_cert(
+    certs: list[dict],
+    *,
+    prefer_cf: str = "",
+) -> Optional[dict]:
+    candidates = [
+        cert for cert in list(certs or [])
+        if _certificato_windows_firma_candidato(cert, prefer_cf=prefer_cf)
+    ]
+    if not candidates:
+        return None
+    scored = [(_cert_firma_preferred_score(cert, prefer_cf=prefer_cf), cert) for cert in candidates]
+    scored.sort(key=lambda item: item[0], reverse=True)
+    if len(scored) == 1 or scored[0][0] > scored[1][0]:
+        return scored[0][1]
+    return None
+
+
 def _close_pin_session_entry(entry: Optional[dict]) -> None:
     if not entry:
         return
@@ -3003,13 +3075,16 @@ def _create_pin_session(lib_path: str, pin: str, slot_id: Optional[int] = None) 
 
     from pct.firma_pkcs11 import FirmaPKCS11
 
-    signer = FirmaPKCS11(
-        library_path=lib_path,
-        slot_id=slot_id if slot_id is not None else 0,
-        pin=pin,
-    )
-    # Forza l'apertura del token e il caricamento del certificato una sola volta.
-    signer.verifica_scadenza(giorni_preavviso=0)
+    try:
+        signer = FirmaPKCS11(
+            library_path=lib_path,
+            slot_id=slot_id if slot_id is not None else 0,
+            pin=pin,
+        )
+        # Forza l'apertura del token e il caricamento del certificato una sola volta.
+        signer.verifica_scadenza(giorni_preavviso=0)
+    except Exception as exc:
+        raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
 
     created_at = _utcnow_naive()
     entry = {
@@ -3092,17 +3167,24 @@ def _windows_certificato_per_firma(cert_thumbprint: Optional[str] = None) -> dic
     if sys.platform != "win32":
         return {}
     cert = _trova_certificato_windows(cert_thumbprint)
-    if cert.get("thumbprint"):
+    prefer_cf = _estrai_codice_fiscale_testo(
+        " ".join(
+            [
+                str(cert.get("codice_fiscale") or ""),
+                str(cert.get("soggetto") or ""),
+                str(cert.get("soggetto_completo") or ""),
+            ]
+        )
+    )
+    if cert.get("thumbprint") and _certificato_windows_firma_candidato(cert, prefer_cf=prefer_cf):
         _ricorda_certificato_windows(cert)
         return dict(cert)
     try:
         prefs = _ping_query_preferences("/ping")
-        cert = _pick_preferred_windows_cert(
-            _windows_lista_certificati(),
-            prefer_issuer=prefs["prefer_issuer"],
-            prefer_subject=prefs["prefer_subject"],
-            prefer_cf=prefs["prefer_cf"],
-            auto=True,
+        certs = _windows_lista_certificati()
+        cert = _pick_preferred_windows_signature_cert(
+            certs,
+            prefer_cf=prefer_cf or prefs["prefer_cf"],
         ) or {}
     except Exception:
         cert = {}
@@ -3128,6 +3210,103 @@ def _errore_pkcs11_senza_token(exc: Exception) -> bool:
     ))
 
 
+def _exception_detail(exc: BaseException) -> str:
+    text = str(exc or "").strip()
+    if text:
+        return text
+    parts: list[str] = []
+    for raw in getattr(exc, "args", ()) or ():
+        value = str(raw or "").strip()
+        if not value:
+            value = repr(raw).strip()
+        if value and value not in parts:
+            parts.append(value)
+    cls_name = type(exc).__name__
+    if cls_name and cls_name != "Exception" and cls_name not in parts:
+        parts.insert(0, cls_name)
+    module_name = getattr(type(exc), "__module__", "")
+    if module_name and module_name not in {"builtins", "__main__"}:
+        dotted = f"{module_name}.{cls_name}"
+        if dotted not in parts:
+            parts.append(dotted)
+    return " - ".join(part for part in parts if part).strip()
+
+
+def _pkcs11_firma_error_message(exc: BaseException) -> str:
+    detail = _exception_detail(exc)
+    lower = detail.lower()
+    if any(
+        marker in lower
+        for marker in (
+            "nessuna pec",
+            "firma windows non completata",
+            "pin firma non corretto",
+            "pin del dispositivo di firma bloccato",
+            "token non pronto per la firma",
+            "sessione pin scaduta",
+            "dispositivo di firma non rilevato",
+        )
+    ):
+        return detail
+    if any(marker in lower for marker in ("pinincorrect", "ckr_pin_incorrect", "pin incorrect", "pin non corretto", "pin errato")):
+        return (
+            "PIN firma non corretto. Verifica il PIN della chiave di firma e ripeti la simulazione. "
+            "Nessuna PEC è stata inviata."
+        )
+    if any(marker in lower for marker in ("pinlocked", "ckr_pin_locked", "pin locked", "pin bloccato")):
+        return (
+            "PIN del dispositivo di firma bloccato. Sblocca o verifica il token con il software del fornitore. "
+            "Nessuna PEC è stata inviata."
+        )
+    if any(marker in lower for marker in ("tokennotpresent", "token not present", "ckr_token_not_present", "device removed", "lettore")):
+        return (
+            "Token non pronto per la firma: verifica che smart card o chiave USB siano inserite e riconosciute. "
+            "Nessuna PEC è stata inviata."
+        )
+    if any(marker in lower for marker in ("sessionhandleinvalid", "session handle", "user not logged in", "ckr_user_not_logged_in")):
+        return (
+            "Sessione token non più valida. Reinserisci il PIN e ripeti la simulazione. "
+            "Nessuna PEC è stata inviata."
+        )
+    if any(marker in lower for marker in ("cryptographicexception", "computesignature", "-1073741275", "0xc0000225")):
+        return _firma_windows_store_error_message(detail)
+    if detail and detail not in {"Exception", "Error"}:
+        return f"Firma token non completata: {detail}. Nessuna PEC è stata inviata."
+    return (
+        "Firma token non completata dal provider PKCS#11. Verifica PIN, token e middleware di firma, "
+        "poi ripeti la simulazione. Nessuna PEC è stata inviata."
+    )
+
+
+def _firma_operational_error_message(exc: BaseException) -> str:
+    detail = _exception_detail(exc)
+    lower = detail.lower()
+    if any(marker in lower for marker in ("computesignature", "-1073741275", "0xc0000225", "cryptographicexception")):
+        return _firma_windows_store_error_message(detail)
+    return _pkcs11_firma_error_message(exc)
+
+
+def _firma_windows_store_error_message(detail: str) -> str:
+    text = (detail or "").strip()
+    text_lower = text.lower()
+    known_provider_failure = (
+        "computesignature" in text_lower
+        or "-1073741275" in text_lower
+        or "0xc0000225" in text_lower
+        or "cryptographicexception" in text_lower
+    )
+    if known_provider_failure:
+        return (
+            "Firma Windows non completata dal provider del token. "
+            "Verifica che sia selezionato il certificato di firma qualificata, che il prompt PIN "
+            "sia visibile sul PC e che la smart card/token sia sbloccata, poi ripeti la simulazione. "
+            "Nessuna PEC è stata inviata."
+        )
+    if text:
+        return text
+    return "Firma Windows non completata. Nessuna PEC è stata inviata."
+
+
 def _firma_documento_windows_store(
     documento: bytes,
     *,
@@ -3140,8 +3319,9 @@ def _firma_documento_windows_store(
     thumbprint = str(cert.get("thumbprint") or "").replace(" ", "").upper()
     if not thumbprint:
         raise RuntimeError(
-            "Certificato Windows non selezionato. Aprire il canale PST o selezionare il certificato "
-            "dal Local Signer, poi ripetere la firma."
+            "Certificato Windows di firma non selezionato. Se il token contiene sia certificato di "
+            "autenticazione sia certificato di firma, seleziona quello di firma qualificata nel "
+            "Local Signer o usa il token PKCS#11, poi ripeti la simulazione deposito."
         )
 
     intestatario = str(cert.get("soggetto_completo") or cert.get("soggetto") or "")
@@ -3201,15 +3381,15 @@ $cms.ComputeSignature($signer, $false)
             "-OutputPath",
             str(output_path),
         ]
-        run_kwargs = _windows_hidden_subprocess_kwargs({
+        run_kwargs = {
             "capture_output": True,
             "text": True,
             "timeout": 240,
-        })
+        }
         result = subprocess.run(command, **run_kwargs)
         if result.returncode != 0 or not output_path.exists():
             detail = (result.stderr or result.stdout or "").strip()
-            raise RuntimeError(detail or "Firma Windows non completata.")
+            raise RuntimeError(_firma_windows_store_error_message(detail))
         firmato = output_path.read_bytes()
 
     info = {
@@ -3262,9 +3442,9 @@ def _firma_documento_via_sessione(
             pin_session_cached=True,
         )
         return firmato, info
-    except Exception:
+    except Exception as exc:
         _drop_pin_session(pin_session_id)
-        raise
+        raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
 
 
 def _firma_documento(lib_path: str, documento: bytes, pin: str,
@@ -3325,9 +3505,9 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                     visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
                 )
-        except Exception:
+        except Exception as exc:
             _drop_pin_session(session_id)
-            raise
+            raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
         info = _firma_info_dict(
             firma.intestatario or "",
             firma.scadenza,
@@ -3346,7 +3526,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
-        raise
+        raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
 
     # Implementazione inline (fallback senza pct/)
     try:
@@ -3368,7 +3548,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
-        raise
+        raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
 
 
 def _firma_inline(lib_path: str, documento: bytes, pin: str,
@@ -10087,6 +10267,24 @@ class _Handler(BaseHTTPRequestHandler):
                         "codice_fiscale": selected.get("codice_fiscale", ""),
                         "auto_selezionato": bool(preferred),
                     }
+                firma_selected = _pick_preferred_windows_signature_cert(
+                    certs,
+                    prefer_cf=prefs["prefer_cf"],
+                ) if certs else None
+                if not firma_selected and _certificato_windows_firma_candidato(cached, prefer_cf=prefs["prefer_cf"]):
+                    firma_selected = cached
+                if firma_selected and firma_selected.get("thumbprint"):
+                    resp["certificato_windows_firma_selezionato"] = {
+                        "thumbprint": firma_selected.get("thumbprint"),
+                        "soggetto": firma_selected.get("soggetto", ""),
+                        "soggetto_completo": firma_selected.get("soggetto_completo", ""),
+                        "emittente": firma_selected.get("emittente", ""),
+                        "emittente_completo": firma_selected.get("emittente_completo", ""),
+                        "scadenza": firma_selected.get("scadenza", ""),
+                        "codice_fiscale": firma_selected.get("codice_fiscale", ""),
+                        "auto_selezionato": True,
+                        "uso": "firma",
+                    }
                 if prefs["prefer_cf"]:
                     resp["filtro_codice_fiscale"] = _estrai_codice_fiscale_testo(prefs["prefer_cf"])
                 if certs:
@@ -10585,8 +10783,9 @@ class _Handler(BaseHTTPRequestHandler):
                 **info,
             })
         except Exception as e:
-            log.error("Errore firma: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+            msg = _firma_operational_error_message(e)
+            log.exception("Errore firma: %s", msg)
+            self._send_json({"ok": False, "errore": msg}, 500)
 
     def _firma_batch(self):
         """
@@ -10664,15 +10863,16 @@ class _Handler(BaseHTTPRequestHandler):
                 })
                 firmati += 1
             except Exception as e:
+                msg = _firma_operational_error_message(e)
                 current_session_id = ""
                 risultati.append({
                     "ok": False,
                     "indice": idx,
                     "nome": nome,
-                    "errore": str(e),
+                    "errore": msg,
                 })
                 falliti += 1
-                if "Sessione PIN scaduta" in str(e):
+                if "Sessione PIN scaduta" in msg:
                     break
 
         payload = {

@@ -4779,6 +4779,137 @@ def test_pick_preferred_windows_cert_privilegia_aruba_auth():
     assert cert["thumbprint"] == "AUTH-1"
 
 
+def test_pick_preferred_windows_signature_cert_esclude_auth():
+    module = _load_local_signer()
+
+    certs = [
+        {
+            "thumbprint": "AUTH-1",
+            "soggetto": "ROSSI MARIO - AUTENTICAZIONE WEB",
+            "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+            "scadenza": "2029-02-23",
+        },
+        {
+            "thumbprint": "SIGN-1",
+            "soggetto": "ROSSI MARIO - FIRMA DIGITALE",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "scadenza": "2029-02-23",
+        },
+    ]
+
+    cert = module._pick_preferred_windows_signature_cert(certs, prefer_cf="")
+
+    assert cert is not None
+    assert cert["thumbprint"] == "SIGN-1"
+
+
+def test_firma_windows_store_interattiva_non_usa_subprocess_nascosto(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(
+        module,
+        "_windows_certificato_per_firma",
+        lambda cert_thumbprint=None: {
+            "thumbprint": "SIGN-1",
+            "soggetto": "ROSSI MARIO - FIRMA DIGITALE",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "scadenza": "2029-02-23",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_documento_firma_visibile",
+        lambda documento, *args, **kwargs: documento,
+    )
+    monkeypatch.setattr(
+        module,
+        "_windows_hidden_subprocess_kwargs",
+        lambda kwargs: (_ for _ in ()).throw(AssertionError("firma Windows lanciata nascosta")),
+    )
+
+    def _fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        output_path = Path(command[command.index("-OutputPath") + 1])
+        output_path.write_bytes(b"firmato")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", _fake_run)
+
+    firmato, info = module._firma_documento_windows_store(b"DatiAtto")
+
+    assert firmato == b"firmato"
+    assert info["windows_cert_store"] is True
+    assert "creationflags" not in captured["kwargs"]
+    assert "startupinfo" not in captured["kwargs"]
+
+
+def test_firma_windows_store_error_message_non_espone_stack_tecnico():
+    module = _load_local_signer()
+
+    msg = module._firma_windows_store_error_message(
+        'firma_windows_store.ps1 : Eccezione durante la chiamata di "ComputeSignature" '
+        'con "2" argomento/i: "Errore sconosciuto "-1073741275"."'
+    )
+
+    assert "Firma Windows non completata" in msg
+    assert "Nessuna PEC è stata inviata" in msg
+    assert "firma_windows_store.ps1" not in msg
+    assert "-1073741275" not in msg
+
+
+def test_firma_operational_error_message_non_resta_vuoto_su_eccezione_pkcs11_muta():
+    module = _load_local_signer()
+
+    class EmptyPkcs11Error(Exception):
+        def __str__(self):
+            return ""
+
+    msg = module._firma_operational_error_message(EmptyPkcs11Error())
+
+    assert msg
+    assert "Firma token non completata" in msg
+    assert "Nessuna PEC" in msg
+
+
+def test_firma_singola_restituisce_errore_operativo_se_driver_non_dice_nulla(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    class EmptyPkcs11Error(Exception):
+        def __str__(self):
+            return ""
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "documento": base64.b64encode(b"DatiAtto").decode(),
+                "pin": "123456",
+                "slot_id": 0,
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_trova_libreria", lambda: "fake.dll")
+
+    def _raise_empty(*args, **kwargs):
+        raise EmptyPkcs11Error()
+
+    monkeypatch.setattr(module, "_firma_documento", _raise_empty)
+
+    module._Handler._firma(_FakeHandler())
+
+    assert captured["status"] == 500
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["errore"]
+    assert "Firma token non completata" in captured["payload"]["errore"]
+    assert "Nessuna PEC" in captured["payload"]["errore"]
+
+
 def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     module = _load_local_signer()
 

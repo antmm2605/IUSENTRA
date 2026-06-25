@@ -182,6 +182,11 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "if (!localSignerStatusCanSign(signerStatus))" in deposit_page
     assert "Token non pronto per firmare DatiAtto.xml" in deposit_page
     assert "Local Signer non raggiungibile dal browser per firmare DatiAtto.xml" in deposit_page
+    assert "async function parseLocalSignerResponse" in source
+    assert "const signaturePayload = await parseLocalSignerResponse(signatureResponse)" in deposit_page
+    assert "const payload = await parseLocalSignerResponse(signResponse)" in deposit_page
+    assert "certificato_windows_firma_selezionato" in source
+    assert "status?.certificato_windows_firma_selezionato || status?.certificato_windows_selezionato" in source
     assert "result.requires_local_pec && completeLocalPec" in action_button
     assert "setConfirming(false)\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
     assert "await completeLocalPec(result, submittedPayload)" in action_button

@@ -4,6 +4,7 @@ import re
 from typing import Protocol
 
 from .models import EngineRun, PageArtifact
+from .unlimited_ocr import UnlimitedOcrEngine
 
 
 class OcrEngine(Protocol):
@@ -195,6 +196,8 @@ def build_engine(name: str) -> OcrEngine:
         return EasyOcrEngine()
     if clean in {"paddleocr", "paddle", "ppocr", "pp-ocr"}:
         return PaddleOcrEngine()
+    if clean in {"unlimited-ocr", "unlimited_ocr", "unlimitedocr", "baidu-unlimited-ocr"}:
+        return UnlimitedOcrEngine()
     if clean in {"abbyy", "google-vision", "google_vision", "trocr", "cloud"}:
         return ExternalAdapterUnavailableEngine(clean)
     raise ValueError(f"Motore OCR non configurato o non locale: {name}")

@@ -3,6 +3,7 @@ from io import BytesIO
 from pathlib import Path
 import sys
 from types import SimpleNamespace
+import zipfile
 
 import pytest
 
@@ -60,6 +61,65 @@ def test_document_ai_extraction_pdf_semplice(tmp_path: Path):
     assert "Testo PDF fascicolo" in result.text
 
 
+def test_document_ai_pdf_mislabeled_pcten_non_usa_parser_pdf():
+    result = extract_text_from_document(b"PCTEN" + (b"\x00" * 200), "Atto.pdf", "pdf")
+
+    assert result.ok is False
+    assert result.text == ""
+    assert result.extraction_engine == "pdf_magic_mismatch"
+    assert any("parser PDF saltato" in warning for warning in result.warnings)
+
+
+def test_document_ai_pdf_mislabeled_zip_resta_leggibile():
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("note.txt", "Testo interno allo ZIP per Lex AI")
+
+    result = extract_text_from_document(buffer.getvalue(), "allegato.pdf", "pdf")
+
+    assert result.ok is True
+    assert result.extraction_engine.startswith("pdf-mismatch:zip")
+    assert "note.txt" in result.text
+    assert "Testo interno allo ZIP" in result.text
+
+
+def test_document_ai_pdf_mislabeled_xml_resta_leggibile():
+    payload = b"<?xml version='1.0'?><root><titolo>Comunicazione PEC</titolo><testo>Presidio XML</testo></root>"
+
+    result = extract_text_from_document(payload, "daticert.pdf", "pdf")
+
+    assert result.ok is True
+    assert result.extraction_engine.startswith("pdf-mismatch:")
+    assert "Comunicazione PEC" in result.text
+    assert "Presidio XML" in result.text
+
+
+def test_document_ai_unlimited_ocr_alimenta_indice_integrale_immagine(monkeypatch):
+    pytest.importorskip("PIL")
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (220, 120), "white").save(buffer, format="PNG")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENABLED", "1")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENDPOINT", "http://127.0.0.1:10000")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_MAX_RETRIES", "1")
+
+    def fake_post(url, payload, timeout, api_key):
+        assert url.endswith("/v1/chat/completions")
+        assert payload["messages"][0]["content"]
+        return {"choices": [{"message": {"content": "TRIBUNALE DI MILANO\nR.G. n. 12345/2026"}}]}
+
+    monkeypatch.setattr("legal_ocr.unlimited.client.post_json_request", fake_post)
+
+    result = extract_text_from_document(buffer.getvalue(), "scansione.png", "png")
+
+    assert result.ok is True
+    assert result.extraction_engine == "legal-ocr:unlimited-ocr:document-index"
+    assert "R.G. n. 12345/2026" in result.text
+    assert result.pages[0].page_number == 1
+    assert any("nessun chunk OCR" in warning for warning in result.warnings)
+
+
 def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas
@@ -75,10 +135,10 @@ def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path):
     result = extract_document_text(target, "pdf")
 
     assert result.error is None
-    assert result.extraction_engine in {"p7m:pdfplumber", "p7m:pypdf"}
+    assert result.extraction_engine in {"cades:pdfplumber", "cades:pypdf"}
     assert result.page_count == 1
     assert "Testo PDF firmato leggibile" in result.text
-    assert any("estensione .p7m" in warning for warning in result.warnings)
+    assert any("PDF interno" in warning for warning in result.warnings)
 
 
 def test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca(monkeypatch):
@@ -241,7 +301,7 @@ def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, 
     result = extract_document_text(target, "pdf")
 
     assert result.error is None
-    assert result.extraction_engine in {"p7m:pdfplumber", "p7m:pypdf"}
+    assert result.extraction_engine in {"cades:pdfplumber", "cades:pypdf"}
     assert "Testo estratto dal payload firmato" in result.text
     assert "Contenuto firmato estratto." in result.warnings
 
@@ -254,7 +314,7 @@ def test_document_ai_extraction_formato_non_supportato_controllata(tmp_path: Pat
 
     assert result.error is not None
     assert result.text == ""
-    assert result.extraction_engine == "unsupported"
+    assert result.extraction_engine == "exe.binary-best-effort"
 
 
 def test_document_ai_extraction_txt_utf8(tmp_path: Path):
@@ -264,7 +324,7 @@ def test_document_ai_extraction_txt_utf8(tmp_path: Path):
     result = extract_document_text(target, "txt")
 
     assert result.error is None
-    assert result.extraction_engine.startswith("text:")
+    assert result.extraction_engine.startswith("txt:")
     assert "Promemoria fascicolo" in result.text
     assert "Credito € 1.200" in result.text
 

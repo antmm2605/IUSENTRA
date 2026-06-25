@@ -122,6 +122,22 @@ def filter_latest_runs_for_wait(
     return filtered
 
 
+def _recent_completed_target_run(
+    recent_runs: list[dict[str, Any]] | Any,
+    *,
+    target_job_id: str,
+) -> dict[str, Any]:
+    for row in list(recent_runs or []):
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("job_id") or "") != target_job_id:
+            continue
+        if str(row.get("status") or "").strip().lower() != "completed":
+            continue
+        return dict(row)
+    return {}
+
+
 def parse_compose_ps_json(output: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     stripped = str(output or "").strip()
@@ -265,6 +281,7 @@ def validate_scheduler_run_audit(
 ) -> dict[str, Any]:
     jobs = list(payload.get("jobs") or [])
     latest_runs = dict(payload.get("latest_runs") or {})
+    recent_runs = list(payload.get("recent_runs") or [])
     now_dt = now or _utc_now()
     errors: list[str] = []
     warnings: list[str] = []
@@ -284,9 +301,23 @@ def validate_scheduler_run_audit(
             continue
         run = latest_runs.get(current_job_id) if isinstance(latest_runs, dict) else None
         status = str((run or {}).get("status") or "").strip().lower()
+        superseded_running: dict[str, Any] = {}
         finished_at = _parse_datetime((run or {}).get("finished_at") or (run or {}).get("started_at"))
         due_window = job_due_window_seconds(job)
         required_now = current_job_id == job_id
+        if required_now and status == "running":
+            started_at = _parse_datetime((run or {}).get("started_at") or (run or {}).get("created_at"))
+            max_running = max(due_window, 2 * 60 * 60) if due_window else 2 * 60 * 60
+            recent_completed = _recent_completed_target_run(recent_runs, target_job_id=job_id)
+            if (
+                recent_completed
+                and started_at
+                and now_dt - started_at <= timedelta(seconds=max_running)
+            ):
+                superseded_running = dict(run or {})
+                run = recent_completed
+                status = "completed"
+                finished_at = _parse_datetime((run or {}).get("finished_at") or (run or {}).get("started_at"))
         due_since_worker_start = (
             True
             if worker_started_at is None or due_window <= 0
@@ -308,6 +339,11 @@ def validate_scheduler_run_audit(
             "latest_message": str((run or {}).get("message") or ""),
             "latest_error": str((run or {}).get("error_message") or ""),
         }
+        if superseded_running:
+            entry["superseded_running_started_at"] = str(
+                superseded_running.get("started_at") or superseded_running.get("created_at") or ""
+            )
+            entry["reason"] = "Run completato recente usato come prova; una run successiva è ancora in corso."
         if current_job_id in INTERNAL_CONTROL_JOBS:
             entry["status"] = "internal_control"
             entry["reason"] = (
@@ -483,7 +519,8 @@ repo = scheduler_registry_repository(app.config)
 repo.upsert_default_jobs(app.config)
 jobs = repo.list_jobs(include_disabled=True)
 latest = repo.latest_runs_by_job()
-print(json.dumps({{"jobs": jobs, "latest_runs": latest}}, ensure_ascii=False, default=str))
+recent = repo.list_recent_runs(limit=250)
+print(json.dumps({{"jobs": jobs, "latest_runs": latest, "recent_runs": recent}}, ensure_ascii=False, default=str))
 """
     completed = _run(
         _compose_base(compose_file, env_file) + ["exec", "-T", "scheduler-worker", "python", "-c", code],
@@ -515,6 +552,16 @@ print(json.dumps({{"jobs": jobs, "latest_runs": latest}}, ensure_ascii=False, de
         target_job_id=job_id,
         since_utc=since_utc,
     )
+    if since_utc:
+        since_literal = _iso_utc(since_utc)
+        payload["recent_runs"] = [
+            row
+            for row in list(payload.get("recent_runs") or [])
+            if isinstance(row, dict)
+            and str(row.get("job_id") or "") == job_id
+            and str(row.get("status") or "").strip().lower() == "completed"
+            and str(row.get("finished_at") or row.get("started_at") or row.get("created_at") or "") >= since_literal
+        ]
     return validate_scheduler_run_audit(
         payload,
         job_id=job_id,

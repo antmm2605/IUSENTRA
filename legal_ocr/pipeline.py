@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from dataclasses import asdict
@@ -19,7 +20,7 @@ from .config import LegalOcrConfig
 from .engines import OcrEngine, build_engine
 from .models import EngineRun
 from .ner_legal import extract_legal_entities
-from .postprocess import apply_deterministic_corrections, build_lex_export, build_notification_proposals, compute_metrics, suggested_hil_fixes
+from .postprocess import apply_deterministic_corrections, build_lex_export, build_notification_proposals, build_vector_source_manifest, compute_metrics, suggested_hil_fixes
 from .preprocessing import rasterize_document
 from .storage import LegalOcrEvidenceStore
 from .tables import reconstruct_tables, table_to_csv, table_to_html
@@ -93,6 +94,22 @@ class LegalOcrPipeline:
         raw_text_path = self.store.write_text(run_id, "raw.txt", selected.text)
         lex_export = build_lex_export(selected.tokens, min_confidence=self.config.lex_min_confidence)
         lex_export["path"] = self.store.write_text(run_id, "lex.txt", str(lex_export.get("text") or ""))
+        vector_source_manifest = build_vector_source_manifest(
+            corrected,
+            selected.pages_text,
+            tenant_id=tenant_id,
+            run_id=run_id,
+            document_id=document_id,
+            fascicolo_id=fascicolo_id,
+            engine=selected.engine,
+            metrics=metrics,
+            hil_required=bool(hil_reasons),
+        )
+        vector_source_manifest["path"] = self.store.write_text(
+            run_id,
+            "vector_source_manifest.json",
+            json.dumps(vector_source_manifest, ensure_ascii=False, indent=2),
+        )
         # Esportazioni strutturate (engine-independent): ALTO-XML, tabelle CSV/HTML, entità legali.
         alto_xml_path = self.store.write_text(run_id, "alto.xml", build_alto_xml(selected.tokens, pages, source_file=filename))
         tables = []
@@ -123,6 +140,7 @@ class LegalOcrPipeline:
             "suggested_hil_fixes": suggested_hil_fixes(selected.text),
             "qc": {"banding": _banding(metrics), "hil_required": bool(hil_reasons), "hil_reasons": hil_reasons, "fallback_rule": "avg_confidence < 0.85 oppure pct_tokens_<0.75 > 10%", "engine_attempts": attempts},
             "lex_export": lex_export,
+            "vector_source_manifest": vector_source_manifest,
             "alto_xml_path": alto_xml_path,
             "tables": tables,
             "legal_entities": legal_entities,
@@ -148,6 +166,10 @@ def _requires_fallback(metrics: dict[str, Any], config: LegalOcrConfig) -> bool:
 
 
 def _better(candidate_metrics: dict[str, Any], current_metrics: dict[str, Any], candidate: EngineRun, current: EngineRun) -> bool:
+    if current.errors and not candidate.errors:
+        return True
+    if candidate.text.strip() and not current.text.strip():
+        return True
     if candidate.tokens and not current.tokens:
         return True
     return float(candidate_metrics.get("avg_confidence") or 0) > float(current_metrics.get("avg_confidence") or 0) + 0.02

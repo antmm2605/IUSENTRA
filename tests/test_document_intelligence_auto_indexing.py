@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
 
 from pct.document_intelligence.extraction import ExtractionResult
@@ -163,6 +164,46 @@ def test_aggiorna_indice_processa_txt_ed_eml(tmp_path: Path, monkeypatch):
     assert [call[:2] for call in calls] == [("nota.txt", "txt"), ("messaggio.eml", "eml")]
     indexed_types = {record.original_filename: record.file_type for record in service.repository.list_documents("tenant-a", "fas-1")}
     assert indexed_types == {"nota.txt": "txt", "messaggio.eml": "eml"}
+
+
+def test_aggiorna_indice_fascicolo_usa_unlimited_ocr_integrale(tmp_path: Path, monkeypatch):
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (220, 120), "white").save(buffer, format="PNG")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENABLED", "1")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENDPOINT", "http://127.0.0.1:10000")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_MAX_RETRIES", "1")
+
+    def fake_post(url, payload, timeout, api_key):
+        return {"choices": [{"message": {"content": "Atto scansionato indicizzato integralmente per Lex AI."}}]}
+
+    monkeypatch.setattr("legal_ocr.unlimited.client.post_json_request", fake_post)
+    service = _service(tmp_path)
+
+    result = DocumentAIIndexer(service).process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[
+            _source(
+                buffer.getvalue(),
+                document_id="doc-scan",
+                filename="scansione.png",
+                mime_type="image/png",
+            )
+        ],
+        user_context=_context(),
+    )
+    record = service.repository.list_documents("tenant-a", "fas-1")[0]
+    extracted = service.repository.get_extracted_text("tenant-a", "fas-1", record.id)
+
+    assert result.indexed == 1
+    assert result.summary.ready == 1
+    assert extracted is not None
+    assert extracted.extraction_engine == "legal-ocr:unlimited-ocr:document-index"
+    assert "indicizzato integralmente" in extracted.text
+    assert extracted.pages[0].page_number == 1
+    assert any("nessun chunk OCR" in warning for warning in extracted.warnings)
 
 
 def test_documento_importato_da_portale_viene_indicizzato(tmp_path: Path, monkeypatch):

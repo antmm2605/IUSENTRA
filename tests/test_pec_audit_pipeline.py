@@ -908,6 +908,24 @@ def test_verify_signature_skips_non_cades_pdf_p7m_without_pdf_probe():
     assert details["checks"][0]["detail"] == "contenuto non CAdES/PKCS#7"
 
 
+def test_validation_report_deduplica_testi_operativi_ripetuti():
+    parsed = {
+        "semantic_context": {
+            "agent_questions": ["Verificare ricevute e fascicolo", "Verificare ricevute e fascicolo"],
+            "recommended_actions": ["Aggiornare il fascicolo", "Aggiornare il fascicolo"],
+        },
+        "procedural_profile": {
+            "domande_lex": ["Verificare ricevute e fascicolo"],
+            "checklist_avvocato": ["Aggiornare il fascicolo"],
+        },
+    }
+
+    report = build_validation_report(parsed, [])
+
+    assert report["agent_questions"].count("Verificare ricevute e fascicolo") == 1
+    assert report["recommended_actions"].count("Aggiornare il fascicolo") == 1
+
+
 def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_path):
     exact_link = "https://teams.microsoft.com/l/meetup-join/abc?context=%7B%22Tid%22%3A%22123%22%7D&anon=true"
     xml_text = """

@@ -13,10 +13,14 @@ essere eseguite e testate: lavorano sui token già prodotti.
 | `legal_ocr/tables.py` | `reconstruct_tables(tokens)` + `table_to_csv/html` | tabelle ricostruite da coordinate → CSV e HTML |
 | `legal_ocr/ner_legal.py` | `extract_legal_entities(text)` | NumeroRuolo (R.G.), Uffici, Parti, Date, Riferimenti normativi |
 | `legal_ocr/engines.py` | `EasyOcrEngine`, `PaddleOcrEngine` | adapter motori generali locali (reali se installati) |
+| `legal_ocr/unlimited/` | `UnlimitedOcrEngine`, batch, domande Lex | adapter Unlimited-OCR self-hosted, native-first e benchmark |
 
 Nell'evidenza di ogni documento (`_run_single`) compaiono ora:
 `alto_xml_path` (file ALTO su disco), `tables` (lista con `csv_path`, `html`,
-`n_rows`, `n_cols`, `page`) e `legal_entities`. L'evento
+`n_rows`, `n_cols`, `page`), `legal_entities` e `vector_source_manifest`
+con testo OCR completo, mappa pagine, hash e stato qualità per Lex AI. Non è
+chunking OCR: il database vettoriale potrà segmentare dopo, ma la fonte resta
+il documento letto integralmente. L'evento
 `ocr.structured_export` è aggiunto alla audit-chain firmata.
 
 ## Motori ensemble e disponibilità reale
@@ -29,6 +33,7 @@ fallimento è un EngineRun con `errors`, e si passa al motore successivo).
 | Tesseract (stampato IT) | `tesseract` | wrapper presente, **binario `tesseract` non installato** → degrada |
 | EasyOCR (generale) | `easyocr` | libreria non installata → degrada al fallback |
 | PaddleOCR / PP-OCR (generale) | `paddleocr` / `pp-ocr` | libreria non installata → degrada al fallback |
+| Unlimited-OCR self-hosted | `unlimited-ocr` | opzionale, spento di default; richiede endpoint locale/privato OpenAI-compatible |
 | Testo nativo (PDF con testo) | `native-text-fallback` | **disponibile** (pdfplumber): fallback reale |
 | QC deterministico | `static-low-confidence` | disponibile (test QC) |
 
@@ -37,6 +42,13 @@ installata caricano il modello una sola volta (cache) e producono token con
 bbox e confidenza; se assente ritornano errori e la pipeline prosegue col
 fallback. Per attivarli serve un ambiente con le librerie e i modelli scaricati
 (rete/Docker), vedi sotto.
+
+`UnlimitedOcrEngine` usa codice IUSENTRA e un servizio esterno solo come endpoint
+self-hosted: non importa `trust_remote_code` nel processo applicativo. La lettura
+è ibrida: testo nativo PDF quando è affidabile, Unlimited-OCR per pagine
+scansionate, fallback corrente se il servizio non è pronto. Se l'endpoint non
+fornisce coordinate o confidenze native, i token vengono marcati come sintetici e
+restano soggetti a QC/HIL invece di dichiarare certezza falsa.
 
 ## Layout, tabelle e limiti onesti
 

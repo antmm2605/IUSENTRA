@@ -1,0 +1,101 @@
+# Unlimited-OCR in IUSENTRA
+
+Data: 25 giugno 2026
+
+## Obiettivo
+
+Unlimited-OCR viene integrato come motore AI opzionale, isolato e misurabile per
+PDF lunghi, PDF scansionati e documenti legali con layout complesso. Non
+sostituisce automaticamente Tesseract, testo nativo, EasyOCR o PaddleOCR: entra
+nella pipeline `legal_ocr` come motore `unlimited-ocr` con fallback corrente e
+controlli di qualità.
+
+Il target operativo è leggere il 100% delle pagine utili senza successi
+silenziosi: testo nativo quando affidabile, AI solo sulle pagine scansionate,
+fallback se l'endpoint non risponde, revisione umana quando confidenza,
+coordinate o campi obbligatori non sono abbastanza solidi.
+
+Per Lex AI e il futuro database vettoriale, l'output OCR resta integrale: testo
+completo, mappa pagine, hash e stato qualità. La lettura OCR non viene spezzata
+in chunk; eventuale segmentazione per embedding è una fase successiva e deve
+partire sempre dalla sorgente completa verificata.
+
+## Struttura
+
+Codice nostro, ispirato alla logica della repo Baidu ma senza vendoring:
+
+| File | Ruolo |
+|---|---|
+| `legal_ocr/unlimited/config.py` | feature flag, endpoint, privacy, limiti pagine, concorrenza, retry |
+| `legal_ocr/unlimited/client.py` | client OpenAI-compatible/SGLang, payload immagini, parsing risposta |
+| `legal_ocr/unlimited/batch.py` | conversione PDF in immagini, job concorrenti, output Markdown |
+| `legal_ocr/unlimited/qa.py` | domande Lex-style su testo OCR con citazioni dal documento |
+| `legal_ocr/unlimited_ocr.py` | adapter `EngineRun` per la pipeline OCR legale |
+| `scripts/benchmark_unlimited_ocr_lex.py` | benchmark OCR + domande Lex sui PDF letti |
+
+## Configurazione
+
+Default sicuro: spento.
+
+| Variabile | Default | Uso |
+|---|---:|---|
+| `IUSENTRA_UNLIMITED_OCR_ENABLED` | `0` | abilita il motore |
+| `IUSENTRA_UNLIMITED_OCR_ENDPOINT` | vuoto | endpoint self-hosted, es. `http://127.0.0.1:10000` |
+| `IUSENTRA_UNLIMITED_OCR_MODEL` | `Unlimited-OCR` | nome modello servito |
+| `IUSENTRA_UNLIMITED_OCR_PROVIDER` | `self_hosted` | `self_hosted`, `cloud`, `maas`, `external` |
+| `IUSENTRA_UNLIMITED_OCR_TIMEOUT_SECONDS` | `300` | timeout richiesta |
+| `IUSENTRA_UNLIMITED_OCR_MAX_RETRIES` | `3` | retry controllati |
+| `IUSENTRA_UNLIMITED_OCR_CONCURRENCY` | `2` | concorrenza benchmark batch |
+| `IUSENTRA_UNLIMITED_OCR_MAX_PAGES` | `48` | limite pagine per run governato |
+| `IUSENTRA_UNLIMITED_OCR_MAX_IMAGE_BYTES` | `8388608` | limite immagine pagina |
+| `IUSENTRA_UNLIMITED_OCR_IMAGE_MODE` | `base` | profilo immagini SGLang |
+| `IUSENTRA_UNLIMITED_OCR_STREAM` | `1` | usa risposta streaming OpenAI/SGLang quando disponibile |
+| `IUSENTRA_UNLIMITED_OCR_SYNTHETIC_CONFIDENCE` | `0.84` | confidenza prudente quando l'endpoint non dà coordinate/confidenze token |
+| `IUSENTRA_UNLIMITED_OCR_EXTERNAL_ALLOWED` | `0` | autorizza endpoint non locale/privato |
+
+Endpoint pubblici o cloud restano bloccati senza policy privacy esplicita.
+
+## Uso
+
+Pipeline legal-grade con fallback:
+
+```powershell
+python scripts/run_legal_ocr.py .\documento.pdf --tenant tenant-demo --primary unlimited-ocr --fallback native-text-fallback --json
+```
+
+Benchmark OCR + domande Lex:
+
+```powershell
+python scripts/benchmark_unlimited_ocr_lex.py .\documento.pdf --tenant tenant-demo --json --output-report artifacts/unlimited-ocr/report.json
+```
+
+Benchmark concorrente stile repo Baidu, utile per throughput:
+
+```powershell
+python scripts/benchmark_unlimited_ocr_lex.py .\documento.pdf --tenant tenant-demo --run-page-batch --batch-output-dir artifacts/unlimited-ocr/pages --json
+```
+
+## Garanzie e limiti
+
+- IUSENTRA non carica `trust_remote_code` nel processo applicativo.
+- Il server SGLang/vLLM resta esterno e governato, preferibilmente locale o rete
+  privata dello studio.
+- I PDF con testo nativo affidabile vengono letti senza GPU.
+- Le pagine scansionate vengono inviate al motore AI e ricomposte nel testo OCR.
+- Se il motore non risponde, il fallback corrente resta operativo.
+- Anche quando il motore risponde, la confidenza sintetica predefinita resta
+  sotto la soglia di fallback: il motore corrente può quindi confrontare il
+  risultato invece di essere sostituito secco.
+- Le risposte Lex del benchmark richiedono citazioni testuali; se manca evidenza
+  scrivono che non è possibile rispondere senza inventare.
+- Quando l'endpoint non fornisce coordinate/confidenze native, la pipeline marca
+  token e QC in modo prudente: non dichiara certezza probatoria falsa.
+
+## Criteri prima della promozione
+
+1. Campione reale di PDF lunghi, scansionati, storti, con timbri, tabelle e PEC.
+2. Zero pagine saltate senza warning.
+3. Domande Lex risposte con citazioni per R.G., ufficio, parti, date, norme, PEC e importi.
+4. Tempi per pagina e coda OCR sotto soglia rispetto al baseline.
+5. Nessun provider esterno senza autorizzazione.
+6. Fallback corrente verificato quando endpoint o modello non sono disponibili.

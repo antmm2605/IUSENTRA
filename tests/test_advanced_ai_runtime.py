@@ -14,6 +14,9 @@ def test_advanced_ai_capabilities_default_sicuro(monkeypatch):
         "LEX_AI_SPECULATIVE_MODE",
         "IUSENTRA_LLM_WIKI_ENABLED",
         "IUSENTRA_GLM_OCR_ENABLED",
+        "IUSENTRA_UNLIMITED_OCR_ENABLED",
+        "IUSENTRA_UNLIMITED_OCR_ENDPOINT",
+        "IUSENTRA_UNLIMITED_OCR_EXTERNAL_ALLOWED",
         "IUSENTRA_EMBEDDING_PROVIDER",
         "PCT_EMBEDDING_PROVIDER",
         "LEX_EXTERNAL_ALLOWED",
@@ -31,6 +34,7 @@ def test_advanced_ai_capabilities_default_sicuro(monkeypatch):
     assert payload["capabilities"]["mtp_serving"]["status"] == "disabled"
     assert payload["capabilities"]["llm_wiki"]["status"] == "disabled"
     assert payload["capabilities"]["glm_ocr"]["status"] == "disabled"
+    assert payload["capabilities"]["unlimited_ocr"]["status"] == "disabled"
     assert payload["capabilities"]["gemini_embedding_2"]["status"] == "available_optional"
 
 
@@ -87,3 +91,15 @@ def test_cli_ai_avanzata_fail_if_blocked(monkeypatch):
 
     assert result.exit_code != 0
     assert "non sono pronte" in result.output
+
+
+def test_advanced_ai_capabilities_unlimited_ocr_pronto_da_misurare(monkeypatch):
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENABLED", "1")
+    monkeypatch.setenv("IUSENTRA_UNLIMITED_OCR_ENDPOINT", "http://127.0.0.1:10000")
+
+    payload = build_advanced_ai_capabilities()
+
+    unlimited = payload["capabilities"]["unlimited_ocr"]
+    assert unlimited["status"] == "ready_to_test"
+    assert unlimited["measurement_required"] is True
+    assert "unlimited_ocr" in payload["to_measure"]

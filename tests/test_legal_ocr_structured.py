@@ -151,6 +151,10 @@ def test_pipeline_e2e_produce_alto_tabelle_ed_entita_legali(tmp_path):
 
     assert evidence["alto_xml_path"].endswith("alto.xml")
     assert (tmp_path / "store" / evidence["alto_xml_path"]).exists()
+    vector_manifest = evidence["vector_source_manifest"]
+    assert vector_manifest["full_text_sha256"]
+    assert vector_manifest["pages_with_text"] == 1
+    assert (tmp_path / "store" / vector_manifest["path"]).exists()
     assert isinstance(evidence["tables"], list)
     entities = evidence["legal_entities"]
     assert entities["numero_ruolo"][0]["numero"] == "12345"

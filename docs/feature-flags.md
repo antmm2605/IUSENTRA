@@ -82,6 +82,7 @@ Le capability Lex che accedono a dati operativi o fonti giuridiche restano gover
 | Legal Skills Engine | `IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED` / `lex.legalSkills.enabled` | on | abilita catalogo, profilo e run Legal Skills; RBAC e tenant isolation restano obbligatori |
 | Trust layer Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER` / `lex.legalSkills.trustLayer` | off | consente solo controllo statico di skill custom, senza installarle |
 | Agenti schedulati Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS` / `lex.legalSkills.scheduledAgents` | off | abilita agenti read-only con audit, nessuna scrittura automatica |
+| Unlimited-OCR self-hosted | `IUSENTRA_UNLIMITED_OCR_ENABLED` | off | abilita solo adapter OCR verso endpoint locale/privato; fallback corrente e benchmark obbligatori prima della promozione |
 
 Per i dati di clienti, fascicoli, agenda, scadenze, preventivi, documenti e comunicazioni Lex non usa web esterno. Il layer operativo e' attivo di default per evitare risposte bloccate su dati reali dello studio; se il flag viene spento esplicitamente, il bounded workflow esistente continua senza interrogare il nuovo layer.
 

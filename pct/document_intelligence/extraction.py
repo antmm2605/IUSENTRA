@@ -92,6 +92,11 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
 
     ext = str(file_type or "").lower().lstrip(".")
     if ext == "pdf":
+        if not _looks_like_pdf(content):
+            return _extract_mislabeled_pdf(content, filename)
+        unlimited = _extract_with_unlimited_ocr_for_index(content, filename, ext)
+        if unlimited is not None:
+            return unlimited
         return _extract_pdf(content)
     if ext == "docx":
         return _extract_docx(content)
@@ -108,6 +113,9 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
     if ext in {"xlsx", "xls"}:
         return _extract_spreadsheet(content, ext)
     if ext in _IMAGE_EXTENSIONS:
+        unlimited = _extract_with_unlimited_ocr_for_index(content, filename, ext)
+        if unlimited is not None:
+            return unlimited
         return _extract_image(content, ext)
     if ext == "eml":
         return _extract_eml(content)
@@ -123,7 +131,7 @@ def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list
     if _is_cades_signature_name(inner_name):
         inner_name = inner_name[:-4]
     if _looks_like_pdf(content) and inner_name.lower().endswith(".pdf"):
-        return content, inner_name, ["Documento PDF firmato letto come PDF interno per l'indice Lex."]
+        return content, inner_name, ["Documento con estensione .p7m: PDF firmato letto come PDF interno per l'indice Lex."]
     try:
         from pct.firme_cades import inspect_signed_document_bytes
 
@@ -201,8 +209,129 @@ def _looks_like_pdf(content: bytes) -> bool:
     return bytes(content[:16] if content else b"").lstrip().startswith(b"%PDF")
 
 
+def _extract_mislabeled_pdf(content: bytes, filename: str) -> ExtractionResult:
+    """Non invia payload non-PDF ai parser PDF; recupera ZIP/XML/testo se reali."""
+
+    warning = "File indicato come PDF ma il contenuto non è un PDF valido: parser PDF saltato."
+    if bytes(content[:8] if content else b"").startswith(b"PK\x03\x04"):
+        result = _extract_zip(content)
+        result.warnings.insert(0, warning)
+        result.extraction_engine = f"pdf-mismatch:{result.extraction_engine}"
+        return result
+    stripped = bytes(content[:512] if content else b"").lstrip()
+    if stripped.startswith((b"<?xml", b"<")):
+        result = _extract_textual_document(content, "xml")
+        result.warnings.insert(0, warning)
+        result.extraction_engine = f"pdf-mismatch:{result.extraction_engine}"
+        return result
+    result = _extract_binary_best_effort(content, "pdf-mismatch", base_warnings=[warning])
+    if result.ok:
+        return result
+    return ExtractionResult(
+        ok=False,
+        text="",
+        pages=[],
+        extraction_engine="pdf_magic_mismatch",
+        warnings=_unique_warnings(result.warnings),
+        error_code="pdf_magic_mismatch",
+        error_message=f"{Path(filename or 'documento.pdf').name}: il contenuto non è un PDF leggibile.",
+    )
+
+
 def _looks_like_image(content: bytes) -> bool:
     return _image_type_from_magic(content) != ""
+
+
+def _extract_with_unlimited_ocr_for_index(content: bytes, filename: str, ext: str) -> ExtractionResult | None:
+    """Usa legal_ocr/Unlimited-OCR come sorgente integrale per l'indice fascicolo."""
+
+    try:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        from legal_ocr.preprocessing import rasterize_document
+        from legal_ocr.unlimited.client import UnlimitedOcrClient
+        from legal_ocr.unlimited.config import UnlimitedOcrSettings
+        from legal_ocr.unlimited_ocr import split_native_and_ocr_pages
+    except Exception:
+        return None
+
+    settings = UnlimitedOcrSettings.from_env()
+    readiness = settings.readiness()
+    if not readiness.get("ok"):
+        return None
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="iusentra-document-ai-unlimited-") as tmpdir:
+            pages = rasterize_document(content, filename or f"documento.{ext}", Path(tmpdir))
+            if len(pages) > settings.max_pages:
+                return None
+            native_pages, ocr_pages, page_warnings = split_native_and_ocr_pages(
+                pages,
+                max_pages=settings.max_pages,
+                max_image_bytes=settings.max_image_bytes,
+            )
+            text_by_page: dict[int, list[str]] = {}
+
+            def _add_page_text(page, text: str) -> None:
+                cleaned = _clean_text(text)
+                if not cleaned:
+                    return
+                page_number = _source_page_number(page)
+                bucket = text_by_page.setdefault(page_number, [])
+                if cleaned not in bucket:
+                    bucket.append(cleaned)
+
+            for page in native_pages:
+                _add_page_text(page, page.text_hint)
+            errors: list[str] = []
+            if ocr_pages:
+                client = UnlimitedOcrClient(settings)
+
+                def _read_page(page):
+                    result = client.generate_for_pages([page])
+                    return page, _clean_text(str(result.get("text") or "")), str(result.get("error") or "")
+
+                with ThreadPoolExecutor(max_workers=settings.concurrency) as executor:
+                    future_map = {executor.submit(_read_page, page): page for page in ocr_pages}
+                    for future in as_completed(future_map):
+                        page, text, error = future.result()
+                        if text:
+                            _add_page_text(page, text)
+                        else:
+                            errors.append(f"Pagina {_source_page_number(page)}: Unlimited-OCR non ha restituito testo ({error or 'risposta vuota'}).")
+            source_pages = sorted({_source_page_number(page) for page in pages})
+            page_texts = [DocumentAIPageText(page_number=page_number, text="\n\n".join(text_by_page.get(page_number, []))) for page_number in source_pages]
+    except Exception:
+        return None
+
+    if errors:
+        return None
+    missing_pages = [page.page_number for page in page_texts if not str(page.text or "").strip()]
+    if missing_pages:
+        return None
+    full_text = "\n\n".join(page.text for page in page_texts if str(page.text or "").strip())
+    if not full_text.strip():
+        return None
+    warnings = [
+        "Indice fascicolo alimentato da OCR integrale legal_ocr/Unlimited-OCR: testo completo e mappa pagine, nessun chunk OCR.",
+        *list(readiness.get("warnings") or []),
+        *page_warnings,
+    ]
+    return ExtractionResult(
+        ok=True,
+        text=full_text,
+        pages=page_texts,
+        extraction_engine="legal-ocr:unlimited-ocr:document-index",
+        warnings=_unique_warnings(warnings),
+    )
+
+
+def _source_page_number(page: Any) -> int:
+    page_number = int(getattr(page, "page", 1) or 1)
+    preprocessing = list(getattr(page, "preprocessing", []) or [])
+    if page_number >= 10 and "page-split" in preprocessing:
+        return max(1, page_number // 10)
+    return page_number
 
 
 def _image_type_from_magic(content: bytes) -> str:

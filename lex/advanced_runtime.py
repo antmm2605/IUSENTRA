@@ -209,6 +209,80 @@ def _build_glm_ocr_status() -> dict[str, Any]:
     return payload
 
 
+def _build_unlimited_ocr_status() -> dict[str, Any]:
+    enabled = _truthy(os.getenv("IUSENTRA_UNLIMITED_OCR_ENABLED"))
+    endpoint = _env_first("IUSENTRA_UNLIMITED_OCR_ENDPOINT", "UNLIMITED_OCR_ENDPOINT")
+    provider = _env_first("IUSENTRA_UNLIMITED_OCR_PROVIDER", default="self_hosted").lower()
+    model = _env_first("IUSENTRA_UNLIMITED_OCR_MODEL", default="Unlimited-OCR")
+    external_allowed = _external_allowed() or _truthy(os.getenv("IUSENTRA_UNLIMITED_OCR_EXTERNAL_ALLOWED"))
+    endpoint_is_private = False
+    if endpoint:
+        try:
+            from legal_ocr.unlimited.config import endpoint_is_local_or_private
+
+            endpoint_is_private = endpoint_is_local_or_private(endpoint)
+        except Exception:
+            endpoint_is_private = endpoint.startswith(("http://127.0.0.1", "http://localhost", "https://localhost"))
+    if not enabled:
+        payload = _status_payload(
+            status="disabled",
+            label="Non attivo",
+            enabled=False,
+            operator_message="Unlimited-OCR resta spento: la pipeline usa OCR corrente e fallback legal-grade.",
+            next_action="Avviare un servizio SGLang/vLLM self-hosted e abilitare il flag solo per benchmark su PDF reali.",
+            endpoint_configured=bool(endpoint),
+            provider=provider,
+            model=model,
+        )
+    elif provider in {"cloud", "maas", "external"} and not external_allowed:
+        payload = _status_payload(
+            status="blocked",
+            label="Bloccato da privacy",
+            enabled=True,
+            operator_message="Unlimited-OCR esterno e' richiesto, ma i documenti legali non possono uscire senza policy esplicita.",
+            next_action="Usare endpoint locale/privato o autorizzare provider esterni solo per corpora consentiti.",
+            endpoint_configured=bool(endpoint),
+            provider=provider,
+            model=model,
+        )
+    elif not endpoint:
+        payload = _status_payload(
+            status="missing_endpoint",
+            label="Da configurare",
+            enabled=True,
+            operator_message="Unlimited-OCR e' abilitato ma manca l'endpoint OpenAI-compatible.",
+            next_action="Configurare IUSENTRA_UNLIMITED_OCR_ENDPOINT verso SGLang/vLLM self-hosted.",
+            endpoint_configured=False,
+            provider=provider,
+            model=model,
+        )
+    elif not endpoint_is_private and not external_allowed:
+        payload = _status_payload(
+            status="blocked",
+            label="Endpoint non governato",
+            enabled=True,
+            operator_message="L'endpoint Unlimited-OCR non risulta locale o privato e la policy esterna non e' abilitata.",
+            next_action="Spostare il servizio su rete locale/privata o abilitare esplicitamente la policy esterna.",
+            endpoint_configured=True,
+            provider=provider,
+            model=model,
+        )
+    else:
+        payload = _status_payload(
+            status="ready_to_test",
+            label="Pronto da misurare",
+            enabled=True,
+            operator_message="Unlimited-OCR ha un endpoint governato: usarlo su campioni PDF legali e confrontarlo col motore corrente.",
+            next_action="Eseguire benchmark OCR+Lex con domande, tempi, pagine lette, errori e fallback prima di promuoverlo.",
+            measurement_required=True,
+            endpoint_configured=True,
+            provider=provider,
+            model=model,
+        )
+    payload["references"] = ["Baidu Unlimited-OCR", "arXiv 2606.23050", "SGLang OpenAI-compatible API"]
+    return payload
+
+
 def _build_gemini_embedding_status() -> dict[str, Any]:
     provider = _env_first("IUSENTRA_EMBEDDING_PROVIDER", "PCT_EMBEDDING_PROVIDER", default="local").lower()
     selected = provider in {"gemini", "google", "gemini_embedding_2", "gemini-embedding-2"}
@@ -275,6 +349,7 @@ def build_advanced_ai_capabilities() -> dict[str, Any]:
         "mtp_serving": _build_mtp_status(),
         "llm_wiki": _build_llm_wiki_status(),
         "glm_ocr": _build_glm_ocr_status(),
+        "unlimited_ocr": _build_unlimited_ocr_status(),
         "gemini_embedding_2": _build_gemini_embedding_status(),
     }
     enabled = [name for name, item in capabilities.items() if bool(item.get("enabled"))]

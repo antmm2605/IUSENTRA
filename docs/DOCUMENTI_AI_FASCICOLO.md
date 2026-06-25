@@ -46,6 +46,7 @@ Componenti introdotti nell'MVP 1:
 - `pct/document_intelligence/`: dominio Documenti AI Fascicolo, con modelli, repository, service, estrazione, citazioni, audit, sicurezza e versioning.
 - `pct/document_intelligence/sources.py` e `pct/document_intelligence/indexer.py`: adattatori sorgenti reali del fascicolo e indicizzazione automatica per Lex.
 - `pct/document_intelligence/pdf_quality.py`: scoring qualita' testo e riparazione conservativa dei segnaposto PDF `(cid:NN)`.
+- `legal_ocr/unlimited_ocr.py` e `legal_ocr/unlimited/*`: motore opzionale `unlimited-ocr`, isolato dietro feature flag, per alimentare l'indice fascicolo con OCR integrale quando l'endpoint self-hosted e' pronto.
 - I documenti firmati `.pdf.p7m` vengono trattati come PDF interni quando il contenuto è già leggibile oppure passano dall'estrazione CAdES governata; se un file resta non indicizzato, la pagina fascicolo riceve avvisi per-file invece di mostrare un completamento generico.
 - I file `.txt` vengono indicizzati come testo puro; i file `.eml` vengono letti come email reale con intestazioni, corpo e allegati supportati (`pdf`, `docx`, `doc`, `txt`, `eml`). Gli allegati non leggibili generano avvisi, non completamenti finti.
 - `pct/sql/20260505_documenti_ai.sql`: schema SQLite.
@@ -56,6 +57,8 @@ Componenti introdotti nell'MVP 1:
 - Area fascicoli React: box compatto `Indicizzazione Lex` dentro i documenti del fascicolo.
 
 Scelta prodotto aggiornata: `Documenti AI` non e' una sezione operativa visibile all'utente e non deve sembrare un secondo archivio documentale. L'utente continua a usare i `Documenti fascicolo`; il dominio `pct/document_intelligence` indicizza automaticamente quei documenti per Lex. Eventuali componenti diagnostici o API legacy restano superfici tecniche, non CTA dell'avvocato.
+
+Scelta OCR aggiornata: Unlimited-OCR non crea un indice parallelo e non spezza la lettura OCR in chunk. Quando abilitato, entra nell'estrazione `pct/document_intelligence` come sorgente integrale per `DocumentAIText`: testo completo, mappa pagine, hash/versione documento e warning. Se l'endpoint non e' configurato, se il documento supera il limite governato o se una pagina resta senza testo, IUSENTRA non registra il risultato AI come indice del fascicolo e conserva il percorso corrente (`pdfplumber`, OCR locale o fallback controllato). La successiva indicizzazione vettoriale puo' suddividere il testo solo partendo da questa sorgente completa e verificabile.
 
 Il runtime scrive i file originali e il testo estratto sotto `documenti_ai/<tenant>/<fascicolo>/<documento>/` nel data root dello studio. I payload API non restituiscono path filesystem assoluti.
 

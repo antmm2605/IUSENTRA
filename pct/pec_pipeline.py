@@ -2496,6 +2496,24 @@ def _unique_preserving_order(values: Iterable[str]) -> list[str]:
     return result
 
 
+def _unique_issue_entries(values: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[tuple[str, str, str]] = set()
+    result: list[dict[str, Any]] = []
+    for item in values:
+        if not isinstance(item, dict):
+            continue
+        key = (
+            clean_text(item.get("code")),
+            clean_text(item.get("title")),
+            clean_text(item.get("detail")),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
+
+
 def _pdf_uri_links(data: bytes) -> list[str]:
     """Estrae i link cliccabili del PDF, anche quando il testo visibile e' solo una label."""
 
@@ -3969,6 +3987,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                     "detail": f"Link o istruzioni di collegamento rilevati in {first.get('source') or 'testo PEC/allegato'}: verificare e riportare in agenda.",
                 }
             )
+    issues = _unique_issue_entries(issues)
     procedural_profile["messaggio_operativo"] = _procedural_operational_message(procedural_profile, remote_hearing)
     severity = "ok"
     if any(item["severity"] == "warning" for item in issues):
@@ -3986,20 +4005,8 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         deadline_proposal["remote_hearing"] = remote_hearing
     lawyer_checklist = [str(item) for item in list(procedural_profile.get("checklist_avvocato") or []) if str(item or "").strip()]
     procedural_questions = [str(item) for item in list(procedural_profile.get("domande_lex") or []) if str(item or "").strip()]
-    return {
-        "event_type": event_type,
-        "required": required,
-        "present": sorted(present),
-        "issues": issues,
-        "deposit_lifecycle": deposit_lifecycle,
-        "deposit_correlation": deposit_lifecycle.get("correlation") if isinstance(deposit_lifecycle, dict) else {},
-        "semantic_context": semantic_context,
-        "legal_workflow": legal_workflow,
-        "procedural_profile": procedural_profile,
-        "remote_hearing": remote_hearing,
-        "lawyer_checklist": lawyer_checklist,
-        "normative_references": semantic_context.get("normative_references") or [],
-        "agent_questions": [
+    agent_questions = _unique_preserving_order(
+        [
             *procedural_questions,
             *(semantic_context.get("agent_questions") or []),
             *(
@@ -4011,8 +4018,10 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                 if deposit_lifecycle
                 else []
             ),
-        ],
-        "recommended_actions": [
+        ]
+    )
+    recommended_actions = _unique_preserving_order(
+        [
             *lawyer_checklist[:5],
             *(semantic_context.get("recommended_actions") or []),
             *([legal_workflow.get("azione_proposta")] if legal_workflow.get("azione_proposta") else []),
@@ -4030,7 +4039,23 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                 if deposit_lifecycle
                 else []
             ),
-        ],
+        ]
+    )
+    return {
+        "event_type": event_type,
+        "required": required,
+        "present": sorted(present),
+        "issues": issues,
+        "deposit_lifecycle": deposit_lifecycle,
+        "deposit_correlation": deposit_lifecycle.get("correlation") if isinstance(deposit_lifecycle, dict) else {},
+        "semantic_context": semantic_context,
+        "legal_workflow": legal_workflow,
+        "procedural_profile": procedural_profile,
+        "remote_hearing": remote_hearing,
+        "lawyer_checklist": lawyer_checklist,
+        "normative_references": semantic_context.get("normative_references") or [],
+        "agent_questions": agent_questions,
+        "recommended_actions": recommended_actions,
         "deadline_proposal": deadline_proposal,
         "blocking": False,
         "severity": severity,

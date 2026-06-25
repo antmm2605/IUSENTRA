@@ -287,6 +287,97 @@ def test_validate_scheduler_run_audit_job_obbligatorio_running_non_e_verde():
     assert report["jobs"][0]["status"] == "running"
 
 
+def test_validate_scheduler_run_audit_accetta_completed_recente_se_run_successiva_in_corso():
+    now = datetime(2026, 6, 25, 10, 48, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job(minute="7-57/10")],
+            "latest_runs": {
+                "lex_sentenza_economia_auto": {
+                    "job_id": "lex_sentenza_economia_auto",
+                    "status": "running",
+                    "started_at": "2026-06-25T10:47:00Z",
+                    "created_at": "2026-06-25T10:47:00Z",
+                    "message": "Esecuzione avviata dal worker.",
+                    "result": {"ok": True, "event": "submitted"},
+                }
+            },
+            "recent_runs": [
+                {
+                    "job_id": "lex_sentenza_economia_auto",
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:40:13Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "totals": {
+                            "documents_seen": 4408,
+                            "sentenze_found": 53,
+                            "matrix_confirmed": 17,
+                            "vector_indexed": 17,
+                            "errors": 0,
+                            "vector_embedding_errors": 0,
+                        },
+                    },
+                }
+            ],
+        },
+        now=now,
+        worker_started_at=now - timedelta(minutes=15),
+    )
+
+    assert report["ok"] is True
+    assert report["jobs"][0]["status"] == "ok"
+    assert report["jobs"][0]["totals"]["sentenze_found"] == 53
+    assert report["jobs"][0]["superseded_running_started_at"] == "2026-06-25T10:47:00Z"
+
+
+def test_validate_scheduler_run_audit_running_stale_blocca_anche_con_completed_recente():
+    now = datetime(2026, 6, 25, 10, 48, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job(minute="7-57/10")],
+            "latest_runs": {
+                "lex_sentenza_economia_auto": {
+                    "job_id": "lex_sentenza_economia_auto",
+                    "status": "running",
+                    "started_at": "2026-06-25T08:00:00Z",
+                    "created_at": "2026-06-25T08:00:00Z",
+                    "message": "Esecuzione avviata dal worker.",
+                    "result": {"ok": True, "event": "submitted"},
+                }
+            },
+            "recent_runs": [
+                {
+                    "job_id": "lex_sentenza_economia_auto",
+                    "status": "completed",
+                    "finished_at": "2026-06-25T10:40:13Z",
+                    "message": "Esecuzione completata dal worker.",
+                    "result": {
+                        "ok": True,
+                        "totals": {
+                            "documents_seen": 4408,
+                            "sentenze_found": 53,
+                            "matrix_confirmed": 17,
+                            "vector_indexed": 17,
+                            "errors": 0,
+                            "vector_embedding_errors": 0,
+                        },
+                    },
+                }
+            ],
+        },
+        now=now,
+        worker_started_at=now - timedelta(hours=3),
+    )
+
+    assert report["ok"] is False
+    assert any("run in corso oltre" in error for error in report["errors"])
+    assert report["jobs"][0]["status"] == "stale_running"
+
+
 def test_validate_scheduler_run_audit_blocca_run_senza_totals_operativi():
     now = datetime(2026, 6, 25, 10, 40, tzinfo=timezone.utc)
 

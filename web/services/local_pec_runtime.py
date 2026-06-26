@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
+from pct.deposito_pec_contract import dettaglio_oggetto_deposito_pec, oggetto_deposito_pec_conforme
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
@@ -50,6 +51,8 @@ def build_local_pec_payload(
         raise ValueError("Allegato PEC non disponibile.")
     # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e radici runtime consentite.
     filename = attachment_name or path.name
+    if filename.lower().endswith(".enc") and not oggetto_deposito_pec_conforme(oggetto):
+        raise ValueError(dettaglio_oggetto_deposito_pec(oggetto))
     attachment_bytes = path.read_bytes()
     if filename.lower() == "atto.enc":
         if not is_atto_enc_cms_enveloped_data(attachment_bytes):
@@ -126,7 +129,7 @@ def deposito_pec_subject(
     anno_rg: int | str | None,
     tribunale: str,
 ) -> str:
-    """Compose the official PCT PEC subject without coupling routes to wording."""
+    """Compose the PCT PEC subject using DEPOSITO + free text, as required by PST."""
 
     if numero_rg and anno_rg:
         return f"DEPOSITO TELEMATICO - {tipo_atto} - RG {numero_rg}/{anno_rg}"

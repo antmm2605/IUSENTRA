@@ -159,6 +159,57 @@ def test_invio_pec_locale_rifiuta_atto_enc_non_cms():
     assert "CMS EnvelopedData ministeriale" in result["messaggio"]
 
 
+def test_invio_pec_locale_rifiuta_atto_enc_con_oggetto_non_deposito(tmp_path):
+    result = send_pec_local(
+        _payload(
+            destinatario="tribunale@example.test",
+            oggetto="RICORSO - Tribunale",
+            corpo="Deposito da IUSENTRA",
+            allegati=[
+                {
+                    "filename": "Atto.enc",
+                    "content_base64": base64.b64encode(_atto_enc_cms_payload(tmp_path)).decode("ascii"),
+                    "mime_type": "application/octet-stream",
+                }
+            ],
+        ),
+        smtp_ssl_factory=_FakeSmtp,
+    )
+
+    assert result["ok"] is False
+    assert "deve iniziare con 'DEPOSITO'" in result["messaggio"]
+
+
+def test_invio_pec_locale_accetta_atto_enc_con_allegati_extra_decisi_dall_avvocato(tmp_path):
+    _FakeSmtp.instances.clear()
+    result = send_pec_local(
+        _payload(
+            destinatario="tribunale@example.test",
+            oggetto="DEPOSITO TELEMATICO - Ricorso",
+            corpo="Deposito da IUSENTRA",
+            allegati=[
+                {
+                    "filename": "Atto.enc",
+                    "content_base64": base64.b64encode(_atto_enc_cms_payload(tmp_path)).decode("ascii"),
+                    "mime_type": "application/octet-stream",
+                },
+                {
+                    "filename": "indice.pdf",
+                    "content_base64": base64.b64encode(b"indice").decode("ascii"),
+                    "mime_type": "application/pdf",
+                },
+            ],
+        ),
+        smtp_ssl_factory=_FakeSmtp,
+    )
+
+    assert result["ok"] is True
+    sent_message, _, _ = _FakeSmtp.instances[0].sent[0]
+    attachment_names = [part.get_filename() for part in sent_message.iter_attachments()]
+    assert "Atto.enc" in attachment_names
+    assert "indice.pdf" in attachment_names
+
+
 def test_invio_pec_locale_accetta_atto_enc_cms(tmp_path):
     _FakeSmtp.instances.clear()
     result = send_pec_local(

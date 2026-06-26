@@ -2,6 +2,30 @@
 
 Aggiornato: 2026-06-26.
 
+## Aggiornamento 2026-06-26 - Formato PEC deposito ministeriale
+
+Richiesta utente: controllare `Formato_messaggi_e_descrizione_flusso_di_deposito_1.pdf` e chiarire se l'indice busta debba essere inviato come XML separato.
+
+Esito del confronto tecnico:
+
+- la PEC esterna di deposito deve avere oggetto con sintassi `DEPOSITO <testo libero>`;
+- l'oggetto IUSENTRA `DEPOSITO TELEMATICO - RICORSO - RG ...` resta compatibile perché inizia con `DEPOSITO ` e il resto è testo libero;
+- `IndiceBusta.xml` non va allegato separatamente alla PEC: sta dentro `Atto.msg`, poi `Atto.msg` viene cifrato nel pacchetto PEC `Atto.enc`;
+- il corpo PEC resta testo semplice tramite Local Signer;
+- `Atto.enc` resta requisito tecnico: deve essere CMS/PKCS#7 `EnvelopedData` ministeriale verificato e contenere la busta con `IndiceBusta.xml`;
+- gli allegati ulteriori scelti dall'avvocato non sono bloccati automaticamente dal ponte PEC locale; il software blocca solo requisiti tecnici verificabili come oggetto non conforme e `Atto.enc` non valido.
+
+Correzione applicata:
+
+- aggiunto `pct/deposito_pec_contract.py` per il controllo riusabile dell'oggetto `DEPOSITO <testo libero>`;
+- il report di compatibilità della simulazione controlla la sintassi ministeriale reale, non solo la stringa storica `DEPOSITO TELEMATICO`;
+- il payload Local Signer rifiuta il deposito con `.enc` se l'oggetto non rispetta la sintassi ministeriale;
+- il ponte PEC locale conserva gli allegati extra decisi dall'avvocato, verificando comunque `Atto.enc` quando presente.
+
+Guardrail eseguito:
+
+- `python -m pytest tests/test_local_pec_runtime.py tests/test_local_pec_bridge.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_deposito_server_dry_run_audit.py::test_prova_guidata_espone_destinatario_pec_testo_e_documenti -q` -> `18 passed`.
+
 ## Aggiornamento 2026-06-26 - Blocco anti `Indice busta non trovato`
 
 Caso reale da presidiare: deposito PCT Tribunale di Vicenza inviato il `26/06/2026` alle `11:42`, con esito automatico PST ricevuto alle `11:43:26`, `Codice esito: -1`, `IDBUSTA: 152529323`, messaggio `Indice busta non trovato, necessario effettuare nuovamente il deposito`.

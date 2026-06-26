@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.124 - 2026-06-26
+
+- Deposito telematico PCT: il controllo della PEC ministeriale ora valida la sintassi `DEPOSITO <testo libero>` indicata dal documento PST sul flusso di deposito; `DEPOSITO TELEMATICO - ...` resta accettato come testo libero dopo `DEPOSITO`.
+- Local Signer: il deposito con `Atto.enc` continua a bloccare oggetto non conforme e busta non valida, ma non blocca automaticamente allegati ulteriori scelti dall'avvocato.
+
 ## 2.253.123 - 2026-06-26
 
 - Deposito telematico PCT: `Simula invio PEC` e `Invia deposito reale` ora richiedono la verifica ministeriale completa di `Atto.msg`, `IndiceBusta.xml`, `DatiAtto.xml.p7m` e hash `Atto.enc` prima di consegnare il payload al Local Signer, bloccando il falso-verde che poteva arrivare al PST come `Indice busta non trovato`.

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from pct.deposito_pec_contract import oggetto_deposito_pec_conforme
 from pct.pst_cifratura import carica_certificato_cifratura, cifra_atto_msg_aes256, crea_certificato_cifratura_test
 from web.services.local_pec_runtime import build_local_pec_payload
 
@@ -40,6 +41,14 @@ def _verified_audit(payload: bytes) -> dict[str, object]:
     }
 
 
+def test_oggetto_deposito_pec_rispetta_sintassi_ministeriale():
+    assert oggetto_deposito_pec_conforme("DEPOSITO Ricorso A vs. B")
+    assert oggetto_deposito_pec_conforme("DEPOSITO TELEMATICO - RICORSO - RG 123/2026")
+    assert not oggetto_deposito_pec_conforme("DEPOSITO")
+    assert not oggetto_deposito_pec_conforme("DEPOSITO   ")
+    assert not oggetto_deposito_pec_conforme("RICORSO - deposito")
+
+
 def test_payload_local_pec_rifiuta_atto_enc_non_cms(tmp_path):
     atto_enc = tmp_path / "Atto.enc"
     atto_enc.write_bytes(b"ATTO-ENC-NON-MINISTERIALE")
@@ -52,6 +61,23 @@ def test_payload_local_pec_rifiuta_atto_enc_non_cms(tmp_path):
             corpo="Deposito",
             attachment_path=str(atto_enc),
             attachment_name="Atto.enc",
+        )
+
+
+def test_payload_local_pec_rifiuta_oggetto_non_ministeriale_con_atto_enc(tmp_path):
+    atto_enc = tmp_path / "Atto.enc"
+    payload_bytes = _atto_enc_cms_payload(tmp_path)
+    atto_enc.write_bytes(payload_bytes)
+
+    with pytest.raises(ValueError, match="deve iniziare con 'DEPOSITO'"):
+        build_local_pec_payload(
+            pec_cfg=_pec_cfg(),
+            destinatario="tribunale@example.pec.it",
+            oggetto="RICORSO - Tribunale",
+            corpo="Deposito",
+            attachment_path=str(atto_enc),
+            attachment_name="Atto.enc",
+            busta_audit=_verified_audit(payload_bytes),
         )
 
 

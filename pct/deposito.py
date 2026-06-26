@@ -179,7 +179,7 @@ class DepositoCivile:
             )
 
         # 4. Invia via PEC
-        # Oggetto conforme D.M. 44/2011 art. 14 c.3: "DEPOSITO TELEMATICO - {TipoAtto}"
+        # Oggetto conforme PST: "DEPOSITO " + testo libero non vuoto.
         # Includi RG solo se entrambi numero_rg e anno_rg sono valorizzati
         # (anno_rg=0 o None produrrebbe "RG 1234/None" — non conforme)
         rg_str = (

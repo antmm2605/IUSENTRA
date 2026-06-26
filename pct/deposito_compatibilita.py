@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from pct.atto_enc_validation import inspect_atto_enc_payload
+from pct.deposito_pec_contract import dettaglio_oggetto_deposito_pec, oggetto_deposito_pec_conforme
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
@@ -262,7 +263,8 @@ def build_deposito_compatibility_report(
     )
 
     rg_ok = not (numero_rg and anno_rg) or f"{numero_rg}/{anno_rg}" in subject or (str(numero_rg) in subject and str(anno_rg) in subject)
-    subject_ok = _has_token(subject, "DEPOSITO TELEMATICO") and rg_ok
+    subject_syntax_ok = oggetto_deposito_pec_conforme(subject)
+    subject_ok = subject_syntax_ok and rg_ok
     _check(
         checks,
         code="OGGETTO_PEC",
@@ -270,9 +272,13 @@ def build_deposito_compatibility_report(
         ok=subject_ok,
         weight=8,
         detail=(
-            "Oggetto compatibile con deposito telematico e riferimento RG."
+            "Oggetto compatibile con la sintassi ministeriale DEPOSITO <testo libero> e riferimento RG."
             if subject_ok
-            else "Oggetto PEC non contiene tutti i riferimenti minimi attesi per il deposito."
+            else (
+                dettaglio_oggetto_deposito_pec(subject)
+                if not subject_syntax_ok
+                else "Oggetto PEC conforme nella sintassi, ma non contiene il riferimento RG atteso."
+            )
         ),
         evidence=subject,
     )
@@ -323,7 +329,7 @@ def build_deposito_compatibility_report(
     for sample in REFERENCE_SAMPLES:
         reference_tokens.update(str(item) for item in sample.get("subject_tokens", ()))
         reference_artifacts.update(str(item) for item in sample.get("receipt_artifacts", ()))
-    sample_ok = _has_token(subject, "DEPOSITO TELEMATICO") and {"postacert.eml", "daticert.xml", "EsitoAtto.xml"}.issubset(reference_artifacts)
+    sample_ok = oggetto_deposito_pec_conforme(subject) and {"postacert.eml", "daticert.xml", "EsitoAtto.xml"}.issubset(reference_artifacts)
     _check(
         checks,
         code="CONFRONTO_CAMPIONI",

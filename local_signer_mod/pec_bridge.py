@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+import re
 import smtplib
 import socket
 import ssl
@@ -13,6 +14,7 @@ from typing import Any
 DEFAULT_TIMEOUT_SECONDS = 25
 MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024
 CMS_ENVELOPED_DATA_OID = b"\x06\x09*\x86H\x86\xf7\r\x01\x07\x03"
+DEPOSITO_SUBJECT_RE = re.compile(r"^DEPOSITO\s+\S", re.IGNORECASE)
 
 
 class PecBridgeValidationError(ValueError):
@@ -21,6 +23,26 @@ class PecBridgeValidationError(ValueError):
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _deposito_subject_ok(subject: str) -> bool:
+    return bool(DEPOSITO_SUBJECT_RE.match(" ".join(str(subject or "").strip().split())))
+
+
+def _validate_deposito_pec_contract(subject: str, attachments: list[Any]) -> None:
+    names = [
+        _text(item.get("filename") or item.get("nome") or item.get("name"))
+        for item in attachments
+        if isinstance(item, dict)
+    ]
+    has_atto_enc = any(name.lower() == "atto.enc" for name in names)
+    if not has_atto_enc:
+        return
+    if not _deposito_subject_ok(subject):
+        raise PecBridgeValidationError(
+            "Oggetto PEC non conforme: deve iniziare con 'DEPOSITO', contenere uno spazio "
+            "e avere testo libero non vuoto dopo lo spazio."
+        )
 
 
 def _is_cms_enveloped_data(content: bytes) -> bool:
@@ -230,6 +252,11 @@ def _build_message(payload: dict[str, Any], config: dict[str, Any]) -> tuple[Ema
     subject = _text(payload.get("subject") or payload.get("oggetto")) or "Messaggio PEC IUSENTRA"
     body = _text(payload.get("body") or payload.get("corpo")) or "Invio generato da IUSENTRA."
 
+    raw_attachments = payload.get("attachments") or payload.get("allegati") or []
+    if not isinstance(raw_attachments, list):
+        raise PecBridgeValidationError("Formato allegati non valido.")
+    _validate_deposito_pec_contract(subject, raw_attachments)
+
     msg = EmailMessage()
     msg["From"] = config["sender"]
     if to_recipients:
@@ -242,7 +269,7 @@ def _build_message(payload: dict[str, Any], config: dict[str, Any]) -> tuple[Ema
     msg.set_content(body)
 
     total_attachment_bytes = 0
-    for item in payload.get("attachments") or payload.get("allegati") or []:
+    for item in raw_attachments:
         if not isinstance(item, dict):
             raise PecBridgeValidationError("Formato allegato non valido.")
         filename, content, mime_type = _attachment_parts(item)

@@ -1,5 +1,11 @@
 # Pytest shard confermati OK
 
+## Deposito PCT - formato PEC ministeriale `DEPOSITO <testo>` 2.253.124 - 2026-06-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_local_pec_runtime.py tests/test_local_pec_bridge.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_deposito_server_dry_run_audit.py::test_prova_guidata_espone_destinatario_pec_testo_e_documenti -q` | OK | 18/18 passati: oggetto PEC conforme a `DEPOSITO <testo libero>`, `Atto.enc` verificato, allegati extra scelti dall'avvocato non bloccati, simulazione e invio reale pre-SMTP condividono lo stesso contratto. |
+
 ## Job incrementali e runtime 2.253.122 - 2026-06-26
 
 | Comando / verifica | Esito | Nota |

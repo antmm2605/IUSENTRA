@@ -209,7 +209,7 @@ def classify_fascicolo_document(
 
     Regola utente: un documento identificato come Ricorso e' sempre atto
     principale, salvo che nome/metadati lo qualifichino chiaramente come
-    ricevuta, PEC o prova di notifica del ricorso.
+    ricevuta, PEC, prova di notifica o allegato di supporto del ricorso.
     """
 
     current_type, name_text, metadata_text = _metadata_for_document(doc, filename=filename, tipo=tipo)
@@ -231,6 +231,14 @@ def classify_fascicolo_document(
         head_text[:3000],
         r"\b(relata|notifica|notificazione|originale\s+notificato|legge\s+n?\s*53|l\s*53)\b",
     )
+    leading_main_ricorso_name = _contains(
+        name_text,
+        r"^(ricorso|atto\s+di\s+ricorso)\b|\b(ricorso\s+(introduttivo|principale)|atto\s+introduttivo)\b",
+    )
+    supporting_attachment_name = _contains(
+        name_text,
+        r"\b(autocertificazion[ei]?|dichiarazion[ei]?|situazione\s+reddituale|carta\s+identita|codice\s+fiscale|contratto|lettera\s+di\s+diffida|diffida|richiesta\s+pagamento|annualita|documentazione|allegat[oi])\b",
+    ) or _contains(name_text, r"\b(eml|msg)\b")
 
     if (name_is_communication or communication) and not (
         current_type == TipoDocumento.RICORSO and not name_is_communication
@@ -255,6 +263,19 @@ def classify_fascicolo_document(
             tipo_documento=TipoDocumento.COMUNICAZIONE,
             deposit_role="fuori_busta",
             deposit_candidate=False,
+        )
+
+    if supporting_attachment_name and not leading_main_ricorso_name:
+        tipo_doc = TipoDocumento.CONTRATTO if _contains(name_text, r"\bcontratto\b") else TipoDocumento.ALLEGATO
+        return _result(
+            role="allegato",
+            label="Allegato di prova",
+            section="allegati",
+            confidence=94,
+            evidence="nome file: allegato di supporto",
+            tipo_documento=tipo_doc,
+            deposit_role="allegato",
+            deposit_candidate=True,
         )
 
     if current_type == TipoDocumento.RICORSO or _contains(name_text, r"\bricorso\b"):
@@ -520,7 +541,12 @@ def should_apply_catalog_type(current: Any, classification: DocumentCatalogClass
     if current_type == next_type:
         return False
     if current_type == TipoDocumento.RICORSO:
-        return False
+        return (
+            classification.role == "allegato"
+            and classification.deposit_role == "allegato"
+            and classification.confidence >= 90
+            and "allegato di supporto" in classification.evidence
+        )
     if classification.role == "atto_principale" and next_type == TipoDocumento.RICORSO:
         return classification.confidence >= 80
     if classification.confidence < 75:

@@ -23,6 +23,19 @@ def test_ricorso_e_sempre_atto_principale():
     assert catalog_tipo_documento_per_nome("Ricorso introduttivo.pdf") == TipoDocumento.RICORSO
 
 
+def test_autocertificazione_ricorso_resta_allegato_di_supporto():
+    classification = classify_fascicolo_document(
+        filename="Autocertificazione ricorso.PDF",
+        tipo=TipoDocumento.RICORSO,
+    )
+
+    assert classification.role == "allegato"
+    assert classification.tipo_documento == TipoDocumento.ALLEGATO
+    assert classification.deposit_role == "allegato"
+    assert classification.deposit_candidate is True
+    assert should_apply_catalog_type(TipoDocumento.RICORSO, classification) is True
+
+
 def test_sentenza_ocr_non_resta_atto_giudiziario_principale():
     classification = classify_fascicolo_document(
         filename="atto.pdf",

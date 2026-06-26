@@ -1,6 +1,25 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-23.
+Aggiornato: 2026-06-26.
+
+## Aggiornamento 2026-06-26 - Firma multipla non dovuta su allegato del ricorso
+
+Caso reale da presidiare: fascicolo produzione `795C50AC`, deposito PCT Vicenza. La UI mostrava `Firma multipla da completare` su `Autocertificazione ricorso.PDF`, pur trattandosi di un allegato di supporto già presente nella selezione documentale e non di un nuovo atto principale da sottoscrivere in lotto.
+
+Correzione applicata:
+
+- il catalogo documentale riconosce `Autocertificazione ricorso.PDF`, dichiarazioni, documentazione reddituale, carta identità, contratti, diffide, richieste pagamento e allegati simili come `allegato` anche se nel nome compare la parola `ricorso` o se il tipo storico era stato salvato come `RICORSO`;
+- la regola `Ricorso = atto principale` resta valida per i nomi realmente introduttivi, come `Ricorso introduttivo.pdf`, `Ricorso principale.pdf` e `Atto di ricorso`;
+- `should_apply_catalog_type()` consente la correzione del vecchio tipo storico `RICORSO` solo quando il nuovo catalogo identifica con alta confidenza un allegato di supporto, evitando di lasciare bloccanti di firma non dovuti sui fascicoli esistenti;
+- il flusso di deposito non cambia il trasporto PEC: la PEC operativa resta sempre inviata dal PC locale tramite Local Signer/servizio locale, mai dal server.
+
+Guardrail eseguiti prima del deploy:
+
+- `python -m pytest tests/test_fascicolo_document_catalog.py -q`;
+- `python -m pytest tests/test_regia_ui_react.py -q`;
+- `python -m pytest tests/test_fascicolo_document_catalog.py tests/test_regia_ui_react.py tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q`.
+
+Stato verifica reale: da completare dopo deploy `2.253.120` su `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#firma-busta`, controllando visivamente che `Autocertificazione ricorso.PDF` non compaia più tra i documenti da firmare e che la simulazione deposito prosegua fino al blocco corretto successivo, se presente.
 
 ## Aggiornamento 2026-06-23 - Esito PST reale e blocco Atto.enc non CMS
 

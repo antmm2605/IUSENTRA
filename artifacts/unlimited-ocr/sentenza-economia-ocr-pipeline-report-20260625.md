@@ -308,6 +308,15 @@ Il quality gate Codex `ui-support`/`code` non è stato usato come verde prodotto
 Stato residuo obbligatorio: commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, poi reset/backfill e merge produzione senza backup sui dati server già sporchi. Dopo il deploy il software eseguirà automaticamente la nuova logica per i fascicoli futuri tramite pipeline e worker; la bonifica manuale resta solo per sostituire i valori vecchi già salvati.
 ## Micro-fix CU esente senza data pagamento - 2.253.127 - 2026-06-26
 
+## Vista economica compatta - 2.253.128 - 2026-06-26
+
+- Verifica produzione post-bonifica: i fascicoli segnalati nello screenshot riportano `Contributo unificato esente`, importo vuoto, data vuota e nessun `Fondo spese`; il falso `500,00` e il falso `38.514,03` non sono più presenti nei dati server.
+- Difetto visivo residuo corretto: la tabella economica desktop usava ancora larghezze da quattro colonne economiche separate. La UI ora raggruppa le voci in una sola colonna `Controllo economico` con matrice compatta, mantenendo `Spese/esborsi` come unica voce di spese vive.
+- Il worker `lex_sentenza_economia_auto` resta il percorso ordinario per i prossimi fascicoli; la bonifica manuale serve solo a sostituire i valori storici già salvati con la vecchia euristica.
+- Verifica locale reale `2.253.128` del 27/06/2026: Docker `127.0.0.1:8080` healthy, browser integrato desktop e mobile senza overflow, nessun `Fondo spese`, nessun falso CU `EUR 500,00`, console senza errori.
+- Caso locale RG `466/2023`: `Contributo unificato da pagare EUR 98,00 Da registrare`, `Spese/esborsi EUR 125,00 Pagato`, `Liquidazione giudice EUR 1.500,00 Pagato`, `Parcella EUR 2.028,20 Da emettere`, totale registrato `EUR 1.625,00`. Il CU dovuto non viene conteggiato come importo pagato.
+- Gate runtime locale dopo rebuild: `lex_sentenza_economia_auto` completato alle `2026-06-26T23:57:14Z`, `documents_catalogued=667`, `skipped_by_cursor=667`, `errors=0`, `vector_embedding_errors=0`. Dopo il deploy questa logica gira sul server come parte del software; l'operazione manuale resta solo la bonifica dei dati già sporchi.
+
 - Fix applicato: `apply_sentenza_tribunale_automation()` non copia più la data della sentenza nel campo `data_pagamento` quando il contributo unificato è esente/non previsto.
 - Test locale: suite OCR/economia e backfill mirati verdi; backfill v9 locale `documents_catalogued=667`, `applied=1`, `errors=0`, `vector_embedding_errors=0`.
 - Prova UI locale: `http://127.0.0.1:8080/fascicoli?vista=economica` mostra `Spese/esborsi` come unica voce, nessun `Fondo spese`, dati economici leggibili e mobile senza overflow.

@@ -1007,7 +1007,7 @@ function compactPaymentLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
 }
 
-function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
+function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
   const paymentNatureLabel = payment.natura ? payment.natura.replace(/_/g, ' ') : ''
@@ -1058,7 +1058,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError }:{row:FascicoloRow; 
 
   return (
     <form className={`iu-fas-economic-cell iu-fas-economic-cell--${payment.tone}`} onSubmit={(event) => { void submit(event) }}>
-      {showSpecificLabel ? (
+      {forceLabel || showSpecificLabel ? (
         <div className="iu-fas-economic-cell__kind">
           <Badge tone={payment.tone}>{paymentLabel}</Badge>
           {showPaymentNature ? <small>{paymentNatureLabel}</small> : null}
@@ -1242,9 +1242,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               {economic ? null : <th>N. causa</th>}
               <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
               <th>Stato</th>
-              {economic
-                ? economicPaymentKinds.map((kind) => <th title={paymentFullLabels[kind]} key={kind}>{paymentColumnLabels[kind]}</th>)
-                : <th>Documenti</th>}
+              {economic ? <th>Controllo economico</th> : <th>Documenti</th>}
               {economic ? <th>Totale registrato</th> : <th>Azioni</th>}
             </tr>
           </thead>
@@ -1275,13 +1273,13 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                 {economic ? null : <td>{item.rg}</td>}
                 <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
                 <td>{statusCell(item)}</td>
-                {economic
-                  ? economicPaymentKinds.map((kind) => (
-                      <td key={kind}>
-                        <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError}/>
-                      </td>
-                    ))
-                  : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
+                {economic ? (
+                  <td className="iu-fas-economic-matrix">
+                    {economicPaymentKinds.map((kind) => (
+                      <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError} forceLabel key={kind}/>
+                    ))}
+                  </td>
+                ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
                 {economic ? (
                   <td className="iu-fas-economic-total">
                     <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>

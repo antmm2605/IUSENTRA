@@ -402,6 +402,16 @@ Prova reale obbligatoria:
 - Stato residuo non locale: commit/push, check GitHub/CodeQL, deploy Hetzner e bonifica una tantum dei dati server già salvati con euristiche precedenti.
 ## CU esente senza data pagamento 2.253.127 - 2026-06-26
 
+## Vista economica compatta 2.253.128 - 2026-06-26
+
+- Dopo la verifica visiva su produzione la tabella economica risultava ancora troppo larga: la vecchia `min-width` da 2048px teneva conto di quattro colonne economiche separate e produceva scrollbar interne anche dopo l'unificazione di `fondo_spese` in `Spese/esborsi`.
+- Correzione React: la vista economica desktop usa ora una sola colonna `Controllo economico`, con matrice interna per `Contributo`, `Spese/esborsi`, `Liquidazione giudice` e `Parcella`. Le quattro voci restano modificabili singolarmente, ma non occupano più quattro colonne tabellari.
+- Il comportamento dati non cambia: `Fondo spese` resta solo alias legacy verso `spese_esborsi`, non viene ricreata una voce autonoma e non ci sono doppi importi per la stessa causale.
+- Gate mirati eseguiti prima del rebuild Docker: suite OCR/economia, backfill, filtri economici, UTF-8, packaging, OpenAPI e build React.
+- Verifica locale reale completata il 27/06/2026 su Docker `127.0.0.1:8080`, versione `2.253.128`: `app`, `scheduler-worker` e `ocr-worker` healthy, `/api/pronto` in `Europe/Rome`, browser integrato desktop `1440x900` e mobile `390x844` senza overflow orizzontale, console senza errori.
+- Caso locale RG `466/2023`: la matrice desktop e la card mobile mostrano `Contributo unificato da pagare EUR 98,00 Da registrare`, `Spese/esborsi EUR 125,00 Pagato`, `Liquidazione giudice EUR 1.500,00 Pagato`, `Parcella EUR 2.028,20 Da emettere`, totale registrato `EUR 1.625,00`; nessun `Fondo spese` e nessun falso CU `EUR 500,00`.
+- Worker locale dopo rebuild: `lex_sentenza_economia_auto` completato alle `2026-06-26T23:57:14Z`, `documents_catalogued=667`, `skipped_by_cursor=667`, `errors=0`, `vector_embedding_errors=0`. Questo conferma che, dopo il deploy, il server usa automaticamente la nuova pipeline per i prossimi fascicoli; l'intervento manuale resta solo bonifica una tantum dei valori storici già salvati.
+
 - Corretto il salvataggio del contributo unificato esente: la pipeline mantiene `Contributo unificato esente`, `status=non_previsto`, `importo=null`, ma non compila più `data_pagamento` con la data della sentenza.
 - Il backfill `--reset-lex-amounts` v9 rigenera la matrice economica locale usando questa regola, così i vecchi importi e le vecchie date fittizie vengono sostituiti dalla logica governata.
 - Prova locale reale su `127.0.0.1:8080`: vista economica Fascicoli verificata in browser integrato desktop e mobile, senza colonna `Fondo spese`, con `Spese/esborsi` unica e senza overflow orizzontale.

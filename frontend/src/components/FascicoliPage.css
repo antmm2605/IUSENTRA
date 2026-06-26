@@ -86,25 +86,15 @@
 .iu-fas-table th:nth-child(9),.iu-fas-table td:nth-child(9){width:88px}
 .iu-fas-table th:nth-child(10),.iu-fas-table td:nth-child(10){width:96px}
 .iu-fas-table td:nth-child(2),.iu-fas-table td:nth-child(5),.iu-fas-table td:nth-child(6),.iu-fas-table td:nth-child(7){overflow-wrap:anywhere}
-/* === Vista economica: colonne diverse dalla operativa ===
-   Il markup usa <table class="iu-fas-table iu-fas-table--economic"> con 10
-   colonne: checkbox, Rif, Cliente, Prossima scad, Stato, 4 celle economiche,
-   Totale. Senza queste larghezze dedicate la tabella ereditava le larghezze
-   nth-child della vista operativa (88-124px sulle colonne 6-9), schiacciando
-   le celle economiche che richiedono ~290px e causando sovrapposizioni.
-   table-layout:fixed -> ogni colonna prende ESATTAMENTE la larghezza dichiarata
-   e la griglia interna della cella (minmax 0) si adatta senza sbordare. */
-.iu-fas-table--economic{min-width:2048px}
+/* === Vista economica: una colonna matrice per evitare scroll orizzontali. */
+.iu-fas-table--economic{min-width:1040px}
 .iu-fas-table--economic th:nth-child(1),.iu-fas-table--economic td:nth-child(1){width:44px}
-.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:176px}
-.iu-fas-table--economic th:nth-child(3),.iu-fas-table--economic td:nth-child(3){width:172px}
-.iu-fas-table--economic th:nth-child(4),.iu-fas-table--economic td:nth-child(4){width:112px}
-.iu-fas-table--economic th:nth-child(5),.iu-fas-table--economic td:nth-child(5){width:126px}
-.iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6),
-.iu-fas-table--economic th:nth-child(7),.iu-fas-table--economic td:nth-child(7),
-.iu-fas-table--economic th:nth-child(8),.iu-fas-table--economic td:nth-child(8),
-.iu-fas-table--economic th:nth-child(9),.iu-fas-table--economic td:nth-child(9){width:304px}
-.iu-fas-table--economic th:nth-child(10),.iu-fas-table--economic td:nth-child(10){width:170px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:154px}
+.iu-fas-table--economic th:nth-child(3),.iu-fas-table--economic td:nth-child(3){width:156px}
+.iu-fas-table--economic th:nth-child(4),.iu-fas-table--economic td:nth-child(4){width:98px}
+.iu-fas-table--economic th:nth-child(5),.iu-fas-table--economic td:nth-child(5){width:112px}
+.iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6){width:auto}
+.iu-fas-table--economic th:nth-child(7),.iu-fas-table--economic td:nth-child(7){width:146px}
 /* Le celle economiche contengono una form alta: allinea in alto, non al centro */
 .iu-fas-table--economic td{vertical-align:top}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
@@ -125,6 +115,9 @@
 .iu-fas-economic-total{display:grid;gap:6px;align-content:start}
 .iu-fas-economic-total strong{font-size:13px;font-weight:950;color:#0f172a}
 .iu-fas-economic-total span{color:var(--iu-slate-500);font-size:11px;font-weight:780}
+.iu-fas-economic-matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;align-items:start}
+.iu-fas-economic-matrix .iu-fas-economic-cell{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px}
+.iu-fas-economic-matrix .iu-fas-economic-cell label:nth-of-type(3){grid-column:1/3}
 /* Griglia interna flessibile: i tre campi (Stato/Importo/Data) usano minmax(0,..fr)
    cosi' si adattano alla larghezza del <td> senza mai sbordare; il bottone Salva
    resta a larghezza fissa. min-width:0 sui figli e' garantito da .iu-fas-economic-cell label. */
@@ -1918,9 +1911,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-status-select--danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#b91c1c}
 
 /* ===== Vista economica dentro la tabella unica ===== */
-.iu-fas-table--economic{min-width:2048px}
+.iu-fas-table--economic{min-width:1040px}
 .iu-fas-table--economic th,.iu-fas-table--economic td{padding:6px 8px}
-.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:176px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:154px}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{color:var(--iu-blue-700);text-decoration:none}
 .iu-fas-economic-ref>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:650}

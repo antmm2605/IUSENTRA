@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.128 - 2026-06-26
+
+- Fascicoli React: la vista economica desktop usa una sola colonna `Controllo economico` con matrice compatta per contributo, Spese/esborsi, liquidazione e parcella, eliminando lo scroll orizzontale e mantenendo una sola voce Spese/esborsi.
+
 ## 2.253.127 - 2026-06-26
 
 - OCR economico fascicoli: le esenzioni dal contributo unificato restano tracciate come `Contributo unificato esente`, senza importo e senza data pagamento fittizia ereditata dalla sentenza.

@@ -400,3 +400,8 @@ Prova reale obbligatoria:
 - Caso locale RG `466/2023`: `Contributo unificato da pagare` `EUR 98,00`, stato `Da registrare`, data vuota; `Spese/esborsi` `EUR 125,00`, `Liquidazione` `EUR 1.500,00`, `Parcella` `EUR 2.028,20`; totale registrato `EUR 1.625,00`.
 - La UI economica è stata rifinita: le note lunghe restano compatte chiuse, si leggono aprendo `Dettagli`, e il focus sul campo `Spese/esborsi - metodo` è visibile senza sovrapposizioni.
 - Stato residuo non locale: commit/push, check GitHub/CodeQL, deploy Hetzner e bonifica una tantum dei dati server già salvati con euristiche precedenti.
+## CU esente senza data pagamento 2.253.127 - 2026-06-26
+
+- Corretto il salvataggio del contributo unificato esente: la pipeline mantiene `Contributo unificato esente`, `status=non_previsto`, `importo=null`, ma non compila più `data_pagamento` con la data della sentenza.
+- Il backfill `--reset-lex-amounts` v9 rigenera la matrice economica locale usando questa regola, così i vecchi importi e le vecchie date fittizie vengono sostituiti dalla logica governata.
+- Prova locale reale su `127.0.0.1:8080`: vista economica Fascicoli verificata in browser integrato desktop e mobile, senza colonna `Fondo spese`, con `Spese/esborsi` unica e senza overflow orizzontale.

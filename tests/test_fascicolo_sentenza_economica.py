@@ -403,6 +403,7 @@ def test_esenzione_cu_da_pdf_viene_salvata_senza_importo_e_senza_voce_proforma(t
     assert cu["status"] == "non_previsto"
     assert cu["previsto"] is False
     assert cu["importo"] is None
+    assert cu["data_pagamento"] == ""
     assert cu["natura"] == "esenzione_contributo_unificato"
     assert cu["label"] == "Contributo unificato esente"
     proforma = fatturazione.per_fascicolo("FASC-1")[0]

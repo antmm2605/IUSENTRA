@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.127 - 2026-06-26
+
+- OCR economico fascicoli: le esenzioni dal contributo unificato restano tracciate come `Contributo unificato esente`, senza importo e senza data pagamento fittizia ereditata dalla sentenza.
+
 ## 2.253.126 - 2026-06-26
 
 - OCR economico fascicoli: il contributo unificato viene riportato solo da pagamento/esenzione realmente presenti nel fascicolo; importi Carta docente, soglie reddituali e autocertificazioni non alimentano più la matrice economica.

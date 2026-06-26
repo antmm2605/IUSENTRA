@@ -2785,3 +2785,8 @@ Dati osservati nel fascicolo locale `RG 466/2023`:
 Impatto su deposito/PEC/notifiche: la logica resta unica nella pipeline documentale. Il backfill e il worker scheduler usano lo stesso estrattore CU governato, mentre `fondo_spese` è solo alias legacy verso `spese_esborsi`; di conseguenza Fascicoli, Lex AI, preparazione deposito, notifiche e PEC leggono la stessa matrice economica, evitando importi duplicati o falsi CU da Carta docente/reddito/autocertificazioni.
 
 Stato residuo prima della chiusura: dopo commit, push e check GitHub, ripetere su Hetzner deploy, reset/backfill e merge dati produzione senza backup, poi verificare visivamente i fascicoli reali segnalati nello screenshot.
+## Fascicoli, OCR economico e deposito - micro-fix CU esente 2.253.127 - 2026-06-26
+
+- La pipeline usata da fascicoli, Lex economia, PEC/notifiche/deposito e indice documentale ora scrive le esenzioni CU senza data pagamento fittizia: se il fascicolo contiene prova di esenzione, viene riportato lo stato esente/non previsto; se non c'è prova, il valore resta vuoto.
+- Prova locale reale su Docker `127.0.0.1:8080`: app/scheduler/OCR healthy, `/api/pronto` `versione=2.253.127`, vista economica Fascicoli controllata in browser integrato desktop e mobile.
+- La procedura di rilascio prevede deploy Hetzner e bonifica produzione con lo stesso backfill dopo il push del commit `2.253.127`, senza backup, per riallineare i fascicoli già presenti sul server.

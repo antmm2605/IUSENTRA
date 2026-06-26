@@ -523,7 +523,7 @@ def apply_sentenza_tribunale_automation(
             "contributo_unificato",
             status="non_previsto",
             amount=None,
-            date_iso=extraction.sentence_date,
+            date_iso="",
             note=extraction.contributo_unificato_titolo,
             operator=operator,
             now=now,

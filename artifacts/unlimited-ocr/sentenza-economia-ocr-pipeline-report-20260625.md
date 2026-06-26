@@ -306,3 +306,8 @@ Risultato visivo e dati osservati:
 Il quality gate Codex `ui-support`/`code` non è stato usato come verde prodotto perché fallisce lo scope su file protetti modificati intenzionalmente per release/deploy (`Dockerfile`, `pct/__init__.py`, `railway.toml`). I sotto-controlli del gate su dipendenze runtime, `AGENTS.md` e Open Design support risultano OK.
 
 Stato residuo obbligatorio: commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, poi reset/backfill e merge produzione senza backup sui dati server già sporchi. Dopo il deploy il software eseguirà automaticamente la nuova logica per i fascicoli futuri tramite pipeline e worker; la bonifica manuale resta solo per sostituire i valori vecchi già salvati.
+## Micro-fix CU esente senza data pagamento - 2.253.127 - 2026-06-26
+
+- Fix applicato: `apply_sentenza_tribunale_automation()` non copia più la data della sentenza nel campo `data_pagamento` quando il contributo unificato è esente/non previsto.
+- Test locale: suite OCR/economia e backfill mirati verdi; backfill v9 locale `documents_catalogued=667`, `applied=1`, `errors=0`, `vector_embedding_errors=0`.
+- Prova UI locale: `http://127.0.0.1:8080/fascicoli?vista=economica` mostra `Spese/esborsi` come unica voce, nessun `Fondo spese`, dati economici leggibili e mobile senza overflow.

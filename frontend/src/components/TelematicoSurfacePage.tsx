@@ -111,6 +111,9 @@ type AcquisitionQuery = {
   materia: string
   registro: string
   schema: string
+  tabellaMinisteriale: string
+  servizioPstPreferito: string
+  registroPortale: string
 }
 
 type AcquisitionFile = {
@@ -641,10 +644,134 @@ function acquisitionInitialFascicoloId(): string {
   )
 }
 
+function ministerialProfileFromSchema(value: unknown): JsonRecord {
+  const raw = normaliseSearch(asText(value))
+  if (!raw) return {}
+  if (raw.includes('cass') && raw.includes('penal')) {
+    return {
+      schema: 'cassazione penale',
+      materia: 'Cassazione penale',
+      registro: 'CASSPE',
+      tipo_registro: 'CASSPE',
+      quick_filter: 'cassazione penale',
+      tabella_ministeriale: 'JPW_CASSPE',
+      servizio_pst_preferito: 'JPW_CASSPE',
+      registro_portale: 'JPW_CASSPE',
+    }
+  }
+  if (raw.includes('cass') && raw.includes('civil')) {
+    return {
+      schema: 'cassazione civile',
+      materia: 'Cassazione civile',
+      registro: 'CASSCI',
+      tipo_registro: 'CASSCI',
+      quick_filter: 'cassazione civile',
+      tabella_ministeriale: 'JPW_CASSCI',
+      servizio_pst_preferito: 'JPW_CASSCI',
+      registro_portale: 'JPW_CASSCI',
+    }
+  }
+  if (raw.includes('lavor') || raw.includes('previd') || raw.includes('assistenz') || raw.includes('sicid_lavoro') || raw.includes('jpw_sil')) {
+    return {
+      schema: 'lavoro',
+      materia: 'Lavoro e previdenza',
+      registro: 'LAV',
+      tipo_registro: 'LAV',
+      quick_filter: 'lavoro',
+      tabella_ministeriale: 'SICID_LAVORO',
+      servizio_pst_preferito: raw.includes('silp') ? 'JPW_SILP_DISTR' : 'JPW_SIL_DISTR',
+      registro_portale: 'JPW_SIL',
+    }
+  }
+  if (raw.includes('volontar') || raw.includes('sivg')) {
+    return {
+      schema: 'volontaria',
+      materia: 'Volontaria giurisdizione',
+      registro: 'VG',
+      tipo_registro: 'VG',
+      quick_filter: 'volontaria',
+      tabella_ministeriale: 'SICID_VOLONTARIA_GIURISDIZIONE',
+      servizio_pst_preferito: 'JPW_SIVG',
+      registro_portale: 'JPW_SIVG',
+    }
+  }
+  if (raw.includes('simin')) {
+    return {
+      schema: 'minori',
+      materia: 'Minori',
+      registro: 'MIN',
+      tipo_registro: 'MIN',
+      quick_filter: 'minori',
+      tabella_ministeriale: 'SICID_SIMIN',
+      servizio_pst_preferito: 'JPW_SIMIN',
+      registro_portale: 'JPW_SIMIN',
+    }
+  }
+  if (raw.includes('minor') || raw.includes('minoren') || raw.includes('sicid_minori') || raw.includes('jpw_min')) {
+    return {
+      schema: 'minori',
+      materia: 'Minori',
+      registro: 'MIN',
+      tipo_registro: 'MIN',
+      quick_filter: 'minori',
+      tabella_ministeriale: 'SICID_MINORI',
+      servizio_pst_preferito: 'JPW_MIN',
+      registro_portale: 'JPW_MIN',
+    }
+  }
+  if (raw.includes('siecic') || raw.includes('esecuz') || raw.includes('concors') || raw.includes('falliment') || raw.includes('pignor')) {
+    return {
+      schema: 'esecuzioni',
+      materia: 'Esecuzioni e concorsuali',
+      registro: 'SIECIC',
+      tipo_registro: 'SIECIC',
+      quick_filter: 'esecuzioni',
+      tabella_ministeriale: 'SIECIC_ESECUZIONI_CONCORSUALI',
+      servizio_pst_preferito: 'JPW_SIECIC',
+      registro_portale: 'JPW_SIECIC',
+    }
+  }
+  if (raw.includes('giudice di pace') || raw.includes('sigp') || raw.includes('gdp')) {
+    return {
+      schema: 'giudice di pace',
+      materia: 'Giudice di pace',
+      registro: 'GDP',
+      tipo_registro: 'GDP',
+      quick_filter: 'giudice di pace',
+      tabella_ministeriale: 'SIGP_GIUDICE_DI_PACE',
+      servizio_pst_preferito: 'JPW_SIGP',
+      registro_portale: 'JPW_SIGP',
+    }
+  }
+  if (raw.includes('sicid') || raw.includes('civil') || raw.includes('rgn') || raw.includes('contenzioso')) {
+    return {
+      schema: 'civile',
+      materia: 'Civile contenzioso',
+      registro: 'RGN',
+      tipo_registro: 'RGN',
+      quick_filter: 'civile',
+      tabella_ministeriale: 'SICID_CONTENZIOSO_CIVILE',
+      servizio_pst_preferito: 'JPW_SICID',
+      registro_portale: 'JPW_SICID',
+    }
+  }
+  return {}
+}
+
 function acquisitionInitialQuery(): AcquisitionQuery {
   const params = new URLSearchParams(window.location.search)
   const documento = asText(params.get('documento') || params.get('documento_portale'))
-  const schema = asText(params.get('schema') || params.get('tabella') || params.get('tabella_ministeriale') || params.get('quick_filter'))
+  const rawSchema = asText(params.get('schema') || params.get('tabella') || params.get('tabella_ministeriale') || params.get('quick_filter'))
+  const profile = ministerialProfileFromSchema(
+    [
+      params.get('servizio_pst_preferito'),
+      params.get('servizio_pst'),
+      params.get('registro_portale'),
+      params.get('tabella_ministeriale'),
+      rawSchema,
+    ].filter(Boolean).join(' '),
+  )
+  const schema = asText(profile.schema || rawSchema)
   const materia = asText(params.get('materia') || schema || params.get('oggetto') || documento)
   const registro = asText(params.get('registro') || params.get('tipo_registro') || params.get('quick_filter') || schema)
   return {
@@ -660,6 +787,9 @@ function acquisitionInitialQuery(): AcquisitionQuery {
     materia,
     registro,
     schema,
+    tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale),
+    servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito),
+    registroPortale: asText(params.get('registro_portale') || profile.registro_portale),
   }
 }
 
@@ -692,17 +822,43 @@ function acquisitionTargetPayload(target: AcquisitionTargetDocument): JsonRecord
 }
 
 function ministerialSchemaFromQuery(query: AcquisitionQuery): string {
-  return asText(query.schema || query.registro || query.materia || query.oggetto)
+  const profile = ministerialProfileFromSchema(
+    [
+      query.servizioPstPreferito,
+      query.tabellaMinisteriale,
+      query.registroPortale,
+      query.schema,
+      query.registro,
+      query.materia,
+    ].filter(Boolean).join(' '),
+  )
+  return asText(profile.schema || query.schema || query.registro || query.materia || query.oggetto)
 }
 
 function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord {
   const schema = ministerialSchemaFromQuery(query)
+  const profile = ministerialProfileFromSchema(
+    [
+      query.servizioPstPreferito,
+      query.tabellaMinisteriale,
+      query.registroPortale,
+      schema,
+      query.registro,
+      query.materia,
+    ].filter(Boolean).join(' '),
+  )
+  const resolvedSchema = asText(profile.schema || schema)
+  const resolvedMateria = asText(query.materia || profile.materia || query.oggetto || resolvedSchema)
+  const resolvedRegistro = asText(query.registro || profile.registro || resolvedSchema)
   return {
-    materia: asText(query.materia || query.oggetto || schema),
-    registro: asText(query.registro || schema),
-    schema,
-    tipo_registro: asText(query.registro || schema),
-    quick_filter: schema,
+    materia: resolvedMateria,
+    registro: resolvedRegistro,
+    schema: resolvedSchema,
+    tipo_registro: asText(profile.tipo_registro || resolvedRegistro),
+    quick_filter: asText(profile.quick_filter || resolvedSchema),
+    tabella_ministeriale: asText(query.tabellaMinisteriale || profile.tabella_ministeriale),
+    servizio_pst_preferito: asText(query.servizioPstPreferito || profile.servizio_pst_preferito),
+    registro_portale: asText(query.registroPortale || profile.registro_portale),
   }
 }
 
@@ -3163,6 +3319,8 @@ function AcquisitionWizard({
   const targetDocument = useMemo(() => acquisitionTargetDocument(), [])
   const targetDocumentPayload = useMemo(() => acquisitionTargetPayload(targetDocument), [targetDocument])
   const [query, setQuery] = useState<AcquisitionQuery>(() => acquisitionInitialQuery())
+  const [pstSchemaHint, setPstSchemaHint] = useState<JsonRecord>({})
+  const [pstSchemaHintCheckedKey, setPstSchemaHintCheckedKey] = useState('')
   const [results, setResults] = useState<AcquisitionResult[]>([])
   const [selection, setSelection] = useState<AcquisitionResult | null>(null)
   const [preview, setPreview] = useState<JsonRecord>({})
@@ -3604,6 +3762,21 @@ function AcquisitionWizard({
   })
 
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
+  const applyMinisterialSchema = (schemaValue: string) => {
+    const profile = ministerialProfileFromSchema(schemaValue)
+    setQuery((current) => ({
+      ...current,
+      schema: asText(profile.schema || schemaValue),
+      registro: asText(profile.registro || schemaValue || current.registro),
+      materia: asText(profile.materia || schemaValue || current.materia),
+      tabellaMinisteriale: asText(profile.tabella_ministeriale),
+      servizioPstPreferito: asText(profile.servizio_pst_preferito),
+      registroPortale: asText(profile.registro_portale),
+    }))
+    if (!schemaValue) {
+      setPstSchemaHint({})
+    }
+  }
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => {
     const next = { ...current, [key]: value } as AcquisitionMapping
@@ -3617,6 +3790,21 @@ function AcquisitionWizard({
   })
   const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
   const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
+  const pstSchemaLookupKey = useMemo(() => {
+    if (!visible || portal !== 'pst') return ''
+    if (!asText(query.numero) || !asText(query.anno) || !asText(query.ufficio || query.ufficioCodice)) return ''
+    return [
+      asText(query.ufficioCodice || query.ufficio).toLowerCase(),
+      asText(query.numero),
+      asText(query.anno),
+      initialTargetFascicoloId,
+    ].join('|')
+  }, [initialTargetFascicoloId, portal, query.anno, query.numero, query.ufficio, query.ufficioCodice, visible])
+  const pstSchemaHintPending = Boolean(
+    pstSchemaLookupKey
+    && !asText(query.schema || query.tabellaMinisteriale || query.servizioPstPreferito)
+    && pstSchemaHintCheckedKey !== pstSchemaLookupKey,
+  )
 
   const officeTypes = useMemo(() => ['tutti', ...Array.from(new Set(data.offices.map((office) => office.tipo).filter(Boolean))).sort()], [data.offices])
   const officeMatches = useMemo(() => {

@@ -208,6 +208,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "looksLikeCmsEnvelopedData" in source
     assert "CMS_ENVELOPED_DATA_OID" in source
     assert "Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido" in source
+    assert "Allegato Atto.enc non ha la verifica ministeriale di Atto.msg e IndiceBusta.xml" in source
     assert "window.prompt" not in deposit_page
     assert "Password PEC locale" in deposit_page
     assert "Username SMTP locale" in deposit_page

@@ -2663,40 +2663,50 @@ def _sentence_attestation_text(document: dict[str, Any], context: dict[str, Any]
 def _document_attestation_text(document: dict[str, Any], context: dict[str, Any]) -> str:
     origin = document["origine"]
     name = document["nome_file"]
-    description = document["descrizione"]
+    description = document["descrizione"] or "documento indicato"
     proceeding = context["procedimento"]
+    office = text(proceeding.get("ufficio"), "ufficio giudiziario indicato")
+    rg = _rg_reference(proceeding)
+    rg_part = f", R.G. n. {rg}" if rg else ""
     if origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"} and _is_sentence_attestation_document(document, context):
-        return _sentence_attestation_text(document, context)
+        return f"{name}: {_sentence_attestation_text(document, context)}"
     if origin == "copia_fascicolo_informatico":
         return (
-            f"Attesto che il file {name}, contenente {description}, è copia informatica conforme "
-            f"al corrispondente atto o provvedimento presente nel fascicolo informatico del procedimento "
-            f"{proceeding['ufficio']}, R.G. n. {proceeding['numero_rg']}/{proceeding['anno_rg']}."
+            f"{name}, contenente {description}, copia informatica conforme al corrispondente "
+            f"atto o provvedimento presente nel fascicolo informatico del procedimento {office}{rg_part}."
         )
     if origin == "comunicazione_cancelleria":
+        date_part = f" del {document['data_comunicazione_cancelleria']}" if document["data_comunicazione_cancelleria"] else ""
         return (
-            f"Attesto che il file {name}, contenente {description}, è copia informatica conforme "
-            f"al documento allegato alla comunicazione telematica di cancelleria del "
-            f"{document['data_comunicazione_cancelleria']} relativa al procedimento "
-            f"R.G. n. {proceeding['numero_rg']}/{proceeding['anno_rg']}."
+            f"{name}, contenente {description}, copia informatica conforme al documento allegato "
+            f"alla comunicazione telematica di cancelleria{date_part} relativa al procedimento{rg_part}."
         )
     if origin == "scansione_analogico":
         return (
-            f"Attesto che il file {name}, contenente {description}, è copia informatica per immagine "
+            f"{name}, contenente {description}, copia informatica per immagine "
             "conforme all'originale analogico in possesso del sottoscritto difensore."
         )
     return ""
 
 
 def _attestation_blocks(context: dict[str, Any]) -> list[str]:
-    blocks: list[str] = []
+    items: list[str] = []
     for document in context["documenti"]:
         if not document["necessita_attestazione"]:
             continue
         block = _document_attestation_text(document, context)
         if block:
-            blocks.append(block)
-    return blocks
+            items.append(block)
+    if not items:
+        return []
+    intro = (
+        "Attesto, ai sensi della normativa vigente, che il seguente documento informatico "
+        "allegato alla presente notificazione è conforme alla rispettiva fonte indicata:"
+        if len(items) == 1
+        else "Attesto, ai sensi della normativa vigente, che i seguenti documenti informatici "
+        "allegati alla presente notificazione sono conformi alle rispettive fonti indicate:"
+    )
+    return ["\n".join([intro, *(f"- {item}" for item in items)])]
 
 
 def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, Any]:

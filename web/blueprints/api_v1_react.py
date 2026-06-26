@@ -16,6 +16,7 @@ import re
 import secrets
 import shutil
 import tempfile
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
 from pathlib import Path
@@ -69,6 +70,7 @@ from pct.termini_processuali import (
 )
 from pct.territorio_italia import get_comune, search_comuni
 from pct.uffici_competenti import ricerca_uffici_competenti
+from pct.uffici_giudiziari import risolvi_ufficio
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct.workflow_commerciale import apri_fascicolo_automatico
@@ -3790,6 +3792,310 @@ def telematico_react_surface(surface: str):
             logger=current_app.logger,
         )
     )
+
+
+_PST_REACT_SCHEMA_BY_SERVICE: dict[str, dict[str, str]] = {
+    "JPW_SICID": {
+        "schema": "civile",
+        "materia": "Civile contenzioso",
+        "registro": "RGN",
+        "tipo_registro": "RGN",
+        "quick_filter": "civile",
+        "tabella_ministeriale": "SICID_CONTENZIOSO_CIVILE",
+        "servizio_pst_preferito": "JPW_SICID",
+        "registro_portale": "JPW_SICID",
+    },
+    "JPW_SIL_DISTR": {
+        "schema": "lavoro",
+        "materia": "Lavoro e previdenza",
+        "registro": "LAV",
+        "tipo_registro": "LAV",
+        "quick_filter": "lavoro",
+        "tabella_ministeriale": "SICID_LAVORO",
+        "servizio_pst_preferito": "JPW_SIL_DISTR",
+        "registro_portale": "JPW_SIL",
+    },
+    "JPW_SIL": {
+        "schema": "lavoro",
+        "materia": "Lavoro e previdenza",
+        "registro": "LAV",
+        "tipo_registro": "LAV",
+        "quick_filter": "lavoro",
+        "tabella_ministeriale": "SICID_LAVORO",
+        "servizio_pst_preferito": "JPW_SIL_DISTR",
+        "registro_portale": "JPW_SIL",
+    },
+    "JPW_SILP_DISTR": {
+        "schema": "lavoro",
+        "materia": "Lavoro e previdenza",
+        "registro": "LAV",
+        "tipo_registro": "LAV",
+        "quick_filter": "lavoro",
+        "tabella_ministeriale": "SICID_LAVORO",
+        "servizio_pst_preferito": "JPW_SILP_DISTR",
+        "registro_portale": "JPW_SIL",
+    },
+    "JPW_SILP": {
+        "schema": "lavoro",
+        "materia": "Lavoro e previdenza",
+        "registro": "LAV",
+        "tipo_registro": "LAV",
+        "quick_filter": "lavoro",
+        "tabella_ministeriale": "SICID_LAVORO",
+        "servizio_pst_preferito": "JPW_SILP_DISTR",
+        "registro_portale": "JPW_SIL",
+    },
+    "JPW_SIVG": {
+        "schema": "volontaria",
+        "materia": "Volontaria giurisdizione",
+        "registro": "VG",
+        "tipo_registro": "VG",
+        "quick_filter": "volontaria",
+        "tabella_ministeriale": "SICID_VOLONTARIA_GIURISDIZIONE",
+        "servizio_pst_preferito": "JPW_SIVG",
+        "registro_portale": "JPW_SIVG",
+    },
+    "JPW_MIN": {
+        "schema": "minori",
+        "materia": "Minori",
+        "registro": "MIN",
+        "tipo_registro": "MIN",
+        "quick_filter": "minori",
+        "tabella_ministeriale": "SICID_MINORI",
+        "servizio_pst_preferito": "JPW_MIN",
+        "registro_portale": "JPW_MIN",
+    },
+    "JPW_SIMIN": {
+        "schema": "minori",
+        "materia": "Minori",
+        "registro": "MIN",
+        "tipo_registro": "MIN",
+        "quick_filter": "minori",
+        "tabella_ministeriale": "SICID_SIMIN",
+        "servizio_pst_preferito": "JPW_SIMIN",
+        "registro_portale": "JPW_SIMIN",
+    },
+    "JPW_SIECIC": {
+        "schema": "esecuzioni",
+        "materia": "Esecuzioni e concorsuali",
+        "registro": "SIECIC",
+        "tipo_registro": "SIECIC",
+        "quick_filter": "esecuzioni",
+        "tabella_ministeriale": "SIECIC_ESECUZIONI_CONCORSUALI",
+        "servizio_pst_preferito": "JPW_SIECIC",
+        "registro_portale": "JPW_SIECIC",
+    },
+    "JPW_SIGP": {
+        "schema": "giudice di pace",
+        "materia": "Giudice di pace",
+        "registro": "GDP",
+        "tipo_registro": "GDP",
+        "quick_filter": "giudice di pace",
+        "tabella_ministeriale": "SIGP_GIUDICE_DI_PACE",
+        "servizio_pst_preferito": "JPW_SIGP",
+        "registro_portale": "JPW_SIGP",
+    },
+    "JPW_CASSCI": {
+        "schema": "cassazione civile",
+        "materia": "Cassazione civile",
+        "registro": "CASSCI",
+        "tipo_registro": "CASSCI",
+        "quick_filter": "cassazione civile",
+        "tabella_ministeriale": "JPW_CASSCI",
+        "servizio_pst_preferito": "JPW_CASSCI",
+        "registro_portale": "JPW_CASSCI",
+    },
+    "JPW_CASSPE": {
+        "schema": "cassazione penale",
+        "materia": "Cassazione penale",
+        "registro": "CASSPE",
+        "tipo_registro": "CASSPE",
+        "quick_filter": "cassazione penale",
+        "tabella_ministeriale": "JPW_CASSPE",
+        "servizio_pst_preferito": "JPW_CASSPE",
+        "registro_portale": "JPW_CASSPE",
+    },
+}
+
+
+def _pst_react_norm(value: Any) -> str:
+    raw = str(value or "").strip()
+    normalized = unicodedata.normalize("NFKD", raw.upper())
+    ascii_text = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return re.sub(r"[^A-Z0-9]+", " ", ascii_text).strip()
+
+
+def _pst_react_service_from_text(*values: Any) -> tuple[str, str]:
+    text = " ".join(_pst_react_norm(value) for value in values if str(value or "").strip())
+    if not text:
+        return "", ""
+    checks: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
+        ("JPW_CASSPE", (("CASS", "PENAL"), ("JPW", "CASSPE"))),
+        ("JPW_CASSCI", (("CASS", "CIVIL"), ("JPW", "CASSCI"))),
+        ("JPW_SILP_DISTR", (("SILP",),)),
+        ("JPW_SIL_DISTR", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",), ("PCT", "LAVORO"), ("SICID", "LAVORO"))),
+        ("JPW_SIVG", (("VOLONTARI",), ("SIVG",))),
+        ("JPW_SIMIN", (("SIMIN",),)),
+        ("JPW_MIN", (("MINORE",), ("MINORI",), ("MINORENN",), ("JPW", "MIN"))),
+        ("JPW_SIECIC", (("SIECIC",), ("ESECUZ",), ("CONCORS",), ("FALLIMENT",), ("PIGNOR",))),
+        ("JPW_SIGP", (("SIGP",), ("GDP",), ("GIUDICE", "PACE"))),
+        ("JPW_SICID", (("SICID",), ("CIVILE",), ("RGN",), ("CONTENZIOSO",))),
+    )
+    for service, groups in checks:
+        if any(all(marker in text for marker in group) for group in groups):
+            return service, text
+    return "", text
+
+
+def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
+    profile = getattr(fascicolo, "profilo_deposito", None)
+    if not isinstance(profile, Mapping):
+        profile = {}
+    pratica = profile.get("pratica") if isinstance(profile.get("pratica"), Mapping) else {}
+    canale = profile.get("canale") if isinstance(profile.get("canale"), Mapping) else {}
+    ufficio = profile.get("ufficio") if isinstance(profile.get("ufficio"), Mapping) else {}
+
+    explicit_sources = (
+        getattr(fascicolo, "registro_operativo", ""),
+        getattr(fascicolo, "canale_operativo", ""),
+        getattr(fascicolo, "procedura_operativa_codice", ""),
+        getattr(fascicolo, "tipo_procedimento", ""),
+        getattr(fascicolo, "codice_guida_pratica", ""),
+        pratica.get("registro_operativo"),
+        pratica.get("procedura_operativa_codice"),
+        pratica.get("tipo_procedimento"),
+        canale.get("codice"),
+        canale.get("nome"),
+        canale.get("procedura"),
+    )
+    service, source = _pst_react_service_from_text(*explicit_sources)
+    if service:
+        return service, source
+
+    office_service, office_source = _pst_react_service_from_text(
+        getattr(fascicolo, "tribunale", ""),
+        ufficio.get("nome"),
+        ufficio.get("tipo"),
+    )
+    if office_service == "JPW_SIGP":
+        return office_service, office_source
+
+    descriptive_sources = (
+        getattr(fascicolo, "tipo", ""),
+        getattr(fascicolo, "area_pratica", ""),
+        getattr(fascicolo, "titolo", ""),
+        getattr(fascicolo, "oggetto", ""),
+        getattr(fascicolo, "codice_oggetto_pst", ""),
+    )
+    service, source = _pst_react_service_from_text(*descriptive_sources)
+    return service, source
+
+
+def _pst_react_schema_hint_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
+    service, source = _pst_react_service_from_fascicolo(fascicolo)
+    if not service:
+        return {}
+    hint = dict(_PST_REACT_SCHEMA_BY_SERVICE.get(service, {}))
+    if not hint:
+        return {}
+    hint.update({
+        "source": "fascicolo_locale",
+        "service_source": source,
+        "confidence": "alta",
+        "reason": (
+            "Tabella ministeriale applicata automaticamente dal profilo del fascicolo locale "
+            "prima della ricerca PST."
+        ),
+    })
+    return hint
+
+
+def _pst_react_rg_matches(left: Any, right: Any) -> bool:
+    a = re.sub(r"\s+", "", str(left or "")).lstrip("0")
+    b = re.sub(r"\s+", "", str(right or "")).lstrip("0")
+    return bool(a and b and a == b)
+
+
+def _pst_react_year_matches(left: Any, right: Any) -> bool:
+    try:
+        return int(left or 0) == int(right or 0) and int(left or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _pst_react_office_codes(value: Any) -> set[str]:
+    raw = str(value or "").strip()
+    if not raw:
+        return set()
+    codes = {raw}
+    try:
+        resolved = risolvi_ufficio(raw)
+    except Exception:
+        resolved = None
+    if isinstance(resolved, Mapping):
+        for key in ("codice", "codice_ministero", "codice_gl", "codice_pst"):
+            code = str(resolved.get(key) or "").strip()
+            if code:
+                codes.add(code)
+    return codes
+
+
+def _pst_react_office_matches(fascicolo: Any, ufficio: str, ufficio_codice: str) -> bool:
+    requested_text = _pst_react_norm(ufficio)
+    fascicolo_text = _pst_react_norm(getattr(fascicolo, "tribunale", ""))
+    requested_codes = _pst_react_office_codes(ufficio_codice or ufficio)
+    fascicolo_codes = _pst_react_office_codes(getattr(fascicolo, "tribunale", ""))
+    if requested_codes and fascicolo_codes and requested_codes.intersection(fascicolo_codes):
+        return True
+    if requested_text and fascicolo_text:
+        return requested_text == fascicolo_text or requested_text in fascicolo_text or fascicolo_text in requested_text
+    return not (requested_text or requested_codes)
+
+
+@api_v1_react.get("/telematico/pst/schema-hint")
+@_richiedi_auth
+def telematico_pst_schema_hint():
+    try:
+        numero = str(request.args.get("numero") or request.args.get("numero_rg") or "").strip()
+        anno = str(request.args.get("anno") or request.args.get("anno_rg") or "").strip()
+        ufficio = str(request.args.get("ufficio") or "").strip()
+        ufficio_codice = str(request.args.get("ufficio_codice") or request.args.get("codice_ufficio") or "").strip()
+        fascicolo_id = str(request.args.get("id_fasc") or request.args.get("fascicolo_id") or "").strip()
+        fascicoli = list(get_fascicoli().tutti(archiviati=True))
+        matched = None
+        for fascicolo in fascicoli:
+            if fascicolo_id and str(getattr(fascicolo, "id", "") or "") != fascicolo_id:
+                continue
+            if not fascicolo_id and not (
+                _pst_react_rg_matches(getattr(fascicolo, "numero_rg", ""), numero)
+                and _pst_react_year_matches(getattr(fascicolo, "anno_rg", 0), anno)
+            ):
+                continue
+            if not _pst_react_office_matches(fascicolo, ufficio, ufficio_codice):
+                continue
+            matched = fascicolo
+            break
+        hint = _pst_react_schema_hint_from_fascicolo(matched) if matched is not None else {}
+        return jsonify({
+            "ok": True,
+            "matched": matched is not None,
+            "hint": hint,
+            "fascicolo": {
+                "id": str(getattr(matched, "id", "") or "") if matched is not None else "",
+                "titolo": str(getattr(matched, "titolo", "") or "") if matched is not None else "",
+                "tribunale": str(getattr(matched, "tribunale", "") or "") if matched is not None else "",
+                "numero_rg": str(getattr(matched, "numero_rg", "") or "") if matched is not None else "",
+                "anno_rg": getattr(matched, "anno_rg", "") if matched is not None else "",
+            },
+        })
+    except Exception as exc:
+        current_app.logger.exception("Errore deduzione tabella PST: %s", exc)
+        return jsonify({
+            "ok": False,
+            "matched": False,
+            "hint": {},
+            "errore": "Tabella ministeriale non dedotta dal fascicolo locale.",
+        }), 200
 
 
 def _pat_module_prefill_text(value: Any, fallback: str = "") -> str:

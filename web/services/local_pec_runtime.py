@@ -8,6 +8,7 @@ channel for the lawyer's workstation is the Local Signer running on the PC.
 from __future__ import annotations
 
 import base64
+import hashlib
 import mimetypes
 import tempfile
 from pathlib import Path
@@ -37,6 +38,7 @@ def build_local_pec_payload(
     attachment_path: str,
     attachment_name: str | None = None,
     include_attachment_content: bool = True,
+    busta_audit: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a Local Signer `/pec/send` payload without exposing any saved password."""
 
@@ -49,16 +51,41 @@ def build_local_pec_payload(
     # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e radici runtime consentite.
     filename = attachment_name or path.name
     attachment_bytes = path.read_bytes()
-    if filename.lower() == "atto.enc" and not is_atto_enc_cms_enveloped_data(attachment_bytes):
-        raise ValueError(
-            "Allegato Atto.enc non conforme: il file non è un CMS EnvelopedData ministeriale valido."
+    if filename.lower() == "atto.enc":
+        if not is_atto_enc_cms_enveloped_data(attachment_bytes):
+            raise ValueError(
+                "Allegato Atto.enc non conforme: il file non è un CMS EnvelopedData ministeriale valido."
+            )
+        audit = dict(busta_audit or {})
+        expected_sha256 = str(audit.get("atto_enc_sha256") or "").strip().upper()
+        actual_sha256 = hashlib.sha256(attachment_bytes).hexdigest().upper()
+        required_ok = (
+            audit.get("uses_real_encryption") is True
+            and audit.get("atto_enc_cms_valid") is True
+            and audit.get("dati_atto_signed") is True
+            and audit.get("dati_atto_filename") == "DatiAtto.xml.p7m"
+            and audit.get("indice_busta_generated") is True
+            and audit.get("atto_msg_indice_busta_valid") is True
+            and audit.get("busta_verifica_valida") is True
         )
+        if not required_ok:
+            raise ValueError(
+                "Allegato Atto.enc non conforme: manca la verifica ministeriale completa di Atto.msg, "
+                "IndiceBusta.xml e DatiAtto.xml.p7m firmato."
+            )
+        if expected_sha256 and expected_sha256 != actual_sha256:
+            raise ValueError(
+                "Allegato Atto.enc non conforme: hash diverso dalla busta ministeriale verificata."
+            )
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     attachment = {
         "filename": filename,
         "mime_type": mime_type,
         "size_bytes": path.stat().st_size,
     }
+    if filename.lower() == "atto.enc":
+        attachment["sha256"] = hashlib.sha256(attachment_bytes).hexdigest().upper()
+        attachment["ministerial_busta_verified"] = True
     if include_attachment_content:
         attachment["content_base64"] = base64.b64encode(attachment_bytes).decode("ascii")
     smtp_port = int(getattr(pec_cfg, "smtp_port", 465) or 465)
@@ -181,6 +208,7 @@ def local_pec_required_response(
             attachment_path=attachment_path,
             attachment_name="Atto.enc",
             include_attachment_content=include_attachment_content,
+            busta_audit=busta_audit,
         ),
         "validation": validation.to_dict() if hasattr(validation, "to_dict") else validation,
         "busta_audit": busta_audit or {},

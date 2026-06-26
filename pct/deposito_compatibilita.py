@@ -158,16 +158,22 @@ def build_deposito_compatibility_report(
     has_datiatto_signed = any(item.casefold() == "datiatto.xml.p7m" for item in docs)
     audit_indice_busta = audit.get("indice_busta_xml_generated", audit.get("indice_busta_generated")) is True
     audit_datiatto_signed = audit.get("dati_atto_signed") is True
+    audit_indice_structure = audit.get("atto_msg_indice_busta_valid") is True and audit.get("busta_verifica_valida") is True
+    audit_enc_hash = str(audit.get("atto_enc_sha256") or "").strip().upper()
+    file_hash = str(file_info.get("sha256") or "").strip().upper()
 
     real_enc = (
         audit.get("uses_real_encryption") is True
+        and audit.get("atto_enc_cms_valid") is True
         and str(audit.get("required_encryption_algorithm") or "").upper() == "AES256"
         and "AES256" in str(audit.get("transport_mode") or "").upper()
         and audit_indice_busta
+        and audit_indice_structure
         and audit_datiatto_signed
         and file_info["exists"]
         and file_info["name"] == "Atto.enc"
         and file_info.get("cms_enveloped_data") is True
+        and (not audit_enc_hash or audit_enc_hash == file_hash)
     )
     _check(
         checks,
@@ -178,7 +184,7 @@ def build_deposito_compatibility_report(
         detail=(
             "Atto.msg cifrato in Atto.enc con algoritmo AES256 e certificato PST."
             if real_enc
-            else "Atto.enc AES256 non risulta generato, collegato o riconoscibile come CMS ministeriale."
+            else "Atto.enc AES256 non risulta generato, verificato con IndiceBusta.xml o collegato alla busta controllata."
         ),
         evidence=str(audit.get("content_encryption_algorithm") or file_info.get("cms_encryption_algorithm") or audit.get("transport_mode") or ""),
     )
@@ -197,11 +203,11 @@ def build_deposito_compatibility_report(
         checks,
         code="INDICE_BUSTA_XML",
         label="IndiceBusta.xml ministeriale",
-        ok=has_indice_busta and audit_indice_busta,
+        ok=has_indice_busta and audit_indice_busta and audit_indice_structure,
         weight=12,
         detail=(
             "IndiceBusta.xml ministeriale generato e incluso in Atto.msg."
-            if has_indice_busta and audit_indice_busta
+            if has_indice_busta and audit_indice_busta and audit_indice_structure
             else "IndiceBusta.xml ministeriale non risulta incluso: il PST può rifiutare la busta."
         ),
     )

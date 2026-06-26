@@ -164,6 +164,13 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     audit = busta.audit_conformita_pst()
     assert audit["dati_atto_signed"] is True
     assert not any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
+    assert audit["atto_msg_indice_busta_valid"] is True
+    assert audit["busta_verifica_valida"] is True
+    assert audit["atto_enc_cms_valid"] is True
+    assert audit["atto_enc_sha256"]
+    assert audit["indice_busta_atto_filename"] == "atto.pdf"
+    assert audit["indice_busta_dati_atto_filename"] == DATI_ATTO_FIRMATO_FILENAME
+    assert audit["formal_checks"]["T002"]["status"] == "ok"
 
 
 def test_dati_atto_per_firma_e_deterministico_con_stessa_busta(dati_busta):
@@ -225,8 +232,30 @@ def test_verifica_busta_valida(dati_busta, tmp_path):
     assert risultato["audit_tecnico"]["uses_real_encryption"] is True
     assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "ok"
     assert risultato["audit_tecnico"]["indice_busta_generated"] is True
+    assert risultato["audit_tecnico"]["atto_msg_indice_busta_valid"] is True
+    assert risultato["audit_tecnico"]["busta_verifica_valida"] is True
+    assert risultato["audit_tecnico"]["atto_enc_sha256"]
     assert INDICE_BUSTA_FILENAME in _atto_msg_attachments(busta_path)
     assert INDICE_DOCUMENTI_FILENAME in risultato["documenti"]
+
+
+def test_busta_blocca_indice_busta_non_coerente_con_atto_msg(dati_busta, tmp_path, monkeypatch):
+    """La busta non deve arrivare ad Atto.enc se IndiceBusta.xml richiama file assenti."""
+    from lxml import etree
+
+    busta = BustaTelematica(dati_busta)
+
+    def indice_corrotto(*, dati_atto_filename=DATI_ATTO_FILENAME):
+        root = etree.Element("IndiceBusta")
+        etree.SubElement(root, "Atto", Nome="atto_sbagliato.pdf", ID="ATTO_1")
+        etree.SubElement(root, "Allegato", Nome=dati_atto_filename, ID="DATI_1", Tipo="DA")
+        etree.SubElement(root, "Allegato", Nome=INDICE_DOCUMENTI_FILENAME, ID="INDICE_1", Tipo="SM")
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+    monkeypatch.setattr(busta, "_crea_indice_busta_xml", indice_corrotto)
+
+    with pytest.raises(ValueError, match="IndiceBusta.xml"):
+        busta.crea_busta(str(tmp_path))
 
 
 def test_audit_busta_blocca_prima_della_generazione_reale(dati_busta):

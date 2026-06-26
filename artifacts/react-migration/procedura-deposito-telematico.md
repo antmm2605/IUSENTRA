@@ -2,6 +2,32 @@
 
 Aggiornato: 2026-06-26.
 
+## Aggiornamento 2026-06-26 - Blocco anti `Indice busta non trovato`
+
+Caso reale da presidiare: deposito PCT Tribunale di Vicenza inviato il `26/06/2026` alle `11:42`, con esito automatico PST ricevuto alle `11:43:26`, `Codice esito: -1`, `IDBUSTA: 152529323`, messaggio `Indice busta non trovato, necessario effettuare nuovamente il deposito`.
+
+Evidenza tecnica ricavata dagli EML reali:
+
+- l'invio PEC era partito e la ricevuta di consegna conteneva un allegato unico `Atto.enc`;
+- `Atto.enc` era un CMS/PKCS#7 `EnvelopedData` con cifratura `aes256_cbc` e certificato PST del Tribunale di Vicenza;
+- quindi il problema non era SMTP, destinatario PEC, certificato Vicenza o base64 dell'allegato, ma la mancanza di una prova interna sufficiente su `Atto.msg` e `IndiceBusta.xml` prima della cifratura consegnata al Local Signer.
+
+Regola corretta da questo aggiornamento:
+
+- `Atto.msg` viene verificato prima di produrre `Atto.enc`: deve contenere `IndiceBusta.xml`, `DatiAtto.xml.p7m`, atto principale, allegati selezionati e `IndiceDocumentiDepositati.PDF`;
+- `IndiceBusta.xml` deve avere `<Atto Nome="...">` uguale all'atto principale realmente presente, un solo `Allegato Tipo="DA"` uguale a `DatiAtto.xml.p7m`, e ogni allegato dichiarato deve esistere davvero in `Atto.msg`;
+- dopo la cifratura il software rilegge `Atto.enc`, verifica CMS `EnvelopedData`, AES256, coerenza della busta e registra hash SHA-256 di `Atto.msg` e `Atto.enc`;
+- `Simula invio PEC`, `Prova senza invio` e `Invia deposito reale` usano lo stesso audit busta: la simulazione salta solo l'ultimo invio SMTP locale, non la generazione e il controllo del pacchetto ministeriale;
+- il payload Local Signer per `Atto.enc` viene creato solo se contiene `ministerial_busta_verified=true` e se l'hash dell'allegato coincide con l'audit del pacchetto;
+- il bottone `Invia deposito reale` non può più arrivare alla password PEC locale con un `Atto.enc` che sia solo CMS/base64 valido ma senza verifica ministeriale di `Atto.msg` e `IndiceBusta.xml`.
+
+Guardrail automatici eseguiti su questa correzione:
+
+- `python -m pytest tests/test_busta.py tests/test_local_pec_runtime.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests/test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests/test_deposito.py::test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests/test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente tests/test_deposito_guidato.py tests/test_deposito_server_dry_run_audit.py tests/test_regia_ui_react.py -q` -> `51 passed`;
+- prova tecnica con certificato PST reale Vicenza: `Atto.msg` generato con `IndiceBusta.xml`, `DatiAtto.xml.p7m`, atto principale, allegati e indice PDF; `Atto.enc` riletto come CMS `enveloped_data`, algoritmo `aes256_cbc`, OID `2.16.840.1.101.3.4.1.42`, destinatario certificato Vicenza.
+
+Stato server: da verificare su `https://app.iusentra.it` dopo applicazione del codice e rebuild Hetzner. La prova deve concentrarsi sul fascicolo reale indicato dall'utente e non deve inviare PEC reale durante `Simula invio PEC`.
+
 ## Aggiornamento 2026-06-26 - Job incrementali, PEC, notifiche e documenti Lex
 
 Richiesta utente: eliminare i ripassi pesanti automatici. Dopo che PEC, email, notifiche, Web Push e documenti di fascicolo sono stati letti e memorizzati, i job devono controllare solo elementi nuovi, modificati o rimasti in coda.

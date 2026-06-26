@@ -1476,6 +1476,9 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -1563,6 +1566,7 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
     assert corpo_check["status"] == "ok"
     local_payload = payload["local_pec"]["payload"]
     assert local_payload["attachments"][0]["filename"] == "Atto.enc"
+    assert local_payload["attachments"][0]["ministerial_busta_verified"] is True
     assert local_payload["attachments"][0]["content_base64"]
 
     gf_reload = GestioneFascicoli(
@@ -1605,6 +1609,9 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -1717,6 +1724,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     assert simulation_response.status_code == 200, simulation_response.get_data(as_text=True)
     simulation_payload = simulation_response.get_json()
     assert simulation_payload["compatibility_report"]["percentuale"] == 100
+    assert simulation_payload["local_pec"]["payload"]["attachments"][0]["ministerial_busta_verified"] is True
     simulation_corpo_check = next(
         item for item in simulation_payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC"
     )
@@ -1727,6 +1735,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     local_payload = payload["local_pec"]["payload"]
     attachment = local_payload["attachments"][0]
     assert attachment["filename"] == "Atto.enc"
+    assert attachment["ministerial_busta_verified"] is True
     assert is_atto_enc_cms_enveloped_data(base64.b64decode(attachment["content_base64"], validate=True))
     assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
     assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
@@ -1952,6 +1961,9 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2083,6 +2095,9 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2213,6 +2228,9 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2336,6 +2354,9 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
             "uses_real_encryption": True,
             "atto_msg_generated": True,
             "atto_enc_path": str(enc),
+            "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,

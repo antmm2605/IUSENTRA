@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.123 - 2026-06-26
+
+- Deposito telematico PCT: `Simula invio PEC` e `Invia deposito reale` ora richiedono la verifica ministeriale completa di `Atto.msg`, `IndiceBusta.xml`, `DatiAtto.xml.p7m` e hash `Atto.enc` prima di consegnare il payload al Local Signer, bloccando il falso-verde che poteva arrivare al PST come `Indice busta non trovato`.
+- Notifiche legali: l'attestazione di conformità automatica in relata è ora unica e cumulativa, con elenco dei documenti coperti, evitando una dichiarazione separata per ogni allegato.
+
 ## 2.253.122 - 2026-06-26
 
 - Hetzner performance: i backup dati usano zstd a budget server (`level=6`, 2 thread, `nice`/`ionice`) e verificano lo spazio libero prima di comprimere, evitando nuove saturazioni CPU/disco.

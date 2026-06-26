@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 286.
-- Endpoint P0/P1 contrattualizzati: 248.
+- Endpoint React API contrattualizzati: 287.
+- Endpoint P0/P1 contrattualizzati: 249.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 271.
+- Endpoint con provider verification auth-error: 272.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -281,6 +281,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Tariffario | `/api/v1/ui/tariffario/{id_voce}` | `GET` | Tariffario | P1 | complete | auth-error | `fatturazione.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Tariffario | `/api/v1/ui/tariffario/calcola` | `POST` | Tariffario | P1 | complete | auth-error | `fatturazione.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Telematico | `/api/v1/ui/telematico` | `GET` | Telematico (/app/telematico) | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.telematico.center` | current_tenant | verified |
+| Telematico | `/api/v1/ui/telematico/pst/schema-hint` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Telematico | `/api/v1/ui/telematico/surface/{surface}` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti` | `GET` | Documenti (/app/documenti) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.documents.list` | current_tenant | verified |
 | Template atti | `/api/v1/ui/template-atti/catalogo` | `GET` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

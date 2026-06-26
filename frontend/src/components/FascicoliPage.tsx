@@ -5844,6 +5844,9 @@ function assertLocalPecAttoEncBase64(localPayload: Record<string, unknown>): voi
   if (!decoded.length || !looksLikeCmsEnvelopedData(decoded)) {
     throw new Error('Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido. Rigenera la busta prima dell’invio reale.')
   }
+  if (!recordBool(attoEnc as Record<string, unknown>, 'ministerial_busta_verified')) {
+    throw new Error('Allegato Atto.enc non ha la verifica ministeriale di Atto.msg e IndiceBusta.xml. Ripeti Simula invio PEC prima dell’invio reale.')
+  }
 }
 
 function sleep(ms: number): Promise<void> {

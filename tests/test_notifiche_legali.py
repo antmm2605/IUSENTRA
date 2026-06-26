@@ -110,6 +110,42 @@ def test_notifica_l53_normalizza_avvocato_e_blocco_procedimento():
     assert "R.G. n. 466/2023." in result.relata_text
 
 
+def test_notifica_l53_attestazione_automatica_cumulativa_per_documenti_multipli():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_pec_con_attestazione_fascicolo"
+    payload["attestazione_conformita"] = ""
+    payload["attestazione_multipla"] = True
+    payload["documenti"] = [
+        {
+            "nome_file": "provvedimento.pdf",
+            "descrizione": "Provvedimento",
+            "origine": "copia_fascicolo_informatico",
+            "attestazione_conformita_presente": True,
+        },
+        {
+            "nome_file": "ordinanza.pdf",
+            "descrizione": "Ordinanza",
+            "origine": "copia_fascicolo_informatico",
+            "attestazione_conformita_presente": True,
+        },
+        {
+            "nome_file": "verbale.pdf",
+            "descrizione": "Verbale",
+            "origine": "copia_fascicolo_informatico",
+            "attestazione_conformita_presente": True,
+        },
+    ]
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert result.relata_text.count("Attesto, ai sensi della normativa vigente") == 1
+    assert "Attesto che il file provvedimento.pdf" not in result.relata_text
+    assert "- provvedimento.pdf, contenente Provvedimento" in result.relata_text
+    assert "- ordinanza.pdf, contenente Ordinanza" in result.relata_text
+    assert "- verbale.pdf, contenente Verbale" in result.relata_text
+
+
 def test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto():
     payload = _legal_payload()
     payload["documenti"] = [

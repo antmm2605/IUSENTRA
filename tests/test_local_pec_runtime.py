@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -26,6 +27,19 @@ def _atto_enc_cms_payload(tmp_path: Path) -> bytes:
     return cifra_atto_msg_aes256(b"Atto.msg test con IndiceBusta.xml", cert)
 
 
+def _verified_audit(payload: bytes) -> dict[str, object]:
+    return {
+        "uses_real_encryption": True,
+        "atto_enc_cms_valid": True,
+        "dati_atto_signed": True,
+        "dati_atto_filename": "DatiAtto.xml.p7m",
+        "indice_busta_generated": True,
+        "atto_msg_indice_busta_valid": True,
+        "busta_verifica_valida": True,
+        "atto_enc_sha256": hashlib.sha256(payload).hexdigest().upper(),
+    }
+
+
 def test_payload_local_pec_rifiuta_atto_enc_non_cms(tmp_path):
     atto_enc = tmp_path / "Atto.enc"
     atto_enc.write_bytes(b"ATTO-ENC-NON-MINISTERIALE")
@@ -43,7 +57,8 @@ def test_payload_local_pec_rifiuta_atto_enc_non_cms(tmp_path):
 
 def test_payload_local_pec_include_atto_enc_cms_base64(tmp_path):
     atto_enc = tmp_path / "Atto.enc"
-    atto_enc.write_bytes(_atto_enc_cms_payload(tmp_path))
+    payload_bytes = _atto_enc_cms_payload(tmp_path)
+    atto_enc.write_bytes(payload_bytes)
 
     payload = build_local_pec_payload(
         pec_cfg=_pec_cfg(),
@@ -52,16 +67,35 @@ def test_payload_local_pec_include_atto_enc_cms_base64(tmp_path):
         corpo="Deposito",
         attachment_path=str(atto_enc),
         attachment_name="Atto.enc",
+        busta_audit=_verified_audit(payload_bytes),
     )
 
     attachment = payload["payload"]["attachments"][0]
     assert attachment["filename"] == "Atto.enc"
+    assert attachment["ministerial_busta_verified"] is True
+    assert attachment["sha256"] == hashlib.sha256(payload_bytes).hexdigest().upper()
     assert base64.b64decode(attachment["content_base64"], validate=True) == atto_enc.read_bytes()
+
+
+def test_payload_local_pec_rifiuta_atto_enc_cms_senza_audit_busta(tmp_path):
+    atto_enc = tmp_path / "Atto.enc"
+    atto_enc.write_bytes(_atto_enc_cms_payload(tmp_path))
+
+    with pytest.raises(ValueError, match="verifica ministeriale completa"):
+        build_local_pec_payload(
+            pec_cfg=_pec_cfg(),
+            destinatario="tribunale@example.pec.it",
+            oggetto="DEPOSITO TELEMATICO - RICORSO",
+            corpo="Deposito",
+            attachment_path=str(atto_enc),
+            attachment_name="Atto.enc",
+        )
 
 
 def test_payload_local_pec_usa_username_smtp_separato_dal_mittente(tmp_path):
     atto_enc = tmp_path / "Atto.enc"
-    atto_enc.write_bytes(_atto_enc_cms_payload(tmp_path))
+    payload_bytes = _atto_enc_cms_payload(tmp_path)
+    atto_enc.write_bytes(payload_bytes)
     cfg = _pec_cfg()
     cfg.username = "utente-login-pec"
 
@@ -72,6 +106,7 @@ def test_payload_local_pec_usa_username_smtp_separato_dal_mittente(tmp_path):
         corpo="Deposito",
         attachment_path=str(atto_enc),
         attachment_name="Atto.enc",
+        busta_audit=_verified_audit(payload_bytes),
     )
 
     assert payload["payload"]["from"] == "studio@example.pec.it"

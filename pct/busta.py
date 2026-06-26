@@ -76,7 +76,9 @@ class BustaTelematica:
     """
     Prepara Atto.msg e Atto.enc per il deposito civile.
 
-    Atto.msg contiene DatiAtto.xml, atto principale, allegati e indice.
+    Atto.msg contiene IndiceBusta.xml, DatiAtto.xml, atto principale,
+    allegati e indice documenti. Atto.enc viene consegnato al Local Signer
+    solo dopo avere verificato questo Atto.msg non cifrato.
     Atto.enc è il CMS PKCS#7 cifrato AES256 con il certificato pubblico PST
     dell'ufficio destinatario.
     """
@@ -200,6 +202,112 @@ class BustaTelematica:
             doctype='<!DOCTYPE IndiceBusta SYSTEM "IndiceBusta.dtd">',
         )
         return payload
+
+    @staticmethod
+    def _atto_msg_attachments(atto_msg: bytes) -> dict[str, bytes]:
+        message = BytesParser(policy=policy.default).parsebytes(atto_msg)
+        attachments: dict[str, bytes] = {}
+        for part in message.iter_attachments():
+            filename = Path(part.get_filename() or "").name
+            if filename:
+                attachments[filename] = part.get_payload(decode=True) or b""
+        return attachments
+
+    def _verifica_atto_msg_payloads(
+        self,
+        atto_msg: bytes,
+        *,
+        dati_atto_filename: str,
+        require_dati_atto_firmato: bool = False,
+    ) -> dict:
+        """Controlla la busta MIME prima della cifratura ministeriale."""
+
+        result = {
+            "valida": False,
+            "documenti": [],
+            "errori": [],
+            "indice_busta_atto_filename": "",
+            "indice_busta_dati_atto_filename": "",
+            "indice_busta_allegati": [],
+        }
+        attachments = self._atto_msg_attachments(atto_msg)
+        required = {INDICE_BUSTA_FILENAME, dati_atto_filename, INDICE_DOCUMENTI_FILENAME}
+        missing = sorted(name for name in required if name not in attachments)
+        if missing:
+            result["errori"].append("Atto.msg incompleto: mancano " + ", ".join(missing))
+            return result
+
+        main_name = Path(self.dati.atto_principale).name
+        if main_name not in attachments:
+            result["errori"].append(f"Atto principale {main_name} mancante in Atto.msg")
+            return result
+        for allegato in self.dati.allegati:
+            name = Path(allegato.percorso).name
+            if name not in attachments:
+                result["errori"].append(f"Allegato {name} mancante in Atto.msg")
+                return result
+
+        if require_dati_atto_firmato and dati_atto_filename != DATI_ATTO_FIRMATO_FILENAME:
+            result["errori"].append("DatiAtto.xml.p7m firmato obbligatorio per la busta reale")
+            return result
+
+        try:
+            indice_root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
+        except Exception as exc:
+            result["errori"].append(f"{INDICE_BUSTA_FILENAME} non leggibile: {exc}")
+            return result
+        atto_node = indice_root.find("Atto")
+        if indice_root.tag != "IndiceBusta" or atto_node is None:
+            result["errori"].append(f"{INDICE_BUSTA_FILENAME} non conforme al DTD ministeriale")
+            return result
+        atto_name = str(atto_node.get("Nome") or "").strip()
+        result["indice_busta_atto_filename"] = atto_name
+        if atto_name != main_name:
+            result["errori"].append(
+                f"{INDICE_BUSTA_FILENAME} non richiama l'atto principale {main_name}"
+            )
+            return result
+        if atto_name not in attachments:
+            result["errori"].append(f"{INDICE_BUSTA_FILENAME} richiama un atto assente: {atto_name}")
+            return result
+
+        allegati = indice_root.findall("Allegato")
+        result["indice_busta_allegati"] = [
+            {"nome": str(node.get("Nome") or ""), "tipo": str(node.get("Tipo") or "")}
+            for node in allegati
+        ]
+        dati_nodes = [
+            node
+            for node in allegati
+            if node.get("Tipo") == "DA"
+            and str(node.get("Nome") or "").strip() in {DATI_ATTO_FILENAME, DATI_ATTO_FIRMATO_FILENAME}
+        ]
+        if len(dati_nodes) != 1:
+            result["errori"].append(f"{INDICE_BUSTA_FILENAME} deve contenere un solo Allegato Tipo=DA")
+            return result
+        dati_nome = str(dati_nodes[0].get("Nome") or "").strip()
+        result["indice_busta_dati_atto_filename"] = dati_nome
+        if dati_nome != dati_atto_filename:
+            result["errori"].append(
+                f"{INDICE_BUSTA_FILENAME} richiama {dati_nome}, ma Atto.msg contiene {dati_atto_filename}"
+            )
+            return result
+        for node in allegati:
+            nome = str(node.get("Nome") or "").strip()
+            tipo = str(node.get("Tipo") or "").strip()
+            if not nome or not tipo:
+                result["errori"].append(f"{INDICE_BUSTA_FILENAME} contiene allegato senza Nome o Tipo")
+                return result
+            if nome not in attachments:
+                result["errori"].append(f"{INDICE_BUSTA_FILENAME} richiama un allegato assente: {nome}")
+                return result
+
+        result["documenti"] = [atto_name, *[row["nome"] for row in result["indice_busta_allegati"] if row["nome"]]]
+        if INDICE_DOCUMENTI_FILENAME not in result["documenti"]:
+            result["errori"].append(f"{INDICE_DOCUMENTI_FILENAME} non richiamato da {INDICE_BUSTA_FILENAME}")
+            return result
+        result["valida"] = True
+        return result
 
     def crea_dati_atto_xml_per_firma(self) -> bytes:
         """Restituisce DatiAtto.xml non firmato da inviare al Local Signer."""
@@ -545,7 +653,24 @@ class BustaTelematica:
             )
 
         transport = dict(self._last_transport_audit or {})
-        real_transport = transport.get("uses_real_encryption") is True
+        transport_indice_ok = transport.get("atto_msg_indice_busta_valid") is True or not transport
+        real_transport = (
+            transport.get("uses_real_encryption") is True
+            and transport.get("atto_enc_cms_valid") is True
+            and transport.get("busta_verifica_valida") is True
+            and transport.get("atto_msg_indice_busta_valid") is True
+        )
+        if not transport_indice_ok:
+            issues.append(
+                {
+                    "code": "INDICE-BUSTA-STRUCTURE",
+                    "level": "BLOCK",
+                    "title": "IndiceBusta.xml non coerente con Atto.msg",
+                    "detail": "Atto.msg deve contenere IndiceBusta.xml che richiama esattamente atto, DatiAtto.xml.p7m e allegati presenti.",
+                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "suggested_action": "Rigenera la busta e ripeti la simulazione PEC prima dell'invio reale.",
+                }
+            )
         if not real_transport:
             issues.append(
                 {
@@ -564,8 +689,8 @@ class BustaTelematica:
                 }
             )
 
-        t002_status = "warning"
-        if not xml_ok:
+        t002_status = "ok" if xml_ok and indice_busta_generated and dati_atto_signed and transport_indice_ok else "warning"
+        if not xml_ok or not indice_busta_generated or not transport_indice_ok:
             t002_status = "block"
         t003_status = "block" if size_bytes > PST_MAX_BUSTA_BYTES else "ok"
 
@@ -596,7 +721,12 @@ class BustaTelematica:
             "guided_next_actions": next_actions,
             "atto_msg_generated": bool(transport.get("atto_msg_generated")),
             "atto_msg_path": transport.get("atto_msg_path", ""),
+            "atto_msg_sha256": transport.get("atto_msg_sha256", ""),
             "atto_enc_path": transport.get("atto_enc_path", ""),
+            "atto_enc_sha256": transport.get("atto_enc_sha256", ""),
+            "atto_enc_cms_valid": transport.get("atto_enc_cms_valid") is True,
+            "busta_verifica_valida": transport.get("busta_verifica_valida") is True,
+            "atto_msg_indice_busta_valid": transport.get("atto_msg_indice_busta_valid") is True,
             "certificate": transport.get("certificate"),
             "certificate_error_code": transport.get("certificate_error_code", ""),
             "certificate_error": transport.get("certificate_error", ""),
@@ -604,6 +734,9 @@ class BustaTelematica:
             "dati_atto_filename": DATI_ATTO_FIRMATO_FILENAME if dati_atto_signed else DATI_ATTO_FILENAME,
             "indice_busta_generated": indice_busta_generated,
             "indice_busta_xml_generated": indice_busta_generated,
+            "indice_busta_atto_filename": transport.get("indice_busta_atto_filename", ""),
+            "indice_busta_dati_atto_filename": transport.get("indice_busta_dati_atto_filename", ""),
+            "indice_busta_documenti": transport.get("indice_busta_documenti", []),
             "indice_busta_filename": INDICE_BUSTA_FILENAME,
             "indice_documenti_generated": indice_documenti_generated,
             "indice_documenti_filename": INDICE_DOCUMENTI_FILENAME,
@@ -685,6 +818,14 @@ class BustaTelematica:
         atto_msg_path = busta_dir / ATTO_MSG_FILENAME
         atto_enc_path = busta_dir / ATTO_ENC_FILENAME
         atto_msg_path.write_bytes(atto_msg)
+        atto_msg_sha256 = self._hash_bytes(atto_msg)
+        indice_msg_check = self._verifica_atto_msg_payloads(
+            atto_msg,
+            dati_atto_filename=dati_atto_filename,
+            require_dati_atto_firmato=require_dati_atto_firmato,
+        )
+        if not indice_msg_check["valida"]:
+            raise ValueError("Busta ministeriale non conforme: " + "; ".join(indice_msg_check["errori"]))
 
         self._last_atto_msg_path = str(atto_msg_path)
         self._last_atto_enc_path = ""
@@ -696,9 +837,14 @@ class BustaTelematica:
             "atto_msg_path": str(atto_msg_path),
             "atto_enc_path": "",
             "atto_msg_size": len(atto_msg),
+            "atto_msg_sha256": atto_msg_sha256,
+            "atto_msg_indice_busta_valid": True,
             "dati_atto_signed": bool(dati_atto_firmato),
             "dati_atto_filename": dati_atto_filename,
             "indice_busta_generated": True,
+            "indice_busta_atto_filename": indice_msg_check.get("indice_busta_atto_filename", ""),
+            "indice_busta_dati_atto_filename": indice_msg_check.get("indice_busta_dati_atto_filename", ""),
+            "indice_busta_documenti": indice_msg_check.get("documenti", []),
             "indice_busta_filename": INDICE_BUSTA_FILENAME,
             "indice_documenti_filename": INDICE_DOCUMENTI_FILENAME,
             "certificate": None,
@@ -754,6 +900,13 @@ class BustaTelematica:
             raise
 
         atto_enc_path.write_bytes(encrypted)
+        verifica = self.verifica_busta(str(atto_enc_path))
+        if verifica.get("valida") is not True:
+            raise PSTCifraturaError(
+                "Atto.enc generato da una busta non conforme: "
+                + "; ".join(str(item) for item in verifica.get("errori", []))
+            )
+        atto_enc_sha256 = self._hash_bytes(encrypted)
 
         self._last_atto_enc_path = str(atto_enc_path)
         self._last_transport_audit = {
@@ -764,8 +917,12 @@ class BustaTelematica:
             "atto_msg_path": str(atto_msg_path),
             "atto_enc_path": str(atto_enc_path),
             "atto_msg_size": len(atto_msg),
+            "atto_msg_sha256": atto_msg_sha256,
             "atto_enc_size": len(encrypted),
+            "atto_enc_sha256": atto_enc_sha256,
             "atto_enc_cms_valid": True,
+            "busta_verifica_valida": True,
+            "atto_msg_indice_busta_valid": True,
             "content_encryption_algorithm": encrypted_audit.get("encryption_algorithm", ""),
             "content_encryption_algorithm_oid": encrypted_audit.get("encryption_algorithm_oid", ""),
             "cms_content_type": encrypted_audit.get("content_type", ""),
@@ -773,6 +930,9 @@ class BustaTelematica:
             "dati_atto_signed": bool(dati_atto_firmato),
             "dati_atto_filename": dati_atto_filename,
             "indice_busta_generated": True,
+            "indice_busta_atto_filename": indice_msg_check.get("indice_busta_atto_filename", ""),
+            "indice_busta_dati_atto_filename": indice_msg_check.get("indice_busta_dati_atto_filename", ""),
+            "indice_busta_documenti": indice_msg_check.get("documenti", []),
             "indice_busta_filename": INDICE_BUSTA_FILENAME,
             "indice_documenti_filename": INDICE_DOCUMENTI_FILENAME,
             "certificate": {
@@ -813,32 +973,20 @@ class BustaTelematica:
                 risultato["errori"].append(f"{ATTO_MSG_FILENAME} mancante accanto ad {ATTO_ENC_FILENAME}")
                 return risultato
 
-            message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
-            attachments: dict[str, bytes] = {}
-            for part in message.iter_attachments():
-                filename = part.get_filename() or ""
-                if filename:
-                    attachments[Path(filename).name] = part.get_payload(decode=True) or b""
-
-            if INDICE_BUSTA_FILENAME not in attachments:
-                risultato["errori"].append(f"{INDICE_BUSTA_FILENAME} mancante in Atto.msg")
-                return risultato
+            atto_msg_bytes = atto_msg_path.read_bytes()
+            attachments = self._atto_msg_attachments(atto_msg_bytes)
             has_dati_atto_xml = DATI_ATTO_FILENAME in attachments
             has_dati_atto_signed = DATI_ATTO_FIRMATO_FILENAME in attachments
-            if not (has_dati_atto_xml or has_dati_atto_signed):
-                risultato["errori"].append("DatiAtto.xml o DatiAtto.xml.p7m mancante in Atto.msg")
+            dati_atto_filename = DATI_ATTO_FIRMATO_FILENAME if has_dati_atto_signed else DATI_ATTO_FILENAME
+            indice_msg_check = self._verifica_atto_msg_payloads(
+                atto_msg_bytes,
+                dati_atto_filename=dati_atto_filename,
+                require_dati_atto_firmato=has_dati_atto_signed,
+            )
+            if not indice_msg_check["valida"]:
+                risultato["errori"].extend(indice_msg_check["errori"])
                 return risultato
-            if INDICE_DOCUMENTI_FILENAME not in attachments:
-                risultato["errori"].append(f"{INDICE_DOCUMENTI_FILENAME} mancante in Atto.msg")
-                return risultato
-
-            indice_root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
-            if indice_root.tag != "IndiceBusta" or indice_root.find("Atto") is None:
-                risultato["errori"].append(f"{INDICE_BUSTA_FILENAME} non conforme al DTD ministeriale")
-                return risultato
-            for node in [indice_root.find("Atto"), *indice_root.findall("Allegato")]:
-                if node is not None and node.get("Nome"):
-                    risultato["documenti"].append(node.get("Nome"))
+            risultato["documenti"] = list(indice_msg_check.get("documenti", []))
 
             if has_dati_atto_signed:
                 try:
@@ -865,6 +1013,10 @@ class BustaTelematica:
 
             risultato["valida"] = True
             risultato["audit_tecnico"] = self.audit_conformita_pst()
+            risultato["atto_msg_sha256"] = self._hash_bytes(atto_msg_bytes)
+            risultato["atto_enc_sha256"] = self._hash_bytes(enc_path.read_bytes())
+            risultato["indice_busta_atto_filename"] = indice_msg_check.get("indice_busta_atto_filename", "")
+            risultato["indice_busta_dati_atto_filename"] = indice_msg_check.get("indice_busta_dati_atto_filename", "")
         except Exception as e:
             risultato["errori"].append(str(e))
 

@@ -2622,3 +2622,40 @@ Aggiornamento ulteriore richiesto il 2026-06-26:
 - il nome avvocato viene normalizzato: se il profilo contiene già `Avv. Giuseppe Montagnese`, la relata stampa `Io sottoscritto Avv. Giuseppe Montagnese`, non `Avv. Avv.`;
 - il blocco procedimento non stampa più campi vuoti: niente `Sezione ,` quando la sezione manca e niente `R.G. n. /2026`; se il numero RG non è nella colonna dedicata, viene derivato da `RG 466/2023` presente nel numero/label della pratica;
 - test mirati aggiunti: normalizzazione avvocato/procedimento, derivazione RG da numero fascicolo, `.eml` ammessi ma non autoproposti, attestazione automatica lato React.
+
+## Aggiornamento 2026-06-26 - verifica server anti `Indice busta non trovato` su `795C50AC`
+
+Richiesta corrente dell'utente: eseguire la verifica sul server, non sulla copia locale, concentrandosi solo sul difetto reale ricevuto dal Ministero: esito automatico `Codice esito: -1`, `IDBUSTA: 152529323`, messaggio `Indice busta non trovato, necessario effettuare nuovamente il deposito`.
+
+Verifica server eseguita su `iusentra-hetzner`, container `iusentra-app-1`, produzione `https://app.iusentra.it`, commit `5e99e9dd43f39e88601dcfaf1c39af8b7310e799`, versione `2.253.123`:
+
+- fascicolo verificato: `795C50AC`, `2026/332 - Marchetti Lucia`, ufficio `Tribunale di Vicenza`;
+- destinatario PEC risolto dalla produzione: `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- la route reale usata da `Simula invio PEC` e `Invia deposito reale` è `/fascicoli/795C50AC/deposito/invia-pec`;
+- primo passaggio: la route non genera `Atto.enc` se manca `DatiAtto.xml.p7m`; restituisce `requires_local_signature=true` e chiede la firma locale del solo `DatiAtto.xml`;
+- controllo tecnico server di attraversamento: per non usare il token dell'avvocato nella prova automatica, è stata generata nel container una CAdES di test solo per attraversare il ramo successivo; questa prova non sostituisce la firma qualificata reale, ma verifica che la route reale costruisca busta e payload PEC corretti prima dello SMTP locale;
+- `Simula invio PEC`: esito HTTP `200`, `ok=true`, `simulazione=true`, `package_ready=true`, nessuna chiamata SMTP, compatibilità `100%`;
+- `Invia deposito reale` prima dello SMTP: esito HTTP `200`, `requires_local_pec=true`, `package_ready=true`, endpoint locale `http://127.0.0.1:27272/pec/send`, destinatario Vicenza e SMTP studio presente; nessuna PEC è stata inviata dal server;
+- allegato generato per entrambi i rami: `Atto.enc` con `ministerial_busta_verified=true`, base64 presente solo nel payload al Local Signer e hash SHA-256 coerente con l'audit busta.
+
+Controllo documento per documento del pacchetto reale pre-SMTP generato sul server:
+
+- `Atto-realroute.msg` contiene `IndiceBusta.xml`;
+- `IndiceBusta.xml` ha radice `IndiceBusta` e richiama `Atto Nome="Ricorso.pdf.p7m"`;
+- `IndiceBusta.xml` contiene un solo allegato `Tipo="DA"` con `Nome="DatiAtto.xml.p7m"`;
+- ogni voce richiamata dall'indice è presente dentro `Atto.msg`: `DatiAtto.xml.p7m`, `Procura.PDF.p7m`, `Autocertificazione ricorso.PDF`, `Autocertificazione situazione reddituale.PDF`, `Carta Identità e C.F. Lucia Marchetti.PDF`, `Contratto 24-25.pdf`, `Contratto Rossi 2025-2026.pdf`, `IndiceDocumentiDepositati.PDF`;
+- `Atto-realroute.enc` è un CMS/PKCS#7 `EnvelopedData` valido, `content_type=data`, algoritmo `aes256_cbc`, OID `2.16.840.1.101.3.4.1.42`, `recipients=1`, dimensione `34.879.298` byte.
+
+Verifica visiva su browser integrato Codex aperto sulla produzione:
+
+- URL: `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#generazione-busta`;
+- pagina React visibile, nessun fallback legacy e nessun HTML grezzo;
+- fase `Busta e indice`: PEC Vicenza visibile e verificata dal profilo deposito SQL;
+- `Firma software` mostra `0 documenti da firmare`;
+- `Autocertificazione ricorso.PDF`, `Autocertificazione situazione reddituale.PDF`, `Carta Identità e C.F. Lucia Marchetti.PDF`, `Contratto 24-25.pdf`, `Contratto Rossi 2025-2026.pdf`, `Sentenza Cassazione.PDF` e `Sentenza_Tribunale_Vicenza_20-04-2023.PDF` sono mostrati come `Firma non necessaria`, quindi non vengono firmati a forza;
+- `Ricorso.pdf.p7m` e `Procura.PDF.p7m` sono mostrati come firmati;
+- testo PEC visibile e modificabile facoltativamente, con riferimento a `Atto.enc` e all'elenco documenti;
+- pulsanti `Prova senza invio reale`, `Simula invio PEC` e `Invia deposito reale` presenti e `disabled=false`;
+- anteprima `IndiceDocumentiDepositati.PDF` aperta su produzione: modal con titolo, pulsante `Scarica`, pulsante `Chiudi`, nessuna area rotta/bianca.
+
+Esito operativo: il difetto tecnico `Indice busta non trovato` è presidiato dal nuovo controllo perché l'invio reale non può più arrivare al Local Signer PEC se `Atto.msg` non contiene `IndiceBusta.xml`, se l'indice non richiama file realmente presenti, se manca `DatiAtto.xml.p7m` o se `Atto.enc` non è CMS AES256 verificato. L'ultimo passo SMTP resta correttamente sul PC locale dell'avvocato tramite Local Signer; il server non è e non deve diventare mittente SMTP del deposito legale.

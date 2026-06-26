@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "mode": "apply",
+  "started_at": "2026-06-26T22:20:28+02:00",
+  "source_of_truth": "sqlite/postgresql runtime repositories",
+  "data_root": "data",
+  "registry": "data\\tenants.json",
+  "totals": {
+    "tenants": 1,
+    "fascicoli_seen": 7,
+    "fascicoli_changed": 0,
+    "legacy_entries_removed": 0,
+    "duplicates_avoided": 0
+  },
+  "tenants": [
+    {
+      "tenant": "tenant-8bf98719c459",
+      "root": "data\\tenants\\tenant-8bf98719c459",
+      "source_of_truth": "sqlite/postgresql runtime repositories",
+      "fascicoli_seen": 7,
+      "fascicoli_changed": 0,
+      "legacy_entries_removed": 0,
+      "duplicates_avoided": 0,
+      "items": []
+    }
+  ],
+  "finished_at": "2026-06-26T22:20:28+02:00"
+}

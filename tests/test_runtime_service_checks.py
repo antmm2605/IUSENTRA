@@ -378,6 +378,36 @@ def test_validate_scheduler_run_audit_running_stale_blocca_anche_con_completed_r
     assert report["jobs"][0]["status"] == "stale_running"
 
 
+def test_validate_scheduler_run_audit_non_blocca_cancelled_non_obbligatorio_da_riavvio():
+    now = datetime(2026, 6, 25, 10, 48, tzinfo=timezone.utc)
+
+    report = validate_scheduler_run_audit(
+        {
+            "jobs": [_job("wa_reminder", minute="0")],
+            "latest_runs": {
+                "wa_reminder": {
+                    "job_id": "wa_reminder",
+                    "status": "cancelled",
+                    "finished_at": "2026-06-25T10:30:00Z",
+                    "message": "Esecuzione scheduler interrotta dal riavvio del worker.",
+                    "result": {
+                        "ok": False,
+                        "status": "interrotta_riavvio_worker",
+                    },
+                }
+            },
+        },
+        job_id="",
+        now=now,
+        require_all_due=True,
+        worker_started_at=now - timedelta(minutes=21),
+    )
+
+    assert report["ok"] is True
+    assert report["jobs"][0]["status"] == "cancelled_after_restart"
+    assert "riavvio" in report["jobs"][0]["reason"]
+
+
 def test_validate_scheduler_run_audit_blocca_run_senza_totals_operativi():
     now = datetime(2026, 6, 25, 10, 40, tzinfo=timezone.utc)
 

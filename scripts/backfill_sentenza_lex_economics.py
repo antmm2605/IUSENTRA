@@ -592,28 +592,7 @@ def _remember_contributo_pdf_evidence(
 
 
 def _looks_like_contributo_evidence(text: str, metadata: dict[str, Any]) -> bool:
-    probe = " ".join(
-        _text(metadata.get(key))
-        for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
-    ).casefold()
-    strong_markers = ("contributo unificat", "pagopa", "pago pa", "ricevuta pagamento", "avviso pagamento")
-    if any(marker in probe for marker in strong_markers):
-        return True
-    if re.search(r"(?:^|[\s_.-])c\.?\s*u\.?(?:$|[\s_.-])", probe, re.IGNORECASE):
-        return True
-    sample = str(text or "")[:24000].casefold()
-    if any(marker in sample for marker in strong_markers):
-        return True
-    for match in re.finditer(r"\bc\.?\s*u\.?\b", sample, re.IGNORECASE):
-        snippet = sample[max(0, match.start() - 90) : min(len(sample), match.end() + 90)]
-        if re.search(
-            r"\b(?:contribut|unificat|pagament|versament|versat|pagat|dovut|"
-            r"iscrizione\s+a\s+ruolo|spese\s+di\s+giustizia|d\.?\s*p\.?\s*r\.?\s*115|art\.?\s*9)\b",
-            snippet,
-            re.IGNORECASE,
-        ):
-            return True
-    return False
+    return bool(extract_contributo_unificato_document_evidence(text, metadata))
 
 
 def run_backfill(
@@ -756,8 +735,8 @@ def run_backfill(
                     continue
                 text = _text(payload.get("text") or payload.get("testo"))
                 metadata = _metadata_for_text(payload, path, tenant)
-                if _looks_like_contributo_evidence(text, metadata):
-                    evidence = extract_contributo_unificato_document_evidence(text, metadata)
+                evidence = extract_contributo_unificato_document_evidence(text, metadata)
+                if evidence:
                     _remember_contributo_pdf_evidence(
                         contributo_pdf_by_fascicolo,
                         _text(metadata.get("fascicolo_id")),

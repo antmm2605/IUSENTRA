@@ -1700,6 +1700,18 @@ def start_scheduler(app):
                 "[scheduler] Richieste manuali rimaste aperte dal worker precedente chiuse: %d",
                 int(recovered.get("cancelled") or 0),
             )
+        recovered_scheduler = registry_repo.cancel_scheduler_runs_started_before(
+            startup_cutoff,
+            reason=(
+                "Esecuzione scheduler interrotta dal riavvio del worker; "
+                "sarà ripresa alla prossima finestra utile."
+            ),
+        )
+        if recovered_scheduler.get("cancelled"):
+            logger.warning(
+                "[scheduler] Run scheduler rimasti aperti dal worker precedente chiusi: %d",
+                int(recovered_scheduler.get("cancelled") or 0),
+            )
 
         # Le richieste manuali vanno prese entro un minuto; l'apply completo
         # (upsert dei template, incluse le ~50 fonti legali, e re-schedule)

@@ -163,6 +163,37 @@ def test_scheduler_registry_chiude_manuale_running_da_worker_precedente(tmp_path
     assert "riavvio del worker" in recent["message"]
 
 
+def test_scheduler_registry_chiude_scheduler_running_da_worker_precedente(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+
+    with repo.connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO scheduled_job_runs (
+                run_id, job_id, template_key, origin, status, scheduled_at,
+                started_at, finished_at, duration_ms, message, result_json,
+                error_message, requested_by, created_at
+            )
+            VALUES ('old-scheduler-run', 'wa_reminder', 'wa_reminder',
+                'scheduler', 'running', '2026-06-25T18:00:00Z',
+                '2026-06-25T18:00:00Z', '', 0, 'Esecuzione avviata dal worker.',
+                '{}', '', '', '2026-06-25T18:00:00Z')
+            """
+        )
+
+    result = repo.cancel_scheduler_runs_started_before(
+        "2026-06-26T20:27:00Z",
+        reason="Esecuzione scheduler interrotta dal riavvio del worker.",
+    )
+    recent = repo.list_recent_runs(limit=1)[0]
+
+    assert result == {"cancelled": 1}
+    assert recent["run_id"] == "old-scheduler-run"
+    assert recent["status"] == "cancelled"
+    assert recent["result"]["status"] == "interrotta_riavvio_worker"
+
+
 def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Path):
     class App:
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}

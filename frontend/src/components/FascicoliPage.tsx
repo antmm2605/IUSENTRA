@@ -212,6 +212,8 @@ const paymentColumnLabels: Record<FascicoloPaymentKind, string> = {
   parcella: 'Parcella',
 }
 
+const economicPaymentKinds: FascicoloPaymentKind[] = fascicoloPaymentKinds.filter((kind) => kind !== 'fondo_spese')
+
 const paymentStatusOptions: Array<{ value: FascicoloPaymentStatus; label: string }> = [
   { value: 'da_registrare', label: 'Da registrare' },
   { value: 'pagato', label: 'Pagato' },
@@ -1132,7 +1134,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
             <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
           </div>
           <ul>
-            {fascicoloPaymentKinds.map((kind) => {
+            {economicPaymentKinds.map((kind) => {
               const payment = item.paymentSummary.items[kind]
               const label = payment.displayLabel || payment.label || paymentFullLabels[kind]
               return (
@@ -1214,7 +1216,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       subtitle={archive
         ? 'Archivio pratiche chiuse'
         : economic
-          ? 'Elenco unico dello studio — vista economica (contributo/spese, fondo spese, liquidazione, parcella)'
+          ? 'Elenco unico dello studio — vista economica (contributo, spese/esborsi, liquidazione, parcella)'
           : 'Elenco unico dello studio — vista operativa'}
       toolbar={viewToggle || pageSizeControl ? (
         <div className="iu-fas-table-toolbar">
@@ -1241,7 +1243,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
               <th>Stato</th>
               {economic
-                ? fascicoloPaymentKinds.map((kind) => <th title={paymentFullLabels[kind]} key={kind}>{paymentColumnLabels[kind]}</th>)
+                ? economicPaymentKinds.map((kind) => <th title={paymentFullLabels[kind]} key={kind}>{paymentColumnLabels[kind]}</th>)
                 : <th>Documenti</th>}
               {economic ? <th>Totale registrato</th> : <th>Azioni</th>}
             </tr>
@@ -1274,7 +1276,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                 <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
                 <td>{statusCell(item)}</td>
                 {economic
-                  ? fascicoloPaymentKinds.map((kind) => (
+                  ? economicPaymentKinds.map((kind) => (
                       <td key={kind}>
                         <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError}/>
                       </td>
@@ -1388,7 +1390,6 @@ function FascicoliListPage() {
   const [paymentsOnly, setPaymentsOnly] = useState(false)
   const [view, setView] = useState<ListView>(initialListView)
   const [cuFilter, setCuFilter] = useState<FascicoloPaymentFilter>('tutti')
-  const [fondoFilter, setFondoFilter] = useState<FascicoloPaymentFilter>('tutti')
   const [liquidazioneFilter, setLiquidazioneFilter] = useState<FascicoloPaymentFilter>('tutti')
   const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>('tutti')
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -1409,7 +1410,6 @@ function FascicoliListPage() {
     alertsOnly,
     paymentsOnly,
     cu: cuFilter,
-    fondoSpese: fondoFilter,
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
   })
@@ -1437,10 +1437,10 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, fondoFilter, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type])
+  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type])
 
   const visible = data.items
-  const economicFiltersActive = cuFilter !== 'tutti' || fondoFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
+  const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
   const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly || paymentsOnly || economicFiltersActive)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
@@ -1448,7 +1448,6 @@ function FascicoliListPage() {
   const updateAlertsOnly = (value: boolean) => { setPage(1); setAlertsOnly(value) }
   const updatePaymentsOnly = (value: boolean) => { setPage(1); setPaymentsOnly(value) }
   const updateCuFilter = (value: FascicoloPaymentFilter) => { setPage(1); setCuFilter(value) }
-  const updateFondoFilter = (value: FascicoloPaymentFilter) => { setPage(1); setFondoFilter(value) }
   const updateLiquidazioneFilter = (value: FascicoloPaymentFilter) => { setPage(1); setLiquidazioneFilter(value) }
   const updateParcellaFilter = (value: FascicoloPaymentFilter) => { setPage(1); setParcellaFilter(value) }
   const updateView = (value: ListView) => { setView(value); syncListViewInUrl(value) }
@@ -1587,7 +1586,6 @@ function FascicoliListPage() {
             <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
             <div className="iu-fas-economic-filters" role="group" aria-label="Filtri per voce economica">
               <label><span>Contributo</span><select value={cuFilter} onChange={(event) => updateCuFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-              <label><span>Fondo spese</span><select value={fondoFilter} onChange={(event) => updateFondoFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Liquidazione</span><select value={liquidazioneFilter} onChange={(event) => updateLiquidazioneFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.filter((option) => option.value !== 'da_emettere').map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
               <label><span>Parcella</span><select value={parcellaFilter} onChange={(event) => updateParcellaFilter(event.target.value as FascicoloPaymentFilter)}>{paymentFilterOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
             </div>

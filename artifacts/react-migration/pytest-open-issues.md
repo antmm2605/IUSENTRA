@@ -1952,3 +1952,17 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Allegati XML/EML e runtime path nei test pre-commit | Blocco largo locale `test_email_client`, `test_web_bootstrap`, scheduler, Local Signer e deploy | Risolto prima del commit | Il primo blocco largo ha intercettato tre aspettative non allineate al contratto attuale `inline = anteprima HTML`, `download = originale` sugli allegati XML/EML, e due test bootstrap sensibili a variabili `PCT_*` residue. | Guardrail aggiornati: download preserva i bytes originali, inline verifica anteprima leggibile, i test runtime puliscono `PCT_DATA_ROOT`, `IUSENTRA_DATA_DIR` e variabili portale/email coinvolte. Blocco largo rieseguito e verde. |
+
+## CU falsi e Spese/esborsi unica 2.253.126 - 2026-06-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `tests/test_react_shell.py` monolitico | `python -m pytest -q tests\test_react_shell.py --tb=short` | Timeout tecnico del comando aggregato, coperto da shard mirati | Il file completo ha superato la finestra di esecuzione della chiamata locale, senza produrre failure applicativa utilizzabile. Sono stati rilanciati i test React shell pertinenti alla modifica Fascicoli/API/CSS/lessico: API suite, route/componenti/lessico, preset grafico, bridge repository e dettaglio nav sono tutti verdi. | Non trattarlo come verde monolitico. Per questa modifica il presidio è dato dagli shard mirati documentati in `pytest-confirmed-ok.md`, dal build React e dalla prova reale browser su `127.0.0.1:8080` eseguita nella sezione successiva. |
+
+## CU falsi e Spese/esborsi unica 2.253.126 - residui post-verifica locale - 2026-06-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `tests/test_react_shell.py` monolitico | Shard mirati + browser reale | Mitigato localmente | La prova reale browser su `127.0.0.1:8080/fascicoli?vista=economica` è stata eseguita dopo rebuild Docker: desktop/tablet/mobile senza `Fondo spese`, valori RG `466/2023` corretti e console pulita. | Resta non dichiarato verde il file monolitico completo; se il perimetro React shell cambia fuori Fascicoli, rilanciare shard pertinenti o aumentare timeout in una sessione dedicata. |
+| Codex quality gate `ui-support`/`code` | `python tools\codex_harness\run_codex_quality_gate.py --mode ui-support`; `--mode code` | Fallito solo per scope intenzionale | Il gate segnala modifiche a file protetti (`Dockerfile`, `pct/__init__.py`, `railway.toml`) perché la release richiede bump versione e deploy. I controlli interni del gate sono OK: nessuna dipendenza runtime modificata, `AGENTS.md` non modificato, Open Design support completo. | Non rimuovere bump/deploy per far passare il gate. Prima della chiusura restano commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner con bonifica produzione. |
+| Bonifica dati produzione | Reset/backfill e merge su `/data` Hetzner | Aperto fino al deploy | Locale verificato; i fascicoli già presenti sul server vanno ripuliti una tantum perché contengono importi salvati con la logica precedente. | Dopo deploy, eseguire gli script governati sul server senza backup, verificare i fascicoli dello screenshot e poi lasciare la pipeline automatica per i nuovi fascicoli. |

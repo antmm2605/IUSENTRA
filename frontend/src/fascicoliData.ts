@@ -690,7 +690,7 @@ const emptySummary: FascicoliSummary = {
 const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
   contributo_unificato: 'Contributo unificato',
   spese_esborsi: 'Spese/esborsi',
-  fondo_spese: 'Fondo spese',
+  fondo_spese: 'Spese/esborsi',
   liquidazione_giudice: 'Liquidazione giudice',
   parcella: 'Parcella',
 }
@@ -698,7 +698,7 @@ const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
 const paymentDefaultStatus: Record<FascicoloPaymentKind, FascicoloPaymentStatus> = {
   contributo_unificato: 'da_registrare',
   spese_esborsi: 'non_previsto',
-  fondo_spese: 'da_registrare',
+  fondo_spese: 'non_previsto',
   liquidazione_giudice: 'non_previsto',
   parcella: 'da_emettere',
 }

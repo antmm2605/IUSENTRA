@@ -364,6 +364,15 @@ def validate_scheduler_run_audit(
             errors.append(f"{current_job_id}: ultimo run {status}: {reason}")
             entry["status"] = "failed"
             entry["reason"] = reason
+        elif status == "cancelled":
+            reason = entry["latest_message"] or "Esecuzione annullata."
+            if required_now and require_target_completed:
+                errors.append(f"{current_job_id}: ultimo run annullato: {reason}")
+                entry["status"] = "cancelled"
+                entry["reason"] = reason
+            else:
+                entry["status"] = "cancelled_after_restart"
+                entry["reason"] = reason
         elif status == "running":
             started_at = _parse_datetime((run or {}).get("started_at") or (run or {}).get("created_at"))
             max_running = max(due_window, 2 * 60 * 60) if due_window else 2 * 60 * 60

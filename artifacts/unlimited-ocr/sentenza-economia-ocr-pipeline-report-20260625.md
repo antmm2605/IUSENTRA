@@ -257,3 +257,52 @@ Prova reale locale su Docker `2.253.119`, browser integrato visibile:
 - `attoACQ.pdf.p7m` e' in `Pagamenti e contributi` come `Contributo unificato / pagamento`;
 - `/fascicoli/DC5BF1DB/deposito/prepara#proposta-busta`: `attoACQ.pdf.p7m` mostra `Contributo unificato / pagamento (allegato busta)`, le note/istanza mostrano `Atto difensivo (allegato busta)`, `verbaleAttoGenerico.pdf` mostra `Verbale (allegato busta)`;
 - desktop `1280x900`, tablet `768x900` e mobile `390x844`: nessun overflow orizzontale, testi lunghi leggibili, scroll completo fino ad `Audit`, console senza errori.
+
+## CU falsi, Spese/esborsi unica e reset locale - 2.253.126
+
+Richiesta utente del 26/06/2026: gli importi visualizzati nello screenshot della vista economica sono sbagliati; `fondo_spese` deve diventare `Spese/esborsi` e non deve restare una seconda colonna/secondo importo per la stessa cosa.
+
+Correzione applicata:
+
+- `extract_contributo_unificato_document_evidence` richiede adesso un ancoraggio di pagamento reale o un'esenzione esplicita prima di valorizzare il CU;
+- documenti non di pagamento come sentenze, ricorsi, autocertificazioni reddituali, riferimenti DPR 115/2002, Carta docente e importi nominali vengono scartati come fonte CU;
+- il backfill Lex usa lo stesso estrattore governato anche nella pre-selezione dei documenti CU, quindi PEC, deposito, notifiche e pipeline documentale non possono agganciare vecchie euristiche diverse;
+- `fondo_spese` è alias legacy di `spese_esborsi`: payload/API/export/filtri convergono su `Spese/esborsi`, senza doppio totale;
+- la vista economica React mostra solo `Contributo`, `Spese/esborsi`, `Liquidazione`, `Parcella`, con CSS rivisto per testi lunghi e celle economiche più leggibili.
+
+Test e controlli locali già eseguiti:
+
+- `python -m pytest -q tests\test_fascicolo_sentenza_economica.py tests\test_backfill_sentenza_lex_economics.py --tb=short` -> `41 passed`;
+- `python -m pytest -q tests\test_fascicolo_document_catalog.py tests\test_regia_ui_react.py --tb=short` -> `14 passed`;
+- `python -m pytest -q tests\test_fascicoli_stato_e_filtri_economici.py --tb=short` -> `3 passed`;
+- `python -m pytest -q tests\test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali --tb=short` -> `1 passed`;
+- `python -m pytest -q tests\test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests\test_react_shell.py::test_react_fascicoli_usa_preset_grafico_globale tests\test_react_shell.py::test_react_fascicoli_page_collegata_nav_api_e_lex --tb=short` -> `3 passed`;
+- `python -m pytest -q tests\test_react_shell.py::test_react_fascicoli_bridge_usa_repository_reali tests\test_react_shell.py::test_react_fascicoli_detail_nav_lessico_e_referente_studio_presidiati --tb=short` -> `2 passed`;
+- `npm --prefix frontend run build` -> OK;
+- `python tools\sync_packaging_files.py --check`, `python scripts\validate_openapi.py docs\openapi.yaml`, `python scripts\react-migration\generate_api_contracts.py --check`, `git diff --check` -> OK;
+- `python scripts\backfill_sentenza_lex_economics.py --data-root data --registry data\tenants.json --reset-lex-amounts --apply --report artifacts\unlimited-ocr\sentenza-economia-reset-local-v6-cu-fondo-20260626.json` -> OK, `documents_catalogued=667`, `errors=0`, `vector_embedding_errors=0`;
+- `python scripts\merge_fondo_spese_into_spese_esborsi.py --data-root data --registry data\tenants.json --apply --report artifacts\unlimited-ocr\fondo-spese-merge-local-apply-20260626.json` -> OK, `fascicoli_seen=7`, `legacy_entries_removed=0`.
+
+Stato residuo obbligatorio: prova reale browser su Docker locale `127.0.0.1:8080`, poi push/deploy e bonifica produzione dei fascicoli segnalati nello screenshot.
+
+## CU falsi, Spese/esborsi unica e verifica reale locale - 2.253.126
+
+Verifica locale finale del 26/06/2026:
+
+- backfill finale `sentenza-economia-reset-local-v8-cu-date-20260626.json`: `documents_catalogued=667`, `documents_seen=667`, `raw_sentenze_found=14`, `sentenze_found=7`, `applied=1`, `matrix_confirmed=1`, `vector_indexed=1`, `errors=0`, `vector_embedding_errors=0`;
+- merge finale `fondo-spese-merge-local-v4-final-20260626.json`: nessun residuo legacy locale da migrare dopo il backfill;
+- Docker reale locale ricostruito con `app`, `scheduler-worker` e `ocr-worker` healthy, `/api/pronto` `versione=2.253.126`;
+- `check_runtime_services.py --wait-job-seconds 900 --require-all-due-jobs` ha visto il worker reale `lex_sentenza_economia_auto` completare senza errori dopo il riavvio;
+- browser integrato su `http://127.0.0.1:8080/fascicoli?vista=economica`, desktop/tablet/mobile, senza errori console.
+
+Risultato visivo e dati osservati:
+
+- tabella e card economiche mostrano solo `Contributo`, `Spese/esborsi`, `Liquidazione`, `Parcella`;
+- `Fondo spese` non è più visibile e resta solo alias legacy verso `spese_esborsi`;
+- RG `466/2023`: CU `EUR 98,00` `Da registrare` senza data, `Spese/esborsi EUR 125,00`, `Liquidazione EUR 1.500,00`, `Parcella EUR 2.028,20`;
+- totale registrato `EUR 1.625,00`: il contributo dovuto non viene conteggiato come importo pagato;
+- apertura `Dettagli` su `Spese/esborsi` mostra metodo `Bonifico bancario` e nota OCR, con focus corretto e senza sovrapposizione.
+
+Il quality gate Codex `ui-support`/`code` non è stato usato come verde prodotto perché fallisce lo scope su file protetti modificati intenzionalmente per release/deploy (`Dockerfile`, `pct/__init__.py`, `railway.toml`). I sotto-controlli del gate su dipendenze runtime, `AGENTS.md` e Open Design support risultano OK.
+
+Stato residuo obbligatorio: commit, push branch gemelli, check GitHub/CodeQL, deploy Hetzner, poi reset/backfill e merge produzione senza backup sui dati server già sporchi. Dopo il deploy il software eseguirà automaticamente la nuova logica per i fascicoli futuri tramite pipeline e worker; la bonifica manuale resta solo per sostituire i valori vecchi già salvati.

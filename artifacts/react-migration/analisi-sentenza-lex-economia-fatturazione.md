@@ -379,3 +379,24 @@ Prova reale obbligatoria:
 - Caso `DC5BF1DB`: `liquidazione_giudice=1500,00`, `contributo_unificato=98,00` da PDF fascicolo, `spese_esborsi=125,00`, proforma `c6a1c268-2f55-4583-9ac9-ca2d90c316c1` con voci `1500,00`, `98,00`, `125,00`, totale `2126,20`.
 - Caso `AF656B01`: nessun pagamento Lex residuo, nessuna proforma Lex residua e nessun documento RAG `lex_sentenza_tribunale` residuo con il falso `5200,00`.
 - Audit dati dopo la bonifica: `audit_data_flow_contract.py` repair e cold ok; `audit_tenant_data_structure.py` repair e cold ok, `source_of_truth=sqlite`, `json_authoritative=false`, `operational_untracked=0`, zero warning e zero errori.
+
+## CU da PDF e voce unica Spese/esborsi 2.253.126 - 2026-06-26
+
+- Segnalazione utente: nella vista economica alcuni fascicoli reali riportavano `Contributo unificato da PDF` con importi falsi, in particolare `500,00` da sentenze Carta docente e `38.514,03` da dichiarazione reddituale/esenzione. Il dato era pericoloso perché alimenta Lex AI, vettori RAG, parcelle e decisioni operative dell'avvocato.
+- Il riconoscimento del contributo unificato da PDF è stato ristretto: un importo viene accettato solo con ancoraggio di pagamento reale (`PagoPA`, `IUV`, ricevuta/avviso pagamento, F23/F24, importo versato/pagato) o con esenzione esplicita. Sentenze, ricorsi, autocertificazioni reddituali, soglie DPR 115/2002, Carta docente e importi nominali annui non possono più diventare CU.
+- La voce storica `fondo_spese` non è più una colonna operativa autonoma: viene normalizzata in `spese_esborsi`, etichettata `Spese/esborsi`, e gli importi legacy vengono assorbiti senza doppio totale. La rotta legacy `/pagamenti/fondo_spese` resta compatibile ma salva sotto `spese_esborsi`.
+- Vista React fascicoli: rimossa la colonna/filtro `Fondo spese`, lasciate le sole colonne economiche `Contributo`, `Spese/esborsi`, `Liquidazione`, `Parcella`; la griglia è stata allargata e i testi lunghi di badge/source/details ora vanno a capo invece di tagliarsi.
+- Script operativo aggiunto: `scripts/merge_fondo_spese_into_spese_esborsi.py`, senza backup, tenant-aware e basato sui repository runtime SQLite/PostgreSQL; serve per ripulire i dati esistenti e prevenire doppioni.
+- Bonifica locale reale del tenant `tenant-8bf98719c459`: `sentenza-economia-reset-local-v6-cu-fondo-20260626.json` con `documents_catalogued=667`, `errors=0`, `vector_embedding_errors=0`, `reset_payment_entries_removed=4`, `reset_vector_documents_removed=2`, `vector_indexed=1`; `fondo-spese-merge-local-apply-20260626.json` con `fascicoli_seen=7`, `legacy_entries_removed=0` perché il tenant locale non aveva più chiavi legacy.
+- Controllo a freddo locale pagamenti: `bad_fondo=[]`, `bad_cu=[]`, `fascicoli=7`, `cu_entries=0`, `spese_entries=1`.
+- Stato da completare prima della chiusura: rebuild Docker locale su `127.0.0.1:8080`, prova browser reale della vista economica, commit/push branch gemelli, check GitHub/CodeQL, deploy Hetzner, reset/backfill e merge produzione su `/data`, verifica dei fascicoli reali segnalati nello screenshot.
+
+## CU da PDF e voce unica Spese/esborsi 2.253.126 - verifica locale finale - 2026-06-26
+
+- Rebuild Docker locale completato con `docker compose build --no-cache app scheduler-worker ocr-worker` e recreate di `app`, `scheduler-worker`, `ocr-worker`.
+- `/api/pronto` locale: `ok=true`, `timezone=Europe/Rome`, `versione=2.253.126`; i tre container applicativi espongono tutti `pct.__version__=2.253.126`.
+- Gate runtime finale `scripts/check_runtime_services.py --wait-job-seconds 900 --require-all-due-jobs`: `lex_sentenza_economia_auto` completato dopo il riavvio, `documents_catalogued=667`, `skipped_by_cursor=667`, `errors=0`, `vector_embedding_errors=0`.
+- Prova browser integrato su `http://127.0.0.1:8080/fascicoli?vista=economica`: desktop, tablet e mobile verificati; nessuna colonna/card/filtro `Fondo spese`; intestazioni e card mostrano `Spese/esborsi` come voce unica.
+- Caso locale RG `466/2023`: `Contributo unificato da pagare` `EUR 98,00`, stato `Da registrare`, data vuota; `Spese/esborsi` `EUR 125,00`, `Liquidazione` `EUR 1.500,00`, `Parcella` `EUR 2.028,20`; totale registrato `EUR 1.625,00`.
+- La UI economica è stata rifinita: le note lunghe restano compatte chiuse, si leggono aprendo `Dettagli`, e il focus sul campo `Spese/esborsi - metodo` è visibile senza sovrapposizioni.
+- Stato residuo non locale: commit/push, check GitHub/CodeQL, deploy Hetzner e bonifica una tantum dei dati server già salvati con euristiche precedenti.

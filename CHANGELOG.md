@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.126 - 2026-06-26
+
+- OCR economico fascicoli: il contributo unificato viene riportato solo da pagamento/esenzione realmente presenti nel fascicolo; importi Carta docente, soglie reddituali e autocertificazioni non alimentano più la matrice economica.
+- Fascicoli React: `Fondo spese` non è più una voce separata; gli importi legacy confluiscono in `Spese/esborsi`, evitando doppioni in tabella, card mobile, API ed export.
+- Lex AI e scheduler: il backfill `lex_sentenza_economia_auto` usa la stessa logica governata di OCR/economia e il worker ripulisce run scheduler rimaste `running` dopo un riavvio.
+- Vista economica: rifinite le celle economiche desktop/tablet/mobile, con note lunghe compatte e dettagli apribili senza sovrapposizioni.
+
 ## 2.253.125 - 2026-06-26
 
 - Local Signer `1.6.82`: blindato l'installer Windows contro avvii concorrenti con lock su `%APPDATA%\IUSENTRA\LocalSigner\installer.lock`; una seconda esecuzione non puo' piu' cancellare la virtualenv mentre la prima installazione sta configurando pip.

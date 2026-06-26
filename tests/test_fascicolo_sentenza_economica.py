@@ -102,7 +102,9 @@ def test_estrazione_sentenza_tribunale_con_cu_liquidazione_e_fondo_spese():
     assert extraction.rg_number == "1548"
     assert extraction.liquidazione_importo == 1100.00
     assert extraction.contributo_unificato_importo == 98.00
-    assert extraction.fondo_spese_importo == 250.00
+    assert extraction.spese_esborsi_importo == 250.00
+    assert extraction.fondo_spese_importo is None
+    assert "fondo_spese_assorbito_in_spese_esborsi" in extraction.warnings
     assert extraction.spese_generali is True
     assert extraction.antistatario is True
 
@@ -224,6 +226,49 @@ def test_pdf_contributo_unificato_fornisce_doppia_prova_senza_carta_docente():
     assert carta == {}
 
 
+def test_pdf_richiesta_versamento_cu_non_diventa_pagato_ne_proforma(tmp_path: Path):
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        UFFICIO DEL GIUDICE DI PACE DI PALMI
+        Oggetto: Richiesta versamento contributo unificato.
+        SI INVITA il Sig. Alessi Robertino a pagare entro il termine di 30 gg.
+        la somma di euro 98,00 per omesso versamento del contributo unificato.
+        Il pagamento dovra' essere effettuato mediante piattaforma tecnologica.
+        """,
+        {"filename": "attoACQ.pdf", "document_id": "DOC-CU-DOVUTO"},
+    )
+
+    assert evidence["importo"] == 98.00
+    assert evidence["status"] == "da_registrare"
+    assert evidence["natura"] == "richiesta_versamento_contributo_unificato"
+    assert evidence["label"] == "Contributo unificato da pagare"
+
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=SENTENZA_TEXT,
+        document_metadata={
+            "document_id": "DOC-SENTENZA",
+            "filename": "Sentenza.pdf",
+            "tipo_documento": "Sentenza Tribunale",
+            "contributo_unificato_pdf": evidence,
+        },
+        actor="Lex AI",
+    )
+
+    fascicolo = fascicoli.get("FASC-1")
+    assert outcome.applied is True
+    assert fascicolo.pagamenti["contributo_unificato"]["status"] == "da_registrare"
+    assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 98.00
+    assert fascicolo.pagamenti["contributo_unificato"]["data_pagamento"] == ""
+    assert fascicolo.pagamenti["contributo_unificato"]["label"] == "Contributo unificato da pagare"
+    proforma = fatturazione.per_fascicolo("FASC-1")[0]
+    assert all("contributo" not in voce.descrizione.casefold() for voce in proforma.voci)
+
+
 def test_pdf_contributo_esenzione_non_prende_carta_docente_500():
     evidence = extract_contributo_unificato_document_evidence(
         """
@@ -254,6 +299,34 @@ def test_pdf_contributo_esenzione_reddituale_non_prende_soglia_reddito():
     assert evidence["esente"] is True
     assert evidence["importo"] is None
     assert evidence["natura"] == "esenzione_contributo_unificato"
+
+
+def test_pdf_contributo_rifiuta_sentenza_carta_docente_con_cu_generico():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        REPUBBLICA ITALIANA
+        IN NOME DEL POPOLO ITALIANO
+        SENTENZA
+        Condanna il Ministero a costituire la Carta elettronica del docente,
+        dell'importo nominale di euro 500,00 annui. Il contributo unificato
+        segue il regime previsto dal testo unico spese di giustizia.
+        """,
+        {"filename": "Sentenza RG 252 2026.pdf", "document_id": "DOC-CARTA-500"},
+    )
+
+    assert evidence == {}
+
+
+def test_pdf_contributo_rifiuta_soglia_reddito_se_non_ce_esenzione_esplicita():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        Dichiarazione sostitutiva resa ai sensi dell'art. 76 D.P.R. 115/2002.
+        Il reddito complessivo del nucleo familiare non supera Euro 38.514,03.
+        """,
+        {"filename": "dichiarazione-reddituale.pdf", "document_id": "DOC-REDDITO-SOGLIA"},
+    )
+
+    assert evidence == {}
 
 
 def test_pdf_contributo_rifiuta_iniziali_cu_e_importo_carta_docente():
@@ -614,6 +687,50 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
         for voce in updated_proforma.voci
     )
     assert updated_proforma.dati_personalizzati["lex_sentenza"]["extraction"]["spese_esborsi_importo"] == 21.50
+
+
+def test_fondo_spese_legacy_confluisce_in_spese_esborsi_senza_doppio_totale():
+    fascicolo = SimpleNamespace(
+        id="FASC-LEGACY-FONDO",
+        pagamenti={
+            "fondo_spese": {
+                "status": "pagato",
+                "importo": 250.0,
+                "label": "Fondo spese",
+                "natura": "fondo_spese",
+                "origine": "manuale",
+            }
+        },
+    )
+
+    summary = payment_summary_for_fascicolo(fascicolo)
+
+    assert summary["totaleRegistrato"] == 250.0
+    assert summary["items"]["spese_esborsi"]["label"] == "Spese/esborsi"
+    assert summary["items"]["spese_esborsi"]["importo"] == 250.0
+    assert summary["items"]["fondo_spese"]["importo"] is None
+    assert summary["items"]["fondo_spese"]["status"] == "non_previsto"
+
+
+def test_pagamento_fondo_spese_legacy_salva_spese_esborsi_unico():
+    fascicoli = FakeFascicoliRepository()
+
+    payload, status = update_react_fascicolo_payment(
+        get_fascicoli=lambda: fascicoli,
+        get_fatturazione=None,
+        id_fasc="FASC-1",
+        kind="fondo_spese",
+        payload={"status": "pagato", "importo": "250,00", "dataPagamento": "2026-06-26"},
+        actor="Avv. Test",
+    )
+
+    assert status == 200
+    assert payload["payment"]["kind"] == "spese_esborsi"
+    assert payload["payment"]["label"] == "Spese/esborsi"
+    assert payload["paymentSummary"]["totaleRegistrato"] == 250.0
+    assert payload["paymentSummary"]["items"]["spese_esborsi"]["importo"] == 250.0
+    assert "fondo_spese" not in fascicoli.fascicolo.pagamenti
+    assert fascicoli.fascicolo.pagamenti["spese_esborsi"]["importo"] == 250.0
 
 
 def test_sentenza_strategica_senza_nome_cliente_non_aggiorna_economia(tmp_path: Path):

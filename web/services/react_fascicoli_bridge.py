@@ -934,7 +934,7 @@ PAYMENT_KINDS = (
 PAYMENT_KIND_LABELS = {
     "contributo_unificato": "Contributo unificato",
     "spese_esborsi": "Spese/esborsi",
-    "fondo_spese": "Fondo spese",
+    "fondo_spese": "Spese/esborsi",
     "liquidazione_giudice": "Liquidazione giudice",
     "parcella": "Parcella",
 }
@@ -948,11 +948,11 @@ PAYMENT_KIND_ALIASES = {
     "esborsi": "spese_esborsi",
     "spese_esborsi": "spese_esborsi",
     "spese esborsi": "spese_esborsi",
-    "fondo": "fondo_spese",
-    "fondo_spese": "fondo_spese",
-    "fondo spese": "fondo_spese",
-    "anticipazione": "fondo_spese",
-    "anticipazioni": "fondo_spese",
+    "fondo": "spese_esborsi",
+    "fondo_spese": "spese_esborsi",
+    "fondo spese": "spese_esborsi",
+    "anticipazione": "spese_esborsi",
+    "anticipazioni": "spese_esborsi",
     "liquidazione": "liquidazione_giudice",
     "liquidazione_giudice": "liquidazione_giudice",
     "liquidazione giudice": "liquidazione_giudice",
@@ -979,7 +979,7 @@ PAYMENT_STATUS_TONES = {
 PAYMENT_DEFAULT_STATUS = {
     "contributo_unificato": "da_registrare",
     "spese_esborsi": "non_previsto",
-    "fondo_spese": "da_registrare",
+    "fondo_spese": "non_previsto",
     "liquidazione_giudice": "non_previsto",
     "parcella": "da_emettere",
 }
@@ -1031,10 +1031,53 @@ def _amount_label(value: float | None) -> str:
 def _payment_source_for_kind(payments: Any, kind: str) -> dict[str, Any]:
     if not isinstance(payments, dict):
         return {}
+    matches: list[tuple[str, dict[str, Any]]] = []
     for key, value in payments.items():
         if _normalise_payment_kind(key) == kind and isinstance(value, dict):
-            return dict(value)
-    return {}
+            matches.append((_text(key), dict(value)))
+    if not matches:
+        return {}
+    preferred = next((item for item in matches if item[0] == kind), matches[0])
+    merged = dict(preferred[1])
+    for key, value in matches:
+        if key == preferred[0]:
+            continue
+        for field in (
+            "status",
+            "stato",
+            "pagato",
+            "previsto",
+            "importo",
+            "amount",
+            "data_pagamento",
+            "dataPagamento",
+            "date",
+            "metodo",
+            "method",
+            "note",
+            "proforma_id",
+            "proformaId",
+            "documento_fonte",
+            "documentSource",
+            "origine",
+            "origin",
+            "updated_at",
+            "updatedAt",
+            "updated_by",
+            "updatedBy",
+        ):
+            if field not in merged or merged.get(field) in {None, ""}:
+                merged[field] = value.get(field)
+        history = []
+        for raw_history in (value.get("history") or value.get("storico") or [], merged.get("history") or merged.get("storico") or []):
+            if isinstance(raw_history, list):
+                history.extend(raw_history)
+        if history:
+            merged["history"] = history[-25:]
+    if kind == "spese_esborsi":
+        merged["label"] = "Spese/esborsi"
+        merged["natura"] = _text(merged.get("natura") or "spese_esborsi")
+    return merged
 
 
 def _payment_history(raw: dict[str, Any]) -> list[dict[str, str]]:
@@ -1130,7 +1173,7 @@ def payment_summary_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
     advances_to_recover = sum(
         float(item["importo"] or 0.0)
         for kind, item in items.items()
-        if kind in {"contributo_unificato", "spese_esborsi", "fondo_spese"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
+        if kind in {"contributo_unificato", "spese_esborsi"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
     )
     latest = max((_text(item["updatedAt"]) for item in items.values()), default="")
     updated_by = ""
@@ -1239,6 +1282,9 @@ def update_react_fascicolo_payment(
             "history": history[-25:],
         }
     )
+    for existing_key in list(payments.keys()):
+        if existing_key != normalized_kind and _normalise_payment_kind(existing_key) == normalized_kind:
+            payments.pop(existing_key, None)
     payments[normalized_kind] = next_payment
     linked_proforma = _sync_linked_proforma_payment(
         get_fatturazione=get_fatturazione,
@@ -1917,7 +1963,8 @@ def _matches_list_filters(
             wanted_key = _text(wanted).strip().lower()
             if not wanted_key or wanted_key == "tutti":
                 continue
-            actual = _text((summary_items.get(kind) or {}).get("status")).strip().lower()
+            normalized_kind = _normalise_payment_kind(kind) or kind
+            actual = _text((summary_items.get(normalized_kind) or {}).get("status")).strip().lower()
             if actual != wanted_key:
                 return False
     return True
@@ -3792,8 +3839,8 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
             {"key": "economico", "label": "Valori economici", "checked": False},
             {"key": "contributo_unificato_stato", "label": "Contributo unificato - stato", "checked": True},
             {"key": "contributo_unificato_importo", "label": "Contributo unificato - importo", "checked": True},
-            {"key": "fondo_spese_stato", "label": "Fondo spese - stato", "checked": True},
-            {"key": "fondo_spese_importo", "label": "Fondo spese - importo", "checked": True},
+            {"key": "fondo_spese_stato", "label": "Spese/esborsi - stato", "checked": True},
+            {"key": "fondo_spese_importo", "label": "Spese/esborsi - importo", "checked": True},
             {"key": "liquidazione_giudice_stato", "label": "Liquidazione giudice - stato", "checked": True},
             {"key": "liquidazione_giudice_importo", "label": "Liquidazione giudice - importo", "checked": True},
             {"key": "parcella_stato", "label": "Parcella - stato", "checked": True},

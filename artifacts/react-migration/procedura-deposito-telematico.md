@@ -2742,3 +2742,46 @@ Prova reale locale eseguita:
 - la firma con token fisico/PIN resta da verificare solo quando il token dell'avvocato e' collegato, ma il requisito di prima installazione, servizio locale e canale PST/Local Signer e' stato verificato sulla macchina reale.
 
 Limite residuo operativo: quando l'URL non contiene `schema`, non esiste profilo in cache e non c'è un fascicolo locale corrispondente da cui dedurre il registro, IUSENTRA non inventa la tabella ministeriale. In quel caso la UI deve chiedere un segnale reale o fermarsi se manca il certificato, evitando la ricerca lunga e non governata.
+
+## Fascicoli, OCR economico e deposito - 2.253.126 - 2026-06-26
+
+Richiesta collegata al deposito/PEC/notifiche: la pipeline deve usare la stessa nuova logica OCR/economica, perché dati sbagliati su CU, esborsi o catalogo documenti possono arrivare fino a fascicolo, busta, PEC, notifiche e Lex AI.
+
+Presidio aggiornato:
+
+- il CU viene valorizzato solo da prova di pagamento reale o esenzione esplicita presente nel fascicolo;
+- importi Carta docente, soglie reddituali e autocertificazioni DPR 115/2002 non alimentano più `contributo_unificato`;
+- `fondo_spese` non è più voce separata nel flusso operativo: viene assorbita in `Spese/esborsi`, evitando doppioni in vista economica, proforma e riepiloghi;
+- il backfill automatico `lex_sentenza_economia_auto` usa lo stesso estrattore CU governato, quindi il dato reindicizzato per Lex/vector DB resta coerente con la matrice economica fascicolo;
+- la UI fascicoli economica non espone più il filtro/colonna `Fondo spese`, così l'avvocato vede una sola voce `Spese/esborsi`.
+
+Verifica locale dati prima del rebuild Docker:
+
+- reset/backfill locale `sentenza-economia-reset-local-v6-cu-fondo-20260626.json`: `documents_catalogued=667`, `errors=0`, `vector_embedding_errors=0`, `vector_indexed=1`;
+- merge locale `fondo-spese-merge-local-apply-20260626.json`: `fascicoli_seen=7`, `legacy_entries_removed=0`;
+- controllo a freddo pagamenti locale: nessuna chiave `fondo_spese`, nessun CU sospetto `500,00` o `38.514,03`.
+
+Stato: codice e dati locali sono pronti per prova reale su `127.0.0.1:8080`; dopo commit/push e deploy Hetzner lo stesso reset/backfill e merge devono essere eseguiti su `/data` produzione e verificati sui fascicoli reali indicati dall'utente.
+
+## Fascicoli, OCR economico e deposito - verifica locale finale 2.253.126 - 2026-06-26
+
+Verifica reale locale eseguita dopo rebuild Docker:
+
+- `docker compose build --no-cache app scheduler-worker ocr-worker` completato;
+- `app`, `scheduler-worker` e `ocr-worker` healthy sulla copia reale `127.0.0.1:8080`;
+- `/api/pronto` restituisce `ok=true`, `timezone=Europe/Rome`, `versione=2.253.126`;
+- `scripts/check_runtime_services.py --wait-job-seconds 900 --require-all-due-jobs` ha atteso e confermato il run reale `lex_sentenza_economia_auto` completato senza errori dopo il riavvio;
+- browser integrato visibile su `http://127.0.0.1:8080/fascicoli?vista=economica`, desktop `1440x900`, tablet `820x1180` e mobile `390x844`.
+
+Dati osservati nel fascicolo locale `RG 466/2023`:
+
+- `Contributo unificato da pagare`: `EUR 98,00`, stato `Da registrare`, data vuota;
+- `Spese/esborsi`: `EUR 125,00`, stato `Pagato`;
+- `Liquidazione giudice`: `EUR 1.500,00`, stato `Pagato`;
+- `Parcella`: `EUR 2.028,20`, stato `Da emettere`;
+- `Totale registrato`: `EUR 1.625,00`, quindi il CU dovuto non viene conteggiato come incasso pagato;
+- la voce `Fondo spese` non compare più in tabella, card mobile, filtri economici o riepilogo.
+
+Impatto su deposito/PEC/notifiche: la logica resta unica nella pipeline documentale. Il backfill e il worker scheduler usano lo stesso estrattore CU governato, mentre `fondo_spese` è solo alias legacy verso `spese_esborsi`; di conseguenza Fascicoli, Lex AI, preparazione deposito, notifiche e PEC leggono la stessa matrice economica, evitando importi duplicati o falsi CU da Carta docente/reddito/autocertificazioni.
+
+Stato residuo prima della chiusura: dopo commit, push e check GitHub, ripetere su Hetzner deploy, reset/backfill e merge dati produzione senza backup, poi verificare visivamente i fascicoli reali segnalati nello screenshot.

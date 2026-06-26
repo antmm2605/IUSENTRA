@@ -1237,7 +1237,56 @@ class SchedulerRegistryRepository:
                         str(row["run_id"]),
                     ),
                 )
-        return {"cancelled": len(rows)}
+            return {"cancelled": len(rows)}
+
+    def cancel_scheduler_runs_started_before(self, cutoff_iso: str, *, reason: str = "") -> dict[str, int]:
+        cutoff = str(cutoff_iso or "").strip()
+        if not cutoff:
+            return {"cancelled": 0}
+        now = _iso()
+        message = (
+            " ".join(str(reason or "").split())
+            or "Esecuzione scheduler interrotta dal riavvio del worker; sarà ripresa alla prossima finestra utile."
+        )
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT run_id, started_at
+                FROM scheduled_job_runs
+                WHERE origin='scheduler'
+                  AND status='running'
+                  AND COALESCE(started_at, created_at, '') < ?
+                """,
+                (cutoff,),
+            ).fetchall()
+            for row in rows:
+                started_at = str(row["started_at"] or now)
+                conn.execute(
+                    """
+                    UPDATE scheduled_job_runs
+                    SET status='cancelled',
+                        finished_at=?,
+                        duration_ms=?,
+                        message=?,
+                        error_message='',
+                        result_json=?
+                    WHERE run_id=?
+                    """,
+                    (
+                        now,
+                        _duration_ms(started_at, now),
+                        message,
+                        _json_dumps(
+                            {
+                                "ok": False,
+                                "status": "interrotta_riavvio_worker",
+                                "summary": message,
+                            }
+                        ),
+                        str(row["run_id"]),
+                    ),
+                )
+            return {"cancelled": len(rows)}
 
     def record_scheduler_event(
         self,

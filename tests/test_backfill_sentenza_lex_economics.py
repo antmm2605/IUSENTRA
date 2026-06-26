@@ -71,6 +71,23 @@ def test_backfill_contributo_evidence_non_scambia_iniziali_cu_per_pagamento():
     ) is True
 
 
+def test_backfill_contributo_evidence_rifiuta_carta_docente_e_soglia_reddito():
+    assert _looks_like_contributo_evidence(
+        """
+        SENTENZA. Il contributo unificato viene richiamato solo in diritto.
+        La Carta elettronica docente ha importo nominale di euro 500,00 annui.
+        """,
+        {"filename": "Sentenza RG 252 2026.pdf", "tipo_documento": "Sentenza Tribunale"},
+    ) is False
+    assert _looks_like_contributo_evidence(
+        """
+        Dichiarazione sostitutiva. Il reddito del nucleo familiare ex art. 76
+        D.P.R. 115/2002 non supera Euro 38.514,03.
+        """,
+        {"filename": "dichiarazione-reddituale.pdf"},
+    ) is False
+
+
 def _write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

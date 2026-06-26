@@ -5535,7 +5535,9 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["paymentSummary"]["stato"] == "da_presidiare"
     assert row["paymentSummary"]["items"]["contributo_unificato"]["status"] == "da_registrare"
     assert row["paymentSummary"]["items"]["contributo_unificato"]["importo"] is None
-    assert row["paymentSummary"]["items"]["fondo_spese"]["status"] == "da_registrare"
+    assert row["paymentSummary"]["items"]["spese_esborsi"]["status"] == "non_previsto"
+    assert row["paymentSummary"]["items"]["fondo_spese"]["status"] == "non_previsto"
+    assert row["paymentSummary"]["items"]["fondo_spese"]["label"] == "Spese/esborsi"
     assert row["paymentSummary"]["items"]["liquidazione_giudice"]["status"] == "non_previsto"
     assert row["paymentSummary"]["items"]["parcella"]["status"] == "da_emettere"
     assert any(item["id"] == fascicolo.id for item in payments_only_payload["items"])

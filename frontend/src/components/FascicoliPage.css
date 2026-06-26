@@ -94,17 +94,17 @@
    le celle economiche che richiedono ~290px e causando sovrapposizioni.
    table-layout:fixed -> ogni colonna prende ESATTAMENTE la larghezza dichiarata
    e la griglia interna della cella (minmax 0) si adatta senza sbordare. */
-.iu-fas-table--economic{min-width:1900px}
+.iu-fas-table--economic{min-width:2048px}
 .iu-fas-table--economic th:nth-child(1),.iu-fas-table--economic td:nth-child(1){width:44px}
-.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:156px}
-.iu-fas-table--economic th:nth-child(3),.iu-fas-table--economic td:nth-child(3){width:150px}
-.iu-fas-table--economic th:nth-child(4),.iu-fas-table--economic td:nth-child(4){width:100px}
-.iu-fas-table--economic th:nth-child(5),.iu-fas-table--economic td:nth-child(5){width:118px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:176px}
+.iu-fas-table--economic th:nth-child(3),.iu-fas-table--economic td:nth-child(3){width:172px}
+.iu-fas-table--economic th:nth-child(4),.iu-fas-table--economic td:nth-child(4){width:112px}
+.iu-fas-table--economic th:nth-child(5),.iu-fas-table--economic td:nth-child(5){width:126px}
 .iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6),
 .iu-fas-table--economic th:nth-child(7),.iu-fas-table--economic td:nth-child(7),
 .iu-fas-table--economic th:nth-child(8),.iu-fas-table--economic td:nth-child(8),
-.iu-fas-table--economic th:nth-child(9),.iu-fas-table--economic td:nth-child(9){width:292px}
-.iu-fas-table--economic th:nth-child(10),.iu-fas-table--economic td:nth-child(10){width:150px}
+.iu-fas-table--economic th:nth-child(9),.iu-fas-table--economic td:nth-child(9){width:304px}
+.iu-fas-table--economic th:nth-child(10),.iu-fas-table--economic td:nth-child(10){width:170px}
 /* Le celle economiche contengono una form alta: allinea in alto, non al centro */
 .iu-fas-table--economic td{vertical-align:top}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
@@ -128,25 +128,25 @@
 /* Griglia interna flessibile: i tre campi (Stato/Importo/Data) usano minmax(0,..fr)
    cosi' si adattano alla larghezza del <td> senza mai sbordare; il bottone Salva
    resta a larghezza fissa. min-width:0 sui figli e' garantito da .iu-fas-economic-cell label. */
-.iu-fas-economic-cell{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.25fr) 28px;gap:5px;align-items:end;width:100%;box-sizing:border-box;padding:6px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:#fff}
+.iu-fas-economic-cell{display:grid;grid-template-columns:minmax(68px,.85fr) minmax(62px,.72fr) minmax(100px,1fr) 30px;gap:5px;align-items:end;width:100%;box-sizing:border-box;padding:6px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:#fff}
 .iu-fas-economic-cell--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.045)}
 .iu-fas-economic-cell--warning,.iu-fas-economic-cell--orange{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.06)}
 .iu-fas-economic-cell--neutral{background:#f8fafc}
-.iu-fas-economic-cell__kind{grid-column:1/-1;min-width:0;display:flex;align-items:center;gap:6px}
-.iu-fas-economic-cell__kind .iu-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.iu-fas-economic-cell__kind small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10px;font-weight:820;text-transform:none}
+.iu-fas-economic-cell__kind{grid-column:1/-1;min-width:0;display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap}
+.iu-fas-economic-cell__kind .iu-badge{max-width:100%;white-space:normal;line-height:1.2;text-align:left;overflow-wrap:anywhere}
+.iu-fas-economic-cell__kind small{min-width:0;flex:1 1 96px;white-space:normal;overflow-wrap:anywhere;color:var(--iu-slate-500);font-size:10px;line-height:1.2;font-weight:820;text-transform:none}
 .iu-fas-economic-cell label{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-cell label>span{color:var(--iu-slate-500);font-size:9px;font-weight:950;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
-.iu-fas-economic-cell select,.iu-fas-economic-cell input{width:100%;min-height:28px;border:1px solid var(--iu-border);border-radius:7px;background:#fff;padding:0 5px;color:#111827;font-size:10.5px;font-weight:800}
-.iu-fas-economic-cell button{width:28px;min-width:28px;height:28px;min-height:28px;display:grid;place-items:center;border:1px solid rgba(37,99,235,.18);border-radius:7px;background:var(--iu-blue-600);color:#fff;cursor:pointer}
+.iu-fas-economic-cell select,.iu-fas-economic-cell input{width:100%;min-width:0;min-height:30px;border:1px solid var(--iu-border);border-radius:7px;background:#fff;padding:0 6px;color:#111827;font-size:11px;font-weight:800}
+.iu-fas-economic-cell button{width:30px;min-width:30px;height:30px;min-height:30px;display:grid;place-items:center;border:1px solid rgba(37,99,235,.18);border-radius:7px;background:var(--iu-blue-600);color:#fff;cursor:pointer}
 .iu-fas-economic-cell button:disabled{background:#eef2f7;color:#94a3b8;cursor:not-allowed}
 .iu-fas-economic-cell__details{grid-column:1/-1;min-width:0}
-.iu-fas-economic-cell__details summary{min-height:20px;display:flex;align-items:center;gap:6px;list-style:none;cursor:pointer;color:var(--iu-slate-500);font-size:10.5px;font-weight:850}
+.iu-fas-economic-cell__details summary{min-height:20px;display:flex;align-items:flex-start;gap:6px;list-style:none;cursor:pointer;color:var(--iu-slate-500);font-size:10.5px;line-height:1.25;font-weight:850}
 .iu-fas-economic-cell__details summary::-webkit-details-marker{display:none}
 .iu-fas-economic-cell__details summary span{color:var(--iu-blue-700);font-size:10.5px;font-weight:900}
-.iu-fas-economic-cell__details summary small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:760}
+.iu-fas-economic-cell__details summary small{min-width:0;flex:1 1 120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--iu-slate-500);font-size:10.5px;font-weight:760}
 .iu-fas-economic-cell__details[open] summary{margin-bottom:4px}
-.iu-fas-economic-cell__details>div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px}
+.iu-fas-economic-cell__details>div{display:grid;grid-template-columns:86px minmax(0,1fr);gap:5px}
 .iu-fas-insights{display:grid;gap:16px;position:static;top:auto}
 .iu-fas-briefing{display:grid;gap:10px}
 .iu-fas-briefing article{display:grid;gap:4px;padding:13px;border:1px solid var(--iu-border);border-radius:13px;background:#fff}
@@ -1918,15 +1918,15 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-status-select--danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#b91c1c}
 
 /* ===== Vista economica dentro la tabella unica ===== */
-.iu-fas-table--economic{min-width:1760px}
+.iu-fas-table--economic{min-width:2048px}
 .iu-fas-table--economic th,.iu-fas-table--economic td{padding:6px 8px}
-.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:200px}
+.iu-fas-table--economic th:nth-child(2),.iu-fas-table--economic td:nth-child(2){width:176px}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{color:var(--iu-blue-700);text-decoration:none}
 .iu-fas-economic-ref>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:650}
 
 /* ===== Filtri per voce economica nel pannello avanzato ===== */
-.iu-fas-economic-filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px dashed var(--iu-border)}
+.iu-fas-economic-filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px dashed var(--iu-border)}
 .iu-fas-economic-filters label{display:grid;gap:4px}
 .iu-fas-economic-filters label>span{color:var(--iu-slate-500);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .iu-fas-economic-filters select{min-height:34px;padding:0 8px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;font:inherit;font-size:12.5px;font-weight:750;color:var(--iu-slate-700)}

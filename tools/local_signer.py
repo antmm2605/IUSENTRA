@@ -280,7 +280,7 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
     import py_compile
     import shutil
 
-    base = _local_signer_base_url(base_url)
+    base = _local_signer_base_url(base_url) if base_url else _local_signer_base_url()
     install_dir = _local_signer_install_dir()
     mod_dir = install_dir / "local_signer_mod"
     staging = Path(tempfile.mkdtemp(prefix="iusentra-ls-update-"))

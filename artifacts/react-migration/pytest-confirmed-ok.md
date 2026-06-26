@@ -5833,6 +5833,8 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
+| `python scripts/run_pytest_phases.py --suite signer --suite-shard 4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | 62/62 passati dopo compatibilità `_aggiorna_sorgenti_local_signer`: quando non arriva `base_url` esplicito, la risoluzione base URL torna a chiamare `_local_signer_base_url()` senza argomenti, preservando test ed estensioni storiche. |
+| `python -m pytest tests/test_react_shell.py::test_pst_acquisizione_deduce_tabella_ministeriale_da_fascicolo_locale tests/test_react_shell.py::test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro tests/test_react_shell.py::test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente tests/test_local_signer.py::test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee tests/test_local_signer.py::test_local_signer_hot_update_blocca_versione_server_piu_vecchia -q`; `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | 5/5 test mirati passati e sintassi confermata per sorgente e dist Local Signer. |
 | `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript React senza errori dopo blocco certificato anticipato, hint tabella ministeriale e correzione hover/focus PST. |
 | `pnpm --filter @iusentra/studio build` | OK | Bundle React aggiornato; asset `TelematicoSurfacePage` rigenerato con regole hover/focus ristrette al componente PST. |
 | `python -m py_compile web\blueprints\api_v1_react.py tools\local_signer.py` | OK | Sintassi confermata per endpoint `schema-hint` e Local Signer 1.6.81. |

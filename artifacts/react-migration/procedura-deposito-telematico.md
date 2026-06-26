@@ -2716,4 +2716,29 @@ Guardrail automatici eseguiti:
 - `python -m py_compile web\blueprints\api_v1_react.py tools\local_signer.py` -> OK;
 - `python -m pytest tests/test_react_shell.py::test_pst_acquisizione_deduce_tabella_ministeriale_da_fascicolo_locale tests/test_react_shell.py::test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro tests/test_react_shell.py::test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente tests/test_local_signer.py::test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee -q` -> `4 passed`.
 
+## Local Signer 1.6.82: prima installazione pulita e anti-regressione installer - 2026-06-26
+
+Richiesta utente: verificare che un cliente che installa Local Signer per la prima volta non resti bloccato e che l'aggiornamento non rompa il servizio essenziale del deposito/PST.
+
+Diagnosi sulla macchina reale:
+
+- il Local Signer installato in `%APPDATA%\IUSENTRA\LocalSigner` era rimasto a `1.6.80` e non esponeva il servizio locale;
+- il log installer mostrava due avvii quasi contemporanei: una installazione stava creando `.venv`, la seconda ha trovato una virtualenv incompleta e pip si e' fermato con `failed to locate pyvenv.cfg`;
+- il problema non era il certificato PST o la UI, ma un installer Windows non idempotente sotto doppio avvio/aggiornamento concorrente.
+
+Correzione applicata:
+
+- l'installer Windows usa ora un lock esclusivo `%APPDATA%\IUSENTRA\LocalSigner\installer.lock`, con timeout e rilascio anche in caso di errore;
+- se `.venv` esiste ma manca `pyvenv.cfg` o `python.exe`, l'installer la rimuove e la ricrea prima di installare le dipendenze;
+- i pacchetti Local Signer sono stati rigenerati come `1.6.82` per Windows, macOS e Linux, mantenendo l'alias Windows `SetupLocalSigner.exe` puntato alla release corrente;
+- i test di build verificano la presenza del lock e della riparazione virtualenv nel pacchetto Windows.
+
+Prova reale locale eseguita:
+
+- installazione corrente spostata fuori percorso runtime e nuova installazione da cartella vuota `%APPDATA%\IUSENTRA\LocalSigner`;
+- servizio avviato su `127.0.0.1:27272`;
+- `GET /ping` restituisce `ok=true`, `versione=1.6.82`, libreria PKCS#11 Windows presente e certificati Windows leggibili;
+- Docker locale reale ricostruito su `2.253.125`, `/api/pronto` `ok=true`, e browser integrato su `http://127.0.0.1:8080/portali/pst/acquisizione?ufficio=Tribunale+di+Palmi&numero=3441&anno=2025&schema=esecuzioni#step-search` mostra `Local Signer pronto` e `rilevata 1.6.82`;
+- la firma con token fisico/PIN resta da verificare solo quando il token dell'avvocato e' collegato, ma il requisito di prima installazione, servizio locale e canale PST/Local Signer e' stato verificato sulla macchina reale.
+
 Limite residuo operativo: quando l'URL non contiene `schema`, non esiste profilo in cache e non c'è un fascicolo locale corrispondente da cui dedurre il registro, IUSENTRA non inventa la tabella ministeriale. In quel caso la UI deve chiedere un segnale reale o fermarsi se manca il certificato, evitando la ricerca lunga e non governata.

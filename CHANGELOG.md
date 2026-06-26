@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.125 - 2026-06-26
+
+- Local Signer `1.6.82`: blindato l'installer Windows contro avvii concorrenti con lock su `%APPDATA%\IUSENTRA\LocalSigner\installer.lock`; una seconda esecuzione non puo' piu' cancellare la virtualenv mentre la prima installazione sta configurando pip.
+- Local Signer `1.6.82`: se la virtualenv locale esiste ma manca `pyvenv.cfg` o `python.exe`, l'installer la rimuove e la ricrea prima di installare le dipendenze, evitando il blocco `failed to locate pyvenv.cfg`.
+- Local Signer: pacchetti Windows/macOS/Linux rigenerati dopo i fix di compatibilita' dell'hot-update; la prova reale locale copre servizio `127.0.0.1:27272/ping`, prima installazione pulita e verifica UI `Local Signer pronto`.
+
 ## 2.253.124 - 2026-06-26
 
 - PST/PolisWeb React: la ricerca si ferma subito se manca un certificato CNS/CIE valido sul PC e non avvia più tentativi lunghi verso il fascicolo senza prerequisito operativo.

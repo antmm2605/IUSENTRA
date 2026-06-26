@@ -5829,6 +5829,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\react-migration\generate_backend_security_map.py`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest -q tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata --tb=short` | OK | Riallineata la mappa sicurezza backend dopo l'endpoint React `/api/v1/ui/telematico/pst/schema-hint`; il check che aveva bloccato `Lint + syntax` è ora verde localmente. |
 | `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | 79/79 test RBAC/App V2/OpenAPI passati, 4/4 UTF-8 passati; diff senza errori whitespace bloccanti. |
 
+## Local Signer prima installazione pulita 1.6.82 - 2026-06-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\build_dist.py` | OK | Pacchetti Local Signer `1.6.82` rigenerati per Windows/macOS/Linux; alias `tools\dist\SetupLocalSigner.exe` aggiornato alla release corrente. |
+| `python -m pytest tests/test_build_dist.py tests/test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati tests/test_local_signer.py::test_installer_local_signer_windows_legacy_restituisce_exe_senza_login tests/test_local_signer.py::test_installer_local_signer_windows_setup_route_e_pubblica tests/test_local_signer.py::test_installer_local_signer_windows_exe_route_se_bundle_presente tests/test_local_signer.py::test_installer_local_signer_macos_e_pubblico tests/test_local_signer.py::test_installer_local_signer_linux_e_pubblico tests/test_local_signer.py::test_local_signer_update_endpoint_preferisce_hot_update_sorgenti tests/test_local_signer.py::test_local_signer_hot_update_blocca_versione_server_piu_vecchia tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q` | OK | 16/16 passati: installer Windows contiene lock, riparazione `.venv` incompleta, pacchetti pubblici Windows/macOS/Linux e guardrail hot-update. |
+| Prima installazione reale da cartella `%APPDATA%\IUSENTRA\LocalSigner` assente; `Invoke-RestMethod http://127.0.0.1:27272/ping` | OK osservato | Servizio avviato sulla macchina reale, `ok=true`, `versione=1.6.82`, libreria PKCS#11 Windows presente, certificati Windows leggibili. |
+| `docker compose up -d --build app nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto`; browser integrato PST step `Accesso` | OK osservato | Docker locale reale `2.253.125` healthy; UI su `127.0.0.1:8080` mostra `Local Signer pronto`, `rilevata 1.6.82` e non mostra piu' `1.6.81`. |
+| `python scripts/run_pytest_phases.py --suite signer --suite-shard 3 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5`; `python scripts/run_pytest_phases.py --suite signer --suite-shard 4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | Shard signer sensibili completati: 62/62 + 62/62 passati dopo il fix installer. |
+
 ## Acquisizione PST: tabella ministeriale, certificato e hover pulsanti - 2026-06-26
 
 | Comando / verifica | Esito | Nota |

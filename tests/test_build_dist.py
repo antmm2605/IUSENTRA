@@ -122,6 +122,11 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert '(Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe"' in contenuto
     assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
     assert '$preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")' in contenuto
+    assert "$installLockPath = Join-Path $targetDir \"installer.lock\"" in contenuto
+    assert "Acquire-InstallerLock" in contenuto
+    assert "Release-InstallerLock" in contenuto
+    assert '$venvConfig = Join-Path $venvDir "pyvenv.cfg"' in contenuto
+    assert "Virtualenv incompleta rilevata" in contenuto
 
 
 def test_build_windows_exe_profile_resta_iexpress_1_6_35():

@@ -34,6 +34,7 @@ from pct.auth import RuoloUtente, totp_uri
 from pct.clienti import TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
+from pct.fascicolo_document_catalog import classify_fascicolo_document
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
@@ -5640,6 +5641,14 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
         selected = bool(raw_row.get("selected"))
         role = _deposit_document_role(raw_row.get("role"))
+        catalog = classify_fascicolo_document(doc)
+        if catalog.role == "atto_principale":
+            role = "atto_principale"
+        elif role == "atto_principale" and catalog.confidence >= 70 and catalog.role not in {"atto_principale", "atto_difensivo"}:
+            if catalog.deposit_role in {"procura", "prova_notifica", "fuori_busta"}:
+                role = catalog.deposit_role
+            else:
+                role = "allegato"
         signed_container = _documento_contenitore_firma(doc)
         already_signed = bool(raw_row.get("already_signed") or raw_row.get("alreadySigned") or signed_container)
         requires_signature = bool(

@@ -79,6 +79,30 @@ def test_predeposito_collega_documenti_solo_se_classificazione_certa(tmp_path):
     assert any(event.event_type == "DOCUMENT_SLOT_AUTO_LINKED" for event in repo.list_audit(fascicolo.id))
 
 
+def test_predeposito_preferisce_ricorso_a_memoria_firmata(tmp_path):
+    gf, repo, fascicolo, profile, cliente = _ctx(tmp_path)
+    ricorso = gf.aggiungi_documento(
+        fascicolo.id,
+        "Ricorso introduttivo.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=False,
+    )
+    memoria = gf.aggiungi_documento(
+        fascicolo.id,
+        "note_di_trattazione_scritta_ZURICH_udienza_del_19-03-2025.pdf.p7m",
+        TipoDocumento.VERBALE,
+        pdfa_bytes(),
+        firmato=True,
+    )
+
+    readiness = run_predeposit_check(repo, fascicolo=gf.get(fascicolo.id), profile=profile, cliente=cliente, fascicoli_manager=gf)
+    slots = {slot.slot_key: slot for slot in readiness["slots"]}
+
+    assert slots["ATTO_PRINCIPALE"].document_id == ricorso.id
+    assert slots["ATTO_PRINCIPALE"].document_id != memoria.id
+
+
 def test_predeposito_non_collega_documento_richiesto_come_ricorso_se_non_certo(tmp_path):
     gf, repo, fascicolo, profile, cliente = _ctx(tmp_path)
     gf.aggiungi_documento(
@@ -94,6 +118,31 @@ def test_predeposito_non_collega_documento_richiesto_come_ricorso_se_non_certo(t
 
     assert slots["ATTO_PRINCIPALE"].document_id == ""
     assert any(item.status == ValidatorStatus.BLOCK.value for item in readiness["blockers"])
+
+
+def test_predeposito_non_collega_sentenza_storica_come_atto_principale(tmp_path):
+    gf, repo, fascicolo, profile, cliente = _ctx(tmp_path)
+    sentenza = gf.aggiungi_documento(
+        fascicolo.id,
+        "Sentenza Tribunale.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdfa_bytes(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fascicolo.id,
+        "Procura.PDF",
+        TipoDocumento.PROCURA,
+        pdfa_bytes(),
+        firmato=True,
+    )
+
+    readiness = run_predeposit_check(repo, fascicolo=gf.get(fascicolo.id), profile=profile, cliente=cliente, fascicoli_manager=gf)
+    slots = {slot.slot_key: slot for slot in readiness["slots"]}
+
+    assert slots["ATTO_PRINCIPALE"].document_id != sentenza.id
+    assert slots["ATTO_PRINCIPALE"].document_id == ""
+    assert slots["PROCURA"].document_id == procura.id
 
 
 def test_profilo_deposito_non_scambia_contratto_per_atto_principale():

@@ -3664,6 +3664,8 @@ function DepositPreparePage({ id }:{id:string}) {
   }, [loading, f.id])
 
   const hasLoadedDepositPayload = Boolean(f.id || f.ref || f.client || data.documents.length || regia.header.channel)
+  const notFoundTitle = data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'
+  const notFoundMessage = data.requestError || 'Non ho trovato il fascicolo richiesto nella copia locale.'
 
   if (data.notFound) {
     return (
@@ -3671,8 +3673,8 @@ function DepositPreparePage({ id }:{id:string}) {
         <section className="iu-fas-hero iu-fas-detail-hero">
           <div>
             <span className="iu-fas-eyebrow"><Send size={16}/> Deposito telematico</span>
-            <h1>Fascicolo non trovato</h1>
-            <p>Non ho trovato il fascicolo richiesto nella copia locale.</p>
+            <h1>{notFoundTitle}</h1>
+            <p>{notFoundMessage}</p>
           </div>
           <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Torna ai fascicoli</Button></div>
         </section>
@@ -3967,7 +3969,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   const selected = Boolean(classification.selected)
                   const isMainAct = mainActDocument?.id === doc.id
                   const roleValue = normaliseDepositRoleForUi(classification.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id))
-                  const roleDisplayLabel = depositRoleLabel(roleValue).label
+                  const roleDisplayLabel = depositRoleDisplayLabelForDocument(doc, roleValue)
                   const canRequestSignature = !doc.signed && requiresPackageSignature(doc)
                   const mandatorySignature = selected && defaultSignatureRequiredForDepositRole(doc, roleValue)
                   const signatureRequested = selected && canRequestSignature && (mandatorySignature || Boolean(classification.requiresSignature))
@@ -4938,12 +4940,13 @@ const documentAutoSectionOrder: Array<Omit<DocumentAutoSection, 'documents'>> = 
   { id: 'atti', title: 'Atti e memorie', note: 'Atto principale, difese e bozze redazionali.', tone: 'primary' },
   { id: 'provvedimenti', title: 'Provvedimenti', note: 'Sentenze, ordinanze, decreti e verbali.', tone: 'purple' },
   { id: 'comunicazioni', title: 'Comunicazioni', note: 'PEC, cancelleria, notifiche e messaggi collegati.', tone: 'info' },
+  { id: 'pagamenti', title: 'Pagamenti e contributi', note: 'Contributo unificato, PagoPA, bolli, parcelle e note spese.', tone: 'success' },
   { id: 'allegati', title: 'Allegati e supporti', note: 'Procure, contratti, parcelle e allegati di fascicolo.', tone: 'neutral' },
   { id: 'da-verificare', title: 'Da verificare', note: 'Documenti senza sezione certa da controllare.', tone: 'warning' },
 ]
 
 function documentSearchText(doc: FascicoloDocument): string {
-  return normaliseText([doc.type, doc.name, doc.source, doc.portalClass, doc.portalName, doc.portalSender, doc.statusLabel, ...doc.tags].join(' '))
+  return normaliseText([doc.type, doc.rawType, doc.name, doc.source, doc.portalClass, doc.portalName, doc.portalSender, doc.statusLabel, doc.catalogRole, doc.catalogLabel, doc.catalogSection, doc.catalogEvidence, doc.depositRole, ...doc.tags].join(' '))
 }
 
 function uniqueFascicoloDocuments(documents: FascicoloDocument[]): FascicoloDocument[] {
@@ -4974,6 +4977,8 @@ function isPortalAcquiredDocument(doc: FascicoloDocument): boolean {
 }
 
 function isCommunicationDocument(doc: FascicoloDocument): boolean {
+  if (doc.catalogRole === 'comunicazione') return true
+  if (doc.catalogSection === 'comunicazioni' && !['prova_notifica', 'relata'].includes(doc.catalogRole)) return true
   return /(pec|cancelleria|comunicazion|notifica|relata|busta|rdac|rac|esito|ricevut|accettazion|consegna)/.test(documentSearchText(doc))
 }
 
@@ -5102,17 +5107,25 @@ function portalCatalogRole(value: string): { label: string; tone: FascicoloRow['
 }
 
 function isDepositCandidateDocument(doc: FascicoloDocument): boolean {
+  if (['atto_principale', 'atto_difensivo', 'procura', 'prova_notifica', 'relata', 'contributo_unificato', 'nota_iscrizione_ruolo', 'provvedimento', 'allegato'].includes(doc.catalogRole)) {
+    return doc.depositCandidate !== false
+  }
+  if (doc.depositCandidate !== undefined) return doc.depositCandidate
   if (isCommunicationDocument(doc)) return false
   if (!isPortalAcquiredDocument(doc)) return true
   return portalCatalogRole(`${doc.portalClass} ${doc.type} ${doc.name}`).depositCandidate
 }
 
 function isDepositManualSelectableDocument(doc: FascicoloDocument): boolean {
+  if (doc.catalogRole === 'comunicazione' || doc.depositRole === 'fuori_busta') return false
   if (isCommunicationDocument(doc)) return false
   return true
 }
 
 function isMainActCandidateDocument(doc: FascicoloDocument): boolean {
+  if (doc.catalogRole === 'atto_principale') return true
+  if (doc.catalogRole === 'atto_difensivo' && doc.catalogConfidence >= 80) return true
+  if (doc.catalogConfidence >= 70 && ['allegato', 'classificato_storico', 'comunicazione', 'contributo_unificato', 'economia_fascicolo', 'nota_iscrizione_ruolo', 'procura', 'prova_notifica', 'provvedimento', 'relata'].includes(doc.catalogRole)) return false
   const text = documentSearchText(doc)
   if (/(procura|contratto|contributo|pagopa|marca|nota iscrizione|nir|ricevut|accettazion|consegna|rdac|rac|relata|pec|notifica_id|perizia|ctu|ctp|perital|verbale|sentenza|ordinanza|decreto|provvediment|liquidazione)/.test(text)) return false
   return /(\batto\b|\bricorso\b|\bcitazione\b|\bcomparsa\b|\bmemoria\b|\bistanza\b|\bappello\b|\breclamo\b|\bopposizione\b|deduzion)/.test(text)
@@ -5128,6 +5141,8 @@ function mainActCandidateScore(doc: FascicoloDocument): number {
   if (!isMainActCandidateDocument(doc)) return 0
   const text = documentSearchText(doc)
   let score = 10
+  if (doc.catalogRole === 'atto_principale') score += 80
+  if (doc.catalogRole === 'atto_difensivo') score += 55
   if (doc.signed) score += 30
   if (/(^|[^a-z])atto([^a-z]|$)|attoacq|atto acquisito|atto giudiziario/.test(text)) score += 25
   if (/\bricorso\b|\bcitazione\b|\bcomparsa\b|\bappello\b|\breclamo\b|\bopposizione\b/.test(text)) score += 20
@@ -5145,6 +5160,19 @@ function preferredMainActCandidateDocument(documents: FascicoloDocument[]): Fasc
 function documentOperationalRole(doc: FascicoloDocument): { label: string; detail: string; tone: FascicoloRow['tone'] } {
   if (isNotificationProofDocument(doc)) {
     return { label: notificationProofLabel(doc), detail: 'Prova di notifica già presente nel fascicolo: si usa per il deposito prova, senza nuovo invio.', tone: 'info' }
+  }
+  if (doc.catalogLabel && doc.catalogConfidence >= 70) {
+    const tone: FascicoloRow['tone'] =
+      doc.catalogSection === 'atti' ? 'primary'
+        : doc.catalogSection === 'provvedimenti' ? 'purple'
+          : doc.catalogSection === 'comunicazioni' ? 'info'
+            : doc.catalogSection === 'pagamenti' ? 'success'
+              : doc.catalogSection === 'allegati' ? 'neutral'
+                : 'warning'
+    const detail = doc.catalogEvidence
+      ? `Catalogato da OCR/metadati: ${doc.catalogEvidence}.`
+      : 'Catalogato da OCR e metadati del fascicolo.'
+    return { label: doc.catalogLabel, detail, tone }
   }
   if (isCommunicationDocument(doc)) {
     return { label: 'Ricevuta / comunicazione', detail: 'Fuori dalla busta: presidio cancelleria e ricevute.', tone: 'info' }
@@ -5168,6 +5196,12 @@ function defaultDepositRoleForDocument(doc: FascicoloDocument | undefined, linke
   const slot = normaliseText(linkedSlotKey)
   const text = documentSearchText(doc)
   if (isProposedMainAct || /atto principale|atto_principale/.test(slot)) return 'atto_principale'
+  if (doc.depositRole === 'atto_principale') return 'atto_principale'
+  if (doc.depositRole === 'procura') return 'procura'
+  if (doc.depositRole === 'prova_notifica') return 'prova_notifica'
+  if (doc.depositRole === 'fuori_busta') return 'fuori_busta'
+  if (doc.depositRole === 'contributo_unificato' || doc.catalogRole === 'contributo_unificato') return 'allegato'
+  if (doc.depositRole === 'allegato' || doc.catalogRole === 'provvedimento' || doc.catalogRole === 'allegato') return 'allegato'
   if (/procura/.test(slot) || /procura/.test(text)) return 'procura'
   if (/prova|notifica|ricevuta/.test(slot) || notificationProofKind(doc)) return 'prova_notifica'
   if (isCommunicationDocument(doc)) return 'fuori_busta'
@@ -5182,6 +5216,16 @@ function depositRoleLabel(role: DepositDocumentRole): { label: string; tone: Fas
   if (role === 'prova_notifica') return { label: 'Prova notifica', tone: 'info' }
   if (role === 'fuori_busta') return { label: 'Fuori busta', tone: 'neutral' }
   return { label: 'Allegato', tone: 'neutral' }
+}
+
+function depositRoleDisplayLabelForDocument(doc: FascicoloDocument, role: DepositDocumentRole): string {
+  const technicalLabel = depositRoleLabel(role).label
+  if (role !== 'allegato' || !doc.catalogLabel || doc.catalogConfidence < 70) return technicalLabel
+  if (['atto_difensivo', 'contributo_unificato', 'nota_iscrizione_ruolo', 'provvedimento', 'relata', 'prova_notifica', 'procura'].includes(doc.catalogRole)) {
+    return `${doc.catalogLabel} (allegato busta)`
+  }
+  if (doc.catalogSection === 'pagamenti') return `${doc.catalogLabel} (allegato busta)`
+  return technicalLabel
 }
 
 function normaliseDepositClassificationMainAct(
@@ -5237,8 +5281,8 @@ function depositDocumentMatchesSlot(slot: Record<string, unknown>, doc: Fascicol
   ].join(' '))
   const docText = documentSearchText(doc)
   if (/atto principale|atto_principale/.test(slotText)) return isMainActCandidateDocument(doc)
-  if (/procura/.test(slotText)) return /procura/.test(docText)
-  if (/contributo|pagamento|pagopa/.test(slotText)) return /(contributo|unificato|pagopa|ricevuta telematica|rt xml)/.test(docText)
+  if (/procura/.test(slotText)) return doc.catalogRole === 'procura' || /procura/.test(docText)
+  if (/contributo|pagamento|pagopa/.test(slotText)) return doc.catalogRole === 'contributo_unificato' || /(contributo|unificato|pagopa|ricevuta telematica|rt xml)/.test(docText)
   if (/marca|bollo/.test(slotText)) return /(marca|bollo)/.test(docText)
   if (/nota iscrizione|nir/.test(slotText)) return /(nota iscrizione|nir|iscrizione a ruolo)/.test(docText)
   if (/prova|notifica|ricevuta/.test(slotText)) return Boolean(notificationProofKind(doc)) || /(prova|notifica|ricevut)/.test(docText)
@@ -5391,6 +5435,7 @@ function buildPortalCatalogRows(data: FascicoloDetailData): PortalCatalogRow[] {
 }
 
 function documentAutoSectionId(doc: FascicoloDocument): string {
+  if (['atti', 'provvedimenti', 'comunicazioni', 'pagamenti', 'allegati', 'da-verificare'].includes(doc.catalogSection)) return doc.catalogSection
   const text = documentSearchText(doc)
   if (/(pec|cancelleria|comunicazion|notifica|relata|busta|rdac|rac|esito|ricevut|accettazion)/.test(text)) return 'comunicazioni'
   if (/(sentenza|ordinanza|decreto|provvediment|verbale)/.test(text)) return 'provvedimenti'
@@ -5616,6 +5661,13 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
   const [renameBusy, setRenameBusy] = useState(false)
   const [renameMessage, setRenameMessage] = useState('')
   const tags = visibleDocumentTags(doc)
+  const catalogTone: FascicoloRow['tone'] =
+    doc.catalogSection === 'atti' ? 'primary'
+      : doc.catalogSection === 'provvedimenti' ? 'purple'
+        : doc.catalogSection === 'comunicazioni' ? 'info'
+          : doc.catalogSection === 'pagamenti' ? 'success'
+            : doc.catalogSection === 'allegati' ? 'neutral'
+              : 'warning'
 
   const startRename = () => {
     setDraftName(doc.name)
@@ -5679,7 +5731,7 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
           {renameMessage ? <small>{renameMessage}</small> : null}
         </form>
       ) : null}
-      <div className="iu-fas-doc-badges"><Badge tone={doc.statusTone}>{doc.statusLabel || (doc.signed ? 'Firmato' : 'Da firmare')}</Badge>{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
+      <div className="iu-fas-doc-badges"><Badge tone={doc.statusTone}>{doc.statusLabel || (doc.signed ? 'Firmato' : 'Da firmare')}</Badge>{doc.catalogLabel && doc.catalogConfidence >= 70 ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap">
         {doc.actions.preview ? <button type="button" title="Anteprima interna" onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/></button> : null}
         {doc.actions.download ? <a href={doc.actions.download} title="Scarica"><Download size={15}/></a> : null}
@@ -6221,10 +6273,11 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   }
 
   if (!loading && data.notFound) {
+    const requestError = data.requestError || ''
     return (
       <main className="iu-content iu-fascicoli-page">
-        <EmptyState icon={<ShieldCheck size={34}/>} title="Fascicolo non disponibile" action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>
-          Il fascicolo non e' disponibile o non hai i permessi per aprire la firma del documento.
+        <EmptyState icon={<ShieldCheck size={34}/>} title={requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non disponibile'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>
+          {requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprire la firma del documento.'}
         </EmptyState>
       </main>
     )
@@ -6558,7 +6611,7 @@ function DetailPage({ id }:{id:string}) {
     if (lazySection) loadLazySection(lazySection)
     openDetailSectionById(sectionId)
   }
-  if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Fascicolo non trovato" action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprirlo.</EmptyState></main>
+  if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprirlo.'}</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
@@ -6782,7 +6835,7 @@ function QuadroPage({ id }:{id:string}) {
   const parcelle = moneyFrom(data, 'parcelle')
   const tempo = moneyFrom(data, 'tempo', '0 h')
   const fatturaPa = data.economics.find((item) => item.id === 'fatturapa')
-  if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<Gauge size={34}/>} title="Quadro non disponibile" action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprire il quadro.</EmptyState></main>
+  if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<Gauge size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Quadro non disponibile'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprire il quadro.'}</EmptyState></main>
   return (
     <main id="fascicolo-quadro-top" className="iu-content iu-fascicoli-page iu-fascicolo-quadro-page">
       <section className="iu-fas-hero iu-fas-quadro-hero">

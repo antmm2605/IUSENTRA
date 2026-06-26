@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from dataclasses import asdict, dataclass, field
@@ -595,10 +596,24 @@ def _looks_like_contributo_evidence(text: str, metadata: dict[str, Any]) -> bool
         _text(metadata.get(key))
         for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
     ).casefold()
-    if any(marker in probe for marker in ("contributo", "c.u", "pagopa", "pago pa", "ricevuta pagamento")):
+    strong_markers = ("contributo unificat", "pagopa", "pago pa", "ricevuta pagamento", "avviso pagamento")
+    if any(marker in probe for marker in strong_markers):
+        return True
+    if re.search(r"(?:^|[\s_.-])c\.?\s*u\.?(?:$|[\s_.-])", probe, re.IGNORECASE):
         return True
     sample = str(text or "")[:24000].casefold()
-    return any(marker in sample for marker in ("contributo unificat", "c.u.", "pagopa", "pago pa"))
+    if any(marker in sample for marker in strong_markers):
+        return True
+    for match in re.finditer(r"\bc\.?\s*u\.?\b", sample, re.IGNORECASE):
+        snippet = sample[max(0, match.start() - 90) : min(len(sample), match.end() + 90)]
+        if re.search(
+            r"\b(?:contribut|unificat|pagament|versament|versat|pagat|dovut|"
+            r"iscrizione\s+a\s+ruolo|spese\s+di\s+giustizia|d\.?\s*p\.?\s*r\.?\s*115|art\.?\s*9)\b",
+            snippet,
+            re.IGNORECASE,
+        ):
+            return True
+    return False
 
 
 def run_backfill(

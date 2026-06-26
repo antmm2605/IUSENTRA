@@ -21,6 +21,7 @@ from flask import current_app, has_app_context
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
+from pct.fascicolo_document_catalog import classify_fascicolo_document, document_ai_texts_for_catalog
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.document_signature_state import (
@@ -57,6 +58,28 @@ def _current_tenant_id() -> str:
         return _text(value)
     except Exception:
         return ""
+
+
+def _current_tenant_catalog_ids() -> list[str]:
+    values: list[str] = []
+    try:
+        from flask import g
+
+        tenant = getattr(g, "tenant", None)
+        for attr in ("slug", "storage_key", "id"):
+            value = _text(getattr(tenant, attr, ""))
+            if value and value not in values:
+                values.append(value)
+        for attr in ("tenant_context_slug", "api_tenant_slug"):
+            value = _text(getattr(g, attr, ""))
+            if value and value not in values:
+                values.append(value)
+    except Exception:
+        pass
+    current = _current_tenant_id()
+    if current and current not in values:
+        values.append(current)
+    return values
 
 
 def _short_hash(value: str) -> str:
@@ -2876,8 +2899,23 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             str(path),
         )
 
+    local_documents = list(getattr(fascicolo, "documenti", []) or [])
+    catalog_texts = _safe(
+        "document_ai_texts_for_catalog",
+        lambda: document_ai_texts_for_catalog(
+            tenant_ids=_current_tenant_catalog_ids(),
+            fascicolo_id=fid,
+            documents=local_documents,
+            fascicoli_db_path=getattr(gestore_fascicoli, "db_path", None),
+            structured_db=getattr(gestore_fascicoli, "_studio_db", None),
+        )
+        if fid and gestore_fascicoli is not None
+        else {},
+        {},
+    )
+
     display_name_counters: Counter[str] = Counter()
-    for doc in getattr(fascicolo, "documenti", []) or []:
+    for doc in local_documents:
         did = _text(getattr(doc, "id", ""))
         technical_name = _clean_document_filename(getattr(doc, "nome", ""))
         base_name = _professional_document_name(doc, display_name_counters)
@@ -2890,6 +2928,9 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             getattr(doc, "percorso", ""),
         )
         signed = _real_signature(doc, name, technical_name)
+        raw_type = _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " ")
+        catalog = classify_fascicolo_document(doc, extracted_text=catalog_texts.get(did, ""))
+        display_type = catalog.label if catalog.confidence >= 70 else raw_type
         if did:
             local_doc_ids.add(did)
         for ref in (
@@ -2905,7 +2946,8 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             {
                 "id": did,
                 "name": name,
-                "type": _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " "),
+                "type": display_type,
+                "rawType": raw_type,
                 "size": _bytes_label(getattr(doc, "dimensione_bytes", 0)),
                 "uploadedAt": _date_label_optional(getattr(doc, "data_caricamento", "")),
                 "documentDate": _date_label_optional(getattr(doc, "data_documento", "")),
@@ -2920,6 +2962,13 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "portalSender": _text(getattr(doc, "mittente_portale", "")),
                 "portalDate": _date_label_optional(getattr(doc, "data_deposito_portale", "")),
                 "hash": _text(getattr(doc, "hash_sha256", "")),
+                "catalogRole": catalog.role,
+                "catalogLabel": catalog.label,
+                "catalogSection": catalog.section,
+                "catalogConfidence": catalog.confidence,
+                "catalogEvidence": catalog.evidence,
+                "depositRole": catalog.deposit_role,
+                "depositCandidate": catalog.deposit_candidate,
                 "actions": {
                     "preview": f"/fascicoli/{fid}/documenti/{did}/visualizza",
                     "download": f"/fascicoli/{fid}/documenti/{did}/scarica",
@@ -2967,11 +3016,16 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             source = _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", ""), "Portale")
             actions = _empty_actions()
             actions["acquire"] = _portal_acquisition_href(row, dep, source)
+            portal_catalog = classify_fascicolo_document(
+                filename=name,
+                tipo=_text(row.get("tipo") or row.get("tipo_atto"), ""),
+            )
             out.append(
                 {
                     "id": f"portale-{dep_id or 'deposito'}-{index}",
                     "name": name,
-                    "type": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
+                    "type": portal_catalog.label if portal_catalog.confidence >= 70 else _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
+                    "rawType": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
                     "size": _bytes_label(row.get("dimensione_bytes", 0)),
                     "uploadedAt": "",
                     "documentDate": _date_label_optional(row.get("data_deposito") or row.get("data_documento")),
@@ -2986,6 +3040,13 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                     "portalSender": _text(row.get("mittente")),
                     "portalDate": _date_label_optional(row.get("data_deposito") or row.get("data_documento")),
                     "hash": "",
+                    "catalogRole": portal_catalog.role,
+                    "catalogLabel": portal_catalog.label,
+                    "catalogSection": portal_catalog.section,
+                    "catalogConfidence": portal_catalog.confidence,
+                    "catalogEvidence": portal_catalog.evidence,
+                    "depositRole": portal_catalog.deposit_role,
+                    "depositCandidate": portal_catalog.deposit_candidate,
                     "actions": actions,
                 }
             )

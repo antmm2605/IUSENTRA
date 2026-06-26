@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "applied": true,
+  "source_of_truth": "sqlite/postgresql when available; JSON only as mirror/bootstrap",
+  "tenants": [
+    {
+      "tenant": "tenant-8bf98719c459",
+      "storage_key": "tenant-8bf98719c459",
+      "root": "data\\tenants\\tenant-8bf98719c459",
+      "source_of_truth": "sqlite",
+      "fascicoli_seen": 7,
+      "documents_seen": 75,
+      "documents_with_ocr_text": 75,
+      "reclassified": 3,
+      "wrong_atti_fixed": 0,
+      "ricorsi_main_act": 0,
+      "skipped_low_confidence": 4,
+      "skipped_specific": 68,
+      "errors": [],
+      "samples": [
+        {
+          "fascicolo_id": "DC5BF1DB",
+          "document_id": "F96270FE",
+          "name": "note_di_trattazione_scritta_ZURICH_udienza_del_19-03-2025.pdf.p7m",
+          "from": "VERBALE",
+          "to": "MEMORIA",
+          "label": "Atto difensivo",
+          "role": "atto_difensivo",
+          "section": "atti",
+          "confidence": 92,
+          "evidence": "nome file: memoria/note/istanza"
+        },
+        {
+          "fascicolo_id": "DC5BF1DB",
+          "document_id": "D33E8F45",
+          "name": "note_di_trattazione_scritta_ZURICH_udienza_del_10-07-2024.pdf.p7m",
+          "from": "VERBALE",
+          "to": "MEMORIA",
+          "label": "Atto difensivo",
+          "role": "atto_difensivo",
+          "section": "atti",
+          "confidence": 92,
+          "evidence": "nome file: memoria/note/istanza"
+        },
+        {
+          "fascicolo_id": "DC5BF1DB",
+          "document_id": "69AD12FF",
+          "name": "istanza_per_fissazione_di_udienza_in_trattazione_scritta.pdf.p7m",
+          "from": "VERBALE",
+          "to": "MEMORIA",
+          "label": "Atto difensivo",
+          "role": "atto_difensivo",
+          "section": "atti",
+          "confidence": 92,
+          "evidence": "nome file: memoria/note/istanza"
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "tenants": 1,
+    "fascicoli_seen": 7,
+    "documents_seen": 75,
+    "documents_with_ocr_text": 75,
+    "reclassified": 3,
+    "wrong_atti_fixed": 0,
+    "ricorsi_main_act": 0,
+    "skipped_low_confidence": 4,
+    "skipped_specific": 68,
+    "errors": 0
+  }
+}

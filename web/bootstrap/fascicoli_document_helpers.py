@@ -8,6 +8,7 @@ from typing import Any
 from flask import request
 
 from pct.fascicoli import TipoDocumento
+from pct.fascicolo_document_catalog import catalog_tipo_documento_per_nome
 
 
 def estrai_pdf_da_raw(data: bytes) -> bytes | None:
@@ -144,6 +145,9 @@ def payload_bool(value: Any, default: bool = False) -> bool:
 
 
 def classifica_tipo_documento(nome_file: str) -> TipoDocumento:
+    catalog_tipo = catalog_tipo_documento_per_nome(nome_file)
+    if catalog_tipo != TipoDocumento.ALTRO:
+        return catalog_tipo
     nome = str(nome_file or "").casefold()
     rules: list[tuple[tuple[str, ...], TipoDocumento]] = [
         (("procura", "mandato"), TipoDocumento.PROCURA),

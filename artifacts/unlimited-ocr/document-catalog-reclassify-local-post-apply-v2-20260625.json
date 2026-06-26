@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "applied": false,
+  "source_of_truth": "sqlite/postgresql when available; JSON only as mirror/bootstrap",
+  "tenants": [
+    {
+      "tenant": "tenant-8bf98719c459",
+      "storage_key": "tenant-8bf98719c459",
+      "root": "data\\tenants\\tenant-8bf98719c459",
+      "source_of_truth": "sqlite",
+      "fascicoli_seen": 7,
+      "documents_seen": 75,
+      "documents_with_ocr_text": 75,
+      "reclassified": 0,
+      "wrong_atti_fixed": 0,
+      "ricorsi_main_act": 0,
+      "skipped_low_confidence": 4,
+      "skipped_specific": 71,
+      "errors": [],
+      "samples": []
+    }
+  ],
+  "totals": {
+    "tenants": 1,
+    "fascicoli_seen": 7,
+    "documents_seen": 75,
+    "documents_with_ocr_text": 75,
+    "reclassified": 0,
+    "wrong_atti_fixed": 0,
+    "ricorsi_main_act": 0,
+    "skipped_low_confidence": 4,
+    "skipped_specific": 71,
+    "errors": 0
+  }
+}

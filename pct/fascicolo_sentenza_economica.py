@@ -110,11 +110,29 @@ _CARTA_DOCENTE_BENEFICIO_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _CONTRIBUTO_DOCUMENT_HINT_RE = re.compile(
-    r"\b(?:contributo\s+unificat[oi]|c\.?\s*u\.?|pagopa|pago\s*pa|ricevuta\s+pagamento|avviso\s+pagamento)\b",
+    r"\b(?:contributo\s+unificat[oi]|pagopa|pago\s*pa|ricevuta\s+pagamento|avviso\s+pagamento)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_LABEL_HINT_RE = re.compile(
+    r"(?:^|[\s_.-])(?:c\.?\s*u\.?|contributo\s+unificat[oi]|pagopa|pago\s*pa|ricevuta)(?:$|[\s_.-])",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_SHORT_CU_RE = re.compile(r"\bc\.?\s*u\.?\b", re.IGNORECASE)
+_CONTRIBUTO_DOCUMENT_SHORT_CU_CONTEXT_RE = re.compile(
+    r"\b(?:contribut[oi]|unificat[oi]|pagament[oi]|versament[oi]|versat[aoie]?|pagat[aoie]?|"
+    r"dovut[aoie]?|iscrizione\s+a\s+ruolo|spese\s+di\s+giustizia|d\.?\s*p\.?\s*r\.?\s*115|"
+    r"art\.?\s*9)\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_REJECT_RE = re.compile(
     r"\b(?:carta\s+(?:elettronica|docente)|aggiornamento\s+e\s+formazione\s+del\s+docente)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_AMOUNT_NOISE_RE = re.compile(
+    r"\b(?:carta\s+(?:elettronica|docente)|aggiornamento\s+e\s+formazione|formazione\s+del\s+docente|"
+    r"docent[ei]\s+di\s+ruolo|importo\s+nominale|ann[oi]\s+scolastic[oi]|reddito|reddituale|"
+    r"nucleo\s+familiare|familiari\s+conviventi|d\.?\s*p\.?\s*r\.?\s*445|art\.?\s*76|"
+    r"non\s+supera\s+l['’]?\s*importo)\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_SCAGLIONE_RE = re.compile(
@@ -134,7 +152,8 @@ _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
     r"contributo\s+unificat[oi]\s+non\s+dovut[oaie]|"
     r"non\s+dovut[oaie]\s+(?:il\s+)?contributo\s+unificat[oi]|"
     r"esente\s+dal\s+pagamento\s+(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
-    r"esenzione\s+(?:dal\s+pagamento\s+)?(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"esenzione\s+(?:(?:dal|del)\s+pagamento\s+)?(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"esente\s+(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
     r"prenotazione\s+a\s+debito"
     r")\b",
@@ -935,6 +954,9 @@ def _contributo_document_candidate_rejected(compact: str, match: re.Match[str]) 
     snippet = _snippet(compact, match.start(), match.end(), window=70)
     if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(snippet):
         return True
+    amount_context = compact[max(0, amount_start - 150) : min(len(compact), amount_end + 90)]
+    if _CONTRIBUTO_DOCUMENT_AMOUNT_NOISE_RE.search(amount_context):
+        return True
     left = compact[max(0, amount_start - 140) : amount_start]
     near_left = compact[max(0, amount_start - 75) : amount_start]
     plain_left = _plain(left)
@@ -949,6 +971,40 @@ def _contributo_document_candidate_rejected(compact: str, match: re.Match[str]) 
     if _CONTRIBUTO_DOCUMENT_SCAGLIONE_RE.search(near):
         return True
     return False
+
+
+def _contributo_document_has_short_cu_context(value: str) -> bool:
+    for match in _CONTRIBUTO_DOCUMENT_SHORT_CU_RE.finditer(value):
+        snippet = _snippet(value, match.start(), match.end(), window=90)
+        if _CONTRIBUTO_DOCUMENT_SHORT_CU_CONTEXT_RE.search(snippet):
+            return True
+    return False
+
+
+def _contributo_document_has_hint(value: str) -> bool:
+    return bool(_CONTRIBUTO_DOCUMENT_HINT_RE.search(value) or _contributo_document_has_short_cu_context(value))
+
+
+def _contributo_document_label_has_hint(value: str) -> bool:
+    return bool(_CONTRIBUTO_DOCUMENT_LABEL_HINT_RE.search(value))
+
+
+def _contributo_document_amount_has_direct_context(compact: str, match: re.Match[str]) -> bool:
+    amount_start = match.start("amount")
+    amount_end = match.end("amount")
+    context = compact[max(0, amount_start - 120) : min(len(compact), amount_end + 70)]
+    if re.search(r"\bcontributo\s+unificat[oi]\b", context, re.IGNORECASE):
+        return True
+    if _contributo_document_has_short_cu_context(context):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:pagopa|pago\s*pa|ricevuta\s+pagamento|avviso\s+pagamento|"
+            r"importo\s+(?:versato|pagato|dovuto)|pagamento|versamento|versato|pagato|dovuto)\b",
+            context,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
@@ -987,7 +1043,7 @@ def extract_contributo_unificato_document_evidence(
     if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(probe) and not re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", probe, re.IGNORECASE):
         return {}
     exemption = _extract_contributo_exemption_evidence(compact, meta)
-    if not _CONTRIBUTO_DOCUMENT_HINT_RE.search(probe):
+    if not _contributo_document_has_hint(probe) and not _contributo_document_label_has_hint(label):
         return exemption
     if exemption:
         return exemption
@@ -995,6 +1051,8 @@ def extract_contributo_unificato_document_evidence(
     for match in _CONTRIBUTO_DOCUMENT_AMOUNT_RE.finditer(compact):
         snippet = _snippet(compact, match.start(), match.end(), window=60)
         if _contributo_document_candidate_rejected(compact, match):
+            continue
+        if not _contributo_document_amount_has_direct_context(compact, match):
             continue
         priority = 0 if re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", snippet, re.IGNORECASE) else 1
         candidates.append((priority, match))
@@ -1004,6 +1062,8 @@ def extract_contributo_unificato_document_evidence(
             return {}
         match = money[0]
         if _contributo_document_candidate_rejected(compact, match):
+            return {}
+        if not _contributo_document_amount_has_direct_context(compact, match) and not _contributo_document_label_has_hint(label):
             return {}
     else:
         _, match = min(candidates, key=lambda item: (item[0], item[1].start()))

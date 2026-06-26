@@ -64,6 +64,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "{ value: 'allegato', label: 'Allegato' }" in role_options
     assert "{ value: 'prova_notifica', label: 'Prova notifica' }" in role_options
     assert "normaliseDepositRoleForUi" in source
+    assert "depositRoleDisplayLabelForDocument" in source
+    assert "doc.catalogLabel} (allegato busta)" in source
+    assert "const roleDisplayLabel = depositRoleDisplayLabelForDocument(doc, roleValue)" in source
     assert "function DepositRolePicker" in source
     assert "iu-fas-deposit-role-picker__menu" in css
     assert "iu-fas-deposit-role-picker__button" in css

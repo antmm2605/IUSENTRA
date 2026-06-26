@@ -7,6 +7,7 @@ from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, ORIGIN, SENTENZA_VE
 from pct.fatturazione import GestioneFatturazione, VoceParcella
 from scripts.backfill_sentenza_lex_economics import (
     TenantBackfillTarget,
+    _looks_like_contributo_evidence,
     _metadata_for_text,
     _vector_relevant_excerpt,
     _vector_result_current,
@@ -57,6 +58,17 @@ Vicenza, 23 settembre 2025
 Sentenza n. 465/2025 pubbl. il 23/09/2025
 RG n. 697/2025
 """
+
+
+def test_backfill_contributo_evidence_non_scambia_iniziali_cu_per_pagamento():
+    assert _looks_like_contributo_evidence(
+        "La signora C.U. chiede la carta docente per un importo di euro 500,00.",
+        {"filename": "sentenza-carta-docente.pdf"},
+    ) is False
+    assert _looks_like_contributo_evidence(
+        "Ricevuta pagamento PagoPA contributo unificato. Importo versato euro 21,50.",
+        {"filename": "CU.pdf"},
+    ) is True
 
 
 def _write_json(path: Path, payload) -> None:

@@ -1,0 +1,1544 @@
+{
+  "ok": true,
+  "registry": "data/tenants.json",
+  "tenants": [
+    {
+      "tenant": "tenant-8bf98719c459",
+      "studio_db": "data\\tenants\\tenant-8bf98719c459/studio.db",
+      "sqlite_diagnostics": {
+        "checked": true,
+        "path": "data\\tenants\\tenant-8bf98719c459\\studio.db",
+        "exists": true,
+        "opened": true,
+        "quick_check": {
+          "ok": true,
+          "result": "ok",
+          "error": ""
+        },
+        "core_tables": {
+          "clienti": {
+            "exists": true,
+            "readable": true,
+            "count": 24,
+            "error": ""
+          },
+          "fascicoli": {
+            "exists": true,
+            "readable": true,
+            "count": 7,
+            "error": ""
+          },
+          "appuntamenti": {
+            "exists": true,
+            "readable": true,
+            "count": 352,
+            "error": ""
+          },
+          "scadenze": {
+            "exists": true,
+            "readable": true,
+            "count": 177,
+            "error": ""
+          },
+          "messaggi": {
+            "exists": true,
+            "readable": true,
+            "count": 8,
+            "error": ""
+          },
+          "documenti": {
+            "exists": false,
+            "readable": false,
+            "count": null,
+            "error": ""
+          },
+          "comunicazioni": {
+            "exists": false,
+            "readable": false,
+            "count": null,
+            "error": ""
+          },
+          "moduli_dati": {
+            "exists": true,
+            "readable": true,
+            "count": 759,
+            "error": ""
+          },
+          "moduli_json_records": {
+            "exists": true,
+            "readable": true,
+            "count": 3581,
+            "error": ""
+          }
+        },
+        "json_mirror": {
+          "table": "moduli_json_records",
+          "checked": true,
+          "exists": true,
+          "readable": true,
+          "schema_ok": true,
+          "reset_executed": false,
+          "records_before": 3581,
+          "reason": "mirror leggibile"
+        },
+        "search_index": {
+          "exists": true,
+          "readable": true,
+          "count": 0,
+          "error": "",
+          "schema_ok": true,
+          "type": "table",
+          "note": "Indice di ricerca FTS: se non leggibile, i dati core possono restare integri ma la ricerca documenti va ricostruita con procedura dedicata."
+        }
+      },
+      "repair_json_mirror": {
+        "ok": true,
+        "mirror": {
+          "ok": true,
+          "table": "moduli_json_records",
+          "checked": true,
+          "reset_executed": false,
+          "before": {
+            "table": "moduli_json_records",
+            "checked": true,
+            "exists": false,
+            "readable": true,
+            "schema_ok": true,
+            "reset_executed": false,
+            "records_before": null,
+            "reason": "mirror assente; creazione demandata al sync"
+          },
+          "reset": null
+        },
+        "sync": {
+          "ok": true,
+          "percorso_db": "D:\\legale\\IUSENTRA\\data\\tenants\\tenant-8bf98719c459\\studio.db",
+          "moduli_dati": 21,
+          "moduli_json_records": 3581,
+          "modules": {
+            "clienti": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\clienti\\anagrafica.json",
+              "exists": true,
+              "records": 24,
+              "error": "",
+              "structured": true
+            },
+            "fascicoli": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\fascicoli\\fascicoli.json",
+              "exists": true,
+              "records": 7,
+              "error": "",
+              "structured": true
+            },
+            "appuntamenti": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\agenda\\appuntamenti.json",
+              "exists": true,
+              "records": 352,
+              "error": "",
+              "structured": true
+            },
+            "scadenze": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\scadenziario\\scadenze.json",
+              "exists": true,
+              "records": 177,
+              "error": "",
+              "structured": true
+            },
+            "timesheet": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\timesheet\\entries.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "time_tracking": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\timesheet\\time_tracking.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "preventivi": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\preventivi\\preventivi.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "fatturazione": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\fatturazione\\parcelle.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "impostazioni": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\config\\studio.json",
+              "exists": true,
+              "records": 9,
+              "error": "",
+              "structured": true
+            },
+            "messaggi": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\messaggi\\storico.json",
+              "exists": true,
+              "records": 8,
+              "error": "",
+              "structured": true
+            },
+            "email_casella": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\email\\casella.json",
+              "exists": true,
+              "records": 308,
+              "error": "",
+              "structured": false
+            },
+            "email_ordinaria": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\email\\ordinaria.json",
+              "exists": true,
+              "records": 2092,
+              "error": "",
+              "structured": false
+            },
+            "utenti": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\auth\\utenti.json",
+              "exists": true,
+              "records": 2,
+              "error": "",
+              "structured": true
+            },
+            "audit": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\auth\\audit.json",
+              "exists": true,
+              "records": 585,
+              "error": "",
+              "structured": true
+            },
+            "privacy": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\privacy\\registro.json",
+              "exists": true,
+              "records": 3,
+              "error": "",
+              "structured": true
+            },
+            "notifiche": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\notifiche\\log.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "backup": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\backup\\registro.json",
+              "exists": true,
+              "records": 2,
+              "error": "",
+              "structured": true
+            },
+            "portale": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\portale\\portali.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": false
+            },
+            "soggetti": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\soggetti\\anagrafica.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "soggetti_parti": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\soggetti\\parti.json",
+              "exists": true,
+              "records": 0,
+              "error": "",
+              "structured": true
+            },
+            "backup_config": {
+              "path": "data\\tenants\\tenant-8bf98719c459\\backup\\config.json",
+              "exists": true,
+              "records": 12,
+              "error": "",
+              "structured": false
+            }
+          },
+          "errors": [],
+          "ms": 1973
+        }
+      },
+      "repair_search_index": {
+        "ok": true,
+        "table": "search_documenti",
+        "checked": true,
+        "reset_executed": false,
+        "before": {
+          "exists": true,
+          "readable": true,
+          "count": 0,
+          "error": "",
+          "schema_ok": true,
+          "type": "table",
+          "note": "Indice di ricerca FTS: se non leggibile, i dati core possono restare integri ma la ricerca documenti va ricostruita con procedura dedicata."
+        },
+        "reset": null,
+        "source": null,
+        "vacuum": null
+      },
+      "audit": {
+        "ok": true,
+        "errors": [],
+        "warnings": [],
+        "areas": {
+          "panoramica": {
+            "label": "Panoramica",
+            "react_routes": [
+              "/"
+            ],
+            "menu_items": [
+              {
+                "label": "Panoramica",
+                "href": "/"
+              }
+            ],
+            "api_routes": [
+              "/api/dashboard/data",
+              "/api/dashboard/today"
+            ],
+            "tenant_path_keys": [
+              "AGENDA_DB",
+              "SCADENZIARIO_DB",
+              "FASCICOLI_DB",
+              "CLIENTI_DB"
+            ],
+            "json_modules": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti"
+            ],
+            "sqlite_tables": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti"
+            ],
+            "postgres_tables": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "regia_operativa": {
+            "label": "Regia Operativa",
+            "react_routes": [
+              "/workspace-intelligente"
+            ],
+            "menu_items": [
+              {
+                "label": "Regia Operativa",
+                "href": "/workspace-intelligente"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/workspace-intelligente"
+            ],
+            "tenant_path_keys": [
+              "WORKSPACE_INTELLIGENCE_DB",
+              "AGENDA_DB",
+              "FASCICOLI_DB"
+            ],
+            "json_modules": [
+              "appuntamenti",
+              "fascicoli",
+              "scadenze"
+            ],
+            "sqlite_tables": [
+              "appuntamenti",
+              "fascicoli",
+              "scadenze"
+            ],
+            "postgres_tables": [
+              "appuntamenti",
+              "fascicoli",
+              "scadenze"
+            ],
+            "external_repositories": [
+              "workspace_intelligence"
+            ],
+            "topbar_hooks": []
+          },
+          "ricerca_studio": {
+            "label": "Ricerca Studio",
+            "react_routes": [
+              "/global-search"
+            ],
+            "menu_items": [
+              {
+                "label": "Ricerca Studio",
+                "href": "/global-search"
+              }
+            ],
+            "api_routes": [
+              "/api/search/global"
+            ],
+            "tenant_path_keys": [
+              "SEARCH_INDEX",
+              "FASCICOLI_DB",
+              "CLIENTI_DB",
+              "MESSAGGI_DB"
+            ],
+            "json_modules": [
+              "fascicoli",
+              "clienti",
+              "messaggi"
+            ],
+            "sqlite_tables": [
+              "fascicoli",
+              "clienti",
+              "messaggi"
+            ],
+            "postgres_tables": [
+              "fascicoli",
+              "clienti",
+              "messaggi"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "agenda": {
+            "label": "Agenda",
+            "react_routes": [
+              "/agenda",
+              "/agenda/nuovo",
+              "/timesheet"
+            ],
+            "menu_items": [
+              {
+                "label": "Calendario",
+                "href": "/agenda"
+              },
+              {
+                "label": "Nuovo Appuntamento",
+                "href": "/agenda/nuovo"
+              },
+              {
+                "label": "Timesheet",
+                "href": "/timesheet"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/agenda",
+              "/api/dashboard/today"
+            ],
+            "tenant_path_keys": [
+              "AGENDA_DB",
+              "CLIENTI_DB",
+              "FASCICOLI_DB",
+              "CALENDAR_SYNC_DB"
+            ],
+            "json_modules": [
+              "appuntamenti",
+              "clienti",
+              "fascicoli"
+            ],
+            "sqlite_tables": [
+              "appuntamenti",
+              "clienti",
+              "fascicoli"
+            ],
+            "postgres_tables": [
+              "appuntamenti",
+              "clienti",
+              "fascicoli"
+            ],
+            "external_repositories": [
+              "calendar_sync"
+            ],
+            "topbar_hooks": []
+          },
+          "fascicoli": {
+            "label": "Fascicoli",
+            "react_routes": [
+              "/fascicoli",
+              "/fascicoli/nuovo",
+              "/fascicoli/archivio",
+              "/fascicoli/:id/deposito/prepara"
+            ],
+            "menu_items": [
+              {
+                "label": "Tutti i Fascicoli",
+                "href": "/fascicoli"
+              },
+              {
+                "label": "Nuovo Fascicolo",
+                "href": "/fascicoli/nuovo"
+              },
+              {
+                "label": "Archivio",
+                "href": "/fascicoli/archivio"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/fascicoli",
+              "/api/v1/ui/fascicoli/deposito/prepara"
+            ],
+            "tenant_path_keys": [
+              "FASCICOLI_DB",
+              "FASCICOLI_DOCS",
+              "FASCICOLI_ARCH",
+              "TELEMATICO_DB"
+            ],
+            "json_modules": [
+              "fascicoli"
+            ],
+            "sqlite_tables": [
+              "fascicoli"
+            ],
+            "postgres_tables": [
+              "fascicoli"
+            ],
+            "external_repositories": [
+              "telematico_repository",
+              "portal_repository"
+            ],
+            "topbar_hooks": []
+          },
+          "clienti_anagrafiche": {
+            "label": "Clienti e Anagrafiche",
+            "react_routes": [
+              "/clienti",
+              "/clienti/nuovo",
+              "/cartelle-condivise",
+              "/app/portale-clienti"
+            ],
+            "menu_items": [
+              {
+                "label": "Anagrafica",
+                "href": "/clienti"
+              },
+              {
+                "label": "Nuovo Cliente",
+                "href": "/clienti/nuovo"
+              },
+              {
+                "label": "Cartelle Condivise",
+                "href": "/cartelle-condivise"
+              },
+              {
+                "label": "Portale Clienti",
+                "href": "/app/portale-clienti"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/clienti"
+            ],
+            "tenant_path_keys": [
+              "CLIENTI_DB"
+            ],
+            "json_modules": [
+              "clienti"
+            ],
+            "sqlite_tables": [
+              "clienti"
+            ],
+            "postgres_tables": [
+              "clienti"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "soggetti_parti": {
+            "label": "Soggetti e Parti",
+            "react_routes": [
+              "/soggetti",
+              "/soggetti/nuovo"
+            ],
+            "menu_items": [
+              {
+                "label": "Anagrafica",
+                "href": "/soggetti"
+              },
+              {
+                "label": "Nuovo Soggetto",
+                "href": "/soggetti/nuovo"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/soggetti"
+            ],
+            "tenant_path_keys": [
+              "SOGGETTI_DB",
+              "SOGGETTI_PARTI_DB"
+            ],
+            "json_modules": [
+              "soggetti",
+              "soggetti_parti"
+            ],
+            "sqlite_tables": [
+              "soggetti",
+              "soggetti_parti"
+            ],
+            "postgres_tables": [
+              "soggetti",
+              "soggetti_parti"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "comunicazioni": {
+            "label": "Comunicazioni",
+            "react_routes": [
+              "/email",
+              "/email-ordinaria",
+              "/messaggi",
+              "/messaggi/nuovo",
+              "/notifiche-legali"
+            ],
+            "menu_items": [
+              {
+                "label": "Email PEC",
+                "href": "/email/"
+              },
+              {
+                "label": "PEC",
+                "href": "/email/"
+              },
+              {
+                "label": "Notifiche legali",
+                "href": "/notifiche-legali"
+              },
+              {
+                "label": "L.53",
+                "href": "/notifiche-legali"
+              },
+              {
+                "label": "Email ordinaria",
+                "href": "/email-ordinaria/"
+              },
+              {
+                "label": "SMTP",
+                "href": "/email-ordinaria/"
+              },
+              {
+                "label": "Messaggi",
+                "href": "/messaggi"
+              },
+              {
+                "label": "Nuovo SMS/WA",
+                "href": "/messaggi/nuovo"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/email",
+              "/api/v1/ui/email-ordinaria",
+              "/api/v1/ui/messaggi",
+              "/api/v1/ui/notifiche-legali"
+            ],
+            "tenant_path_keys": [
+              "EMAIL_CASELLA_DB",
+              "EMAIL_ORDINARIA_DB",
+              "MESSAGGI_DB",
+              "NOTIFICHE_LOG"
+            ],
+            "json_modules": [
+              "email_casella",
+              "email_ordinaria",
+              "messaggi",
+              "notifiche"
+            ],
+            "sqlite_tables": [
+              "messaggi",
+              "notifiche_log"
+            ],
+            "postgres_tables": [
+              "messaggi",
+              "notifiche_log"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "scadenze_termini": {
+            "label": "Scadenze e Termini",
+            "react_routes": [
+              "/scadenziario",
+              "/scadenziario/nuova",
+              "/wizard-pro",
+              "/deposito/checklist"
+            ],
+            "menu_items": [
+              {
+                "label": "Scadenziario",
+                "href": "/scadenziario"
+              },
+              {
+                "label": "Nuova Scadenza",
+                "href": "/scadenziario/nuova"
+              },
+              {
+                "label": "Preparazione Udienza Guidata",
+                "href": "/wizard-pro/"
+              },
+              {
+                "label": "Controlli Atti",
+                "href": "/deposito/checklist"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/scadenziario",
+              "/api/deadlines/quick-summary"
+            ],
+            "tenant_path_keys": [
+              "SCADENZIARIO_DB",
+              "AGENDA_DB",
+              "FASCICOLI_DB"
+            ],
+            "json_modules": [
+              "scadenze",
+              "appuntamenti",
+              "fascicoli"
+            ],
+            "sqlite_tables": [
+              "scadenze",
+              "appuntamenti",
+              "fascicoli"
+            ],
+            "postgres_tables": [
+              "scadenze",
+              "appuntamenti",
+              "fascicoli"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "servizi_telematici": {
+            "label": "Servizi Telematici",
+            "react_routes": [
+              "/telematico",
+              "/servizi-telematici",
+              "/polisWeb",
+              "/pdp",
+              "/pat",
+              "/sigit",
+              "/tribunali",
+              "/deposito/checklist",
+              "/guida/firma-digitale"
+            ],
+            "menu_items": [
+              {
+                "label": "Centro Servizi Telematici",
+                "href": "/telematico"
+              },
+              {
+                "label": "PolisWeb / PST",
+                "href": "/polisWeb"
+              },
+              {
+                "label": "PDP Penale",
+                "href": "/pdp"
+              },
+              {
+                "label": "PAT Amministrativo",
+                "href": "/pat"
+              },
+              {
+                "label": "PTT Tributario",
+                "href": "/sigit"
+              },
+              {
+                "label": "Tribunali / PEC",
+                "href": "/tribunali"
+              },
+              {
+                "label": "Checklist deposito",
+                "href": "/deposito/checklist"
+              },
+              {
+                "label": "Guida firma digitale",
+                "href": "/guida/firma-digitale"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/telematico",
+              "/api/v1/ui/telematico/surface/checklist"
+            ],
+            "tenant_path_keys": [
+              "PORTALE_DB",
+              "PORTALE_UPLOADS",
+              "TELEMATICO_DB",
+              "LOCAL_AI_DB"
+            ],
+            "json_modules": [
+              "portale"
+            ],
+            "sqlite_tables": [
+              "moduli_dati",
+              "moduli_json_records"
+            ],
+            "postgres_tables": [
+              "moduli_dati",
+              "moduli_json_records"
+            ],
+            "external_repositories": [
+              "telematico_repository",
+              "portal_repository",
+              "local_signer"
+            ],
+            "topbar_hooks": []
+          },
+          "studio": {
+            "label": "Studio",
+            "react_routes": [
+              "/studio",
+              "/fatturazione",
+              "/preventivi",
+              "/compensi-forensi",
+              "/documenti",
+              "/editor-professionale",
+              "/redazione-atti",
+              "/statistiche",
+              "/ricerca-legale",
+              "/legal-skills",
+              "/workflow-agents",
+              "/giurisprudenza",
+              "/strumenti-legali",
+              "/strumenti-operativi"
+            ],
+            "menu_items": [
+              {
+                "label": "Studio",
+                "href": "/studio"
+              },
+              {
+                "label": "Parcelle e Fatture",
+                "href": "/fatturazione/"
+              },
+              {
+                "label": "Preventivi e Incarichi",
+                "href": "/preventivi/"
+              },
+              {
+                "label": "Compensi Forensi",
+                "href": "/compensi-forensi"
+              },
+              {
+                "label": "Documenti",
+                "href": "/documenti"
+              },
+              {
+                "label": "Editor professionale",
+                "href": "/editor-professionale"
+              },
+              {
+                "label": "Redazione Atti",
+                "href": "/redazione-atti"
+              },
+              {
+                "label": "Statistiche",
+                "href": "/statistiche/"
+              },
+              {
+                "label": "Ricerca Legale",
+                "href": "/ricerca-legale"
+              },
+              {
+                "label": "Legal Skills",
+                "href": "/legal-skills"
+              },
+              {
+                "label": "Regia Agentica",
+                "href": "/workflow-agents"
+              },
+              {
+                "label": "Archivio Giurisprudenza",
+                "href": "/giurisprudenza/"
+              },
+              {
+                "label": "Strumenti Forensi",
+                "href": "/strumenti-legali/"
+              },
+              {
+                "label": "Strumenti Operativi",
+                "href": "/strumenti-operativi"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/studio",
+              "/api/v1/ui/fatturazione",
+              "/api/v1/ui/preventivi",
+              "/api/v1/ui/studio-modules/strumenti-forensi",
+              "/api/v1/legal-skills/packs",
+              "/api/v1/ui/workflow-agents"
+            ],
+            "tenant_path_keys": [
+              "TIMESHEET_DB",
+              "TIME_TRACKING_DB",
+              "PREVENTIVI_DB",
+              "FATTURAZIONE_DB",
+              "LEGAL_INTELLIGENCE_DB",
+              "GIURISPRUDENZA_DB"
+            ],
+            "json_modules": [
+              "timesheet",
+              "time_tracking",
+              "preventivi",
+              "fatturazione"
+            ],
+            "sqlite_tables": [
+              "timesheet_entries",
+              "time_tracking_timers",
+              "preventivi_records",
+              "conferimenti_records",
+              "parcelle"
+            ],
+            "postgres_tables": [
+              "timesheet_entries",
+              "time_tracking_timers",
+              "preventivi_records",
+              "conferimenti_records",
+              "parcelle"
+            ],
+            "external_repositories": [
+              "legal_intelligence",
+              "giurisprudenza",
+              "template_atti",
+              "legal_skills",
+              "workflow_agents"
+            ],
+            "topbar_hooks": []
+          },
+          "sito_studio": {
+            "label": "Sito Studio",
+            "react_routes": [
+              "/sito-studio",
+              "/sito-studio/builder",
+              "/sito-studio/redazione-ai",
+              "/sito-studio/contatti"
+            ],
+            "menu_items": [
+              {
+                "label": "Sito Studio",
+                "href": "/sito-studio/"
+              },
+              {
+                "label": "Builder Sito",
+                "href": "/sito-studio/builder"
+              },
+              {
+                "label": "Redazione AI Sito",
+                "href": "/sito-studio/redazione-ai"
+              },
+              {
+                "label": "Contatti Sito",
+                "href": "/sito-studio/contatti"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/sito-studio"
+            ],
+            "tenant_path_keys": [
+              "STUDIO_DB",
+              "CONFIG_STUDIO_DB"
+            ],
+            "json_modules": [
+              "impostazioni"
+            ],
+            "sqlite_tables": [
+              "settings_config",
+              "moduli_dati",
+              "moduli_json_records"
+            ],
+            "postgres_tables": [
+              "settings_config",
+              "moduli_dati",
+              "moduli_json_records"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "impostazioni": {
+            "label": "Impostazioni",
+            "react_routes": [
+              "/impostazioni",
+              "/impostazioni/sdi",
+              "/impostazioni/calendario",
+              "/backup"
+            ],
+            "menu_items": [
+              {
+                "label": "Impostazioni Studio",
+                "href": "/impostazioni"
+              },
+              {
+                "label": "Notifiche",
+                "href": "/impostazioni?tab=notifiche"
+              },
+              {
+                "label": "Pagamenti",
+                "href": "/impostazioni?tab=pagamenti"
+              },
+              {
+                "label": "Canali SdI",
+                "href": "/impostazioni/sdi"
+              },
+              {
+                "label": "Backup",
+                "href": "/impostazioni?tab=backup"
+              },
+              {
+                "label": "Sincronizzazione Calendari",
+                "href": "/impostazioni/calendario"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/impostazioni",
+              "/api/v1/ui/backup"
+            ],
+            "tenant_path_keys": [
+              "CONFIG_STUDIO_DB",
+              "STORAGE_CONFIG",
+              "BACKUP_DIR",
+              "CALENDAR_SYNC_DB"
+            ],
+            "json_modules": [
+              "impostazioni",
+              "backup_config",
+              "backup"
+            ],
+            "sqlite_tables": [
+              "settings_config",
+              "backup_config",
+              "backup_records"
+            ],
+            "postgres_tables": [
+              "settings_config",
+              "backup_config",
+              "backup_records"
+            ],
+            "external_repositories": [
+              "calendar_sync"
+            ],
+            "topbar_hooks": []
+          },
+          "amministrazione": {
+            "label": "Amministrazione",
+            "react_routes": [
+              "/amministrazione",
+              "/utenti",
+              "/profili",
+              "/registro-attivita",
+              "/registro-gdpr",
+              "/audit",
+              "/privacy/registro",
+              "/importa-pratiche-studio-telematico",
+              "/admin/database"
+            ],
+            "menu_items": [
+              {
+                "label": "Amministrazione",
+                "href": "/amministrazione"
+              },
+              {
+                "label": "Utenti",
+                "href": "/utenti"
+              },
+              {
+                "label": "Profili e Permessi",
+                "href": "/profili"
+              },
+              {
+                "label": "Registro Attivit�",
+                "href": "/audit"
+              },
+              {
+                "label": "Importa pratiche da Studio Telematico",
+                "href": "/importa-pratiche-studio-telematico"
+              },
+              {
+                "label": "Database",
+                "href": "/admin/database"
+              },
+              {
+                "label": "Registro GDPR",
+                "href": "/privacy/registro"
+              }
+            ],
+            "api_routes": [
+              "/api/v1/ui/amministrazione",
+              "/api/v1/ui/admin/database"
+            ],
+            "tenant_path_keys": [
+              "AUTH_DB",
+              "AUDIT_DB",
+              "PRIVACY_DB",
+              "STUDIO_DB"
+            ],
+            "json_modules": [
+              "utenti",
+              "audit",
+              "privacy"
+            ],
+            "sqlite_tables": [
+              "utenti",
+              "audit_log",
+              "privacy_trattamenti"
+            ],
+            "postgres_tables": [
+              "utenti",
+              "audit_log",
+              "privacy_trattamenti"
+            ],
+            "external_repositories": [],
+            "topbar_hooks": []
+          },
+          "topbar": {
+            "label": "Topbar operativa",
+            "react_routes": [],
+            "menu_items": [],
+            "api_routes": [
+              "/api/search/global",
+              "/api/dashboard/today",
+              "/api/notifications",
+              "/api/deadlines/quick-summary",
+              "/api/recent",
+              "/api/recent/search",
+              "/api/time-tracking/active",
+              "/support/studio/sessione"
+            ],
+            "tenant_path_keys": [
+              "AGENDA_DB",
+              "SCADENZIARIO_DB",
+              "EMAIL_CASELLA_DB",
+              "FASCICOLI_DB",
+              "CLIENTI_DB",
+              "SOGGETTI_DB",
+              "TIMESHEET_DB",
+              "TIME_TRACKING_DB",
+              "MESSAGGI_DB",
+              "NOTIFICATIONS_DB"
+            ],
+            "json_modules": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti",
+              "soggetti",
+              "timesheet",
+              "time_tracking",
+              "messaggi"
+            ],
+            "sqlite_tables": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti",
+              "soggetti",
+              "timesheet_entries",
+              "time_tracking_timers",
+              "messaggi"
+            ],
+            "postgres_tables": [
+              "appuntamenti",
+              "scadenze",
+              "fascicoli",
+              "clienti",
+              "soggetti",
+              "timesheet_entries",
+              "time_tracking_timers",
+              "messaggi"
+            ],
+            "external_repositories": [
+              "notifications_db",
+              "support_remote"
+            ],
+            "topbar_hooks": [
+              "Voce Studio",
+              "Assistenza remota",
+              "data italiana",
+              "nuovo elemento",
+              "notifiche operative",
+              "ultimi elementi aperti",
+              "ricerche recenti",
+              "scadenze rapide",
+              "timer attivit�"
+            ]
+          }
+        },
+        "required": {
+          "sqlite_tables": [
+            "appuntamenti",
+            "audit_log",
+            "backup_config",
+            "backup_records",
+            "clienti",
+            "conferimenti_records",
+            "fascicoli",
+            "messaggi",
+            "moduli_dati",
+            "moduli_json_records",
+            "notifiche_log",
+            "parcelle",
+            "preventivi_records",
+            "privacy_trattamenti",
+            "scadenze",
+            "settings_config",
+            "soggetti",
+            "soggetti_parti",
+            "time_tracking_timers",
+            "timesheet_entries",
+            "utenti"
+          ],
+          "postgres_tables": [
+            "appuntamenti",
+            "audit_log",
+            "backup_config",
+            "backup_records",
+            "clienti",
+            "conferimenti_records",
+            "fascicoli",
+            "messaggi",
+            "moduli_dati",
+            "moduli_json_records",
+            "notifiche_log",
+            "parcelle",
+            "preventivi_records",
+            "privacy_trattamenti",
+            "scadenze",
+            "settings_config",
+            "soggetti",
+            "soggetti_parti",
+            "time_tracking_timers",
+            "timesheet_entries",
+            "utenti"
+          ],
+          "tenant_path_keys": [
+            "AGENDA_DB",
+            "AUDIT_DB",
+            "AUTH_DB",
+            "BACKUP_DIR",
+            "CALENDAR_SYNC_DB",
+            "CLIENTI_DB",
+            "CONFIG_STUDIO_DB",
+            "EMAIL_CASELLA_DB",
+            "EMAIL_ORDINARIA_DB",
+            "FASCICOLI_ARCH",
+            "FASCICOLI_DB",
+            "FASCICOLI_DOCS",
+            "FATTURAZIONE_DB",
+            "GIURISPRUDENZA_DB",
+            "LEGAL_INTELLIGENCE_DB",
+            "LOCAL_AI_DB",
+            "MESSAGGI_DB",
+            "NOTIFICATIONS_DB",
+            "NOTIFICHE_LOG",
+            "PORTALE_DB",
+            "PORTALE_UPLOADS",
+            "PREVENTIVI_DB",
+            "PRIVACY_DB",
+            "SCADENZIARIO_DB",
+            "SEARCH_INDEX",
+            "SOGGETTI_DB",
+            "SOGGETTI_PARTI_DB",
+            "STORAGE_CONFIG",
+            "STUDIO_DB",
+            "TELEMATICO_DB",
+            "TIMESHEET_DB",
+            "TIME_TRACKING_DB",
+            "WORKSPACE_INTELLIGENCE_DB"
+          ],
+          "json_modules": [
+            "appuntamenti",
+            "audit",
+            "backup",
+            "backup_config",
+            "clienti",
+            "email_casella",
+            "email_ordinaria",
+            "fascicoli",
+            "fatturazione",
+            "impostazioni",
+            "messaggi",
+            "notifiche",
+            "portale",
+            "preventivi",
+            "privacy",
+            "scadenze",
+            "soggetti",
+            "soggetti_parti",
+            "time_tracking",
+            "timesheet",
+            "utenti"
+          ],
+          "react_routes": [
+            "/",
+            "/admin/database",
+            "/agenda",
+            "/agenda/nuovo",
+            "/amministrazione",
+            "/app/portale-clienti",
+            "/audit",
+            "/backup",
+            "/cartelle-condivise",
+            "/clienti",
+            "/clienti/nuovo",
+            "/compensi-forensi",
+            "/deposito/checklist",
+            "/documenti",
+            "/editor-professionale",
+            "/email",
+            "/email-ordinaria",
+            "/fascicoli",
+            "/fascicoli/:id/deposito/prepara",
+            "/fascicoli/archivio",
+            "/fascicoli/nuovo",
+            "/fatturazione",
+            "/giurisprudenza",
+            "/global-search",
+            "/guida/firma-digitale",
+            "/importa-pratiche-studio-telematico",
+            "/impostazioni",
+            "/impostazioni/calendario",
+            "/impostazioni/sdi",
+            "/legal-skills",
+            "/messaggi",
+            "/messaggi/nuovo",
+            "/notifiche-legali",
+            "/pat",
+            "/pdp",
+            "/polisWeb",
+            "/preventivi",
+            "/privacy/registro",
+            "/profili",
+            "/redazione-atti",
+            "/registro-attivita",
+            "/registro-gdpr",
+            "/ricerca-legale",
+            "/scadenziario",
+            "/scadenziario/nuova",
+            "/servizi-telematici",
+            "/sigit",
+            "/sito-studio",
+            "/sito-studio/builder",
+            "/sito-studio/contatti",
+            "/sito-studio/redazione-ai",
+            "/soggetti",
+            "/soggetti/nuovo",
+            "/statistiche",
+            "/strumenti-legali",
+            "/strumenti-operativi",
+            "/studio",
+            "/telematico",
+            "/timesheet",
+            "/tribunali",
+            "/utenti",
+            "/wizard-pro",
+            "/workflow-agents",
+            "/workspace-intelligente"
+          ],
+          "menu_items": {
+            "Amministrazione": [
+              "/amministrazione"
+            ],
+            "Anagrafica": [
+              "/clienti",
+              "/soggetti"
+            ],
+            "Archivio": [
+              "/fascicoli/archivio"
+            ],
+            "Archivio Giurisprudenza": [
+              "/giurisprudenza"
+            ],
+            "Backup": [
+              "/impostazioni"
+            ],
+            "Builder Sito": [
+              "/sito-studio/builder"
+            ],
+            "Calendario": [
+              "/agenda"
+            ],
+            "Canali SdI": [
+              "/impostazioni/sdi"
+            ],
+            "Cartelle Condivise": [
+              "/cartelle-condivise"
+            ],
+            "Centro Servizi Telematici": [
+              "/telematico"
+            ],
+            "Checklist deposito": [
+              "/deposito/checklist"
+            ],
+            "Compensi Forensi": [
+              "/compensi-forensi"
+            ],
+            "Contatti Sito": [
+              "/sito-studio/contatti"
+            ],
+            "Controlli Atti": [
+              "/deposito/checklist"
+            ],
+            "Database": [
+              "/admin/database"
+            ],
+            "Documenti": [
+              "/documenti"
+            ],
+            "Editor professionale": [
+              "/editor-professionale"
+            ],
+            "Email PEC": [
+              "/email"
+            ],
+            "Email ordinaria": [
+              "/email-ordinaria"
+            ],
+            "Guida firma digitale": [
+              "/guida/firma-digitale"
+            ],
+            "Importa pratiche da Studio Telematico": [
+              "/importa-pratiche-studio-telematico"
+            ],
+            "Impostazioni Studio": [
+              "/impostazioni"
+            ],
+            "L.53": [
+              "/notifiche-legali"
+            ],
+            "Legal Skills": [
+              "/legal-skills"
+            ],
+            "Messaggi": [
+              "/messaggi"
+            ],
+            "Notifiche": [
+              "/impostazioni"
+            ],
+            "Notifiche legali": [
+              "/notifiche-legali"
+            ],
+            "Nuova Scadenza": [
+              "/scadenziario/nuova"
+            ],
+            "Nuovo Appuntamento": [
+              "/agenda/nuovo"
+            ],
+            "Nuovo Cliente": [
+              "/clienti/nuovo"
+            ],
+            "Nuovo Fascicolo": [
+              "/fascicoli/nuovo"
+            ],
+            "Nuovo SMS/WA": [
+              "/messaggi/nuovo"
+            ],
+            "Nuovo Soggetto": [
+              "/soggetti/nuovo"
+            ],
+            "PAT Amministrativo": [
+              "/pat"
+            ],
+            "PDP Penale": [
+              "/pdp"
+            ],
+            "PEC": [
+              "/email"
+            ],
+            "PTT Tributario": [
+              "/sigit"
+            ],
+            "Pagamenti": [
+              "/impostazioni"
+            ],
+            "Panoramica": [
+              "/"
+            ],
+            "Parcelle e Fatture": [
+              "/fatturazione"
+            ],
+            "PolisWeb / PST": [
+              "/polisWeb"
+            ],
+            "Portale Clienti": [
+              "/app/portale-clienti"
+            ],
+            "Preparazione Udienza Guidata": [
+              "/wizard-pro"
+            ],
+            "Preventivi e Incarichi": [
+              "/preventivi"
+            ],
+            "Profili e Permessi": [
+              "/profili"
+            ],
+            "Redazione AI Sito": [
+              "/sito-studio/redazione-ai"
+            ],
+            "Redazione Atti": [
+              "/redazione-atti"
+            ],
+            "Regia Agentica": [
+              "/workflow-agents"
+            ],
+            "Regia Operativa": [
+              "/workspace-intelligente"
+            ],
+            "Registro Attivit�": [
+              "/audit"
+            ],
+            "Registro GDPR": [
+              "/privacy/registro"
+            ],
+            "Ricerca Legale": [
+              "/ricerca-legale"
+            ],
+            "Ricerca Studio": [
+              "/global-search"
+            ],
+            "SMTP": [
+              "/email-ordinaria"
+            ],
+            "Scadenziario": [
+              "/scadenziario"
+            ],
+            "Sincronizzazione Calendari": [
+              "/impostazioni/calendario"
+            ],
+            "Sito Studio": [
+              "/sito-studio"
+            ],
+            "Statistiche": [
+              "/statistiche"
+            ],
+            "Strumenti Forensi": [
+              "/strumenti-legali"
+            ],
+            "Strumenti Operativi": [
+              "/strumenti-operativi"
+            ],
+            "Studio": [
+              "/studio"
+            ],
+            "Timesheet": [
+              "/timesheet"
+            ],
+            "Tribunali / PEC": [
+              "/tribunali"
+            ],
+            "Tutti i Fascicoli": [
+              "/fascicoli"
+            ],
+            "Utenti": [
+              "/utenti"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

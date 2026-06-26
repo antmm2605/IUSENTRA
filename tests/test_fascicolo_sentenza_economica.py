@@ -224,6 +224,51 @@ def test_pdf_contributo_unificato_fornisce_doppia_prova_senza_carta_docente():
     assert carta == {}
 
 
+def test_pdf_contributo_esenzione_non_prende_carta_docente_500():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        Il docente chiede la Carta elettronica per l'aggiornamento e la formazione,
+        dell'importo nominale di euro 500,00 annui per ciascun anno scolastico.
+        Esenzione dal contributo unificato di iscrizione a ruolo ai sensi
+        dell'art. 9 comma 1 bis d.p.r. 30/5/2002 n. 115.
+        """,
+        {"filename": "ricorso-carta-docente.pdf", "document_id": "DOC-ESENTE-CARTA"},
+    )
+
+    assert evidence["esente"] is True
+    assert evidence["importo"] is None
+    assert evidence["natura"] == "esenzione_contributo_unificato"
+
+
+def test_pdf_contributo_esenzione_reddituale_non_prende_soglia_reddito():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE.
+        ESENZIONE DAL CONTRIBUTO UNIFICATO DI ISCRIZIONE A RUOLO.
+        Dichiara che il proprio reddito, compreso quello dei familiari conviventi
+        ex art. 76 D.P.R. 115/2002, non supera l'importo di Euro 38.514,03.
+        """,
+        {"filename": "dichiarazione-reddituale.pdf", "document_id": "DOC-REDDITO"},
+    )
+
+    assert evidence["esente"] is True
+    assert evidence["importo"] is None
+    assert evidence["natura"] == "esenzione_contributo_unificato"
+
+
+def test_pdf_contributo_rifiuta_iniziali_cu_e_importo_carta_docente():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        Il riferimento alla mera natura temporanea del lavoro della signora C.U.
+        non puo' costituire una ragione oggettiva. La ricorrente chiede
+        il riconoscimento della carta docente per un importo di euro 500,00.
+        """,
+        {"filename": "sentenza-carta-docente.pdf", "document_id": "DOC-CU-INIZIALI"},
+    )
+
+    assert evidence == {}
+
+
 def test_pdf_contributo_rifiuta_scaglione_e_riporta_esenzione_cu():
     scaglione = extract_contributo_unificato_document_evidence(
         """

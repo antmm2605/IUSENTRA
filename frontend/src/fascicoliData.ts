@@ -192,6 +192,7 @@ export type FascicoloDocument = {
   id: string
   name: string
   type: string
+  rawType: string
   size: string
   uploadedAt: string
   documentDate: string
@@ -206,6 +207,13 @@ export type FascicoloDocument = {
   portalSender: string
   portalDate: string
   hash: string
+  catalogRole: string
+  catalogLabel: string
+  catalogSection: string
+  catalogConfidence: number
+  catalogEvidence: string
+  depositRole: string
+  depositCandidate?: boolean
   actions: {
     preview: string
     download: string
@@ -523,6 +531,7 @@ export type FascicoloDetailData = {
   generatedAt: string
   contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   notFound?: boolean
+  requestError?: string
   fascicolo: FascicoloFull
   quickCounts: Record<string, number>
   lexIndexing: LexIndexingSummary
@@ -838,6 +847,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
+  requestError: '',
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     rgNumber: 0, rgYear: 0, nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
@@ -1461,6 +1471,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       mock_fallback: bool(payload.contracts.mock_fallback), read_only: payload.contracts.read_only !== false, writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
     } : emptyFascicoloDetail.contracts,
     notFound: bool(payload.notFound ?? payload.not_found),
+    requestError: text(payload.requestError ?? payload.request_error ?? payload.errore ?? payload.error),
     fascicolo: full,
     quickCounts: isRecord(payload.quickCounts ?? payload.quick_counts) ? payload.quickCounts as Record<string, number> : {},
     lexIndexing: {
@@ -1482,7 +1493,8 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       const actions = isRecord(row.actions) ? row.actions : {}
       const signed = bool(row.signed)
       return {
-        id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), size: text(row.size ?? row.dimensione, ''),
+        id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), rawType: text(row.rawType ?? row.raw_type ?? row.tipo, ''),
+        size: text(row.size ?? row.dimensione, ''),
         uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
         tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed,
         statusLabel: signed ? text(row.statusLabel ?? row.status_label, 'Firmato') : 'Da firmare',
@@ -1490,6 +1502,13 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         source: text(row.source ?? row.fonte_documento),
         portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
         portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
+        catalogRole: text(row.catalogRole ?? row.catalog_role),
+        catalogLabel: text(row.catalogLabel ?? row.catalog_label),
+        catalogSection: text(row.catalogSection ?? row.catalog_section),
+        catalogConfidence: number(row.catalogConfidence ?? row.catalog_confidence),
+        catalogEvidence: text(row.catalogEvidence ?? row.catalog_evidence),
+        depositRole: text(row.depositRole ?? row.deposit_role),
+        depositCandidate: row.depositCandidate === undefined && row.deposit_candidate === undefined ? undefined : bool(row.depositCandidate ?? row.deposit_candidate),
         actions: {
           preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), rename: text(actions.rename), delete: text(actions.delete),
         },
@@ -1685,8 +1704,19 @@ function retryDelay(attempt: number): Promise<void> {
 async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fallback: T): Promise<T> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       if (response.ok) return normalizer(await response.json())
+      if (response.status === 401 || response.status === 403 || response.status === 404) {
+        const fallbackPayload = {
+          notFound: true,
+          errore: response.status === 401
+            ? 'Autenticazione richiesta per caricare i dati del fascicolo.'
+            : response.status === 403
+              ? 'Permessi insufficienti per aprire il fascicolo.'
+              : 'Fascicolo non disponibile nella fonte dati corrente.',
+        }
+        return normalizer(fallbackPayload)
+      }
       if (!transientFetchStatuses.has(response.status) || attempt === 2) return fallback
     } catch {
       if (attempt === 2) return fallback

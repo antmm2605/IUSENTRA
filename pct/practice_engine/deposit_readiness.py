@@ -7,6 +7,7 @@ import unicodedata
 from typing import Any
 
 from pct.document_signature_state import document_has_real_digital_signature
+from pct.fascicolo_document_catalog import classify_fascicolo_document
 
 from .models import SlotStatus, SlotType, ValidatorStatus
 from .repository import PracticeEngineRepository
@@ -81,18 +82,22 @@ def _slug(value: Any) -> str:
 
 
 def _document_text(doc: Any) -> str:
+    catalog = classify_fascicolo_document(doc)
     return _slug(
         " ".join(
-            str(getattr(doc, field, "") or "")
-            for field in (
-                "tipo",
-                "nome",
-                "nome_originale",
-                "nome_portale",
-                "tipo_atto_portale",
-                "classificazione_portale",
-                "note",
-            )
+            [
+                str(getattr(doc, field, "") or "")
+                for field in (
+                    "tipo",
+                    "nome",
+                    "nome_originale",
+                    "nome_portale",
+                    "tipo_atto_portale",
+                    "classificazione_portale",
+                    "note",
+                )
+            ]
+            + [catalog.role, catalog.label, catalog.section, catalog.deposit_role]
         )
     )
 
@@ -106,10 +111,28 @@ def _score_for_slot(slot: Any, doc: Any) -> int:
     slot_text = _slug(f"{getattr(slot, 'slot_key', '')} {getattr(slot, 'label', '')} {getattr(slot, 'type', '')}")
     if not text:
         return 0
+    catalog = classify_fascicolo_document(doc)
     negative = any(hint in text for hint in NEGATIVE_DEPOSIT_HINTS)
     score = 0
     slot_type = str(getattr(slot, "type", "") or "").upper()
     if slot_type == SlotType.ATTO_PRINCIPALE.value or "atto principale" in slot_text:
+        if catalog.role == "atto_principale":
+            return 95 + (5 if _is_signed(doc) else 0)
+        if catalog.role == "atto_difensivo" and catalog.confidence >= 80:
+            return 85 + (5 if _is_signed(doc) else 0)
+        if catalog.confidence >= 70 and catalog.role in {
+            "allegato",
+            "classificato_storico",
+            "comunicazione",
+            "contributo_unificato",
+            "economia_fascicolo",
+            "nota_iscrizione_ruolo",
+            "procura",
+            "prova_notifica",
+            "provvedimento",
+            "relata",
+        }:
+            return 0
         if negative or any(hint in text for hint in ("procura", "contributo", "pagopa", "marca", "nir", "nota iscrizione")):
             return 0
         if any(hint in text for hint in MAIN_ACT_NEGATIVE_HINTS):
@@ -119,16 +142,24 @@ def _score_for_slot(slot: Any, doc: Any) -> int:
         score += 5 if _is_signed(doc) else 0
         return score
     if slot_type == SlotType.PROCURA.value or "procura" in slot_text:
+        if catalog.role == "procura":
+            return 95
         return 90 if "procura" in text else 0
     if slot_type == SlotType.CONTRIBUTO_UNIFICATO.value or any(hint in slot_text for hint in ("contributo", "pagamento", "pagopa")):
+        if catalog.role == "contributo_unificato":
+            return 95
         return 90 if any(hint in text for hint in ("contributo", "unificato", "pagopa", "rt xml", "ricevuta telematica")) else 0
     if slot_type == SlotType.MARCA_BOLLO.value or "marca" in slot_text:
         return 85 if any(hint in text for hint in ("marca", "bollo")) else 0
     if slot_type == SlotType.NOTA_ISCRIZIONE_RUOLO.value or any(hint in slot_text for hint in ("nir", "nota iscrizione")):
         return 95 if any(hint in text for hint in ("nir", "nota iscrizione", "iscrizione a ruolo")) else 0
     if slot_type == SlotType.PROVVEDIMENTO.value or any(hint in slot_text for hint in ("provvedimento", "sentenza", "ordinanza", "decreto")):
+        if catalog.role == "provvedimento":
+            return 90
         return 75 if any(hint in text for hint in ("provvedimento", "sentenza", "ordinanza", "decreto")) else 0
     if slot_type in {SlotType.RICEVUTA.value, SlotType.COMUNICAZIONE.value}:
+        if catalog.section == "comunicazioni":
+            return 85
         return 70 if negative else 0
     if slot_type in {
         SlotType.ALLEGATO.value,

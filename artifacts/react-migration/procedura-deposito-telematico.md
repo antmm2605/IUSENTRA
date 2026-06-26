@@ -2415,3 +2415,49 @@ Guardrail eseguiti prima del deploy:
 - `git diff --check -- pct\incremental_jobs.py pct\pec_pipeline.py web\services\pec_pipeline_runtime.py scripts\backfill_sentenza_lex_economics.py pct\scheduler.py pct\scheduler_registry.py scripts\check_runtime_services.py tests\test_pec_auto_acquire.py tests\test_backfill_sentenza_lex_economics.py tests\test_scheduler.py tests\test_runtime_service_checks.py`.
 
 Stato residuo: codice e test locali sono verdi, ma la consegna non è chiusa finché Docker locale reale e Hetzner non mostrano run `completed` dei worker sullo stesso commit, senza `missed` per istanza precedente ancora in corso.
+
+## Catalogo documenti fascicolo e slot deposito - 2.253.119 - 2026-06-26
+
+Richiesta utente: migliorare il catalogo nel fascicolo leggendo i PDF presenti, correggere i documenti che risultano atti ma non lo sono, usare la logica sempre sui fascicoli esistenti e futuri, e ricordare che `Ricorso` è sempre atto principale.
+
+Correzione applicata:
+
+- il nuovo classificatore `pct.fascicolo_document_catalog` legge nome file, tipo storico e testo OCR/Document AI integrale del fascicolo;
+- il flusso non introduce OCR sincrono nella UI e non crea chunk per catalogare: usa il testo completo già indicizzato dal worker OCR/Document AI;
+- `Ricorso` è classificato sempre come `atto_principale`, con `TipoDocumento.RICORSO`, sezione `atti`, ruolo deposito `atto_principale` e priorità nello slot principale;
+- sentenze, ordinanze, decreti, verbali, CU/PagoPA, comunicazioni, richieste di visibilità, allegati e produzioni documentali non vengono più ammessi nello slot principale solo perché un tipo storico li chiamava genericamente `ATTO_GIUDIZIARIO`;
+- il bridge React dei fascicoli espone il catalogo alla UI e alla lista documenti da inviare: `catalogRole`, `catalogLabel`, `catalogSection`, `catalogConfidence`, `catalogEvidence`, `depositRole`, `depositCandidate`;
+- `frontend/src/components/FascicoliPage.tsx` usa `catalogSection` per ordinare i documenti e aggiunge la sezione `Pagamenti e contributi`;
+- `pct.practice_engine.deposit_readiness` usa il catalogo per collegare gli slot: il principale accetta Ricorso/atto difensivo coerente e respinge provvedimenti, contributi, comunicazioni e allegati non principali;
+- la rotta `/api/v1/ui/fascicoli/<id_fasc>/deposito/classifica-documenti` applica la stessa regola lato server: se il client prova a salvare come `atto_principale` un documento classificato con alta confidenza come non principale, il ruolo viene ricondotto a procura/prova notifica/fuori busta/allegato secondo il catalogo;
+- lo script `scripts/reclassify_fascicolo_document_catalog.py` corregge i fascicoli esistenti usando SQLite/PostgreSQL come fonte di verità e report JSON come evidenza tecnica.
+
+Prova locale su dati reali:
+
+- dry-run `document-catalog-reclassify-local-dry-run-20260625.json`: `source_of_truth=sqlite`, `fascicoli_seen=7`, `documents_seen=75`, `documents_with_ocr_text=75`, `reclassified=26`, `wrong_atti_fixed=16`, `errors=0`;
+- apply `document-catalog-reclassify-local-apply-20260625.json`: applicate le stesse riclassificazioni sulla copia SQLite locale;
+- i tipi specifici già attendibili non sono stati sostituiti da inferenze generiche: `skipped_specific=45`.
+
+Guardrail automatici:
+
+- `tests/test_fascicolo_document_catalog.py` copre Ricorso come atto principale, provvedimenti non principali, CU/PagoPA, iniziali `C.U.`, match Document AI per hash e script di riclassificazione;
+- `tests/test_practice_engine_validators.py` copre lo slot deposito: una sentenza storicamente etichettata `ATTO_GIUDIZIARIO` non viene più agganciata come atto principale, mentre la procura resta agganciabile allo slot corretto;
+- la suite mirata OCR/Lex/PEC/deposito è passata al 100% prima del rebuild Docker.
+
+Stato residuo prima della chiusura: prova reale nel browser integrato su `127.0.0.1:8080` dopo rebuild Docker `2.253.119`, poi deploy Hetzner, applicazione della ricatalogazione su `/data` produzione e verifica server con fascicoli reali.
+
+Aggiornamento prova reale locale 26/06/2026, ore 02:14 Europe/Rome:
+
+- Docker locale reale `2.253.119` ricostruito con `docker compose build --no-cache app scheduler-worker ocr-worker` e riavviato con `docker compose up -d --force-recreate app scheduler-worker ocr-worker`;
+- `/api/pronto` ha risposto `ok=true`; `app`, `scheduler-worker` e `ocr-worker` risultano healthy;
+- il gate `python scripts\check_runtime_services.py --wait-job-seconds 900 --require-all-due-jobs` ha atteso `lex_sentenza_economia_auto` `completed` alle `2026-06-26T00:07:15Z`, con `documents_catalogued=667`, `skipped_by_cursor=667`, `errors=0`, `vector_embedding_errors=0`; `pec_audit_pipeline_workers` ha completato senza errori;
+- browser integrato visibile su `http://127.0.0.1:8080/fascicoli/DC5BF1DB#documenti`: il fascicolo `RG 466/2023 - Alessi Robertino` mostra `20` documenti, tutti pronti, nessun documento in coda/errore;
+- nel catalogo fascicolo i file `note_di_trattazione_scritta_ZURICH_udienza_del_19-03-2025.pdf.p7m`, `note_di_trattazione_scritta_ZURICH_udienza_del_10-07-2024.pdf.p7m` e `istanza_per_fissazione_di_udienza_in_trattazione_scritta.pdf.p7m` sono in `Atti e memorie` con badge `Atto difensivo`, non piu' `Verbale`;
+- `verbaleAttoGenerico.pdf` resta in `Provvedimenti` come `Verbale`;
+- `attoACQ.pdf.p7m` e' in `Pagamenti e contributi` come `Contributo unificato / pagamento`;
+- browser integrato visibile su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#proposta-busta`: la proposta mostra `Tutto fascicolo 20 letto integralmente`, `Candidati busta 18`, `4 firmati`, `Atti principali 9 da confermare` e `Catalogo portale 50 separato dalla busta`;
+- dopo ricarica dell'asset React aggiornato, le righe busta mostrano il ruolo tecnico `Allegato` ma con etichetta catalogo leggibile: `attoACQ.pdf.p7m` -> `Contributo unificato / pagamento (allegato busta)`, note/istanza -> `Atto difensivo (allegato busta)`, `verbaleAttoGenerico.pdf` -> `Verbale (allegato busta)`;
+- il selettore ruolo della riga `attoACQ.pdf.p7m` riceve focus, resta leggibile e non modifica dati se aperto/chiuso senza selezione; lo scroll completo raggiunge `Dati fascicolo`, `Slot documentali` e `Audit`;
+- verifica responsive reale con viewport `1280x900`, `768x900` e `390x844`: nessun overflow orizzontale, testi lunghi leggibili, badge e controlli non tagliati, console browser senza errori.
+
+Stato ancora aperto prima della chiusura globale: commit/push dei branch gemelli, check GitHub/CodeQL, deploy Hetzner, applicazione ricatalogazione e reset/backfill importi su produzione, verifica `https://app.iusentra.it/api/pronto` e prova server con fascicoli reali.

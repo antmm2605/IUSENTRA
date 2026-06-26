@@ -214,7 +214,8 @@ def source_from_fascicolo_document(
     content: bytes | None = None
     size_bytes = int(getattr(document, "dimensione_bytes", 0) or 0)
     sha256 = str(getattr(document, "hash_sha256", "") or "").strip()
-    if supported and content_path and content_path.exists():
+    should_read_content = bool(supported and content_path and content_path.exists() and (not sha256 or decrypt is not None))
+    if should_read_content:
         try:
             content = content_path.read_bytes()
             if decrypt is not None:

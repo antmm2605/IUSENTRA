@@ -7,10 +7,13 @@ import logging
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from flask import Flask, has_request_context, request, session
+
+ROME_TZ = ZoneInfo("Europe/Rome")
 
 
 _SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
@@ -82,7 +85,8 @@ class RequestContextFilter(logging.Filter):
 class JsonLogFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=ROME_TZ).isoformat(),
+            "timezone": "Europe/Rome",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

@@ -284,6 +284,7 @@ def sincronizza():
             use_ssl=bool(use_ssl),
             cartelle_imap=["INBOX"],
             limite=100,
+            incremental_only=True,
         )
         _sync_inviati(ge)
 

@@ -659,6 +659,7 @@ def build_pdp_penale_runtime(
                 use_ssl=bool(getattr(cfg.pec, "use_ssl", True)),
                 cartelle_imap=["INBOX"],
                 limite=80,
+                incremental_only=True,
             )
         emails = ge.tutte(cartella="INBOX", data_da=(date.today() - timedelta(days=60)).isoformat())
         existing_pec = repo.list_pec_messages(str(case_row.get("id") or ""))

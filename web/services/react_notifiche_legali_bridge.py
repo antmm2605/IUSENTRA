@@ -617,14 +617,19 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
     title = _text(getattr(fascicolo, "titolo", ""))
     title_assistito, title_controparte = _derive_parties_from_title(title)
     derived_numero_rg, derived_anno_rg = _derive_rg_from_text(
+        getattr(fascicolo, "numero", ""),
         title,
         getattr(fascicolo, "note", ""),
         getattr(fascicolo, "oggetto", ""),
     )
+    explicit_numero_rg = _text(getattr(fascicolo, "numero_rg", ""))
     raw_anno_rg = _text(getattr(fascicolo, "anno_rg", ""))
-    numero_rg = _text(getattr(fascicolo, "numero_rg", "")) or derived_numero_rg
-    anno_rg = "" if raw_anno_rg in {"0", "0.0"} else raw_anno_rg
-    anno_rg = anno_rg or derived_anno_rg
+    numero_rg = explicit_numero_rg or derived_numero_rg
+    if explicit_numero_rg:
+        anno_rg = "" if raw_anno_rg in {"0", "0.0"} else raw_anno_rg
+        anno_rg = anno_rg or derived_anno_rg
+    else:
+        anno_rg = derived_anno_rg or ("" if raw_anno_rg in {"0", "0.0"} else raw_anno_rg)
     proceeding_present = bool(
         _text(getattr(fascicolo, "tribunale", ""))
         or numero_rg

@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.indexer import DocumentAIIndexer
 from pct.document_intelligence.models import DocumentAIPageText, DocumentAIRecord
 from pct.document_intelligence.repository import DocumentAIRepository
 from pct.document_intelligence.service import DocumentAIService
-from pct.document_intelligence.sources import source_from_uploaded_document
+from pct.document_intelligence.sources import source_from_fascicolo_document, source_from_uploaded_document
 
 
 @dataclass
@@ -233,6 +234,40 @@ def test_hash_invariato_non_reindicizza(tmp_path: Path, monkeypatch):
     assert result.indexed == 0
     assert result.skipped == 1
     assert result.summary.ready == 1
+
+
+def test_sorgente_fascicolo_con_hash_salvato_non_rilegge_file(tmp_path: Path, monkeypatch):
+    docs_root = tmp_path / "documenti"
+    docs_root.mkdir()
+    original = docs_root / "atto.txt"
+    original.write_text("Testo gia' memorizzato nel fascicolo.", encoding="utf-8")
+    document = SimpleNamespace(
+        id="doc-lex-1",
+        nome="atto.txt",
+        percorso="atto.txt",
+        dimensione_bytes=original.stat().st_size,
+        hash_sha256="a" * 64,
+        data_caricamento="2026-06-26T09:00:00+02:00",
+        fonte_documento="",
+        tipo=None,
+    )
+
+    def fail_read(_path):
+        raise AssertionError("il file non deve essere riletto quando hash_sha256 e' gia' presente")
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read)
+
+    source = source_from_fascicolo_document(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        document=document,
+        documents_root=docs_root,
+    )
+
+    assert source is not None
+    assert source.sha256 == "a" * 64
+    assert source.content_bytes is None
+    assert source.content_path == original
 
 
 def test_processing_vecchio_viene_recuperato_e_reindicizzato(tmp_path: Path, monkeypatch):

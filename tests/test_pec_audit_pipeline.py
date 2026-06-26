@@ -1826,6 +1826,8 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
 
     assert report["checked_fascicoli"] == 1
+    assert report["new_or_changed_documents"] == 1
+    assert report["already_checked"] == 0
     assert report["indexed_documents"] == 1
     assert report["candidate_dates"] == 2
     assert report["scheduled"] == 2
@@ -1866,7 +1868,10 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
 
     second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
     assert second["scheduled"] == 0
-    assert second["already_presided"] == 2
+    assert second["candidate_dates"] == 0
+    assert second["already_presided"] == 0
+    assert second["already_checked"] == 1
+    assert second["new_or_changed_documents"] == 0
     assert len(GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)) == 2
     assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
 

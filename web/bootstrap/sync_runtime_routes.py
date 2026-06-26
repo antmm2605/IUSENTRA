@@ -153,6 +153,7 @@ def register_sync_runtime_routes(
                 "config_pec": config_pec,
                 "state_path": state_path,
                 "limite": 100,
+                "incremental_only": True,
             }
             if fascicolo_id:
                 workflow_kwargs["fascicolo_id"] = fascicolo_id

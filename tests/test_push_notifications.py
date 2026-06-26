@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.notifications import NotificationRecord, NotificationRepository, NotificationService
+from pct.notifications.service import PushDispatchSummary
 from pct.notifications.generate_vapid import generate_vapid_key_pair
 from pct.notifications.web_push import load_web_push_config, safe_web_push_payload, web_push_config_diagnostics
 from tests.test_topbar_operational_api import _cfg_web, _create_user, _login
@@ -191,6 +192,47 @@ def test_sync_operational_items_ritira_notifiche_pec_non_piu_generate(tmp_path):
 
     assert [row.dedupe_key for row in rows] == ["PEC_AUDIT:msg-current:deadline"]
     assert rows[0].title.startswith("VINCI ROSA MARIA")
+
+
+def test_web_push_non_risponde_evento_gia_deduplicato(tmp_path, monkeypatch):
+    repo = _repo(tmp_path)
+    service = NotificationService(repo)
+    calls = {"push": 0}
+
+    def fake_dispatch(_record):
+        calls["push"] += 1
+        return PushDispatchSummary(configured=True, sent=1)
+
+    monkeypatch.setattr(service, "dispatch_web_push", fake_dispatch)
+
+    first = service.create_notification(
+        tenant_id="tenant-a",
+        user_id="user-a",
+        type="pec_deadline",
+        priority="important",
+        title="Scadenza PEC registrata",
+        body="Prima creazione",
+        source_type="pec_deadline",
+        source_id="msg-1",
+        dedupe_key="PEC_AUDIT:msg-1:deadline",
+        send_push=True,
+    )
+    second = service.create_notification(
+        tenant_id="tenant-a",
+        user_id="user-a",
+        type="pec_deadline",
+        priority="important",
+        title="Scadenza PEC registrata",
+        body="Aggiornamento interno",
+        source_type="pec_deadline",
+        source_id="msg-1",
+        dedupe_key="PEC_AUDIT:msg-1:deadline",
+        send_push=True,
+    )
+
+    assert first[1] is True
+    assert second[1] is False
+    assert calls["push"] == 1
 
 
 def test_repository_subscription_salva_e_revoca_solo_tenant_utente(tmp_path):

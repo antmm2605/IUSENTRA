@@ -9,7 +9,7 @@ Target validato per il server indicato:
 - server: `ubuntu-16gb-nbg1-1`
 - IP: `116.203.45.57`
 - taglio: CPX42, 8 vCPU, 16 GB RAM, 320 GB disco locale
-- runtime: Docker Compose, Caddy HTTPS, Redis, worker scheduler, worker OCR, sidecar Ollama per Lex
+- runtime: Docker Compose, Caddy HTTPS, Redis, worker scheduler e worker OCR; sidecar Ollama solo con profilo `ai` esplicito
 - persistenza: `/opt/iusentra/data`
 
 ## Prerequisiti DNS
@@ -83,6 +83,20 @@ Variabili opzionali per PWA/Web Push:
 - `IUSENTRA_VAPID_SUBJECT=mailto:admin@example.com`
 
 Lasciare il canale disattivo finche' le chiavi VAPID reali non sono state generate e inserite solo nell'ambiente del server.
+
+Default performance da mantenere su CPX42:
+
+```bash
+COMPOSE_PROFILES=
+PCT_LOCAL_AI_ENABLED=0
+IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=0
+IUSENTRA_MAILBOX_SYNC_AUTOMATIC_LIMIT=25
+IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT=0
+IUSENTRA_DEPOSIT_POLL_DAYS=3
+IUSENTRA_PEC_CANCELLERIA_POLL_DAYS=2
+```
+
+Con questi valori i job frequenti controllano solo il nuovo o le code pendenti. Eventuali recuperi storici devono essere avviati come manutenzione esplicita, non lasciati allo scheduler automatico.
 
 Configurazione guidata sul server:
 
@@ -189,7 +203,8 @@ Cron consigliato:
 
 Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
 La retention e' applicata dallo script: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Anche se l'ambiente imposta un numero piu' alto, il deploy lo limita a 3 copie. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`. Lo script elimina anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
-I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, long window 27) per ridurre l'impatto disco senza cambiare il formato di restore. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Su dati runtime vivi un file puo' cambiare durante la lettura: lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita.
+I backup `.tar.zst` sono prodotti con zstd a budget server (`IUSENTRA_BACKUP_ZSTD_LEVEL=6`, `IUSENTRA_BACKUP_ZSTD_THREADS=2`, long window 27) e partono con `nice`/`ionice` prudenti per non sottrarre CPU e I/O alla navigazione. Prima di comprimere lo script applica retention e verifica lo spazio libero (`IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT=65` + `IUSENTRA_BACKUP_MIN_FREE_GIB=4`); se il margine non basta si ferma invece di saturare il nodo. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Su dati runtime vivi un file puo' cambiare durante la lettura: lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita.
+Host e container applicativi devono usare ora italiana: `.env.hetzner` contiene `TZ=Europe/Rome`, il compose propaga `TZ` ad app/scheduler/OCR e l'immagine installa `tzdata`. I log Docker possono comunque mostrare metadati interni del runtime, ma gli orari applicativi e di job vanno letti e riportati in `Europe/Rome`.
 
 Dopo ogni deploy Hetzner il deploy esegue `docker builder prune --all --force` e rimuove `/opt/iusentra/tmp-backup-snapshot` se presente. La posta multi-studio non deve essere sincronizzata in `/data/email`: scheduler e route devono usare solo `/data/tenants/<studio>/email`.
 Gli allegati PEC/email nuovi usano `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`: vengono compressi in `archivio-allegati.zip` nella cartella della casella, ma il lettore resta compatibile con i file storici sciolti per non rompere download e anteprime.
@@ -223,7 +238,7 @@ Il backup automatico (`backup.sh`) include gia' `/opt/iusentra/data/legal_intell
 
 - Il server CPX42 e' adeguato per app, Redis, OCR, scheduler e monitoring leggero.
 - Lex/Ollama puo' girare sullo stesso host solo per modelli piccoli CPU; per carichi AI pesanti serve nodo dedicato o runtime locale dello studio.
-- Il profilo Hetzner avvia il servizio Docker `ollama` e `deploy.sh` verifica/scarica `PCT_LOCAL_AI_CHAT_MODEL` (default `gemma3:1b`), cosi' il widget Lex usa una sola pipeline backend senza dipendere dal companion browser per la risposta finale.
+- Il profilo Hetzner avvia il servizio Docker `ollama` e `deploy.sh` verifica/scarica `PCT_LOCAL_AI_CHAT_MODEL` (default `gemma3:1b`), cosi' il widget Lex usa una sola pipeline backend senza dipendere dal companion browser per la risposta finale. La manutenzione AI automatica dello scheduler resta disattivata salvo opt-in esplicito con `IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=1`, per evitare che il server carichi Ollama in background durante l'uso dell'app.
 - Local Deep Research non e' attivo nel deploy standard. Se lo studio decide di abilitarlo, usare `docker-compose.ldr.yml` come overlay solo con `IUSENTRA_DATA_DIR=/opt/iusentra/data`, bind LDR su `127.0.0.1` o dietro proxy autenticato, e mantenere fascicoli/dati cliente nel retrieval tenant-aware di Lex.
 - Il Local Signer resta sul PC dell'avvocato e dialoga con `127.0.0.1`; non va spostato nel cloud.
 - Gli artefatti PST/PDP/PAT runtime restano sotto `/opt/iusentra/data`, mai nel path del repository.

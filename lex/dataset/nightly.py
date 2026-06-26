@@ -52,6 +52,32 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     return path
 
 
+def _file_fingerprint(path: Path) -> dict[str, Any]:
+    try:
+        stat = path.stat()
+    except OSError:
+        return {"path": str(path), "exists": False, "size": 0, "mtime_ns": 0}
+    return {
+        "path": str(path),
+        "exists": True,
+        "size": int(stat.st_size),
+        "mtime_ns": int(stat.st_mtime_ns),
+    }
+
+
+def _dataset_options_fingerprint(
+    *,
+    max_documents: int | None,
+    allow_sensitive_export: bool,
+    include_pending_review_export: bool,
+) -> dict[str, Any]:
+    return {
+        "max_documents": int(max_documents or 0),
+        "allow_sensitive_export": bool(allow_sensitive_export),
+        "include_pending_review_export": bool(include_pending_review_export),
+    }
+
+
 def _append_job_history(root: Path, job: dict[str, Any]) -> None:
     latest_path = root / "latest_job.json"
     history_path = root / "jobs.json"
@@ -94,6 +120,47 @@ def build_lex_dataset_for_document_ai_json(
     root = Path(output_root)
     output_dir = root / _safe_slug(tenant_id, "tenant")
     started_at = _utc_now()
+    source_fingerprint = _file_fingerprint(Path(document_ai_json_path))
+    options_fingerprint = _dataset_options_fingerprint(
+        max_documents=max_documents,
+        allow_sensitive_export=allow_sensitive_export,
+        include_pending_review_export=include_pending_review_export,
+    )
+    latest_payload = _read_json(output_dir / "latest_job.json")
+    latest_job = (
+        latest_payload.get("latest_job")
+        if isinstance(latest_payload, Mapping) and isinstance(latest_payload.get("latest_job"), Mapping)
+        else {}
+    )
+    if (
+        latest_job
+        and latest_job.get("status") in {"completed", "skipped_unchanged"}
+        and latest_job.get("source_fingerprint") == source_fingerprint
+        and latest_job.get("dataset_options") == options_fingerprint
+    ):
+        job = {
+            "status": "skipped_unchanged",
+            "tenant_id": tenant_id,
+            "started_at": started_at,
+            "completed_at": _utc_now(),
+            "documents_count": int(latest_job.get("documents_count") or 0),
+            "chunks_count": int(latest_job.get("chunks_count") or 0),
+            "qa_pairs_count": int(latest_job.get("qa_pairs_count") or 0),
+            "sensitive_documents_count": int(latest_job.get("sensitive_documents_count") or 0),
+            "sensitive_chunks_count": int(latest_job.get("sensitive_chunks_count") or 0),
+            "blocked_exports": list(latest_job.get("blocked_exports") or []),
+            "output_files": list(latest_job.get("output_files") or []),
+            "source_fingerprint": source_fingerprint,
+            "dataset_options": options_fingerprint,
+            "automatic_training": False,
+            "external_training": False,
+            "human_review_required": True,
+            "scan_mode": "source_unchanged_skip",
+            "message": "Dataset Lex invariato: Documenti AI non modificato, nessuna rilettura o rigenerazione.",
+        }
+        _append_job_history(root, job)
+        _append_job_history(output_dir, job)
+        return job
     try:
         documents = load_document_ai_json_documents(
             document_ai_json_path,
@@ -126,6 +193,9 @@ def build_lex_dataset_for_document_ai_json(
             "sensitive_chunks_count": summary["sensitive_chunks_count"],
             "blocked_exports": summary["blocked_exports"],
             "output_files": summary["output_files"],
+            "source_fingerprint": source_fingerprint,
+            "dataset_options": options_fingerprint,
+            "scan_mode": "source_changed_build",
             "automatic_training": False,
             "external_training": False,
             "human_review_required": True,
@@ -142,12 +212,16 @@ def build_lex_dataset_for_document_ai_json(
             "qa_pairs_count": 0,
             "blocked_exports": [],
             "output_files": [],
+            "source_fingerprint": source_fingerprint,
+            "dataset_options": options_fingerprint,
+            "scan_mode": "source_changed_build",
             "automatic_training": False,
             "external_training": False,
             "human_review_required": True,
             "message": f"Dataset Lex non preparato: {exc}",
         }
     _append_job_history(root, job)
+    _append_job_history(output_dir, job)
     return job
 
 
@@ -212,6 +286,11 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
     tenant_jobs: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
     shared_document_ai_json = _fallback_document_ai_json(cfg)
+    options_fingerprint = _dataset_options_fingerprint(
+        max_documents=max_documents,
+        allow_sensitive_export=allow_sensitive,
+        include_pending_review_export=include_pending,
+    )
     for target in _iter_targets(cfg):
         document_ai_json = Path(str(target.get("document_ai_json") or ""))
         used_shared_document_ai = False
@@ -225,7 +304,30 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
                     "reason": "Archivio Documenti AI non presente.",
                 })
                 continue
-        tenant_ids = infer_document_ai_tenant_ids(document_ai_json)
+        output_root = Path(str(target.get("output_root") or ""))
+        source_fingerprint = _file_fingerprint(document_ai_json)
+        source_index_path = output_root / "source_index.json"
+        source_index = _read_json(source_index_path)
+        tenant_ids: tuple[str, ...] = ()
+        if (
+            isinstance(source_index, Mapping)
+            and source_index.get("source_fingerprint") == source_fingerprint
+            and source_index.get("dataset_options") == options_fingerprint
+            and isinstance(source_index.get("tenant_ids"), list)
+        ):
+            tenant_ids = tuple(str(item or "").strip() for item in source_index.get("tenant_ids") or [] if str(item or "").strip())
+        if not tenant_ids:
+            tenant_ids = infer_document_ai_tenant_ids(document_ai_json)
+            if tenant_ids:
+                _write_json(
+                    source_index_path,
+                    {
+                        "source_fingerprint": source_fingerprint,
+                        "dataset_options": options_fingerprint,
+                        "tenant_ids": list(tenant_ids),
+                        "updated_at": _utc_now(),
+                    },
+                )
         if not tenant_ids:
             skipped.append({
                 "studio": str(target.get("slug") or "studio"),
@@ -246,7 +348,7 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
                 build_lex_dataset_for_document_ai_json(
                     tenant_id=tenant_id,
                     document_ai_json_path=document_ai_json,
-                    output_root=str(target.get("output_root") or ""),
+                    output_root=str(output_root),
                     max_documents=max_documents,
                     allow_sensitive_export=allow_sensitive,
                     include_pending_review_export=include_pending,
@@ -254,6 +356,7 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
             )
 
     completed = sum(1 for job in tenant_jobs if job.get("status") == "completed")
+    skipped_unchanged = sum(1 for job in tenant_jobs if job.get("status") == "skipped_unchanged")
     failed = sum(1 for job in tenant_jobs if job.get("status") == "failed")
     documents = sum(int(job.get("documents_count") or 0) for job in tenant_jobs)
     chunks = sum(int(job.get("chunks_count") or 0) for job in tenant_jobs)
@@ -265,6 +368,7 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
         "studios_checked": len(_iter_targets(cfg)),
         "tenants_processed": len(tenant_jobs),
         "completed": completed,
+        "skipped_unchanged": skipped_unchanged,
         "failed": failed,
         "skipped": skipped,
         "documents_count": documents,
@@ -275,7 +379,7 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
         "human_review_required": True,
         "jobs": tenant_jobs,
         "summary": (
-            f"Dataset Lex notturno: {completed} studi elaborati, "
+            f"Dataset Lex notturno: {completed} studi elaborati, {skipped_unchanged} invariati, "
             f"{documents} documenti, {chunks} blocchi, {qa_pairs} domande candidate. "
             "Nessun addestramento automatico avviato."
         ),

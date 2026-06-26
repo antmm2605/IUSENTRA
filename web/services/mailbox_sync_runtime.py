@@ -255,8 +255,13 @@ def _auto_summary(gestore: Any, log: list[str]) -> dict[str, int]:
     return summary
 
 
-def run_pec_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limite: int = 500) -> dict[str, Any]:
-    """Esegue la sincronizzazione storica della route PEC senza lock/cooldown."""
+def run_pec_mailbox_sync(
+    ctx: MailboxRuntimeContext | None = None,
+    *,
+    limite: int = 500,
+    incremental_only: bool = True,
+) -> dict[str, Any]:
+    """Esegue la sincronizzazione PEC ordinaria sul solo nuovo non gia' acquisito."""
     runtime = ctx or mailbox_context_for_current_request()
     gestore = _email_manager(runtime, "pec")
     pec_cfg = _get_config_pec(runtime)
@@ -295,6 +300,7 @@ def run_pec_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limite: in
                 config_pec=pec_cfg,
                 state_path=_pec_state_path(runtime),
                 limite=limite,
+                incremental_only=incremental_only,
             )
             report = workflow.get("sync", {}) or {}
             log_esiti = workflow.get("auto_esiti", []) or []
@@ -312,6 +318,7 @@ def run_pec_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limite: in
                 cartelle_imap=cartelle_imap_standard(),
                 limite=limite,
                 timeout_seconds=15,
+                incremental_only=incremental_only,
             )
             if report.get("pst_trovate", 0) > 0:
                 log_esiti = aggiorna_esiti_da_email(gestore, _fascicoli_manager(runtime))
@@ -340,8 +347,13 @@ def run_pec_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limite: in
         return {"ok": False, "errore": str(exc)}
 
 
-def run_ordinary_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limite: int = 500) -> dict[str, Any]:
-    """Esegue la sincronizzazione storica della route email ordinaria."""
+def run_ordinary_mailbox_sync(
+    ctx: MailboxRuntimeContext | None = None,
+    *,
+    limite: int = 500,
+    incremental_only: bool = True,
+) -> dict[str, Any]:
+    """Esegue la sincronizzazione ordinaria leggendo solo il nuovo non acquisito."""
     runtime = ctx or mailbox_context_for_current_request()
     gestore = _email_manager(runtime, "ordinary")
     cfg = _get_config_smtp(runtime)
@@ -365,6 +377,7 @@ def run_ordinary_mailbox_sync(ctx: MailboxRuntimeContext | None = None, *, limit
             cartelle_imap=cartelle_imap_standard(),
             limite=limite,
             timeout_seconds=15,
+            incremental_only=incremental_only,
         )
         _sync_inviati(runtime, gestore)
         errore = str(report.get("errore", "") or "").strip()
@@ -392,11 +405,13 @@ def _lock_key(ctx: MailboxRuntimeContext, kind: str) -> str:
 
 def _sync_with_runtime_guard(
     kind: str,
-    runner: Callable[[MailboxRuntimeContext], dict[str, Any]],
+    runner: Callable[..., dict[str, Any]],
     *,
     ctx: MailboxRuntimeContext | None = None,
     force: bool = False,
     cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS,
+    limite: int | None = None,
+    incremental_only: bool = True,
 ) -> dict[str, Any]:
     runtime = ctx or mailbox_context_for_current_request()
     key = _lock_key(runtime, kind)
@@ -410,7 +425,12 @@ def _sync_with_runtime_guard(
     if not acquired:
         return {"ok": True, "skipped": True, "reason": "already_running", "result": {}}
     try:
-        result = runner(runtime)
+        kwargs: dict[str, Any] = {}
+        if limite is not None:
+            kwargs["limite"] = max(1, int(limite))
+        if incremental_only:
+            kwargs["incremental_only"] = True
+        result = runner(runtime, **kwargs)
         return {"ok": bool(result.get("ok", False)), "skipped": False, "reason": "", "result": result}
     finally:
         with _STATE_LOCK:
@@ -418,19 +438,61 @@ def _sync_with_runtime_guard(
         lock.release()
 
 
-def sync_pec_for_current_context(*, force: bool = False, cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS) -> dict[str, Any]:
-    return _sync_with_runtime_guard("pec", run_pec_mailbox_sync, force=force, cooldown_seconds=cooldown_seconds)
+def sync_pec_for_current_context(
+    *,
+    force: bool = False,
+    cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS,
+    limite: int | None = None,
+    incremental_only: bool = True,
+) -> dict[str, Any]:
+    return _sync_with_runtime_guard(
+        "pec",
+        run_pec_mailbox_sync,
+        force=force,
+        cooldown_seconds=cooldown_seconds,
+        limite=limite,
+        incremental_only=incremental_only,
+    )
 
 
-def sync_ordinary_for_current_context(*, force: bool = False, cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS) -> dict[str, Any]:
-    return _sync_with_runtime_guard("ordinary", run_ordinary_mailbox_sync, force=force, cooldown_seconds=cooldown_seconds)
+def sync_ordinary_for_current_context(
+    *,
+    force: bool = False,
+    cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS,
+    limite: int | None = None,
+    incremental_only: bool = True,
+) -> dict[str, Any]:
+    return _sync_with_runtime_guard(
+        "ordinary",
+        run_ordinary_mailbox_sync,
+        force=force,
+        cooldown_seconds=cooldown_seconds,
+        limite=limite,
+        incremental_only=incremental_only,
+    )
 
 
-def sync_mailboxes_for_current_context(*, force: bool = False, cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS) -> dict[str, Any]:
+def sync_mailboxes_for_current_context(
+    *,
+    force: bool = False,
+    cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS,
+    limite: int | None = None,
+    incremental_only: bool = True,
+) -> dict[str, Any]:
     return {
         "ok": True,
-        "pec": sync_pec_for_current_context(force=force, cooldown_seconds=cooldown_seconds),
-        "ordinary": sync_ordinary_for_current_context(force=force, cooldown_seconds=cooldown_seconds),
+        "pec": sync_pec_for_current_context(
+            force=force,
+            cooldown_seconds=cooldown_seconds,
+            limite=limite,
+            incremental_only=incremental_only,
+        ),
+        "ordinary": sync_ordinary_for_current_context(
+            force=force,
+            cooldown_seconds=cooldown_seconds,
+            limite=limite,
+            incremental_only=incremental_only,
+        ),
     }
 
 
@@ -440,10 +502,28 @@ def sync_mailboxes_for_paths(
     tenant_label: str = "default",
     force: bool = False,
     cooldown_seconds: float = DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS,
+    limite: int | None = None,
+    incremental_only: bool = True,
 ) -> dict[str, Any]:
     ctx = mailbox_context_from_paths(data_paths, tenant_label=tenant_label)
     return {
         "ok": True,
-        "pec": _sync_with_runtime_guard("pec", run_pec_mailbox_sync, ctx=ctx, force=force, cooldown_seconds=cooldown_seconds),
-        "ordinary": _sync_with_runtime_guard("ordinary", run_ordinary_mailbox_sync, ctx=ctx, force=force, cooldown_seconds=cooldown_seconds),
+        "pec": _sync_with_runtime_guard(
+            "pec",
+            run_pec_mailbox_sync,
+            ctx=ctx,
+            force=force,
+            cooldown_seconds=cooldown_seconds,
+            limite=limite,
+            incremental_only=incremental_only,
+        ),
+        "ordinary": _sync_with_runtime_guard(
+            "ordinary",
+            run_ordinary_mailbox_sync,
+            ctx=ctx,
+            force=force,
+            cooldown_seconds=cooldown_seconds,
+            limite=limite,
+            incremental_only=incremental_only,
+        ),
     }

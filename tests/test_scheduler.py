@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from flask import Flask
 
 from pct.scheduler import start_scheduler
@@ -34,6 +36,172 @@ def test_local_ai_maintenance_salta_su_runtime_cloud_hosted(monkeypatch):
         scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
         monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
+
+
+def test_local_ai_maintenance_disabilitata_di_default_su_server(monkeypatch):
+    monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
+    monkeypatch.delenv("IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_LOCAL_AI_MAINTENANCE_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        job = scheduler.get_job("local_ai_maintenance")
+        assert job is not None
+
+        import pct.local_ai as local_ai_module
+
+        class ForbiddenLocalAIService:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("LocalAIService non deve partire senza opt-in esplicito")
+
+        monkeypatch.setattr(local_ai_module, "LocalAIService", ForbiddenLocalAIService)
+        result = job.func()
+
+        assert result["ok"] is True
+        assert result["status"] == "disabled_by_default"
+        assert result["totals"]["targets"] == 0
+    finally:
+        scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    calls: list[dict[str, object]] = []
+
+    import web.services.mailbox_sync_runtime as mailbox_runtime
+
+    def fake_sync_mailboxes_for_paths(
+        paths,
+        *,
+        tenant_label: str,
+        cooldown_seconds: float,
+        limite: int,
+        incremental_only: bool,
+    ):
+        calls.append(
+            {
+                "tenant_label": tenant_label,
+                "cooldown_seconds": cooldown_seconds,
+                "limite": limite,
+                "incremental_only": incremental_only,
+                "paths": paths,
+            }
+        )
+        return {
+            "ok": True,
+            "pec": {"ok": True, "skipped": False, "reason": "", "result": {"nuove": 1}},
+            "ordinary": {"ok": True, "skipped": False, "reason": "", "result": {"nuove": 2}},
+        }
+
+    monkeypatch.setattr(mailbox_runtime, "sync_mailboxes_for_paths", fake_sync_mailboxes_for_paths)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        IUSENTRA_MAILBOX_SYNC_AUTOMATIC_LIMIT=250,
+        EMAIL_CASELLA_DB=str(tmp_path / "email" / "casella.json"),
+        EMAIL_ORDINARIA_DB=str(tmp_path / "email" / "ordinaria.json"),
+        FASCICOLI_DB=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        FASCICOLI_DOCS=str(tmp_path / "fascicoli" / "documenti"),
+        FASCICOLI_ARCH=str(tmp_path / "fascicoli" / "archivio"),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        result = scheduler.get_job("mailbox_sync_runtime").func()
+
+        assert result["ok"] is True
+        assert result["automatic_limit"] == 100
+        assert result["incremental_only"] is True
+        assert calls
+        assert calls[0]["limite"] == 100
+        assert calls[0]["incremental_only"] is True
+        assert calls[0]["cooldown_seconds"] == 180.0
+    finally:
+        scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+def test_scheduler_polling_pec_cappa_finestre_automatiche(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    calls: dict[str, int] = {}
+
+    import pct.config_studio as config_studio_module
+    import pct.fascicoli as fascicoli_module
+    import pct.polling_depositi as polling_module
+
+    class FakeFascicoli:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class FakeConfigStudio:
+        config = SimpleNamespace(
+            pec=SimpleNamespace(
+                imap_host="imap.example.test",
+                imap_port=993,
+                indirizzo="studio@example.test",
+                password="secret",
+                use_ssl=True,
+            )
+        )
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+    def fake_esegui_polling(*, giorni_indietro: int, **_kwargs):
+        calls["depositi"] = giorni_indietro
+        return {"controllati": 0, "aggiornati": 0, "errori": 0}
+
+    def fake_poll_cancelleria_pec(*, giorni_indietro: int, **_kwargs):
+        calls["cancelleria"] = giorni_indietro
+        return {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+
+    monkeypatch.setattr(fascicoli_module, "GestioneFascicoli", FakeFascicoli)
+    monkeypatch.setattr(config_studio_module, "GestioneConfigStudio", FakeConfigStudio)
+    monkeypatch.setattr(polling_module, "esegui_polling", fake_esegui_polling)
+    monkeypatch.setattr(polling_module, "poll_cancelleria_pec", fake_poll_cancelleria_pec)
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_db.parent.mkdir(parents=True)
+    fascicoli_db.write_text("[]", encoding="utf-8")
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        FASCICOLI_DB=str(fascicoli_db),
+        FASCICOLI_DOCS=str(tmp_path / "fascicoli" / "documenti"),
+        FASCICOLI_ARCH=str(tmp_path / "fascicoli" / "archivio"),
+        STUDIO_CONFIG=str(tmp_path / "config" / "studio.json"),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+        IUSENTRA_DEPOSIT_POLL_DAYS=30,
+        IUSENTRA_PEC_CANCELLERIA_POLL_DAYS=30,
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        scheduler.get_job("polling_esiti_deposito").func()
+        scheduler.get_job("poll_pec_cancelleria").func()
+
+        assert calls == {"depositi": 7, "cancelleria": 7}
+    finally:
+        scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
 def test_start_scheduler_rispetta_flag_disable(monkeypatch):
@@ -215,12 +383,15 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
             "newest_sort_key": "2026-06-25T12:00:00Z",
         }
 
+    worker_calls: list[dict[str, int]] = []
+
     def fake_workers(paths, *, tenant_label: str, limit: int, document_presidio_limit: int):
+        worker_calls.append({"limit": limit, "document_presidio_limit": document_presidio_limit})
         return {
             "processed": 2,
             "failed": 0,
             "jobs": [],
-            "document_presidio": {"checked_fascicoli": 1, "checked_documents": 2, "errors": 0},
+            "document_presidio": {"skipped_service": True, "reason": "budget_scheduler_esaurito", "limit": 0},
             "auto_deadline_notifications": {"created": 1, "errors": 0},
         }
 
@@ -252,6 +423,8 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
         assert result["totals"]["scanned"] == 1
         assert result["totals"]["processed_jobs"] == 2
         assert result["totals"]["errors"] == 0
+        assert result["document_presidio_limit"] == 0
+        assert worker_calls == [{"limit": 20, "document_presidio_limit": 0}]
         assert result["tenants"][0]["acquired"]["cursor_saved"] is True
     finally:
         if scheduler is not None:

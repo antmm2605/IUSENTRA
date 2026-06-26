@@ -1378,6 +1378,7 @@ class GestioneEmailRicevute:
         cartelle_imap: Optional[List[str]] = None,
         limite: int = 50,
         timeout_seconds: int | None = None,
+        incremental_only: bool = False,
     ) -> dict:
         """
         Scarica le email più recenti via IMAP e le salva nel database locale.
@@ -1394,6 +1395,7 @@ class GestioneEmailRicevute:
             "testi_corretti": 0,
             "duplicati_rimossi": 0,
             "riconnessioni_imap": 0,
+            "scan_mode": "incremental_new_only" if incremental_only else "manual_window_with_repair",
             "errore": "",
         }
         cartelle_imap = cartelle_imap or ["INBOX"]
@@ -1509,22 +1511,24 @@ class GestioneEmailRicevute:
                         continue
 
                     uid_list_all = sorted(uid_list_all, key=self._imap_token_sort_key)
-                    finestra_sync = max(int(limite or 0), 500)
+                    finestra_sync = max(1, int(limite or 50)) if incremental_only else max(int(limite or 0), 500)
                     uid_list = uid_list_all[-finestra_sync:]
 
                     # Le PEC storiche gia' presenti ma senza file allegati non devono
                     # restare fuori solo perche' non sono tra gli ultimi messaggi.
                     prefix_cartella = f"{cartella_imap}:"
-                    uid_da_riparare = [
-                        uid_key.rsplit(":", 1)[1]
-                        for uid_key, em_storica in email_per_uid.items()
-                        if uid_key.startswith(prefix_cartella)
-                        and uid_key.rsplit(":", 1)[1] in uid_list_all
-                        and (
-                            self._email_ha_allegati_da_salvare(em_storica)
-                            or self._email_ha_testo_da_riparare(em_storica)
-                        )
-                    ]
+                    uid_da_riparare = []
+                    if not incremental_only:
+                        uid_da_riparare = [
+                            uid_key.rsplit(":", 1)[1]
+                            for uid_key, em_storica in email_per_uid.items()
+                            if uid_key.startswith(prefix_cartella)
+                            and uid_key.rsplit(":", 1)[1] in uid_list_all
+                            and (
+                                self._email_ha_allegati_da_salvare(em_storica)
+                                or self._email_ha_testo_da_riparare(em_storica)
+                            )
+                        ]
                     uid_list = list(dict.fromkeys(uid_list + uid_da_riparare))
 
                     for uid in reversed(uid_list):
@@ -2276,6 +2280,7 @@ def sincronizza_pec_e_fascicoli(
     state_path: str = "",
     giorni_indietro: int = 30,
     limite: int = 100,
+    incremental_only: bool = True,
 ) -> dict:
     """
     Sincronizza la casella PEC e aggiorna fascicoli e comunicazioni di cancelleria
@@ -2298,6 +2303,7 @@ def sincronizza_pec_e_fascicoli(
         cartelle_imap=cartelle_imap_standard(),
         limite=limite,
         timeout_seconds=timeout_s,
+        incremental_only=incremental_only,
     )
     auto_log = aggiorna_esiti_da_email(
         gestione_email,

@@ -103,6 +103,9 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "FORCE_RESTART" in contenuto
     assert "iusentra-local-signer://restart" in contenuto
     assert "iusentra-local-signer://update" in contenuto
+    assert 'set "ARGS=%*"' in contenuto
+    assert 'echo %ARGS% | find /I "--force"' in contenuto
+    assert 'echo %~1 | find /I "iusentra-local-signer://restart"' not in contenuto
     assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in contenuto
     assert "/polisWeb/local-signer/setup/windows" in contenuto
     assert "Copy-OrDownloadFile" not in contenuto

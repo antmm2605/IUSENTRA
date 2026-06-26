@@ -1,5 +1,5 @@
 # IUSENTRA Local Signer Setup v1.6.80
-# Pacchetto generato il 2026-06-25 09:26:08
+# Pacchetto generato il 2026-06-26 10:03:43
 # Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma
 
 # IUSENTRA Local Signer - Installazione locale Windows
@@ -418,12 +418,14 @@ set "IUSENTRA_LOCAL_SIGNER_UPDATE_URL=__UPDATE_INSTALLER_URL__"
 set "FORCE_RESTART=0"
 set "SILENT_MODE=0"
 set "UPDATE_MODE=0"
+set "ARGS=%*"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
 if /I "%~1"=="--update" set "UPDATE_MODE=1"
-echo %~1 | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
-echo %~1 | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_MODE=1"
+echo %ARGS% | find /I "--force" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %ARGS% | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %ARGS% | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_MODE=1"
 
 if "%UPDATE_MODE%"=="1" goto :update
 

@@ -101,6 +101,35 @@ def test_run_lex_dataset_nightly_compare_console_superadmin(tmp_path: Path):
     assert (studio_root / "intelligence" / "lex_dataset" / "studio-rossi" / "manifest.json").exists()
 
 
+def test_run_lex_dataset_nightly_salva_fingerprint_e_salta_sorgente_invariata(tmp_path: Path, monkeypatch):
+    studio_root = tmp_path / "studio"
+    source = studio_root / "fascicoli" / "documenti_ai" / "documenti_ai.json"
+    _write_document_ai_json(source, tenant_id="studio-rossi")
+    cfg = {
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+        "FASCICOLI_DB": str(studio_root / "fascicoli" / "fascicoli.json"),
+        "IUSENTRA_LEX_DATASET_EXPORT_PENDING_REVIEW": "1",
+    }
+
+    first = run_lex_dataset_nightly(config=cfg)
+    assert first["completed"] == 1
+    assert (studio_root / "intelligence" / "lex_dataset" / "source_index.json").exists()
+
+    def fail_load(*_args, **_kwargs):
+        raise AssertionError("documenti_ai.json invariato non deve essere riletto dal job notturno")
+
+    monkeypatch.setattr("lex.dataset.nightly.load_document_ai_json_documents", fail_load)
+
+    second = run_lex_dataset_nightly(config=cfg)
+
+    assert second["ok"] is True
+    assert second["completed"] == 0
+    assert second["skipped_unchanged"] == 1
+    assert second["jobs"][0]["status"] == "skipped_unchanged"
+    assert second["jobs"][0]["scan_mode"] == "source_unchanged_skip"
+    assert second["documents_count"] == 1
+
+
 def test_run_lex_dataset_nightly_scrive_chunk_sensibili_solo_in_locale(tmp_path: Path):
     studio_root = tmp_path / "studio"
     _write_document_ai_json(

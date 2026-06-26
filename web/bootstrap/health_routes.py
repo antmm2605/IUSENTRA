@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 import os
+from zoneinfo import ZoneInfo
 
 from flask import Flask, current_app, jsonify
 from pct import __version__ as APP_VERSION
@@ -12,6 +13,12 @@ from pct import __version__ as APP_VERSION
 from core.health import dependencies_payload, live_payload, ready_payload
 from core.metrics import prometheus_payload
 from web.services.observability_runtime import build_observability_payload
+
+ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _now_rome_iso() -> str:
+    return datetime.now(ROME_TZ).isoformat(timespec="seconds")
 
 
 def _runtime_storage_root() -> str:
@@ -39,7 +46,8 @@ def register_health_routes(
                     "ok": True,
                     "stato": "pronto",
                     "versione": APP_VERSION,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": _now_rome_iso(),
+                    "timezone": "Europe/Rome",
                 }
             ),
             200,
@@ -47,7 +55,7 @@ def register_health_routes(
 
     @app.route("/api/health")
     def api_health():
-        stato = {"ok": True, "timestamp": datetime.now().isoformat(), "moduli": {}}
+        stato = {"ok": True, "timestamp": _now_rome_iso(), "timezone": "Europe/Rome", "moduli": {}}
         try:
             gc = get_clienti()
             stato["moduli"]["clienti"] = {"ok": True, "totale": gc.statistiche()["totale"]}

@@ -1,6 +1,7 @@
 name: iusentra
 
 x-iusentra-env: &iusentra-env
+  TZ: ${TZ:-Europe/Rome}
   PCT_HTTPS: "true"
   PCT_DATA_ROOT: /data
   PCT_MULTI_TENANT: "1"

@@ -21,7 +21,7 @@ def _bash_path(path: Path) -> str:
     pytest.skip("conversione path bash non disponibile")
 
 
-def test_backup_script_applica_tetto_spazio_e_compressione_alta():
+def test_backup_script_applica_tetto_spazio_e_budget_server():
     script = (REPO_ROOT / "deploy" / "hetzner" / "backup.sh").read_text(encoding="utf-8")
 
     assert "IUSENTRA_BACKUP_RETENTION_MAX_GIB" in script
@@ -29,6 +29,14 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
     assert "RETENTION_MAX_COUNT=3" in script
     assert "prune_by_total_size" in script
     assert "IUSENTRA_BACKUP_ZSTD_LEVEL" in script
+    assert "IUSENTRA_BACKUP_ZSTD_THREADS" in script
+    assert "IUSENTRA_BACKUP_NICE" in script
+    assert "IUSENTRA_BACKUP_IONICE_CLASS" in script
+    assert "IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT" in script
+    assert "IUSENTRA_BACKUP_MIN_FREE_GIB" in script
+    assert "ensure_backup_free_space" in script
+    assert "low_priority_command tar" in script
+    assert "low_priority_command zstd" in script
     assert "IUSENTRA_BACKUP_EXCLUDE_PATHS" in script
     assert "BACKUP_EXCLUDE_PATHS:-./ollama" in script
     assert "MANDATORY_REGENERABLE_EXCLUDES" in script
@@ -39,7 +47,9 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
     assert "cleanup_incomplete_backup" in script
     assert 'OUT="${FINAL_OUT}.tmp"' in script
     assert "mv -f -- \"$OUT\" \"$FINAL_OUT\"" in script
-    assert "zstd -T0" in script
+    assert "zstd -T0" not in script
+    assert 'zstd -T"${ZSTD_THREADS}"' in script
+    assert 'ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-6}}"' in script
     assert "--long=" in script
     assert "source \"$ENV_FILE\"" in script
     assert "run_tar_zstd_backup" in script
@@ -59,7 +69,12 @@ def test_env_hetzner_documenta_guardrail_backup():
     assert "IUSENTRA_BACKUP_RETENTION_COUNT=3" in env_example
     assert "IUSENTRA_BACKUP_RETENTION_MAX_GIB=8" in env_example
     assert "IUSENTRA_BACKUP_RETENTION_MIN_COUNT=2" in env_example
-    assert "IUSENTRA_BACKUP_ZSTD_LEVEL=19" in env_example
+    assert "IUSENTRA_BACKUP_ZSTD_LEVEL=6" in env_example
+    assert "IUSENTRA_BACKUP_ZSTD_THREADS=2" in env_example
+    assert "IUSENTRA_BACKUP_NICE=19" in env_example
+    assert "IUSENTRA_BACKUP_IONICE_CLASS=3" in env_example
+    assert "IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT=65" in env_example
+    assert "IUSENTRA_BACKUP_MIN_FREE_GIB=4" in env_example
     assert "IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27" in env_example
     assert "IUSENTRA_BACKUP_EXCLUDE_PATHS=./ollama,./intelligence/downloads/ollama,./tenants/*/intelligence/downloads/ollama" in env_example
 

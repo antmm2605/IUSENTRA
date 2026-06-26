@@ -2480,3 +2480,95 @@ Aggiornamento prova reale locale 26/06/2026, ore 02:14 Europe/Rome:
 - verifica responsive reale con viewport `1280x900`, `768x900` e `390x844`: nessun overflow orizzontale, testi lunghi leggibili, badge e controlli non tagliati, console browser senza errori.
 
 Stato ancora aperto prima della chiusura globale: commit/push dei branch gemelli, check GitHub/CodeQL, deploy Hetzner, applicazione ricatalogazione e reset/backfill importi su produzione, verifica `https://app.iusentra.it/api/pronto` e prova server con fascicoli reali.
+
+## Prova reale deposito PCT Vicenza e controllo conformità tecnica - 2.253.121 - 2026-06-26
+
+Richiesta utente: verificare sul fascicolo reale `795C50AC` che il deposito non ripeta l'errore ministeriale `Indice busta non trovato`, che gli allegati non obbligatori non vengano firmati a forza, che `Simula invio PEC` produca lo stesso pacchetto dell'invio reale senza spedire la PEC e che `Invia deposito reale` resti attivo solo dopo controlli conformi.
+
+Fonti ufficiali controllate:
+
+- PST Ministero della Giustizia, `Specifiche Tecniche ex art. 34 DM 44/2011 - Provvedimento 7 agosto 2024`, efficace dal `30/09/2024`;
+- provvedimento DGSIA `m_dg.DOG07.07/08/2024.0004292.ID`, che disciplina PST, PEC ministeriali, CAdES, PAdES, PKCS#11, certificati, log PEC e catalogo servizi telematici;
+- articolo 4 del provvedimento: gli uffici giudiziari usano caselle PEC del sottodominio ministeriale e la codifica uffici/PEC è nel catalogo servizi telematici;
+- articolo 17 del provvedimento: per le trasmissioni telematiche si usano algoritmi di cifratura asimmetrica e chiavi di sessione; nel flusso IUSENTRA questo è presidiato da `Atto.msg` cifrato in `Atto.enc` CMS/PKCS#7 `EnvelopedData` con AES256 e certificato PST dell'ufficio.
+
+Prova reale server su Chrome installato, non browser integrato Codex:
+
+- URL verificato: `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#generazione-busta`;
+- fascicolo: `2026/332 - Marchetti Lucia`, ufficio `Tribunale di Vicenza`, PEC `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- pagina React autenticata, nessun fallback legacy e nessun HTML grezzo;
+- `Autocertificazione ricorso.PDF` e `Autocertificazione situazione reddituale.PDF` sono mostrati come `Allegato di prova - Firma non necessaria`, non più come documenti da firmare in lotto;
+- `Firma` mostra `0 documenti da firmare`; `Ricorso.pdf.p7m` resta `atto principale` firmato e `Procura.PDF.p7m` resta `Procura alle liti` firmata;
+- `Simula invio PEC` ha chiesto il PIN solo per firmare `DatiAtto.xml` in `DatiAtto.xml.p7m`, non per rifirmare allegati già firmati o allegati facoltativi;
+- esito UI reale: `Simulazione PEC completata senza invio reale: compatibilità 100%`;
+- controlli UI verdi: `Atto.enc ministeriale AES256`, `DatiAtto.xml.p7m firmato`, `IndiceBusta.xml ministeriale`, `IndiceDocumentiDepositati.PDF`, `Atto principale e allegati controllati`, `PEC ufficio giudiziario`, `Oggetto PEC deposito`, `Corpo PEC verificabile`;
+- report UI: `Controlli software superati: destinatario PEC, indice, documenti, testo e trasporto risultano pronti per l'invio reale`;
+- `Invia deposito reale` risulta attivo dopo la simulazione;
+- nessuna PEC reale è stata inviata durante la prova;
+- screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-795C50AC-simula-pec-compatibilita-100.png`.
+
+Confronto tecnico con i requisiti ministeriali PCT/SICID:
+
+- destinatario PEC: conforme sul caso provato perché usa PEC ministeriale dell'ufficio da profilo deposito SQL/catalogo;
+- busta: conforme sul caso provato perché `Atto.enc` è generato come contenitore CMS/PKCS#7 `EnvelopedData`, non come file base64 fittizio o allegato non crittografato;
+- cifratura: conforme sul caso provato perché il report tecnico indica AES256 con certificato PST;
+- indice busta: conforme sul caso provato perché `IndiceBusta.xml` è generato e incluso in `Atto.msg`; questo presidia direttamente l'errore reale ricevuto `Indice busta non trovato`;
+- metadati atto: conforme sul caso provato perché `DatiAtto.xml` viene firmato CAdES in `DatiAtto.xml.p7m` prima della generazione finale;
+- indice documenti: conforme sul caso provato perché `IndiceDocumentiDepositati.PDF` è generato, incluso e visualizzabile;
+- corpo PEC: conforme sul caso provato perché richiama `Atto.enc` e l'elenco dei documenti contenuti;
+- firma documenti: conforme sul caso provato perché la UI mostra `Firmato` solo per `.p7m` verificati e non forza firme facoltative sugli allegati;
+- invio PEC: conforme alla regola operativa IUSENTRA perché resta dal PC locale tramite Local Signer; il server prepara e controlla, ma non diventa canale SMTP reale.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_busta.py::test_busta_contiene_indice_busta_ministeriale tests/test_busta.py::test_busta_reale_usa_dati_atto_firmato_nell_indice_busta tests/test_busta.py::test_audit_busta_blocca_prima_della_generazione_reale tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_local_pec_runtime.py::test_payload_local_pec_rifiuta_atto_enc_non_cms tests/test_local_pec_runtime.py::test_payload_local_pec_include_atto_enc_cms_base64 tests/test_deposito_server_dry_run_audit.py::test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invio_reale tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q` -> `8 passed`;
+- prova reale Chrome: compatibilità `100%`, nessun errore `Firma multipla da completare`, nessun `ComputeSignature`, nessun `Local Signer non raggiungibile`, nessuna autenticazione SMTP richiesta nella simulazione e nessuna PEC reale inviata.
+
+Correzione collegata:
+
+- durante la prova è emerso che il browser integrato Codex blocca `127.0.0.1:27272`/`localhost:27272` con `ERR_BLOCKED_BY_CLIENT`; Chrome installato invece raggiunge correttamente Local Signer e token CNS;
+- il template di avvio Local Signer in `web/services/telematico_runtime.py` ora valuta tutti gli argomenti (`%*`) e non solo `%~1`, così `--background --force` e `iusentra-local-signer://restart` riallineano davvero il processo quando il token è presente ma il signer attivo non è aggiornato.
+
+Stato operativo: sul caso reale `795C50AC` la conformità tecnica del pacchetto PCT/SICID è verificata documento per documento nella simulazione senza invio PEC reale. La dichiarazione non sostituisce una valutazione legale dell'atto processuale o della strategia difensiva: certifica il comportamento tecnico del software rispetto ai requisiti ministeriali verificabili nel pacchetto generato.
+## Notifiche legali L. 53/1994: controllo invio, relata e allegati EML - 2.253.122 - 2026-06-26
+
+Richiesta utente: verificare che `https://app.iusentra.it/notifiche-legali` tratti correttamente la notifica PEC, senza invii automatici dal server, con relata firmata solo da prova tecnica e con allegati `.eml` inviabili quando scelti dall'avvocato ma non proposti automaticamente come atti da notificare.
+
+Fonti ufficiali operative:
+
+- L. 21 gennaio 1994 n. 53, art. 3-bis: notifica a mezzo PEC dell'avvocato, oggetto obbligatorio, relata su documento informatico separato e firma digitale;
+- D.L. 179/2012, art. 16-ter: uso dei pubblici elenchi per indirizzi PEC;
+- regola IUSENTRA permanente: invio PEC legale dal PC locale tramite Local Signer/servizio locale, non SMTP server-side.
+
+Correzione applicata:
+
+- la proposta automatica dei `Documenti da notificare` seleziona solo file notificabili come atto/documento principale: `.pdf`, `.pdfa`, `.p7m`;
+- i file `.eml` e `.msg` non entrano più automaticamente nella proposta documenti, così ricevute, richieste pagamento e messaggi PEC non vengono scambiati per atti principali;
+- gli `.eml` e `.msg` scelti volontariamente dall'avvocato restano però allegati inviabili nella PEC di notifica;
+- il validatore L. 53 accetta `.pdf`, `.pdfa`, `.p7m`, `.eml` e `.msg`, e continua a bloccare estensioni estranee;
+- il pulsante `Invia PEC` resta disabilitato finché il controllo relata non è superato e finché mancano requisiti obbligatori: avvocato abilitato, PEC notificante validata, PEC destinatario da pubblico elenco, relata separata, relata firmata con prova CAdES/PAdES, ricevuta completa, approvazione finale e allegati ammessi;
+- la UI mostra il motivo del blocco nel titolo/stato del pulsante invece di lasciare un invito ambiguo all'invio.
+
+Prova reale eseguita prima della correzione su Chrome installato in produzione:
+
+- pagina React aperta su `https://app.iusentra.it/notifiche-legali`, autenticata come studio reale, senza fallback legacy;
+- selezionata pratica `2026/332 - Marchetti c. MIM`;
+- il controllo `Controlla relata` ha mostrato oggetto PEC vincolato `notificazione ai sensi della legge n. 53 del 1994`, ricevuta completa, relata separata e blocchi puntuali prima dell'invio;
+- blocchi osservati: avvocato abilitato/PEC mittente/PEC destinatario da pubblico elenco/relata firmata/dati procedimento, quindi nessuna notifica poteva essere considerata valida;
+- nessuna PEC reale è stata inviata.
+
+Guardrail automatici eseguiti:
+
+- `python -m pytest tests/test_notifiche_legali.py::test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto tests/test_notifiche_legali.py::test_api_react_notifiche_legali_espone_workflow_separati tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q` -> `3 passed`;
+- `pnpm --filter @iusentra/studio typecheck` -> verde;
+- `pnpm --filter @iusentra/studio build:vite` -> verde; gli asset hashati locali sono stati puliti perché Docker/Hetzner ricompila il bundle React dal sorgente.
+
+Stato: la regola funzionale richiesta è ora nel sorgente e nei test. Resta da verificare visivamente su `https://app.iusentra.it/notifiche-legali` dopo deploy del commit, perché la produzione serve il bundle generato in Docker.
+
+Aggiornamento ulteriore richiesto il 2026-06-26:
+
+- l'attestazione di conformità non viene più trattata come testo opzionale generico: quando un documento da notificare proviene dal fascicolo informatico, da comunicazione di cancelleria o da scansione analogica, IUSENTRA genera nel payload anche `Attestazione_conformita_<pratica>.pdf` come allegato operativo della PEC, oltre al blocco di attestazione nella relata;
+- la PEC `.eml` dell'ufficio resta evidenza del rilascio/comunicazione, non sostituisce il documento scaricato dal portale che deve essere notificato;
+- il nome avvocato viene normalizzato: se il profilo contiene già `Avv. Giuseppe Montagnese`, la relata stampa `Io sottoscritto Avv. Giuseppe Montagnese`, non `Avv. Avv.`;
+- il blocco procedimento non stampa più campi vuoti: niente `Sezione ,` quando la sezione manca e niente `R.G. n. /2026`; se il numero RG non è nella colonna dedicata, viene derivato da `RG 466/2023` presente nel numero/label della pratica;
+- test mirati aggiunti: normalizzazione avvocato/procedimento, derivazione RG da numero fascicolo, `.eml` ammessi ma non autoproposti, attestazione automatica lato React.

@@ -1,5 +1,6 @@
 ﻿import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 from flask import g
@@ -193,8 +194,13 @@ def test_create_app_applies_runtime_overrides_and_registers_blueprints(tmp_path:
     assert "PCT_SCHEDULER" not in app.config
 
 
-def test_create_app_portale_runtime_paths_seguono_data_root(tmp_path: Path):
+def test_create_app_portale_runtime_paths_seguono_data_root(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
+    monkeypatch.delenv("PCT_DATA_ROOT", raising=False)
+    monkeypatch.delenv("IUSENTRA_DATA_DIR", raising=False)
+    monkeypatch.delenv("PCT_PORTALE_DB", raising=False)
+    monkeypatch.delenv("PCT_PORTALE_UPLOADS", raising=False)
+    monkeypatch.delenv("PCT_PORTALE_IMPORT_LOG_DB", raising=False)
     cfg = _cfg_web(tmp_path)
     cfg.pop("PORTALE_DB")
     cfg.pop("PORTALE_UPLOADS")
@@ -212,6 +218,8 @@ def test_create_app_email_ordinaria_deriva_da_email_db_runtime(tmp_path: Path, m
     cfg.pop("EMAIL_CASELLA_DB")
     cfg.pop("EMAIL_ORDINARIA_DB")
     email_db = tmp_path / "runtime" / "email" / "casella.json"
+    monkeypatch.delenv("PCT_DATA_ROOT", raising=False)
+    monkeypatch.delenv("IUSENTRA_DATA_DIR", raising=False)
     monkeypatch.setenv("PCT_EMAIL_DB", str(email_db))
     monkeypatch.delenv("PCT_EMAIL_ORDINARIA_DB", raising=False)
 
@@ -406,6 +414,8 @@ def test_api_pronto_restituisce_subito_stato_pronto(tmp_path: Path):
     assert payload["ok"] is True
     assert payload["stato"] == "pronto"
     assert payload["versione"] == APP_VERSION
+    assert payload["timezone"] == "Europe/Rome"
+    assert datetime.fromisoformat(payload["timestamp"]).tzinfo is not None
 
 
 def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
@@ -898,8 +908,14 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
 
 def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():
     compose = (REPO_ROOT / "deploy/hetzner/docker-compose.hetzner.yml").read_text(encoding="utf-8")
+    env_example = (REPO_ROOT / "deploy/hetzner/env.hetzner.example").read_text(encoding="utf-8")
     deploy_script = (REPO_ROOT / "deploy/hetzner/deploy.sh").read_text(encoding="utf-8")
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
+    assert "TZ: ${TZ:-Europe/Rome}" in compose
+    assert "TZ=Europe/Rome" in env_example
+    assert "tzdata" in dockerfile
+    assert "ENV TZ=Europe/Rome" in dockerfile
     assert "PCT_EMAIL_DB: /data/email/casella.json" in compose
     assert "PCT_EMAIL_ORDINARIA_DB: /data/email/ordinaria.json" in compose
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}" in compose

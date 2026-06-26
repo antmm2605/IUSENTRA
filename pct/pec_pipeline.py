@@ -262,6 +262,7 @@ CREATE INDEX IF NOT EXISTS idx_pec_local_items_email ON pec_local_acquire_items(
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_message ON pec_local_acquire_items(tenant_id, message_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_deadline ON pec_local_acquire_items(tenant_id, deadline_status, due_date);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_pec_audit_action_resource ON pec_audit_log(tenant_id, action, resource_type, resource_id);
 """
 
 
@@ -4291,6 +4292,12 @@ def _document_presidio_message_id(*, fascicolo_id: str, document_id: str, kind: 
     return re.sub(r"[^A-Za-z0-9_.:-]+", "_", raw)[:180]
 
 
+def _document_presidio_checked_resource_id(*, fascicolo_id: str, document_id: str, sha256: str) -> str:
+    fingerprint = sha256 or document_id
+    raw = f"{fascicolo_id}|{document_id}|{fingerprint}".encode("utf-8", errors="replace")
+    return f"docpresidio:{hashlib.sha256(raw).hexdigest()[:32]}"
+
+
 def _document_presidio_activity_label(candidate: dict[str, Any], *, kind: str) -> str:
     context = clean_text(candidate.get("context") or "", 520).lower()
     label = clean_text(candidate.get("label") or "", 120).lower()
@@ -5491,6 +5498,75 @@ class PecAuditRepository:
         except Exception:
             return False
 
+    def _document_presidio_checked_resource_ids(self) -> set[str]:
+        """Documenti fascicolo gia' analizzati dal presidio Lex automatico."""
+
+        try:
+            with self.connect() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT resource_id
+                    FROM pec_audit_log
+                    WHERE tenant_id=?
+                      AND action='pec.document_presidio.checked'
+                      AND resource_type='fascicolo_documento'
+                    """,
+                    (self.tenant_id,),
+                ).fetchall()
+        except Exception:
+            return set()
+        return {clean_text(row["resource_id"], 180) for row in rows if clean_text(row["resource_id"], 180)}
+
+    def _append_document_presidio_checked(
+        self,
+        *,
+        resource_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        document_ai_id: str,
+        filename: str,
+        sha256: str,
+        candidates: int,
+        actor: str,
+    ) -> None:
+        clean_resource = clean_text(resource_id, 180)
+        if not clean_resource:
+            return
+        try:
+            with self.connect() as conn:
+                existing = conn.execute(
+                    """
+                    SELECT 1
+                    FROM pec_audit_log
+                    WHERE tenant_id=?
+                      AND action='pec.document_presidio.checked'
+                      AND resource_type='fascicolo_documento'
+                      AND resource_id=?
+                    LIMIT 1
+                    """,
+                    (self.tenant_id, clean_resource),
+                ).fetchone()
+                if existing:
+                    return
+                self.append_audit(
+                    conn,
+                    action="pec.document_presidio.checked",
+                    resource_type="fascicolo_documento",
+                    resource_id=clean_resource,
+                    payload={
+                        "fascicolo_id": fascicolo_id,
+                        "document_id": document_id,
+                        "document_ai_id": document_ai_id,
+                        "filename": filename,
+                        "sha256": sha256,
+                        "candidates": int(candidates or 0),
+                        "scan_mode": "incremental_new_or_changed_only",
+                    },
+                    actor=actor,
+                )
+        except Exception:
+            pass
+
     def _document_presidio_existing_deadline(self, *, fascicolo_id: str, target_date: str, kind: str) -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {}
@@ -5588,6 +5664,8 @@ class PecAuditRepository:
         report: dict[str, Any] = {
             "checked_fascicoli": 0,
             "checked_documents": 0,
+            "new_or_changed_documents": 0,
+            "already_checked": 0,
             "indexed_documents": 0,
             "indexing_skipped": 0,
             "candidate_dates": 0,
@@ -5613,6 +5691,7 @@ class PecAuditRepository:
 
         user_context = {"user_id": actor, "skip_permission_check": True}
         today = datetime.now(ROME_TZ).date()
+        checked_resource_ids = self._document_presidio_checked_resource_ids()
         for fascicolo in fascicoli:
             fascicolo_id = str(getattr(fascicolo, "id", "") or "")
             if not fascicolo_id:
@@ -5628,10 +5707,28 @@ class PecAuditRepository:
                 report["checked_documents"] += len(sources)
                 if not sources:
                     continue
+                source_resource_ids = {
+                    id(source): _document_presidio_checked_resource_id(
+                        fascicolo_id=fascicolo_id,
+                        document_id=source.source_id or source.filename,
+                        sha256=source.sha256,
+                    )
+                    for source in sources
+                }
+                unchecked_sources = [
+                    source
+                    for source in sources
+                    if source_resource_ids.get(id(source)) not in checked_resource_ids
+                ]
+                already_checked = len(sources) - len(unchecked_sources)
+                report["already_checked"] += already_checked
+                report["new_or_changed_documents"] += len(unchecked_sources)
+                if not unchecked_sources:
+                    continue
                 indexing = service.process_lex_indexing_sources(
                     self.tenant_id,
                     fascicolo_id,
-                    sources,
+                    unchecked_sources,
                     user_context,
                     retry_errors=True,
                 )
@@ -5640,9 +5737,9 @@ class PecAuditRepository:
                 for warning in list(getattr(indexing, "errors", []) or [])[:5]:
                     report["errors"].append(f"{fascicolo_id}: {warning}")
                 records = service.list_fascicolo_documents(self.tenant_id, fascicolo_id, user_context)
-                source_by_sha = {source.sha256: source for source in sources if source.sha256}
-                source_by_name = {source.filename.casefold(): source for source in sources if source.filename}
-                source_by_name.update({source.safe_filename.casefold(): source for source in sources if source.safe_filename})
+                source_by_sha = {source.sha256: source for source in unchecked_sources if source.sha256}
+                source_by_name = {source.filename.casefold(): source for source in unchecked_sources if source.filename}
+                source_by_name.update({source.safe_filename.casefold(): source for source in unchecked_sources if source.safe_filename})
                 for record in records:
                     if str(getattr(record, "status", "") or "") != "ready":
                         continue
@@ -5663,8 +5760,22 @@ class PecAuditRepository:
                         continue
                     text = clean_text(getattr(extracted, "text", "") or "", 50000)
                     if not text:
+                        self._append_document_presidio_checked(
+                            resource_id=source_resource_ids.get(id(source), ""),
+                            fascicolo_id=fascicolo_id,
+                            document_id=source.source_id,
+                            document_ai_id=str(getattr(record, "id", "") or ""),
+                            filename=source.filename,
+                            sha256=str(getattr(record, "sha256", "") or source.sha256 or ""),
+                            candidates=0,
+                            actor=actor,
+                        )
+                        checked_resource = source_resource_ids.get(id(source), "")
+                        if checked_resource:
+                            checked_resource_ids.add(checked_resource)
                         continue
                     document_name = clean_text(source.filename or getattr(record, "original_filename", "") or "Documento fascicolo", 240)
+                    document_candidate_count = 0
                     seen_document_candidates: set[tuple[str, str, str]] = set()
                     for candidate in extract_procedural_dates({document_name: text}, plain_text=""):
                         kind = _procedural_date_kind(candidate)
@@ -5680,6 +5791,7 @@ class PecAuditRepository:
                             report["skipped"] += 1
                             continue
                         report["candidate_dates"] += 1
+                        document_candidate_count += 1
                         message_id = _document_presidio_message_id(
                             fascicolo_id=fascicolo_id,
                             document_id=source.source_id or str(getattr(record, "id", "") or ""),
@@ -5827,6 +5939,19 @@ class PecAuditRepository:
                                 pass
                         else:
                             report["skipped"] += 1
+                    self._append_document_presidio_checked(
+                        resource_id=source_resource_ids.get(id(source), ""),
+                        fascicolo_id=fascicolo_id,
+                        document_id=source.source_id,
+                        document_ai_id=str(getattr(record, "id", "") or ""),
+                        filename=document_name,
+                        sha256=str(getattr(record, "sha256", "") or source.sha256 or ""),
+                        candidates=document_candidate_count,
+                        actor=actor,
+                    )
+                    checked_resource = source_resource_ids.get(id(source), "")
+                    if checked_resource:
+                        checked_resource_ids.add(checked_resource)
             except Exception as exc:
                 report["errors"].append(f"{fascicolo_id}: {exc}")
         report["errors"] = list(report["errors"])[:30]

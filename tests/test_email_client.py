@@ -24,6 +24,7 @@ from pct.email_client import (
     aggiorna_comunicazioni_cancelleria_da_email,
     aggiorna_esiti_da_email,
     cartelle_imap_standard,
+    sincronizza_pec_e_fascicoli,
 )
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.runtime_resilience import clear_runtime_circuit_breakers
@@ -1515,7 +1516,11 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
 
         esito = client.get("/email/messaggio/MAIL-ATT-EML/allegato/1")
         assert esito.status_code == 200
-        assert esito.data == xml_bytes
+        assert esito.mimetype == "text/html"
+        assert "EsitoAtto" in esito.get_data(as_text=True)
+        esito_download = client.get("/email/messaggio/MAIL-ATT-EML/allegato/1?download=1")
+        assert esito_download.status_code == 200
+        assert esito_download.data == xml_bytes
 
 
 def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
@@ -1569,7 +1574,11 @@ def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
 
         inline = client.get("/email/messaggio/MAIL-ATT-MISSING-0/allegato/1")
         assert inline.status_code == 200
-        assert inline.data == contenuto
+        assert inline.mimetype == "text/html"
+        assert "EsitoAtto" in inline.get_data(as_text=True)
+        download = client.get("/email/messaggio/MAIL-ATT-MISSING-0/allegato/1?download=1")
+        assert download.status_code == 200
+        assert download.data == contenuto
 
 
 def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_path):
@@ -1851,6 +1860,105 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
     for idx in range(3):
         assert ge_reload.percorso_allegato(em, idx) is not None
     assert ge_reload.percorso_allegato(em, 0).read_bytes().startswith(b"%PDF")
+
+
+def test_sincronizza_imap_incrementale_non_espande_limite_a_500(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    fetched: list[str] = []
+    uid_blob = " ".join(str(i) for i in range(1, 601)).encode()
+
+    def _raw_message(uid: str) -> bytes:
+        msg = EmailMessage()
+        msg["Subject"] = f"Nuova email {uid}"
+        msg["From"] = "ufficio@example.it"
+        msg["To"] = "studio@example.it"
+        msg["Date"] = "Fri, 26 Jun 2026 10:15:00 +0200"
+        msg["Message-ID"] = f"<ordinary-{uid}@example.test>"
+        msg.set_content(f"Messaggio {uid}")
+        return msg.as_bytes()
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"600"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [uid_blob]
+            if command == "FETCH":
+                uid = str(args[0])
+                fetched.append(uid)
+                return "OK", [(f"{uid} (RFC822)".encode(), _raw_message(uid))]
+            return "NO", []
+
+        def search(self, charset, criteria):
+            raise AssertionError("Il sync incrementale deve usare UID SEARCH quando disponibile")
+
+        def fetch(self, uid, query):
+            raise AssertionError("Il sync incrementale deve usare UID FETCH quando disponibile")
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    ge = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))
+    report = ge.sincronizza_imap(
+        imap_host="imap.example.it",
+        imap_port=993,
+        username="studio@example.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=25,
+        incremental_only=True,
+    )
+
+    assert report["scan_mode"] == "incremental_new_only"
+    assert report["nuove"] == 25
+    assert len(fetched) == 25
+    assert fetched[0] == "600"
+    assert fetched[-1] == "576"
+
+
+def test_sincronizza_pec_e_fascicoli_default_incrementale(monkeypatch):
+    observed: dict[str, object] = {}
+
+    class FakeGestoreEmail:
+        def sincronizza_imap(self, **kwargs):
+            observed.update(kwargs)
+            return {"nuove": 0, "pst_trovate": 0, "allegati_salvati": 0, "errore": ""}
+
+    config = SimpleNamespace(
+        imap_host="imap.example.invalid",
+        imap_port=993,
+        indirizzo="studio@example.invalid",
+        password="segreta",
+        use_ssl=True,
+    )
+    monkeypatch.setattr("pct.email_client.aggiorna_esiti_da_email", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(
+        "pct.email_client.aggiorna_comunicazioni_cancelleria_da_email",
+        lambda *_args, **_kwargs: {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0},
+    )
+    monkeypatch.setattr(
+        "pct.polling_depositi.poll_cancelleria_pec",
+        lambda **_kwargs: {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0},
+    )
+
+    result = sincronizza_pec_e_fascicoli(
+        gestione_email=FakeGestoreEmail(),
+        gestione_fascicoli=SimpleNamespace(),
+        config_pec=config,
+        limite=25,
+    )
+
+    assert result["sync"]["errore"] == ""
+    assert observed["limite"] == 25
+    assert observed["incremental_only"] is True
 
 
 def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, monkeypatch):
@@ -2554,11 +2662,19 @@ def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
 
         xml_inline = client.get("/email/messaggio/MAIL-ATT-XML/allegato/0")
         assert xml_inline.status_code == 200
-        assert "xml" in (xml_inline.headers.get("Content-Type", "").lower())
+        assert xml_inline.mimetype == "text/html"
+        assert "daticert.xml" in xml_inline.get_data(as_text=True)
+        xml_download = client.get("/email/messaggio/MAIL-ATT-XML/allegato/0?download=1")
+        assert xml_download.status_code == 200
+        assert xml_download.data.replace(b"\r\n", b"\n") == b"<root>ok</root>\n"
 
         eml_inline = client.get("/email/messaggio/MAIL-ATT-XML/allegato/1")
         assert eml_inline.status_code == 200
-        assert eml_inline.headers.get("Content-Type", "").lower().startswith("text/plain")
+        assert eml_inline.mimetype == "text/html"
+        assert "Corpo PEC" in eml_inline.get_data(as_text=True)
+        eml_download = client.get("/email/messaggio/MAIL-ATT-XML/allegato/1?download=1")
+        assert eml_download.status_code == 200
+        assert eml_download.data.replace(b"\r\n", b"\n") == b"Subject: Test\n\nCorpo PEC\n"
 
 
 def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplicare(tmp_path):

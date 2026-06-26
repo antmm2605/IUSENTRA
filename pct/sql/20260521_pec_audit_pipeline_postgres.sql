@@ -210,3 +210,4 @@ CREATE INDEX IF NOT EXISTS idx_pec_local_items_email ON pec_local_acquire_items(
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_message ON pec_local_acquire_items(tenant_id, message_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_deadline ON pec_local_acquire_items(tenant_id, deadline_status, due_date);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_pec_audit_action_resource ON pec_audit_log(tenant_id, action, resource_type, resource_id);

@@ -1,5 +1,18 @@
 # Pytest shard confermati OK
 
+## Hetzner performance e backup 2.253.121 - 2026-06-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\bootstrap\health_routes.py web\services\structured_logging.py pct\scheduler.py web\services\mailbox_sync_runtime.py` | OK | Sintassi confermata per timestamp `Europe/Rome`, logging strutturato, scheduler e runtime sync mailbox dopo limite automatico e opt-in manutenzione AI. |
+| `python -m pytest tests\test_web_bootstrap.py::test_api_pronto_restituisce_subito_stato_pronto tests\test_web_bootstrap.py::test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale tests\test_structured_logging.py tests\test_hetzner_backup_retention.py tests\test_dashboard_mailbox_sync.py tests\test_scheduler.py tests\test_scheduler_worker.py tests\test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests\test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale -q --tb=short` | OK | `30/30` passati: `/api/pronto` espone timestamp con fuso `Europe/Rome`, log JSON convertono le 07:47 UTC in 09:47 italiane, backup Hetzner a budget server, template env aggiornato, sync mailbox con limite, Local AI maintenance disattivata di default, job core registrati e launcher Local Signer con parsing multi-argomento. |
+| `python -m pytest tests\test_notifiche_legali.py::test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto tests\test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q --tb=short` | OK | `2/2` passati: allegati notifica `.eml/.msg` ammessi solo come documenti espliciti e invio PEC React bloccato finché il controllo relata non è superato. |
+| `npm --prefix frontend run build` | OK | Typecheck TypeScript e build Vite completati; generati nuovi asset hashati React in `web/static/react` mantenendo gli asset precedenti come compatibilità cache (`emptyOutDir=false`). |
+| `python tools\build_dist.py` | OK | Rigenerati `SetupLocalSigner-1.6.80.exe`, `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.80.command`, `InstallaLocalSigner-1.6.80.run`, `InstallaLocalSigner-1.6.80.ps1` e note versione con launcher multi-argomento. |
+| `git diff --check` | OK | Nessun whitespace error; PowerShell segnala solo avvisi CRLF su file gia' tracciati. |
+| Docker locale reale `127.0.0.1:8080` | OK | Rebuild `--no-cache` completato; `app`, `scheduler-worker` e `ocr-worker` healthy su versione `2.253.121`; `/api/pronto` locale `ok=true`, `timestamp=2026-06-26T10:11:58+02:00`, `timezone=Europe/Rome`. Container `date`: `CEST`. Log Gunicorn, access log e scheduler in ora italiana (`+0200`/`CEST`). Dopo il tick delle 10:12 italiane: app `0.05%`, scheduler `0.00%`, OCR `0.08%` CPU. Nel controllo precedente alle 09:45 italiane `mailbox_sync_runtime` si era chiuso alle 09:46:39 italiane; alle 09:47 italiane il job Lex economia si era chiuso senza carico residuo. |
+| Hetzner mitigazione immediata `docker stats`, `/api/pronto`, `df -h` | OK operativo | Dopo cancellazione backup richiesta dall'utente e stop temporaneo Ollama: app ~0% CPU, scheduler ~0% CPU, disco `/dev/sda1` 53%, `/api/pronto` pubblico `ok=true`, `versione=2.253.120`, circa `0.09s`. |
+
 ## Scheduler job reali Lex/PST 2.253.108 - 2026-06-25
 
 | Comando / verifica | Esito | Nota |
@@ -5768,3 +5781,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | --- | --- | --- |
 | `python -m pytest tests/test_fascicolo_document_catalog.py -q`; `python -m pytest tests/test_regia_ui_react.py -q` | OK | Catalogo e UI deposito React verdi dopo la correzione: `Autocertificazione ricorso.PDF` resta allegato di supporto e non viene promosso a atto principale da firmare. |
 | `python -m pytest tests/test_fascicolo_document_catalog.py tests/test_regia_ui_react.py tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q` | OK | 15/15 passati; versione `2.253.120` allineata tra `pct.__version__`, Dockerfile e `railway.toml`. |
+
+## Notifiche legali L. 53/1994 - relata, RG, EML e attestazione 2.253.122 - 2026-06-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_notifiche_legali.py::test_notifica_l53_normalizza_avvocato_e_blocco_procedimento tests/test_notifiche_legali.py::test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto tests/test_notifiche_legali.py::test_payload_react_notifiche_legali_deriva_rg_da_numero_fascicolo tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q` | OK | 4/4 passati: niente doppio `Avv.`, niente `Sezione ,`, niente `R.G. n. /2026`; RG derivato da `RG 466/2023`, EML/MSG accettati solo come allegati scelti, attestazione automatica presidata lato React. |
+| `python -m pytest tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q` | OK | Versione `2.253.122` allineata tra `pct.__version__`, Dockerfile e `railway.toml`. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript React senza errori dopo la modifica a `NotificheLegaliPage.tsx`. |
+| `pnpm --filter @iusentra/studio build:vite` | OK | Build Vite completata in 8,97 secondi; gli asset hashati locali sono stati rimossi dal working tree perché il Dockerfile Hetzner ricompila React dai sorgenti. |
+| `python -m pytest tests/test_email_client.py tests/test_dashboard_mailbox_sync.py tests/test_scheduler.py tests/test_structured_logging.py tests/test_web_bootstrap.py tests/test_local_signer.py tests/test_build_dist.py tests/test_hetzner_backup_retention.py -q --tb=short` | OK | Blocco largo collegato a email/PEC, scheduler, Local Signer, bootstrap runtime, logging e deploy Hetzner passato al 100% dopo l'aggiornamento dei guardrail su anteprima/download allegati XML/EML e isolamento delle variabili `PCT_*` nei test runtime. |
+| `python -m pytest tests/test_lex_dataset_nightly.py tests/test_document_intelligence_auto_indexing.py tests/test_pec_audit_pipeline.py tests/test_push_notifications.py -q --tb=short` | OK | 96/96 passati: modifiche pregresse su Lex nightly, Document Intelligence, PEC audit pipeline e notifiche push presidiate prima del commit unico. |

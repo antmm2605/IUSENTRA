@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
@@ -38,6 +40,25 @@ def test_sensitive_data_filter_maschera_il_log_record():
     assert "mario.rossi@example.it" not in record.msg
     assert "RSSMRA85M01H501Z" not in record.msg
     assert "[REDACTED]" in record.msg
+
+
+def test_json_log_formatter_usa_orario_italiano():
+    record = logging.LogRecord(
+        name="test.logging",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=10,
+        msg="Job Lex completato",
+        args=(),
+        exc_info=None,
+    )
+    record.created = datetime(2026, 6, 26, 7, 47, tzinfo=timezone.utc).timestamp()
+
+    payload = json.loads(JsonLogFormatter().format(record))
+
+    assert payload["timezone"] == "Europe/Rome"
+    assert payload["timestamp"].startswith("2026-06-26T09:47:00")
+    assert payload["timestamp"].endswith("+02:00")
 
 
 def test_create_app_configura_logging_json_in_produzione(monkeypatch, tmp_path: Path):

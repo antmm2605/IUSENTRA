@@ -253,3 +253,16 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" in source
     assert "Relata firmata acquisita con prova tecnica" in source
     assert ".iu-legal-signature-button" in css
+    assert "hasNotifiableExtension" in source
+    assert "hasSendableNotificationAttachmentExtension" in source
+    assert "hasEmailEvidenceExtension" in source
+    assert "automaticAttestationDocument" in source
+    assert "Attestazione_conformita_" in source
+    assert "deriveProceedingRg" in source
+    assert "const notifiableDocuments = practice.documenti.filter(isNotifiableNotificationDocument)" in source
+    assert "currentNotificationDocuments.every(isNotifiablePayloadDocument)" in source
+    assert "hasPassingNotificationControl" in source
+    assert "disabled={!canPrepareNotificationSend}" in source
+    assert "Invio PEC bloccato" in source
+    assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
+    assert "Tutti notificabili" in source

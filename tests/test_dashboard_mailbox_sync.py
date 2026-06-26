@@ -32,11 +32,11 @@ def test_mailbox_sync_runtime_salti_ravvicinati_per_cooldown(tmp_path, monkeypat
     runtime.clear_mailbox_sync_runtime_state()
     calls: list[str] = []
 
-    def _fake_pec(ctx):
+    def _fake_pec(ctx, **_kwargs):
         calls.append(f"pec:{ctx.tenant_label}")
         return {"ok": True, "nuove": 1}
 
-    def _fake_ordinary(ctx):
+    def _fake_ordinary(ctx, **_kwargs):
         calls.append(f"ordinary:{ctx.tenant_label}")
         return {"ok": True, "nuove": 2}
 
@@ -54,18 +54,73 @@ def test_mailbox_sync_runtime_salti_ravvicinati_per_cooldown(tmp_path, monkeypat
     assert calls == ["pec:studio-a", "ordinary:studio-a"]
 
 
+def test_mailbox_sync_runtime_applica_limite_automatico(tmp_path, monkeypatch):
+    runtime.clear_mailbox_sync_runtime_state()
+    observed: list[tuple[str, int, bool]] = []
+
+    def _fake_pec(ctx, *, limite: int, incremental_only: bool):
+        observed.append(("pec", limite, incremental_only))
+        return {"ok": True, "nuove": 1}
+
+    def _fake_ordinary(ctx, *, limite: int, incremental_only: bool):
+        observed.append(("ordinary", limite, incremental_only))
+        return {"ok": True, "nuove": 2}
+
+    monkeypatch.setattr(runtime, "run_pec_mailbox_sync", _fake_pec)
+    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", _fake_ordinary)
+
+    report = runtime.sync_mailboxes_for_paths(
+        _paths(tmp_path),
+        tenant_label="studio-a",
+        cooldown_seconds=0,
+        limite=25,
+    )
+
+    assert report["pec"]["skipped"] is False
+    assert report["ordinary"]["skipped"] is False
+    assert observed == [("pec", 25, True), ("ordinary", 25, True)]
+
+
+def test_mailbox_sync_runtime_incrementale_per_pec_e_ordinaria(tmp_path, monkeypatch):
+    runtime.clear_mailbox_sync_runtime_state()
+    observed: list[tuple[str, int, bool]] = []
+
+    def _fake_pec(ctx, *, limite: int, incremental_only: bool):
+        observed.append(("pec", limite, incremental_only))
+        return {"ok": True, "nuove": 1}
+
+    def _fake_ordinary(ctx, *, limite: int, incremental_only: bool):
+        observed.append(("ordinary", limite, incremental_only))
+        return {"ok": True, "nuove": 2}
+
+    monkeypatch.setattr(runtime, "run_pec_mailbox_sync", _fake_pec)
+    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", _fake_ordinary)
+
+    report = runtime.sync_mailboxes_for_paths(
+        _paths(tmp_path),
+        tenant_label="studio-a",
+        cooldown_seconds=0,
+        limite=25,
+        incremental_only=True,
+    )
+
+    assert report["pec"]["skipped"] is False
+    assert report["ordinary"]["skipped"] is False
+    assert observed == [("pec", 25, True), ("ordinary", 25, True)]
+
+
 def test_mailbox_sync_runtime_lock_concorrente_salti_already_running(tmp_path, monkeypatch):
     runtime.clear_mailbox_sync_runtime_state()
     entered = threading.Event()
     release = threading.Event()
 
-    def _blocking_pec(ctx):
+    def _blocking_pec(ctx, **_kwargs):
         entered.set()
         release.wait(timeout=5)
         return {"ok": True}
 
     monkeypatch.setattr(runtime, "run_pec_mailbox_sync", _blocking_pec)
-    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", lambda ctx: {"ok": True})
+    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", lambda ctx, **_kwargs: {"ok": True})
     paths = _paths(tmp_path)
     result_holder: dict[str, object] = {}
 
@@ -88,12 +143,13 @@ def test_mailbox_sync_runtime_lock_concorrente_salti_already_running(tmp_path, m
 def test_dashboard_sync_mailboxes_endpoint_invalida_cache(tmp_path, monkeypatch):
     runtime.clear_mailbox_sync_runtime_state()
     cfg = _cfg_web(tmp_path)
+    cfg["MULTI_TENANT"] = False
     app = create_app(cfg)
     app.config["API_KEY"] = "react-test-key"
     headers = {"X-API-Key": "react-test-key"}
 
-    monkeypatch.setattr(runtime, "run_pec_mailbox_sync", lambda ctx: {"ok": True, "nuove": 0})
-    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", lambda ctx: {"ok": True, "nuove": 0})
+    monkeypatch.setattr(runtime, "run_pec_mailbox_sync", lambda ctx, **_kwargs: {"ok": True, "nuove": 0})
+    monkeypatch.setattr(runtime, "run_ordinary_mailbox_sync", lambda ctx, **_kwargs: {"ok": True, "nuove": 0})
 
     with app.test_client() as client:
         first = client.get("/api/v1/ui/dashboard", headers=headers)
@@ -111,6 +167,7 @@ def test_dashboard_sync_mailboxes_endpoint_invalida_cache(tmp_path, monkeypatch)
 
 def test_route_manuali_sincronizzazione_restano_compatibili(tmp_path, monkeypatch):
     cfg = _cfg_web(tmp_path)
+    cfg["MULTI_TENANT"] = False
     app = create_app(cfg)
 
     import web.blueprints.email_client as email_client_routes
@@ -183,6 +240,7 @@ def test_sync_pec_automatico_aggiorna_depositi_e_cancelleria(tmp_path, monkeypat
         observed["email_db"] = str(gestione_email.db_path)
         observed["fascicoli_db"] = str(gestione_fascicoli.db_path)
         observed["state_path"] = str(kwargs.get("state_path", ""))
+        observed["incremental_only"] = str(bool(kwargs.get("incremental_only")))
         observed["pec"] = config_pec.indirizzo
         return {
             "sync": {"nuove": 1, "pst_trovate": 1, "allegati_salvati": 0, "errore": ""},
@@ -202,6 +260,7 @@ def test_sync_pec_automatico_aggiorna_depositi_e_cancelleria(tmp_path, monkeypat
     assert observed["email_db"] == paths["EMAIL_CASELLA_DB"]
     assert observed["fascicoli_db"] == paths["FASCICOLI_DB"]
     assert observed["pec"] == "studio@example.invalid"
+    assert observed["incremental_only"] == "True"
     assert observed["state_path"].endswith("pec_cancelleria_state.json")
 
 

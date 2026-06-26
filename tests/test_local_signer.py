@@ -1803,6 +1803,11 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "iusentra-local-signer://restart" in installer
     assert "iusentra-local-signer://update" in installer
     assert 'set "UPDATE_MODE=0"' in installer
+    assert 'set "ARGS=%*"' in installer
+    assert 'echo %ARGS% | find /I "--force"' in installer
+    assert 'echo %ARGS% | find /I "iusentra-local-signer://restart"' in installer
+    assert 'echo %ARGS% | find /I "iusentra-local-signer://update"' in installer
+    assert 'echo %~1 | find /I "iusentra-local-signer://restart"' not in installer
     assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in installer
     assert "/polisWeb/local-signer/setup/windows" in installer
     assert "Invoke-Pip" in installer

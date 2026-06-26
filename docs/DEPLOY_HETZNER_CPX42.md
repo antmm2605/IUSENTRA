@@ -21,7 +21,7 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 - `deploy/hetzner/bootstrap_ubuntu.sh`: prepara Ubuntu con Docker, Compose plugin, firewall, OpenSC/pcscd, zstd e cartelle runtime.
 - `deploy/hetzner/docker-compose.hetzner.yml`: avvia `app`, `redis`, `scheduler-worker`, `ocr-worker`, `caddy` (core sempre attivi) e profili opzionali `ai` (Ollama sidecar) e `monitoring` (Prometheus + Grafana).
 - `deploy/hetzner/Caddyfile`: termina HTTPS, imposta header di sicurezza, gestisce SSE e WebSocket, inoltra verso l'app Flask. Il rate limiting sulle route di autenticazione è gestito da Flask-Limiter con Redis a livello applicativo.
-- `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione, incluse le variabili `COMPOSE_PROFILES` e `PCT_LOCAL_AI_ENABLED` per il controllo dell'AI locale.
+- `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione, incluse le variabili `COMPOSE_PROFILES`, `PCT_LOCAL_AI_ENABLED` e `IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED` per il controllo dell'AI locale.
 - `deploy/hetzner/deploy.sh`: sincronizza il branch, legge `COMPOSE_PROFILES` da `.env.hetzner`, avvia i servizi con i profili corretti, scarica il modello Ollama solo se il sidecar è attivo, imposta il cron backup.
 - `deploy/hetzner/backup.sh`: crea archivio dati e checksum.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
@@ -43,21 +43,28 @@ Lo stage `frontend-builder` esegue `pnpm install --frozen-lockfile` + `pnpm --fi
 
 | Profilo | Servizi aggiuntivi | Quando usarlo |
 |---------|-------------------|---------------|
-| *(nessuno)* | solo core: app, redis, scheduler-worker, ocr-worker, caddy | installazioni senza AI locale |
-| `ai` | + sidecar `ollama` | self-hosted con AI locale (default consigliato su CPX42) |
+| *(nessuno)* | solo core: app, redis, scheduler-worker, ocr-worker, caddy | default consigliato per mantenere CPU/RAM libere |
+| `ai` | + sidecar `ollama` | self-hosted con AI locale, solo opt-in esplicito |
 | `monitoring` | + prometheus, grafana | dashboard metriche (porta 3000 solo localhost) |
 | `ai,monitoring` | tutti | ambiente completo |
 
 Impostare in `.env.hetzner`:
 
 ```bash
-COMPOSE_PROFILES=ai
-# oppure
-COMPOSE_PROFILES=ai,monitoring
-# oppure (senza AI)
 COMPOSE_PROFILES=
 PCT_LOCAL_AI_ENABLED=0
+IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=0
+IUSENTRA_MAILBOX_SYNC_AUTOMATIC_LIMIT=25
+IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT=0
+IUSENTRA_DEPOSIT_POLL_DAYS=3
+IUSENTRA_PEC_CANCELLERIA_POLL_DAYS=2
+# oppure, solo se si vuole davvero il sidecar AI:
+# COMPOSE_PROFILES=ai
+# PCT_LOCAL_AI_ENABLED=1
+# PCT_LOCAL_AI_BASE_URL=http://ollama:11434/api
 ```
+
+La manutenzione AI locale dello scheduler e' opt-in: abilitarla con `IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=1` solo se il server ha margine CPU dedicato. L'uso manuale dell'assistente resta separato dal job automatico. I job PEC/email e polling usano finestre incrementali: il recupero storico deve essere lanciato come manutenzione esplicita, non come scheduler frequente.
 
 ## Bootstrap
 
@@ -93,6 +100,8 @@ Variabili PWA/Web Push opzionali:
 Impostare `IUSENTRA_WEB_PUSH_ENABLED=1` solo dopo aver configurato chiavi VAPID reali in `/opt/iusentra/.env.hetzner`.
 
 Non salvare chiavi reali nel repository.
+
+Il server e i container applicativi devono lavorare in ora italiana: impostare `TZ=Europe/Rome` in `/opt/iusentra/.env.hetzner` e mantenere l'host su `Europe/Rome` (`timedatectl set-timezone Europe/Rome`). I report operativi devono riportare orari in `Europe/Rome`; eventuali timestamp UTC dei log tecnici vanno convertiti esplicitamente.
 
 Procedura Web Push sul server:
 
@@ -167,7 +176,7 @@ Cron consigliato:
 
 Lo script applica anche la retention: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Il massimo di 3 copie e' un tetto rigido anche se l'ambiente imposta un valore piu' alto. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`. La retention rimuove anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
 
-I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se durante la lettura cambiano file runtime vivi, `tar` puo' restituire un warning non fatale: da v2.243.3 lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+I backup `.tar.zst` usano zstd a budget server (`IUSENTRA_BACKUP_ZSTD_LEVEL=6`, `IUSENTRA_BACKUP_ZSTD_THREADS=2`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default) e vengono avviati con priorita' bassa (`IUSENTRA_BACKUP_NICE=19`, `IUSENTRA_BACKUP_IONICE_CLASS=3`). Prima della compressione lo script applica retention e verifica lo spazio libero richiesto (`IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT=65` dei dati + `IUSENTRA_BACKUP_MIN_FREE_GIB=4`): se il margine non basta, il backup fallisce chiuso invece di saturare il nodo. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se durante la lettura cambiano file runtime vivi, `tar` puo' restituire un warning non fatale: da v2.243.3 lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
 
 Dopo ogni deploy Hetzner il deploy elimina la cache build Docker rigenerabile e l'eventuale `/opt/iusentra/tmp-backup-snapshot` non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto `/data/tenants/<studio>/email`; `/data/email` non va popolato da scheduler o route operative.
 

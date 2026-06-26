@@ -94,6 +94,46 @@ def test_notifica_l53_genera_relata_solo_con_controlli_completi():
     assert "R.G. n. 1234/2026" in result.relata_text
 
 
+def test_notifica_l53_normalizza_avvocato_e_blocco_procedimento():
+    payload = _legal_payload()
+    payload["avvocato_nome"] = "Avv. Giuseppe Montagnese"
+    payload["sezione"] = ""
+    payload["numero_rg"] = "466"
+    payload["anno_rg"] = "2023"
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "Io sottoscritto Avv. Giuseppe Montagnese," in result.relata_text
+    assert "Avv. Avv." not in result.relata_text
+    assert "Sezione ," not in result.relata_text
+    assert "R.G. n. 466/2023." in result.relata_text
+
+
+def test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {"nome_file": "ricorso.pdf", "descrizione": "Ricorso notificato", "origine": "copia_fascicolo"},
+        {"nome_file": "richiesta_pagamento.eml", "descrizione": "PEC richiesta pagamento allegata", "origine": "originale_informatico"},
+    ]
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "richiesta_pagamento.eml - PEC richiesta pagamento allegata" in result.relata_text
+
+    blocked = _legal_payload()
+    blocked["documenti"] = [
+        {"nome_file": "ricorso.pdf", "descrizione": "Ricorso notificato", "origine": "copia_fascicolo"},
+        {"nome_file": "archivio.zip", "descrizione": "Archivio non ammesso", "origine": "originale_informatico"},
+    ]
+
+    blocked_result = validate_legal_notification(blocked)
+
+    assert blocked_result.ok is False
+    assert any("PDF/PDF-A, file firmato, EML o MSG" in item for item in blocked_result.blockers)
+
+
 def test_notifica_l53_blocca_cliente_e_attestazione_mancante():
     payload = _legal_payload()
     payload["ruolo_destinatario"] = "cliente"
@@ -1330,6 +1370,39 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_quick
     assert documento_payload["nomeFile"] == "Ricorso Lisciotto.pdf"
     assert documento_payload["label"] == "Ricorso Lisciotto.pdf"
     assert "QuickOrganizer" not in documento_payload["label"]
+
+
+def test_payload_react_notifiche_legali_deriva_rg_da_numero_fascicolo():
+    fascicolo = SimpleNamespace(
+        id="fascicolo-rg",
+        numero="RG 466/2023",
+        titolo="Alessi Robertino c. Zurich",
+        id_cliente="",
+        nome_cliente="Alessi Robertino",
+        controparte="Zurich",
+        cf_controparte="",
+        tribunale="Giudice di Pace di Palmi",
+        sezione="",
+        numero_rg="",
+        anno_rg=2026,
+        giudice="",
+        tipo_procedimento="",
+        documenti=[],
+        depositi_pct=[],
+        note="",
+        oggetto="",
+    )
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
+
+    procedimento = payload["precompilazione"]["pratiche"][0]["procedimento"]
+
+    assert procedimento["numeroRg"] == "466"
+    assert procedimento["annoRg"] == "2023"
 
 
 def test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto(monkeypatch):

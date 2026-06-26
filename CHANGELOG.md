@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.253.122 - 2026-06-26
+
+- Hetzner performance: i backup dati usano zstd a budget server (`level=6`, 2 thread, `nice`/`ionice`) e verificano lo spazio libero prima di comprimere, evitando nuove saturazioni CPU/disco.
+- Scheduler: la manutenzione AI locale non carica più Ollama in background salvo opt-in esplicito con `IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=1`; la sync mailbox automatica lavora a piccoli lotti configurabili.
+- Hetzner orari: host, container applicativi, `/api/pronto`, `/api/health` e log strutturati usano `Europe/Rome` (`TZ=Europe/Rome` + `tzdata`), così log, job e report non confondono UTC e ora italiana.
+- Local Signer: il launcher Windows interpreta `--force`, restart e update anche quando arrivano come argomenti multipli/protocol handler, non solo come primo argomento.
+- Operatività: svuotati i backup Hetzner rigenerabili su richiesta utente e aggiornati runbook/test per bloccare regressioni su backup aggressivi e job automatici senza budget.
+- Notifiche legali: la relata normalizza il nome avvocato senza doppio `Avv.`, omette `Sezione` vuota e deriva `R.G.` da numero/label pratica quando il campo dedicato manca.
+- Notifiche legali: la proposta automatica seleziona solo PDF/PDF-A/P7M notificabili; EML/MSG restano allegati inviabili solo se scelti manualmente e IUSENTRA aggiunge l'attestazione di conformità generata quando serve.
+- Runtime incrementale: i percorsi applicativi PEC/email ordinaria, PDP e fatturazione usano `incremental_only=True` come default operativo; la riparazione storica resta solo esplicita sul motore IMAP basso livello.
+- Lex documenti: il presidio documentale salva marker persistenti per fascicolo, documento e hash in `pec_audit_log`; se il documento è già stato letto con lo stesso hash non viene riletto né reindicizzato.
+- Dataset Lex: il job notturno salva fingerprint di `documenti_ai.json` e opzioni in `source_index.json`/`latest_job.json`; se la sorgente è invariata restituisce `skipped_unchanged` senza aprire di nuovo tutto il JSON.
+- Notifiche/Web Push: aggiunta copertura anti-regressione per impedire un nuovo invio push quando la notifica è già presente con la stessa `dedupe_key`.
+
 ## 2.253.111 - 2026-06-25
 
 - Vista economica fascicoli: quando la sentenza classifica la voce come `Spese/esborsi`, il payload React e la cella della matrice mostrano quell'etichetta reale invece della voce storica `Contributo unificato`.

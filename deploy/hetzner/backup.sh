@@ -18,8 +18,14 @@ RETENTION_COUNT="${IUSENTRA_BACKUP_RETENTION_COUNT:-${BACKUP_RETENTION_COUNT:-3}
 RETENTION_MIN_COUNT="${IUSENTRA_BACKUP_RETENTION_MIN_COUNT:-${BACKUP_RETENTION_MIN_COUNT:-2}}"
 RETENTION_MAX_GIB="${IUSENTRA_BACKUP_RETENTION_MAX_GIB:-${BACKUP_RETENTION_MAX_GIB:-8}}"
 RETENTION_MAX_COUNT=3
-ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-19}}"
+ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-6}}"
+ZSTD_THREADS="${IUSENTRA_BACKUP_ZSTD_THREADS:-${BACKUP_ZSTD_THREADS:-2}}"
 ZSTD_LONG_WINDOW="${IUSENTRA_BACKUP_ZSTD_LONG_WINDOW:-${BACKUP_ZSTD_LONG_WINDOW:-27}}"
+BACKUP_NICE="${IUSENTRA_BACKUP_NICE:-${BACKUP_NICE:-19}}"
+BACKUP_IONICE_CLASS="${IUSENTRA_BACKUP_IONICE_CLASS:-${BACKUP_IONICE_CLASS:-3}}"
+BACKUP_REQUIRED_FREE_PERCENT="${IUSENTRA_BACKUP_REQUIRED_FREE_PERCENT:-${BACKUP_REQUIRED_FREE_PERCENT:-65}}"
+BACKUP_MIN_FREE_GIB="${IUSENTRA_BACKUP_MIN_FREE_GIB:-${BACKUP_MIN_FREE_GIB:-4}}"
+BACKUP_ALLOW_LOW_SPACE="${IUSENTRA_BACKUP_ALLOW_LOW_SPACE:-${BACKUP_ALLOW_LOW_SPACE:-0}}"
 BACKUP_EXCLUDE_PATHS="${IUSENTRA_BACKUP_EXCLUDE_PATHS:-${BACKUP_EXCLUDE_PATHS:-./ollama}}"
 MANDATORY_REGENERABLE_EXCLUDES=(
   "./ollama"
@@ -162,14 +168,70 @@ prune_by_total_size() {
   fi
 }
 
+validate_runtime_budget() {
+  if ! [[ "$ZSTD_THREADS" =~ ^[0-9]+$ ]] || (( ZSTD_THREADS < 1 || ZSTD_THREADS > 4 )); then
+    ZSTD_THREADS=2
+  fi
+  if ! [[ "$BACKUP_NICE" =~ ^-?[0-9]+$ ]] || (( BACKUP_NICE < -20 || BACKUP_NICE > 19 )); then
+    BACKUP_NICE=19
+  fi
+  if ! [[ "$BACKUP_IONICE_CLASS" =~ ^[0-3]$ ]]; then
+    BACKUP_IONICE_CLASS=3
+  fi
+  if ! [[ "$BACKUP_REQUIRED_FREE_PERCENT" =~ ^[0-9]+$ ]] || (( BACKUP_REQUIRED_FREE_PERCENT < 10 || BACKUP_REQUIRED_FREE_PERCENT > 100 )); then
+    BACKUP_REQUIRED_FREE_PERCENT=65
+  fi
+  if ! [[ "$BACKUP_MIN_FREE_GIB" =~ ^[0-9]+$ ]] || (( BACKUP_MIN_FREE_GIB < 1 )); then
+    BACKUP_MIN_FREE_GIB=4
+  fi
+}
+
+low_priority_command() {
+  local prefix=()
+  if command -v ionice >/dev/null 2>&1; then
+    prefix+=(ionice -c "$BACKUP_IONICE_CLASS")
+  fi
+  if command -v nice >/dev/null 2>&1; then
+    prefix+=(nice -n "$BACKUP_NICE")
+  fi
+  "${prefix[@]}" "$@"
+}
+
+ensure_backup_free_space() {
+  local data_bytes
+  local free_bytes
+  local required_bytes
+  local min_free_bytes
+  data_bytes="$(du -sb "$DATA_DIR" 2>/dev/null | awk '{print $1}' || echo 0)"
+  free_bytes="$(df -PB1 "$BACKUP_DIR" 2>/dev/null | awk 'NR==2 {print $4}' || echo 0)"
+  if ! [[ "$data_bytes" =~ ^[0-9]+$ ]]; then
+    data_bytes=0
+  fi
+  if ! [[ "$free_bytes" =~ ^[0-9]+$ ]]; then
+    free_bytes=0
+  fi
+  min_free_bytes=$(( BACKUP_MIN_FREE_GIB * 1024 * 1024 * 1024 ))
+  required_bytes=$(( (data_bytes * BACKUP_REQUIRED_FREE_PERCENT / 100) + min_free_bytes ))
+  if (( required_bytes > 0 && free_bytes < required_bytes )); then
+    echo "Errore: spazio libero insufficiente per backup senza saturare il server." >&2
+    echo "Dati stimati: ${data_bytes} byte; libero: ${free_bytes} byte; richiesto: ${required_bytes} byte (${BACKUP_REQUIRED_FREE_PERCENT}% dati + ${BACKUP_MIN_FREE_GIB} GiB margine)." >&2
+    echo "Eseguire prima retention/manutenzione governata oppure impostare IUSENTRA_BACKUP_ALLOW_LOW_SPACE=1 solo per recovery presidiata." >&2
+    if [[ "$BACKUP_ALLOW_LOW_SPACE" =~ ^(1|true|yes|on)$ ]]; then
+      echo "Attenzione: procedo nonostante spazio basso per override esplicito." >&2
+      return 0
+    fi
+    return 2
+  fi
+}
+
 run_tar_zstd_backup() {
   local pipeline_statuses
   local tar_status
   local zstd_status
 
   set +e
-  tar "${tar_exclude_args[@]}" --warning=no-file-changed -cpf - -C "$DATA_DIR" . \
-    | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
+  low_priority_command tar "${tar_exclude_args[@]}" --warning=no-file-changed -cpf - -C "$DATA_DIR" . \
+    | low_priority_command zstd -T"${ZSTD_THREADS}" "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
   pipeline_statuses=("${PIPESTATUS[@]}")
   tar_status="${pipeline_statuses[0]:-1}"
   zstd_status="${pipeline_statuses[1]:-1}"
@@ -204,15 +266,22 @@ run_tar_gzip_backup() {
 
 if command -v zstd >/dev/null 2>&1; then
   if ! [[ "$ZSTD_LEVEL" =~ ^[0-9]+$ ]] || (( ZSTD_LEVEL < 1 || ZSTD_LEVEL > 19 )); then
-    ZSTD_LEVEL=19
+    ZSTD_LEVEL=6
   fi
   if ! [[ "$ZSTD_LONG_WINDOW" =~ ^[0-9]+$ ]] || (( ZSTD_LONG_WINDOW < 20 || ZSTD_LONG_WINDOW > 31 )); then
     ZSTD_LONG_WINDOW=27
   fi
+  validate_runtime_budget
+  prune_legacy_backup_items
+  prune_by_total_size
+  ensure_backup_free_space
   run_tar_zstd_backup
 else
   FINAL_OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.gz"
   OUT="${FINAL_OUT}.tmp"
+  prune_legacy_backup_items
+  prune_by_total_size
+  ensure_backup_free_space
   run_tar_gzip_backup
 fi
 
@@ -243,6 +312,7 @@ prune_by_total_size
 prune_legacy_backup_items
 
 echo "Retention backup applicata: giorni=${RETENTION_DAYS}, copie=${RETENTION_COUNT}, minimo=${RETENTION_MIN_COUNT}, spazio_max_gib=${RETENTION_MAX_GIB}"
+echo "Budget backup: zstd_level=${ZSTD_LEVEL}, threads=${ZSTD_THREADS}, nice=${BACKUP_NICE}, ionice_class=${BACKUP_IONICE_CLASS}"
 if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
   echo "Esclusioni backup rigenerabili: ${BACKUP_EXCLUDE_PATHS}, ${MANDATORY_REGENERABLE_EXCLUDES[*]}"
 fi

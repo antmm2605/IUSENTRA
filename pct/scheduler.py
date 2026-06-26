@@ -901,6 +901,14 @@ def start_scheduler(app):
             try:
                 from web.services.mailbox_sync_runtime import sync_mailboxes_for_paths
 
+                automatic_limit = min(
+                    _parse_positive_int(
+                        app.config.get("IUSENTRA_MAILBOX_SYNC_AUTOMATIC_LIMIT")
+                        or os.getenv("IUSENTRA_MAILBOX_SYNC_AUTOMATIC_LIMIT"),
+                        25,
+                    ),
+                    100,
+                )
                 processed_targets = 0
                 tenant_reports: list[dict[str, object]] = []
                 totals = {
@@ -914,7 +922,13 @@ def start_scheduler(app):
                     "errors": 0,
                 }
                 for label, paths in _mailbox_sync_targets():
-                    report = sync_mailboxes_for_paths(paths, tenant_label=label, cooldown_seconds=180.0)
+                    report = sync_mailboxes_for_paths(
+                        paths,
+                        tenant_label=label,
+                        cooldown_seconds=180.0,
+                        limite=automatic_limit,
+                        incremental_only=True,
+                    )
                     processed_targets += 1
                     totals["targets"] += 1
                     pec = report.get("pec") or {}
@@ -962,6 +976,8 @@ def start_scheduler(app):
                     "job": "mailbox_sync_runtime",
                     "scan_mode": "incremental_runtime_guard",
                     "source_of_truth": "mailbox UID/Message-ID tenant-aware",
+                    "automatic_limit": automatic_limit,
+                    "incremental_only": True,
                     "targets": processed_targets,
                     "totals": totals,
                     "tenants": tenant_reports,
@@ -988,9 +1004,9 @@ def start_scheduler(app):
                 except (TypeError, ValueError):
                     worker_jobs = 20
                 try:
-                    document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "5") or 5)
+                    document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "0") or 0)
                 except (TypeError, ValueError):
-                    document_presidio_limit = 5
+                    document_presidio_limit = 0
                 processed_targets = 0
                 processed_jobs = 0
                 tenant_reports: list[dict[str, object]] = []
@@ -1212,6 +1228,23 @@ def start_scheduler(app):
                         "job": "local_ai_maintenance",
                         "status": "disabled_cloud_hosted",
                         "scan_mode": "not_applicable",
+                        "totals": {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0},
+                    }
+                maintenance_enabled = _flag_enabled(
+                    app.config.get("IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED")
+                    or app.config.get("PCT_LOCAL_AI_MAINTENANCE_ENABLED")
+                    or os.getenv("IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED")
+                    or os.getenv("PCT_LOCAL_AI_MAINTENANCE_ENABLED")
+                )
+                if not maintenance_enabled:
+                    logger.info(
+                        "[scheduler] Local AI maintenance automatica disabilitata: impostare IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=1 per eseguirla sul server."
+                    )
+                    return {
+                        "ok": True,
+                        "job": "local_ai_maintenance",
+                        "status": "disabled_by_default",
+                        "scan_mode": "manual_or_explicit_opt_in",
                         "totals": {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0},
                     }
 
@@ -1554,6 +1587,14 @@ def start_scheduler(app):
                     gf=gf,
                     config_pec=config_pec,
                     credenziali_pdp=credenziali_pdp,
+                    giorni_indietro=min(
+                        _parse_positive_int(
+                            app.config.get("IUSENTRA_DEPOSIT_POLL_DAYS")
+                            or os.getenv("IUSENTRA_DEPOSIT_POLL_DAYS"),
+                            3,
+                        ),
+                        7,
+                    ),
                 )
                 if report["controllati"]:
                     logger.info(
@@ -1612,6 +1653,14 @@ def start_scheduler(app):
                     gf=gf,
                     config_pec=config_pec,
                     state_path=state_path,
+                    giorni_indietro=min(
+                        _parse_positive_int(
+                            app.config.get("IUSENTRA_PEC_CANCELLERIA_POLL_DAYS")
+                            or os.getenv("IUSENTRA_PEC_CANCELLERIA_POLL_DAYS"),
+                            2,
+                        ),
+                        7,
+                    ),
                 )
                 if report["trovati"] or report["associati"]:
                     logger.info(

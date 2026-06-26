@@ -1764,6 +1764,15 @@ def _split_datetime(value: Any) -> tuple[str, str]:
     return _format_italian_date(raw), ""
 
 
+def _normalise_lawyer_name(value: Any) -> str:
+    clean = text(value)
+    while True:
+        stripped = re.sub(r"^(?:avv\.?|avvocato|avvocata)\s+", "", clean, flags=re.IGNORECASE).strip()
+        if stripped == clean:
+            return clean
+        clean = stripped
+
+
 def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
     raw = payload.get("documenti")
     if isinstance(raw, list):
@@ -2345,9 +2354,9 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
     source_key = normalise_public_register(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))
     documents = _documents(payload)
     case_id = notification_case_from_payload(payload)
-    avvocato_nome = text(_first(payload, "avvocato.nome", "avvocato_nome"))
+    avvocato_nome = _normalise_lawyer_name(_first(payload, "avvocato.nome", "avvocato_nome"))
     avvocato_cognome = text(_first(payload, "avvocato.cognome", "avvocato_cognome"))
-    avvocato_full = text(" ".join(part for part in (avvocato_nome, avvocato_cognome) if part), avvocato_nome)
+    avvocato_full = _normalise_lawyer_name(text(" ".join(part for part in (avvocato_nome, avvocato_cognome) if part), avvocato_nome))
     firma_in_calce = text(
         _first(
             payload,
@@ -2581,7 +2590,6 @@ def _validate_required_context(template: dict[str, Any], context: dict[str, Any]
 def _validate_proceeding(context: dict[str, Any], blockers: list[str]) -> None:
     for path, message in (
         ("procedimento.ufficio", "Per una notifica in corso di procedimento indica l'ufficio giudiziario."),
-        ("procedimento.sezione", "Per una notifica in corso di procedimento indica la sezione."),
         ("procedimento.numero_rg", "Per una notifica in corso di procedimento indica il numero di ruolo."),
         ("procedimento.anno_rg", "Per una notifica in corso di procedimento indica l'anno di ruolo."),
     ):
@@ -2857,15 +2865,35 @@ def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[st
     return rows
 
 
-def _proceeding_block(context: dict[str, Any]) -> str:
+def _rg_line(context: dict[str, Any]) -> str:
+    number = text(context["procedimento"].get("numero_rg"))
+    year = text(context["procedimento"].get("anno_rg"))
+    if number and year:
+        return f"R.G. n. {number}/{year}."
+    if number:
+        return f"R.G. n. {number}."
+    if year:
+        return f"Anno R.G. {year}."
+    return ""
+
+
+def _proceeding_lines(context: dict[str, Any]) -> list[str]:
     if not context["procedimento"]["presente"]:
-        return ""
-    return "\n".join([
-        "La presente notificazione viene eseguita in relazione al procedimento",
-        f"pendente innanzi a {context['procedimento']['ufficio']},",
-        f"Sezione {context['procedimento']['sezione']},",
-        f"R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']}.",
-    ])
+        return []
+    office = text(context["procedimento"].get("ufficio"))
+    section = text(context["procedimento"].get("sezione"))
+    rg = _rg_line(context)
+    lines = ["La presente notificazione viene eseguita in relazione al procedimento"]
+    lines.append(f"pendente innanzi a {office}," if office else "pendente innanzi all'ufficio giudiziario indicato negli atti,")
+    if section:
+        lines.append(f"Sezione {section},")
+    if rg:
+        lines.append(rg)
+    return lines
+
+
+def _proceeding_block(context: dict[str, Any]) -> str:
+    return "\n".join(_proceeding_lines(context))
 
 
 def _custom_render_context(context: dict[str, Any]) -> dict[str, Any]:
@@ -3133,8 +3161,8 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             blockers.append(f"Documento {document['index']}: indica una descrizione riconoscibile.")
         if origin and origin not in DOCUMENT_ORIGIN_LABELS:
             blockers.append(f"Documento {document['index']}: origine documento non riconosciuta.")
-        if name and Path(name).suffix.lower() not in {".pdf", ".pdfa", ".p7m"}:
-            blockers.append(f"Documento {document['index']}: per la notifica guidata usa PDF/PDF-A o file firmato.")
+        if name and Path(name).suffix.lower() not in {".pdf", ".pdfa", ".p7m", ".eml", ".msg"}:
+            blockers.append(f"Documento {document['index']}: per la notifica guidata usa PDF/PDF-A, file firmato, EML o MSG.")
         if document["necessita_attestazione"] and origin == "copia_fascicolo_informatico":
             _validate_proceeding(context, blockers)
         if document["necessita_attestazione"] and origin == "comunicazione_cancelleria":
@@ -3262,13 +3290,9 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     ])
 
     if context["procedimento"]["presente"] or template.get("requires_proceeding"):
-        lines.extend([
-            "",
-            "La presente notificazione viene eseguita in relazione al procedimento",
-            f"pendente innanzi a {context['procedimento']['ufficio']},",
-            f"Sezione {context['procedimento']['sezione']},",
-            f"R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']}.",
-        ])
+        proceeding_lines = _proceeding_lines(context)
+        if proceeding_lines:
+            lines.extend(["", *proceeding_lines])
 
     purpose_lines = _render_lines(template.get("purpose_lines") or [], context)
     if purpose_lines:

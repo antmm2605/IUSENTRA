@@ -5838,6 +5838,8 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Prima installazione reale da cartella `%APPDATA%\IUSENTRA\LocalSigner` assente; `Invoke-RestMethod http://127.0.0.1:27272/ping` | OK osservato | Servizio avviato sulla macchina reale, `ok=true`, `versione=1.6.82`, libreria PKCS#11 Windows presente, certificati Windows leggibili. |
 | `docker compose up -d --build app nginx`; `Invoke-RestMethod http://127.0.0.1:8080/api/pronto`; browser integrato PST step `Accesso` | OK osservato | Docker locale reale `2.253.125` healthy; UI su `127.0.0.1:8080` mostra `Local Signer pronto`, `rilevata 1.6.82` e non mostra piu' `1.6.81`. |
 | `python scripts/run_pytest_phases.py --suite signer --suite-shard 3 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5`; `python scripts/run_pytest_phases.py --suite signer --suite-shard 4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | Shard signer sensibili completati: 62/62 + 62/62 passati dopo il fix installer. |
+| Check-run GitHub su SHA `9b89e83691d0c873728b087328c563d30476a910` | OK | 100/100 check-run completati senza failure: CodeQL, Lint + syntax, Frontend React CI, Security Supply Chain, CI Required Gates, CI Quality Overlay, Coverage 12/12, Pytest core shardato e Local Signer/PKCS#11. |
+| Deploy Hetzner manuale di riallineamento; `curl -fsS https://app.iusentra.it/api/pronto`; `docker builder prune --all --force` | OK | Dopo correzione del recreate Docker, `iusentra-app-1`, `iusentra-scheduler-worker-1` e `iusentra-ocr-worker-1` sono healthy; produzione risponde `versione=2.253.125`; snapshot temporaneo rimosso e cache build Docker prunata. |
 
 ## Acquisizione PST: tabella ministeriale, certificato e hover pulsanti - 2026-06-26
 

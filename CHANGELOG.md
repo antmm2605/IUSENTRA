@@ -2,6 +2,10 @@
 
 ## 2.253.124 - 2026-06-26
 
+- PST/PolisWeb React: la ricerca si ferma subito se manca un certificato CNS/CIE valido sul PC e non avvia più tentativi lunghi verso il fascicolo senza prerequisito operativo.
+- PST/PolisWeb React: la tabella ministeriale viene dedotta automaticamente per tutti i profili supportati, inclusi civile, lavoro/previdenza, volontaria, minori, esecuzioni/concorsuali, giudice di pace e Cassazione.
+- Telematico React: corretti hover e focus dei pulsanti Local Signer/PST mantenendo testo e icone leggibili; la correzione è confinata al componente telematico e non altera più `Assistenza remota` in topbar.
+- Local Signer `1.6.81`: quando il registro ministeriale è esplicito non esplora tabelle estranee e supporta l'aggiornamento automatico da base URL autorizzata, riducendo tempi e intermittenze nel wizard PST.
 - Deposito telematico PCT: il controllo della PEC ministeriale ora valida la sintassi `DEPOSITO <testo libero>` indicata dal documento PST sul flusso di deposito; `DEPOSITO TELEMATICO - ...` resta accettato come testo libero dopo `DEPOSITO`.
 - Local Signer: il deposito con `Atto.enc` continua a bloccare oggetto non conforme e busta non valida, ma non blocca automaticamente allegati ulteriori scelti dall'avvocato.
 

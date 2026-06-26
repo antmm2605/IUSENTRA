@@ -3164,6 +3164,109 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "Cerca mentre scrivi: es. Tribunale di Vibo Valentia" in page_source
     assert "officeMatches" in page_source
     assert "officeTypeFilter" in page_source
+
+
+def test_pst_acquisizione_deduce_tabella_ministeriale_da_fascicolo_locale(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.nuovo(
+        "Carta docente - RG 806/2026",
+        TipoFascicolo.LAVORO,
+        tribunale="Tribunale di Vicenza",
+        numero_rg="806",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+        codice_oggetto_pst="222050",
+    )
+
+    response = client.get(
+        "/api/v1/ui/telematico/pst/schema-hint"
+        "?ufficio=Tribunale+di+Vicenza&ufficio_codice=0640011&numero=806&anno=2026",
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["matched"] is True
+    assert payload["hint"]["schema"] == "lavoro"
+    assert payload["hint"]["registro"] == "LAV"
+    assert payload["hint"]["tabella_ministeriale"] == "SICID_LAVORO"
+    assert payload["hint"]["servizio_pst_preferito"] == "JPW_SIL_DISTR"
+
+
+def test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.nuovo(
+        "Esecuzione immobiliare RG 3441/2025",
+        TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_operativo="SIECIC",
+        tipo_procedimento="Esecuzione immobiliare",
+    )
+    fascicoli.nuovo(
+        "Autorizzazione minore RG 22/2026",
+        TipoFascicolo.FAMIGLIA,
+        tribunale="Tribunale per i Minorenni di Venezia",
+        numero_rg="22",
+        anno_rg=2026,
+        tipo_procedimento="Minori",
+    )
+
+    siecic_response = client.get(
+        "/api/v1/ui/telematico/pst/schema-hint?ufficio=Tribunale+di+Palmi&numero=3441&anno=2025",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    minori_response = client.get(
+        "/api/v1/ui/telematico/pst/schema-hint?ufficio=Tribunale+per+i+Minorenni+di+Venezia&numero=22&anno=2026",
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    siecic = siecic_response.get_json()
+    minori = minori_response.get_json()
+    assert siecic_response.status_code == 200
+    assert minori_response.status_code == 200
+    assert siecic["hint"]["schema"] == "esecuzioni"
+    assert siecic["hint"]["servizio_pst_preferito"] == "JPW_SIECIC"
+    assert siecic["hint"]["tabella_ministeriale"] == "SIECIC_ESECUZIONI_CONCORSUALI"
+    assert minori["hint"]["schema"] == "minori"
+    assert minori["hint"]["servizio_pst_preferito"] == "JPW_MIN"
+    assert minori["hint"]["tabella_ministeriale"] == "SICID_MINORI"
+
+
+def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    page_source = source
+    assert "requirePstCertificateBeforeSearch" in source
+    assert "options: { silent?: boolean } = {}" in source
+    assert "checkLocalSigner(false, { silent: true })" in source
+    assert "REACT_PST_MINISTERIAL_PROFILE_KEY" in source
+    assert "LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS = 3_500" in source
+    assert "readCachedPstMinisterialProfile" in source
+    assert "rememberPstMinisterialProfile(next, 'fascicolo-locale')" in source
+    assert "rememberPstMinisterialProfile(next, 'manual')" in source
+    assert "add('tabella_ministeriale', query.tabellaMinisteriale)" in source
+    assert "add('servizio_pst_preferito', query.servizioPstPreferito)" in source
+    assert "value={ministerialSchemaFromQuery(query)}" in source
+    run_search_block = source[source.index("const runSearch = async"):source.index("const runPreview = async")]
+    assert "requirePstCertificateBeforeSearch()" in run_search_block
+    assert "ensurePstCertificate()" not in run_search_block
+    assert run_search_block.index("precheckedPstCert = await requirePstCertificateBeforeSearch()") < run_search_block.index("updateLocalSignerAutomatically()")
+    assert "let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()" in run_search_block
+    assert "Ricerca PST non avviata" in source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
     assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
     assert "fromExistingCode?.codice || explicitOfficeCode" in page_source

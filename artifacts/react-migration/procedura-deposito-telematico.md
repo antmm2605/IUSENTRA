@@ -2683,3 +2683,37 @@ Verifica visiva su browser integrato Codex aperto sulla produzione:
 - anteprima `IndiceDocumentiDepositati.PDF` aperta su produzione: modal con titolo, pulsante `Scarica`, pulsante `Chiudi`, nessuna area rotta/bianca.
 
 Esito operativo: il difetto tecnico `Indice busta non trovato` è presidiato dal nuovo controllo perché l'invio reale non può più arrivare al Local Signer PEC se `Atto.msg` non contiene `IndiceBusta.xml`, se l'indice non richiama file realmente presenti, se manca `DatiAtto.xml.p7m` o se `Atto.enc` non è CMS AES256 verificato. L'ultimo passo SMTP resta correttamente sul PC locale dell'avvocato tramite Local Signer; il server non è e non deve diventare mittente SMTP del deposito legale.
+
+## Acquisizione PST: certificato, tabella ministeriale automatica e hover pulsanti - 2026-06-26
+
+Richiesta utente: rendere rapida la ricerca fascicolo PST, evitare tentativi lunghi quando manca il certificato, applicare automaticamente la tabella ministeriale corretta a tutti i registri supportati e correggere i pulsanti che diventavano illeggibili in hover/focus.
+
+Correzione applicata:
+
+- la ricerca PST si ferma prima di avviare il flusso Local Signer/PST se sul PC non risulta un certificato CNS/CIE valido già disponibile; la UI mostra un messaggio operativo e non parte con minuti di tentativi inutili;
+- aggiunto endpoint React `GET /api/v1/ui/telematico/pst/schema-hint` per dedurre la tabella ministeriale dal fascicolo locale quando esiste un segnale affidabile;
+- la logica frontend applica profili ministeriali per civile, lavoro/previdenza, volontaria giurisdizione, minori, esecuzioni/concorsuali, giudice di pace, Cassazione civile e Cassazione penale, non solo lavoro;
+- il Local Signer 1.6.81 non esplora più tabelle ministeriali estranee quando il registro è esplicito, riducendo tentativi e tempi di ricerca;
+- l'aggiornamento automatico Local Signer prova l'endpoint locale `/update` con `base_url` controllato e poi verifica in modo silenzioso per evitare intermittenza nella UI;
+- la correzione di contrasto dei pulsanti è stata ristretta al componente PST/telematico: la topbar, incluso `Assistenza remota`, non viene più toccata da regole globali;
+- nel blocco Local Signer i pulsanti primari mantengono testo e icona bianchi su blu in hover/focus; il link `Installa o aggiorna` mantiene testo e icona scuri su fondo bianco/azzurro.
+
+Prova reale locale eseguita su browser integrato Codex, copia reale `http://127.0.0.1:8080`, URL `http://127.0.0.1:8080/portali/pst/acquisizione?ufficio=Tribunale+di+Palmi&numero=3441&anno=2025&schema=esecuzioni#step-search`:
+
+- Docker locale ricostruito e container `iusentra-app` healthy;
+- `/api/pronto` risponde HTTP 200;
+- pagina React PST visibile senza fallback legacy;
+- step `Accesso` aperto materialmente;
+- hover reale verificato su `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente`, `Installa o aggiorna` e `Vai alla ricerca`: testo e icone restano leggibili;
+- `Assistenza remota` in topbar è tornato al suo stile originale e resta leggibile;
+- Local Signer distribuito dalla copia locale mostra ultima versione `1.6.81`;
+- per il caso Palmi con `schema=esecuzioni`, il profilo ministeriale viene trattato come tabella esecuzioni/concorsuali; se non esiste alcun segnale locale o URL e manca il certificato, la ricerca si blocca subito invece di provare registri a cascata.
+
+Guardrail automatici eseguiti:
+
+- `pnpm --filter @iusentra/studio typecheck` -> OK;
+- `pnpm --filter @iusentra/studio build` -> OK;
+- `python -m py_compile web\blueprints\api_v1_react.py tools\local_signer.py` -> OK;
+- `python -m pytest tests/test_react_shell.py::test_pst_acquisizione_deduce_tabella_ministeriale_da_fascicolo_locale tests/test_react_shell.py::test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro tests/test_react_shell.py::test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente tests/test_local_signer.py::test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee -q` -> `4 passed`.
+
+Limite residuo operativo: quando l'URL non contiene `schema`, non esiste profilo in cache e non c'è un fascicolo locale corrispondente da cui dedurre il registro, IUSENTRA non inventa la tabella ministeriale. In quel caso la UI deve chiedere un segnale reale o fermarsi se manca il certificato, evitando la ricerca lunga e non governata.

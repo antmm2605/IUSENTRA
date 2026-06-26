@@ -5828,3 +5828,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | --- | --- | --- |
 | `python scripts\react-migration\generate_backend_security_map.py`; `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest -q tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata --tb=short` | OK | Riallineata la mappa sicurezza backend dopo l'endpoint React `/api/v1/ui/telematico/pst/schema-hint`; il check che aveva bloccato `Lint + syntax` è ora verde localmente. |
 | `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | 79/79 test RBAC/App V2/OpenAPI passati, 4/4 UTF-8 passati; diff senza errori whitespace bloccanti. |
+
+## Acquisizione PST: tabella ministeriale, certificato e hover pulsanti - 2026-06-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript React senza errori dopo blocco certificato anticipato, hint tabella ministeriale e correzione hover/focus PST. |
+| `pnpm --filter @iusentra/studio build` | OK | Bundle React aggiornato; asset `TelematicoSurfacePage` rigenerato con regole hover/focus ristrette al componente PST. |
+| `python -m py_compile web\blueprints\api_v1_react.py tools\local_signer.py` | OK | Sintassi confermata per endpoint `schema-hint` e Local Signer 1.6.81. |
+| `python -m pytest tests/test_react_shell.py::test_pst_acquisizione_deduce_tabella_ministeriale_da_fascicolo_locale tests/test_react_shell.py::test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro tests/test_react_shell.py::test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente tests/test_local_signer.py::test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee -q` | OK | 4/4 passati: deduzione tabella ministeriale multi-registro, blocco immediato senza certificato e niente esplorazione di registri estranei nel signer. |
+| `docker compose up -d --build app nginx`; `docker compose ps`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Copia reale locale ricostruita: `iusentra-app` healthy e `/api/pronto` HTTP 200. |
+| Browser integrato su `http://127.0.0.1:8080/portali/pst/acquisizione?ufficio=Tribunale+di+Palmi&numero=3441&anno=2025&schema=esecuzioni#step-search` | OK osservato | Step `Accesso` verificato materialmente: hover su `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente`, `Installa o aggiorna` e `Vai alla ricerca` mantiene testo e icone leggibili; `Assistenza remota` in topbar non è più alterato dalle regole PST. |

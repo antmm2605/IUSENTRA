@@ -37,6 +37,31 @@ def _load_local_ai_host_bridge():
     return module
 
 
+def test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
+
+    lavoro = module._pst_base_varianti_registro_esplicito(
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLVE/JPW_SIL_DISTR"
+    )
+    servizi_lavoro = {module._pst_servizio_proxy(url) for url in lavoro}
+    assert servizi_lavoro == {"JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP"}
+    assert "JPW_SICID" not in servizi_lavoro
+    assert "JPW_SIVG" not in servizi_lavoro
+    assert "JPW_MIN" not in servizi_lavoro
+    assert "JPW_SIECIC" not in servizi_lavoro
+
+    siecic = module._pst_base_varianti_registro_esplicito(
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+    )
+    assert [module._pst_servizio_proxy(url) for url in siecic] == ["JPW_SIECIC"]
+
+    minori = module._pst_base_varianti_registro_esplicito(
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLVE/JPW_MIN"
+    )
+    assert {module._pst_servizio_proxy(url) for url in minori} == {"JPW_MIN", "JPW_SIMIN"}
+
+
 def test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazione():
     root = Path(__file__).resolve().parents[1]
     source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")

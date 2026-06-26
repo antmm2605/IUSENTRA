@@ -644,15 +644,46 @@
 .iu-tel-acq-status button:hover:not(:disabled),
 .iu-tel-acq-actions button:hover:not(:disabled),
 .iu-tel-acq-import-result a:hover{
-  background:var(--iu-blue-800);
-  color:#fff;
-  text-decoration:none;
+  background:var(--iu-blue-800) !important;
+  color:#fff !important;
+  border-color:var(--iu-blue-800) !important;
+  text-decoration:none !important;
+}
+.iu-tel-acq-status button:not(:disabled),
+.iu-tel-acq-status button:hover:not(:disabled),
+.iu-tel-acq-status button:focus-visible:not(:disabled),
+.iu-tel-acq-actions button:not(:disabled),
+.iu-tel-acq-actions button:hover:not(:disabled),
+.iu-tel-acq-actions button:focus-visible:not(:disabled),
+.iu-tel-acq-import-result a:hover,
+.iu-tel-acq-import-result a:focus-visible{
+  color:#fff !important;
+}
+.iu-tel-acq-status button:not(:disabled) svg,
+.iu-tel-acq-status button:hover:not(:disabled) svg,
+.iu-tel-acq-status button:focus-visible:not(:disabled) svg,
+.iu-tel-acq-actions button:not(:disabled) svg,
+.iu-tel-acq-actions button:hover:not(:disabled) svg,
+.iu-tel-acq-actions button:focus-visible:not(:disabled) svg,
+.iu-tel-acq-import-result a:hover svg,
+.iu-tel-acq-import-result a:focus-visible svg{
+  color:currentColor !important;
+  stroke:currentColor !important;
 }
 .iu-tel-acq-actions a:hover{
-  background:rgba(239,246,255,.98);
-  color:var(--iu-blue-800);
-  border-color:rgba(37,99,235,.45);
-  text-decoration:none;
+  background:rgba(239,246,255,.98) !important;
+  color:var(--iu-blue-900) !important;
+  border-color:rgba(37,99,235,.45) !important;
+  text-decoration:none !important;
+}
+.iu-tel-acq-actions a,
+.iu-tel-acq-actions a:hover,
+.iu-tel-acq-actions a:focus-visible,
+.iu-tel-acq-actions a svg,
+.iu-tel-acq-actions a:hover svg,
+.iu-tel-acq-actions a:focus-visible svg{
+  color:var(--iu-blue-900) !important;
+  stroke:currentColor !important;
 }
 .iu-tel-acq-status button:focus-visible,
 .iu-tel-acq-actions button:focus-visible,
@@ -716,6 +747,36 @@
   background:rgba(239,68,68,.06);
 }
 .iu-tel-local-signer-card.is-missing svg{color:var(--iu-danger-500)}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled) svg{
+  color:#fff !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions a,
+.iu-tel-local-signer-card .iu-tel-acq-actions a svg{
+  color:var(--iu-blue-800) !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled){
+  background:var(--iu-blue-800) !important;
+  color:#fff !important;
+  border-color:var(--iu-blue-800) !important;
+  text-decoration:none !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions a:hover,
+.iu-tel-local-signer-card .iu-tel-acq-actions a:focus-visible{
+  background:#eff6ff !important;
+  color:var(--iu-blue-900) !important;
+  border-color:rgba(30,64,175,.6) !important;
+  text-decoration:none !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled) svg,
+.iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled) svg{
+  color:#fff !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions a:hover svg,
+.iu-tel-local-signer-card .iu-tel-acq-actions a:focus-visible svg{
+  color:var(--iu-blue-900) !important;
+}
 .iu-tel-local-signer-inline{
   display:flex;
   align-items:center;

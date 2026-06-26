@@ -3932,13 +3932,13 @@ def _pst_react_service_from_text(*values: Any) -> tuple[str, str]:
     checks: tuple[tuple[str, tuple[tuple[str, ...], ...]], ...] = (
         ("JPW_CASSPE", (("CASS", "PENAL"), ("JPW", "CASSPE"))),
         ("JPW_CASSCI", (("CASS", "CIVIL"), ("JPW", "CASSCI"))),
-        ("JPW_SILP_DISTR", (("SILP",),)),
-        ("JPW_SIL_DISTR", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",), ("PCT", "LAVORO"), ("SICID", "LAVORO"))),
+        ("JPW_SIECIC", (("SIECIC",), ("ESECUZ",), ("CONCORS",), ("FALLIMENT",), ("PIGNOR",))),
         ("JPW_SIVG", (("VOLONTARI",), ("SIVG",))),
         ("JPW_SIMIN", (("SIMIN",),)),
         ("JPW_MIN", (("MINORE",), ("MINORI",), ("MINORENN",), ("JPW", "MIN"))),
-        ("JPW_SIECIC", (("SIECIC",), ("ESECUZ",), ("CONCORS",), ("FALLIMENT",), ("PIGNOR",))),
         ("JPW_SIGP", (("SIGP",), ("GDP",), ("GIUDICE", "PACE"))),
+        ("JPW_SILP_DISTR", (("SILP",),)),
+        ("JPW_SIL_DISTR", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",), ("PCT", "LAVORO"), ("SICID", "LAVORO"))),
         ("JPW_SICID", (("SICID",), ("CIVILE",), ("RGN",), ("CONTENZIOSO",))),
     )
     for service, groups in checks:
@@ -3964,11 +3964,19 @@ def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
         pratica.get("registro_operativo"),
         pratica.get("procedura_operativa_codice"),
         pratica.get("tipo_procedimento"),
-        canale.get("codice"),
-        canale.get("nome"),
-        canale.get("procedura"),
     )
     service, source = _pst_react_service_from_text(*explicit_sources)
+    if service:
+        return service, source
+
+    descriptive_sources = (
+        getattr(fascicolo, "tipo", ""),
+        getattr(fascicolo, "area_pratica", ""),
+        getattr(fascicolo, "titolo", ""),
+        getattr(fascicolo, "oggetto", ""),
+        getattr(fascicolo, "codice_oggetto_pst", ""),
+    )
+    service, source = _pst_react_service_from_text(*descriptive_sources)
     if service:
         return service, source
 
@@ -3980,15 +3988,7 @@ def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
     if office_service == "JPW_SIGP":
         return office_service, office_source
 
-    descriptive_sources = (
-        getattr(fascicolo, "tipo", ""),
-        getattr(fascicolo, "area_pratica", ""),
-        getattr(fascicolo, "titolo", ""),
-        getattr(fascicolo, "oggetto", ""),
-        getattr(fascicolo, "codice_oggetto_pst", ""),
-    )
-    service, source = _pst_react_service_from_text(*descriptive_sources)
-    return service, source
+    return _pst_react_service_from_text(canale.get("codice"))
 
 
 def _pst_react_schema_hint_from_fascicolo(fascicolo: Any) -> dict[str, Any]:

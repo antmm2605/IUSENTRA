@@ -269,12 +269,14 @@ type AcquisitionHistoryEvent = TelematicoSurfaceData['recentEvents'][number] & {
 const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert.v2'
 const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session.v2'
 const REACT_PST_SESSION_PURPOSE = 'view'
+const REACT_PST_MINISTERIAL_PROFILE_KEY = 'iusentra.react.pst.ministerial.profiles.v1'
 const REACT_ACQUISITION_HISTORY_KEY = 'iusentra.react.portali.acquisition.history'
 const REACT_ACQUISITION_HISTORY_LIMIT = 10
 const LOCAL_SIGNER_DEFAULT_TIMEOUT_MS = 45_000
 const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000
 const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000
 const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000
+const LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS = 3_500
 const LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS = 8_000
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
@@ -400,6 +402,9 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
   add('materia', query.materia)
   add('registro', query.registro)
   add('schema', query.schema)
+  add('tabella_ministeriale', query.tabellaMinisteriale)
+  add('servizio_pst_preferito', query.servizioPstPreferito)
+  add('registro_portale', query.registroPortale)
   if (mapping.target_fascicolo_id) {
     params.set('fascicolo_id', mapping.target_fascicolo_id)
     params.set('mode', mapping.mode === 'create_new' ? 'update_existing' : mapping.mode)
@@ -409,6 +414,35 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
   }
   const queryString = params.toString()
   return `/portali/${encodeURIComponent(portal)}/acquisizione${queryString ? `?${queryString}` : ''}#wizard-acquisizione`
+}
+
+function pstMinisterialProfileCacheKey(values: {
+  ufficio?: string
+  ufficioCodice?: string
+  numero?: string
+  anno?: string
+}): string {
+  const office = normaliseSearch(asText(values.ufficioCodice || values.ufficio))
+  const numero = normaliseSearch(asText(values.numero)).replace(/^0+/, '')
+  const anno = normaliseSearch(asText(values.anno))
+  if (!office || !numero || !anno) return ''
+  return [office, numero, anno].join('|')
+}
+
+function readCachedPstMinisterialProfile(values: {
+  ufficio?: string
+  ufficioCodice?: string
+  numero?: string
+  anno?: string
+}): JsonRecord {
+  try {
+    const key = pstMinisterialProfileCacheKey(values)
+    if (!key) return {}
+    const records = asRecord(JSON.parse(window.localStorage?.getItem(REACT_PST_MINISTERIAL_PROFILE_KEY) || '{}'))
+    return asRecord(records[key])
+  } catch {
+    return {}
+  }
 }
 
 function appInternalHref(value: unknown): string {
@@ -761,6 +795,12 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
 function acquisitionInitialQuery(): AcquisitionQuery {
   const params = new URLSearchParams(window.location.search)
   const documento = asText(params.get('documento') || params.get('documento_portale'))
+  const cached = readCachedPstMinisterialProfile({
+    ufficio: asText(params.get('ufficio')),
+    ufficioCodice: asText(params.get('ufficio_codice')),
+    numero: asText(params.get('numero')),
+    anno: asText(params.get('anno')),
+  })
   const rawSchema = asText(params.get('schema') || params.get('tabella') || params.get('tabella_ministeriale') || params.get('quick_filter'))
   const profile = ministerialProfileFromSchema(
     [
@@ -769,6 +809,10 @@ function acquisitionInitialQuery(): AcquisitionQuery {
       params.get('registro_portale'),
       params.get('tabella_ministeriale'),
       rawSchema,
+      cached.servizio_pst_preferito,
+      cached.tabella_ministeriale,
+      cached.registro_portale,
+      cached.schema,
     ].filter(Boolean).join(' '),
   )
   const schema = asText(profile.schema || rawSchema)
@@ -784,12 +828,12 @@ function acquisitionInitialQuery(): AcquisitionQuery {
     controparte: asText(params.get('controparte')),
     cf: asText(params.get('cf') || params.get('codice_fiscale')),
     oggetto: asText(params.get('oggetto') || materia || documento),
-    materia,
-    registro,
+    materia: asText(materia || cached.materia),
+    registro: asText(registro || cached.registro),
     schema,
-    tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale),
-    servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito),
-    registroPortale: asText(params.get('registro_portale') || profile.registro_portale),
+    tabellaMinisteriale: asText(params.get('tabella_ministeriale') || profile.tabella_ministeriale || cached.tabella_ministeriale),
+    servizioPstPreferito: asText(params.get('servizio_pst_preferito') || params.get('servizio_pst') || profile.servizio_pst_preferito || cached.servizio_pst_preferito),
+    registroPortale: asText(params.get('registro_portale') || profile.registro_portale || cached.registro_portale),
   }
 }
 
@@ -859,6 +903,28 @@ function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord {
     tabella_ministeriale: asText(query.tabellaMinisteriale || profile.tabella_ministeriale),
     servizio_pst_preferito: asText(query.servizioPstPreferito || profile.servizio_pst_preferito),
     registro_portale: asText(query.registroPortale || profile.registro_portale),
+  }
+}
+
+function rememberPstMinisterialProfile(query: AcquisitionQuery, source = 'wizard'): void {
+  try {
+    const key = pstMinisterialProfileCacheKey(query)
+    if (!key) return
+    const profile = ministerialHintsFromQuery(query)
+    if (!asText(profile.schema || profile.tabella_ministeriale || profile.servizio_pst_preferito)) return
+    const records = asRecord(JSON.parse(window.localStorage?.getItem(REACT_PST_MINISTERIAL_PROFILE_KEY) || '{}'))
+    records[key] = {
+      ...profile,
+      ufficio: query.ufficioNome || query.ufficio,
+      ufficio_codice: query.ufficioCodice,
+      numero: query.numero,
+      anno: query.anno,
+      source,
+      updated_at: new Date().toISOString(),
+    }
+    window.localStorage?.setItem(REACT_PST_MINISTERIAL_PROFILE_KEY, JSON.stringify(records))
+  } catch {
+    // Cache locale solo operativa: non deve mai bloccare il wizard.
   }
 }
 
@@ -3452,7 +3518,10 @@ function AcquisitionWizard({
     return () => { active = false }
   }, [portal, visible])
 
-  const checkLocalSigner = async (tryStart = false): Promise<BrowserLocalSignerStatus> => {
+  const checkLocalSigner = async (
+    tryStart = false,
+    options: { silent?: boolean } = {},
+  ): Promise<BrowserLocalSignerStatus> => {
     if (!localSignerDesktopSupported) {
       const next = {
         checked: true,
@@ -3464,16 +3533,18 @@ function AcquisitionWizard({
         tokenLabel: '',
         message: 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
       }
-      setLocalSigner(next)
+      if (!options.silent) setLocalSigner(next)
       return next
     }
     if (tryStart) requestLocalSignerStart()
-    setLocalSigner((current) => ({
-      ...current,
-      checked: true,
-      checking: true,
-      message: tryStart ? 'Avvio Local Signer e verifico il servizio locale...' : 'Verifica Local Signer in corso...',
-    }))
+    if (!options.silent) {
+      setLocalSigner((current) => ({
+        ...current,
+        checked: true,
+        checking: true,
+        message: tryStart ? 'Avvio Local Signer e verifico il servizio locale...' : 'Verifica Local Signer in corso...',
+      }))
+    }
     const controller = new AbortController()
     const timer = window.setTimeout(() => controller.abort(), 3500)
     try {
@@ -3503,7 +3574,7 @@ function AcquisitionWizard({
             ? 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.'
             : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
       }
-      setLocalSigner(next)
+      if (!options.silent) setLocalSigner(next)
       return next
     } catch {
       const next = {
@@ -3516,7 +3587,7 @@ function AcquisitionWizard({
         tokenLabel: '',
         message: 'Local Signer non rilevato su questo PC. Avvialo o installa il pacchetto aggiornato, poi ripeti la verifica.',
       }
-      setLocalSigner(next)
+      if (!options.silent) setLocalSigner(next)
       return next
     } finally {
       window.clearTimeout(timer)
@@ -3532,20 +3603,28 @@ function AcquisitionWizard({
       message: 'Aggiornamento automatico Local Signer avviato. IUSENTRA usa il pacchetto ufficiale e poi ricontrolla il servizio locale.',
     }))
     let updateStarted = false
+    let updateNeedsInstaller = false
     try {
-      const updatePayload = await localSignerJson('/update', {}, 8000)
+      const updatePayload = await localSignerJson('/update', { base_url: window.location.origin }, 8000)
       updateStarted = updatePayload.ok !== false
+      const updateVersion = asText(updatePayload.versione || updatePayload.version || updatePayload.versione_corrente)
+      updateNeedsInstaller = Boolean(
+        data.localSigner.latestVersion
+        && updateVersion
+        && compareVersions(updateVersion, data.localSigner.latestVersion) < 0,
+      )
     } catch {
       updateStarted = false
     }
-    if (!updateStarted) {
+    if (!updateStarted || updateNeedsInstaller) {
       requestLocalSignerUpdate()
       window.setTimeout(() => requestLocalSignerInstallerDownload(data), 1500)
     }
     for (let attempt = 0; attempt < 70; attempt += 1) {
       await wait(1200)
-      const next = await checkLocalSigner(false)
+      const next = await checkLocalSigner(false, { silent: true })
       if (next.ok && !next.outdated) {
+        setLocalSigner(next)
         setMessage(`Local Signer aggiornato alla versione ${next.version || data.localSigner.latestVersion}.`)
         return next
       }
@@ -3707,6 +3786,36 @@ function AcquisitionWizard({
     return cert
   }
 
+  const requirePstCertificateBeforeSearch = async (): Promise<PstCertificate> => {
+    const certificateStatus = await statusForPstCertificate()
+    const prefs = asRecord(certificateStatus.cert_preferences)
+    const savedCert = pstCert || loadPstCertificate()
+    const savedThumbprint = asText(savedCert?.thumbprint)
+    if (certificateMatchesPstPreferences(savedCert, prefs, certificateStatus)) {
+      if (!pstCert) setPstCert(savedCert)
+      return savedCert
+    }
+    if (savedThumbprint) {
+      setPstCert(null)
+      storePstCertificate(null)
+    }
+    try {
+      const signerStatus = await localSignerJson(`/ping${signerCertPreferenceQuery(certificateStatus)}`, undefined, LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS)
+      const autoCert = coercePstCertificate(signerStatus)
+      if (certificateMatchesPstPreferences(autoCert, prefs, certificateStatus)) {
+        setPstCert(autoCert)
+        storePstCertificate(autoCert)
+        return autoCert
+      }
+    } catch {
+      // La ricerca non deve proseguire: senza certificato non si apre il PST.
+    }
+    throw new Error(
+      'Ricerca PST non avviata: su questo PC non risulta un certificato CNS/CIE valido per l’accesso al PST. ' +
+      'Installa o collega il certificato, poi usa Verifica Local Signer prima di cercare il fascicolo.',
+    )
+  }
+
   const pstAttorneyFiscalCode = (cert?: PstCertificate | null) => asText(
     cert?.codiceFiscale || status.codice_fiscale_avvocato || '',
   )
@@ -3764,15 +3873,19 @@ function AcquisitionWizard({
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const applyMinisterialSchema = (schemaValue: string) => {
     const profile = ministerialProfileFromSchema(schemaValue)
-    setQuery((current) => ({
-      ...current,
-      schema: asText(profile.schema || schemaValue),
-      registro: asText(profile.registro || schemaValue || current.registro),
-      materia: asText(profile.materia || schemaValue || current.materia),
-      tabellaMinisteriale: asText(profile.tabella_ministeriale),
-      servizioPstPreferito: asText(profile.servizio_pst_preferito),
-      registroPortale: asText(profile.registro_portale),
-    }))
+    setQuery((current) => {
+      const next = {
+        ...current,
+        schema: asText(profile.schema || schemaValue),
+        registro: asText(profile.registro || schemaValue || current.registro),
+        materia: asText(profile.materia || schemaValue || current.materia),
+        tabellaMinisteriale: asText(profile.tabella_ministeriale),
+        servizioPstPreferito: asText(profile.servizio_pst_preferito),
+        registroPortale: asText(profile.registro_portale),
+      }
+      rememberPstMinisterialProfile(next, 'manual')
+      return next
+    })
     if (!schemaValue) {
       setPstSchemaHint({})
     }
@@ -3932,6 +4045,64 @@ function AcquisitionWizard({
   const pstHasYearSearch = () => portal === 'pst' && Boolean(asText(query.anno) && !asText(query.numero) && !pstHasPartySearch())
   const pstHasSearchCriteria = () => pstHasExactOrPartySearch() || pstHasYearSearch()
 
+  useEffect(() => {
+    if (!pstSchemaLookupKey || pstSchemaHintCheckedKey === pstSchemaLookupKey) return
+    let cancelled = false
+    const params = new URLSearchParams()
+    params.set('numero', query.numero)
+    params.set('anno', query.anno)
+    if (query.ufficio) params.set('ufficio', query.ufficio)
+    if (query.ufficioCodice) params.set('ufficio_codice', query.ufficioCodice)
+    if (initialTargetFascicoloId) params.set('fascicolo_id', initialTargetFascicoloId)
+    fetch(`/api/v1/ui/telematico/pst/schema-hint?${params.toString()}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: unknown) => {
+        if (cancelled) return
+        const hint = asRecord(asRecord(payload).hint)
+        setPstSchemaHint(hint)
+        const hintedProfile = ministerialProfileFromSchema(
+          [
+            hint.servizio_pst_preferito,
+            hint.tabella_ministeriale,
+            hint.registro_portale,
+            hint.schema,
+            hint.registro,
+            hint.materia,
+          ].filter(Boolean).join(' '),
+        )
+        if (asText(hintedProfile.schema || hint.schema)) {
+          setQuery((current) => {
+            if (asText(current.schema || current.tabellaMinisteriale || current.servizioPstPreferito)) return current
+            const next = {
+              ...current,
+              schema: asText(hintedProfile.schema || hint.schema),
+              registro: asText(hintedProfile.registro || hint.registro || current.registro),
+              materia: asText(hintedProfile.materia || hint.materia || current.materia),
+              oggetto: asText(current.oggetto || hintedProfile.materia || hint.materia),
+              tabellaMinisteriale: asText(hint.tabella_ministeriale || hintedProfile.tabella_ministeriale),
+              servizioPstPreferito: asText(hint.servizio_pst_preferito || hintedProfile.servizio_pst_preferito),
+              registroPortale: asText(hint.registro_portale || hintedProfile.registro_portale),
+            }
+            rememberPstMinisterialProfile(next, 'fascicolo-locale')
+            return next
+          })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPstSchemaHint({})
+      })
+      .finally(() => {
+        if (!cancelled) setPstSchemaHintCheckedKey(pstSchemaLookupKey)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [initialTargetFascicoloId, pstSchemaHintCheckedKey, pstSchemaLookupKey, query.anno, query.numero, query.ufficio, query.ufficioCodice])
+
   const canUsePstSearchSnapshot = () => Boolean(
     portal === 'pst'
     && asText(resolvedOfficeCode())
@@ -3954,6 +4125,7 @@ function AcquisitionWizard({
   })
 
   const runSearch = async () => {
+    let precheckedPstCert: PstCertificate | null = null
     if (portalUsesOfficialAssistant) {
       setStep(1)
       setMessage('Per questo canale la ricerca e la consultazione avvengono nella sessione assistita IUSENTRA. Raccogli file o dati autorizzati e poi importali nel fascicolo interno.')
@@ -3963,6 +4135,25 @@ function AcquisitionWizard({
       setStep(1)
       setMessage('Il canale Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.')
       return
+    }
+    if (portal === 'pst') {
+      setStep(1)
+      setMessage('Controllo certificato PST sul PC: senza certificato la ricerca fascicolo non parte.')
+      try {
+        precheckedPstCert = await requirePstCertificateBeforeSearch()
+      } catch (error: unknown) {
+        const errorMessage = asText(error instanceof Error ? error.message : error, 'Ricerca PST non avviata: certificato non disponibile sul PC.')
+        setImportProgress({
+          active: false,
+          phase: 'Ricerca non avviata',
+          current: errorMessage,
+          completed: 0,
+          total: 0,
+          failures: [errorMessage],
+        })
+        setMessage(errorMessage)
+        return
+      }
     }
     if (requiresBrowserLocalSigner) {
       setStep(1)
@@ -3990,14 +4181,14 @@ function AcquisitionWizard({
     }
     setBusy('search')
     setMessage(portal === 'pst'
-      ? 'Ricerca PST in corso: verifico certificato, sessione e dati del fascicolo. Se Windows mostra il PIN, inseriscilo una sola volta per la consultazione.'
+      ? 'Controllo certificato PST sul PC prima della ricerca: se manca, la ricerca fascicolo non parte.'
       : '')
     setImportResult({})
     setImportProgress(portal === 'pst'
       ? {
         active: true,
-        phase: 'Ricerca fascicolo sul PST',
-        current: 'Verifica certificato e sessione locale',
+        phase: 'Controllo prerequisiti PST',
+        current: 'Verifica certificato locale prima di aprire la ricerca fascicolo',
         completed: 0,
         total: 4,
         failures: [],
@@ -4032,7 +4223,7 @@ function AcquisitionWizard({
         await requireLocalSignerBrowserBridge()
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
-        let cert = await ensurePstCertificate()
+        let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
         setImportProgress((current) => ({
           ...current,
           current: 'Certificato confermato; lettura dati dal portale ufficiale',
@@ -4069,7 +4260,7 @@ function AcquisitionWizard({
           }
         }
         if (!signerPayload) {
-          cert = await ensurePstCertificate()
+          cert = precheckedPstCert || await requirePstCertificateBeforeSearch()
           setImportProgress((current) => ({
             ...current,
             current: 'Uso il percorso di ricerca alternativo del PST',
@@ -4195,13 +4386,14 @@ function AcquisitionWizard({
     if (autoPstTestStartedRef.current) return
     if (!query.numero || !query.anno || !(query.ufficio || query.ufficioCodice)) return
     if ((query.ufficio || query.ufficioCodice) && !data.offices.length) return
+    if (pstSchemaHintPending) return
     autoPstTestStartedRef.current = true
     const timer = window.setTimeout(() => {
       void runSearch()
     }, 600)
     return () => window.clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.offices.length, query.anno, query.numero, query.ufficio, query.ufficioCodice, visible, portal])
+  }, [data.offices.length, pstSchemaHintPending, query.anno, query.numero, query.ufficio, query.ufficioCodice, visible, portal])
 
   const runPreview = async (activeSelection: AcquisitionResult | null = selection) => {
     if (!activeSelection) {
@@ -5110,15 +5302,10 @@ function AcquisitionWizard({
                 <label>
                   <span>{isPatAcquisition ? 'Tipologia deposito PAT' : 'Tabella ministeriale'}</span>
                   <select
-                    value={query.schema}
+                    value={ministerialSchemaFromQuery(query)}
                     onChange={(event) => {
                       const schema = event.currentTarget.value
-                      setQuery((current) => ({
-                        ...current,
-                        schema,
-                        registro: schema || current.registro,
-                        materia: schema || current.materia,
-                      }))
+                      applyMinisterialSchema(schema)
                     }}
                   >
                     {isPatAcquisition ? (
@@ -5156,6 +5343,19 @@ function AcquisitionWizard({
                 <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={() => runPreview()}><FileText size={15}/> Carica anteprima</button>
                 {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(isPatAcquisition ? 3 : 4)}><ArrowRight size={15}/> {isPatAcquisition ? 'Vai al rientro ricevute' : 'Vai ai file raccolti'}</button> : null}
               </div>
+              {portal === 'pst' && asText(pstSchemaHint.schema || pstSchemaHint.servizio_pst_preferito || query.servizioPstPreferito) ? (
+                <div className="iu-tel-local-signer-inline">
+                  <CheckCircle2 size={16}/>
+                  <span>
+                    Tabella ministeriale applicata automaticamente:
+                    {' '}
+                    <strong>{asText(pstSchemaHint.materia || query.materia || query.schema)}</strong>
+                    {asText(query.servizioPstPreferito || pstSchemaHint.servizio_pst_preferito)
+                      ? ` (${asText(query.servizioPstPreferito || pstSchemaHint.servizio_pst_preferito)})`
+                      : ''}
+                  </span>
+                </div>
+              ) : null}
               <div className="iu-tel-acq-results">
                 {results.map((result) => (
                   <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => {

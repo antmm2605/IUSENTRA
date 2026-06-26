@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.80
+IUSENTRA Local Signer - v1.6.81
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -115,7 +115,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.80"
+VERSION = "1.6.81"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -204,10 +204,13 @@ def _local_signer_update_url() -> str:
     return url
 
 
-def _local_signer_base_url() -> str:
+def _local_signer_base_url(base_url: str = "") -> str:
     """Base ufficiale per scaricare i sorgenti aggiornati (sempre app.iusentra.it)."""
-    base = os.getenv("IUSENTRA_LOCAL_SIGNER_BASE_URL", "https://app.iusentra.it").strip().rstrip("/")
-    if not base.startswith("https://app.iusentra.it"):
+    base = str(base_url or os.getenv("IUSENTRA_LOCAL_SIGNER_BASE_URL", "https://app.iusentra.it")).strip().rstrip("/")
+    if not (
+        base.startswith("https://app.iusentra.it")
+        or base in {"http://127.0.0.1:8080", "http://localhost:8080"}
+    ):
         raise RuntimeError("Base aggiornamento Local Signer non autorizzata.")
     return base
 
@@ -237,7 +240,11 @@ _LOCAL_SIGNER_SOURCE_MOD_FILES: tuple[str, ...] = (
 
 
 def _scarica_sorgente(url: str, timeout: int = 30) -> bytes:
-    if not url.startswith("https://app.iusentra.it/"):
+    if not (
+        url.startswith("https://app.iusentra.it/")
+        or url.startswith("http://127.0.0.1:8080/")
+        or url.startswith("http://localhost:8080/")
+    ):
         raise RuntimeError(f"URL sorgente non autorizzato: {url}")
     import urllib.request
 
@@ -262,7 +269,7 @@ def _estrai_versione_local_signer_sorgente(data: bytes) -> str:
     return match.group(1).decode("ascii", errors="strict")
 
 
-def _aggiorna_sorgenti_local_signer() -> dict:
+def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
     """Aggiorna i sorgenti .py in-place dal server e riavvia, senza EXE.
 
     Funziona su qualsiasi installazione gia' attiva (Python + dipendenze
@@ -273,7 +280,7 @@ def _aggiorna_sorgenti_local_signer() -> dict:
     import py_compile
     import shutil
 
-    base = _local_signer_base_url()
+    base = _local_signer_base_url(base_url)
     install_dir = _local_signer_install_dir()
     mod_dir = install_dir / "local_signer_mod"
     staging = Path(tempfile.mkdtemp(prefix="iusentra-ls-update-"))
@@ -380,7 +387,7 @@ def _programma_riavvio_local_signer() -> None:
         threading.Thread(target=_reexec_soon, daemon=True).start()
 
 
-def _avvia_aggiornamento_local_signer() -> dict:
+def _avvia_aggiornamento_local_signer(base_url: str = "") -> dict:
     """Aggiorna il Local Signer. Preferisce l'hot-update dei sorgenti (.py),
     che non richiede alcun EXE: Python e dipendenze sono gia' installati.
     Se l'hot-update non riesce, ricade sul pacchetto EXE ufficiale (Windows).
@@ -390,7 +397,7 @@ def _avvia_aggiornamento_local_signer() -> dict:
     # dell'EXE versionato (che si genera solo da Windows con IExpress).
     errore_sorgenti = ""
     try:
-        return _aggiorna_sorgenti_local_signer()
+        return _aggiorna_sorgenti_local_signer(base_url)
     except Exception as exc:  # noqa: BLE001 — fallback robusto all'EXE
         errore_sorgenti = str(exc)
         log.warning("Hot-update sorgenti non riuscito (%s): provo il pacchetto EXE.", exc)
@@ -1461,6 +1468,35 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
         if variante and variante not in varianti:
             varianti.append(variante)
     return varianti or ([base_url.rstrip("/")] if base_url else [])
+
+
+def _pst_base_varianti_registro_esplicito(base_url: str) -> list[str]:
+    """
+    Quando il wizard passa una tabella ministeriale gia' risolta, la ricerca
+    deve restare nel registro indicato. Il fallback ampio rimane solo per il
+    caso davvero automatico/ignoto.
+    """
+    raw = base_url.rstrip("/") if base_url else ""
+    if not raw:
+        return []
+    if not _pst_register_fallback_enabled():
+        return [raw]
+    current = _pst_servizio_proxy(raw)
+    if current in _PST_SIL_ENDPOINT_SERVIZI:
+        servizi = list(_PST_SIL_ENDPOINT_SERVIZI)
+    elif current in {"JPW_MIN", "JPW_SIMIN"}:
+        servizi = ["JPW_MIN", "JPW_SIMIN"]
+    elif current:
+        servizi = [current]
+    else:
+        servizi = []
+
+    varianti: list[str] = []
+    for servizio in servizi:
+        variante = _pst_base_url_con_servizio(raw, servizio)
+        if variante and variante not in varianti:
+            varianti.append(variante)
+    return varianti or [raw]
 
 
 def _pst_codici_ufficio_ricerca_esatta(codice_pst: str, codice_richiesto: str) -> list[str]:
@@ -10173,7 +10209,9 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _local_signer_update(self):
         try:
-            self._send_json(_avvia_aggiornamento_local_signer())
+            payload = self._read_json()
+            base_url = str(payload.get("base_url") or "").strip() if isinstance(payload, dict) else ""
+            self._send_json(_avvia_aggiornamento_local_signer(base_url))
         except Exception as e:
             log.error("Aggiornamento Local Signer non avviato: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
@@ -11456,7 +11494,12 @@ class _Handler(BaseHTTPRequestHandler):
                     fallback_targets: list[tuple[str, str]] = []
                     for codice_alternativo in _pst_codici_ufficio_ricerca_esatta(codice_pst, tribunale)[1:]:
                         fallback_targets.append((base_url, codice_alternativo))
-                    for fallback_base_url in _pst_base_varianti_ricerca_esatta(codice_pst or tribunale, base_url)[1:]:
+                    varianti_registro = (
+                        _pst_base_varianti_registro_esplicito(base_url)
+                        if servizio_hint
+                        else _pst_base_varianti_ricerca_esatta(codice_pst or tribunale, base_url)
+                    )
+                    for fallback_base_url in varianti_registro[1:]:
                         fallback_targets.append((fallback_base_url, codice_pst))
 
                     seen_fallback_targets: set[tuple[str, str]] = set()

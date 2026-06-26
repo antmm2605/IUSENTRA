@@ -397,7 +397,7 @@ def _avvia_aggiornamento_local_signer(base_url: str = "") -> dict:
     # dell'EXE versionato (che si genera solo da Windows con IExpress).
     errore_sorgenti = ""
     try:
-        return _aggiorna_sorgenti_local_signer(base_url)
+        return _aggiorna_sorgenti_local_signer(base_url) if base_url else _aggiorna_sorgenti_local_signer()
     except Exception as exc:  # noqa: BLE001 — fallback robusto all'EXE
         errore_sorgenti = str(exc)
         log.warning("Hot-update sorgenti non riuscito (%s): provo il pacchetto EXE.", exc)

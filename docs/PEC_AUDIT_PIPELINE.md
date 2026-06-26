@@ -109,6 +109,18 @@ Schema SQLite/PostgreSQL:
 
 Tabelle principali: `pec_messages`, `pec_parsed_versions`, `pec_attachments`, `pec_validation_reports`, `pec_fascicolo_links`, `pec_jobs`, `pec_digest_runs`, `pec_retention_policies`, `pec_audit_log`.
 
+## Incrementalità e marker persistenti
+
+La pipeline automatica non deve rileggere la casella o i fascicoli a ogni giro:
+
+- `pec_local_acquire_runs` conserva il cursore `pec_local_acquire_v2` dell'acquisizione automatica locale;
+- `pec_local_acquire_items` conserva email già presidiate per `email_id` e `Message-ID`;
+- `pec_messages` deduplica il MIME su `Message-ID` e hash;
+- `pec_jobs` contiene solo i worker pendenti/dovuti;
+- `pec_audit_log` registra `pec.document_presidio.checked` per ogni documento fascicolo già letto dal presidio Lex automatico.
+
+Il marker documentale è calcolato da fascicolo, documento e hash SHA-256. Se il documento è già stato controllato con lo stesso hash, il job non apre il testo e non invia di nuovo la sorgente a Document AI/Lex. Se cambia il file e cambia hash, nasce un nuovo marker e il documento torna eleggibile.
+
 Retention: policy predefinita `pec-default-10y`, legal hold attivo e azione `review`; la funzione `apply_retention_policy()` produce report e audit, senza cancellare automaticamente dati probatori.
 
 ## Fonti ufficiali consultate

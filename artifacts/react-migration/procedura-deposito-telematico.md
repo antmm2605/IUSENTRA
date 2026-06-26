@@ -2,6 +2,30 @@
 
 Aggiornato: 2026-06-26.
 
+## Aggiornamento 2026-06-26 - Job incrementali, PEC, notifiche e documenti Lex
+
+Richiesta utente: eliminare i ripassi pesanti automatici. Dopo che PEC, email, notifiche, Web Push e documenti di fascicolo sono stati letti e memorizzati, i job devono controllare solo elementi nuovi, modificati o rimasti in coda.
+
+Correzione applicata:
+
+- i percorsi applicativi PEC/email ordinaria (`mailbox_sync_runtime`, dashboard React, route manuali, PDP penale e fatturazione) usano `incremental_only=True` come default operativo;
+- il workflow condiviso `sincronizza_pec_e_fascicoli()` nasce ora incrementale; la scansione/riparazione storica resta disponibile solo dal motore IMAP basso livello con flag esplicito;
+- il polling automatico di depositi e cancelleria usa finestre corte e cappate (`IUSENTRA_DEPOSIT_POLL_DAYS`, `IUSENTRA_PEC_CANCELLERIA_POLL_DAYS`, massimo 7 giorni);
+- il presidio documentale Lex dei fascicoli registra in `pec_audit_log` un marker `pec.document_presidio.checked` calcolato da fascicolo, documento e hash SHA-256;
+- se un documento fascicolo ha già `hash_sha256`, la sorgente Document AI non riapre il file solo per ricalcolare l'hash;
+- il dataset Lex notturno salva fingerprint e opzioni in `source_index.json`/`latest_job.json` e restituisce `skipped_unchanged` quando `documenti_ai.json` non è cambiato;
+- Web Push resta vincolato a `dedupe_key`: una notifica già esistente non viene reinviata.
+
+Storage di memoria persistente:
+
+- PEC/email: `/data/tenants/<studio>/email`, `EMAIL_CASELLA_DB`, `EMAIL_ORDINARIA_DB`, UID IMAP e `Message-ID`;
+- PEC audit: `pec_audit.sqlite`, tabelle `pec_local_acquire_runs`, `pec_local_acquire_items`, `pec_messages`, `pec_jobs`, `pec_audit_log`;
+- Documenti Lex: repository Document AI tenant-aware più marker `pec.document_presidio.checked`;
+- Dataset Lex: `/data/tenants/<studio>/intelligence/lex_dataset/latest_job.json`, `jobs.json`, `source_index.json`;
+- notifiche/Web Push: `/data/tenants/<studio>/notifications/notifications.db`, tabelle `notifications`, `push_subscriptions`, `notification_deliveries`.
+
+Stato verifica: test mirati e rebuild/deploy da completare nello stesso ciclo prima del report finale. Riferimento operativo nuovo: `docs/INCREMENTAL_JOBS_AND_STORAGE.md`.
+
 ## Aggiornamento 2026-06-26 - Firma multipla non dovuta su allegato del ricorso
 
 Caso reale da presidiare: fascicolo produzione `795C50AC`, deposito PCT Vicenza. La UI mostrava `Firma multipla da completare` su `Autocertificazione ricorso.PDF`, pur trattandosi di un allegato di supporto già presente nella selezione documentale e non di un nuovo atto principale da sottoscrivere in lotto.

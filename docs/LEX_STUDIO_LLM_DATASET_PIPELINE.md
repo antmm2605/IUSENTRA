@@ -161,8 +161,16 @@ Comportamento previsto:
   `intelligence/lex_dataset`;
 - registra `latest_job.json` e `jobs.json`, così Impostazioni AI e
   Pianificazioni mostrano l'ultimo lavoro;
+- registra `source_index.json` e il fingerprint della sorgente
+  (`path`, dimensione, `mtime_ns`) per saltare il tenant quando
+  `documenti_ai.json` e le opzioni non sono cambiati;
 - non avvia fine-tuning, non chiama provider esterni e non importa modelli in
   Ollama senza revisione umana.
+
+Quando il fingerprint coincide con l'ultima esecuzione riuscita, il job
+restituisce `status=skipped_unchanged` e `scan_mode=source_unchanged_skip`.
+In quel caso non rilegge `documenti_ai.json`, non rigenera chunk e non produce
+nuove domande candidate.
 
 Variabili operative:
 

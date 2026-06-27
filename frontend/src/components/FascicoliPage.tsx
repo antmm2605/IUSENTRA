@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
@@ -1007,6 +1007,23 @@ function compactPaymentLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
 }
 
+function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind}) {
+  const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
+  const amount = payment.importoLabel || 'EUR 0,00'
+  const detail = payment.dataPagamento || payment.updatedAtLabel || payment.metodo || payment.note || ''
+  const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
+  return (
+    <div className={`iu-fas-economic-summary iu-fas-economic-summary--${payment.tone}`} title={title} aria-label={title}>
+      <div>
+        <span>{label}</span>
+        <strong>{amount}</strong>
+      </div>
+      <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
+      {detail ? <small>{detail}</small> : null}
+    </div>
+  )
+}
+
 function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
@@ -1164,6 +1181,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const total = pagination?.total ?? items.length
   const totalLabel = filtered ? 'fascicoli filtrati' : 'fascicoli'
   const handleError = onError || (() => {})
+  const [expandedEconomicId, setExpandedEconomicId] = useState<string | null>(null)
   const statusCell = (item: FascicoloRow) => (
     !archive && onStatusSaved
       ? <StatusEditCell item={item} onSaved={onStatusSaved} onError={handleError}/>
@@ -1243,54 +1261,95 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
               <th>Stato</th>
               {economic ? <th>Controllo economico</th> : <th>Documenti</th>}
-              {economic ? <th>Totale registrato</th> : <th>Azioni</th>}
+              {economic ? <th>Totale</th> : <th>Azioni</th>}
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
-                <td>
-                  {economic
-                    ? <span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span></span>
-                    : <><strong>{item.ref}</strong><span>{item.internalRef}</span></>}
-                </td>
-                {economic ? null : (
-                  <td className="iu-fas-title-cell">
-                    <a href={item.href}>{item.title}</a>
-                    <span>{item.subtitle || item.court}</span>
-                    {item.relataStatusLabel ? (
-                      <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
-                        <FileSignature size={14}/>
-                        <span>Relata notifica</span>
-                        <strong>{item.relataStatusLabel}</strong>
-                      </a>
-                    ) : null}
-                  </td>
-                )}
-                {economic ? null : <td><Badge tone="neutral">{formatFascicoloType(item.type)}</Badge></td>}
-                <td>{item.client}</td>
-                {economic ? null : <td>{item.rg}</td>}
-                <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
-                <td>{statusCell(item)}</td>
-                {economic ? (
-                  <td className="iu-fas-economic-matrix">
-                    {economicPaymentKinds.map((kind) => (
-                      <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError} forceLabel key={kind}/>
-                    ))}
-                  </td>
-                ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
-                {economic ? (
-                  <td className="iu-fas-economic-total">
-                    <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
-                    <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
-                    {item.paymentSummary.updatedAtLabel ? <span>{item.paymentSummary.updatedAtLabel}</span> : null}
-                  </td>
-                ) : (
-                  <td><RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/></td>
-                )}
-              </tr>
-            ))}
+            {items.map((item) => {
+              const economicEditorOpen = economic && expandedEconomicId === item.id
+              const economicEditorId = `economic-editor-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+              return (
+                <Fragment key={item.id}>
+                  <tr className={economicEditorOpen ? 'is-economic-open' : undefined}>
+                    <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
+                    <td>
+                      {economic
+                        ? <span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span></span>
+                        : <><strong>{item.ref}</strong><span>{item.internalRef}</span></>}
+                    </td>
+                    {economic ? null : (
+                      <td className="iu-fas-title-cell">
+                        <a href={item.href}>{item.title}</a>
+                        <span>{item.subtitle || item.court}</span>
+                        {item.relataStatusLabel ? (
+                          <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
+                            <FileSignature size={14}/>
+                            <span>Relata notifica</span>
+                            <strong>{item.relataStatusLabel}</strong>
+                          </a>
+                        ) : null}
+                      </td>
+                    )}
+                    {economic ? null : <td><Badge tone="neutral">{formatFascicoloType(item.type)}</Badge></td>}
+                    <td>{item.client}</td>
+                    {economic ? null : <td>{item.rg}</td>}
+                    <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
+                    <td>{statusCell(item)}</td>
+                    {economic ? (
+                      <td className="iu-fas-economic-matrix">
+                        <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
+                          {economicPaymentKinds.map((kind) => (
+                            <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          className="iu-fas-economic-edit-toggle"
+                          aria-expanded={economicEditorOpen}
+                          aria-controls={economicEditorId}
+                          onClick={() => setExpandedEconomicId(economicEditorOpen ? null : item.id)}
+                        >
+                          <Edit3 size={14}/>
+                          <span>{economicEditorOpen ? 'Chiudi modifica economica' : 'Modifica controllo economico'}</span>
+                        </button>
+                      </td>
+                    ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
+                    {economic ? (
+                      <td className="iu-fas-economic-total">
+                        <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
+                        <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
+                        {item.paymentSummary.updatedAtLabel ? <span>{item.paymentSummary.updatedAtLabel}</span> : null}
+                      </td>
+                    ) : (
+                      <td><RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/></td>
+                    )}
+                  </tr>
+                  {economicEditorOpen ? (
+                    <tr className="iu-fas-economic-editor-row">
+                      <td colSpan={7}>
+                        <section className="iu-fas-economic-editor" id={economicEditorId} aria-label={`Modifica controllo economico ${item.ref}`}>
+                          <header>
+                            <div>
+                              <strong>Modifica controllo economico</strong>
+                              <span>{item.ref} - {item.client}</span>
+                            </div>
+                            <button type="button" onClick={() => setExpandedEconomicId(null)} aria-label={`Chiudi modifica economica ${item.ref}`}>
+                              <ChevronUp size={15}/>
+                              <span>Chiudi</span>
+                            </button>
+                          </header>
+                          <div className="iu-fas-economic-edit-grid">
+                            {economicPaymentKinds.map((kind) => (
+                              <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError} forceLabel key={kind}/>
+                            ))}
+                          </div>
+                        </section>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </SyncedTopScrollbar>

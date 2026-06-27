@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Vista economica leggibile 2.253.132 - verifica locale pre-push - 2026-06-27
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `git diff --check -- frontend/src/components/FascicoliPage.tsx frontend/src/components/FascicoliPage.css`; `pnpm --filter @iusentra/studio build` | OK | TypeScript/Vite completati dopo la riga editor dedicata, il totale compatto e i vincoli anti-overflow della tabella economica. |
+| `docker compose build --no-cache app`; `docker compose up -d app`; `/api/pronto` | OK | Copia reale locale `127.0.0.1:8080` healthy; `/api/pronto` restituisce `versione=2.253.132`, `timezone=Europe/Rome`. |
+| Chrome installato visibile su `http://127.0.0.1:8080/fascicoli?vista=economica` | OK osservato | Browser integrato non disponibile nella sessione; usato Chrome reale `C:/Program Files/Google/Chrome/Application/chrome.exe`. Desktop `1440x900`: `wrapClientWidth=1091`, `wrapScrollWidth=1091`, `bodyScrollWidth=bodyClientWidth=1425`, header `TOTALE`, console senza errori. |
+| Click reale `Modifica controllo economico` | OK osservato | Focus/hover leggibile; editor sotto la riga con `editorFitsWrap=true`, `overlapsNextRow=false`, 4 form, 4 pulsanti salva, 4 select, 16 input, campi `Stato`, `Importo`, `Data`, `Metodo e note` presenti. |
+| Chrome visibile tablet `768x1024` e mobile `390x844` | OK osservato | Tablet `bodyScrollWidth=bodyClientWidth=753`; mobile `bodyScrollWidth=bodyClientWidth=375`; 7 card mobile leggibili con matrice economica e nessun overflow orizzontale. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Il pre-push aveva bloccato perché `docs/openapi.yaml` riportava ancora versione `2.253.131`; riallineato a `2.253.132` e confermati contratti API fase 6. |
+
 ## Deposito PCT - formato PEC ministeriale `DEPOSITO <testo>` 2.253.124 - 2026-06-26
 
 | Comando / verifica | Esito | Nota |

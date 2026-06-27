@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Vista economica fascicoli 2.253.132 - 2026-06-27
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Quality gate Codex `ui-support` | `python tools/codex_harness/run_codex_quality_gate.py --mode ui-support` | Non applicabile al perimetro prodotto | Il gate è stato eseguito come richiesto, ma il controllo `Scope` fallisce perché la correzione modifica file prodotto (`frontend/src/components/FascicoliPage.*`), versione e bundle React in `web/static/react`; i sotto-controlli `Dipendenze runtime`, `Guardrail AGENTS.md` e `Open Design support` sono OK. | Non usarlo come prova applicativa per questa patch; la chiusura resta vincolata a build React, Docker reale `127.0.0.1:8080`, test mirati, prova visiva locale e prova server dopo deploy. |
+
 ## Hetzner performance e backup 2.253.121 - 2026-06-26
 
 | Area | Gate | Stato | Nota | Azione |

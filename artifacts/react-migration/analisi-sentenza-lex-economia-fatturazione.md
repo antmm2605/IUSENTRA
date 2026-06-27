@@ -415,3 +415,13 @@ Prova reale obbligatoria:
 - Corretto il salvataggio del contributo unificato esente: la pipeline mantiene `Contributo unificato esente`, `status=non_previsto`, `importo=null`, ma non compila più `data_pagamento` con la data della sentenza.
 - Il backfill `--reset-lex-amounts` v9 rigenera la matrice economica locale usando questa regola, così i vecchi importi e le vecchie date fittizie vengono sostituiti dalla logica governata.
 - Prova locale reale su `127.0.0.1:8080`: vista economica Fascicoli verificata in browser integrato desktop e mobile, senza colonna `Fondo spese`, con `Spese/esborsi` unica e senza overflow orizzontale.
+
+## Vista economica leggibile 2.253.132 - 2026-06-27
+
+- Segnalazione utente: la prova visiva server mostrava `/fascicoli?vista=economica` non leggibile; la tabella economica restava troppo compressa e la vecchia modifica dentro la cella rischiava sovrapposizioni tra righe.
+- Correzione React: la riga economica desktop mostra una sintesi compatta a due colonne dentro `Controllo economico`; la modifica dei quattro valori (`Contributo`, `Spese/esborsi`, `Liquidazione`, `Parcella`) si apre in una riga editor dedicata sotto il fascicolo, non dentro la cella della tabella.
+- Correzione layout: intestazione finale accorciata a `Totale`, select stato vincolata alla colonna, header con ellissi e totale senza overflow. La tabella resta `full React`, senza modifiche alla logica dati, al parser sentenze, ai job PEC/OCR o ai repository economici.
+- Prova reale locale su Docker `127.0.0.1:8080`, versione `2.253.132`, con Chrome installato visibile (`C:/Program Files/Google/Chrome/Application/chrome.exe`) perché il browser integrato non era disponibile nella sessione: `/api/pronto` `ok=true`, `timezone=Europe/Rome`.
+- Prova desktop `1440x900`: `wrapClientWidth=1091`, `wrapScrollWidth=1091`, `bodyScrollWidth=bodyClientWidth=1425`, `summaryCount=28`, `toggleCount=7`, header `TOTALE`, console senza errori.
+- Prova apertura editor: focus/hover su `Modifica controllo economico` visibile, `editorFitsWrap=true`, `overlapsNextRow=false`, `formCount=4`, `saveButtonCount=4`, `selectCount=4`, `inputCount=16`, campi `Stato`, `Importo`, `Data`, `Metodo e note` presenti.
+- Prova responsive: tablet `768x1024` con `bodyScrollWidth=bodyClientWidth=753`, mobile `390x844` con `bodyScrollWidth=bodyClientWidth=375`; le card mobile restano leggibili e mostrano la matrice economica senza overflow orizzontale.

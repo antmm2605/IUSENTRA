@@ -425,3 +425,12 @@ Prova reale obbligatoria:
 - Prova desktop `1440x900`: `wrapClientWidth=1091`, `wrapScrollWidth=1091`, `bodyScrollWidth=bodyClientWidth=1425`, `summaryCount=28`, `toggleCount=7`, header `TOTALE`, console senza errori.
 - Prova apertura editor: focus/hover su `Modifica controllo economico` visibile, `editorFitsWrap=true`, `overlapsNextRow=false`, `formCount=4`, `saveButtonCount=4`, `selectCount=4`, `inputCount=16`, campi `Stato`, `Importo`, `Data`, `Metodo e note` presenti.
 - Prova responsive: tablet `768x1024` con `bodyScrollWidth=bodyClientWidth=753`, mobile `390x844` con `bodyScrollWidth=bodyClientWidth=375`; le card mobile restano leggibili e mostrano la matrice economica senza overflow orizzontale.
+
+## Vista economica produzione 2.253.132 - 2026-06-27
+
+- Commit distribuito su Hetzner: `4472e969f3ced0151c21007274434e58fce60dad`, branch server `Codex/legal-electronic-filing-kIxcV`; `/api/pronto` produzione `ok=true`, `versione=2.253.132`, timestamp `2026-06-27T11:32:36+02:00`, `timezone=Europe/Rome`.
+- Deploy GitHub Actions `Deploy Hetzner CPX42` concluso `success`; backup preventivo saltato dal workflow push/no-backup; pulizia `docker builder prune --all --force` rieseguita manualmente e `/opt/iusentra/tmp-backup-snapshot` assente.
+- Prova visiva produzione su Chrome installato visibile (`C:/Program Files/Google/Chrome/Application/chrome.exe`) perché il browser integrato non esponeva backend disponibili: login con `studio_slug` vuoto e utente piattaforma, apertura `https://app.iusentra.it/fascicoli?vista=economica`.
+- Desktop produzione `1440x900`: `bodyScrollWidth=bodyClientWidth=1425`, `mainScrollWidth=mainClientWidth=1189`, `wrapScrollWidth=wrapClientWidth=1091`, `tableWidth=1091`, header `Rif. / Cliente / Prossima scad. / Stato / Controllo economico / Totale`, `summaryCount=100`, `toggleCount=25`, console senza errori.
+- Click `Modifica controllo economico` in produzione: hover/focus leggibile, editor dedicato aperto, `editorFitsWrap=true`, `overlapsNextRow=false`, `formCount=4`, `saveButtonCount=4`, `selectCount=4`, `inputCount=16`, campi `Stato`, `Importo`, `Data`, `Metodo e note` presenti.
+- Responsive produzione: tablet `768x1024` con `bodyScrollWidth=bodyClientWidth=753`, `mainScrollWidth=mainClientWidth=753`, `mobileCards=25`; mobile `390x844` con `bodyScrollWidth=bodyClientWidth=375`, `mainScrollWidth=mainClientWidth=375`, `mobileCards=25`.

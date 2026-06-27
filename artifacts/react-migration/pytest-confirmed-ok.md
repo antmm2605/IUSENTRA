@@ -10,6 +10,7 @@
 | Click reale `Modifica controllo economico` | OK osservato | Focus/hover leggibile; editor sotto la riga con `editorFitsWrap=true`, `overlapsNextRow=false`, 4 form, 4 pulsanti salva, 4 select, 16 input, campi `Stato`, `Importo`, `Data`, `Metodo e note` presenti. |
 | Chrome visibile tablet `768x1024` e mobile `390x844` | OK osservato | Tablet `bodyScrollWidth=bodyClientWidth=753`; mobile `bodyScrollWidth=bodyClientWidth=375`; 7 card mobile leggibili con matrice economica e nessun overflow orizzontale. |
 | `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Il pre-push aveva bloccato perché `docs/openapi.yaml` riportava ancora versione `2.253.131`; riallineato a `2.253.132` e confermati contratti API fase 6. |
+| GitHub Actions + Hetzner + produzione `https://app.iusentra.it/fascicoli?vista=economica` | OK | Commit `4472e969f3ced0151c21007274434e58fce60dad`; CI Required Gates, CI, CodeQL, Frontend React CI, Security Supply Chain, CI Quality Overlay e Deploy Hetzner CPX42 verdi; server `/api/pronto` `versione=2.253.132`; prova visuale produzione desktop/tablet/mobile senza overflow e console senza errori. |
 
 ## Deposito PCT - formato PEC ministeriale `DEPOSITO <testo>` 2.253.124 - 2026-06-26
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.130 - 2026-06-27
+
+- Fascicoli React mobile: l'avviso `Scadenze entro 7 giorni` viene mostrato dopo la lista principale sotto i 760px e diventa compatto, così le card dei fascicoli restano visibili subito anche sui fascicoli reali con molte scadenze.
+
 ## 2.253.129 - 2026-06-27
 
 - Fascicoli React mobile: resa compatta la testata della pagina e trasformati gli indicatori in un rail orizzontale, così le card dei fascicoli tornano visibili subito nel flusso mobile senza perdere i dati economici.

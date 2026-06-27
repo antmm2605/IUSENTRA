@@ -4587,11 +4587,17 @@ def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewpo
 
     assert ".iu-fas-hero p{display:none}" in mobile_block
     assert ".iu-fas-hero__actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}" in mobile_block
+    route_body = ".iusentra-route-preset--active .iu-fascicoli-page .iusentra-page-shell__body.iusentra-route-sequence>"
+    assert f"{route_body}.iu-fas-hero{{order:1!important;display:grid!important;grid-template-columns:1fr!important}}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stats" in mobile_block
     assert "display:flex;grid-template-columns:none" in mobile_block
     assert "overflow-x:auto" in mobile_block
     assert "overflow-y:hidden" in mobile_block
     assert "scroll-snap-type:x proximity" in mobile_block
+    assert f"{route_body}.iu-fas-stats{{order:2!important}}" in mobile_block
+    assert f"{route_body}.iu-fas-layout{{order:3!important}}" in mobile_block
+    assert f"{route_body}.iu-fas-deadline-alert{{order:4!important}}" in mobile_block
+    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stat" in mobile_block
     assert "flex:0 0 148px;min-height:66px;" in mobile_block
     assert ".iu-fas-mobile-list{display:grid;gap:10px;padding:10px}" in css

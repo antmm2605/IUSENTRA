@@ -79,6 +79,72 @@ def test_env_hetzner_documenta_guardrail_backup():
     assert "IUSENTRA_BACKUP_EXCLUDE_PATHS=./ollama,./intelligence/downloads/ollama,./tenants/*/intelligence/downloads/ollama" in env_example
 
 
+def test_deploy_pulisce_container_compose_temporanei_senza_toccare_dati():
+    deploy_script = (REPO_ROOT / "deploy" / "hetzner" / "deploy.sh").read_text(encoding="utf-8")
+    cleanup_script = (REPO_ROOT / "deploy" / "hetzner" / "cleanup_compose_conflicts.sh").read_text(encoding="utf-8")
+    workflow = (REPO_ROOT / ".github" / "workflows" / "deploy-hetzner.yml").read_text(encoding="utf-8")
+
+    assert "cleanup_compose_conflict_containers" in deploy_script
+    assert "compose_up_with_cleanup" in deploy_script
+    assert "pulisco container temporanei e riprovo una volta" in deploy_script
+    assert "cleanup_compose_conflicts.sh" in workflow
+    assert "IUSENTRA_CLEANUP_RUNNING_TEMP=1" in workflow
+    assert "docker rm -f \"$container_id\"" in cleanup_script
+    assert "docker ps -a --format" in cleanup_script
+    assert "^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|caddy|audit-worm-init)-[0-9]+$" in cleanup_script
+    assert "audit-postgres" not in cleanup_script
+    assert "volume" not in cleanup_script.lower().replace("volumi", "")
+
+
+def test_cleanup_compose_conflicts_rimuove_solo_hashati_ammessi(tmp_path: Path):
+    if not shutil.which("bash"):
+        pytest.skip("bash non disponibile")
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log_path = tmp_path / "docker-rm.log"
+    fake_docker = bin_dir / "docker"
+    fake_docker.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "ps" ]]; then
+  printf 'keep1\\tiusentra-app-1\\trunning\\n'
+  printf 'temp1\\t17d5ff216ae5_iusentra-app-1\\texited\\n'
+  printf 'temp2\\t9abc12345678_iusentra-scheduler-worker-1\\tcreated\\n'
+  printf 'unsafe\\tdf82231833bc_iusentra-audit-postgres-1\\texited\\n'
+  exit 0
+fi
+if [[ "${1:-}" == "rm" && "${2:-}" == "-f" ]]; then
+  printf '%s\\n' "$3" >> "${DOCKER_RM_LOG}"
+  exit 0
+fi
+echo "unexpected docker call: $*" >&2
+exit 64
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    fake_docker.chmod(0o755)
+    subprocess.run(["bash", "-lc", f"chmod +x {shlex.quote(_bash_path(fake_docker))}"], check=True)
+
+    script = REPO_ROOT / "deploy" / "hetzner" / "cleanup_compose_conflicts.sh"
+    command = " ".join(
+        [
+            f"PATH={shlex.quote(f'{_bash_path(bin_dir)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin')}",
+            f"DOCKER_RM_LOG={shlex.quote(_bash_path(log_path))}",
+            "IUSENTRA_COMPOSE_PROJECT=iusentra",
+            "IUSENTRA_CLEANUP_RUNNING_TEMP=0",
+            f"bash {shlex.quote(_bash_path(script))}",
+        ]
+    )
+    result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=True)
+    removed = log_path.read_text(encoding="utf-8").splitlines()
+
+    assert removed == ["temp1", "temp2"]
+    assert "keep1" not in result.stdout
+    assert "audit-postgres" not in result.stdout
+
+
 def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):
     if not shutil.which("bash"):
         pytest.skip("bash non disponibile")

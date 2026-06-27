@@ -219,15 +219,22 @@
 
 @media(max-width:760px){
   .iu-fascicoli-page{gap:12px}
-  .iu-fas-hero{padding:14px;border-radius:14px}
+  .iu-fas-hero{display:grid;grid-template-columns:1fr;gap:10px;padding:12px;border-radius:14px}
   .iu-fas-hero h1{font-size:25px}
-  .iu-fas-hero p{font-size:13px}
-  .iu-fas-hero__actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
-  .iu-fas-hero__actions .iu-button--primary{grid-column:1/-1}
-  .iu-fas-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .iu-fas-stat{min-height:88px;grid-template-columns:36px 1fr;padding:10px;border-radius:13px}
-  .iu-fas-stat>div{width:36px;height:36px;border-radius:11px}
-  .iu-fas-stat>strong{font-size:21px}
+  .iu-fas-hero p{display:none}
+  .iu-fas-hero__actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .iu-fas-hero__actions .iu-button{min-width:0;min-height:38px;padding:0 8px;line-height:1.1;white-space:normal}
+  .iu-fas-hero__actions .iu-button--primary{grid-column:auto}
+  .iu-fas-stats,
+  .iusentra-preset-active .iu-fascicoli-page .iu-fas-stats,
+  .iusentra-route-preset--active .iu-fascicoli-page .iu-fas-stats{display:flex;grid-template-columns:none;gap:8px;margin-inline:-4px;padding:1px 4px 8px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scrollbar-width:none}
+  .iu-fas-stats::-webkit-scrollbar{display:none}
+  .iu-fas-stat,
+  .iusentra-preset-active .iu-fascicoli-page .iu-fas-stat,
+  .iusentra-route-preset--active .iu-fascicoli-page .iu-fas-stat{flex:0 0 148px;min-height:66px;grid-template-columns:30px minmax(0,1fr);padding:8px;border-radius:12px;scroll-snap-align:start;gap:1px 7px}
+  .iu-fas-stat>div{width:30px;height:30px;border-radius:10px}
+  .iu-fas-stat>strong{font-size:17px}
+  .iu-fas-stat>small{-webkit-line-clamp:1;font-size:10px}
   .iu-fas-toolbar{grid-template-columns:1fr 1fr}
   .iu-fas-toolbar .iu-fas-search{grid-column:1/-1}
   .iu-fas-toolbar label:not(.iu-fas-search){grid-column:1/-1}

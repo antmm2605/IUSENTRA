@@ -146,6 +146,39 @@ wait_for_compose_services() {
   done
 }
 
+cleanup_compose_conflict_containers() {
+  local cleanup_script="${REPO_DIR}/deploy/hetzner/cleanup_compose_conflicts.sh"
+  if [ ! -f "$cleanup_script" ]; then
+    echo "Script pulizia container Compose non trovato: $cleanup_script" >&2
+    return 0
+  fi
+
+  IUSENTRA_COMPOSE_PROJECT=iusentra \
+    IUSENTRA_CLEANUP_RUNNING_TEMP="${IUSENTRA_CLEANUP_RUNNING_TEMP:-1}" \
+    bash "$cleanup_script" || echo "Attenzione: pulizia container temporanei Compose non completata."
+}
+
+compose_up_with_cleanup() {
+  local attempt=1
+  while true; do
+    if docker compose \
+      --env-file "$ENV_FILE" \
+      -f "$COMPOSE_FILE" \
+      "${PROFILE_ARGS[@]}" \
+      up "$@"; then
+      return 0
+    fi
+
+    if (( attempt >= 2 )); then
+      return 1
+    fi
+
+    echo "docker compose up non riuscito: pulisco container temporanei e riprovo una volta..." >&2
+    cleanup_compose_conflict_containers
+    attempt=$((attempt + 1))
+  done
+}
+
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
@@ -157,20 +190,14 @@ if profile_enabled audit-worm; then
 fi
 CORE_BOOT_SERVICES+=(app)
 
-docker compose \
-  --env-file "$ENV_FILE" \
-  -f "$COMPOSE_FILE" \
-  "${PROFILE_ARGS[@]}" \
-  up -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
+cleanup_compose_conflict_containers
+compose_up_with_cleanup -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 
 echo "Attendo health app..."
 wait_for_compose_services "${CORE_HEALTH_SERVICES[@]}"
 
-docker compose \
-  --env-file "$ENV_FILE" \
-  -f "$COMPOSE_FILE" \
-  "${PROFILE_ARGS[@]}" \
-  up -d --build --remove-orphans
+cleanup_compose_conflict_containers
+compose_up_with_cleanup -d --build --remove-orphans
 
 # ---------------------------------------------------------------------------
 # 6. Pull modello Ollama (solo se il sidecar è attivo)

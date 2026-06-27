@@ -4577,6 +4577,27 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "@media(max-width:760px)" in css
 
 
+def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewport():
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    mobile_block = css[
+        css.index("@media(max-width:760px){"):
+        css.index(".iu-fas-hero--archive", css.index("@media(max-width:760px){"))
+    ]
+
+    assert ".iu-fas-hero p{display:none}" in mobile_block
+    assert ".iu-fas-hero__actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}" in mobile_block
+    assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stats" in mobile_block
+    assert "display:flex;grid-template-columns:none" in mobile_block
+    assert "overflow-x:auto" in mobile_block
+    assert "overflow-y:hidden" in mobile_block
+    assert "scroll-snap-type:x proximity" in mobile_block
+    assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stat" in mobile_block
+    assert "flex:0 0 148px;min-height:66px;" in mobile_block
+    assert ".iu-fas-mobile-list{display:grid;gap:10px;padding:10px}" in css
+    assert ".iu-fas-table-wrap{display:none}" in css
+
+
 def test_react_fascicoli_usa_preset_grafico_globale():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     main_source = Path("frontend/src/main.tsx").read_text(encoding="utf-8")

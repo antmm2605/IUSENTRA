@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.129 - 2026-06-27
+
+- Fascicoli React mobile: resa compatta la testata della pagina e trasformati gli indicatori in un rail orizzontale, così le card dei fascicoli tornano visibili subito nel flusso mobile senza perdere i dati economici.
+- Deploy Hetzner: aggiunta pulizia mirata dei container temporanei Docker Compose rimasti da recreate interrotti, con retry automatico di `docker compose up` e guardrail per non toccare container dati, volumi o servizi canonici.
+- GitHub Actions: anche il ramo “commit già deployato” esegue la stessa pulizia prima di riattivare i servizi, evitando il conflitto su nomi hashati come `17d5ff..._iusentra-app-1`.
+
 ## 2.253.128 - 2026-06-26
 
 - Fascicoli React: la vista economica desktop usa una sola colonna `Controllo economico` con matrice compatta per contributo, Spese/esborsi, liquidazione e parcella, eliminando lo scroll orizzontale e mantenendo una sola voce Spese/esborsi.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.131 - 2026-06-27
+
+- Fascicoli React card-view: esteso il riordino mobile anche al breakpoint tablet/card fino a 1100px, così l'avviso `Scadenze entro 7 giorni` resta dopo lista e filtri quando la tabella desktop è nascosta.
+
 ## 2.253.130 - 2026-06-27
 
 - Fascicoli React mobile: l'avviso `Scadenze entro 7 giorni` viene mostrato dopo la lista principale sotto i 760px e diventa compatto, così le card dei fascicoli restano visibili subito anche sui fascicoli reali con molte scadenze.

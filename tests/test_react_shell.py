@@ -4584,10 +4584,19 @@ def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewpo
         css.index("@media(max-width:760px){"):
         css.index(".iu-fas-hero--archive", css.index("@media(max-width:760px){"))
     ]
+    card_breakpoint_block = css[
+        css.index("@media(max-width:1100px){"):
+        css.index("@media(max-width:760px){", css.index("@media(max-width:1100px){"))
+    ]
+    route_body = ".iusentra-route-preset--active .iu-fascicoli-page .iusentra-page-shell__body.iusentra-route-sequence>"
 
     assert ".iu-fas-hero p{display:none}" in mobile_block
     assert ".iu-fas-hero__actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}" in mobile_block
-    route_body = ".iusentra-route-preset--active .iu-fascicoli-page .iusentra-page-shell__body.iusentra-route-sequence>"
+    assert f"{route_body}.iu-fas-hero{{order:1!important}}" in card_breakpoint_block
+    assert f"{route_body}.iu-fas-stats{{order:2!important}}" in card_breakpoint_block
+    assert f"{route_body}.iu-fas-layout{{order:3!important}}" in card_breakpoint_block
+    assert f"{route_body}.iu-fas-deadline-alert{{order:4!important}}" in card_breakpoint_block
+    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in card_breakpoint_block
     assert f"{route_body}.iu-fas-hero{{order:1!important;display:grid!important;grid-template-columns:1fr!important}}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stats" in mobile_block
     assert "display:flex;grid-template-columns:none" in mobile_block

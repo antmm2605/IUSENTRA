@@ -96,8 +96,8 @@
 .iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6){width:486px;min-width:486px}
 .iu-fas-table--economic th{overflow:hidden;text-overflow:ellipsis}
 .iu-fas-table--economic .iu-fas-status-select{width:100%;min-width:0;max-width:100%}
-/* Le celle economiche contengono una form alta: allinea in alto, non al centro */
-.iu-fas-table--economic td{vertical-align:top}
+/* La matrice economica deve partecipare al calcolo altezza della riga. */
+.iu-fas-table--economic tbody tr:not(.iu-fas-economic-editor-row)>td{height:auto;vertical-align:top}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:950}
 .iu-fas-economic-ref>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:730}
@@ -116,14 +116,9 @@
 .iu-fas-mobile-list{display:none}
 .iu-fas-economic-card{border-color:rgba(37,99,235,.18);background:linear-gradient(180deg,#fff,rgba(239,246,255,.42))}
 .iu-fas-economic-toolbar{min-height:32px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid rgba(37,99,235,.16);border-radius:999px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900}
-.iu-fas-economic-matrix{display:grid;gap:9px;align-items:start;min-width:0}
-.iu-fas-economic-total-inline{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 8px;align-items:center;padding:7px 9px;border:1px solid rgba(37,99,235,.16);border-radius:9px;background:linear-gradient(180deg,#fff,rgba(239,246,255,.6));box-shadow:0 1px 0 rgba(15,23,42,.03)}
-.iu-fas-economic-total-inline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.025em}
-.iu-fas-economic-total-inline strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:13px;font-weight:950;line-height:1.2}
-.iu-fas-economic-total-inline .iu-badge{justify-self:end;max-width:140px;white-space:normal;line-height:1.15;text-align:right}
-.iu-fas-economic-total-inline small{grid-column:1/-1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:760}
-.iu-fas-economic-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
-.iu-fas-economic-summary{position:relative;z-index:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 8px;align-items:start;padding:8px 9px;border:1px solid rgba(148,163,184,.24);border-radius:9px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.03)}
+.iu-fas-economic-matrix{display:table-cell;min-width:0;overflow:visible}
+.iu-fas-economic-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;min-width:0}
+.iu-fas-economic-summary{position:relative;z-index:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 7px;align-items:start;padding:7px 8px;border:1px solid rgba(148,163,184,.24);border-radius:9px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.03)}
 .iu-fas-economic-summary--primary{border-color:rgba(37,99,235,.25);background:rgba(239,246,255,.62)}
 .iu-fas-economic-summary--info{border-color:rgba(14,165,233,.25);background:rgba(240,249,255,.72)}
 .iu-fas-economic-summary--success{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.045)}
@@ -143,7 +138,7 @@
 .iu-fas-economic-edit-toggle[aria-expanded="true"]{border-color:rgba(37,99,235,.32);background:rgba(239,246,255,.75)}
 .iu-fas-table--economic tr.is-economic-open>td{background:rgba(239,246,255,.34)}
 .iu-fas-economic-editor-row>td{padding:0 12px 12px!important;background:linear-gradient(180deg,rgba(239,246,255,.38),#fff);border-top:0!important}
-.iu-fas-economic-editor{display:grid;gap:10px;padding:12px;border:1px solid rgba(37,99,235,.16);border-radius:12px;background:#fff;box-shadow:0 12px 26px rgba(15,23,42,.08)}
+.iu-fas-economic-editor{display:grid;gap:10px;width:min(100%,calc(100vw - 400px));max-width:100%;padding:12px;border:1px solid rgba(37,99,235,.16);border-radius:12px;background:#fff;box-shadow:0 12px 26px rgba(15,23,42,.08)}
 .iu-fas-economic-editor header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .iu-fas-economic-editor header div{min-width:0;display:grid;gap:2px}
 .iu-fas-economic-editor header strong{color:#0f172a;font-size:14px;font-weight:950;line-height:1.2}
@@ -151,7 +146,7 @@
 .iu-fas-economic-editor header button{min-height:32px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid rgba(148,163,184,.34);border-radius:9px;background:#fff;color:#0f172a;font-size:12px;font-weight:900;cursor:pointer}
 .iu-fas-economic-editor header button:hover{border-color:rgba(37,99,235,.34);color:var(--iu-blue-700);background:rgba(239,246,255,.7)}
 .iu-fas-economic-editor header button:focus-visible{outline:3px solid rgba(37,99,235,.22);outline-offset:2px}
-.iu-fas-economic-edit-grid{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:10px;min-width:0;align-items:stretch}
+.iu-fas-economic-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0;align-items:stretch}
 .iu-fas-economic-edit-grid .iu-fas-economic-cell{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:8px}
 .iu-fas-economic-edit-grid .iu-fas-economic-cell label:nth-of-type(3){grid-column:1/3}
 /* Griglia interna flessibile: i tre campi (Stato/Importo/Data) usano minmax(0,..fr)
@@ -1978,6 +1973,8 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6){width:486px;min-width:486px}
 .iu-fas-table--economic th{overflow:hidden;text-overflow:ellipsis}
 .iu-fas-table--economic .iu-fas-status-select{width:100%;min-width:0;max-width:100%}
+.iu-fas-table--economic tbody tr:not(.iu-fas-economic-editor-row)>td{height:auto;vertical-align:top}
+.iu-fas-table--economic td.iu-fas-economic-matrix{display:table-cell;overflow:visible}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{color:var(--iu-blue-700);text-decoration:none}
 .iu-fas-economic-ref>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:650}
@@ -1991,7 +1988,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 
 /* ===== Card mobile: matrice economica compatta ===== */
 .iu-fas-mobile-card__economic{display:grid;gap:8px;padding:8px 10px;border:1px solid rgba(37,99,235,.16);border-radius:10px;background:rgba(239,246,255,.5)}
-.iu-fas-mobile-card__economic>div,.iu-fas-mobile-card__economic li{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
+.iu-fas-mobile-card__economic li{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
 .iu-fas-mobile-card__economic span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:850}
 .iu-fas-mobile-card__economic strong{font-size:13px;white-space:nowrap}
 .iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}

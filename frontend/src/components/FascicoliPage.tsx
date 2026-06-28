@@ -1024,17 +1024,6 @@ function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem;
   )
 }
 
-function EconomicTotalSummary({ summary }:{summary:FascicoloRow['paymentSummary']}) {
-  return (
-    <div className={`iu-fas-economic-total-inline iu-fas-economic-total-inline--${summary.tone}`} aria-label={`Totale registrato ${summary.totaleRegistratoLabel}`}>
-      <span>Totale registrato</span>
-      <strong>{summary.totaleRegistratoLabel}</strong>
-      <Badge tone={summary.tone}>{summary.statoLabel}</Badge>
-      {summary.updatedAtLabel ? <small>{summary.updatedAtLabel}</small> : null}
-    </div>
-  )
-}
-
 function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
@@ -1156,11 +1145,6 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
       </dl>
       {economic ? (
         <div className="iu-fas-mobile-card__economic">
-          <div>
-            <span>Totale registrato</span>
-            <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
-            <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
-          </div>
           <ul>
             {economicPaymentKinds.map((kind) => {
               const payment = item.paymentSummary.items[kind]
@@ -1324,7 +1308,6 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     <td>{statusCell(item)}</td>
                     {economic ? (
                       <td className="iu-fas-economic-matrix">
-                        <EconomicTotalSummary summary={item.paymentSummary}/>
                         <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
                           {economicPaymentKinds.map((kind) => (
                             <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>

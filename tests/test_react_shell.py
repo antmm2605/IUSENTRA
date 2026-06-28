@@ -5158,9 +5158,15 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}" in data_source
     assert "updateFascicoloPayment" in data_source
     assert "EconomicPaymentCell" in page_source
+    assert "EconomicTotalSummary" not in page_source
+    assert "Totale registrato" not in page_source
     assert "Stato fascicolo" in page_source
     assert "Solo controllo economico da completare" in page_source
     assert ".iu-fas-table--economic" in css
+    assert ".iu-fas-table--economic td.iu-fas-economic-matrix{display:table-cell;overflow:visible}" in css
+    assert ".iu-fas-economic-matrix{display:grid" not in css
+    assert ".iu-fas-economic-editor{display:grid;gap:10px;width:min(100%,calc(100vw - 400px));max-width:100%" in css
+    assert ".iu-fas-economic-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))" in css
     assert ".iu-fas-economic-cell__details" in css
     for service_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert service_action in bridge

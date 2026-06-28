@@ -1,6 +1,8 @@
 """Calcolo puro del compenso a tempo ex art. 22-bis D.M. 55/2014."""
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import math
 from typing import Any
 
@@ -140,5 +142,5 @@ def descrizione_voce_compenso_a_tempo(payload: dict) -> str:
     criterio = str(payload.get("criterio_arrotondamento") or "").strip()
     return (
         "Compenso a tempo ex art. 22-bis D.M. 55/2014 - "
-        f"tariffa EUR {tariffa:.2f}/h, {ore:g} ore fatturabili, criterio: {criterio}"
+        f"tariffa {format_euro_it(tariffa)}/h, {ore:g} ore fatturabili, criterio: {criterio}"
     )

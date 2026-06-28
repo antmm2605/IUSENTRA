@@ -149,7 +149,7 @@ def test_mediazione_odm_table_espone_scaglioni_dm150_e_fonte_ufficiale(tmp_path)
     rows = gestore.rows("mediazione_costi_odm_dm150")
 
     assert next(item for item in snapshot["tabelle"] if item["id"] == "mediazione_costi_odm_dm150")["category"] == "adr_mediazione"
-    assert any(row["label"] == "Fino a EUR 1.000" and row["spese_avvio"] == 40.0 for row in rows)
+    assert any(row["label"] == "Fino a € 1.000" and row["spese_avvio"] == 40.0 for row in rows)
     assert any(row.get("kind") == "indeterminabile" and row["tabella_a_minimo"] == 1200.0 for row in rows)
     assert any(
         source["code"] == "dm_150_2023_mediazione" and "23G00163" in source["url"]

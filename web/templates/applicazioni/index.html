@@ -463,7 +463,7 @@
                 <div class="border rounded-3 p-3">
                   <div class="fw-semibold">{{ row.numero }}</div>
                   <div class="small text-muted">{{ row.data_emissione|fmt_data }} - {{ row.stato.value }}</div>
-                  <div class="small">Totale: EUR {{ '%.2f'|format(row.totale)|replace('.', ',') }}</div>
+                  <div class="small">Totale: {{ row.totale|euro }}</div>
                 </div>
                 {% endfor %}
               </div>

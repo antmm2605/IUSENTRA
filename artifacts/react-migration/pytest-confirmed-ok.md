@@ -5995,3 +5995,25 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `Invoke-RestMethod http://127.0.0.1:27272/ping?light=1`; `Invoke-RestMethod http://127.0.0.1:27272/support/status`; `Invoke-RestMethod http://127.0.0.1:27272/ping` | OK con token assente | Local Signer `1.6.83` raggiungibile, assistenza remota `ok=true`, runtime con `pillow`, `pkcs11`, `send_pec_local`, `test_pec_smtp_local`; ping completo segnala `Nessun token PKCS#11 rilevato`, quindi test PIN reale aperto. |
 | GitHub check-run sullo SHA pushato nei branch gemelli | OK | `186` check-run completati e zero failure/pending; CodeQL, Frontend React CI, CI, Required Gates, Local Signer/PKCS#11 macOS/Ubuntu/Windows e Quality Overlay risultano verdi. |
 | Hetzner CPX42 e manifest pubblico | OK | `https://app.iusentra.it/api/pronto` risponde `ok=true`, `timezone=Europe/Rome`, `versione=2.253.134`; il manifest pubblico serve `assets/TelematicoSurfacePage-xPye0zGo.css`; container `iusentra-app`, `iusentra-scheduler-worker` e `iusentra-ocr-worker` healthy; `docker builder prune --all --force` eseguito e `/opt/iusentra/tmp-backup-snapshot` assente. |
+
+## Fatturazione PDF stile unico intestazioni - verifica locale - 2026-06-28
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests\test_pdf_style.py tests\test_react_fatturazione_bridge.py -q` | OK | `11/11` passati: presidio stile PDF unico e bridge React Fatturazione/SdI/commercialista. |
+| `python -m py_compile pct\pdf_style.py pct\reports.py pct\editor.py web\blueprints\fatturazione.py web\blueprints\preventivi.py web\notifiche.py web\template_atti.py web\services\pdp_penale_runtime.py` | OK | Sintassi confermata sui generatori PDF aggiornati alla regola unica `pdf_table_header_style`. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript React senza errori dopo le modifiche a Fatturazione e impostazioni commercialista. |
+| `docker compose up -d app`; `Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/api/pronto` | OK | Copia reale locale `127.0.0.1:8080` healthy; `/api/pronto` `ok=true`, `timezone=Europe/Rome`, `versione=2.253.134`. |
+| Browser integrato locale su `http://127.0.0.1:8080/fatturazione/` | OK osservato | Click reale su `Apri dettaglio`, modal dettaglio aperto nella stessa pagina; click su `Anteprima PDF`, PDF visibile nella stessa finestra con intestazioni `Descrizione`, `Q.tà`, `Prezzo unit.`, `Importo` leggibili su sfondo bianco. Tab `XML e SdI` con PEC non configurata/non inviata e pulsante rapido `Inserisci impostazioni PEC`; tab `Commercialista` con stato non configurato/non inviato, scelta email/PEC, scelta allegati e pulsante rapido `Inserisci commercialista`. Console senza errori. |
+## Standard date/orari italiani Europe/Rome - verifica locale - 2026-06-28
+
+Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pronto` su `127.0.0.1:8080` restituisce `ok=true`, `timezone=Europe/Rome`, `versione=2.253.135`. Verifica browser integrato ripetuta su Tariffario, PEC, email ordinaria e PDF Fatturazione: nessun `Data UTC`, nessun ISO raw `...Z`; PDF parcella con `Data e ora italiana: 28/06/2026 22:04 (Europe/Rome)`. Guardrail ripetuti: `python scripts\standardizza_date_italiane.py`, pytest mirati `18/18`, UTF-8 `4/4`, `git diff --check` senza errori whitespace.
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python scripts\standardizza_date_italiane.py` | OK | Script idempotente: `modified_files=0`, `visible_datetime_findings=0`; presidia `Data UTC`, formattatori frontend `it-IT` senza `Europe/Rome` e residui visibili. |
+| `python -m py_compile pct\formatting.py scripts\standardizza_date_italiane.py web\bootstrap\template_runtime.py web\blueprints\fatturazione.py web\services\react_email_bridge.py` | OK | Sintassi confermata per helper condivisi, filtri Jinja, PDF fatturazione e bridge PEC/email. |
+| `python -m pytest tests\test_formatting.py tests\test_pdf_style.py tests\test_react_email_datetime.py tests\test_react_fatturazione_bridge.py -q`; `python -m pytest tests\test_web_bootstrap.py::test_template_runtime_registers_filters_and_globals -q` | OK | Formatter UTC->Europe/Rome, PDF senza `Data UTC`, bridge PEC/email e filtri template confermati. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e Vite verdi dopo inserimento `timeZone: 'Europe/Rome'` nei formattatori React principali. |
+| `docker compose build app`; `docker compose up -d app`; `/api/pronto` | OK | Immagine `iusentra-app:latest` `sha256:4334f442b7ba0c2c359ea57fefa17f3b04d0aa6728c7965ddc8e8207331e8d3d`; app healthy; `/api/pronto` `ok=true`, `timestamp=2026-06-28T21:46:05+02:00`, `timezone=Europe/Rome`, `versione=2.253.134`. |
+| Browser integrato locale: Tariffario, Fatturazione PDF, PEC, email ordinaria | OK osservato | Tariffario senza `Data UTC`/ISO raw; PDF parcella in viewer reale con `Data e ora italiana: 28/06/2026 21:48 (Europe/Rome)`; PEC e email ordinaria senza timestamp ISO raw o `Data UTC`, con date italiane visibili. |

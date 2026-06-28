@@ -45,9 +45,9 @@ export const emptyDashboard: DashboardData = {
     {label:'0 scadenze a bassa priorita',count:0,percent:0,tone:'success'}
   ],
   economic: [
-    {label:'Fatturato mese',value:'EUR 0,00',note:'0 parcelle emesse'},
-    {label:'Incassi mese',value:'EUR 0,00',note:'0 pagamenti registrati'},
-    {label:'Da incassare',value:'EUR 0,00',note:'0 parcelle aperte'},
+    {label:'Fatturato mese',value:'€ 0,00',note:'0 parcelle emesse'},
+    {label:'Incassi mese',value:'€ 0,00',note:'0 pagamenti registrati'},
+    {label:'Da incassare',value:'€ 0,00',note:'0 parcelle aperte'},
     {label:'Ore lavorate',value:'0 h',note:'0 voci timesheet'}
   ],
   lex: [],
@@ -127,7 +127,7 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
   const urgentDeadlines = asNumber(stats.urgentDeadlines)
   const pecUnread = asNumber(stats.pecUnread)
   const clientMessages = asNumber(stats.clientMessages)
-  const unpaidAmount = String(stats.unpaidAmount ?? 'EUR 0,00')
+  const unpaidAmount = String(stats.unpaidAmount ?? '€ 0,00')
   const totalDeadlines = dashboard.deadlines.reduce((total, item) => total + asNumber(item.count), 0)
   return [
     {

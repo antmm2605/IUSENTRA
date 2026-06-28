@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IusStatusBadge } from '@/components/iusentra'
+import { formatEuroIt, parseItalianAmount } from '@/formatting'
 import type { SecretState, SettingsPayload, SettingsSection } from '../types'
 import './PaymentsSettingsPanel.css'
 
@@ -31,6 +32,13 @@ function toInitial(raw: Values): Values {
 function text(value: unknown): string {
   if (value === undefined || value === null) return ''
   return typeof value === 'boolean' ? (value ? '1' : '') : String(value)
+}
+
+function euroText(value: unknown): string {
+  const raw = text(value).trim()
+  if (!raw) return formatEuroIt(0)
+  const amount = parseItalianAmount(raw, Number.NaN)
+  return Number.isFinite(amount) ? formatEuroIt(amount) : raw
 }
 
 function placeholder(raw: Values, name: string): string {
@@ -158,8 +166,8 @@ export function PaymentsSettingsPanel({
       <div className="iu-pay-metrics">
         <span><strong>{active}</strong> canali attivi</span>
         <span><strong>{text(stats.totale_link || 0)}</strong> link creati</span>
-        <span><strong>{text(stats.importo_atteso || '0,00')}</strong> euro da incassare</span>
-        <span><strong>{text(stats.importo_pagato || '0,00')}</strong> euro incassati</span>
+        <span><strong>{euroText(stats.importo_atteso)}</strong> da incassare</span>
+        <span><strong>{euroText(stats.importo_pagato)}</strong> incassati</span>
       </div>
 
       <section className="iu-pay-group">
@@ -199,7 +207,7 @@ export function PaymentsSettingsPanel({
 
       <section className="iu-pay-history">
         <header><strong>Link parcella recenti</strong><span>{links.length ? 'Ultimi link creati' : 'Nessun link creato'}</span></header>
-        {links.length ? links.map((link) => <p key={text(link.id)}><b>{text(link.descrizione || link.id_parcella)}</b><span>{text(link.importo)} {text(link.valuta || 'EUR')} - {text(link.stato)}</span></p>) : <p>Nessun link di pagamento registrato.</p>}
+        {links.length ? links.map((link) => <p key={text(link.id)}><b>{text(link.descrizione || link.id_parcella)}</b><span>{euroText(link.importo)} - {text(link.stato)}</span></p>) : <p>Nessun link di pagamento registrato.</p>}
       </section>
 
       <div className="iu-settings-form__actions">

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from collections import Counter
 from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Mapping, Optional
@@ -288,9 +290,9 @@ def _utility_result(entry: Mapping[str, Any], form: Mapping[str, Any]) -> Dict[s
         percentuale = _safe_float(form.get("utility_percentuale"))
         quota = base * percentuale / 100
         metrics = [
-            _metric("Base", f"EUR {_fmt_money(base)}"),
+            _metric("Base", f"{_fmt_money(base)}"),
             _metric("Percentuale", f"{percentuale:.2f}%".replace(".", ",")),
-            _metric("Quota", f"EUR {_fmt_money(quota)}"),
+            _metric("Quota", f"{_fmt_money(quota)}"),
         ]
     elif entry_id == "scorporo_iva":
         lordo = _safe_float(form.get("utility_lordo"))
@@ -298,9 +300,9 @@ def _utility_result(entry: Mapping[str, Any], form: Mapping[str, Any]) -> Dict[s
         imponibile = lordo / (1 + iva / 100) if iva >= 0 else lordo
         imposta = lordo - imponibile
         metrics = [
-            _metric("Lordo", f"EUR {_fmt_money(lordo)}"),
-            _metric("Imponibile", f"EUR {_fmt_money(imponibile)}"),
-            _metric("IVA", f"EUR {_fmt_money(imposta)}"),
+            _metric("Lordo", f"{_fmt_money(lordo)}"),
+            _metric("Imponibile", f"{_fmt_money(imponibile)}"),
+            _metric("IVA", f"{_fmt_money(imposta)}"),
         ]
     elif entry_id in {"conta_giorni_tra_date_e_ricorrenze", "calcolo_giorni_lavorativi", "calcolo_tempo_trascorso", "calcolo_eta_anagrafica"}:
         data_inizio = _parse_date(form.get("utility_data_inizio"))
@@ -521,7 +523,7 @@ def _economico_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
     recent_conferimenti = preventivi.tutti_conferimenti()[:6]
     metrics = [
         _metric("Fatture emesse", str(fatt_stats.get("totale_emesse", 0))),
-        _metric("Incassato", f"EUR {_fmt_money(fatt_stats.get('incassato'))}"),
+        _metric("Incassato", f"{_fmt_money(fatt_stats.get('incassato'))}"),
         _metric("Preventivi", str(len(preventivi.tutti_preventivi()))),
         _metric("Conferimenti", str(len(preventivi.tutti_conferimenti()))),
     ]

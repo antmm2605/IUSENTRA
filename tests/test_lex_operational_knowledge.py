@@ -1181,7 +1181,7 @@ def test_lex_studio_reasoner_real_question_audit_matrix():
             "question": "Verifica pagamenti e fatture del cliente Rossi",
             "metadata": {"cliente_id": "cli-1"},
             "intent": "client_economic_summary",
-            "must": ["Quadro economico", "Pagamenti collegati", "Saldo parcella P-1", "500.0 EUR"],
+            "must": ["Quadro economico", "Pagamenti collegati", "Saldo parcella P-1", "€ 500,00"],
             "must_not": ["stima", "invent"],
             "sources": {"clienti", "fatturazione", "pagamenti"},
         },

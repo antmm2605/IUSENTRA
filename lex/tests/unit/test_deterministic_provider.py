@@ -147,7 +147,7 @@ def test_provider_economico_con_summary_presidia_preventivi_conferimenti_e_parce
     )
 
     assert "Presidio economico del fascicolo 1025/2024" in draft.text
-    assert "saldo aperto EUR 300,00" in draft.text
+    assert "saldo aperto € 300,00" in draft.text
     assert "sollecitare gli incassi scaduti" in draft.text
 
 

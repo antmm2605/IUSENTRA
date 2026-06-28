@@ -58,12 +58,12 @@ def test_wizard_calcola_fascia_alta_e_conserva_audit_tariffario():
     )
 
     assert payload["ok"] is True
-    assert payload["scaglione"] == "Oltre EUR 520.000"
+    assert payload["scaglione"] == "Oltre € 520.000"
     assert payload["compenso_base"] > 0
     assert any(row["source"] == "motore" and row["importo"] > 0 for row in payload["rows"])
     audit = payload["audit"]
     assert audit["log_calcolo"]
-    assert audit["audit_tariffario"]["scaglione"] == "Oltre EUR 520.000"
+    assert audit["audit_tariffario"]["scaglione"] == "Oltre € 520.000"
     assert audit["audit_tariffario"]["fascia_alta"] is True
     assert audit["reference_codes"]
     assert audit["riferimenti_normativi"]

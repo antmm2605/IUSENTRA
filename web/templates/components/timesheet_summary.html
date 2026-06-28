@@ -13,7 +13,7 @@
       <span class="badge bg-light text-dark border">Ore {{ '%.1f'|format(timesheet_summary.stats.totale_ore or 0) }}</span>
       <span class="badge bg-light text-dark border">Fatturabili {{ timesheet_summary.stats.fatturabili or 0 }}</span>
       <span class="badge bg-light text-dark border">Aperte {{ timesheet_summary.stats.aperte or 0 }}</span>
-      <span class="badge bg-light text-dark border">Valore &euro; {{ '%.2f'|format(timesheet_summary.stats.valore_totale or 0) }}</span>
+      <span class="badge bg-light text-dark border">Valore {{ timesheet_summary.stats.valore_totale or 0|euro }}</span>
     </div>
     {% if timesheet_summary.ultimi %}
     <div class="economic-list">

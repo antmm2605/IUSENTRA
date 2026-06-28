@@ -379,6 +379,9 @@ class ConfigSDI:
     username: str = ""
     password: str = ""
     pec_notifiche: str = ""
+    email_commercialista: str = ""
+    pec_commercialista: str = ""
+    nome_commercialista: str = ""
     auto_invio_abilitato: bool = False
     note: str = ""
 
@@ -564,6 +567,9 @@ class GestioneConfigStudio:
                 username=os.getenv("PCT_SDI_USERNAME", ""),
                 password=os.getenv("PCT_SDI_PASSWORD", ""),
                 pec_notifiche=os.getenv("PCT_SDI_PEC_NOTIFICHE", ""),
+                email_commercialista=os.getenv("PCT_SDI_EMAIL_COMMERCIALISTA", ""),
+                pec_commercialista=os.getenv("PCT_SDI_PEC_COMMERCIALISTA", ""),
+                nome_commercialista=os.getenv("PCT_SDI_NOME_COMMERCIALISTA", ""),
                 auto_invio_abilitato=os.getenv("PCT_SDI_AUTO_INVIO", "0").lower() not in {"0", "false", "no"},
                 note=os.getenv("PCT_SDI_NOTE", ""),
             ),

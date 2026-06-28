@@ -404,7 +404,7 @@ function formatPecAuditDate(value: string): string {
   const raw = value.slice(0, 10)
   if (!raw) return ''
   try {
-    return new Date(`${raw}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+    return new Date(`${raw}T12:00:00`).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: 'long', year: 'numeric' })
   } catch {
     return raw
   }

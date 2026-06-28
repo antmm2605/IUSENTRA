@@ -90,8 +90,8 @@
             <tr style="font-size:.88rem;">
               <td>{{ v.descrizione }}</td>
               <td class="text-end">{{ v.quantita|int if v.quantita == v.quantita|int else v.quantita }}</td>
-              <td class="text-end">€ {{ "%.2f"|format(v.prezzo_unitario) }}</td>
-              <td class="text-end fw-semibold">€ {{ "%.2f"|format(v.importo) }}</td>
+              <td class="text-end">{{ v.prezzo_unitario|euro }}</td>
+              <td class="text-end fw-semibold">{{ v.importo|euro }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -102,18 +102,18 @@
         <div class="d-flex flex-column gap-1" style="font-size:.85rem; max-width:300px; margin-left:auto;">
           <div class="d-flex justify-content-between">
             <span class="text-muted">Imponibile</span>
-            <span>€ {{ "%.2f"|format(p.imponibile) }}</span>
+            <span>{{ p.imponibile|euro }}</span>
           </div>
           {% if p.applica_cassa %}
           <div class="d-flex justify-content-between">
             <span class="text-muted">Cassa Forense (4 %)</span>
-            <span>€ {{ "%.2f"|format(p.cassa_forense) }}</span>
+            <span>{{ p.cassa_forense|euro }}</span>
           </div>
           {% endif %}
           {% if p.applica_iva %}
           <div class="d-flex justify-content-between">
-            <span class="text-muted">IVA 22 % su € {{ "%.2f"|format(p.base_iva) }}</span>
-            <span>€ {{ "%.2f"|format(p.iva) }}</span>
+            <span class="text-muted">IVA 22 % su {{ p.base_iva|euro }}</span>
+            <span>{{ p.iva|euro }}</span>
           </div>
           {% endif %}
           {% if p.applica_bollo %}
@@ -125,17 +125,17 @@
           {% if p.applica_ritenuta %}
           <div class="d-flex justify-content-between text-danger">
             <span>Ritenuta d'acconto (20 %)</span>
-            <span>- € {{ "%.2f"|format(p.ritenuta) }}</span>
+            <span>- {{ p.ritenuta|euro }}</span>
           </div>
           {% endif %}
           <hr class="my-1">
           <div class="d-flex justify-content-between fw-bold" style="font-size:1.05rem;color:#1a3a5c;">
             <span>TOTALE</span>
-            <span>€ {{ "%.2f"|format(p.totale) }}</span>
+            <span>{{ p.totale|euro }}</span>
           </div>
           {% if p.applica_ritenuta %}
           <div class="text-muted text-end" style="font-size:.75rem;">
-            Netto a pagare (dopo ritenuta): <strong>€ {{ "%.2f"|format(p.totale) }}</strong>
+            Netto a pagare (dopo ritenuta): <strong>{{ p.totale|euro }}</strong>
           </div>
           {% endif %}
         </div>
@@ -168,7 +168,7 @@
           <i class="bi bi-filetype-xml me-2"></i>FatturaPA XML
         </a>
         {% if cliente and cliente.recapiti and cliente.recapiti.email %}
-        <a href="mailto:{{ cliente.recapiti.email }}?subject=Parcella {{ p.numero }} - {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0AIn allegato la parcella n. {{ p.numero }} del {{ p.data_emissione }}%0D%0ATotale: € {{ '%.2f'|format(p.totale) }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
+        <a href="mailto:{{ cliente.recapiti.email }}?subject=Parcella {{ p.numero }} - {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0AIn allegato la parcella n. {{ p.numero }} del {{ p.data_emissione }}%0D%0ATotale: {{ p.totale|euro }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
            class="btn btn-outline-primary">
           <i class="bi bi-envelope me-2"></i>Invia via Email
         </a>
@@ -204,7 +204,7 @@
             </button>
           </div>
           {% if cliente and cliente.recapiti and cliente.recapiti.email %}
-          <a href="mailto:{{ cliente.recapiti.email }}?subject=Link pagamento parcella {{ p.numero }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0APuò effettuare il pagamento della parcella n. {{ p.numero }} di € {{ '%.2f'|format(p.totale) }} al seguente link:%0D%0A%0D%0A{{ pl.link }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
+          <a href="mailto:{{ cliente.recapiti.email }}?subject=Link pagamento parcella {{ p.numero }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0APuò effettuare il pagamento della parcella n. {{ p.numero }} di {{ p.totale|euro }} al seguente link:%0D%0A%0D%0A{{ pl.link }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
              class="btn btn-sm btn-outline-primary mt-2 w-100">
             <i class="bi bi-envelope me-1"></i>Invia per email
           </a>

@@ -6,6 +6,8 @@ lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import json
 import os
 import re
@@ -915,12 +917,7 @@ def _time_label(value: Any) -> str:
 
 
 def _euro(value: Any) -> str:
-    try:
-        number = float(value or 0.0)
-    except (TypeError, ValueError):
-        number = 0.0
-    text = f"{number:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {text}"
+    return format_euro_it(value)
 
 
 PAYMENT_KINDS = (
@@ -2596,7 +2593,7 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
     return [
         {"label": label, "value": _text(value, "n.d."), "mono": mono, "href": href}
         for label, value, mono, href in rows
-        if _text(value) and _text(value) != "EUR 0,00"
+        if _text(value) and _text(value) not in {"EUR 0,00", "€ 0,00"}
     ]
 
 

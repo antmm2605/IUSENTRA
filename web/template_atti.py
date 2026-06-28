@@ -6,6 +6,8 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 """
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import io
 from datetime import date, timedelta
 
@@ -502,9 +504,10 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+        from pct.pdf_style import pdf_table_header_style
     except ImportError:
         buf = io.BytesIO()
-        buf.write(f"Preventivo {p.numero}\nTotale: € {p.totale:.2f}".encode())
+        buf.write(f"Preventivo {p.numero}\nTotale: {format_euro_it(p.totale)}".encode())
         buf.seek(0)
         return buf
 
@@ -591,13 +594,12 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
         voci_data.append([
             Paragraph(v.descrizione, style_body),
             Paragraph(v.tipo.value, ParagraphStyle("tv", parent=style_small, alignment=TA_RIGHT)),
-            Paragraph(f"€ {v.importo:,.2f}", ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
+            Paragraph(format_euro_it(v.importo), ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
         ])
 
     voci_tbl = Table(voci_data, colWidths=["60%", "20%", "20%"])
     voci_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+        *pdf_table_header_style(),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, LIGHT_BG]),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e7eb")),
         ("TOPPADDING",    (0, 0), (-1, -1), 4),
@@ -608,12 +610,12 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     story.append(Spacer(1, 4*mm))
 
     # Riepilogo
-    rows = [("Imponibile", f"€ {p.imponibile:,.2f}")]
+    rows = [("Imponibile", format_euro_it(p.imponibile))]
     if p.applica_cassa:
-        rows.append(("Contributo Cassa Forense (4%)", f"€ {p.cassa_forense:,.2f}"))
+        rows.append(("Contributo Cassa Forense (4%)", format_euro_it(p.cassa_forense)))
     if p.applica_iva:
-        rows.append((f"IVA 22% su € {p.base_iva:,.2f}", f"€ {p.iva:,.2f}"))
-    rows.append(("TOTALE STIMATO", f"€ {p.totale:,.2f}"))
+        rows.append((f"IVA 22% su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)))
+    rows.append(("TOTALE STIMATO", format_euro_it(p.totale)))
 
     rie_data = [
         [Paragraph(label, ParagraphStyle(
@@ -784,12 +786,12 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
     if c.tipo_compenso == "Compenso orario" and c.tariffa_oraria > 0:
         story.append(Paragraph(
             f"Il compenso è determinato in base al tempo impiegato, con tariffa oraria di "
-            f"<b>€ {c.tariffa_oraria:,.2f}/ora</b> (oltre Contributo Cassa Forense 4% e IVA 22%).",
+            f"<b>{format_euro_it(c.tariffa_oraria)}/ora</b> (oltre Contributo Cassa Forense 4% e IVA 22%).",
             style_just))
     elif c.compenso_pattuito > 0:
         story.append(Paragraph(
             f"Modalità: <b>{c.tipo_compenso}</b>.<br/>"
-            f"Compenso concordato: <b>€ {c.compenso_pattuito:,.2f}</b> "
+            f"Compenso concordato: <b>{format_euro_it(c.compenso_pattuito)}</b> "
             f"(oltre Contributo Cassa Forense 4% ed IVA 22%), "
             f"salvo adeguamento in ragione della complessità e dello sviluppo della pratica.",
             style_just))
@@ -812,7 +814,7 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
     if preventivo:
         story.append(Paragraph(
             f"Il presente incarico fa riferimento al preventivo n. <b>{preventivo.numero}</b> "
-            f"del {preventivo.data_emissione} (totale stimato € {preventivo.totale:,.2f}).",
+            f"del {preventivo.data_emissione} (totale stimato {format_euro_it(preventivo.totale)}).",
             style_small))
         story.append(Spacer(1, 3*mm))
 

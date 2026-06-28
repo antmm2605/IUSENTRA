@@ -2866,3 +2866,48 @@ Stato rilascio remoto:
 - La pipeline usata da fascicoli, Lex economia, PEC/notifiche/deposito e indice documentale ora scrive le esenzioni CU senza data pagamento fittizia: se il fascicolo contiene prova di esenzione, viene riportato lo stato esente/non previsto; se non c'è prova, il valore resta vuoto.
 - Prova locale reale su Docker `127.0.0.1:8080`: app/scheduler/OCR healthy, `/api/pronto` `versione=2.253.127`, vista economica Fascicoli controllata in browser integrato desktop e mobile.
 - La procedura di rilascio prevede deploy Hetzner e bonifica produzione con lo stesso backfill dopo il push del commit `2.253.127`, senza backup, per riallineare i fascicoli già presenti sul server.
+
+## Fatturazione, PDF, XML SdI e commercialista - presidio operativo - 2026-06-28
+
+Richiesta utente collegata a fatturazione e flussi sensibili: il PDF parcella deve essere leggibile dentro IUSENTRA e le intestazioni tabellari devono usare una sola impostazione comune a tutti i PDF generati dal gestionale.
+
+Presidio applicato:
+
+- la resa grafica delle intestazioni tabellari ReportLab passa da `pct/pdf_style.py::pdf_table_header_style`;
+- la regola comune usa sfondo bianco, testo scuro e linea inferiore blu, evitando sfondi scuri che rendono poco leggibili `Descrizione`, `Q.tà`, `Prezzo unit.` e `Importo`;
+- i generatori principali di parcelle/fatture, preventivi, notifiche, template atti, editor, report e PDP penale riusano la stessa funzione;
+- il PDF resta visualizzabile dentro la stessa pagina Fatturazione con opzione di download e tutto schermo.
+
+Vincolo sensibile confermato:
+
+- la modifica PDF non abilita alcun invio server-side;
+- la firma XML FatturaPA e la preparazione PEC SdI/commercialista restano governate dal flusso Local Signer/PC locale;
+- eventuali prove di invio devono essere dry-run o preparazione bozza finché l'avvocato non conferma l'invio reale dalla macchina locale.
+
+Verifica reale locale:
+
+- `127.0.0.1:8080` healthy, `/api/pronto` `ok=true`, `timezone=Europe/Rome`, `versione=2.253.134`;
+- browser integrato su `/fatturazione/`, click `Apri dettaglio`, modal aperto nella stessa pagina;
+- tab `Anteprima PDF` visualizzato nella stessa pagina; sezione `Prestazioni professionali` leggibile con intestazione chiara su sfondo bianco.
+- tab `XML e SdI` visualizzato nella stessa pagina con XML originale disponibile, XML firmato da generare, PEC SdI non configurata, PEC non ancora inviata e azione rapida `Inserisci impostazioni PEC`;
+- tab `Commercialista` visualizzato nella stessa pagina con stato non configurato/non inviato, scelta email ordinaria/PEC, scelta allegati e azione rapida `Inserisci commercialista`.
+
+Stato ancora aperto per chiusura completa del flusso SdI/commercialista:
+
+- firma XML simulata e preparazione PEC SdI senza invio reale;
+- preparazione commercialista sia email ordinaria sia PEC, con stato `inviato/non inviato` visibile;
+- confronto tecnico del file XML FatturaPA allegato dall'utente con il generatore IUSENTRA.
+## Regola date/orari visibili PEC, email e audit - 2026-06-28
+
+Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache e riavvio locale healthy, la verifica è stata ripetuta sul browser integrato; `/api/pronto` restituisce `versione=2.253.135`, `timezone=Europe/Rome` e il PDF parcella mostra `Data e ora italiana: 28/06/2026 22:04 (Europe/Rome)`.
+
+Per tutti i flussi sensibili collegati a PEC, email ordinaria, notifiche, deposito, SdI, fatturazione e audit, i timestamp tecnici possono restare in UTC solo nei payload macchina, negli header originali EML/XML, nei timestamp RFC 3161 e nei tracciati ministeriali. In UI, PDF, report, pannelli e anteprime l'avvocato deve vedere sempre formato italiano e ora `Europe/Rome`.
+
+Presidio applicato in questa tranche:
+
+- `pct/formatting.py` contiene il formatter comune `format_datetime_it(..., include_timezone=True)`;
+- `web/services/react_email_bridge.py` converte data/ora PEC/email in `Europe/Rome` prima di produrre la label visibile;
+- `web/blueprints/fatturazione.py` mostra `Data e ora italiana` nel PDF parcella;
+- `scripts/standardizza_date_italiane.py` verifica che non restino `Data UTC` o formattatori frontend italiani senza `Europe/Rome`.
+
+Prova reale locale eseguita su `127.0.0.1:8080`: Tariffario, Fatturazione PDF, Email PEC ed Email ordinaria non espongono `Data UTC` né timestamp ISO raw; il PDF parcella mostra `Data e ora italiana: 28/06/2026 21:48 (Europe/Rome)`.

@@ -68,11 +68,84 @@ export type FatturazionePermissions = {
 }
 
 export type FatturazioneDetail = FatturazioneRecord & {
+  note: string
+  workflow: FatturazioneWorkflow
   voci: Array<{
     descrizione: string
     quantita: string
+    prezzoUnitario: string
     prezzoDisplay: string
+    importoDisplay: string
+    tipo: string
   }>
+}
+
+export type FatturazioneWorkflow = {
+  signedXml: Record<string, unknown>
+  sdiSend: Record<string, unknown>
+  commercialista: Record<string, unknown>
+  sdiPecAddress: string
+  commercialistaEmail: string
+  commercialistaPec: string
+  commercialistaName: string
+}
+
+export type FatturazioneDetailUpdatePayload = {
+  note: string
+  voci: Array<{
+    descrizione: string
+    quantita: string
+    prezzo_unitario: string
+    tipo: string
+  }>
+}
+
+export type FatturazioneDocumentPayload = {
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  sha256: string
+  contentBase64: string
+}
+
+export type FatturazioneDraftAttachment = {
+  filename: string
+  storageFile: string
+  mime_type: string
+  size_bytes: number
+  sha256: string
+  content_base64?: string
+}
+
+export type FatturazioneLocalPecPayload = {
+  endpoint: string
+  requiresPassword: boolean
+  channel: string
+  message: string
+  payload: Record<string, unknown>
+}
+
+export type FatturazioneDraft = {
+  channel?: string
+  to: string
+  subject: string
+  body: string
+  attachmentMode?: string
+  attachments: FatturazioneDraftAttachment[]
+}
+
+export type FatturazioneWorkflowResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  item?: FatturazioneMutationItem | null
+  workflow?: FatturazioneWorkflow | null
+  document?: FatturazioneDocumentPayload
+  localSigner?: Record<string, unknown>
+  localPec?: FatturazioneLocalPecPayload
+  draft?: FatturazioneDraft
+  messageId?: string
+  status?: number
 }
 
 export type UpdateFatturazioneStatusPayload = {
@@ -408,7 +481,7 @@ const emptyPersonalizedData: FatturazionePersonalizedData = {
     regime_fiscale_label: 'Regime ordinario',
     esigibilita_iva: 'I',
     esigibilita_iva_label: 'Immediata',
-    cassa_previdenziale: 'CAF',
+    cassa_previdenziale: 'TC01',
     cassa_previdenziale_label: 'Avvocati',
     percentuale_spese_generali: '15',
     fascicolo_label: '',
@@ -525,6 +598,12 @@ const mutationFallback: FatturazioneMutationResult = {
   message: 'Operazione non completata.',
   errors: { server: 'Il servizio non ha restituito una risposta valida.' },
   item: null,
+}
+
+const workflowFallback: FatturazioneWorkflowResult = {
+  ok: false,
+  message: 'Operazione fatturazione non completata.',
+  errors: { server: 'Il servizio non ha restituito una risposta valida.' },
 }
 
 const numberingFallback: FatturazioneNumberingResult = {
@@ -710,6 +789,59 @@ function normaliseStatus(raw: unknown): FatturazioneStatus {
   }
 }
 
+function normaliseWorkflow(raw: unknown): FatturazioneWorkflow {
+  const item = asRecord(raw)
+  return {
+    signedXml: asRecord(item.signedXml),
+    sdiSend: asRecord(item.sdiSend),
+    commercialista: asRecord(item.commercialista),
+    sdiPecAddress: text(item.sdiPecAddress),
+    commercialistaEmail: text(item.commercialistaEmail),
+    commercialistaPec: text(item.commercialistaPec),
+    commercialistaName: display(item.commercialistaName),
+  }
+}
+
+function normaliseAttachment(raw: unknown): FatturazioneDraftAttachment {
+  const item = asRecord(raw)
+  return {
+    filename: text(item.filename),
+    storageFile: text(item.storageFile),
+    mime_type: text(item.mime_type),
+    size_bytes: numberValue(item.size_bytes),
+    sha256: text(item.sha256),
+    content_base64: text(item.content_base64),
+  }
+}
+
+function normaliseDraft(raw: unknown): FatturazioneDraft | undefined {
+  const item = asRecord(raw)
+  const to = text(item.to)
+  const subject = display(item.subject)
+  if (!to && !subject) return undefined
+  return {
+    channel: text(item.channel),
+    to,
+    subject,
+    body: display(item.body),
+    attachmentMode: text(item.attachmentMode),
+    attachments: list(item.attachments).map(normaliseAttachment),
+  }
+}
+
+function normaliseLocalPec(raw: unknown): FatturazioneLocalPecPayload | undefined {
+  const item = asRecord(raw)
+  const endpoint = text(item.endpoint)
+  if (!endpoint) return undefined
+  return {
+    endpoint,
+    requiresPassword: bool(item.requiresPassword),
+    channel: text(item.channel),
+    message: display(item.message),
+    payload: asRecord(item.payload),
+  }
+}
+
 function normalisePermissions(raw: unknown): FatturazionePermissions {
   const item = asRecord(raw)
   return {
@@ -844,7 +976,7 @@ function normalisePersonalizedData(raw: unknown): FatturazionePersonalizedData {
       regime_fiscale_label: display(document.regime_fiscale_label) || 'Regime ordinario',
       esigibilita_iva: text(document.esigibilita_iva) || 'I',
       esigibilita_iva_label: display(document.esigibilita_iva_label) || 'Immediata',
-      cassa_previdenziale: text(document.cassa_previdenziale) || 'CAF',
+      cassa_previdenziale: text(document.cassa_previdenziale) || 'TC01',
       cassa_previdenziale_label: display(document.cassa_previdenziale_label) || 'Avvocati',
       percentuale_spese_generali: text(document.percentuale_spese_generali) || '15',
       fascicolo_label: display(document.fascicolo_label),
@@ -1039,6 +1171,32 @@ function normaliseMutationResult(raw: unknown): FatturazioneMutationResult {
   }
 }
 
+function normaliseWorkflowResult(raw: unknown): FatturazioneWorkflowResult {
+  const item = asRecord(raw)
+  const document = asRecord(item.document)
+  return {
+    ok: item.ok === true,
+    message: display(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(
+      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)]),
+    ),
+    item: item.item && typeof item.item === 'object' ? normaliseMutationItem(item.item) : undefined,
+    workflow: item.workflow && typeof item.workflow === 'object' ? normaliseWorkflow(item.workflow) : undefined,
+    document: item.document && typeof item.document === 'object' ? {
+      fileName: text(document.fileName),
+      mimeType: text(document.mimeType),
+      sizeBytes: numberValue(document.sizeBytes),
+      sha256: text(document.sha256),
+      contentBase64: text(document.contentBase64),
+    } : undefined,
+    localSigner: item.localSigner && typeof item.localSigner === 'object' ? asRecord(item.localSigner) : undefined,
+    localPec: normaliseLocalPec(item.localPec),
+    draft: normaliseDraft(item.draft),
+    messageId: text(item.messageId || item.message_id),
+    status: typeof item.status === 'number' ? item.status : undefined,
+  }
+}
+
 export async function getFatturazionePage(): Promise<FatturazionePageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/fatturazione', emptyFatturazionePage)
   return normalisePage(payload)
@@ -1050,12 +1208,17 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
   const rawItem = asRecord(page.item)
   const item = page.item ? {
     ...normaliseRecord(page.item),
+    note: display(rawItem.note),
+    workflow: normaliseWorkflow(rawItem.workflow),
     voci: list(rawItem.voci).map((voice) => {
       const row = asRecord(voice)
       return {
         descrizione: display(row.descrizione),
         quantita: text(row.quantita),
+        prezzoUnitario: text(row.prezzoUnitario ?? row.prezzo_unitario),
         prezzoDisplay: text(row.prezzoDisplay),
+        importoDisplay: text(row.importoDisplay),
+        tipo: text(row.tipo) || 'ONORARIO',
       }
     }),
   } : null
@@ -1084,6 +1247,51 @@ export async function createParcella(payload: CreateFatturaPayload): Promise<Cre
 export async function updateFatturazioneStatus(idDocumento: string, payload: UpdateFatturazioneStatusPayload): Promise<FatturazioneMutationResult> {
   const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/stato`, payload, mutationFallback)
   return normaliseMutationResult(result)
+}
+
+export async function updateFatturazioneDetail(idDocumento: string, payload: FatturazioneDetailUpdatePayload): Promise<FatturazioneMutationResult> {
+  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/dettaglio`, payload, mutationFallback)
+  return normaliseMutationResult(result)
+}
+
+export async function prepareFatturazioneXmlSignature(idDocumento: string): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/xml/prepara-firma`, {}, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function confirmFatturazioneXmlSigned(idDocumento: string, payload: Record<string, unknown>): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/xml/firmato`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function prepareFatturazioneSdiPec(idDocumento: string): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/sdi/pec/prepara`, {}, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function confirmFatturazioneSdiPecSent(idDocumento: string, payload: Record<string, unknown>): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/sdi/pec/conferma`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function recordFatturazioneSdiOutcome(idDocumento: string, payload: Record<string, unknown>): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/sdi/esito`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function prepareFatturazioneCommercialista(idDocumento: string, payload: { channel: string; attachments: string }): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/commercialista/prepara`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function sendFatturazioneCommercialistaEmail(idDocumento: string, payload: Record<string, unknown>): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/commercialista/email/invia`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
+}
+
+export async function confirmFatturazioneCommercialistaPec(idDocumento: string, payload: Record<string, unknown>): Promise<FatturazioneWorkflowResult> {
+  const result = await apiPostJson<FatturazioneWorkflowResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/commercialista/pec/conferma`, payload, workflowFallback)
+  return normaliseWorkflowResult(result)
 }
 
 export async function archiveFatturazioneDocument(): Promise<FatturazioneMutationResult> {

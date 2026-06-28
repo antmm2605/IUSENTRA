@@ -343,7 +343,7 @@ export function formatDocumentAIDate(value: string): string {
   if (!value) return 'n.d.'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(parsed)
 }
 
 export function shortSha(value: string): string {

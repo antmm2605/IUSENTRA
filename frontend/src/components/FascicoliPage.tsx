@@ -114,6 +114,7 @@ import {
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
@@ -253,7 +254,7 @@ function syncListViewInUrl(view: ListView) {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number.isFinite(value) ? value : 0).replace('€', 'EUR').trim()
+  return formatEuroIt(value)
 }
 
 function parseRoute(): Route {
@@ -942,7 +943,7 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
         </div>
       ) : null}
       <footer>
-        <span>Ultimo indice: {summary.last_indexed_at ? new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(summary.last_indexed_at)) : 'mai'}</span>
+        <span>Ultimo indice: {summary.last_indexed_at ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(new Date(summary.last_indexed_at)) : 'mai'}</span>
         <div>
           {refreshAction ? <PostAction action={refreshAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Aggiorna indice</PostAction> : null}
           {retryAction && summary.errors > 0 ? <PostAction action={retryAction} tone="secondary" onDone={onDone} onError={onError}><RotateCcw size={15}/> Riprova errori</PostAction> : null}
@@ -1009,7 +1010,7 @@ function compactPaymentLabel(value: string): string {
 
 function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind}) {
   const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
-  const amount = payment.importoLabel || 'EUR 0,00'
+  const amount = payment.importoLabel || '€ 0,00'
   const detail = payment.dataPagamento || payment.updatedAtLabel || payment.metodo || payment.note || ''
   const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
   return (
@@ -2321,9 +2322,9 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.cancelliere} name="cancelliere" defaultValue={getValue(data, 'cancelliere')}/>
               <Field label={labels.fields.ctu} name="ctu" defaultValue={getValue(data, 'ctu')}/>
               <Field label={labels.fields.ctp} name="ctp" defaultValue={getValue(data, 'ctp')}/>
-              <Field label="Valore causa (EUR)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/>
-              <Field label="Compenso pattuito (EUR)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/>
-              <Field label="Valore preventivato (EUR)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/>
+              <Field label="Valore causa (€)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/>
+              <Field label="Compenso pattuito (€)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/>
+              <Field label="Valore preventivato (€)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/>
               <input type="hidden" name="id_pratica" value={getValue(data, 'practiceId')}/>
               <input type="hidden" name="procedura_operativa_codice" value={getValue(data, 'proceduraOperativaCodice')}/>
               <Field label="Data prima udienza / comparizione" name="data_prima_udienza" type="date" defaultValue={getValue(data, 'firstHearingIso') || getValue(data, 'firstHearing')}/>
@@ -2866,8 +2867,8 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, loading = false 
               <RegiaActionCard label="Pagamento" value={recordBool(economics, 'paymentRegistered') ? 'Registrato' : 'Da registrare'} note={recordBool(economics, 'paymentRegistered') ? 'Apri incassi' : 'Registra incasso'} href={paymentHref} tone={recordBool(economics, 'paymentRegistered') ? 'success' : 'warning'}/>
             </div>
             <ul className="iu-fas-regia__facts">
-              <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', 'EUR 0,00')}</strong></li>
-              <li><span>Spese vive / anticipazioni</span><strong>{recordText(economics, 'expenses', 'EUR 0,00')}</strong></li>
+              <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', '€ 0,00')}</strong></li>
+              <li><span>Spese vive / anticipazioni</span><strong>{recordText(economics, 'expenses', '€ 0,00')}</strong></li>
             </ul>
             {Array.isArray(economics.overrides) && economics.overrides.length ? <p className="iu-fas-regia__warn">Variazione economica presente e registrata.</p> : null}
           </article>
@@ -6838,7 +6839,7 @@ function DetailPage({ id }:{id:string}) {
   )
 }
 
-function moneyFrom(data: FascicoloDetailData, id: string, fallback = 'EUR 0,00') {
+function moneyFrom(data: FascicoloDetailData, id: string, fallback = '€ 0,00') {
   return data.economics.find((item) => item.id === id)?.value || fallback
 }
 
@@ -6883,8 +6884,8 @@ function QuadroPage({ id }:{id:string}) {
   const qualityStatus = qualityIssues ? `${qualityIssues} verifiche` : 'OK'
   const nextDeadline = data.deadlines[0]
   const nextAppointment = data.appointments[0]
-  const valore = moneyFrom(data, 'valore', f.value || 'EUR 0,00')
-  const compenso = moneyFrom(data, 'compenso', f.agreedFee || f.quotedValue || 'EUR 0,00')
+  const valore = moneyFrom(data, 'valore', f.value || '€ 0,00')
+  const compenso = moneyFrom(data, 'compenso', f.agreedFee || f.quotedValue || '€ 0,00')
   const parcelle = moneyFrom(data, 'parcelle')
   const tempo = moneyFrom(data, 'tempo', '0 h')
   const fatturaPa = data.economics.find((item) => item.id === 'fatturapa')
@@ -6911,7 +6912,7 @@ function QuadroPage({ id }:{id:string}) {
         <QuadroAxis id="commerciale" title="Commerciale" icon={<BriefcaseBusiness size={18}/>} status={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'Conferito' : preventivo.value !== 'Non collegato' && preventivo.value !== '0' ? 'Da conferire' : 'Da creare'} tone={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'success' : 'warning'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Preventivo" value={preventivo.value} note={preventivo.note} tone={preventivo.tone} href={preventivo.href}/><QuadroMiniCard label="Conferimento" value={conferimento.value} note={conferimento.note} tone={conferimento.tone} href={conferimento.href}/><QuadroMiniCard label="Compenso" value={compenso} note="dato contrattuale del fascicolo" tone="purple" href="/preventivi/"/></div><a className="iu-fas-inline-link" href="/preventivi/"><Plus size={14}/> Gestisci preventivi e incarichi</a></QuadroAxis>
         <QuadroAxis id="operativo" title="Operativo" icon={<ClipboardCheck size={18}/>} status={formatFascicoloStatus(f.status)} tone={f.tone}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Stato" value={formatFascicoloStatus(f.status)} note={f.nextDeadline || 'nessuna prossima scadenza'} tone={f.tone} href={detailHref}/><QuadroMiniCard label="Udienze / scadenze" value={data.deadlines.length + data.appointments.length} note={nextDeadline?.title || nextAppointment?.title || 'nessun evento aperto'} tone="info" href={`${detailHref}#udienze`}/><QuadroMiniCard label="Cancelleria" value={data.deposits.length} note={data.deposits[0]?.status || 'nessuna PEC collegata'} tone="purple" href={`${detailHref}#cancelleria`}/></div></QuadroAxis>
         <QuadroAxis id="conformita" title="Conformità" icon={<ShieldCheck size={18}/>} status={qualityStatus} tone={qualityIssues ? 'warning' : 'success'}><div className="iu-fas-quadro-quality">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}{!data.quality.length ? <p className="iu-empty">Nessuna verifica registrata.</p> : null}</div><a className="iu-fas-inline-link" href={`${detailHref}#conformita`}><ShieldCheck size={14}/> Apri controlli qualità</a></QuadroAxis>
-        <QuadroAxis id="economico" title="Contesto economico" icon={<WalletCards size={18}/>} status={parcelle === 'EUR 0,00' ? 'Da valorizzare' : 'Valorizzato'} tone={parcelle === 'EUR 0,00' ? 'warning' : 'success'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Valore causa" value={valore} note="profilo fascicolo" tone="primary" href={`${detailHref}#profilo`}/><QuadroMiniCard label="Parcelle" value={parcelle} note="documenti economici collegati" tone="success" href="/fatturazione/"/>{fatturaPa ? <QuadroMiniCard label={fatturaPa.label} value={fatturaPa.value} note={fatturaPa.note} tone={fatturaPa.tone} href={fatturaPa.href}/> : null}<QuadroMiniCard label="Tempo" value={tempo} note="voci timesheet valorizzabili" tone="info" href="/timesheet"/></div></QuadroAxis>
+        <QuadroAxis id="economico" title="Contesto economico" icon={<WalletCards size={18}/>} status={parcelle === '€ 0,00' ? 'Da valorizzare' : 'Valorizzato'} tone={parcelle === '€ 0,00' ? 'warning' : 'success'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Valore causa" value={valore} note="profilo fascicolo" tone="primary" href={`${detailHref}#profilo`}/><QuadroMiniCard label="Parcelle" value={parcelle} note="documenti economici collegati" tone="success" href="/fatturazione/"/>{fatturaPa ? <QuadroMiniCard label={fatturaPa.label} value={fatturaPa.value} note={fatturaPa.note} tone={fatturaPa.tone} href={fatturaPa.href}/> : null}<QuadroMiniCard label="Tempo" value={tempo} note="voci timesheet valorizzabili" tone="info" href="/timesheet"/></div></QuadroAxis>
         <QuadroAxis id="documenti" title="Documenti" icon={<FileText size={18}/>} status={unsignedDocuments ? `${unsignedDocuments} da firmare` : 'Completi'} tone={unsignedDocuments ? 'warning' : 'success'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Totale" value={data.documents.length} note="documenti fascicolo" tone="primary" href={`${detailHref}#documenti`}/><QuadroMiniCard label="Firmati" value={signedDocuments} note="depositabili / verificati" tone="success" href={`${detailHref}#documenti`}/><QuadroMiniCard label="Da firmare" value={unsignedDocuments} note="controllo operativo" tone={unsignedDocuments ? 'warning' : 'success'} href={`${detailHref}#documenti`}/></div></QuadroAxis>
         <QuadroAxis id="soggetti" title="Soggetti e parti" icon={<UsersRound size={18}/>} status={data.parties.length ? `${data.parties.length} collegati` : 'Da verificare'} tone={data.parties.length ? 'success' : 'warning'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Totale" value={data.parties.length} note="assistiti, controparti e ruoli" tone={data.parties.length ? 'success' : 'warning'} href={`${detailHref}#soggetti`}/><QuadroMiniCard label="Cliente" value={data.client?.name || f.client || 'n.d.'} note="assistito principale" tone="primary" href={data.client?.href || `${detailHref}#profilo`}/><QuadroMiniCard label="Controparte" value={f.counterparty || 'n.d.'} note="dato fascicolo o parte strutturata" tone={f.counterparty ? 'orange' : 'neutral'} href={`${detailHref}#soggetti`}/></div></QuadroAxis>
         <QuadroAxis id="cancelleria" title="Comunicazioni e cancelleria" icon={<Gavel size={18}/>} status={data.deposits.length ? `${data.deposits.length} PEC` : 'Nessuna PEC'} tone={data.deposits.length ? 'purple' : 'neutral'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Comunicazioni" value={data.deposits.length} note={data.deposits[0]?.message || 'nessuna PEC collegata'} tone="purple" href={`${detailHref}#cancelleria`}/><QuadroMiniCard label="Storico" value={data.history.length} note="transizioni e stati fascicolo" tone="info" href={`${detailHref}#gestione`}/></div></QuadroAxis>

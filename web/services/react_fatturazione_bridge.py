@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 from pct.fatturazione import VoceParcella
+from pct.formatting import format_euro_it
 from web.services.react_fatturazione_archive_actions import (
     build_react_fatturazione_detail_payload,
     cancel_react_fatturazione_document,
@@ -154,11 +155,7 @@ def _enum(value: Any) -> str:
 
 
 def _money(value: Any) -> str:
-    try:
-        amount = float(value or 0)
-    except (TypeError, ValueError):
-        amount = 0.0
-    return f"EUR {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
 
 
 def _date_label(value: Any) -> str:
@@ -535,7 +532,7 @@ def _default_personalized_data(
             "regime_fiscale_label": "Regime ordinario",
             "esigibilita_iva": "I",
             "esigibilita_iva_label": "Immediata",
-            "cassa_previdenziale": "CAF",
+            "cassa_previdenziale": "TC01",
             "cassa_previdenziale_label": "Avvocati",
             "percentuale_spese_generali": "15",
             "fascicolo_label": fascicolo_label,

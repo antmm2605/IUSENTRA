@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import json
 from typing import Any
 from urllib.parse import urlencode
@@ -85,12 +87,7 @@ def _profile_from_deposit_profile(fascicolo: Any) -> Any | None:
 
 
 def _euro(value: Any) -> str:
-    try:
-        number = float(value or 0.0)
-    except (TypeError, ValueError):
-        number = 0.0
-    text = f"{number:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {text}"
+    return format_euro_it(value)
 
 
 def _tone(ok: bool, *, warning: bool = False) -> str:

@@ -126,6 +126,7 @@ function localClockLabel(value: string) {
   const parsed = value ? new Date(value) : new Date()
   if (Number.isNaN(parsed.getTime())) return value
   return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
     weekday: 'long',
     day: '2-digit',
     month: 'long',
@@ -1651,6 +1652,7 @@ export function NotificheLegaliPage() {
     }
     if (key === 'notifica') {
       const checkedAt = new Intl.DateTimeFormat('it-IT', {
+        timeZone: 'Europe/Rome',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',

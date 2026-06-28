@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -524,7 +524,7 @@ function Sidebar({
           calculation ? auditStatus : data.support.audit.aligned ? 'Verifica esatta' : '',
           deontologyStatus === 'attenzione' ? 'Presidi da completare' : deontologyStatus ? 'Presidi documentati' : '',
           auditTable,
-          auditScaglione.includes('Oltre EUR 520.000') ? 'Fascia alta' : '',
+          auditScaglione.includes('Oltre € 520.000') ? 'Fascia alta' : '',
         ]} />
         <h3>{practice?.label || 'Tipologia non selezionata'}</h3>
         <p>{practice?.summary || 'Seleziona una tipologia per attivare profilo, calcolo e riferimenti.'}</p>
@@ -1283,7 +1283,7 @@ export function PreventivoWizardPage() {
                 <SelectInput id="grade" label="Grado / sede" value={grade} onChange={setGrade}>
                   {(selectedPractice?.regole_tariffarie.length ? Array.from(new Set(selectedPractice.regole_tariffarie.flatMap((item) => Array.isArray(item.allowed_grade_input_values) ? item.allowed_grade_input_values.map(String) : [String(item.grado_input_value || '')]).filter(Boolean))) : [selectedPractice?.grado_default || '']).map((item) => <option value={item} key={item}>{item}</option>)}
                 </SelectInput>
-                <SelectInput id="complexity" label="Complessità stimata" value={complexity} help="Molto alta usa il valore indeterminabile parametrizzato oltre EUR 520.000 e viene tracciata nell'audit prima dell'invio al cliente." onChange={setComplexity}>
+                <SelectInput id="complexity" label="Complessità stimata" value={complexity} help="Molto alta usa il valore indeterminabile parametrizzato oltre € 520.000 e viene tracciata nell'audit prima dell'invio al cliente." onChange={setComplexity}>
                   {data.options.complexity.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
                 </SelectInput>
                 <TextInput id="hourly-rate" label="Tariffa oraria" value={hourlyRate} onChange={(next) => setHourlyRate(normalizeAmountInput(next))} />

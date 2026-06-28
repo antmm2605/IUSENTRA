@@ -1,4 +1,4 @@
-﻿"""
+"""
 pct/tariffario_catalogo.py - Catalogo condiviso del tariffario forense.
 
 Raccoglie riferimenti normativi ufficiali, profili di calcolo, opzioni
@@ -15,18 +15,18 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 _SNAPSHOT_PATH = Path(__file__).resolve().parent / "data" / "tariffario_dm147_2022.json"
 
 _LABELS_3 = [
-    (0.0, 1100.0, "Fino a EUR 1.100"),
-    (1100.0, 5200.0, "Da EUR 1.100 a EUR 5.200"),
-    (5200.0, float("inf"), "Da EUR 5.200 a EUR 26.000"),
+    (0.0, 1100.0, "Fino a € 1.100"),
+    (1100.0, 5200.0, "Da € 1.100 a € 5.200"),
+    (5200.0, float("inf"), "Da € 5.200 a € 26.000"),
 ]
 _LABELS_7 = [
-    (0.0, 1100.0, "Fino a EUR 1.100 (o indeterminabile)"),
-    (1100.0, 5200.0, "Da EUR 1.100 a EUR 5.200"),
-    (5200.0, 26000.0, "Da EUR 5.200 a EUR 26.000"),
-    (26000.0, 52000.0, "Da EUR 26.000 a EUR 52.000"),
-    (52000.0, 260000.0, "Da EUR 52.000 a EUR 260.000"),
-    (260000.0, 520000.0, "Da EUR 260.000 a EUR 520.000"),
-    (520000.0, float("inf"), "Oltre EUR 520.000"),
+    (0.0, 1100.0, "Fino a € 1.100 (o indeterminabile)"),
+    (1100.0, 5200.0, "Da € 1.100 a € 5.200"),
+    (5200.0, 26000.0, "Da € 5.200 a € 26.000"),
+    (26000.0, 52000.0, "Da € 26.000 a € 52.000"),
+    (52000.0, 260000.0, "Da € 52.000 a € 260.000"),
+    (260000.0, 520000.0, "Da € 260.000 a € 520.000"),
+    (520000.0, float("inf"), "Oltre € 520.000"),
 ]
 
 PHASE_KEY_BY_RAW = {
@@ -100,22 +100,22 @@ COMPLESSITA_ROWS = [
     {
         "value": "bassa",
         "label": "Bassa",
-        "description": "Valore indeterminabile collocato nel range base 26.000-52.000 EUR.",
+        "description": "Valore indeterminabile collocato nel range base 26.000-52.000 €.",
     },
     {
         "value": "media",
         "label": "Media",
-        "description": "Valore indeterminabile collocato nel range intermedio 52.000-260.000 EUR.",
+        "description": "Valore indeterminabile collocato nel range intermedio 52.000-260.000 €.",
     },
     {
         "value": "alta",
         "label": "Alta",
-        "description": "Valore indeterminabile collocato nel range superiore 260.000-520.000 EUR.",
+        "description": "Valore indeterminabile collocato nel range superiore 260.000-520.000 €.",
     },
     {
         "value": "molto_alta",
         "label": "Molto alta",
-        "description": "Valore indeterminabile collocato nella fascia oltre EUR 520.000.",
+        "description": "Valore indeterminabile collocato nella fascia oltre € 520.000.",
     },
 ]
 
@@ -3644,7 +3644,7 @@ def _snapshot_scaglione_sources(
 
     has_high_progressive = any(item[0] == 6 for item in rows)
     if not has_high_progressive and progressive_tail_index >= 0:
-        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre EUR 520.000"))
+        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre € 520.000"))
     return rows
 
 

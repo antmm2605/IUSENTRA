@@ -319,6 +319,8 @@ def _applica_ad_app(cfg):
     app.config["FATTURAPA_SDI_USERNAME"] = getattr(sdi, "username", "") if sdi is not None else ""
     app.config["FATTURAPA_SDI_PASSWORD"] = getattr(sdi, "password", "") if sdi is not None else ""
     app.config["FATTURAPA_SDI_PEC_NOTIFICHE"] = getattr(sdi, "pec_notifiche", "") if sdi is not None else ""
+    app.config["FATTURAPA_EMAIL_COMMERCIALISTA"] = getattr(sdi, "email_commercialista", "") if sdi is not None else ""
+    app.config["FATTURAPA_NOME_COMMERCIALISTA"] = getattr(sdi, "nome_commercialista", "") if sdi is not None else ""
     app.config["FATTURAPA_SDI_AUTO_INVIO"] = sdi_auto
     clear_ollama_runtime_resolution_cache()
     # Reschedule job se lo scheduler è attivo
@@ -515,6 +517,8 @@ def index():
                     username=f.get("sdi_username", "").strip(),
                     password=sdi_password if sdi_password else cfg.sdi.password,
                     pec_notifiche=f.get("sdi_pec_notifiche", "").strip(),
+                    email_commercialista=f.get("sdi_email_commercialista", "").strip(),
+                    nome_commercialista=f.get("sdi_nome_commercialista", "").strip(),
                     auto_invio_abilitato=bool(f.get("sdi_auto_invio_abilitato")),
                     note=f.get("sdi_note", "").strip(),
                 )

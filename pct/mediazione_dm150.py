@@ -77,7 +77,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=0.0,
         max_value=1000.0,
-        label="Fino a EUR 1.000",
+        label="Fino a € 1.000",
         spese_avvio=40.0,
         spese_primo_incontro=60.0,
         tabella_a_minimo=80.0,
@@ -85,7 +85,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=1000.01,
         max_value=5000.0,
-        label="Da EUR 1.000,01 a EUR 5.000",
+        label="Da € 1.000,01 a € 5.000",
         spese_avvio=75.0,
         spese_primo_incontro=120.0,
         tabella_a_minimo=160.0,
@@ -93,7 +93,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=5000.01,
         max_value=10000.0,
-        label="Da EUR 5.000,01 a EUR 10.000",
+        label="Da € 5.000,01 a € 10.000",
         spese_avvio=75.0,
         spese_primo_incontro=120.0,
         tabella_a_minimo=290.0,
@@ -101,7 +101,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=10000.01,
         max_value=25000.0,
-        label="Da EUR 10.000,01 a EUR 25.000",
+        label="Da € 10.000,01 a € 25.000",
         spese_avvio=75.0,
         spese_primo_incontro=120.0,
         tabella_a_minimo=440.0,
@@ -109,7 +109,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=25000.01,
         max_value=50000.0,
-        label="Da EUR 25.000,01 a EUR 50.000",
+        label="Da € 25.000,01 a € 50.000",
         spese_avvio=75.0,
         spese_primo_incontro=120.0,
         tabella_a_minimo=720.0,
@@ -117,7 +117,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=50000.01,
         max_value=150000.0,
-        label="Da EUR 50.000,01 a EUR 150.000",
+        label="Da € 50.000,01 a € 150.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=1200.0,
@@ -125,7 +125,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=150000.01,
         max_value=250000.0,
-        label="Da EUR 150.000,01 a EUR 250.000",
+        label="Da € 150.000,01 a € 250.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=1500.0,
@@ -133,7 +133,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=250000.01,
         max_value=500000.0,
-        label="Da EUR 250.000,01 a EUR 500.000",
+        label="Da € 250.000,01 a € 500.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=2500.0,
@@ -141,7 +141,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=500000.01,
         max_value=1500000.0,
-        label="Da EUR 500.000,01 a EUR 1.500.000",
+        label="Da € 500.000,01 a € 1.500.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=3900.0,
@@ -149,7 +149,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=1500000.01,
         max_value=2500000.0,
-        label="Da EUR 1.500.000,01 a EUR 2.500.000",
+        label="Da € 1.500.000,01 a € 2.500.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=4600.0,
@@ -157,7 +157,7 @@ SCAGLIONI_MEDIAZIONE_DM150: tuple[ScaglioneMediazioneDm150, ...] = (
     ScaglioneMediazioneDm150(
         min_value=2500000.01,
         max_value=5000000.0,
-        label="Da EUR 2.500.000,01 a EUR 5.000.000",
+        label="Da € 2.500.000,01 a € 5.000.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=6500.0,
@@ -199,7 +199,7 @@ def scaglione_mediazione_dm150(valore: float, *, indeterminabile: bool = False) 
     return ScaglioneMediazioneDm150(
         min_value=5000000.01,
         max_value=None,
-        label="Oltre EUR 5.000.000",
+        label="Oltre € 5.000.000",
         spese_avvio=110.0,
         spese_primo_incontro=170.0,
         tabella_a_minimo=round(valore * 0.002, 2),

@@ -6,7 +6,7 @@ import { useQuickDeadlines } from '../../hooks/useQuickDeadlines'
 
 function formatDate(value: string) {
   if (!value) return ''
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: 'short' })
 }
 
 export function TopBarDeadlines({

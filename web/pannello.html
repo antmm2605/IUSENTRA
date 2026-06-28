@@ -92,7 +92,7 @@
           </td>
           <td style="font-size:.88rem;">{{ c.nome_completo if c else '—' }}</td>
           <td style="font-size:.82rem;color:#6b7280;">{{ p.data_emissione }}</td>
-          <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+          <td class="text-end fw-semibold">{{ p.totale|euro }}</td>
           <td class="text-center">
             <span class="badge rounded-pill
               {% if p.stato.value == 'PAGATA' %}bg-success

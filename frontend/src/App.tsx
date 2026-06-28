@@ -1079,7 +1079,7 @@ function List({ rows, avatar=false, href='/' }:{rows:Row[]; avatar?:boolean; hre
 function italianDay(offset:number) {
   const d = new Date()
   d.setDate(d.getDate()+offset)
-  const label = d.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'})
+  const label = d.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome',weekday:'long', day:'numeric', month:'long', year:'numeric'})
   return `${offset===0?'Oggi':'Domani'} - ${label.charAt(0).toUpperCase()}${label.slice(1)}`
 }
 

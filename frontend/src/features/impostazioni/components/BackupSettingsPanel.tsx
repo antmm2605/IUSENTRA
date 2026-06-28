@@ -35,7 +35,7 @@ function formatDate(value: unknown): string {
   if (!raw) return 'Mai'
   const parsed = new Date(raw)
   if (Number.isNaN(parsed.getTime())) return raw.replace('T', ' ').slice(0, 16)
-  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(parsed)
 }
 
 function defaultComponents(options: Row[]): string[] {

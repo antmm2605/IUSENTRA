@@ -199,7 +199,7 @@
               {{ f.oggetto_controversia or f.materia or '—' }}
               {% if f.giudice_relatore %}<br><small class="text-muted">Rel. {{ f.giudice_relatore }}</small>{% endif %}
               {% if f.valore_controversia %}
-              <br><small class="text-muted">€ {{ "%.2f"|format(f.valore_controversia) }}</small>
+              <br><small class="text-muted">{{ f.valore_controversia|euro }}</small>
               {% endif %}
             </td>
             <td data-label="Ricorrente" class="small text-muted" data-mob-hide>

@@ -11,6 +11,8 @@ Struttura pensata per il software:
 """
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import copy
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional

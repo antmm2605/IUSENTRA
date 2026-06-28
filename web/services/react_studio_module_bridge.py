@@ -6,6 +6,8 @@ dati reali e invia le scritture ai comandi tracciati.
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
@@ -49,7 +51,7 @@ def _euro(value: Any) -> str:
         amount = float(value or 0)
     except (TypeError, ValueError):
         amount = 0.0
-    return "EUR " + f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
     text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"€ {text}"
     return f"€ {text}"

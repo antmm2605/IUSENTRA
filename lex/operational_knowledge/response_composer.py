@@ -6,6 +6,8 @@ import re
 from datetime import datetime
 from typing import Any
 
+from pct.formatting import format_euro_it
+
 from .models import OperationalAnswer, OperationalRoute, OperationalSourceReference, OperationalToolResult
 from .serializers import clean_spaces
 
@@ -1099,11 +1101,10 @@ def _hearing_event_line(row: dict[str, Any]) -> str:
 def _payment_line(row: dict[str, Any]) -> str:
     label = clean_spaces(row.get("descrizione")) or _label(row)
     amount = clean_spaces(row.get("importo") or row.get("totale") or row.get("amount"))
-    currency = clean_spaces(row.get("valuta") or row.get("currency"))
     state = clean_spaces(row.get("stato") or row.get("status"))
     pieces = []
     if amount:
-        pieces.append(f"importo {amount}{(' ' + currency) if currency else ''}")
+        pieces.append(f"importo {format_euro_it(amount)}")
     if state:
         pieces.append(f"stato {state}")
     if created_at := _format_italian_date(row.get("creato_il")):

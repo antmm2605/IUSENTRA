@@ -1,6 +1,7 @@
 import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
 import { csrfToken } from './formSubmit'
+import { formatEuroIt } from './formatting'
 
 export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
@@ -755,9 +756,9 @@ function createEmptyPaymentSummary(id = ''): FascicoloPaymentSummary {
     statoLabel: 'Da presidiare',
     tone: 'warning',
     totaleRegistrato: 0,
-    totaleRegistratoLabel: 'EUR 0,00',
+    totaleRegistratoLabel: '€ 0,00',
     anticipazioniDaRecuperare: 0,
-    anticipazioniDaRecuperareLabel: 'EUR 0,00',
+    anticipazioniDaRecuperareLabel: '€ 0,00',
     parcelleDaEmettere: 1,
     mancanti: 3,
     updatedAt: '',
@@ -1009,7 +1010,7 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     pagato: bool(row.pagato) || status === 'pagato',
     previsto: row.previsto === undefined ? status !== 'non_previsto' : bool(row.previsto),
     importo,
-    importoLabel: text(row.importoLabel ?? row.importo_label, importo === null ? '' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(importo).replace('€', 'EUR').trim()),
+    importoLabel: text(row.importoLabel ?? row.importo_label, importo === null ? '' : formatEuroIt(importo)),
     valuta: text(row.valuta ?? row.currency, 'EUR'),
     dataPagamento: text(row.dataPagamento ?? row.data_pagamento),
     dataPagamentoIso: text(row.dataPagamentoIso ?? row.data_pagamento_iso ?? row.data_pagamento),
@@ -1036,9 +1037,9 @@ export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPayme
     statoLabel: text(value.statoLabel ?? value.stato_label, stato === 'completo' ? 'Completo' : stato === 'parziale' ? 'Parziale' : stato === 'non_previsto' ? 'Non previsto' : 'Da presidiare'),
     tone: (text(value.tone, stato === 'completo' ? 'success' : stato === 'non_previsto' ? 'neutral' : 'warning') as Tone),
     totaleRegistrato: number(value.totaleRegistrato ?? value.totale_registrato),
-    totaleRegistratoLabel: text(value.totaleRegistratoLabel ?? value.totale_registrato_label, 'EUR 0,00'),
+    totaleRegistratoLabel: text(value.totaleRegistratoLabel ?? value.totale_registrato_label, '€ 0,00'),
     anticipazioniDaRecuperare: number(value.anticipazioniDaRecuperare ?? value.anticipazioni_da_recuperare),
-    anticipazioniDaRecuperareLabel: text(value.anticipazioniDaRecuperareLabel ?? value.anticipazioni_da_recuperare_label, 'EUR 0,00'),
+    anticipazioniDaRecuperareLabel: text(value.anticipazioniDaRecuperareLabel ?? value.anticipazioni_da_recuperare_label, '€ 0,00'),
     parcelleDaEmettere: number(value.parcelleDaEmettere ?? value.parcelle_da_emettere),
     mancanti: number(value.mancanti),
     updatedAt: text(value.updatedAt ?? value.updated_at),

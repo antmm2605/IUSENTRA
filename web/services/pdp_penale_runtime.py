@@ -502,6 +502,7 @@ def build_pdp_penale_runtime(
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from pct.pdf_style import pdf_table_header_style
 
         buf = io.BytesIO()
         doc = SimpleDocTemplate(
@@ -533,7 +534,7 @@ def build_pdp_penale_runtime(
         ]
         table = Table(righe, colWidths=(160, 320))
         table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+            *pdf_table_header_style(),
             ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
             ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),

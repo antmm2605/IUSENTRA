@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.135 - 2026-06-28
+
+- Standardizzazione visibile date/orari: introdotta la regola permanente per mostrare UI, PDF, PEC, email, audit e report in formato italiano con fuso `Europe/Rome`, lasciando UTC/ISO raw solo nei tracciati tecnici.
+- Fatturazione: l'anteprima PDF non mostra più `Data UTC` e usa `Data e ora italiana` con conversione Europe/Rome.
+- PEC/email: la data di arrivo e gli orari visibili passano dalla conversione condivisa in ora italiana, con test anti-regressione.
+
 ## 2.253.131 - 2026-06-27
 
 - Fascicoli React card-view: esteso il riordino mobile anche al breakpoint tablet/card fino a 1100px, così l'avviso `Scadenze entro 7 giorni` resta dopo lista e filtri quando la tabella desktop è nascosta.

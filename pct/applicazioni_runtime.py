@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from datetime import date, datetime
 from typing import Any, Dict, List, Mapping
+
+from pct.formatting import format_decimal_it, format_euro_it
 
 
 def _clean_text(value: Any) -> str:
@@ -9,12 +13,7 @@ def _clean_text(value: Any) -> str:
 
 
 def _fmt_money(value: Any) -> str:
-    try:
-        amount = round(float(value or 0.0), 2)
-    except (TypeError, ValueError):
-        amount = 0.0
-    text = f"{amount:,.2f}"
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
 
 
 def _fmt_percent(value: Any) -> str:
@@ -22,7 +21,7 @@ def _fmt_percent(value: Any) -> str:
         amount = round(float(value or 0.0), 2)
     except (TypeError, ValueError):
         amount = 0.0
-    return f"{amount:.2f}".replace(".", ",")
+    return format_decimal_it(amount)
 
 
 def _fmt_date_it(value: Any) -> str:
@@ -643,9 +642,9 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     elif tool_id == "contributo_unificato":
         metrics = [
             _metric("Tipologia", str(result.get("categoria_label") or ""), str(result.get("grado_label") or "")),
-            _metric("Contributo base", f"EUR {_fmt_money(result.get('base'))}"),
-            _metric("Anticipazione", f"EUR {_fmt_money(result.get('anticipazione_forfettaria'))}"),
-            _metric("Totale", f"EUR {_fmt_money(result.get('totale'))}"),
+            _metric("Contributo base", f"{_fmt_money(result.get('base'))}"),
+            _metric("Anticipazione", f"{_fmt_money(result.get('anticipazione_forfettaria'))}"),
+            _metric("Totale", f"{_fmt_money(result.get('totale'))}"),
         ]
         regole = list(result.get("regole_applicate") or [])
         if regole:
@@ -662,8 +661,8 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     elif tool_id == "interessi":
         metrics = [
             _metric("Regime", str(result.get("label") or ""), f"{result.get('covered_days', 0)} giorni coperti"),
-            _metric("Interessi maturati", f"EUR {_fmt_money(result.get('total_interest'))}"),
-            _metric("Capitale + interessi", f"EUR {_fmt_money(result.get('total_amount'))}", f"{result.get('days', 0)} giorni complessivi"),
+            _metric("Interessi maturati", f"{_fmt_money(result.get('total_interest'))}"),
+            _metric("Capitale + interessi", f"{_fmt_money(result.get('total_amount'))}", f"{result.get('days', 0)} giorni complessivi"),
         ]
         tables.append(
             {
@@ -674,7 +673,7 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                         f"{_fmt_date_it(row.get('start'))} - {_fmt_date_it(row.get('end'))}",
                         str(row.get("days") or 0),
                         f"{_fmt_percent(row.get('rate'))}%",
-                        f"EUR {_fmt_money(row.get('interest'))}",
+                        f"{_fmt_money(row.get('interest'))}",
                     ]
                     for row in list(result.get("segments") or [])
                 ],
@@ -684,15 +683,15 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         metrics = [
             _metric("Creditore", str(result.get("creditore") or "")),
             _metric("Debitore", str(result.get("debitore") or "")),
-            _metric("Totale lordo", f"EUR {_fmt_money(result.get('totale_lordo'))}"),
-            _metric("Residuo", f"EUR {_fmt_money(result.get('residuo'))}"),
+            _metric("Totale lordo", f"{_fmt_money(result.get('totale_lordo'))}"),
+            _metric("Residuo", f"{_fmt_money(result.get('residuo'))}"),
         ]
         tables.append(
             {
                 "title": "Breakdown economico",
                 "headers": ["Voce", "Importo"],
                 "rows": [
-                    [str(row.get("label") or ""), f"EUR {_fmt_money(row.get('value'))}"]
+                    [str(row.get("label") or ""), f"{_fmt_money(row.get('value'))}"]
                     for row in list(result.get("breakdown") or [])
                 ],
             }
@@ -702,28 +701,28 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         metrics = [
             _metric("Reddito", str(result.get("tipo_reddito_label") or "")),
             _metric("Credito", str(result.get("tipo_credito_label") or "")),
-            _metric("Quota massima", f"EUR {_fmt_money(result.get('quota_massima'))}"),
-            _metric("Residuo debitore", f"EUR {_fmt_money(result.get('residuo'))}"),
+            _metric("Quota massima", f"{_fmt_money(result.get('quota_massima'))}"),
+            _metric("Residuo debitore", f"{_fmt_money(result.get('residuo'))}"),
         ]
     elif tool_id == "ctu":
         metrics = [
             _metric("Modalità", str(result.get("modalita_label") or "")),
-            _metric("Onorario base", f"EUR {_fmt_money(result.get('onorario_base'))}"),
-            _metric("Spese", f"EUR {_fmt_money(result.get('spese'))}"),
-            _metric("Totale", f"EUR {_fmt_money(result.get('totale'))}"),
+            _metric("Onorario base", f"{_fmt_money(result.get('onorario_base'))}"),
+            _metric("Spese", f"{_fmt_money(result.get('spese'))}"),
+            _metric("Totale", f"{_fmt_money(result.get('totale'))}"),
         ]
     elif tool_id == "rivalutazione_istat":
         metrics = [
             _metric("Indice", str(result.get("tipo_label") or "")),
-            _metric("Importo originale", f"EUR {_fmt_money(result.get('importo_originale'))}"),
-            _metric("Importo rivalutato", f"EUR {_fmt_money(result.get('importo_rivalutato'))}"),
-            _metric("Differenza", f"EUR {_fmt_money(result.get('differenza'))}", f"{_fmt_percent(result.get('variazione_perc'))}%"),
+            _metric("Importo originale", f"{_fmt_money(result.get('importo_originale'))}"),
+            _metric("Importo rivalutato", f"{_fmt_money(result.get('importo_rivalutato'))}"),
+            _metric("Differenza", f"{_fmt_money(result.get('differenza'))}", f"{_fmt_percent(result.get('variazione_perc'))}%"),
         ]
     elif tool_id == "canone_locazione":
         metrics = [
-            _metric("Canone annuo", f"EUR {_fmt_money(result.get('canone_annuo'))}"),
-            _metric("Canone aggiornato", f"EUR {_fmt_money(result.get('canone_annuo_aggiornato'))}"),
-            _metric("Incremento mensile", f"EUR {_fmt_money(result.get('incremento_mensile'))}"),
+            _metric("Canone annuo", f"{_fmt_money(result.get('canone_annuo'))}"),
+            _metric("Canone aggiornato", f"{_fmt_money(result.get('canone_annuo_aggiornato'))}"),
+            _metric("Incremento mensile", f"{_fmt_money(result.get('incremento_mensile'))}"),
             _metric("Variazione applicata", f"{_fmt_percent(result.get('variazione_applicata'))}%"),
         ]
     elif tool_id == "usura":
@@ -736,16 +735,16 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     elif tool_id == "contributi_cassa_forense":
         metrics = [
             _metric("Anno", str(result.get("anno") or "")),
-            _metric("Reddito", f"EUR {_fmt_money(result.get('reddito'))}"),
-            _metric("Compensi", f"EUR {_fmt_money(result.get('compensi'))}"),
-            _metric("Totale contributi", f"EUR {_fmt_money(result.get('totale'))}"),
+            _metric("Reddito", f"{_fmt_money(result.get('reddito'))}"),
+            _metric("Compensi", f"{_fmt_money(result.get('compensi'))}"),
+            _metric("Totale contributi", f"{_fmt_money(result.get('totale'))}"),
         ]
         contributi = dict(result.get("contributi") or {})
         tables.append(
             {
                 "title": "Dettaglio contributi",
                 "headers": ["Voce", "Importo"],
-                "rows": [[str(key).replace("_", " ").title(), f"EUR {_fmt_money(value)}"] for key, value in contributi.items()],
+                "rows": [[str(key).replace("_", " ").title(), f"{_fmt_money(value)}"] for key, value in contributi.items()],
             }
         )
     elif tool_id == "prescrizione":
@@ -758,23 +757,23 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     elif tool_id == "danno_biologico":
         metrics = [
             _metric("Eta", str(result.get("eta") or "")),
-            _metric("Danno IP", f"EUR {_fmt_money(result.get('danno_ip'))}"),
-            _metric("Totale biologico", f"EUR {_fmt_money(result.get('totale_biologico'))}"),
-            _metric("Totale complessivo", f"EUR {_fmt_money(result.get('totale_comprensivo'))}"),
+            _metric("Danno IP", f"{_fmt_money(result.get('danno_ip'))}"),
+            _metric("Totale biologico", f"{_fmt_money(result.get('totale_biologico'))}"),
+            _metric("Totale complessivo", f"{_fmt_money(result.get('totale_comprensivo'))}"),
         ]
     elif tool_id == "imposta_registro":
         metrics = [
             _metric("Tipo atto", str(result.get("tipo_label") or "")),
-            _metric("Imposta", f"EUR {_fmt_money(result.get('imposta'))}"),
-            _metric("Quota per parte", f"EUR {_fmt_money(result.get('quota_parte'))}"),
+            _metric("Imposta", f"{_fmt_money(result.get('imposta'))}"),
+            _metric("Quota per parte", f"{_fmt_money(result.get('quota_parte'))}"),
             _metric("Aliquota", f"{_fmt_percent(result.get('aliquota_pct'))}%"),
         ]
     elif tool_id == "tfr":
         metrics = [
-            _metric("Quota annua", f"EUR {_fmt_money(result.get('quota_annua'))}"),
-            _metric("Quota periodo", f"EUR {_fmt_money(result.get('quota_periodo'))}", f"{result.get('anni_equivalenti') or 0} anni equivalenti"),
-            _metric("Rivalutazione", f"EUR {_fmt_money(result.get('rivalutazione'))}"),
-            _metric("Totale lordo", f"EUR {_fmt_money(result.get('totale_lordo'))}"),
+            _metric("Quota annua", f"{_fmt_money(result.get('quota_annua'))}"),
+            _metric("Quota periodo", f"{_fmt_money(result.get('quota_periodo'))}", f"{result.get('anni_equivalenti') or 0} anni equivalenti"),
+            _metric("Rivalutazione", f"{_fmt_money(result.get('rivalutazione'))}"),
+            _metric("Totale lordo", f"{_fmt_money(result.get('totale_lordo'))}"),
         ]
     elif tool_id == "onorari_forensi":
         metrics = [
@@ -783,7 +782,7 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
             _metric("Scaglione", str(result.get("scaglione") or "")),
             _metric(
                 "Riepilogo suggerito",
-                f"EUR {_fmt_money((result.get('riepilogo_suggerito') or {}).get('totale_complessivo'))}",
+                f"{_fmt_money((result.get('riepilogo_suggerito') or {}).get('totale_complessivo'))}",
                 str(result.get("livello_suggerito") or ""),
             ),
         ]
@@ -792,7 +791,7 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                 "title": "Fasi considerate",
                 "headers": ["Fase", "Compenso"],
                 "rows": [
-                    [str(row.get("fase_label") or row.get("fase") or ""), f"EUR {_fmt_money(row.get('compenso'))}"]
+                    [str(row.get("fase_label") or row.get("fase") or ""), f"{_fmt_money(row.get('compenso'))}"]
                     for row in list(result.get("fase_rows") or [])
                 ],
             }
@@ -839,7 +838,7 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         ]
     elif tool_id == "successione_legittima":
         metrics = [
-            _metric("Asse", f"EUR {_fmt_money(result.get('asse'))}"),
+            _metric("Asse", f"{_fmt_money(result.get('asse'))}"),
             _metric("Quote coperte", f"{_fmt_percent(result.get('quota_totale_percent'))}%"),
         ]
         tables.append(
@@ -850,8 +849,8 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                     [
                         str(row.get("label") or ""),
                         f"{_fmt_percent(row.get('quota_percent'))}%",
-                        f"EUR {_fmt_money(row.get('importo'))}",
-                        f"EUR {_fmt_money(row.get('per_testa'))}",
+                        f"{_fmt_money(row.get('importo'))}",
+                        f"{_fmt_money(row.get('per_testa'))}",
                     ]
                     for row in list(result.get("rows") or [])
                 ],
@@ -860,23 +859,23 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     elif tool_id == "cedolare_secca":
         metrics = [
             _metric("Aliquota", f"{_fmt_percent(result.get('aliquota'))}%"),
-            _metric("Imposta annua", f"EUR {_fmt_money(result.get('imposta_annua'))}"),
-            _metric("Registro evitato", f"EUR {_fmt_money(result.get('registro_evitato'))}"),
-            _metric("Totale periodo", f"EUR {_fmt_money(result.get('totale_periodo'))}"),
+            _metric("Imposta annua", f"{_fmt_money(result.get('imposta_annua'))}"),
+            _metric("Registro evitato", f"{_fmt_money(result.get('registro_evitato'))}"),
+            _metric("Totale periodo", f"{_fmt_money(result.get('totale_periodo'))}"),
         ]
     elif tool_id == "indennita_licenziamento":
         metrics = [
             _metric("Regime", str(result.get("regime_label") or "")),
             _metric("Anzianita", str(result.get("anzianita") or "")),
             _metric("Mensilita", f"{_fmt_percent(result.get('mensilita'))}"),
-            _metric("Importo", f"EUR {_fmt_money(result.get('importo'))}"),
+            _metric("Importo", f"{_fmt_money(result.get('importo'))}"),
         ]
     elif tool_id == "piano_ammortamento":
         metrics = [
             _metric("Metodo", str(result.get("tipo_label") or "")),
             _metric("Numero rate", str(result.get("numero_rate") or "")),
-            _metric("Rata iniziale", f"EUR {_fmt_money(result.get('rata_iniziale'))}"),
-            _metric("Totale interessi", f"EUR {_fmt_money(result.get('totale_interessi'))}"),
+            _metric("Rata iniziale", f"{_fmt_money(result.get('rata_iniziale'))}"),
+            _metric("Totale interessi", f"{_fmt_money(result.get('totale_interessi'))}"),
         ]
         preview = list(result.get("preview_schedule") or result.get("schedule") or [])[:6]
         tables.append(
@@ -887,10 +886,10 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                     [
                         str(row.get("numero") or ""),
                         _fmt_date_it(row.get("data")),
-                        f"EUR {_fmt_money(row.get('rata'))}",
-                        f"EUR {_fmt_money(row.get('quota_capitale'))}",
-                        f"EUR {_fmt_money(row.get('quota_interessi'))}",
-                        f"EUR {_fmt_money(row.get('residuo'))}",
+                        f"{_fmt_money(row.get('rata'))}",
+                        f"{_fmt_money(row.get('quota_capitale'))}",
+                        f"{_fmt_money(row.get('quota_interessi'))}",
+                        f"{_fmt_money(row.get('residuo'))}",
                     ]
                     for row in preview
                 ],

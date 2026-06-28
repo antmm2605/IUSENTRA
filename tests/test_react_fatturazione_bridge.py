@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from datetime import date
 from types import SimpleNamespace
 
@@ -9,6 +10,14 @@ from web.services.react_fatturazione_bridge import (
     build_react_fatturazione_payload,
     create_react_fattura,
     update_react_fatturazione_numbering,
+)
+from web.services.react_fatturazione_archive_actions import (
+    build_react_fatturazione_detail_payload,
+    confirm_react_fatturazione_sdi_sent,
+    confirm_react_fatturazione_xml_signed,
+    prepare_react_fatturazione_commercialista,
+    prepare_react_fatturazione_sdi_pec,
+    update_react_fatturazione_detail,
 )
 
 
@@ -398,3 +407,178 @@ def test_create_react_fattura_forfettaria_disattiva_iva_anche_se_selezionata(tmp
     parcella = manager.tutte()[0]
     assert parcella.applica_iva is False
     assert parcella.iva == 0.0
+
+
+def test_fatturazione_detail_modal_payload_e_modifica_voci_preservano_calcoli(tmp_path):
+    cliente = _cliente()
+    fascicolo = _fascicolo(cliente.id)
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    audit_users = _AuditUsers()
+    parcella = manager.crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        voci=[VoceParcella(descrizione="Compenso iniziale", quantita=1, prezzo_unitario=120.0)],
+        note="Nota iniziale",
+    )
+
+    payload, status = build_react_fatturazione_detail_payload(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(fascicolo),
+        id_documento=parcella.id,
+        sdi_cfg=SimpleNamespace(pec_notifiche="sdi@pec.example", email_commercialista="contabile@example"),
+    )
+
+    assert status == 200
+    assert payload["item"]["note"] == "Nota iniziale"
+    assert payload["item"]["workflow"]["sdiPecAddress"] == "sdi@pec.example"
+    assert payload["item"]["voci"][0]["prezzoUnitario"] == "120.0"
+
+    result, status = update_react_fatturazione_detail(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit_users,
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={
+            "note": "Nota aggiornata",
+            "voci": [
+                {"descrizione": "Compenso aggiornato", "quantita": "2", "prezzo_unitario": "100,50", "tipo": "ONORARIO"},
+                {"descrizione": "Spese documentate", "quantita": "1", "prezzo_unitario": "25", "tipo": "SPESE"},
+            ],
+        },
+        ip_address="127.0.0.1",
+    )
+
+    updated = manager.get(parcella.id)
+    assert status == 200
+    assert result["ok"] is True
+    assert updated is not None
+    assert updated.note == "Nota aggiornata"
+    assert updated.voci[0].importo == 201.0
+    assert updated.voci[1].tipo == "SPESE"
+    assert audit_users.events[-1][0][0] == "fatturazione.dettaglio"
+
+    blocked, status = update_react_fatturazione_detail(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit_users,
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={"note": "No", "totale": "1", "voci": [{"descrizione": "Voce", "quantita": "1", "prezzo_unitario": "1"}]},
+    )
+
+    assert status == 400
+    assert blocked["ok"] is False
+    assert "totale" in blocked["errors"]
+
+
+def test_fatturazione_xml_firmato_sdi_e_commercialista_usano_storage_tenant_aware(tmp_path):
+    cliente = _cliente()
+    fascicolo = _fascicolo(cliente.id)
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    audit_users = _AuditUsers()
+    parcella = manager.crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=300.0)],
+    )
+    parcella = manager.aggiorna(parcella.id, numero="2026/077")
+    storage_root = tmp_path / "fatturazione" / "documenti_fatturapa"
+    pec_cfg = SimpleNamespace(
+        indirizzo="studio@pec.example",
+        username="studio@pec.example",
+        smtp_host="smtp.pec.example",
+        smtp_port=465,
+        use_ssl=True,
+        use_tls=False,
+    )
+    sdi_cfg = SimpleNamespace(
+        pec_notifiche="sdi@pec.example",
+        email_commercialista="contabile@example",
+        pec_commercialista="contabile@pec.example",
+        nome_commercialista="Studio Contabile",
+    )
+
+    signed_content = base64.b64encode(b"PKCS7-SIGNED-FATTURAPA" * 16).decode("ascii")
+    signed_result, status = confirm_react_fatturazione_xml_signed(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit_users,
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={"signed_base64": signed_content, "fileName": "IT09876543210_00077.xml", "intestatario": "Avv. Rossi"},
+        storage_root=storage_root,
+        ip_address="127.0.0.1",
+    )
+
+    updated = manager.get(parcella.id)
+    assert status == 200
+    assert signed_result["ok"] is True
+    assert updated is not None
+    assert updated.sdi_stato == "PREPARATA"
+    signed_meta = updated.dati_personalizzati["fatturapa_workflow"]["signed_xml"]
+    assert signed_meta["fileName"].endswith(".p7m")
+    assert (storage_root / parcella.id / signed_meta["storageFile"]).is_file()
+
+    sdi_result, status = prepare_react_fatturazione_sdi_pec(
+        get_fatturazione=lambda: manager,
+        current_user=_User(),
+        id_documento=parcella.id,
+        storage_root=storage_root,
+        pec_cfg=pec_cfg,
+        sdi_cfg=sdi_cfg,
+    )
+
+    assert status == 200
+    assert sdi_result["draft"]["to"] == "sdi@pec.example"
+    assert sdi_result["localPec"]["endpoint"].endswith("/pec/send")
+    assert sdi_result["localPec"]["payload"]["attachments"][0]["storageFile"] == signed_meta["storageFile"]
+
+    sent_result, status = confirm_react_fatturazione_sdi_sent(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit_users,
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={"message_id": "<pec-123@example>", "destinatario": "sdi@pec.example", "oggetto": "Invio"},
+    )
+
+    assert status == 200
+    assert sent_result["item"]["sdiState"] == "INVIATA"
+    assert manager.get(parcella.id).dati_personalizzati["fatturapa_workflow"]["sdi_send"]["messageId"] == "<pec-123@example>"
+
+    comm_email_result, status = prepare_react_fatturazione_commercialista(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(fascicolo),
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={"channel": "ordinaria", "attachments": "pdf"},
+        storage_root=storage_root,
+        pec_cfg=pec_cfg,
+        sdi_cfg=sdi_cfg,
+        config=_studio_config(),
+    )
+
+    assert status == 200
+    assert comm_email_result["draft"]["channel"] == "ordinaria"
+    assert comm_email_result["draft"]["to"] == "contabile@example"
+    assert len(comm_email_result["draft"]["attachments"]) == 1
+    assert "localPec" not in comm_email_result
+
+    comm_result, status = prepare_react_fatturazione_commercialista(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(fascicolo),
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={"channel": "pec", "attachments": "pdf_xml_firmato"},
+        storage_root=storage_root,
+        pec_cfg=pec_cfg,
+        sdi_cfg=sdi_cfg,
+        config=_studio_config(),
+    )
+
+    assert status == 200
+    assert comm_result["draft"]["channel"] == "pec"
+    assert comm_result["draft"]["to"] == "contabile@pec.example"
+    assert len(comm_result["draft"]["attachments"]) == 2
+    assert {item["storageFile"] for item in comm_result["draft"]["attachments"]} >= {signed_meta["storageFile"]}
+    assert comm_result["localPec"]["payload"]["to"] == "contabile@pec.example"

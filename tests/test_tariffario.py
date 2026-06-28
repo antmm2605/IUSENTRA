@@ -84,7 +84,7 @@ def test_mediazione_tabella_27_usa_snapshot_ufficiale_e_spese_generali_art2():
         perc_spese_generali=0.15,
     )
 
-    assert risultato.scaglione == "Da EUR 5.200 a EUR 26.000"
+    assert risultato.scaglione == "Da € 5.200 a € 26.000"
     assert risultato.dettaglio["Fase di attivazione"] == (220.5, 441.0, 661.5)
     assert risultato.dettaglio["Fase di rivitalizzazione"] == (441.0, 882.0, 1323.0)
     assert risultato.dettaglio["Fase di conciliazione"] == (860.0, 1720.0, 2580.0)
@@ -218,7 +218,7 @@ def test_valore_zero_con_complessita_parametrizza_indeterminabile():
     assert risultato.complessita_stimata == "molto_alta"
     assert risultato.valore_input == 0
     assert risultato.valore_calcolo == 520001.0
-    assert risultato.scaglione == "Oltre EUR 520.000"
+    assert risultato.scaglione == "Oltre € 520.000"
     assert "valore indeterminabile parametrizzato" in risultato.note.lower()
 
 

@@ -5,6 +5,7 @@ from typing import Any
 
 from lex.contracts import ProviderDraft
 from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
+from pct.formatting import format_euro_it
 
 from .base import BaseProvider
 
@@ -149,13 +150,7 @@ def _format_dataora_italiana(value: Any) -> str:
 
 
 def _format_euro(value: Any) -> str:
-    try:
-        amount = float(value or 0.0)
-    except Exception:
-        amount = 0.0
-    formatted = f"{amount:,.2f}"
-    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {formatted}"
+    return format_euro_it(value)
 
 
 def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> str:

@@ -9,7 +9,7 @@ a partire da una Parcella esistente, pronto per l'invio manuale tramite:
 Riferimenti normativi:
   - DPR 633/1972 (IVA)
   - D.Lgs. 127/2015 (fatturazione elettronica)
-  - Specifiche tecniche SDI v1.2.1
+  - Specifiche tecniche SdI/FatturaPA correnti per tracciato FPR12/FPA12
 """
 from __future__ import annotations
 
@@ -49,6 +49,12 @@ _METODO_MAP = {
     "Assegno":           MP_ASSEGNO,
     "Carta di credito":  MP_CARTA,
     "PayPal":            MP_PAYPAL,
+}
+
+_TIPO_CASSA_MAP = {
+    "": "TC01",
+    "CAF": "TC01",  # Alias storico interno IUSENTRA: Cassa Forense avvocati.
+    "AVVOCATI": "TC01",
 }
 
 
@@ -94,6 +100,13 @@ def _country_code(value: object) -> str:
     if not raw or raw in {"IT", "ITALIA"}:
         return "IT"
     return raw[:2] if len(raw) >= 2 else "IT"
+
+
+def _tipo_cassa_forense(value: object) -> str:
+    raw = _clean(value).upper()
+    if raw.startswith("TC") and len(raw) == 4:
+        return raw
+    return _TIPO_CASSA_MAP.get(raw, "TC01")
 
 
 def genera_xml_fattura_pa(
@@ -172,6 +185,7 @@ def genera_xml_fattura_pa(
         16,
     )
     tipo_documento = _clean(document_snapshot.get("tipo_documento"), 4) or "TD01"
+    tipo_cassa = _tipo_cassa_forense(document_snapshot.get("cassa_previdenziale"))
     modalita_pagamento_label = _clean(payment_snapshot.get("modalita_pagamento_label") or payment_snapshot.get("modalita_pagamento"))
     modalita_pagamento_codice = _clean(payment_snapshot.get("modalita_pagamento_codice"), 4)
     importo_pagamento_raw = _clean(payment_snapshot.get("importo_pagamento"))
@@ -251,11 +265,13 @@ def genera_xml_fattura_pa(
 
     if parcella.applica_cassa and parcella.cassa_forense > 0:
         dcp = _el(dgd, "DatiCassaPrevidenziale")
-        _el(dcp, "TipoCassa", "CAF")
+        _el(dcp, "TipoCassa", tipo_cassa)
         _el(dcp, "AlCassa", "4.00")
         _el(dcp, "ImportoContributoCassa", f"{parcella.cassa_forense:.2f}")
         _el(dcp, "ImponibileCassa", f"{parcella.imponibile:.2f}")
         _el(dcp, "AliquotaIVA", "22.00" if iva_applicabile else "0.00")
+        if not iva_applicabile:
+            _el(dcp, "Natura", "N2.2")
         _el(dcp, "Ritenuta", "SI" if parcella.applica_ritenuta else "NO")
 
     if parcella.applica_ritenuta and parcella.ritenuta > 0:

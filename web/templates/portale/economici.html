@@ -49,9 +49,9 @@
       </div>
       <div class="text-end">
         {% if kind == 'conferimento' %}
-          <div class="fw-bold text-primary">€ {{ "%.2f"|format(doc.compenso_pattuito or 0) }}</div>
+          <div class="fw-bold text-primary">{{ doc.compenso_pattuito or 0|euro }}</div>
         {% else %}
-          <div class="fw-bold text-primary">€ {{ "%.2f"|format(doc.totale) }}</div>
+          <div class="fw-bold text-primary">{{ doc.totale|euro }}</div>
         {% endif %}
       </div>
     </div>

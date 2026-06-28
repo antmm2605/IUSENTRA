@@ -23,7 +23,7 @@ def test_contesto_economico_serializza_e_riassume_adr():
             valore_controversia=10000,
             adr_accordo=True,
             variazioni_fasi_pct={"attivazione": 50, "negoziazione": -50},
-            risultato={"scaglione": "Da EUR 5.200 a EUR 26.000", "totale": 3626.24},
+            risultato={"scaglione": "Da € 5.200 a € 26.000", "totale": 3626.24},
             riferimenti_normativi=["D.M. 10 marzo 2014, n. 55", "Art. 20, comma 1-bis, D.M. 55/2014"],
         )
     )

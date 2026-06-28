@@ -203,10 +203,10 @@
           <dt class="col-sm-3">Compenso pattuito</dt>
           <dd class="col-sm-9">
             {% if c.tipo_compenso == 'Compenso orario' and c.tariffa_oraria > 0 %}
-            <strong>EUR {{ "%.2f"|format(c.tariffa_oraria) }}/ora</strong>
+            <strong>{{ c.tariffa_oraria|euro }}/ora</strong>
             <span class="text-muted small">(+ CPA 4% + IVA 22%)</span>
             {% elif c.compenso_pattuito > 0 %}
-            <strong>EUR {{ "%.2f"|format(c.compenso_pattuito) }}</strong>
+            <strong>{{ c.compenso_pattuito|euro }}</strong>
             <span class="text-muted small">(+ CPA 4% + IVA 22%)</span>
             {% else %}
             <span class="text-muted">Secondo parametri professionali.</span>

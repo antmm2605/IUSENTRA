@@ -1066,7 +1066,7 @@
                   <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
                     <div>
                       <div class="fw-semibold"><i class="bi bi-clock-history me-1"></i>Compenso a tempo ex art. 22-bis D.M. 55/2014</div>
-                      <div class="small text-muted">Parametro indicativo: EUR 200-500 per ora o frazione superiore a 30 minuti. Richiede pattuizione espressa con il cliente.</div>
+                      <div class="small text-muted">Parametro indicativo: € 200-500 per ora o frazione superiore a 30 minuti. Richiede pattuizione espressa con il cliente.</div>
                     </div>
                     <span class="badge bg-info text-dark align-self-start">accordo scritto consigliato</span>
                   </div>
@@ -2317,8 +2317,8 @@ function currentCompensoATempoPayload() {
   const totalMinutes = Math.max(0, Math.round(ore * 60) + Math.max(0, minutiExtra));
   const oreFatturabili = oreFatturabiliArt22Bis(totalMinutes, criterio);
   const warnings = [];
-  if (tariffa > 0 && tariffa < 200) warnings.push('Tariffa sotto il parametro indicativo di EUR 200/ora.');
-  if (tariffa > 500) warnings.push('Tariffa sopra il parametro indicativo di EUR 500/ora.');
+  if (tariffa > 0 && tariffa < 200) warnings.push('Tariffa sotto il parametro indicativo di € 200/ora.');
+  if (tariffa > 500) warnings.push('Tariffa sopra il parametro indicativo di € 500/ora.');
   return {
     source: 'COMPENSO_A_TEMPO_DM55_ART22BIS',
     source_label: 'Compenso a tempo ex art. 22-bis D.M. 55/2014',
@@ -2351,7 +2351,7 @@ function syncCompensoTempoUi() {
     <div>Tempo: ${payload.totale_minuti.toLocaleString('it-IT')} minuti - ${payload.ore_fatturabili.toLocaleString('it-IT')} ore fatturabili</div>
     <div>Criterio: ${escapeHtml(payload.criterio_arrotondamento)}</div>
     <div class="fw-semibold">Base: ${money(payload.compenso_base)}</div>
-    ${payload.warnings.length ? `<div class="text-warning mt-1">${escapeHtml(payload.warnings.join(' '))}</div>` : '<div class="text-success mt-1">Parametro nel range indicativo EUR 200-500.</div>'}
+    ${payload.warnings.length ? `<div class="text-warning mt-1">${escapeHtml(payload.warnings.join(' '))}</div>` : '<div class="text-success mt-1">Parametro nel range indicativo € 200-500.</div>'}
   ` : 'Compenso a tempo: inserisci tariffa e ore/minuti stimati.';
   const preview = document.getElementById('wizardCompensoTempoPreview');
   if (preview) {

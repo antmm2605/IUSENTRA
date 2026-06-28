@@ -784,7 +784,7 @@
       <div class="alert alert-warning border-0 d-flex gap-2 py-2 mb-3">
         <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
         <span>Importo totale da incassare:
-          <strong>€ {{ "%.2f"|format(totale_non_pagate.val) }}</strong></span>
+          <strong>{{ totale_non_pagate.val|euro }}</strong></span>
       </div>
       {% endif %}
       <div class="d-flex flex-column gap-2">
@@ -806,7 +806,7 @@
                     </span>
                   {% endif %}
                 </div>
-                <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
+                <div class="fw-bold text-primary">{{ p.totale|euro }}</div>
                 {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
                 <div class="d-flex flex-wrap gap-1 mt-2">
                   {% if p.stato.value == 'ACCETTATO' %}
@@ -904,7 +904,7 @@
                   {% endif %}
                 </div>
                 <div class="fw-semibold text-truncate">{{ p.oggetto }}</div>
-                <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
+                <div class="fw-bold text-primary">{{ p.totale|euro }}</div>
                 {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
               </div>
               <div class="flex-shrink-0">
@@ -962,7 +962,7 @@
                   <div class="text-muted small"><i class="bi bi-person-badge me-1"></i>{{ c.avvocato_referente }}</div>
                 {% endif %}
                 {% if c.compenso_pattuito %}
-                  <div class="fw-bold text-success">€ {{ "%.2f"|format(c.compenso_pattuito) }}</div>
+                  <div class="fw-bold text-success">{{ c.compenso_pattuito|euro }}</div>
                 {% endif %}
                 {% if c.note %}<div class="text-muted small mt-1">{{ c.note }}</div>{% endif %}
                 {% if not c.id_fascicolo %}

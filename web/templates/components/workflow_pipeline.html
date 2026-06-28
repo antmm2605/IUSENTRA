@@ -42,7 +42,7 @@
       {% if pipeline.saldo_aperto is defined %}
       <div class="workflow-kpi">
         <span class="workflow-kpi__label">Saldo aperto</span>
-        <strong>&euro; {{ '%.2f'|format(pipeline.saldo_aperto) }}</strong>
+        <strong>{{ pipeline.saldo_aperto|euro }}</strong>
       </div>
       {% endif %}
       {% if pipeline.totale_voci_timesheet is defined %}

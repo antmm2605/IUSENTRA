@@ -88,7 +88,7 @@
               <select name="id_preventivo" id="selectPreventivo" class="form-select">
                 <option value="">- Nessun preventivo -</option>
                 {% for prev in preventivi_cliente %}
-                <option value="{{ prev.id }}">{{ prev.numero }} - {{ prev.oggetto }} (EUR {{ "%.2f"|format(prev.totale) }})</option>
+                <option value="{{ prev.id }}">{{ prev.numero }} - {{ prev.oggetto }} ({{ prev.totale|euro }})</option>
                 {% endfor %}
               </select>
             </div>
@@ -98,7 +98,7 @@
               <div class="form-control bg-light">
                 <span class="font-monospace">{{ preventivo_pre.numero }}</span> -
                 {{ preventivo_pre.oggetto }}
-                <span class="text-muted small">(EUR {{ "%.2f"|format(preventivo_pre.totale) }})</span>
+                <span class="text-muted small">({{ preventivo_pre.totale|euro }})</span>
               </div>
             </div>
             {% endif %}
@@ -177,21 +177,21 @@
               </select>
             </div>
             <div class="col-md-4" id="rowCompenso">
-              <label class="form-label">Compenso pattuito (EUR)</label>
+              <label class="form-label">Compenso pattuito (€)</label>
               <input type="number" name="compenso_pattuito" id="inpCompenso" class="form-control text-end"
                      step="0.01" min="0" placeholder="0.00"
                      value="{{ preventivo_pre.totale if preventivo_pre and preventivo_pre.totale else '' }}">
               <div class="form-text">Lascia vuoto per usare i parametri professionali.</div>
             </div>
             <div class="col-md-4" id="rowTariffaOraria" style="display:none">
-              <label class="form-label">Tariffa oraria (EUR/ora)</label>
+              <label class="form-label">Tariffa oraria (€/ora)</label>
               <input type="number" name="tariffa_oraria" class="form-control"
                      value="{{ preventivo_pre.tariffa_oraria if preventivo_pre and preventivo_pre.tariffa_oraria else '' }}"
                      step="0.01" min="0" placeholder="0.00">
             </div>
             <div class="col-12" id="cardCompensoTempo" style="display:none">
               <div class="alert alert-info py-2 small mb-2">
-                Le parti pattuiscono espressamente il compenso a tempo ex art. 22-bis D.M. 55/2014. Il parametro indicativo e EUR 200-500 per ora o frazione superiore a 30 minuti.
+                Le parti pattuiscono espressamente il compenso a tempo ex art. 22-bis D.M. 55/2014. Il parametro indicativo e € 200-500 per ora o frazione superiore a 30 minuti.
               </div>
               <div class="row g-2">
                 <div class="col-md-3">
@@ -516,7 +516,7 @@ function caricaPreventivi(idCliente) {
       data.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.numero} - ${p.oggetto} (EUR ${p.totale.toFixed(2)})`;
+        opt.textContent = `${p.numero} - ${p.oggetto} (€ ${Number(p.totale || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
         sel.appendChild(opt);
       });
     });

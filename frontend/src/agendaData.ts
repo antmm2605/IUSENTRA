@@ -66,9 +66,9 @@ export type AgendaPageData = {
   summary: AgendaSummary
 }
 
-const IT_DATE = new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const IT_WEEKDAY = new Intl.DateTimeFormat('it-IT', { weekday: 'short' })
-const IT_MONTH = new Intl.DateTimeFormat('it-IT', { month: 'short' })
+const IT_DATE = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric' })
+const IT_WEEKDAY = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', weekday: 'short' })
+const IT_MONTH = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', month: 'short' })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))

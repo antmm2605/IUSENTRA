@@ -156,7 +156,7 @@
                 <span class="badge text-bg-light border ms-1">senza conferimento</span>
                 {% endif %}
               </td>
-              <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+              <td data-label="Totale" class="text-end fw-semibold">{{ p.totale|euro }}</td>
               <td data-label="Stato">
                 {% set badge = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'} %}
                 <span class="badge rounded-pill bg-{{ badge.get(p.stato.value, 'secondary') }}">{{ p.stato.value|title }}</span>
@@ -240,7 +240,7 @@
               <td data-label="Oggetto" class="text-truncate" style="max-width:180px" title="{{ c.oggetto }}">{{ c.oggetto }}</td>
               <td data-label="Avvocato" class="small d-none d-lg-table-cell">{{ c.avvocato_referente }}</td>
               <td data-label="Compenso" class="text-end fw-semibold">
-                {% if c.compenso_pattuito > 0 %}€ {{ "%.2f"|format(c.compenso_pattuito) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                {% if c.compenso_pattuito > 0 %}{{ c.compenso_pattuito|euro }}{% else %}<span class="text-muted">—</span>{% endif %}
               </td>
               <td data-label="Stato">
                 {% set badge = {'ATTIVO':'success','DEFINITO':'secondary','REVOCATO':'danger'} %}

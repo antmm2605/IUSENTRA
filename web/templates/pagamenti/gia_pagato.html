@@ -18,7 +18,7 @@
     <div class="ok-header">
       <div class="icon-circle"><i class="bi bi-check-circle"></i></div>
       <h2 class="h4 mb-1">Già pagato</h2>
-      {% if lp %}<div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>{% endif %}
+      {% if lp %}<div style="opacity:.9;">{{ lp.importo|euro }}</div>{% endif %}
     </div>
     <div class="card-body p-4 text-center">
       <p class="text-muted mb-2">

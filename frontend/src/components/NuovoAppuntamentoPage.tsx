@@ -380,6 +380,7 @@ function formatDateLabel(date: string): string {
   if (!date) return 'Data da impostare'
   try {
     return new Date(`${date}T12:00:00`).toLocaleDateString('it-IT', {
+      timeZone: 'Europe/Rome',
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -428,7 +429,7 @@ function formatAgendaItemRange(item: AgendaApiItem): string {
   try {
     const start = new Date(asText(item.data_ora))
     const end = new Date(start.getTime() + Math.max(Number(item.durata_minuti ?? 60), 1) * 60000)
-    return `${start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
+    return `${start.toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })}`
   } catch {
     return asText(item.data_ora, 'Orario non disponibile')
   }

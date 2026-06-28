@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+
 from datetime import date
 from typing import Any, Callable
 
+from pct.formatting import format_euro_it
 from pct.economic_pipeline import build_timesheet_billing_summary
 from pct.timesheet import StatoTimesheet
 from web.services.ui_localization import format_date, parse_temporal_value
@@ -35,9 +37,7 @@ def _enum_value(value: Any) -> str:
 
 
 def _money(value: Any) -> str:
-    amount = float(value or 0.0)
-    text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {text}"
+    return format_euro_it(value)
 
 
 def _hours_label(minutes: Any) -> str:

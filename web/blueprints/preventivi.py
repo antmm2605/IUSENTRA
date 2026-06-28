@@ -6,6 +6,8 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 """
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import io
 import json
 from html import escape
@@ -2154,9 +2156,10 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+        from pct.pdf_style import pdf_table_header_style
     except ImportError:
         buf = io.BytesIO()
-        buf.write(f"Preventivo {p.numero}\nTotale: € {p.totale:.2f}".encode())
+        buf.write(f"Preventivo {p.numero}\nTotale: {format_euro_it(p.totale)}".encode())
         buf.seek(0)
         return buf
 
@@ -2236,10 +2239,10 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     if p.tipo_procedimento:
         params.append(("Tipo procedimento", p.tipo_procedimento))
     if p.valore_controversia:
-        params.append(("Valore controversia", f"€ {p.valore_controversia:,.2f}"))
+        params.append(("Valore controversia", format_euro_it(p.valore_controversia)))
     if p.tariffa_oraria:
-        ore_txt = f" × {p.ore_stimate:.1f} ore = € {p.tariffa_oraria * p.ore_stimate:,.2f}" if p.ore_stimate else ""
-        params.append(("Tariffa oraria", f"€ {p.tariffa_oraria:,.2f}/ora{ore_txt}"))
+        ore_txt = f" × {p.ore_stimate:.1f} ore = {format_euro_it(p.tariffa_oraria * p.ore_stimate)}" if p.ore_stimate else ""
+        params.append(("Tariffa oraria", f"{format_euro_it(p.tariffa_oraria)}/ora{ore_txt}"))
     if params:
         params_data = [[Paragraph(f"<b>{k}</b>", style_small),
                         Paragraph(v, style_small)] for k, v in params]
@@ -2273,13 +2276,12 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
         voci_data.append([
             Paragraph(v.descrizione, style_body),
             Paragraph(v.tipo.value, ParagraphStyle("tv", parent=style_small, alignment=TA_RIGHT)),
-            Paragraph(f"€ {v.importo:,.2f}", ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
+            Paragraph(format_euro_it(v.importo), ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
         ])
 
     voci_tbl = Table(voci_data, colWidths=["60%", "20%", "20%"])
     voci_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+        *pdf_table_header_style(),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, LIGHT_BG]),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e7eb")),
         ("TOPPADDING",    (0, 0), (-1, -1), 4),
@@ -2290,17 +2292,17 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     story.append(Spacer(1, 4*mm))
 
     # Riepilogo
-    rows = [("Imponibile", f"€ {p.imponibile:,.2f}")]
+    rows = [("Imponibile", format_euro_it(p.imponibile))]
     if p.applica_cassa:
-        rows.append(("Contributo Previdenziale CPA (4%)", f"€ {p.cassa_forense:,.2f}"))
+        rows.append(("Contributo Previdenziale CPA (4%)", format_euro_it(p.cassa_forense)))
     if p.applica_iva:
-        rows.append((f"IVA 22% su € {p.base_iva:,.2f}", f"€ {p.iva:,.2f}"))
+        rows.append((f"IVA 22% su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)))
     if p.anticipazioni_art15:
         rows.append((
             "Anticipazioni in nome e per conto (Art. 15 DPR 633/72)",
-            f"€ {p.anticipazioni_art15:,.2f}"
+            format_euro_it(p.anticipazioni_art15)
         ))
-    rows.append(("TOTALE", f"€ {p.totale:,.2f}"))
+    rows.append(("TOTALE", format_euro_it(p.totale)))
 
     rie_data = [
         [Paragraph(label, ParagraphStyle(
@@ -2551,17 +2553,17 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
             story.append(Paragraph(
                 "Le parti pattuiscono espressamente che il compenso professionale sia determinato a tempo, "
                 "ai sensi dell'art. 22-bis D.M. 55/2014, sulla base della tariffa oraria di "
-                f"<b>EUR {c.tariffa_oraria:,.2f}/ora</b>, oltre accessori di legge. "
+                f"<b>{format_euro_it(c.tariffa_oraria)}/ora</b>, oltre accessori di legge. "
                 f"Il tempo e computato secondo il seguente criterio: <b>{escape(criterio)}</b>. "
                 f"Sono incluse le seguenti attivita: {incluse}. Sono escluse: {escluse}. "
                 f"Oltre la soglia di {soglia} o oltre il massimale di {massimale} sara richiesta preventiva "
                 "approvazione del cliente, salvo urgenze motivate. "
-                f"L'importo base indicativo dell'incarico e <b>EUR {c.compenso_pattuito:,.2f}</b>.",
+                f"L'importo base indicativo dell'incarico e <b>{format_euro_it(c.compenso_pattuito)}</b>.",
                 style_just))
         else:
             story.append(Paragraph(
                 f"Il compenso professionale concordato per la prestazione e pari a "
-                f"<b>EUR {c.compenso_pattuito:,.2f}</b> (oltre Cassa Forense 4% ed IVA 22%), "
+                f"<b>{format_euro_it(c.compenso_pattuito)}</b> (oltre Cassa Forense 4% ed IVA 22%), "
                 f"salvo adeguamento in ragione della complessita e dello sviluppo della pratica.",
                 style_just))
     else:

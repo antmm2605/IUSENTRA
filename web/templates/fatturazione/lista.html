@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block pct_modulo %}fatturazione{% endblock %}
 {% block title %}Fatturazione — IUSENTRA{% endblock %}
 {% block page_title %}Fatturazione{% endblock %}
@@ -129,7 +129,7 @@
             </td>
             <td data-label="Cliente">{{ c.nome_completo if c else '—' }}</td>
             <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
-            <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+            <td data-label="Totale" class="text-end fw-semibold">{{ p.totale|euro }}</td>
             <td data-label="Stato" class="text-center">
               <span class="badge rounded-pill bg-{{ fcolor.get(p.stato.value, 'secondary') }}"
                     style="font-size:.68rem;">

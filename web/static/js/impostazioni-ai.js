@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   function escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -19,6 +19,7 @@
     }
 
     return new Intl.DateTimeFormat('it-IT', {
+      timeZone: 'Europe/Rome',
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(date);

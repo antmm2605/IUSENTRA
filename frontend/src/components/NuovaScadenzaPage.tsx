@@ -272,6 +272,7 @@ function formatDateLabel(value: string | undefined | null): string {
   if (!raw) return '—'
   try {
     return new Date(`${raw}T12:00:00`).toLocaleDateString('it-IT', {
+      timeZone: 'Europe/Rome',
       weekday: 'short',
       day: '2-digit',
       month: 'short',

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+
 from collections.abc import Callable, Mapping
 from datetime import date, datetime
 from typing import Any
 
 from flask import Flask, g, session
 
+from pct.formatting import format_date_it, format_datetime_it, format_euro_it, format_signed_euro_it, format_time_it
 from web.services.ui_localization import (
     MONTHS_IT,
     MONTHS_SHORT_IT,
@@ -35,6 +37,26 @@ def register_template_runtime(
     connected_operators: Callable[[], int],
 ) -> None:
     """Register shared Jinja filters and context globals."""
+
+    @app.template_filter("euro")
+    def fmt_euro(val: Any) -> str:
+        return format_euro_it(val)
+
+    @app.template_filter("euro_signed")
+    def fmt_euro_signed(val: Any) -> str:
+        return format_signed_euro_it(val)
+
+    @app.template_filter("data_it")
+    def data_it(val: Any) -> str:
+        return format_date_it(val)
+
+    @app.template_filter("dataora_it")
+    def dataora_it(val: Any) -> str:
+        return format_datetime_it(val)
+
+    @app.template_filter("ora_it")
+    def ora_it(val: Any) -> str:
+        return format_time_it(val)
 
     @app.template_filter("fmt_data")
     def fmt_data(val: Any) -> str:

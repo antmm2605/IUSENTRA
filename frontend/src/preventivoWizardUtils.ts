@@ -1,4 +1,5 @@
 import type { WizardDraftRow, WizardPractice } from './preventivoWizardData'
+import { formatEuroIt, parseItalianAmount } from './formatting'
 
 export type WizardValidationInput = {
   customerId: string
@@ -18,15 +19,11 @@ export type WizardValidationInput = {
 export type WizardValidationErrors = Record<string, string>
 
 export function formatEuro(value: number | null | undefined, fallback = '€ 0,00'): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
-  const amount = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-  return `€ ${amount}`
+  return typeof value === 'number' && Number.isFinite(value) ? formatEuroIt(value, fallback) : fallback
 }
 
 export function parseEuroInput(value: string): number {
-  const normalized = String(value || '').trim().replace(/\./g, '').replace(',', '.')
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? parsed : 0
+  return parseItalianAmount(value, 0)
 }
 
 export function dateToItalian(value: string): string {

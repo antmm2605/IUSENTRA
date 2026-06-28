@@ -220,13 +220,13 @@
           {% if p.valore_controversia > 0 %}
           <div class="col-md-4">
             <span class="text-muted small">Valore controversia:</span>
-            <span class="small fw-semibold ms-1">EUR {{ "%.2f"|format(p.valore_controversia) }}</span>
+            <span class="small fw-semibold ms-1">{{ p.valore_controversia|euro }}</span>
           </div>
           {% endif %}
           {% if p.tariffa_oraria > 0 %}
           <div class="col-md-4">
             <span class="text-muted small">Tariffa oraria:</span>
-            <span class="small fw-semibold ms-1">EUR {{ "%.2f"|format(p.tariffa_oraria) }}/ora</span>
+            <span class="small fw-semibold ms-1">{{ p.tariffa_oraria|euro }}/ora</span>
             {% if p.ore_stimate > 0 %}
             - <span class="small text-muted">{{ p.ore_stimate }} ore stimate</span>
             {% endif %}
@@ -240,7 +240,7 @@
                 <div class="col-md-4"><span class="text-muted">Fonte:</span> Art. 22-bis D.M. 55/2014, introdotto dal D.M. 147/2022</div>
                 <div class="col-md-4"><span class="text-muted">Criterio:</span> {{ p.criterio_arrotondamento_orario or compenso_tempo_summary.criterio_arrotondamento or 'ora_frazione_oltre_30' }}</div>
                 <div class="col-md-4"><span class="text-muted">Ore fatturabili:</span> {{ p.ore_fatturabili_calcolate or compenso_tempo_summary.ore_fatturabili or '-' }}</div>
-                <div class="col-md-4"><span class="text-muted">Compenso base:</span> EUR {{ "%.2f"|format(p.compenso_orario_base or compenso_tempo_summary.compenso_base or 0) }}</div>
+                <div class="col-md-4"><span class="text-muted">Compenso base:</span> {{ p.compenso_orario_base or compenso_tempo_summary.compenso_base or 0|euro }}</div>
                 <div class="col-md-4"><span class="text-muted">Massimale ore:</span> {{ p.massimale_ore or '-' }}</div>
                 <div class="col-md-4"><span class="text-muted">Soglia preapprovazione:</span> {{ p.soglia_preapprovazione_ore or '-' }}</div>
                 {% if p.attivita_orarie_incluse %}<div class="col-md-6"><span class="text-muted">Attivita incluse:</span> {{ p.attivita_orarie_incluse }}</div>{% endif %}
@@ -459,10 +459,10 @@
         <div class="alert alert-info border mt-3 mb-2 py-2 small">
           <div class="fw-semibold mb-1">Log compenso a tempo</div>
           <div class="row g-2">
-            <div class="col-md-3"><span class="text-muted">Tariffa:</span> EUR {{ "%.2f"|format(calc_summary.compenso_a_tempo.tariffa_oraria or 0) }}/ora</div>
+            <div class="col-md-3"><span class="text-muted">Tariffa:</span> {{ calc_summary.compenso_a_tempo.tariffa_oraria or 0|euro }}/ora</div>
             <div class="col-md-3"><span class="text-muted">Ore fatturabili:</span> {{ calc_summary.compenso_a_tempo.ore_fatturabili or '-' }}</div>
             <div class="col-md-3"><span class="text-muted">Criterio:</span> {{ calc_summary.compenso_a_tempo.criterio_arrotondamento or '-' }}</div>
-            <div class="col-md-3"><span class="text-muted">Base:</span> EUR {{ "%.2f"|format(calc_summary.compenso_a_tempo.compenso_base or 0) }}</div>
+            <div class="col-md-3"><span class="text-muted">Base:</span> {{ calc_summary.compenso_a_tempo.compenso_base or 0|euro }}</div>
           </div>
           {% if calc_summary.compenso_a_tempo.warnings %}
           <div class="text-warning mt-1">{{ calc_summary.compenso_a_tempo.warnings|join(' ') }}</div>
@@ -512,36 +512,36 @@
             <tr>
               <td>{{ v.descrizione }}</td>
               <td><span class="badge bg-light text-dark border">{{ v.tipo.value }}</span></td>
-              <td class="text-end">EUR {{ "%.2f"|format(v.importo) }}</td>
+              <td class="text-end">{{ v.importo|euro }}</td>
             </tr>
             {% endfor %}
           </tbody>
           <tfoot class="table-light">
             <tr>
               <td colspan="2" class="text-end">Imponibile</td>
-              <td class="text-end fw-semibold">EUR {{ "%.2f"|format(p.imponibile) }}</td>
+              <td class="text-end fw-semibold">{{ p.imponibile|euro }}</td>
             </tr>
             {% if p.applica_cassa %}
             <tr>
               <td colspan="2" class="text-end small text-muted">CPA 4%</td>
-              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.cassa_forense) }}</td>
+              <td class="text-end small text-muted">{{ p.cassa_forense|euro }}</td>
             </tr>
             {% endif %}
             {% if p.applica_iva %}
             <tr>
               <td colspan="2" class="text-end small text-muted">IVA 22%</td>
-              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.iva) }}</td>
+              <td class="text-end small text-muted">{{ p.iva|euro }}</td>
             </tr>
             {% endif %}
             {% if p.anticipazioni_art15 %}
             <tr>
               <td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td>
-              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.anticipazioni_art15) }}</td>
+              <td class="text-end small text-muted">{{ p.anticipazioni_art15|euro }}</td>
             </tr>
             {% endif %}
             <tr class="table-primary">
               <td colspan="2" class="text-end fw-bold">Totale</td>
-              <td class="text-end fw-bold fs-5">EUR {{ "%.2f"|format(p.totale) }}</td>
+              <td class="text-end fw-bold fs-5">{{ p.totale|euro }}</td>
             </tr>
           </tfoot>
         </table>

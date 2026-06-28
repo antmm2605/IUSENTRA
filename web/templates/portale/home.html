@@ -205,7 +205,7 @@
                 {{ item.data }}{% if item.fascicolo_label %} - {{ item.fascicolo_label }}{% endif %}
               </div>
             </div>
-            <div class="portale-home__economy-total text-nowrap">EUR {{ "%.2f"|format(item.totale) }}</div>
+            <div class="portale-home__economy-total text-nowrap">{{ item.totale|euro }}</div>
           </div>
           {% endfor %}
         </div>

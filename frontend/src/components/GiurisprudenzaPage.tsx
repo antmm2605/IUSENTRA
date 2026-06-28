@@ -120,7 +120,7 @@ function formatDate(value: string) {
   const isoDay = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
   const parsed = isoDay ? new Date(`${isoDay[1]}-${isoDay[2]}-${isoDay[3]}T12:00:00`) : new Date(raw)
   if (Number.isNaN(parsed.getTime())) return raw
-  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed)
+  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed)
 }
 
 function recordSearchText(record: GiurisprudenzaRecord) {

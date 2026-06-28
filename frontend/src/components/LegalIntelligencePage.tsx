@@ -82,7 +82,7 @@ function formatDate(value: string) {
   if (!value) return ''
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return parsed.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 function isOfficial(record: LegalIntelligenceRecord) {
   return [record.sourceKind, record.approvalLabel, record.evidenceType].join(' ').toLocaleLowerCase('it-IT').includes('ufficiale')

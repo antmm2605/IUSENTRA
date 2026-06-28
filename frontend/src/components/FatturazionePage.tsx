@@ -5,30 +5,48 @@ import {
   CheckCircle2,
   Download,
   ExternalLink,
+  FileSignature,
   FileText,
   Hash,
   Mail,
+  Maximize2,
+  Minimize2,
+  PenLine,
   Plus,
   ReceiptText,
+  RefreshCw,
   Save,
   Search,
+  Send,
   Sparkles,
   Trash2,
+  X,
   XCircle,
 } from 'lucide-react'
 import {
   cancelFatturazioneDocument,
+  confirmFatturazioneCommercialistaPec,
+  confirmFatturazioneSdiPecSent,
+  confirmFatturazioneXmlSigned,
   createFattura,
   emptyFatturazionePage,
   getFatturazioneDetail,
   getFatturazionePage,
   getNuovaFatturaPage,
   markFatturazionePaid,
+  prepareFatturazioneCommercialista,
+  prepareFatturazioneSdiPec,
+  prepareFatturazioneXmlSignature,
+  recordFatturazioneSdiOutcome,
   saveFatturazioneNumbering,
+  sendFatturazioneCommercialistaEmail,
+  updateFatturazioneDetail,
   updateFatturazioneStatus,
   type CreateFatturaPayload,
   type CreateFatturaResult,
+  type FatturazioneDraft,
   type FatturazioneDetail,
+  type FatturazioneDetailUpdatePayload,
   type FatturazioneFiscalDefaults,
   type FatturazioneFormDefinition,
   type FatturazioneMatter,
@@ -39,13 +57,16 @@ import {
   type FatturazioneMutationResult,
   type FatturazioneNumberingResult,
   type FatturazioneVoiceDefault,
+  type FatturazioneWorkflowResult,
 } from '../fatturazioneData'
+import { getSettings, saveSettingsSection } from '../features/impostazioni/api'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { formatEuroInput, formatEuroIt, parseItalianAmount } from '../formatting'
 import './FatturazionePage.css'
 
 type VoiceRow = FatturazioneVoiceDefault & {
@@ -69,6 +90,32 @@ type FormState = {
 type SaveStatus = 'idle' | 'saving' | 'success' | 'validation' | 'permission' | 'server'
 type PaymentFilter = 'all' | 'bonifico' | 'senza_bonifico'
 type IssueFilter = 'all' | 'emessa' | 'da_emettere'
+type DetailTab = 'dettaglio' | 'pdf' | 'xml' | 'commercialista'
+type ActionNotice = { tone: 'success' | 'warning' | 'danger' | 'info'; text: string } | null
+type EditableVoice = {
+  rowId: string
+  descrizione: string
+  quantita: string
+  prezzo_unitario: string
+  tipo: string
+}
+
+type QuickSdiPecSettings = {
+  pec_notifiche: string
+  pec_indirizzo: string
+  pec_username: string
+  pec_smtp_host: string
+  pec_smtp_port: string
+  pec_imap_host: string
+  pec_imap_port: string
+  pec_use_ssl: boolean
+}
+
+type QuickCommercialistaSettings = {
+  nome_commercialista: string
+  email_commercialista: string
+  pec_commercialista: string
+}
 
 const defaultVoice: VoiceRow = {
   rowId: 'voce-1',
@@ -87,6 +134,22 @@ const defaultFiscalOptions: FatturazioneFiscalDefaults = {
 
 const noVatRegimes = new Set(['RF19', 'RF02'])
 const allStatesFilter = 'all'
+const defaultQuickSdiPecSettings: QuickSdiPecSettings = {
+  pec_notifiche: '',
+  pec_indirizzo: '',
+  pec_username: '',
+  pec_smtp_host: 'smtp.pec.aruba.it',
+  pec_smtp_port: '465',
+  pec_imap_host: 'imaps.pec.aruba.it',
+  pec_imap_port: '993',
+  pec_use_ssl: true,
+}
+
+const defaultQuickCommercialistaSettings: QuickCommercialistaSettings = {
+  nome_commercialista: '',
+  email_commercialista: '',
+  pec_commercialista: '',
+}
 
 const fallbackFormState: FormState = {
   id_cliente: '',
@@ -155,7 +218,7 @@ const fallbackFormState: FormState = {
       regime_fiscale_label: 'Regime ordinario',
       esigibilita_iva: 'I',
       esigibilita_iva_label: 'Immediata',
-      cassa_previdenziale: 'CAF',
+      cassa_previdenziale: 'TC01',
       cassa_previdenziale_label: 'Avvocati',
       percentuale_spese_generali: '15',
       fascicolo_label: '',
@@ -183,8 +246,8 @@ function displayValue(value: string | number): string {
 
 function hasMetricValue(value: string | number): boolean {
   if (typeof value === 'number') return value !== 0
-  const normalized = value.replace(/\s+/g, '').replace('€', 'EUR').toUpperCase()
-  return !['0', '0,00', '0.00', 'EUR0', 'EUR0,00', 'EUR0.00'].includes(normalized)
+  const normalized = value.replace(/\s+/g, '').toUpperCase()
+  return !['0', '0,00', '0.00', '€0', '€0,00', '€0.00', 'EUR0', 'EUR0,00', 'EUR0.00'].includes(normalized)
 }
 
 function requestedFatturazioneDetailId(): string {
@@ -192,12 +255,34 @@ function requestedFatturazioneDetailId(): string {
   return params.get('id_documento') || params.get('id_parcella') || ''
 }
 
+function settingsPlainRecord(raw: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!raw) return {}
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => {
+      if (value && typeof value === 'object' && !Array.isArray(value) && 'present' in value) return [key, '']
+      return [key, value]
+    }),
+  )
+}
+
+function settingsTextValue(raw: unknown, fallback = ''): string {
+  if (raw === undefined || raw === null) return fallback
+  if (typeof raw === 'boolean') return raw ? '1' : ''
+  return String(raw).trim() || fallback
+}
+
+function settingsBoolValue(raw: unknown, fallback = false): boolean {
+  if (typeof raw === 'boolean') return raw
+  if (raw === undefined || raw === null || raw === '') return fallback
+  return ['1', 'true', 'si', 'sì', 'yes', 'on'].includes(String(raw).trim().toLowerCase())
+}
+
 function rowFromDefault(item: FatturazioneVoiceDefault, index: number): VoiceRow {
   return {
     rowId: `voce-${index + 1}`,
     descrizione: item.descrizione,
     quantita: item.quantita || '1',
-    prezzo_unitario: item.prezzo_unitario,
+    prezzo_unitario: currencyInputValue(item.prezzo_unitario),
     tipo: item.tipo || 'ONORARIO',
   }
 }
@@ -237,9 +322,8 @@ function stateFromForm(form: FatturazioneFormDefinition | undefined): FormState 
   }
 }
 
-function numericInputValue(value: string, fallback: number): number {
-  const parsed = Number.parseFloat(value.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : fallback
+function numericInputValue(value: string | number, fallback: number): number {
+  return parseItalianAmount(value, fallback)
 }
 
 function displayErrors(errors: Record<string, string>): string[] {
@@ -270,7 +354,15 @@ function buildPayload(formState: FormState): CreateFatturaPayload {
 }
 
 function currency(value: number): string {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value)
+  return formatEuroIt(value)
+}
+
+function currencyInputValue(value: string | number): string {
+  return formatEuroInput(value)
+}
+
+function machineAmountValue(value: string | number): string {
+  return numericInputValue(value, 0).toFixed(2)
 }
 
 function lineTotal(row: VoiceRow): number {
@@ -576,6 +668,7 @@ function InvoiceRow({
   data,
   savingId,
   onDetail,
+  onOpenTab,
   onStatus,
   onCancel,
   onPaid,
@@ -584,6 +677,7 @@ function InvoiceRow({
   data: FatturazionePageData
   savingId: string
   onDetail: (record: FatturazioneRecord) => void
+  onOpenTab: (record: FatturazioneRecord, tab: DetailTab) => void
   onStatus: (record: FatturazioneRecord, stato: string) => void
   onCancel: (record: FatturazioneRecord) => void
   onPaid: (record: FatturazioneRecord) => void
@@ -646,16 +740,16 @@ function InvoiceRow({
           </Button>
         ) : null}
         {record.pdfHref ? (
-          <ButtonLink href={record.pdfHref} tone="neutral">
+          <Button type="button" tone="neutral" onClick={() => onOpenTab(record, 'pdf')}>
             <FileText size={15} />
             PDF
-          </ButtonLink>
+          </Button>
         ) : null}
         {record.xmlHref ? (
-          <ButtonLink href={record.xmlHref} tone="neutral">
+          <Button type="button" tone="neutral" onClick={() => onOpenTab(record, 'xml')}>
             <FileText size={15} />
             XML
-          </ButtonLink>
+          </Button>
         ) : null}
       </div>
     </article>
@@ -870,11 +964,12 @@ function VoiceEditor({
           <label className="iu-fatt-field">
             <span>Importo unitario</span>
             <input
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               value={row.prezzo_unitario}
               onChange={(event) => updateRow(row.rowId, { prezzo_unitario: event.currentTarget.value })}
+              onBlur={(event) => updateRow(row.rowId, { prezzo_unitario: currencyInputValue(event.currentTarget.value) })}
+              placeholder="€ 0,00"
             />
           </label>
           <label className="iu-fatt-field">
@@ -1415,7 +1510,7 @@ function NewInvoiceForm({
             <label className="iu-fatt-field">
               <span>Cassa previdenziale</span>
               <select value={formState.dati_personalizzati.document.cassa_previdenziale} onChange={(event) => updatePersonalized('document', { cassa_previdenziale: event.currentTarget.value })}>
-                <option value="CAF">Avvocati</option>
+                <option value="TC01">Avvocati</option>
                 <option value="ALTRO">Altra cassa</option>
               </select>
             </label>
@@ -1594,31 +1689,845 @@ function NewInvoiceForm({
   )
 }
 
-function ArchiveDetailPanel({ detail, loading }: { detail: FatturazioneDetail | null; loading: boolean }) {
-  if (loading) return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi operativa." />
-  if (!detail) return null
+function localSignerBase(endpoint: string) {
+  return endpoint || 'http://127.0.0.1:27272'
+}
+
+async function postLocalJson(endpoint: string, payload: Record<string, unknown>, timeoutMs = 45000): Promise<Record<string, unknown> | null> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(localSignerBase(endpoint), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return await response.json() as Record<string, unknown>
+  } catch {
+    return null
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+function workflowText(value: unknown) {
+  if (value === undefined || value === null) return ''
+  if (typeof value === 'object') return ''
+  return String(value).trim()
+}
+
+function editableVoices(detail: FatturazioneDetail | null): EditableVoice[] {
+  const rows = detail?.voci || []
+  if (!rows.length) {
+    return [{ rowId: `voce-${Date.now()}`, descrizione: '', quantita: '1', prezzo_unitario: '', tipo: 'ONORARIO' }]
+  }
+  return rows.map((voice, index) => ({
+    rowId: `${detail?.id || 'voce'}-${index}-${voice.descrizione}`,
+    descrizione: voice.descrizione,
+    quantita: voice.quantita || '1',
+    prezzo_unitario: currencyInputValue(voice.prezzoUnitario),
+    tipo: voice.tipo || 'ONORARIO',
+  }))
+}
+
+function DraftEditor({
+  draft,
+  onChange,
+}: {
+  draft: FatturazioneDraft
+  onChange: (draft: FatturazioneDraft) => void
+}) {
   return (
-    <Panel title={`Dettaglio ${detail.number || detail.id}`} subtitle={detail.customerName}>
-      <div className="iu-fatt-detail">
-        <span>Stato: {detail.stateLabel}</span>
-        <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
-        {detail.caseTitle ? <span>Fascicolo: {detail.caseTitle}</span> : null}
-        {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
+    <div className="iu-fatt-draft">
+      <label>
+        <span>Destinatario</span>
+        <input value={draft.to} onChange={(event) => onChange({ ...draft, to: event.currentTarget.value })} />
+      </label>
+      <label>
+        <span>Oggetto</span>
+        <input value={draft.subject} onChange={(event) => onChange({ ...draft, subject: event.currentTarget.value })} />
+      </label>
+      <label className="iu-fatt-draft__body">
+        <span>Corpo email</span>
+        <textarea value={draft.body} onChange={(event) => onChange({ ...draft, body: event.currentTarget.value })} rows={7} />
+      </label>
+      <div className="iu-fatt-draft__attachments">
+        <strong>Allegati</strong>
+        {draft.attachments.length ? draft.attachments.map((attachment) => (
+          <span key={attachment.filename}>{attachment.filename}</span>
+        )) : <span>Nessun allegato predisposto.</span>}
       </div>
-      {detail.voci.length ? (
-        <div className="iu-fatt-detail-lines">
-          {detail.voci.map((voice, index) => (
-            <div className="iu-fatt-detail-line" key={`${voice.descrizione}-${index}`}>
-              <span>{voice.descrizione}</span>
-              <small>Quantita {voice.quantita || '1'}</small>
-              <strong>{voice.prezzoDisplay}</strong>
-            </div>
+    </div>
+  )
+}
+
+function ArchiveDetailPanel({
+  detail,
+  loading,
+  onClose,
+  onReloadPage,
+  onReloadDetail,
+  initialTab,
+}: {
+  detail: FatturazioneDetail | null
+  loading: boolean
+  onClose: () => void
+  onReloadPage: () => Promise<void>
+  onReloadDetail: () => Promise<void>
+  initialTab: DetailTab
+}) {
+  const [activeTab, setActiveTab] = useState<DetailTab>('dettaglio')
+  const [voices, setVoices] = useState<EditableVoice[]>([])
+  const [note, setNote] = useState('')
+  const [notice, setNotice] = useState<ActionNotice>(null)
+  const [busy, setBusy] = useState('')
+  const [pdfFullscreen, setPdfFullscreen] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pecPassword, setPecPassword] = useState('')
+  const [sdiDraft, setSdiDraft] = useState<FatturazioneDraft | null>(null)
+  const [sdiLocalPec, setSdiLocalPec] = useState<FatturazioneWorkflowResult['localPec']>(undefined)
+  const [outcomeState, setOutcomeState] = useState('CONSEGNATA')
+  const [outcomeId, setOutcomeId] = useState('')
+  const [outcomeReceipt, setOutcomeReceipt] = useState('')
+  const [outcomeNote, setOutcomeNote] = useState('')
+  const [commercialistaChannel, setCommercialistaChannel] = useState('ordinaria')
+  const [commercialistaAttachments, setCommercialistaAttachments] = useState('pdf')
+  const [commercialistaDraft, setCommercialistaDraft] = useState<FatturazioneDraft | null>(null)
+  const [commercialistaLocalPec, setCommercialistaLocalPec] = useState<FatturazioneWorkflowResult['localPec']>(undefined)
+  const [commercialistaPassword, setCommercialistaPassword] = useState('')
+  const [quickSdiPecOpen, setQuickSdiPecOpen] = useState(false)
+  const [quickSdiPecLoaded, setQuickSdiPecLoaded] = useState(false)
+  const [quickSdiPec, setQuickSdiPec] = useState<QuickSdiPecSettings>(defaultQuickSdiPecSettings)
+  const [quickCommercialistaOpen, setQuickCommercialistaOpen] = useState(false)
+  const [quickCommercialistaLoaded, setQuickCommercialistaLoaded] = useState(false)
+  const [quickCommercialista, setQuickCommercialista] = useState<QuickCommercialistaSettings>(defaultQuickCommercialistaSettings)
+
+  useEffect(() => {
+    setVoices(editableVoices(detail))
+    setNote(detail?.note || '')
+    setNotice(null)
+    setSdiDraft(null)
+    setSdiLocalPec(undefined)
+    setCommercialistaDraft(null)
+    setCommercialistaLocalPec(undefined)
+    setActiveTab(initialTab)
+    setQuickSdiPecOpen(false)
+    setQuickSdiPecLoaded(false)
+    setQuickSdiPec({ ...defaultQuickSdiPecSettings, pec_notifiche: detail?.workflow.sdiPecAddress || '' })
+    setQuickCommercialistaOpen(false)
+    setQuickCommercialistaLoaded(false)
+    setQuickCommercialista({
+      nome_commercialista: detail?.workflow.commercialistaName || '',
+      email_commercialista: detail?.workflow.commercialistaEmail || '',
+      pec_commercialista: detail?.workflow.commercialistaPec || '',
+    })
+  }, [detail?.id, initialTab])
+
+  if (loading) {
+    return (
+      <div className="iu-fatt-overlay" role="dialog" aria-modal="true" aria-label="Dettaglio fatturazione">
+        <section className="iu-fatt-modal">
+          <LoadingState title="Caricamento dettaglio" message="Apro la finestra operativa della fattura." />
+        </section>
+      </div>
+    )
+  }
+  if (!detail) return null
+  const currentDetail = detail
+
+  async function afterMutation(result: { ok: boolean; message: string }) {
+    setNotice({ tone: result.ok ? 'success' : 'warning', text: result.message })
+    if (result.ok) {
+      await onReloadPage()
+      await onReloadDetail()
+    }
+  }
+
+  async function saveDetail() {
+    setBusy('detail')
+    const payload: FatturazioneDetailUpdatePayload = {
+      note,
+      voci: voices.map((voice) => ({
+        descrizione: voice.descrizione,
+        quantita: voice.quantita,
+        prezzo_unitario: machineAmountValue(voice.prezzo_unitario),
+        tipo: voice.tipo,
+      })),
+    }
+    await afterMutation(await updateFatturazioneDetail(currentDetail.id, payload))
+    setBusy('')
+  }
+
+  function updateVoice(rowId: string, patch: Partial<EditableVoice>) {
+    setVoices((current) => current.map((voice) => voice.rowId === rowId ? { ...voice, ...patch } : voice))
+  }
+
+  function addVoice() {
+    setVoices((current) => [...current, { rowId: `voce-${Date.now()}`, descrizione: '', quantita: '1', prezzo_unitario: '', tipo: 'ONORARIO' }])
+  }
+
+  function removeVoice(rowId: string) {
+    setVoices((current) => current.length > 1 ? current.filter((voice) => voice.rowId !== rowId) : current)
+  }
+
+  async function signXml() {
+    if (!pin.trim()) {
+      setNotice({ tone: 'warning', text: "Inserisci il PIN del dispositivo di firma per firmare l'XML." })
+      return
+    }
+    setBusy('sign')
+    const prepared = await prepareFatturazioneXmlSignature(currentDetail.id)
+    if (!prepared.ok || !prepared.document) {
+      setNotice({ tone: 'warning', text: prepared.message })
+      setBusy('')
+      return
+    }
+    const endpoint = workflowText(prepared.localSigner?.endpoint) || 'http://127.0.0.1:27272/firma'
+    const signed = await postLocalJson(endpoint, {
+      documento: prepared.document.contentBase64,
+      pin,
+      visible_signature_mode: 'nessuna',
+      visible_signature_datetime_mode: 'nessuna',
+    })
+    if (!signed?.ok || !workflowText(signed.firmato_b64)) {
+      setNotice({ tone: 'warning', text: workflowText(signed?.errore || signed?.message) || 'Firma XML non completata dal Local Signer.' })
+      setBusy('')
+      return
+    }
+    const confirmed = await confirmFatturazioneXmlSigned(currentDetail.id, {
+      signed_base64: workflowText(signed.firmato_b64),
+      fileName: prepared.document.fileName,
+      intestatario: workflowText(signed.intestatario),
+      scadenza: workflowText(signed.scadenza),
+    })
+    await afterMutation(confirmed)
+    setBusy('')
+  }
+
+  async function prepareSdiPec() {
+    setBusy('sdi-prepare')
+    const result = await prepareFatturazioneSdiPec(currentDetail.id)
+    if (result.ok && result.draft) {
+      setSdiDraft(result.draft)
+      setSdiLocalPec(result.localPec)
+    }
+    setNotice({ tone: result.ok ? 'success' : 'warning', text: result.message })
+    setBusy('')
+    if (!result.ok && result.errors.pec_notifiche) {
+      void openQuickSdiPecSettings()
+    }
+  }
+
+  async function sendSdiPec() {
+    if (!sdiDraft || !sdiLocalPec) {
+      setNotice({ tone: 'warning', text: 'Prepara prima la PEC SdI.' })
+      return
+    }
+    if (!pecPassword.trim()) {
+      setNotice({ tone: 'warning', text: 'Inserisci la password PEC: viene inviata solo al Local Signer locale.' })
+      return
+    }
+    setBusy('sdi-send')
+    const localPayload = {
+      ...sdiLocalPec.payload,
+      password: pecPassword,
+      to: sdiDraft.to,
+      subject: sdiDraft.subject,
+      body: sdiDraft.body,
+    }
+    const sent = await postLocalJson(sdiLocalPec.endpoint, localPayload, 65000)
+    if (!sent?.ok || !workflowText(sent.message_id)) {
+      setNotice({ tone: 'warning', text: workflowText(sent?.messaggio || sent?.message) || 'Invio PEC SdI non completato dal Local Signer.' })
+      setBusy('')
+      return
+    }
+    const confirmed = await confirmFatturazioneSdiPecSent(currentDetail.id, {
+      message_id: workflowText(sent.message_id),
+      destinatario: sdiDraft.to,
+      oggetto: sdiDraft.subject,
+    })
+    await afterMutation(confirmed)
+    setBusy('')
+  }
+
+  async function saveOutcome() {
+    setBusy('outcome')
+    const result = await recordFatturazioneSdiOutcome(currentDetail.id, {
+      sdi_stato: outcomeState,
+      sdi_identificativo: outcomeId,
+      sdi_ricevuta: outcomeReceipt,
+      sdi_note: outcomeNote,
+    })
+    await afterMutation(result)
+    setBusy('')
+  }
+
+  async function openQuickSdiPecSettings() {
+    setQuickSdiPecOpen(true)
+    if (quickSdiPecLoaded) return
+    setBusy('quick-sdi-load')
+    const settings = await getSettings()
+    if (!settings.ok) {
+      setNotice({ tone: 'warning', text: settings.warnings[0]?.message || 'Impostazioni non disponibili.' })
+      setBusy('')
+      return
+    }
+    const sdi = settingsPlainRecord(settings.sdi as Record<string, unknown>)
+    const pec = settingsPlainRecord(settings.pec as Record<string, unknown>)
+    setQuickSdiPec({
+      pec_notifiche: settingsTextValue(sdi.pec_notifiche, currentDetail.workflow.sdiPecAddress),
+      pec_indirizzo: settingsTextValue(pec.indirizzo),
+      pec_username: settingsTextValue(pec.username),
+      pec_smtp_host: settingsTextValue(pec.smtp_host, defaultQuickSdiPecSettings.pec_smtp_host),
+      pec_smtp_port: settingsTextValue(pec.smtp_port, defaultQuickSdiPecSettings.pec_smtp_port),
+      pec_imap_host: settingsTextValue(pec.imap_host, defaultQuickSdiPecSettings.pec_imap_host),
+      pec_imap_port: settingsTextValue(pec.imap_port, defaultQuickSdiPecSettings.pec_imap_port),
+      pec_use_ssl: settingsBoolValue(pec.use_ssl, defaultQuickSdiPecSettings.pec_use_ssl),
+    })
+    setQuickSdiPecLoaded(true)
+    setBusy('')
+  }
+
+  function updateQuickSdiPec(patch: Partial<QuickSdiPecSettings>) {
+    setQuickSdiPec((current) => ({ ...current, ...patch }))
+  }
+
+  async function saveQuickSdiPecSettings() {
+    const sdiDestination = quickSdiPec.pec_notifiche.trim()
+    if (!sdiDestination) {
+      setNotice({ tone: 'warning', text: 'Inserisci la PEC per notifiche SdI prima di proseguire.' })
+      return
+    }
+    setBusy('quick-sdi-save')
+    const settings = await getSettings()
+    if (!settings.ok) {
+      setNotice({ tone: 'warning', text: settings.warnings[0]?.message || 'Impostazioni non disponibili.' })
+      setBusy('')
+      return
+    }
+    const sdi = settingsPlainRecord(settings.sdi as Record<string, unknown>)
+    const pec = settingsPlainRecord(settings.pec as Record<string, unknown>)
+    const sdiResult = await saveSettingsSection('sdi', {
+      ...sdi,
+      abilitato: true,
+      pec_notifiche: sdiDestination,
+    })
+    if (!sdiResult.ok) {
+      setNotice({ tone: 'warning', text: sdiResult.message || 'PEC SdI non salvata.' })
+      setBusy('')
+      return
+    }
+    const shouldSavePec = Boolean(
+      quickSdiPec.pec_indirizzo.trim()
+      || quickSdiPec.pec_username.trim()
+      || quickSdiPec.pec_smtp_host.trim()
+      || quickSdiPec.pec_imap_host.trim(),
+    )
+    if (shouldSavePec) {
+      const pecResult = await saveSettingsSection('pec', {
+        ...pec,
+        indirizzo: quickSdiPec.pec_indirizzo.trim(),
+        username: quickSdiPec.pec_username.trim() || quickSdiPec.pec_indirizzo.trim(),
+        smtp_host: quickSdiPec.pec_smtp_host.trim() || defaultQuickSdiPecSettings.pec_smtp_host,
+        smtp_port: quickSdiPec.pec_smtp_port.trim() || defaultQuickSdiPecSettings.pec_smtp_port,
+        imap_host: quickSdiPec.pec_imap_host.trim() || defaultQuickSdiPecSettings.pec_imap_host,
+        imap_port: quickSdiPec.pec_imap_port.trim() || defaultQuickSdiPecSettings.pec_imap_port,
+        use_ssl: quickSdiPec.pec_use_ssl,
+      })
+      if (!pecResult.ok) {
+        setNotice({ tone: 'warning', text: pecResult.message || 'Parametri PEC studio non salvati.' })
+        setBusy('')
+        return
+      }
+    }
+    setNotice({ tone: 'success', text: 'PEC SdI salvata. Puoi preparare la PEC senza uscire dal pannello.' })
+    setQuickSdiPecOpen(false)
+    setQuickSdiPecLoaded(false)
+    await onReloadPage()
+    await onReloadDetail()
+    setBusy('')
+  }
+
+  async function openQuickCommercialistaSettings() {
+    setQuickCommercialistaOpen(true)
+    if (quickCommercialistaLoaded) return
+    setBusy('quick-commercialista-load')
+    const settings = await getSettings()
+    if (!settings.ok) {
+      setNotice({ tone: 'warning', text: settings.warnings[0]?.message || 'Impostazioni non disponibili.' })
+      setBusy('')
+      return
+    }
+    const sdi = settingsPlainRecord(settings.sdi as Record<string, unknown>)
+    setQuickCommercialista({
+      nome_commercialista: settingsTextValue(sdi.nome_commercialista, currentDetail.workflow.commercialistaName),
+      email_commercialista: settingsTextValue(sdi.email_commercialista, currentDetail.workflow.commercialistaEmail),
+      pec_commercialista: settingsTextValue(sdi.pec_commercialista, currentDetail.workflow.commercialistaPec),
+    })
+    setQuickCommercialistaLoaded(true)
+    setBusy('')
+  }
+
+  function updateQuickCommercialista(patch: Partial<QuickCommercialistaSettings>) {
+    setQuickCommercialista((current) => ({ ...current, ...patch }))
+  }
+
+  async function saveQuickCommercialistaSettings() {
+    const email = quickCommercialista.email_commercialista.trim()
+    const pec = quickCommercialista.pec_commercialista.trim()
+    if (commercialistaChannel === 'ordinaria' && !email) {
+      setNotice({ tone: 'warning', text: "Inserisci l'email ordinaria del commercialista prima di preparare la bozza." })
+      return
+    }
+    if (commercialistaChannel === 'pec' && !pec) {
+      setNotice({ tone: 'warning', text: 'Inserisci la PEC del commercialista prima di preparare la bozza PEC.' })
+      return
+    }
+    if (!email && !pec) {
+      setNotice({ tone: 'warning', text: 'Inserisci almeno un indirizzo del commercialista.' })
+      return
+    }
+    setBusy('quick-commercialista-save')
+    const settings = await getSettings()
+    if (!settings.ok) {
+      setNotice({ tone: 'warning', text: settings.warnings[0]?.message || 'Impostazioni non disponibili.' })
+      setBusy('')
+      return
+    }
+    const sdi = settingsPlainRecord(settings.sdi as Record<string, unknown>)
+    const sdiResult = await saveSettingsSection('sdi', {
+      ...sdi,
+      email_commercialista: email,
+      pec_commercialista: pec,
+      nome_commercialista: quickCommercialista.nome_commercialista.trim(),
+    })
+    if (!sdiResult.ok) {
+      setNotice({ tone: 'warning', text: sdiResult.message || 'Commercialista non salvato.' })
+      setBusy('')
+      return
+    }
+    setNotice({ tone: 'success', text: 'Commercialista salvato. Puoi preparare la bozza dallo stesso pannello.' })
+    setQuickCommercialistaOpen(false)
+    setQuickCommercialistaLoaded(false)
+    await onReloadPage()
+    await onReloadDetail()
+    setBusy('')
+  }
+
+  async function prepareCommercialista() {
+    setBusy('commercialista-prepare')
+    const result = await prepareFatturazioneCommercialista(currentDetail.id, {
+      channel: commercialistaChannel,
+      attachments: commercialistaAttachments,
+    })
+    if (result.ok && result.draft) {
+      setCommercialistaDraft(result.draft)
+      setCommercialistaLocalPec(result.localPec)
+    }
+    setNotice({ tone: result.ok ? 'success' : 'warning', text: result.message })
+    setBusy('')
+    if (!result.ok && (result.errors.email_commercialista || result.errors.pec_commercialista)) {
+      void openQuickCommercialistaSettings()
+    }
+  }
+
+  async function sendCommercialista() {
+    if (!commercialistaDraft) {
+      setNotice({ tone: 'warning', text: 'Prepara prima la bozza per il commercialista.' })
+      return
+    }
+    setBusy('commercialista-send')
+    if (commercialistaDraft.channel === 'pec') {
+      if (!commercialistaLocalPec || !commercialistaPassword.trim()) {
+        setNotice({ tone: 'warning', text: 'Per inviare via PEC inserisci la password PEC locale.' })
+        setBusy('')
+        return
+      }
+      const sent = await postLocalJson(commercialistaLocalPec.endpoint, {
+        ...commercialistaLocalPec.payload,
+        password: commercialistaPassword,
+        to: commercialistaDraft.to,
+        subject: commercialistaDraft.subject,
+        body: commercialistaDraft.body,
+      }, 65000)
+      if (!sent?.ok || !workflowText(sent.message_id)) {
+        setNotice({ tone: 'warning', text: workflowText(sent?.messaggio || sent?.message) || 'PEC al commercialista non completata dal Local Signer.' })
+        setBusy('')
+        return
+      }
+      await afterMutation(await confirmFatturazioneCommercialistaPec(currentDetail.id, {
+        message_id: workflowText(sent.message_id),
+        destinatario: commercialistaDraft.to,
+        oggetto: commercialistaDraft.subject,
+      }))
+      setBusy('')
+      return
+    }
+    const result = await sendFatturazioneCommercialistaEmail(currentDetail.id, {
+      to: commercialistaDraft.to,
+      subject: commercialistaDraft.subject,
+      body: commercialistaDraft.body,
+      attachmentFiles: commercialistaDraft.attachments.map((attachment) => attachment.storageFile || attachment.filename),
+    })
+    await afterMutation(result)
+    setBusy('')
+  }
+
+  const signedXmlName = workflowText(detail.workflow.signedXml.fileName)
+  const sdiSent = detail.sdiSentLabel || workflowText(detail.workflow.sdiSend.sentAt)
+  const commercialistaSent = workflowText(detail.workflow.commercialista.sentAt)
+  const sdiPecMissing = !detail.workflow.sdiPecAddress.trim()
+  const commercialistaPecAddress = detail.workflow.commercialistaPec || detail.workflow.commercialistaEmail
+  const commercialistaTarget = commercialistaChannel === 'pec' ? commercialistaPecAddress : detail.workflow.commercialistaEmail
+  const commercialistaMissing = commercialistaChannel === 'pec' ? !commercialistaPecAddress.trim() : !detail.workflow.commercialistaEmail.trim()
+  const commercialistaSentChannel = workflowText(detail.workflow.commercialista.channel)
+  const commercialistaSentRecipient = workflowText(detail.workflow.commercialista.recipient)
+  const modalClass = ['iu-fatt-modal', pdfFullscreen && activeTab === 'pdf' ? 'is-pdf-fullscreen' : ''].filter(Boolean).join(' ')
+
+  return (
+    <div className="iu-fatt-overlay" role="dialog" aria-modal="true" aria-label={`Dettaglio ${detail.number || detail.id}`}>
+      <section className={modalClass}>
+        <header className="iu-fatt-modal__header">
+          <div>
+            <span>Parcelle e Fatture</span>
+            <h2>Dettaglio {detail.number || detail.id}</h2>
+            <p>{detail.customerName}{detail.caseTitle ? ` - ${detail.caseTitle}` : ''}</p>
+          </div>
+          <div className="iu-fatt-modal__header-actions">
+            {activeTab === 'pdf' ? (
+              <Button type="button" tone="neutral" onClick={() => setPdfFullscreen((current) => !current)}>
+                {pdfFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                {pdfFullscreen ? 'Riduci' : 'Tutto schermo'}
+              </Button>
+            ) : null}
+            <Button type="button" tone="neutral" onClick={onClose} aria-label="Chiudi dettaglio">
+              <X size={15} />
+              Chiudi
+            </Button>
+          </div>
+        </header>
+
+        <nav className="iu-fatt-modal__tabs" aria-label="Sezioni dettaglio fattura">
+          {[
+            ['dettaglio', 'Dettaglio'],
+            ['pdf', 'Anteprima PDF'],
+            ['xml', 'XML e SdI'],
+            ['commercialista', 'Commercialista'],
+          ].map(([id, label]) => (
+            <button type="button" className={activeTab === id ? 'is-active' : ''} onClick={() => setActiveTab(id as DetailTab)} key={id}>
+              {label}
+            </button>
           ))}
+        </nav>
+
+        {notice ? (
+          <section className={`iu-fatt-state iu-fatt-state--${notice.tone === 'success' ? 'success' : 'warning'}`} aria-live="polite">
+            {notice.tone === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            <div><strong>{notice.tone === 'success' ? 'Operazione registrata' : 'Controllo richiesto'}</strong><span>{notice.text}</span></div>
+          </section>
+        ) : null}
+
+        <div className="iu-fatt-modal__body">
+          {activeTab === 'dettaglio' ? (
+            <section className="iu-fatt-detail-editor">
+              <div className="iu-fatt-detail-summary">
+                <span>Stato: {detail.stateLabel}</span>
+                <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
+                {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
+              </div>
+              <div className="iu-fatt-edit-lines">
+                {voices.map((voice) => (
+                  <div className="iu-fatt-edit-line" key={voice.rowId}>
+                    <label>
+                      <span>Descrizione</span>
+                      <input value={voice.descrizione} onChange={(event) => updateVoice(voice.rowId, { descrizione: event.currentTarget.value })} />
+                    </label>
+                    <label>
+                      <span>Quantità</span>
+                      <input value={voice.quantita} onChange={(event) => updateVoice(voice.rowId, { quantita: event.currentTarget.value })} inputMode="decimal" />
+                    </label>
+                    <label>
+                      <span>Prezzo unitario</span>
+                      <input
+                        value={voice.prezzo_unitario}
+                        onChange={(event) => updateVoice(voice.rowId, { prezzo_unitario: event.currentTarget.value })}
+                        onBlur={(event) => updateVoice(voice.rowId, { prezzo_unitario: currencyInputValue(event.currentTarget.value) })}
+                        inputMode="decimal"
+                        placeholder="€ 0,00"
+                      />
+                    </label>
+                    <label>
+                      <span>Tipo</span>
+                      <select value={voice.tipo} onChange={(event) => updateVoice(voice.rowId, { tipo: event.currentTarget.value })}>
+                        <option value="ONORARIO">Onorario</option>
+                        <option value="SPESE">Spese</option>
+                        <option value="ANTICIPO">Anticipazioni</option>
+                        <option value="ALTRO">Altro</option>
+                      </select>
+                    </label>
+                    <Button type="button" tone="neutral" onClick={() => removeVoice(voice.rowId)}>
+                      <Trash2 size={14} />
+                      Rimuovi
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="iu-fatt-action-row">
+                <Button type="button" tone="neutral" onClick={addVoice}><Plus size={15} /> Aggiungi voce</Button>
+                <Button type="button" tone="primary" disabled={busy === 'detail'} onClick={saveDetail}><Save size={15} /> {busy === 'detail' ? 'Salvataggio' : 'Salva dettaglio'}</Button>
+              </div>
+              <label className="iu-fatt-draft__body">
+                <span>Note operative</span>
+                <textarea value={note} onChange={(event) => setNote(event.currentTarget.value)} rows={4} />
+              </label>
+            </section>
+          ) : null}
+
+          {activeTab === 'pdf' ? (
+            <section className="iu-fatt-pdf-panel">
+              <div className="iu-fatt-action-row">
+                <ButtonLink href={`${detail.pdfHref}?download=1`} tone="neutral"><Download size={15} /> Scarica PDF</ButtonLink>
+                <Button type="button" tone="neutral" onClick={() => setPdfFullscreen((current) => !current)}>
+                  {pdfFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                  {pdfFullscreen ? 'Riduci anteprima' : 'Tutto schermo'}
+                </Button>
+              </div>
+              <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={detail.pdfHref} />
+            </section>
+          ) : null}
+
+          {activeTab === 'xml' ? (
+            <section className="iu-fatt-workflow">
+              <div className="iu-fatt-workflow__status">
+                <Badge tone={detail.sdiStateTone}>{detail.sdiStateLabel}</Badge>
+                <strong>XML originale disponibile</strong>
+                <span>{detail.sdiStatusMessage}</span>
+                {signedXmlName ? <strong>XML firmato: {signedXmlName}</strong> : <strong>XML firmato da generare con Local Signer</strong>}
+                {detail.workflow.sdiPecAddress ? <span>PEC SdI: {detail.workflow.sdiPecAddress}</span> : <span>PEC SdI non configurata</span>}
+                {sdiSent ? <span>PEC SdI inviata: {sdiSent}</span> : <span>PEC SdI non ancora inviata</span>}
+              </div>
+              {(sdiPecMissing || quickSdiPecOpen) ? (
+                <section className="iu-fatt-quick-settings" aria-label="Configurazione rapida PEC SdI">
+                  <div className="iu-fatt-quick-settings__head">
+                    <div>
+                      <strong>Configura PEC SdI</strong>
+                      <span>Salva il destinatario SdI e i parametri PEC studio senza uscire dalla fattura.</span>
+                    </div>
+                    {!quickSdiPecOpen ? (
+                      <Button type="button" tone="neutral" disabled={busy === 'quick-sdi-load'} onClick={() => { void openQuickSdiPecSettings() }}>
+                        <PenLine size={15} />
+                        Inserisci impostazioni PEC
+                      </Button>
+                    ) : null}
+                  </div>
+                  {quickSdiPecOpen ? (
+                    <>
+                      <div className="iu-fatt-quick-settings__grid">
+                        <label className="is-wide">
+                          <span>PEC per notifiche SdI</span>
+                          <input type="email" value={quickSdiPec.pec_notifiche} onChange={(event) => updateQuickSdiPec({ pec_notifiche: event.currentTarget.value })} placeholder="es. sdi01@pec.fatturapa.it" />
+                        </label>
+                        <label>
+                          <span>PEC studio mittente</span>
+                          <input type="email" value={quickSdiPec.pec_indirizzo} onChange={(event) => updateQuickSdiPec({ pec_indirizzo: event.currentTarget.value })} placeholder="studio@pec.it" />
+                        </label>
+                        <label>
+                          <span>Username PEC</span>
+                          <input value={quickSdiPec.pec_username} onChange={(event) => updateQuickSdiPec({ pec_username: event.currentTarget.value })} placeholder="di solito uguale alla PEC" />
+                        </label>
+                        <label>
+                          <span>Host invio PEC</span>
+                          <input value={quickSdiPec.pec_smtp_host} onChange={(event) => updateQuickSdiPec({ pec_smtp_host: event.currentTarget.value })} />
+                        </label>
+                        <label>
+                          <span>Porta invio PEC</span>
+                          <input inputMode="numeric" value={quickSdiPec.pec_smtp_port} onChange={(event) => updateQuickSdiPec({ pec_smtp_port: event.currentTarget.value })} />
+                        </label>
+                        <label>
+                          <span>Host ricezione PEC</span>
+                          <input value={quickSdiPec.pec_imap_host} onChange={(event) => updateQuickSdiPec({ pec_imap_host: event.currentTarget.value })} />
+                        </label>
+                        <label>
+                          <span>Porta ricezione PEC</span>
+                          <input inputMode="numeric" value={quickSdiPec.pec_imap_port} onChange={(event) => updateQuickSdiPec({ pec_imap_port: event.currentTarget.value })} />
+                        </label>
+                        <label className="iu-fatt-quick-settings__check">
+                          <input type="checkbox" checked={quickSdiPec.pec_use_ssl} onChange={(event) => updateQuickSdiPec({ pec_use_ssl: event.currentTarget.checked })} />
+                          <span>Usa SSL per la PEC</span>
+                        </label>
+                      </div>
+                      <div className="iu-fatt-action-row">
+                        <Button type="button" tone="primary" disabled={busy === 'quick-sdi-save'} onClick={saveQuickSdiPecSettings}>
+                          <Save size={15} />
+                          {busy === 'quick-sdi-save' ? 'Salvataggio' : 'Salva e prosegui'}
+                        </Button>
+                        <Button type="button" tone="neutral" onClick={() => setQuickSdiPecOpen(false)}>
+                          <X size={15} />
+                          Chiudi impostazioni rapide
+                        </Button>
+                      </div>
+                    </>
+                  ) : null}
+                </section>
+              ) : null}
+              <div className="iu-fatt-workflow__grid">
+                <label>
+                  <span>PIN firma digitale</span>
+                  <input type="password" value={pin} onChange={(event) => setPin(event.currentTarget.value)} autoComplete="off" />
+                </label>
+                <ButtonLink href={detail.xmlHref} tone="neutral">
+                  <FileText size={15} />
+                  Scarica XML originale
+                </ButtonLink>
+                <Button type="button" tone="primary" disabled={busy === 'sign'} onClick={signXml}>
+                  <FileSignature size={15} />
+                  {busy === 'sign' ? 'Firma in corso' : 'Firma XML'}
+                </Button>
+                <Button type="button" tone="neutral" disabled={busy === 'sdi-prepare'} onClick={prepareSdiPec}>
+                  <PenLine size={15} />
+                  Prepara PEC SdI
+                </Button>
+              </div>
+              {sdiDraft ? (
+                <>
+                  <DraftEditor draft={sdiDraft} onChange={setSdiDraft} />
+                  <div className="iu-fatt-workflow__grid">
+                    <label>
+                      <span>Password PEC locale</span>
+                      <input type="password" value={pecPassword} onChange={(event) => setPecPassword(event.currentTarget.value)} autoComplete="off" />
+                    </label>
+                    <Button type="button" tone="success" disabled={busy === 'sdi-send'} onClick={sendSdiPec}>
+                      <Send size={15} />
+                      {busy === 'sdi-send' ? 'Invio in corso' : 'Invia PEC SdI'}
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+              <div className="iu-fatt-outcome">
+                <h3>Registra esito SdI</h3>
+                <label>
+                  <span>Esito</span>
+                  <select value={outcomeState} onChange={(event) => setOutcomeState(event.currentTarget.value)}>
+                    <option value="CONSEGNATA">Consegnata</option>
+                    <option value="MANCATA_CONSEGNA">Mancata consegna</option>
+                    <option value="SCARTATA">Scartata</option>
+                    <option value="DECORRENZA_TERMINI">Decorrenza termini</option>
+                    <option value="INVIATA">Inviata</option>
+                  </select>
+                </label>
+                <label><span>Identificativo SdI</span><input value={outcomeId} onChange={(event) => setOutcomeId(event.currentTarget.value)} /></label>
+                <label><span>Ricevuta o protocollo</span><input value={outcomeReceipt} onChange={(event) => setOutcomeReceipt(event.currentTarget.value)} /></label>
+                <label className="iu-fatt-draft__body"><span>Note esito</span><textarea value={outcomeNote} onChange={(event) => setOutcomeNote(event.currentTarget.value)} rows={3} /></label>
+                <Button type="button" tone="primary" disabled={busy === 'outcome'} onClick={saveOutcome}><RefreshCw size={15} /> Registra esito</Button>
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === 'commercialista' ? (
+            <section className="iu-fatt-workflow">
+              <div className="iu-fatt-workflow__status">
+                <strong>{detail.workflow.commercialistaName || commercialistaTarget || 'Commercialista non configurato'}</strong>
+                <span>Canale scelto: {commercialistaChannel === 'pec' ? 'PEC' : 'email ordinaria'}</span>
+                {commercialistaTarget ? <span>Destinatario: {commercialistaTarget}</span> : <span>Destinatario non configurato</span>}
+                {commercialistaSent ? (
+                  <span>Commercialista inviato{commercialistaSentChannel ? ` via ${commercialistaSentChannel}` : ''}: {commercialistaSent}{commercialistaSentRecipient ? ` - ${commercialistaSentRecipient}` : ''}</span>
+                ) : (
+                  <span>Commercialista non ancora inviato</span>
+                )}
+              </div>
+              {(commercialistaMissing || quickCommercialistaOpen) ? (
+                <section className="iu-fatt-quick-settings" aria-label="Configurazione rapida commercialista">
+                  <div className="iu-fatt-quick-settings__head">
+                    <div>
+                      <strong>Configura commercialista</strong>
+                      <span>Salva email ordinaria e PEC del commercialista senza uscire dalla fattura.</span>
+                    </div>
+                    {!quickCommercialistaOpen ? (
+                      <Button type="button" tone="neutral" disabled={busy === 'quick-commercialista-load'} onClick={() => { void openQuickCommercialistaSettings() }}>
+                        <PenLine size={15} />
+                        Inserisci commercialista
+                      </Button>
+                    ) : null}
+                  </div>
+                  {quickCommercialistaOpen ? (
+                    <>
+                      <div className="iu-fatt-quick-settings__grid">
+                        <label>
+                          <span>Nome commercialista</span>
+                          <input value={quickCommercialista.nome_commercialista} onChange={(event) => updateQuickCommercialista({ nome_commercialista: event.currentTarget.value })} placeholder="Studio contabile" />
+                        </label>
+                        <label>
+                          <span>Email ordinaria commercialista</span>
+                          <input type="email" value={quickCommercialista.email_commercialista} onChange={(event) => updateQuickCommercialista({ email_commercialista: event.currentTarget.value })} placeholder="commercialista@email.it" />
+                        </label>
+                        <label className="is-wide">
+                          <span>PEC commercialista</span>
+                          <input type="email" value={quickCommercialista.pec_commercialista} onChange={(event) => updateQuickCommercialista({ pec_commercialista: event.currentTarget.value })} placeholder="commercialista@pec.it" />
+                        </label>
+                      </div>
+                      <div className="iu-fatt-action-row">
+                        <Button type="button" tone="primary" disabled={busy === 'quick-commercialista-save'} onClick={saveQuickCommercialistaSettings}>
+                          <Save size={15} />
+                          {busy === 'quick-commercialista-save' ? 'Salvataggio' : 'Salva e prosegui'}
+                        </Button>
+                        <Button type="button" tone="neutral" onClick={() => setQuickCommercialistaOpen(false)}>
+                          <X size={15} />
+                          Chiudi configurazione
+                        </Button>
+                      </div>
+                    </>
+                  ) : null}
+                </section>
+              ) : null}
+              <div className="iu-fatt-workflow__grid">
+                <label>
+                  <span>Canale</span>
+                  <select value={commercialistaChannel} onChange={(event) => {
+                    setCommercialistaChannel(event.currentTarget.value)
+                    setCommercialistaDraft(null)
+                    setCommercialistaLocalPec(undefined)
+                  }}>
+                    <option value="ordinaria">Email ordinaria</option>
+                    <option value="pec">PEC</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Allegati</span>
+                  <select value={commercialistaAttachments} onChange={(event) => {
+                    setCommercialistaAttachments(event.currentTarget.value)
+                    setCommercialistaDraft(null)
+                    setCommercialistaLocalPec(undefined)
+                  }}>
+                    <option value="pdf">Solo PDF</option>
+                    <option value="pdf_xml_firmato">PDF più XML firmato</option>
+                  </select>
+                </label>
+                <Button type="button" tone="neutral" disabled={busy === 'commercialista-prepare'} onClick={prepareCommercialista}>
+                  <PenLine size={15} />
+                  Prepara bozza
+                </Button>
+              </div>
+              {commercialistaDraft ? (
+                <>
+                  <DraftEditor draft={commercialistaDraft} onChange={setCommercialistaDraft} />
+                  {commercialistaDraft.channel === 'pec' ? (
+                    <label className="iu-fatt-workflow__password">
+                      <span>Password PEC locale</span>
+                      <input type="password" value={commercialistaPassword} onChange={(event) => setCommercialistaPassword(event.currentTarget.value)} autoComplete="off" />
+                    </label>
+                  ) : null}
+                  <Button type="button" tone="success" disabled={busy === 'commercialista-send'} onClick={sendCommercialista}>
+                    <Mail size={15} />
+                    {commercialistaDraft.channel === 'pec' ? 'Invia PEC commercialista' : 'Invia email commercialista'}
+                  </Button>
+                </>
+              ) : null}
+            </section>
+          ) : null}
         </div>
-      ) : (
-        <EmptyState title="Nessuna voce sintetica" message="Non sono disponibili righe di dettaglio per questo documento." />
-      )}
-    </Panel>
+      </section>
+    </div>
   )
 }
 
@@ -1657,6 +2566,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [matterFilter, setMatterFilter] = useState('')
   const [detail, setDetail] = useState<FatturazioneDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailInitialTab, setDetailInitialTab] = useState<DetailTab>('dettaglio')
   const [savingId, setSavingId] = useState('')
   const [mutationResult, setMutationResult] = useState<FatturazioneMutationResult | null>(null)
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
@@ -1699,7 +2609,8 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     }
   }
 
-  async function loadDetail(record: FatturazioneRecord) {
+  async function loadDetail(record: FatturazioneRecord, tab: DetailTab = 'dettaglio') {
+    setDetailInitialTab(tab)
     setDetailLoading(true)
     setDetail(null)
     const response = await getFatturazioneDetail(record.id)
@@ -1712,6 +2623,28 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       setMutationErrors(response.errors)
     }
     setDetailLoading(false)
+  }
+
+  function openDetailTab(record: FatturazioneRecord, tab: DetailTab) {
+    loadDetail(record, tab)
+  }
+
+  async function reloadCurrentDetail() {
+    const currentId = detail?.id
+    if (!currentId) return
+    setDetailLoading(true)
+    const response = await getFatturazioneDetail(currentId)
+    if (response.ok) {
+      setDetail(response.item)
+    } else {
+      setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
+      setMutationErrors(response.errors)
+    }
+    setDetailLoading(false)
+  }
+
+  async function reloadArchivePage() {
+    onReload(await getFatturazionePage())
   }
 
   useEffect(() => {
@@ -1845,6 +2778,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
                 data={data}
                 savingId={savingId}
                 onDetail={loadDetail}
+                onOpenTab={openDetailTab}
                 onStatus={updateStatus}
                 onCancel={cancelRecord}
                 onPaid={markPaid}
@@ -1864,7 +2798,14 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         <NumberingPanel data={data} onSaved={handleNumberingSaved} />
       </div>
       <MetricGrid data={data} />
-      <ArchiveDetailPanel detail={detail} loading={detailLoading} />
+      <ArchiveDetailPanel
+        detail={detail}
+        loading={detailLoading}
+        onClose={() => setDetail(null)}
+        onReloadPage={reloadArchivePage}
+        onReloadDetail={reloadCurrentDetail}
+        initialTab={detailInitialTab}
+      />
       <FiscalGuardrailsPanel data={data} />
     </>
   )

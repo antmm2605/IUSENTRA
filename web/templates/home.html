@@ -26,7 +26,7 @@
     <div class="result-header pagato">
       <div class="icon-circle"><i class="bi bi-check-lg"></i></div>
       <h2 class="h4 mb-1">Pagamento ricevuto!</h2>
-      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+      <div style="opacity:.9;">{{ lp.importo|euro }}</div>
     </div>
     <div class="card-body p-4">
       <p class="text-muted mb-3">Il tuo pagamento è stato elaborato con successo. Lo studio riceverà automaticamente la conferma.</p>
@@ -56,7 +56,7 @@
     <div class="result-header bonifico">
       <div class="icon-circle"><i class="bi bi-bank"></i></div>
       <h2 class="h4 mb-1">Effettua il bonifico</h2>
-      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+      <div style="opacity:.9;">{{ lp.importo|euro }}</div>
     </div>
     <div class="card-body p-4">
       <p class="text-muted mb-3">
@@ -87,7 +87,7 @@
         {% endif %}
         <div class="mb-2">
           <small class="text-muted d-block">Importo esatto</small>
-          <strong>€ {{ "%.2f"|format(lp.importo) }}</strong>
+          <strong>{{ lp.importo|euro }}</strong>
         </div>
         <div>
           <small class="text-muted d-block">Causale</small>
@@ -109,7 +109,7 @@
     <div class="result-header atteso">
       <div class="icon-circle"><i class="bi bi-hourglass-split"></i></div>
       <h2 class="h4 mb-1">Pagamento in attesa</h2>
-      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+      <div style="opacity:.9;">{{ lp.importo|euro }}</div>
     </div>
     <div class="card-body p-4">
       <p class="text-muted mb-3">Il tuo pagamento è in fase di elaborazione. Lo studio riceverà conferma a breve.</p>

@@ -473,7 +473,7 @@ export function AgendaPage() {
   const dateLabel = view === 'day'
     ? anchorDate.toLocaleDateString('it-IT')
     : view === 'month'
-      ? anchorDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
+      ? anchorDate.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', month: 'long', year: 'numeric' })
       : rangeLabel(weekStart, weekEnd)
   const automationTarget = selectedEvent || agenda.summary.nextEvent || filteredEvents[0]
   const automationDate = automationTarget?.date || toDateKey(anchorDate)

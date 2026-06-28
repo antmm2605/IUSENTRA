@@ -352,7 +352,7 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         code="assegno_sociale_2026",
         title="INPS - Allegato perequazione 2026",
         url="https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2025/12/Circolare_15109/Allegati/16486_Circolare-numero-153-del-19-12-2025_Allegato-n-2.pdf",
-        note="Assegno sociale 2026: EUR 546,24 mensili.",
+        note="Assegno sociale 2026: € 546,24 mensili.",
     ),
     "l_319_1980": FonteOperativa(
         code="l_319_1980",
@@ -364,7 +364,7 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         code="dm_30_05_2002",
         title="D.M. 30 maggio 2002 - adeguamento vacazioni",
         url="https://www.gazzettaufficiale.it/eli/gu/2002/08/05/182/sg/pdf",
-        note="Importi vigenti delle vacazioni: EUR 14,68 la prima e EUR 8,15 le successive.",
+        note="Importi vigenti delle vacazioni: € 14,68 la prima e € 8,15 le successive.",
     ),
     # ── Banca d'Italia ──────────────────────────────────────────────────────
     "bancaditalia_portale": FonteOperativa(
@@ -450,8 +450,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         title="Cassa Forense - contributi minimi obbligatori 2026",
         url="https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf",
         note=(
-            "Tabella ufficiale contributi minimi: per il 2026 contributo soggettivo minimo EUR 2.790, "
-            "aliquota autoliquidazione 17%, contributo integrativo minimo EUR 355 con aliquota 4%; "
+            "Tabella ufficiale contributi minimi: per il 2026 contributo soggettivo minimo € 2.790, "
+            "aliquota autoliquidazione 17%, contributo integrativo minimo € 355 con aliquota 4%; "
             "contributo maternita indicato come da definire nella tabella consultata."
         ),
         change_detection="availability_only",
@@ -489,8 +489,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.anticorruzione.it/",
         note=(
             "Soglie di rilevanza europea in vigore dal 1 gennaio 2024 (Reg. UE 2023/2469): "
-            "lavori EUR 5.538.000, forniture/servizi PA centrale EUR 143.000, "
-            "altre stazioni appaltanti EUR 221.000, enti aggiudicatori EUR 443.000. "
+            "lavori € 5.538.000, forniture/servizi PA centrale € 143.000, "
+            "altre stazioni appaltanti € 221.000, enti aggiudicatori € 443.000. "
             "Scadute il 31 dicembre 2025 — sostituite dalle soglie 2026-2027."
         ),
     ),
@@ -500,8 +500,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.anticorruzione.it/",
         note=(
             "Soglie di rilevanza europea in vigore dal 1 gennaio 2026 (Reg. UE 2025/2150, 2025/2151, 2025/2152): "
-            "lavori EUR 5.404.000, forniture/servizi PA centrale EUR 140.000, "
-            "altre stazioni appaltanti EUR 216.000, enti aggiudicatori EUR 432.000. "
+            "lavori € 5.404.000, forniture/servizi PA centrale € 140.000, "
+            "altre stazioni appaltanti € 216.000, enti aggiudicatori € 432.000. "
             "Aggiornate ogni 2 anni dalla Commissione europea."
         ),
     ),
@@ -693,27 +693,27 @@ def _normalize_usura_category(category: str) -> str:
 
 def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
     labels = {
-        "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a EUR 5.000",
-        "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre EUR 5.000",
-        "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a EUR 1.500",
-        "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre EUR 1.500",
-        "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a EUR 50.000",
-        "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da EUR 50.000 a EUR 200.000",
-        "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre EUR 200.000",
+        "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a € 5.000",
+        "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre € 5.000",
+        "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a € 1.500",
+        "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre € 1.500",
+        "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a € 50.000",
+        "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da € 50.000 a € 200.000",
+        "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre € 200.000",
         "credito_personale": "Credito personale",
         "credito_finalizzato": "Credito finalizzato",
-        "factoring_fino_50000": "Factoring fino a EUR 50.000",
-        "factoring_oltre_50000": "Factoring oltre EUR 50.000",
+        "factoring_fino_50000": "Factoring fino a € 50.000",
+        "factoring_oltre_50000": "Factoring oltre € 50.000",
         "leasing_immobiliare_fisso": "Leasing immobiliare a tasso fisso",
         "leasing_immobiliare_variabile": "Leasing immobiliare a tasso variabile",
-        "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a EUR 25.000",
-        "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre EUR 25.000",
-        "leasing_strumentale_fino_25000": "Leasing strumentale fino a EUR 25.000",
-        "leasing_strumentale_oltre_25000": "Leasing strumentale oltre EUR 25.000",
+        "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a € 25.000",
+        "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre € 25.000",
+        "leasing_strumentale_fino_25000": "Leasing strumentale fino a € 25.000",
+        "leasing_strumentale_oltre_25000": "Leasing strumentale oltre € 25.000",
         "mutui_ipotecari_fisso": "Mutui con garanzia ipotecaria a tasso fisso",
         "mutui_ipotecari_variabile": "Mutui con garanzia ipotecaria a tasso variabile",
-        "cessione_quinto_fino_15000": "Cessione del quinto fino a EUR 15.000",
-        "cessione_quinto_oltre_15000": "Cessione del quinto oltre EUR 15.000",
+        "cessione_quinto_fino_15000": "Cessione del quinto fino a € 15.000",
+        "cessione_quinto_oltre_15000": "Cessione del quinto oltre € 15.000",
         "credito_revolving": "Credito revolving",
         "carte_credito": "Finanziamenti con utilizzo di carte di credito",
         "altri_finanziamenti": "Altri finanziamenti",
@@ -1027,7 +1027,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 0.0,
                     "to_value": 1000.0,
-                    "label": "Fino a EUR 1.000",
+                    "label": "Fino a € 1.000",
                     "spese_avvio": 40.0,
                     "spese_primo_incontro": 60.0,
                     "tabella_a_minimo": 80.0,
@@ -1035,7 +1035,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 1000.01,
                     "to_value": 5000.0,
-                    "label": "Da EUR 1.000,01 a EUR 5.000",
+                    "label": "Da € 1.000,01 a € 5.000",
                     "spese_avvio": 75.0,
                     "spese_primo_incontro": 120.0,
                     "tabella_a_minimo": 160.0,
@@ -1043,7 +1043,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 5000.01,
                     "to_value": 10000.0,
-                    "label": "Da EUR 5.000,01 a EUR 10.000",
+                    "label": "Da € 5.000,01 a € 10.000",
                     "spese_avvio": 75.0,
                     "spese_primo_incontro": 120.0,
                     "tabella_a_minimo": 290.0,
@@ -1051,7 +1051,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 10000.01,
                     "to_value": 25000.0,
-                    "label": "Da EUR 10.000,01 a EUR 25.000",
+                    "label": "Da € 10.000,01 a € 25.000",
                     "spese_avvio": 75.0,
                     "spese_primo_incontro": 120.0,
                     "tabella_a_minimo": 440.0,
@@ -1059,7 +1059,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 25000.01,
                     "to_value": 50000.0,
-                    "label": "Da EUR 25.000,01 a EUR 50.000",
+                    "label": "Da € 25.000,01 a € 50.000",
                     "spese_avvio": 75.0,
                     "spese_primo_incontro": 120.0,
                     "tabella_a_minimo": 720.0,
@@ -1067,7 +1067,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 50000.01,
                     "to_value": 150000.0,
-                    "label": "Da EUR 50.000,01 a EUR 150.000",
+                    "label": "Da € 50.000,01 a € 150.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 1200.0,
@@ -1075,7 +1075,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 150000.01,
                     "to_value": 250000.0,
-                    "label": "Da EUR 150.000,01 a EUR 250.000",
+                    "label": "Da € 150.000,01 a € 250.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 1500.0,
@@ -1083,7 +1083,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 250000.01,
                     "to_value": 500000.0,
-                    "label": "Da EUR 250.000,01 a EUR 500.000",
+                    "label": "Da € 250.000,01 a € 500.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 2500.0,
@@ -1091,7 +1091,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 500000.01,
                     "to_value": 1500000.0,
-                    "label": "Da EUR 500.000,01 a EUR 1.500.000",
+                    "label": "Da € 500.000,01 a € 1.500.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 3900.0,
@@ -1099,7 +1099,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 1500000.01,
                     "to_value": 2500000.0,
-                    "label": "Da EUR 1.500.000,01 a EUR 2.500.000",
+                    "label": "Da € 1.500.000,01 a € 2.500.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 4600.0,
@@ -1107,7 +1107,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 2500000.01,
                     "to_value": 5000000.0,
-                    "label": "Da EUR 2.500.000,01 a EUR 5.000.000",
+                    "label": "Da € 2.500.000,01 a € 5.000.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo": 6500.0,
@@ -1115,7 +1115,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {
                     "from_value": 5000000.01,
                     "to_value": None,
-                    "label": "Oltre EUR 5.000.000",
+                    "label": "Oltre € 5.000.000",
                     "spese_avvio": 110.0,
                     "spese_primo_incontro": 170.0,
                     "tabella_a_minimo_rate_min": 0.002,
@@ -1138,7 +1138,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "esito_primo_accordo_multiplier": 1.10,
                 "esito_successivi_accordo_multiplier": 1.25,
                 "maggiorazione_art31_comma3_multiplier": 1.20,
-                "indeterminabile_reference_label": "Da EUR 50.000,01 a EUR 150.000",
+                "indeterminabile_reference_label": "Da € 50.000,01 a € 150.000",
             },
             "published_at": "2023-10-31",
             "effective_from": "2023-11-15",
@@ -1454,7 +1454,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 2625.0,
                     "base": "reddito_netto_professionale",
                     "label": "Contributo soggettivo 2025",
-                    "note": "Aliquota 15% sul reddito netto professionale. Minimo EUR 2.625.",
+                    "note": "Aliquota 15% sul reddito netto professionale. Minimo € 2.625.",
                 },
                 {
                     "year": 2025,
@@ -1463,7 +1463,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 700.0,
                     "base": "compensi_lordi",
                     "label": "Contributo integrativo 2025",
-                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 700.",
+                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo € 700.",
                 },
                 {
                     "year": 2025,
@@ -1472,7 +1472,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 183.0,
                     "base": "importo_fisso",
                     "label": "Contributo maternita/assistenza 2025",
-                    "note": "Importo fisso EUR 183 annuo.",
+                    "note": "Importo fisso € 183 annuo.",
                 },
                 {
                     "year": 2026,
@@ -1481,7 +1481,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 2790.0,
                     "base": "reddito_netto_professionale",
                     "label": "Contributo soggettivo 2026",
-                    "note": "Aliquota 17% in autoliquidazione Mod. 5. Minimo EUR 2.790 secondo tabella ufficiale Cassa Forense.",
+                    "note": "Aliquota 17% in autoliquidazione Mod. 5. Minimo € 2.790 secondo tabella ufficiale Cassa Forense.",
                 },
                 {
                     "year": 2026,
@@ -1490,7 +1490,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 355.0,
                     "base": "compensi_lordi",
                     "label": "Contributo integrativo 2026",
-                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 355 secondo tabella ufficiale Cassa Forense.",
+                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo € 355 secondo tabella ufficiale Cassa Forense.",
                 },
                 {
                     "year": 2026,

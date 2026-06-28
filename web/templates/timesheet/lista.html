@@ -27,7 +27,7 @@
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100 economic-kpi economic-kpi--success">
       <span class="economic-kpi__label">Valore fatturabile</span>
-      <strong class="economic-kpi__value">&euro; {{ '%.2f'|format(stats.valore_totale or 0) }}</strong>
+      <strong class="economic-kpi__value">{{ stats.valore_totale or 0|euro }}</strong>
     </div>
   </div>
   <div class="col-6 col-lg-3">
@@ -59,7 +59,7 @@
         <div class="fw-semibold">{{ billing_summary.next_action }}</div>
         <div class="small text-muted mt-2">
           {{ billing_summary.count }} voci validate · {{ '%.1f'|format(billing_summary.ore_totali or 0) }} h ·
-          &euro; {{ '%.2f'|format(billing_summary.valore_totale or 0) }}
+          {{ billing_summary.valore_totale or 0|euro }}
         </div>
         {% if billing_summary.issues %}
         <div class="small text-danger mt-2">{{ billing_summary.issues[0] }}</div>
@@ -215,7 +215,7 @@
             </div>
             <div class="text-end">
               <div class="fw-semibold">{{ '%.1f'|format(row.ore) }} h</div>
-              <div class="small text-muted">&euro; {{ '%.2f'|format(row.valore_totale) }}</div>
+              <div class="small text-muted">{{ row.valore_totale|euro }}</div>
               <div class="btn-group btn-group-sm mt-2">
                 <form method="post" action="{{ url_for('timesheet_cambia_stato', id_entry=row.id) }}">
                   <input type="hidden" name="stato" value="VALIDATO">

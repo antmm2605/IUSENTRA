@@ -35,12 +35,12 @@ def test_valori_oltre_520mila_usano_sempre_scaglione_alto(valore, materia, grado
     )
     payload = risultato.to_dict()
 
-    assert "Oltre EUR 520.000" in risultato.scaglione
+    assert "Oltre € 520.000" in risultato.scaglione
     assert payload["table_code"]
     assert payload["table_label"]
     assert payload["reference_codes"]
     assert payload["audit_tariffario"]
-    assert payload["audit_tariffario"]["scaglione"] == "Oltre EUR 520.000"
+    assert payload["audit_tariffario"]["scaglione"] == "Oltre € 520.000"
     assert payload["audit_tariffario"]["fascia_alta"] is True
     assert payload["compliance_status"] != "fallback_tecnico"
     assert "degradare" in risultato.note.lower()
@@ -59,6 +59,6 @@ def test_molto_alta_parametrizza_valore_indeterminabile_in_fascia_alta():
 
     assert risultato.valore_calcolo == 520001.0
     assert risultato.complessita_stimata == "molto_alta"
-    assert risultato.scaglione == "Oltre EUR 520.000"
+    assert risultato.scaglione == "Oltre € 520.000"
     assert payload["audit_tariffario"]["valore_indeterminabile_parametrizzato"] is True
     assert "valore indeterminabile parametrizzato" in risultato.note.lower()

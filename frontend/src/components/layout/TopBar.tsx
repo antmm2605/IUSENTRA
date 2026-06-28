@@ -57,6 +57,7 @@ function recentTargetFromPath(path: string): { entityType: string; entityId: str
 
 function todayLabel() {
   return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
     weekday: 'short',
     day: '2-digit',
     month: 'short',

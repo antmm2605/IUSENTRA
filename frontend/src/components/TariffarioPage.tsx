@@ -280,7 +280,7 @@ function CompensationBaseSection({
         { value: 'bassa', label: 'Bassa', description: '', enabled: true },
         { value: 'media', label: 'Media/Base', description: '', enabled: true },
         { value: 'alta', label: 'Alta', description: '', enabled: true },
-        { value: 'molto_alta', label: 'Molto alta / oltre EUR 520.000', description: '', enabled: true },
+        { value: 'molto_alta', label: 'Molto alta / oltre € 520.000', description: '', enabled: true },
       ]
   const allPhases = dynamic.phaseOptions.length
     ? dynamic.phaseOptions
@@ -336,7 +336,7 @@ function CompensationBaseSection({
           label="Complessità stimata"
           value={form.complessita}
           options={selectableComplexity}
-          help="Molto alta usa il valore indeterminabile parametrizzato oltre EUR 520.000: verifica la congruita prima dell'invio al cliente."
+          help="Molto alta usa il valore indeterminabile parametrizzato oltre € 520.000: verifica la congruita prima dell'invio al cliente."
           onChange={(value) => onChange({ ...form, complessita: value })}
         />
         <div className="iu-tar-switch-row">
@@ -656,7 +656,7 @@ function CalculatorPanel({
         <SelectField id="tariffario-grado" label="Grado / sede" value={form.grado} options={gradeOptions.length ? gradeOptions : data.catalog.gradeOptions} onChange={(value) => onChange({ ...form, grado: value })} />
         <TextField
           id="tariffario-valore"
-          label="Valore controversia (EUR)"
+          label="Valore controversia (€)"
           value={form.valore}
           help="Usa 0 solo per valore indeterminabile: il motore applica la complessita selezionata e segnala il valore parametrizzato nel registro."
           onChange={(value) => onChange({ ...form, valore: value })}
@@ -868,7 +868,7 @@ function RealtimeSummary({
   onRun: () => void
   onReset: () => void
 }) {
-  const operationalTotal = result?.economic.total || result?.selectedTotal || 'EUR 0,00'
+  const operationalTotal = result?.economic.total || result?.selectedTotal || '€ 0,00'
   return (
     <aside
       className="iu-tar-realtime"
@@ -894,7 +894,7 @@ function RealtimeSummary({
         {['minimo', 'base', 'massimo'].map((level) => (
           <div className={result?.selectedLevel === level ? 'is-selected' : ''} key={level}>
             <small>{selectedLevelLabel(level)}</small>
-            <b>{result?.rangeTotals[level] || 'EUR 0,00'}</b>
+            <b>{result?.rangeTotals[level] || '€ 0,00'}</b>
           </div>
         ))}
       </div>
@@ -1026,7 +1026,7 @@ function StickyRealtimeSummary({
   return (
     <div
       ref={anchor}
-      className="iu-tar-summary-dock iu-tar-summary-sticky"
+      className="iu-tar-summary-dock"
       style={dock.floating ? { minHeight: dock.height } : undefined}
     >
       <div className={`iu-tar-summary-holder${dock.floating ? ' is-floating' : ''}`} style={dock.style}>

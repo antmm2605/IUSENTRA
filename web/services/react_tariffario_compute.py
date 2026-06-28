@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import json
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -53,9 +55,8 @@ def _text(value: Any, fallback: str = "") -> str:
 
 def _euro(value: Any, *, signed: bool = False) -> str:
     amount = float(value or 0.0)
-    rendered = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     prefix = "+ " if signed and amount >= 0 else ""
-    return f"{prefix}EUR {rendered}"
+    return f"{prefix}{format_euro_it(amount)}"
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -751,7 +752,7 @@ def _run_engine(
     reference_codes = risultato_dict.get("reference_codes") if isinstance(risultato_dict.get("reference_codes"), list) else []
     calc_mode = _text(audit_tariffario.get("calc_mode") or (profilo or {}).get("calc_mode"))
     compliance_status = _text(risultato_dict.get("compliance_status") or audit_tariffario.get("compliance_status"))
-    high_range = "Oltre EUR 520.000" in risultato.scaglione
+    high_range = "Oltre € 520.000" in risultato.scaglione
     indeterminabile = float(risultato.valore_input or 0.0) <= 0 and bool(risultato.complessita_stimata)
     badges = []
     if compliance_status == "snapshot_esatto":
@@ -779,7 +780,7 @@ def _run_engine(
         {"label": "Tabella", "value": f"{risultato_dict.get('table_code', '')} - {risultato_dict.get('table_label', '')}".strip(" -")},
         {"label": "Scaglione", "value": risultato.scaglione},
         {"label": "Fasi", "value": ", ".join(risultato.fasi_selezionate)},
-        {"label": "Complessita", "value": "molto alta / oltre EUR 520.000" if complessita == "molto_alta" else complessita},
+        {"label": "Complessita", "value": "molto alta / oltre € 520.000" if complessita == "molto_alta" else complessita},
     ]
     selected_summary = risultato.riepilogo_livello(selected)
     return {

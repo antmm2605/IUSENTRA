@@ -21,6 +21,7 @@ from pct.economico_context import (
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
+from pct.formatting import format_datetime_it, format_euro_it
 
 fatturazione = Blueprint("fatturazione", __name__, url_prefix="/fatturazione")
 
@@ -533,10 +534,11 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+        from pct.pdf_style import pdf_table_header_style
     except ImportError:
         # Fallback: testo semplice
         buf = io.BytesIO()
-        buf.write(f"Parcella {p.numero}\nTotale: € {p.totale:.2f}".encode())
+        buf.write(f"Parcella {p.numero}\nTotale: {format_euro_it(p.totale)}".encode())
         buf.seek(0)
         return buf
 
@@ -660,14 +662,13 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
         voci_data.append([
             Paragraph(v.descrizione, style_body),
             Paragraph(f"{v.quantita:g}", ParagraphStyle("qv", parent=style_body, alignment=TA_RIGHT)),
-            Paragraph(f"€ {v.prezzo_unitario:,.2f}", ParagraphStyle("pv", parent=style_body, alignment=TA_RIGHT)),
-            Paragraph(f"€ {v.importo:,.2f}", ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
+            Paragraph(format_euro_it(v.prezzo_unitario), ParagraphStyle("pv", parent=style_body, alignment=TA_RIGHT)),
+            Paragraph(format_euro_it(v.importo), ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
         ])
 
     voci_tbl = Table(voci_data, colWidths=["55%", "10%", "17.5%", "17.5%"])
     voci_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+        *pdf_table_header_style(),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, LIGHT_BG]),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#e5e7eb")),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -680,16 +681,16 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
 
     # ---- Riepilogo importi
     rows = []
-    rows.append(["Imponibile", f"€ {p.imponibile:,.2f}"])
+    rows.append(["Imponibile", format_euro_it(p.imponibile)])
     if p.applica_cassa:
-        rows.append(["Contributo Cassa Forense (4 %)", f"€ {p.cassa_forense:,.2f}"])
+        rows.append(["Contributo Cassa Forense (4 %)", format_euro_it(p.cassa_forense)])
     if p.applica_iva:
-        rows.append([f"IVA 22 % su € {p.base_iva:,.2f}", f"€ {p.iva:,.2f}"])
+        rows.append([f"IVA 22 % su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)])
     if p.applica_bollo:
-        rows.append(["Marca da bollo", f"€ {p.bollo:,.2f}"])
+        rows.append(["Marca da bollo", format_euro_it(p.bollo)])
     if p.applica_ritenuta:
-        rows.append(["Ritenuta d'acconto (20 %)", f"- € {p.ritenuta:,.2f}"])
-    rows.append(["TOTALE", f"€ {p.totale:,.2f}"])
+        rows.append(["Ritenuta d'acconto (20 %)", f"- {format_euro_it(p.ritenuta)}"])
+    rows.append(["TOTALE", format_euro_it(p.totale)])
 
     riepilogo_data = [
         [Paragraph(label, ParagraphStyle(
@@ -770,7 +771,10 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
         story.append(Paragraph("Tracciabilità e prove", style_h2))
         story.append(Paragraph(f"<b>Evento:</b> {audit_proof.get('event_id', '')}", style_small))
         story.append(Paragraph(f"<b>Hash evento:</b> {audit_proof.get('event_hash', '')}", style_small))
-        story.append(Paragraph(f"<b>Data UTC:</b> {audit_proof.get('event_ts_utc', '')}", style_small))
+        story.append(Paragraph(
+            f"<b>Data e ora italiana:</b> {format_datetime_it(audit_proof.get('event_ts_utc', ''), include_timezone=True)}",
+            style_small,
+        ))
         story.append(Paragraph("<b>Tipo evento:</b> ricevuta cliente emessa", style_small))
         story.append(Paragraph(f"<b>Snapshot:</b> {audit_proof.get('snapshot_status', 'Inclusione snapshot in attesa')}", style_small))
         if audit_proof.get("proof_href"):

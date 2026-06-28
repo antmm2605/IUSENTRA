@@ -115,11 +115,11 @@ def test_tariffario_react_post_calcolo_gdp_valore_zero(tmp_path: Path):
     assert payload["state"]["grado"] == "Giudice di Pace"
     assert payload["profile"]["practiceId"] == "atto_citazione"
     assert payload["result"]["selectedLevel"] == "base"
-    assert payload["result"]["selectedTotal"] == "EUR 397,90"
+    assert payload["result"]["selectedTotal"] == "€ 397,90"
     metadata = {item["label"]: item["value"] for item in payload["result"]["metadata"]}
     assert metadata["Materia"] == "Civile di cognizione"
     assert metadata["Grado"] == "Giudice di Pace"
-    assert metadata["Scaglione"] == "Fino a EUR 1.100"
+    assert metadata["Scaglione"] == "Fino a € 1.100"
 
 
 def test_tariffario_react_spese_manuale_mediazione_e_cta(tmp_path: Path):
@@ -203,5 +203,5 @@ def test_tariffario_react_variazioni_adr_e_art15_incidono_sul_totale(tmp_path: P
     )
     assert changed_mediazione > base_mediazione
     economic_rows = {row["id"]: row["value"] for row in changed_payload["result"]["economic"]["rows"]}
-    assert economic_rows["anticipazioni_art15"] != "EUR 0,00"
+    assert economic_rows["anticipazioni_art15"] != "€ 0,00"
     assert any("Costi organismo mediazione" in item["descrizione"] for item in changed_payload["result"]["included"])

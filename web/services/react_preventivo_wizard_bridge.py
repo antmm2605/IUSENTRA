@@ -6,6 +6,8 @@ stato iniziale e calcolo usando i servizi Python esistenti del wizard legacy.
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
@@ -72,7 +74,7 @@ def _money(value: Any) -> str:
     except (TypeError, ValueError):
         amount = 0.0
     rendered = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {rendered}"
+    return format_euro_it(value)
 
 
 def _date_it(value: Any) -> str:

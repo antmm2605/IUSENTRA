@@ -46,7 +46,7 @@ export function TopBarTodayMenu({
         <div className="iu-topbar-panel iu-today-panel" role="dialog" aria-label="Oggi">
           <header>
             <strong>Oggi</strong>
-            <small>{data?.date ? new Date(`${data.date}T12:00:00`).toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long' }) : 'Agenda operativa'}</small>
+            <small>{data?.date ? new Date(`${data.date}T12:00:00`).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', weekday: 'long', day: '2-digit', month: 'long' }) : 'Agenda operativa'}</small>
           </header>
           {loading ? <p className="iu-panel-state"><Loader2 className="iu-spin" size={16} /> Caricamento riepilogo...</p> : null}
           {error ? <p className="iu-panel-state is-error">{error}</p> : null}

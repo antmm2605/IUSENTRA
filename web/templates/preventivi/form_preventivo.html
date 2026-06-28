@@ -167,7 +167,7 @@
         </div>
         <div class="card-body">
           <div class="alert alert-info py-2 small mb-3">
-            Parametro indicativo art. 22-bis D.M. 55/2014: EUR 200-500 per ora o frazione superiore a 30 minuti.
+            Parametro indicativo art. 22-bis D.M. 55/2014: € 200-500 per ora o frazione superiore a 30 minuti.
             Il compenso a tempo richiede pattuizione espressa con il cliente; in assenza di accordo scritto usa i parametri ordinari per materia, valore, autorita e fasi.
           </div>
           <div class="row g-3">
@@ -671,8 +671,8 @@ function aggiornaPreviewCompensoTempo() {
   const oreFatturabili = oreFatturabiliPreview(totalMinutes, criterio);
   const compenso = tariffa * oreFatturabili;
   const warnings = [];
-  if (tariffa > 0 && tariffa < 200) warnings.push('Tariffa sotto il parametro indicativo di EUR 200/ora.');
-  if (tariffa > 500) warnings.push('Tariffa sopra il parametro indicativo di EUR 500/ora.');
+  if (tariffa > 0 && tariffa < 200) warnings.push('Tariffa sotto il parametro indicativo di € 200/ora.');
+  if (tariffa > 500) warnings.push('Tariffa sopra il parametro indicativo di € 500/ora.');
   if (tariffa <= 0 || totalMinutes <= 0) {
     box.innerHTML = 'Inserisci tariffa e tempo stimato per vedere ore fatturabili, compenso base e avvisi.';
     return;
@@ -681,7 +681,7 @@ function aggiornaPreviewCompensoTempo() {
     <div class="d-flex flex-wrap gap-2 align-items-center">
       <span class="badge text-bg-light">Minuti totali: ${totalMinutes.toLocaleString('it-IT')}</span>
       <span class="badge text-bg-primary">Ore fatturabili: ${oreFatturabili.toLocaleString('it-IT')}</span>
-      <span class="badge text-bg-success">Compenso base: ${compenso.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}</span>
+      <span class="badge text-bg-success">Compenso base: € ${compenso.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
     </div>
     ${warnings.length ? `<div class="text-warning mt-2">${warnings.join(' ')}</div>` : '<div class="text-success mt-2">Parametro orario nel range indicativo art. 22-bis.</div>'}
   `;

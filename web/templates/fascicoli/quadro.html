@@ -84,7 +84,7 @@
     <div class="stat-kpi-card" style="--kpi-color:#c8972b">
       <div class="stat-kpi-icon"><i class="bi bi-cash-stack"></i></div>
       <div class="stat-kpi-val">{{ "%.0f"|format(totale_emesso) }}</div>
-      <div class="stat-kpi-label">Emesso (EUR)</div>
+      <div class="stat-kpi-label">Emesso (€)</div>
     </div>
   </div>
   <div class="col-6 col-sm-4 col-lg-2">
@@ -196,7 +196,7 @@
           </div>
           {% if preventivo %}
           <div class="qd-info-row"><span class="qd-info-label">Data</span><span class="qd-info-val">{{ preventivo.data_emissione or '—' }}</span></div>
-          <div class="qd-info-row"><span class="qd-info-label">Importo</span><span class="qd-info-val fw-semibold">€ {{ "%.2f"|format(importo_preventivo) }}</span></div>
+          <div class="qd-info-row"><span class="qd-info-label">Importo</span><span class="qd-info-val fw-semibold">{{ importo_preventivo|euro }}</span></div>
           {% if preventivo.oggetto %}<div class="qd-info-row"><span class="qd-info-label">Oggetto</span><span class="qd-info-val text-truncate">{{ preventivo.oggetto[:60] }}</span></div>{% endif %}
           <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=preventivo.id) }}" class="qd-link-btn mt-2"><i class="bi bi-eye"></i>Apri</a>
           {% else %}
@@ -216,7 +216,7 @@
           </div>
           {% if conferimento %}
           <div class="qd-info-row"><span class="qd-info-label">Data</span><span class="qd-info-val">{{ conferimento.data_emissione or '—' }}</span></div>
-          {% if importo_conferimento %}<div class="qd-info-row"><span class="qd-info-label">Onorario</span><span class="qd-info-val fw-semibold">€ {{ "%.2f"|format(importo_conferimento) }}</span></div>{% endif %}
+          {% if importo_conferimento %}<div class="qd-info-row"><span class="qd-info-label">Onorario</span><span class="qd-info-val fw-semibold">{{ importo_conferimento|euro }}</span></div>{% endif %}
           <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=conferimento.id) }}" class="qd-link-btn mt-2"><i class="bi bi-eye"></i>Apri</a>
           {% else %}
           <div class="text-muted small py-1">Non ancora conferito.</div>
@@ -415,21 +415,21 @@
       <div class="col-4">
         <div class="qd-money-card">
           <div class="qd-money-label">Emesso</div>
-          <div class="qd-money-val">€ {{ "%.2f"|format(totale_emesso) }}</div>
+          <div class="qd-money-val">{{ totale_emesso|euro }}</div>
           <div class="qd-money-sub">{{ n_parcelle_emesse }} parcella/e</div>
         </div>
       </div>
       <div class="col-4">
         <div class="qd-money-card qd-money-success">
           <div class="qd-money-label">Incassato</div>
-          <div class="qd-money-val">€ {{ "%.2f"|format(totale_pagato) }}</div>
+          <div class="qd-money-val">{{ totale_pagato|euro }}</div>
           <div class="qd-money-sub">{{ n_parcelle_pagate }} pagata/e</div>
         </div>
       </div>
       <div class="col-4">
         <div class="qd-money-card {% if totale_emesso - totale_pagato > 0 %}qd-money-warning{% endif %}">
           <div class="qd-money-label">Da incassare</div>
-          <div class="qd-money-val">€ {{ "%.2f"|format([totale_emesso - totale_pagato, 0]|max) }}</div>
+          <div class="qd-money-val">{{ [totale_emesso - totale_pagato, 0]|max|euro }}</div>
           {% if n_parcelle_scadute > 0 %}<div class="qd-money-sub text-danger">{{ n_parcelle_scadute }} scaduta/e</div>{% endif %}
         </div>
       </div>
@@ -455,7 +455,7 @@
           <tr>
             <td><code class="small">{{ p.numero }}</code></td>
             <td class="d-none d-sm-table-cell">{{ p.data_emissione or '—' }}</td>
-            <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+            <td class="text-end fw-semibold">{{ p.totale|euro }}</td>
             <td><span class="badge bg-{{ STATI_P.get(p.stato.value, 'secondary') }}" style="font-size:.6rem">{{ p.stato.value }}</span></td>
             <td class="d-none d-md-table-cell">
               <a href="{{ url_for('fatturazione.xml_fattura_pa', id_parcella=p.id) }}" class="qd-link-btn" style="font-size:.65rem"><i class="bi bi-filetype-xml"></i>XML</a>

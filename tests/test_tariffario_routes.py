@@ -38,26 +38,30 @@ def _login(client) -> None:
     assert response.status_code == 200
 
 
+def _parse_euro_label(value: str) -> float:
+    return float(value.replace(".", "").replace(",", "."))
+
+
 def _extract_totale_compenso_base(html: str) -> float:
     match = re.search(
         r"Totale compenso</th>\s*"
-        r"<th[^>]*>EUR ([0-9.]+)</th>\s*"
-        r"<th[^>]*>EUR ([0-9.]+)</th>",
+        r"<th[^>]*>€ ([0-9.]+,[0-9]{2})</th>\s*"
+        r"<th[^>]*>€ ([0-9.]+,[0-9]{2})</th>",
         html,
         re.IGNORECASE | re.DOTALL,
     )
     assert match, "Totale compenso non trovato nel markup del tariffario"
-    return float(match.group(2))
+    return _parse_euro_label(match.group(2))
 
 
 def _extract_totale_operativo(html: str) -> float:
     match = re.search(
-        r"border-top pt-1 text-primary\">EUR ([0-9.]+)</div>",
+        r"border-top pt-1 text-primary\">€ ([0-9.]+,[0-9]{2})</div>",
         html,
         re.IGNORECASE | re.DOTALL,
     )
     assert match, "Totale operativo non trovato nel markup del tariffario"
-    return float(match.group(1))
+    return _parse_euro_label(match.group(1))
 
 
 def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):

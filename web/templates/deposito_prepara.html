@@ -399,7 +399,7 @@
 
         {% if fascicolo.valore_causa %}
         <div class="data-label">Valore della causa</div>
-        <div class="data-val">€ {{ "%.2f"|format(fascicolo.valore_causa)|replace('.', ',') }}</div>
+        <div class="data-val">{{ fascicolo.valore_causa|euro }}</div>
         {% endif %}
 
         {% if fascicolo.note %}

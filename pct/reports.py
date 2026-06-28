@@ -25,6 +25,7 @@ from reportlab.platypus import (
     HRFlowable,
     KeepTogether,
 )
+from pct.pdf_style import pdf_table_header_style
 
 
 # ------------------------------------------------------------------ Costanti colori
@@ -329,9 +330,6 @@ def _tabella_attivita(attivita: list, styles: dict, larghezza: float) -> Table:
             rows.append(row)
 
     ts = TableStyle([
-        ("BACKGROUND",   (0, 0), (-1, 0), BLU_SCURO),
-        ("TEXTCOLOR",    (0, 0), (-1, 0), BIANCO),
-        ("FONTNAME",     (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",     (0, 0), (-1, 0), 8),
         ("VALIGN",       (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING",   (0, 0), (-1, -1), 4),
@@ -340,7 +338,7 @@ def _tabella_attivita(attivita: list, styles: dict, larghezza: float) -> Table:
         ("RIGHTPADDING", (0, 0), (-1, -1), 5),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
         ("LINEBELOW",    (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
-        ("LINEBELOW",    (0, 0), (-1, 0), 2, ORO_ACCENTO),
+        *pdf_table_header_style(line_width=2),
         ("BOX",          (0, 0), (-1, -1), 0.5, GRIGIO_MEDIO),
     ])
 
@@ -378,9 +376,6 @@ def _tabella_documenti(documenti: list, styles: dict, larghezza: float) -> Table
             rows.append(row)
 
     ts = TableStyle([
-        ("BACKGROUND",   (0, 0), (-1, 0), BLU_SCURO),
-        ("TEXTCOLOR",    (0, 0), (-1, 0), BIANCO),
-        ("FONTNAME",     (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",     (0, 0), (-1, 0), 8),
         ("VALIGN",       (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING",   (0, 0), (-1, -1), 4),
@@ -389,7 +384,7 @@ def _tabella_documenti(documenti: list, styles: dict, larghezza: float) -> Table
         ("RIGHTPADDING", (0, 0), (-1, -1), 5),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
         ("LINEBELOW",    (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
-        ("LINEBELOW",    (0, 0), (-1, 0), 2, ORO_ACCENTO),
+        *pdf_table_header_style(line_width=2),
         ("BOX",          (0, 0), (-1, -1), 0.5, GRIGIO_MEDIO),
     ])
 
@@ -474,9 +469,6 @@ def _tabella_scadenze(scadenze: list, styles: dict, larghezza: float) -> Table:
             rows.append(row)
 
     ts = TableStyle([
-        ("BACKGROUND",   (0, 0), (-1, 0), BLU_SCURO),
-        ("TEXTCOLOR",    (0, 0), (-1, 0), BIANCO),
-        ("FONTNAME",     (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",     (0, 0), (-1, 0), 8),
         ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING",   (0, 0), (-1, -1), 5),
@@ -485,7 +477,7 @@ def _tabella_scadenze(scadenze: list, styles: dict, larghezza: float) -> Table:
         ("RIGHTPADDING", (0, 0), (-1, -1), 5),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
         ("LINEBELOW",    (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
-        ("LINEBELOW",    (0, 0), (-1, 0), 2, ORO_ACCENTO),
+        *pdf_table_header_style(line_width=2),
         ("BOX",          (0, 0), (-1, -1), 0.5, GRIGIO_MEDIO),
     ])
 
@@ -868,9 +860,7 @@ class GeneratoreReport:
                 ])
             t = Table(rows, colWidths=[0.5*cm, page_w*0.42, page_w*0.14, page_w*0.28, page_w*0.14])
             t.setStyle(TableStyle([
-                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
-                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
-                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                *pdf_table_header_style(),
                 ("FONTSIZE",     (0, 0), (-1, -1), 8),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
                 ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
@@ -898,9 +888,7 @@ class GeneratoreReport:
                 ])
             t2 = Table(sc_rows, colWidths=[page_w*0.14, page_w*0.15, page_w*0.45, page_w*0.14, page_w*0.08])
             t2.setStyle(TableStyle([
-                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
-                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
-                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                *pdf_table_header_style(),
                 ("FONTSIZE",     (0, 0), (-1, -1), 8),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
                 ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
@@ -926,9 +914,7 @@ class GeneratoreReport:
                 ])
             t3 = Table(tl_rows, colWidths=[page_w*0.13, page_w*0.15, page_w*0.18, page_w*0.38, page_w*0.16])
             t3.setStyle(TableStyle([
-                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
-                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
-                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                *pdf_table_header_style(),
                 ("FONTSIZE",     (0, 0), (-1, -1), 8),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
                 ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
@@ -1046,8 +1032,8 @@ def lista_fascicoli_pdf(
         ])
     tbl = Table(rows, colWidths=col_w, repeatRows=1)
     tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BLU_SCURO), ("TEXTCOLOR", (0, 0), (-1, 0), BIANCO),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7),
+        *pdf_table_header_style(),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
         ("GRID", (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO), ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
@@ -1129,8 +1115,8 @@ def lista_clienti_pdf(
         ])
     tbl = Table(rows, colWidths=col_w, repeatRows=1)
     tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), BLU_SCURO), ("TEXTCOLOR", (0, 0), (-1, 0), BIANCO),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7),
+        *pdf_table_header_style(),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
         ("GRID", (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO), ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),

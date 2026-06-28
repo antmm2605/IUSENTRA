@@ -42,7 +42,7 @@ def test_mediazione_dm150_primo_incontro_con_accordo_applica_maggiorazione_art30
         esito=ESITO_PRIMO_INCONTRO_CON_ACCORDO,
     )
 
-    assert result.scaglione == "Da EUR 5.000,01 a EUR 10.000"
+    assert result.scaglione == "Da € 5.000,01 a € 10.000"
     assert result.ulteriori_spese_mediazione == 187.0
     assert result.totale_organismo == 382.0
 

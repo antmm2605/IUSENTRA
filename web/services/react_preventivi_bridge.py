@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -96,7 +98,7 @@ def _money(value: Any) -> str:
         amount = float(value or 0)
     except (TypeError, ValueError):
         amount = 0.0
-    return f"EUR {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
 
 
 def _date_label(value: Any) -> str:

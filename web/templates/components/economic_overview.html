@@ -50,10 +50,10 @@
             </div>
             <div class="text-end">
               {% if row.insoluto is defined %}
-              <div class="fw-semibold">&euro; {{ '%.2f'|format(row.insoluto) }}</div>
+              <div class="fw-semibold">{{ row.insoluto|euro }}</div>
               <div class="small text-muted">insoluto</div>
               {% elif row.valore is defined %}
-              <div class="fw-semibold">&euro; {{ '%.2f'|format(row.valore) }}</div>
+              <div class="fw-semibold">{{ row.valore|euro }}</div>
               <div class="small text-muted">valore</div>
               {% endif %}
             </div>
@@ -74,7 +74,7 @@
             </div>
             <div class="text-end">
               <div class="fw-semibold">{{ '%.1f'|format(row.ore) }} h</div>
-              <div class="small text-muted">&euro; {{ '%.2f'|format(row.valore) }}</div>
+              <div class="small text-muted">{{ row.valore|euro }}</div>
             </div>
           </div>
           {% endfor %}

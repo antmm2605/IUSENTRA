@@ -1,4 +1,4 @@
-﻿"""
+"""
 pct/tariffario.py - Calcolo compensi forensi DM 55/2014 aggiornato al DM 147/2022.
 
 I valori tabellari ufficiali vengono letti dallo snapshot interno
@@ -233,18 +233,18 @@ class RisultatoCalcolo:
 
 _SNAPSHOT_PATH = Path(__file__).resolve().parent / "data" / "tariffario_dm147_2022.json"
 _LABELS_3 = [
-    (0, 1100, "Fino a EUR 1.100"),
-    (1100, 5200, "Da EUR 1.100 a EUR 5.200"),
-    (5200, float("inf"), "Da EUR 5.200 a EUR 26.000 (limite GdP)"),
+    (0, 1100, "Fino a € 1.100"),
+    (1100, 5200, "Da € 1.100 a € 5.200"),
+    (5200, float("inf"), "Da € 5.200 a € 26.000 (limite GdP)"),
 ]
 _LABELS_7 = [
-    (0, 1100, "Fino a EUR 1.100 (o indeterminabile)"),
-    (1100, 5200, "Da EUR 1.100 a EUR 5.200"),
-    (5200, 26000, "Da EUR 5.200 a EUR 26.000"),
-    (26000, 52000, "Da EUR 26.000 a EUR 52.000"),
-    (52000, 260000, "Da EUR 52.000 a EUR 260.000"),
-    (260000, 520000, "Da EUR 260.000 a EUR 520.000"),
-    (520000, float("inf"), "Oltre EUR 520.000"),
+    (0, 1100, "Fino a € 1.100 (o indeterminabile)"),
+    (1100, 5200, "Da € 1.100 a € 5.200"),
+    (5200, 26000, "Da € 5.200 a € 26.000"),
+    (26000, 52000, "Da € 26.000 a € 52.000"),
+    (52000, 260000, "Da € 52.000 a € 260.000"),
+    (260000, 520000, "Da € 260.000 a € 520.000"),
+    (520000, float("inf"), "Oltre € 520.000"),
 ]
 _PHASE_LABELS = {
     "Studio": Fase.STUDIO.value,
@@ -457,7 +457,7 @@ def _snapshot_scaglione_sources(raw_table: dict[str, list[float | None]]) -> lis
 
     has_high_progressive = any(row[0] == 6 for row in rows)
     if not has_high_progressive and progressive_tail_index >= 0:
-        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre EUR 520.000"))
+        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre € 520.000"))
     return rows
 
 
@@ -508,19 +508,19 @@ def _tabella_snapshot(codice: str) -> list[Scaglione]:
 
 def _fallback_gdp() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a EUR 1.100", {
+        Scaglione(0, 1100, "Fino a € 1.100", {
             Fase.STUDIO.value: _sc(68),
             Fase.INTRODUTTIVA.value: _sc(68),
             Fase.ISTRUTTORIA.value: _sc(68),
             Fase.DECISIONALE.value: _sc(142),
         }),
-        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
             Fase.STUDIO.value: _sc(236),
             Fase.INTRODUTTIVA.value: _sc(252),
             Fase.ISTRUTTORIA.value: _sc(352),
             Fase.DECISIONALE.value: _sc(425),
         }),
-        Scaglione(5200, float("inf"), "Da EUR 5.200 a EUR 26.000 (limite GdP)", {
+        Scaglione(5200, float("inf"), "Da € 5.200 a € 26.000 (limite GdP)", {
             Fase.STUDIO.value: _sc(425),
             Fase.INTRODUTTIVA.value: _sc(352),
             Fase.ISTRUTTORIA.value: _sc(567),
@@ -531,37 +531,37 @@ def _fallback_gdp() -> list[Scaglione]:
 
 def _fallback_civile() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
             Fase.STUDIO.value: _sc(131),
             Fase.INTRODUTTIVA.value: _sc(196),
             Fase.ISTRUTTORIA.value: _sc(295),
             Fase.DECISIONALE.value: _sc(413),
         }),
-        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
             Fase.STUDIO.value: _sc(425),
             Fase.INTRODUTTIVA.value: _sc(637),
             Fase.ISTRUTTORIA.value: _sc(1063),
             Fase.DECISIONALE.value: _sc(1276),
         }),
-        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {
             Fase.STUDIO.value: _sc(919),
             Fase.INTRODUTTIVA.value: _sc(1378),
             Fase.ISTRUTTORIA.value: _sc(1837),
             Fase.DECISIONALE.value: _sc(2756),
         }),
-        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {
             Fase.STUDIO.value: _sc(1701),
             Fase.INTRODUTTIVA.value: _sc(2551),
             Fase.ISTRUTTORIA.value: _sc(3826),
             Fase.DECISIONALE.value: _sc(5103),
         }),
-        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {
+        Scaglione(52000, 260000, "Da € 52.000 a € 260.000", {
             Fase.STUDIO.value: _sc(2835),
             Fase.INTRODUTTIVA.value: _sc(4252),
             Fase.ISTRUTTORIA.value: _sc(7088),
             Fase.DECISIONALE.value: _sc(8505),
         }),
-        Scaglione(260000, float("inf"), "Oltre EUR 260.000", {
+        Scaglione(260000, float("inf"), "Oltre € 260.000", {
             Fase.STUDIO.value: _sc(5670),
             Fase.INTRODUTTIVA.value: _sc(8505),
             Fase.ISTRUTTORIA.value: _sc(14175),
@@ -572,31 +572,31 @@ def _fallback_civile() -> list[Scaglione]:
 
 def _fallback_lavoro() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
             Fase.STUDIO.value: _sc(105),
             Fase.INTRODUTTIVA.value: _sc(157),
             Fase.ISTRUTTORIA.value: _sc(236),
             Fase.DECISIONALE.value: _sc(331),
         }),
-        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
             Fase.STUDIO.value: _sc(340),
             Fase.INTRODUTTIVA.value: _sc(510),
             Fase.ISTRUTTORIA.value: _sc(851),
             Fase.DECISIONALE.value: _sc(1021),
         }),
-        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {
             Fase.STUDIO.value: _sc(735),
             Fase.INTRODUTTIVA.value: _sc(1102),
             Fase.ISTRUTTORIA.value: _sc(1470),
             Fase.DECISIONALE.value: _sc(2205),
         }),
-        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {
             Fase.STUDIO.value: _sc(1361),
             Fase.INTRODUTTIVA.value: _sc(2041),
             Fase.ISTRUTTORIA.value: _sc(3061),
             Fase.DECISIONALE.value: _sc(4082),
         }),
-        Scaglione(52000, float("inf"), "Oltre EUR 52.000", {
+        Scaglione(52000, float("inf"), "Oltre € 52.000", {
             Fase.STUDIO.value: _sc(2268),
             Fase.INTRODUTTIVA.value: _sc(3402),
             Fase.ISTRUTTORIA.value: _sc(5670),
@@ -619,37 +619,37 @@ def _fallback_penale() -> list[Scaglione]:
 
 def _fallback_amministrativo() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
             Fase.STUDIO.value: _sc(140),
             Fase.INTRODUTTIVA.value: _sc(210),
             Fase.ISTRUTTORIA.value: _sc(315),
             Fase.DECISIONALE.value: _sc(441),
         }),
-        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
             Fase.STUDIO.value: _sc(453),
             Fase.INTRODUTTIVA.value: _sc(680),
             Fase.ISTRUTTORIA.value: _sc(1134),
             Fase.DECISIONALE.value: _sc(1361),
         }),
-        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {
             Fase.STUDIO.value: _sc(980),
             Fase.INTRODUTTIVA.value: _sc(1470),
             Fase.ISTRUTTORIA.value: _sc(1960),
             Fase.DECISIONALE.value: _sc(2940),
         }),
-        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {
             Fase.STUDIO.value: _sc(1815),
             Fase.INTRODUTTIVA.value: _sc(2722),
             Fase.ISTRUTTORIA.value: _sc(4083),
             Fase.DECISIONALE.value: _sc(5445),
         }),
-        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {
+        Scaglione(52000, 260000, "Da € 52.000 a € 260.000", {
             Fase.STUDIO.value: _sc(3024),
             Fase.INTRODUTTIVA.value: _sc(4536),
             Fase.ISTRUTTORIA.value: _sc(7560),
             Fase.DECISIONALE.value: _sc(9072),
         }),
-        Scaglione(260000, float("inf"), "Oltre EUR 260.000", {
+        Scaglione(260000, float("inf"), "Oltre € 260.000", {
             Fase.STUDIO.value: _sc(6048),
             Fase.INTRODUTTIVA.value: _sc(9072),
             Fase.ISTRUTTORIA.value: _sc(15120),
@@ -664,13 +664,13 @@ def _fallback_tributario() -> list[Scaglione]:
 
 def _fallback_stragiudiziale() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a EUR 1.100", {"Compenso unico": _sc(216)}),
-        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {"Compenso unico": _sc(756)}),
-        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {"Compenso unico": _sc(1836)}),
-        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {"Compenso unico": _sc(3402)}),
-        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {"Compenso unico": _sc(5940)}),
-        Scaglione(260000, 520000, "Da EUR 260.000 a EUR 520.000", {"Compenso unico": _sc(11340)}),
-        Scaglione(520000, float("inf"), "Oltre EUR 520.000", {"Compenso unico": _sc(0)}),
+        Scaglione(0, 1100, "Fino a € 1.100", {"Compenso unico": _sc(216)}),
+        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {"Compenso unico": _sc(756)}),
+        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {"Compenso unico": _sc(1836)}),
+        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {"Compenso unico": _sc(3402)}),
+        Scaglione(52000, 260000, "Da € 52.000 a € 260.000", {"Compenso unico": _sc(5940)}),
+        Scaglione(260000, 520000, "Da € 260.000 a € 520.000", {"Compenso unico": _sc(11340)}),
+        Scaglione(520000, float("inf"), "Oltre € 520.000", {"Compenso unico": _sc(0)}),
     ]
 
 
@@ -1329,11 +1329,11 @@ def calcola_compenso(
         note_parts.append("Valore di controversia non applicato al penale.")
     if valore_calcolo > 520000 and materia != Materia.PENALE:
         note_parts.append(
-            "Valore superiore a EUR 520.000: applicato lo scaglione 'Oltre EUR 520.000' senza degradare su fasce inferiori."
+            "Valore superiore a € 520.000: applicato lo scaglione 'Oltre € 520.000' senza degradare su fasce inferiori."
         )
     if valore_indeterminabile_parametrizzato and complessita_norm == ComplessitaStimata.MOLTO_ALTA:
         note_parts.append(
-            "Complessita molto alta: valore indeterminabile parametrizzato nella fascia oltre EUR 520.000; verificare congruita prima dell'invio al cliente."
+            "Complessita molto alta: valore indeterminabile parametrizzato nella fascia oltre € 520.000; verificare congruita prima dell'invio al cliente."
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
@@ -1390,7 +1390,7 @@ def calcola_compenso(
             "valore_input": valore_input,
             "valore_calcolo": valore_calcolo,
             "valore_indeterminabile_parametrizzato": valore_indeterminabile_parametrizzato,
-            "fascia_alta": valore_calcolo > 520000 and "Oltre EUR 520.000" in sc.label,
+            "fascia_alta": valore_calcolo > 520000 and "Oltre € 520.000" in sc.label,
             "complessita_stimata": complessita_norm.value if complessita_norm else "",
             "exact_snapshot": bool(catalog_context.get("exact_snapshot", esatto)),
             "compliance_status": str(catalog_context.get("compliance_status", "")),

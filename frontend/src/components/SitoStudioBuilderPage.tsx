@@ -240,7 +240,7 @@ function formatDate(value: string): string {
   if (!value) return 'Non indicata'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value.replace('T', ' ').slice(0, 16)
-  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(parsed)
 }
 
 function publicationScore(validation: SitoStudioBuilderData['validation']): number {

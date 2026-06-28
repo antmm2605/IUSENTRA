@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Tariffario Forense{% endblock %}
 {% block pct_modulo %}tariffario{% endblock %}
 
@@ -86,7 +86,7 @@
               <select id="selGrado" name="grado" class="form-select" required></select>
             </div>
             <div class="col-lg-2">
-              <label class="form-label fw-semibold">Valore controversia (EUR)</label>
+              <label class="form-label fw-semibold">Valore controversia (€)</label>
               <input type="text" id="inpValore" name="valore" class="form-control"
                      inputmode="decimal" autocomplete="off" value="{{ valore_str }}" placeholder="0,00">
               <div class="form-text">Usa 0 se il valore non e ancora determinato: IUSENTRA applichera per default il primo scaglione tabellare disponibile.</div>
@@ -360,40 +360,40 @@
               {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
               <tr>
                 <td class="fw-semibold">{{ fase }}</td>
-                <td class="text-end">EUR {{ "%.2f"|format(vmin) }}</td>
-                <td class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(vbase) }}</td>
-                <td class="text-end">EUR {{ "%.2f"|format(vmax) }}</td>
+                <td class="text-end">{{ vmin|euro }}</td>
+                <td class="text-end table-primary fw-semibold">{{ vbase|euro }}</td>
+                <td class="text-end">{{ vmax|euro }}</td>
               </tr>
               {% endfor %}
             </tbody>
             <tfoot>
               <tr class="table-light">
                 <th>Subtotale onorari</th>
-                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_min.subtotale) }}</th>
-                <th class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(riepilogo_base.subtotale) }}</th>
-                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_max.subtotale) }}</th>
+                <th class="text-end">{{ riepilogo_min.subtotale|euro }}</th>
+                <th class="text-end table-primary fw-semibold">{{ riepilogo_base.subtotale|euro }}</th>
+                <th class="text-end">{{ riepilogo_max.subtotale|euro }}</th>
               </tr>
               {% if riepilogo_min.bonus_telematico or riepilogo_base.bonus_telematico or riepilogo_max.bonus_telematico %}
               <tr class="table-success">
                 <td>Bonus telematico 30%</td>
-                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.bonus_telematico) }}</td>
-                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.bonus_telematico) }}</td>
-                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.bonus_telematico) }}</td>
+                <td class="text-end">+ {{ riepilogo_min.bonus_telematico|euro }}</td>
+                <td class="text-end table-primary fw-semibold">+ {{ riepilogo_base.bonus_telematico|euro }}</td>
+                <td class="text-end">+ {{ riepilogo_max.bonus_telematico|euro }}</td>
               </tr>
               {% endif %}
               {% if riepilogo_min.spese_generali or riepilogo_base.spese_generali or riepilogo_max.spese_generali %}
               <tr class="table-warning">
                 <td>Spese generali</td>
-                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.spese_generali) }}</td>
-                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.spese_generali) }}</td>
-                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.spese_generali) }}</td>
+                <td class="text-end">+ {{ riepilogo_min.spese_generali|euro }}</td>
+                <td class="text-end table-primary fw-semibold">+ {{ riepilogo_base.spese_generali|euro }}</td>
+                <td class="text-end">+ {{ riepilogo_max.spese_generali|euro }}</td>
               </tr>
               {% endif %}
               <tr class="table-primary">
                 <th>Totale compenso</th>
-                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_min.totale_compenso) }}</th>
-                <th class="text-end fw-bold table-primary">EUR {{ "%.2f"|format(riepilogo_base.totale_compenso) }}</th>
-                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_max.totale_compenso) }}</th>
+                <th class="text-end fw-bold">{{ riepilogo_min.totale_compenso|euro }}</th>
+                <th class="text-end fw-bold table-primary">{{ riepilogo_base.totale_compenso|euro }}</th>
+                <th class="text-end fw-bold">{{ riepilogo_max.totale_compenso|euro }}</th>
               </tr>
             </tfoot>
           </table>
@@ -428,7 +428,7 @@
                 <tr>
                   <td>{{ row.descrizione }}</td>
                   <td>{{ row.tipo }}</td>
-                  <td class="text-end">EUR {{ "%.2f"|format(row.importo) }}</td>
+                  <td class="text-end">{{ row.importo|euro }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -442,13 +442,13 @@
           <div class="fw-semibold mb-2">Riepilogo economico collegato</div>
           <div class="row g-1">
             <div class="col-8">Imponibile complessivo</div>
-            <div class="col-4 text-end">EUR {{ "%.2f"|format(riepilogo_economico.imponibile) }}</div>
+            <div class="col-4 text-end">{{ riepilogo_economico.imponibile|euro }}</div>
             <div class="col-8 text-muted">CPA 4%</div>
-            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.cassa) }}</div>
+            <div class="col-4 text-end text-muted">{{ riepilogo_economico.cassa|euro }}</div>
             <div class="col-8 text-muted">IVA 22%</div>
-            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.iva) }}</div>
+            <div class="col-4 text-end text-muted">{{ riepilogo_economico.iva|euro }}</div>
             <div class="col-8 fw-bold border-top pt-1">Totale fattura teorico</div>
-            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">EUR {{ "%.2f"|format(riepilogo_economico.totale) }}</div>
+            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">{{ riepilogo_economico.totale|euro }}</div>
           </div>
         </div>
         {% endif %}
@@ -1207,7 +1207,7 @@ function renderExpenses() {
           <span class="title d-block">${escapeHtml(item.descrizione)}</span>
           <span class="description d-block">Seleziona per includerla nel totale operativo.</span>
         </span>
-        <span class="amount">${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR</span>
+        <span class="amount">€ ${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </label>
     `).join('')}</div>`;
 }

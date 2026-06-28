@@ -18,6 +18,7 @@ import unicodedata
 from urllib.parse import quote
 
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+from pct.formatting import DISPLAY_TIMEZONE, parse_datetime_rome
 from pct.pec_pipeline import (
     AttachmentPayload,
     build_pec_procedural_profile,
@@ -871,27 +872,17 @@ def _pec_audit_virtual_row(
 
 
 def _parse_datetime(value: Any) -> datetime | None:
-    if isinstance(value, datetime):
-        return value
-    raw = str(value or "").strip()
-    if not raw:
+    parsed = parse_datetime_rome(value)
+    if parsed is None:
         return None
-    for sample in (raw.replace("Z", "+00:00"), raw[:19], raw[:10]):
-        try:
-            parsed = datetime.fromisoformat(sample)
-            if parsed.tzinfo:
-                parsed = parsed.astimezone().replace(tzinfo=None)
-            return parsed
-        except ValueError:
-            continue
-    return None
+    return parsed.astimezone(DISPLAY_TIMEZONE).replace(tzinfo=None)
 
 
 def _format_time(value: Any) -> str:
     parsed = _parse_datetime(value)
     if not parsed:
         return ""
-    today = date.today()
+    today = datetime.now(DISPLAY_TIMEZONE).date()
     if parsed.date() == today:
         return parsed.strftime("%H:%M")
     if parsed.date() == today - timedelta(days=1):

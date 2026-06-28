@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import html
 import math
 from calendar import monthrange
@@ -983,7 +985,7 @@ class GestioneStrumentiLegali:
         mesi = {1:"gennaio",2:"febbraio",3:"marzo",4:"aprile",5:"maggio",6:"giugno",
                 7:"luglio",8:"agosto",9:"settembre",10:"ottobre",11:"novembre",12:"dicembre"}
         notes.append(
-            f"Formula: {importo:,.2f} × ({indice_fine} / {indice_base}) = {importo_rivalutato:,.2f} EUR."
+            f"Formula: {importo:,.2f} × ({indice_fine} / {indice_base}) = {format_euro_it(importo_rivalutato)}."
         )
         notes.append(
             f"Indici ISTAT {tipo.upper()} base 2015=100: "
@@ -1064,7 +1066,7 @@ class GestioneStrumentiLegali:
             f"{variazione_foi:+.2f}% × {perc_adeguamento:.0f}% = {variazione_applicata:+.2f}% applicato."
         )
         notes.append(
-            f"Formula: {canone:.2f} + ({canone:.2f} × {variazione_applicata:.4f}/100) = {canone_aggiornato:.2f} EUR/mese."
+            f"Formula: {canone:.2f} + ({canone:.2f} × {variazione_applicata:.4f}/100) = {format_euro_it(canone_aggiornato)}/mese."
         )
         if perc_adeguamento == 75.0:
             notes.append("Contratti liberi 4+4 (L. 431/1998 art. 1): aggiornamento al 75% della variazione FOI. Verificare il testo contrattuale.")
@@ -1241,23 +1243,23 @@ class GestioneStrumentiLegali:
                 base_usata = reddito
                 calcolato = round(reddito * aliquota / 100.0, 2)
                 if calcolato < minimo:
-                    notes.append(f"{label}: calcolato {calcolato:.2f} EUR < minimo {minimo:.2f} EUR → applicato il minimo.")
+                    notes.append(f"{label}: calcolato {format_euro_it(calcolato)} < minimo {format_euro_it(minimo)} → applicato il minimo.")
                     calcolato = minimo
             elif tipo == "integrativo" and compensi > 0:
                 base_usata = compensi
                 calcolato = round(compensi * aliquota / 100.0, 2)
                 if calcolato < minimo:
-                    notes.append(f"{label}: calcolato {calcolato:.2f} EUR < minimo {minimo:.2f} EUR → applicato il minimo.")
+                    notes.append(f"{label}: calcolato {format_euro_it(calcolato)} < minimo {format_euro_it(minimo)} → applicato il minimo.")
                     calcolato = minimo
             elif tipo == "maternita_assistenza":
                 calcolato = minimo
                 base_usata = 0.0
             elif tipo == "soggettivo" and reddito <= 0:
                 calcolato = minimo
-                notes.append(f"{label}: reddito non indicato, applicato il minimo di iscrizione {minimo:.2f} EUR.")
+                notes.append(f"{label}: reddito non indicato, applicato il minimo di iscrizione {format_euro_it(minimo)}.")
             elif tipo == "integrativo" and compensi <= 0:
                 calcolato = minimo
-                notes.append(f"{label}: compensi non indicati, applicato il minimo {minimo:.2f} EUR.")
+                notes.append(f"{label}: compensi non indicati, applicato il minimo {format_euro_it(minimo)}.")
 
             totale += calcolato
             result_rows.append({
@@ -1714,7 +1716,7 @@ class GestioneStrumentiLegali:
         ]
         warnings: List[str] = []
         if anticipazioni > 0:
-            notes.append(f"Anticipazioni detratte dal maturato complessivo: {anticipazioni:.2f} EUR.")
+            notes.append(f"Anticipazioni detratte dal maturato complessivo: {format_euro_it(anticipazioni)}.")
         if totale_lordo < 0:
             warnings.append("Il totale risulta negativo dopo le anticipazioni indicate: verificare i dati di partenza.")
 

@@ -68,7 +68,7 @@
           {% if fascicolo.valore_causa %}
           <div class="col-sm-4">
             <div class="text-muted mb-1">Valore causa</div>
-            <div class="fw-semibold">€ {{ "%.2f"|format(fascicolo.valore_causa) }}</div>
+            <div class="fw-semibold">{{ fascicolo.valore_causa|euro }}</div>
           </div>
           {% endif %}
           {{ dc("Apertura", fascicolo.data_apertura|fmt_data) }}

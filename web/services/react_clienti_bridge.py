@@ -8,6 +8,8 @@ source of truth.
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Mapping
@@ -70,12 +72,7 @@ def _enum_label(value: Any) -> str:
 
 
 def _amount(value: Any) -> str:
-    try:
-        amount = float(value or 0.0)
-    except (TypeError, ValueError):
-        amount = 0.0
-    text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {text}"
+    return format_euro_it(value)
 
 
 def _status(cliente: Any) -> str:

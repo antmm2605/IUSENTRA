@@ -256,7 +256,7 @@
       blob: new Blob([rows.join('\n')], { type: 'text/markdown;charset=utf-8' }),
       fileName: 'lex-conversazione-' +
         timestamp.toLocaleDateString('it-IT').replace(/\//g, '-') + '-' +
-        timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }).replace(':', '-') +
+        timestamp.toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).replace(':', '-') +
         '.md',
     };
   }

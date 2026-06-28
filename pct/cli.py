@@ -1,3 +1,4 @@
+from pct.formatting import format_euro_it
 """
 Interfaccia a riga di comando per il sistema PCT.
 """
@@ -1496,7 +1497,7 @@ def cmd_tar_calcola(materia, grado, valore, fasi):
         r = calcola_compenso(Materia(materia), Grado(grado), valore, fasi_list)
         click.echo(f"Materia:     {r.materia.value}")
         click.echo(f"Grado:       {r.grado.value}")
-        click.echo(f"Valore:      € {r.valore_controversia:,.2f}")
+        click.echo(f"Valore:      {format_euro_it(r.valore_controversia)}")
         click.echo(f"Scaglione:   {r.scaglione.label}")
         click.echo("")
         click.echo(f"{'FASE':<22} {'MINIMO':>10} {'BASE':>10} {'MASSIMO':>10}")
@@ -1612,12 +1613,12 @@ def cmd_par_nuova(cliente, fascicolo, voce, iva, cassa, ritenuta, bollo, scadenz
             note=note,
         )
         click.echo(f"Parcella creata: {p.id}  (n. {p.numero})")
-        click.echo(f"  Imponibile: € {p.imponibile:,.2f}")
+        click.echo(f"  Imponibile: {format_euro_it(p.imponibile)}")
         if p.applica_iva:
-            click.echo(f"  IVA 22%:    € {p.iva:,.2f}")
+            click.echo(f"  IVA 22%:    {format_euro_it(p.iva)}")
         if p.applica_cassa:
-            click.echo(f"  Cassa Forense 4%: € {p.cassa_forense:,.2f}")
-        click.echo(f"  Totale:     € {p.totale:,.2f}")
+            click.echo(f"  Cassa Forense 4%: {format_euro_it(p.cassa_forense)}")
+        click.echo(f"  Totale:     {format_euro_it(p.totale)}")
     except Exception as e:
         click.echo(f"Errore: {e}", err=True)
 
@@ -1659,9 +1660,9 @@ def cmd_par_statistiche(anno, db):
     click.echo(f"Emesse:          {stats.get('emesse', 0)}")
     click.echo(f"Pagate:          {stats.get('pagate', 0)}")
     click.echo(f"Scadute:         {stats.get('scadute', 0)}")
-    click.echo(f"Fatturato tot.:  € {stats.get('fatturato_totale', 0):,.2f}")
-    click.echo(f"Incassato:       € {stats.get('incassato', 0):,.2f}")
-    click.echo(f"Da incassare:    € {stats.get('da_incassare', 0):,.2f}")
+    click.echo(f"Fatturato tot.:  {format_euro_it(stats.get('fatturato_totale', 0))}")
+    click.echo(f"Incassato:       {format_euro_it(stats.get('incassato', 0))}")
+    click.echo(f"Da incassare:    {format_euro_it(stats.get('da_incassare', 0))}")
 
 
 # ============================================================ TEMPLATE ATTI
@@ -2265,7 +2266,7 @@ def cmd_pag_nuovo_link(parcella, cliente, importo, descrizione, giorni_validita,
         )
         click.echo(f"Link creato: {lp.id}")
         click.echo(f"  Token:    {lp.token}")
-        click.echo(f"  Importo:  € {lp.importo:,.2f}")
+        click.echo(f"  Importo:  {format_euro_it(lp.importo)}")
         click.echo(f"  Scade il: {lp.scade_il or '—'}")
     except Exception as e:
         click.echo(f"Errore: {e}", err=True)

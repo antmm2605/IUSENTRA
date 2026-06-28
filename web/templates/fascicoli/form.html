@@ -69,10 +69,10 @@
           {% if workflow_prefill.compenso_pattuito or workflow_prefill.valore_causa %}
           <div class="d-flex flex-wrap gap-3 mb-2 small">
             {% if workflow_prefill.valore_causa %}
-            <span><i class="bi bi-bank me-1 text-muted"></i><strong>Valore causa:</strong> {{ "%.2f"|format(workflow_prefill.valore_causa) }} EUR</span>
+            <span><i class="bi bi-bank me-1 text-muted"></i><strong>Valore causa:</strong> {{ workflow_prefill.valore_causa|euro }}</span>
             {% endif %}
             {% if workflow_prefill.compenso_pattuito %}
-            <span><i class="bi bi-cash-stack me-1 text-muted"></i><strong>Compenso pattuito:</strong> {{ "%.2f"|format(workflow_prefill.compenso_pattuito) }} EUR</span>
+            <span><i class="bi bi-cash-stack me-1 text-muted"></i><strong>Compenso pattuito:</strong> {{ workflow_prefill.compenso_pattuito|euro }}</span>
             {% endif %}
           </div>
           {% endif %}
@@ -214,7 +214,7 @@
                      placeholder="Dott. ...">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Valore causa (EUR)</label>
+              <label class="form-label fw-semibold">Valore causa (€)</label>
               <input type="number" id="field-valore_causa" name="valore_causa" class="form-control {% if correction_highlight == 'valore_causa' %}border-primary shadow-sm{% endif %}" step="0.01" min="0"
                      value="{{ fascicolo.valore_causa if fascicolo else (workflow_prefill.valore_causa if workflow_prefill and workflow_prefill.valore_causa else '') }}"
                      placeholder="0.00">
@@ -227,7 +227,7 @@
             </div>
             {% if workflow_prefill or (fascicolo and fascicolo.compenso_pattuito) %}
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Compenso pattuito (EUR)
+              <label class="form-label fw-semibold">Compenso pattuito (€)
                 <i class="bi bi-info-circle text-muted" title="Importo dal conferimento incarico / preventivo"></i>
               </label>
               <input type="number" name="compenso_pattuito" class="form-control bg-light" step="0.01" min="0"
@@ -235,7 +235,7 @@
                      placeholder="0.00" readonly>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Valore preventivato (EUR)
+              <label class="form-label fw-semibold">Valore preventivato (€)
                 <i class="bi bi-info-circle text-muted" title="Valore totale come da preventivo approvato"></i>
               </label>
               <input type="number" name="valore_preventivato" class="form-control bg-light" step="0.01" min="0"

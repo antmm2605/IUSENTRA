@@ -22,8 +22,8 @@
       {% endfor %}
     </div>
     <div class="small text-muted mt-3">
-      Tempo valorizzabile: &euro; {{ '%.2f'|format(studio_demo_snapshot.tempo_valorizzabile or 0) }}
-      · Saldo aperto: &euro; {{ '%.2f'|format(studio_demo_snapshot.saldo_aperto or 0) }}
+      Tempo valorizzabile: {{ studio_demo_snapshot.tempo_valorizzabile or 0|euro }}
+      · Saldo aperto: {{ studio_demo_snapshot.saldo_aperto or 0|euro }}
     </div>
   </div>
 </div>

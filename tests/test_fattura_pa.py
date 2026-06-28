@@ -85,6 +85,7 @@ def test_xml_fattura_pa_usa_snapshot_personalizzato_e_destinatario_estero():
     assert root.xpath("string(.//f:DatiTrasmissione/f:ProgressivoInvio)", namespaces=ns) == "A1202"
     assert root.xpath(".//f:CessionarioCommittente/f:Sede/f:Nazione/text()", namespaces=ns) == ["FR"]
     assert root.xpath("string(.//f:DatiPagamento/f:DettaglioPagamento/f:IBAN)", namespaces=ns) == "IT60X0542811101000000123456"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
     descriptions = root.xpath(".//f:DatiBeniServizi/f:DettaglioLinee/f:Descrizione/text()", namespaces=ns)
     assert "Spese generali 15%" in descriptions
     assert "Contributo Cassa Forense 4% (art. 11 L. 576/1980)" in descriptions
@@ -132,6 +133,83 @@ def test_xml_fattura_pa_forfettaria_esclude_iva():
     ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
 
     assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
     assert root.xpath("string(.//f:DatiRiepilogo/f:AliquotaIVA)", namespaces=ns) == "0.00"
     assert root.xpath("string(.//f:DatiRiepilogo/f:Imposta)", namespaces=ns) == "0.00"
     assert "franchigia IVA" in root.xpath("string(.//f:DatiRiepilogo/f:RiferimentoNormativo)", namespaces=ns)
+
+
+def test_xml_fattura_pa_allinea_cassa_forense_all_esempio_firmato_utente():
+    cliente = Cliente(
+        id="CLI-PF",
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Vittoria",
+        cognome="Fraone",
+        codice_fiscale="FRNVTR76R53M208Z",
+        indirizzo_residenza=Indirizzo(via="via Michele Servello", civico="51", cap="89814", comune="Filadelfia", provincia="VV", nazione="Italia"),
+    )
+    parcella = Parcella(
+        id="PAR-003",
+        numero="FE 144",
+        id_cliente=cliente.id,
+        id_fascicolo=None,
+        data_emissione="2025-10-14",
+        data_scadenza=None,
+        stato=StatoParcella.BOZZA,
+        voci=[VoceParcella(descrizione="Assistenza legale", quantita=1, prezzo_unitario=296.70, tipo="ONORARIO")],
+        applica_iva=False,
+        applica_cassa=True,
+        applica_ritenuta=False,
+        applica_bollo=False,
+        dati_personalizzati={
+            "transmission": {
+                "identificativo_fiscale": "MNTGPP94L01G791A",
+                "codice_invio": "144",
+                "email": "giuseppe.montagnese94@gmail.com",
+            },
+            "studio": {
+                "nome": "Giuseppe",
+                "cognome": "Montagnese",
+                "partita_iva": "03256320809",
+                "codice_fiscale": "MNTGPP94L01G791A",
+                "indirizzo_completo": "Via Nino Bixio 4, 89029 Taurianova (RC)",
+            },
+            "recipient": {
+                "nome": "Vittoria",
+                "cognome": "Fraone",
+                "codice_fiscale": "FRNVTR76R53M208Z",
+                "indirizzo_completo": "via Michele Servello n.51, 89814 Filadelfia (VV)",
+                "nazione": "IT",
+            },
+            "document": {
+                "tipo_documento": "TD01",
+                "regime_fiscale": "RF19",
+                "data_documento": "2025-10-14",
+                "causale_oggetto": "Assistenza legale",
+                "cassa_previdenziale": "CAF",
+            },
+            "payment": {"modalita_pagamento_codice": "MP05"},
+        },
+    )
+
+    xml_bytes = genera_xml_fattura_pa(
+        parcella=parcella,
+        cliente=cliente,
+        studio_nome="Giuseppe Montagnese",
+        studio_piva="03256320809",
+        studio_cf="MNTGPP94L01G791A",
+        studio_indirizzo="Via Nino Bixio 4, 89029 Taurianova (RC)",
+    )
+    root = etree.fromstring(xml_bytes)
+    ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
+
+    assert root.get("versione") == "FPR12"
+    assert root.xpath("string(.//f:DatiTrasmissione/f:FormatoTrasmissione)", namespaces=ns) == "FPR12"
+    assert root.xpath("string(.//f:DatiTrasmissione/f:CodiceDestinatario)", namespaces=ns) == "0000000"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AlCassa)", namespaces=ns) == "4.00"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:Natura)", namespaces=ns) == "N2.2"
+    assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:Natura)", namespaces=ns) == "N2.2"
+    assert root.xpath("string(.//f:DatiBeniServizi/f:DatiRiepilogo/f:ImponibileImporto)", namespaces=ns) == "308.57"

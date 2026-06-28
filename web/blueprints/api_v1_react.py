@@ -7,6 +7,8 @@ truth frontend.
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import hashlib
 import io
 import ipaddress
@@ -236,6 +238,17 @@ from web.services.react_fatturazione_bridge import (
     mark_react_fatturazione_paid,
     update_react_fatturazione_numbering,
     update_react_fatturazione_status,
+)
+from web.services.react_fatturazione_archive_actions import (
+    confirm_react_fatturazione_commercialista_pec,
+    confirm_react_fatturazione_sdi_sent,
+    confirm_react_fatturazione_xml_signed,
+    prepare_react_fatturazione_commercialista,
+    prepare_react_fatturazione_sdi_pec,
+    prepare_react_fatturazione_xml_signature,
+    record_react_fatturazione_sdi_outcome,
+    send_react_fatturazione_commercialista_email,
+    update_react_fatturazione_detail,
 )
 from web.services.react_compensi_forensi_bridge import (
     build_react_compensi_forensi_error_payload,
@@ -1398,6 +1411,23 @@ def _tenant_cfg_value(key: str, default: str = "") -> str:
     return tenant_data_path(key, default, require_tenant=True)
 
 
+def _fatturazione_document_storage_root() -> Path:
+    anchor = tenant_data_path("FATTURAZIONE_DB", "./fatturazione/parcelle.json", require_tenant=True)
+    return Path(anchor).resolve().parent / "documenti_fatturapa"
+
+
+def _messaggi_runtime_path() -> str:
+    return tenant_data_path("MESSAGGI_DB", "./messaggi/storico.json", require_tenant=True)
+
+
+def _studio_config_runtime():
+    try:
+        return getattr(_studio_config_manager(), "config", None)
+    except Exception:
+        current_app.logger.exception("Configurazione studio non disponibile per API React")
+        return None
+
+
 def _studio_telematico_staging_root() -> Path:
     fascicoli_db = _tenant_cfg_value("FASCICOLI_DB", "./data/fascicoli/fascicoli.json")
     return staging_root_for_anchor(fascicoli_db)
@@ -1695,8 +1725,7 @@ def _row(
 
 
 def _euro(value: float) -> str:
-    text = f"{float(value or 0.0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"EUR {text}"
+    return format_euro_it(value)
 
 
 def _count_agenda_oggi() -> int:
@@ -7795,6 +7824,197 @@ def fatturazione_detail_page(id_documento: str):
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
         id_documento=id_documento,
+        sdi_cfg=getattr(_studio_config_runtime(), "sdi", None),
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/dettaglio")
+@_richiedi_auth
+def fatturazione_aggiorna_dettaglio(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_fatturazione_detail(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/xml/prepara-firma")
+@_richiedi_auth
+def fatturazione_prepara_firma_xml(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    result, status = prepare_react_fatturazione_xml_signature(
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        current_user=utente,
+        id_documento=id_documento,
+        config=current_app.config,
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/xml/firmato")
+@_richiedi_auth
+def fatturazione_conferma_xml_firmato(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "workflow": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = confirm_react_fatturazione_xml_signed(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        storage_root=_fatturazione_document_storage_root(),
+        ip_address=request.remote_addr or "",
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/sdi/pec/prepara")
+@_richiedi_auth
+def fatturazione_prepara_pec_sdi(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    cfg = _studio_config_runtime()
+    result, status = prepare_react_fatturazione_sdi_pec(
+        get_fatturazione=get_fatturazione,
+        current_user=utente,
+        id_documento=id_documento,
+        storage_root=_fatturazione_document_storage_root(),
+        pec_cfg=getattr(cfg, "pec", None),
+        sdi_cfg=getattr(cfg, "sdi", None),
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/sdi/pec/conferma")
+@_richiedi_auth
+def fatturazione_conferma_pec_sdi(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = confirm_react_fatturazione_sdi_sent(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/sdi/esito")
+@_richiedi_auth
+def fatturazione_registra_esito_sdi(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = record_react_fatturazione_sdi_outcome(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/commercialista/prepara")
+@_richiedi_auth
+def fatturazione_prepara_commercialista(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    cfg = _studio_config_runtime()
+    result, status = prepare_react_fatturazione_commercialista(
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        storage_root=_fatturazione_document_storage_root(),
+        pec_cfg=getattr(cfg, "pec", None),
+        sdi_cfg=getattr(cfg, "sdi", None),
+        config=current_app.config,
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/commercialista/email/invia")
+@_richiedi_auth
+def fatturazione_invia_email_commercialista(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    cfg = _studio_config_runtime()
+    result, status = send_react_fatturazione_commercialista_email(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        attachment_root=_fatturazione_document_storage_root(),
+        smtp_cfg=getattr(cfg, "smtp", None),
+        studio_name=getattr(getattr(cfg, "studio", None), "nome", "") or "Studio Legale",
+        messages_db_path=_messaggi_runtime_path(),
+        ip_address=request.remote_addr or "",
+    )
+    return _jsonify_redacted(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/commercialista/pec/conferma")
+@_richiedi_auth
+def fatturazione_conferma_pec_commercialista(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = confirm_react_fatturazione_commercialista_pec(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
     )
     return _jsonify_redacted(result), status
 

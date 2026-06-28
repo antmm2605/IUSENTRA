@@ -152,7 +152,7 @@
         </div>
         <div class="col-lg-2">
           <div class="small text-muted mb-1">Valore causa</div>
-          <div class="fw-semibold">{% if fascicolo_sel.valore_causa %}&euro; {{ "%.2f"|format(fascicolo_sel.valore_causa) }}{% else %}n/d{% endif %}</div>
+          <div class="fw-semibold">{% if fascicolo_sel.valore_causa %}{{ fascicolo_sel.valore_causa|euro }}{% else %}n/d{% endif %}</div>
         </div>
       </div>
     </div>
@@ -239,9 +239,9 @@
       {% if risultato_cu %}
       <div class="row g-3 mt-1">
         {{ metric_box('Tipologia', risultato_cu.categoria_label, risultato_cu.grado_label) }}
-        {{ metric_box('Contributo base', '&euro; ' ~ ('%.2f'|format(risultato_cu.base))|safe) }}
-        {{ metric_box('Anticipazione', '&euro; ' ~ ('%.2f'|format(risultato_cu.anticipazione_forfettaria))|safe) }}
-        {{ metric_box('Totale operativo', '&euro; ' ~ ('%.2f'|format(risultato_cu.totale))|safe) }}
+        {{ metric_box('Contributo base', risultato_cu.base|euro) }}
+        {{ metric_box('Anticipazione', risultato_cu.anticipazione_forfettaria|euro) }}
+        {{ metric_box('Totale operativo', risultato_cu.totale|euro) }}
       </div>
       {% if risultato_cu.regole_applicate %}
       <div class="mt-3">
@@ -286,8 +286,8 @@
       {% if risultato_int %}
       <div class="row g-3 mt-1">
         {{ metric_box('Regime', risultato_int.label, risultato_int.start_date ~ ' - ' ~ risultato_int.end_date) }}
-        {{ metric_box('Interessi maturati', '&euro; ' ~ ('%.2f'|format(risultato_int.total_interest))|safe, risultato_int.covered_days ~ ' giorni coperti') }}
-        {{ metric_box('Capitale + interessi', '&euro; ' ~ ('%.2f'|format(risultato_int.total_amount))|safe, risultato_int.days ~ ' giorni complessivi') }}
+        {{ metric_box('Interessi maturati', risultato_int.total_interest|euro, risultato_int.covered_days ~ ' giorni coperti') }}
+        {{ metric_box('Capitale + interessi', risultato_int.total_amount|euro, risultato_int.days ~ ' giorni complessivi') }}
       </div>
       <div class="table-responsive mt-3">
         <table class="table align-middle">
@@ -298,7 +298,7 @@
               <td><div class="fw-semibold">{{ segment.label }}</div><div class="small text-muted">{{ segment.from }} - {{ segment.to }}</div></td>
               <td>{{ segment.days }}</td>
               <td>{{ "%.2f"|format(segment.rate) }}%{% if segment.reference_rate is not none %}<div class="small text-muted">rif. BCE {{ "%.2f"|format(segment.reference_rate) }}%</div>{% endif %}</td>
-              <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(segment.interest) }}</td>
+              <td class="text-end fw-semibold">{{ segment.interest|euro }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -335,14 +335,14 @@
       </form>
       {% if risultato_nota %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Totale maturato', '&euro; ' ~ ('%.2f'|format(risultato_nota.totale_lordo))|safe) }}
-        {{ metric_box('Acconti imputati', '&euro; ' ~ ('%.2f'|format(risultato_nota.acconti))|safe) }}
-        {{ metric_box('Residuo richiesto', '&euro; ' ~ ('%.2f'|format(risultato_nota.residuo))|safe) }}
+        {{ metric_box('Totale maturato', risultato_nota.totale_lordo|euro) }}
+        {{ metric_box('Acconti imputati', risultato_nota.acconti|euro) }}
+        {{ metric_box('Residuo richiesto', risultato_nota.residuo|euro) }}
       </div>
       <div class="table-responsive mt-3">
         <table class="table tool-breakdown-table">
           <thead><tr><th>Voce</th><th>Importo</th></tr></thead>
-          <tbody>{% for row in risultato_nota.breakdown %}<tr><td>{{ row.label }}</td><td>&euro; {{ "%.2f"|format(row.amount) }}</td></tr>{% endfor %}</tbody>
+          <tbody>{% for row in risultato_nota.breakdown %}<tr><td>{{ row.label }}</td><td>{{ row.amount|euro }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
       <div class="row g-3 mt-1">
@@ -366,10 +366,10 @@
       </form>
       {% if risultato_pig %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Importo netto', '&euro; ' ~ ('%.2f'|format(risultato_pig.importo))|safe, risultato_pig.tipo_reddito_label) }}
-        {{ metric_box('Minimo protetto', '&euro; ' ~ ('%.2f'|format(risultato_pig.minimo_protetto))|safe) }}
-        {{ metric_box('Base pignorabile', '&euro; ' ~ ('%.2f'|format(risultato_pig.base_pignorabile))|safe) }}
-        {{ metric_box('Quota massima', '&euro; ' ~ ('%.2f'|format(risultato_pig.quota_massima))|safe, 'Aliquota ' ~ ('%.2f'|format(risultato_pig.aliquota)) ~ '%') }}
+        {{ metric_box('Importo netto', risultato_pig.importo|euro, risultato_pig.tipo_reddito_label) }}
+        {{ metric_box('Minimo protetto', risultato_pig.minimo_protetto|euro) }}
+        {{ metric_box('Base pignorabile', risultato_pig.base_pignorabile|euro) }}
+        {{ metric_box('Quota massima', risultato_pig.quota_massima|euro, 'Aliquota ' ~ ('%.2f'|format(risultato_pig.aliquota)) ~ '%') }}
       </div>
       {{ render_messages([], risultato_pig.warnings) }}
       {{ render_sources(risultato_pig.sources) }}
@@ -392,9 +392,9 @@
       {% if risultato_ctu %}
       <div class="row g-3 mt-1">
         {{ metric_box('Modalità', risultato_ctu.modalita_label) }}
-        {{ metric_box('Onorario base', '&euro; ' ~ ('%.2f'|format(risultato_ctu.onorario_base))|safe) }}
-        {{ metric_box('Accessori', 'CPA &euro; ' ~ ('%.2f'|format(risultato_ctu.cpa))|safe, 'IVA &euro; ' ~ ('%.2f'|format(risultato_ctu.iva)) ~ ' - Spese &euro; ' ~ ('%.2f'|format(risultato_ctu.spese))) }}
-        {{ metric_box('Totale', '&euro; ' ~ ('%.2f'|format(risultato_ctu.totale))|safe) }}
+        {{ metric_box('Onorario base', risultato_ctu.onorario_base|euro) }}
+        {{ metric_box('Accessori', 'CPA ' ~ (risultato_ctu.cpa|euro), 'IVA ' ~ (risultato_ctu.iva|euro) ~ ' - Spese ' ~ (risultato_ctu.spese|euro)) }}
+        {{ metric_box('Totale', risultato_ctu.totale|euro) }}
       </div>
       {{ render_messages(risultato_ctu.notes, risultato_ctu.warnings) }}
       {{ render_sources(risultato_ctu.sources) }}
@@ -416,9 +416,9 @@
       </form>
       {% if risultato_riv %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Importo originale', '&euro; ' ~ ('%.2f'|format(risultato_riv.importo_originale))|safe, risultato_riv.tipo_label) }}
-        {{ metric_box('Importo rivalutato', '&euro; ' ~ ('%.2f'|format(risultato_riv.importo_rivalutato))|safe) }}
-        {{ metric_box('Differenza', '&euro; ' ~ ('%.2f'|format(risultato_riv.differenza))|safe) }}
+        {{ metric_box('Importo originale', risultato_riv.importo_originale|euro, risultato_riv.tipo_label) }}
+        {{ metric_box('Importo rivalutato', risultato_riv.importo_rivalutato|euro) }}
+        {{ metric_box('Differenza', risultato_riv.differenza|euro) }}
         {{ metric_box('Variazione %', ('%+.2f'|format(risultato_riv.variazione_perc)) ~ '%') }}
       </div>
       <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Indice usato</div><div class="small text-muted">Base {{ risultato_riv.indice_base }} ({{ '%02d'|format(risultato_riv.mese_base) }}/{{ risultato_riv.anno_base }}) -> Finale {{ risultato_riv.indice_fine }} ({{ '%02d'|format(risultato_riv.mese_fine) }}/{{ risultato_riv.anno_fine }})</div></div>
@@ -442,9 +442,9 @@
       </form>
       {% if risultato_loc %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Canone attuale', '&euro; ' ~ ('%.2f'|format(risultato_loc.canone_originale))|safe ~ '/mese') }}
-        {{ metric_box('Canone aggiornato', '&euro; ' ~ ('%.2f'|format(risultato_loc.canone_aggiornato))|safe ~ '/mese') }}
-        {{ metric_box('Incremento mensile', ('%+.2f'|format(risultato_loc.incremento_mensile)) ~ ' EUR') }}
+        {{ metric_box('Canone attuale', (risultato_loc.canone_originale|euro) ~ '/mese') }}
+        {{ metric_box('Canone aggiornato', (risultato_loc.canone_aggiornato|euro) ~ '/mese') }}
+        {{ metric_box('Incremento mensile', risultato_loc.incremento_mensile|euro_signed) }}
         {{ metric_box('Variazione applicata', ('%+.2f'|format(risultato_loc.variazione_applicata)) ~ '%', 'FOI ' ~ ('%+.2f'|format(risultato_loc.variazione_foi)) ~ '%') }}
       </div>
       {{ render_messages(risultato_loc.notes, risultato_loc.warnings) }}
@@ -457,7 +457,7 @@
       <form method="post" class="row g-3 tool-form-grid">
         {{ tool_hidden('usura', fascicolo_sel) }}
         <div class="col-md-4"><label class="form-label">Tasso applicato (%)</label><input type="number" name="usura_tasso" class="form-control" step="0.01" min="0" value="{{ form_state.usura_tasso }}"></div>
-        <div class="col-md-5"><label class="form-label">Categoria</label><select name="usura_categoria" class="form-select"><option value="aperture_credito_cc_fino_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_fino_5000' }}>Aperture c/c &lt;= EUR 5.000</option><option value="aperture_credito_cc_oltre_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_oltre_5000' }}>Aperture c/c &gt; EUR 5.000</option><option value="credito_personale" {{ 'selected' if form_state.usura_categoria == 'credito_personale' }}>Credito personale</option><option value="credito_finalizzato" {{ 'selected' if form_state.usura_categoria == 'credito_finalizzato' }}>Credito finalizzato</option><option value="mutui_ipotecari_fisso" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_fisso' }}>Mutui ipotecari fisso</option><option value="mutui_ipotecari_variabile" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_variabile' }}>Mutui ipotecari variabile</option><option value="carte_credito_revolving" {{ 'selected' if form_state.usura_categoria == 'carte_credito_revolving' }}>Carte revolving</option></select></div>
+        <div class="col-md-5"><label class="form-label">Categoria</label><select name="usura_categoria" class="form-select"><option value="aperture_credito_cc_fino_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_fino_5000' }}>Aperture c/c &lt;= € 5.000</option><option value="aperture_credito_cc_oltre_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_oltre_5000' }}>Aperture c/c &gt; € 5.000</option><option value="credito_personale" {{ 'selected' if form_state.usura_categoria == 'credito_personale' }}>Credito personale</option><option value="credito_finalizzato" {{ 'selected' if form_state.usura_categoria == 'credito_finalizzato' }}>Credito finalizzato</option><option value="mutui_ipotecari_fisso" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_fisso' }}>Mutui ipotecari fisso</option><option value="mutui_ipotecari_variabile" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_variabile' }}>Mutui ipotecari variabile</option><option value="carte_credito_revolving" {{ 'selected' if form_state.usura_categoria == 'carte_credito_revolving' }}>Carte revolving</option></select></div>
         <div class="col-md-3"><label class="form-label">Data operazione</label><input type="date" name="usura_data" class="form-control" value="{{ form_state.usura_data }}"></div>
         <div class="col-12"><button class="btn btn-primary"><i class="bi bi-shield-check me-2"></i>Verifica soglia</button></div>
       </form>
@@ -490,14 +490,14 @@
       </form>
       {% if risultato_cf %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Reddito', '&euro; ' ~ ('%.2f'|format(risultato_cf.reddito))|safe) }}
-        {{ metric_box('Compensi', '&euro; ' ~ ('%.2f'|format(risultato_cf.compensi))|safe) }}
-        {{ metric_box('Totale contributi', '&euro; ' ~ ('%.2f'|format(risultato_cf.totale))|safe, risultato_cf.anno) }}
+        {{ metric_box('Reddito', risultato_cf.reddito|euro) }}
+        {{ metric_box('Compensi', risultato_cf.compensi|euro) }}
+        {{ metric_box('Totale contributi', risultato_cf.totale|euro, risultato_cf.anno) }}
       </div>
       <div class="table-responsive mt-3">
         <table class="table align-middle">
           <thead><tr><th>Contributo</th><th class="text-end">Aliquota</th><th class="text-end">Base</th><th class="text-end">Calcolato</th></tr></thead>
-          <tbody>{% for row in risultato_cf.contributi %}<tr><td><div class="fw-semibold">{{ row.label }}</div><div class="small text-muted">{{ row.note }}</div></td><td class="text-end">{% if row.aliquota > 0 %}{{ "%.1f"|format(row.aliquota) }}%{% else %}-{% endif %}</td><td class="text-end">{% if row.base_usata > 0 %}&euro; {{ "%.2f"|format(row.base_usata) }}{% else %}<span class="text-muted">fisso</span>{% endif %}</td><td class="text-end fw-semibold">&euro; {{ "%.2f"|format(row.calcolato) }}</td></tr>{% endfor %}</tbody>
+          <tbody>{% for row in risultato_cf.contributi %}<tr><td><div class="fw-semibold">{{ row.label }}</div><div class="small text-muted">{{ row.note }}</div></td><td class="text-end">{% if row.aliquota > 0 %}{{ "%.1f"|format(row.aliquota) }}%{% else %}-{% endif %}</td><td class="text-end">{% if row.base_usata > 0 %}{{ row.base_usata|euro }}{% else %}<span class="text-muted">fisso</span>{% endif %}</td><td class="text-end fw-semibold">{{ row.calcolato|euro }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
       {{ render_messages(risultato_cf.notes, risultato_cf.warnings) }}
@@ -559,14 +559,14 @@
       </form>
       {% if risultato_db %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Danno IP', '&euro; ' ~ ('%.2f'|format(risultato_db.danno_ip))|safe, 'Coeff. eta ' ~ risultato_db.coeff_eta) }}
-        {{ metric_box('Danno temporaneo', '&euro; ' ~ ('%.2f'|format(risultato_db.valore_itt + risultato_db.valore_itp))|safe) }}
-        {{ metric_box('Danno morale', '&euro; ' ~ ('%.2f'|format(risultato_db.danno_morale))|safe) }}
-        {{ metric_box('Totale complessivo', '&euro; ' ~ ('%.2f'|format(risultato_db.totale_comprensivo))|safe) }}
+        {{ metric_box('Danno IP', risultato_db.danno_ip|euro, 'Coeff. eta ' ~ risultato_db.coeff_eta) }}
+        {{ metric_box('Danno temporaneo', (risultato_db.valore_itt + risultato_db.valore_itp)|euro) }}
+        {{ metric_box('Danno morale', risultato_db.danno_morale|euro) }}
+        {{ metric_box('Totale complessivo', risultato_db.totale_comprensivo|euro) }}
       </div>
       <div class="row g-3 mt-3">
-        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Danno temporaneo</div><div>ITT: &euro; {{ "%.2f"|format(risultato_db.valore_itt) }}</div><div>ITP: &euro; {{ "%.2f"|format(risultato_db.valore_itp) }}</div></div></div>
-        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Personalizzazione</div><div>{{ risultato_db.personalizzazione_pct }}% = &euro; {{ "%.2f"|format(risultato_db.importo_personalizzazione) }}</div><div class="small text-muted">Totale biologico: &euro; {{ "%.2f"|format(risultato_db.totale_biologico) }}</div></div></div>
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Danno temporaneo</div><div>ITT: {{ risultato_db.valore_itt|euro }}</div><div>ITP: {{ risultato_db.valore_itp|euro }}</div></div></div>
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Personalizzazione</div><div>{{ risultato_db.personalizzazione_pct }}% = {{ risultato_db.importo_personalizzazione|euro }}</div><div class="small text-muted">Totale biologico: {{ risultato_db.totale_biologico|euro }}</div></div></div>
       </div>
       {{ render_messages(risultato_db.notes, risultato_db.warnings) }}
       {{ render_sources(risultato_db.sources) }}
@@ -597,8 +597,8 @@
       <div class="row g-3 mt-1">
         {{ metric_box('Tipo atto', risultato_reg.tipo_label, risultato_reg.norma) }}
         {{ metric_box('Aliquota', ('%.1f'|format(risultato_reg.aliquota_pct) ~ '%') if not risultato_reg.fisso else 'Fisso') }}
-        {{ metric_box('Imposta totale', '&euro; ' ~ ('%.2f'|format(risultato_reg.imposta))|safe) }}
-        {{ metric_box('Quota per parte', '&euro; ' ~ ('%.2f'|format(risultato_reg.quota_parte))|safe, risultato_reg.parti ~ ' parti') }}
+        {{ metric_box('Imposta totale', risultato_reg.imposta|euro) }}
+        {{ metric_box('Quota per parte', risultato_reg.quota_parte|euro, risultato_reg.parti ~ ' parti') }}
       </div>
       {{ render_messages(risultato_reg.notes, risultato_reg.warnings) }}
       {{ render_sources(risultato_reg.sources) }}
@@ -619,10 +619,10 @@
       </form>
       {% if risultato_tfr %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Quota annua', '&euro; ' ~ ('%.2f'|format(risultato_tfr.quota_annua))|safe, risultato_tfr.anni_equivalenti ~ ' anni equivalenti') }}
-        {{ metric_box('Quota maturata', '&euro; ' ~ ('%.2f'|format(risultato_tfr.quota_periodo))|safe) }}
-        {{ metric_box('Rivalutazione', '&euro; ' ~ ('%.2f'|format(risultato_tfr.rivalutazione))|safe, risultato_tfr.coeff_rivalutazione ~ '%') }}
-        {{ metric_box('Totale lordo', '&euro; ' ~ ('%.2f'|format(risultato_tfr.totale_lordo))|safe) }}
+        {{ metric_box('Quota annua', risultato_tfr.quota_annua|euro, risultato_tfr.anni_equivalenti ~ ' anni equivalenti') }}
+        {{ metric_box('Quota maturata', risultato_tfr.quota_periodo|euro) }}
+        {{ metric_box('Rivalutazione', risultato_tfr.rivalutazione|euro, risultato_tfr.coeff_rivalutazione ~ '%') }}
+        {{ metric_box('Totale lordo', risultato_tfr.totale_lordo|euro) }}
       </div>
       {{ render_messages(risultato_tfr.notes, risultato_tfr.warnings) }}
       {{ render_sources(risultato_tfr.sources) }}
@@ -663,11 +663,11 @@
       {% if risultato_onorari %}
       <div class="row g-3 mt-1">
         {{ metric_box('Scaglione', risultato_onorari.scaglione, risultato_onorari.materia_label) }}
-        {{ metric_box('Minimo', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.minimo.totale_compenso))|safe) }}
-        {{ metric_box('Base', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.base.totale_compenso))|safe) }}
-        {{ metric_box('Massimo', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.massimo.totale_compenso))|safe) }}
+        {{ metric_box('Minimo', risultato_onorari.riepiloghi.minimo.totale_compenso|euro) }}
+        {{ metric_box('Base', risultato_onorari.riepiloghi.base.totale_compenso|euro) }}
+        {{ metric_box('Massimo', risultato_onorari.riepiloghi.massimo.totale_compenso|euro) }}
         </div>
-        <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Livello suggerito</div><div class="fw-semibold text-primary text-capitalize">{{ risultato_onorari.livello_suggerito }}</div><div class="small text-muted">Totale suggerito: &euro; {{ "%.2f"|format(risultato_onorari.riepilogo_suggerito.totale_compenso) }}</div></div>
+        <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Livello suggerito</div><div class="fw-semibold text-primary text-capitalize">{{ risultato_onorari.livello_suggerito }}</div><div class="small text-muted">Totale suggerito: {{ risultato_onorari.riepilogo_suggerito.totale_compenso|euro }}</div></div>
         {% if risultato_onorari.presidi_deontologici %}
         <div class="table-responsive mt-3">
           <table class="table align-middle">
@@ -683,7 +683,7 @@
         <div class="table-responsive mt-3">
         <table class="table align-middle">
           <thead><tr><th>Fase</th><th class="text-end">Minimo</th><th class="text-end">Base</th><th class="text-end">Massimo</th></tr></thead>
-          <tbody>{% for row in risultato_onorari.fase_rows %}<tr><td>{{ row.fase }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.minimo) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.base) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.massimo) }}</td></tr>{% endfor %}</tbody>
+          <tbody>{% for row in risultato_onorari.fase_rows %}<tr><td>{{ row.fase }}</td><td class="text-end">{{ row.minimo|euro }}</td><td class="text-end">{{ row.base|euro }}</td><td class="text-end">{{ row.massimo|euro }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
       {{ render_messages(risultato_onorari.notes, risultato_onorari.warnings) }}
@@ -751,10 +751,10 @@
       </form>
       {% if risultato_succ %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Asse', '&euro; ' ~ ('%.2f'|format(risultato_succ.asse))|safe) }}
+        {{ metric_box('Asse', risultato_succ.asse|euro) }}
         {{ metric_box('Copertura quote', risultato_succ.quota_totale_percent ~ '%') }}
       </div>
-      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Quota</th><th class="text-end">% asse</th><th class="text-end">Importo</th><th class="text-end">Per testa</th></tr></thead><tbody>{% for row in risultato_succ.rows %}<tr><td><div class="fw-semibold">{{ row.label }}</div>{% if row.detail %}<div class="small text-muted">{{ row.detail }}</div>{% endif %}</td><td class="text-end">{{ "%.2f"|format(row.quota_percent) }}%</td><td class="text-end">&euro; {{ "%.2f"|format(row.importo) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.per_testa) }}</td></tr>{% endfor %}</tbody></table></div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Quota</th><th class="text-end">% asse</th><th class="text-end">Importo</th><th class="text-end">Per testa</th></tr></thead><tbody>{% for row in risultato_succ.rows %}<tr><td><div class="fw-semibold">{{ row.label }}</div>{% if row.detail %}<div class="small text-muted">{{ row.detail }}</div>{% endif %}</td><td class="text-end">{{ "%.2f"|format(row.quota_percent) }}%</td><td class="text-end">{{ row.importo|euro }}</td><td class="text-end">{{ row.per_testa|euro }}</td></tr>{% endfor %}</tbody></table></div>
       {{ render_messages(risultato_succ.notes, risultato_succ.warnings) }}
       {{ render_sources(risultato_succ.sources) }}
       {% endif %}
@@ -771,10 +771,10 @@
       </form>
       {% if risultato_ced %}
       <div class="row g-3 mt-1">
-        {{ metric_box('Imposta annua', '&euro; ' ~ ('%.2f'|format(risultato_ced.imposta_annua))|safe, risultato_ced.aliquota ~ '%') }}
-        {{ metric_box('Totale periodo', '&euro; ' ~ ('%.2f'|format(risultato_ced.totale_periodo))|safe, risultato_ced.annualita ~ ' annualita') }}
-        {{ metric_box('Registro ordinario annuo', '&euro; ' ~ ('%.2f'|format(risultato_ced.registro_annuo))|safe) }}
-        {{ metric_box('Registro evitato', '&euro; ' ~ ('%.2f'|format(risultato_ced.registro_evitato))|safe) }}
+        {{ metric_box('Imposta annua', risultato_ced.imposta_annua|euro, risultato_ced.aliquota ~ '%') }}
+        {{ metric_box('Totale periodo', risultato_ced.totale_periodo|euro, risultato_ced.annualita ~ ' annualita') }}
+        {{ metric_box('Registro ordinario annuo', risultato_ced.registro_annuo|euro) }}
+        {{ metric_box('Registro evitato', risultato_ced.registro_evitato|euro) }}
       </div>
       {{ render_messages(risultato_ced.notes, risultato_ced.warnings) }}
       {{ render_sources(risultato_ced.sources) }}
@@ -797,7 +797,7 @@
         {{ metric_box('Regime', risultato_lic.regime_label) }}
         {{ metric_box('Anzianita', risultato_lic.anzianita ~ ' anni') }}
         {{ metric_box('Mensilita', risultato_lic.mensilita) }}
-        {{ metric_box('Importo lordo', '&euro; ' ~ ('%.2f'|format(risultato_lic.importo))|safe) }}
+        {{ metric_box('Importo lordo', risultato_lic.importo|euro) }}
       </div>
       {{ render_messages(risultato_lic.notes, risultato_lic.warnings) }}
       {{ render_sources(risultato_lic.sources) }}
@@ -819,11 +819,11 @@
       {% if risultato_amm %}
       <div class="row g-3 mt-1">
         {{ metric_box('Metodo', risultato_amm.tipo_label, risultato_amm.numero_rate ~ ' rate') }}
-        {{ metric_box('Rata iniziale', '&euro; ' ~ ('%.2f'|format(risultato_amm.rata_iniziale))|safe) }}
-        {{ metric_box('Totale interessi', '&euro; ' ~ ('%.2f'|format(risultato_amm.totale_interessi))|safe) }}
-        {{ metric_box('Totale pagato', '&euro; ' ~ ('%.2f'|format(risultato_amm.totale_pagato))|safe) }}
+        {{ metric_box('Rata iniziale', risultato_amm.rata_iniziale|euro) }}
+        {{ metric_box('Totale interessi', risultato_amm.totale_interessi|euro) }}
+        {{ metric_box('Totale pagato', risultato_amm.totale_pagato|euro) }}
       </div>
-      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Rata</th><th>Scadenza</th><th class="text-end">Importo</th><th class="text-end">Capitale</th><th class="text-end">Interessi</th><th class="text-end">Residuo</th></tr></thead><tbody>{% for row in risultato_amm.preview_schedule %}<tr><td class="fw-semibold">{{ row.numero }}</td><td>{{ row.scadenza_it }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.rata) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.quota_capitale) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.quota_interessi) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.residuo) }}</td></tr>{% endfor %}</tbody></table></div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Rata</th><th>Scadenza</th><th class="text-end">Importo</th><th class="text-end">Capitale</th><th class="text-end">Interessi</th><th class="text-end">Residuo</th></tr></thead><tbody>{% for row in risultato_amm.preview_schedule %}<tr><td class="fw-semibold">{{ row.numero }}</td><td>{{ row.scadenza_it }}</td><td class="text-end">{{ row.rata|euro }}</td><td class="text-end">{{ row.quota_capitale|euro }}</td><td class="text-end">{{ row.quota_interessi|euro }}</td><td class="text-end">{{ row.residuo|euro }}</td></tr>{% endfor %}</tbody></table></div>
       {% if risultato_amm.schedule|length > risultato_amm.preview_schedule|length %}<div class="small text-muted">Anteprima delle prime {{ risultato_amm.preview_schedule|length }} rate su {{ risultato_amm.schedule|length }} totali.</div>{% endif %}
       {{ render_messages(risultato_amm.notes, risultato_amm.warnings) }}
       {{ render_sources(risultato_amm.sources) }}

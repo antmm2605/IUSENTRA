@@ -6,6 +6,7 @@ let reviewToast = null;
 const reviewTenantSlug = String(window.REVIEW_TENANT_SLUG || '').trim();
 const actionableButtonIds = ['btn-save', 'btn-approve', 'btn-reject', 'btn-open-sql', 'btn-publish'];
 const dateFormatter = new Intl.DateTimeFormat('it-IT', {
+  timeZone: 'Europe/Rome',
   dateStyle: 'short',
   timeStyle: 'short'
 });

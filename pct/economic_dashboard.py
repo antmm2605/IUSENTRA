@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Any
 
+from pct.formatting import format_euro_it
 from pct.fascicoli import StatoFascicolo
 from pct.fatturazione import StatoParcella
 
@@ -18,7 +19,7 @@ def _round_amount(value: float | int) -> float:
 
 
 def _currency(value: float | int) -> str:
-    return f"EUR {_round_amount(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(_round_amount(value))
 
 
 def _safe_ratio(num: float, den: float) -> float:

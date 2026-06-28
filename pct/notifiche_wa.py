@@ -15,6 +15,8 @@ Il sistema genera automaticamente messaggi preformattati per:
 """
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 import os
 import urllib.parse
 from dataclasses import dataclass, field
@@ -54,7 +56,7 @@ def msg_nuova_parcella(
     msg = (
         f"Gentile {nome_cliente},\n\n"
         f"È disponibile la parcella n. *{numero}*\n"
-        f"💶 Importo: *€ {totale:,.2f}*"
+        f"💶 Importo: *{format_euro_it(totale)}*"
     )
     if scadenza:
         msg += f"\n📆 Scadenza pagamento: {scadenza}"

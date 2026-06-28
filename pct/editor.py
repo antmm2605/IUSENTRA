@@ -867,6 +867,7 @@ def html_to_pdf(
         from reportlab.lib.units import cm
         from reportlab.lib import colors
         from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT, TA_LEFT
+        from pct.pdf_style import pdf_table_header_style
     except ImportError:
         raise ImportError("reportlab non installato. Esegui: pip install reportlab")
 
@@ -1119,8 +1120,7 @@ def html_to_pdf(
                 tbl = Table(rows_data, repeatRows=1)
                 tbl.setStyle(TableStyle([
                     ("GRID",      (0, 0), (-1, -1), 0.5, colors.HexColor("#999999")),
-                    ("BACKGROUND",(0, 0), (-1, 0),  colors.HexColor("#f0f0f0")),
-                    ("FONTNAME",  (0, 0), (-1, 0),  font_bundle["bold"]),
+                    *pdf_table_header_style(font_name=font_bundle["bold"]),
                     ("FONTSIZE",  (0, 0), (-1, -1), max(font_size - 1, 9)),
                     ("TOPPADDING",(0, 0), (-1, -1), 4),
                     ("BOTTOMPADDING",(0, 0), (-1, -1), 4),

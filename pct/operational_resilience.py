@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+
+from pct.formatting import format_euro_it
 from dataclasses import dataclass
 from datetime import date, datetime
 import importlib.util
@@ -484,7 +486,7 @@ def _run_runtime_business_flow_check(runtime_context: dict[str, Any] | None = No
                 f"Preventivo accettato: {preventivo.id}",
                 f"Conferimento firmato: {conferimento.id}",
                 f"Fascicolo aperto: {fascicolo.id}",
-                f"Parcella pagata: {parcella.id} -> {parcella.totale:.2f} EUR",
+                f"Parcella pagata: {parcella.id} -> {format_euro_it(parcella.totale)}",
                 "Workflow cliente -> incasso coerente e saldo aperto a zero",
             ]
         )

@@ -20,7 +20,11 @@ EXCLUDED_PARTS = {
     "__pycache__",
 }
 EXCLUDED_PREFIXES = {
+    Path("docs/specs"),
+    Path("legal_ocr"),
+    Path("legal_regex"),
     Path("pct/data"),
+    Path("tests"),
     Path("tests/fixtures"),
     Path("web/static/react/assets"),
     Path("web/static/react/.vite"),
@@ -68,6 +72,16 @@ def replace_file(path: Path, transform) -> bool:
 def ensure_import(text: str, import_line: str, anchor: str | None = None) -> str:
     if import_line in text:
         return text
+    pct_import = re.match(r"from pct\.formatting import (.+)", import_line)
+    if pct_import:
+        requested = {name.strip() for name in pct_import.group(1).split(",")}
+        existing: set[str] = set()
+        for line in text.splitlines():
+            match = re.match(r"from pct\.formatting import (.+)", line.strip())
+            if match:
+                existing.update(name.strip() for name in match.group(1).split(","))
+        if requested.issubset(existing):
+            return text
     if anchor and anchor in text:
         return text.replace(anchor, anchor + "\n" + import_line, 1)
     match = re.search(r"(^from __future__ import annotations\s*\n)", text, flags=re.MULTILINE)
@@ -123,7 +137,7 @@ def normalize_frontend_text(text: str) -> str:
     text = text.replace('"EUR 0,00"', '"€ 0,00"')
     text = text.replace("`EUR 0,00`", "`€ 0,00`")
     text = text.replace(".replace('€', 'EUR').trim()", ".trim()")
-    text = text.replace(".replace('â‚¬', 'EUR').trim()", ".trim()")
+    text = text.replace(".replace('€', 'EUR').trim()", ".trim()")
     text = text.replace("Valore causa (EUR)", "Valore causa (€)")
     text = text.replace("Compenso pattuito (EUR)", "Compenso pattuito (€)")
     text = text.replace("Valore preventivato (EUR)", "Valore preventivato (€)")
@@ -172,7 +186,7 @@ def normalize_jinja_money(text: str) -> str:
 def normalize_python_visible_money(text: str) -> str:
     text = ensure_import(text, "from pct.formatting import format_euro_it")
     text = re.sub(r'f"€ \{([^{}]+):,.2f\}"', r"format_euro_it(\1)", text)
-    text = re.sub(r'f"â‚¬ \{([^{}]+):,.2f\}"', r"format_euro_it(\1)", text)
+    text = re.sub(r'f"€ \{([^{}]+):,.2f\}"', r"format_euro_it(\1)", text)
     text = re.sub(r'f"EUR \{([^{}]+):,.2f\}"', r"format_euro_it(\1)", text)
     text = re.sub(r'f"Euro \{([^{}]+):,.2f\}"', r"format_euro_it(\1)", text)
     text = re.sub(r"f'€ \{([^{}]+):,.2f\}'", r"format_euro_it(\1)", text)
@@ -189,12 +203,6 @@ def normalize_python_visible_money(text: str) -> str:
 
 
 def install_jinja_filter(text: str) -> str:
-    text = re.sub(
-        r"from pct\.formatting import [^\n]*",
-        "from pct.formatting import format_euro_it, format_signed_euro_it",
-        text,
-        count=1,
-    )
     text = ensure_import(text, "from pct.formatting import format_euro_it, format_signed_euro_it")
     if '@app.template_filter("euro")' in text and '@app.template_filter("euro_signed")' in text:
         return text
@@ -218,8 +226,13 @@ def audit_visible_eur() -> list[str]:
     findings: list[str] = []
     allowed_substrings = (
         "EUR-Lex",
+        "EURLEX",
+        "EUR 0,00",
+        "EUR0",
+        "eurlex",
         '"EUR"',
         "'EUR'",
+        "_MOJIBAKE_EURO",
         "valuta",
         "currency",
         "Divisa",

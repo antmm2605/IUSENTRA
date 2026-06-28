@@ -287,7 +287,7 @@ function Install-EmbeddedPython {
     return $true
 }
 
-function Wait-LocalSigner([int]$Attempts = 15) {
+function Wait-LocalSigner([int]$Attempts = 45) {
     for ($i = 0; $i -lt $Attempts; $i++) {
         try {
             $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping" -UseBasicParsing -TimeoutSec 2
@@ -442,9 +442,7 @@ function Copy-LocalSignerModule {
 function Write-LocalSignerLaunchers {
     $allowedOrigins = $defaultAllowedOrigins
     $updateInstallerUrl = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
-    # Il launcher cerca pythonw.exe in due posizioni:
-    # 1. python\pythonw.exe  (Python portatile scaricato dall'installer)
-    # 2. .venv\Scripts\pythonw.exe  (venv creato da Python di sistema)
+    # Il launcher usa python.exe nascosto per scrivere log diagnostici; pythonw.exe resta fallback.
     $cmd = @'
 @echo off
 setlocal
@@ -467,9 +465,13 @@ echo %ARGS% | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_
 
 if "%UPDATE_MODE%"=="1" goto :update
 
-rem Cerca pythonw: prima Python portatile, poi venv
+rem Cerca Python: prima python.exe per log diagnostici, poi pythonw.exe come fallback
+set "PYE=%DIR%python\python.exe"
+if not exist "%PYE%" set "PYE=%DIR%.venv\Scripts\python.exe"
 set "PYW=%DIR%python\pythonw.exe"
 if not exist "%PYW%" set "PYW=%DIR%.venv\Scripts\pythonw.exe"
+set "OUTLOG=%DIR%local_signer.out.log"
+set "ERRLOG=%DIR%local_signer.err.log"
 
 if "%FORCE_RESTART%"=="0" (
 powershell -NoProfile -WindowStyle Hidden -Command "try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) { exit 0 } } catch {}; exit 1" >nul 2>&1
@@ -479,12 +481,15 @@ if not errorlevel 1 goto :online
 powershell -NoProfile -WindowStyle Hidden -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }" >nul 2>&1
 powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }" >nul 2>&1
 
-if exist "%PYW%" if exist "%PY%" (
+if not exist "%PY%" exit /b 1
+if exist "%PYE%" (
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYE -ArgumentList @($env:PY) -RedirectStandardOutput $env:OUTLOG -RedirectStandardError $env:ERRLOG"
+) else if exist "%PYW%" (
     powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)"
-    powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; $target=[regex]::Escape($env:TARGET); $owner=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($owner) { $all=@(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue); $keep=@{}; $cursor=[int]$owner; while ($cursor -and -not $keep.ContainsKey($cursor)) { $keep[$cursor]=$true; $parent=$all | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId; if (-not $parent) { break }; $cursor=[int]$parent }; $all | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and -not $keep.ContainsKey([int]$_.ProcessId) -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} } }"
 ) else (
     exit /b 1
 )
+powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; $target=[regex]::Escape($env:TARGET); $owner=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($owner) { $all=@(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue); $keep=@{}; $cursor=[int]$owner; while ($cursor -and -not $keep.ContainsKey($cursor)) { $keep[$cursor]=$true; $parent=$all | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId; if (-not $parent) { break }; $cursor=[int]$parent }; $all | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and -not $keep.ContainsKey([int]$_.ProcessId) -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} } }"
 
 :online
 if /I "%~1"=="--background" exit /b 0
@@ -696,8 +701,8 @@ if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--upg
     exit 1
 }
 
-Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab)..."
-if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
+Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab, pillow)..."
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0", "pillow>=10.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
     Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
     if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
     exit 1
@@ -741,12 +746,13 @@ if (-not $autostartOk) {
 Write-Step "Avvio subito il servizio in background..."
 Stop-LocalSignerProcesses
 Remove-Item $runtimeStdoutLog, $runtimeStderrLog -Force -ErrorAction SilentlyContinue
-$servicePythonExe = $pythonwExe
+$servicePythonExe = $pythonExe
 if (-not (Test-Path $servicePythonExe)) {
-    $servicePythonExe = $pythonExe
+    $servicePythonExe = $pythonwExe
 }
 if (Test-Path $servicePythonExe) {
     $env:PCT_LOCAL_SIGNER_ALLOWED_ORIGINS = $defaultAllowedOrigins
+    $env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
     if ((Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe") {
         Start-Process `
             -WindowStyle Hidden `

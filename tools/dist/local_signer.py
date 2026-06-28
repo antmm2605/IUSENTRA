@@ -115,7 +115,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.82"
+VERSION = "1.6.83"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3422,7 +3422,7 @@ $cms.ComputeSignature($signer, $false)
             "text": True,
             "timeout": 240,
         }
-        result = subprocess.run(command, **run_kwargs)
+        result = _run_process_with_pin_foreground(command, **run_kwargs)
         if result.returncode != 0 or not output_path.exists():
             detail = (result.stderr or result.stdout or "").strip()
             raise RuntimeError(_firma_windows_store_error_message(detail))
@@ -4610,6 +4610,15 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "aruba",
     "arubapec",
     "minva",
+    "dike",
+    "infocert",
+    "namirial",
+    "firma certa",
+    "firmacerta",
+    "idprotect",
+    "safenet",
+    "athena",
+    "actalis",
     "token",
 )
 
@@ -4620,7 +4629,13 @@ _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
     "smartcard",
     "cryptui",
     "bit4",
+    "dike",
+    "infocert",
+    "namirial",
     "aruba",
+    "idprotect",
+    "safenet",
+    "athena",
 )
 
 
@@ -4633,6 +4648,15 @@ _WINDOWS_PIN_FOREGROUND_PROCESS_KEYWORDS = (
     "aruba",
     "arubapec",
     "minva",
+    "dike",
+    "infocert",
+    "namirial",
+    "firma4ng",
+    "firmacerta",
+    "idprotect",
+    "safenet",
+    "athena",
+    "actalis",
     "akutility",
     "smartcard",
     "carta",
@@ -4879,7 +4903,7 @@ def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_se
         stop_event.wait(0.22 if found else 0.25)
 
 
-def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
     run_kwargs = _windows_hidden_subprocess_kwargs(kwargs)
     if sys.platform != "win32":
         return subprocess.run(cmd, **run_kwargs)
@@ -4902,6 +4926,10 @@ def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.C
     finally:
         stop_event.set()
         worker.join(timeout=0.5)
+
+
+def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+    return _run_process_with_pin_foreground(cmd, **kwargs)
 
 
 def _http_status_from_headers(header_text: str) -> Optional[int]:

@@ -1977,3 +1977,10 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Codex quality gate `ui-support` | `python tools/codex_harness/run_codex_quality_gate.py --mode ui-support` | Non verde per scope, controlli interni OK | Il gate segnala come fuori perimetro i file prodotto React, asset Vite, bump versione, OpenAPI e test necessari per la release. I controlli interni su dipendenze runtime, `AGENTS.md` e Open Design sono OK. | Non usare questo gate come verde applicativo; la copertura per questa patch è data dal build React, dallo shard `test_react_fascicoli_suite_completa_route_componenti_e_lex`, dalla prova produzione e dalla prova Docker locale su `127.0.0.1:8080`. |
+
+## Local Signer 1.6.83 - residui prova materiale - 2026-06-28
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Hover umano pulsanti Local Signer | Browser integrato `127.0.0.1:8080/portali/pst/acquisizione` | Aperto per conferma materiale | La UI reale mostra i pulsanti leggibili e il CSS forza hover/focus con testo bianco su blu; il puntatore automatizzato non ha restituito `matches(':hover')`. | Prima di report positivo finale, confermare con puntatore reale umano davanti alla scheda aperta o con nuova osservazione materiale che il testo resta visibile in hover senza click. |
+| PIN token fisico | `http://127.0.0.1:27272/ping` e prova firma/PIN | Aperto per assenza token | Local Signer `1.6.83` risponde; ping completo segnala `Nessun token PKCS#11 rilevato`, quindi non è possibile provare la finestra PIN davanti all'utente in questa sessione. | Ripetere con smart card/token inserito: verifica finestra PIN in primo piano, firma reale e nessuna finestra PowerShell/curl rumorosa. |

@@ -32,5 +32,6 @@ def test_telematico_surface_bundle_contiene_copia_pst_aggiornata():
     assert chunk.exists(), "Chunk TelematicoSurfacePage assente dal bundle React pubblicato"
 
     source = chunk.read_text(encoding="utf-8", errors="ignore")
-    assert "Ricerca PST in corso" in source
+    assert "Default PST: copia di consultazione" in source
+    assert "dopo il tentativo di avvio automatico" in source
     assert "Timeout del Local Signer locale" not in source

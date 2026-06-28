@@ -2785,6 +2785,70 @@ Dati osservati nel fascicolo locale `RG 466/2023`:
 Impatto su deposito/PEC/notifiche: la logica resta unica nella pipeline documentale. Il backfill e il worker scheduler usano lo stesso estrattore CU governato, mentre `fondo_spese` è solo alias legacy verso `spese_esborsi`; di conseguenza Fascicoli, Lex AI, preparazione deposito, notifiche e PEC leggono la stessa matrice economica, evitando importi duplicati o falsi CU da Carta docente/reddito/autocertificazioni.
 
 Stato residuo prima della chiusura: dopo commit, push e check GitHub, ripetere su Hetzner deploy, reset/backfill e merge dati produzione senza backup, poi verificare visivamente i fascicoli reali segnalati nello screenshot.
+## Local Signer 1.6.83: installer Windows, update automatico, PIN e UI - 2026-06-28
+
+Richiesta utente: ripristinare il comportamento automatico di installazione/aggiornamento Local Signer, correggere la prima installazione Windows 11 quando il servizio non risponde su `127.0.0.1:27272`, preservare firma, assistenza remota, PEC/email, bridge AI e ricerca portali, silenziare le chiamate curl/subprocess e risolvere hover/focus dei pulsanti React.
+
+Diagnosi tecnica:
+
+- il Local Signer è un componente trasversale, non solo firma: espone firma singola/multipla, sessioni PIN, PST/PDP/PAT/PTT, PEC locale, assistenza remota, bridge AI, download e diagnostica;
+- l'installer Windows installava le dipendenze base ma non includeva `pillow`, pur essendo presente in `requirements_local_signer.txt` e necessaria per l'assistenza remota con screenshot;
+- il primo avvio preferiva `pythonw.exe`, quindi era silenzioso ma lasciava pochi log utili quando il servizio non partiva;
+- il wizard React, nel flusso di ricerca, controllava Local Signer con `checkLocalSigner(false)` e quindi non tentava l'avvio automatico nel punto in cui l'avvocato si aspetta continuità;
+- le regole CSS dei pulsanti Local Signer non fissavano in modo locale background, colore e icone per hover/focus/disabled, lasciando spazio a sovrascritture;
+- il foreground PIN esisteva per curl/PST, ma la stessa protezione non era riusata nella firma via certificato Windows Store.
+
+Fonti ufficiali consultate:
+
+- Python Windows embeddable package: la distribuzione embedded è minima e le dipendenze di terze parti devono essere gestite dall'installer dell'applicazione, non lasciate implicite (`https://docs.python.org/3/using/windows.html#the-embeddable-package`);
+- Microsoft `Register-ScheduledTask`: la registrazione dell'attività pianificata supporta eseguibili/script locali, ma non valida automaticamente la compatibilità del file eseguito (`https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/register-scheduledtask`).
+
+Correzioni applicate:
+
+- versione Local Signer portata a `1.6.83`;
+- l'installer Windows installa anche `pillow>=10.0.0`;
+- il launcher generato usa `python.exe` nascosto con redirect verso `local_signer.out.log` e `local_signer.err.log`, mantenendo `pythonw.exe` solo come fallback;
+- l'attesa prima di dichiarare non raggiungibile il servizio passa a 45 tentativi;
+- l'avvio immediato imposta anche `IUSENTRA_LOCAL_SIGNER_UPDATE_URL`;
+- la ricerca React tenta l'avvio automatico con `checkLocalSigner(true)` prima di bloccare;
+- i pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` hanno stati locali espliciti per normale, hover, focus e disabled;
+- il runner nascosto con foreground PIN viene riusato anche dalla firma via Windows Store;
+- aggiunti guardrail su middleware PIN comuni (`InfoCert`, `Namirial`, `IDProtect`, `SafeNet`, `Athena`, `Actalis`) e su avvio silenzioso senza finestre.
+
+Test automatici eseguiti:
+
+- `python -m py_compile tools\local_signer.py` -> OK;
+- `python -m pytest -q tests/test_local_signer.py::test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows tests/test_local_signer.py::test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests/test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser` -> `5 passed`.
+- `python -m pytest -q tests/test_local_signer.py::test_download_requirements_local_signer_e_pubblico tests/test_local_signer.py::test_installer_local_signer_windows_ps1_legacy_restituisce_exe tests/test_local_signer.py::test_installer_local_signer_windows_setup_route_e_pubblica tests/test_local_signer.py::test_installer_local_signer_windows_exe_route_se_bundle_presente tests/test_local_signer.py::test_installer_local_signer_macos_e_pubblico tests/test_local_signer.py::test_installer_local_signer_linux_e_pubblico tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests/test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale` -> `8 passed`.
+- `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser` -> `1 passed` dopo la correzione hover-only;
+- `pnpm --filter @iusentra/studio typecheck` -> OK;
+- `pnpm --filter @iusentra/studio build` -> OK;
+- `python -m pytest tests/test_utf8_integrity.py -q --tb=short` -> `4 passed`;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short` -> `2 passed`;
+- `python tools\sync_packaging_files.py --check` -> packaging sincronizzato;
+- `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` -> `10 passed`;
+- `docker compose up -d --build app scheduler-worker ocr-worker` -> app, scheduler e OCR ricostruiti sulla copia reale locale;
+- `Invoke-RestMethod http://127.0.0.1:8080/api/pronto` -> `ok=true`, `timezone=Europe/Rome`, `versione=2.253.134`.
+
+Pacchetti generati:
+
+- `tools/dist/SetupLocalSigner-1.6.83.exe`;
+- `tools/dist/SetupLocalSigner.exe` aggiornato come alias legacy;
+- `tools/dist/InstallaLocalSigner-1.6.83.ps1`;
+- `tools/dist/InstallaLocalSigner-1.6.83.command`;
+- `tools/dist/InstallaLocalSigner-1.6.83.run`;
+- `tools/dist/LocalSigner-1.6.83.txt`.
+
+Stato verifica reale:
+
+- verificato su macchina reale `127.0.0.1:8080` con browser integrato Codex sulla route `/portali/pst/acquisizione`: step `Accesso` visibile, pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` leggibili in stato normale, con testo bianco su sfondo blu;
+- il bundle React caricato (`TelematicoSurfacePage-DdIhQCPI.css`) contiene regole locali e specifiche che forzano testo, icone, `-webkit-text-fill-color`, opacità e sfondo anche in `:hover` e `:focus-visible`;
+- ricontrollato anche `Installa o aggiorna`: resta link secondario leggibile con testo scuro su sfondo bianco, quindi il fix non forza i link secondari in bianco-su-bianco;
+- la manovra automatizzata del puntatore non ha restituito `matches(':hover')`, quindi l'accettazione materiale dello stato hover umano resta da confermare davanti al browser reale prima del report finale positivo;
+- verificato update reale Local Signer dalla UI: dopo `Aggiorna automaticamente` il servizio locale ha risposto con versione `1.6.83`;
+- verificato servizio `http://127.0.0.1:27272`: `ping?light=1` risponde con versione `1.6.83`, `support/status` risponde `ok=true`, runtime locale con `pillow=True`, `pkcs11=True`, `send_pec_local=True` e `test_pec_smtp_local=True`;
+- non verificato con token fisico: il ping completo segnala `Nessun token PKCS#11 rilevato`; la comparsa reale della finestra PIN davanti all'utente resta aperta finché non è disponibile token/certificato.
+
 ## Fascicoli, OCR economico e deposito - micro-fix CU esente 2.253.127 - 2026-06-26
 
 - La pipeline usata da fascicoli, Lex economia, PEC/notifiche/deposito e indice documentale ora scrive le esenzioni CU senza data pagamento fittizia: se il fascicolo contiene prova di esenzione, viene riportato lo stato esente/non previsto; se non c'è prova, il valore resta vuoto.

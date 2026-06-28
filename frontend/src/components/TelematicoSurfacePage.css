@@ -628,6 +628,8 @@
   justify-content:center;
   gap:8px;
   font-weight:950;
+  text-shadow:none;
+  mix-blend-mode:normal;
 }
 .iu-tel-acq-actions{
   display:flex;
@@ -646,6 +648,7 @@
 .iu-tel-acq-import-result a:hover{
   background:var(--iu-blue-800) !important;
   color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
   border-color:var(--iu-blue-800) !important;
   text-decoration:none !important;
 }
@@ -658,6 +661,21 @@
 .iu-tel-acq-import-result a:hover,
 .iu-tel-acq-import-result a:focus-visible{
   color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  opacity:1 !important;
+  text-shadow:none !important;
+  mix-blend-mode:normal !important;
+}
+.iu-tel-acq-status button:not(:disabled) *,
+.iu-tel-acq-status button:hover:not(:disabled) *,
+.iu-tel-acq-status button:focus-visible:not(:disabled) *,
+.iu-tel-acq-actions button:not(:disabled) *,
+.iu-tel-acq-actions button:hover:not(:disabled) *,
+.iu-tel-acq-actions button:focus-visible:not(:disabled) *{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow:none !important;
+  mix-blend-mode:normal !important;
 }
 .iu-tel-acq-status button:not(:disabled) svg,
 .iu-tel-acq-status button:hover:not(:disabled) svg,
@@ -747,9 +765,57 @@
   background:rgba(239,68,68,.06);
 }
 .iu-tel-local-signer-card.is-missing svg{color:var(--iu-danger-500)}
+.iu-tel-acq-status button:not(:disabled),
+.iu-tel-acq-status button:hover:not(:disabled),
+.iu-tel-acq-status button:focus-visible:not(:disabled),
 .iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled),
+.iu-tel-local-signer-inline button:not(:disabled),
+.iu-tel-local-signer-inline button:hover:not(:disabled),
+.iu-tel-local-signer-inline button:focus-visible:not(:disabled){
+  opacity:1 !important;
+  border:1px solid #1d4ed8 !important;
+  background:#1d4ed8 !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  text-shadow:none !important;
+  mix-blend-mode:normal !important;
+}
+.iu-tel-acq-status button:hover:not(:disabled),
+.iu-tel-acq-status button:focus-visible:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled),
+.iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled),
+.iu-tel-local-signer-inline button:hover:not(:disabled),
+.iu-tel-local-signer-inline button:focus-visible:not(:disabled){
+  border-color:#1e40af !important;
+  background:#1e40af !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+}
+.iu-tel-acq-status button:not(:disabled) *,
+.iu-tel-acq-status button:hover:not(:disabled) *,
+.iu-tel-acq-status button:focus-visible:not(:disabled) *,
+.iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled) *,
+.iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled) *,
+.iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled) *,
+.iu-tel-local-signer-inline button:not(:disabled) *,
+.iu-tel-local-signer-inline button:hover:not(:disabled) *,
+.iu-tel-local-signer-inline button:focus-visible:not(:disabled) *{
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+  stroke:currentColor !important;
+  text-shadow:none !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled){
+  border:1px solid #1d4ed8 !important;
+  background:#1d4ed8 !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff !important;
+}
 .iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled) svg{
   color:#fff !important;
+  stroke:#fff !important;
 }
 .iu-tel-local-signer-card .iu-tel-acq-actions a,
 .iu-tel-local-signer-card .iu-tel-acq-actions a svg{
@@ -772,6 +838,16 @@
 .iu-tel-local-signer-card .iu-tel-acq-actions button:hover:not(:disabled) svg,
 .iu-tel-local-signer-card .iu-tel-acq-actions button:focus-visible:not(:disabled) svg{
   color:#fff !important;
+  stroke:#fff !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:disabled{
+  border:1px solid #bfdbfe !important;
+  background:#dbeafe !important;
+  color:#1e3a8a !important;
+}
+.iu-tel-local-signer-card .iu-tel-acq-actions button:disabled svg{
+  color:#1e3a8a !important;
+  stroke:#1e3a8a !important;
 }
 .iu-tel-local-signer-card .iu-tel-acq-actions a:hover svg,
 .iu-tel-local-signer-card .iu-tel-acq-actions a:focus-visible svg{
@@ -802,8 +878,23 @@
   padding:0 14px;
   font-weight:900;
 }
+.iu-tel-local-signer-inline button:not(:disabled),
+.iu-tel-local-signer-inline button:hover:not(:disabled),
+.iu-tel-local-signer-inline button:focus-visible:not(:disabled){
+  border:1px solid #1d4ed8 !important;
+  background:#1d4ed8 !important;
+  color:#fff !important;
+}
+.iu-tel-local-signer-inline button:hover:not(:disabled),
+.iu-tel-local-signer-inline button:focus-visible:not(:disabled){
+  border-color:#1e40af !important;
+  background:#1e40af !important;
+}
 .iu-tel-local-signer-inline button:disabled{
-  opacity:.55;
+  opacity:1;
+  border:1px solid #bfdbfe !important;
+  background:#dbeafe !important;
+  color:#1e3a8a !important;
   cursor:not-allowed;
 }
 .iu-tel-acq-form label,

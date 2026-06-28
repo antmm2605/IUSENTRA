@@ -2023,6 +2023,7 @@ def test_react_wizard_pst_ricerca_ufficio_non_usa_evento_react_pooled():
 
 def test_react_wizard_pst_verifica_local_signer_dal_browser():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    css_source = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     assert "data.localSigner.browserUrl" in source
     assert "/ping?light=1" in source
     assert "iusentra-local-signer://restart" in source
@@ -2032,7 +2033,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Local Signer non rilevato su questo PC" in source
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
     assert "Local Signer non pronto sul PC" not in source
-    assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(false)" in source
+    assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" in source
+    assert "dopo il tentativo di avvio automatico" in source
     assert "ok: reachable" in source
     assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
     assert "REACT_PST_SESSION_KEY" in source
@@ -2048,6 +2050,13 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "'/pst/download-documento'" not in source
     assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
     assert "ensurePstPortalSession" not in source
+    assert ".iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled)" in css_source
+    assert ".iu-tel-acq-actions button:hover:not(:disabled) *" in css_source
+    assert "background:#1d4ed8 !important;" in css_source
+    assert "-webkit-text-fill-color:#fff !important;" in css_source
+    assert ".iu-tel-acq-status button:hover:not(:disabled)" in css_source
+    assert ".iu-tel-local-signer-card .iu-tel-acq-actions button:disabled" in css_source
+    assert ".iu-tel-local-signer-inline button:focus-visible:not(:disabled)" in css_source
     assert "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))" in source
     assert "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)" in source
     assert "cf_parte: exactPstSearch ? '' : query.cf" in source

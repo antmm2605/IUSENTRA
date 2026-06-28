@@ -372,6 +372,11 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert '"credentialuibroker"' in source
     assert '"bit4id"' in source
     assert '"minva"' in source
+    assert '"infocert"' in source
+    assert '"namirial"' in source
+    assert '"idprotect"' in source
+    assert '"safenet"' in source
+    assert "def _run_process_with_pin_foreground" in source
     assert "EnumChildWindows" in source
     assert "GetClassNameW" in source
     assert "QueryFullProcessImageNameW" in source
@@ -380,6 +385,7 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "FlashWindow" in source
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
+    assert "result = _run_process_with_pin_foreground(command, **run_kwargs)" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
     raw = source[
@@ -1809,7 +1815,12 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     monitor = (Path(__file__).resolve().parents[1] / "web" / "static" / "js" / "local-signer-monitor.js").read_text(encoding="utf-8")
 
     assert 'set "SILENT_MODE=0"' in installer
-    assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
+    assert 'set "PYE=%DIR%python\\python.exe"' in installer
+    assert 'set "OUTLOG=%DIR%local_signer.out.log"' in installer
+    assert 'set "ERRLOG=%DIR%local_signer.err.log"' in installer
+    assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYE -ArgumentList @($env:PY) -RedirectStandardOutput $env:OUTLOG -RedirectStandardError $env:ERRLOG' in installer
+    assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)' in installer
+    assert "function Wait-LocalSigner([int]$Attempts = 45)" in installer
     assert "$protected = @{}" in installer
     assert "$keep=@{}" in installer
     assert "ParentProcessId" in installer
@@ -1837,6 +1848,9 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "/polisWeb/local-signer/setup/windows" in installer
     assert "Invoke-Pip" in installer
     assert "PIP_NO_CACHE_DIR" in installer
+    assert "pillow>=10.0.0" in installer
+    assert '$servicePythonExe = $pythonExe' in installer
+    assert '$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL' in installer
     assert 'set "SILENT_MODE=0"' in launcher
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
     assert "const started = await verifyAfterStart(cfg, 8, 900)" in monitor

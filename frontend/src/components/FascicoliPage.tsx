@@ -1024,6 +1024,17 @@ function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem;
   )
 }
 
+function EconomicTotalSummary({ summary }:{summary:FascicoloRow['paymentSummary']}) {
+  return (
+    <div className={`iu-fas-economic-total-inline iu-fas-economic-total-inline--${summary.tone}`} aria-label={`Totale registrato ${summary.totaleRegistratoLabel}`}>
+      <span>Totale registrato</span>
+      <strong>{summary.totaleRegistratoLabel}</strong>
+      <Badge tone={summary.tone}>{summary.statoLabel}</Badge>
+      {summary.updatedAtLabel ? <small>{summary.updatedAtLabel}</small> : null}
+    </div>
+  )
+}
+
 function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
@@ -1261,7 +1272,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
               <th>Stato</th>
               {economic ? <th>Controllo economico</th> : <th>Documenti</th>}
-              {economic ? <th>Totale</th> : <th>Azioni</th>}
+              {economic ? null : <th>Azioni</th>}
             </tr>
           </thead>
           <tbody>
@@ -1291,42 +1302,43 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                       </td>
                     )}
                     {economic ? null : <td><Badge tone="neutral">{formatFascicoloType(item.type)}</Badge></td>}
-                    <td>{item.client}</td>
+                    <td className={economic ? 'iu-fas-economic-client-cell' : undefined}>
+                      {economic ? (
+                        <span className="iu-fas-economic-client">
+                          <strong>{item.client}</strong>
+                          <button
+                            type="button"
+                            className="iu-fas-economic-edit-toggle"
+                            aria-expanded={economicEditorOpen}
+                            aria-controls={economicEditorId}
+                            onClick={() => setExpandedEconomicId(economicEditorOpen ? null : item.id)}
+                          >
+                            <Edit3 size={14}/>
+                            <span>{economicEditorOpen ? 'Chiudi modifica' : 'Modifica controllo economico'}</span>
+                          </button>
+                        </span>
+                      ) : item.client}
+                    </td>
                     {economic ? null : <td>{item.rg}</td>}
                     <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
                     <td>{statusCell(item)}</td>
                     {economic ? (
                       <td className="iu-fas-economic-matrix">
+                        <EconomicTotalSummary summary={item.paymentSummary}/>
                         <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
                           {economicPaymentKinds.map((kind) => (
                             <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
                           ))}
                         </div>
-                        <button
-                          type="button"
-                          className="iu-fas-economic-edit-toggle"
-                          aria-expanded={economicEditorOpen}
-                          aria-controls={economicEditorId}
-                          onClick={() => setExpandedEconomicId(economicEditorOpen ? null : item.id)}
-                        >
-                          <Edit3 size={14}/>
-                          <span>{economicEditorOpen ? 'Chiudi modifica economica' : 'Modifica controllo economico'}</span>
-                        </button>
                       </td>
                     ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
-                    {economic ? (
-                      <td className="iu-fas-economic-total">
-                        <strong>{item.paymentSummary.totaleRegistratoLabel}</strong>
-                        <Badge tone={item.paymentSummary.tone}>{item.paymentSummary.statoLabel}</Badge>
-                        {item.paymentSummary.updatedAtLabel ? <span>{item.paymentSummary.updatedAtLabel}</span> : null}
-                      </td>
-                    ) : (
+                    {!economic ? (
                       <td><RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/></td>
-                    )}
+                    ) : null}
                   </tr>
                   {economicEditorOpen ? (
                     <tr className="iu-fas-economic-editor-row">
-                      <td colSpan={7}>
+                      <td colSpan={6}>
                         <section className="iu-fas-economic-editor" id={economicEditorId} aria-label={`Modifica controllo economico ${item.ref}`}>
                           <header>
                             <div>

@@ -18,6 +18,7 @@ Funzionalità:
 import json
 import uuid
 import re
+import os
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4, _crea_contesto_tls_sicuro, _msg_errore_rete
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -87,6 +88,29 @@ class ConfigMessaggistica:
     twilio: ConfigTwilio = field(default_factory=ConfigTwilio)
     studio_nome: str = "Studio Legale"
     studio_firma: str = ""
+
+
+def _attachment_allowed_roots() -> tuple[Path, ...]:
+    cwd = Path.cwd().resolve()
+    env_roots = [
+        Path(item).resolve()
+        for item in os.environ.get("IUSENTRA_ATTACHMENT_ALLOWED_ROOTS", "").split(os.pathsep)
+        if item.strip()
+    ]
+    return (cwd, *env_roots)
+
+
+def _resolve_attachment_path(percorso: str) -> Path | None:
+    raw = str(percorso or "").strip()
+    if not raw:
+        return None
+    # codeql[py/path-injection] Attachment paths are accepted only after resolve+allowed-root validation.
+    candidate = Path(raw).resolve()
+    if not any(candidate.is_relative_to(root) for root in _attachment_allowed_roots()):
+        raise ValueError("Allegato non autorizzato.")
+    if not candidate.is_file():
+        return None
+    return candidate
 
 
 # ------------------------------------------------------------------ Messaggio
@@ -480,15 +504,16 @@ class GestioneMessaggi:
                 mime.attach(body_container)
 
             for percorso in (allegati or []):
-                p = Path(percorso)
-                if p.exists():
-                    with open(p, "rb") as fh:
-                        part = MIMEBase("application", "octet-stream")
-                        part.set_payload(fh.read())
-                    encoders.encode_base64(part)
-                    part.add_header("Content-Disposition",
-                                    f'attachment; filename="{p.name}"')
-                    mime.attach(part)
+                p = _resolve_attachment_path(percorso)
+                if p is None:
+                    continue
+                with p.open("rb") as fh:
+                    part = MIMEBase("application", "octet-stream")
+                    part.set_payload(fh.read())
+                encoders.encode_base64(part)
+                part.add_header("Content-Disposition",
+                                f'attachment; filename="{p.name}"')
+                mime.attach(part)
 
             ctx = _crea_contesto_tls_sicuro()
             if email_cfg.use_tls:

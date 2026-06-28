@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from datetime import date
 from typing import Any
-from urllib.parse import parse_qsl, urlencode, urlparse
+from urllib.parse import parse_qsl, urlparse
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
@@ -15,7 +15,6 @@ from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
     resolve_nome_ufficio,
 )
-from web.services.app_v2_routing import is_safe_internal_path
 
 _PAGOPA_SAFE_PATH_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,512}$")
 _PAGOPA_ALLOWED_PATH_PREFIXES = ("it/pagopa_", "resources/", "dwr/")
@@ -81,13 +80,11 @@ def register_telematico_portali_routes(
         cleaned = _pagopa_safe_pst_path(pst_path)
 
         query_pairs = _pagopa_safe_query_pairs()
-        query = urlencode(query_pairs, doseq=True)
-        target = url_for("api_v1_react.pst_pagopa_proxy", pst_path=cleaned)
-        if query:
-            target = f"{target}?{query}"
-        if not is_safe_internal_path(target):
-            target = url_for("api_v1_react.pst_pagopa_proxy", pst_path="it/pagopa_altripag.wp")
-        return redirect(target, code=307 if request.method == "POST" else 302)
+        query_args = {key: value for key, value in query_pairs if key == "iusentra_fascicolo" and value}
+        return redirect(
+            url_for("api_v1_react.pst_pagopa_proxy", pst_path=cleaned, **query_args),
+            code=307 if request.method == "POST" else 302,
+        )
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():

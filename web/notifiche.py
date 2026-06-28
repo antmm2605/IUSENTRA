@@ -85,6 +85,7 @@ def lista():
 def nuova(id_cliente: str = ""):
     gc = get_clienti()
     gf_parc = _get_gf()
+    nuova_url = url_for("fatturazione.nuova", id_cliente=id_cliente) if id_cliente else url_for("fatturazione.nuova")
 
     if request.method == "POST":
         from pct.fatturazione import VoceParcella, StatoParcella
@@ -93,7 +94,7 @@ def nuova(id_cliente: str = ""):
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
-            return redirect(request.url)
+            return redirect(nuova_url)
 
         # Raccogli voci
         descrizioni = f.getlist("voce_descr[]")
@@ -115,7 +116,7 @@ def nuova(id_cliente: str = ""):
 
         if not voci:
             flash("Aggiungi almeno una voce.", "danger")
-            return redirect(request.url)
+            return redirect(nuova_url)
 
         # Dati studio da config
         cfg = current_app.config

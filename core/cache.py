@@ -78,5 +78,5 @@ class CacheClient:
         try:
             self._redis.ping()
             return CacheStatus(ok=True, backend="redis")
-        except Exception as exc:
-            return CacheStatus(ok=False, backend="redis", message=str(exc))
+        except Exception:
+            return CacheStatus(ok=False, backend="redis", message="Redis non raggiungibile")

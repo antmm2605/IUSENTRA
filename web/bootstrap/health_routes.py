@@ -60,25 +60,29 @@ def register_health_routes(
             gc = get_clienti()
             stato["moduli"]["clienti"] = {"ok": True, "totale": gc.statistiche()["totale"]}
         except Exception as e:
-            stato["moduli"]["clienti"] = {"ok": False, "errore": str(e)}
+            current_app.logger.exception("Errore health modulo clienti: %s", e)
+            stato["moduli"]["clienti"] = {"ok": False, "errore": "Modulo clienti non disponibile."}
             stato["ok"] = False
         try:
             gf = get_fascicoli()
             stato["moduli"]["fascicoli"] = {"ok": True, "attivi": gf.statistiche()["attivi"]}
         except Exception as e:
-            stato["moduli"]["fascicoli"] = {"ok": False, "errore": str(e)}
+            current_app.logger.exception("Errore health modulo fascicoli: %s", e)
+            stato["moduli"]["fascicoli"] = {"ok": False, "errore": "Modulo fascicoli non disponibile."}
             stato["ok"] = False
         try:
             ga = get_agenda()
             stato["moduli"]["agenda"] = {"ok": True, "totale": ga.statistiche()["totale"]}
         except Exception as e:
-            stato["moduli"]["agenda"] = {"ok": False, "errore": str(e)}
+            current_app.logger.exception("Errore health modulo agenda: %s", e)
+            stato["moduli"]["agenda"] = {"ok": False, "errore": "Modulo agenda non disponibile."}
             stato["ok"] = False
         try:
             gs = get_scadenziario()
             stato["moduli"]["scadenziario"] = {"ok": True, "aperte": gs.statistiche()["aperte"]}
         except Exception as e:
-            stato["moduli"]["scadenziario"] = {"ok": False, "errore": str(e)}
+            current_app.logger.exception("Errore health modulo scadenziario: %s", e)
+            stato["moduli"]["scadenziario"] = {"ok": False, "errore": "Modulo scadenziario non disponibile."}
             stato["ok"] = False
         codice = 200 if stato["ok"] else 503
         return jsonify(stato), codice
@@ -90,7 +94,7 @@ def register_health_routes(
             return jsonify(payload), 200
         except Exception as exc:
             current_app.logger.exception("Errore api_runtime_metrics: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Metriche runtime non disponibili."}), 200
 
     @app.route("/health/live")
     def health_live():

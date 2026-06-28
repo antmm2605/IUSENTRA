@@ -7,7 +7,7 @@ import hashlib
 import mimetypes
 import re
 from datetime import date, datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
@@ -247,7 +247,8 @@ def _status_result(item: Any) -> dict[str, Any]:
 
 
 def _safe_file_token(value: str, fallback: str = "documento") -> str:
-    token = re.sub(r"[^A-Za-z0-9_.-]+", "-", _text(value) or fallback).strip(".-")
+    raw_name = PurePath((_text(value) or fallback).replace("\\", "/")).name
+    token = re.sub(r"[^A-Za-z0-9_.-]+", "-", raw_name or fallback).strip(".-")
     return token[:120] or fallback
 
 
@@ -258,6 +259,7 @@ def _safe_storage_root(storage_root: str | Path) -> Path:
 
 
 def _ensure_inside(root: Path, path: Path) -> Path:
+    # codeql[py/path-injection] Filename is normalized by _safe_file_token and rechecked under root.
     resolved = path.resolve()
     if not resolved.is_relative_to(root.resolve()):
         raise ValueError("Percorso documento fatturazione non autorizzato.")

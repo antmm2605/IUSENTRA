@@ -89,11 +89,11 @@ def ping_database(database_url: str) -> tuple[bool, str]:
             return True, "sqlite ok"
         try:
             from sqlalchemy import create_engine, text
-        except Exception as exc:  # pragma: no cover - dipendenza runtime
-            return False, f"sqlalchemy non disponibile: {exc}"
+        except Exception:  # pragma: no cover - dipendenza runtime
+            return False, "sqlalchemy non disponibile"
         engine = create_engine(database_url, pool_pre_ping=True)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True, "postgres ok"
-    except Exception as exc:
-        return False, str(exc)
+    except Exception:
+        return False, "database non raggiungibile"

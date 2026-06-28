@@ -602,6 +602,7 @@ def lista():
 def nuovo_preventivo(id_cliente: str = ""):
     gc = get_clienti()
     gp = _get_gp()
+    nuovo_url = url_for("preventivi.nuovo_preventivo", id_cliente=id_cliente) if id_cliente else url_for("preventivi.nuovo_preventivo")
 
     if request.method == "POST":
         from pct.preventivi import VocePreventivo, TipoVoce
@@ -610,12 +611,12 @@ def nuovo_preventivo(id_cliente: str = ""):
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
             flash("Inserisci l'oggetto del preventivo.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
 
         # Raccogli voci
         descrizioni = f.getlist("voce_descr[]")
@@ -641,12 +642,12 @@ def nuovo_preventivo(id_cliente: str = ""):
         tipo_compenso, compenso_a_tempo = _compenso_a_tempo_da_form(f)
         if compenso_a_tempo.get("errors"):
             flash(" ".join(compenso_a_tempo["errors"]), "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
         _aggiungi_voce_compenso_a_tempo(voci, compenso_a_tempo)
 
         if not voci:
             flash("Aggiungi almeno una voce.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
 
         if compenso_a_tempo.get("warnings"):
             for warning in compenso_a_tempo["warnings"]:
@@ -1000,6 +1001,7 @@ def pdf_preventivo(id_preventivo: str):
 def nuovo_conferimento(id_cliente: str = ""):
     gc = get_clienti()
     gp = _get_gp()
+    nuovo_url = url_for("preventivi.nuovo_conferimento", id_cliente=id_cliente) if id_cliente else url_for("preventivi.nuovo_conferimento")
 
     if request.method == "POST":
         f = request.form
@@ -1007,18 +1009,18 @@ def nuovo_conferimento(id_cliente: str = ""):
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
         cliente_corrente = gc.get(id_cliente)
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
             flash("Inserisci l'oggetto dell'incarico.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
 
         avvocato = f.get("avvocato_referente", "").strip() or studio_forense.get("avvocato", "")
         if not avvocato:
             flash("Inserisci il nome dell'avvocato referente.", "danger")
-            return redirect(request.url)
+            return redirect(nuovo_url)
 
         compenso = _parse_numero(f.get("compenso_pattuito"), 0.0)
         tariffa_oraria_c = _parse_numero(f.get("tariffa_oraria"), 0.0)
@@ -1347,7 +1349,7 @@ def ajax_cliente_rapido():
         )
     except ValueError as exc:
         _wizard_log_story("cliente rapido non completato", motivo=str(exc))
-        return jsonify({"ok": False, "errore": str(exc)}), 200
+        return jsonify({"ok": False, "errore": "Dati cliente rapido non validi."}), 200
     except Exception as exc:
         _wizard_log_story("cliente rapido fallito", motivo=str(exc))
         current_app.logger.exception("Errore creazione cliente rapido wizard: %s", exc)
@@ -1532,7 +1534,7 @@ def ajax_parametri_dm55():
         })
     except Exception as e:
         current_app.logger.exception("Errore calcolo DM147: %s", e)
-        return jsonify({"errore": str(e)}), 200
+        return jsonify({"errore": "Calcolo tariffario non disponibile."}), 200
 
 
 # ================================================================ WIZARD MOTORE PREVENTIVO
@@ -1919,7 +1921,7 @@ def wizard_calcola():
             motivo=str(e),
         )
         current_app.logger.exception("Errore wizard_calcola: %s", e)
-        return jsonify({"errore": str(e)}), 200
+        return jsonify({"errore": "Calcolo preventivo guidato non disponibile."}), 200
 
 
 @preventivi.route("/wizard/genera", methods=["POST"])

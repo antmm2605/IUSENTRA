@@ -55,8 +55,8 @@ def _check_filesystem(path: str | Path) -> dict[str, Any]:
         probe.write_text("ok", encoding="utf-8")
         probe.unlink(missing_ok=True)
         return {"status": "healthy", "ok": True, "message": str(root)}
-    except Exception as exc:
-        return {"status": "unhealthy", "ok": False, "message": str(exc)}
+    except Exception:
+        return {"status": "unhealthy", "ok": False, "message": "filesystem non scrivibile"}
 
 
 def _aggregate_status(checks: dict[str, dict[str, Any]]) -> str:

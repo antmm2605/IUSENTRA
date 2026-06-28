@@ -370,7 +370,7 @@ def register_condivisioni_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore api_condivisioni_cliente: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Condivisioni cliente non disponibili."}), 200
 
     @app.route("/api/v1/clienti/<id_cliente>/condivisioni", methods=["POST"])
     def api_aggiungi_collaboratore(id_cliente: str):
@@ -423,7 +423,7 @@ def register_condivisioni_routes(
             return jsonify({"errore": "Accesso non trovato"}), 404
         except Exception as exc:
             app.logger.exception("Errore api_revoca_collaboratore: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Revoca condivisione non completata."}), 200
 
     @app.route("/api/v1/condivisioni/statistiche")
     def api_statistiche_condivisioni():
@@ -434,7 +434,7 @@ def register_condivisioni_routes(
             return jsonify(get_condivisioni().statistiche())
         except Exception as exc:
             app.logger.exception("Errore api_statistiche_condivisioni: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Statistiche condivisioni non disponibili."}), 200
 
     @app.route("/api/v1/condivisioni/pulizia-scaduti", methods=["POST"])
     def api_pulizia_scaduti():
@@ -454,4 +454,4 @@ def register_condivisioni_routes(
             return jsonify({"accessi_rimossi": n_scaduti, "link_rimossi": n_link})
         except Exception as exc:
             app.logger.exception("Errore api_pulizia_scaduti: %s", exc)
-            return jsonify({"errore": str(exc)})
+            return jsonify({"errore": "Pulizia condivisioni scadute non completata."}), 200

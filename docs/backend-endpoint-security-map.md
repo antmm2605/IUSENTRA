@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 256.
-- Endpoint con `_richiedi_auth`: 256/256.
-- Endpoint con metodo di scrittura o cancellazione: 128.
+- Endpoint React API censiti: 265.
+- Endpoint con `_richiedi_auth`: 265/265.
+- Endpoint con metodo di scrittura o cancellazione: 137.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 116; critical: 18; high/P1: 75.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -118,8 +118,17 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/fatturazione` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fatturazione/<id_documento>` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/<id_documento>/annulla` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/commercialista/email/invia` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/commercialista/pec/conferma` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/commercialista/prepara` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/dettaglio` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/sdi/esito` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/sdi/pec/conferma` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/sdi/pec/prepara` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/<id_documento>/segna-pagata` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/<id_documento>/stato` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/xml/firmato` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fatturazione/<id_documento>/xml/prepara-firma` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/numerazione` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fatturazione/nuova` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fatturazione/nuova` | Fatturazione | P0 | `fatturazione.leggi/scrivi` | parcelle, importi e PDF | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

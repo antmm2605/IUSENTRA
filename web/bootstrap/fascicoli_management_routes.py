@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import io
 import mimetypes
+import re
 import sqlite3
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.app_v2_routing import is_safe_internal_path
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 
 
@@ -47,9 +48,12 @@ def _form_result(message: str, *, status: int, redirect_to: str = "", category: 
     return None
 
 
-def _safe_internal_redirect(target: str, fallback: str) -> str:
-    cleaned = str(target or "").strip()
-    return cleaned if cleaned and is_safe_internal_path(cleaned) else fallback
+def _safe_same_fascicolo_anchor(target: str, *, base_url: str, fallback_fragment: str) -> str:
+    parsed = urlparse(str(target or "").strip())
+    fragment = parsed.fragment if re.match(r"^[A-Za-z0-9_.:-]{1,80}$", parsed.fragment or "") else fallback_fragment
+    if parsed.scheme or parsed.netloc or parsed.path != base_url:
+        fragment = fallback_fragment
+    return f"{base_url}#{fragment}" if fragment else base_url
 
 
 def register_fascicoli_management_routes(
@@ -281,8 +285,14 @@ def register_fascicoli_management_routes(
         except (ValueError, KeyError) as exc:
             app.logger.info("Controlli conformita fascicolo %s non aggiornati: %s", id_fasc, exc)
             flash("Controlli automatici non aggiornati.", "danger")
-        fallback_url = url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-responsabile-conformita"
-        return redirect(_safe_internal_redirect(next_url, fallback_url))
+        base_url = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
+        return redirect(
+            _safe_same_fascicolo_anchor(
+                next_url,
+                base_url=base_url,
+                fallback_fragment="sezione-responsabile-conformita",
+            )
+        )
 
     @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
     def definisci_fascicolo(id_fasc: str):

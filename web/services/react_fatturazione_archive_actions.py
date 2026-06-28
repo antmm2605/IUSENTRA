@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from pct.fatturazione import StatoParcella, VoceParcella
 from pct.formatting import format_euro_it
+from werkzeug.security import safe_join
 
 _ALLOWED_STATUS_FIELDS = {"stato", "data_pagamento", "metodo_pagamento", "note"}
 _ALLOWED_DETAIL_FIELDS = {"voci", "note"}
@@ -258,11 +259,12 @@ def _safe_storage_root(storage_root: str | Path) -> Path:
     return root
 
 
-def _ensure_inside(root: Path, path: Path) -> Path:
-    resolved = path.resolve()  # lgtm[py/path-injection]
-    if not resolved.is_relative_to(root.resolve()):
+def _storage_path(root: Path, filename: str) -> Path:
+    safe_name = _safe_file_token(filename)
+    joined = safe_join(str(root), safe_name)
+    if not joined:
         raise ValueError("Percorso documento fatturazione non autorizzato.")
-    return resolved
+    return Path(joined)
 
 
 def _workflow_data(parcella: Any) -> dict[str, Any]:
@@ -367,8 +369,8 @@ def _pdf_bytes(parcella: Any, cliente: Any, fascicolo: Any, config: dict[str, An
 
 def _write_bytes(root: Path, filename: str, payload: bytes) -> dict[str, Any]:
     safe_name = _safe_file_token(filename)
-    path = _ensure_inside(root, root / safe_name)
-    path.write_bytes(payload)  # lgtm[py/path-injection]
+    path = _storage_path(root, safe_name)
+    path.write_bytes(payload)
     return {
         "fileName": safe_name,
         "storageFile": safe_name,
@@ -382,8 +384,8 @@ def _stored_file(root: Path, metadata: dict[str, Any]) -> Path:
     name = _safe_file_token(_text(metadata.get("storageFile") or metadata.get("fileName")))
     if not name:
         raise ValueError("File firmato non disponibile.")
-    path = _ensure_inside(root, root / name)
-    if not path.is_file():  # lgtm[py/path-injection]
+    path = _storage_path(root, name)
+    if not path.is_file():
         raise ValueError("File firmato non trovato nello storage fatturazione.")
     return path
 
@@ -789,7 +791,7 @@ def prepare_react_fatturazione_commercialista(
         root = _safe_storage_root(Path(storage_root) / _safe_file_token(id_documento, "fattura"))
         pdf, pdf_name = _pdf_bytes(parcella, cliente, fascicolo, config)
         pdf_meta = _write_bytes(root, pdf_name, pdf)
-        attachment_paths = [_ensure_inside(root, root / pdf_meta["storageFile"])]
+        attachment_paths = [_stored_file(root, pdf_meta)]
         if attachment_mode == "pdf_xml_firmato":
             signed_xml = _workflow_data(parcella).get("signed_xml")
             if not isinstance(signed_xml, dict):

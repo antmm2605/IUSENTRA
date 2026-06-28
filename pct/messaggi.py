@@ -30,6 +30,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from email.utils import formataddr, getaddresses, make_msgid
+from werkzeug.security import safe_join
 
 
 # ------------------------------------------------------------------ Enums
@@ -104,12 +105,23 @@ def _resolve_attachment_path(percorso: str) -> Path | None:
     raw = str(percorso or "").strip()
     if not raw:
         return None
-    candidate = Path(raw).resolve()  # lgtm[py/path-injection]
-    if not any(candidate.is_relative_to(root) for root in _attachment_allowed_roots()):
-        raise ValueError("Allegato non autorizzato.")
-    if not candidate.is_file():  # lgtm[py/path-injection]
+    candidate_abs = os.path.abspath(raw)
+    for root in _attachment_allowed_roots():
+        root_abs = str(root)
+        try:
+            relative = os.path.relpath(candidate_abs, root_abs)
+        except ValueError:
+            continue
+        if relative == os.pardir or relative.startswith(os.pardir + os.sep):
+            continue
+        joined = safe_join(root_abs, relative.replace(os.sep, "/"))
+        if not joined:
+            continue
+        candidate = Path(joined)
+        if candidate.is_file():
+            return candidate
         return None
-    return candidate
+    raise ValueError("Allegato non autorizzato.")
 
 
 # ------------------------------------------------------------------ Messaggio
@@ -506,7 +518,7 @@ class GestioneMessaggi:
                 p = _resolve_attachment_path(percorso)
                 if p is None:
                     continue
-                with p.open("rb") as fh:  # lgtm[py/path-injection]
+                with p.open("rb") as fh:
                     part = MIMEBase("application", "octet-stream")
                     part.set_payload(fh.read())
                 encoders.encode_base64(part)

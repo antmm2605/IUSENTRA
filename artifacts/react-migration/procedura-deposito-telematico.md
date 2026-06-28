@@ -2855,6 +2855,12 @@ Stato verifica reale:
 - verificato servizio `http://127.0.0.1:27272`: `ping?light=1` risponde con versione `1.6.83`, `support/status` risponde `ok=true`, runtime locale con `pillow=True`, `pkcs11=True`, `send_pec_local=True` e `test_pec_smtp_local=True`;
 - non verificato con token fisico: il ping completo segnala `Nessun token PKCS#11 rilevato`; la comparsa reale della finestra PIN davanti all'utente resta aperta finché non è disponibile token/certificato.
 
+Stato rilascio remoto:
+
+- GitHub: branch gemelli pushati e check-run dello SHA corrente completati senza failure; CodeQL, Frontend React, CI, Required Gates, Local Signer/PKCS#11 e Quality Overlay verdi.
+- Hetzner CPX42: `https://app.iusentra.it/api/pronto` risponde `ok=true`, `timezone=Europe/Rome`, `versione=2.253.134`; il manifest pubblico serve `assets/TelematicoSurfacePage-xPye0zGo.css`.
+- Server: repository su commit pushato, container `iusentra-app`, `iusentra-scheduler-worker` e `iusentra-ocr-worker` healthy; eseguito `docker builder prune --all --force`; `/opt/iusentra/tmp-backup-snapshot` assente.
+
 ## Fascicoli, OCR economico e deposito - micro-fix CU esente 2.253.127 - 2026-06-26
 
 - La pipeline usata da fascicoli, Lex economia, PEC/notifiche/deposito e indice documentale ora scrive le esenzioni CU senza data pagamento fittizia: se il fascicolo contiene prova di esenzione, viene riportato lo stato esente/non previsto; se non c'è prova, il valore resta vuoto.

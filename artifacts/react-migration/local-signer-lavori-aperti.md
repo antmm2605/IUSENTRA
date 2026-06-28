@@ -42,9 +42,10 @@ Questo file è la lista operativa da rileggere dopo ogni compattazione prima di 
 
 - Stato: aperto.
 - Verifica reale su macchina dell'utente: eseguita parzialmente il 28 giugno 2026 su `http://127.0.0.1:8080`, route `/portali/pst/acquisizione`, Docker locale ricostruito e healthy.
-- UI Local Signer: nello step `Accesso` i pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` sono visibili e leggibili in stato normale dopo rebuild; il CSS definitivo `TelematicoSurfacePage-DdIhQCPI.css` forza anche hover/focus con testo e icone bianchi su sfondo blu.
+- UI Local Signer: nello step `Accesso` i pulsanti `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` ora riusano la stessa logica visiva di `Verifica Local Signer`; il CSS definitivo `TelematicoSurfacePage-xPye0zGo.css` forza normale/hover/focus con testo e icone bianchi su sfondo blu.
 - Link secondario: `Installa o aggiorna` resta leggibile con testo scuro su sfondo bianco; il fix non introduce bianco-su-bianco sui link.
-- Hover materiale: ancora da confermare con puntatore reale umano perché il controllo automatizzato del browser non ha restituito `matches(':hover')`, pur mostrando regole CSS e colori coerenti.
+- Verifica visiva locale dopo rebuild Docker: browser integrato su `http://127.0.0.1:8080/portali/pst/acquisizione`, step `Accesso`, scroll alla sezione Local Signer; `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` sono visibili e leggibili con colore computato `rgb(255, 255, 255)` su `rgb(29, 78, 216)`, coerente con `Verifica Local Signer`.
+- Hover materiale: il puntatore automatizzato del browser integrato non espone `matches(':hover')`, ma il browser visibile e le regole CSS confermano che hover/focus non cambiano testo, icone, opacità o mix-blend; ripetere solo se l'utente segnala ancora sparizione con mouse fisico.
 - Aggiornamento automatico: verificato dalla UI locale; il servizio Local Signer risponde con versione `1.6.83`.
 - Servizio locale: `ping?light=1` e `support/status` rispondono; runtime locale con `pillow`, `pkcs11`, `send_pec_local` e `test_pec_smtp_local` disponibili.
 - PIN reale: aperto, perché sulla macchina non è stato rilevato un token PKCS#11 fisico; non dichiarare chiuso finché non viene provata la finestra PIN davanti all'utente.

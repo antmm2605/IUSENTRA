@@ -2051,9 +2051,11 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
     assert "ensurePstPortalSession" not in source
     assert ".iu-tel-local-signer-card .iu-tel-acq-actions button:not(:disabled)" in css_source
+    assert ".iu-tel-acq-actions button:not(:disabled)" in css_source
+    assert ".iu-tel-acq-actions button:focus-visible:not(:disabled)" in css_source
     assert ".iu-tel-acq-actions button:hover:not(:disabled) *" in css_source
     assert "background:#1d4ed8 !important;" in css_source
-    assert "-webkit-text-fill-color:#fff !important;" in css_source
+    assert "mix-blend-mode:normal !important;" in css_source
     assert ".iu-tel-acq-status button:hover:not(:disabled)" in css_source
     assert ".iu-tel-local-signer-card .iu-tel-acq-actions button:disabled" in css_source
     assert ".iu-tel-local-signer-inline button:focus-visible:not(:disabled)" in css_source

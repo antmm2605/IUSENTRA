@@ -2811,7 +2811,7 @@ Correzioni applicate:
 - l'attesa prima di dichiarare non raggiungibile il servizio passa a 45 tentativi;
 - l'avvio immediato imposta anche `IUSENTRA_LOCAL_SIGNER_UPDATE_URL`;
 - la ricerca React tenta l'avvio automatico con `checkLocalSigner(true)` prima di bloccare;
-- i pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` hanno stati locali espliciti per normale, hover, focus e disabled;
+- i pulsanti `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` riusano la stessa logica visiva locale di `Verifica Local Signer`, con stati espliciti per normale, hover, focus e disabled;
 - il runner nascosto con foreground PIN viene riusato anche dalla firma via Windows Store;
 - aggiunti guardrail su middleware PIN comuni (`InfoCert`, `Namirial`, `IDProtect`, `SafeNet`, `Athena`, `Actalis`) e su avvio silenzioso senza finestre.
 
@@ -2821,6 +2821,8 @@ Test automatici eseguiti:
 - `python -m pytest -q tests/test_local_signer.py::test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows tests/test_local_signer.py::test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests/test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser` -> `5 passed`.
 - `python -m pytest -q tests/test_local_signer.py::test_download_requirements_local_signer_e_pubblico tests/test_local_signer.py::test_installer_local_signer_windows_ps1_legacy_restituisce_exe tests/test_local_signer.py::test_installer_local_signer_windows_setup_route_e_pubblica tests/test_local_signer.py::test_installer_local_signer_windows_exe_route_se_bundle_presente tests/test_local_signer.py::test_installer_local_signer_macos_e_pubblico tests/test_local_signer.py::test_installer_local_signer_linux_e_pubblico tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests/test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale` -> `8 passed`.
 - `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser` -> `1 passed` dopo la correzione hover-only;
+- `pnpm --filter @iusentra/studio test` -> contratti React, governance design system e divieti CSS OK dopo rimozione della proprietà CSS vietata;
+- `python -m pytest tests/test_react_asset_retention.py -q --tb=short` -> `2 passed` con asset Vite aggiornati;
 - `pnpm --filter @iusentra/studio typecheck` -> OK;
 - `pnpm --filter @iusentra/studio build` -> OK;
 - `python -m pytest tests/test_utf8_integrity.py -q --tb=short` -> `4 passed`;
@@ -2841,10 +2843,12 @@ Pacchetti generati:
 
 Stato verifica reale:
 
-- verificato su macchina reale `127.0.0.1:8080` con browser integrato Codex sulla route `/portali/pst/acquisizione`: step `Accesso` visibile, pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` leggibili in stato normale, con testo bianco su sfondo blu;
-- il bundle React caricato (`TelematicoSurfacePage-DdIhQCPI.css`) contiene regole locali e specifiche che forzano testo, icone, `-webkit-text-fill-color`, opacità e sfondo anche in `:hover` e `:focus-visible`;
+- verificato su macchina reale `127.0.0.1:8080` con browser integrato Codex sulla route `/portali/pst/acquisizione`: step `Accesso` visibile, pulsanti `Verifica Local Signer`, `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` leggibili, con testo bianco su sfondo blu;
+- il bundle React caricato (`TelematicoSurfacePage-xPye0zGo.css`) contiene regole locali e specifiche che forzano testo, icone, opacità, `mix-blend-mode:normal` e sfondo anche in `:hover` e `:focus-visible`, senza usare proprietà vietate dal design system;
+- dopo la richiesta utente di applicare la stessa logica di `Verifica Local Signer`, la regola è stata estesa anche a `.iu-tel-acq-actions button:not(:disabled)`, `.iu-tel-acq-actions button:hover:not(:disabled)` e `.iu-tel-acq-actions button:focus-visible:not(:disabled)`;
 - ricontrollato anche `Installa o aggiorna`: resta link secondario leggibile con testo scuro su sfondo bianco, quindi il fix non forza i link secondari in bianco-su-bianco;
-- la manovra automatizzata del puntatore non ha restituito `matches(':hover')`, quindi l'accettazione materiale dello stato hover umano resta da confermare davanti al browser reale prima del report finale positivo;
+- dopo scroll alla sezione Local Signer e puntatore sopra `Avvia e verifica`, il browser visibile mostra `Avvia e verifica`, `Aggiorna automaticamente` e `Vai alla ricerca` leggibili; i colori computati restano `rgb(255, 255, 255)` su `rgb(29, 78, 216)`;
+- la manovra automatizzata del puntatore non espone `matches(':hover')`, quindi se l'utente segnala ancora sparizione con mouse fisico la prova va ripetuta davanti alla stessa scheda, senza considerare i soli test automatici come accettazione finale;
 - verificato update reale Local Signer dalla UI: dopo `Aggiorna automaticamente` il servizio locale ha risposto con versione `1.6.83`;
 - verificato servizio `http://127.0.0.1:27272`: `ping?light=1` risponde con versione `1.6.83`, `support/status` risponde `ok=true`, runtime locale con `pillow=True`, `pkcs11=True`, `send_pec_local=True` e `test_pec_smtp_local=True`;
 - non verificato con token fisico: il ping completo segnala `Nessun token PKCS#11 rilevato`; la comparsa reale della finestra PIN davanti all'utente resta aperta finché non è disponibile token/certificato.

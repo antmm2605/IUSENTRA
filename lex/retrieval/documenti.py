@@ -15,6 +15,7 @@ from lex.retrieval.document_parser_docling import (
     is_docling_enabled,
     parse_document_with_docling,
 )
+from pct.formatting import format_date_it
 
 _MAX_EXCERPT = 1200   # caratteri massimi per singola evidenza
 
@@ -69,7 +70,8 @@ def _extract_docling_result(doc: Any, documents_dir: Path) -> tuple[DocumentPars
 def _build_excerpt(doc: Any, text: str, tipo: str) -> str:
     nome = _clean(getattr(doc, "nome", "")) or "Documento"
     firmato = "si" if getattr(doc, "firmato_digitalmente", False) else "no"
-    data_doc = _clean(getattr(doc, "data_documento", "")) or "n.d."
+    data_doc_raw = _clean(getattr(doc, "data_documento", ""))
+    data_doc = format_date_it(data_doc_raw) or data_doc_raw or "n.d."
     da_portale = _clean(getattr(doc, "id_deposito_pct", ""))
 
     header = f"[{tipo or 'ALTRO'}] {nome} - data: {data_doc}, firmato: {firmato}"
@@ -222,7 +224,8 @@ def _document_manifest_item(pratica_id: str, documenti: list[Any]) -> EvidenceIt
     for index, doc in enumerate(documenti, start=1):
         nome = _clean(getattr(doc, "nome", "")) or "Documento"
         tipo = _tipo_val(doc) or "ALTRO"
-        data_doc = _clean(getattr(doc, "data_documento", "") or getattr(doc, "data_caricamento", "")) or "n.d."
+        data_doc_raw = _clean(getattr(doc, "data_documento", "") or getattr(doc, "data_caricamento", ""))
+        data_doc = format_date_it(data_doc_raw) or data_doc_raw or "n.d."
         deposito = _clean(getattr(doc, "id_deposito_pct", ""))
         suffix = f", deposito {deposito}" if deposito else ""
         rows.append(f"{index}. [{tipo}] {nome} - data {data_doc}{suffix}")

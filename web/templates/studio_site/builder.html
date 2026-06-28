@@ -163,7 +163,7 @@
           <div class="studio-revision-list">
             {% for revision in payload.revisions[:6] %}
               <form method="post" action="{{ url_for('studio_site_builder.restore_revision_api', revision_id=revision.id) }}" data-restore-revision>
-                <button class="btn btn-sm btn-outline-secondary w-100" type="submit">{{ revision.label or 'Revisione' }} - {{ revision.created_at }}</button>
+                <button class="btn btn-sm btn-outline-secondary w-100" type="submit">{{ revision.label or 'Revisione' }} - {{ revision.created_at|dataora_it }}</button>
               </form>
             {% endfor %}
           </div>

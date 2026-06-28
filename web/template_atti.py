@@ -7,7 +7,7 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 from __future__ import annotations
 
 
-from pct.formatting import format_euro_it
+from pct.formatting import format_date_it, format_euro_it
 import io
 from datetime import date, timedelta
 
@@ -547,9 +547,11 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     ht.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(ht)
 
-    info_right_txt = f"<b>N. {p.numero}</b><br/>Data: {p.data_emissione}"
+    data_emissione_label = format_date_it(p.data_emissione) or str(p.data_emissione or "")
+    data_scadenza_label = format_date_it(p.data_scadenza) if p.data_scadenza else ""
+    info_right_txt = f"<b>N. {p.numero}</b><br/>Data: {data_emissione_label}"
     if p.data_scadenza:
-        info_right_txt += f"<br/>Valido fino al: {p.data_scadenza}"
+        info_right_txt += f"<br/>Valido fino al: {data_scadenza_label}"
     info_left_txt = studio_ind or ""
     if studio_piva:
         info_left_txt += f"<br/>P.IVA {studio_piva}"
@@ -726,7 +728,8 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
         info_left_txt += f"<br/>P.IVA {studio_piva}"
     if studio_cf:
         info_left_txt += f"<br/>C.F. {studio_cf}"
-    info_right_txt = f"<b>N. {c.numero}</b><br/>Data: {c.data_incarico}"
+    data_incarico_label = format_date_it(c.data_incarico) or str(c.data_incarico or "")
+    info_right_txt = f"<b>N. {c.numero}</b><br/>Data: {data_incarico_label}"
 
     info_tbl = Table([[
         Paragraph(info_left_txt.strip("<br/>"), style_small),
@@ -812,9 +815,10 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
 
     # Rif. preventivo
     if preventivo:
+        preventivo_data_label = format_date_it(preventivo.data_emissione) or str(preventivo.data_emissione or "")
         story.append(Paragraph(
             f"Il presente incarico fa riferimento al preventivo n. <b>{preventivo.numero}</b> "
-            f"del {preventivo.data_emissione} (totale stimato {format_euro_it(preventivo.totale)}).",
+            f"del {preventivo_data_label} (totale stimato {format_euro_it(preventivo.totale)}).",
             style_small))
         story.append(Spacer(1, 3*mm))
 
@@ -898,7 +902,7 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
         story.append(Spacer(1, 2*mm))
 
     story.append(Paragraph(
-        f"Luogo e data: _________________________, {c.data_incarico}", style_body))
+        f"Luogo e data: _________________________, {data_incarico_label}", style_body))
 
     # Footer
     story.append(Spacer(1, 10*mm))

@@ -9,8 +9,8 @@
   <div class="flex-grow-1">
     <h4 class="mb-0 fw-bold">Parcella {{ p.numero }}</h4>
     <div class="text-muted" style="font-size:.8rem;">
-      Emessa il {{ p.data_emissione }}
-      {% if p.data_scadenza %} · Scadenza {{ p.data_scadenza }}{% endif %}
+      Emessa il {{ p.data_emissione|data_it }}
+      {% if p.data_scadenza %} · Scadenza {{ p.data_scadenza|data_it }}{% endif %}
     </div>
   </div>
   <!-- Stato badge -->
@@ -227,13 +227,13 @@
           <i class="bi bi-filetype-xml me-2"></i>FatturaPA XML
         </a>
         {% if cliente and cliente.recapiti and cliente.recapiti.email %}
-        <a href="mailto:{{ cliente.recapiti.email }}?subject=Parcella {{ p.numero }} - {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0AIn allegato la parcella n. {{ p.numero }} del {{ p.data_emissione }}%0D%0ATotale: {{ p.totale|euro }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
+        <a href="mailto:{{ cliente.recapiti.email }}?subject=Parcella {{ p.numero }} - {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0AIn allegato la parcella n. {{ p.numero }} del {{ p.data_emissione|data_it }}%0D%0ATotale: {{ p.totale|euro }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
            class="btn btn-outline-primary">
           <i class="bi bi-envelope me-2"></i>Invia via Email
         </a>
         {% endif %}
         {% if cliente and cliente.recapiti and cliente.recapiti.cellulare %}
-        <a href="https://wa.me/{{ cliente.recapiti.cellulare|replace('+','') |replace(' ','') }}?text={{ ('Gentile ' ~ cliente.nome_completo ~ ', la informiamo che la parcella n. ' ~ p.numero ~ ' di € ' ~ '%.2f'|format(p.totale) ~ ' è disponibile. La contatteremo per i dettagli. ' ~ studio_nome)|urlencode }}"
+        <a href="https://wa.me/{{ cliente.recapiti.cellulare|replace('+','') |replace(' ','') }}?text={{ ('Gentile ' ~ cliente.nome_completo ~ ', la informiamo che la parcella n. ' ~ p.numero ~ ' di ' ~ (p.totale|euro) ~ ' è disponibile. La contatteremo per i dettagli. ' ~ studio_nome)|urlencode }}"
            target="_blank" class="btn btn-outline-success">
           <i class="bi bi-whatsapp me-2"></i>Notifica WhatsApp
         </a>
@@ -269,7 +269,7 @@
           </a>
           {% endif %}
           {% if cliente and cliente.recapiti and cliente.recapiti.cellulare %}
-          <a href="https://wa.me/{{ cliente.recapiti.cellulare|replace('+','')|replace(' ','') }}?text={{ ('Gentile ' ~ cliente.nome_completo ~ ', ecco il link per pagare la parcella n. ' ~ p.numero ~ ' di \u20ac ' ~ '%.2f'|format(p.totale) ~ ': ' ~ pl.link)|urlencode }}"
+          <a href="https://wa.me/{{ cliente.recapiti.cellulare|replace('+','')|replace(' ','') }}?text={{ ('Gentile ' ~ cliente.nome_completo ~ ', ecco il link per pagare la parcella n. ' ~ p.numero ~ ' di ' ~ (p.totale|euro) ~ ': ' ~ pl.link)|urlencode }}"
              target="_blank" class="btn btn-sm btn-outline-success mt-1 w-100">
             <i class="bi bi-whatsapp me-1"></i>Invia via WhatsApp
           </a>
@@ -331,7 +331,7 @@
       <div class="card-body">
         <div class="fw-semibold text-success mb-1"><i class="bi bi-check-circle-fill me-2"></i>Pagata</div>
         <div class="text-muted" style="font-size:.82rem;">
-          Data: {{ p.data_pagamento }}<br>
+          Data: {{ p.data_pagamento|data_it }}<br>
           {% if p.metodo_pagamento %}Metodo: {{ p.metodo_pagamento }}{% endif %}
         </div>
       </div>

@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from pct.formatting import format_date_it
+
 
 def clean_text(value: Any) -> str:
     return " ".join(str(value or "").replace("\r", "\n").split()).strip()
@@ -196,7 +198,7 @@ def build_case_law_prompt_block(case_rows: list[Any]) -> str:
                 f"- Numero: {clean_text(row.get('numero'))}",
                 f"- Anno: {clean_text(row.get('anno'))}",
                 f"- Sezione: {clean_text(row.get('sezione'))}",
-                f"- Data deposito: {clean_text(row.get('data_deposito'))}",
+                f"- Data deposito: {format_date_it(row.get('data_deposito')) or clean_text(row.get('data_deposito'))}",
                 f"- Norma/e citate: {clean_text(row.get('norme_citate'))}",
                 f"- Questione: {clean_text(row.get('questione'))}",
                 f"- Dispositivo: {clean_text(row.get('dispositivo'))}",

@@ -47,14 +47,7 @@ def _date_it(value: Any) -> str:
 
 
 def _euro(value: Any) -> str:
-    try:
-        amount = float(value or 0)
-    except (TypeError, ValueError):
-        amount = 0.0
     return format_euro_it(value)
-    text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"€ {text}"
-    return f"€ {text}"
 
 
 def _record(

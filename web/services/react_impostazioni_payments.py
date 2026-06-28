@@ -6,6 +6,8 @@ from typing import Any, Callable
 
 from flask import current_app
 
+from pct.formatting import format_euro_it
+
 
 SecretStateBuilder = Callable[[str], dict[str, Any]]
 
@@ -23,11 +25,7 @@ def _bool(value: Any, default: bool = False) -> bool:
 
 
 def _money(value: Any) -> str:
-    try:
-        amount = float(value or 0)
-    except (TypeError, ValueError):
-        amount = 0.0
-    return f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
 
 
 def _get_pagamenti():

@@ -30,6 +30,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
 
 from pct.email_attachments import content_sha256, files_are_same_content
+from pct.formatting import format_datetime_it
 from pct.imap_runtime import (
     describe_imap_connection_error,
     resolve_imap_timeout_seconds,
@@ -2073,7 +2074,7 @@ def _render_ricevuta_email(em: EmailRicevuta) -> str:
     if em.mittente:
         righe.append(f"Da: {em.mittente_nome or em.mittente}")
     if em.timestamp:
-        righe.append(f"Data: {em.timestamp}")
+        righe.append(f"Data: {format_datetime_it(em.timestamp, include_timezone=True)}")
     if corpo:
         righe.append("")
         righe.append(corpo)

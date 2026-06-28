@@ -8,6 +8,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.condivisione import RuoloCondivisione
+from pct.formatting import format_date_it
 from web.blueprints.react_shell import render_react_shell_response
 
 
@@ -97,6 +98,7 @@ def register_condivisioni_routes(
                 ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
                 note = request.form.get("note", "").strip()
                 data_scadenza = request.form.get("data_scadenza", "").strip()
+                data_scadenza_label = format_date_it(data_scadenza) if data_scadenza else ""
                 tags = [tag.strip() for tag in request.form.get("tags", "").strip().split(",") if tag.strip()]
                 utente_dest = gu.get(id_dest)
                 if not utente_dest:
@@ -123,7 +125,7 @@ def register_condivisioni_routes(
                             "cliente",
                             id_cliente,
                             dettagli=f"→ {utente_dest.username} [{ruolo_str}]"
-                            + (f" scade {data_scadenza}" if data_scadenza else ""),
+                            + (f" scade {data_scadenza_label}" if data_scadenza_label else ""),
                         )
                         sync_manager.pubblica(
                             "info",
@@ -142,7 +144,7 @@ def register_condivisioni_routes(
                                         f"{utente.nome_completo or utente.username} ha condiviso con te "
                                         f"la cartella cliente di {cliente.nome_completo} "
                                         f"con accesso {RuoloCondivisione(ruolo_str).value}.\n"
-                                        + (f"L'accesso scade il {data_scadenza}.\n" if data_scadenza else "")
+                                        + (f"L'accesso scade il {data_scadenza_label}.\n" if data_scadenza_label else "")
                                         + (f"Note: {note}\n" if note else "")
                                         + "\nAccedi allo studio per visualizzare la cartella."
                                     ),

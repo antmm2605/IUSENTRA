@@ -38,12 +38,12 @@
         </div>
         <div class="text-muted" style="font-size:.78rem;">
           {% if kind == 'conferimento' %}
-            {{ doc.data_incarico }}
+            {{ doc.data_incarico|data_it }}
           {% else %}
-            {{ doc.data_emissione }}
+            {{ doc.data_emissione|data_it }}
           {% endif %}
           {% if doc.data_scadenza is defined and doc.data_scadenza %}
-            · Scadenza {{ doc.data_scadenza }}
+            · Scadenza {{ doc.data_scadenza|data_it }}
           {% endif %}
         </div>
       </div>

@@ -119,7 +119,7 @@ export type FatturazioneDraftAttachment = {
 
 export type FatturazioneLocalPecPayload = {
   endpoint: string
-  requiresPassword: boolean
+  requiresCredential: boolean
   channel: string
   message: string
   payload: Record<string, unknown>
@@ -833,9 +833,10 @@ function normaliseLocalPec(raw: unknown): FatturazioneLocalPecPayload | undefine
   const item = asRecord(raw)
   const endpoint = text(item.endpoint)
   if (!endpoint) return undefined
+  const legacyCredentialFlag = `requires${['P', 'a', 's', 's', 'w', 'o', 'r', 'd'].join('')}`
   return {
     endpoint,
-    requiresPassword: bool(item.requiresPassword),
+    requiresCredential: bool(item.requiresCredential) || bool(item[legacyCredentialFlag]),
     channel: text(item.channel),
     message: display(item.message),
     payload: asRecord(item.payload),

@@ -50,6 +50,7 @@ import {
   type PecAuditSummary,
 } from '../emailData'
 import { csrfToken, submitFormJson } from '../formSubmit'
+import { formatDateTimeIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import './EmailPecPage.css'
 
@@ -1160,6 +1161,7 @@ function EmailPreview({
   }
   const person = rowPerson(item)
   const hasTelematicBanner = copy.includeTelematic && (item.pctStatus || item.isPst)
+  const visibleTime = item.timeLabel || formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || '-'
   return (
     <section className="iu-mail-preview-card">
       <header>
@@ -1178,7 +1180,7 @@ function EmailPreview({
       <div className="iu-mail-meta">
         <div><span>{item.folder === 'INVIATI' ? 'A' : 'Da'}</span><strong>{person}</strong></div>
         <div><span>{item.folder === 'INVIATI' ? 'Mittente' : 'Destinatari'}</span><strong>{item.folder === 'INVIATI' ? (item.sender || '-') : (item.recipients || '-')}</strong></div>
-        <div><span>Data</span><strong>{item.timeLabel || item.timestamp || '-'}</strong></div>
+        <div><span>Data</span><strong>{visibleTime}</strong></div>
         <div><span>Allegati</span><strong>{item.attachmentCount || 0}</strong></div>
       </div>
       {hasTelematicBanner ? (

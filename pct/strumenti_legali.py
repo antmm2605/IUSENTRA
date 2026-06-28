@@ -60,12 +60,6 @@ def _parse_date(value: Any) -> Optional[date]:
         return None
 
 
-def _fmt_money(value: float) -> str:
-    amount = round(float(value or 0.0), 2)
-    text = f"{amount:,.2f}"
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
-
-
 def _fmt_percent(value: float) -> str:
     return f"{round(value, 2):.2f}".replace(".", ",")
 
@@ -391,7 +385,7 @@ class GestioneStrumentiLegali:
             {"value": "cittadinanza_italiana", "label": "Accertamento cittadinanza italiana", "needs_value": False},
             {"value": "esecuzione_immobiliare", "label": "Esecuzione immobiliare", "needs_value": False},
             {"value": "altri_processi_esecutivi", "label": "Altra esecuzione", "needs_value": False},
-            {"value": "esecuzione_mobiliare_sotto_2500", "label": "Esecuzione mobiliare sotto euro 2.500", "needs_value": False},
+            {"value": "esecuzione_mobiliare_sotto_2500", "label": "Esecuzione mobiliare sotto € 2.500,00", "needs_value": False},
             {"value": "opposizione_atti_esecutivi", "label": "Opposizione agli atti esecutivi", "needs_value": False},
             {"value": "procedura_fallimentare", "label": "Procedura fallimentare", "needs_value": False},
             {"value": "tributario", "label": "Ricorso tributario", "needs_value": True},
@@ -479,7 +473,7 @@ class GestioneStrumentiLegali:
             regole_applicate.append({"code": "riduzione_meta_esecuzioni", "label": "Altre esecuzioni ridotte alla metà", "factor": 0.5})
         elif categoria == "esecuzione_mobiliare_sotto_2500":
             base = self.norme.contributo_speciale("esecuzione_mobiliare_sotto_2500", valore)
-            notes.append("Importo fisso per esecuzione mobiliare di valore inferiore a euro 2.500.")
+            notes.append("Importo fisso per esecuzione mobiliare di valore inferiore a € 2.500,00.")
         elif categoria == "opposizione_atti_esecutivi":
             base = self.norme.contributo_speciale("opposizione_atti_esecutivi", valore)
             notes.append("Importo fisso per opposizione agli atti esecutivi.")
@@ -755,15 +749,15 @@ class GestioneStrumentiLegali:
 
             Il sottoscritto difensore precisa il credito maturato in relazione a: {titolo or 'rapporto obbligatorio / credito azionato'}.
 
-            1) Capitale: Euro {_fmt_money(capitale)}
-            2) Interessi ({intro}): Euro {_fmt_money(interest_amount)}
-            3) Spese vive documentate: Euro {_fmt_money(spese_vive)}
-            4) Compensi professionali: Euro {_fmt_money(compensi)}
-            5) CPA {_fmt_percent(cpa_perc)}%: Euro {_fmt_money(cpa)}
-            6) IVA {_fmt_percent(iva_perc)}%: Euro {_fmt_money(iva)}
-               Totale maturato: Euro {_fmt_money(totale_lordo)}
-               Acconti / pagamenti imputati: Euro {_fmt_money(acconti)}
-               Residuo richiesto: Euro {_fmt_money(residuo)}
+            1) Capitale: {format_euro_it(capitale)}
+            2) Interessi ({intro}): {format_euro_it(interest_amount)}
+            3) Spese vive documentate: {format_euro_it(spese_vive)}
+            4) Compensi professionali: {format_euro_it(compensi)}
+            5) CPA {_fmt_percent(cpa_perc)}%: {format_euro_it(cpa)}
+            6) IVA {_fmt_percent(iva_perc)}%: {format_euro_it(iva)}
+               Totale maturato: {format_euro_it(totale_lordo)}
+               Acconti / pagamenti imputati: {format_euro_it(acconti)}
+               Residuo richiesto: {format_euro_it(residuo)}
 
             Si chiede che il credito venga ammesso / liquidato nella misura sopra precisata, oltre agli ulteriori accessori di legge maturandi sino al soddisfo.
 
@@ -773,10 +767,10 @@ class GestioneStrumentiLegali:
         ).strip()
 
         def _line_html(label: str, amount: float, strong: bool = False) -> str:
-            amount_html = html.escape(_fmt_money(amount))
+            amount_html = html.escape(format_euro_it(amount))
             label_html = html.escape(label)
             tag = "strong" if strong else "span"
-            return f"<div class='d-flex justify-content-between gap-3'><span>{label_html}</span><{tag}>Euro {amount_html}</{tag}></div>"
+            return f"<div class='d-flex justify-content-between gap-3'><span>{label_html}</span><{tag}>{amount_html}</{tag}></div>"
 
         rendered_html = (
             "<div class='document-prose'>"
@@ -985,7 +979,7 @@ class GestioneStrumentiLegali:
         mesi = {1:"gennaio",2:"febbraio",3:"marzo",4:"aprile",5:"maggio",6:"giugno",
                 7:"luglio",8:"agosto",9:"settembre",10:"ottobre",11:"novembre",12:"dicembre"}
         notes.append(
-            f"Formula: {importo:,.2f} × ({indice_fine} / {indice_base}) = {format_euro_it(importo_rivalutato)}."
+            f"Formula: {format_euro_it(importo)} × ({indice_fine} / {indice_base}) = {format_euro_it(importo_rivalutato)}."
         )
         notes.append(
             f"Indici ISTAT {tipo.upper()} base 2015=100: "
@@ -1066,7 +1060,7 @@ class GestioneStrumentiLegali:
             f"{variazione_foi:+.2f}% × {perc_adeguamento:.0f}% = {variazione_applicata:+.2f}% applicato."
         )
         notes.append(
-            f"Formula: {canone:.2f} + ({canone:.2f} × {variazione_applicata:.4f}/100) = {format_euro_it(canone_aggiornato)}/mese."
+            f"Formula: {format_euro_it(canone)} + ({format_euro_it(canone)} × {variazione_applicata:.4f}/100) = {format_euro_it(canone_aggiornato)}/mese."
         )
         if perc_adeguamento == 75.0:
             notes.append("Contratti liberi 4+4 (L. 431/1998 art. 1): aggiornamento al 75% della variazione FOI. Verificare il testo contrattuale.")
@@ -1666,7 +1660,7 @@ class GestioneStrumentiLegali:
             )
 
         if imposta > info["minimo"] and not info.get("fisso"):
-            notes.append(f"Importo calcolato: {aliquota_eff:.1f}% × €{_fmt_money(valore)} = €{_fmt_money(imposta)}.")
+            notes.append(f"Importo calcolato: {aliquota_eff:.1f}% × {format_euro_it(valore)} = {format_euro_it(imposta)}.")
 
         sources = [
             {"title": "DPR 131/1986 — Tariffa Parte I", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"},

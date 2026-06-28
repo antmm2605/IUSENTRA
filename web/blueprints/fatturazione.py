@@ -21,7 +21,7 @@ from pct.economico_context import (
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
-from pct.formatting import format_datetime_it, format_euro_it
+from pct.formatting import format_date_it, format_datetime_it, format_euro_it
 
 fatturazione = Blueprint("fatturazione", __name__, url_prefix="/fatturazione")
 
@@ -605,9 +605,11 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
     if studio_cf:
         info_left.append(Paragraph(f"C.F. {studio_cf}", style_small))
 
+    data_emissione_label = format_date_it(p.data_emissione) or str(p.data_emissione or "")
+    data_scadenza_label = format_date_it(p.data_scadenza) if p.data_scadenza else ""
     n_str   = f"<b>N. {p.numero}</b>"
-    dt_str  = f"Data: {p.data_emissione}"
-    sc_str  = f"Scadenza: {p.data_scadenza}" if p.data_scadenza else ""
+    dt_str  = f"Data: {data_emissione_label}"
+    sc_str  = f"Scadenza: {data_scadenza_label}" if data_scadenza_label else ""
 
     info_right = [
         Paragraph(n_str, ParagraphStyle("nr", parent=style_body,
@@ -790,7 +792,7 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
                 f"<b>Coordinate bancarie:</b> {studio_iban}", style_body))
         if p.data_scadenza:
             story.append(Paragraph(
-                f"Si prega di effettuare il pagamento entro il <b>{p.data_scadenza}</b>.",
+                f"Si prega di effettuare il pagamento entro il <b>{data_scadenza_label}</b>.",
                 style_body))
         if p.note:
             story.append(Spacer(1, 2*mm))

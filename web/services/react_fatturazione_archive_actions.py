@@ -432,9 +432,9 @@ def _local_pec_payload(
     }
     return {
         "endpoint": f"{_LOCAL_SIGNER_BASE_URL}/pec/send",
-        "requiresPassword": True,
+        "requiresCredential": True,
         "channel": "local_signer",
-        "message": "Invio PEC reale dal PC locale tramite Local Signer. La password non viene salvata da IUSENTRA.",
+        "message": "Invio PEC reale dal PC locale tramite Local Signer. La credenziale non viene salvata da IUSENTRA.",
         "payload": payload,
     }
 

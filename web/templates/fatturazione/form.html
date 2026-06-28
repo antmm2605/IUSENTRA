@@ -192,7 +192,7 @@
             ] %}
             <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1 btn-voce-rapida"
                     data-descr="{{ label }}" data-prezzo="{{ prezzo }}" style="font-size:.75rem;">
-              {{ label }} (€{{ prezzo }})
+              {{ label }} ({{ prezzo|euro }})
             </button>
             {% endfor %}
           </div>

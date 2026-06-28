@@ -15,6 +15,8 @@ from typing import Any
 
 from flask import current_app, g
 
+from pct.formatting import format_euro_it
+
 # ---------------------------------------------------------------------------
 # Helpers per tenant e accesso gestori
 # ---------------------------------------------------------------------------
@@ -209,7 +211,7 @@ class FascicoloResult:
         if self.cliente_nome:
             parts.append(f"Cliente: {self.cliente_nome}")
         if self.valore_causa:
-            parts.append(f"Valore causa: €{self.valore_causa:,.2f}")
+            parts.append(f"Valore causa: {format_euro_it(self.valore_causa)}")
         return ". ".join(parts) + "."
 
 

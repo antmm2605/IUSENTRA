@@ -12,6 +12,7 @@ from lex.research import build_request_profile_prompt, classify_request
 from lex.research.query_helpers import extract_entity_hint, is_exact_legal_reference_query
 from lex.research.source_policy import evaluate_source_row, summarize_evaluated_sources
 from pct.config_studio import GestioneConfigStudio
+from pct.formatting import format_euro_it
 from pct.legal_intelligence import fonti_per_query, motori_per_query
 from pct.portale import GestionePortale
 from pct.runtime_env import is_managed_cloud_runtime
@@ -1264,7 +1265,7 @@ def _fatturazione_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
             "Parcelle rilevanti: "
             + "; ".join(
                 _truncate(
-                    f"{row.numero} ({getattr(getattr(row, 'stato', None), 'value', '') or 'stato n.d.'}, totale {getattr(row, 'totale', 0.0):.2f} euro)",
+                    f"{row.numero} ({getattr(getattr(row, 'stato', None), 'value', '') or 'stato n.d.'}, totale {format_euro_it(getattr(row, 'totale', 0.0))})",
                     110,
                 )
                 for row in selected
@@ -1274,7 +1275,7 @@ def _fatturazione_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
     sources = [
         _source(
             f"Parcella - {row.numero}",
-            f"Stato: {getattr(getattr(row, 'stato', None), 'value', '') or 'n.d.'}. Emessa il {_format_date_italian(row.data_emissione)}. Totale: {getattr(row, 'totale', 0.0):.2f} euro.",
+            f"Stato: {getattr(getattr(row, 'stato', None), 'value', '') or 'n.d.'}. Emessa il {_format_date_italian(row.data_emissione)}. Totale: {format_euro_it(getattr(row, 'totale', 0.0))}.",
             source_id=f"parcella:{row.id}",
             title=row.numero,
         )

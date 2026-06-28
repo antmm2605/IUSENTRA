@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from email import policy
 from email.message import EmailMessage, Message
 from email.parser import BytesParser
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
@@ -21,11 +22,22 @@ from xml.etree import ElementTree as ET
 
 from .models import DocumentAIPageText
 from .pdf_quality import repair_pdf_cid_placeholders, score_extracted_text_quality
+from pct.formatting import format_datetime_it
 
 
 _TEXT_EXTENSIONS = {"txt", "xml", "json", "csv"}
 _HTML_EXTENSIONS = {"html", "htm"}
 _IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"}
+
+
+def _format_email_datetime_visible(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        return format_datetime_it(parsedate_to_datetime(raw), include_timezone=True)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return format_datetime_it(raw, include_timezone=True) or raw
 
 
 @dataclass(slots=True)
@@ -587,7 +599,7 @@ def _extract_msg(content: bytes) -> ExtractionResult:
             chunks = [
                 f"Oggetto: {str(getattr(msg, 'subject', '') or '').strip()}",
                 f"Mittente: {str(getattr(msg, 'sender', '') or '').strip()}",
-                f"Data: {str(getattr(msg, 'date', '') or '').strip()}",
+                f"Data: {_format_email_datetime_visible(getattr(msg, 'date', ''))}",
                 str(getattr(msg, "body", "") or "").strip(),
             ]
             text = "\n".join(chunk for chunk in chunks if chunk.strip())

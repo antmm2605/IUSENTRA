@@ -3322,11 +3322,22 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
     // Mostra avanzamento per ogni documento ricevuto dal PST
     if (lista) lista.innerHTML = '';
     const totale = Math.max(documenti.length, 1);
+    const formatDataIt = (value) => {
+      const raw = String(value || '').trim();
+      const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+      const parsed = new Date(raw);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome' }).format(parsed);
+      }
+      return raw;
+    };
     for (let i = 0; i < documenti.length; i++) {
       const doc  = documenti[i];
       const nome = doc.nome || doc.id_documento || `Allegato ${i + 1}`;
       const tipo = doc.tipo_atto || doc.tipo || '';
-      const data = doc.data_deposito ? ` — ${doc.data_deposito}` : '';
+      const dataDeposito = formatDataIt(doc.data_deposito);
+      const data = dataDeposito ? ` - ${dataDeposito}` : '';
       // 70%-98% per la lista documenti
       setProgress(70 + Math.round((i / totale) * 28), 100, nome);
       addListaItem(`${nome}${tipo ? ' (' + tipo + ')' : ''}${data}`, 'ok');

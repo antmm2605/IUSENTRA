@@ -15,6 +15,7 @@ import {
   type RedazioneContesto,
   type RedazioneFascicolo,
 } from '../../redazioneAttiData'
+import { formatEuroIt } from '../../formatting'
 
 type PassoWizard = 1 | 2 | 3 | 4
 
@@ -190,7 +191,7 @@ function QuadroContesto({ contesto }: { contesto: RedazioneContesto }) {
         })}
         <RigaDato
           etichetta="Contributo unificato (D.P.R. 115/2002)"
-          valore={contesto.contributoUnificato.totale !== null ? `Euro ${contesto.contributoUnificato.totale.toFixed(2)} - ${contesto.contributoUnificato.descrizione}` : ''}
+          valore={contesto.contributoUnificato.totale !== null ? `${formatEuroIt(contesto.contributoUnificato.totale)} - ${contesto.contributoUnificato.descrizione}` : ''}
           mancante={!contesto.contributoUnificato.disponibile}
         />
       </div>

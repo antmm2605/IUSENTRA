@@ -3034,8 +3034,7 @@ def _format_currency(value: Any) -> str:
         amount = float(normalized)
     except ValueError:
         return str(value)
-    formatted = f"{amount:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
-    return f"Euro {formatted}"
+    return format_euro_it(amount)
 
 
 def _normalize_lawyer_name(value: Any) -> str:

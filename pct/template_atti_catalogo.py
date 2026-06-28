@@ -181,7 +181,7 @@ FIELD_LIBRARY: dict[str, dict[str, Any]] = {
         "importo_richiesto",
         "Importo richiesto",
         field_type="text",
-        placeholder="es. Euro 12.500,00",
+        placeholder="es. € 12.500,00",
         section="Dati economici",
         rows=1,
     ),

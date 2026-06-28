@@ -12,6 +12,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from pct.formatting import format_date_it
+
 
 class TipoTermine(str, Enum):
     UDIENZA = "UDIENZA"
@@ -1060,13 +1062,14 @@ class GestioneScadenziario:
     def invia_avvisi(self, gm=None, avvocati_email: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         inviati: List[Dict[str, Any]] = []
         for scadenza, giorni in self.scadenze_da_notificare():
-            avviso = {"id_scadenza": scadenza.id, "titolo": scadenza.titolo, "data_scadenza": scadenza.data_scadenza, "giorni": giorni, "priorita": scadenza.priorita.value}
+            data_scadenza_label = format_date_it(scadenza.data_scadenza) or scadenza.data_scadenza
+            avviso = {"id_scadenza": scadenza.id, "titolo": scadenza.titolo, "data_scadenza": scadenza.data_scadenza, "data_scadenza_label": data_scadenza_label, "giorni": giorni, "priorita": scadenza.priorita.value}
             if gm and avvocati_email:
                 email = avvocati_email.get(scadenza.id_utente_responsabile, "")
                 if email:
                     try:
                         from .messaggi import CanaleMsggio, TipoAutomazione
-                        gm.invia_da_template(tipo=TipoAutomazione.AVVISO_SCADENZA, canali=[CanaleMsggio.EMAIL], destinatario_email=email, variabili={"nome": scadenza.id_utente_responsabile, "scadenza": scadenza.data_scadenza, "tipo_atto": scadenza.titolo, "numero_fascicolo": scadenza.id_fascicolo or "-", "giorni": str(giorni), "priorita": scadenza.priorita.value}, id_fascicolo=scadenza.id_fascicolo)
+                        gm.invia_da_template(tipo=TipoAutomazione.AVVISO_SCADENZA, canali=[CanaleMsggio.EMAIL], destinatario_email=email, variabili={"nome": scadenza.id_utente_responsabile, "scadenza": data_scadenza_label, "tipo_atto": scadenza.titolo, "numero_fascicolo": scadenza.id_fascicolo or "-", "giorni": str(giorni), "priorita": scadenza.priorita.value}, id_fascicolo=scadenza.id_fascicolo)
                         avviso["email_inviata"] = email
                     except Exception as exc:
                         avviso["errore_email"] = str(exc)

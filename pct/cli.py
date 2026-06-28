@@ -1,4 +1,4 @@
-from pct.formatting import format_euro_it
+from pct.formatting import format_date_it, format_euro_it
 """
 Interfaccia a riga di comando per il sistema PCT.
 """
@@ -1342,7 +1342,7 @@ def cmd_sc_nuova(titolo, data, tipo, perentorio, id_fascicolo, db):
             perentorio=perentorio,
         )
         click.echo(f"Scadenza creata: {sc.id}")
-        click.echo(f"  Scadenza: {sc.data_scadenza} — {sc.titolo}")
+        click.echo(f"  Scadenza: {format_date_it(sc.data_scadenza)} — {sc.titolo}")
     except ValueError as e:
         click.echo(f"Errore: {e}", err=True)
 
@@ -1365,7 +1365,7 @@ def cmd_sc_preset(titolo, preset, decorrenza, id_fascicolo, db):
             id_fascicolo=id_fascicolo,
         )
         p = PRESET_TERMINI[preset]
-        click.echo(f"Scadenza calcolata: {sc.data_scadenza} ({p['label']})")
+        click.echo(f"Scadenza calcolata: {format_date_it(sc.data_scadenza)} ({p['label']})")
         click.echo(f"  ID: {sc.id}")
     except ValueError as e:
         click.echo(f"Errore: {e}", err=True)
@@ -1500,15 +1500,15 @@ def cmd_tar_calcola(materia, grado, valore, fasi):
         click.echo(f"Valore:      {format_euro_it(r.valore_controversia)}")
         click.echo(f"Scaglione:   {r.scaglione.label}")
         click.echo("")
-        click.echo(f"{'FASE':<22} {'MINIMO':>10} {'BASE':>10} {'MASSIMO':>10}")
-        click.echo("-" * 56)
+        click.echo(f"{'FASE':<22} {'MINIMO':>14} {'BASE':>14} {'MASSIMO':>14}")
+        click.echo("-" * 68)
         for fase, sc in r.dettaglio.items():
             click.echo(
-                f"{fase.value:<22} € {sc.minimo:>8,.2f} € {sc.base:>8,.2f} € {sc.massimo:>8,.2f}"
+                f"{fase.value:<22} {format_euro_it(sc.minimo):>14} {format_euro_it(sc.base):>14} {format_euro_it(sc.massimo):>14}"
             )
-        click.echo("-" * 56)
+        click.echo("-" * 68)
         click.echo(
-            f"{'TOTALE':<22} € {r.totale_minimo:>8,.2f} € {r.totale_base:>8,.2f} € {r.totale_massimo:>8,.2f}"
+            f"{'TOTALE':<22} {format_euro_it(r.totale_minimo):>14} {format_euro_it(r.totale_base):>14} {format_euro_it(r.totale_massimo):>14}"
         )
         if r.note:
             click.echo(f"\nNote: {r.note}")
@@ -1526,13 +1526,15 @@ def _fatturazione(db="./fatturazione/parcelle.json") -> GestioneFatturazione:
 
 
 def _fmt_parcella(p, verbose: bool = False) -> str:
+    data_emissione = format_date_it(p.data_emissione) or str(p.data_emissione or "")
     line = (
-        f"{p.id[:8]:<10} {p.numero:<8} {p.data_emissione:<12} "
-        f"{p.stato.value:<10} € {p.totale:>10,.2f}"
+        f"{p.id[:8]:<10} {p.numero:<8} {data_emissione:<12} "
+        f"{p.stato.value:<10} {format_euro_it(p.totale):>14}"
     )
     if verbose:
         line += f"\n  Cliente: {p.id_cliente}  Fascicolo: {p.id_fascicolo or '—'}"
-        line += f"\n  Scadenza: {p.data_scadenza or '—'}  Metodo: {(p.metodo_pagamento or {MetodoPagamento}).value if p.metodo_pagamento else '—'}"
+        scadenza = format_date_it(p.data_scadenza) if p.data_scadenza else "—"
+        line += f"\n  Scadenza: {scadenza}  Metodo: {(p.metodo_pagamento or {MetodoPagamento}).value if p.metodo_pagamento else '—'}"
     return line
 
 
@@ -2238,10 +2240,11 @@ def cmd_pag_lista(stato, db_dir):
     click.echo(f"{'ID':<10} {'PARCELLA':<10} {'IMPORTO':>10} {'STATO':<10} {'SCADE':<12} PROVIDER")
     click.echo("-" * 72)
     for lp in links:
+        scadenza = format_date_it(lp.scade_il) if lp.scade_il else "—"
         click.echo(
             f"{lp.id[:8]:<10} {lp.id_parcella[:8]:<10} "
-            f"€ {lp.importo:>8,.2f} {lp.stato.value:<10} "
-            f"{(lp.scade_il or '—')[:10]:<12} {lp.provider_usato or '—'}"
+            f"{format_euro_it(lp.importo):>10} {lp.stato.value:<10} "
+            f"{scadenza:<12} {lp.provider_usato or '—'}"
         )
     click.echo(f"\nTotale: {len(links)}")
 

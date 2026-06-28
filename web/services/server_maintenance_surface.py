@@ -17,6 +17,7 @@ from typing import Any
 from flask import current_app, has_app_context
 
 from pct.email_attachments import deduplicate_attachment_tree, discover_email_attachment_roots
+from pct.formatting import format_datetime_it
 from scripts.compact_iusentra_storage import discover_backup_roots
 
 DEFAULT_BACKUP_RETENTION_DAYS = 14
@@ -1766,8 +1767,9 @@ def _scan_tenant_storage(
                         "size_label": human_bytes(size),
                         "category": category,
                         "category_label": CATEGORY_META.get(category, CATEGORY_META["other"])["label"],
-                        "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).strftime(
-                            "%d/%m/%Y %H:%M UTC"
+                        "modified_at": format_datetime_it(
+                            datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                            include_timezone=True,
                         ),
                     },
                     limit=largest_limit,
@@ -2936,7 +2938,7 @@ def _last_backup_info(backup_dir: str | Path | None = None) -> dict[str, Any]:
     ts = datetime.fromtimestamp(last.mtime, tz=timezone.utc)
     return {
         "found": True,
-        "label": ts.strftime("%d/%m/%Y %H:%M UTC"),
+        "label": format_datetime_it(ts, include_timezone=True),
         "size_label": human_bytes(last.size_bytes),
         "path": str(last.path),
         "checksum": last.checksum_path is not None,

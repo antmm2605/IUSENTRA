@@ -300,7 +300,7 @@ def _fallback_template_fields() -> list[dict]:
         {"name": "destinatario_nome", "label": "Destinatario", "type": "text", "placeholder": "Nome e cognome / ragione sociale", "section": "Campi rapidi", "rows": 1},
         {"name": "destinatario_indirizzo", "label": "Indirizzo / PEC", "type": "text", "placeholder": "Via, CAP, citta o PEC", "section": "Campi rapidi", "rows": 1},
         {"name": "oggetto_diffida", "label": "Oggetto / descrizione", "type": "textarea", "placeholder": "Descrivi l'oggetto della richiesta o del documento", "section": "Campi rapidi", "rows": 4},
-        {"name": "importo_dovuto", "label": "Importo", "type": "text", "placeholder": "Euro 0,00", "section": "Campi rapidi", "rows": 1},
+        {"name": "importo_dovuto", "label": "Importo", "type": "text", "placeholder": "€ 0,00", "section": "Campi rapidi", "rows": 1},
         {"name": "titolo_credito", "label": "Titolo / causale", "type": "text", "placeholder": "es. canone, compenso, fattura", "section": "Campi rapidi", "rows": 1},
         {"name": "termine_giorni", "label": "Termine (giorni)", "type": "number", "placeholder": "15", "section": "Campi rapidi", "rows": 1},
         {"name": "tribunale_competente", "label": "Autorita / tribunale competente", "type": "text", "placeholder": "es. Tribunale di Milano", "section": "Campi rapidi", "rows": 1},

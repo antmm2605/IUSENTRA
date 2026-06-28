@@ -46,6 +46,7 @@ import {
   type LegalWorkflowResult,
   type NotificheLegaliData,
 } from '../notificheLegaliData'
+import { formatDateIt } from '../formatting'
 import './NotificheLegaliPage.css'
 
 type TabKey = 'notifica' | 'deposito' | 'cliente'
@@ -1864,7 +1865,7 @@ export function NotificheLegaliPage() {
       '',
       ...attestationDocuments.map((documento, index) => `${index + 1}. ${documento.nome_file || documento.descrizione || 'Documento'} - ${data.originiDocumento.find((item) => item.value === documento.origine)?.label || documento.origine}`),
       '',
-      `${notifica.luogo || data.defaults.studioCitta || 'Luogo'}, ${notifica.data_relata}`,
+      `${notifica.luogo || data.defaults.studioCitta || 'Luogo'}, ${formatDateIt(notifica.data_relata) || notifica.data_relata}`,
     ].join('\n')
   return (
     <main className="iu-content iu-legal-notice-page">

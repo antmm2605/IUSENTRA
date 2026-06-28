@@ -114,7 +114,7 @@ import {
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
-import { formatEuroIt } from '../formatting'
+import { formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
@@ -6521,9 +6521,7 @@ function DeadlineRow({ deadline }:{deadline:FascicoloDeadline}) {
 
 function formatAuditDate(value: string) {
   if (!value) return 'n.d.'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC' }).format(parsed)
+  return formatDateTimeIt(value, value, { includeTimezone: true })
 }
 
 function copyAuditHash(value: string) {
@@ -6552,7 +6550,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit
           <article className="iu-fas-audit-row" key={event.eventId}>
             <div>
               <Badge tone={event.tone}>{event.kindLabel}</Badge>
-              <time>{formatAuditDate(event.eventTsUtc)} UTC</time>
+              <time>{formatAuditDate(event.eventTsUtc)}</time>
             </div>
             <div>
               <strong>{event.eventHashShort || event.eventHash || 'hash non disponibile'}</strong>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pct.formatting import format_date_it, format_euro_it
 from web.helpers import get_preventivi
 
 from . import row_to_evidence
@@ -82,8 +83,8 @@ class PreventiviSource:
                         "title": parcella_row.get("numero") or "Parcella",
                         "excerpt": (
                             f"Stato {parcella_row.get('stato') or 'n.d.'}; "
-                            f"totale {parcella_row.get('totale') or 0}; "
-                            f"scadenza {parcella_row.get('data_scadenza') or 'n.d.'}."
+                            f"totale {format_euro_it(parcella_row.get('totale') or 0)}; "
+                            f"scadenza {format_date_it(parcella_row.get('data_scadenza')) or 'n.d.'}."
                         ),
                         "score": 0.84,
                         "authority": "economico_runtime",

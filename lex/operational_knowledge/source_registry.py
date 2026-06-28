@@ -353,7 +353,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         sensitive=False,
         official_public_source=True,
         notes=(
-            "Registro verificato il 2026-06-06 con audit 1512/1512 righe modello: "
+            "Registro verificato il 06/06/2026 con audit 1512/1512 righe modello: "
             "fonte specifica, telematica, deontologica, ordinamento forense o autorita' "
             "competente modello per modello; la base comune non chiude la copertura."
         ),
@@ -371,7 +371,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         sensitive=False,
         official_public_source=True,
         notes=(
-            "Audit 2026-06-06: 18/18 schede materia e 59/59 riferimenti nominali "
+            "Audit 06/06/2026: 18/18 schede materia e 59/59 riferimenti nominali "
             "con norme, decreti, regole tecniche, sentenze, udienze, atti, scadenze "
             "e domande Lex. Nessuna scheda va dichiarata coperta se il gate torna rosso."
         ),

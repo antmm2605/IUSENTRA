@@ -21,6 +21,10 @@ EXCLUDED_PARTS = {
     "__pycache__",
 }
 EXCLUDED_PREFIXES = {
+    Path("tests"),
+    Path("scripts"),
+    Path("docs/specs"),
+    Path("lex/tests"),
     Path("pct/data"),
     Path("tests/fixtures"),
     Path("web/static/react/assets"),
@@ -71,11 +75,19 @@ def ensure_import(text: str, import_line: str, anchor: str | None = None) -> str
 
 
 def normalize_fatturazione_pdf(text: str) -> str:
-    text = text.replace(
-        "from pct.formatting import format_euro_it",
-        "from pct.formatting import format_datetime_it, format_euro_it",
-    )
-    text = ensure_import(text, "from pct.formatting import format_datetime_it, format_euro_it")
+    if "from pct.formatting import format_date_it, format_datetime_it, format_euro_it" not in text:
+        if "from pct.formatting import format_datetime_it, format_euro_it" in text:
+            text = text.replace(
+                "from pct.formatting import format_datetime_it, format_euro_it",
+                "from pct.formatting import format_date_it, format_datetime_it, format_euro_it",
+            )
+        elif "from pct.formatting import format_euro_it" in text:
+            text = text.replace(
+                "from pct.formatting import format_euro_it",
+                "from pct.formatting import format_date_it, format_datetime_it, format_euro_it",
+            )
+        else:
+            text = ensure_import(text, "from pct.formatting import format_date_it, format_datetime_it, format_euro_it")
     return text.replace(
         '        story.append(Paragraph(f"<b>Data UTC:</b> {audit_proof.get(\'event_ts_utc\', \'\')}", style_small))',
         "        story.append(Paragraph(\n"
@@ -184,6 +196,32 @@ def audit_visible_datetime_residuals() -> list[str]:
         ".toLocaleTimeString('it-IT', {",
         '.toLocaleTimeString("it-IT", {',
     ]
+    visible_iso_literal = re.compile(r"\b20\d{2}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)?\b")
+    visible_raw_dynamic = re.compile(
+        r"(Data|Scadenza|Valido fino|pagamento entro|arrivo|inviat|consegn|ricevut|audit|modified_at|label)"
+        r".*\{[^}]*\b(data_|timestamp|event_ts|created_at|updated_at|sent_at|received_at|delivered_at)[^}]*\}",
+        re.IGNORECASE,
+    )
+    visible_context = re.compile(
+        r"(Data|Scadenza|Valido fino|pagamento entro|arrivo|inviat|consegn|ricevut|audit|backup|modificat|label)",
+        re.IGNORECASE,
+    )
+    technical_line = re.compile(
+        r"(https?://|urn:nir:|codiceRedazionale|dataPubblicazioneGazzetta|decreto\.legislativo:|"
+        r"decreto\.legge:|decreto\.del\.presidente\.della\.repubblica:|presidente\.repubblica:|legge:|<postacert>|SCHEMA_VERSION|schema_version|"
+        r"source_code|effective_from|published_at|checked_on|LAST_VERIFIED_AT|VERIFIED_ON|"
+        r"input type=\"date\"|type=\"date\"|type=\"hidden\"|data-label=|data-date=|data-time=|data-val|"
+        r"data-pst-key=|placeholder=|"
+        r"Date\.UTC|datetime\.now\(UTC\)|datetime\.now\(tz=UTC\)|"
+        r"format_date_it|format_datetime_it|formatDateIt|formatDateTimeIt|formatDateLabel|formatDocumentAIDate|"
+        r"awFormatDate|_format_italian_date|italian_date\(|_italian_date\(|strftime\('%d/%m/%Y|strftime\(\"%d/%m/%Y|"
+        r"\|data_it\b|\|dataora_it\b|\|fmt_data\b|_label\b|data_oggi|\[\d+:\d+\]|"
+        r"_fmt\b|created_at_fmt|sent_at|data_doc|metadata=\{|fieldConfidence\(|setNotifica\(|"
+        r"destinatario\.data_verifica_pec|context\['destinatario'\]\['data_verifica_pec'\]|"
+        r"isoformat\(|fromisoformat|data_ora = f\"|help=|# ISO|ISO 8601|template field|\"token\":|"
+        r"\"start\":|\"end\":|data_scadenza=|data_pagamento=|data_emissione=|data_pubblicazione=|data_atto|file_markers|key =)",
+        re.IGNORECASE,
+    )
     for path in ROOT.rglob("*"):
         if not path.is_file() or is_excluded(path) or path.suffix.lower() not in SOURCE_SUFFIXES:
             continue
@@ -196,8 +234,14 @@ def audit_visible_datetime_residuals() -> list[str]:
             continue
         for idx, line in enumerate(text.splitlines(), 1):
             stripped = line.strip()
+            if technical_line.search(stripped):
+                continue
             if "Data UTC:" in stripped:
                 findings.append(f"{relative.as_posix()}:{idx}: {stripped}")
+            if visible_raw_dynamic.search(stripped):
+                findings.append(f"{relative.as_posix()}:{idx}: data dinamica visibile senza helper italiano: {stripped}")
+            if visible_context.search(stripped) and visible_iso_literal.search(stripped):
+                findings.append(f"{relative.as_posix()}:{idx}: data ISO visibile: {stripped}")
         for marker in markers:
             offset = 0
             while True:

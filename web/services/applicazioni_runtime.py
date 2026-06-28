@@ -42,12 +42,7 @@ def _clean_text(value: Any) -> str:
 
 
 def _fmt_money(value: Any) -> str:
-    try:
-        amount = round(float(value or 0.0), 2)
-    except (TypeError, ValueError):
-        amount = 0.0
-    text = f"{amount:,.2f}"
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
+    return format_euro_it(value)
 
 
 def _fmt_date_it(value: Any) -> str:

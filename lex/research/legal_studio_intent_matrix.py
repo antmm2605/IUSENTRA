@@ -359,7 +359,7 @@ _INTENT_MATRIX: tuple[MacroIntent, ...] = (
         ),
         workflows=("economico", "cabina"),
         example_queries=(
-            "calcola il compenso DM 55 per causa di valore 50.000 euro",
+            "calcola il compenso DM 55 per causa di valore € 50.000,00",
             "tariffario forense fase istruttoria",
             "parcella per causa di lavoro",
             "scaglioni DM 147",

@@ -168,7 +168,7 @@ RIFERIMENTI_BASE: list[RiferimentoNormativo] = [
          "Argomenti di prova e conseguenze per la parte che non partecipa alla mediazione.", _CITAZIONE,
          condizione="mediazione"),
     _rif("dl132_3", "d.l. 132/2014", "3", "Improcedibilita' e negoziazione assistita", "processuale",
-         "Negoziazione assistita come condizione di procedibilita' (risarcimento da circolazione, pagamenti fino a 50.000 euro).", _CITAZIONE,
+         "Negoziazione assistita come condizione di procedibilita' (risarcimento da circolazione, pagamenti fino a € 50.000,00).", _CITAZIONE,
          condizione="negoziazione"),
     # ----- Comparsa conclusionale, repliche, appello -----
     _rif("cpc_189", "c.p.c.", "189", "Rimessione al collegio", "processuale",

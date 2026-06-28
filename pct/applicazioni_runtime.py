@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-
-from pct.formatting import format_euro_it
 from datetime import date, datetime
 from typing import Any, Dict, List, Mapping
 

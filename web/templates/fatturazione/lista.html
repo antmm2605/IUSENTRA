@@ -128,7 +128,7 @@
               </a>
             </td>
             <td data-label="Cliente">{{ c.nome_completo if c else '—' }}</td>
-            <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
+            <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione|data_it }}</td>
             <td data-label="Totale" class="text-end fw-semibold">{{ p.totale|euro }}</td>
             <td data-label="Stato" class="text-center">
               <span class="badge rounded-pill bg-{{ fcolor.get(p.stato.value, 'secondary') }}"
@@ -166,4 +166,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

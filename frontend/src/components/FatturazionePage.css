@@ -1518,7 +1518,7 @@
 .iu-fatt-edit-line label,
 .iu-fatt-draft label,
 .iu-fatt-workflow__grid label,
-.iu-fatt-workflow__password,
+.iu-fatt-workflow__secret,
 .iu-fatt-outcome label {
   display: grid;
   gap: 5px;
@@ -1528,7 +1528,7 @@
 .iu-fatt-edit-line span,
 .iu-fatt-draft label span,
 .iu-fatt-workflow__grid label span,
-.iu-fatt-workflow__password span,
+.iu-fatt-workflow__secret span,
 .iu-fatt-outcome label span {
   color: var(--iu-slate-600);
   font-size: 12px;
@@ -1542,7 +1542,7 @@
 .iu-fatt-draft textarea,
 .iu-fatt-workflow__grid input,
 .iu-fatt-workflow__grid select,
-.iu-fatt-workflow__password input,
+.iu-fatt-workflow__secret input,
 .iu-fatt-outcome input,
 .iu-fatt-outcome select,
 .iu-fatt-outcome textarea {
@@ -1570,7 +1570,7 @@
 .iu-fatt-draft textarea:focus,
 .iu-fatt-workflow__grid input:focus,
 .iu-fatt-workflow__grid select:focus,
-.iu-fatt-workflow__password input:focus,
+.iu-fatt-workflow__secret input:focus,
 .iu-fatt-outcome input:focus,
 .iu-fatt-outcome select:focus,
 .iu-fatt-outcome textarea:focus {

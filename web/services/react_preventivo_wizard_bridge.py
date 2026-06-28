@@ -69,11 +69,6 @@ def _bool(value: Any, default: bool = False) -> bool:
 
 
 def _money(value: Any) -> str:
-    try:
-        amount = float(value or 0.0)
-    except (TypeError, ValueError):
-        amount = 0.0
-    rendered = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return format_euro_it(value)
 
 

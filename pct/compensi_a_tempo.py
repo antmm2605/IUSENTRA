@@ -94,7 +94,7 @@ def calcola_compenso_a_tempo_art22bis(
     elif tariffa < RANGE_TARIFFA_MIN or tariffa > RANGE_TARIFFA_MAX:
         warnings.append(
             "Tariffa oraria fuori dal parametro indicativo art. 22-bis D.M. 55/2014 "
-            f"({RANGE_TARIFFA_MIN:.0f}-{RANGE_TARIFFA_MAX:.0f} euro/ora)."
+            f"({format_euro_it(RANGE_TARIFFA_MIN)}-{format_euro_it(RANGE_TARIFFA_MAX)}/ora)."
         )
 
     if total_minutes <= 0:

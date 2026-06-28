@@ -1966,7 +1966,7 @@ class GestioneDatabase:
                 except ValueError:
                     problemi.append(ProblemaIntegrita(
                         modulo="appuntamenti", tipo="DATO_INVALIDO", severita="CRITICO",
-                        messaggio=f"Data/ora non valida: {data_ora!r}",
+                        messaggio="Data/ora non valida. Usa il formato italiano gg/mm/aaaa HH:MM oppure correggi il valore sorgente.",
                         id_record=aid, campo="data_ora",
                         suggerimento="Correggere il formato data/ora",
                     ))

@@ -46,4 +46,8 @@ def test_pdf_fatturazione_non_espone_data_utc_visibile() -> None:
 
     assert "Data UTC:" not in source
     assert "Data e ora italiana:" in source
+    assert "Data: {p.data_emissione}" not in source
+    assert "Scadenza: {p.data_scadenza}" not in source
+    assert "pagamento entro il <b>{p.data_scadenza}</b>" not in source
+    assert "format_date_it" in source
     assert "format_datetime_it" in source

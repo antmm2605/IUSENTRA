@@ -2823,6 +2823,8 @@ Test automatici eseguiti:
 - `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser` -> `1 passed` dopo la correzione hover-only;
 - `pnpm --filter @iusentra/studio test` -> contratti React, governance design system e divieti CSS OK dopo rimozione della proprietà CSS vietata;
 - `python -m pytest tests/test_react_asset_retention.py -q --tb=short` -> `2 passed` con asset Vite aggiornati;
+- `python -m pytest -q tests/test_local_signer.py::test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso` -> `1 passed`; presidia che la firma Windows Store usi il runner PIN foreground/silenzioso e non torni a `subprocess.run` diretto;
+- `python scripts/run_pytest_phases.py --suite signer --suite-shard 1 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` -> shard signer `1/4` verde dopo riallineamento del test Windows Store al nuovo contratto;
 - `pnpm --filter @iusentra/studio typecheck` -> OK;
 - `pnpm --filter @iusentra/studio build` -> OK;
 - `python -m pytest tests/test_utf8_integrity.py -q --tb=short` -> `4 passed`;

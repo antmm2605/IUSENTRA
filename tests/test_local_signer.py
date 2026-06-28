@@ -4847,7 +4847,7 @@ def test_pick_preferred_windows_signature_cert_esclude_auth():
     assert cert["thumbprint"] == "SIGN-1"
 
 
-def test_firma_windows_store_interattiva_non_usa_subprocess_nascosto(monkeypatch):
+def test_firma_windows_store_interattiva_usa_runner_pin_foreground_silenzioso(monkeypatch):
     module = _load_local_signer()
     captured = {}
 
@@ -4867,27 +4867,27 @@ def test_firma_windows_store_interattiva_non_usa_subprocess_nascosto(monkeypatch
         "_prepare_documento_firma_visibile",
         lambda documento, *args, **kwargs: documento,
     )
-    monkeypatch.setattr(
-        module,
-        "_windows_hidden_subprocess_kwargs",
-        lambda kwargs: (_ for _ in ()).throw(AssertionError("firma Windows lanciata nascosta")),
-    )
-
-    def _fake_run(command, **kwargs):
+    def _fake_run_process_with_pin_foreground(command, **kwargs):
         captured["command"] = command
         captured["kwargs"] = kwargs
         output_path = Path(command[command.index("-OutputPath") + 1])
         output_path.write_bytes(b"firmato")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr(module.subprocess, "run", _fake_run)
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("firma Windows deve passare dal runner PIN foreground")),
+    )
+    monkeypatch.setattr(module, "_run_process_with_pin_foreground", _fake_run_process_with_pin_foreground)
 
     firmato, info = module._firma_documento_windows_store(b"DatiAtto")
 
     assert firmato == b"firmato"
     assert info["windows_cert_store"] is True
-    assert "creationflags" not in captured["kwargs"]
-    assert "startupinfo" not in captured["kwargs"]
+    assert captured["kwargs"]["capture_output"] is True
+    assert captured["kwargs"]["text"] is True
+    assert captured["kwargs"]["timeout"] == 240
 
 
 def test_firma_windows_store_error_message_non_espone_stack_tecnico():

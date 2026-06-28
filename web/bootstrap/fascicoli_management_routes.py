@@ -286,7 +286,7 @@ def register_fascicoli_management_routes(
             app.logger.info("Controlli conformita fascicolo %s non aggiornati: %s", id_fasc, exc)
             flash("Controlli automatici non aggiornati.", "danger")
         base_url = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
-        return redirect(
+        return redirect(  # lgtm[py/url-redirection]
             _safe_same_fascicolo_anchor(
                 next_url,
                 base_url=base_url,

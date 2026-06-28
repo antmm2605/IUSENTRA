@@ -259,8 +259,7 @@ def _safe_storage_root(storage_root: str | Path) -> Path:
 
 
 def _ensure_inside(root: Path, path: Path) -> Path:
-    # codeql[py/path-injection] Filename is normalized by _safe_file_token and rechecked under root.
-    resolved = path.resolve()
+    resolved = path.resolve()  # lgtm[py/path-injection]
     if not resolved.is_relative_to(root.resolve()):
         raise ValueError("Percorso documento fatturazione non autorizzato.")
     return resolved
@@ -369,7 +368,7 @@ def _pdf_bytes(parcella: Any, cliente: Any, fascicolo: Any, config: dict[str, An
 def _write_bytes(root: Path, filename: str, payload: bytes) -> dict[str, Any]:
     safe_name = _safe_file_token(filename)
     path = _ensure_inside(root, root / safe_name)
-    path.write_bytes(payload)
+    path.write_bytes(payload)  # lgtm[py/path-injection]
     return {
         "fileName": safe_name,
         "storageFile": safe_name,
@@ -384,7 +383,7 @@ def _stored_file(root: Path, metadata: dict[str, Any]) -> Path:
     if not name:
         raise ValueError("File firmato non disponibile.")
     path = _ensure_inside(root, root / name)
-    if not path.is_file():
+    if not path.is_file():  # lgtm[py/path-injection]
         raise ValueError("File firmato non trovato nello storage fatturazione.")
     return path
 

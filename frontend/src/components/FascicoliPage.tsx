@@ -3190,7 +3190,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const signPayload = localSignature.payload && typeof localSignature.payload === 'object' && !Array.isArray(localSignature.payload)
       ? localSignature.payload as Record<string, unknown>
       : null
-    const endpoint = recordText(localSignature, 'endpoint', localSignerEndpoint('/firma'))
+    let endpoint = recordText(localSignature, 'endpoint', localSignerEndpoint('/firma'))
     if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
       throw new Error('Payload firma DatiAtto.xml non disponibile. Ripeti la prova deposito.')
     }
@@ -3210,6 +3210,7 @@ function DepositPreparePage({ id }:{id:string}) {
       const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
       throw new Error(signerDetail ? `Token non pronto per firmare DatiAtto.xml: ${signerDetail}` : 'Token non pronto per firmare DatiAtto.xml. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
     }
+    endpoint = localSignerEndpointForPayload(endpoint, '/firma', signerStatus)
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
     const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
     const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
@@ -3233,7 +3234,7 @@ function DepositPreparePage({ id }:{id:string}) {
         }),
       })
     } catch {
-      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Verifica che il servizio locale sia attivo su 127.0.0.1:27272 e ripeti la prova deposito.')
+      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Verifica che il servizio locale sia attivo su 127.0.0.1:27272 o localhost:27272 e ripeti la prova deposito.')
     }
     const signaturePayload = await parseLocalSignerResponse(signatureResponse)
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
@@ -3274,11 +3275,21 @@ function DepositPreparePage({ id }:{id:string}) {
     const localPayload = localPec.payload && typeof localPec.payload === 'object' && !Array.isArray(localPec.payload)
       ? localPec.payload as Record<string, unknown>
       : null
-    const endpoint = recordText(localPec, 'endpoint', localSignerEndpoint('/pec/send'))
+    let endpoint = recordText(localPec, 'endpoint', localSignerEndpoint('/pec/send'))
     if (!localPayload || !endpoint) {
       throw new Error('Payload Local Signer PEC non disponibile. Ripeti la prova senza invio reale.')
     }
     assertLocalPecAttoEncBase64(localPayload)
+    let signerStatus = await fetchLocalSignerStatus(4500)
+    if (!signerStatus || signerStatus.ok === false) {
+      requestLocalSignerStart()
+      await sleep(900)
+      signerStatus = await fetchLocalSignerStatus(4500)
+    }
+    if (!signerStatus || signerStatus.ok === false) {
+      throw new Error('Local Signer non raggiungibile dal browser per inviare la PEC dal PC locale. Avvia il servizio locale e ripeti l\'invio.')
+    }
+    endpoint = localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)
     const password = await requestLocalPecPassword(localPayload)
     if (!password.trim()) {
       throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
@@ -3459,7 +3470,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 90000)
     try {
-      const localResponse = await fetch(localSignerEndpoint('/pst/certificato-ufficio'), {
+      const localResponse = await fetch(localSignerEndpointForStatus('/pst/certificato-ufficio', signerStatus), {
         method: 'POST',
         cache: 'no-store',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -4708,7 +4719,7 @@ function DepositBatchSignaturePanel({
       const timeout = window.setTimeout(() => controller.abort(), LOCAL_SIGNER_BATCH_TIMEOUT_MS)
       let signResponse: Response
       try {
-        signResponse = await fetch(localSignerEndpoint('/firma-batch'), {
+        signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -5822,6 +5833,9 @@ type LocalSignerStatus = {
   errore_libreria?: string
   riavvio_signer_consigliato?: boolean
   nota_riavvio_signer?: string
+  __iusentra_base_url?: string
+  __iusentra_probe_urls?: string[]
+  __iusentra_last_error?: string
 }
 type LocalSignerRecoveryOptions = {
   onMessage?: (message: string) => void
@@ -5907,6 +5921,7 @@ function sleep(ms: number): Promise<void> {
 const LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
 const LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'
 const LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000
+const LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']
 
 function isDesktopLocalSignerHost(): boolean {
   if (typeof navigator === 'undefined') return true
@@ -5978,14 +5993,46 @@ declare global {
   }
 }
 
-function localSignerBaseUrl(): string {
-  const configured = typeof window !== 'undefined' ? window.__IUSENTRA_LOCAL_SIGNER_URL__ : ''
-  return String(configured || 'http://127.0.0.1:27272').replace(/\/+$/, '')
+function normalizeLocalSignerBaseUrl(value?: string): string {
+  return String(value || '').trim().replace(/\/+$/, '')
 }
 
-function localSignerEndpoint(path: string): string {
+function localSignerCandidateBaseUrls(): string[] {
+  const configured = typeof window !== 'undefined' ? normalizeLocalSignerBaseUrl(window.__IUSENTRA_LOCAL_SIGNER_URL__) : ''
+  const urls = configured ? [configured, ...LOCAL_SIGNER_DEFAULT_BASE_URLS] : LOCAL_SIGNER_DEFAULT_BASE_URLS
+  return Array.from(new Set(urls.map((url) => normalizeLocalSignerBaseUrl(url)).filter(Boolean)))
+}
+
+function localSignerBaseUrl(): string {
+  return localSignerCandidateBaseUrls()[0] || LOCAL_SIGNER_DEFAULT_BASE_URLS[0]
+}
+
+function localSignerEndpoint(path: string, baseUrl = localSignerBaseUrl()): string {
   const suffix = path.startsWith('/') ? path : `/${path}`
-  return `${localSignerBaseUrl()}${suffix}`
+  return `${normalizeLocalSignerBaseUrl(baseUrl)}${suffix}`
+}
+
+function localSignerStatusBaseUrl(status?: LocalSignerStatus | null): string {
+  return normalizeLocalSignerBaseUrl(status?.__iusentra_base_url) || localSignerBaseUrl()
+}
+
+function localSignerEndpointForStatus(path: string, status?: LocalSignerStatus | null): string {
+  return localSignerEndpoint(path, localSignerStatusBaseUrl(status))
+}
+
+function localSignerEndpointForPayload(endpoint: string, path: string, status?: LocalSignerStatus | null): string {
+  const fallback = localSignerEndpointForStatus(path, status)
+  const raw = String(endpoint || '').trim()
+  if (!raw) return fallback
+  try {
+    const parsed = new URL(raw)
+    if (['127.0.0.1', 'localhost'].includes(parsed.hostname) && (!parsed.port || parsed.port === '27272')) {
+      return `${localSignerStatusBaseUrl(status)}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    return raw
+  }
+  return raw
 }
 
 function localSignerLatestVersion(): string {
@@ -6027,18 +6074,39 @@ function localSignerStatusCanSign(status?: LocalSignerStatus | null): boolean {
 }
 
 async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStatus | null> {
-  const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(localSignerEndpoint('/ping'), {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    return await response.json().catch(() => ({} as LocalSignerStatus))
-  } catch {
-    return null
-  } finally {
-    window.clearTimeout(timeout)
+  const candidateBaseUrls = localSignerCandidateBaseUrls()
+  const candidateEndpoints = candidateBaseUrls.length
+    ? candidateBaseUrls.map((baseUrl) => ({ baseUrl, endpoint: localSignerEndpoint('/ping', baseUrl) }))
+    : [{ baseUrl: localSignerBaseUrl(), endpoint: localSignerEndpoint('/ping') }]
+  let lastError = ''
+  const probeTimeoutMs = candidateEndpoints.length > 1 ? Math.max(1800, Math.ceil(timeoutMs / candidateEndpoints.length)) : timeoutMs
+  for (const candidate of candidateEndpoints) {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), probeTimeoutMs)
+    try {
+      const response = await fetch(candidate.endpoint, {
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const payload = await response.json().catch(() => ({} as LocalSignerStatus))
+      return {
+        ...payload,
+        ok: response.ok ? payload.ok : false,
+        __iusentra_base_url: candidate.baseUrl,
+        __iusentra_probe_urls: candidateEndpoints.map((item) => item.endpoint),
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error || '')
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+  return {
+    ok: false,
+    messaggio: 'Local Signer non rilevato su questo PC.',
+    __iusentra_base_url: localSignerBaseUrl(),
+    __iusentra_probe_urls: candidateEndpoints.map((item) => item.endpoint),
+    __iusentra_last_error: lastError,
   }
 }
 
@@ -6060,7 +6128,7 @@ async function recoverLocalSignerAutomatically(
     const installed = localSignerInstalledVersion(status)
     options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
     try {
-      const updateResponse = await fetch(localSignerEndpoint('/update'), { method: 'POST', cache: 'no-store' })
+      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), { method: 'POST', cache: 'no-store' })
       const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
       if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
     } catch {
@@ -6275,7 +6343,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       const downloadResponse = await fetch(doc.actions.download, { credentials: 'same-origin' })
       if (!downloadResponse.ok) throw new Error(`Download documento non riuscito: HTTP ${downloadResponse.status}`)
       const sourceBuffer = await downloadResponse.arrayBuffer()
-      const signResponse = await fetch(localSignerEndpoint('/firma'), {
+      const signResponse = await fetch(localSignerEndpointForStatus('/firma', localSigner), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -512,6 +512,8 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "return <SignaturePage id={route.id} documentId={route.documentId}/>" in source
     assert "window.__IUSENTRA_LOCAL_SIGNER_URL__" in source
     assert "http://127.0.0.1:27272" in source
+    assert "http://localhost:27272" in source
+    assert "localSignerCandidateBaseUrls" in source
     assert "localSignerEndpoint('/ping')" in source
     assert "localSignerEndpoint('/firma')" in source
     assert "token_probe_fresh" in source

@@ -65,11 +65,14 @@ def test_crea_busta(dati_busta, tmp_path):
 def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
     atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
     message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
-    return {
-        Path(part.get_filename() or "").name: part.get_payload(decode=True) or b""
-        for part in message.iter_attachments()
-        if part.get_filename()
-    }
+    attachments = {}
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name
+        if filename:
+            attachments[filename] = part.get_payload(decode=True) or b""
+    return attachments
 
 
 def _cades_signed_payload(payload: bytes) -> bytes:
@@ -135,6 +138,35 @@ def test_busta_contiene_indice_busta_ministeriale(dati_busta, tmp_path):
     dati = [node for node in root.findall("Allegato") if node.get("Tipo") == "DA"]
     assert dati
     assert dati[0].get("Nome") == DATI_ATTO_FILENAME
+
+
+def test_atto_msg_usa_mime_file_parts_compatibili_con_parser_pst(dati_busta, tmp_path):
+    """IndiceBusta.xml deve essere una parte MIME nominata, senza corpo testo extra."""
+    from lxml import etree
+
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path))
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+
+    assert message.get_content_type() == "multipart/related"
+    leaf_parts = [part for part in message.walk() if not part.is_multipart()]
+    assert leaf_parts
+    assert all(part.get_filename() or part.get_param("name", header="Content-Type") for part in leaf_parts)
+    assert "text/plain" not in {part.get_content_type() for part in leaf_parts}
+
+    indice_part = next(
+        part
+        for part in leaf_parts
+        if Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name
+        == INDICE_BUSTA_FILENAME
+    )
+    assert indice_part.get_content_type() == "text/xml"
+    assert indice_part.get_param("name", header="Content-Type") == INDICE_BUSTA_FILENAME
+    assert indice_part.get_content_disposition() == "inline"
+    assert indice_part.get("Content-ID") == f"<{INDICE_BUSTA_FILENAME}>"
+    assert indice_part.get("Content-Transfer-Encoding", "").lower() != "base64"
+    assert etree.fromstring(indice_part.get_payload(decode=True)).tag == "IndiceBusta"
 
 
 def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_path):

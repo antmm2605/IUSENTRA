@@ -1,6 +1,100 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-26.
+Aggiornato: 2026-06-29.
+
+## Aggiornamento 2026-06-29 - Prova produzione fascicolo 795C50AC e Local Signer
+
+Richiesta utente: predisporre il test reale del deposito su `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#proposta-busta`, arrivando alla fase in cui l'avvocato inserisce il PIN e tracciando log e stato.
+
+Stato osservato su produzione `2.253.135`, commit server `2d39a1a3ef96d6ae45c0efde8b772a586ffa8542`:
+
+- `/api/pronto` ha risposto `ok=true`, `timezone=Europe/Rome`, `versione=2.253.135`;
+- container Hetzner osservati: `iusentra-app-1`, `iusentra-scheduler-worker-1`, `iusentra-ocr-worker-1` healthy;
+- pagina React deposito aperta su fascicolo `795C50AC`, `2026/332`, cliente `Marchetti Lucia`, ufficio `Tribunale di Vicenza`, canale `PCT lavoro / SICID`, PEC `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- fase `Documenti da inviare`: `13` documenti selezionati, `Ricorso.pdf.p7m` come atto principale, `Procura.PDF.p7m` come procura, `0` documenti ulteriori da firmare prima della busta;
+- fase `Busta e indice`: `DatiAtto.xml` e `IndiceDocumentiDepositati.PDF` risultano generati, testo PEC visibile, pulsanti `Prova senza invio reale`, `Simula invio PEC` e `Invia deposito reale` visibili.
+
+Prova eseguita nella scheda controllata:
+
+- click su `Prova senza invio reale`, conferma modale `Preparare busta, indice documenti, destinatario e testo PEC senza inviare nulla?`;
+- barra avanzamento visibile con `DatiAtto.xml`, `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `IndiceDocumentiDepositati.PDF`, documenti selezionati e `Atto.enc`;
+- log app Hetzner: `POST /api/v1/ui/fascicoli/795C50AC/deposito/classifica-documenti` `200`, `GET /api/v1/ui/fascicoli/795C50AC/deposito/certificato-cifratura?codice_ufficio=0640011` `200`, `POST /fascicoli/795C50AC/deposito/invia-pec` `200`;
+- la prova non ha registrato un nuovo deposito valido e non ha inviato PEC reale: la UI si è fermata prima della firma di `DatiAtto.xml.p7m` con messaggio `Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Avvia il servizio locale sul PC in uso e ripeti la prova deposito.`
+
+Diagnosi Local Signer sul PC:
+
+- Local Signer locale inizialmente in ascolto su `127.0.0.1:27272`, versione `1.6.83`, ma con `riavvio_signer_consigliato=true`: il controllo fresco vedeva il token `CNS`, mentre il processo attivo non era allineato;
+- eseguito riavvio del solo processo Local Signer locale e avvio diretto dello starter installato in `%APPDATA%\IUSENTRA\LocalSigner\start_local_signer.cmd`;
+- dopo il riavvio `/ping` locale ha risposto `ok=true`, token `CNS` presente, libreria `C:\Windows\System32\bit4xpki.dll`, certificato firma Windows selezionato `GIUSEPPE MONTAGNESE`, nessun riavvio signer richiesto;
+- CORS e Private Network verificati con `Origin: https://app.iusentra.it`: `Access-Control-Allow-Origin: https://app.iusentra.it`, `Access-Control-Allow-Private-Network: true`;
+- CSP produzione verificata: `connect-src` consente `http://127.0.0.1:*` e `http://localhost:*`.
+
+Fix applicato e distribuito:
+
+- commit `c3fffbb76d728946c92ac03c4aae6a9b9a1e651c` su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`;
+- deploy Hetzner completato sullo stesso commit, container `app`, `scheduler-worker`, `ocr-worker`, `redis`, `audit-postgres` e `audit-worm` healthy;
+- `/api/pronto` produzione ha risposto `ok=true`, `timezone=Europe/Rome`, `versione=2.253.135`;
+- bundle React produzione caricato nella pagina reale: `FascicoliPage-B4gZSukh.js`.
+
+Prova reale successiva su Google Chrome dell'utente, pagina già aperta e autenticata:
+
+- finestra reale osservata: `IUSENTRA - Google Chrome`, URL `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara#generazione-busta`;
+- click materiale sul pulsante `Prova senza invio reale` nella pagina Chrome dell'utente;
+- modale reale `Prova senza invio` visualizzata con testo `Preparare busta, indice documenti, destinatario e testo PEC senza inviare nulla?`;
+- la prova è avanzata su `DatiAtto.xml.p7m` e ha concluso con esito UI `Prova deposito preparata: busta, indice, destinatario e testo PEC sono pronti per il controllo. Nessun invio PEC reale è stato eseguito.`;
+- riferimento prova mostrato in UI: `506A6BDB`;
+- destinatario PEC mostrato: `tribunale.vicenza@civile.ptel.giustiziacert.it`;
+- oggetto PEC mostrato: `DEPOSITO TELEMATICO - RICORSO - Tribunale di Vicenza`;
+- report UI `Compatibilità 100%` con controlli `OK`: `Atto.enc ministeriale AES256`, `DatiAtto.xml.p7m firmato`, `IndiceBusta.xml ministeriale`, `IndiceDocumentiDepositati.PDF`, `Atto principale e allegati controllati`, `PEC ufficio giudiziario`, `Oggetto PEC deposito`, `Corpo PEC verificabile`;
+- ricevute ancora da presidiare dopo eventuale invio reale: ricevuta di accettazione PEC, RdAC/avvenuta consegna, esito controlli automatici, esito cancelleria;
+- Codex non ha inserito, letto o salvato alcun PIN; la verifica si è limitata alla prova senza invio e alla preparazione firmata della busta.
+
+Log produzione della prova Chrome reale:
+
+- `29/06/2026 15:09:22` `POST /api/v1/ui/fascicoli/795C50AC/deposito/classifica-documenti` -> `200`;
+- `29/06/2026 15:09:22` `GET /api/v1/ui/fascicoli/795C50AC/deposito/certificato-cifratura?codice_ufficio=0640011` -> `200`;
+- `29/06/2026 15:09:23` `POST /fascicoli/795C50AC/deposito/invia-pec` -> `200`, payload controllo iniziale;
+- `29/06/2026 15:09:40` `POST /fascicoli/795C50AC/deposito/invia-pec` -> `200`, payload busta circa `50 MB`.
+
+Evidenza visiva temporanea fuori repository:
+
+- `C:\Users\antmm\AppData\Local\Temp\iusentra-chrome-real-after-10s.png`.
+
+## Aggiornamento 2026-06-29 - Esito PST reale negativo IDBUSTA 152631750 e formato MIME Atto.msg
+
+Esito reale successivo alla prova preparatoria sul fascicolo `795C50AC`:
+
+- l'avvocato ha eseguito l'invio reale dal proprio PC tramite Google Chrome e Local Signer; Codex non ha inserito, letto o salvato il PIN;
+- ricevute PEC osservate in Aruba: `Ricevuta di accettazione` e `Ricevuta di avvenuta consegna` al destinatario `tribunale.vicenza@civile.ptel.giustiziacert.it`, consegna del `29/06/2026 15:12:44 (+0200)`;
+- esito automatico PST ricevuto alle `15:13`: `Codice esito: -1`, `Descrizione esito: --`, `IDBUSTA: 152631750`, messaggio `Indice busta non trovato, necessario effettuare nuovamente il deposito`;
+- quindi l'invio PEC locale, il destinatario, la consegna e Local Signer sono risultati operativi, ma il pacchetto ministeriale è stato rifiutato dal parser PST: il deposito non è concluso e non va dichiarato verde.
+
+Causa tecnica individuata:
+
+- il controllo precedente verificava `Atto.msg` con parser Python moderno e `iter_attachments()`, sufficiente a vedere un allegato chiamato `IndiceBusta.xml` ma non sufficiente a simulare il parser ministeriale;
+- il vecchio `Atto.msg` era `multipart/mixed`, conteneva prima una parte `text/plain` descrittiva e poi `IndiceBusta.xml` come `application/xml` codificato base64, con nome presente solo in `Content-Disposition`;
+- le prove e i campioni accettati mostrano parser e client legacy che identificano le parti MIME anche tramite `Content-Type; name=...`, parti `inline` e struttura `multipart/related`;
+- l'esito `Indice busta non trovato` è coerente con un parser che decritta `Atto.enc` ma non censisce `IndiceBusta.xml` come file del contenuto busta.
+
+Correzione applicata nel sorgente locale:
+
+- `pct/busta.py` genera ora `Atto.msg` come `multipart/related` di sole parti file, senza corpo `text/plain` extra;
+- `IndiceBusta.xml` è la prima parte file, `Content-Type: text/xml; charset="utf-8"; name="IndiceBusta.xml"`, `Content-ID: <IndiceBusta.xml>`, `Content-Disposition: inline; filename="IndiceBusta.xml"`, `Content-Transfer-Encoding: 7bit`;
+- `DatiAtto.xml` non firmato usa `text/xml`; quando firmato resta `DatiAtto.xml.p7m` `application/pkcs7-mime`;
+- tutti i file binari restano base64 ma hanno `name`, `filename` e `Content-ID` sicuro;
+- la verifica interna di `Atto.msg` cammina tutte le parti MIME file-like, non solo `iter_attachments()`, e blocca parti senza nome file o `IndiceBusta.xml` privo di `name` MIME;
+- `scripts/audit_deposito_server_dry_run.py` e i test di busta/simulazione usano la stessa logica, così il vecchio falso positivo non può rientrare nel gate.
+
+Guardrail eseguiti sul fix locale:
+
+- `python -m pytest tests\test_busta.py -q --tb=short` -> passato;
+- `python -m pytest tests\test_simulazione_deposito.py tests\test_local_pec_runtime.py tests\test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests\test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests\test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests\test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente -q --tb=short` -> passato;
+- `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` -> passato;
+- `python -m pytest tests\test_busta.py tests\test_simulazione_deposito.py tests\test_local_pec_runtime.py tests\test_deposito_server_dry_run_audit.py tests\test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests\test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests\test_deposito.py::test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http tests\test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests\test_deposito.py::test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mittente tests\test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice tests\test_regia_ui_react.py::test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale -q --tb=short` -> passato;
+- `python -m py_compile pct\busta.py tests\test_busta.py tests\test_simulazione_deposito.py scripts\audit_deposito_server_dry_run.py` -> passato;
+- `git diff --check -- pct\busta.py tests\test_busta.py tests\test_simulazione_deposito.py scripts\audit_deposito_server_dry_run.py` -> passato.
+
+Stato: fix tecnico locale pronto, ma non ancora accettato come deposito risolto. Prima di qualunque chiusura positiva servono deploy Hetzner, prova reale produzione senza invio per vedere il nuovo `Atto.msg`/`Atto.enc`, poi nuovo invio reale eseguito dall'avvocato con PIN e controllo dell'esito automatico PST.
 
 ## Aggiornamento 2026-06-26 - Formato PEC deposito ministeriale
 

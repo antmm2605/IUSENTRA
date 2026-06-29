@@ -97,11 +97,14 @@ def dati_busta_pct(tmp_atto, tmp_allegato):
 def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
     atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
     message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
-    return {
-        Path(part.get_filename() or "").name: part.get_payload(decode=True) or b""
-        for part in message.iter_attachments()
-        if part.get_filename()
-    }
+    attachments = {}
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name
+        if filename:
+            attachments[filename] = part.get_payload(decode=True) or b""
+    return attachments
 
 
 class TestPCTBusta:

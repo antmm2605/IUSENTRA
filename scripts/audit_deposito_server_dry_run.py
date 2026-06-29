@@ -52,6 +52,25 @@ def _clean_name(value: str) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _mime_part_name(part) -> str:
+    name = part.get_filename() or part.get_param("name", header="Content-Type") or ""
+    if not name:
+        content_id = str(part.get("Content-ID") or "").strip("<> ")
+        if "." in content_id:
+            name = content_id
+    return _clean_name(Path(str(name)).name) if name else ""
+
+
+def _iter_named_mime_parts(message):
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        name = _mime_part_name(part)
+        if not name:
+            continue
+        yield name, part.get_payload(decode=True) or b"", part.get_content_type()
+
+
 def _parse_xml_document_names(xml_bytes: bytes) -> list[str]:
     try:
         root = ET.fromstring(xml_bytes)
@@ -105,12 +124,9 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
             entries: list[str] = []
             attachments: dict[str, bytes] = {}
-            for part in message.iter_attachments():
-                name = _clean_name(part.get_filename() or "")
-                if not name:
-                    continue
+            for name, content, _content_type in _iter_named_mime_parts(message):
                 entries.append(name)
-                attachments[Path(name).name] = part.get_payload(decode=True) or b""
+                attachments[Path(name).name] = content
             result["entries"] = entries
             result["has_dati_atto_xml"] = "DatiAtto.xml" in attachments
             result["has_dati_atto_signed"] = any(name.lower() == "datiatto.xml.p7m" for name in entries)
@@ -134,16 +150,14 @@ def _parse_evidence_file(path: Path) -> list[EvidenceAttachment]:
         message = None
 
     if message is not None and message.is_multipart():
-        for part in message.iter_attachments():
-            content = part.get_payload(decode=True) or b""
-            name = _clean_name(part.get_filename() or "")
+        for name, content, content_type in _iter_named_mime_parts(message):
             if not name:
                 name = f"allegato-{len(attachments) + 1}"
             attachments.append(
                 EvidenceAttachment(
                     source=str(path),
                     name=name,
-                    content_type=part.get_content_type(),
+                    content_type=content_type,
                     size=len(content),
                     sha256=_sha256(content),
                     cms_enveloped_data=name.lower() == "atto.enc" and is_atto_enc_cms_enveloped_data(content),

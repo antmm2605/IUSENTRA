@@ -204,13 +204,41 @@ class BustaTelematica:
         return payload
 
     @staticmethod
-    def _atto_msg_attachments(atto_msg: bytes) -> dict[str, bytes]:
+    def _atto_msg_filename(part: EmailMessage) -> str:
+        filename = part.get_filename() or part.get_param("name", header="Content-Type") or ""
+        if not filename:
+            content_id = str(part.get("Content-ID") or "").strip("<> ")
+            if "." in content_id:
+                filename = content_id
+        return Path(filename).name if filename else ""
+
+    @classmethod
+    def _atto_msg_file_parts(cls, atto_msg: bytes) -> tuple[dict[str, bytes], dict[str, dict], list[str]]:
         message = BytesParser(policy=policy.default).parsebytes(atto_msg)
-        attachments: dict[str, bytes] = {}
-        for part in message.iter_attachments():
-            filename = Path(part.get_filename() or "").name
-            if filename:
-                attachments[filename] = part.get_payload(decode=True) or b""
+        payloads: dict[str, bytes] = {}
+        metadata: dict[str, dict] = {}
+        unnamed_parts: list[str] = []
+        for part in message.walk():
+            if part.is_multipart():
+                continue
+            filename = cls._atto_msg_filename(part)
+            if not filename:
+                if part.get_payload(decode=True):
+                    unnamed_parts.append(part.get_content_type())
+                continue
+            payloads[filename] = part.get_payload(decode=True) or b""
+            metadata[filename] = {
+                "content_type": part.get_content_type(),
+                "content_type_name": Path(str(part.get_param("name", header="Content-Type") or "")).name,
+                "content_disposition": part.get_content_disposition() or "",
+                "content_id": str(part.get("Content-ID") or "").strip("<> "),
+                "content_transfer_encoding": str(part.get("Content-Transfer-Encoding") or "").lower(),
+            }
+        return payloads, metadata, unnamed_parts
+
+    @classmethod
+    def _atto_msg_attachments(cls, atto_msg: bytes) -> dict[str, bytes]:
+        attachments, _, _ = cls._atto_msg_file_parts(atto_msg)
         return attachments
 
     def _verifica_atto_msg_payloads(
@@ -230,11 +258,26 @@ class BustaTelematica:
             "indice_busta_dati_atto_filename": "",
             "indice_busta_allegati": [],
         }
-        attachments = self._atto_msg_attachments(atto_msg)
+        attachments, part_metadata, unnamed_parts = self._atto_msg_file_parts(atto_msg)
+        if unnamed_parts:
+            result["errori"].append(
+                "Atto.msg contiene parti MIME senza nome file: " + ", ".join(sorted(unnamed_parts))
+            )
+            return result
         required = {INDICE_BUSTA_FILENAME, dati_atto_filename, INDICE_DOCUMENTI_FILENAME}
         missing = sorted(name for name in required if name not in attachments)
         if missing:
             result["errori"].append("Atto.msg incompleto: mancano " + ", ".join(missing))
+            return result
+
+        indice_meta = part_metadata.get(INDICE_BUSTA_FILENAME, {})
+        if indice_meta.get("content_type") != "text/xml":
+            result["errori"].append(f"{INDICE_BUSTA_FILENAME} deve essere una parte MIME text/xml")
+            return result
+        if indice_meta.get("content_type_name") != INDICE_BUSTA_FILENAME:
+            result["errori"].append(
+                f"{INDICE_BUSTA_FILENAME} deve comparire anche nel parametro name del Content-Type MIME"
+            )
             return result
 
         main_name = Path(self.dati.atto_principale).name
@@ -488,6 +531,13 @@ class BustaTelematica:
         maintype, _, subtype = guessed.partition("/")
         return maintype or "application", subtype or "octet-stream"
 
+    @staticmethod
+    def _mime_content_id(filename: str) -> str:
+        if re.fullmatch(r"[A-Za-z0-9_.-]+", filename):
+            return filename
+        digest = hashlib.sha256(filename.encode("utf-8")).hexdigest()[:16]
+        return f"part-{digest}"
+
     def _document_payloads(
         self,
         *,
@@ -498,9 +548,9 @@ class BustaTelematica:
     ) -> list[tuple[str, bytes, str, str]]:
         dati_atto_filename = DATI_ATTO_FIRMATO_FILENAME if dati_atto_firmato else DATI_ATTO_FILENAME
         dati_atto_payload = dati_atto_firmato or xml_content
-        dati_atto_mime = ("application", "pkcs7-mime") if dati_atto_firmato else ("application", "xml")
+        dati_atto_mime = ("application", "pkcs7-mime") if dati_atto_firmato else ("text", "xml")
         payloads: list[tuple[str, bytes, str, str]] = [
-            (INDICE_BUSTA_FILENAME, indice_busta_xml, "application", "xml"),
+            (INDICE_BUSTA_FILENAME, indice_busta_xml, "text", "xml"),
             (dati_atto_filename, dati_atto_payload, dati_atto_mime[0], dati_atto_mime[1]),
         ]
 
@@ -532,16 +582,24 @@ class BustaTelematica:
         message["To"] = self.dati.codice_ufficio
         message["Date"] = format_datetime(self.timestamp.astimezone())
         message["X-IUSENTRA-Busta-ID"] = self.id_busta
-        message.set_content(
-            "Busta telematica IUSENTRA. Il contenuto di questo messaggio viene cifrato in Atto.enc."
-        )
+        message.make_related()
         for filename, payload, maintype, subtype in self._document_payloads(
             xml_content=xml_content,
             indice_busta_xml=indice_busta_xml,
             indice_pdf=indice_pdf,
             dati_atto_firmato=dati_atto_firmato,
         ):
-            message.add_attachment(payload, maintype=maintype, subtype=subtype, filename=filename)
+            part = EmailMessage(policy=policy.SMTP)
+            if maintype == "text":
+                text_payload = payload.decode("utf-8")
+                cte = "7bit" if text_payload.isascii() else "quoted-printable"
+                part.set_content(text_payload, subtype=subtype, charset="utf-8", cte=cte)
+            else:
+                part.set_content(payload, maintype=maintype, subtype=subtype, cte="base64")
+            part.set_param("name", filename, header="Content-Type")
+            part["Content-ID"] = f"<{self._mime_content_id(filename)}>"
+            part.add_header("Content-Disposition", "inline", filename=filename)
+            message.attach(part)
         return message.as_bytes(policy=policy.SMTP)
 
     def stima_dimensione_busta(self) -> int:

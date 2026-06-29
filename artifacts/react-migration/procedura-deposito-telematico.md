@@ -3190,3 +3190,157 @@ Test mirati rilanciati:
 - `python -m pytest tests\test_deposito_server_dry_run_audit.py::test_audit_dry_run_blocca_indice_interno_con_xml_esterno tests\test_deposito_server_dry_run_audit.py::test_audit_dry_run_blocca_ricevuta_telematica_senza_tipo_rt -q --tb=short` -> `2 passed`.
 
 Stato operativo: il confronto conferma che la soluzione per `Atto principale mancante` è già la stessa disciplina applicata a `IndiceBusta`: non basta che il nome appaia nella lista visibile, il controllo deve verificare `IndiceBusta.xml` contro le parti MIME reali. Per autorizzare un invio reale successivo, la simulazione deve mostrare e mantenere questi invarianti: `Atto Nome=Ricorso.pdf.p7m`, `Content-ID` uguale, nessun indice interno duplicato, nessun allegato indicizzato ma assente e nessun allegato presente ma non indicizzato.
+
+## Deposito PCT `795C50AC`: continuità busta tra simulazione e invio reale - 2026-06-29
+
+Richiesta utente: evitare che `Simula invio PEC` e `Invia deposito reale` usino una logica o un'identità tecnica diversa, perché la simulazione al 100% deve corrispondere alla busta realmente inviata dal PC locale.
+
+Correzione applicata e deploy hotfix server-first:
+
+- `web/services/local_pec_runtime.py`: il payload Local Signer espone ora sempre `busta_id` e `busta_timestamp`, oltre a `id_deposito`;
+- `web/services/deposito_pec_runtime.py`: la simulazione PEC conserva gli stessi metadati della busta generata;
+- `web/bootstrap/deposito_routes.py`: prova senza invio, simulazione e invio reale propagano `busta.id_busta` e timestamp della busta corrente;
+- `frontend/src/components/FascicoliPage.tsx`: il pannello di prova memorizza `bustaId` e `bustaTimestamp`; il click `Invia deposito reale` li rimanda al server con `local_pec_id_deposito`, `busta_id` e `busta_timestamp`;
+- `frontend/src/components/FascicoliPage.tsx`: anche la conferma finale dopo invio PEC Local Signer reinvia `busta_id` e `busta_timestamp`, impedendo una nuova ricostruzione silenziosa al momento della registrazione.
+
+Verifiche automatiche eseguite prima del deploy:
+
+- `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q --tb=short` -> `3 passed`.
+
+Deploy produzione Hetzner eseguito prima del commit, su richiesta utente:
+
+- copiati solo i file runtime necessari su `/opt/iusentra/repo`;
+- `docker compose -f deploy/hetzner/docker-compose.hetzner.yml build --no-cache app` -> OK;
+- `docker compose -f deploy/hetzner/docker-compose.hetzner.yml up -d --no-deps app` -> OK;
+- container applicativo unico verificato: `iusentra-app`;
+- `https://app.iusentra.it/api/pronto` -> `ok=true`, timestamp `2026-06-29T22:27:37+02:00`, versione `2.253.137`;
+- `docker builder prune --all --force` -> completato, `5.493GB` rimossi;
+- cartella temporanea `/opt/iusentra/repo/.__iusentra_hotfix_tmp` rimossa.
+
+Stato operativo: hotfix attivo su produzione, ma l'accettazione resta aperta fino alla nuova prova materiale sul browser reale dell'utente. La pagina aperta prima del deploy deve essere ricaricata con `Ctrl+F5`, altrimenti resta in memoria il vecchio JavaScript e il click reale può non inviare `busta_id` e `busta_timestamp` della simulazione.
+
+Verifica produzione sulla simulazione utente `123E2EB2`:
+
+- trovata busta fisica esatta nel container `iusentra-app`: `/tmp/busta_2_v2v7ew/Atto.msg`;
+- `Subject`: `Atto deposito telematico 123E2EB2`;
+- parti MIME fisiche: `16`;
+- `IndiceBusta.xml` presente come prima parte MIME;
+- `DatiAtto.xml.p7m` presente, `DatiAtto.xml` non firmato assente;
+- voci `IndiceBusta.xml`: `15`, tutte corrispondenti ai file fisici, con `missing_in_mime=[]`, `physical_not_indexed_except_index=[]`, `id_mismatches=[]`;
+- atto principale unico: `Ricorso.pdf.p7m`, con `ID=partc96dcd6a2d13ed9607b46d37c8fc13e4` uguale al `Content-ID` MIME;
+- `Procura.PDF.p7m` marcata `Tipo=PL`;
+- le tre email Carta Docente `.eml` sono marcate `Tipo=SM`, non `RT`;
+- `DatiAtto.xml.p7m` estratto senza `IndiceBusta` interno duplicato;
+- `Atto.enc` fisico `/tmp/busta_2_v2v7ew/Atto.enc`, dimensione `37554370`, `CMS EnvelopedData=true`, `valid=true`, `content_type=data`, algoritmo `aes256_cbc`, OID `2.16.840.1.101.3.4.1.42`, destinatari `1`;
+- bundle React attivo servito da produzione: `index-B2Xxg1l6.js` -> `FascicoliPage-B25XKLv2.js`, e il chunk contiene `local_pec_id_deposito`, `busta_id`, `busta_timestamp`.
+
+Stato operativo della simulazione `123E2EB2`: i controlli tecnici su busta, indice, atto principale, allegati, tipi, assenza di indice ambiguo, cifratura `Atto.enc` e continuità React simulazione/invio reale sono positivi. Il successivo `Invia deposito reale`, se eseguito dalla stessa pagina ricaricata dopo deploy, usa il contratto aggiornato e deve conservare `busta_id`/`busta_timestamp` della simulazione.
+
+Verifica dopo tentativo di invio reale non completato per password PEC errata:
+
+- errore utente/Local Signer: `Autenticazione SMTP PEC locale non riuscita verso smtps.pec.aruba.it:465`;
+- il server ha ricevuto il nuovo ciclo reale alle `22:31:52` e `22:32:08`, ma non risulta log `Deposito ... confermato da invio PEC Local Signer`;
+- busta reale generata dopo il click: `/tmp/busta_xgakjvxg/Atto.msg`, `Subject=Atto deposito telematico 123E2EB2`;
+- `Atto.msg` reale post-click: `16` parti MIME, `IndiceBusta.xml` presente, `DatiAtto.xml.p7m` presente, `DatiAtto.xml` non firmato assente;
+- `IndiceBusta.xml` reale post-click: `15` voci, `missing_in_mime=[]`, `physical_not_indexed_except_index=[]`, `id_mismatches=[]`;
+- atto principale reale post-click: unico `Ricorso.pdf.p7m`;
+- nessun tipo `RT` improprio sulle email `.eml`;
+- `DatiAtto.xml.p7m` reale post-click senza `IndiceBusta` interno duplicato;
+- `Atto.enc` reale post-click valido, `CMS EnvelopedData=true`, algoritmo `aes256_cbc`, OID `2.16.840.1.101.3.4.1.42`;
+- `OVERALL_OK=True`.
+
+Conclusione: la generazione reale della busta è corretta; l'invio PEC non è stato completato perché l'autenticazione SMTP locale Aruba è fallita prima della conferma Local Signer/Message-ID. Si può ripetere `Invia deposito reale` dalla stessa pagina, senza cambiare documenti o corpo PEC, inserendo la password PEC corretta.
+## Deposito PCT `795C50AC`: correzione firma CAdES documenti e `DatiAtto.xml.p7m` - 2026-06-29
+
+Richiesta utente: non modificare le regole di indice/busta già funzionanti e intervenire solo sul problema firma emerso sull'esito reale `IDBUSTA 152648910`.
+
+Esito PST reale analizzato:
+
+- `Ricorso.pdf.p7m`: `Allegato non riconosciuto` e `Il mittente non e' tra i firmatari`;
+- `DatiAtto.xml.p7m`: `Contenuto firmato non aderente alle specifiche: Il formato del file firmato non e' valido`;
+- `Procura.PDF.p7m`: `Allegato non riconosciuto` e `Il mittente non e' tra i firmatari`.
+
+Causa tecnica verificata:
+
+- nella busta reale generata sul server i documenti del fascicolo sono conservati cifrati a riposo con intestazione interna `PCTENC`;
+- la costruzione di `Atto.msg` leggeva i file direttamente dal disco, quindi un documento mostrato in UI come `.p7m` poteva entrare nell'allegato ministeriale come payload cifrato interno, non come CAdES leggibile dal PST;
+- il controllo di simulazione non apriva materialmente i `.p7m` estratti da `Atto.msg`, quindi poteva dare esito positivo anche se il file fisico spedibile non era un `SignedData` CAdES estraibile;
+- il `DatiAtto.xml.p7m` deve essere controllato come CAdES completo, non solo come PKCS#7 generico.
+
+Correzione applicata:
+
+- `pct/document_crypto.py`: helper condivisi per riconoscere, cifrare e decifrare documenti con prefisso `PCTENC`;
+- `web/services/document_crypto.py`: wrapper verso gli helper condivisi, così runtime web e dominio PCT usano la stessa decifratura;
+- `pct/busta.py`: prima di calcolare hash, indice, `DatiAtto.xml`, `Atto.msg` e dimensione busta, i documenti vengono letti con decifratura a riposo;
+- `pct/busta.py`: ogni file `.p7m` incluso nella busta viene verificato come CAdES/PKCS#7 `SignedData`, con contenuto incorporato estraibile e almeno un firmatario leggibile;
+- `pct/busta.py`: dopo la costruzione di `Atto.msg`, la verifica rilegge le parti MIME effettive e ricontrolla `Ricorso.pdf.p7m`, `Procura.PDF.p7m` e gli altri `.p7m` sui byte che partirebbero davvero;
+- `pct/firma.py`: aggiunto controllo degli attributi firmati CAdES e requisito `signingCertificate`/`signingCertificateV2` per `DatiAtto.xml.p7m`;
+- `pct/firma_pkcs11.py` e `tools/local_signer.py`: le firme CAdES generate includono `content_type`, `message_digest`, `signing_time` e `signingCertificateV2`;
+- `web/services/deposito_signature_runtime.py`: se `DatiAtto.xml.p7m` non contiene una firma CAdES completa per il deposito ministeriale, la fase si ferma prima della PEC;
+- `web/bootstrap/deposito_routes.py`: gli errori di firma/documento vengono restituiti in UI con il nome del file da correggere, senza arrivare alla password PEC o all'invio reale.
+
+Regole lasciate intenzionalmente invariate:
+
+- nessuna modifica alla disciplina già funzionante di `IndiceBusta.xml`;
+- nessuna modifica ai tipi `RT`, `PL`, `SM`, `DA` o alla classificazione della procura;
+- nessuna modifica a destinatario PEC, oggetto PEC, corpo PEC o canale Local Signer;
+- nessun nuovo blocco su dati anagrafici non essenziali.
+
+Verifiche automatiche eseguite:
+
+- `python -m pytest tests/test_busta.py::test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg tests/test_busta.py::test_busta_reale_decripta_documenti_cades_prima_di_atto_msg tests/test_busta.py::test_busta_reale_blocca_p7m_non_cades -q --tb=short` -> `3 passed`;
+- `python -m pytest tests/test_firma_pkcs11.py::test_build_cades_bes_embeds_content_and_certificate -q --tb=short` -> `1 passed`;
+- `python -m pytest tests/test_local_signer.py::test_build_cades_bes_inline_restituisce_busta_pkcs7_valida_con_contenuto_embedded -q --tb=short` -> `1 passed`;
+- `python -m pytest tests/test_busta.py tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q --tb=short` -> `30 passed`;
+- `python -m pytest tests/test_deposito.py::test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme tests/test_deposito.py::test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale -q --tb=short` -> `2 passed`;
+- `python -m pytest tests/test_deposito.py::test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori tests/test_deposito.py::test_firma_documento_ajax_recupera_errore_spazio_con_fallback_compatto -q --tb=short` -> `2 passed`.
+
+Stato operativo locale: codice corretto sul perimetro firma e busta. Il Local Signer installato su `C:\Users\antmm\AppData\Roaming\IUSENTRA\LocalSigner\local_signer.py` è stato riallineato al file aggiornato, riavviato e verificato su `http://127.0.0.1:27272/ping`: `ok=true`, versione `1.6.83`, token Bit4id presente e certificato di firma qualificata Aruba selezionato. Prima di autorizzare nuovo invio reale servono ancora deploy server, nuova simulazione PEC reale e controllo che il pacchetto blocchi eventuali `.p7m` non CAdES invece di dichiarare compatibilità positiva.
+## Deposito PCT `795C50AC`: avviso DatiAtto non conforme su codice oggetto e valore causa - 2026-06-30
+
+Esito PST reale analizzato:
+
+- `IDBUSTA 152649431`;
+- `NOME FILE: DatiAtto.xml.p7m`;
+- `Atto non conforme alle specifiche. In attesa di conferma da parte della cancelleria: l'atto verrà comunque accettato non è necessario effettuare nuovamente il deposito`.
+
+Conclusione operativa immediata: questo non è un errore bloccante di indice, allegati, firma o cifratura. Il messaggio ministeriale dice espressamente che l'atto verrà comunque accettato e che non è necessario effettuare nuovamente il deposito. Non va quindi generato un invio duplicato per questo deposito; bisogna presidiare le ricevute successive e l'esito cancelleria.
+
+Controlli eseguiti sulla busta reale generata dal server:
+
+- `Atto.msg` presente nei pacchetti temporanei del container `iusentra-app`;
+- parti MIME fisiche presenti: `IndiceBusta.xml`, `DatiAtto.xml.p7m`, `Ricorso.pdf.p7m`, `Procura.PDF.p7m`, allegati PDF/EML e `IndiceDocumentiDepositati.PDF`;
+- `DatiAtto.xml.p7m` CAdES valido e in formato firma ministeriale;
+- estrazione del contenuto firmato riuscita;
+- validazione XSD del `DatiAtto.xml` contro gli XSD SICI locali aggiornati al pacchetto ufficiale PST del `12/05/2026`: `XSD_OK=True`;
+- nessun ritorno a `Indice busta non trovato`, `Indice busta ambiguo`, `Atto principale mancante`, allegati assenti o `.p7m` non CAdES.
+
+Differenza semantica trovata confrontando la busta `795C50AC` con i campioni reali allegati dall'utente:
+
+- la busta `795C50AC` usava `Oggetto=220050`, cioè ramo `retribuzione` del lavoro privato;
+- i campioni reali Carta docente / Ministero usano `Oggetto=222050`, cioè `retribuzione` nel ramo `Pubblico impiego`;
+- il fascicolo `Marchetti c. MIM` ha controparte pubblica (`MIM` / Avvocatura dello Stato) e oggetto `Bonus Docente`, quindi deve usare `222050`;
+- il fascicolo aveva `valore_causa=0.0`, quindi il `DatiAtto.xml` non conteneva `ValoreCausa`;
+- per Carta docente il valore ministeriale del ricorso viene ora valorizzato a `500.00`, preservando eventuali valori positivi già inseriti dall'utente.
+
+Correzione applicata:
+
+- nuovo helper `web/services/deposito_semantic_helpers.py`;
+- `web/services/deposito_route_helpers.py`: se il fascicolo è Carta docente / MIM / Ministero e il codice storico è `220050`, la generazione della busta usa `222050`;
+- `web/services/deposito_anagrafica_ministeriale.py`: `ValoreCausa` non resta più assente quando il fascicolo Carta docente ha valore storico `0.0`; viene usato `500.0`;
+- nessuna modifica alle regole che hanno già fatto passare indice, allegati, `Content-ID`, firma CAdES, `Atto.enc` e invio PEC tramite Local Signer;
+- record SQL di produzione del fascicolo `795C50AC` riallineato: `codice_oggetto_pst=222050`, `valore_causa=500.0`, profilo deposito aggiornato con gli stessi valori.
+
+Verifiche eseguite:
+
+- `python -m py_compile web\services\deposito_semantic_helpers.py web\services\deposito_route_helpers.py web\services\deposito_anagrafica_ministeriale.py` -> OK;
+- `python -m pytest tests/test_deposito_route_helpers.py tests/test_deposito_anagrafica_ministeriale.py -q` -> `6 passed`;
+- generazione tecnica locale di `DatiAtto.xml` con input `Marchetti c. MIM`: `Oggetto=222050`, `ValoreCausa=500.00`;
+- hotfix server-first su Hetzner: file copiati in `/opt/iusentra/repo` e nel container `iusentra-app`;
+- `docker exec iusentra-app python -m py_compile ...` -> OK;
+- riavvio `iusentra-app` -> container unico healthy;
+- `https://app.iusentra.it/api/pronto` -> `ok=true`, `timezone=Europe/Rome`, versione `2.253.137`;
+- controllo runtime nel container sul fascicolo reale `795C50AC`: `codice=222050`, `valore_causa=500.0`;
+- controllo XML prodotto nel container: `Oggetto=222050`, `ValoreCausa=500.00`.
+
+Stato operativo: il deposito reale già inviato va monitorato, non duplicato, perché l'esito ministeriale indica accettazione comunque prevista. Per eventuali buste successive sullo stesso fascicolo, la produzione ora usa il ramo corretto `Pubblico impiego` e valorizza il `ValoreCausa` ministeriale; indice, firma e trasporto restano invariati rispetto alla versione che ha superato gli errori bloccanti precedenti.

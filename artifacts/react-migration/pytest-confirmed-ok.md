@@ -6099,3 +6099,12 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_busta.py tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `32/32` passati: `IndiceBusta.xml` esterno senza indice interno duplicato, tipi `RT/PA/RA/PL/IR/DA/SM` verificati e dry-run bloccante su ricevuta telematica non marcata `Tipo=RT`. |
 | `python -m pytest tests\test_busta.py tests\test_deposito.py tests\test_deposito_server_dry_run_audit.py tests\test_local_pec_runtime.py tests\test_deposito_anagrafica_ministeriale.py tests\test_regia_ui_react.py -q --tb=short` | OK | `75/75` passati: busta, deposito, dry-run, runtime PEC locale, anagrafica ministeriale e UI React deposito allineati alla nuova regola anti indice ambiguo. |
 | `git diff --check -- pct\busta.py scripts\audit_deposito_server_dry_run.py tests\test_busta.py tests\test_deposito_server_dry_run_audit.py pct\__init__.py Dockerfile CHANGELOG.md artifacts\react-migration\procedura-deposito-telematico.md artifacts\react-migration\pytest-confirmed-ok.md` | OK | Nessun errore whitespace; solo warning Git CRLF/LF su file storici toccati. |
+## Deposito PCT Carta docente `795C50AC` - codice oggetto e valore causa - 2026-06-30
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile web\services\deposito_semantic_helpers.py web\services\deposito_route_helpers.py web\services\deposito_anagrafica_ministeriale.py` | OK | Sintassi confermata per helper semantico, risoluzione codice oggetto deposito e valore causa ministeriale. |
+| `python -m pytest tests/test_deposito_route_helpers.py tests/test_deposito_anagrafica_ministeriale.py -q` | OK | `6/6` passati: Carta docente / MIM corregge `220050` in `222050`; `ValoreCausa` non resta a zero e diventa `500.0`; i casi privati con `220050` non vengono modificati. |
+| Generazione tecnica `DatiAtto.xml` locale | OK | Input equivalente a `Marchetti c. MIM`: XML con `Oggetto=222050` e `ValoreCausa=500.00`. |
+| Hotfix Hetzner runtime | OK | File copiati in `iusentra-app`, `py_compile` nel container OK, fascicolo SQL `795C50AC` riallineato a `codice_oggetto_pst=222050` e `valore_causa=500.0`, container unico healthy, `https://app.iusentra.it/api/pronto` OK. |
+| Verifica runtime server su fascicolo reale `795C50AC` | OK | Helper nel container restituisce `codice=222050`, `valore_causa=500.0`; controllo XML nel container restituisce `Oggetto=222050`, `ValoreCausa=500.00`. |

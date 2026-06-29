@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from pct.pratiche_collegate_catalog import normalize_codice_oggetto_pst
+from web.services.deposito_semantic_helpers import correct_deposito_oggetto_for_context
 
 
 def _unique_clean_ids(values: list[str]) -> list[str]:
@@ -28,6 +29,8 @@ def deposito_oggetto(form: Any, fascicolo: Any) -> str:
         or form.get("oggetto", "")
         or getattr(fascicolo, "oggetto", "")
     )
+    normalized = correct_deposito_oggetto_for_context(normalized, fascicolo, form)
+    raw_codice = correct_deposito_oggetto_for_context(raw_codice, fascicolo, form)
     return (
         normalized
         or raw_codice

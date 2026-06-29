@@ -5,6 +5,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from web.services.deposito_semantic_helpers import ministerial_valore_causa_for_context
+
 _ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
 _ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
 
@@ -195,8 +197,4 @@ def anagrafica_xml_se_ricorso(
 
 
 def valore_causa_fascicolo(fascicolo: Any) -> float | None:
-    try:
-        valore = float(getattr(fascicolo, "valore_causa", 0) or 0)
-    except (TypeError, ValueError):
-        return None
-    return valore if valore > 0 else None
+    return ministerial_valore_causa_for_context(fascicolo)

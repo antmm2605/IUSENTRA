@@ -6090,3 +6090,12 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_busta.py tests\test_deposito.py tests\test_deposito_server_dry_run_audit.py tests\test_local_pec_runtime.py tests\test_deposito_anagrafica_ministeriale.py tests\test_regia_ui_react.py -q --tb=short` | OK | `71/71` passati: busta, simulazione PEC, runtime PEC locale, dati anagrafici non bloccanti e React allineati. |
 | Verifica materiale locale busta `.p7m` | OK | `Atto.msg` generato con `IndiceBusta.xml`, `DatiAtto.xml.p7m`, `Ricorso.pdf.p7m`, `Procura.PDF.p7m`, allegato e `IndiceDocumentiDepositati.PDF`; `missing_in_mime=[]`, `missing_in_index=[]`, `id_mismatches=[]`. |
 | Hotfix Hetzner | OK | `iusentra-app` unico e healthy; `https://app.iusentra.it/api/pronto` OK alle `19:12:39` Europe/Rome; `docker builder prune --all --force` completato con `5.491GB`. |
+
+## Deposito PCT IndiceBusta ambiguo e tipi RT - 2026-06-29
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile pct\busta.py scripts\audit_deposito_server_dry_run.py` | OK | Sintassi confermata dopo blocco indice ambiguo e controllo tipi `IndiceBusta.xml`. |
+| `python -m pytest tests\test_busta.py tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `32/32` passati: `IndiceBusta.xml` esterno senza indice interno duplicato, tipi `RT/PA/RA/PL/IR/DA/SM` verificati e dry-run bloccante su ricevuta telematica non marcata `Tipo=RT`. |
+| `python -m pytest tests\test_busta.py tests\test_deposito.py tests\test_deposito_server_dry_run_audit.py tests\test_local_pec_runtime.py tests\test_deposito_anagrafica_ministeriale.py tests\test_regia_ui_react.py -q --tb=short` | OK | `75/75` passati: busta, deposito, dry-run, runtime PEC locale, anagrafica ministeriale e UI React deposito allineati alla nuova regola anti indice ambiguo. |
+| `git diff --check -- pct\busta.py scripts\audit_deposito_server_dry_run.py tests\test_busta.py tests\test_deposito_server_dry_run_audit.py pct\__init__.py Dockerfile CHANGELOG.md artifacts\react-migration\procedura-deposito-telematico.md artifacts\react-migration\pytest-confirmed-ok.md` | OK | Nessun errore whitespace; solo warning Git CRLF/LF su file storici toccati. |

@@ -3111,3 +3111,36 @@ Verifiche eseguite prima di riaprire il test all'utente:
 - hotfix produzione Hetzner: copiati i file runtime, ricostruito `iusentra-app`, container unico healthy, `https://app.iusentra.it/api/pronto` OK alle `19:12:39` Europe/Rome, `docker builder prune --all --force` completato (`5.491GB`).
 
 Stato operativo: prima di qualunque nuovo invio reale, la simulazione visibile del fascicolo `795C50AC` deve mostrare `IndiceBusta.xml` tra i documenti indicati nel pacchetto, insieme a `DatiAtto.xml.p7m`, atto principale `.p7m`, procura `.p7m`, allegati e `IndiceDocumentiDepositati.PDF`. Se `IndiceBusta.xml` non compare nella simulazione, l'invio reale resta bloccato.
+
+## Deposito PCT reale `795C50AC`: blocco indice ambiguo e tipi RT - 2026-06-29
+
+Nuovo esito reale ricevuto:
+
+- `IDBUSTA 152647579`: `Indice busta ambiguo, necessario effettuare nuovamente il deposito`.
+
+Diagnosi aggiornata sulle fonti lette:
+
+- il PDF utente `Formato_Busta_Telematica (1).pdf` descrive `Atto.msg` come composto da `IndiceBusta.xml`, `DatiAtto.xml`, atto principale e allegati;
+- la pagina ufficiale PST `https://pst.giustizia.it/PST/it/download.page` e la pagina specifiche DGSIA 7 agosto 2024 confermano le specifiche tecniche ex art. 34 D.M. 44/2011, con rettifiche ufficiali del 16/09/2024 e del 30/10/2024;
+- la rettifica DGSIA 16/09/2024 corregge l'art. 17 comma 4 indicando `Atto.enc`, quindi il controllo pre-invio deve verificare l'allegato cifrato reale e non una bozza o uno zip;
+- il file `Codifica_errori_controlli_1.0.pdf` collega direttamente `IndiceBusta.xml non presente` a `Indice busta non trovato`, indice non corretto a `Indice busta non corretto`, assenza di allegati indicati nell'indice a `Assente allegato definito in Indice Busta`, atto mancante a `Atto principale mancante`, allegati extra a `Presenza di allegati non definiti in Indice Busta`;
+- la comunicazione DGSIA `m_dg.DOG07.19092024.0034552.U_20240916_Comunicazione_Dip._su_accetta.pdf` conferma che i depositi in stato `ERROR`, `WARNING` e `FATAL` restano fuori dal flusso di accettazione automatica, quindi la simulazione IUSENTRA deve bloccare prima dell'invio reale quando l'errore è strutturale;
+- lo zip `20260325_Proxy_PDA_EXT.zip` contiene solo i certificati proxy `pda.processotelematico.giustizia.it.cer` e `ext.processotelematico.giustizia.it.cer`; non modifica la struttura della busta, ma resta censito come fonte tecnica PST allegata dall'utente;
+- la DTD locale ministeriale `docs/specs/ministero/DTD_20180328/IndiceBusta.dtd` definisce `IndiceBusta` esterno con elemento `Allegato` e attributo `Tipo`; il valore `RT` è la ricevuta telematica di pagamento;
+- gli XSD ministeriali locali 2026 (`tipi-allegati.xsd`) usano invece elementi descrittivi nell'indice interno, per esempio `RicevutaPagamento`; nel flusso reale `795C50AC` si usa `IndiceBusta.xml` esterno per evitare l'ambiguità già rifiutata dal PST.
+
+Correzione applicata:
+
+- `pct/busta.py` non genera più `IndiceBusta` interno nel `DatiAtto.xml.p7m` quando è presente `IndiceBusta.xml` esterno;
+- la verifica pre-cifratura apre `DatiAtto.xml.p7m` e blocca la busta se trova sia `IndiceBusta.xml` esterno sia `IndiceBusta` interno;
+- `IndiceBusta.xml` deve indicizzare tutti i file fisici di `Atto.msg` e nessun file assente, con `Nome` e `ID` uguali ai `Content-ID` MIME;
+- la classificazione `RT` è ora limitata a ricevute telematiche di pagamento, PagoPA o contributo unificato; una semplice richiesta di pagamento o una email `.eml` non diventa più `RT`;
+- le ricevute di notifica restano distinte: messaggio PEC di notifica `PA`, ricevuta di avvenuta consegna `RA`, allegati ordinari `SM`, procura `PL`, nota iscrizione ruolo `IR`, `DatiAtto` `DA`;
+- `scripts/audit_deposito_server_dry_run.py` legge `IndiceBusta.xml`, controlla i tipi ministeriali e produce blocco `INDICE_BUSTA_TIPI` se una ricevuta telematica non è marcata `Tipo=RT` o se un allegato ha un tipo non ammesso.
+
+Verifiche automatiche eseguite:
+
+- `python -m py_compile pct\busta.py scripts\audit_deposito_server_dry_run.py` -> OK;
+- `python -m pytest tests\test_busta.py tests\test_deposito_server_dry_run_audit.py -q --tb=short` -> `32 passed`.
+
+Stato operativo: codice corretto a livello locale, ma non ancora verificato su macchina reale e non ancora deployato in produzione per questa tranche `2.253.137`. Prima di autorizzare un nuovo invio reale, la simulazione sul server deve mostrare un solo indice valido: `IndiceBusta.xml` esterno presente in `Atto.msg`, nessun `IndiceBusta` interno nel `DatiAtto.xml.p7m`, tipi allegato coerenti e nessun blocco `INDICE-BUSTA-AMBIGUO`, `INDICE-BUSTA-MIME-CONTRACT` o `INDICE-BUSTA-TIPI`.

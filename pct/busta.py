@@ -45,6 +45,7 @@ INDICE_BUSTA_FILENAME = "IndiceBusta.xml"
 INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
 ATTO_MSG_FILENAME = "Atto.msg"
 ATTO_ENC_FILENAME = "Atto.enc"
+INDICE_BUSTA_TIPI_ALLEGATO = frozenset({"SM", "IR", "PL", "DA", "RT", "RU", "PA", "RA", "PC", "D", "A", "IA"})
 MINISTERIAL_ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
 MINISTERIAL_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v6"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
@@ -226,17 +227,31 @@ class BustaTelematica:
 
     @staticmethod
     def _indice_busta_tipo_allegato(filename: str, tipo: str = "", descrizione: str = "") -> str:
+        explicit = str(tipo or "").strip().upper()
+        if explicit in INDICE_BUSTA_TIPI_ALLEGATO:
+            return explicit
+        if explicit in {"RICEVUTA_TELEMATICA", "RICEVUTA_TELEMATICA_PAGAMENTO", "PAGAMENTO_TELEMATICO"}:
+            return "RT"
         text = f"{filename} {tipo} {descrizione}".casefold()
+        compact = text.replace("-", "_").replace(" ", "_")
         if "procura" in text:
             return "PL"
         if "iscrizione" in text and "ruolo" in text:
             return "IR"
-        if "pagament" in text or "ricevuta" in text or "rt_" in text:
-            return "RT"
-        if filename.casefold().endswith(".eml") and ("notifica" in text or "posta certificata" in text):
-            return "PA"
         if "avvenuta consegna" in text or "consegna" in text:
             return "RA"
+        if filename.casefold().endswith(".eml") and (
+            "notifica" in text or "notificazione" in text or "posta certificata" in text
+        ):
+            return "PA"
+        if (
+            "rt_" in compact
+            or "ricevuta telematica" in text
+            or "pagopa" in text
+            or ("contributo" in text and "unificat" in text and ("ricevut" in text or "pagament" in text))
+            or ("ricevut" in text and "pagament" in text and "telematic" in text)
+        ):
+            return "RT"
         return "SM"
 
     def _crea_indice_busta_xml(
@@ -335,6 +350,7 @@ class BustaTelematica:
             "indice_busta_dati_atto_filename": "",
             "indice_busta_allegati": [],
             "indice_busta_content_ids": [],
+            "dati_atto_indice_busta_interno": False,
         }
         attachments, part_metadata, unnamed_parts = self._atto_msg_file_parts(atto_msg)
         if unnamed_parts:
@@ -410,6 +426,17 @@ class BustaTelematica:
                 }
                 for node in allegati
             ]
+            expected_indice_types: dict[str, str] = {
+                dati_atto_filename: "DA",
+                INDICE_DOCUMENTI_FILENAME: "SM",
+            }
+            for allegato in self.dati.allegati:
+                expected_name = self.nome_file_ministeriale(Path(allegato.percorso).name)
+                expected_indice_types[expected_name] = self._indice_busta_tipo_allegato(
+                    expected_name,
+                    allegato.tipo,
+                    allegato.descrizione,
+                )
             dati_nodes = [
                 node
                 for node in allegati
@@ -433,6 +460,22 @@ class BustaTelematica:
                 tipo = str(node.get("Tipo") or "").strip()
                 if not nome or not tipo:
                     result["errori"].append(f"{INDICE_BUSTA_FILENAME} contiene allegato senza Nome o Tipo")
+                    return result
+                if tipo not in INDICE_BUSTA_TIPI_ALLEGATO:
+                    result["errori"].append(
+                        f"{INDICE_BUSTA_FILENAME} contiene Tipo={tipo} non ammesso dalla DTD ministeriale"
+                    )
+                    return result
+                expected_tipo = expected_indice_types.get(nome)
+                if expected_tipo and tipo != expected_tipo:
+                    if expected_tipo == "RT":
+                        result["errori"].append(
+                            f"Ricevuta telematica {nome} non marcata in {INDICE_BUSTA_FILENAME} con Tipo=RT"
+                        )
+                    else:
+                        result["errori"].append(
+                            f"{INDICE_BUSTA_FILENAME} classifica {nome} come Tipo={tipo}, atteso Tipo={expected_tipo}"
+                        )
                     return result
                 if nome not in attachments:
                     result["errori"].append(f"{INDICE_BUSTA_FILENAME} richiama un allegato assente: {nome}")
@@ -485,17 +528,43 @@ class BustaTelematica:
         else:
             result["indice_busta_dati_atto_filename"] = dati_atto_filename
             result["documenti"] = sorted(set(attachments) - {dati_atto_filename})
+
+        dati_atto_xml_for_index_check = b""
+        if dati_atto_filename in attachments:
+            if dati_atto_filename == DATI_ATTO_FIRMATO_FILENAME:
+                try:
+                    from pct.firma import estrai_contenuto_cades
+
+                    dati_atto_xml_for_index_check = estrai_contenuto_cades(attachments[dati_atto_filename])
+                except Exception as exc:
+                    result["errori"].append(
+                        f"{dati_atto_filename} non estraibile per verifica indice busta: {exc}"
+                    )
+                    return result
+            else:
+                dati_atto_xml_for_index_check = attachments[dati_atto_filename]
+
+        dati_atto_has_internal_index = False
+        if dati_atto_xml_for_index_check:
+            try:
+                dati_atto_root = etree.fromstring(dati_atto_xml_for_index_check)
+            except Exception as exc:
+                result["errori"].append(f"{dati_atto_filename} non leggibile per verifica indice busta: {exc}")
+                return result
+            dati_atto_has_internal_index = bool(dati_atto_root.xpath("//*[local-name()='IndiceBusta']"))
+            result["dati_atto_indice_busta_interno"] = dati_atto_has_internal_index
+
+        if not usa_indice_interno and dati_atto_has_internal_index:
+            result["errori"].append(
+                f"Indice busta ambiguo: {INDICE_BUSTA_FILENAME} e IndiceBusta interno in "
+                f"{dati_atto_filename} non possono coesistere nel deposito reale."
+            )
+            return result
+
         require_indice_interno = require_dati_atto_firmato and self._usa_indice_busta_interno()
         if require_indice_interno:
-            try:
-                from pct.firma import estrai_contenuto_cades
-
-                dati_atto_xml = estrai_contenuto_cades(attachments[dati_atto_filename])
-            except Exception as exc:
-                result["errori"].append(f"{dati_atto_filename} non estraibile per verifica ministeriale: {exc}")
-                return result
             internal_error = self._verifica_indice_interno_dati_atto(
-                dati_atto_xml,
+                dati_atto_xml_for_index_check,
                 attachments=attachments,
                 part_metadata=part_metadata,
                 dati_atto_filename=dati_atto_filename,
@@ -775,12 +844,13 @@ class BustaTelematica:
             if valore > 0:
                 etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}ValoreCausa").text = f"{valore:.2f}"
 
-        indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
-        etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}AttoPrincipale", id=main_part.content_id)
-        for part in document_parts:
-            if part.is_main:
-                continue
-            etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
+        if self._usa_indice_busta_interno():
+            indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
+            etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}AttoPrincipale", id=main_part.content_id)
+            for part in document_parts:
+                if part.is_main:
+                    continue
+                etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
 
         root.append(self._anagrafica_procedimento_node())
         return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
@@ -982,20 +1052,32 @@ class BustaTelematica:
         indice_documenti_generated = bool(indice_pdf)
         indice_busta_generated = False
         indice_busta_mime_contract_ok = False
+        indice_busta_tipi_ok = False
+        dati_atto_indice_busta_interno = False
+        indice_busta_ambiguous = False
         dati_atto_signed = bool((self._last_transport_audit or {}).get("dati_atto_signed"))
         try:
             document_parts = self._documenti_busta_preparati(indice_pdf)
             root = etree.fromstring(self._crea_xml_dati_atto(indice_pdf, document_parts=document_parts))
             if self._usa_dati_atto_ministeriale():
                 indice_nodes = root.xpath("//*[local-name()='IndiceBusta']")
-                atto_nodes = root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
-                ref_ids = {
-                    str(node.get("id") or "").strip()
-                    for node in (indice_nodes[0] if indice_nodes else [])
-                    if isinstance(node.tag, str)
-                }
-                expected_ids = {part.content_id for part in document_parts}
-                xml_ok = bool(indice_nodes and len(atto_nodes) == 1 and expected_ids <= ref_ids)
+                dati_atto_indice_busta_interno = bool(indice_nodes)
+                if self._usa_indice_busta_interno():
+                    atto_nodes = root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
+                    ref_ids = {
+                        str(node.get("id") or "").strip()
+                        for node in (indice_nodes[0] if indice_nodes else [])
+                        if isinstance(node.tag, str)
+                    }
+                    expected_ids = {part.content_id for part in document_parts}
+                    xml_ok = bool(indice_nodes and len(atto_nodes) == 1 and expected_ids <= ref_ids)
+                else:
+                    indice_busta_ambiguous = dati_atto_indice_busta_interno
+                    xml_ok = (
+                        etree.QName(root).localname == "Ricorso"
+                        and bool(root.xpath("//*[local-name()='AnagraficaProcedimento']"))
+                        and not indice_busta_ambiguous
+                    )
                 indice_documenti_generated = any(part.filename == INDICE_DOCUMENTI_FILENAME for part in document_parts)
             else:
                 ns = {"p": self.NAMESPACE}
@@ -1011,6 +1093,7 @@ class BustaTelematica:
             if self._usa_indice_busta_interno():
                 indice_busta_generated = xml_ok
                 indice_busta_mime_contract_ok = xml_ok
+                indice_busta_tipi_ok = xml_ok
             else:
                 indice_root = etree.fromstring(
                     self._crea_indice_busta_xml(
@@ -1034,16 +1117,21 @@ class BustaTelematica:
                     expected_external_ids[main_part.filename] = main_part.content_id
                 dati_atto_audit_filename = DATI_ATTO_FIRMATO_FILENAME if dati_atto_signed else DATI_ATTO_FILENAME
                 expected_external_ids[dati_atto_audit_filename] = self._mime_content_id(dati_atto_audit_filename)
+                expected_external_types: dict[str, str] = {dati_atto_audit_filename: "DA"}
                 for part in document_parts:
                     if not part.is_main:
                         expected_external_ids[part.filename] = part.content_id
+                        expected_external_types[part.filename] = part.tipo_indice_esterno
                 actual_external_ids: dict[str, str] = {}
+                actual_external_types: dict[str, str] = {}
                 if atto_node is not None:
                     actual_external_ids[str(atto_node.get("Nome") or "").strip()] = str(
                         atto_node.get("ID") or ""
                     ).strip()
                 for node in indice_root.findall("Allegato"):
-                    actual_external_ids[str(node.get("Nome") or "").strip()] = str(node.get("ID") or "").strip()
+                    nome = str(node.get("Nome") or "").strip()
+                    actual_external_ids[nome] = str(node.get("ID") or "").strip()
+                    actual_external_types[nome] = str(node.get("Tipo") or "").strip()
                 indice_busta_generated = (
                     indice_root.tag == "IndiceBusta"
                     and atto_node is not None
@@ -1051,11 +1139,17 @@ class BustaTelematica:
                     and dati_node is not None
                 )
                 indice_busta_mime_contract_ok = indice_busta_generated and actual_external_ids == expected_external_ids
+                indice_busta_tipi_ok = (
+                    indice_busta_generated
+                    and not any(tipo not in INDICE_BUSTA_TIPI_ALLEGATO for tipo in actual_external_types.values())
+                    and all(actual_external_types.get(nome) == tipo for nome, tipo in expected_external_types.items())
+                )
         except Exception as exc:
             xml_ok = False
             indice_documenti_generated = False
             indice_busta_generated = False
             indice_busta_mime_contract_ok = False
+            indice_busta_tipi_ok = False
             issues.append(
                 {
                     "code": "T002",
@@ -1064,6 +1158,21 @@ class BustaTelematica:
                     "detail": "Il payload XML tecnico non è stato generato correttamente.",
                     "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
                     "suggested_action": "Correggi i metadati della busta prima del deposito.",
+                }
+            )
+
+        if indice_busta_ambiguous:
+            issues.append(
+                {
+                    "code": "INDICE-BUSTA-AMBIGUO",
+                    "level": "BLOCK",
+                    "title": "IndiceBusta duplicato",
+                    "detail": (
+                        f"{INDICE_BUSTA_FILENAME} esterno e IndiceBusta interno nel DatiAtto.xml.p7m "
+                        "non devono coesistere: il PST reale lo segnala come indice busta ambiguo."
+                    ),
+                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "suggested_action": "Rigenera DatiAtto.xml senza IndiceBusta interno e ripeti la simulazione PEC.",
                 }
             )
 
@@ -1093,6 +1202,20 @@ class BustaTelematica:
                     ),
                     "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
                     "suggested_action": "Rigenera Atto.msg e ripeti la simulazione PEC prima dell'invio reale.",
+                }
+            )
+        elif not indice_busta_tipi_ok:
+            issues.append(
+                {
+                    "code": "INDICE-BUSTA-TIPI",
+                    "level": "BLOCK",
+                    "title": "Tipi IndiceBusta non conformi",
+                    "detail": (
+                        "Ogni allegato deve essere classificato con il Tipo ministeriale corretto; "
+                        "le ricevute telematiche di pagamento devono essere indicate con Tipo=RT."
+                    ),
+                    "source": "IndiceBusta.dtd ministeriale: attributo Tipo dell'elemento Allegato",
+                    "suggested_action": "Rigenera la busta dopo la classificazione corretta degli allegati RT/PA/RA/PL/IR/SM.",
                 }
             )
 
@@ -1125,12 +1248,16 @@ class BustaTelematica:
             )
 
         transport = dict(self._last_transport_audit or {})
-        transport_indice_ok = transport.get("atto_msg_indice_busta_valid") is True or not transport
+        transport_indice_ok = (
+            transport.get("atto_msg_indice_busta_valid") is True
+            and transport.get("indice_busta_ambiguous") is not True
+        ) or not transport
         real_transport = (
             transport.get("uses_real_encryption") is True
             and transport.get("atto_enc_cms_valid") is True
             and transport.get("busta_verifica_valida") is True
             and transport.get("atto_msg_indice_busta_valid") is True
+            and transport.get("indice_busta_ambiguous") is not True
         )
         if not transport_indice_ok:
             issues.append(
@@ -1169,11 +1296,18 @@ class BustaTelematica:
             if xml_ok
             and indice_busta_generated
             and indice_busta_mime_contract_ok
+            and indice_busta_tipi_ok
             and dati_atto_signed
             and transport_indice_ok
             else "warning"
         )
-        if not xml_ok or not indice_busta_generated or not indice_busta_mime_contract_ok or not transport_indice_ok:
+        if (
+            not xml_ok
+            or not indice_busta_generated
+            or not indice_busta_mime_contract_ok
+            or not indice_busta_tipi_ok
+            or not transport_indice_ok
+        ):
             t002_status = "block"
         t003_status = "block" if size_bytes > PST_MAX_BUSTA_BYTES else "ok"
 
@@ -1217,12 +1351,19 @@ class BustaTelematica:
             "dati_atto_filename": DATI_ATTO_FIRMATO_FILENAME if dati_atto_signed else DATI_ATTO_FILENAME,
             "indice_busta_generated": indice_busta_generated,
             "indice_busta_xml_generated": indice_busta_generated,
+            "dati_atto_indice_busta_interno": transport.get(
+                "dati_atto_indice_busta_interno",
+                dati_atto_indice_busta_interno,
+            )
+            is True,
+            "indice_busta_ambiguous": transport.get("indice_busta_ambiguous", indice_busta_ambiguous) is True,
             "indice_busta_mode": transport.get("indice_busta_mode")
             or ("interno_dati_atto" if self._usa_indice_busta_interno() else "indice_busta_xml"),
             "indice_busta_external_included": transport.get("indice_busta_external_included")
             if "indice_busta_external_included" in transport
             else not self._usa_indice_busta_interno(),
             "indice_busta_mime_contract_ok": indice_busta_mime_contract_ok,
+            "indice_busta_tipi_ok": transport.get("indice_busta_tipi_ok", indice_busta_tipi_ok) is True,
             "indice_busta_atto_filename": transport.get("indice_busta_atto_filename", ""),
             "indice_busta_dati_atto_filename": transport.get("indice_busta_dati_atto_filename", ""),
             "indice_busta_documenti": transport.get("indice_busta_documenti", []),
@@ -1347,6 +1488,7 @@ class BustaTelematica:
             "atto_msg_sha256": atto_msg_sha256,
             "atto_msg_indice_busta_valid": True,
             "indice_busta_mime_contract_ok": True,
+            "indice_busta_tipi_ok": True,
             "dati_atto_signed": bool(dati_atto_firmato),
             "dati_atto_filename": dati_atto_filename,
             "indice_busta_generated": True,
@@ -1356,6 +1498,8 @@ class BustaTelematica:
             "indice_busta_dati_atto_filename": indice_msg_check.get("indice_busta_dati_atto_filename", ""),
             "indice_busta_documenti": indice_msg_check.get("documenti", []),
             "indice_busta_filename": INDICE_BUSTA_FILENAME,
+            "dati_atto_indice_busta_interno": indice_msg_check.get("dati_atto_indice_busta_interno") is True,
+            "indice_busta_ambiguous": False,
             "indice_documenti_filename": INDICE_DOCUMENTI_FILENAME,
             "certificate": None,
             "certificate_error": "",
@@ -1434,6 +1578,7 @@ class BustaTelematica:
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
             "indice_busta_mime_contract_ok": True,
+            "indice_busta_tipi_ok": True,
             "content_encryption_algorithm": encrypted_audit.get("encryption_algorithm", ""),
             "content_encryption_algorithm_oid": encrypted_audit.get("encryption_algorithm_oid", ""),
             "cms_content_type": encrypted_audit.get("content_type", ""),
@@ -1447,6 +1592,8 @@ class BustaTelematica:
             "indice_busta_dati_atto_filename": indice_msg_check.get("indice_busta_dati_atto_filename", ""),
             "indice_busta_documenti": indice_msg_check.get("documenti", []),
             "indice_busta_filename": INDICE_BUSTA_FILENAME,
+            "dati_atto_indice_busta_interno": indice_msg_check.get("dati_atto_indice_busta_interno") is True,
+            "indice_busta_ambiguous": False,
             "indice_documenti_filename": INDICE_DOCUMENTI_FILENAME,
             "certificate": {
                 "codice_ufficio": cert_info.codice_ufficio,

@@ -23,6 +23,7 @@ from pct.firma import estrai_contenuto_cades
 
 INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
 INDICE_BUSTA_FILENAME = "IndiceBusta.xml"
+INDICE_BUSTA_TIPI_ALLEGATO = frozenset({"SM", "IR", "PL", "DA", "RT", "RU", "PA", "RA", "PC", "D", "A", "IA"})
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,60 @@ def _xml_has_indice_busta(xml_bytes: bytes) -> bool:
     return False
 
 
+def _expected_indice_busta_tipo(name: str) -> str:
+    lower = _clean_name(name).casefold()
+    compact = lower.replace("-", "_").replace(" ", "_")
+    if lower in {"datiatto.xml", "datiatto.xml.p7m"}:
+        return "DA"
+    if lower == INDICE_DOCUMENTI_FILENAME.lower():
+        return "SM"
+    if "procura" in lower:
+        return "PL"
+    if "iscrizione" in lower and "ruolo" in lower:
+        return "IR"
+    if "avvenuta consegna" in lower or "consegna" in lower:
+        return "RA"
+    if lower.endswith(".eml") and ("notifica" in lower or "notificazione" in lower or "posta certificata" in lower):
+        return "PA"
+    if (
+        "rt_" in compact
+        or "ricevuta telematica" in lower
+        or "pagopa" in lower
+        or ("contributo" in lower and "unificat" in lower and ("ricevut" in lower or "pagament" in lower))
+        or ("ricevut" in lower and "pagament" in lower and "telematic" in lower)
+    ):
+        return "RT"
+    return "SM"
+
+
+def _parse_indice_busta_types(xml_bytes: bytes) -> tuple[dict[str, str], list[str]]:
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError as exc:
+        return {}, [f"{INDICE_BUSTA_FILENAME} non leggibile: {exc}"]
+    if str(root.tag).split("}")[-1] != "IndiceBusta":
+        return {}, [f"{INDICE_BUSTA_FILENAME} non ha radice IndiceBusta"]
+    types: dict[str, str] = {}
+    errors: list[str] = []
+    for element in list(root):
+        local = str(element.tag).split("}")[-1]
+        if local != "Allegato":
+            continue
+        name = _clean_name(element.attrib.get("Nome") or "")
+        tipo = _clean_name(element.attrib.get("Tipo") or "").upper()
+        if not name or not tipo:
+            errors.append("Allegato IndiceBusta senza Nome o Tipo")
+            continue
+        types[name] = tipo
+        if tipo not in INDICE_BUSTA_TIPI_ALLEGATO:
+            errors.append(f"{name}: Tipo={tipo} non ammesso dalla DTD ministeriale")
+            continue
+        expected = _expected_indice_busta_tipo(name)
+        if expected != tipo:
+            errors.append(f"{name}: Tipo={tipo}, atteso Tipo={expected}")
+    return types, errors
+
+
 def inspect_generated_package(package_path: Path) -> dict[str, object]:
     if not package_path.exists():
         raise FileNotFoundError(str(package_path))
@@ -114,6 +169,9 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
         "has_indice_busta_internal": False,
         "has_indice_busta_xml": False,
         "indice_busta_mode": "",
+        "indice_busta_types": {},
+        "indice_busta_type_errors": [],
+        "indice_busta_tipi_ok": False,
         "has_indice_documenti": False,
         "has_atto_enc_inside": False,
         "atto_enc_cms_enveloped_data": False,
@@ -128,6 +186,11 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             result["has_indice_busta_xml"] = INDICE_BUSTA_FILENAME in names
             result["has_indice_documenti"] = INDICE_DOCUMENTI_FILENAME in names
             result["has_atto_enc_inside"] = any(Path(name).name.lower() == "atto.enc" for name in names)
+            if INDICE_BUSTA_FILENAME in names:
+                indice_types, indice_errors = _parse_indice_busta_types(zf.read(INDICE_BUSTA_FILENAME))
+                result["indice_busta_types"] = indice_types
+                result["indice_busta_type_errors"] = indice_errors
+                result["indice_busta_tipi_ok"] = not indice_errors
             if "DatiAtto.xml" in names:
                 dati_atto = zf.read("DatiAtto.xml")
                 result["document_names_from_xml"] = _parse_xml_document_names(dati_atto)
@@ -160,6 +223,11 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             result["atto_enc_cms_enveloped_data"] = bool(
                 result["is_atto_enc"] and is_atto_enc_cms_enveloped_data(package_bytes)
             )
+            if INDICE_BUSTA_FILENAME in attachments:
+                indice_types, indice_errors = _parse_indice_busta_types(attachments[INDICE_BUSTA_FILENAME])
+                result["indice_busta_types"] = indice_types
+                result["indice_busta_type_errors"] = indice_errors
+                result["indice_busta_tipi_ok"] = not indice_errors
             if "DatiAtto.xml" in attachments:
                 dati_atto = attachments["DatiAtto.xml"]
                 result["document_names_from_xml"] = _parse_xml_document_names(dati_atto)
@@ -175,7 +243,9 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
                     result["has_indice_busta_internal"] = _xml_has_indice_busta(dati_atto_signed)
                 except Exception as exc:
                     result["dati_atto_signed_error"] = str(exc)
-    if result["has_indice_busta_internal"]:
+    if result["has_indice_busta_internal"] and result["has_indice_busta_xml"]:
+        result["indice_busta_mode"] = "ambiguo_indice_interno_e_xml"
+    elif result["has_indice_busta_internal"]:
         result["indice_busta_mode"] = "interno_dati_atto"
     elif result["has_indice_busta_xml"]:
         result["indice_busta_mode"] = "indice_busta_xml"
@@ -245,7 +315,12 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     entries = list(generated.get("entries") or [])
     generated_names = {Path(str(name)).name.lower() for name in entries}
 
-    indice_ok = bool(generated.get("has_indice_busta_xml"))
+    indice_ambiguous = bool(generated.get("has_indice_busta_internal") and generated.get("has_indice_busta_xml"))
+    indice_ok = (
+        bool(generated.get("has_indice_busta_xml"))
+        and not indice_ambiguous
+        and generated.get("indice_busta_tipi_ok") is True
+    )
     control_matches = bool(
         (generated.get("has_dati_atto_xml") or generated.get("has_dati_atto_signed"))
         and indice_ok
@@ -288,7 +363,7 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
                 "action": "Rigenerare la busta includendo l'indice documenti.",
             }
         )
-    if not indice_ok:
+    if not generated.get("has_indice_busta_xml"):
         differences.append(
             {
                 "level": "block_control",
@@ -297,13 +372,28 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
                 "action": "Rigenerare Atto.msg includendo IndiceBusta.xml come parte MIME nominata prima della cifratura in Atto.enc.",
             }
         )
-    if generated.get("has_indice_busta_internal") and INDICE_BUSTA_FILENAME.lower() in generated_names:
+    if indice_ambiguous:
         differences.append(
             {
-                "level": "warning",
-                "code": "INDICE_BUSTA_INTERNAL_AND_XML",
-                "message": "Il pacchetto contiene anche un riferimento IndiceBusta nel DatiAtto, ma IndiceBusta.xml esterno è presente.",
-                "action": "Per il deposito reale il controllo bloccante resta IndiceBusta.xml in Atto.msg con nomi e Content-ID coerenti.",
+                "level": "block_control",
+                "code": "INDICE_BUSTA_AMBIGUOUS",
+                "message": "Il pacchetto contiene sia IndiceBusta.xml sia IndiceBusta interno nel DatiAtto: il PST reale restituisce 'Indice busta ambiguo'.",
+                "action": "Rigenerare DatiAtto.xml senza IndiceBusta interno quando IndiceBusta.xml esterno è presente in Atto.msg.",
+            }
+        )
+
+    indice_type_errors = [
+        str(item)
+        for item in (generated.get("indice_busta_type_errors") or [])
+        if str(item).strip()
+    ]
+    if indice_type_errors:
+        differences.append(
+            {
+                "level": "block_control",
+                "code": "INDICE_BUSTA_TIPI",
+                "message": "IndiceBusta.xml contiene tipi allegato non conformi: " + "; ".join(indice_type_errors),
+                "action": "Rigenerare IndiceBusta.xml classificando correttamente RT, PA, RA, PL, IR, DA e SM.",
             }
         )
 

@@ -1,8 +1,9 @@
 from email.message import EmailMessage
 from pathlib import Path
+from xml.etree import ElementTree as ET
 import zipfile
 
-from pct.busta import Allegato, BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
+from pct.busta import Allegato, BustaTelematica, DatiBusta, INDICE_BUSTA_FILENAME, INDICE_DOCUMENTI_FILENAME
 from web.services.deposito_route_helpers import guided_transport_completion_response
 from web.services.local_pec_runtime import deposito_pec_body
 from scripts.audit_deposito_server_dry_run import audit_deposito_package, main
@@ -97,13 +98,66 @@ def test_audit_dry_run_richiede_indice_busta_xml_esterno(tmp_path):
 
     assert report["ok_control_package"] is True
     assert report["generated"]["has_indice_busta_xml"] is True
-    assert report["generated"]["indice_busta_mode"] == "interno_dati_atto"
+    assert report["generated"]["indice_busta_mode"] == "indice_busta_xml"
+    assert report["generated"]["has_indice_busta_internal"] is False
     codes = {item["code"] for item in report["comparison"]["differences"]}
     assert "INDICE_BUSTA_MISSING" not in codes
-    assert "INDICE_BUSTA_INTERNAL_AND_XML" in codes
+    assert "INDICE_BUSTA_AMBIGUOUS" not in codes
+    assert "INDICE_BUSTA_TIPI" not in codes
 
 
-def test_audit_dry_run_avvisa_indice_interno_con_xml_esterno_senza_bloccare(tmp_path):
+def test_audit_dry_run_blocca_ricevuta_telematica_senza_tipo_rt(tmp_path):
+    atto = _pdf(tmp_path / "Ricorso.pdf", b"atto principale")
+    ricevuta = _pdf(tmp_path / "Ricevuta telematica pagamento PagoPA.pdf", b"rt")
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="RG",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(atto),
+        allegati=[Allegato(percorso=str(ricevuta), descrizione="Ricevuta telematica pagamento", tipo="ALLEGATO")],
+    )
+    package = Path(BustaTelematica(dati).crea_busta(str(tmp_path / "out")))
+    atto_msg = package.with_name("Atto.msg")
+    parts = _eml_with_attachments(
+        tmp_path / "copia-non-crittografata.eml",
+        {
+            "DatiAtto.xml": b"<DatiAtto/>",
+            INDICE_DOCUMENTI_FILENAME: b"%PDF-1.4\nindice\n%%EOF",
+        },
+    )
+
+    # Corrompe solo l'indice di controllo: il nome della ricevuta resta presente, ma non e' marcato RT.
+    from email import policy
+    from email.parser import BytesParser
+
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg.read_bytes())
+    corrupted = EmailMessage()
+    corrupted["Subject"] = message["Subject"] or "Atto"
+    corrupted.make_related()
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = part.get_filename() or part.get_param("name", header="Content-Type") or ""
+        payload = part.get_payload(decode=True) or b""
+        maintype, _, subtype = part.get_content_type().partition("/")
+        if Path(filename).name == INDICE_BUSTA_FILENAME:
+            root = ET.fromstring(payload)
+            node = next(item for item in root.findall("Allegato") if item.attrib.get("Nome") == ricevuta.name)
+            node.set("Tipo", "SM")
+            payload = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        corrupted.add_attachment(payload, maintype=maintype, subtype=subtype or "octet-stream", filename=filename)
+    atto_msg.write_bytes(corrupted.as_bytes(policy=policy.default))
+
+    report = audit_deposito_package(package, [parts])
+
+    assert report["ok_control_package"] is False
+    assert report["generated"]["indice_busta_tipi_ok"] is False
+    codes = {item["code"]: item["level"] for item in report["comparison"]["differences"]}
+    assert codes["INDICE_BUSTA_TIPI"] == "block_control"
+
+
+def test_audit_dry_run_blocca_indice_interno_con_xml_esterno(tmp_path):
     package = tmp_path / "busta.zip"
     dati_atto = b"""<?xml version="1.0" encoding="UTF-8"?>
 <Ricorso xmlns="http://schemi.processotelematico.giustizia.it/tipi/introduzione/v2">
@@ -123,9 +177,10 @@ def test_audit_dry_run_avvisa_indice_interno_con_xml_esterno_senza_bloccare(tmp_
     )
 
     report = audit_deposito_package(package, [evidence_copy])
-    assert report["ok_control_package"] is True
+    assert report["ok_control_package"] is False
+    assert report["generated"]["indice_busta_mode"] == "ambiguo_indice_interno_e_xml"
     codes = {item["code"]: item["level"] for item in report["comparison"]["differences"]}
-    assert codes["INDICE_BUSTA_INTERNAL_AND_XML"] == "warning"
+    assert codes["INDICE_BUSTA_AMBIGUOUS"] == "block_control"
 
 def test_cli_audit_dry_run_strict_real_transport_esce_con_blocco(tmp_path, capsys):
     atto = _pdf(tmp_path / "Atto.PDF")

@@ -16,6 +16,8 @@ from pct.busta import (
     DATI_ATTO_FIRMATO_FILENAME,
     INDICE_BUSTA_FILENAME,
     INDICE_DOCUMENTI_FILENAME,
+    MINISTERIAL_ALLEGATI_NS,
+    MINISTERIAL_ATTI_NS,
 )
 from pct.firma import estrai_contenuto_cades
 from pct.pst_cifratura import PSTCifraturaError
@@ -254,6 +256,40 @@ def test_indice_busta_esterno_usa_content_id_mime_per_tutte_le_parti(dati_busta,
     assert "procura alle liti.pdf" in indexed_ids
 
 
+def test_indice_busta_classifica_rt_solo_per_ricevute_telematiche_pagamento(dati_busta, tmp_path):
+    """RT e' riservato alla ricevuta telematica di pagamento, non a qualunque ricevuta PEC."""
+    from lxml import etree
+
+    ricevuta_pagamento = tmp_path / "Ricevuta telematica pagamento PagoPA.pdf"
+    ricevuta_pagamento.write_bytes(b"%PDF-1.4\nrt\n%%EOF")
+    richiesta_pagamento = tmp_path / "Richiesta pagamento annualita CARTA DEL DOCENTE.pdf"
+    richiesta_pagamento.write_bytes(b"%PDF-1.4\nrichiesta\n%%EOF")
+    accettazione = tmp_path / "ACCETTAZIONE_ Notificazione ai sensi della legge n. 53.eml"
+    accettazione.write_bytes(b"Subject: Accettazione notifica\r\n\r\nok")
+    consegna = tmp_path / "CONSEGNA_ Notificazione ai sensi della legge n. 53.eml"
+    consegna.write_bytes(b"Subject: Avvenuta consegna notifica\r\n\r\nok")
+    dati_busta.allegati = [
+        Allegato(str(ricevuta_pagamento), "Ricevuta telematica pagamento", "ALLEGATO"),
+        Allegato(str(richiesta_pagamento), "Richiesta pagamento carta docente", "ALLEGATO"),
+        Allegato(str(accettazione), "Messaggio PEC notifica", "ALLEGATO"),
+        Allegato(str(consegna), "Ricevuta avvenuta consegna notifica", "ALLEGATO"),
+    ]
+
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path / "out"))
+    root = etree.fromstring(_atto_msg_attachments(busta_path)[INDICE_BUSTA_FILENAME])
+    tipi = {
+        str(node.get("Nome") or ""): str(node.get("Tipo") or "")
+        for node in root.findall("Allegato")
+    }
+
+    assert tipi["Ricevuta telematica pagamento PagoPA.pdf"] == "RT"
+    assert tipi["Richiesta pagamento annualita CARTA DEL DOCENTE.pdf"] == "SM"
+    assert tipi["ACCETTAZIONE_ Notificazione ai sensi della legge n. 53.eml"] == "PA"
+    assert tipi["CONSEGNA_ Notificazione ai sensi della legge n. 53.eml"] == "RA"
+    assert busta.verifica_busta(busta_path)["valida"] is True
+
+
 def test_atto_msg_tratta_eml_come_file_opaco_senza_parti_annidate(dati_busta, tmp_path):
     """Le ricevute PEC .eml nella busta non devono diventare email annidate dentro Atto.msg."""
     eml_path = tmp_path / "ricevuta deposito.eml"
@@ -318,12 +354,14 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     assert estrai_contenuto_cades(attachments[DATI_ATTO_FIRMATO_FILENAME]) == dati_atto_xml
     signed_root = etree.fromstring(dati_atto_xml)
     assert etree.QName(signed_root).localname == "Ricorso"
-    assert signed_root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
+    assert not signed_root.xpath("//*[local-name()='IndiceBusta']")
     assert signed_root.xpath("//*[local-name()='AnagraficaProcedimento']")
     audit = busta.audit_conformita_pst()
     assert audit["dati_atto_signed"] is True
     assert audit["indice_busta_mode"] == "indice_busta_xml"
     assert audit["indice_busta_external_included"] is True
+    assert audit["dati_atto_indice_busta_interno"] is False
+    assert audit["indice_busta_ambiguous"] is False
     assert not any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
     assert audit["atto_msg_indice_busta_valid"] is True
     assert audit["busta_verifica_valida"] is True
@@ -385,13 +423,15 @@ def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
     }
     assert {"Ricorso.pdf.p7m", "Procura.PDF.p7m", INDICE_DOCUMENTI_FILENAME, DATI_ATTO_FIRMATO_FILENAME} <= indexed_names
 
-    id_to_name = {str(part.get("Content-ID") or "").strip("<> "): name for name, part in parts.items()}
-    signed_root = etree.fromstring(dati_atto_xml)
-    referenced_names = {
-        id_to_name[str(node.get("id") or "")]
-        for node in signed_root.xpath("//*[local-name()='IndiceBusta']/*")
+    external_ids = {
+        str(node.get("ID") or "")
+        for node in [indice_root.find("Atto"), *indice_root.findall("Allegato")]
+        if node is not None
     }
-    assert {"Ricorso.pdf.p7m", "Procura.PDF.p7m", INDICE_DOCUMENTI_FILENAME} <= referenced_names
+    mime_ids = {str(part.get("Content-ID") or "").strip("<> ") for part in parts.values()}
+    assert external_ids <= mime_ids
+    signed_root = etree.fromstring(dati_atto_xml)
+    assert not signed_root.xpath("//*[local-name()='IndiceBusta']")
 
 
 def test_busta_reale_accetta_dati_atto_firmato_con_indice_busta_xml(dati_busta, tmp_path):
@@ -408,6 +448,35 @@ def test_busta_reale_accetta_dati_atto_firmato_con_indice_busta_xml(dati_busta, 
     attachments = _atto_msg_attachments(busta_path)
     assert INDICE_BUSTA_FILENAME in attachments
     assert DATI_ATTO_FIRMATO_FILENAME in attachments
+
+
+def test_busta_reale_blocca_indice_busta_ambiguo(dati_busta, tmp_path, monkeypatch):
+    """IndiceBusta.xml esterno e IndiceBusta interno nel DatiAtto non possono coesistere."""
+    from lxml import etree
+
+    dati_busta.tipo_atto = "RICORSO"
+    dati_busta.codice_registro = "RGL"
+    dati_busta.oggetto = "222050"
+    dati_busta.anagrafica_procedimento_xml = _anagrafica_ministeriale_test()
+    busta = BustaTelematica(dati_busta)
+    originale = busta._crea_xml_dati_atto_ministeriale
+
+    def con_indice_interno(document_parts):
+        root = etree.fromstring(originale(document_parts))
+        indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
+        main_part = next(part for part in document_parts if part.is_main)
+        etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}AttoPrincipale", id=main_part.content_id)
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+    monkeypatch.setattr(busta, "_crea_xml_dati_atto_ministeriale", con_indice_interno)
+    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+
+    with pytest.raises(ValueError, match="Indice busta ambiguo"):
+        busta.crea_busta(
+            str(tmp_path),
+            dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
+            require_dati_atto_firmato=True,
+        )
 
 
 def test_dati_atto_per_firma_e_deterministico_con_stessa_busta(dati_busta):
@@ -511,6 +580,28 @@ def test_busta_blocca_indice_busta_con_id_diversi_dai_content_id(dati_busta, tmp
     monkeypatch.setattr(busta, "_crea_indice_busta_xml", indice_con_id_corrotto)
 
     with pytest.raises(ValueError, match="Content-ID MIME"):
+        busta.crea_busta(str(tmp_path))
+
+
+def test_busta_blocca_ricevuta_telematica_senza_tipo_rt(dati_busta, tmp_path, monkeypatch):
+    """La simulazione deve bloccare ricevute pagamento RT classificate come allegati semplici."""
+    from lxml import etree
+
+    ricevuta = tmp_path / "Ricevuta telematica pagamento PagoPA.pdf"
+    ricevuta.write_bytes(b"%PDF-1.4\nrt\n%%EOF")
+    dati_busta.allegati = [Allegato(str(ricevuta), "Ricevuta telematica pagamento", "ALLEGATO")]
+    busta = BustaTelematica(dati_busta)
+    originale = busta._crea_indice_busta_xml
+
+    def indice_con_rt_errato(*args, **kwargs):
+        root = etree.fromstring(originale(*args, **kwargs))
+        node = next(item for item in root.findall("Allegato") if item.get("Nome") == ricevuta.name)
+        node.set("Tipo", "SM")
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+    monkeypatch.setattr(busta, "_crea_indice_busta_xml", indice_con_rt_errato)
+
+    with pytest.raises(ValueError, match="Tipo=RT"):
         busta.crea_busta(str(tmp_path))
 
 

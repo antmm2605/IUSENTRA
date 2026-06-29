@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.137 - 2026-06-29
+
+- Deposito PCT reale: corretto il caso PST `IDBUSTA 152647579` con esito `Indice busta ambiguo`, impedendo la coesistenza tra `IndiceBusta.xml` esterno e `IndiceBusta` interno nel `DatiAtto.xml.p7m`.
+- La simulazione PEC blocca ora anche i tipi ministeriali non coerenti in `IndiceBusta.xml`: le ricevute telematiche di pagamento devono essere indicate come `Tipo=RT`, mentre ricevute PEC/notifiche e allegati semplici non vengono più confusi con RT.
+- Dry-run server e audit busta sono stati allineati alla codifica ministeriale degli errori: `Indice busta non trovato`, `Atto principale mancante`, allegati indicizzati ma assenti, allegati non indicizzati e indice ambiguo non possono più produrre compatibilità 100%.
+- Fonti verificate: pagina download PST, specifiche DGSIA 7 agosto 2024 con rettifiche ufficiali, `Formato_Busta_Telematica`, `Codifica_errori_controlli_1.0`, comunicazione DGSIA 19 settembre 2024 sull'accettazione automatica e certificati proxy PDA/EXT 25 marzo 2026.
+
 ## 2.253.136 - 2026-06-29
 
 - Deposito PCT reale: corretto il falso-verde della simulazione PEC dopo l'esito PST `IDBUSTA 152644507` (`Indice busta non trovato`).

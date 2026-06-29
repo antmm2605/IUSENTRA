@@ -13,7 +13,8 @@ from click.testing import CliRunner
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.busta import DatiBusta
 from pct.cli import cli
-from pct.config_studio import ConfigFirma, ConfigStudio, ConfigPEC as StudioConfigPEC, GestioneConfigStudio
+from pct.clienti import GestioneClienti, TipoCliente
+from pct.config_studio import ConfigDatiStudio, ConfigFirma, ConfigStudio, ConfigPEC as StudioConfigPEC, GestioneConfigStudio
 from pct.deposito import DepositoCivile
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.firma import FirmaDigitale, busta_cades_valida, crea_signer_da_config
@@ -142,6 +143,39 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
         "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
     }
+
+
+def _crea_cliente_deposito(cfg: dict) -> str:
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501Z",
+    )
+    clienti.aggiorna_indirizzo(
+        cliente.id,
+        "residenza",
+        via="Via Roma",
+        civico="1",
+        cap="00100",
+        comune="Roma",
+        provincia="RM",
+    )
+    return cliente.id
+
+
+def _config_studio_deposito(**kwargs) -> ConfigStudio:
+    return ConfigStudio(
+        studio=ConfigDatiStudio(
+            avvocato="Mario Rossi",
+            codice_fiscale_avvocato="MNTGPP94L01G791A",
+            indirizzo="Via Studio 2",
+            city="Roma",
+            province="RM",
+        ),
+        **kwargs,
+    )
 
 
 def _crea_fascicolo_tributario_pronto(gf: GestioneFascicoli):
@@ -1627,7 +1661,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
     GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
-        ConfigStudio(
+        _config_studio_deposito(
             pec=StudioConfigPEC(
                 indirizzo="studio@example.pec.it",
                 password="secret",
@@ -1637,6 +1671,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
             )
         )
     )
+    id_cliente = _crea_cliente_deposito(cfg)
 
     gu = GestioneUtenti(
         db_path=cfg["AUTH_DB"],
@@ -1661,8 +1696,8 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
         tribunale="Tribunale di Test",
         numero_rg="123",
         anno_rg=2026,
-        controparte="Controparte",
-        id_cliente="cliente-1",
+        controparte="Ministero dell'Istruzione e del Merito",
+        id_cliente=id_cliente,
     )
     atto = gf.aggiungi_documento(
         fascicolo.id,
@@ -1737,9 +1772,11 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     assert attachment["filename"] == "Atto.enc"
     assert attachment["ministerial_busta_verified"] is True
     assert is_atto_enc_cms_enveloped_data(base64.b64decode(attachment["content_base64"], validate=True))
-    assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
+    assert "Ricorso.pdf" in payload["corpo_pec"]
+    assert "Ricorso.pdf.p7m" not in payload["corpo_pec"]
     assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
-    assert "Procura.PDF.p7m" in payload["corpo_pec"]
+    assert "Procura.PDF" in payload["corpo_pec"]
+    assert "Procura.PDF.p7m" not in payload["corpo_pec"]
     assert "Autocertificazione ricorso.PDF" not in payload["corpo_pec"]
     corpo_check = next(item for item in payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC")
     assert corpo_check["status"] == "ok"

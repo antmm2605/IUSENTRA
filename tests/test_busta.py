@@ -111,6 +111,47 @@ def _cades_signed_payload(payload: bytes) -> bytes:
     )
 
 
+def _anagrafica_ministeriale_test() -> bytes:
+    from lxml import etree
+
+    atti = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
+    ana = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
+    root = etree.Element(f"{{{atti}}}AnagraficaProcedimento", nsmap={None: atti, "at": ana})
+    partecipanti = etree.SubElement(root, f"{{{atti}}}Partecipanti")
+    parte = etree.SubElement(partecipanti, f"{{{atti}}}Parte", naturaGiuridica="PFI", ID="parte_ricorrente_1")
+    etree.SubElement(parte, f"{{{ana}}}denominazione").text = "Rossi"
+    etree.SubElement(parte, f"{{{ana}}}nome").text = "Mario"
+    etree.SubElement(parte, f"{{{ana}}}codiceFiscale").text = "RSSMRA80A01H501Z"
+    indirizzo = etree.SubElement(parte, f"{{{ana}}}indirizzo")
+    etree.SubElement(indirizzo, f"{{{ana}}}via").text = "Via Roma 1"
+    etree.SubElement(indirizzo, f"{{{ana}}}cap").text = "00100"
+    etree.SubElement(indirizzo, f"{{{ana}}}localita").text = "Roma"
+    etree.SubElement(indirizzo, f"{{{ana}}}provincia").text = "RM"
+    etree.SubElement(indirizzo, f"{{{ana}}}stato").text = "IT"
+    controparte = etree.SubElement(partecipanti, f"{{{atti}}}ControParte", naturaGiuridica="ENP", ID="controparte_1")
+    etree.SubElement(controparte, f"{{{ana}}}denominazione").text = "Ministero dell'Istruzione e del Merito"
+    etree.SubElement(controparte, f"{{{ana}}}codiceFiscale").text = "80185250588"
+    indirizzo = etree.SubElement(controparte, f"{{{ana}}}indirizzo")
+    etree.SubElement(indirizzo, f"{{{ana}}}via").text = "Viale Trastevere 76 A"
+    etree.SubElement(indirizzo, f"{{{ana}}}cap").text = "00153"
+    etree.SubElement(indirizzo, f"{{{ana}}}localita").text = "Roma"
+    etree.SubElement(indirizzo, f"{{{ana}}}provincia").text = "RM"
+    etree.SubElement(indirizzo, f"{{{ana}}}stato").text = "IT"
+    soggetti = etree.SubElement(root, f"{{{atti}}}Soggetti")
+    avvocato = etree.SubElement(soggetti, f"{{{atti}}}Avvocato")
+    etree.SubElement(avvocato, f"{{{ana}}}cognome").text = "Rossi"
+    etree.SubElement(avvocato, f"{{{ana}}}nome").text = "Mario"
+    etree.SubElement(avvocato, f"{{{ana}}}codiceFiscale").text = "RSSMRA80A01H501Z"
+    domicilio = etree.SubElement(avvocato, f"{{{ana}}}indirizzo")
+    etree.SubElement(domicilio, f"{{{ana}}}via").text = "Via Studio 2"
+    etree.SubElement(domicilio, f"{{{ana}}}cap").text = "00100"
+    etree.SubElement(domicilio, f"{{{ana}}}localita").text = "Roma"
+    etree.SubElement(domicilio, f"{{{ana}}}provincia").text = "RM"
+    etree.SubElement(domicilio, f"{{{ana}}}stato").text = "IT"
+    etree.SubElement(avvocato, f"{{{ana}}}parteRappresentata", ref="parte_ricorrente_1")
+    return etree.tostring(root, encoding="UTF-8")
+
+
 def test_busta_contiene_xml(dati_busta, tmp_path):
     """Verifica che la busta contenga il file DatiAtto.xml."""
     busta = BustaTelematica(dati_busta)
@@ -202,6 +243,11 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     """Quando DatiAtto.xml è firmato, Atto.msg usa il .p7m e l'indice ministeriale lo richiama."""
     from lxml import etree
 
+    dati_busta.tipo_atto = "RICORSO"
+    dati_busta.codice_registro = "RGL"
+    dati_busta.oggetto = "222050"
+    dati_busta.valore_causa = 500.0
+    dati_busta.anagrafica_procedimento_xml = _anagrafica_ministeriale_test()
     busta = BustaTelematica(
         dati_busta,
         id_busta="D78E4A75-B17D-428B-9DE7-DCFFD20959CD",
@@ -219,6 +265,10 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     assert DATI_ATTO_FIRMATO_FILENAME in attachments
     assert DATI_ATTO_FILENAME not in attachments
     assert estrai_contenuto_cades(attachments[DATI_ATTO_FIRMATO_FILENAME]) == dati_atto_xml
+    signed_root = etree.fromstring(dati_atto_xml)
+    assert etree.QName(signed_root).localname == "Ricorso"
+    assert signed_root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
+    assert signed_root.xpath("//*[local-name()='AnagraficaProcedimento']")
     root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
     dati = [node for node in root.findall("Allegato") if node.get("Tipo") == "DA"]
     assert dati[0].get("Nome") == DATI_ATTO_FIRMATO_FILENAME
@@ -232,6 +282,70 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     assert audit["indice_busta_atto_filename"] == "atto.pdf"
     assert audit["indice_busta_dati_atto_filename"] == DATI_ATTO_FIRMATO_FILENAME
     assert audit["formal_checks"]["T002"]["status"] == "ok"
+
+
+def test_busta_reale_usa_nomi_logici_per_documenti_cades(tmp_path):
+    """I documenti CAdES restano pkcs7-mime, ma in busta hanno nome logico senza .p7m."""
+    from lxml import etree
+
+    ricorso = tmp_path / "Ricorso.pdf.p7m"
+    procura = tmp_path / "Procura.PDF.p7m"
+    ricorso.write_bytes(b"PKCS7-RICORSO")
+    procura.write_bytes(b"PKCS7-PROCURA")
+    dati = DatiBusta(
+        codice_ufficio="0241160092",
+        codice_registro="RGL",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(ricorso),
+        allegati=[Allegato(str(procura), "Procura alle liti", "PROCURA")],
+        cf_mittente="RSSMRA80A01H501Z",
+        operatore="Avv. Mario Rossi",
+        valore_causa=500.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+    )
+    busta = BustaTelematica(dati, id_busta="D78E4A75-B17D-428B-9DE7-DCFFD20959CD")
+    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+    busta_path = busta.crea_busta(
+        str(tmp_path / "out"),
+        dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
+        require_dati_atto_firmato=True,
+    )
+
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+    parts = {
+        Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name: part
+        for part in message.walk()
+        if not part.is_multipart()
+    }
+    assert "Ricorso.pdf" in parts
+    assert "Ricorso.pdf.p7m" not in parts
+    assert "Procura.PDF" in parts
+    assert "Procura.PDF.p7m" not in parts
+    assert parts["Ricorso.pdf"].get_content_type() == "application/pkcs7-mime"
+    assert parts["Procura.PDF"].get_content_type() == "application/pkcs7-mime"
+
+    id_to_name = {str(part.get("Content-ID") or "").strip("<> "): name for name, part in parts.items()}
+    signed_root = etree.fromstring(dati_atto_xml)
+    referenced_names = {
+        id_to_name[str(node.get("id") or "")]
+        for node in signed_root.xpath("//*[local-name()='IndiceBusta']/*")
+    }
+    assert {"Ricorso.pdf", "Procura.PDF", INDICE_DOCUMENTI_FILENAME} <= referenced_names
+
+
+def test_busta_reale_blocca_dati_atto_firmato_senza_indice_interno(dati_busta, tmp_path):
+    dati_busta.tipo_atto = "RICORSO"
+    busta = BustaTelematica(dati_busta)
+    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+
+    with pytest.raises(ValueError, match="IndiceBusta ministeriale interno"):
+        busta.crea_busta(
+            str(tmp_path),
+            dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
+            require_dati_atto_firmato=True,
+        )
 
 
 def test_dati_atto_per_firma_e_deterministico_con_stessa_busta(dati_busta):
@@ -306,7 +420,7 @@ def test_busta_blocca_indice_busta_non_coerente_con_atto_msg(dati_busta, tmp_pat
 
     busta = BustaTelematica(dati_busta)
 
-    def indice_corrotto(*, dati_atto_filename=DATI_ATTO_FILENAME):
+    def indice_corrotto(*, dati_atto_filename=DATI_ATTO_FILENAME, **_kwargs):
         root = etree.Element("IndiceBusta")
         etree.SubElement(root, "Atto", Nome="atto_sbagliato.pdf", ID="ATTO_1")
         etree.SubElement(root, "Allegato", Nome=dati_atto_filename, ID="DATI_1", Tipo="DA")

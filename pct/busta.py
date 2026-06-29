@@ -45,6 +45,11 @@ INDICE_BUSTA_FILENAME = "IndiceBusta.xml"
 INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
 ATTO_MSG_FILENAME = "Atto.msg"
 ATTO_ENC_FILENAME = "Atto.enc"
+MINISTERIAL_ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
+MINISTERIAL_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v6"
+MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
+XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
+XSD_NS = "http://www.w3.org/2001/XMLSchema"
 
 
 @dataclass
@@ -70,6 +75,22 @@ class DatiBusta:
     anno_rg: Optional[int] = None
     operatore: str = ""
     cf_mittente: str = ""
+    valore_causa: Optional[float] = None
+    anagrafica_procedimento_xml: bytes | str | None = None
+
+
+@dataclass(frozen=True)
+class _DocumentoBusta:
+    filename: str
+    payload: bytes
+    maintype: str
+    subtype: str
+    content_id: str
+    ruolo_indice: str
+    tipo_indice_esterno: str
+    source_name: str
+    descrizione: str = ""
+    is_main: bool = False
 
 
 class BustaTelematica:
@@ -151,6 +172,58 @@ class BustaTelematica:
         return cleaned[:64]
 
     @staticmethod
+    def nome_file_ministeriale(filename: str) -> str:
+        """Nome logico esposto nella busta ministeriale.
+
+        I documenti firmati CAdES restano payload .p7m, ma nei redattori PCT
+        accettati il nome MIME logico rimane il nome originale del documento.
+        """
+        name = Path(str(filename or "")).name
+        if name.casefold().endswith(".p7m") and name.casefold() != DATI_ATTO_FIRMATO_FILENAME.casefold():
+            return name[:-4]
+        return name
+
+    @staticmethod
+    def _nome_file_unico(filename: str, used: set[str]) -> str:
+        name = Path(str(filename or "")).name or "documento"
+        candidate = name
+        suffix = 2
+        while candidate.casefold() in used:
+            path = Path(name)
+            candidate = f"{path.stem}_{suffix}{path.suffix}"
+            suffix += 1
+        used.add(candidate.casefold())
+        return candidate
+
+    @staticmethod
+    def _content_id_documento(filename: str, payload: bytes, index: int) -> str:
+        digest = hashlib.sha256(
+            str(index).encode("ascii") + b"\0" + filename.encode("utf-8") + b"\0" + payload
+        ).hexdigest()[:32]
+        return f"part{digest}"
+
+    @staticmethod
+    def _ruolo_allegato_ministeriale(filename: str, tipo: str = "", descrizione: str = "") -> str:
+        text = f"{filename} {tipo} {descrizione}".casefold()
+        if "procura" in text:
+            return "ProcuraLiti"
+        if "iscrizione" in text and "ruolo" in text:
+            return "NotaIscrizioneRuolo"
+        return "AllegatoSemplice"
+
+    @staticmethod
+    def _ruolo_ministeriale_registro(codice_registro: str, tipo_atto: str = "") -> str:
+        text = f"{codice_registro} {tipo_atto}".upper()
+        if "RGL" in text or "LAVOR" in text:
+            return "Lavoro"
+        if "VG" in text or "VOLONTARIA" in text:
+            return "VolontariaGiurisdizione"
+        return "Contenzioso"
+
+    def _usa_dati_atto_ministeriale(self) -> bool:
+        return bool(self.dati.anagrafica_procedimento_xml)
+
+    @staticmethod
     def _indice_busta_tipo_allegato(filename: str, tipo: str = "", descrizione: str = "") -> str:
         text = f"{filename} {tipo} {descrizione}".casefold()
         if "procura" in text:
@@ -165,23 +238,31 @@ class BustaTelematica:
             return "RA"
         return "SM"
 
-    def _crea_indice_busta_xml(self, *, dati_atto_filename: str = DATI_ATTO_FILENAME) -> bytes:
+    def _crea_indice_busta_xml(
+        self,
+        *,
+        dati_atto_filename: str = DATI_ATTO_FILENAME,
+        document_parts: list[_DocumentoBusta] | None = None,
+    ) -> bytes:
         """Genera l'IndiceBusta.xml ministeriale richiesto nel file Atto.msg."""
+        if document_parts is None:
+            document_parts = self._documenti_busta_preparati(self._crea_indice_documenti_pdf())
+        main_part = next((part for part in document_parts if part.is_main), None)
+        if main_part is None:
+            raise ValueError("Atto principale non disponibile per IndiceBusta.xml.")
         root = etree.Element("IndiceBusta")
-        atto_name = Path(self.dati.atto_principale).name
         etree.SubElement(
             root,
             "Atto",
-            Nome=atto_name,
-            ID=self._xml_id(f"ATTO_{self.id_busta[:8]}", "ATTO_1"),
+            Nome=main_part.filename,
+            ID=self._xml_id(main_part.content_id, "ATTO_1"),
         )
 
         allegati: list[tuple[str, str]] = [(dati_atto_filename, "DA")]
-        for index, allegato in enumerate(self.dati.allegati, start=1):
-            filename = Path(allegato.percorso).name
-            tipo = self._indice_busta_tipo_allegato(filename, allegato.tipo, allegato.descrizione)
-            allegati.append((filename, tipo))
-        allegati.append((INDICE_DOCUMENTI_FILENAME, "SM"))
+        for part in document_parts:
+            if part.is_main:
+                continue
+            allegati.append((part.filename, part.tipo_indice_esterno))
 
         used_ids: set[str] = set()
         for index, (filename, tipo) in enumerate(allegati, start=1):
@@ -282,18 +363,21 @@ class BustaTelematica:
             )
             return result
 
-        main_name = Path(self.dati.atto_principale).name
+        main_name = self.nome_file_ministeriale(Path(self.dati.atto_principale).name)
         if main_name not in attachments:
             result["errori"].append(f"Atto principale {main_name} mancante in Atto.msg")
             return result
         for allegato in self.dati.allegati:
-            name = Path(allegato.percorso).name
+            name = self.nome_file_ministeriale(Path(allegato.percorso).name)
             if name not in attachments:
                 result["errori"].append(f"Allegato {name} mancante in Atto.msg")
                 return result
 
         if require_dati_atto_firmato and dati_atto_filename != DATI_ATTO_FIRMATO_FILENAME:
             result["errori"].append("DatiAtto.xml.p7m firmato obbligatorio per la busta reale")
+            return result
+        if require_dati_atto_firmato and dati_atto_filename not in attachments:
+            result["errori"].append("DatiAtto.xml.p7m firmato mancante in Atto.msg")
             return result
 
         try:
@@ -351,13 +435,90 @@ class BustaTelematica:
         if INDICE_DOCUMENTI_FILENAME not in result["documenti"]:
             result["errori"].append(f"{INDICE_DOCUMENTI_FILENAME} non richiamato da {INDICE_BUSTA_FILENAME}")
             return result
+        require_indice_interno = (
+            require_dati_atto_firmato
+            and (self._usa_dati_atto_ministeriale() or str(self.dati.tipo_atto or "").strip().upper() == "RICORSO")
+        )
+        if require_indice_interno:
+            try:
+                from pct.firma import estrai_contenuto_cades
+
+                dati_atto_xml = estrai_contenuto_cades(attachments[dati_atto_filename])
+            except Exception as exc:
+                result["errori"].append(f"{dati_atto_filename} non estraibile per verifica ministeriale: {exc}")
+                return result
+            internal_error = self._verifica_indice_interno_dati_atto(
+                dati_atto_xml,
+                attachments=attachments,
+                part_metadata=part_metadata,
+                dati_atto_filename=dati_atto_filename,
+                main_name=main_name,
+            )
+            if internal_error:
+                result["errori"].append(internal_error)
+                return result
         result["valida"] = True
         return result
+
+    def _verifica_indice_interno_dati_atto(
+        self,
+        dati_atto_xml: bytes,
+        *,
+        attachments: dict[str, bytes],
+        part_metadata: dict[str, dict],
+        dati_atto_filename: str,
+        main_name: str,
+    ) -> str:
+        try:
+            root = etree.fromstring(dati_atto_xml)
+        except Exception as exc:
+            return f"DatiAtto.xml firmato non leggibile: {exc}"
+
+        indice_nodes = root.xpath("//*[local-name()='IndiceBusta']")
+        if not indice_nodes:
+            return "DatiAtto.xml.p7m non contiene IndiceBusta ministeriale interno"
+        indice = indice_nodes[0]
+        atto_nodes = [
+            node
+            for node in indice
+            if isinstance(node.tag, str) and etree.QName(node).localname == "AttoPrincipale"
+        ]
+        if len(atto_nodes) != 1:
+            return "IndiceBusta interno deve contenere un solo AttoPrincipale"
+
+        content_id_to_name: dict[str, str] = {}
+        for filename, meta in part_metadata.items():
+            content_id = str(meta.get("content_id") or "").strip()
+            if content_id:
+                content_id_to_name[content_id] = filename
+
+        referenced_names: set[str] = set()
+        for node in indice:
+            if not isinstance(node.tag, str):
+                continue
+            ref_id = str(node.get("id") or "").strip()
+            if not ref_id:
+                return "IndiceBusta interno contiene un riferimento senza attributo id"
+            filename = content_id_to_name.get(ref_id)
+            if not filename:
+                return f"IndiceBusta interno richiama Content-ID assente in Atto.msg: {ref_id}"
+            referenced_names.add(filename)
+
+        atto_id = str(atto_nodes[0].get("id") or "").strip()
+        if content_id_to_name.get(atto_id) != main_name:
+            return f"AttoPrincipale interno richiama {content_id_to_name.get(atto_id) or atto_id}, non {main_name}"
+
+        expected_docs = set(attachments) - {INDICE_BUSTA_FILENAME, dati_atto_filename}
+        missing_refs = sorted(expected_docs - referenced_names)
+        if missing_refs:
+            return "IndiceBusta interno non richiama tutti i documenti della busta: " + ", ".join(missing_refs)
+        return ""
 
     def crea_dati_atto_xml_per_firma(self) -> bytes:
         """Restituisce DatiAtto.xml non firmato da inviare al Local Signer."""
         indice_pdf = self._crea_indice_documenti_pdf()
-        return self._crea_xml_dati_atto(indice_pdf)
+        document_parts = self._documenti_busta_preparati(indice_pdf)
+        return self._crea_xml_dati_atto(indice_pdf, document_parts=document_parts)
 
     def _indice_rows(self) -> list[dict[str, str]]:
         rows: list[dict[str, str]] = [
@@ -370,7 +531,7 @@ class BustaTelematica:
             {
                 "numero": "2",
                 "ruolo": "Atto principale",
-                "nome": Path(self.dati.atto_principale).name,
+                "nome": self.nome_file_ministeriale(Path(self.dati.atto_principale).name),
                 "descrizione": self.dati.tipo_atto or "Atto principale",
             },
         ]
@@ -379,7 +540,7 @@ class BustaTelematica:
                 {
                     "numero": str(index),
                     "ruolo": allegato.tipo or "Allegato",
-                    "nome": Path(allegato.percorso).name,
+                    "nome": self.nome_file_ministeriale(Path(allegato.percorso).name),
                     "descrizione": allegato.descrizione or "Documento allegato",
                 }
             )
@@ -457,10 +618,139 @@ class BustaTelematica:
         """Restituisce il PDF dell'indice documenti per anteprima e controllo."""
         return self._crea_indice_documenti_pdf()
 
-    def _crea_xml_dati_atto(self, indice_pdf_bytes: bytes | None = None) -> bytes:
+    def _documenti_busta_preparati(self, indice_pdf_bytes: bytes) -> list[_DocumentoBusta]:
+        used_names: set[str] = set()
+        parts: list[_DocumentoBusta] = []
+
+        ap_path = self._runtime_path(self.dati.atto_principale, must_be_file=True)
+        ap_payload = ap_path.read_bytes()
+        ap_filename = self._nome_file_unico(self.nome_file_ministeriale(ap_path.name), used_names)
+        ap_main, ap_sub = self._mime_type(ap_path.name)
+        parts.append(
+            _DocumentoBusta(
+                filename=ap_filename,
+                payload=ap_payload,
+                maintype=ap_main,
+                subtype=ap_sub,
+                content_id=self._content_id_documento(ap_filename, ap_payload, 1),
+                ruolo_indice="AttoPrincipale",
+                tipo_indice_esterno="AT",
+                source_name=ap_path.name,
+                descrizione=self.dati.tipo_atto or "Atto principale",
+                is_main=True,
+            )
+        )
+
+        for index, allegato in enumerate(self.dati.allegati, start=2):
+            all_path = self._runtime_path(allegato.percorso, must_be_file=True)
+            payload = all_path.read_bytes()
+            filename = self._nome_file_unico(self.nome_file_ministeriale(all_path.name), used_names)
+            maintype, subtype = self._mime_type(all_path.name)
+            parts.append(
+                _DocumentoBusta(
+                    filename=filename,
+                    payload=payload,
+                    maintype=maintype,
+                    subtype=subtype,
+                    content_id=self._content_id_documento(filename, payload, index),
+                    ruolo_indice=self._ruolo_allegato_ministeriale(
+                        filename,
+                        allegato.tipo,
+                        allegato.descrizione,
+                    ),
+                    tipo_indice_esterno=self._indice_busta_tipo_allegato(
+                        filename,
+                        allegato.tipo,
+                        allegato.descrizione,
+                    ),
+                    source_name=all_path.name,
+                    descrizione=allegato.descrizione or "Documento allegato",
+                    is_main=False,
+                )
+            )
+
+        index_payload = indice_pdf_bytes
+        index_filename = self._nome_file_unico(INDICE_DOCUMENTI_FILENAME, used_names)
+        parts.append(
+            _DocumentoBusta(
+                filename=index_filename,
+                payload=index_payload,
+                maintype="application",
+                subtype="pdf",
+                content_id=self._content_id_documento(index_filename, index_payload, len(parts) + 1),
+                ruolo_indice="AllegatoSemplice",
+                tipo_indice_esterno="SM",
+                source_name=INDICE_DOCUMENTI_FILENAME,
+                descrizione="Indice documenti depositati",
+                is_main=False,
+            )
+        )
+        return parts
+
+    def _anagrafica_procedimento_node(self) -> etree._Element:
+        raw = self.dati.anagrafica_procedimento_xml
+        if raw is None:
+            raise ValueError("AnagraficaProcedimento ministeriale mancante per DatiAtto.xml.")
+        payload = raw.encode("utf-8") if isinstance(raw, str) else raw
+        try:
+            node = etree.fromstring(payload)
+        except Exception as exc:
+            raise ValueError("AnagraficaProcedimento ministeriale non leggibile.") from exc
+        if etree.QName(node).localname != "AnagraficaProcedimento":
+            raise ValueError("AnagraficaProcedimento ministeriale non valido.")
+        return node
+
+    def _crea_xml_dati_atto_ministeriale(self, document_parts: list[_DocumentoBusta]) -> bytes:
+        main_part = next((part for part in document_parts if part.is_main), None)
+        if main_part is None:
+            raise ValueError("Atto principale mancante per DatiAtto.xml ministeriale.")
+
+        root = etree.Element(
+            f"{{{MINISTERIAL_INTRO_NS}}}Ricorso",
+            nsmap={
+                None: MINISTERIAL_INTRO_NS,
+                "xsi": XSI_NS,
+                "xsd": XSD_NS,
+            },
+        )
+        etree.SubElement(
+            root,
+            f"{{{MINISTERIAL_ATTI_NS}}}destinazione",
+            ufficio=str(self.dati.codice_ufficio or "").strip(),
+            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
+        )
+        etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}Oggetto").text = str(self.dati.oggetto or "").strip()
+        if self.dati.valore_causa is not None:
+            try:
+                valore = float(self.dati.valore_causa)
+            except (TypeError, ValueError):
+                valore = 0.0
+            if valore > 0:
+                etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}ValoreCausa").text = f"{valore:.2f}"
+
+        indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
+        etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}AttoPrincipale", id=main_part.content_id)
+        for part in document_parts:
+            if part.is_main:
+                continue
+            etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
+
+        root.append(self._anagrafica_procedimento_node())
+        return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+
+    def _crea_xml_dati_atto(
+        self,
+        indice_pdf_bytes: bytes | None = None,
+        *,
+        document_parts: list[_DocumentoBusta] | None = None,
+    ) -> bytes:
         """Crea il file XML DatiAtto.xml con i metadati dell'atto."""
         if indice_pdf_bytes is None:
             indice_pdf_bytes = self._crea_indice_documenti_pdf()
+        if document_parts is None:
+            document_parts = self._documenti_busta_preparati(indice_pdf_bytes)
+        if self._usa_dati_atto_ministeriale():
+            return self._crea_xml_dati_atto_ministeriale(document_parts)
         root = etree.Element(
             "DatiAtto",
             xmlns=self.NAMESPACE,
@@ -498,12 +788,12 @@ class BustaTelematica:
         # Elenco documenti
         docs = etree.SubElement(root, "Documenti")
         ap = etree.SubElement(docs, "Attoprincipale")   # spec PST D.M. 44/2011
-        etree.SubElement(ap, "NomeFile").text = Path(self.dati.atto_principale).name
+        etree.SubElement(ap, "NomeFile").text = self.nome_file_ministeriale(Path(self.dati.atto_principale).name)
         etree.SubElement(ap, "Hash").text = self._hash_file(self.dati.atto_principale)
 
         for i, allegato in enumerate(self.dati.allegati, 1):
             all_el = etree.SubElement(docs, "Allegato")
-            etree.SubElement(all_el, "NomeFile").text = Path(allegato.percorso).name
+            etree.SubElement(all_el, "NomeFile").text = self.nome_file_ministeriale(Path(allegato.percorso).name)
             etree.SubElement(all_el, "Descrizione").text = allegato.descrizione
             etree.SubElement(all_el, "Tipo").text = allegato.tipo
             etree.SubElement(all_el, "Hash").text = self._hash_file(allegato.percorso)
@@ -549,27 +839,32 @@ class BustaTelematica:
         indice_busta_xml: bytes,
         indice_pdf: bytes,
         dati_atto_firmato: bytes | None = None,
-    ) -> list[tuple[str, bytes, str, str]]:
+        document_parts: list[_DocumentoBusta] | None = None,
+    ) -> list[tuple[str, bytes, str, str, str]]:
         dati_atto_filename = DATI_ATTO_FIRMATO_FILENAME if dati_atto_firmato else DATI_ATTO_FILENAME
         dati_atto_payload = dati_atto_firmato or xml_content
         dati_atto_mime = ("application", "pkcs7-mime") if dati_atto_firmato else ("text", "xml")
-        payloads: list[tuple[str, bytes, str, str]] = [
-            (INDICE_BUSTA_FILENAME, indice_busta_xml, "text", "xml"),
-            (dati_atto_filename, dati_atto_payload, dati_atto_mime[0], dati_atto_mime[1]),
+        if document_parts is None:
+            document_parts = self._documenti_busta_preparati(indice_pdf)
+        payloads: list[tuple[str, bytes, str, str, str]] = [
+            (
+                INDICE_BUSTA_FILENAME,
+                indice_busta_xml,
+                "text",
+                "xml",
+                self._mime_content_id(INDICE_BUSTA_FILENAME),
+            ),
+            (
+                dati_atto_filename,
+                dati_atto_payload,
+                dati_atto_mime[0],
+                dati_atto_mime[1],
+                self._mime_content_id(dati_atto_filename),
+            ),
         ]
 
-        ap_path = self._runtime_path(self.dati.atto_principale, must_be_file=True)
-        ap_name = ap_path.name
-        ap_main, ap_sub = self._mime_type(ap_name)
-        payloads.append((ap_name, ap_path.read_bytes(), ap_main, ap_sub))
-
-        for allegato in self.dati.allegati:
-            all_path = self._runtime_path(allegato.percorso, must_be_file=True)
-            all_name = all_path.name
-            all_main, all_sub = self._mime_type(all_name)
-            payloads.append((all_name, all_path.read_bytes(), all_main, all_sub))
-
-        payloads.append((INDICE_DOCUMENTI_FILENAME, indice_pdf, "application", "pdf"))
+        for part in document_parts:
+            payloads.append((part.filename, part.payload, part.maintype, part.subtype, part.content_id))
         return payloads
 
     def _crea_atto_msg(
@@ -579,6 +874,7 @@ class BustaTelematica:
         indice_busta_xml: bytes,
         indice_pdf: bytes,
         dati_atto_firmato: bytes | None = None,
+        document_parts: list[_DocumentoBusta] | None = None,
     ) -> bytes:
         message = EmailMessage(policy=policy.SMTP)
         message["Subject"] = f"Atto deposito telematico {self.id_busta[:8]}"
@@ -587,11 +883,12 @@ class BustaTelematica:
         message["Date"] = format_datetime(self.timestamp.astimezone())
         message["X-IUSENTRA-Busta-ID"] = self.id_busta
         message.make_related()
-        for filename, payload, maintype, subtype in self._document_payloads(
+        for filename, payload, maintype, subtype, content_id in self._document_payloads(
             xml_content=xml_content,
             indice_busta_xml=indice_busta_xml,
             indice_pdf=indice_pdf,
             dati_atto_firmato=dati_atto_firmato,
+            document_parts=document_parts,
         ):
             part = EmailMessage(policy=policy.SMTP)
             if maintype == "text":
@@ -601,7 +898,7 @@ class BustaTelematica:
             else:
                 part.set_content(payload, maintype=maintype, subtype=subtype, cte="base64")
             part.set_param("name", filename, header="Content-Type")
-            part["Content-ID"] = f"<{self._mime_content_id(filename)}>"
+            part["Content-ID"] = f"<{content_id}>"
             part.add_header("Content-Disposition", "inline", filename=filename)
             message.attach(part)
         return message.as_bytes(policy=policy.SMTP)
@@ -609,8 +906,14 @@ class BustaTelematica:
     def stima_dimensione_busta(self) -> int:
         """Stima la dimensione della busta simulata, includendo un overhead minimo."""
         indice_pdf = self._crea_indice_documenti_pdf()
-        indice_busta_xml = self._crea_indice_busta_xml()
-        totale = len(self._crea_xml_dati_atto(indice_pdf)) + len(indice_busta_xml) + len(indice_pdf) + 4096
+        document_parts = self._documenti_busta_preparati(indice_pdf)
+        indice_busta_xml = self._crea_indice_busta_xml(document_parts=document_parts)
+        totale = (
+            len(self._crea_xml_dati_atto(indice_pdf, document_parts=document_parts))
+            + len(indice_busta_xml)
+            + len(indice_pdf)
+            + 4096
+        )
         file_paths = [self.dati.atto_principale] + [a.percorso for a in self.dati.allegati]
         for percorso in file_paths:
             path = Path(percorso)
@@ -627,20 +930,34 @@ class BustaTelematica:
         indice_busta_generated = False
         dati_atto_signed = bool((self._last_transport_audit or {}).get("dati_atto_signed"))
         try:
-            root = etree.fromstring(self._crea_xml_dati_atto(indice_pdf))
-            ns = {"p": self.NAMESPACE}
-            if root.find(".//p:Documenti/p:Attoprincipale", ns) is None:
-                xml_ok = False
-            indice_node = root.find(
-                f".//p:Documenti/p:Allegato[p:NomeFile='{INDICE_DOCUMENTI_FILENAME}']",
-                ns,
-            )
-            if indice_node is None:
-                indice_documenti_generated = False
+            document_parts = self._documenti_busta_preparati(indice_pdf)
+            root = etree.fromstring(self._crea_xml_dati_atto(indice_pdf, document_parts=document_parts))
+            if self._usa_dati_atto_ministeriale():
+                indice_nodes = root.xpath("//*[local-name()='IndiceBusta']")
+                atto_nodes = root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
+                ref_ids = {
+                    str(node.get("id") or "").strip()
+                    for node in (indice_nodes[0] if indice_nodes else [])
+                    if isinstance(node.tag, str)
+                }
+                expected_ids = {part.content_id for part in document_parts}
+                xml_ok = bool(indice_nodes and len(atto_nodes) == 1 and expected_ids <= ref_ids)
+                indice_documenti_generated = any(part.filename == INDICE_DOCUMENTI_FILENAME for part in document_parts)
+            else:
+                ns = {"p": self.NAMESPACE}
+                if root.find(".//p:Documenti/p:Attoprincipale", ns) is None:
+                    xml_ok = False
+                indice_node = root.find(
+                    f".//p:Documenti/p:Allegato[p:NomeFile='{INDICE_DOCUMENTI_FILENAME}']",
+                    ns,
+                )
+                if indice_node is None:
+                    indice_documenti_generated = False
 
             indice_root = etree.fromstring(
                 self._crea_indice_busta_xml(
-                    dati_atto_filename=DATI_ATTO_FIRMATO_FILENAME if dati_atto_signed else DATI_ATTO_FILENAME
+                    dati_atto_filename=DATI_ATTO_FIRMATO_FILENAME if dati_atto_signed else DATI_ATTO_FILENAME,
+                    document_parts=document_parts,
                 )
             )
             atto_node = indice_root.find("Atto")
@@ -868,13 +1185,27 @@ class BustaTelematica:
 
         dati_atto_filename = DATI_ATTO_FIRMATO_FILENAME if dati_atto_firmato else DATI_ATTO_FILENAME
         indice_pdf = self._crea_indice_documenti_pdf()
-        indice_busta_xml = self._crea_indice_busta_xml(dati_atto_filename=dati_atto_filename)
-        xml_content = self._crea_xml_dati_atto(indice_pdf)
+        document_parts = self._documenti_busta_preparati(indice_pdf)
+        indice_busta_xml = self._crea_indice_busta_xml(
+            dati_atto_filename=dati_atto_filename,
+            document_parts=document_parts,
+        )
+        xml_content = self._crea_xml_dati_atto(indice_pdf, document_parts=document_parts)
+        if dati_atto_firmato:
+            try:
+                from pct.firma import estrai_contenuto_cades
+            except Exception as exc:
+                raise ValueError("Estrazione CAdES non disponibile per DatiAtto.xml.p7m.") from exc
+            if estrai_contenuto_cades(dati_atto_firmato) != xml_content:
+                raise ValueError(
+                    "DatiAtto.xml.p7m non contiene il DatiAtto.xml generato per questa busta."
+                )
         atto_msg = self._crea_atto_msg(
             xml_content=xml_content,
             indice_busta_xml=indice_busta_xml,
             indice_pdf=indice_pdf,
             dati_atto_firmato=dati_atto_firmato,
+            document_parts=document_parts,
         )
 
         atto_msg_path = busta_dir / ATTO_MSG_FILENAME

@@ -3021,3 +3021,42 @@ Presidio applicato in questa tranche:
 - `scripts/standardizza_date_italiane.py` verifica che non restino `Data UTC` o formattatori frontend italiani senza `Europe/Rome`.
 
 Prova reale locale eseguita su `127.0.0.1:8080`: Tariffario, Fatturazione PDF, Email PEC ed Email ordinaria non espongono `Data UTC` né timestamp ISO raw; il PDF parcella mostra `Data e ora italiana: 28/06/2026 21:48 (Europe/Rome)`.
+
+## Deposito PCT reale: DatiAtto ministeriale e indice interno - 2026-06-29
+
+Richiesta utente: evitare altri invii reali a tentativi e verificare seriamente la busta completa, documento per documento, dopo gli esiti PST reali:
+
+- `IDBUSTA 152631750`: `Indice busta non trovato`;
+- `IDBUSTA 152633714`: `Atto principale mancante`.
+
+Diagnosi tecnica:
+
+- la busta reale conteneva fisicamente `IndiceBusta.xml`, `DatiAtto.xml.p7m`, `Ricorso.pdf.p7m`, `Procura.PDF.p7m`, allegati PDF, ricevute `.eml` e `IndiceDocumentiDepositati.PDF`;
+- i campioni PST accettati e gli XSD ministeriali locali mostrano che il PST legge l'indice determinante dentro il `DatiAtto.xml.p7m` firmato, non solo dal file esterno `IndiceBusta.xml`;
+- il vecchio `DatiAtto.xml` IUSENTRA era un XML proprietario `<DatiAtto>` con `<Documenti>`, quindi non esponeva il nodo ministeriale `<Ricorso>` con `<IndiceBusta>` interno;
+- nei campioni accettati i documenti CAdES vengono trasportati come `application/pkcs7-mime`, ma con nome logico originale senza suffisso `.p7m` nel MIME e negli indici, per esempio `Ricorso.PDF` invece di `Ricorso.PDF.p7m`;
+- la causa tecnica coerente con i due errori è: indice interno assente prima, e atto principale non risolto poi perché l'XML firmato non referenziava il `Content-ID` reale della parte MIME.
+
+Correzione applicata:
+
+- `pct/busta.py` costruisce una mappa unica dei documenti della busta con nome logico ministeriale, payload, tipo MIME, ruolo ministeriale e `Content-ID`;
+- per il ricorso introduttivo viene generato un `DatiAtto.xml` ministeriale con root `<Ricorso>`, `destinazione`, `Oggetto`, eventuale `ValoreCausa`, `<IndiceBusta>` interno e `AnagraficaProcedimento`;
+- `AttoPrincipale`, `ProcuraLiti` e gli altri allegati nel `DatiAtto.xml` puntano ai `Content-ID` delle parti MIME reali della stessa `Atto.msg`;
+- i file `.pdf.p7m` restano payload CAdES `application/pkcs7-mime`, ma in busta vengono nominati come `Ricorso.pdf` e `Procura.PDF`;
+- la verifica pre-cifratura apre `DatiAtto.xml.p7m`, estrae l'XML firmato e blocca la busta se il ricorso non contiene l'`IndiceBusta` interno o se un documento presente in `Atto.msg` non è referenziato;
+- la route deposito recupera cliente, controparte e configurazione studio per costruire `AnagraficaProcedimento`; per il Ministero dell'Istruzione e del Merito viene riconosciuto il codice fiscale pubblico `80185250588`; se mancano dati obbligatori il flusso si ferma prima della firma/PIN con messaggio puntuale;
+- il payload Local Signer e il corpo PEC usano la stessa lista di nomi logici che finisce nella `Atto.msg`.
+
+Verifiche automatiche e offline eseguite:
+
+- `python -m py_compile pct\busta.py web\bootstrap\deposito_routes.py web\services\deposito_signature_runtime.py tests\test_busta.py tests\test_deposito.py` -> OK;
+- `python -m pytest tests\test_busta.py -q --tb=short` -> `20 passed`;
+- `python -m pytest tests\test_deposito.py -q --tb=short -k "dati_atto or busta or local_pec or invia_pec or indice"` -> `11 passed`;
+- `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` -> `4 passed`;
+- verifica offline su busta riproducibile con lista equivalente al deposito reale: root firmata `Ricorso`, parti MIME `IndiceBusta.xml`, `DatiAtto.xml.p7m`, `Ricorso.pdf`, allegati PDF, ricevute `.eml`, `Procura.PDF`, `IndiceDocumentiDepositati.PDF`; tutti i documenti sono richiamati dall'`IndiceBusta` interno tramite `Content-ID`; `Ricorso.pdf.p7m` e `Procura.PDF.p7m` non compaiono più come nomi logici della busta.
+
+Stato prova reale:
+
+- non verificato su macchina reale post-fix e non ancora provato con nuovo invio PST reale;
+- lavoro aperto fino a deploy sulla produzione Hetzner, controllo reale della pagina `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara`, prova senza invio, firma Local Signer con PIN dell'utente e solo dopo eventuale invio reale tracciato;
+- nessun nuovo invio reale va richiesto all'utente finché la busta generata dalla produzione aggiornata non supera il controllo offline completo su `Atto.msg`, `DatiAtto.xml.p7m`, nomi logici, `Content-ID`, `Atto.enc` e lista documenti.

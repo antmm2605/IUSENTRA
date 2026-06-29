@@ -6039,6 +6039,16 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_formatting.py tests\test_pdf_style.py tests\test_react_email_datetime.py tests\test_react_fatturazione_bridge.py -q --tb=short` | OK | `16/16` passati: formatter italiani, PDF senza `Data UTC`, date Fatturazione e bridge React Fatturazione/PEC/commercialista. |
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio test`; `pnpm --filter @iusentra/studio build` | OK | TypeScript, contratti React/governance UI e build Vite completati; gli asset nuovi risultano tutti referenziati dal manifest React. |
 
+## Deposito PCT DatiAtto ministeriale e indice interno - 2026-06-29
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile pct\busta.py web\bootstrap\deposito_routes.py web\services\deposito_signature_runtime.py tests\test_busta.py tests\test_deposito.py` | OK | Sintassi confermata su motore busta, route deposito, payload Local Signer e test mirati. |
+| `python -m pytest tests\test_busta.py -q --tb=short` | OK | `20/20` passati: blocco del vecchio `DatiAtto.xml.p7m` senza `IndiceBusta` interno per `RICORSO`, `DatiAtto` ministeriale `<Ricorso>`, nomi logici CAdES senza `.p7m`, `Content-ID` coerenti. |
+| `python -m pytest tests\test_deposito.py -q --tb=short -k "dati_atto or busta or local_pec or invia_pec or indice"` | OK | `11/11` passati: firma `DatiAtto`, payload Local Signer, corpo PEC con nomi logici, prova senza invio e invio locale governato. |
+| `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `4/4` passati: audit dry-run server e controlli Atto.enc/Atto.msg preservati. |
+| Verifica offline busta equivalente al caso reale | OK tecnico offline | `Atto.msg` generata con root firmata `Ricorso`; `Ricorso.pdf` e `Procura.PDF` come parti `application/pkcs7-mime`; tutti gli allegati PDF/EML e `IndiceDocumentiDepositati.PDF` richiamati da `IndiceBusta` interno tramite `Content-ID`. Non è una prova reale PST. |
+
 ## Riallineamento security map e CodeQL dopo standard date/importi - 2026-06-28
 
 | Comando / verifica | Esito | Note |

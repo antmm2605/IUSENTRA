@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from pct.busta import (
+    BustaTelematica,
     DATI_ATTO_FILENAME,
     DATI_ATTO_FIRMATO_FILENAME,
     INDICE_BUSTA_FILENAME,
@@ -18,8 +19,15 @@ from web.services.local_pec_runtime import LOCAL_SIGNER_BASE_URL
 
 def documenti_busta_nomi(atto_path: str, allegati_busta: list[Any]) -> list[str]:
     """Return the technical and operational filenames expected inside Atto.msg."""
-    nomi = [INDICE_BUSTA_FILENAME, DATI_ATTO_FIRMATO_FILENAME, Path(atto_path).name]
-    nomi.extend(Path(str(getattr(allegato, "percorso", ""))).name for allegato in allegati_busta)
+    nomi = [
+        INDICE_BUSTA_FILENAME,
+        DATI_ATTO_FIRMATO_FILENAME,
+        BustaTelematica.nome_file_ministeriale(Path(atto_path).name),
+    ]
+    nomi.extend(
+        BustaTelematica.nome_file_ministeriale(Path(str(getattr(allegato, "percorso", ""))).name)
+        for allegato in allegati_busta
+    )
     nomi.append(INDICE_DOCUMENTI_FILENAME)
     return [nome for nome in nomi if nome]
 

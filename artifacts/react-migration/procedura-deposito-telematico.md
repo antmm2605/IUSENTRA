@@ -3056,6 +3056,18 @@ Aggiornamento governance CI 2026-06-29:
 - sono stati ripetuti compilazione Python, test busta, test deposito mirati, dry-run audit e UTF-8;
 - stato operativo invariato: non verificato su macchina reale dopo questo refactor e nessun nuovo invio PST reale va eseguito finché la produzione aggiornata non supera il controllo completo della busta generata.
 
+Aggiornamento produzione fascicolo `795C50AC` 2026-06-29:
+
+- controllo read-only su Hetzner, tenant `studio-legale-giuseppe-montagnese`, fascicolo `Marchetti c. MIM`;
+- selezione reale: atto principale `431E29A1 Ricorso.pdf.p7m` e 12 allegati fisici presenti su disco;
+- dato bloccante rilevato prima del PIN: il cliente `FDA63E4F` aveva CAP residenza vuoto nel `dati_json` SQL; il CAP è stato corretto a `36100` con indirizzo completo `Strada di Saviabona 256, 36100 Vicenza (VI)`, allineando anche il mirror JSON tenant-aware;
+- verifica fonte CAP: OCR/documenti del fascicolo indicano residenza a Vicenza in Strada di Saviabona 256; fonti pubbliche CAP confermano `36100 Vicenza VI`;
+- audit strutturale busta su produzione: `BUSTA_AUDIT_OK`, `Atto.msg` con 16 parti, `DatiAtto` root `Ricorso`, `IndiceBusta` interno presente, `AnagraficaProcedimento` presente, 14 riferimenti interni tutti risolti;
+- nomi ministeriali confermati: `Ricorso.pdf` e `Procura.PDF` come parti CAdES `application/pkcs7-mime`, senza nomi logici `Ricorso.pdf.p7m` o `Procura.PDF.p7m`;
+- `IndiceDocumentiDepositati.PDF`, `IndiceBusta.xml`, `DatiAtto.xml.p7m` e tutti i documenti del fascicolo selezionato risultano inclusi e referenziati;
+- audit tecnico: `busta_verifica_valida=true`, `atto_msg_indice_busta_valid=true`, `atto_enc_cms_valid=true`, `dati_atto_signed=true`, `issues=[]`;
+- limite residuo: non è ancora invio PST reale post-fix; prossimo passo operativo ammesso è firma reale del `DatiAtto.xml` con PIN utente, poi prova senza invio/Local Signer e solo dopo invio reale tracciato.
+
 - `python -m py_compile pct\busta.py web\bootstrap\deposito_routes.py web\services\deposito_signature_runtime.py tests\test_busta.py tests\test_deposito.py` -> OK;
 - `python -m pytest tests\test_busta.py -q --tb=short` -> `20 passed`;
 - `python -m pytest tests\test_deposito.py -q --tb=short -k "dati_atto or busta or local_pec or invia_pec or indice"` -> `11 passed`;

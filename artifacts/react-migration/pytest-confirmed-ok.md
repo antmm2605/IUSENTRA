@@ -6061,6 +6061,16 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `4/4` passati dopo refactor. |
 | `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | UTF-8 `4/4`; diff check senza errori, solo warning Git CRLF/LF non bloccante su `deposito_routes.py`. |
 
+## Deposito PCT produzione fascicolo 795C50AC - 2026-06-29
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Check tenant Hetzner `studio-legale-giuseppe-montagnese`, fascicolo `795C50AC` | OK | Fascicolo `Marchetti c. MIM` caricato da path tenant-aware; 13 documenti fisici presenti. |
+| Riparazione dati cliente `FDA63E4F` | OK | CAP residenza mancante corretto a `36100`; record SQL `dati_json` e mirror JSON tenant-aware allineati con `Strada di Saviabona 256, 36100 Vicenza (VI)`. |
+| Audit strutturale busta produzione senza invio reale | OK | `BUSTA_AUDIT_OK`: `Atto.msg` 16 parti, `DatiAtto` root `Ricorso`, `IndiceBusta` interno, `AnagraficaProcedimento`, 14 riferimenti risolti, `issues=[]`. |
+| Nomi ministeriali documenti CAdES | OK | `Ricorso.pdf` e `Procura.PDF` presenti come nomi logici; `Ricorso.pdf.p7m` e `Procura.PDF.p7m` assenti dai nomi logici. |
+| Audit tecnico Atto.enc | OK | `busta_verifica_valida=true`, `atto_msg_indice_busta_valid=true`, `atto_enc_cms_valid=true`, `dati_atto_signed=true`. |
+
 ## Riallineamento security map e CodeQL dopo standard date/importi - 2026-06-28
 
 | Comando / verifica | Esito | Note |

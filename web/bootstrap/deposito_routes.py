@@ -695,7 +695,7 @@ def register_deposito_routes(
             anno_rg=anno_rg,
             tribunale=fascicolo.tribunale or "",
         )
-        documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta)
+        documenti_busta = _documenti_busta_nomi(atto_path, allegati_busta, include_indice_busta=True)
         corpo_pec = resolve_deposito_pec_body(form.get("corpo_pec", ""), documenti_busta)
         dati_atto_firmato, signature_payload = _dati_atto_signature_gate(
             form,

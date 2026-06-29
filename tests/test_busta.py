@@ -75,6 +75,19 @@ def _atto_msg_attachments(busta_path: str | Path) -> dict[str, bytes]:
     return attachments
 
 
+def _atto_msg_named_parts(busta_path: str | Path) -> dict[str, object]:
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+    parts = {}
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = Path(part.get_filename() or part.get_param("name", header="Content-Type") or "").name
+        if filename:
+            parts[filename] = part
+    return parts
+
+
 def _cades_signed_payload(payload: bytes) -> bytes:
     from datetime import UTC, datetime, timedelta
 
@@ -210,6 +223,37 @@ def test_atto_msg_usa_mime_file_parts_compatibili_con_parser_pst(dati_busta, tmp
     assert etree.fromstring(indice_part.get_payload(decode=True)).tag == "IndiceBusta"
 
 
+def test_indice_busta_esterno_usa_content_id_mime_per_tutte_le_parti(dati_busta, tmp_path):
+    """La simulazione deve verificare lo stesso contratto Nome/ID che il PST controlla su Atto.msg."""
+    from lxml import etree
+
+    procura = tmp_path / "procura alle liti.pdf"
+    procura.write_bytes(b"%PDF-1.4\n%%EOF")
+    dati_busta.allegati = [Allegato(str(procura), "Procura alle liti", "PROCURA")]
+
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path / "out"))
+    parts = _atto_msg_named_parts(busta_path)
+    root = etree.fromstring(parts[INDICE_BUSTA_FILENAME].get_payload(decode=True))
+
+    indexed_ids = {}
+    atto = root.find("Atto")
+    assert atto is not None
+    indexed_ids[str(atto.get("Nome") or "")] = str(atto.get("ID") or "")
+    for node in root.findall("Allegato"):
+        indexed_ids[str(node.get("Nome") or "")] = str(node.get("ID") or "")
+
+    mime_ids = {
+        name: str(part.get("Content-ID") or "").strip("<> ")
+        for name, part in parts.items()
+        if name != INDICE_BUSTA_FILENAME
+    }
+    assert indexed_ids == mime_ids
+    assert DATI_ATTO_FILENAME in indexed_ids
+    assert INDICE_DOCUMENTI_FILENAME in indexed_ids
+    assert "procura alle liti.pdf" in indexed_ids
+
+
 def test_atto_msg_tratta_eml_come_file_opaco_senza_parti_annidate(dati_busta, tmp_path):
     """Le ricevute PEC .eml nella busta non devono diventare email annidate dentro Atto.msg."""
     eml_path = tmp_path / "ricevuta deposito.eml"
@@ -264,28 +308,33 @@ def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_pat
     attachments = _atto_msg_attachments(busta_path)
     assert DATI_ATTO_FIRMATO_FILENAME in attachments
     assert DATI_ATTO_FILENAME not in attachments
+    assert INDICE_BUSTA_FILENAME in attachments
+    indice_root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
+    assert indice_root.tag == "IndiceBusta"
+    assert indice_root.find("Atto") is not None
+    dati_nodes = [node for node in indice_root.findall("Allegato") if node.get("Tipo") == "DA"]
+    assert len(dati_nodes) == 1
+    assert dati_nodes[0].get("Nome") == DATI_ATTO_FIRMATO_FILENAME
     assert estrai_contenuto_cades(attachments[DATI_ATTO_FIRMATO_FILENAME]) == dati_atto_xml
     signed_root = etree.fromstring(dati_atto_xml)
     assert etree.QName(signed_root).localname == "Ricorso"
     assert signed_root.xpath("//*[local-name()='IndiceBusta']/*[local-name()='AttoPrincipale']")
     assert signed_root.xpath("//*[local-name()='AnagraficaProcedimento']")
-    root = etree.fromstring(attachments[INDICE_BUSTA_FILENAME])
-    dati = [node for node in root.findall("Allegato") if node.get("Tipo") == "DA"]
-    assert dati[0].get("Nome") == DATI_ATTO_FIRMATO_FILENAME
     audit = busta.audit_conformita_pst()
     assert audit["dati_atto_signed"] is True
+    assert audit["indice_busta_mode"] == "indice_busta_xml"
+    assert audit["indice_busta_external_included"] is True
     assert not any(issue["code"] == "DATI-ATTO-SIGNATURE-MISSING" for issue in audit["issues"])
     assert audit["atto_msg_indice_busta_valid"] is True
     assert audit["busta_verifica_valida"] is True
     assert audit["atto_enc_cms_valid"] is True
     assert audit["atto_enc_sha256"]
-    assert audit["indice_busta_atto_filename"] == "atto.pdf"
     assert audit["indice_busta_dati_atto_filename"] == DATI_ATTO_FIRMATO_FILENAME
     assert audit["formal_checks"]["T002"]["status"] == "ok"
 
 
-def test_busta_reale_usa_nomi_logici_per_documenti_cades(tmp_path):
-    """I documenti CAdES restano pkcs7-mime, ma in busta hanno nome logico senza .p7m."""
+def test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg(tmp_path):
+    """I documenti CAdES devono restare in Atto.msg con il nome fisico .p7m."""
     from lxml import etree
 
     ricorso = tmp_path / "Ricorso.pdf.p7m"
@@ -319,12 +368,22 @@ def test_busta_reale_usa_nomi_logici_per_documenti_cades(tmp_path):
         for part in message.walk()
         if not part.is_multipart()
     }
-    assert "Ricorso.pdf" in parts
-    assert "Ricorso.pdf.p7m" not in parts
-    assert "Procura.PDF" in parts
-    assert "Procura.PDF.p7m" not in parts
-    assert parts["Ricorso.pdf"].get_content_type() == "application/pkcs7-mime"
-    assert parts["Procura.PDF"].get_content_type() == "application/pkcs7-mime"
+    assert INDICE_BUSTA_FILENAME in parts
+    assert "Ricorso.pdf.p7m" in parts
+    assert "Ricorso.pdf" not in parts
+    assert "Procura.PDF.p7m" in parts
+    assert "Procura.PDF" not in parts
+    assert parts["Ricorso.pdf.p7m"].get_content_type() == "application/pkcs7-mime"
+    assert parts["Procura.PDF.p7m"].get_content_type() == "application/pkcs7-mime"
+
+    indice_root = etree.fromstring(parts[INDICE_BUSTA_FILENAME].get_payload(decode=True))
+    assert indice_root.find("Atto").get("Nome") == "Ricorso.pdf.p7m"
+    indexed_names = {
+        str(node.get("Nome") or "")
+        for node in [indice_root.find("Atto"), *indice_root.findall("Allegato")]
+        if node is not None
+    }
+    assert {"Ricorso.pdf.p7m", "Procura.PDF.p7m", INDICE_DOCUMENTI_FILENAME, DATI_ATTO_FIRMATO_FILENAME} <= indexed_names
 
     id_to_name = {str(part.get("Content-ID") or "").strip("<> "): name for name, part in parts.items()}
     signed_root = etree.fromstring(dati_atto_xml)
@@ -332,20 +391,23 @@ def test_busta_reale_usa_nomi_logici_per_documenti_cades(tmp_path):
         id_to_name[str(node.get("id") or "")]
         for node in signed_root.xpath("//*[local-name()='IndiceBusta']/*")
     }
-    assert {"Ricorso.pdf", "Procura.PDF", INDICE_DOCUMENTI_FILENAME} <= referenced_names
+    assert {"Ricorso.pdf.p7m", "Procura.PDF.p7m", INDICE_DOCUMENTI_FILENAME} <= referenced_names
 
 
-def test_busta_reale_blocca_dati_atto_firmato_senza_indice_interno(dati_busta, tmp_path):
+def test_busta_reale_accetta_dati_atto_firmato_con_indice_busta_xml(dati_busta, tmp_path):
     dati_busta.tipo_atto = "RICORSO"
     busta = BustaTelematica(dati_busta)
     dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
 
-    with pytest.raises(ValueError, match="IndiceBusta ministeriale interno"):
-        busta.crea_busta(
-            str(tmp_path),
-            dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
-            require_dati_atto_firmato=True,
-        )
+    busta_path = busta.crea_busta(
+        str(tmp_path),
+        dati_atto_firmato=_cades_signed_payload(dati_atto_xml),
+        require_dati_atto_firmato=True,
+    )
+
+    attachments = _atto_msg_attachments(busta_path)
+    assert INDICE_BUSTA_FILENAME in attachments
+    assert DATI_ATTO_FIRMATO_FILENAME in attachments
 
 
 def test_dati_atto_per_firma_e_deterministico_con_stessa_busta(dati_busta):
@@ -430,6 +492,25 @@ def test_busta_blocca_indice_busta_non_coerente_con_atto_msg(dati_busta, tmp_pat
     monkeypatch.setattr(busta, "_crea_indice_busta_xml", indice_corrotto)
 
     with pytest.raises(ValueError, match="IndiceBusta.xml"):
+        busta.crea_busta(str(tmp_path))
+
+
+def test_busta_blocca_indice_busta_con_id_diversi_dai_content_id(dati_busta, tmp_path, monkeypatch):
+    """Simula invio PEC non deve dichiarare 100% se IndiceBusta.xml usa ID non presenti nel MIME."""
+    from lxml import etree
+
+    busta = BustaTelematica(dati_busta)
+    originale = busta._crea_indice_busta_xml
+
+    def indice_con_id_corrotto(*args, **kwargs):
+        root = etree.fromstring(originale(*args, **kwargs))
+        dati = next(node for node in root.findall("Allegato") if node.get("Tipo") == "DA")
+        dati.set("ID", "ALLEGATO_1_DatiAtto_xml_p7m")
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+    monkeypatch.setattr(busta, "_crea_indice_busta_xml", indice_con_id_corrotto)
+
+    with pytest.raises(ValueError, match="Content-ID MIME"):
         busta.crea_busta(str(tmp_path))
 
 

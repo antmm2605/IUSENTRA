@@ -36,6 +36,7 @@ def _verified_audit(payload: bytes) -> dict[str, object]:
         "dati_atto_filename": "DatiAtto.xml.p7m",
         "indice_busta_generated": True,
         "atto_msg_indice_busta_valid": True,
+        "indice_busta_mime_contract_ok": True,
         "busta_verifica_valida": True,
         "atto_enc_sha256": hashlib.sha256(payload).hexdigest().upper(),
     }

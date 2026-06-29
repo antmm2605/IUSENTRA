@@ -99,14 +99,7 @@ def _anagrafica_procedimento_deposito_xml(
     cliente_cap = str(getattr(indirizzo_cliente, "cap", "") or "").strip()
     cliente_localita = str(getattr(indirizzo_cliente, "comune", "") or "").strip()
     cliente_provincia = str(getattr(indirizzo_cliente, "provincia", "") or "").strip().upper()
-    for label, value in (
-        ("indirizzo cliente", cliente_via),
-        ("CAP cliente", cliente_cap),
-        ("comune cliente", cliente_localita),
-        ("provincia cliente", cliente_provincia),
-    ):
-        if not value:
-            missing.append(label)
+    # L'indirizzo del cliente completa l'anagrafica, ma non deve fermare il deposito.
 
     controparte_nome = str(getattr(fascicolo, "controparte", "") or "").strip()
     controparte_cf = _clean_cf(getattr(fascicolo, "cf_controparte", "") or "")
@@ -137,13 +130,7 @@ def _anagrafica_procedimento_deposito_xml(
     studio_via = str(getattr(studio_cfg, "indirizzo", "") or "").strip()
     studio_city = str(getattr(studio_cfg, "city", "") or "").strip()
     studio_province = str(getattr(studio_cfg, "province", "") or "").strip().upper()
-    for label, value in (
-        ("indirizzo studio", studio_via),
-        ("comune studio", studio_city),
-        ("provincia studio", studio_province),
-    ):
-        if not value:
-            missing.append(label)
+    # Anche l'indirizzo dello studio e' informativo: non blocca la busta.
     if missing:
         raise ValueError("Dati anagrafici ministeriali mancanti: " + ", ".join(dict.fromkeys(missing)))
 

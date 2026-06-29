@@ -1513,6 +1513,7 @@ def test_deposito_invia_pec_simula_invio_senza_spedire_quando_busta_conforme(tmp
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -1646,6 +1647,7 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -1772,11 +1774,9 @@ def test_deposito_invia_pec_reale_payload_local_signer_base64_e_corpo_finale(tmp
     assert attachment["filename"] == "Atto.enc"
     assert attachment["ministerial_busta_verified"] is True
     assert is_atto_enc_cms_enveloped_data(base64.b64decode(attachment["content_base64"], validate=True))
-    assert "Ricorso.pdf" in payload["corpo_pec"]
-    assert "Ricorso.pdf.p7m" not in payload["corpo_pec"]
+    assert "Ricorso.pdf.p7m" in payload["corpo_pec"]
     assert "Autocertificazione ricorso_63ee.PDF" in payload["corpo_pec"]
-    assert "Procura.PDF" in payload["corpo_pec"]
-    assert "Procura.PDF.p7m" not in payload["corpo_pec"]
+    assert "Procura.PDF.p7m" in payload["corpo_pec"]
     assert "Autocertificazione ricorso.PDF" not in payload["corpo_pec"]
     corpo_check = next(item for item in payload["compatibility_report"]["checks"] if item["code"] == "CORPO_PEC")
     assert corpo_check["status"] == "ok"
@@ -2001,6 +2001,7 @@ def test_deposito_invia_pec_prova_senza_invio_non_restituisce_conflitto_http(tmp
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2135,6 +2136,7 @@ def test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_se
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2268,6 +2270,7 @@ def test_deposito_legacy_invia_richiede_sempre_local_signer_anche_con_smtp_serve
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,
@@ -2394,6 +2397,7 @@ def test_deposito_invia_pec_prova_senza_invio_mostra_preview_anche_senza_pec_mit
             "atto_enc_cms_valid": True,
             "busta_verifica_valida": True,
             "atto_msg_indice_busta_valid": True,
+            "indice_busta_mime_contract_ok": True,
             "dati_atto_signed": True,
             "dati_atto_filename": "DatiAtto.xml.p7m",
             "indice_busta_generated": True,

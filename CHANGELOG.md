@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.136 - 2026-06-29
+
+- Deposito PCT reale: corretto il falso-verde della simulazione PEC dopo l'esito PST `IDBUSTA 152644507` (`Indice busta non trovato`).
+- La busta PCT genera sempre `IndiceBusta.xml` come parte MIME fisica di `Atto.msg`, oltre a `DatiAtto.xml.p7m`, `IndiceDocumentiDepositati.PDF`, atto principale e allegati.
+- L'indice busta ora usa i nomi fisici effettivi dei documenti firmati CAdES, inclusi `Ricorso.pdf.p7m` e `Procura.PDF.p7m`, e verifica ogni `Nome`/`ID` contro il `Content-ID` MIME.
+- La simulazione al 100% richiede `IndiceBusta.xml` esterno e non accetta più il solo indice interno nel `DatiAtto.xml.p7m`.
+- Produzione Hetzner: hotfix distribuito su container unico `iusentra-app`, `/api/pronto` verificato e cache build Docker pulita.
+
 ## 2.253.135 - 2026-06-28
 
 - Standardizzazione visibile date/orari: introdotta la regola permanente per mostrare UI, PDF, PEC, email, audit e report in formato italiano con fuso `Europe/Rome`, lasciando UTC/ISO raw solo nei tracciati tecnici.

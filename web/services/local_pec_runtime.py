@@ -68,13 +68,14 @@ def build_local_pec_payload(
             and audit.get("dati_atto_signed") is True
             and audit.get("dati_atto_filename") == "DatiAtto.xml.p7m"
             and audit.get("indice_busta_generated") is True
+            and audit.get("indice_busta_mime_contract_ok") is True
             and audit.get("atto_msg_indice_busta_valid") is True
             and audit.get("busta_verifica_valida") is True
         )
         if not required_ok:
             raise ValueError(
                 "Allegato Atto.enc non conforme: manca la verifica ministeriale completa di Atto.msg, "
-                "IndiceBusta.xml e DatiAtto.xml.p7m firmato."
+                "indice busta ministeriale e DatiAtto.xml.p7m firmato."
             )
         if expected_sha256 and expected_sha256 != actual_sha256:
             raise ValueError(

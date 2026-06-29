@@ -1,5 +1,6 @@
 from email.message import EmailMessage
 from pathlib import Path
+import zipfile
 
 from pct.busta import Allegato, BustaTelematica, DatiBusta, INDICE_DOCUMENTI_FILENAME
 from web.services.deposito_route_helpers import guided_transport_completion_response
@@ -26,6 +27,10 @@ def _eml_with_attachments(path: Path, attachments: dict[str, bytes]) -> Path:
         message.add_attachment(payload, maintype=maintype, subtype=subtype, filename=name)
     path.write_bytes(message.as_bytes())
     return path
+
+
+def _anagrafica_ministeriale_minima() -> bytes:
+    return b'<AnagraficaProcedimento xmlns="http://schemi.processotelematico.giustizia.it/tipi/atti/v6"/>'
 
 
 def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invio_reale(tmp_path):
@@ -66,6 +71,61 @@ def test_audit_dry_run_confronta_busta_con_copia_non_crittografata_e_blocca_invi
     assert "DATI_ATTO_UNSIGNED" in codes
     assert "ATTO_ENC_AES256_MISSING" not in codes
 
+
+def test_audit_dry_run_richiede_indice_busta_xml_esterno(tmp_path):
+    atto = _pdf(tmp_path / "Ricorso.pdf", b"atto principale")
+    allegato = _pdf(tmp_path / "Documento.pdf", b"allegato")
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="RG",
+        oggetto="222050",
+        tipo_atto="RICORSO",
+        atto_principale=str(atto),
+        allegati=[Allegato(percorso=str(allegato), descrizione="Documento", tipo="ALLEGATO")],
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_minima(),
+    )
+    package = Path(BustaTelematica(dati).crea_busta(str(tmp_path / "out")))
+    evidence_copy = _eml_with_attachments(
+        tmp_path / "copia-non-crittografata.eml",
+        {
+            "DatiAtto.xml": b"<DatiAtto/>",
+            INDICE_DOCUMENTI_FILENAME: b"%PDF-1.4\nindice\n%%EOF",
+        },
+    )
+
+    report = audit_deposito_package(package, [evidence_copy])
+
+    assert report["ok_control_package"] is True
+    assert report["generated"]["has_indice_busta_xml"] is True
+    assert report["generated"]["indice_busta_mode"] == "interno_dati_atto"
+    codes = {item["code"] for item in report["comparison"]["differences"]}
+    assert "INDICE_BUSTA_MISSING" not in codes
+    assert "INDICE_BUSTA_INTERNAL_AND_XML" in codes
+
+
+def test_audit_dry_run_avvisa_indice_interno_con_xml_esterno_senza_bloccare(tmp_path):
+    package = tmp_path / "busta.zip"
+    dati_atto = b"""<?xml version="1.0" encoding="UTF-8"?>
+<Ricorso xmlns="http://schemi.processotelematico.giustizia.it/tipi/introduzione/v2">
+  <IndiceBusta xmlns="http://schemi.processotelematico.giustizia.it/tipi/atti/v6"/>
+</Ricorso>
+"""
+    with zipfile.ZipFile(package, "w") as zf:
+        zf.writestr("DatiAtto.xml", dati_atto)
+        zf.writestr("IndiceBusta.xml", b"<IndiceBusta/>")
+        zf.writestr(INDICE_DOCUMENTI_FILENAME, b"%PDF-1.4\nindice\n%%EOF")
+    evidence_copy = _eml_with_attachments(
+        tmp_path / "copia.eml",
+        {
+            "DatiAtto.xml": dati_atto,
+            INDICE_DOCUMENTI_FILENAME: b"%PDF-1.4\nindice\n%%EOF",
+        },
+    )
+
+    report = audit_deposito_package(package, [evidence_copy])
+    assert report["ok_control_package"] is True
+    codes = {item["code"]: item["level"] for item in report["comparison"]["differences"]}
+    assert codes["INDICE_BUSTA_INTERNAL_AND_XML"] == "warning"
 
 def test_cli_audit_dry_run_strict_real_transport_esce_con_blocco(tmp_path, capsys):
     atto = _pdf(tmp_path / "Atto.PDF")

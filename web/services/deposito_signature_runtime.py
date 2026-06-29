@@ -17,13 +17,16 @@ from pct.firma import busta_cades_valida, estrai_contenuto_cades
 from web.services.local_pec_runtime import LOCAL_SIGNER_BASE_URL
 
 
-def documenti_busta_nomi(atto_path: str, allegati_busta: list[Any]) -> list[str]:
+def documenti_busta_nomi(
+    atto_path: str,
+    allegati_busta: list[Any],
+    *,
+    include_indice_busta: bool = True,
+) -> list[str]:
     """Return the technical and operational filenames expected inside Atto.msg."""
-    nomi = [
-        INDICE_BUSTA_FILENAME,
-        DATI_ATTO_FIRMATO_FILENAME,
-        BustaTelematica.nome_file_ministeriale(Path(atto_path).name),
-    ]
+    nomi = [DATI_ATTO_FIRMATO_FILENAME, BustaTelematica.nome_file_ministeriale(Path(atto_path).name)]
+    if include_indice_busta:
+        nomi.insert(0, INDICE_BUSTA_FILENAME)
     nomi.extend(
         BustaTelematica.nome_file_ministeriale(Path(str(getattr(allegato, "percorso", ""))).name)
         for allegato in allegati_busta
@@ -107,7 +110,7 @@ def dati_atto_signature_gate(
         ),
         "next_actions": [
             "Firma DatiAtto.xml con Local Signer.",
-            "Rigenera Atto.msg con IndiceBusta.xml e DatiAtto.xml.p7m.",
+            "Rigenera Atto.msg con indice ministeriale coerente e DatiAtto.xml.p7m.",
             "Cifra Atto.msg in Atto.enc AES256 prima della PEC reale.",
         ],
         "local_signature": {

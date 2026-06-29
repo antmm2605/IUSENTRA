@@ -18,6 +18,7 @@ import zipfile
 from xml.etree import ElementTree as ET
 
 from pct.atto_enc_validation import is_atto_enc_cms_enveloped_data
+from pct.firma import estrai_contenuto_cades
 
 
 INDICE_DOCUMENTI_FILENAME = "IndiceDocumentiDepositati.PDF"
@@ -83,6 +84,17 @@ def _parse_xml_document_names(xml_bytes: bytes) -> list[str]:
     return names
 
 
+def _xml_has_indice_busta(xml_bytes: bytes) -> bool:
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError:
+        return False
+    for element in root.iter():
+        if str(element.tag).split("}")[-1] == "IndiceBusta":
+            return True
+    return False
+
+
 def inspect_generated_package(package_path: Path) -> dict[str, object]:
     if not package_path.exists():
         raise FileNotFoundError(str(package_path))
@@ -99,7 +111,9 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
         "document_names_from_xml": [],
         "has_dati_atto_xml": False,
         "has_dati_atto_signed": False,
+        "has_indice_busta_internal": False,
         "has_indice_busta_xml": False,
+        "indice_busta_mode": "",
         "has_indice_documenti": False,
         "has_atto_enc_inside": False,
         "atto_enc_cms_enveloped_data": False,
@@ -115,7 +129,17 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
             result["has_indice_documenti"] = INDICE_DOCUMENTI_FILENAME in names
             result["has_atto_enc_inside"] = any(Path(name).name.lower() == "atto.enc" for name in names)
             if "DatiAtto.xml" in names:
-                result["document_names_from_xml"] = _parse_xml_document_names(zf.read("DatiAtto.xml"))
+                dati_atto = zf.read("DatiAtto.xml")
+                result["document_names_from_xml"] = _parse_xml_document_names(dati_atto)
+                result["has_indice_busta_internal"] = _xml_has_indice_busta(dati_atto)
+            signed_name = next((name for name in names if name.lower() == "datiatto.xml.p7m"), "")
+            if signed_name:
+                try:
+                    dati_atto_signed = estrai_contenuto_cades(zf.read(signed_name))
+                    result["document_names_from_xml"] = _parse_xml_document_names(dati_atto_signed)
+                    result["has_indice_busta_internal"] = _xml_has_indice_busta(dati_atto_signed)
+                except Exception as exc:
+                    result["dati_atto_signed_error"] = str(exc)
     except zipfile.BadZipFile:
         result["is_zip_package"] = False
         atto_msg_path = package_path.with_name("Atto.msg")
@@ -137,7 +161,24 @@ def inspect_generated_package(package_path: Path) -> dict[str, object]:
                 result["is_atto_enc"] and is_atto_enc_cms_enveloped_data(package_bytes)
             )
             if "DatiAtto.xml" in attachments:
-                result["document_names_from_xml"] = _parse_xml_document_names(attachments["DatiAtto.xml"])
+                dati_atto = attachments["DatiAtto.xml"]
+                result["document_names_from_xml"] = _parse_xml_document_names(dati_atto)
+                result["has_indice_busta_internal"] = _xml_has_indice_busta(dati_atto)
+            signed_payload = next(
+                (content for name, content in attachments.items() if name.lower() == "datiatto.xml.p7m"),
+                b"",
+            )
+            if signed_payload:
+                try:
+                    dati_atto_signed = estrai_contenuto_cades(signed_payload)
+                    result["document_names_from_xml"] = _parse_xml_document_names(dati_atto_signed)
+                    result["has_indice_busta_internal"] = _xml_has_indice_busta(dati_atto_signed)
+                except Exception as exc:
+                    result["dati_atto_signed_error"] = str(exc)
+    if result["has_indice_busta_internal"]:
+        result["indice_busta_mode"] = "interno_dati_atto"
+    elif result["has_indice_busta_xml"]:
+        result["indice_busta_mode"] = "indice_busta_xml"
     return result
 
 
@@ -204,9 +245,10 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     entries = list(generated.get("entries") or [])
     generated_names = {Path(str(name)).name.lower() for name in entries}
 
+    indice_ok = bool(generated.get("has_indice_busta_xml"))
     control_matches = bool(
         (generated.get("has_dati_atto_xml") or generated.get("has_dati_atto_signed"))
-        and generated.get("has_indice_busta_xml")
+        and indice_ok
         and generated.get("has_indice_documenti")
         and evidence.get("has_copy_dati_atto")
         and evidence.get("has_copy_indice")
@@ -240,19 +282,28 @@ def audit_deposito_package(package_path: Path, evidence_paths: list[Path]) -> di
     if INDICE_DOCUMENTI_FILENAME.lower() not in generated_names:
         differences.append(
             {
-                "level": "block_control",
+                "level": "warning",
                 "code": "INDICE_MISSING",
                 "message": "IndiceDocumentiDepositati.PDF non presente nel pacchetto generato.",
                 "action": "Rigenerare la busta includendo l'indice documenti.",
             }
         )
-    if INDICE_BUSTA_FILENAME.lower() not in generated_names:
+    if not indice_ok:
         differences.append(
             {
                 "level": "block_control",
-                "code": "INDICE_BUSTA_XML_MISSING",
-                "message": "IndiceBusta.xml ministeriale non presente nel pacchetto generato.",
-                "action": "Rigenerare Atto.msg includendo IndiceBusta.xml prima della cifratura in Atto.enc.",
+                "code": "INDICE_BUSTA_MISSING",
+                "message": "IndiceBusta.xml non presente nel pacchetto generato: il PST reale restituisce 'Indice busta non trovato'.",
+                "action": "Rigenerare Atto.msg includendo IndiceBusta.xml come parte MIME nominata prima della cifratura in Atto.enc.",
+            }
+        )
+    if generated.get("has_indice_busta_internal") and INDICE_BUSTA_FILENAME.lower() in generated_names:
+        differences.append(
+            {
+                "level": "warning",
+                "code": "INDICE_BUSTA_INTERNAL_AND_XML",
+                "message": "Il pacchetto contiene anche un riferimento IndiceBusta nel DatiAtto, ma IndiceBusta.xml esterno è presente.",
+                "action": "Per il deposito reale il controllo bloccante resta IndiceBusta.xml in Atto.msg con nomi e Content-ID coerenti.",
             }
         )
 

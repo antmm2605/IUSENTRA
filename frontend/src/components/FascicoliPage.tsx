@@ -4580,10 +4580,10 @@ function DepositBatchSignaturePanel({
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
   const selectedWindowsCertificate = localSignerWindowsCertificate(localSigner)
-  const displayToken = primaryToken || (selectedWindowsCertificate ? undefined : freshToken)
-  const signerRestartRequired = Boolean(!selectedWindowsCertificate && freshToken && !primaryToken)
-  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const restartSuggested = localSignerNeedsRestart(localSigner)
+  const displayToken = primaryToken || (restartSuggested ? freshToken : selectedWindowsCertificate ? undefined : freshToken)
+  const signerRestartRequired = Boolean(restartSuggested && freshToken && !primaryToken)
+  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
@@ -4793,16 +4793,20 @@ function DepositBatchSignaturePanel({
 
   if (!documents.length) return null
 
-  const signerTitle = selectedWindowsCertificate
+  const signerTitle = restartSuggested
+    ? 'Token rilevato, riallineamento automatico'
+    : selectedWindowsCertificate
     ? 'Local Signer pronto con certificato Windows'
     : displayToken
-    ? (restartSuggested ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer pronto')
+    ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer pronto')
     : localSignerReachable
       ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
-  const signerDetail = selectedWindowsCertificate
+  const signerDetail = restartSuggested
+    ? localSigner?.nota_riavvio_signer || 'Il token e\' stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
+    : selectedWindowsCertificate
     ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
     : displayToken
     ? (localSignerOutdated
@@ -4820,7 +4824,7 @@ function DepositBatchSignaturePanel({
         <strong>{signerTitle}</strong>
         <span>{signerDetail}</span>
         {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
-        {selectedWindowsCertificate?.codice_fiscale ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
+        {selectedWindowsCertificate?.codice_fiscale && !restartSuggested ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
       </div>
       {restartSuggested || localSignerOutdated || !localSignerReachable ? (
@@ -6073,8 +6077,7 @@ function localSignerStatusOutdated(status?: LocalSignerStatus | null): boolean {
 }
 
 function localSignerNeedsRestart(status?: LocalSignerStatus | null): boolean {
-  const windowsCertificate = localSignerWindowsCertificate(status)
-  return Boolean(!windowsCertificate && ((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length)))
+  return Boolean((status?.token_probe_fresh?.length && !status?.token?.length) || (status?.riavvio_signer_consigliato && !status?.token?.length))
 }
 
 function localSignerStatusCanSign(status?: LocalSignerStatus | null): boolean {
@@ -6210,23 +6213,27 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
   const selectedWindowsCertificate = localSignerWindowsCertificate(localSigner)
-  const displayToken = primaryToken || (selectedWindowsCertificate ? undefined : freshToken)
-  const signerRestartRequired = Boolean(!selectedWindowsCertificate && freshToken && !primaryToken)
-  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const restartSuggested = localSignerNeedsRestart(localSigner)
+  const displayToken = primaryToken || (restartSuggested ? freshToken : selectedWindowsCertificate ? undefined : freshToken)
+  const signerRestartRequired = Boolean(restartSuggested && freshToken && !primaryToken)
+  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh || selectedWindowsCertificate))
   const localSignerOutdated = localSignerStatusOutdated(localSigner)
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const localSignerStatusTitle = selectedWindowsCertificate
+  const localSignerStatusTitle = restartSuggested
+    ? 'Token rilevato, riallineamento automatico'
+    : selectedWindowsCertificate
     ? 'Local Signer pronto con certificato Windows'
     : displayToken
-    ? (freshToken && !primaryToken ? 'Token rilevato, riallineamento automatico' : localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer rilevato')
+    ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer rilevato')
     : localSignerReachable
       ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token PKCS#11')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
-  const localSignerStatusMessage = selectedWindowsCertificate
+  const localSignerStatusMessage = restartSuggested
+    ? localSigner?.nota_riavvio_signer || 'Il token e\' stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
+    : selectedWindowsCertificate
     ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
     : displayToken
     ? (localSignerOutdated

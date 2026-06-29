@@ -185,7 +185,7 @@ def build_deposito_compatibility_report(
         detail=(
             "Atto.msg cifrato in Atto.enc con algoritmo AES256 e certificato PST."
             if real_enc
-            else "Atto.enc AES256 non risulta generato, verificato con IndiceBusta.xml o collegato alla busta controllata."
+            else "Atto.enc AES256 non risulta generato o collegato alla busta controllata."
         ),
         evidence=str(audit.get("content_encryption_algorithm") or file_info.get("cms_encryption_algorithm") or audit.get("transport_mode") or ""),
     )
@@ -203,13 +203,13 @@ def build_deposito_compatibility_report(
     _check(
         checks,
         code="INDICE_BUSTA_XML",
-        label="IndiceBusta.xml ministeriale",
+        label="IndiceBusta ministeriale",
         ok=has_indice_busta and audit_indice_busta and audit_indice_structure,
         weight=12,
         detail=(
             "IndiceBusta.xml ministeriale generato e incluso in Atto.msg."
             if has_indice_busta and audit_indice_busta and audit_indice_structure
-            else "IndiceBusta.xml ministeriale non risulta incluso: il PST può rifiutare la busta."
+            else "IndiceBusta ministeriale non risulta coerente: il PST può rifiutare la busta."
         ),
     )
 

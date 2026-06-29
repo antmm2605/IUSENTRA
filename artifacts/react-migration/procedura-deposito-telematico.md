@@ -3079,3 +3079,35 @@ Stato prova reale:
 - non verificato su macchina reale post-fix e non ancora provato con nuovo invio PST reale;
 - lavoro aperto fino a deploy sulla produzione Hetzner, controllo reale della pagina `https://app.iusentra.it/fascicoli/795C50AC/deposito/prepara`, prova senza invio, firma Local Signer con PIN dell'utente e solo dopo eventuale invio reale tracciato;
 - nessun nuovo invio reale va richiesto all'utente finché la busta generata dalla produzione aggiornata non supera il controllo offline completo su `Atto.msg`, `DatiAtto.xml.p7m`, nomi logici, `Content-ID`, `Atto.enc` e lista documenti.
+## Deposito PCT reale `795C50AC`: correzione IndiceBusta.xml esterno - 2026-06-29
+
+Rettifica operativa dopo nuovo esito PST reale:
+
+- `IDBUSTA 152631750`: `Indice busta non trovato`;
+- `IDBUSTA 152633714`: `Atto principale mancante`;
+- `IDBUSTA 152641015` e `152642074`: `Allegato indicato in indice busta non presente` e `Presenza di allegati non definiti in Indice Busta`;
+- `IDBUSTA 152644507`: `Indice busta non trovato`.
+
+Conclusione tecnica dai log reali: il PST non accetta la busta se `IndiceBusta.xml` manca come parte fisica di `Atto.msg`. Il solo indice interno nel `DatiAtto.xml.p7m` non è sufficiente per il trasporto reale osservato. La correzione definitiva deve quindi preservare entrambe le condizioni che i fallimenti hanno isolato:
+
+- `IndiceBusta.xml` deve essere incluso in `Atto.msg` come parte MIME nominata `text/xml`;
+- ogni `Nome` e `ID` di `IndiceBusta.xml` deve combaciare con i file fisici e con il `Content-ID` MIME effettivo, inclusi i nomi firmati CAdES `.p7m` (`Ricorso.pdf.p7m`, `Procura.PDF.p7m`).
+
+Correzione applicata:
+
+- `pct/busta.py`: disattivata la modalità solo indice interno; `usa_indice_busta_esterno()` torna sempre vero per il trasporto PCT reale;
+- `pct/busta.py`: `nome_file_ministeriale()` conserva il nome fisico reale e non rimuove più `.p7m`;
+- `pct/busta.py`: `IndiceBusta.xml` usa gli stessi `Content-ID` delle parti MIME e blocca la busta se l'indice richiama documenti assenti o non indicizza parti presenti;
+- `pct/deposito_compatibilita.py`: la simulazione PEC al 100% richiede `IndiceBusta.xml` nella lista documenti e nell'audit tecnico;
+- `web/bootstrap/deposito_routes.py`: la lista documenti busta include sempre `IndiceBusta.xml`;
+- `frontend/src/components/FascicoliPage.tsx`: il progresso visibile mostra `IndiceBusta.xml`, non più `IndiceBusta interno`;
+- `scripts/audit_deposito_server_dry_run.py`: il dry-run segnala come blocco l'assenza di `IndiceBusta.xml`; l'eventuale indice anche interno resta solo avviso non bloccante.
+
+Verifiche eseguite prima di riaprire il test all'utente:
+
+- `python -m py_compile pct\busta.py pct\deposito_compatibilita.py web\bootstrap\deposito_routes.py web\services\deposito_signature_runtime.py web\services\local_pec_runtime.py scripts\audit_deposito_server_dry_run.py` -> OK;
+- `python -m pytest tests\test_busta.py tests\test_deposito.py tests\test_deposito_server_dry_run_audit.py tests\test_local_pec_runtime.py tests\test_deposito_anagrafica_ministeriale.py tests\test_regia_ui_react.py -q --tb=short` -> `71 passed`;
+- verifica materiale locale su busta generata con `Ricorso.pdf.p7m` e `Procura.PDF.p7m`: parti MIME `IndiceBusta.xml`, `DatiAtto.xml.p7m`, atto, procura, allegato e `IndiceDocumentiDepositati.PDF`; `missing_in_mime=[]`, `missing_in_index=[]`, `id_mismatches=[]`, `audit_mode=indice_busta_xml`, `external=True`;
+- hotfix produzione Hetzner: copiati i file runtime, ricostruito `iusentra-app`, container unico healthy, `https://app.iusentra.it/api/pronto` OK alle `19:12:39` Europe/Rome, `docker builder prune --all --force` completato (`5.491GB`).
+
+Stato operativo: prima di qualunque nuovo invio reale, la simulazione visibile del fascicolo `795C50AC` deve mostrare `IndiceBusta.xml` tra i documenti indicati nel pacchetto, insieme a `DatiAtto.xml.p7m`, atto principale `.p7m`, procura `.p7m`, allegati e `IndiceDocumentiDepositati.PDF`. Se `IndiceBusta.xml` non compare nella simulazione, l'invio reale resta bloccato.

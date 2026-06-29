@@ -168,6 +168,7 @@ services:
       retries: 10
 
   app:
+    container_name: iusentra-app
     build:
       context: ../..
       dockerfile: Dockerfile

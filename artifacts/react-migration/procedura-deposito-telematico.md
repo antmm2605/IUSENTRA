@@ -3144,3 +3144,49 @@ Verifiche automatiche eseguite:
 - `python -m pytest tests\test_busta.py tests\test_deposito_server_dry_run_audit.py -q --tb=short` -> `32 passed`.
 
 Stato operativo: codice corretto a livello locale, ma non ancora verificato su macchina reale e non ancora deployato in produzione per questa tranche `2.253.137`. Prima di autorizzare un nuovo invio reale, la simulazione sul server deve mostrare un solo indice valido: `IndiceBusta.xml` esterno presente in `Atto.msg`, nessun `IndiceBusta` interno nel `DatiAtto.xml.p7m`, tipi allegato coerenti e nessun blocco `INDICE-BUSTA-AMBIGUO`, `INDICE-BUSTA-MIME-CONTRACT` o `INDICE-BUSTA-TIPI`.
+
+## Deposito PCT `795C50AC`: confronto tra `Indice busta non trovato` e `Atto principale mancante` - 2026-06-29
+
+Richiesta utente: ricostruire il passaggio in cui l'errore PST era passato da `Indice busta non trovato` a `Atto principale mancante` per capire come era stato risolto l'indice e applicare lo stesso metodo al controllo dell'atto principale, senza nuovi tentativi reali non presidiati.
+
+Esiti storici confrontati:
+
+- `IDBUSTA 152631750`: `Indice busta non trovato`;
+- `IDBUSTA 152633714`: `Atto principale mancante`;
+- `IDBUSTA 152647579`: `Indice busta ambiguo`.
+
+Conclusione tecnica del confronto:
+
+- `Indice busta non trovato` era causato dall'assenza o non riconoscibilità di `IndiceBusta.xml` come parte MIME fisica di `Atto.msg`;
+- `Atto principale mancante` era lo stadio successivo: il PST leggeva l'indice, ma il nodo `Atto` dell'indice non risolveva il file fisico dell'atto principale nella stessa busta;
+- la correzione determinante è stata rendere identici `Nome` e `ID` dell'`Atto` in `IndiceBusta.xml` al file e al `Content-ID` MIME realmente presenti in `Atto.msg`;
+- per il caso reale `795C50AC`, il nome da preservare è il nome fisico firmato `Ricorso.pdf.p7m`, non il nome logico senza estensione `.p7m`;
+- l'indice interno nel `DatiAtto.xml.p7m` non deve coesistere con `IndiceBusta.xml` esterno, perché il PST ha restituito `Indice busta ambiguo`.
+
+Verifica server temporanea senza invio PEC reale, eseguita dentro `iusentra-app` su file fisici del fascicolo `795C50AC`:
+
+- atto principale usato: `Ricorso.pdf.p7m`;
+- documenti selezionati inclusi atto principale: `13`;
+- `IndiceBusta.xml` presente in `Atto.msg`;
+- `DatiAtto.xml` presente nella prova strutturale non firmata;
+- `IndiceDocumentiDepositati.PDF` presente;
+- `DatiAtto.xml` senza `IndiceBusta` interno;
+- `Atto Nome="Ricorso.pdf.p7m"`;
+- `ID` dell'`Atto`: uguale al `Content-ID` MIME della parte `Ricorso.pdf.p7m`;
+- `indexed_not_mime=[]`;
+- `id_mismatches=[]`;
+- `indice_busta_mode=indice_busta_xml`;
+- `indice_busta_external_included=true`;
+- `indice_busta_mime_contract_ok=true`;
+- `indice_busta_tipi_ok=true`;
+- `indice_busta_ambiguous=false`;
+- `busta_verifica_valida=true`;
+- `atto_enc_cms_valid=true`;
+- `uses_real_encryption=true`.
+
+Test mirati rilanciati:
+
+- `python -m pytest tests\test_busta.py::test_busta_reale_mantiene_nomi_fisici_cades_in_atto_msg tests\test_busta.py::test_busta_blocca_indice_busta_non_coerente_con_atto_msg tests\test_busta.py::test_busta_blocca_indice_busta_con_id_diversi_dai_content_id tests\test_busta.py::test_busta_reale_blocca_indice_busta_ambiguo -q --tb=short` -> `4 passed`;
+- `python -m pytest tests\test_deposito_server_dry_run_audit.py::test_audit_dry_run_blocca_indice_interno_con_xml_esterno tests\test_deposito_server_dry_run_audit.py::test_audit_dry_run_blocca_ricevuta_telematica_senza_tipo_rt -q --tb=short` -> `2 passed`.
+
+Stato operativo: il confronto conferma che la soluzione per `Atto principale mancante` è già la stessa disciplina applicata a `IndiceBusta`: non basta che il nome appaia nella lista visibile, il controllo deve verificare `IndiceBusta.xml` contro le parti MIME reali. Per autorizzare un invio reale successivo, la simulazione deve mostrare e mantenere questi invarianti: `Atto Nome=Ricorso.pdf.p7m`, `Content-ID` uguale, nessun indice interno duplicato, nessun allegato indicizzato ma assente e nessun allegato presente ma non indicizzato.

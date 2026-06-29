@@ -218,15 +218,17 @@ class BustaTelematica:
         payloads: dict[str, bytes] = {}
         metadata: dict[str, dict] = {}
         unnamed_parts: list[str] = []
-        for part in message.walk():
-            if part.is_multipart():
-                continue
+        parts = message.iter_parts() if message.is_multipart() else [message]
+        for part in parts:
             filename = cls._atto_msg_filename(part)
             if not filename:
                 if part.get_payload(decode=True):
                     unnamed_parts.append(part.get_content_type())
                 continue
-            payloads[filename] = part.get_payload(decode=True) or b""
+            decoded_payload = part.get_payload(decode=True)
+            if decoded_payload is None and part.is_multipart():
+                decoded_payload = part.as_bytes(policy=policy.SMTP)
+            payloads[filename] = decoded_payload or b""
             metadata[filename] = {
                 "content_type": part.get_content_type(),
                 "content_type_name": Path(str(part.get_param("name", header="Content-Type") or "")).name,
@@ -527,6 +529,8 @@ class BustaTelematica:
         lower = filename.lower()
         if lower.endswith(".p7m"):
             return "application", "pkcs7-mime"
+        if lower.endswith((".eml", ".msg")):
+            return "application", "octet-stream"
         guessed = mimetypes.guess_type(filename)[0] or "application/octet-stream"
         maintype, _, subtype = guessed.partition("/")
         return maintype or "application", subtype or "octet-stream"

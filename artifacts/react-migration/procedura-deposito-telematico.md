@@ -94,7 +94,23 @@ Guardrail eseguiti sul fix locale:
 - `python -m py_compile pct\busta.py tests\test_busta.py tests\test_simulazione_deposito.py scripts\audit_deposito_server_dry_run.py` -> passato;
 - `git diff --check -- pct\busta.py tests\test_busta.py tests\test_simulazione_deposito.py scripts\audit_deposito_server_dry_run.py` -> passato.
 
-Stato: fix tecnico locale pronto, ma non ancora accettato come deposito risolto. Prima di qualunque chiusura positiva servono deploy Hetzner, prova reale produzione senza invio per vedere il nuovo `Atto.msg`/`Atto.enc`, poi nuovo invio reale eseguito dall'avvocato con PIN e controllo dell'esito automatico PST.
+Stato aggiornato: il fix MIME iniziale è stato portato in produzione, ma la prova reale successiva del `29/06/2026 15:37-15:38` ha mostrato un secondo blocco prima dell'invio reale: `Busta ministeriale non conforme: Atto.msg contiene parti MIME senza nome file: text/plain, text/plain, text/plain`.
+
+Diagnosi del secondo blocco:
+
+- il file tecnico generato in produzione `/tmp/busta_5fm3xu7e/Atto.msg` era `multipart/related` e conteneva `IndiceBusta.xml` come prima parte nominata;
+- tre allegati PEC `.eml` del fascicolo erano però inseriti come `message/rfc822`;
+- il parser MIME Python apriva quei `.eml` come messaggi annidati e vedeva al loro interno tre parti `text/plain` prive di nome file;
+- il controllo pre-invio ha quindi bloccato la busta prima della PEC reale: nessun nuovo deposito ministeriale sporco è stato spedito in quella prova.
+
+Correzione applicata dopo il secondo blocco:
+
+- `pct/busta.py` tratta `.eml` e `.msg` come file opachi `application/octet-stream` dentro `Atto.msg`, mantenendo `name`, `filename` e `Content-ID`;
+- la verifica di `Atto.msg` legge le parti file di primo livello della busta, senza scendere dentro eventuali email allegate;
+- aggiunto il test anti-regressione `test_atto_msg_tratta_eml_come_file_opaco_senza_parti_annidate`, che riproduce una ricevuta PEC `.eml` con contenuto `text/plain` e verifica che non diventi `message/rfc822` annidato;
+- guardrail eseguiti: `python -m pytest tests\test_busta.py -q --tb=short` -> `18/18`; suite mirata deposito/PEC/dry-run -> passata.
+
+Stato: lavoro ancora aperto finché questa seconda correzione non è committata, pushata, distribuita su Hetzner e riprovata in produzione sul fascicolo `795C50AC`. La chiusura positiva richiede ancora prova reale senza invio, poi invio reale eseguito dall'avvocato con PIN e controllo dell'esito automatico PST.
 
 ## Aggiornamento 2026-06-26 - Formato PEC deposito ministeriale
 

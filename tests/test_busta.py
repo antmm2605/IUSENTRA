@@ -169,6 +169,35 @@ def test_atto_msg_usa_mime_file_parts_compatibili_con_parser_pst(dati_busta, tmp
     assert etree.fromstring(indice_part.get_payload(decode=True)).tag == "IndiceBusta"
 
 
+def test_atto_msg_tratta_eml_come_file_opaco_senza_parti_annidate(dati_busta, tmp_path):
+    """Le ricevute PEC .eml nella busta non devono diventare email annidate dentro Atto.msg."""
+    eml_path = tmp_path / "ricevuta deposito.eml"
+    eml_path.write_bytes(
+        b"From: posta-certificata@example.test\r\n"
+        b"To: studio@example.test\r\n"
+        b"Subject: Ricevuta deposito\r\n"
+        b"Content-Type: text/plain; charset=utf-8\r\n"
+        b"\r\n"
+        b"Ricevuta PEC di prova.\r\n"
+    )
+    dati_busta.allegati = [Allegato(str(eml_path), "Ricevuta PEC", "ALLEGATO")]
+    busta = BustaTelematica(dati_busta)
+    busta_path = busta.crea_busta(str(tmp_path))
+    atto_msg_path = Path(busta_path).with_name(ATTO_MSG_FILENAME)
+    message = BytesParser(policy=policy.default).parsebytes(atto_msg_path.read_bytes())
+
+    eml_part = next(part for part in message.iter_parts() if part.get_filename() == eml_path.name)
+    assert eml_part.get_content_type() == "application/octet-stream"
+    assert eml_part.get_param("name", header="Content-Type") == eml_path.name
+    assert eml_part.get_payload(decode=True) == eml_path.read_bytes()
+    assert all(part.get_content_type() != "message/rfc822" for part in message.walk())
+    assert all(
+        part.get_filename() or part.get_param("name", header="Content-Type")
+        for part in message.walk()
+        if not part.is_multipart()
+    )
+
+
 def test_busta_reale_usa_dati_atto_firmato_nell_indice_busta(dati_busta, tmp_path):
     """Quando DatiAtto.xml è firmato, Atto.msg usa il .p7m e l'indice ministeriale lo richiama."""
     from lxml import etree

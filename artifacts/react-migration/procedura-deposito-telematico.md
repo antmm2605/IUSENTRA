@@ -3049,6 +3049,13 @@ Correzione applicata:
 
 Verifiche automatiche e offline eseguite:
 
+Aggiornamento governance CI 2026-06-29:
+
+- la logica di `AnagraficaProcedimento` per il ricorso e il valore causa è stata estratta in `web/services/deposito_anagrafica_ministeriale.py`, senza cambiare il contratto della busta;
+- `web/bootstrap/deposito_routes.py` è scesa da 1205 a 999 righe e il controllo governance locale è tornato OK;
+- sono stati ripetuti compilazione Python, test busta, test deposito mirati, dry-run audit e UTF-8;
+- stato operativo invariato: non verificato su macchina reale dopo questo refactor e nessun nuovo invio PST reale va eseguito finché la produzione aggiornata non supera il controllo completo della busta generata.
+
 - `python -m py_compile pct\busta.py web\bootstrap\deposito_routes.py web\services\deposito_signature_runtime.py tests\test_busta.py tests\test_deposito.py` -> OK;
 - `python -m pytest tests\test_busta.py -q --tb=short` -> `20 passed`;
 - `python -m pytest tests\test_deposito.py -q --tb=short -k "dati_atto or busta or local_pec or invia_pec or indice"` -> `11 passed`;

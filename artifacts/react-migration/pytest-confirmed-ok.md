@@ -6049,6 +6049,18 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `4/4` passati: audit dry-run server e controlli Atto.enc/Atto.msg preservati. |
 | Verifica offline busta equivalente al caso reale | OK tecnico offline | `Atto.msg` generata con root firmata `Ricorso`; `Ricorso.pdf` e `Procura.PDF` come parti `application/pkcs7-mime`; tutti gli allegati PDF/EML e `IndiceDocumentiDepositati.PDF` richiamati da `IndiceBusta` interno tramite `Content-ID`. Non è una prova reale PST. |
 
+## Deposito PCT refactor governance route - 2026-06-29
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `(Get-Content -LiteralPath web\bootstrap\deposito_routes.py).Count` | OK | `999` righe: sotto il limite governance di `1000` dopo estrazione di `web/services/deposito_anagrafica_ministeriale.py`. |
+| `python -m py_compile web\services\deposito_anagrafica_ministeriale.py web\bootstrap\deposito_routes.py pct\busta.py` | OK | Sintassi confermata su servizio anagrafica ministeriale, route deposito e motore busta. |
+| `python tools\check_repo_governance.py` | OK | `Governance check OK`; `web/app.py: 40 righe, 0 route inline`. |
+| `python -m pytest tests\test_busta.py -q --tb=short` | OK | `20/20` passati dopo refactor. |
+| `python -m pytest tests\test_deposito.py -q --tb=short -k "dati_atto or busta or local_pec or invia_pec or indice"` | OK | `11/11` passati dopo refactor. |
+| `python -m pytest tests\test_deposito_server_dry_run_audit.py -q --tb=short` | OK | `4/4` passati dopo refactor. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | UTF-8 `4/4`; diff check senza errori, solo warning Git CRLF/LF non bloccante su `deposito_routes.py`. |
+
 ## Riallineamento security map e CodeQL dopo standard date/importi - 2026-06-28
 
 | Comando / verifica | Esito | Note |

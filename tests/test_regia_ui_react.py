@@ -100,7 +100,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "IUSENTRA firma solo quelli obbligatori o scelti" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']" in source
+    assert "LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000" in source
     assert "function localSignerCandidateBaseUrls" in source
+    assert "window.setTimeout(() => controller.abort(), timeoutMs)" in source
     assert "localSignerEndpointForPayload(endpoint, '/firma', signerStatus)" in source
     assert "localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)" in source
     assert "localSignerEndpointForStatus('/firma-batch', localSigner)" in source

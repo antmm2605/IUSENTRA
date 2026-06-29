@@ -3194,17 +3194,17 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
       throw new Error('Payload firma DatiAtto.xml non disponibile. Ripeti la prova deposito.')
     }
-    let signerStatus = await fetchLocalSignerStatus(4500)
+    let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if (!signerStatus || signerStatus.ok === false) {
       requestLocalSignerStart()
       await sleep(900)
-      signerStatus = await fetchLocalSignerStatus(4500)
+      signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     }
     signerStatus = signerStatus ? await recoverLocalSignerAutomatically(signerStatus, {
       onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
     }) : signerStatus
     if (!signerStatus || signerStatus.ok === false) {
-      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Avvia il servizio locale sul PC in uso e ripeti la prova deposito.')
+      throw new Error(localSignerProbeFailureMessage(signerStatus, 'firmare DatiAtto.xml'))
     }
     if (!localSignerStatusCanSign(signerStatus)) {
       const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
@@ -3280,14 +3280,14 @@ function DepositPreparePage({ id }:{id:string}) {
       throw new Error('Payload Local Signer PEC non disponibile. Ripeti la prova senza invio reale.')
     }
     assertLocalPecAttoEncBase64(localPayload)
-    let signerStatus = await fetchLocalSignerStatus(4500)
+    let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if (!signerStatus || signerStatus.ok === false) {
       requestLocalSignerStart()
       await sleep(900)
-      signerStatus = await fetchLocalSignerStatus(4500)
+      signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     }
     if (!signerStatus || signerStatus.ok === false) {
-      throw new Error('Local Signer non raggiungibile dal browser per inviare la PEC dal PC locale. Avvia il servizio locale e ripeti l\'invio.')
+      throw new Error(localSignerProbeFailureMessage(signerStatus, 'inviare la PEC dal PC locale'))
     }
     endpoint = localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)
     const password = await requestLocalPecPassword(localPayload)
@@ -3444,7 +3444,7 @@ function DepositPreparePage({ id }:{id:string}) {
       // Se il controllo cache fallisce, la generazione busta dara' comunque il blocco puntuale.
     }
 
-    let signerStatus = await fetchLocalSignerStatus(4500)
+    let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if (!signerStatus || signerStatus.ok === false) {
       setDepositActionNotice({
         tone: 'danger',
@@ -5921,6 +5921,7 @@ function sleep(ms: number): Promise<void> {
 const LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
 const LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'
 const LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000
+const LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000
 const LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']
 
 function isDesktopLocalSignerHost(): boolean {
@@ -6035,6 +6036,13 @@ function localSignerEndpointForPayload(endpoint: string, path: string, status?: 
   return raw
 }
 
+function localSignerProbeFailureMessage(status: LocalSignerStatus | null | undefined, action: string): string {
+  const probes = Array.isArray(status?.__iusentra_probe_urls) ? status?.__iusentra_probe_urls?.join(', ') : ''
+  const detail = String(status?.__iusentra_last_error || status?.messaggio || status?.error || '').trim()
+  const suffix = [probes ? `Endpoint provati: ${probes}.` : '', detail ? `Dettaglio browser: ${detail}.` : ''].filter(Boolean).join(' ')
+  return `Local Signer non raggiungibile dal browser per ${action}. Avvia il servizio locale sul PC in uso e ripeti la prova deposito.${suffix ? ` ${suffix}` : ''}`
+}
+
 function localSignerLatestVersion(): string {
   if (typeof window === 'undefined') return ''
   const configured = window.__IUSENTRA_LOCAL_SIGNER_LATEST_VERSION__
@@ -6079,10 +6087,9 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
     ? candidateBaseUrls.map((baseUrl) => ({ baseUrl, endpoint: localSignerEndpoint('/ping', baseUrl) }))
     : [{ baseUrl: localSignerBaseUrl(), endpoint: localSignerEndpoint('/ping') }]
   let lastError = ''
-  const probeTimeoutMs = candidateEndpoints.length > 1 ? Math.max(1800, Math.ceil(timeoutMs / candidateEndpoints.length)) : timeoutMs
   for (const candidate of candidateEndpoints) {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), probeTimeoutMs)
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
     try {
       const response = await fetch(candidate.endpoint, {
         cache: 'no-store',

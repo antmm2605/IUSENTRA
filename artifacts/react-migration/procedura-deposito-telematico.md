@@ -3438,3 +3438,30 @@ Diagnosi da fare sul PC cliente se il pacchetto 1.6.87 non risponde ancora:
 - verificare che esista un solo processo `python.exe`/`pythonw.exe` collegato a `local_signer.py`;
 - controllare `Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272`;
 - verificare il ping `http://127.0.0.1:27272/ping?light=1`.
+
+## Acquisizione PST: avvio automatico Local Signer dal pulsante React - 2026-06-30
+
+Richiesta utente: verificare se dalla pagina `https://app.iusentra.it/portali/pst/acquisizione` il servizio Local Signer si avvia automaticamente senza intervento manuale dell'avvocato.
+
+Prova rapida su Windows:
+
+- servizio fermato manualmente;
+- ping `http://127.0.0.1:27272/ping?light=1` in timeout;
+- chiamata diretta Windows `iusentra-local-signer://restart`;
+- servizio riavviato e ping tornato `ok=true`, versione rilevata `1.6.86` sull'installazione locale di prova.
+
+Esito: il protocollo locale registrato da Windows funziona. Il browser integrato Codex non è una prova valida per l'apertura dei protocolli esterni perché blocca le URL `iusentra-local-signer://` per policy di sicurezza; con click sulla pagina non è stato possibile dimostrare l'apertura del processo tramite quel browser.
+
+Correzione applicata alla pagina React di acquisizione:
+
+- `frontend/src/components/TelematicoSurfacePage.tsx`: il pulsante `Avvia e verifica` ora tenta il protocollo con iframe nascosto e link nascosto, allineandosi al metodo già usato nelle Impostazioni Local Signer;
+- `tests/test_react_shell.py`: aggiunto guardrail statico perché il wizard PST mantenga entrambi i metodi di lancio del protocollo.
+
+Verifiche eseguite:
+
+- `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_local_signer.py::test_installer_locale_windows_registra_protocollo_e_attesa_ping tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso -q` -> `3 passed`;
+- `pnpm --filter @iusentra/studio typecheck` -> ok;
+- `python scripts/react-migration/generate_api_contracts.py --check` -> contratti allineati;
+- `pnpm --filter @iusentra/studio build` -> ok.
+
+Stato: protocollo Windows verificato, correzione React pronta per deploy. La prova finale con Google Chrome reale del PC cliente resta da eseguire dopo deploy della pagina aggiornata perché il browser integrato non può aprire protocolli esterni.

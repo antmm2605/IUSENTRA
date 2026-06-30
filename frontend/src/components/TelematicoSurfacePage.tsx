@@ -2694,12 +2694,17 @@ function isDesktopLocalSignerHost(): boolean {
 
 function requestLocalSignerProtocol(uri: string) {
   if (!isDesktopLocalSignerHost()) return
+  const iframe = document.createElement('iframe')
+  iframe.hidden = true
+  iframe.src = uri
+  document.body.appendChild(iframe)
   const link = document.createElement('a')
   link.href = uri
   link.style.display = 'none'
   link.rel = 'noopener'
   document.body.appendChild(link)
   link.click()
+  window.setTimeout(() => iframe.remove(), 3000)
   window.setTimeout(() => link.remove(), 3000)
 }
 

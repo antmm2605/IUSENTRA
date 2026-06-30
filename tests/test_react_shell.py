@@ -2036,6 +2036,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "data.localSigner.browserUrl" in source
     assert "/ping?light=1" in source
     assert "iusentra-local-signer://restart" in source
+    assert "iframe.src = uri" in source
+    assert "link.click()" in source
+    assert "window.setTimeout(() => iframe.remove(), 3000)" in source
     assert "isDesktopLocalSignerHost" in source
     assert "portalNeedsLocalSigner && !localSignerDesktopSupported" in source
     assert "Da mobile o tablet il controllo non viene eseguito" in source

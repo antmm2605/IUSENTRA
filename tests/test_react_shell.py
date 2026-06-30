@@ -234,7 +234,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Archivio Giurisprudenza",
         "Sincronizzazione Calendari",
         "Profili e Permessi",
-        "Importa pratiche da Studio Telematico",
+        "Importa pratiche",
         "Registro Attività",
         "Registro GDPR",
     ):
@@ -317,7 +317,7 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         assert "settings-modern-page) #app-body" not in css_source
 
     react_shell_allowlist = {
-        "web/bootstrap/deposito_routes.py": [
+        "web/bootstrap/deposito_prepara_routes.py": [
             'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")',
         ],
         "web/bootstrap/auth_management_routes.py": [
@@ -330,6 +330,7 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "web/bootstrap/polisweb_routes.py",
         "web/bootstrap/telematico_portali_routes.py",
         "web/bootstrap/deposito_routes.py",
+        "web/bootstrap/deposito_prepara_routes.py",
         "web/bootstrap/reference_lookup_routes.py",
         "web/blueprints/fatturazione.py",
         "web/blueprints/template_atti.py",
@@ -418,6 +419,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "/impostazioni-studio",
         "/sincronizzazione-calendari",
         "/amministrazione",
+        "/importa-pratiche",
         "/importa-pratiche-studio-telematico",
         "/utenti",
         "/utenti/nuovo",
@@ -455,7 +457,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
         "Amministrazione",
-        "Importa pratiche da Studio Telematico",
+        "Importa pratiche",
         "Utenti",
         "Profili e Permessi",
         "Registro Attività",
@@ -518,10 +520,10 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "localSignerEndpoint('/firma')" in source
     assert "token_probe_fresh" in source
     assert "riavvio_signer_consigliato" in source
-    assert "Token rilevato, riallineamento automatico" in source
+    assert "Dispositivo di firma rilevato, riallineamento automatico" in source
     assert "localSignerCanSign" in source
     assert "localSignerOutdated" in source
-    assert "Il PIN comparirà solo quando versione e token saranno allineati e pronti." in source
+    assert "Il PIN comparirà solo quando il dispositivo sarà pronto." in source
     assert "LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'" in source
     assert "LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'" in source
     assert "href={LOCAL_SIGNER_RESTART_URI}" in source
@@ -764,7 +766,7 @@ def test_react_ricerca_studio_e_pagina_separata_senza_mock():
     assert "searchStudio(" in search_data
     assert "/api/global-search" in search_data
     assert "reindexStudioSearch" in search_data
-    assert "Ctrl K" in search_component
+    assert "Frecce, Invio ed Esc" in search_component
     assert "ArrowDown" in search_component
     assert ".iu-search-page" in css
     assert "@media(max-width:720px)" in css
@@ -1358,7 +1360,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "navigateAction" in page_source
     assert "isSameSurfaceAction" in page_source
     assert "window.history.pushState" in page_source
-    assert "scrollIntoView({ behavior: 'smooth', block: 'start' })" in page_source
+    assert "window.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })" in page_source
     assert "Checklist operativa" in page_source
     assert "iu-tel-surface-hero__meta" in page_source
     assert "iu-tel-surface-hero__eyebrow" in page_source
@@ -1370,8 +1372,9 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "build_react_tribunali_payload" in api_source
     assert "render_react_shell_response" not in polisweb_routes
     assert "render_react_shell_response" not in portali_routes
-    assert deposito_routes.count("render_react_shell_response") == 2
-    assert 'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")' in deposito_routes
+    deposito_prepara_routes = Path("web/bootstrap/deposito_prepara_routes.py").read_text(encoding="utf-8")
+    assert deposito_prepara_routes.count("render_react_shell_response") == 2
+    assert 'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")' in deposito_prepara_routes
     assert "render_react_shell_response" not in lookup_routes
     assert "render_react_shell_response" not in dashboard_routes
     assert '"telematico_dashboard.html"' in dashboard_routes
@@ -2226,7 +2229,7 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "function AcquisitionProgressView" in source
     assert "iu-tel-acq-progress" in source
     assert source.count("<AcquisitionProgressView progress={importProgress} />") == 1
-    assert "Ricerca PST in corso" in source
+    assert "Visualizzazione fascicolo PST" in source
     assert "Consultazione PST ancora in attesa" in source
     assert "Scaricamento documenti dal PST" in source
     assert "function pstPreviewDocumentIsDownloadable" in source
@@ -2246,8 +2249,10 @@ def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
     css_source = Path("frontend/src/components/QuickOrganizerImportPage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
 
-    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in data_source
-    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in api_source
+    assert "/static/tools/PreparaPacchettoPratiche.exe" in data_source
+    assert "/static/tools/PreparaPacchettoPratiche.exe" in api_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" not in data_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" not in api_source
     assert "/static/tools/prepara_import_studio_telematico.ps1" not in data_source
     assert "/static/tools/prepara_import_studio_telematico.ps1" not in api_source
     assert "type WorkProgress" in page_source
@@ -2256,11 +2261,17 @@ def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
     assert "Pacchetto grande sul PC" in page_source
     assert "localPathEnabled" in data_source
     assert "Controllo con avvisi" in page_source
-    assert "ZIP preparato dalla postazione Studio Telematico completa" in page_source
+    assert "ZIP preparato dalla postazione autorizzata completa" in page_source
     assert "stage_referenced_package" in api_source
     assert "<WorkProgressBar progress={workProgress} />" in page_source
     assert "Caricamento e controllo del pacchetto in corso" in page_source
     assert "Importazione in corso" in page_source
+    assert 'label="ATTI"' not in page_source
+    assert 'label="EMAILS"' not in page_source
+    assert "cartelle ATTI" not in page_source
+    assert "documenti da ATTI" not in page_source
+    assert "EMAILS risultano" not in page_source
+    assert "Acquisizione guidata di pratiche, clienti, parti, documenti da ATTI" not in api_source
     assert ".iu-st-import-progress" in css_source
     assert ".iu-st-import-local-path" in css_source
 
@@ -3897,7 +3908,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
         "Amministrazione",
-        "Importa pratiche da Studio Telematico",
+        "Importa pratiche",
         "Utenti",
         "Profili e Permessi",
         "Registro Attività",
@@ -3989,12 +4000,12 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Statistiche": "/statistiche",
         "Ricerca Legale": "/ricerca-legale",
         "Archivio Giurisprudenza": "/giurisprudenza",
-        "Legal Intelligence": "/legal-intelligence",
+        "Legal Intelligence": "/ricerca-legale",
         "Controlli Atti": "/deposito/checklist",
         "Strumenti Forensi": "/strumenti-legali/",
         "Strumenti Operativi": "/strumenti-operativi",
         "Amministrazione": "/amministrazione",
-        "Importa pratiche da Studio Telematico": "/importa-pratiche-studio-telematico",
+        "Importa pratiche": "/importa-pratiche",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Pagamenti": "/impostazioni?tab=pagamenti",
         "Canali SdI": "/impostazioni/sdi",
@@ -4059,7 +4070,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
             "Registro GDPR": "/api/v1/ui/privacy/registro",
             "Database": "/api/v1/ui/admin/database",
-            "Importa pratiche da Studio Telematico": "/api/v1/ui/import/quickorganizer",
+            "Importa pratiche": "/api/v1/ui/import/quickorganizer",
             "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
         }.items():
             _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")
@@ -5726,8 +5737,8 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
         b"%PDF-atto",
         fonte_documento="IMPORT_ESTERNO",
         nome_originale="20260328104059747.PDF",
-        classificazione_portale="QuickOrganizer",
-        note="Import QuickOrganizer. ",
+        classificazione_portale="Gestionale precedente",
+        note="Import pratiche. ",
     )
     fascicoli.aggiungi_documento(
         fascicolo.id,
@@ -5736,8 +5747,8 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
         b"%PDF-provvedimento",
         fonte_documento="IMPORT_ESTERNO",
         nome_originale="20260328104100604.PDF",
-        classificazione_portale="QuickOrganizer",
-        note="Import QuickOrganizer. ",
+        classificazione_portale="Gestionale precedente",
+        note="Import pratiche. ",
     )
 
     response = client.get(
@@ -5793,7 +5804,7 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
         fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.DEFINITO, avvocato="roberto.montagnese")
 
     response = client.get(
-        f"/api/v1/ui/fascicoli/{fascicolo.id}",
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=attivita",
         headers={"X-API-Key": "react-test-key"},
     )
     attivita_response = client.get(
@@ -6000,10 +6011,12 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert 'name="codice_gl_autorita"' in source
     assert 'name="codice_istat_sede_autorita"' in source
     assert "officeDepositoCode" in source
-    assert "codice ufficio" in source
-    assert "codice PST" in source
-    assert "ISTAT sede" in source
-    assert "Per deposito o consultazione telematica conferma il canale autorizzato" in source
+    assert "codice ufficio" not in source.lower()
+    assert "codice PST" not in source
+    assert "ISTAT sede" not in source
+    assert "deposito telematico verificato" in source
+    assert "sede verificata" in source
+    assert "Fonte territoriale verificata; prima del deposito conferma il canale sul portale ufficiale." in source
     assert "office.codiceMinistero || office.codice || office.codiceGiustiziaLocale" not in source
     assert "Usa nel fascicolo" in source
     assert ".iu-fas-office-competence" in css
@@ -6076,7 +6089,7 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
         location = response.headers["Location"]
         id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
         detail_response = client.get(
-            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            f"/api/v1/ui/fascicoli/{id_fascicolo}?include=documenti",
             headers={"X-API-Key": "react-test-key"},
         )
 
@@ -6099,7 +6112,7 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
     assert {"atto_principale.pdf", "contratto.txt", "ricevuta_accettazione.eml"} <= nomi_documenti
     assert "nota.txt" not in nomi_documenti
     assert len(email_docs) == 1
-    assert email_docs[0]["type"] == TipoDocumento.COMUNICAZIONE.value
+    assert email_docs[0]["type"] == "Comunicazione / ricevuta"
 
 
 def test_post_nuovo_fascicolo_veloce_risolve_codice_oggetto_pst_digitato(tmp_path: Path):
@@ -6194,7 +6207,8 @@ def test_post_nuovo_fascicolo_da_preventivo_preserva_codice_oggetto_fino_a_depos
 
     payload = detail_response.get_json()
     fascicolo = payload["fascicolo"]
-    gestore_preventivi_aggiornato = GestionePreventivi(app.config["PREVENTIVI_DB"])
+    with app.app_context():
+        gestore_preventivi_aggiornato = app.extensions["core_runtime"]["get_preventivi"]()
     preventivo_collegato = gestore_preventivi_aggiornato.get_preventivo(preventivo.id)
     conferimento_collegato = gestore_preventivi_aggiornato.get_conferimento(conferimento.id)
 
@@ -6239,7 +6253,8 @@ def test_post_nuovo_fascicolo_veloce_crea_e_collega_soggetto_controparte(tmp_pat
             headers={"X-API-Key": "react-test-key"},
         )
 
-    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    with app.app_context():
+        soggetti = app.extensions["core_runtime"]["get_soggetti"]()
     controparte = next(
         soggetto for soggetto in soggetti.tutti()
         if soggetto.nome_completo == "Gamma Costruzioni Srl"

@@ -442,8 +442,9 @@ def register_fascicoli_create_routes(
                 current_app.logger.warning(
                     "Creazione fascicolo non riuscita (%s): %s", type(exc).__name__, exc
                 )
+                error_message = str(exc).strip() or "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova."
                 failure = _risposta_errore_form(
-                    "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
+                    error_message,
                     status=400,
                 )
                 if failure is not None:

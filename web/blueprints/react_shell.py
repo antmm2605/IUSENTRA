@@ -162,6 +162,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/audit", "src/components/AuditPage.tsx"),
     ("/registro-attivita", "src/components/AuditPage.tsx"),
     ("/admin/database", "src/components/AdminDatabasePage.tsx"),
+    ("/importa-pratiche", "src/components/QuickOrganizerImportPage.tsx"),
     ("/importa-pratiche-studio-telematico", "src/components/QuickOrganizerImportPage.tsx"),
     ("/import/quickorganizer", "src/components/QuickOrganizerImportPage.tsx"),
     ("/privacy/registro", "src/components/PrivacyRegistroPage.tsx"),

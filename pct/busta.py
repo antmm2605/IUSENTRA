@@ -48,9 +48,75 @@ ATTO_ENC_FILENAME = "Atto.enc"
 INDICE_BUSTA_TIPI_ALLEGATO = frozenset({"SM", "IR", "PL", "DA", "RT", "RU", "PA", "RA", "PC", "D", "A", "IA"})
 MINISTERIAL_ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
 MINISTERIAL_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v6"
+MINISTERIAL_PARTE_NS = "http://schemi.processotelematico.giustizia.it/sicid/parte/v6"
+MINISTERIAL_ATTI_V7_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v7"
+SICID_INTRO_V7_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v7"
+SICID_PARTE_V7_NS = "http://schemi.processotelematico.giustizia.it/sicid/parte/v7"
+SIGP_ATTI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3"
+SIGP_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sigp/cartabia/introduttivi/v3"
+SIGP_CORSO_CAUSA_NS = "http://schemi.processotelematico.giustizia.it/sigp/cartabia/corsocausa/v3"
+SIGP_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/professionista/v3"
+SIGP_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sigp/sistema/pubblico/v3"
+SIECIC_INTRO_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/introduttivi/v7"
+SIECIC_INTRO_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/introduttivi/v8"
+SIECIC_PARTE_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/parte/v8"
+SIECIC_PARTE_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/parte/v8"
+SIECIC_CUR_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/curatore/v11"
+SIECIC_CUS_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/custode/v4"
+SIECIC_DEL_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/delegato/v7"
+SIECIC_PROF_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/professionista/v6"
+SIECIC_PROF_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/professionista/v6"
+SICID_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sicid/sistema/pubblico/v3"
+SIECIC_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3"
+CASSAZIONE_PARTE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13"
+CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 XSD_NS = "http://www.w3.org/2001/XMLSchema"
+DATIATTO_ROOT_NS_BY_GENERATOR_CLASS = {
+    "IntroduttiviSicid": MINISTERIAL_INTRO_NS,
+    "Parte": MINISTERIAL_PARTE_NS,
+    "Introduttivi_SIGP": SIGP_INTRO_NS,
+    "CorsoCausa_SIGP": SIGP_CORSO_CAUSA_NS,
+    "Professionista_SIGP": SIGP_PROFESSIONISTA_NS,
+    "AttoSistema_SIGP": SIGP_SISTEMA_NS,
+    "IntroduttiviSiecicConcorsuali": SIECIC_INTRO_CONCORSUALI_NS,
+    "IntroduttiviSiecicEsecuzioni": SIECIC_INTRO_ESECUZIONI_NS,
+    "ParteSiecicConcorsuali": SIECIC_PARTE_CONCORSUALI_NS,
+    "ParteSiecicEsecuzioni": SIECIC_PARTE_ESECUZIONI_NS,
+    "CurSiecicConcorsuali": SIECIC_CUR_CONCORSUALI_NS,
+    "CusSiecicEsecuzioni": SIECIC_CUS_ESECUZIONI_NS,
+    "DelSiecicEsecuzioni": SIECIC_DEL_ESECUZIONI_NS,
+    "ProfSiecicConcorsuali": SIECIC_PROF_CONCORSUALI_NS,
+    "ProfSiecicEsecuzioni": SIECIC_PROF_ESECUZIONI_NS,
+    "Professionista": SICID_PARTE_V7_NS,
+    "AttoSistemaSicid": SICID_SISTEMA_NS,
+    "AttoSistemaSiecic": SIECIC_SISTEMA_NS,
+    "ParteCassazione": CASSAZIONE_PARTE_NS,
+}
+DATIATTO_ATTI_NS_BY_GENERATOR_CLASS = {
+    "IntroduttiviSicid": MINISTERIAL_ATTI_NS,
+    "Parte": MINISTERIAL_ATTI_NS,
+    "Introduttivi_SIGP": SIGP_ATTI_NS,
+    "CorsoCausa_SIGP": SIGP_ATTI_NS,
+    "Professionista_SIGP": SIGP_ATTI_NS,
+    "AttoSistema_SIGP": SIGP_SISTEMA_NS,
+    "ParteCassazione": CASSAZIONE_ATTI_NS,
+    "AttoSistemaSicid": SICID_SISTEMA_NS,
+    "AttoSistemaSiecic": SIECIC_SISTEMA_NS,
+}
+MINISTERIAL_PROCEDIMENTO_BASE_ROOTS = frozenset(
+    {
+        "Comparsa180",
+        "DepositoNoteConclusionali",
+        "Memoria183",
+        "MemoriaReplica183",
+        "MemoriaReplica183N3",
+        "PrecisazioneConclusioni",
+        "ProduzioneDocumentiRichiesti",
+        "ScrittiDifensivi",
+    }
+)
 
 
 @dataclass
@@ -78,6 +144,12 @@ class DatiBusta:
     cf_mittente: str = ""
     valore_causa: Optional[float] = None
     anagrafica_procedimento_xml: bytes | str | None = None
+    datiatto_generator_class: str = ""
+    datiatto_root_name: str = ""
+    datiatto_studio_variable: str = ""
+    datiatto_generator_mode: str = ""
+    datiatto_required_data: List[str] = field(default_factory=list)
+    data_notifica_citazione: str = ""
 
 
 @dataclass(frozen=True)
@@ -215,7 +287,7 @@ class BustaTelematica:
         return "Contenzioso"
 
     def _usa_dati_atto_ministeriale(self) -> bool:
-        return bool(self.dati.anagrafica_procedimento_xml)
+        return bool(self.dati.anagrafica_procedimento_xml or str(self.dati.datiatto_root_name or "").strip())
 
     def _usa_indice_busta_interno(self) -> bool:
         # Il PST reale rifiuta la busta se l'indice resta solo nel DatiAtto:
@@ -803,6 +875,119 @@ class BustaTelematica:
         )
         return parts
 
+    def _datiatto_root_name(self) -> str:
+        raw = str(self.dati.datiatto_root_name or "").strip()
+        if raw:
+            return raw
+        if self.dati.anagrafica_procedimento_xml:
+            return "Ricorso"
+        return ""
+
+    def _datiatto_generator_class(self) -> str:
+        raw = str(self.dati.datiatto_generator_class or "").strip()
+        if raw:
+            return raw
+        if self._datiatto_root_name() in {"Ricorso", "Citazione"}:
+            return "IntroduttiviSicid"
+        return ""
+
+    def _datiatto_generator_mode(self) -> str:
+        return str(self.dati.datiatto_generator_mode or "").strip()
+
+    def _datiatto_namespace(self) -> str:
+        generator_class = self._datiatto_generator_class()
+        if generator_class in DATIATTO_ROOT_NS_BY_GENERATOR_CLASS:
+            return DATIATTO_ROOT_NS_BY_GENERATOR_CLASS[generator_class]
+        if generator_class.startswith("Introduttivi"):
+            return MINISTERIAL_INTRO_NS
+        if generator_class.startswith("Parte"):
+            return MINISTERIAL_PARTE_NS
+        return ""
+
+    def _datiatto_atti_namespace(self) -> str:
+        generator_class = self._datiatto_generator_class()
+        if generator_class in DATIATTO_ATTI_NS_BY_GENERATOR_CLASS:
+            return DATIATTO_ATTI_NS_BY_GENERATOR_CLASS[generator_class]
+        if "SIGP" in generator_class:
+            return SIGP_ATTI_NS
+        if generator_class.startswith("ParteCassazione"):
+            return CASSAZIONE_ATTI_NS
+        return MINISTERIAL_ATTI_NS
+
+    def _is_datiatto_introduttivo(self) -> bool:
+        return self._datiatto_generator_class().startswith("Introduttivi")
+
+    def _is_datiatto_procedimento_base(self) -> bool:
+        generator_class = self._datiatto_generator_class()
+        mode = self._datiatto_generator_mode()
+        is_procedimento = (
+            mode == "procedimento_base"
+            or (
+                generator_class.startswith("Parte")
+                and not generator_class.startswith("ParteCassazione")
+            )
+            or generator_class.startswith("CorsoCausa")
+            or generator_class.startswith("Professionista")
+            or generator_class.startswith("ProfSiecic")
+            or generator_class.startswith("CurSiecic")
+            or generator_class.startswith("CusSiecic")
+            or generator_class.startswith("DelSiecic")
+        )
+        return bool(is_procedimento and not generator_class.startswith("ParteCassazione") and self._datiatto_root_name())
+
+    def _is_datiatto_sistema(self) -> bool:
+        return self._datiatto_generator_class().startswith("AttoSistema")
+
+    def _is_datiatto_cassazione(self) -> bool:
+        return self._datiatto_generator_class().startswith("ParteCassazione")
+
+    def _normalizza_data_notifica_citazione(self) -> str:
+        raw = str(self.dati.data_notifica_citazione or "").strip()
+        if not raw:
+            raise ValueError("Data notificazione citazione mancante: compila il campo prima di generare DatiAtto.xml.")
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+            return raw
+        match = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", raw)
+        if match:
+            giorno, mese, anno = match.groups()
+            return f"{anno}-{mese}-{giorno}"
+        raise ValueError("Data notificazione citazione non valida: usa il formato italiano o il campo data.")
+
+    def _aggiungi_destinazione_e_oggetto_ministeriali(self, root: etree._Element) -> None:
+        atti_ns = self._datiatto_atti_namespace()
+        etree.SubElement(
+            root,
+            f"{{{atti_ns}}}destinazione",
+            ufficio=str(self.dati.codice_ufficio or "").strip(),
+            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
+        )
+        etree.SubElement(root, f"{{{atti_ns}}}Oggetto").text = str(self.dati.oggetto or "").strip()
+        if self.dati.valore_causa is not None:
+            try:
+                valore = float(self.dati.valore_causa)
+            except (TypeError, ValueError):
+                valore = 0.0
+            if valore > 0:
+                etree.SubElement(root, f"{{{atti_ns}}}ValoreCausa").text = f"{valore:.2f}"
+
+    def _aggiungi_riferimento_procedimento_ministeriale(self, root: etree._Element) -> None:
+        atti_ns = self._datiatto_atti_namespace()
+        numero_rg = str(self.dati.numero_rg or "").strip()
+        anno_rg = str(self.dati.anno_rg or "").strip()
+        numero_rg_digits = re.sub(r"\D+", "", numero_rg)
+        if not numero_rg_digits or not anno_rg.isdigit():
+            raise ValueError(
+                "Numero RG e anno RG mancanti o non validi: servono per generare il DatiAtto.xml dell'atto in corso causa."
+            )
+        procedimento = etree.SubElement(
+            root,
+            f"{{{atti_ns}}}procedimento",
+            ufficio=str(self.dati.codice_ufficio or "").strip(),
+            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
+        )
+        etree.SubElement(procedimento, f"{{{atti_ns}}}numero").text = numero_rg_digits
+        etree.SubElement(procedimento, f"{{{atti_ns}}}anno").text = anno_rg
+
     def _anagrafica_procedimento_node(self) -> etree._Element:
         raw = self.dati.anagrafica_procedimento_xml
         if raw is None:
@@ -820,29 +1005,47 @@ class BustaTelematica:
         main_part = next((part for part in document_parts if part.is_main), None)
         if main_part is None:
             raise ValueError("Atto principale mancante per DatiAtto.xml ministeriale.")
+        root_name = self._datiatto_root_name()
+        generator_class = self._datiatto_generator_class()
+        if not root_name:
+            root_name = "Ricorso"
+            generator_class = generator_class or "IntroduttiviSicid"
+        namespace = self._datiatto_namespace()
+        if namespace and (
+            self._is_datiatto_introduttivo()
+            or self._is_datiatto_procedimento_base()
+            or self._is_datiatto_sistema()
+            or self._is_datiatto_cassazione()
+        ):
+            pass
+        else:
+            raise ValueError(
+                f"DatiAtto.xml {root_name} non completabile con i dati attuali: "
+                f"servono i campi obbligatori previsti dallo schema {generator_class or 'ministeriale'}."
+            )
 
         root = etree.Element(
-            f"{{{MINISTERIAL_INTRO_NS}}}Ricorso",
+            f"{{{namespace}}}{root_name}",
             nsmap={
-                None: MINISTERIAL_INTRO_NS,
+                None: namespace,
+                "pt": self._datiatto_atti_namespace(),
                 "xsi": XSI_NS,
                 "xsd": XSD_NS,
             },
         )
-        etree.SubElement(
-            root,
-            f"{{{MINISTERIAL_ATTI_NS}}}destinazione",
-            ufficio=str(self.dati.codice_ufficio or "").strip(),
-            ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
-        )
-        etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}Oggetto").text = str(self.dati.oggetto or "").strip()
-        if self.dati.valore_causa is not None:
-            try:
-                valore = float(self.dati.valore_causa)
-            except (TypeError, ValueError):
-                valore = 0.0
-            if valore > 0:
-                etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}ValoreCausa").text = f"{valore:.2f}"
+        if self._is_datiatto_introduttivo() and "citazione" in root_name.casefold():
+            root.set("Datacitazione", self._normalizza_data_notifica_citazione())
+        if self._is_datiatto_introduttivo():
+            self._aggiungi_destinazione_e_oggetto_ministeriali(root)
+        elif self._is_datiatto_sistema():
+            self._aggiungi_destinazione_e_oggetto_ministeriali(root)
+        elif self._is_datiatto_procedimento_base():
+            self._aggiungi_riferimento_procedimento_ministeriale(root)
+        elif self._is_datiatto_cassazione():
+            if self.dati.numero_rg and self.dati.anno_rg:
+                self._aggiungi_riferimento_procedimento_ministeriale(root)
+            else:
+                self._aggiungi_destinazione_e_oggetto_ministeriali(root)
 
         if self._usa_indice_busta_interno():
             indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
@@ -852,7 +1055,8 @@ class BustaTelematica:
                     continue
                 etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
 
-        root.append(self._anagrafica_procedimento_node())
+        if self._is_datiatto_introduttivo() or self._is_datiatto_cassazione():
+            root.append(self._anagrafica_procedimento_node())
         return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     def _crea_xml_dati_atto(
@@ -1073,9 +1277,16 @@ class BustaTelematica:
                     xml_ok = bool(indice_nodes and len(atto_nodes) == 1 and expected_ids <= ref_ids)
                 else:
                     indice_busta_ambiguous = dati_atto_indice_busta_interno
+                    expected_root_name = self._datiatto_root_name() or "Ricorso"
+                    root_localname = etree.QName(root).localname
+                    has_required_ministerial_body = (
+                        bool(root.xpath("//*[local-name()='AnagraficaProcedimento']"))
+                        if self._is_datiatto_introduttivo()
+                        else bool(root.xpath("//*[local-name()='procedimento']"))
+                    )
                     xml_ok = (
-                        etree.QName(root).localname == "Ricorso"
-                        and bool(root.xpath("//*[local-name()='AnagraficaProcedimento']"))
+                        root_localname == expected_root_name
+                        and has_required_ministerial_body
                         and not indice_busta_ambiguous
                     )
                 indice_documenti_generated = any(part.filename == INDICE_DOCUMENTI_FILENAME for part in document_parts)

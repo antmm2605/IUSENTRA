@@ -92,7 +92,7 @@
                 </p>
                 <p class="small text-muted mb-0">
                   <i class="bi bi-info-circle me-1 text-primary"></i>Può includere i certificati CA intermedi (chain).<br>
-                  <i class="bi bi-info-circle me-1 text-primary"></i><code>.crt</code>, <code>.pem</code>, <code>.cer</code> sono spesso lo stesso formato.
+                  <i class="bi bi-info-circle me-1 text-primary"></i>I certificati caricati devono essere file validi rilasciati dal fornitore di firma.
                 </p>
               </div>
             </div>
@@ -443,7 +443,7 @@ openssl pkcs12 -in firma.p12 -noout -info</pre>
             <ol class="small ps-3 mb-0">
               <li>Scarica il documento da firmare dall'app (<em>Fascicoli → Documenti → Scarica</em>)</li>
               <li>Apri il software del provider sul tuo PC con il token inserito</li>
-              <li>Firma il documento → ottieni il file <code>.p7m</code> (CAdES) o <code>.pdf</code> firmato (PAdES)</li>
+              <li>Firma il documento → ottieni il file firmato da caricare nel fascicolo</li>
               <li>Torna nell'app → <em>Fascicoli → Documenti → Firma per deposito</em></li>
               <li>Carica il file già firmato</li>
               <li>Il documento viene marcato come "firmato digitalmente" e pronto per il deposito</li>

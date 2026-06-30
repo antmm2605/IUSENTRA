@@ -134,9 +134,9 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
   ok: false,
   generatedAt: '',
   page: {
-    title: 'Importa pratiche da Studio Telematico',
+    title: 'Importa pratiche',
     subtitle: 'Acquisizione guidata delle pratiche dal precedente gestionale dello studio.',
-    path: '/importa-pratiche-studio-telematico',
+    path: '/importa-pratiche',
   },
   permissions: {
     canImport: false,
@@ -153,7 +153,7 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
     uploadComplete: '/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa',
     prepareStart: '/api/v1/ui/import/quickorganizer/preparazione',
     run: '/api/v1/ui/import/quickorganizer/esegui',
-    helper: '/static/tools/PreparaPacchettoStudioTelematico.exe',
+    helper: '/static/tools/PreparaPacchettoPratiche.exe',
     fascicoli: '/fascicoli',
     clienti: '/clienti',
   },

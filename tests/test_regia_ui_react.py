@@ -40,12 +40,12 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Inventario fascicolo" in source
     assert "La preparazione legge tutti i documenti presenti nel fascicolo" in source
     assert "Documenti candidati alla busta" in source
-    assert "Catalogo portale acquisito" in source
+    assert "Documenti acquisiti dal portale" in source
     assert "Ricevute e cancelleria" in source
     assert "deliveryPolicy" in source
     assert "Invio PEC da software" in source
     assert "Deposito su portale" in source
-    assert "Busta ministeriale Atto.enc" in source
+    assert "Pacchetto deposito" in source
     assert "Documenti da inviare" in source
     assert "Documenti da inviare" in source
     assert "quickorganizer_deposito_catalogo_ui.json" not in source
@@ -56,12 +56,13 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "tipo_deposito_telematico_real_send_allowed" in source
     assert "buildDepositCatalogPreviewState" in source
     assert "buildDepositCatalogPreviewMacroareasFromEntries" in source
-    assert "Catalogo Studio Telematico non disponibile dall'API." in source
-    assert "Logica Studio Telematico" in source
+    assert "Elenco depositi non disponibile." in source
+    assert "Controlli automatici" in source
+    assert "Logica Studio Telematico" not in source
     assert "Esplodi tutto" in source
     assert ".iu-fas-deposit-type-panel" in css
-    assert "DatiAtto.xml" in source
-    assert "IndiceDocumentiDepositati.PDF" in source
+    assert "Dati deposito" in source
+    assert "Indice documenti" in source
     assert "Indice generato dal software" in source
     assert 'type="checkbox"' in source
     assert "Ripristina proposta" in source
@@ -178,7 +179,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "if (result?.pinSessionId) batchSignaturePinSessionRef.current = result.pinSessionId" in source
     assert "const unsignedCandidateDocuments = unsignedPackageDocuments.length" in deposit_page
     assert "depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length" not in deposit_page
-    assert "metadato ministeriale della busta, non un allegato da scegliere" in deposit_page
+    assert "metadato ministeriale della busta, non un allegato da scegliere" not in deposit_page
+    assert "Il software firma i dati del deposito sul PC in uso" in deposit_page
     assert "const signatureLabel = willSign ? 'Da firmare' : packageDocumentSignatureLabel(doc)" in deposit_page
     assert "already_signed: Boolean(doc.signed)" in deposit_page
     assert "doc?.name.toLowerCase().match(/\\.(p7m|sig|pkcs7)$/)" not in source
@@ -193,7 +195,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "Prova senza invio PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
     assert "Documenti indicati nel pacchetto" in deposit_page
-    assert "progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}" in deposit_page
+    assert "progressItems={DEPOSIT_PROGRESS_USER_STEPS}" in deposit_page
+    assert "progressItems={['DatiAtto.xml'" not in deposit_page
     assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
     assert "iu-fas-package-progress__ticker" in action_button
     assert "const pctJsonPackageChannel" in deposit_page
@@ -202,8 +205,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
     assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
     assert "if (!localSignerStatusCanSign(signerStatus))" in deposit_page
-    assert "Token non pronto per firmare DatiAtto.xml" in deposit_page
-    assert "Local Signer non raggiungibile dal browser per firmare DatiAtto.xml" in deposit_page
+    assert "Dispositivo non pronto per firmare i dati del deposito" in deposit_page
+    assert "Local Signer non raggiungibile dal browser per firmare i dati del deposito" in deposit_page
     assert "async function parseLocalSignerResponse" in source
     assert "const signaturePayload = await parseLocalSignerResponse(signatureResponse)" in deposit_page
     assert "const payload = await parseLocalSignerResponse(signResponse)" in deposit_page
@@ -223,11 +226,11 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "localSignerEndpoint('/pec/send')" in deposit_page
     assert "assertLocalPecAttoEncBase64(localPayload)" in deposit_page
     assert "function assertLocalPecAttoEncBase64" in source
-    assert "Allegato Atto.enc non è base64 valido" in source
+    assert "Pacchetto deposito non valido" in source
     assert "looksLikeCmsEnvelopedData" in source
     assert "CMS_ENVELOPED_DATA_OID" in source
-    assert "Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido" in source
-    assert "Allegato Atto.enc non ha la verifica ministeriale di Atto.msg e IndiceBusta" in source
+    assert "Pacchetto deposito non conforme" in source
+    assert "Pacchetto deposito non verificato" in source
     assert "window.prompt" not in deposit_page
     assert "Password PEC locale" in deposit_page
     assert "Username SMTP locale" in deposit_page
@@ -263,12 +266,13 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "signatureHref" not in source
     assert "Apri firma digitale" not in source
     assert "Apri la firma digitale" not in source
-    assert "lo stato si aggiorna solo con una prova CAdES o PAdES" in source
+    assert "lo stato si aggiorna solo con una prova di firma digitale" in source
     assert "Verifica Local Signer" in source
     assert "fileContainsCadesSignedData" in source
     assert "pdfContainsPadesSignature" in source
     assert "signedDataOid" in source
-    assert "non contiene una busta CAdES/PKCS#7 riconoscibile" in source
+    assert "non contiene una firma digitale riconoscibile" in source
+    assert "non contiene una busta CAdES/PKCS#7 riconoscibile" not in source
     assert "setNotifica((current) => ({ ...current, relata_firmata: false }))" in signature_block
     assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" in source
     assert "Relata firmata acquisita con prova tecnica" in source

@@ -210,7 +210,7 @@ function Select-StudioTelematicoRoot {
     try {
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Seleziona la cartella Studio Telematico/QuickOrganizer che contiene QuickOrganizer.mdb, ATTI ed EMAILS"
+        $dialog.Description = "Seleziona la cartella dati del vecchio gestionale che contiene archivio dati, ATTI ed EMAILS"
         $dialog.ShowNewFolderButton = $false
         if ($InitialPath -and (Test-Path $InitialPath)) {
             $dialog.SelectedPath = [System.IO.Path]::GetFullPath($InitialPath)
@@ -225,17 +225,17 @@ function Select-StudioTelematicoRoot {
         # Se la scelta grafica non è disponibile, resta il messaggio controllato sotto.
     }
 
-    throw "Seleziona una cartella che contenga QuickOrganizer.mdb, ATTI ed EMAILS."
+    throw "Seleziona una cartella che contenga archivio dati, ATTI ed EMAILS."
 }
 
-Send-IusentraStatus -Status "preparing" -Progress 5 -Detail "Ricerca della cartella Studio Telematico in corso."
+Send-IusentraStatus -Status "preparing" -Progress 5 -Detail "Ricerca della cartella dati in corso."
 $root = Select-StudioTelematicoRoot -InitialPath $CartellaStudioTelematico
 $mdb = Join-Path $root "QuickOrganizer.mdb"
 $atti = Join-Path $root "ATTI"
 $emails = Join-Path $root "EMAILS"
 
 if (-not (Test-Path $mdb)) {
-    throw "Archivio QuickOrganizer.mdb non trovato in $root"
+    throw "Archivio dati non trovato in $root"
 }
 if (-not (Test-Path $atti)) {
     throw "Cartella ATTI non trovata in $root"
@@ -243,12 +243,12 @@ if (-not (Test-Path $atti)) {
 if (-not (Test-Path $emails)) {
     throw "Cartella EMAILS non trovata in $root"
 }
-Send-IusentraStatus -Status "preparing" -Progress 10 -Detail "Cartella Studio Telematico trovata. Lettura archivio dati in corso."
+Send-IusentraStatus -Status "preparing" -Progress 10 -Detail "Cartella dati trovata. Lettura archivio dati in corso."
 
 if (-not $Destinazione) {
     $desktop = [Environment]::GetFolderPath("Desktop")
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $Destinazione = Join-Path $desktop "IUSENTRA-StudioTelematico-$stamp.zip"
+    $Destinazione = Join-Path $desktop "IUSENTRA-PacchettoPratiche-$stamp.zip"
 }
 
 $tables = @(
@@ -282,7 +282,7 @@ $conn = New-Object System.Data.OleDb.OleDbConnection("Provider=Microsoft.Jet.OLE
 $payload = [ordered]@{
     format = "iusentra.quickorganizer.v1"
     generated_at = (Get-Date).ToUniversalTime().ToString("o")
-    source = "Studio Telematico"
+    source = "Gestionale precedente"
     tables = [ordered]@{}
 }
 
@@ -312,7 +312,7 @@ try {
             $payload.tables[$table] = $rows
         } catch {
             if ($requiredTables -contains $table) {
-                throw "Tabella obbligatoria $table non leggibile nel database Studio Telematico: $($_.Exception.Message)"
+                throw "Tabella obbligatoria $table non leggibile nell'archivio dati: $($_.Exception.Message)"
             }
             $payload.tables[$table] = @()
         }
@@ -418,7 +418,7 @@ $payload.validation = [ordered]@{
 }
 
 if (-not $payload.validation.can_import_complete) {
-    throw "Archivio dati Studio Telematico incompleto: PRATICHE, NOMI e TAVOLA devono essere presenti con i campi obbligatori. Nessun pacchetto parziale e' stato creato."
+    throw "Archivio dati incompleto: PRATICHE, NOMI e TAVOLA devono essere presenti con i campi obbligatori. Nessun pacchetto parziale e' stato creato."
 }
 Send-IusentraStatus -Status "packing" -Progress 35 -Detail "Creazione pacchetto con quickorganizer-export.json, ATTI ed EMAILS."
 

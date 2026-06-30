@@ -1,6 +1,6 @@
 # XSD e DatiAtto QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 QuickOrganizer non distribuisce XSD sciolti nella cartella principale: le classi generate dagli XSD ministeriali sono embedded nel codice decompilato dell'EXE. Per IUSENTRA questo conferma che la mappa utile è: chiave deposito -> canale -> metodo `Create_DatiAtto_*` -> root XML -> validazioni richieste.
 
@@ -230,8 +230,250 @@ QuickOrganizer non distribuisce XSD sciolti nella cartella principale: le classi
 
 | Chiave schema | Metodo | Root XML |
 | --- | --- | --- |
-| Introduttivi_SICID::Citazione | Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale, Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice, Create_DatiAtto_DelSiecicEsecuzioni_AggiudicazioneLotto, Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice, Create_DatiAtto_DelSiecicEsecuzioni_MinutaDecreto, Create_DatiAtto_DelSiecicEsecuzioni_ProgettoDistribuzione, Create_DatiAtto_DelSiecicEsecuzioni_PropostaProgetto, Create_DatiAtto_Introduttivi_Ricorso702Bis, Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione, Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneAppello, Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione, Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneSfratto, Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniDivorzio, Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione, Create_DatiAtto_Introduttivi_SICID_Cartabia_OpposizioneDecretoIngiuntivo, Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoAppello, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCAInibitoria, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCautelareAnteCausam, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazione, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazioneConvalida, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoOpposizioneDecretoIngiuntivo, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoReclamoSospensiva, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoRitoSemplificatoCartabia, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSeparazione, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroConservativo, Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroGiudiziario, Create_DatiAtto_Introduttivi_SICID_Cartabia_Successioni, Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni, Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenniSoggettoInteressato, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPrefallimentare, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoAmmissConcordatoPreventivoCCIPU, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoDichiarazioneInsolvenzaCCIPU, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU, Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoOmologaAccordiRistrutturazioneCCIPU, Create_DatiAtto_Introduttivi_SIGP_Cartabia_RicorsoImmigrazioneGDP, Create_DatiAtto_ParteCassazione_ControRicorso, Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale, Create_DatiAtto_ParteCassazione_Ricorso, Create_DatiAtto_ParteSiecicConcorsuali_AttoCostituzioneAvvocato, Create_DatiAtto_ParteSiecicConcorsuali_RinunciaInsinuazione, Create_DatiAtto_ParteSiecicEsecuzioni_AttoCostituzioneAvvocato, Create_DatiAtto_ParteSiecicEsecuzioni_DepositoRelazioneNotarile, Create_DatiAtto_ParteSiecicEsecuzioni_NotaPrecisazioneCredito, Create_DatiAtto_ParteSiecicEsecuzioni_RinunciaDebitori, Create_DatiAtto_Parte_AttoCostituzioneNuovoAvvocato, Create_DatiAtto_Parte_AttoNonCodificato, Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico, Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenericoCCIPU, Create_DatiAtto_Parte_CONCORSUALI_SIECIC_CostituzioneDebitoreCCI, Create_DatiAtto_Parte_CONCORSUALI_SIECIC_MemoriaCCI, Create_DatiAtto_Parte_CONCORSUALI_SIECIC_NotaDepositoCCI, Create_DatiAtto_Parte_Comparsa180, Create_DatiAtto_Parte_ComparsaConclusionale190, Create_DatiAtto_Parte_ComparsaConclusionaleReplica190, Create_DatiAtto_Parte_ComparsaCostituzioneAppello, Create_DatiAtto_Parte_ComparsaCostituzioneAppelloIncidentale, Create_DatiAtto_Parte_CostituzioneConRiconvenzionale, Create_DatiAtto_Parte_CostituzioneSemplice, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoIntervento, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaAssegnazione, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaDistribuzione, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaVendita, Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione, Create_DatiAtto_Parte_IstanzaGenerica, Create_DatiAtto_Parte_Memoria183, Create_DatiAtto_Parte_MemoriaDifensivaCA, Create_DatiAtto_Parte_MemoriaGenerica, Create_DatiAtto_Parte_MemoriaReplica183, Create_DatiAtto_Parte_MemoriaReplicaProvaContraria183, Create_DatiAtto_Parte_MemorieCartabia, Create_DatiAtto_Parte_NominaCTPexart87, Create_DatiAtto_Parte_PrecisazioneConclusioni, Create_DatiAtto_Parte_Preverbale, Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti, Create_DatiAtto_Parte_Reclamo, Create_DatiAtto_Parte_RicorsoCautelareCorsoCausa, Create_DatiAtto_Parte_RicorsoGenerico, Create_DatiAtto_Parte_RicorsoSequestroConservativoCorsoCausa, Create_DatiAtto_Parte_RicorsoSequestroGiudiziarioCorsoCausa, Create_DatiAtto_Parte_ScrittiDifensivi, Create_DatiAtto_ProfSiecicConcorsuali_DepositoRelazioneNotarile, Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice, Create_DatiAtto_ProfSiecicEsecuzioni_DepositoRelazioneNotarile, Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice, Create_DatiAtto_ProfSiecicEsecuzioni_IstanzaProrogaCTU, Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione, Create_DatiAtto_Professionista_DepositoSemplice, Create_DatiAtto_Professionista_SIGP_DepositoSemplice | DepositoRelazioneIniziale, CusSiecicEsecuzioni.DepositoSemplice, AggiudicazioneLotto, DelSiecicEsecuzioni.DepositoSemplice, MinutaDecreto, DelSiecicEsecuzioni.ProgettoDistribuzione, PropostaProgetto, Ricorso702Bis, IntroduttiviSicid.Citazione, CitazioneAppello, IntroduttiviSicid.CitazioneInRiassunzione, CitazioneSfratto, ModificaCondizioniDivorzio, ModificaCondizioniSeparazione, IntroduttiviSicid.OpposizioneDecretoIngiuntivo, IntroduttiviSicid.Ricorso, RicorsoAppello, RicorsoCAeInibitoria, RicorsoCautelareAnteCausam, IntroduttiviSicid.RicorsoDecretoIngiuntivo, RicorsoDivorzio, IntroduttiviSicid.RicorsoImmigrazione, RicorsoImmigrazioneConvalida, IntroduttiviSicid.RicorsoOpposizioneDecretoIngiuntivo, RicorsoReclamoSospensiva, RicorsoRitoSemplificatoCartabia, RicorsoSeparazione, RicorsoSequestroConservativo, RicorsoSequestroGiudiziario, Successioni, RicorsoMinorenni, RicorsoMinorenniSoggettoInteressato, IscrizioneRuoloNuovoConcordato, IscrizioneRuoloPrefallimentare, RicorsoAmmissConcordatoPreventivoCCIPU, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita, RicorsoDichiarazioneInsolvenzaCCIPU, RicorsoLiquidazioneControllataCCIPU, RicorsoLiquidazioneGiudizialeCCIPU, RicorsoOmologaAccordiRistrutturazCCIPU, Introduttivi_SIGP.RicorsoImmigrazione, ControRicorso, ControRicorsoIncidentale, ParteCassazione.Ricorso, ParteSiecicConcorsuali.AttoCostituzioneAvvocato, RinunciaInsinuazione, ParteSiecicEsecuzioni.AttoCostituzioneAvvocato, ParteSiecicEsecuzioni.DepositoRelazioneNotarile, NotaPrecisazioneCredito, RinunciaDebitori, AttoCostituzioneNuovoAvvocato, AttoNonCodificato, ParteSiecicConcorsuali.AttoGenerico, AttoGenericoCCIPU, CostituzioneDebitoreCCI, ParteSiecicConcorsuali.MemoriaCCI, ParteSiecicConcorsuali.NotaDepositoCCI, Comparsa180, ComparsaConclusionale190, ComparsaConclusionaleReplica190, ComparsaCostituzioneAppello, ComparsaCostituzioneAppelloIncidentale, CostituzioneConRiconvenzionale, Parte.CostituzioneSemplice, ParteSiecicEsecuzioni.AttoGenerico, AttoIntervento, IstanzaAssegnazione, IstanzaDistribuzione, IstanzaVendita, Opposizione, Parte.IstanzaGenerica, Memoria183, MemoriaDifensivaCA, MemoriaGenerica, MemoriaReplica183, MemoriaReplicaProvaContraria183, MemorieCartabia, NominaCTPexart87, PrecisazioneConclusioni, Preverbale, Parte.ProduzioneDocumentiRichiesti, Reclamo, RicorsoCautelareCorsoCausa, Parte.Ricorso, RicorsoSequestroConservativoCorsoCausa, RicorsoSequestroGiudiziarioCorsoCausa, ScrittiDifensivi, ProfSiecicConcorsuali.DepositoRelazioneNotarile, ProfSiecicConcorsuali.DepositoSemplice, ProfSiecicEsecuzioni.DepositoRelazioneNotarile, ProfSiecicEsecuzioni.DepositoSemplice, IstanzaProrogaCTU, ProfSiecicEsecuzioni.ProgettoDistribuzione, Professionista.DepositoSemplice, Professionista_SIGP.DepositoSemplice |
+| Introduttivi_SICID::Citazione | Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione | IntroduttiviSicid.Citazione |
+| Introduttivi_SICID::CitazioneInRiassunzione | Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione | IntroduttiviSicid.CitazioneInRiassunzione |
+| Introduttivi_SICID::CitazioneInRiassunzioneAppello | Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione | IntroduttiviSicid.CitazioneInRiassunzione |
+| Introduttivi_SICID::CitazioneSfratto | Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneSfratto | CitazioneSfratto |
+| Introduttivi_SICID::ModificaCondizioniSeparazioneCongiunto | Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione | ModificaCondizioniSeparazione |
+| Introduttivi_SICID::ModificaCondizioniSeparazioneGiudiziale | Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione | ModificaCondizioniSeparazione |
+| Introduttivi_SICID::ModificaCondizioniDivorzio | Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniDivorzio | ModificaCondizioniDivorzio |
+| Introduttivi_SICID::CitazioneAppello | Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneAppello | CitazioneAppello |
+| Introduttivi_SIGP::RicorsoImmigrazione | Create_DatiAtto_Introduttivi_SIGP_Cartabia_RicorsoImmigrazioneGDP | Introduttivi_SIGP.RicorsoImmigrazione |
+| Introduttivi_SICID::RicorsoImmigrazione | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazione | IntroduttiviSicid.RicorsoImmigrazione |
+| Introduttivi_SICID::RicorsoImmigrazioneConvalida | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazioneConvalida | RicorsoImmigrazioneConvalida |
+| Introduttivi_SICID::RicorsoReclamoSospensiva | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoReclamoSospensiva | RicorsoReclamoSospensiva |
+| Introduttivi_SICID::Ricorso | Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso | IntroduttiviSicid.Ricorso |
+| Introduttivi_SICID::RicorsoAccertamentoTecnicoPreventivo | Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso | IntroduttiviSicid.Ricorso |
+| Introduttivi_SICID::RicorsoMinorenniPadre | Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni | RicorsoMinorenni |
+| Introduttivi_SICID::RicorsoMinorenniMadre | Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni | RicorsoMinorenni |
+| Introduttivi_SICID::RicorsoMinorenniSoggettoInteressato | Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenniSoggettoInteressato | RicorsoMinorenniSoggettoInteressato |
+| Introduttivi_SICID::RicorsoCAInibitoria | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCAInibitoria | RicorsoCAeInibitoria |
+| Introduttivi_SICID::OpposizioneLeggeFornero | Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso | IntroduttiviSicid.Ricorso |
+| Introduttivi_SICID::RicorsoAppello | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoAppello | RicorsoAppello |
+| Introduttivi_SICID::RicorsoRitoSemplificatoCartabia | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoRitoSemplificatoCartabia | RicorsoRitoSemplificatoCartabia |
+| Introduttivi_SICID::Ricorso702Bis | Create_DatiAtto_Introduttivi_Ricorso702Bis | Ricorso702Bis |
+| Introduttivi_SICID::RicorsoCautelareAnteCausam | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCautelareAnteCausam | RicorsoCautelareAnteCausam |
+| Introduttivi_SICID::RicorsoSequestroConservativo | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroConservativo | RicorsoSequestroConservativo |
+| Introduttivi_SICID::RicorsoSequestroGiudiziario | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroGiudiziario | RicorsoSequestroGiudiziario |
+| Introduttivi_SICID::OpposizioneDecretoIngiuntivo | Create_DatiAtto_Introduttivi_SICID_Cartabia_OpposizioneDecretoIngiuntivo | IntroduttiviSicid.OpposizioneDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoOpposizioneDecretoIngiuntivo | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoOpposizioneDecretoIngiuntivo | IntroduttiviSicid.RicorsoOpposizioneDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoSeparazione | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSeparazione | RicorsoSeparazione |
+| Introduttivi_SICID::RicorsoDivorzioCongiunto | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio | RicorsoDivorzio |
+| Introduttivi_SICID::RicorsoDivorzioGiudiziale | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio | RicorsoDivorzio |
+| Introduttivi_SICID::EreditàSuccessioni | Create_DatiAtto_Introduttivi_SICID_Cartabia_Successioni | Successioni |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSomma | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamConsegnaBeni | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamOneriCondominiali | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSommaAndConsegnaBeni | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoIntermediazioneFinanziaria | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamMateriaLavoro | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPrevidenzaObbligatoria | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamAssistenzaObbligatoria | Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo | IntroduttiviSicid.RicorsoDecretoIngiuntivo |
+| Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore |  |
+| Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore |  |
+| Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore |  |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloPrefallimentare | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPrefallimentare | IscrizioneRuoloPrefallimentare |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaDebitore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU | RicorsoLiquidazioneGiudizialeCCIPU |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU | RicorsoLiquidazioneGiudizialeCCIPU |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU | RicorsoLiquidazioneControllataCCIPU |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaDebitore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU | RicorsoLiquidazioneControllataCCIPU |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoOmologaAccordiRistrutturazioneCCIPU | RicorsoOmologaAccordiRistrutturazCCIPU |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloNuovoConcordatoOrdinario | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato | IscrizioneRuoloNuovoConcordato |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloNuovoConcordatoOrdinarioConDivisione | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato | IscrizioneRuoloNuovoConcordato |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloNuovoConcordatoOrdinarioConRelazione | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato | IscrizioneRuoloNuovoConcordato |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloNuovoConcordatoOrdinarioConTransazione | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato | IscrizioneRuoloNuovoConcordato |
+| Introduttivi_CONCORSUALI_SIECIC::IscrizioneRuoloNuovoConcordatoPrenotativo | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato | IscrizioneRuoloNuovoConcordato |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoAmmissConcordatoPreventivoCCIPU | RicorsoAmmissConcordatoPreventivoCCIPU, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita, ParteSiecicConcorsuali.AttoRichiestaVisibilita |
+| Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore | Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoDichiarazioneInsolvenzaCCIPU | RicorsoDichiarazioneInsolvenzaCCIPU |
+| Parte_SICID::AttoRichiestaVisibilità |  |  |
+| Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità |  |  |
+| Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità |  |  |
+| Parte_SICID::AttoCostituzioneNuovoAvvocato | Create_DatiAtto_Parte_AttoCostituzioneNuovoAvvocato | AttoCostituzioneNuovoAvvocato |
+| Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato | Create_DatiAtto_ParteSiecicEsecuzioni_AttoCostituzioneAvvocato | ParteSiecicEsecuzioni.AttoCostituzioneAvvocato |
+| Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile | Create_DatiAtto_ParteSiecicEsecuzioni_DepositoRelazioneNotarile | ParteSiecicEsecuzioni.DepositoRelazioneNotarile |
+| Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito | Create_DatiAtto_ParteSiecicEsecuzioni_NotaPrecisazioneCredito | NotaPrecisazioneCredito |
+| Parte_ESECUZIONI_SIECIC::RinunciaDebitori | Create_DatiAtto_ParteSiecicEsecuzioni_RinunciaDebitori | RinunciaDebitori |
+| Parte_SICID::NominaCTPexart87 | Create_DatiAtto_Parte_NominaCTPexart87 | NominaCTPexart87 |
+| Parte_SICID::Comparsa180 | Create_DatiAtto_Parte_Comparsa180 | Comparsa180 |
+| Parte_SICID::RicorsoCautelareCorsoCausa | Create_DatiAtto_Parte_RicorsoCautelareCorsoCausa | RicorsoCautelareCorsoCausa |
+| Parte_SICID::RicorsoSequestroConservativoCorsoCausa | Create_DatiAtto_Parte_RicorsoSequestroConservativoCorsoCausa | RicorsoSequestroConservativoCorsoCausa |
+| Parte_SICID::RicorsoSequestroGiudiziarioCorsoCausa | Create_DatiAtto_Parte_RicorsoSequestroGiudiziarioCorsoCausa | RicorsoSequestroGiudiziarioCorsoCausa |
+| Parte_SICID::CostituzioneSemplice | Create_DatiAtto_Parte_CostituzioneSemplice | Parte.CostituzioneSemplice |
+| Parte_SICID::CostituzioneConRiconvenzionale | Create_DatiAtto_Parte_CostituzioneConRiconvenzionale | CostituzioneConRiconvenzionale |
+| Parte_SICID::ComparsaCostituzioneAppello | Create_DatiAtto_Parte_ComparsaCostituzioneAppello | ComparsaCostituzioneAppello |
+| Parte_SICID::ComparsaCostituzioneAppelloIncidentale | Create_DatiAtto_Parte_ComparsaCostituzioneAppelloIncidentale | ComparsaCostituzioneAppelloIncidentale |
+| Parte_SICID::ReclamoRicorrente | Create_DatiAtto_Parte_Reclamo | Reclamo |
+| Parte_SICID::ReclamoResistente | Create_DatiAtto_Parte_Reclamo | Reclamo |
+| Parte_SICID::ReclamoIntervenuto | Create_DatiAtto_Parte_Reclamo | Reclamo |
+| Parte_SICID::Preverbale | Create_DatiAtto_Parte_Preverbale | Preverbale |
+| Parte_SICID::ComparsaConclusionale190 | Create_DatiAtto_Parte_ComparsaConclusionale190 | ComparsaConclusionale190 |
+| Parte_SICID::ComparsaConclusionaleReplica190 | Create_DatiAtto_Parte_ComparsaConclusionaleReplica190 | ComparsaConclusionaleReplica190 |
+| Parte_SICID::Memoria183 | Create_DatiAtto_Parte_Memoria183 | Memoria183 |
+| Parte_SICID::MemoriaReplica183 | Create_DatiAtto_Parte_MemoriaReplica183 | MemoriaReplica183 |
+| Parte_SICID::MemoriaReplicaProvaContraria183 | Create_DatiAtto_Parte_MemoriaReplicaProvaContraria183 | MemoriaReplicaProvaContraria183 |
+| Parte_SICID::MemoriaGenerica | Create_DatiAtto_Parte_MemoriaGenerica | MemoriaGenerica |
+| Parte_SICID::MemorieCartabia |  |  |
+| Parte_SICID::Memoria171ter1 |  |  |
+| Parte_SICID::Repliche171ter2 |  |  |
+| Parte_SICID::Controrepliche171ter3 |  |  |
+| Parte_SICID::IstanzaAccoglimentoDomanda183ter |  |  |
+| Parte_SICID::IstanzaRigettoDomanda183quater |  |  |
+| Parte_SICID::MemoriaDifensivaCA | Create_DatiAtto_Parte_MemoriaDifensivaCA | MemoriaDifensivaCA |
+| Parte_SICID::DepositoDocumentiRichiesti | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::ProduzioneDocumentiRichiesti | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::RelazioneAmministrazioneSostegno | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::RendicontoAmministrazioneSostegno | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::RendicontoEreditaGiacente | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::InventarioEreditaGiacente | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::RelazioneIspettoreArt2409cc | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::RelazioneFinaleArt2409cc | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::DocumentazioneIntegrativaAUSL | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::DocumentazioneIntegrativaPM | Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti | Parte.ProduzioneDocumentiRichiesti |
+| Parte_SICID::NoteTrattazione | Create_DatiAtto_Parte_ScrittiDifensivi | ScrittiDifensivi |
+| Parte_SICID::ScrittiDifensivi | Create_DatiAtto_Parte_ScrittiDifensivi | ScrittiDifensivi |
+| Parte_SICID::PrecisazioneConclusioni | Create_DatiAtto_Parte_PrecisazioneConclusioni | PrecisazioneConclusioni |
+| Parte_SICID::IstanzaGenerica | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::RichiestaFormulaEsecutiva | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::NotaDeposito | Create_DatiAtto_Parte_AttoNonCodificato | AttoNonCodificato |
+| Parte_SICID::AttoNonCodificato | Create_DatiAtto_Parte_AttoNonCodificato | AttoNonCodificato |
+| Parte_SICID::IstanzaFissazioneUdienzaCollegamentiAudioVisivi | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRevocaUdienzaCollegamentiAudioVisivi | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::DepositoFoglioDiPC | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::DepositoMemoria2409 | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaDeferimentoGiuramento | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::depositoNotaSpese | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::DepositoProveExArt210Cpc | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaCongiuntaFissazioneUdienza | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaAnticipazioneUdienza | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaDifferimentoUdienza | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaCorrezioneErroreMateriale | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaEstromissione | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaExArt186Bis | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaExArt186Quater | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaExArt186Ter | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaFissazioneUdienza | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaInterruzione | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRichiestaEsecutorietaExArt647 | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRichiestaInefficaciaExArt188 | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRicusazioneCtu | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRicusazioneGiudice | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRimessioneInIstruttoria | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRimessioneTermini | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRinuncia | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaSospensioneProvvisoriaEsecuzione | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaTrasformazioneInConsensuale | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::RichiestaInefficaciaMisuraCautelare | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::IstanzaRinvioXDiscussioneOrale | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::MemoriaIstruttoria183UC | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::MemoriaReplica183UC | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::NoteScrittePC | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::NoteScrittePC_DiscussioneOrale | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::NoteConclusionali350Bis | Create_DatiAtto_Parte_IstanzaGenerica | Parte.IstanzaGenerica |
+| Parte_SICID::DepositoRicorsoDiRiassunzione | Create_DatiAtto_Parte_RicorsoGenerico | Parte.Ricorso |
+| Parte_SICID::DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento | Create_DatiAtto_Parte_RicorsoGenerico | Parte.Ricorso |
+| Parte_SICID::OpposizioneTardivaExArt668 | Create_DatiAtto_Parte_RicorsoGenerico | Parte.Ricorso |
+| Parte_SICID::RichiestaFissazioneModalitaProvvedimento | Create_DatiAtto_Parte_RicorsoGenerico | Parte.Ricorso |
+| Parte_ESECUZIONI_SIECIC::IstanzaVendita | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaVendita | IstanzaVendita |
+| Parte_ESECUZIONI_SIECIC::AttoIntervento | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoIntervento | AttoIntervento |
+| Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaAssegnazione | IstanzaAssegnazione |
+| Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaDistribuzione | IstanzaDistribuzione |
+| Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::NotaDeposito | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::NoteTrattazione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::AttoGenerico | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico | ParteSiecicEsecuzioni.AttoGenerico |
+| Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter | Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione | Opposizione |
+| Parte_CONCORSUALI_SIECIC::AttoGenerico | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico | ParteSiecicConcorsuali.AttoGenerico |
+| Parte_CONCORSUALI_SIECIC::NoteTrattazione | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico | ParteSiecicConcorsuali.AttoGenerico |
+| Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenericoCCIPU | AttoGenericoCCIPU |
+| Parte_CONCORSUALI_SIECIC::NotaDepositoCCI | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_NotaDepositoCCI | ParteSiecicConcorsuali.NotaDepositoCCI |
+| Parte_CONCORSUALI_SIECIC::CostituzioneDebitoreCCI | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_CostituzioneDebitoreCCI | CostituzioneDebitoreCCI |
+| Parte_CONCORSUALI_SIECIC::MemoriaCCI | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_MemoriaCCI | ParteSiecicConcorsuali.MemoriaCCI |
+| Parte_CONCORSUALI_SIECIC::DepositoMemorie | Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico | ParteSiecicConcorsuali.AttoGenerico |
+| Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato | Create_DatiAtto_ParteSiecicConcorsuali_AttoCostituzioneAvvocato | ParteSiecicConcorsuali.AttoCostituzioneAvvocato |
+| Parte_CONCORSUALI_SIECIC::RinunciaInsinuazione | Create_DatiAtto_ParteSiecicConcorsuali_RinunciaInsinuazione | RinunciaInsinuazione |
+| Professionista_CONCORSUALI_SIECIC::NotaDeposito | Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice | ProfSiecicConcorsuali.DepositoSemplice |
+| Professionista_CONCORSUALI_SIECIC::AttoNonCodificato | Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice | ProfSiecicConcorsuali.DepositoSemplice |
+| Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU | Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice | ProfSiecicConcorsuali.DepositoSemplice |
+| Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU | Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice | ProfSiecicConcorsuali.DepositoSemplice |
+| Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile | Create_DatiAtto_ProfSiecicConcorsuali_DepositoRelazioneNotarile | ProfSiecicConcorsuali.DepositoRelazioneNotarile |
+| Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale | Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale | DepositoRelazioneIniziale |
+| Professionista_SICID::DepositoPerizia | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::DepositoIstanzaGenerica | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::NotaDepositoProfessionista | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::DepositoGiuramentoTelematico | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::DepositoIstanzaLiquidazioneCTU | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::DepositoIntegrazionePerizia | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_SICID::DepositoRichiestaProrogaTerminiPerizia | Create_DatiAtto_Professionista_DepositoSemplice | Professionista.DepositoSemplice |
+| Professionista_ESECUZIONI_SIECIC::NotaDeposito | Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice | ProfSiecicEsecuzioni.DepositoSemplice |
+| Professionista_ESECUZIONI_SIECIC::AttoNonCodificato | Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice | ProfSiecicEsecuzioni.DepositoSemplice |
+| Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU | Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice | ProfSiecicEsecuzioni.DepositoSemplice |
+| Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU | Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice | ProfSiecicEsecuzioni.DepositoSemplice |
+| Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile | Create_DatiAtto_ProfSiecicEsecuzioni_DepositoRelazioneNotarile | ProfSiecicEsecuzioni.DepositoRelazioneNotarile |
+| Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU | Create_DatiAtto_ProfSiecicEsecuzioni_IstanzaProrogaCTU | IstanzaProrogaCTU |
+| Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione | Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione | ProfSiecicEsecuzioni.ProgettoDistribuzione |
+| Professionista_SIGP::DepositoPerizia | Create_DatiAtto_Professionista_SIGP_DepositoSemplice | Professionista_SIGP.DepositoSemplice |
+| Professionista_SIGP::DepositoIstanzaGenerica | Create_DatiAtto_Professionista_SIGP_DepositoSemplice | Professionista_SIGP.DepositoSemplice |
+| Professionista_SIGP::DepositoIstanzaLiquidazioneCTU | Create_DatiAtto_Professionista_SIGP_DepositoSemplice | Professionista_SIGP.DepositoSemplice |
+| Professionista_SIGP::DepositoRichiestaProrogaTerminiPerizia | Create_DatiAtto_Professionista_SIGP_DepositoSemplice | Professionista_SIGP.DepositoSemplice |
+| Professionista_SIGP::NotaDepositoProfessionista | Create_DatiAtto_Professionista_SIGP_DepositoSemplice | Professionista_SIGP.DepositoSemplice |
+| Custode_ESECUZIONI_SIECIC::RendicontoCustode | Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice | CusSiecicEsecuzioni.DepositoSemplice |
+| Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode | Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice | CusSiecicEsecuzioni.DepositoSemplice |
+| Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode | Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice | CusSiecicEsecuzioni.DepositoSemplice |
+| Custode_ESECUZIONI_SIECIC::NotaDepositoCustode | Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice | CusSiecicEsecuzioni.DepositoSemplice |
+| Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode | Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice | CusSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::NotaDeposito | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::attoNonCodificato | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::avvisoVendita | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::depositoPrezzo | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario | Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice | DelSiecicEsecuzioni.DepositoSemplice |
+| Delegati_ESECUZIONI_SIECIC::MinutaDecreto | Create_DatiAtto_DelSiecicEsecuzioni_MinutaDecreto | MinutaDecreto |
+| Delegati_ESECUZIONI_SIECIC::PropostaProgetto | Create_DatiAtto_DelSiecicEsecuzioni_PropostaProgetto | PropostaProgetto |
+| Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto | Create_DatiAtto_DelSiecicEsecuzioni_AggiudicazioneLotto | AggiudicazioneLotto |
+| Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione | Create_DatiAtto_DelSiecicEsecuzioni_ProgettoDistribuzione | DelSiecicEsecuzioni.ProgettoDistribuzione |
+| Parte_CASSAZIONE::Ricorso | Create_DatiAtto_ParteCassazione_Ricorso | ParteCassazione.Ricorso |
+| Parte_CASSAZIONE::ControRicorso | Create_DatiAtto_ParteCassazione_ControRicorso | ControRicorso |
+| Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente | Create_DatiAtto_ParteCassazione_ControRicorso | ControRicorso |
+| Parte_CASSAZIONE::ControRicorsoIncidentale | Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale | ControRicorsoIncidentale |
+| Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente | Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale | ControRicorsoIncidentale |
 | Parte_CASSAZIONE::AttoGenerico |  |  |
+| Parte_CASSAZIONE::AccettazioneRinunciaRicorso |  |  |
+| Parte_CASSAZIONE::AvvisoRicevutaNotificaRicorso |  |  |
+| Parte_CASSAZIONE::AvvisoRicevutaNotificaControricorso |  |  |
+| Parte_CASSAZIONE::DocumentiCondonoFiscale |  |  |
+| Parte_CASSAZIONE::DepositoExArt372 |  |  |
+| Parte_CASSAZIONE::IstanzaAssegnazioneSezioniUnite |  |  |
+| Parte_CASSAZIONE::IstanzaCessazioneMateriaContendere |  |  |
+| Parte_CASSAZIONE::IstanzaOpposizione380bis |  |  |
+| Parte_CASSAZIONE::IstanzaPatrocinioASpeseDelloStato |  |  |
+| Parte_CASSAZIONE::IstanzaRimborsoSpeseGiustizia |  |  |
+| Parte_CASSAZIONE::IstanzaRinnovoNotificaRicorso |  |  |
+| Parte_CASSAZIONE::IstanzaRinvioUdienza |  |  |
+| Parte_CASSAZIONE::IstanzaRiunioneRicorsi |  |  |
+| Parte_CASSAZIONE::IstanzaSollecitaFissazione |  |  |
+| Parte_CASSAZIONE::IstanzaSospensioneGiudizio |  |  |
+| Parte_CASSAZIONE::IstanzaTrasmissione369 |  |  |
+| Parte_CASSAZIONE::Memoria378 |  |  |
+| Parte_CASSAZIONE::Memoria380bis |  |  |
+| Parte_CASSAZIONE::Memoria380bis1 |  |  |
+| Parte_CASSAZIONE::Memoria380ter |  |  |
+| Parte_CASSAZIONE::NoteDiDeposito |  |  |
+| Parte_CASSAZIONE::ProvvedimentoImpugnato |  |  |
+| Parte_CASSAZIONE::RicorsoPerSaltum |  |  |
+| Parte_CASSAZIONE::RicorsoRinnovoNotifica |  |  |
+| Parte_CASSAZIONE::RinunciaProcura |  |  |
+| Parte_CASSAZIONE::RinunciaRicorso |  |  |
+| Parte_CASSAZIONE::SegnalazioneErroreMateriale |  |  |
+| Parte_CASSAZIONE::AttoGenerico | Create_DatiAtto_ParteCassazione_AttoGenerico | ParteCassazione.AttoGenerico |
 | Parte_CASSAZIONE::NoteDiDeposito | Create_DatiAtto_ParteCassazione_AttoGenerico | ParteCassazione.AttoGenerico |
 | Parte_CASSAZIONE::AccettazioneRinunciaRicorso | Create_DatiAtto_ParteCassazione_AccettazioneRinunciaRicorso | AccettazioneRinunciaRicorso |
 | Parte_CASSAZIONE::AvvisoRicevutaNotificaRicorso | Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaRicorso | AvvisoRicevutaNotificaRicorso |
@@ -258,10 +500,92 @@ QuickOrganizer non distribuisce XSD sciolti nella cartella principale: le classi
 | Parte_CASSAZIONE::RicorsoRinnovoNotifica | Create_DatiAtto_ParteCassazione_RicorsoRinnovoNotifica | RicorsoRinnovoNotifica |
 | Parte_CASSAZIONE::RinunciaProcura | Create_DatiAtto_ParteCassazione_RinunciaProcura | RinunciaProcura |
 | Parte_CASSAZIONE::RinunciaRicorso | Create_DatiAtto_ParteCassazione_RinunciaRicorso | RinunciaRicorso |
-| Parte_CASSAZIONE::SegnalazioneErroreMateriale | Create_DatiAtto_CorsoCausa_SIGP_CostituzioneSemplice, Create_DatiAtto_CorsoCausa_SIGP_DepositoMemorie, Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteConclusionali, Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteScritteSostUdie, Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica, Create_DatiAtto_CorsoCausa_SIGP_ProduzioneDocumentiRichiesti, Create_DatiAtto_Introduttivi_SIGP_Citazione, Create_DatiAtto_Introduttivi_SIGP_CitazioneInRiassunzione, Create_DatiAtto_Introduttivi_SIGP_OpposizioneDecretoIngiuntivo, Create_DatiAtto_Introduttivi_SIGP_Ricorso, Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo, Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa, Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica, Create_DatiAtto_ParteCassazione_IntegrazioneSpeseGiustizia, Create_DatiAtto_ParteCassazione_SegnalazioneErroreMateriale, Create_DatiAtto_UNEP_PagamentoRichiesta, Create_DatiAtto_UNEP_RichiestaNotifica, Create_DatiAtto_UNEP_RichiestaNotificaDebito, Create_DatiAtto_UNEP_RichiestaPignoramento, Create_DatiAtto_UNEP_RichiestaPignoramentoADebito, Create_DatiAtto_UNEP_RichiestaRestituzioneSomme, Create_DatiAtto_UNEP_RichiestaRicercaBeni | CorsoCausa_SIGP.CostituzioneSemplice, DepositoMemorie, DepositoNoteConclusionali, CorsoCausa_SIGP.DepositoNoteScritteSostUdie, CorsoCausa_SIGP.IstanzaGenerica, CorsoCausa_SIGP.ProduzioneDocumentiRichiesti, Introduttivi_SIGP.Citazione, Introduttivi_SIGP.CitazioneInRiassunzione, Introduttivi_SIGP.OpposizioneDecretoIngiuntivo, Introduttivi_SIGP.Ricorso, Introduttivi_SIGP.RicorsoDecretoIngiuntivo, OSA, IscrizioneRuoloPignoramento, IntegrazioneAnagrafica, IntegrazioneSpeseGiustizia, SegnalazioneErroreMateriale, PagamentoRichiesta, RichiestaParte, RichiestaParteDebito, RichiestaPignoramento, RichiestaPignoramentoDebito, RichiestaRestituzioneSomme, RichiestaRicercaBeni |
+| Parte_CASSAZIONE::SegnalazioneErroreMateriale | Create_DatiAtto_ParteCassazione_SegnalazioneErroreMateriale | SegnalazioneErroreMateriale |
+| Parte_CASSAZIONE::IntegrazioneContradittorio | Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica | IntegrazioneAnagrafica |
+| Parte_CASSAZIONE::ProcuraSpecialeCostituzione | Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica | IntegrazioneAnagrafica |
+| Parte_CASSAZIONE::ProcuraSpecialeSostituzioneRevoca | Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica | IntegrazioneAnagrafica |
+| Parte_CASSAZIONE::VariazioneDomicilio | Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica | IntegrazioneAnagrafica |
+| Parte_CASSAZIONE::IntegrazioneSpeseGiustizia | Create_DatiAtto_ParteCassazione_IntegrazioneSpeseGiustizia | IntegrazioneSpeseGiustizia |
+| Introduttivi_SIGP::Citazione | Create_DatiAtto_Introduttivi_SIGP_Citazione | Introduttivi_SIGP.Citazione |
+| Introduttivi_SIGP::CitazioneInRiassunzione | Create_DatiAtto_Introduttivi_SIGP_CitazioneInRiassunzione | Introduttivi_SIGP.CitazioneInRiassunzione |
+| Introduttivi_SIGP::Ricorso | Create_DatiAtto_Introduttivi_SIGP_Ricorso | Introduttivi_SIGP.Ricorso |
+| Introduttivi_SIGP::OSA_CartellaEsattoriale | Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa | OSA, IscrizioneRuoloPignoramento |
+| Introduttivi_SIGP::OSA_IngiunzionePagamento | Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa | OSA, IscrizioneRuoloPignoramento |
+| Introduttivi_SIGP::OSA_VerbaleAccertamento | Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa | OSA, IscrizioneRuoloPignoramento |
+| Introduttivi_SIGP::RicorsoDecretoIngiuntivoConsegnaBeni | Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo | Introduttivi_SIGP.RicorsoDecretoIngiuntivo |
+| Introduttivi_SIGP::RicorsoDecretoIngiuntivoOneriCondominiale | Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo | Introduttivi_SIGP.RicorsoDecretoIngiuntivo |
+| Introduttivi_SIGP::RicorsoDecretoIngiuntivoPagamentoSomma | Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo | Introduttivi_SIGP.RicorsoDecretoIngiuntivo |
+| Introduttivi_SIGP::RicorsoDecretoIngiuntivoSommaAndConsegnaBeni | Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo | Introduttivi_SIGP.RicorsoDecretoIngiuntivo |
+| Introduttivi_SIGP::OpposizioneDecretoIngiuntivo | Create_DatiAtto_Introduttivi_SIGP_OpposizioneDecretoIngiuntivo | Introduttivi_SIGP.OpposizioneDecretoIngiuntivo |
+| CorsoCausa_SIGP::AttoRichiestaVisibilità |  |  |
+| CorsoCausa_SIGP::IstanzaGenerica | Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica | CorsoCausa_SIGP.IstanzaGenerica |
+| CorsoCausa_SIGP::RichiestaEsecutorietaExArt647 | Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica | CorsoCausa_SIGP.IstanzaGenerica |
+| CorsoCausa_SIGP::IstanzaExArt186Bis | Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica | CorsoCausa_SIGP.IstanzaGenerica |
+| CorsoCausa_SIGP::IstanzaExArt186Ter | Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica | CorsoCausa_SIGP.IstanzaGenerica |
+| CorsoCausa_SIGP::IstanzaExArt186Quater | Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica | CorsoCausa_SIGP.IstanzaGenerica |
+| CorsoCausa_SIGP::CostituzioneSemplice | Create_DatiAtto_CorsoCausa_SIGP_CostituzioneSemplice | CorsoCausa_SIGP.CostituzioneSemplice |
+| CorsoCausa_SIGP::DepositoMemorie | Create_DatiAtto_CorsoCausa_SIGP_DepositoMemorie | DepositoMemorie |
+| CorsoCausa_SIGP::DepositoNoteScritteSostUdie | Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteScritteSostUdie | CorsoCausa_SIGP.DepositoNoteScritteSostUdie |
+| CorsoCausa_SIGP::DepositoNoteConclusionali | Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteConclusionali | DepositoNoteConclusionali |
+| CorsoCausa_SIGP::ProduzioneDocumentiRichiesti | Create_DatiAtto_CorsoCausa_SIGP_ProduzioneDocumentiRichiesti | CorsoCausa_SIGP.ProduzioneDocumentiRichiesti |
+| Atti_UNEP::AttoCivileAPagamento | Create_DatiAtto_UNEP_RichiestaNotifica | RichiestaParte |
+| Atti_UNEP::AttoPenaleAPagamento | Create_DatiAtto_UNEP_RichiestaNotifica | RichiestaParte |
+| Atti_UNEP::AttoEsenteLavoro | Create_DatiAtto_UNEP_RichiestaNotifica | RichiestaParte |
+| Atti_UNEP::AttoCivileDebito | Create_DatiAtto_UNEP_RichiestaNotificaDebito | RichiestaParteDebito |
+| Atti_UNEP::AttoPenaleDebito | Create_DatiAtto_UNEP_RichiestaNotificaDebito | RichiestaParteDebito |
+| Atti_UNEP::RichiestaPignoramentoMobiliare | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoPressoTerzi | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoImmobiliare | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro | Create_DatiAtto_UNEP_RichiestaPignoramento | RichiestaPignoramento |
+| Atti_UNEP::RichiestaPignoramentoMobiliareADebito | Create_DatiAtto_UNEP_RichiestaPignoramentoADebito | RichiestaPignoramentoDebito |
+| Atti_UNEP::RichiestaPignoramentoPressoTerziADebito | Create_DatiAtto_UNEP_RichiestaPignoramentoADebito | RichiestaPignoramentoDebito |
+| Atti_UNEP::RichiestaPignoramentoImmobiliareADebito | Create_DatiAtto_UNEP_RichiestaPignoramentoADebito | RichiestaPignoramentoDebito |
+| Atti_UNEP::RichiestaRicercaBeni | Create_DatiAtto_UNEP_RichiestaRicercaBeni | RichiestaRicercaBeni |
+| Atti_UNEP::PagamentoRichiestaNotifica | Create_DatiAtto_UNEP_PagamentoRichiesta | PagamentoRichiesta |
+| Atti_UNEP::PagamentoRichiestaPignoramento | Create_DatiAtto_UNEP_PagamentoRichiesta | PagamentoRichiesta |
+| Atti_UNEP::RichiestaRestituzioneSomme | Create_DatiAtto_UNEP_RichiestaRestituzioneSomme | RichiestaRestituzioneSomme |
 | .BMP |  |  |
+| .TIF |  |  |
+| .TIFF |  |  |
+| .WMF |  |  |
+| .PNG |  |  |
+| .JPG |  |  |
+| .JPEG |  |  |
+| .GIF |  |  |
+| .EMF |  |  |
 | OriginalePredispostoAvvocato |  |  |
+| DuplicatoInformatico |  |  |
+| AcquisizioneScanner |  |  |
+| CopiaEstrattaFascicoloInformatico |  |  |
 | 21 |  |  |
+| 13 |  |  |
+| 11 |  |  |
+| 14 |  |  |
+| 22 |  |  |
+| 9 |  |  |
+| 8 |  |  |
+| 26 |  |  |
+| 19 |  |  |
+| 0 |  |  |
+| 15 |  |  |
+| 24 |  |  |
+| 23 |  |  |
+| 6 |  |  |
+| 2 |  |  |
+| 4 |  |  |
+| 25 |  |  |
+| 18 |  |  |
+| 16 |  |  |
+| 17 |  |  |
+| 1 |  |  |
+| 3 |  |  |
+| 10 |  |  |
+| 12 |  |  |
+| 20 |  |  |
+| 35 |  |  |
+| 7 |  |  |
 | ISC |  |  |
 | NA |  |  |
 | SOC |  |  |
@@ -282,10 +606,294 @@ QuickOrganizer non distribuisce XSD sciolti nella cartella principale: le classi
 | PUM |  |  |
 | PAM |  |  |
 | PGI |  |  |
+| ASS |  |  |
+| COM |  |  |
+| CND |  |  |
+| CON |  |  |
+| COP |  |  |
+| DIM |  |  |
+| EDG |  |  |
+| ENP |  |  |
+| EIS |  |  |
+| ISC |  |  |
+| OSE |  |  |
+| PAS |  |  |
+| PAM |  |  |
+| SOC |  |  |
+| SOP |  |  |
+| PGI |  |  |
+| ASS |  |  |
+| COM |  |  |
+| CND |  |  |
+| CON |  |  |
+| COP |  |  |
+| DIM |  |  |
+| EDG |  |  |
+| ENP |  |  |
+| EIS |  |  |
+| ISC |  |  |
+| OSE |  |  |
+| PAS |  |  |
+| PAM |  |  |
+| SOC |  |  |
+| SOP |  |  |
 | A |  |  |
+| A1 |  |  |
+| A10 |  |  |
+| A11 |  |  |
+| A2 |  |  |
+| A3 |  |  |
+| A4 |  |  |
+| A5 |  |  |
+| A6 |  |  |
+| A7 |  |  |
+| A8 |  |  |
+| A9 |  |  |
+| AP |  |  |
+| B1 |  |  |
+| B2 |  |  |
+| B3 |  |  |
+| B4 |  |  |
+| B5 |  |  |
+| B6 |  |  |
+| B7 |  |  |
+| B8 |  |  |
+| C |  |  |
+| C1 |  |  |
+| C2 |  |  |
+| C3 |  |  |
+| C4 |  |  |
+| C5 |  |  |
+| C6 |  |  |
+| C7 |  |  |
+| CA |  |  |
+| CC |  |  |
+| CL |  |  |
+| CN |  |  |
+| CO |  |  |
+| CP |  |  |
+| D |  |  |
+| D1 |  |  |
+| D10 |  |  |
+| D2 |  |  |
+| D3 |  |  |
+| D4 |  |  |
+| D5 |  |  |
+| D6 |  |  |
+| D7 |  |  |
+| D8 |  |  |
+| D9 |  |  |
+| E |  |  |
+| E1 |  |  |
+| E2 |  |  |
+| E3 |  |  |
+| E4 |  |  |
+| E5 |  |  |
+| E6 |  |  |
+| E7 |  |  |
+| E8 |  |  |
+| E9 |  |  |
+| EU |  |  |
+| F |  |  |
+| G |  |  |
+| I |  |  |
+| K |  |  |
+| L |  |  |
+| LA |  |  |
+| LE |  |  |
+| M |  |  |
+| N |  |  |
+| P |  |  |
+| PA |  |  |
+| PG |  |  |
+| PO |  |  |
+| PS |  |  |
+| Q |  |  |
+| R |  |  |
+| S |  |  |
+| SB |  |  |
+| T |  |  |
+| U |  |  |
+| V |  |  |
+| X |  |  |
 | A |  |  |
+| A1 |  |  |
+| A10 |  |  |
+| A11 |  |  |
+| A2 |  |  |
+| A3 |  |  |
+| A4 |  |  |
+| A5 |  |  |
+| A6 |  |  |
+| A7 |  |  |
+| A8 |  |  |
+| A9 |  |  |
+| AP |  |  |
+| B1 |  |  |
+| B2 |  |  |
+| B3 |  |  |
+| B4 |  |  |
+| B5 |  |  |
+| B6 |  |  |
+| B7 |  |  |
+| B8 |  |  |
+| C |  |  |
+| C1 |  |  |
+| C2 |  |  |
+| C3 |  |  |
+| C4 |  |  |
+| C5 |  |  |
+| C6 |  |  |
+| C7 |  |  |
+| CA |  |  |
+| CC |  |  |
+| CL |  |  |
+| CN |  |  |
+| CO |  |  |
+| CP |  |  |
+| D |  |  |
+| D1 |  |  |
+| D10 |  |  |
+| D2 |  |  |
+| D3 |  |  |
+| D4 |  |  |
+| D5 |  |  |
+| D6 |  |  |
+| D7 |  |  |
+| D8 |  |  |
+| D9 |  |  |
+| E |  |  |
+| E1 |  |  |
+| E2 |  |  |
+| E3 |  |  |
+| E4 |  |  |
+| E5 |  |  |
+| E6 |  |  |
+| E7 |  |  |
+| E8 |  |  |
+| E9 |  |  |
+| EU |  |  |
+| F |  |  |
+| G |  |  |
+| I |  |  |
+| K |  |  |
+| L |  |  |
+| LA |  |  |
+| LE |  |  |
+| M |  |  |
+| N |  |  |
+| P |  |  |
+| PA |  |  |
+| PG |  |  |
+| PO |  |  |
+| PS |  |  |
+| Q |  |  |
+| R |  |  |
+| S |  |  |
+| SB |  |  |
+| T |  |  |
+| U |  |  |
+| V |  |  |
+| X |  |  |
 | A |  |  |
+| A1 |  |  |
+| A10 |  |  |
+| A11 |  |  |
+| A2 |  |  |
+| A3 |  |  |
+| A4 |  |  |
+| A5 |  |  |
+| A6 |  |  |
+| A7 |  |  |
+| A8 |  |  |
+| A9 |  |  |
+| AP |  |  |
+| B1 |  |  |
+| B2 |  |  |
+| B3 |  |  |
+| B4 |  |  |
+| B5 |  |  |
+| B6 |  |  |
+| B7 |  |  |
+| B8 |  |  |
+| C |  |  |
+| C1 |  |  |
+| C2 |  |  |
+| C3 |  |  |
+| C4 |  |  |
+| C5 |  |  |
+| C6 |  |  |
+| C7 |  |  |
+| CA |  |  |
+| CC |  |  |
+| CL |  |  |
+| CN |  |  |
+| CO |  |  |
+| CP |  |  |
+| D |  |  |
+| D1 |  |  |
+| D10 |  |  |
+| D2 |  |  |
+| D3 |  |  |
+| D4 |  |  |
+| D5 |  |  |
+| D6 |  |  |
+| D7 |  |  |
+| D8 |  |  |
+| D9 |  |  |
+| E |  |  |
+| E1 |  |  |
+| E2 |  |  |
+| E3 |  |  |
+| E4 |  |  |
+| E5 |  |  |
+| E6 |  |  |
+| E7 |  |  |
+| E8 |  |  |
+| E9 |  |  |
+| EU |  |  |
+| F |  |  |
+| G |  |  |
+| I |  |  |
+| K |  |  |
+| L |  |  |
+| LA |  |  |
+| LE |  |  |
+| M |  |  |
+| N |  |  |
+| P |  |  |
+| PA |  |  |
+| PG |  |  |
+| PO |  |  |
+| PS |  |  |
+| Q |  |  |
+| R |  |  |
+| S |  |  |
+| SB |  |  |
+| T |  |  |
+| U |  |  |
+| V |  |  |
+| X |  |  |
 | Ex Art. 139 c.p.c. |  |  |
+| Ex Art. 140 c.p.c. |  |  |
+| Ex Art. 142 c.p.c. |  |  |
+| Ex Art. 143 c.p.c. |  |  |
+| Ex Art. 149 c.p.c. |  |  |
+| Ex  art. 3 L.53/1994 |  |  |
+| A mezzo PEC |  |  |
+| Ex  art. 55 L.69/2009 |  |  |
+| Ex DL n.546/1992 |  |  |
+| Altri tipi di notifica |  |  |
+| Ex Art. 139 c.p.c. |  |  |
+| Ex Art. 140 c.p.c. |  |  |
+| Ex Art. 142 c.p.c. |  |  |
+| Ex Art. 143 c.p.c. |  |  |
+| Ex Art. 149 c.p.c. |  |  |
+| Ex  art. 3 L.53/1994 |  |  |
+| A mezzo PEC |  |  |
+| Ex  art. 55 L.69/2009 |  |  |
+| Ex DL n.546/1992 |  |  |
+| Altri tipi di notifica |  |  |
 
 ## Pattern tecnici rilevati nei sorgenti
 

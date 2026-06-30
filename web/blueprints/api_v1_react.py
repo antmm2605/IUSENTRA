@@ -1460,7 +1460,7 @@ def _studio_telematico_storage_guard() -> dict[str, Any]:
         try:
             backend = get_request_studio_db(anchor)
         except Exception as exc:
-            current_app.logger.exception("Backend SQL non disponibile per import Studio Telematico: %s", exc)
+            current_app.logger.exception("Backend SQL non disponibile per import pratiche: %s", exc)
             raise QuickOrganizerImportError(
                 f"Import bloccato: lo studio è configurato per {selected_mode}, "
                 f"ma il database SQL non è disponibile per {label}. Nessun dato viene scritto nei JSON."
@@ -1543,16 +1543,16 @@ _STUDIO_TELEMATICO_DIRECT_UPLOAD_LIMIT_BYTES = 150 * 1024 * 1024
 _STUDIO_TELEMATICO_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
 
 
-def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telematico") -> dict[str, Any]:
+def _studio_telematico_import_page(path: str = "/importa-pratiche") -> dict[str, Any]:
     can_import = _puo_importare_studio_telematico()
     return {
         "ok": True,
         "generatedAt": _iso_now(),
         "page": {
-            "title": "Importa pratiche da Studio Telematico",
+            "title": "Importa pratiche",
             "subtitle": (
-                "Acquisizione guidata di pratiche, clienti, parti, documenti da ATTI, EMAILS e appuntamenti "
-                "dal vecchio gestionale dello studio."
+                "Acquisizione guidata di pratiche, clienti, parti, documenti, comunicazioni e appuntamenti "
+                "dal gestionale precedente dello studio."
             ),
             "path": path,
         },
@@ -1564,12 +1564,12 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
             {
                 "id": "prepara",
                 "label": "Prepara il pacchetto",
-                "description": "Sul PC del cliente raccogli archivio dati, cartella ATTI con tutti i documenti e cartella EMAILS.",
+                "description": "Sul PC autorizzato raccogli archivio dati, documenti e comunicazioni collegate.",
             },
             {
                 "id": "controlla",
                 "label": "Controlla completezza",
-                "description": "IUSENTRA mostra quante pratiche, parti, documenti da ATTI ed EMAILS sono pronti.",
+                "description": "IUSENTRA mostra quante pratiche, parti, documenti e comunicazioni sono pronti.",
             },
             {
                 "id": "importa",
@@ -1587,7 +1587,7 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
             "uploadComplete": "/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa",
             "prepareStart": "/api/v1/ui/import/quickorganizer/preparazione",
             "run": "/api/v1/ui/import/quickorganizer/esegui",
-            "helper": "/static/tools/PreparaPacchettoStudioTelematico.exe",
+            "helper": "/static/tools/PreparaPacchettoPratiche.exe",
             "fascicoli": "/fascicoli",
             "clienti": "/clienti",
         },
@@ -1598,9 +1598,9 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
         },
         "notes": [
             "Gli archivi grandi vengono caricati a blocchi e ricomposti nello spazio dati dello studio.",
-            "Il pacchetto consigliato è l'archivio compresso preparato dal PC dove era installato Studio Telematico.",
-            "Tutti i documenti dei fascicoli devono essere nella cartella ATTI; le email collegate devono essere nella cartella EMAILS.",
-            "L'archivio dati da solo consente il controllo delle pratiche, ma senza le cartelle ATTI ed EMAILS l'import resta parziale.",
+            "Il pacchetto consigliato è l'archivio compresso preparato dal PC autorizzato.",
+            "Tutti i documenti e le comunicazioni collegate devono essere inclusi nel pacchetto.",
+            "L'archivio dati da solo consente il controllo delle pratiche, ma senza documenti e comunicazioni l'import resta parziale.",
             "Le pratiche già importate vengono riconosciute e aggiornate, non duplicate.",
         ],
         "contracts": {
@@ -5132,7 +5132,7 @@ def studio_telematico_auto_prepare_start():
             "studio_telematico.preparazione_avviata",
             "import_pratiche",
             session_id,
-            "Avviata preparazione assistita pacchetto Studio Telematico.",
+            "Avviata preparazione assistita pacchetto pratiche.",
         )
         return jsonify(session_payload)
     except QuickOrganizerImportError as exc:
@@ -5173,7 +5173,7 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
         session_id=session_id,
         _external=True,
     ).rsplit("/stato", 1)[0]
-    helper_url = f"{request.url_root.rstrip('/')}/static/tools/PreparaPacchettoStudioTelematico.exe"
+    helper_url = f"{request.url_root.rstrip('/')}/static/tools/PreparaPacchettoPratiche.exe"
     script = "\r\n".join(
         [
             "@echo off",
@@ -5182,7 +5182,7 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
             f"set \"SESSION_ID={session_id}\"",
             f"set \"BASE_URL={base_url}\"",
             f"set \"TOKEN={token}\"",
-            "set \"TARGET=%TEMP%\\iusentra-prepara-studio-telematico-%SESSION_ID%.exe\"",
+            "set \"TARGET=%TEMP%\\iusentra-prepara-import-pratiche-%SESSION_ID%.exe\"",
             (
                 "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
                 "\"Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%TARGET%' -UseBasicParsing\""
@@ -5197,7 +5197,7 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
         ]
     )
     response = current_app.response_class(script, mimetype="text/plain; charset=utf-8")
-    response.headers["Content-Disposition"] = 'attachment; filename="AvviaImportStudioTelematico.cmd"'
+    response.headers["Content-Disposition"] = 'attachment; filename="AvviaImportPratiche.cmd"'
     return response
 
 
@@ -5282,24 +5282,24 @@ def studio_telematico_auto_prepare_upload_complete(session_id: str, upload_id: s
     except QuickOrganizerImportError as exc:
         return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
     except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
-        current_app.logger.exception("Completamento preparazione Studio Telematico non riuscito: %s", exc)
+        current_app.logger.exception("Completamento preparazione import pratiche non riuscito: %s", exc)
         update_auto_prepare_status(
             _studio_telematico_prepare_root(),
             session_id,
             token,
             status="error",
             progress=100,
-            detail="Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS.",
-            errore="Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS.",
+            detail="Il pacchetto non è leggibile. Verifica di aver incluso pratiche e documenti collegati.",
+            errore="Il pacchetto non è leggibile. Verifica di aver incluso pratiche e documenti collegati.",
         )
-        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche e documenti collegati."}), 400
 
     summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
     _audit_event(
         "studio_telematico.import_anteprima",
         "import_pratiche",
         str(stage.get("importId") or ""),
-        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+        f"Controllate {summary.get('matters', 0)} pratiche dal pacchetto import.",
     )
     return jsonify(stage)
 
@@ -5366,15 +5366,15 @@ def studio_telematico_import_upload_complete(upload_id: str):
     except QuickOrganizerImportError as exc:
         return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
     except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
-        current_app.logger.exception("Completamento upload Studio Telematico non riuscito: %s", exc)
-        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+        current_app.logger.exception("Completamento upload import pratiche non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche e documenti collegati."}), 400
 
     summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
     _audit_event(
         "studio_telematico.import_anteprima",
         "import_pratiche",
         str(stage.get("importId") or ""),
-        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+        f"Controllate {summary.get('matters', 0)} pratiche dal pacchetto import.",
     )
     return jsonify({"ok": True, **stage})
 
@@ -5389,7 +5389,7 @@ def studio_telematico_import_preview():
     body = _request_payload() if not uploaded else {}
     source_path = str(body.get("sourcePath") or body.get("source_path") or "").strip()
     if (not uploaded or not str(getattr(uploaded, "filename", "") or "").strip()) and not source_path:
-        return jsonify({"ok": False, "errore": "Seleziona il pacchetto Studio Telematico da controllare."}), 400
+        return jsonify({"ok": False, "errore": "Seleziona il pacchetto pratiche da controllare."}), 400
 
     if source_path:
         if not _studio_telematico_local_path_enabled():
@@ -5403,15 +5403,15 @@ def studio_telematico_import_preview():
         except QuickOrganizerImportError as exc:
             return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
         except Exception as exc:  # noqa: BLE001 - risposta controllata per import da archivi esterni
-            current_app.logger.exception("Anteprima import Studio Telematico da percorso locale non riuscita: %s", exc)
-            return jsonify({"ok": False, "errore": "Il pacchetto indicato non è leggibile. Verifica percorso, pratiche, ATTI ed EMAILS."}), 400
+            current_app.logger.exception("Anteprima import pratiche da percorso locale non riuscita: %s", exc)
+            return jsonify({"ok": False, "errore": "Il pacchetto indicato non è leggibile. Verifica percorso, pratiche e documenti collegati."}), 400
 
         summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
         _audit_event(
             "studio_telematico.import_anteprima",
             "import_pratiche",
             str(stage.get("importId") or ""),
-            f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+        f"Controllate {summary.get('matters', 0)} pratiche dal pacchetto import.",
         )
         public_stage = dict(stage)
         public_stage.pop("sourcePath", None)
@@ -5423,8 +5423,8 @@ def studio_telematico_import_preview():
     except QuickOrganizerImportError as exc:
         return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
     except Exception as exc:  # noqa: BLE001 - risposta controllata per import da archivi esterni
-        current_app.logger.exception("Anteprima import Studio Telematico non riuscita: %s", exc)
-        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+        current_app.logger.exception("Anteprima import pratiche non riuscita: %s", exc)
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche e documenti collegati."}), 400
     finally:
         cleanup_upload_temp(temp_path)
 
@@ -5433,7 +5433,7 @@ def studio_telematico_import_preview():
         "studio_telematico.import_anteprima",
         "import_pratiche",
         str(stage.get("importId") or ""),
-        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+        f"Controllate {summary.get('matters', 0)} pratiche dal pacchetto import.",
     )
     return jsonify({"ok": True, **stage})
 
@@ -5464,7 +5464,7 @@ def studio_telematico_import_run():
     except QuickOrganizerImportError as exc:
         return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_completato"}), 400
     except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
-        current_app.logger.exception("Import Studio Telematico non riuscito: %s", exc)
+        current_app.logger.exception("Import pratiche non riuscito: %s", exc)
         return jsonify({"ok": False, "errore": "Import non completato. Nessun passaggio successivo è stato avviato automaticamente."}), 400
 
     clear_dashboard_payload_cache()

@@ -38,12 +38,21 @@ import './QuickOrganizerImportPage.css'
 type WorkState = 'idle' | 'loading' | 'success' | 'error'
 type WorkProgress = { active: boolean; label: string; detail: string; value: number }
 
+function importUiText(value: string): string {
+  return value
+    .replace(/QuickOrganizer\.zip/gi, 'PacchettoPratiche.zip')
+    .replace(/PreparaPacchetto(?:StudioTelematico|Pratiche)\.exe/gi, 'preparatore pacchetto')
+    .replace(/Studio Telematico|QuickOrganizer/gi, 'gestionale precedente')
+    .replace(/\bATTI\b/g, 'Documenti')
+    .replace(/\bEMAILS\b/g, 'Comunicazioni')
+}
+
 function ImportPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
     <section className="iu-st-import-panel">
       <header>
-        <h2>{title}</h2>
-        {subtitle ? <p>{subtitle}</p> : null}
+        <h2>{importUiText(title)}</h2>
+        {subtitle ? <p>{importUiText(subtitle)}</p> : null}
       </header>
       <div className="iu-st-import-panel__body">{children}</div>
     </section>
@@ -55,8 +64,8 @@ function WorkProgressBar({ progress }: { progress: WorkProgress }) {
   return (
     <div className={`iu-st-import-progress ${progress.active ? 'is-active' : ''}`} aria-live="polite">
       <div>
-        <strong>{progress.label || 'Controllo pacchetto'}</strong>
-        <span>{progress.detail || 'Operazione in corso'}</span>
+        <strong>{importUiText(progress.label || 'Controllo pacchetto')}</strong>
+        <span>{importUiText(progress.detail || 'Operazione in corso')}</span>
       </div>
       <progress value={progress.value} max={100} />
     </div>
@@ -93,12 +102,13 @@ function completenessTone(analysis: StudioTelematicoAnalysis) {
 
 function fileLabel(file: File | null) {
   if (!file) return 'Nessun pacchetto selezionato'
+  const displayName = importUiText(file.name)
   const sizeMb = file.size / (1024 * 1024)
   if (sizeMb >= 1024) {
     const sizeGb = sizeMb / 1024
-    return `${file.name} - ${sizeGb.toLocaleString('it-IT', { maximumFractionDigits: 2 })} GB`
+    return `${displayName} - ${sizeGb.toLocaleString('it-IT', { maximumFractionDigits: 2 })} GB`
   }
-  return `${file.name} - ${sizeMb.toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB`
+  return `${displayName} - ${sizeMb.toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB`
 }
 
 function SummaryCards({ analysis }: { analysis: StudioTelematicoAnalysis }) {
@@ -107,8 +117,8 @@ function SummaryCards({ analysis }: { analysis: StudioTelematicoAnalysis }) {
     <section className="iu-st-import-kpis" aria-label="Riepilogo pacchetto">
       <KpiCard icon={BriefcaseBusiness} label="Pratiche" value={formatImportNumber(summary.matters)} note={`${formatImportNumber(summary.activeMatters)} attive`} tone="primary" />
       <KpiCard icon={UsersRound} label="Clienti e parti" value={formatImportNumber(summary.people)} note={`${formatImportNumber(summary.partyLinks)} collegamenti`} tone="info" />
-      <KpiCard icon={FileText} label="ATTI" value={formatImportNumber(summary.documentFilesFound)} note={`${formatImportNumber(summary.documentFilesMissing)} documenti da integrare`} tone={summary.documentFilesMissing ? 'warning' : 'success'} />
-      <KpiCard icon={Mail} label="EMAILS" value={formatImportNumber(summary.emailFilesFound)} note={`${formatImportNumber(summary.emailFilesMissing)} da integrare`} tone={summary.emailFilesMissing ? 'warning' : 'success'} />
+      <KpiCard icon={FileText} label="Documenti" value={formatImportNumber(summary.documentFilesFound)} note={`${formatImportNumber(summary.documentFilesMissing)} documenti da integrare`} tone={summary.documentFilesMissing ? 'warning' : 'success'} />
+      <KpiCard icon={Mail} label="Comunicazioni" value={formatImportNumber(summary.emailFilesFound)} note={`${formatImportNumber(summary.emailFilesMissing)} da integrare`} tone={summary.emailFilesMissing ? 'warning' : 'success'} />
       <KpiCard icon={CalendarDays} label="Agenda" value={formatImportNumber(summary.appointments)} note={`${formatImportNumber(summary.archivedMatters)} pratiche archiviate`} tone="neutral" />
     </section>
   )
@@ -120,8 +130,8 @@ function GuidedSteps({ data }: { data: StudioTelematicoImportPage }) {
       {data.steps.map((step, index) => (
         <article key={step.id}>
           <span>{index + 1}</span>
-          <strong>{step.label}</strong>
-          <p>{step.description}</p>
+          <strong>{importUiText(step.label)}</strong>
+          <p>{importUiText(step.description)}</p>
         </article>
       ))}
     </section>
@@ -137,16 +147,16 @@ function MissingFiles({ analysis }: { analysis: StudioTelematicoAnalysis }) {
       <AlertTriangle size={18} />
       <div>
         <strong>Pacchetto da completare</strong>
-        <p>Prima dell'import definitivo conviene recuperare la cartella ATTI con tutti i documenti del fascicolo e la cartella EMAILS dalla postazione del cliente.</p>
+        <p>Prima dell'import definitivo conviene recuperare tutti i documenti del fascicolo e le comunicazioni dalla postazione autorizzata.</p>
         <div className="iu-st-import-missing">
           {missingDocuments.length ? (
             <span>
-              <b>ATTI:</b> {missingDocuments.join(', ')}
+              <b>Documenti:</b> {missingDocuments.map(importUiText).join(', ')}
             </span>
           ) : null}
           {missingEmails.length ? (
             <span>
-              <b>EMAILS:</b> {missingEmails.join(', ')}
+              <b>Comunicazioni:</b> {missingEmails.map(importUiText).join(', ')}
             </span>
           ) : null}
         </div>
@@ -189,7 +199,7 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
           <span><strong>{formatImportNumber(summary.mattersUpdated)}</strong> pratiche aggiornate</span>
           <span><strong>{formatImportNumber(summary.clientsCreated)}</strong> clienti creati</span>
           <span><strong>{formatImportNumber(summary.subjectsCreated)}</strong> anagrafiche create</span>
-          <span><strong>{formatImportNumber(summary.documentsImported)}</strong> documenti da ATTI</span>
+          <span><strong>{formatImportNumber(summary.documentsImported)}</strong> documenti acquisiti</span>
           <span><strong>{formatImportNumber(summary.emailsImported)}</strong> email acquisite</span>
           <span><strong>{formatImportNumber(summary.activitiesImported)}</strong> appuntamenti registrati</span>
           <span><strong>{formatImportNumber(summary.duplicatesSkipped)}</strong> duplicati evitati</span>
@@ -208,7 +218,7 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
             <AlertTriangle size={18} />
             <div>
               <strong>Elementi da controllare</strong>
-              {result.errors.slice(0, 5).map((error) => <p key={error}>{error}</p>)}
+              {result.errors.slice(0, 5).map((error) => <p key={error}>{importUiText(error)}</p>)}
             </div>
           </div>
         ) : null}
@@ -256,7 +266,7 @@ export function QuickOrganizerImportPage() {
           if (!controller.signal.aborted) {
             setWorkProgress((current) => ({
               ...current,
-              detail: 'Attendo aggiornamenti dalla postazione Studio Telematico.',
+              detail: 'Attendo aggiornamenti dalla postazione autorizzata.',
             }))
           }
         })
@@ -282,7 +292,7 @@ export function QuickOrganizerImportPage() {
     if (!downloadUrl) return
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = 'AvviaImportStudioTelematico.cmd'
+    link.download = 'AvviaImportPratiche.cmd'
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -343,7 +353,7 @@ export function QuickOrganizerImportPage() {
     setWorkProgress({
       active: true,
       label: 'Avvio preparazione',
-      detail: 'Creo una sessione sicura per la postazione Studio Telematico.',
+      detail: 'Creo una sessione sicura per la postazione autorizzata.',
       value: 5,
     })
     const started = await startStudioTelematicoAutoPrepare(data.actions.prepareStart || '')
@@ -361,7 +371,7 @@ export function QuickOrganizerImportPage() {
     }
     applyAutoPrepareStatus(started)
     triggerAutoPrepareDownload(started.downloadUrl)
-    setMessage('Avviatore scaricato. Se Windows non lo apre subito, apri AvviaImportStudioTelematico.cmd dai download: la pagina continuerà da sola fino al controllo.')
+    setMessage('Avviatore scaricato. Se Windows non lo apre subito, apri AvviaImportPratiche.cmd dai download: la pagina continuerà da sola fino al controllo.')
   }
 
   async function handlePreview() {
@@ -403,10 +413,10 @@ export function QuickOrganizerImportPage() {
       active: true,
       label: 'Controllo pacchetto',
       detail: sourcePathValue
-        ? 'Leggo archivio, cartelle ATTI ed EMAILS e dati pratica senza ricopiare il file'
+        ? 'Leggo archivio, documenti, comunicazioni e dati pratica senza ricopiare il file'
         : largePackageSelected
-          ? 'Carico il pacchetto a blocchi e poi controllo pratiche, ATTI ed EMAILS'
-          : 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
+          ? 'Carico il pacchetto a blocchi e poi controllo pratiche, documenti e comunicazioni'
+          : 'Carico archivio, documenti, comunicazioni e dati pratica',
       value: 35,
     })
     const checked = await previewStudioTelematicoPackage(data.actions.preview, {
@@ -440,7 +450,7 @@ export function QuickOrganizerImportPage() {
     })
     setMessage(checked.ok
       ? (previewHasAvvisi ? previewWarningMessage : 'Controllo completato. Verifica il riepilogo prima di importare.')
-      : checked.errore || 'Controllo non completato. Verifica che il pacchetto sia lo ZIP preparato dalla postazione Studio Telematico completa.')
+      : checked.errore || 'Controllo non completato. Verifica che il pacchetto sia lo ZIP preparato dalla postazione autorizzata completa.')
   }
 
   async function handleImport(importId = preview?.importId || '', allowPartialOverride = allowPartial, automatic = false) {
@@ -448,7 +458,7 @@ export function QuickOrganizerImportPage() {
     setImportState('loading')
     setMessage(automatic
       ? 'Pacchetto completo: import definitivo automatico in corso.'
-      : 'Importazione in corso. Creo o aggiorno pratiche, clienti, parti, ATTI ed EMAILS senza duplicare i dati già presenti.')
+      : 'Importazione in corso. Creo o aggiorno pratiche, clienti, parti, documenti e comunicazioni senza duplicare i dati già presenti.')
     setWorkProgress({
       active: true,
       label: 'Importazione pratiche',
@@ -469,8 +479,8 @@ export function QuickOrganizerImportPage() {
 
   return (
     <Page
-      title={data.page.title}
-      subtitle={data.page.subtitle}
+      title={importUiText(data.page.title)}
+      subtitle={importUiText(data.page.subtitle)}
       actions={
         <>
           <Button type="button" tone="neutral" onClick={handleAutoPrepare} disabled={!data.permissions.canImport || autoPrepareRunning}>
@@ -484,7 +494,7 @@ export function QuickOrganizerImportPage() {
       }
     >
       {loading ? <LoadingState title="Caricamento import pratiche" message="Preparazione del percorso guidato." /> : null}
-      {!loading && error ? <EmptyState title="Import pratiche non disponibile" message={error} /> : null}
+      {!loading && error ? <EmptyState title="Import pratiche non disponibile" message={importUiText(error)} /> : null}
       {!loading && !error && !data.permissions.canImport ? (
         <EmptyState title="Profilo non autorizzato" message={data.permissions.message || 'Serve un profilo autorizzato dello studio.'} />
       ) : null}
@@ -493,14 +503,14 @@ export function QuickOrganizerImportPage() {
           <section className="iu-st-import-banner" aria-label="Import guidato">
             <div>
               <strong>Percorso guidato di migrazione</strong>
-              <span>Ogni pratica viene ricostruita con cliente, parti, documenti della cartella ATTI, EMAILS e agenda quando i file sono presenti.</span>
+              <span>Ogni pratica viene ricostruita con cliente, parti, documenti, comunicazioni e agenda quando i file sono presenti.</span>
             </div>
             <Badge tone={analysis ? completenessTone(analysis) : 'info'}>
               {analysis ? (analysis.canImportComplete ? 'Pronto per importare' : 'Da completare') : 'In attesa pacchetto'}
             </Badge>
           </section>
           <GuidedSteps data={data} />
-          <ImportPanel title="Pacchetto cliente" subtitle="Carica il file preparato dalla postazione Studio Telematico">
+          <ImportPanel title="Pacchetto cliente" subtitle="Carica il file preparato dalla postazione autorizzata">
             <div className="iu-st-import-upload">
               <label className="iu-st-import-file">
                 <UploadCloud size={22} />
@@ -531,7 +541,7 @@ export function QuickOrganizerImportPage() {
                 <input
                   type="text"
                   value={sourcePath}
-                  placeholder={'C:\\Users\\utente\\Downloads\\QuickOrganizer.zip'}
+                  placeholder={'C:\\Users\\utente\\Downloads\\PacchettoPratiche.zip'}
                   onChange={(event) => {
                     autoImportStartedRef.current = false
                     setAutoPrepare(null)
@@ -553,13 +563,13 @@ export function QuickOrganizerImportPage() {
               </div>
             ) : null}
             <div className="iu-st-import-notes">
-              {data.notes.map((note) => <span key={note}>{note}</span>)}
+              {data.notes.map((note) => <span key={note}>{importUiText(note)}</span>)}
             </div>
             <WorkProgressBar progress={workProgress} />
             {message ? (
               <div className={`iu-st-import-message is-${previewState === 'error' || importState === 'error' ? 'error' : 'info'}`}>
                 {previewState === 'error' || importState === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-                <span>{message}</span>
+                <span>{importUiText(message)}</span>
               </div>
             ) : null}
           </ImportPanel>
@@ -575,12 +585,12 @@ export function QuickOrganizerImportPage() {
                   {!analysis.canImportComplete ? (
                     <label>
                       <input type="checkbox" checked={allowPartial} onChange={(event) => setAllowPartial(event.currentTarget.checked)} />
-                      <span>Importa comunque le pratiche disponibili e segnala gli atti mancanti nei fascicoli.</span>
+                      <span>Importa comunque le pratiche disponibili e segnala i documenti mancanti nei fascicoli.</span>
                     </label>
                   ) : (
                     <div className="iu-st-import-ok">
                       <CheckCircle2 size={18} />
-                      <span>Cartelle ATTI ed EMAILS risultano presenti nel pacchetto controllato.</span>
+                      <span>Documenti e comunicazioni risultano presenti nel pacchetto controllato.</span>
                     </div>
                   )}
                   <Button type="button" onClick={() => handleImport()} disabled={!canRun}>

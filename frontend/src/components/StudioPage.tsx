@@ -90,7 +90,7 @@ function ProfessionalEditorPanel() {
           <div className="iu-studio-editor__icon"><PenLine size={20} /></div>
           <div>
             <strong>Scrivi, correggi e controlla gli atti dello studio</strong>
-            <span>Apri il workspace di redazione, richiama Lex e visualizza PDF firmati CAdES senza uscire dal lavoro operativo.</span>
+            <span>Apri il workspace di redazione, richiama Lex e visualizza PDF firmati senza uscire dal lavoro operativo.</span>
           </div>
         </article>
         <div className="iu-studio-editor__actions" aria-label="Azioni editor professionale">

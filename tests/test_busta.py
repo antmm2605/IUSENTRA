@@ -16,8 +16,11 @@ from pct.busta import (
     DATI_ATTO_FIRMATO_FILENAME,
     INDICE_BUSTA_FILENAME,
     INDICE_DOCUMENTI_FILENAME,
+    CASSAZIONE_PARTE_NS,
     MINISTERIAL_ALLEGATI_NS,
     MINISTERIAL_ATTI_NS,
+    SICID_SISTEMA_NS,
+    SIECIC_PARTE_ESECUZIONI_NS,
 )
 from pct.firma import estrai_contenuto_cades
 from pct.pst_cifratura import PSTCifraturaError
@@ -165,6 +168,174 @@ def _anagrafica_ministeriale_test() -> bytes:
     etree.SubElement(domicilio, f"{{{ana}}}stato").text = "IT"
     etree.SubElement(avvocato, f"{{{ana}}}parteRappresentata", ref="parte_ricorrente_1")
     return etree.tostring(root, encoding="UTF-8")
+
+
+def test_dati_atto_ministeriale_catalogo_citazione_usa_root_e_data(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="110001",
+        tipo_atto="ATTO_DI_CITAZIONE",
+        atto_principale=tmp_pdf,
+        valore_causa=1000.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        datiatto_generator_class="IntroduttiviSicid",
+        datiatto_root_name="Citazione",
+        datiatto_studio_variable="citazione",
+        datiatto_generator_mode="introduttivo_citazione",
+        data_notifica_citazione="30/06/2026",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+
+    assert etree.QName(root).localname == "Citazione"
+    assert root.get("Datacitazione") == "2026-06-30"
+    assert root.xpath("//*[local-name()='destinazione']")
+    assert root.xpath("//*[local-name()='Oggetto']")
+    assert root.xpath("//*[local-name()='AnagraficaProcedimento']")
+
+
+def test_dati_atto_ministeriale_catalogo_citazione_appello_usa_root_specifica(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="110002",
+        tipo_atto="ATTO_DI_CITAZIONE",
+        atto_principale=tmp_pdf,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        datiatto_generator_class="IntroduttiviSicid",
+        datiatto_root_name="CitazioneAppello",
+        datiatto_studio_variable="citazioneAppello",
+        datiatto_generator_mode="introduttivo_citazione",
+        data_notifica_citazione="30/06/2026",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+
+    assert etree.QName(root).localname == "CitazioneAppello"
+    assert root.get("Datacitazione") == "2026-06-30"
+    assert root.xpath("//*[local-name()='AnagraficaProcedimento']")
+
+
+def test_dati_atto_ministeriale_catalogo_produzione_documenti_usa_procedimento(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="Memoria documentale",
+        tipo_atto="ATTO_GENERICO",
+        atto_principale=tmp_pdf,
+        numero_rg="1234",
+        anno_rg=2026,
+        datiatto_generator_class="Parte",
+        datiatto_root_name="ProduzioneDocumentiRichiesti",
+        datiatto_studio_variable="produzioneDocumentiRichiesti",
+        datiatto_generator_mode="procedimento_base",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+    procedimento = root.xpath("//*[local-name()='procedimento']")[0]
+
+    assert etree.QName(root).localname == "ProduzioneDocumentiRichiesti"
+    assert procedimento.get("ufficio") == "0580010"
+    assert procedimento.xpath("./*[local-name()='numero']/text()") == ["1234"]
+    assert procedimento.xpath("./*[local-name()='anno']/text()") == ["2026"]
+    assert not root.xpath("//*[local-name()='AnagraficaProcedimento']")
+
+
+def test_dati_atto_ministeriale_catalogo_siecic_esecuzioni_usa_procedimento(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="SIECIC_ESECUZIONI",
+        oggetto="Atto di intervento",
+        tipo_atto="ATTO_GENERICO",
+        atto_principale=tmp_pdf,
+        numero_rg="55",
+        anno_rg=2026,
+        datiatto_generator_class="ParteSiecicEsecuzioni",
+        datiatto_root_name="AttoIntervento",
+        datiatto_studio_variable="attoIntervento",
+        datiatto_generator_mode="procedimento_base",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+    procedimento = root.xpath("//*[local-name()='procedimento']")[0]
+
+    assert etree.QName(root).localname == "AttoIntervento"
+    assert etree.QName(root).namespace == SIECIC_PARTE_ESECUZIONI_NS
+    assert procedimento.xpath("./*[local-name()='numero']/text()") == ["55"]
+    assert procedimento.xpath("./*[local-name()='anno']/text()") == ["2026"]
+
+
+def test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="Deposito complementare",
+        tipo_atto="DEPOSITO_COMPLEMENTARE",
+        atto_principale=tmp_pdf,
+        datiatto_generator_class="AttoSistemaSicid",
+        datiatto_root_name="DepositoComplementare",
+        datiatto_studio_variable="depositoComplementare",
+        datiatto_generator_mode="sistema_destinazione",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+
+    assert etree.QName(root).localname == "DepositoComplementare"
+    assert etree.QName(root).namespace == SICID_SISTEMA_NS
+    assert root.xpath("//*[local-name()='destinazione']")
+    assert root.xpath("//*[local-name()='Oggetto']/text()") == ["Deposito complementare"]
+    assert not root.xpath("//*[local-name()='procedimento']")
+
+
+def test_dati_atto_ministeriale_catalogo_cassazione_usa_root_e_anagrafica(tmp_pdf):
+    from lxml import etree
+
+    dati = DatiBusta(
+        codice_ufficio="80417740588",
+        codice_registro="CASSCI",
+        oggetto="Ricorso per cassazione",
+        tipo_atto="RICORSO",
+        atto_principale=tmp_pdf,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        datiatto_generator_class="ParteCassazione",
+        datiatto_root_name="Ricorso",
+        datiatto_studio_variable="ricorso",
+        datiatto_generator_mode="cassazione_parte",
+    )
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+
+    assert etree.QName(root).localname == "Ricorso"
+    assert etree.QName(root).namespace == CASSAZIONE_PARTE_NS
+    assert root.xpath("//*[local-name()='destinazione']")
+    assert root.xpath("//*[local-name()='AnagraficaProcedimento']")
+
+
+def test_dati_atto_ministeriale_citazione_blocca_data_mancante(tmp_pdf):
+    dati = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="110001",
+        tipo_atto="ATTO_DI_CITAZIONE",
+        atto_principale=tmp_pdf,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        datiatto_generator_class="IntroduttiviSicid",
+        datiatto_root_name="Citazione",
+    )
+
+    with pytest.raises(ValueError, match="Data notificazione citazione mancante"):
+        BustaTelematica(dati).crea_dati_atto_xml_per_firma()
 
 
 def test_busta_contiene_xml(dati_busta, tmp_path):

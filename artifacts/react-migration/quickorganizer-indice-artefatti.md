@@ -1,13 +1,27 @@
 # Indice artefatti QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito, PEC, fascicoli, notifiche, portali o certificati.
 
 ## File
 
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/case-non-presenti-nel-catalogo-ui.md`
 - `artifacts/react-migration/catalogo-quickorganizer-depositi.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/contenzioso-civile-lavoro-minorenni-e-volontaria-giurisdizione.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/contenzioso-civile-lavoro-minorenni-e-volontaria-giurisdizione.md`
+- `artifacts/react-migration/quickorganizer-generatore-busta/contratto-generatore-busta.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/corte-di-cassazione-civile.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/corte-di-cassazione-civile.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/giudice-di-pace.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/giudice-di-pace.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/indice.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/indice.md`
 - `artifacts/react-migration/lavoro-specializzazione-deposito-pec-fascicoli.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/procedimenti-concorsuali.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/procedimenti-concorsuali.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/processo-esecutivo.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/processo-esecutivo.md`
 - `artifacts/react-migration/quickorganizer-catalogo-cassazione.md`
 - `artifacts/react-migration/quickorganizer-catalogo-concorsuali-siecic.md`
 - `artifacts/react-migration/quickorganizer-catalogo-contenzioso-sicid.md`
@@ -18,6 +32,7 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 - `artifacts/react-migration/quickorganizer-confronto-certificati-codici.md`
 - `artifacts/react-migration/quickorganizer-database-fascicoli-pec.json`
 - `artifacts/react-migration/quickorganizer-database-fascicoli-pec.md`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori-campo-per-campo.json`
 - `artifacts/react-migration/quickorganizer-deposito-catalogo.json`
 - `artifacts/react-migration/quickorganizer-firma-pin-sessioni.md`
 - `artifacts/react-migration/quickorganizer-logica-studio-telematico.md`
@@ -30,6 +45,9 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 - `artifacts/react-migration/quickorganizer-risorse-dll-sottocartelle.json`
 - `artifacts/react-migration/quickorganizer-risorse-dll-sottocartelle.md`
 - `artifacts/react-migration/quickorganizer-xsd-datiatto-manifest.json`
+- `pct/data/cataloghi/quickorganizer_depositi_studio_telematico.json`
+- `artifacts/react-migration/quickorganizer-datiatto-generatori/unep-ufficio-notificazioni-esecuzioni-e-protesti.md`
+- `artifacts/react-migration/quickorganizer-regole-menu-deposito/unep-ufficio-notificazioni-esecuzioni-e-protesti.md`
 - `artifacts/react-migration/xsd-quickorganizer-datiatto.md`
 
 ## Regola di manutenzione

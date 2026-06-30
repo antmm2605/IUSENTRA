@@ -1,6 +1,6 @@
 # Registri consultazione fascicoli QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 Questo file risponde al perimetro richiesto: civile ordinario SICID/RGN, lavoro SIL/LAV, volontaria giurisdizione SIVG/VG, minorenni MIN/SIMIN, esecuzioni e concorsuali SIECIC, Giudice di Pace SIGP/GDP, Cassazione civile CASSCI, Cassazione penale CASSPE e registri ulteriori trovati.
 

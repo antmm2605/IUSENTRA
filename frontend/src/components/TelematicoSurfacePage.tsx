@@ -1440,11 +1440,6 @@ function AcquisitionProgressView({ progress }: { progress: ImportProgress }) {
   )
 }
 
-function shortHash(value: string): string {
-  const clean = value.trim()
-  return clean.length > 12 ? `${clean.slice(0, 12)}...` : clean
-}
-
 function certificateTone(office: OfficeRow): Tone {
   if (!office.certificatoCifratura.richiesto) return 'neutral'
   if (office.certificatoCifratura.verificato) return 'success'
@@ -1454,9 +1449,9 @@ function certificateTone(office: OfficeRow): Tone {
 function certificateLabel(office: OfficeRow): string {
   const cert = office.certificatoCifratura
   if (!cert.richiesto) return 'Non richiesto'
-  if (cert.verificato) return '.cer verificato'
-  if (cert.presente) return '.cer da validare'
-  return '.cer da acquisire'
+  if (cert.verificato) return 'Certificato verificato'
+  if (cert.presente) return 'Certificato da validare'
+  return 'Certificato da acquisire'
 }
 
 function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
@@ -1505,9 +1500,9 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
         <div>
           <span>Elenco uffici</span>
           <h2>Tribunali e indirizzi PEC</h2>
-          <p>{certificateSummary.present} certificati .cer associati su {certificateSummary.required} uffici PCT/SIGP con cifratura.</p>
+          <p>{certificateSummary.present} certificati associati su {certificateSummary.required} uffici con protezione deposito.</p>
         </div>
-        <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca ufficio, PEC, distretto, codice..."/></label>
+        <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca ufficio, PEC o distretto..."/></label>
         <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtra tipo ufficio">
           {types.map((type) => <option value={type} key={type}>{type === 'tutti' ? 'Tutti i tipi' : type}</option>)}
         </select>
@@ -1519,19 +1514,15 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
               <Badge tone="primary">{office.tipo || 'Ufficio'}</Badge>
               <Badge tone={certificateTone(office)}>{certificateLabel(office)}</Badge>
               <strong>{office.nome}</strong>
-              <span>{[office.codice || office.codiceMinistero, office.distretto, office.comune || office.provincia].filter(Boolean).join(' - ')}</span>
+              <span>{[office.distretto, office.comune || office.provincia].filter(Boolean).join(' - ')}</span>
               <small className="iu-tel-office-cert">
                 <ShieldCheck size={14}/>
                 {office.certificatoCifratura.richiesto
                   ? [
-                      `Codice PST ${office.certificatoCifratura.codiceUfficio || 'n.d.'}`,
-                      office.nomeCertificatoCifra || office.certificatoCifratura.nomeCertificatoCifra
-                        ? `file ${office.nomeCertificatoCifra || office.certificatoCifratura.nomeCertificatoCifra}`
-                        : 'recupero diretto per codice',
-                      office.certificatoCifratura.notValidAfter ? `scade ${office.certificatoCifratura.notValidAfter.slice(0, 10)}` : '',
-                      office.certificatoCifratura.sha256 ? `SHA256 ${shortHash(office.certificatoCifratura.sha256)}` : '',
+                      office.certificatoCifratura.verificato ? 'Certificato ufficio verificato' : office.certificatoCifratura.presente ? 'Certificato ufficio da validare' : 'Certificato ufficio da acquisire',
+                      office.certificatoCifratura.notValidAfter ? `valido fino al ${formatGeneratedAt(office.certificatoCifratura.notValidAfter)}` : '',
                     ].filter(Boolean).join(' - ')
-                  : 'Canale senza cifratura PCT Atto.enc'}
+                  : 'Protezione deposito non richiesta'}
               </small>
             </div>
             <button type="button" onClick={() => copyPec(office)} disabled={!office.pec}>
@@ -2452,7 +2443,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
                         disabled={!selected}
                         onChange={(event) => updateDocumentSignature(doc.id, event.target.checked)}
                       />
-                      <span>Firma PAdES</span>
+                      <span>Firma digitale</span>
                     </label>
                   </article>
                 )

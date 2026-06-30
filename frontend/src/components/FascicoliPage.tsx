@@ -184,10 +184,9 @@ function officeDepositoCode(office: StudioRuntimeOffice): string {
 
 function officeCodeMeta(office: StudioRuntimeOffice): string {
   return compactMeta([
-    office.codice ? `codice ufficio ${office.codice}` : '',
-    office.codiceMinistero ? `codice PST ${office.codiceMinistero}` : '',
-    office.codiceGiustiziaLocale ? `GL ${office.codiceGiustiziaLocale}` : '',
-    office.istatCode ? `ISTAT sede ${office.istatCode}` : '',
+    office.codice || office.codiceMinistero ? 'deposito telematico verificato' : '',
+    office.codiceGiustiziaLocale ? 'collegamento ufficiale verificato' : '',
+    office.istatCode ? 'sede verificata' : '',
   ])
 }
 
@@ -548,6 +547,90 @@ function depositCatalogSlug(value: string) {
   return normalized.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'catalogo'
 }
 
+const DEPOSIT_PROGRESS_USER_STEPS = [
+  'Controllo dati deposito',
+  'Firma controlli',
+  'Indice documenti',
+  'Preparazione pacchetto',
+  'Verifica finale',
+]
+
+function depositUserControlLabel(value: string): string {
+  const text = normaliseText(value)
+  if (/datiatto|metadat/.test(text)) return 'Dati deposito'
+  if (/indicebusta/.test(text)) return 'Indice del pacchetto'
+  if (/indicedocumenti|indice document/.test(text)) return 'Indice documenti'
+  if (/atto\.enc|aes|certificato|\.cer|pst/.test(text)) return 'Pacchetto protetto'
+  if (/pec locale/.test(text)) return 'Invio PEC dal PC in uso'
+  if (/codice deposito|codice oggetto/.test(text)) return 'Codice deposito'
+  if (/ufficio/.test(text)) return 'Ufficio giudiziario'
+  if (/registro/.test(text)) return 'Registro e ruolo'
+  return value
+}
+
+function uniqueDepositUserList(values: string[]): string[] {
+  const result: string[] = []
+  for (const item of values.map(depositUserControlLabel).filter(Boolean)) {
+    if (!result.includes(item)) result.push(item)
+  }
+  return result
+}
+
+function depositUserTransportLabel(entry: FascicoloDepositCatalogEntry): string {
+  const transport = normaliseText(`${entry.ui.transport} ${entry.channel}`)
+  if (/unep|notific/.test(transport)) return 'Flusso notifiche separato'
+  if (/portale|upload/.test(transport)) return 'Caricamento sul portale ufficiale'
+  if (/pec|atto|busta|datiatto|indice/.test(transport)) return 'Preparazione busta e invio PEC dal PC in uso'
+  return entry.ui.transport || 'Preparazione deposito'
+}
+
+function depositAttachmentDisplayName(value: string): string {
+  const text = value.trim()
+  if (!text) return ''
+  const lowered = text.toLowerCase()
+  if (lowered === 'atto.enc' || /datiatto|indicebusta|cms|pkcs|\.cer|aes256/.test(lowered)) return 'Pacchetto deposito'
+  if (lowered === 'indicedocumentidepositati.pdf') return 'Indice documenti'
+  return text
+}
+
+function depositUserFacingMessage(value: string): string {
+  const raw = value.trim()
+  if (!raw) return ''
+  let result = raw
+  result = result.replace(/Studio Telematico|QuickOrganizer/gi, 'IUSENTRA')
+  result = result.replace(/DatiAtto\.xml(?:\.p7m)?/gi, 'dati del deposito')
+  result = result.replace(/IndiceBusta\.xml/gi, 'indice del pacchetto')
+  result = result.replace(/IndiceDocumentiDepositati\.PDF/gi, 'indice documenti')
+  result = result.replace(/Atto\.msg/gi, 'messaggio di deposito')
+  result = result.replace(/Atto\.enc/gi, 'pacchetto deposito')
+  result = result.replace(/AES256|CMS EnvelopedData|PKCS#?7/gi, 'formato protetto')
+  result = result.replace(/\.cer/gi, "certificato dell'ufficio")
+  result = result.replace(/\.cer\s*PST|PST\s*\.cer|certificato PST/gi, "certificato dell'ufficio")
+  result = result.replace(/Catalogo ministeriale|CatalogoServizi\.getCertificato/gi, 'servizio ufficiale')
+  result = result.replace(/\bPCT\b/gi, 'deposito telematico')
+  result = result.replace(/\bPST\b/gi, 'servizio ufficiale')
+  result = result.replace(/token\s+PKCS#?11|PKCS#?11|token/gi, 'dispositivo di firma')
+  result = result.replace(/\bhash\b/gi, 'impronta')
+  result = result.replace(/\bslot documentali\b|\bslot\b/gi, 'documenti richiesti')
+  result = result.replace(/ministeriale|ministeriali/gi, 'ufficiale')
+  result = result.replace(/blocco tecnico/gi, 'requisito mancante')
+  result = result.replace(/metadato ministeriale/gi, 'dati del deposito')
+  result = result.replace(/artefatti ministeriali/gi, 'documenti prodotti')
+  result = result.replace(/schema ministeriale|schema/gi, 'controllo')
+  result = result.replace(/Deposito\s+deposito telematico/gi, 'Deposito telematico')
+  return result
+}
+
+function depositUserFacingLabel(value: string): string {
+  const registerCodes = '(SICID|SIECIC|SIGP|SIL|SIVG|SIMIN|MIN|RGN|LAV|VG|CASSCI|CASSPE)'
+  let result = depositUserFacingMessage(value)
+  result = result.replace(new RegExp(`\\s*\\(${registerCodes}\\)`, 'gi'), '')
+  result = result.replace(new RegExp(`\\s*/\\s*${registerCodes}\\b`, 'gi'), '')
+  result = result.replace(new RegExp(`\\b${registerCodes}\\b`, 'gi'), '')
+  result = result.replace(/\s{2,}/g, ' ').replace(/\s+[-/]\s*$/g, '').trim()
+  return result || value
+}
+
 function DepositRolePicker({
   documentName,
   value,
@@ -625,15 +708,11 @@ function DepositTypePreviewPanel({
   selectedKey,
   onSelect,
   currentProfile,
-  currentCode,
-  currentChannel,
 }: {
   catalog: FascicoloDepositCatalog
   selectedKey: string
   onSelect: (key: string) => void
   currentProfile: string
-  currentCode: string
-  currentChannel: string
 }) {
   const catalogPreview = useMemo(() => buildDepositCatalogPreviewState(catalog), [catalog])
   const [macroId, setMacroId] = useState('')
@@ -688,7 +767,7 @@ function DepositTypePreviewPanel({
         <header>
           <div>
             <strong>Tipo deposito</strong>
-            <span>Catalogo Studio Telematico non disponibile dall'API.</span>
+            <span>Elenco depositi non disponibile.</span>
           </div>
           <Badge tone="warning">Da caricare</Badge>
         </header>
@@ -697,17 +776,15 @@ function DepositTypePreviewPanel({
   }
 
   const sendReady = selectedType.rules.real_send_allowed_from_pct_panel
-  const schemaLabel = selectedType.schema.label || selectedType.schema.status || 'Schema ministeriale da verificare'
-  const evidenceLabel = selectedType.schema.evidenceMethodsCount || selectedType.schema.evidenceRootsCount
-    ? `${selectedType.schema.evidenceMethodsCount} metodi e ${selectedType.schema.evidenceRootsCount} radici Studio Telematico rilevate`
-    : 'evidenza schema non presente nel catalogo estratto'
+  const userControls = uniqueDepositUserList(selectedType.ui.controls)
+  const transportLabel = depositUserTransportLabel(selectedType)
 
   return (
     <section className="iu-fas-deposit-type-panel" aria-label="Tipo deposito telematico">
       <header>
         <div>
           <strong>Tipo deposito</strong>
-          <span>Catalogo Studio Telematico: {catalogPreview.total} tipi in {macroareas.length} macroaree. La scelta governa schema, canale e controlli prima della busta.</span>
+          <span>{catalogPreview.total} tipi disponibili in {macroareas.length} aree. La scelta governa controlli, documenti richiesti e preparazione della busta.</span>
         </div>
         <Badge tone={sendReady ? 'success' : 'warning'}>{sendReady ? 'Operativo' : 'Da completare'}</Badge>
       </header>
@@ -716,7 +793,7 @@ function DepositTypePreviewPanel({
           <span>Macroarea</span>
           <select value={selectedMacro.id} onChange={(event) => selectMacro(event.currentTarget.value)}>
             {macroareas.map((macro) => (
-              <option value={macro.id} key={macro.id}>{macro.label} ({macro.total})</option>
+              <option value={macro.id} key={macro.id}>{depositUserFacingLabel(macro.label)} ({macro.total})</option>
             ))}
           </select>
         </label>
@@ -724,7 +801,7 @@ function DepositTypePreviewPanel({
           <span>Categoria</span>
           <select value={selectedCategory.id} onChange={(event) => selectCategory(event.currentTarget.value)}>
             {selectedMacro.categories.map((category) => (
-              <option value={category.id} key={category.id}>{category.label} ({category.total})</option>
+              <option value={category.id} key={category.id}>{depositUserFacingLabel(category.label)} ({category.total})</option>
             ))}
           </select>
         </label>
@@ -739,37 +816,37 @@ function DepositTypePreviewPanel({
       </div>
       <div className="iu-fas-deposit-type-panel__summary">
         <article>
-          <span>Registro / servizio</span>
-          <strong>{selectedType.registry.label || selectedType.registry.code}</strong>
-          <small>{selectedMacro.service}</small>
+          <span>Area</span>
+          <strong>{depositUserFacingLabel(selectedMacro.label)}</strong>
+          <small>{depositUserFacingLabel(selectedCategory.label)}</small>
         </article>
         <article>
-          <span>Schema DatiAtto</span>
-          <strong>{schemaLabel}</strong>
-          <small>{selectedType.key}</small>
+          <span>Preparazione</span>
+          <strong>{sendReady ? 'Pronta per i controlli' : 'Da completare'}</strong>
+          <small>{selectedType.label}</small>
         </article>
         <article>
-          <span>Trasporto</span>
-          <strong>{selectedType.ui.transport}</strong>
-          <small>{selectedType.channel}</small>
+          <span>Invio</span>
+          <strong>{transportLabel}</strong>
+          <small>{sendReady ? 'Controllabile nel flusso deposito' : 'Richiede flusso dedicato'}</small>
         </article>
       </div>
       <div className="iu-fas-deposit-type-panel__behavior">
         <ShieldCheck size={16} aria-hidden="true" />
         <div>
           <strong>Comportamento previsto</strong>
-          <span>{selectedType.ui.behavior}</span>
+          <span>{depositUserFacingMessage(selectedType.ui.behavior)}</span>
         </div>
       </div>
       {!sendReady && selectedType.rules.real_send_blocker ? (
         <div className="iu-fas-deposit-type-panel__blocker" role="status">
           <ShieldAlert size={16} aria-hidden="true" />
-          <span>{selectedType.rules.real_send_blocker}</span>
+          <span>{depositUserFacingMessage(selectedType.rules.real_send_blocker)}</span>
         </div>
       ) : null}
       <div className="iu-fas-deposit-type-panel__actions">
         <button type="button" onClick={() => setSchemaOpen((open) => !open)} aria-expanded={schemaOpen}>
-          {schemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Schema
+          {schemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Dettagli
         </button>
         <button type="button" onClick={() => setTreeOpen((open) => !open)} aria-expanded={treeOpen}>
           {treeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {treeOpen ? 'Compatta' : 'Esplodi tutto'}
@@ -778,36 +855,36 @@ function DepositTypePreviewPanel({
       {schemaOpen ? (
         <div className="iu-fas-deposit-type-panel__schema">
           <section>
-            <strong>Logica Studio Telematico</strong>
+            <strong>Scelta attuale</strong>
             <ul>
-              <li>chiave: {selectedType.key}</li>
-              <li>prefisso: {selectedType.prefix || 'non rilevato'}</li>
-              <li>percorso: {selectedType.path || `${selectedMacro.label} > ${selectedCategory.label} > ${selectedType.label}`}</li>
-              <li>{evidenceLabel}</li>
+              <li>Area: {depositUserFacingLabel(selectedMacro.label)}</li>
+              <li>Categoria: {depositUserFacingLabel(selectedCategory.label)}</li>
+              <li>Tipo: {selectedType.label}</li>
+              <li>{sendReady ? 'Controlli disponibili in questo flusso' : 'Serve un percorso dedicato prima dell’invio'}</li>
             </ul>
           </section>
           <section>
             <strong>Controlli automatici</strong>
             <ul>
-              {selectedType.ui.controls.map((item) => <li key={`${selectedType.key}-control-${item}`}>{item}</li>)}
+              {userControls.map((item) => <li key={`${selectedType.key}-control-${item}`}>{item}</li>)}
             </ul>
           </section>
           <section>
             <strong>Documenti attesi</strong>
             <ul>
-              {selectedType.ui.documents.map((item) => <li key={`${selectedType.key}-document-${item}`}>{item}</li>)}
+              {selectedType.ui.documents.map((item, index) => <li key={`${selectedType.key}-document-${item}-${index}`}>{depositUserFacingMessage(depositAttachmentDisplayName(item) || item)}</li>)}
             </ul>
           </section>
         </div>
       ) : null}
       {treeOpen ? (
-        <div className="iu-fas-deposit-type-panel__tree" aria-label="Albero catalogo deposito">
+        <div className="iu-fas-deposit-type-panel__tree" aria-label="Elenco tipi deposito">
           {macroareas.map((macro) => (
             <section key={`macro-${macro.id}`}>
-              <h4>{macro.label} <span>{macro.total}</span></h4>
+              <h4>{depositUserFacingLabel(macro.label)} <span>{macro.total}</span></h4>
               {macro.categories.map((category) => (
                 <div key={`category-${category.id}`}>
-                  <strong>{category.label} <span>{category.total}</span></strong>
+                  <strong>{depositUserFacingLabel(category.label)} <span>{category.total}</span></strong>
                   <ul>
                     {category.options.map((option) => (
                       <li key={`tree-${option.key}`} className={option.key === selectedType.key ? 'is-selected' : ''}>
@@ -832,7 +909,7 @@ function DepositTypePreviewPanel({
       ) : null}
       <p className="iu-fas-deposit-type-panel__current">
         <Gavel size={14} aria-hidden="true" />
-        <span>{[currentProfile, currentCode ? `codice ${currentCode}` : '', currentChannel].filter(Boolean).join(' - ') || 'Profilo pratica da confermare'}</span>
+        <span>{depositUserFacingLabel(currentProfile) || 'Profilo pratica da confermare'}</span>
       </p>
     </section>
   )
@@ -918,8 +995,8 @@ function DepositActionButton({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [progressIndex, setProgressIndex] = useState(0)
-  const progressQueue = progressItems.length ? progressItems : ['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', 'Atto.enc']
-  const currentProgressItem = progressQueue[progressIndex % progressQueue.length] || 'Pacchetto deposito'
+  const progressQueue = progressItems.length ? progressItems : DEPOSIT_PROGRESS_USER_STEPS
+  const currentProgressItem = depositUserFacingMessage(progressQueue[progressIndex % progressQueue.length] || 'Pacchetto deposito')
   useEffect(() => {
     if (!busy) {
       setProgressIndex(0)
@@ -1000,12 +1077,13 @@ function DepositActionButton({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Deposito non completato.'
       const signatureMessage = signatureInputRequiredMessage(message)
+      const visibleMessage = depositUserFacingMessage(signatureMessage || message)
       if (signatureMessage) {
         setConfirming(false)
-        setError(signatureMessage)
+        setError(visibleMessage)
       } else {
-        setError(message)
-        onError?.(message)
+        setError(visibleMessage)
+        onError?.(visibleMessage)
       }
     } finally {
       setBusy(false)
@@ -1018,7 +1096,7 @@ function DepositActionButton({
         type="button"
         onClick={() => confirm ? setConfirming(true) : void run()}
         disabled={busy || disabled}
-        title={disabled && disabledReason ? disabledReason : undefined}
+        title={disabled && disabledReason ? depositUserFacingMessage(disabledReason) : undefined}
         aria-disabled={disabled ? true : undefined}
       >
         {children}
@@ -1031,7 +1109,7 @@ function DepositActionButton({
           </div>
           <div className="iu-fas-package-progress__bar" aria-hidden="true"><span/></div>
           <div className="iu-fas-package-progress__ticker" aria-hidden="true">
-            <span>{progressQueue.join(' - ')}</span>
+            <span>{progressQueue.map(depositUserFacingMessage).join(' - ')}</span>
           </div>
         </div>
       ) : null}
@@ -1040,7 +1118,7 @@ function DepositActionButton({
           <div className="iu-fas-confirm-modal__box">
             <strong>{confirmTitle}</strong>
             <p>{confirm}</p>
-            {error ? <span className="iu-fas-inline-error">{error}</span> : null}
+            {error ? <span className="iu-fas-inline-error">{depositUserFacingMessage(error)}</span> : null}
             <footer>
               <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Annulla</button>
               <button className="is-danger" type="button" onClick={run} disabled={busy || disabled}>{busy ? 'Operazione...' : 'Conferma'}</button>
@@ -2332,8 +2410,7 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
   const selectedHeaderMeta = selectedOfficialOffice
     ? officeCodeMeta(selectedOfficialOffice)
     : compactMeta([
-        selectedOfficeCode ? `codice ufficio ${selectedOfficeCode}` : '',
-        selectedPstCode ? `codice PST ${selectedPstCode}` : '',
+        selectedOfficeCode || selectedPstCode ? 'deposito telematico verificato' : '',
       ])
   const applyOffice = (office: StudioRuntimeOffice) => {
     setOfficeName(office.name)
@@ -2377,7 +2454,7 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
             <strong>{selectedOfficialOffice.name}</strong>
             <span>{compactMeta([selectedOfficialOffice.typeLabel, selectedOfficialOffice.city, selectedOfficialOffice.pec, officeCodeMeta(selectedOfficialOffice)]) || 'Ufficio applicato dalla competenza territoriale.'}</span>
             {selectedRequiresTelematicCheck ? (
-              <em>Fonte territoriale verificata; il codice ministeriale depositabile non è esposto per questo ufficio. Prima del deposito conferma il canale sul portale ufficiale.</em>
+              <em>Fonte territoriale verificata; prima del deposito conferma il canale sul portale ufficiale.</em>
             ) : null}
           </div>
         </div>
@@ -2491,7 +2568,7 @@ function PraticheCollegateField({ data }:{data:FascicoloFormData}) {
         id="pratiche-collegate"
         label={NUOVO_FASCICOLO_LABELS.fields.praticheCollegate}
         value={selectedCode}
-        help="Scegli dal catalogo ministeriale PST. Il codice resta modificabile finché non viene generata o inviata la busta."
+        help="Scegli dall’elenco ufficiale. La scelta resta modificabile finché non viene generata o inviata la busta."
         onChange={(codice) => setSelectedCode(codice)}
       />
       <input type="hidden" name="tipo_procedimento" value={currentProcedure}/>
@@ -2499,7 +2576,7 @@ function PraticheCollegateField({ data }:{data:FascicoloFormData}) {
       <input type="hidden" name="fonte_codice_oggetto" value={selectedCode ? source.fonteCodiceOggetto : ''}/>
       <input type="hidden" name="file_fonte_codice_oggetto" value={selectedCode ? source.fileFonteCodiceOggetto : ''}/>
       <small id="pratiche-collegate-help" className="iu-fas-field-help">
-        Il codice scelto viene conservato nel fascicolo e sarà usato nei passaggi di deposito quando il flusso lo richiede.
+        La scelta viene conservata nel fascicolo e sarà usata nei passaggi di deposito quando il flusso lo richiede.
       </small>
     </div>
   )
@@ -3186,7 +3263,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, loading = false 
             </div>
           </section>
           <section>
-            <h4>Slot documentali</h4>
+            <h4>Documenti richiesti</h4>
             <div className="iu-fas-regia-list">
               {regia.documentSlots.map((slot) => {
                 const slotStatus = slotStatusDisplay(recordText(slot, 'status'), Boolean(recordText(slot, 'documentId')))
@@ -3194,12 +3271,12 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, loading = false 
                   <article key={recordText(slot, 'slotKey')}>
                     <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
                     <strong>{recordText(slot, 'label')}</strong>
-                    <span>{recordText(slot, 'documentId') ? `Documento ${recordText(slot, 'documentId')}` : recordText(slot, 'message', 'Documento non collegato')}</span>
-                    <small>{recordText(slot, 'suggestedAction')}</small>
+                    <span>{recordText(slot, 'documentId') ? 'Documento collegato' : depositUserFacingMessage(recordText(slot, 'message', 'Documento non collegato'))}</span>
+                    <small>{depositUserFacingMessage(recordText(slot, 'suggestedAction'))}</small>
                   </article>
                 )
               })}
-              {!regia.documentSlots.length ? <div className="iu-fas-regia-empty-card"><strong>Slot da impostare</strong><span>Carica o classifica i documenti, poi aggiorna la Regia per creare gli slot richiesti.</span><a href="#documenti"><FileText size={15}/> Vai ai documenti</a></div> : null}
+              {!regia.documentSlots.length ? <div className="iu-fas-regia-empty-card"><strong>Documenti da impostare</strong><span>Carica o classifica i documenti, poi aggiorna la Regia per creare le scelte richieste.</span><a href="#documenti"><FileText size={15}/> Vai ai documenti</a></div> : null}
             </div>
           </section>
         </div>
@@ -3235,6 +3312,10 @@ function DepositPreparePage({ id }:{id:string}) {
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [depositClassificationById, setDepositClassificationById] = useState<Record<string, DepositDocumentClassification>>({})
   const [classificationSaving, setClassificationSaving] = useState(false)
+  const [depositRenameDocId, setDepositRenameDocId] = useState('')
+  const [depositRenameDraft, setDepositRenameDraft] = useState('')
+  const [depositRenameBusy, setDepositRenameBusy] = useState(false)
+  const [depositRenameMessage, setDepositRenameMessage] = useState('')
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
   const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [packagePreview, setPackagePreview] = useState<DepositPackagePreview | null>(null)
@@ -3264,6 +3345,54 @@ function DepositPreparePage({ id }:{id:string}) {
   const failDetail = (message: string) => {
     setToast({ tone: 'danger', message })
     setDepositActionNotice({ tone: 'danger', message })
+  }
+  const startDepositDocumentRename = (doc: FascicoloDocument) => {
+    setDepositRenameDocId(doc.id)
+    setDepositRenameDraft(doc.name)
+    setDepositRenameMessage('')
+  }
+  const cancelDepositDocumentRename = () => {
+    if (depositRenameBusy) return
+    setDepositRenameDocId('')
+    setDepositRenameDraft('')
+    setDepositRenameMessage('')
+  }
+  const submitDepositDocumentRename = async (event: FormEvent<HTMLFormElement>, doc: FascicoloDocument) => {
+    event.preventDefault()
+    if (!doc.actions.rename || depositRenameBusy) return
+    const value = depositRenameDraft.trim()
+    if (!value) {
+      setDepositRenameMessage('Indica il nuovo nome del documento.')
+      return
+    }
+    setDepositRenameBusy(true)
+    setDepositRenameMessage('')
+    const formData = new FormData()
+    formData.set('nome_file', value)
+    try {
+      const response = await fetch(doc.actions.rename, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken(),
+        },
+        body: formData,
+      })
+      const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+      const message = String(payload.message || payload.messaggio || '')
+      if (!response.ok || payload.ok === false) throw new Error(message || 'Rinomina non completata.')
+      setDepositRenameDocId('')
+      setDepositRenameDraft('')
+      refreshDetail(message || 'Nome documento aggiornato.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Rinomina non completata.'
+      setDepositRenameMessage(message)
+      failDetail(message)
+    } finally {
+      setDepositRenameBusy(false)
+    }
   }
   const handlePackageReady = (payload: ActionPayload) => {
     const message = String(payload.message || payload.messaggio || 'Pacchetto di controllo preparato. Nessun invio PEC reale eseguito.')
@@ -3354,7 +3483,6 @@ function DepositPreparePage({ id }:{id:string}) {
   const evidenceHref = recordText(regia.evidencePack, 'href')
   const practiceProfileName = recordText(regia.profile, 'name', regia.header.practiceType || 'Profilo pratica da confermare')
   const practiceProfileReason = recordText(regia.profile, 'reason')
-  const practiceProfileCode = recordText(regia.profile, 'code')
   const deliveryNote = depositDeliveryNote(recordText(deliveryPolicy, 'note'), deliveryOfficialChannel, practiceProfileName, regia.header.channel)
   const selectedDepositType = data.depositCatalog.entries.find((entry) => entry.key === selectedDepositTypeKey)
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
@@ -3489,7 +3617,7 @@ function DepositPreparePage({ id }:{id:string}) {
       : null
     let endpoint = recordText(localSignature, 'endpoint', localSignerEndpoint('/firma'))
     if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
-      throw new Error('Payload firma DatiAtto.xml non disponibile. Ripeti la prova deposito.')
+      throw new Error('Dati del deposito non disponibili per la firma. Ripeti la prova deposito.')
     }
     let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     if (!signerStatus || signerStatus.ok === false) {
@@ -3501,11 +3629,11 @@ function DepositPreparePage({ id }:{id:string}) {
       onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
     }) : signerStatus
     if (!signerStatus || signerStatus.ok === false) {
-      throw new Error(localSignerProbeFailureMessage(signerStatus, 'firmare DatiAtto.xml'))
+      throw new Error(localSignerProbeFailureMessage(signerStatus, 'firmare i dati del deposito'))
     }
     if (!localSignerStatusCanSign(signerStatus)) {
       const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
-      throw new Error(signerDetail ? `Token non pronto per firmare DatiAtto.xml: ${signerDetail}` : 'Token non pronto per firmare DatiAtto.xml. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
+      throw new Error(signerDetail ? `Dispositivo non pronto per firmare i dati del deposito: ${depositUserFacingMessage(signerDetail)}` : 'Dispositivo non pronto per firmare i dati del deposito. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
     }
     endpoint = localSignerEndpointForPayload(endpoint, '/firma', signerStatus)
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
@@ -3513,7 +3641,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
     const pin = reusablePinSessionId ? '' : await requestLocalSignaturePin(localSignature)
     if (!reusablePinSessionId && !pin.trim()) {
-      throw new Error('PIN firma mancante. Inseriscilo per firmare DatiAtto.xml e proseguire.')
+      throw new Error('PIN firma mancante. Inseriscilo per firmare i dati del deposito e proseguire.')
     }
     let signatureResponse: Response
     try {
@@ -3531,12 +3659,12 @@ function DepositPreparePage({ id }:{id:string}) {
         }),
       })
     } catch {
-      throw new Error('Local Signer non raggiungibile dal browser per firmare DatiAtto.xml. Verifica che il servizio locale sia attivo su 127.0.0.1:27272 o localhost:27272 e ripeti la prova deposito.')
+      throw new Error('Local Signer non raggiungibile dal browser per firmare i dati del deposito. Verifica che il servizio locale sia attivo e ripeti la prova deposito.')
     }
     const signaturePayload = await parseLocalSignerResponse(signatureResponse)
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
     if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
-      throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma DatiAtto.xml non completata dal Local Signer.')))
+      throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma dei dati del deposito non completata dal Local Signer.')))
     }
     const nextPinSessionId = recordText(signaturePayload, 'pin_session_id', reusablePinSessionId)
     if (nextPinSessionId) batchSignaturePinSessionRef.current = nextPinSessionId
@@ -3561,7 +3689,7 @@ function DepositPreparePage({ id }:{id:string}) {
     })
     const nextPayload = await response.json().catch(() => ({})) as ActionPayload
     if (!response.ok && !nextPayload.requires_local_pec && !nextPayload.package_ready && !nextPayload.requires_guided_completion) {
-      throw new Error(String(nextPayload.messaggio || nextPayload.message || nextPayload.errore || nextPayload.error || `Deposito non completato dopo firma DatiAtto.xml: HTTP ${response.status}`))
+      throw new Error(String(nextPayload.messaggio || nextPayload.message || nextPayload.errore || nextPayload.error || `Deposito non completato dopo la firma dei dati: HTTP ${response.status}`))
     }
     return { payload: nextPayload, submittedPayload: nextSubmittedPayload }
   }
@@ -3748,7 +3876,7 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!signerStatus || signerStatus.ok === false) {
       setDepositActionNotice({
         tone: 'danger',
-        message: 'Local Signer non raggiungibile per recuperare il certificato PST dell\'ufficio. La prova busta userà il controllo backend e mostrerà il requisito mancante.',
+        message: 'Servizio locale non raggiungibile per recuperare il certificato dell’ufficio. La prova deposito mostrerà il requisito mancante.',
       })
       return
     }
@@ -3759,13 +3887,13 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!windowsCertificate?.thumbprint) {
       setDepositActionNotice({
         tone: 'danger',
-        message: 'Seleziona il certificato CNS/CIE in Local Signer per recuperare il .cer PST dell\'ufficio.',
+        message: 'Seleziona il certificato CNS/CIE per recuperare il certificato dell’ufficio.',
       })
       return
     }
     setDepositActionNotice({
       tone: 'success',
-      message: `Recupero certificato PST dell'ufficio ${codiceUfficio} dal Catalogo ministeriale.`,
+      message: 'Recupero del certificato dell’ufficio dal servizio ufficiale.',
     })
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 90000)
@@ -3783,7 +3911,7 @@ function DepositPreparePage({ id }:{id:string}) {
       const localPayload = await localResponse.json().catch(() => ({} as Record<string, unknown>))
       const certificatoB64 = String(localPayload.certificato_b64 || '').trim()
       if (!localResponse.ok || localPayload.ok === false || !certificatoB64) {
-        throw new Error(String(localPayload.errore || localPayload.error || 'Certificato PST non restituito dal Catalogo ministeriale.'))
+        throw new Error(String(localPayload.errore || localPayload.error || 'Certificato dell’ufficio non restituito dal servizio ufficiale.'))
       }
       await submitJsonPayload(certEndpoint, {
         codice_ufficio: codiceUfficio,
@@ -3792,13 +3920,13 @@ function DepositPreparePage({ id }:{id:string}) {
       })
       setDepositActionNotice({
         tone: 'success',
-        message: `Certificato PST dell'ufficio ${codiceUfficio} recuperato e validato.`,
+        message: 'Certificato dell’ufficio recuperato e validato.',
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Certificato PST non recuperato dal Catalogo ministeriale.'
+      const message = err instanceof Error ? err.message : 'Certificato dell’ufficio non recuperato dal servizio ufficiale.'
       setDepositActionNotice({
         tone: 'danger',
-        message: `${message} La prova busta resta eseguibile e mostrerà il blocco tecnico se il .cer è ancora mancante.`,
+        message: `${message} La prova deposito resta eseguibile e mostrerà il requisito mancante se il certificato dell’ufficio non è ancora disponibile.`,
       })
     } finally {
       window.clearTimeout(timeout)
@@ -3845,7 +3973,7 @@ function DepositPreparePage({ id }:{id:string}) {
       : 'Seleziona almeno un documento prima di visualizzare l’indice.'
   const actionBlocked = !mainActDocument || Boolean(missingRequiredSlots.length) || !officeRecipientReady
   const actionBlockedReason = !officeRecipientReady
-    ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e catalogo PST prima della prova deposito.'
+    ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e destinatario prima della prova deposito.'
     : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots.length)
   const proofBlocksDirectSend = Boolean(
     packagePreview?.requiresGuidedCompletion
@@ -3870,9 +3998,9 @@ function DepositPreparePage({ id }:{id:string}) {
     : proofBlocksDirectSend
       ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
       : selectedDepositTypeBlocksRealSend
-        ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: completa il generatore ministeriale per il tipo selezionato.'
+        ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: verifica il canale del tipo selezionato.'
         : !pecWorkflowAvailable
-          ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e catalogo PST prima dell’invio reale.'
+          ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e destinatario prima dell’invio reale.'
           : actionBlockedReason
   const signaturesRequiredBeforeAction = false
   const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
@@ -3894,7 +4022,7 @@ function DepositPreparePage({ id }:{id:string}) {
       : !mainActDocument
       ? 'Seleziona atto principale'
       : missingRequiredSlots.length === 1 ? 'Conferma la scelta obbligatoria' : 'Conferma le scelte obbligatorie'
-    : signatureBatchRequired ? 'Firma, hash e indice insieme' : 'Indice dalla selezione'
+    : signatureBatchRequired ? 'Firma e indice insieme' : 'Indice dalla selezione'
   const depositPhases: Array<{ id: DepositPhaseId; href: string; index: string; title: string; state: string; detail: string; tone: FascicoloRow['tone'] }> = [
     {
       id: 'verifica-deposito',
@@ -4009,7 +4137,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const submitLocalSignaturePin = () => {
     if (!localSignaturePinRequest) return
     if (!localSignaturePin.trim()) {
-      setLocalSignaturePinError('Inserisci il PIN per firmare DatiAtto.xml e proseguire.')
+      setLocalSignaturePinError('Inserisci il PIN per firmare i dati del deposito e proseguire.')
       return
     }
     const request = localSignaturePinRequest
@@ -4025,7 +4153,7 @@ function DepositPreparePage({ id }:{id:string}) {
     setLocalSignaturePin('')
     setLocalSignaturePinError('')
     setLocalSignaturePinRequest(null)
-    request.reject(new Error('Firma DatiAtto.xml annullata: PIN non inserito.'))
+    request.reject(new Error('Firma dei dati del deposito annullata: PIN non inserito.'))
   }
 
   useEffect(() => {
@@ -4073,7 +4201,7 @@ function DepositPreparePage({ id }:{id:string}) {
           <RefreshCw size={18}/>
           <div>
             <strong>Sto preparando la sequenza deposito</strong>
-            <span>La pagina mostra i dati solo quando fascicolo, documenti, slot e firma sono stati letti.</span>
+            <span>La pagina mostra i dati solo quando fascicolo, documenti richiesti e firma sono stati letti.</span>
           </div>
         </section>
       </main>
@@ -4126,7 +4254,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <span>Oggetto</span>
               <strong>{localPecPasswordRequest.subject || 'DEPOSITO TELEMATICO'}</strong>
               <span>Allegati</span>
-              <strong>{localPecPasswordRequest.attachments.length ? localPecPasswordRequest.attachments.join(', ') : 'Atto.enc'}</strong>
+              <strong>{localPecPasswordRequest.attachments.length ? localPecPasswordRequest.attachments.map(depositAttachmentDisplayName).join(', ') : 'Pacchetto deposito'}</strong>
             </div>
             <label className="iu-fas-local-pec-password">
               <span>Password PEC</span>
@@ -4156,7 +4284,7 @@ function DepositPreparePage({ id }:{id:string}) {
       ) : null}
 
       {localSignaturePinRequest ? (
-        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="PIN firma DatiAtto">
+        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="PIN firma deposito">
           <form
             className="iu-fas-confirm-modal__box"
             onSubmit={(event) => {
@@ -4164,15 +4292,15 @@ function DepositPreparePage({ id }:{id:string}) {
               submitLocalSignaturePin()
             }}
           >
-            <strong>Firma metadato ministeriale</strong>
-            <p>{localSignaturePinRequest.filename} è il metadato ministeriale della busta, non un allegato da scegliere. Il software lo firma localmente e poi genera IndiceBusta.xml e Atto.enc. Il PIN resta sul PC in uso e non viene salvato.</p>
-            <div className="iu-fas-local-pec-summary" aria-label="Riepilogo firma metadato">
+            <strong>Firma dati deposito</strong>
+            <p>Il software firma i dati del deposito sul PC in uso e poi prepara il pacchetto finale. Il PIN resta sul dispositivo locale e non viene salvato.</p>
+            <div className="iu-fas-local-pec-summary" aria-label="Riepilogo firma deposito">
               <span>Da firmare</span>
-              <strong>{localSignaturePinRequest.filename}</strong>
+              <strong>{depositAttachmentDisplayName(localSignaturePinRequest.filename) || 'Dati deposito'}</strong>
               <span>File prodotto</span>
-              <strong>{localSignaturePinRequest.outputFilename}</strong>
+              <strong>{depositAttachmentDisplayName(localSignaturePinRequest.outputFilename) || 'Dati firmati'}</strong>
               <span>Passaggio successivo</span>
-              <strong>IndiceBusta.xml e Atto.enc</strong>
+              <strong>Pacchetto deposito</strong>
             </div>
             <label className="iu-fas-local-pec-password">
               <span>PIN firma</span>
@@ -4202,7 +4330,7 @@ function DepositPreparePage({ id }:{id:string}) {
         <StatCard icon={<FileText size={19}/>} label="Candidati busta" value={depositCandidateDocuments.length} note={`${signedCandidateDocuments} firmati`} tone="primary" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
         <StatCard icon={<Gavel size={19}/>} label="Atti principali" value={mainActs.length || 0} note="da confermare" tone={mainActs.length ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
-        <StatCard icon={<Landmark size={19}/>} label="Catalogo portale" value={portalCatalog.length} note="separato dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
+        <StatCard icon={<Landmark size={19}/>} label="Documenti portale" value={portalCatalog.length} note="separati dalla busta" tone={portalCatalog.length ? 'info' : 'neutral'} href="#inventario-fascicolo" onClick={openDepositPhase('#inventario-fascicolo')}/>
         <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
       </section>
 
@@ -4244,11 +4372,11 @@ function DepositPreparePage({ id }:{id:string}) {
               <div>
                 <Badge tone={preparationTone}>{decisiveValidationRows.length ? 'Da completare alla generazione' : ready ? 'Pronto per generare' : 'In preparazione'}</Badge>
                 <strong>{recordText(deposit, 'label', 'Deposito telematico')}</strong>
-                <p>{depositMessage}</p>
-                <p className="iu-fas-sync-note"><ShieldCheck size={14}/><strong>{deliveryLabel}</strong><span>{deliveryDetail}</span></p>
-                <p className="iu-fas-sync-note"><Gavel size={14}/><strong>Profilo pratica</strong><span>{[practiceProfileName, practiceProfileCode ? `codice ${practiceProfileCode}` : '', practiceProfileReason].filter(Boolean).join(' - ') || 'Il profilo determina documenti obbligatori, controlli e canale di deposito.'}</span></p>
+                <p>{depositUserFacingMessage(depositMessage)}</p>
+                <p className="iu-fas-sync-note"><ShieldCheck size={14}/><strong>{deliveryLabel}</strong><span>{depositUserFacingMessage(deliveryDetail)}</span></p>
+                <p className="iu-fas-sync-note"><Gavel size={14}/><strong>Profilo pratica</strong><span>{[practiceProfileName, practiceProfileReason].filter(Boolean).join(' - ') || 'Il profilo determina documenti obbligatori, controlli e canale di deposito.'}</span></p>
                 <p className="iu-fas-sync-note"><ListChecks size={14}/><strong>Regola operativa</strong><span>Qui lavori sulla proposta. I requisiti obbligatori vengono controllati quando generi la busta; gli avvisi non fermano il lavoro.</span></p>
-                <p className="iu-fas-sync-note"><FileCheck2 size={14}/><strong>Firma nella generazione</strong><span>{immediateBatchSigning || oneStepSigning || signatureBatchRequired ? 'Quando premi Firma e genera busta, il software usa il PIN per firmare in lotto i documenti necessari, salva i documenti firmati e aggiorna hash/esiti prima della busta.' : 'La firma viene verificata secondo il canale impostato.'}</span></p>
+                <p className="iu-fas-sync-note"><FileCheck2 size={14}/><strong>Firma nella generazione</strong><span>{immediateBatchSigning || oneStepSigning || signatureBatchRequired ? 'Quando premi Firma e genera busta, il software usa il PIN per firmare in lotto i documenti necessari, salva i documenti firmati e aggiorna i controlli prima del pacchetto.' : 'La firma viene verificata secondo il canale impostato.'}</span></p>
                 <p className="iu-fas-sync-note"><PackageCheck size={14}/><strong>Indice documenti</strong><span>{documentIndexGeneratedBySoftware ? 'L’indice viene generato dal software in tempo reale quando viene preparata la busta.' : 'L’indice viene verificato durante la preparazione.'}</span></p>
               </div>
               <div className="iu-fas-regia__actions">
@@ -4261,23 +4389,23 @@ function DepositPreparePage({ id }:{id:string}) {
             {depositActionNotice ? (
               <div className={`iu-fas-action-notice iu-fas-action-notice--${depositActionNotice.tone}`} role="status">
                 <Badge tone={depositActionNotice.tone}>{depositActionNotice.tone === 'success' ? 'Azione eseguita' : 'Da controllare'}</Badge>
-                <span>{depositActionNotice.message}</span>
+                <span>{depositUserFacingMessage(depositActionNotice.message)}</span>
               </div>
             ) : null}
             {guidedCompletion ? (
               <div className="iu-fas-guided-block">
                 <Badge tone="warning">Completamento richiesto</Badge>
-                <strong>{missingOperationalStep || 'Trasporto ministeriale da completare'}</strong>
-                <p>Il software prepara il controllo e non registra un invio come valido finché la busta ministeriale non è conforme.</p>
-                {guidedNextActions.length ? <ul>{guidedNextActions.map((action) => <li key={action}>{action}</li>)}</ul> : null}
+                <strong>{depositUserFacingMessage(missingOperationalStep || 'Pacchetto deposito da completare')}</strong>
+                <p>Il software prepara i controlli e registra l’invio solo quando il pacchetto è completo.</p>
+                {guidedNextActions.length ? <ul>{guidedNextActions.map((action) => <li key={action}>{depositUserFacingMessage(action)}</li>)}</ul> : null}
               </div>
             ) : null}
             <div className="iu-fas-regia-list iu-fas-deposit-check-list">
               <article>
                 <Badge tone={directPecReady ? 'success' : directPecAllowed ? 'warning' : portalUploadRequired ? 'info' : 'warning'}>{deliveryLabel}</Badge>
-                <strong>{packageKindLabel}</strong>
-                <span>{deliveryOfficialChannel}</span>
-                <small>{deliveryNote || (deliveryMode === 'direct_pec' ? 'La ricevuta di accettazione PEC avvia il momento rilevante del deposito solo dopo invio conforme.' : 'Dopo l’invio sul portale importa ricevuta, protocollo o esito nel fascicolo.')}</small>
+                <strong>{depositUserFacingMessage(packageKindLabel)}</strong>
+                <span>{depositUserFacingMessage(deliveryOfficialChannel)}</span>
+                <small>{depositUserFacingMessage(deliveryNote || (deliveryMode === 'direct_pec' ? 'La ricevuta di accettazione PEC avvia il momento rilevante del deposito solo dopo invio conforme.' : 'Dopo l’invio sul portale importa ricevuta, protocollo o esito nel fascicolo.'))}</small>
               </article>
             </div>
             <div className="iu-fas-regia-list iu-fas-deposit-check-list">
@@ -4312,7 +4440,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <header>
                 <div>
                   <strong>Documenti da inviare</strong>
-                  <span>Puoi aggiungere documenti e includerli nella busta: IUSENTRA firma solo quelli obbligatori o scelti, poi calcola hash, indice e controlli.</span>
+                  <span>Puoi aggiungere documenti e includerli nella busta: IUSENTRA firma solo quelli obbligatori o scelti, poi calcola indice e controlli.</span>
                   <span>Il software propone la busta dalla classificazione del fascicolo; l'avvocato può correggere la scelta prima di firmare e generare.</span>
                 </div>
                 <Badge tone={packageDocuments.length ? 'primary' : 'warning'}>
@@ -4324,8 +4452,6 @@ function DepositPreparePage({ id }:{id:string}) {
                 selectedKey={selectedDepositTypeKey}
                 onSelect={setSelectedDepositTypeKey}
                 currentProfile={practiceProfileName}
-                currentCode={practiceProfileCode}
-                currentChannel={deliveryOfficialChannel}
               />
               <div className="iu-fas-deposit-selection__tools">
                 <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina proposta</button>
@@ -4385,12 +4511,30 @@ function DepositPreparePage({ id }:{id:string}) {
                             <Eye size={17} strokeWidth={2.4} aria-hidden="true"/>
                           </button>
                         ) : null}
+                        {doc.actions.rename ? (
+                          <button type="button" title={`Modifica nome ${doc.name}`} aria-label={`Modifica nome ${doc.name}`} onClick={() => startDepositDocumentRename(doc)}>
+                            <PencilLine size={17} strokeWidth={2.4} aria-hidden="true"/>
+                          </button>
+                        ) : null}
                         {doc.actions.download ? (
                           <a href={doc.actions.download} title={`Scarica originale ${doc.name}`} aria-label={`Scarica originale ${doc.name}`}>
                             <Download size={17} strokeWidth={2.4} aria-hidden="true"/>
                           </a>
                         ) : null}
                       </div>
+                      {depositRenameDocId === doc.id ? (
+                        <form className="iu-fas-doc-rename-form iu-fas-deposit-rename-form" onSubmit={(event) => { void submitDepositDocumentRename(event, doc) }}>
+                          <input
+                            value={depositRenameDraft}
+                            onChange={(event) => setDepositRenameDraft(event.currentTarget.value)}
+                            aria-label={`Nuovo nome file ${doc.name}`}
+                            autoFocus
+                          />
+                          <button type="submit" disabled={depositRenameBusy}>{depositRenameBusy ? 'Salvo...' : 'Salva nome'}</button>
+                          <button type="button" onClick={cancelDepositDocumentRename} disabled={depositRenameBusy}>Annulla</button>
+                          {depositRenameMessage ? <small>{depositRenameMessage}</small> : null}
+                        </form>
+                      ) : null}
                       <div className="iu-fas-deposit-selection__controls">
                           <DepositRolePicker
                             documentName={doc.name}
@@ -4425,8 +4569,8 @@ function DepositPreparePage({ id }:{id:string}) {
           <DetailSection id="firma-busta" title="3. Firma documenti" icon={<FileCheck2 size={17}/>} open={activeDepositPanel === 'firma-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('firma-busta') }} count={unsignedPackageDocuments.length}>
             <div className="iu-fas-deposit-phase-note">
               <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma software' : 'Firme coerenti'}</Badge>
-              <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima della busta' : 'La proposta non richiede firme ulteriori prima della busta'}</strong>
-              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e aggiorna le impronte prima di generare il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
+              <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima del pacchetto' : 'La proposta non richiede firme ulteriori prima del pacchetto'}</strong>
+              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
             </div>
             {signatureBatchRequired ? (
               <DepositBatchSignaturePanel
@@ -4441,29 +4585,29 @@ function DepositPreparePage({ id }:{id:string}) {
             {renderDepositStepControls('firma-busta')}
           </DetailSection>
 
-          <DetailSection id="generazione-busta" title="4. Busta e indice" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }} count={packageDocuments.length + 2}>
+          <DetailSection id="generazione-busta" title="4. Pacchetto deposito" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }} count={packageDocuments.length + 2}>
             <div className="iu-fas-package-office">
               <div>
                 <Badge tone={officeRecipientReady ? 'success' : 'warning'}>{officeRecipientReady ? 'PEC verificata' : 'PEC da verificare'}</Badge>
                 <strong>{data.depositOffice.name || f.court || 'Ufficio giudiziario da verificare'}</strong>
-                <span>{data.depositOffice.pec || 'Indirizzo PEC non disponibile dal catalogo uffici.'}</span>
+                <span>{data.depositOffice.pec || 'Indirizzo PEC non disponibile.'}</span>
               </div>
-              <small>{data.depositOffice.message || (officeRecipientReady ? 'Destinatario letto dal catalogo uffici per la prova deposito.' : 'Controlla ufficio, codice e catalogo prima della generazione.')}</small>
+              <small>{depositUserFacingMessage(data.depositOffice.message || (officeRecipientReady ? 'Destinatario verificato per la prova deposito.' : 'Controlla ufficio, tipo deposito e destinatario prima della generazione.'))}</small>
               {data.depositOffice.code || data.depositOffice.ministerialCode ? (
-                <code>{[data.depositOffice.code, data.depositOffice.ministerialCode].filter(Boolean).join(' / ')}</code>
+                <small>Ufficio verificato</small>
               ) : null}
             </div>
             <div className="iu-fas-package-board">
               <article className="iu-fas-package-main">
                 <Badge tone={mainActDocument ? (mainActDocument.signed ? 'success' : 'warning') : 'danger'}>Atto principale</Badge>
                 <strong>{mainActDocument?.name || 'Da selezionare'}</strong>
-                <span>{mainActDocument ? [mainActDocument.type, mainActDocument.signed ? 'Firmato' : 'Da firmare', mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
-                {mainActDocument && !mainActDocument.signed ? <small>Firma software prevista prima della busta.</small> : null}
+                  <span>{mainActDocument ? [mainActDocument.type, mainActDocument.signed ? 'Firmato' : 'Da firmare', mainActDocument.size].filter(Boolean).join(' - ') : 'Il software non seleziona se la classificazione non è certa.'}</span>
+                {mainActDocument && !mainActDocument.signed ? <small>Firma software prevista prima del pacchetto.</small> : null}
               </article>
               <article>
                 <Badge tone={selectedAttachmentIds.length ? 'primary' : 'neutral'}>Allegati</Badge>
                 <strong>{selectedAttachmentIds.length}</strong>
-                <span>{selectedAttachmentIds.length ? 'Collegati da slot e prove già presenti.' : 'Nessun allegato selezionato dagli slot.'}</span>
+                <span>{selectedAttachmentIds.length ? 'Collegati da scelte e prove già presenti.' : 'Nessun allegato selezionato.'}</span>
               </article>
               <article>
                 <Badge tone={notificationProofDocuments.length ? 'info' : 'neutral'}>Prova notifica</Badge>
@@ -4473,7 +4617,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={missingRequiredSlots.length ? 'warning' : 'success'}>Scelte manuali</Badge>
                 <strong>{missingRequiredSlots.length}</strong>
-                <span>{missingRequiredSlots.length ? 'Slot da far confermare all’avvocato.' : 'Slot obbligatori collegati.'}</span>
+                <span>{missingRequiredSlots.length ? 'Scelte da far confermare all’avvocato.' : 'Scelte obbligatorie collegate.'}</span>
               </article>
               <article>
                 <Badge tone={unsignedPackageDocuments.length ? 'warning' : 'success'}>Firme</Badge>
@@ -4485,15 +4629,15 @@ function DepositPreparePage({ id }:{id:string}) {
               <article key="package-datiatto">
                 <FileText size={16}/>
                 <div>
-                  <strong>DatiAtto.xml</strong>
-                  <span>Metadati ministeriali generati dal software sul codice oggetto e sulla selezione documenti.</span>
+                  <strong>Dati deposito</strong>
+                  <span>Dati preparati dal software in base al tipo deposito e ai documenti selezionati.</span>
                 </div>
                 <small>Generato</small>
               </article>
               <article key="package-indice-documenti">
                 <FileText size={16}/>
                 <div>
-                  <strong>IndiceDocumentiDepositati.PDF</strong>
+                  <strong>Indice documenti</strong>
                   <span>Indice generato dal software con atto principale, allegati e prove selezionate.</span>
                 </div>
                 <DepositPdfPreviewButton
@@ -4521,14 +4665,14 @@ function DepositPreparePage({ id }:{id:string}) {
                   </article>
                 )
               })}
-              {!packageDocuments.length ? <p className="iu-empty">Nessun documento ancora collegato agli slot deposito: usa la selezione manuale negli slot documentali.</p> : null}
+              {!packageDocuments.length ? <p className="iu-empty">Nessun documento ancora collegato alle scelte deposito: usa la selezione manuale nei documenti richiesti.</p> : null}
             </div>
             {signatureBatchRequired ? (
               <div className="iu-fas-package-signing">
                 <div className="iu-fas-deposit-phase-note">
                   <Badge tone="warning">Firma immediata</Badge>
-                  <strong>{unsignedPackageDocuments.length === 1 ? '1 documento sarà firmato prima della busta' : `${unsignedPackageDocuments.length} documenti saranno firmati prima della busta`}</strong>
-                  <span>Inserisci il PIN una sola volta: IUSENTRA firma il lotto, salva ogni file `.p7m` nel fascicolo e solo dopo prosegue con indice, busta di controllo e testo PEC.</span>
+                  <strong>{unsignedPackageDocuments.length === 1 ? '1 documento sarà firmato prima del pacchetto' : `${unsignedPackageDocuments.length} documenti saranno firmati prima del pacchetto`}</strong>
+                  <span>Inserisci il PIN una sola volta: IUSENTRA firma il lotto, salva ogni documento firmato nel fascicolo e poi prosegue con indice, pacchetto e testo PEC.</span>
                 </div>
                 <DepositBatchSignaturePanel
                   fascicoloId={f.id || id}
@@ -4542,7 +4686,7 @@ function DepositPreparePage({ id }:{id:string}) {
             ) : (
               <div className="iu-fas-package-signing iu-fas-package-signing--ready">
                 <CheckCircle2 size={16}/>
-                <span>Firme già coerenti: puoi generare indice, busta e controllo PEC della prova.</span>
+                <span>Firme già coerenti: puoi generare indice, pacchetto e controllo PEC della prova.</span>
               </div>
             )}
             <div className="iu-fas-package-pec-draft">
@@ -4590,7 +4734,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked}
                 disabledReason={actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 tone="primary"
                 confirm={
                   signatureBatchRequired
@@ -4611,10 +4755,10 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked}
                 disabledReason={actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 progressLabel="Simulazione PEC in corso"
                 tone="secondary"
-                confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software prepara Atto.enc, controlla corpo e destinatario, confronta la prova con i campioni reali e registra solo una prova senza invio."
+                confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software prepara il pacchetto deposito, controlla corpo e destinatario, confronta la prova con i campioni reali e registra solo una prova senza invio."
                 confirmTitle="Simula invio PEC"
                 onDone={refreshDetail}
                 onError={failDetail}
@@ -4629,7 +4773,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 disabled={actionBlocked || !packageReadyForRealSend || !realSendAvailable}
                 disabledReason={realSendDisabledReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={['DatiAtto.xml', 'DatiAtto.xml.p7m', 'IndiceBusta.xml', 'IndiceDocumentiDepositati.PDF', ...packageDocumentNames, 'Atto.enc']}
+                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 progressLabel="Invio deposito in corso"
                 tone="secondary"
                 confirm="Inviare realmente il deposito con la PEC configurata? Usa questo comando solo dopo avere controllato indice, destinatario, oggetto, testo PEC e documenti della prova."
@@ -4643,14 +4787,14 @@ function DepositPreparePage({ id }:{id:string}) {
                 <Send size={15}/> Invia deposito reale
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
-              {actionBlocked ? <small>{actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0)}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara busta, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei metadati, Atto.enc e invio dal PC locale; se manca un requisito fisico lo indica prima dell’invio.' : 'Il software prepara la busta e governa il caricamento finale sul portale ufficiale.'}</small>}
+              {actionBlocked ? <small>{depositUserFacingMessage(actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0))}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara pacchetto, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei dati deposito e invio dal PC locale; se manca un requisito lo indica prima dell’invio.' : 'Il software prepara il pacchetto e governa il caricamento finale sul portale ufficiale.'}</small>}
             </div>
             {packagePreview ? (
               <div className="iu-fas-package-preview" role="status">
                 <header>
                   <Badge tone={packagePreview.packageReady ? 'success' : 'warning'}>Prova senza invio PEC</Badge>
                   <div>
-                    <strong>{packagePreview.message}</strong>
+                    <strong>{depositUserFacingMessage(packagePreview.message)}</strong>
                     <span>Controlla destinatario, oggetto, corpo PEC e documenti prima del deposito reale.</span>
                   </div>
                 </header>
@@ -4674,7 +4818,7 @@ function DepositPreparePage({ id }:{id:string}) {
                       <Badge tone={compatibilityPercent === 100 ? 'success' : compatibilityPercent >= 80 ? 'warning' : 'danger'}>Compatibilità {compatibilityPercent}%</Badge>
                       <div>
                         <strong>{recordText(compatibilityReport, 'summary', 'Report di compatibilità generato dalla prova senza invio.')}</strong>
-                        <span>Confronto strutturale con i campioni PEC reali allegati e con gli artefatti ministeriali prodotti.</span>
+                        <span>Confronto con i campioni PEC reali allegati e con i documenti prodotti dalla prova.</span>
                       </div>
                     </header>
                     {compatibilityChecks.length ? (
@@ -4685,8 +4829,8 @@ function DepositPreparePage({ id }:{id:string}) {
                           return (
                             <article className={`is-${status}`} key={code}>
                               <span>{status === 'ok' ? 'OK' : status === 'blocco' ? 'Blocco' : 'Avviso'}</span>
-                              <strong>{recordText(item, 'label', code)}</strong>
-                              <small>{recordText(item, 'detail')}</small>
+                              <strong>{depositUserFacingMessage(recordText(item, 'label', code))}</strong>
+                              <small>{depositUserFacingMessage(recordText(item, 'detail'))}</small>
                             </article>
                           )
                         })}
@@ -4741,7 +4885,7 @@ function DepositPreparePage({ id }:{id:string}) {
           </DetailSection>
 
           <DetailSection id="inventario-fascicolo" title="5. Inventario fascicolo" icon={<FolderOpen size={17}/>} open={activeDepositPanel === 'inventario-fascicolo'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('inventario-fascicolo') }} count={data.documents.length}>
-            <p className="iu-fas-sync-note"><FolderOpen size={14}/> La preparazione legge tutti i documenti presenti nel fascicolo; la busta usa poi slot, classificazione e controlli del canale.</p>
+            <p className="iu-fas-sync-note"><FolderOpen size={14}/> La preparazione legge tutti i documenti presenti nel fascicolo; la busta usa poi scelte, classificazione e controlli del canale.</p>
             <div className="iu-fas-comm-list">
               {data.documents.map((doc) => {
                 const role = documentOperationalRole(doc)
@@ -4779,14 +4923,14 @@ function DepositPreparePage({ id }:{id:string}) {
             </div>
           </DetailSection>
 
-          <DetailSection id="catalogo-portale" title="Catalogo portale acquisito" icon={<Landmark size={17}/>} count={portalCatalog.length}>
+          <DetailSection id="catalogo-portale" title="Documenti acquisiti dal portale" icon={<Landmark size={17}/>} count={portalCatalog.length}>
             <div className="iu-fas-comm-list">
               {portalCatalog.map((row) => (
                 <article className="iu-fas-comm-row" key={row.id}>
                   <Badge tone={row.tone}>{row.role}</Badge>
                   <strong>{row.name}</strong>
                   <span>{[row.source, row.type, row.date, row.sender].filter(Boolean).join(' - ')}</span>
-                  <small>{row.imported ? 'File acquisito nel fascicolo con classificazione portale.' : row.available ? 'Presente nel catalogo ufficiale: acquisisci il file prima di usarlo.' : 'Documento censito dal portale ma non scaricabile in questa sessione.'}</small>
+                  <small>{row.imported ? 'File acquisito nel fascicolo con classificazione portale.' : row.available ? 'Disponibile sul portale: acquisisci il file prima di usarlo.' : 'Documento censito dal portale ma non scaricabile in questa sessione.'}</small>
                 </article>
               ))}
               {!portalCatalog.length ? <p className="iu-empty">Nessun documento acquisito dal portale per questo fascicolo.</p> : null}
@@ -4825,11 +4969,11 @@ function DepositPreparePage({ id }:{id:string}) {
               { label: 'Cliente', value: f.client },
               { label: 'Ufficio', value: f.court },
               { label: 'RG', value: visibleRg, mono: true },
-              { label: 'Codice oggetto', value: f.codiceOggettoPst || 'n.d.' },
+              { label: 'Tipo deposito', value: f.codiceOggettoPst || 'n.d.' },
               { label: 'Canale', value: regia.header.channel || 'da verificare' },
             ]}/>
           </DetailSection>
-          <DetailSection id="slot-deposito-rail" title="Slot documentali" icon={<PackageCheck size={17}/>} count={regia.documentSlots.length}>
+          <DetailSection id="slot-deposito-rail" title="Documenti richiesti" icon={<PackageCheck size={17}/>} count={regia.documentSlots.length}>
             <div className="iu-fas-regia-list">
               {sortedSlots.map((slot) => {
                 const slotKey = recordText(slot, 'slotKey')
@@ -4839,8 +4983,8 @@ function DepositPreparePage({ id }:{id:string}) {
                   <article className="iu-fas-slot-row" key={slotKey || recordText(slot, 'label')}>
                     <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
                     <strong>{recordText(slot, 'label')}</strong>
-                    <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : recordText(slot, 'message', 'Documento da collegare')}</span>
-                    <small>{recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.')}</small>
+                    <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : depositUserFacingMessage(recordText(slot, 'message', 'Documento da collegare'))}</span>
+                    <small>{depositUserFacingMessage(recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.'))}</small>
                     {slotKey ? (
                       <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
                         <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
@@ -4853,7 +4997,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   </article>
                 )
               })}
-              {!regia.documentSlots.length ? <p className="iu-empty">Slot documentali non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
+              {!regia.documentSlots.length ? <p className="iu-empty">Documenti richiesti non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
             </div>
           </DetailSection>
           <DetailSection id="audit-deposito" title="Audit" icon={<Fingerprint size={17}/>} count={data.auditTrail.summary.total}>
@@ -4948,7 +5092,7 @@ function DepositBatchSignaturePanel({
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
-    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il token.')
+    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il dispositivo di firma.')
     requestLocalSignerStart()
     for (const delay of [2500, 5000, 8500, 12000]) {
       window.setTimeout(() => { void checkLocalSigner(false) }, delay)
@@ -4990,7 +5134,7 @@ function DepositBatchSignaturePanel({
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        const message = 'IUSENTRA ha tentato il riallineamento automatico del Local Signer. Se il token è inserito, attendi pochi secondi: il PIN verrà chiesto solo quando versione e token saranno pronti.'
+      const message = 'IUSENTRA ha tentato il riallineamento automatico del Local Signer. Se il dispositivo è inserito, attendi pochi secondi: il PIN verrà chiesto solo quando la firma sarà pronta.'
         setError(message)
         throw signatureInputRequired(message)
       }
@@ -5002,7 +5146,7 @@ function DepositBatchSignaturePanel({
     if (!localSignerCanSign) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        const message = localSignerReachable ? 'Token non pronto per la firma: verifica che il dispositivo fisico sia inserito. IUSENTRA ha già tentato avvio e aggiornamento del Local Signer.' : 'Local Signer non raggiungibile su questo PC: IUSENTRA ha tentato l’avvio automatico e riproverà la verifica.'
+        const message = localSignerReachable ? 'Dispositivo non pronto per la firma: verifica che il dispositivo fisico sia inserito. IUSENTRA ha già tentato avvio e aggiornamento del Local Signer.' : 'Local Signer non raggiungibile su questo PC: IUSENTRA ha tentato l’avvio automatico e riproverà la verifica.'
         setError(message)
         throw signatureInputRequired(message)
       }
@@ -5012,7 +5156,7 @@ function DepositBatchSignaturePanel({
       throw signatureInputRequired(message)
     }
     if (!selectedWindowsCertificate && !primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
-      const message = 'Local Signer non ha restituito un token utilizzabile.'
+      const message = 'Local Signer non ha restituito un dispositivo di firma utilizzabile.'
       setError(message)
       throw signatureInputRequired(message)
     }
@@ -5055,7 +5199,7 @@ function DepositBatchSignaturePanel({
         })
       } catch (exc) {
         if (exc instanceof DOMException && exc.name === 'AbortError') {
-          throw new Error('Local Signer non ha risposto entro 45 secondi. Verifica token, PIN e servizio locale, poi ripeti la firma.')
+          throw new Error('Local Signer non ha risposto entro 45 secondi. Verifica dispositivo di firma, PIN e servizio locale, poi ripeti la firma.')
         }
         throw exc
       } finally {
@@ -5114,36 +5258,36 @@ function DepositBatchSignaturePanel({
   if (!documents.length) return null
 
   const signerTitle = restartSuggested
-    ? 'Token rilevato, riallineamento automatico'
+    ? 'Dispositivo di firma rilevato, riallineamento automatico'
     : selectedWindowsCertificate
     ? 'Local Signer pronto con certificato Windows'
     : displayToken
     ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer pronto')
     : localSignerReachable
-      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token')
+      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza dispositivo di firma')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
   const signerDetail = restartSuggested
-    ? localSigner?.nota_riavvio_signer || 'Il token e\' stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
+    ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
     : selectedWindowsCertificate
     ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
     : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
         : restartSuggested
-        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
-        : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
+        ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
+        : `${localSignerTokenLabel(displayToken)} - lettore ${displayToken.slot_id}`)
     : localSignerReachable
-      ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token disponibile.'
+      ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun dispositivo di firma disponibile.'
       : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
 
   return (
     <section className="iu-fas-batch-signature">
       <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
         <strong>{signerTitle}</strong>
-        <span>{signerDetail}</span>
-        {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
+        <span>{depositUserFacingMessage(signerDetail)}</span>
+        {displayToken && restartSuggested ? <small>{localSignerTokenLabel(displayToken)} - lettore {displayToken.slot_id}</small> : null}
         {selectedWindowsCertificate?.codice_fiscale && !restartSuggested ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
         {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
       </div>
@@ -5172,7 +5316,7 @@ function DepositBatchSignaturePanel({
                   if (error) setError('')
                 }}
                 autoComplete="off"
-                placeholder="PIN token"
+                placeholder="PIN dispositivo"
               />
             </label>
             <label>
@@ -5202,8 +5346,8 @@ function DepositBatchSignaturePanel({
         </>
       ) : (
         <div className="iu-fas-signer-next-step">
-          <strong>{restartSuggested || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Token non pronto per la firma.'}</strong>
-          <span>{restartSuggested || localSignerOutdated ? 'IUSENTRA aggiorna o riapre il servizio locale e ricontrolla il token prima di firmare il lotto.' : 'Inserisci il token fisico: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
+          <strong>{restartSuggested || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Dispositivo non pronto per la firma.'}</strong>
+          <span>{restartSuggested || localSignerOutdated ? 'IUSENTRA aggiorna o riapre il servizio locale e ricontrolla il dispositivo prima di firmare il lotto.' : 'Inserisci il dispositivo di firma: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
         </div>
       )}
       {message ? <div className="iu-fas-signature-alert iu-fas-signature-alert--ok" role="status"><CheckCircle2 size={16}/><span>{message}</span></div> : null}
@@ -5418,7 +5562,7 @@ function depositIssueLabel(row: { label?: string; message?: string; note?: strin
   if (/ufficio|registro|rg/.test(text)) return 'Dati fascicolo'
   if (/pdf\/?a/.test(text)) return 'Formato atto'
   if (/file|slot|documento non collegato|documento vuoto/.test(text)) return 'Documento busta'
-  if (/hash|datiatto|xml|schema|busta|indice/.test(text)) return 'Busta'
+  if (/hash|datiatto|xml|schema|busta|indice/.test(text)) return 'Pacchetto'
   if (/firm|firma|pin|token/.test(text)) return 'Firma'
   if (/preventivo|conferimento|pagamento|acconto|fattura/.test(text)) return 'Informazione studio'
   return row.label || 'Controllo'
@@ -5430,7 +5574,7 @@ function depositIssueMessage(row: { message?: string; note?: string; label?: str
   if (/file non collegato|documento non collegato|collega il documento/.test(text)) return 'Collega il documento richiesto alla busta.'
   if (/file non apribile|ricarica il documento|correggi il collegamento/.test(text)) return 'Ricarica il documento oppure correggi il collegamento.'
   if (/documento vuoto|file valido/.test(text)) return 'Ricarica un file valido.'
-  return row.message || row.note || row.label || 'Controllo registrato'
+  return depositUserFacingMessage(row.message || row.note || row.label || 'Controllo registrato')
 }
 
 function isDecisiveDepositIssue(row: { tone?: string; label?: string; message?: string; note?: string }): boolean {
@@ -5472,12 +5616,12 @@ function defaultSignatureRequiredForDepositRole(doc: FascicoloDocument | undefin
 function buildDepositPecBody(documenti: string[]): string {
   const files = documenti.map((item) => item.trim()).filter(Boolean)
   const elenco = files.length
-    ? `\n\nIl file Atto.enc contiene i seguenti documenti:\n${files.map((name) => `- ${name}`).join('\n')}`
+    ? `\n\nIl pacchetto contiene i seguenti documenti:\n${files.map((name) => `- ${name}`).join('\n')}`
     : ''
   return [
     'Egregio sig. Cancelliere,',
     '',
-    `Allego alla presente il file crittografato Atto.enc per il deposito telematico.${elenco}`,
+    `Allego alla presente il pacchetto di deposito telematico.${elenco}`,
     '',
     '',
   ].join('\n')
@@ -5556,8 +5700,8 @@ function documentOperationalRole(doc: FascicoloDocument): { label: string; detai
               : doc.catalogSection === 'allegati' ? 'neutral'
                 : 'warning'
     const detail = doc.catalogEvidence
-      ? `Catalogato da OCR/metadati: ${doc.catalogEvidence}.`
-      : 'Catalogato da OCR e metadati del fascicolo.'
+      ? `Catalogato da OCR e dati del fascicolo: ${doc.catalogEvidence}.`
+      : 'Catalogato da OCR e dati del fascicolo.'
     return { label: doc.catalogLabel, detail, tone }
   }
   if (isCommunicationDocument(doc)) {
@@ -5712,7 +5856,7 @@ function slotStatusDisplay(value: string, linked = false): { label: string; tone
 
 function depositPackageKindLabel(value: string): string {
   const key = normaliseText(value)
-  if (key.includes('pct_busta_enc')) return 'Busta ministeriale Atto.enc'
+  if (key.includes('pct_busta_enc')) return 'Pacchetto deposito'
   if (key.includes('sigp')) return 'Pacchetto Giudice di Pace'
   if (key.includes('pdp')) return 'Pacchetto deposito penale'
   if (key.includes('pat')) return 'Pacchetto giustizia amministrativa'
@@ -6246,23 +6390,23 @@ function assertLocalPecAttoEncBase64(localPayload: Record<string, unknown>): voi
     return recordText(item as Record<string, unknown>, 'filename').toLowerCase() === 'atto.enc'
   })
   if (!attoEnc || typeof attoEnc !== 'object' || Array.isArray(attoEnc)) {
-    throw new Error('Allegato Atto.enc mancante nel payload Local Signer. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito mancante. Rigenera la prova deposito prima dell’invio reale.')
   }
   const contentBase64 = recordText(attoEnc as Record<string, unknown>, 'content_base64').trim()
   if (!contentBase64) {
-    throw new Error('Allegato Atto.enc non contiene il payload base64. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non leggibile. Rigenera la prova deposito prima dell’invio reale.')
   }
   let decoded: Uint8Array
   try {
     decoded = base64ToUint8Array(contentBase64)
   } catch {
-    throw new Error('Allegato Atto.enc non è base64 valido. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non valido. Rigenera la prova deposito prima dell’invio reale.')
   }
   if (!decoded.length || !looksLikeCmsEnvelopedData(decoded)) {
-    throw new Error('Allegato Atto.enc non è un CMS EnvelopedData ministeriale valido. Rigenera la busta prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non conforme. Rigenera la prova prima dell’invio reale.')
   }
   if (!recordBool(attoEnc as Record<string, unknown>, 'ministerial_busta_verified')) {
-    throw new Error('Allegato Atto.enc non ha la verifica ministeriale di Atto.msg e IndiceBusta.xml. Ripeti Simula invio PEC prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non verificato. Ripeti Simula invio PEC prima dell’invio reale.')
   }
 }
 
@@ -6311,7 +6455,7 @@ function requestLocalSignerUpdate(): boolean {
 
 function localSignerTokenLabel(token?: LocalSignerToken): string {
   if (!token) return ''
-  return [token.label, token.manufacturer, token.model].filter(Boolean).join(' - ') || 'Token USB'
+  return [token.label, token.manufacturer, token.model].filter(Boolean).join(' - ') || 'Dispositivo USB'
 }
 
 function localSignerWindowsCertificate(status?: LocalSignerStatus | null): LocalSignerWindowsCertificate | null {
@@ -6496,7 +6640,7 @@ async function recoverLocalSignerAutomatically(
     return updated || status
   }
   if (localSignerNeedsRestart(status)) {
-    options.onMessage?.('IUSENTRA sta riallineando automaticamente Local Signer perché il token è stato rilevato da un controllo fresco.')
+    options.onMessage?.('IUSENTRA sta riallineando automaticamente Local Signer perché il dispositivo di firma è stato rilevato da un controllo fresco.')
     requestLocalSignerStart()
     const restarted = await pollLocalSignerStatus(12, 900)
     return restarted || status
@@ -6569,28 +6713,28 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const localSignerCanSign = localSignerStatusCanSign(localSigner)
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
   const localSignerStatusTitle = restartSuggested
-    ? 'Token rilevato, riallineamento automatico'
+    ? 'Dispositivo di firma rilevato, riallineamento automatico'
     : selectedWindowsCertificate
     ? 'Local Signer pronto con certificato Windows'
     : displayToken
     ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer rilevato')
     : localSignerReachable
-      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza token PKCS#11')
+      ? (localSignerOutdated ? 'Local Signer da aggiornare' : 'Local Signer attivo senza dispositivo di firma')
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
   const localSignerStatusMessage = restartSuggested
-    ? localSigner?.nota_riavvio_signer || 'Il token e\' stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
+    ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
     : selectedWindowsCertificate
     ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
     : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
         : restartSuggested
-        ? localSigner?.nota_riavvio_signer || 'Il token è stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
-        : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
+        ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
+        : `${localSignerTokenLabel(displayToken)} - lettore ${displayToken.slot_id}`)
     : localSignerReachable
-      ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token PKCS#11 disponibile.'
+      ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun dispositivo di firma disponibile.'
       : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
   const signatureCount = info?.firme?.length || 0
   const alreadySigned = Boolean(doc?.signed || signatureCount > 0)
@@ -6616,7 +6760,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
   const scheduleLocalSignerRestartCheck = () => {
     setError('')
-    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il token.')
+    setMessage('IUSENTRA sta riallineando automaticamente Local Signer e ricontrolla il dispositivo di firma.')
     requestLocalSignerStart()
     for (const delay of [2500, 5000, 8500, 12000]) {
       window.setTimeout(() => { void checkLocalSigner(false) }, delay)
@@ -6683,14 +6827,14 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
     if (restartSuggested || localSignerOutdated) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        setError('IUSENTRA ha tentato il riallineamento automatico del Local Signer. Il PIN verrà richiesto solo quando versione e token saranno pronti per la firma.')
+        setError('IUSENTRA ha tentato il riallineamento automatico del Local Signer. Il PIN verrà richiesto solo quando il dispositivo sarà pronto per la firma.')
       }
       return
     }
     if (!selectedWindowsCertificate && !primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
       const next = await checkLocalSigner(true)
       if (!localSignerStatusCanSign(next)) {
-        setError('Local Signer non ha restituito un token utilizzabile. Se il dispositivo fisico è inserito, IUSENTRA ha già tentato avvio, aggiornamento e riverifica.')
+        setError('Local Signer non ha restituito un dispositivo di firma utilizzabile. Se il dispositivo fisico è inserito, IUSENTRA ha già tentato avvio, aggiornamento e riverifica.')
       }
       return
     }
@@ -6811,7 +6955,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             { label: 'Tipo', value: doc?.type || 'n.d.' },
             { label: 'Dimensione', value: doc?.size || 'n.d.' },
             { label: 'Data documento', value: doc?.documentDate || doc?.uploadedAt || 'n.d.' },
-            { label: 'Hash', value: doc?.hash || 'n.d.', mono: true },
+            { label: 'Impronta', value: doc?.hash || 'n.d.', mono: true },
             { label: 'Fonte', value: doc?.source || 'Studio' },
           ]}/>
         </Panel>
@@ -6820,7 +6964,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           <div className="iu-fas-signature-box">
             <div className="iu-fas-visible-signature">
               <strong>Modalità firma visibile nel PDF</strong>
-              <small>Scegli come mostrare la dicitura grafica sul PDF. La validità legale resta nella firma digitale CAdES/PAdES.</small>
+              <small>Scegli come mostrare la dicitura grafica sul PDF. La validità legale resta nella firma digitale.</small>
               <span>Posizione firma visibile</span>
               <div>
                 {visibleSignatureOptions.map((option) => (
@@ -6846,8 +6990,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             </div>
             <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
               <strong>{localSignerStatusTitle}</strong>
-              <span>{localSignerStatusMessage}</span>
-              {displayToken && signerRestartRequired ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
+              <span>{depositUserFacingMessage(localSignerStatusMessage)}</span>
+              {displayToken && signerRestartRequired ? <small>{localSignerTokenLabel(displayToken)} - lettore {displayToken.slot_id}</small> : null}
               {selectedWindowsCertificate?.codice_fiscale ? <small>Codice fiscale certificato {selectedWindowsCertificate.codice_fiscale}</small> : null}
               {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
             </div>
@@ -6863,7 +7007,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               </div>
             ) : null}
             <label className="iu-fas-field">
-              <span>PIN token <b>*</b></span>
+              <span>PIN dispositivo <b>*</b></span>
               <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato" disabled={!localSignerCanSign}/>
             </label>
             {alreadySigned ? (
@@ -6875,11 +7019,11 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             <button className="iu-fas-submit" type="button" disabled={busy || !localSignerCanSign || (alreadySigned && !confirmResign)} onClick={firmaConLocalSigner}>
               <ShieldCheck size={16}/> {busy ? 'Firma in corso...' : 'Firma tramite Local Signer'}
             </button>
-            <p className="iu-fas-signature-help">La firma integrata usa il servizio locale installato su questo PC. IUSENTRA non salva PIN, password o credenziali del token.</p>
+            <p className="iu-fas-signature-help">La firma integrata usa il servizio locale installato su questo PC. IUSENTRA non salva PIN, password o credenziali del dispositivo.</p>
             {!localSignerCanSign ? (
               <div className="iu-fas-signer-next-step">
-                <strong>{signerRestartRequired || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Token non pronto per la firma.'}</strong>
-                <span>{signerRestartRequired || localSignerOutdated ? 'Il PIN comparirà solo quando versione e token saranno allineati e pronti.' : 'Inserisci il token fisico: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
+                <strong>{signerRestartRequired || localSignerOutdated ? 'Riallineamento automatico in corso.' : 'Dispositivo non pronto per la firma.'}</strong>
+                <span>{signerRestartRequired || localSignerOutdated ? 'Il PIN comparirà solo quando il dispositivo sarà pronto.' : 'Inserisci il dispositivo di firma: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
               </div>
             ) : null}
           </div>
@@ -6887,7 +7031,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
         <Panel title="Firma esterna" subtitle="ArubaSign, Dike o altro software di firma" icon={<UploadCloud size={17}/>}>
           <JsonPostForm className="iu-fas-signature-form" action={firmaUrl} encType="multipart/form-data">
-            <p>Scarica il documento, firmalo in CAdES/PAdES secondo la policy del canale, poi carica qui il file firmato.</p>
+            <p>Scarica il documento, firmalo con il software di firma e carica qui il file firmato.</p>
             <label className="iu-fas-field">
               <span>File firmato <b>*</b></span>
               <input type="file" name="file" accept=".p7m,.sig,.pkcs7,.pdf" required/>
@@ -6922,7 +7066,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           </div>
         </Panel>
       </section>
-      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref="#lex" primaryLabel="Apri Lex firma" secondaryHref={detailUrl} secondaryLabel="Torna ai documenti" />
+      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra firma integrata, firma esterna e controlli prima del deposito, senza sostituire la verifica del documento." primaryHref="#lex" primaryLabel="Apri Lex firma" secondaryHref={detailUrl} secondaryLabel="Torna ai documenti" />
     </main>
   )
 }
@@ -6983,7 +7127,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit
               <time>{formatAuditDate(event.eventTsUtc)}</time>
             </div>
             <div>
-              <strong>{event.eventHashShort || event.eventHash || 'hash non disponibile'}</strong>
+              <strong>{event.eventHashShort || event.eventHash || 'impronta non disponibile'}</strong>
               <span>{event.prevEventHash ? 'Concatenato al precedente evento' : 'Primo evento del fascicolo'}</span>
             </div>
             <div className="iu-fas-audit-badges">
@@ -6993,7 +7137,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit
               {event.tsaVerified ? <Badge tone="success">TSA verificata</Badge> : null}
             </div>
             <div className="iu-fas-actions iu-fas-actions--wrap">
-              {event.eventHash ? <button type="button" title="Copia hash completo" onClick={() => copyAuditHash(event.eventHash)}><Copy size={15}/></button> : null}
+              {event.eventHash ? <button type="button" title="Copia impronta completa" onClick={() => copyAuditHash(event.eventHash)}><Copy size={15}/></button> : null}
               {event.proofHref ? <a href={event.proofHref} title="Scarica prova"><Download size={15}/></a> : null}
             </div>
           </article>

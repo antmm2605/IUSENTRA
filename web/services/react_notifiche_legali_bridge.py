@@ -159,11 +159,25 @@ def _clean_operational_filename(value: str) -> str:
     return cleaned
 
 
-def _quickorganizer_note_filename(documento: Any) -> str:
+def _is_import_pratiche_marker(value: Any) -> bool:
+    text = _text(value).casefold()
+    return any(
+        marker in text
+        for marker in (
+            "quickorganizer",
+            "import pratiche",
+            "gestionale precedente",
+            "pacchetto pratiche",
+        )
+    )
+
+
+def _import_pratiche_note_filename(documento: Any) -> str:
     note = _text(getattr(documento, "note", ""))
-    if "QuickOrganizer." not in note:
+    match = re.search(r"(?:QuickOrganizer|Import\s+pratiche)\.\s*(.+)", note, flags=re.IGNORECASE)
+    if not match:
         return ""
-    candidate = note.split("QuickOrganizer.", 1)[1].strip()
+    candidate = match.group(1).strip()
     if not candidate:
         return ""
     candidate = re.split(r"\s+-\s+Depositante:|\s+-\s+Tipologia:|\s+copia informatica|\s+data notifica:", candidate, maxsplit=1, flags=re.IGNORECASE)[0]
@@ -325,7 +339,7 @@ def _quickorganizer_content_label(documento: Any) -> str:
     name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
     marker = _first_attr(documento, "classificazione_portale", "note", "fonte_documento")
     tags = " ".join(_text(item) for item in (getattr(documento, "tags", []) or []))
-    if not (_is_timestamp_filename(name) and "quickorganizer" in f"{marker} {tags}".lower()):
+    if not (_is_timestamp_filename(name) and _is_import_pratiche_marker(f"{marker} {tags}")):
         return ""
     path = _resolve_document_path(documento)
     if path is None:
@@ -439,8 +453,8 @@ def _infer_document_origin(documento: Any) -> str:
 
 def _document_label(documento: Any) -> str:
     name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
-    operational_name = _quickorganizer_note_filename(documento)
-    if operational_name and (_is_timestamp_filename(name) or "QuickOrganizer" in _first_attr(documento, "classificazione_portale", "note")):
+    operational_name = _import_pratiche_note_filename(documento)
+    if operational_name and (_is_timestamp_filename(name) or _is_import_pratiche_marker(_first_attr(documento, "classificazione_portale", "note"))):
         name = operational_name
     return _display_text(name)
 
@@ -552,16 +566,16 @@ def _document_from_fascicolo(
     origin = normalise_document_origin(_infer_document_origin(documento))
     name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
     original_name = name
-    operational_name = _quickorganizer_note_filename(documento)
+    operational_name = _import_pratiche_note_filename(documento)
     raw_description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note")
-    if operational_name and (_is_timestamp_filename(name) or "QuickOrganizer" in raw_description):
+    if operational_name and (_is_timestamp_filename(name) or _is_import_pratiche_marker(raw_description)):
         name = operational_name
     content_label = _quickorganizer_content_label(documento) if resolve_content_label and not operational_name else ""
     label = content_label or _document_label(documento) or _display_text(name)
     description = raw_description or name
-    if operational_name and "QuickOrganizer" in description:
+    if operational_name and _is_import_pratiche_marker(description):
         description = "Documento importato dal fascicolo"
-    elif content_label and "QuickOrganizer" in description:
+    elif content_label and _is_import_pratiche_marker(description):
         description = f"Nome file originale: {original_name}"
     portal_ref = _first_attr(documento, "id_documento_portale", "id_portale", "codice_portale", "riferimento_portale")
     source_name = _text(getattr(documento, "fonte_documento", ""))
@@ -923,7 +937,7 @@ def build_react_notifiche_legali_payload(
         "fontiOperative": [
             "Portale Servizi Telematici: notificazioni via PEC degli avvocati, L. 53/1994.",
             "Art. 16-ter D.L. 179/2012: pubblici elenchi rilevanti per notificazioni e comunicazioni.",
-            "Specifiche tecniche deposito: ricevute RAC/RdAC in originale digitale e indicizzazione in DatiAtto.xml.",
+            "Controllo ricevute e documenti collegati al fascicolo prima dell'invio.",
         ],
     }
 

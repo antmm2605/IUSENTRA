@@ -1,6 +1,6 @@
 # Firma digitale, PIN e sessioni QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 ## Cosa emerge
 

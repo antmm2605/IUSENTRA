@@ -7,8 +7,10 @@ import re
 import subprocess
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,10 +41,11 @@ QUICK_CSPROJ = DECOMP / "QuickOrganizer.csproj"
 IUS_CERT_DIR = ROOT / "data" / "pst" / "certificati_cifratura"
 IUS_CERT_AUDIT = IUS_CERT_DIR / "audit_certificati_cifratura_pst.json"
 IUS_OBJECT_CATALOG = ROOT / "pct" / "data" / "cataloghi" / "codici_oggetto_pst.json"
+IUS_DEPOSIT_CATALOG = ROOT / "pct" / "data" / "cataloghi" / "quickorganizer_depositi_studio_telematico.json"
 IUS_UFFICI = ROOT / "pct" / "data" / "uffici_ministero.json"
 IUS_UFFICI_EXTRA = ROOT / "pct" / "data" / "uffici_ministero_extra.json"
 
-GENERATED_AT = "30/06/2026 18:10 (Europe/Rome)"
+GENERATED_AT = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d/%m/%Y %H:%M (Europe/Rome)")
 
 OFFICIAL_SOURCES = [
     {
@@ -203,6 +206,20 @@ def md_table(rows: list[tuple[Any, ...]], headers: list[str]) -> str:
     return "\n".join(out)
 
 
+def slug_filename(value: str) -> str:
+    text = normalize_label(value)
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-") or "non-classificato"
+
+
+def compact_join(values: list[Any], limit: int = 6) -> str:
+    cleaned = [clean(str(value)).strip() for value in values if clean(str(value)).strip()]
+    if not cleaned:
+        return ""
+    head = cleaned[:limit]
+    suffix = f" (+{len(cleaned) - limit})" if len(cleaned) > limit else ""
+    return ", ".join(head) + suffix
+
+
 def sha256_file(path: Path, max_bytes: int | None = None) -> str:
     h = hashlib.sha256()
     with path.open("rb") as fh:
@@ -329,6 +346,172 @@ def extract_schema_manifest() -> tuple[list[dict[str, Any]], Counter, list[dict[
     return manifest, xml_namespace_counter, root_classes
 
 
+def _switch_datiatto_text(form_text: str) -> str:
+    method_start = form_text.find("private void ElencoXSD")
+    switch_start = form_text.find("switch (AttoDaInviareKey)", method_start if method_start >= 0 else 0)
+    switch_end = form_text.find("\n\tprivate bool Create_DatiAtto_", switch_start + 1)
+    if switch_start < 0 or switch_end <= switch_start:
+        return ""
+    return form_text[switch_start:switch_end]
+
+
+def _case_body_until_break(switch_text: str, body_start: int) -> str:
+    break_match = re.search(r"^\s*break;\s*$", switch_text[body_start:], re.M)
+    if not break_match:
+        return switch_text[body_start:]
+    return switch_text[body_start : body_start + break_match.end()]
+
+
+def _compact_strings(values: list[str], limit: int = 80) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = clean(value).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _assignments_in_block(body: str) -> list[dict[str, str]]:
+    assignments: list[dict[str, str]] = []
+    assignment_re = re.compile(
+        r"(?P<target>\b(?:needProcura|needContributoUnificato|needNotaIscrizioneRuolo|"
+        r"SingleSelect|VisualizzaAnagraficaProcedimento|VisualizzaGrigliaTerzi|"
+        r"[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)+))\s*=\s*(?P<value>[^;\n]+);"
+    )
+    for match in assignment_re.finditer(body):
+        target = clean(match.group("target"))
+        value = clean(match.group("value").strip())
+        if len(value) > 180:
+            value = value[:177] + "..."
+        assignments.append({"target": target, "value": value})
+    return assignments
+
+
+def _controls_in_block(body: str) -> list[dict[str, str]]:
+    controls: dict[str, dict[str, str]] = {}
+    for match in re.finditer(r"\b(?P<control>(?:cbo|txt|dtp|lbl|btn|checkBox|UltraGrid|UltraCurrencyEditor)[A-Za-z0-9_]+)\.(?P<prop>Enabled|Visible|Text|Tag|SelectedIndex)\s*=\s*(?P<value>[^;\n]+);", body):
+        control = clean(match.group("control"))
+        prop = clean(match.group("prop"))
+        value = clean(match.group("value").strip())
+        if len(value) > 160:
+            value = value[:157] + "..."
+        controls.setdefault(control, {"control": control})[prop] = value
+    return list(controls.values())
+
+
+def _fixed_object_codes(body: str) -> list[dict[str, str]]:
+    codes: list[dict[str, str]] = []
+    text_matches = list(re.finditer(r'cboOggettoPratica\.Text\s*=\s*"([^"]+)"\s*;', body))
+    tag_matches = list(re.finditer(r'cboOggettoPratica\.Tag\s*=\s*"([^"]+)"\s*;', body))
+    for idx, text_match in enumerate(text_matches):
+        tag = tag_matches[idx].group(1) if idx < len(tag_matches) else extract_code(text_match.group(1))
+        codes.append({"code": clean(tag), "label": clean(text_match.group(1))})
+    return codes
+
+
+def _flags_in_block(body: str) -> dict[str, bool]:
+    flags: dict[str, bool] = {}
+    for match in re.finditer(r"\b(needProcura|needContributoUnificato|needNotaIscrizioneRuolo|SingleSelect|VisualizzaAnagraficaProcedimento|VisualizzaGrigliaTerzi)\s*=\s*(true|false)\s*;", body):
+        flags[match.group(1)] = match.group(2) == "true"
+    return flags
+
+
+def _combo_sources_in_block(body: str) -> list[str]:
+    sources: list[str] = []
+    for match in re.finditer(r"(PopulateComboIstanze(?:Enum)?|PopulateComboRuolo|PopulateComboRito)\s*\(([^;\n]+)\);", body):
+        sources.append(clean(f"{match.group(1)}({match.group(2).strip()})"))
+    return _compact_strings(sources, limit=40)
+
+
+def _method_required_data(body: str) -> list[str]:
+    checks = [
+        ("IndiceBusta", "IndiceBusta"),
+        ("AttoPrincipale.id", "AttoPrincipale.id"),
+        ("_AttoPrincipale.ID", "AttoPrincipale.id"),
+        ("Create_ListAllegati", "Allegati in IndiceBusta"),
+        ("RefID_Deposito", "RefId deposito multiplo"),
+        ("groupedFiles.Count", "Deposito multiplo"),
+        ("CaricaDati_Introduttivi_AnagraficaProcedimento", "AnagraficaProcedimento"),
+        ("AnagraficaProcedimento", "AnagraficaProcedimento"),
+        ("CaricaDati_Parte_RiferimentoProcedimento", "RiferimentoProcedimento"),
+        ("procedimento", "RiferimentoProcedimento"),
+        ("CaricaDati_Introduttivi_ContributoUnificato", "ContributoUnificato"),
+        ("ContributoUnificato", "ContributoUnificato"),
+        ("CaricaKeyCodiceOggettoPratica", "CodiceOggetto"),
+        ("CodiceOggetto", "CodiceOggetto"),
+        ("Datacitazione", "Data citazione"),
+        ("dataCitazione", "Data citazione"),
+        ("ValoreCausa", "ValoreCausa"),
+        ("ModificheAnagrafica", "ModificheAnagrafica"),
+        ("checkBoxUrgente", "Urgenza"),
+        ("urgente", "Urgenza"),
+        ("cboIstanze", "Istanze"),
+        ("istanze", "Istanze"),
+        ("cboRito", "Rito"),
+        ("cboRuolo", "Ruolo"),
+        ("cboAutorit", "Ufficio giudiziario"),
+    ]
+    found: list[str] = []
+    seen: set[str] = set()
+    for needle, label in checks:
+        if needle in body and label not in seen:
+            found.append(label)
+            seen.add(label)
+    return found
+
+
+def _method_profile(body: str, saved_root_variables: set[str]) -> dict[str, Any]:
+    root_assignments = []
+    for variable in sorted(saved_root_variables):
+        pattern = re.compile(rf"\b{re.escape(variable)}\.(?P<field>[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*)\s*=\s*(?P<value>[^;\n]+);")
+        for match in pattern.finditer(body):
+            value = clean(match.group("value").strip())
+            if len(value) > 180:
+                value = value[:177] + "..."
+            root_assignments.append(
+                {"target": f"{variable}.{clean(match.group('field'))}", "value": value}
+            )
+    helper_calls = _compact_strings(
+        re.findall(
+            r"\b(?:CaricaDati|Create_ListAllegati|CaricaKey|PopulateCombo|ImpostaSingolaIstanza|FindSchemaXSD|InsertCommentAfterDatiAttoXML)[A-Za-z0-9_]*\s*\(",
+            body,
+        ),
+        limit=80,
+    )
+    helper_calls = [value.rstrip("(") for value in helper_calls]
+    return {
+        "required_data": _method_required_data(body),
+        "busta_contract": _compact_strings(
+            [
+                label
+                for needle, label in [
+                    ("IndiceBusta.AttoPrincipale.id", "IndiceBusta.AttoPrincipale.id collegato all'atto principale"),
+                    ("IndiceBusta.Any", "IndiceBusta.Any popolato con allegati fisici"),
+                    ("Create_ListAllegati", "Mappa allegati -> riferimenti IndiceBusta"),
+                    ("RefID_Deposito", "RefId per deposito con più buste"),
+                    ("SaveToFile(\"DatiAtto.xml", "Salvataggio DatiAtto.xml principale"),
+                    ("SaveToFile(\"BUSTA\" + numeroBusta", "Salvataggio DatiAtto.xml complementare"),
+                    ("ContributoUnificato", "Contributo unificato quando previsto"),
+                    ("checkBoxUrgente", "Flag urgenza quando previsto"),
+                ]
+                if needle in body
+            ],
+            limit=40,
+        ),
+        "root_assignments": root_assignments,
+        "helper_calls": helper_calls,
+        "ui_controls_read": _compact_strings(
+            re.findall(r"\b(?:cbo|txt|dtp|checkBox|UltraCurrencyEditor)[A-Za-z0-9_]+", body),
+            limit=80,
+        ),
+    }
+
+
 def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
     form_text = read_text(FORM)
     starts = list(
@@ -351,6 +534,7 @@ def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict
         for sm in re.finditer(r'([A-Za-z_][\w]*)\.SaveToFile\(\s*"(?:BUSTA"\s*\+\s*numeroBusta\s*\+\s*"\\\\)?DatiAtto\.xml"', body):
             var_name = sm.group(1)
             saved_roots.append({"variable": var_name, "type": var_types.get(var_name, "")})
+        profile = _method_profile(body, {root["variable"] for root in saved_roots})
         entry = {
             "method": name,
             "generated_types": sorted(set(re.findall(r"new\s+([A-Za-z_][\w\.]*)\s*\(", body)))[:60],
@@ -359,30 +543,47 @@ def extract_datiatto() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict
             "uses_anagrafica_procedimento": "AnagraficaProcedimento" in body,
             "uses_contributo_unificato": "ContributoUnificato" in body,
             "uses_notifiche": "Notifica" in body or "SoggettoNotificato" in body,
+            "required_data": profile["required_data"],
+            "busta_contract": profile["busta_contract"],
+            "root_assignments": profile["root_assignments"],
+            "helper_calls": profile["helper_calls"],
+            "ui_controls_read": profile["ui_controls_read"],
             "line_start_estimate": form_text[: match.start()].count("\n") + 1,
         }
         methods.append(entry)
         method_by_name[name] = entry
 
-    switch_start = form_text.find("private bool Create_DatiAtto(AttoPrincipale")
-    switch_end = form_text.find("private bool Create_DatiAtto_", switch_start + 1)
-    switch_text = form_text[switch_start:switch_end] if switch_start >= 0 and switch_end > switch_start else ""
+    switch_text = _switch_datiatto_text(form_text)
     key_to_methods: list[dict[str, Any]] = []
     key_method_map: dict[str, dict[str, Any]] = {}
-    case_re = re.compile(
-        r'case\s+"([^"]+)"\s*:(.*?)(?=\n\t\t\tcase\s+"|\n\t\t\tdefault:|\n\t\t\})',
-        re.S,
-    )
+    case_re = re.compile(r'^\s*case\s+"([^"]+)"\s*:', re.M)
     for case_match in case_re.finditer(switch_text):
         key = clean(case_match.group(1))
-        body = case_match.group(2)
-        method_names = sorted(set(re.findall(r"(Create_DatiAtto_[A-Za-z0-9_]+)\s*\(", body)))
+        body = _case_body_until_break(switch_text, case_match.end())
+        method_names = _compact_strings(
+            re.findall(r"(Create_DatiAtto_[A-Za-z0-9_]+)\s*\(", body),
+            limit=20,
+        )
         saved = [
             root
             for method_name in method_names
             for root in method_by_name.get(method_name, {}).get("saved_roots", [])
         ]
-        entry = {"key": key, "methods": method_names, "saved_roots": saved}
+        method_required_data = []
+        for method_name in method_names:
+            method_required_data.extend(method_by_name.get(method_name, {}).get("required_data", []))
+        entry = {
+            "key": key,
+            "methods": method_names,
+            "saved_roots": saved,
+            "flags": _flags_in_block(body),
+            "controls": _controls_in_block(body),
+            "fixed_object_codes": _fixed_object_codes(body),
+            "combo_sources": _combo_sources_in_block(body),
+            "assignments": _assignments_in_block(body),
+            "required_data": _compact_strings(method_required_data + _method_required_data(body), limit=80),
+            "line_start_estimate": switch_text[: case_match.start()].count("\n") + 1,
+        }
         key_to_methods.append(entry)
         key_method_map[key] = entry
     return methods, key_to_methods, key_method_map
@@ -1561,6 +1762,288 @@ def write_xsd_markdown(
     return write_utf8(ART / "xsd-quickorganizer-datiatto.md", "\n".join(lines))
 
 
+def write_datiatto_generator_files(
+    catalog: list[dict[str, Any]],
+    create_methods: list[dict[str, Any]],
+    key_to_methods: list[dict[str, Any]],
+) -> list[Path]:
+    outdir = ART / "quickorganizer-datiatto-generatori"
+    outputs: list[Path] = []
+    key_map = {item["key"]: item for item in key_to_methods}
+    method_map = {item["method"]: item for item in create_methods}
+    catalog_keys = {item.get("key", "") for item in catalog}
+    sector_paths: list[Path] = []
+
+    lines = [
+        "# Generatori DatiAtto QuickOrganizer",
+        "",
+        f"Generato: {GENERATED_AT}.",
+        "",
+        "Questo indice separa la logica dei generatori dal catalogo visibile. Il JSON completo conserva tutti i campi estratti dal C# decompilato; i file per macroarea servono per lettura rapida.",
+        "",
+        "## Conteggi",
+        "",
+        md_table(
+            [
+                ("Tipi deposito nel catalogo Studio Telematico", len(catalog)),
+                ("Case reali letti nello switch `AttoDaInviareKey`", len(key_to_methods)),
+                ("Metodi `Create_DatiAtto_*` decompilati", len(create_methods)),
+                ("Case non presenti nel catalogo UI estratto", len([item for item in key_to_methods if item["key"] not in catalog_keys])),
+            ],
+            ["Voce", "Totale"],
+        ),
+        "",
+        "## File per macroarea",
+        "",
+    ]
+
+    grouped_macro: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in catalog:
+        grouped_macro[item.get("macro", "Da classificare")].append(item)
+
+    for macro in sorted(grouped_macro):
+        entries = grouped_macro[macro]
+        filename = f"{slug_filename(macro)}.md"
+        sector_paths.append(outdir / filename)
+        lines.append(f"- `{rel(outdir / filename)}` - {macro}.")
+        sector_lines = [
+            f"# Generatori DatiAtto - {macro}",
+            "",
+            f"Generato: {GENERATED_AT}.",
+            "",
+            f"Tipi deposito nel settore: {len(entries)}.",
+            "",
+            "Ogni riga riporta il metodo esatto chiamato da Studio Telematico, la root XML salvata, i dati richiesti dal metodo e i campi/codici che il menu abilita.",
+        ]
+        grouped_category: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for item in entries:
+            grouped_category[item.get("categoria", "Senza categoria")].append(item)
+        for category in sorted(grouped_category):
+            rows = []
+            for item in sorted(grouped_category[category], key=lambda row: row.get("key", "")):
+                methods = item.get("datiatto_methods", [])
+                roots = [root.get("type", "") for root in item.get("datiatto_roots", [])]
+                mapping = key_map.get(item.get("key", ""), {})
+                fixed_codes = [
+                    f"{code.get('code', '')} {code.get('label', '')}".strip()
+                    for code in mapping.get("fixed_object_codes", [])
+                ]
+                true_flags = [key for key, value in mapping.get("flags", {}).items() if value]
+                rows.append(
+                    (
+                        item.get("key", ""),
+                        item.get("text", ""),
+                        compact_join(methods, limit=3),
+                        compact_join(roots, limit=3),
+                        compact_join(item.get("datiatto_required_data", []), limit=8),
+                        compact_join(fixed_codes, limit=2),
+                        compact_join(true_flags, limit=6),
+                    )
+                )
+            sector_lines.extend(
+                [
+                    "",
+                    f"## {category}",
+                    "",
+                    md_table(
+                        rows,
+                        [
+                            "Chiave",
+                            "Tipo deposito",
+                            "Metodo",
+                            "Root XML",
+                            "Dati richiesti",
+                            "Codici oggetto fissi",
+                            "Flag attivi",
+                        ],
+                    ),
+                ]
+            )
+        outputs.append(write_utf8(outdir / filename, "\n".join(sector_lines)))
+
+    uncatalogued = [item for item in key_to_methods if item["key"] not in catalog_keys]
+    uncatalogued_rows = [
+        (
+            item.get("key", ""),
+            compact_join(item.get("methods", []), limit=4),
+            compact_join([root.get("type", "") for root in item.get("saved_roots", [])], limit=4),
+            compact_join(item.get("required_data", []), limit=8),
+        )
+        for item in uncatalogued
+    ]
+    uncatalogued_path = outdir / "case-non-presenti-nel-catalogo-ui.md"
+    lines.append(f"- `{rel(uncatalogued_path)}` - case dello switch non collegati al catalogo UI estratto.")
+    outputs.append(
+        write_utf8(
+            uncatalogued_path,
+            "\n".join(
+                [
+                    "# Case DatiAtto non presenti nel catalogo UI estratto",
+                    "",
+                    f"Generato: {GENERATED_AT}.",
+                    "",
+                    "Queste voci sono presenti nello switch decompilato `AttoDaInviareKey` ma non nel catalogo UI a 270 voci. Non vanno scartate: possono essere alias, varianti legacy o percorsi nascosti da integrare/riconciliare.",
+                    "",
+                    md_table(uncatalogued_rows, ["Chiave", "Metodo", "Root XML", "Dati richiesti"]),
+                ]
+            ),
+        )
+    )
+
+    lines.extend(
+        [
+            "",
+            "## Regola operativa",
+            "",
+            "- Per implementare un deposito in IUSENTRA non basta la root XML: bisogna usare anche dati richiesti, codici oggetto fissi, flag e controlli abilitati.",
+            "- I campi completi e gli assignment C# sono nel JSON `quickorganizer-datiatto-generatori-campo-per-campo.json`.",
+        ]
+    )
+    outputs.insert(0, write_utf8(outdir / "indice.md", "\n".join(lines)))
+    return outputs
+
+
+def write_menu_rules_files(
+    catalog: list[dict[str, Any]],
+    key_to_methods: list[dict[str, Any]],
+) -> list[Path]:
+    outdir = ART / "quickorganizer-regole-menu-deposito"
+    outputs: list[Path] = []
+    key_map = {item["key"]: item for item in key_to_methods}
+    grouped_macro: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in catalog:
+        grouped_macro[item.get("macro", "Da classificare")].append(item)
+
+    index_lines = [
+        "# Regole menu deposito Studio Telematico",
+        "",
+        f"Generato: {GENERATED_AT}.",
+        "",
+        "Questi file descrivono cosa Studio Telematico abilita o imposta quando si sceglie un tipo deposito: campi visibili, campi obbligatori, codici oggetto bloccati, combo istanze e flag operativi.",
+        "",
+    ]
+
+    for macro in sorted(grouped_macro):
+        filename = f"{slug_filename(macro)}.md"
+        path = outdir / filename
+        index_lines.append(f"- `{rel(path)}` - {macro}.")
+        rows = []
+        for item in sorted(grouped_macro[macro], key=lambda row: (row.get("categoria", ""), row.get("key", ""))):
+            mapping = key_map.get(item.get("key", ""), {})
+            controls = [
+                f"{control.get('control')}: "
+                + ", ".join(f"{key}={value}" for key, value in control.items() if key != "control")
+                for control in mapping.get("controls", [])
+            ]
+            fixed_codes = [
+                f"{code.get('code', '')} {code.get('label', '')}".strip()
+                for code in mapping.get("fixed_object_codes", [])
+            ]
+            flags = [f"{key}={value}" for key, value in mapping.get("flags", {}).items()]
+            rows.append(
+                (
+                    item.get("categoria", ""),
+                    item.get("key", ""),
+                    item.get("text", ""),
+                    compact_join(flags, limit=8),
+                    compact_join(fixed_codes, limit=3),
+                    compact_join(mapping.get("combo_sources", []), limit=4),
+                    compact_join(controls, limit=6),
+                )
+            )
+        outputs.append(
+            write_utf8(
+                path,
+                "\n".join(
+                    [
+                        f"# Regole menu deposito - {macro}",
+                        "",
+                        f"Generato: {GENERATED_AT}.",
+                        "",
+                        md_table(
+                            rows,
+                            [
+                                "Categoria",
+                                "Chiave",
+                                "Tipo deposito",
+                                "Flag",
+                                "Codici oggetto fissi",
+                                "Combo/istanze",
+                                "Controlli UI",
+                            ],
+                        ),
+                    ]
+                ),
+            )
+        )
+
+    outputs.insert(0, write_utf8(outdir / "indice.md", "\n".join(index_lines)))
+    return outputs
+
+
+def write_busta_contract_files(
+    catalog: list[dict[str, Any]],
+    create_methods: list[dict[str, Any]],
+    key_to_methods: list[dict[str, Any]],
+    refs: dict[str, Any],
+) -> list[Path]:
+    outdir = ART / "quickorganizer-generatore-busta"
+    outputs: list[Path] = []
+    method_map = {item["method"]: item for item in create_methods}
+    key_map = {item["key"]: item for item in key_to_methods}
+
+    rows = []
+    for item in catalog:
+        mapping = key_map.get(item.get("key", ""), {})
+        contracts: list[str] = []
+        for method_name in mapping.get("methods", []):
+            contracts.extend(method_map.get(method_name, {}).get("busta_contract", []))
+        rows.append(
+            (
+                item.get("macro", ""),
+                item.get("key", ""),
+                item.get("text", ""),
+                compact_join(mapping.get("methods", []), limit=3),
+                compact_join([root.get("type", "") for root in mapping.get("saved_roots", [])], limit=3),
+                compact_join(_compact_strings(contracts, limit=20), limit=8),
+            )
+        )
+
+    transport_hits = refs.get("source_hits", {})
+    transport_rows = []
+    for term in ["Atto.enc", "IndiceBusta", "DatiAtto", "MailBee", "SignLib", "AES256", "CAdES", "PAdES", "getCertificato"]:
+        for hit in transport_hits.get(term, [])[:8]:
+            transport_rows.append((term, hit.get("file", ""), hit.get("line", ""), hit.get("text", "")))
+
+    index_lines = [
+        "# Generatore busta Studio Telematico",
+        "",
+        f"Generato: {GENERATED_AT}.",
+        "",
+        "Questo file raccoglie i dati necessari a trasformare la scelta deposito in busta tecnica: `DatiAtto.xml`, `IndiceBusta`, riferimenti agli allegati, firma, `Atto.msg`, `Atto.enc`, PEC e ricevute.",
+        "",
+        "## Contratto operativo da portare in IUSENTRA",
+        "",
+        "- Ogni `DatiAtto.xml` generato deve contenere `IndiceBusta.AttoPrincipale.id` coerente con il documento principale.",
+        "- Gli allegati fisici devono comparire in `IndiceBusta.Any` con gli stessi ID/nomi poi presenti nel MIME `Atto.msg`.",
+        "- Se Studio Telematico crea buste complementari, il `RefId` collega le buste del medesimo deposito.",
+        "- Prima dell'invio reale `DatiAtto.xml` va firmato CAdES come `DatiAtto.xml.p7m`.",
+        "- `Atto.msg` deve contenere le parti MIME previste: atto principale, allegati, `DatiAtto.xml.p7m`, indice e documenti di accompagnamento.",
+        "- `Atto.enc` è il risultato della cifratura CMS/PKCS#7 con certificato pubblico dell'ufficio destinatario; non è un semplice file zip o base64.",
+        "- L'invio PEC operativo resta dal PC locale dell'avvocato, con presidio ricevute di accettazione, consegna ed esito controlli automatici.",
+        "",
+        "## Matrice deposito -> contratto busta",
+        "",
+        md_table(rows, ["Macroarea", "Chiave", "Tipo deposito", "Metodo", "Root XML", "Contratto busta"]),
+        "",
+        "## Riferimenti sorgente rilevati",
+        "",
+        md_table(transport_rows, ["Tema", "File", "Linea", "Estratto"]),
+    ]
+    outputs.append(write_utf8(outdir / "contratto-generatore-busta.md", "\n".join(index_lines)))
+    return outputs
+
+
 def write_logic_markdown(refs: dict[str, Any], comparison: dict[str, Any]) -> Path:
     lines = [
         "# Logica Studio Legale Telematico",
@@ -2232,27 +2715,26 @@ def write_json_artifacts(
     macro_counts: Counter,
     category_counts: Counter,
 ) -> list[Path]:
+    catalog_payload = {
+        "schema_version": 1,
+        "generated_at": GENERATED_AT,
+        "source": {
+            "application": "QuickOrganizer.exe / Studio Legale Telematico 2026 Rel. 021",
+            "database": str(QUICK_MDB),
+            "catalog_extraction": str(CATALOG_SRC),
+            "decompiled_source": str(DECOMP),
+        },
+        "official_sources": OFFICIAL_SOURCES,
+        "counts": {
+            "total_deposit_types": len(catalog),
+            "macroareas": dict(sorted(macro_counts.items())),
+            "categories": dict(sorted(category_counts.items())),
+        },
+        "entries": catalog,
+    }
     outputs = [
-        write_json(
-            ART / "quickorganizer-deposito-catalogo.json",
-            {
-                "schema_version": 1,
-                "generated_at": GENERATED_AT,
-                "source": {
-                    "application": "QuickOrganizer.exe / Studio Legale Telematico 2026 Rel. 021",
-                    "database": str(QUICK_MDB),
-                    "catalog_extraction": str(CATALOG_SRC),
-                    "decompiled_source": str(DECOMP),
-                },
-                "official_sources": OFFICIAL_SOURCES,
-                "counts": {
-                    "total_deposit_types": len(catalog),
-                    "macroareas": dict(sorted(macro_counts.items())),
-                    "categories": dict(sorted(category_counts.items())),
-                },
-                "entries": catalog,
-            },
-        ),
+        write_json(ART / "quickorganizer-deposito-catalogo.json", catalog_payload),
+        write_json(IUS_DEPOSIT_CATALOG, catalog_payload),
         write_json(
             ART / "quickorganizer-xsd-datiatto-manifest.json",
             {
@@ -2276,6 +2758,24 @@ def write_json_artifacts(
                 "create_datiatto_methods": create_methods,
                 "atto_key_to_datiatto_methods": key_to_methods,
                 **refs,
+            },
+        ),
+        write_json(
+            ART / "quickorganizer-datiatto-generatori-campo-per-campo.json",
+            {
+                "schema_version": 1,
+                "generated_at": GENERATED_AT,
+                "source": {
+                    "application": "QuickOrganizer.exe / Studio Legale Telematico",
+                    "decompiled_source": str(DECOMP),
+                    "form_deposito": str(FORM),
+                },
+                "counts": {
+                    "create_datiatto_methods": len(create_methods),
+                    "atto_key_cases": len(key_to_methods),
+                },
+                "create_datiatto_methods": create_methods,
+                "atto_key_to_datiatto_methods": key_to_methods,
             },
         ),
         write_json(ART / "quickorganizer-confronto-certificati-codici.json", comparison),
@@ -2310,6 +2810,9 @@ def main() -> None:
         mapping = key_method_map.get(item["key"])
         item["datiatto_methods"] = mapping["methods"] if mapping else []
         item["datiatto_roots"] = mapping["saved_roots"] if mapping else []
+        item["datiatto_required_data"] = mapping["required_data"] if mapping else []
+        item["deposit_menu_flags"] = mapping["flags"] if mapping else {}
+        item["deposit_fixed_object_codes"] = mapping["fixed_object_codes"] if mapping else []
 
     macro_counts = Counter(item.get("macro", "") for item in catalog)
     category_counts = Counter(item.get("categoria", "") for item in catalog)
@@ -2352,6 +2855,9 @@ def main() -> None:
             key_to_methods,
         )
     )
+    outputs.extend(write_datiatto_generator_files(catalog, create_methods, key_to_methods))
+    outputs.extend(write_menu_rules_files(catalog, key_to_methods))
+    outputs.extend(write_busta_contract_files(catalog, create_methods, key_to_methods, refs))
     outputs.append(write_logic_markdown(refs, comparison))
     outputs.append(write_firma_pin_markdown(refs))
     outputs.append(write_pec_notifiche_markdown(refs))

@@ -1766,7 +1766,7 @@ export function NotificheLegaliPage() {
     const isPades = isCades ? false : await pdfContainsPadesSignature(file).catch(() => false)
     if (!isCades && !isPades) {
       setNotifica((current) => ({ ...current, relata_firmata: false }))
-      setSignatureMessage(`Relata non marcata come firmata: ${file.name} non contiene una busta CAdES/PKCS#7 riconoscibile né marcatori PAdES verificabili.`)
+      setSignatureMessage(`Relata non marcata come firmata: ${file.name} non contiene una firma digitale riconoscibile.`)
       return
     }
     setNotifica((current) => ({ ...current, relata_firmata: true }))
@@ -1776,8 +1776,8 @@ export function NotificheLegaliPage() {
       relata_sha256: sha256,
     }))
     setSignatureMessage(sha256
-      ? `Relata firmata acquisita: ${file.name}. ${isCades ? 'Contenitore CAdES' : 'Firma PAdES interna'} rilevata e SHA-256 calcolata.`
-      : `Relata firmata acquisita: ${file.name}. ${isCades ? 'Contenitore CAdES' : 'Firma PAdES interna'} rilevata; inserisci l'impronta se richiesta dal controllo.`
+      ? `Relata firmata acquisita: ${file.name}. Firma digitale rilevata e impronta calcolata.`
+      : `Relata firmata acquisita: ${file.name}. Firma digitale rilevata; inserisci l'impronta se richiesta dal controllo.`
     )
   }
   const verifyRelataSigner = async () => {
@@ -1787,7 +1787,7 @@ export function NotificheLegaliPage() {
     const status = await fetchRelataLocalSignerStatus(3500)
     setSignatureChecking(false)
     if (status && status.ok !== false) {
-      setSignatureMessage('Local Signer rilevato: firma la relata sul PC, poi carica qui il .p7m CAdES o il PDF PAdES firmato. Lo stato non viene aggiornato senza quel file.')
+      setSignatureMessage('Local Signer rilevato: firma la relata sul PC, poi carica qui il file firmato. Lo stato non viene aggiornato senza quel file.')
     } else {
       setSignatureMessage('Local Signer non ha risposto: avvialo sul PC, firma la relata e carica qui il file firmato. La guida non viene aperta da questo pulsante.')
     }
@@ -1847,7 +1847,7 @@ export function NotificheLegaliPage() {
     !notifica.relata_firmata ? 'relata firmata non acquisita' : '',
     !notifica.ricevuta_completa ? 'ricevuta completa non richiesta' : '',
     !notifica.approvazione_avvocato ? 'approvazione finale avvocato mancante' : '',
-    !currentNotificationDocumentsReady ? 'allegati non PDF/PDF-A/CAdES/EML/MSG' : '',
+    !currentNotificationDocumentsReady ? 'allegati non nel formato richiesto' : '',
   ].filter(Boolean)
   const canPrepareNotificationSend = !working && sendDisabledReasons.length === 0
   const sendNotificationTitle = canPrepareNotificationSend
@@ -2363,7 +2363,7 @@ export function NotificheLegaliPage() {
                   <div className="iu-legal-action-panel__head">
                     <div>
                       <strong>Relata firmata digitalmente</strong>
-                      <span>Verifica Local Signer sul PC, firma la relata e carica qui il file firmato: lo stato si aggiorna solo con una prova CAdES o PAdES.</span>
+                      <span>Verifica Local Signer sul PC, firma la relata e carica qui il file firmato: lo stato si aggiorna solo con una prova di firma digitale.</span>
                     </div>
                     <div className="iu-legal-signature-actions">
                       <button type="button" className="iu-legal-signature-button" onClick={verifyRelataSigner} disabled={signatureChecking}>
@@ -2378,7 +2378,7 @@ export function NotificheLegaliPage() {
                   {signatureMessage ? <small>{signatureMessage}</small> : null}
                   <label className="iu-legal-check">
                     <input type="checkbox" checked={notifica.relata_firmata} readOnly disabled />
-                    <span>{notifica.relata_firmata ? 'Relata firmata acquisita con prova tecnica' : 'Relata non firmata: carica .p7m o PDF PAdES verificabile'}</span>
+                    <span>{notifica.relata_firmata ? 'Relata firmata acquisita con prova tecnica' : 'Relata non firmata: carica un file firmato verificabile'}</span>
                   </label>
                 </div>
                 <label className="iu-legal-check"><input type="checkbox" checked={notifica.relata_documento_separato} onChange={(event) => changeNotifica('relata_documento_separato', event.currentTarget.checked)} /><span>Relata come documento separato</span></label>
@@ -2506,7 +2506,7 @@ export function NotificheLegaliPage() {
                   <input value={deposito.destinatario_nome} onChange={(event) => changeDeposito('destinatario_nome', event.currentTarget.value)} />
                 </Field>
                 <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>Confermo che la RdAC selezionata è completa</span></label>
-                <Field label="Riferimenti ricevute in DatiAtto.xml" wide hint="I riferimenti vengono preparati dai file scelti; puoi integrarli prima del controllo.">
+                <Field label="Riferimenti ricevute nel pacchetto deposito" wide hint="I riferimenti vengono preparati dai file scelti; puoi integrarli prima del controllo.">
                   <textarea value={deposito.dati_atto_ricevute} rows={3} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} placeholder="RAC e RdAC associate al destinatario..." />
                 </Field>
               </div>

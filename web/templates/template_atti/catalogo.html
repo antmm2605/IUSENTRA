@@ -157,7 +157,7 @@
         </select>
       </label>
       <label class="cat-filter-field">
-        <span>DatiAtto.xml</span>
+        <span>Dati deposito</span>
         <select class="form-select form-select-sm" data-catalog-filter="richiede_dati_atto_xml">
           <option value="">Tutti</option>
           <option value="true">Richiesto</option>
@@ -286,7 +286,7 @@
         <div class="cat-card-badges cat-requirement-row">
           {% if t.richiede_pdfa %}<span class="cat-requirement-badge">PDF/A</span>{% endif %}
           {% if t.richiede_firma_digitale %}<span class="cat-requirement-badge">Firma digitale</span>{% endif %}
-          {% if t.richiede_dati_atto_xml %}<span class="cat-requirement-badge">DatiAtto.xml</span>{% endif %}
+          {% if t.richiede_dati_atto_xml %}<span class="cat-requirement-badge">Dati deposito</span>{% endif %}
           {% if t.richiede_contributo_unificato %}<span class="cat-requirement-badge">Contributo</span>{% endif %}
           {% if not t.depositabile %}<span class="cat-requirement-badge cat-requirement-neutral">Nessun deposito</span>{% endif %}
         </div>

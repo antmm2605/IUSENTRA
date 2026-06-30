@@ -636,7 +636,7 @@
       {% set dep_portale_label = 'Workflow PDP' %}
       {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale con firma digitale, oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% elif ftipo == 'AMMINISTRATIVO' %}
       {% set dep_icon      = 'bi-building' %}
       {% set dep_col       = 'info' %}
@@ -1519,7 +1519,7 @@
       {% set dep_portale_label = 'Workflow PDP' %}
       {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale con firma digitale, oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
       {% elif ftipo == 'AMMINISTRATIVO' %}
         {% set dep_icon      = 'bi-building' %}
         {% set dep_col       = 'info' %}
@@ -3803,7 +3803,7 @@
           <div class="mb-3">
             <p class="small fw-semibold mb-1"><span class="badge bg-primary rounded-pill me-1">2</span>Firma con ArubaSign / Dike / altro</p>
             <div class="small text-muted ps-3">
-              Apri il software → seleziona il file → firma CAdES (.p7m) → salva il risultato (es. <code>nomefile.pdf.p7m</code>).
+              Apri il software → seleziona il file → firma digitalmente → salva il risultato firmato.
             </div>
           </div>
           <div class="mb-2">

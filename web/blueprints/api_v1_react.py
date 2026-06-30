@@ -38,6 +38,7 @@ from pct.clienti import TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.fascicolo_document_catalog import classify_fascicolo_document
+from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, resolve_deposit_type_payload
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
@@ -5614,6 +5615,22 @@ def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
         id_fasc=id_fasc,
         id_doc=id_doc,
     ))
+
+
+@api_v1_react.get("/telematico/depositi/catalogo")
+@_richiedi_auth
+def telematico_depositi_catalogo():
+    try:
+        key = str(request.args.get("key") or "").strip()
+        if key:
+            entry = resolve_deposit_type_payload(key)
+            if not entry:
+                return jsonify({"ok": False, "mock_fallback": False, "errore": "Tipo deposito non trovato."}), 404
+            return jsonify({"ok": True, "mock_fallback": False, "entry": entry})
+        return jsonify({"ok": True, "mock_fallback": False, "catalog": build_deposit_catalog_payload(include_entries=True)})
+    except Exception as exc:
+        current_app.logger.exception("Catalogo depositi telematici non disponibile: %s", exc)
+        return jsonify({"ok": False, "mock_fallback": False, "errore": "Catalogo depositi telematici non disponibile."}), 500
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>")

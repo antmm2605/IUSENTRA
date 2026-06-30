@@ -23,6 +23,7 @@ from flask import current_app, has_app_context
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from pct.deposito_telematico_catalogo import build_deposit_catalog_payload
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.fascicolo_document_catalog import classify_fascicolo_document, document_ai_texts_for_catalog
 from pct.notifiche_legali import office_notification_evidence_from_pec
@@ -3804,6 +3805,11 @@ def build_react_fascicolo_detail_payload(
             "actions": {},
         }
     )
+    deposit_catalog = (
+        _safe("deposit_catalog", lambda: build_deposit_catalog_payload(include_entries=True), {})
+        if load_deposits or load_regia
+        else {}
+    )
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -3828,6 +3834,7 @@ def build_react_fascicolo_detail_payload(
         "notificationRelata": notification_relata,
         "quality": _quality(fascicolo, cliente, scadenze, parties),
         "depositOffice": _deposit_office_payload(fascicolo),
+        "depositCatalog": deposit_catalog,
         "signature": _signature_settings(get_config_studio),
         "auditTrail": audit_trail,
         "actions": {

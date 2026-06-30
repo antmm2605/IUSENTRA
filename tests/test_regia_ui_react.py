@@ -33,6 +33,7 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
 
 def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
     assert "include: 'all'" in source
@@ -47,6 +48,18 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Busta ministeriale Atto.enc" in source
     assert "Documenti da inviare" in source
     assert "Documenti da inviare" in source
+    assert "quickorganizer_deposito_catalogo_ui.json" not in source
+    assert "depositCatalog: normalizeDepositCatalog" in data
+    assert "catalog={data.depositCatalog}" in source
+    assert "selectedDepositTypeKey" in source
+    assert "tipo_deposito_telematico_key" in source
+    assert "tipo_deposito_telematico_real_send_allowed" in source
+    assert "buildDepositCatalogPreviewState" in source
+    assert "buildDepositCatalogPreviewMacroareasFromEntries" in source
+    assert "Catalogo Studio Telematico non disponibile dall'API." in source
+    assert "Logica Studio Telematico" in source
+    assert "Esplodi tutto" in source
+    assert ".iu-fas-deposit-type-panel" in css
     assert "DatiAtto.xml" in source
     assert "IndiceDocumentiDepositati.PDF" in source
     assert "Indice generato dal software" in source

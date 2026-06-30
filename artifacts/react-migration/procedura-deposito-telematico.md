@@ -1756,7 +1756,7 @@ Intervento richiesto dopo il dubbio dell'utente su certificato avvocato e catalo
 - `/ping` rilevava correttamente il certificato Windows selezionato dell'avvocato, ma `/diagnosi` mostrava solo i primi certificati dello store e poteva non visualizzare quello operativo;
 - `/diagnosi` ora espone anche `certificato_windows_selezionato` e una riga leggibile `Certificato avvocato selezionato` con codice fiscale e scadenza;
 - il processo Local Signer ora acquisisce una guardia di istanza unica per porta prima di aprire il server, cosi' una seconda istanza richiamata da avvio automatico o protocollo locale si chiude invece di restare viva in parallelo;
-- il catalogo copiato dal pacchetto Local Signer e' stato ricontrollato: `uffici_ministero.json` contiene 534 uffici mappati e 13 non mappati; `uffici_pst_pubblici.json` contiene 1.781 uffici civili e 1.416 penali, totale 3.197 voci PST pubbliche;
+- il catalogo copiato dal pacchetto Local Signer è stato ricontrollato: `uffici_ministero.json` contiene 534 uffici mappati e 13 non mappati; `uffici_pst_pubblici.json` contiene 1.781 uffici civili e 1.416 penali, totale 3.197 voci PST pubbliche;
 - il messaggio `Catalogo pubblico uffici PST civile/penale copiato` riguarda il catalogo PST pubblico civile/penale usato dal Local Signer e non esaurisce l'intero perimetro dei servizi telematici, dove PAT, PTT, PDP e altri flussi restano registri o adapter separati.
 
 ## Aggiornamento 2.253.30 - menu ruolo, Editor professionale e lettore globale
@@ -2849,7 +2849,7 @@ Prova reale locale eseguita:
 - servizio avviato su `127.0.0.1:27272`;
 - `GET /ping` restituisce `ok=true`, `versione=1.6.82`, libreria PKCS#11 Windows presente e certificati Windows leggibili;
 - Docker locale reale ricostruito su `2.253.125`, `/api/pronto` `ok=true`, e browser integrato su `http://127.0.0.1:8080/portali/pst/acquisizione?ufficio=Tribunale+di+Palmi&numero=3441&anno=2025&schema=esecuzioni#step-search` mostra `Local Signer pronto` e `rilevata 1.6.82`;
-- la firma con token fisico/PIN resta da verificare solo quando il token dell'avvocato e' collegato, ma il requisito di prima installazione, servizio locale e canale PST/Local Signer e' stato verificato sulla macchina reale.
+- la firma con token fisico/PIN resta da verificare solo quando il token dell'avvocato è collegato, ma il requisito di prima installazione, servizio locale e canale PST/Local Signer è stato verificato sulla macchina reale.
 
 Limite residuo operativo: quando l'URL non contiene `schema`, non esiste profilo in cache e non c'è un fascicolo locale corrispondente da cui dedurre il registro, IUSENTRA non inventa la tabella ministeriale. In quel caso la UI deve chiedere un segnale reale o fermarsi se manca il certificato, evitando la ricerca lunga e non governata.
 
@@ -3681,3 +3681,124 @@ Verifiche tecniche eseguite:
 - controllo JSON dei nuovi file `quickorganizer-registri-consultazione-fascicoli.json` e `quickorganizer-portale-lettura-download-fascicolo.json`.
 
 Stato verifica reale: non verificato su macchina reale. In questa tranche non è stato aperto il portale PST con certificato dell'utente e non è stata modificata/provata la UI IUSENTRA su `127.0.0.1:8080`; prima di trasformare queste mappe in funzione utente serviranno browser reale, sessione portale/certificato, salvataggio su fascicolo e prova visiva React.
+
+## Anteprima pannello tipi deposito da Studio Telematico - 2026-06-30
+
+Richiesta utente: iniziare l'integrazione del deposito con un pannello visibile prima della conferma definitiva, usando tutta la logica e tutta la struttura letta da Studio Telematico/QuickOrganizer. Il deposito reale già provato con accettazione cancelleria resta blindato e copre un solo caso: gli altri casi devono derivare dal catalogo completo Studio Telematico, non da scelte manuali o memoria.
+
+File applicativi toccati in anteprima:
+
+- `frontend/src/components/FascicoliPage.tsx`;
+- `frontend/src/components/FascicoliPage.css`;
+- `frontend/src/data/quickorganizer_deposito_catalogo_ui.json`;
+- `tests/test_regia_ui_react.py`.
+
+Scelta tecnica:
+
+- il catalogo UI è generato dal file di analisi `artifacts/react-migration/quickorganizer-deposito-catalogo.json`;
+- il file deployabile vive in `frontend/src/data/quickorganizer_deposito_catalogo_ui.json`, così il frontend builder Docker lo include senza dipendere da `artifacts/`;
+- il catalogo viene caricato con import dinamico, quindi il chunk `quickorganizer_deposito_catalogo_ui` resta separato dal bundle principale `FascicoliPage`;
+- il pannello è inserito nella sezione React `2. Documenti da inviare` del flusso `Prepara deposito`;
+- i tre campi compatti sono `Macroarea`, `Categoria` e `Deposito`;
+- i pulsanti `Schema` ed `Esplodi tutto` mostrano logica Studio Telematico, controlli automatici, documenti attesi e albero completo;
+- una voce reale di QuickOrganizer, `Procedimenti concorsuali > Atti del Curatore`, era priva di chiave tecnica; non viene scartata, ma normalizzata con chiave stabile generata `studio-telematico::procedimenti-concorsuali-atti-del-curatore::186`, per non perdere nessuno dei 270 tipi.
+
+Copertura catalogo verificata:
+
+- totale mostrato in UI: `270` tipi;
+- macroaree mostrate: `6`;
+- albero espanso: `270` pulsanti deposito;
+- macroaree viste nell'albero: `Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione`, `Corte di Cassazione (civile)`, `Giudice di Pace`, `Procedimenti concorsuali`, `Processo esecutivo`, `UNEP - Ufficio Notificazioni, Esecuzioni e Protesti`;
+- caso anomalo verificato: `Procedimenti concorsuali > Atti del Curatore > Atti del Curatore`;
+- per il caso anomalo la UI mostra registro `SIECIC / FALL`, canale `SIECIC concorsuali`, trasporto `Atto.msg, IndiceBusta.xml, DatiAtto.xml.p7m, Atto.enc e PEC cancelleria`, controlli su ufficio, registro, codice deposito/oggetto, atto principale, firma digitale, DatiAtto, IndiceBusta, Atto.enc, PEC cancelleria e dati procedura quando richiesti.
+
+Verifiche automatiche e build eseguite:
+
+- `npm --prefix frontend run typecheck`;
+- `python -m pytest tests\test_regia_ui_react.py -q`;
+- `git diff --check`;
+- `npm --prefix frontend run build`;
+- `docker compose build app`;
+- `docker compose up -d app`;
+- `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`, esito `ok=true`, versione `2.253.144`, timestamp `2026-06-30T18:53:36+02:00`;
+- controllo asset catalogo su `http://127.0.0.1:8080/static/react/assets/quickorganizer_deposito_catalogo_ui-BLmCqhBA.js`, HTTP `200`.
+
+Prova reale locale eseguita su browser integrato visibile:
+
+- URL: `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara?preview_catalogo=270_20260630#proposta-busta`;
+- browser aggiornato al bundle `index-Ce7NEOVq.js`, dopo refresh forzato per eliminare il bundle precedente dalla memoria;
+- cliccati i campi `Macroarea`, `Categoria` e `Deposito`;
+- selezionato `Procedimenti concorsuali (18)`, `Atti del Curatore (1)`, `Atti del Curatore`;
+- cliccati `Schema` e `Esplodi tutto`;
+- verificato `treeButtonCount=270`;
+- verificati hover/focus/scroll: il pulsante `Compatta` mantiene contrasto leggibile, focus su `BUTTON`, scroll interno albero `treeScrollTop=980`, nessun salto di layout rilevato nel controllo;
+- controllo responsive con viewport temporanee `768x900` e `390x844`: nessun overflow orizzontale su pannello, controlli o albero; conteggio albero sempre `270`; viewport ripristinata dopo il test.
+
+Stato operativo:
+
+- anteprima visibile e provata su macchina reale locale;
+- non ancora committata, pushata o distribuita su Hetzner perché l'utente ha chiesto di vederla prima e dare conferma dopo;
+- la selezione del tipo deposito, in questa tranche, è pannello di anteprima e lettura logica: il collegamento definitivo a comportamento backend, codice oggetto, schema DatiAtto ministeriale, regole documentali bloccanti, Local Signer, invio PEC locale e presidio ricevute va eseguito solo dopo conferma utente;
+- la prova reale già accettata dalla cancelleria non è stata modificata né indebolita.
+
+## Integrazione catalogo Studio Telematico nel deposito IUSENTRA - 2026-06-30
+
+Richiesta utente: integrare tutto prendendo le informazioni da Studio Telematico/QuickOrganizer e dalle fonti ministeriali, senza indebolire il caso reale già provato con accettazione dalla cancelleria.
+
+File applicativi aggiornati in questa tranche:
+
+- `pct/data/cataloghi/quickorganizer_depositi_studio_telematico.json`: copia tecnica condivisa del catalogo estratto, 270 tipi in 6 macroaree;
+- `pct/deposito_telematico_catalogo.py`: normalizzazione backend del catalogo, regole canale, fonti ufficiali, payload operativo e guardrail invio;
+- `web/services/react_fascicoli_bridge.py`: il dettaglio React del fascicolo espone `depositCatalog` quando si caricano deposito/regia;
+- `web/blueprints/api_v1_react.py`: nuova route autenticata `/api/v1/ui/telematico/depositi/catalogo`, con risoluzione facoltativa della singola chiave;
+- `web/bootstrap/deposito_routes.py`: download busta, indice e invio PEC risolvono la chiave catalogo lato backend e non si fidano solo dei campi inviati dal browser;
+- `frontend/src/fascicoliData.ts`: contratto TypeScript `FascicoloDepositCatalog`;
+- `frontend/src/components/FascicoliPage.tsx` e `.css`: il pannello nella sezione `2. Documenti da inviare` usa il catalogo API/backend, conserva la scelta in `selectedDepositTypeKey` e la invia nei payload di classificazione, indice, prova e invio;
+- `tests/test_deposito_telematico_catalogo.py` e `tests/test_regia_ui_react.py`: guardrail su catalogo, route, regole canale e UI React.
+
+Fonti ministeriali collegate nel catalogo backend:
+
+- PST - Specifiche Tecniche ex art. 34 DM 44/2011, provvedimento DGSIA 7 agosto 2024: `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429`;
+- Normattiva - Decreto Ministero Giustizia 21 febbraio 2011, n. 44: `https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=011G0087`;
+- PST - XSD ufficiali Processo Civile Telematico: `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC1579`;
+- PST - Portale Deposito atti Penali, specifiche tecniche PPT/PDP: `https://pst.giustizia.it/PST/resources/cms/documents/Specifiche_Tecniche_PPT_11.07.2023_post_DM_2023_signed.pdf`;
+- Giustizia Amministrativa - PAT/Formweb: `https://www.giustizia-amministrativa.it/-/152174-737`;
+- Gazzetta Ufficiale - PTT/SIGIT: `https://www.gazzettaufficiale.it/eli/id/2023/05/03/23A02531/SG`.
+
+Regole operative introdotte:
+
+- i tipi `SICID`, `SIECIC`, `SIGP/Giudice di Pace` e `Cassazione civile` usano policy `pct_civile_dm44`: `DatiAtto.xml`, `DatiAtto.xml.p7m`, `IndiceBusta.xml`, `Atto.msg`, `Atto.enc`, certificato PST `.cer`, Local Signer e PEC locale dal PC dell'avvocato;
+- i tipi `UNEP` non possono essere preparati come deposito PCT civile: non attivano `Atto.enc` e vengono bloccati dal pannello PCT con messaggio che rinvia al flusso notifiche/UNEP;
+- la scelta selezionata nel menu compatto viene rimandata al backend come `tipo_deposito_telematico_key`, `label`, `channel`, `registry`, `policy` e `schema_status`;
+- il backend risolve di nuovo la chiave con `resolve_deposit_type_payload()` e sovrascrive `tipo_atto`/`codice_registro` con i valori del catalogo normalizzato;
+- se la chiave non esiste nel catalogo backend, la rotta risponde con blocco esplicito;
+- se la policy catalogo indica che il tipo non può produrre una busta PCT conforme, `genera-busta` e `invia-pec` rispondono con `package_ready=false` e motivo puntuale;
+- l'invio PEC resta locale: nessuna modifica abilita invio SMTP server-side per depositi o notifiche legali.
+
+Limite tecnico dichiarato e presidiato:
+
+- IUSENTRA ha già il trasporto forte `Atto.msg`/`DatiAtto.xml.p7m`/`IndiceBusta.xml`/`Atto.enc`, ma il generatore ministeriale schema-specifico non copre ancora tutti i 270 tipi;
+- il catalogo distingue i tipi selezionabili dai tipi realmente inviabili: per ora il generatore ministeriale governato è marcato come supportato solo dove la radice attuale è compatibile;
+- i tipi PCT non ancora coperti da generatore `DatiAtto` specifico restano visibili e selezionabili, ma l'invio reale viene bloccato con messaggio esplicito;
+- il caso reale già accettato dalla cancelleria non viene generalizzato artificialmente agli altri 269 casi e non viene indebolito.
+
+Stato verifica:
+
+- test automatici eseguiti: `python -m pytest tests/test_deposito_telematico_catalogo.py tests/test_regia_ui_react.py tests/test_deposito_guidato.py -k "pst_xsd_sici_20260611_tracciato_come_anticipazione_non_in_esercizio or catalogo_studio_telematico or catalogo_normalizza or catalogo_unep or api_e_rotte_busta or fascicoli_deposito" -q` con `5 passed`, `npm --prefix frontend run typecheck`, `npm --prefix frontend run build`;
+- copia reale locale ricostruita con `docker compose build app` e `docker compose up -d app`; `/api/pronto` su `http://127.0.0.1:8080` ha risposto `ok=true`, versione `2.253.144`, timestamp finale `2026-06-30T20:38:30+02:00`, fuso `Europe/Rome`;
+- prova reale su browser integrato visibile eseguita il `30/06/2026` su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#proposta-busta`: visto `#root`, sezione `2. Documenti da inviare`, pannello `Catalogo Studio Telematico: 270 tipi in 6 macroaree`, nessuna vecchia anteprima statica;
+- cliccati materialmente i campi `Macroarea`, `Categoria`, `Deposito`, i pulsanti `Schema`, `Esplodi tutto`/`Compatta`; verificati focus/hover leggibili e assenza di overflow orizzontale;
+- caso `Atto di Citazione (in Appello)`: selezionabile ma `Da completare`, blocco esplicito su generatore `DatiAtto` ministeriale specifico prima dell'invio reale;
+- caso `Ricorso (generico)`: `Operativo`, nessun blocker catalogo, trasporto PCT con `DatiAtto.xml.p7m` e `Atto.enc`;
+- caso `UNEP - Richiesta di notifica di atto Civile (a debito)`: `Da completare`, canale notifiche/UNEP separato, `Atto.enc` non richiesto, blocker esplicito per non trattarlo come deposito PCT civile;
+- `Schema` + `Esplodi tutto`: verificata presenza delle macroaree `Corte di Cassazione (civile)`, `Giudice di Pace`, `Procedimenti concorsuali`, `Processo esecutivo`, `UNEP`, voce `Ricorso (generico)` e pagamento UNEP;
+- responsive riprovato con viewport `768x900` e `390x844`: nessun overflow, i tre menu su mobile si impilano a larghezza leggibile (`279px` circa), viewport ripristinata dopo il test.
+- dopo la pulizia UTF-8 di `frontend/src/components/FascicoliPage.tsx`, ripetuti build, Docker locale e campione browser: pannello senza mojibake, `Ricorso (generico)` operativo, `UNEP` separato dal PCT civile, mobile ancora senza overflow.
+
+Aggiornamento fonti ministeriali 2026-06-30:
+
+- scaricati e letti gli XSD SICI preview `XSD_POL27A_11_06_2026.zip` dalla pagina PST `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4933`: `156` XSD estratti e archiviati in `docs/specs/ministero/xsd/2026-06-11-sici-preview/XSD_POL27A_11_06_2026/`;
+- letta la nota ministeriale `modifiche_XSD_SICI_20260611.pdf`: nuovo atto `RichiestaVerbaleSINDACA` e nuovo codice oggetto `110046`; in IUSENTRA restano tracciati come preview/non in esercizio, quindi non abilitano ancora un deposito reale;
+- scaricati e letti gli XSD Cassazione preview `XSD_Cassazione_20260611.zip` dalla pagina PST `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4951`: `116` XSD estratti e archiviati in `docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/`;
+- aggiornato il catalogo PST versionato `pct/pst_catalog.py` e il payload deposito `pct/deposito_telematico_catalogo.py` con `ministerialXsdChannels` e `ministerialSchemaEvidence`, mantenendo il blocco anti falso-verde sulle fonti preview;
+- file settoriale creato: `artifacts/react-migration/fonti-ministeriali-deposito-2026-06-30.md`.

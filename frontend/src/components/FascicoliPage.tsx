@@ -92,6 +92,8 @@ import {
   type FascicoloDeadline,
   type FascicoloDetailData,
   type FascicoloDeposit,
+  type FascicoloDepositCatalog,
+  type FascicoloDepositCatalogEntry,
   type FascicoloDocument,
   type FascicoloDetailSection,
   type FascicoloFull,
@@ -463,6 +465,23 @@ type DepositDocumentClassification = {
   requiresSignature?: boolean
 }
 
+type DepositCatalogPreviewOption = FascicoloDepositCatalogEntry
+
+type DepositCatalogPreviewCategory = {
+  id: string
+  label: string
+  total: number
+  options: DepositCatalogPreviewOption[]
+}
+
+type DepositCatalogPreviewMacro = {
+  id: string
+  label: string
+  total: number
+  service: string
+  categories: DepositCatalogPreviewCategory[]
+}
+
 const DEPOSIT_DOCUMENT_ROLE_OPTIONS: Array<{ value: DepositDocumentRole; label: string }> = [
   { value: 'atto_principale', label: 'Atto principale' },
   { value: 'procura', label: 'Procura alle liti' },
@@ -470,6 +489,64 @@ const DEPOSIT_DOCUMENT_ROLE_OPTIONS: Array<{ value: DepositDocumentRole; label: 
   { value: 'prova_notifica', label: 'Prova notifica' },
   { value: 'fuori_busta', label: 'Fuori busta' },
 ]
+
+type DepositCatalogPreviewState = {
+  total: number
+  macroareas: DepositCatalogPreviewMacro[]
+}
+
+const EMPTY_DEPOSIT_CATALOG_PREVIEW: DepositCatalogPreviewState = { total: 0, macroareas: [] }
+
+function buildDepositCatalogPreviewState(catalog: FascicoloDepositCatalog | undefined): DepositCatalogPreviewState {
+  const entries = (catalog?.entries || []).filter((entry) => Boolean(entry.key))
+  const entryByKey = new Map(entries.map((entry) => [entry.key, entry]))
+  const macroareas = (catalog?.macroareas || [])
+    .map((macro) => ({
+      id: macro.id,
+      label: macro.label,
+      total: macro.total,
+      service: macro.service,
+      categories: macro.categories.map((category) => ({
+        id: category.id,
+        label: category.label,
+        total: category.total,
+        options: category.optionKeys.map((key) => entryByKey.get(key)).filter(Boolean) as DepositCatalogPreviewOption[],
+      })).filter((category) => category.options.length > 0),
+    }))
+    .filter((macro) => macro.categories.length > 0)
+  return {
+    total: catalog?.counts.totalDepositTypes || entries.length,
+    macroareas: macroareas.length ? macroareas : buildDepositCatalogPreviewMacroareasFromEntries(entries),
+  }
+}
+
+function buildDepositCatalogPreviewMacroareasFromEntries(entries: FascicoloDepositCatalogEntry[]): DepositCatalogPreviewMacro[] {
+  const orderedMacroNames = entries.map((entry) => entry.macro).filter(Boolean).filter((macro, index, all) => all.indexOf(macro) === index)
+  return orderedMacroNames.map((macroName) => {
+    const macroEntries = entries.filter((entry) => entry.macro === macroName)
+    const categoryNames = macroEntries.map((entry) => entry.category).filter(Boolean).filter((category, index, all) => all.indexOf(category) === index)
+    return {
+      id: depositCatalogSlug(macroName),
+      label: macroName,
+      total: macroEntries.length,
+      service: macroEntries[0]?.ui.service || macroEntries[0]?.registry.label || '',
+      categories: categoryNames.map((categoryName) => {
+        const categoryEntries = macroEntries.filter((entry) => entry.category === categoryName)
+        return {
+          id: `${depositCatalogSlug(macroName)}-${depositCatalogSlug(categoryName)}`,
+          label: categoryName,
+          total: categoryEntries.length,
+          options: categoryEntries,
+        }
+      }).filter((category) => category.options.length > 0),
+    }
+  }).filter((macro) => macro.categories.length > 0)
+}
+
+function depositCatalogSlug(value: string) {
+  const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return normalized.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'catalogo'
+}
 
 function DepositRolePicker({
   documentName,
@@ -541,6 +618,224 @@ function DepositRolePicker({
 function normaliseDepositRoleForUi(role: DepositDocumentRole | undefined): DepositDocumentRole {
   if (role === 'allegato_prova') return 'allegato'
   return role || 'allegato'
+}
+
+function DepositTypePreviewPanel({
+  catalog,
+  selectedKey,
+  onSelect,
+  currentProfile,
+  currentCode,
+  currentChannel,
+}: {
+  catalog: FascicoloDepositCatalog
+  selectedKey: string
+  onSelect: (key: string) => void
+  currentProfile: string
+  currentCode: string
+  currentChannel: string
+}) {
+  const catalogPreview = useMemo(() => buildDepositCatalogPreviewState(catalog), [catalog])
+  const [macroId, setMacroId] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [schemaOpen, setSchemaOpen] = useState(true)
+  const [treeOpen, setTreeOpen] = useState(false)
+  const macroareas = catalogPreview.macroareas
+
+  const selectedByKey = useMemo(() => {
+    for (const macro of macroareas) {
+      for (const category of macro.categories) {
+        const type = category.options.find((option) => option.key === selectedKey)
+        if (type) return { macro, category, type }
+      }
+    }
+    return null
+  }, [macroareas, selectedKey])
+
+  const selectedMacro = selectedByKey?.macro || macroareas.find((macro) => macro.id === macroId) || macroareas[0]
+  const selectedCategory = selectedByKey?.category || selectedMacro?.categories.find((category) => category.id === categoryId) || selectedMacro?.categories[0]
+  const selectedType = selectedByKey?.type || selectedCategory?.options[0]
+
+  useEffect(() => {
+    if (!selectedMacro || !selectedCategory || !selectedType) return
+    if (macroId !== selectedMacro.id) setMacroId(selectedMacro.id)
+    if (categoryId !== selectedCategory.id) setCategoryId(selectedCategory.id)
+    if (selectedKey !== selectedType.key) onSelect(selectedType.key)
+  }, [categoryId, macroId, onSelect, selectedCategory, selectedKey, selectedMacro, selectedType])
+
+  const selectMacro = (nextMacroId: string) => {
+    const nextMacro = macroareas.find((macro) => macro.id === nextMacroId) || macroareas[0]
+    const nextCategory = nextMacro?.categories[0]
+    const nextType = nextCategory?.options[0]
+    if (!nextMacro || !nextCategory || !nextType) return
+    setMacroId(nextMacro.id)
+    setCategoryId(nextCategory.id)
+    onSelect(nextType.key)
+  }
+
+  const selectCategory = (nextCategoryId: string) => {
+    if (!selectedMacro) return
+    const nextCategory = selectedMacro.categories.find((category) => category.id === nextCategoryId) || selectedMacro.categories[0]
+    const nextType = nextCategory?.options[0]
+    if (!nextCategory || !nextType) return
+    setCategoryId(nextCategory.id)
+    onSelect(nextType.key)
+  }
+
+  if (!selectedMacro || !selectedCategory || !selectedType) {
+    return (
+      <section className="iu-fas-deposit-type-panel" aria-label="Tipo deposito telematico">
+        <header>
+          <div>
+            <strong>Tipo deposito</strong>
+            <span>Catalogo Studio Telematico non disponibile dall'API.</span>
+          </div>
+          <Badge tone="warning">Da caricare</Badge>
+        </header>
+      </section>
+    )
+  }
+
+  const sendReady = selectedType.rules.real_send_allowed_from_pct_panel
+  const schemaLabel = selectedType.schema.label || selectedType.schema.status || 'Schema ministeriale da verificare'
+  const evidenceLabel = selectedType.schema.evidenceMethodsCount || selectedType.schema.evidenceRootsCount
+    ? `${selectedType.schema.evidenceMethodsCount} metodi e ${selectedType.schema.evidenceRootsCount} radici Studio Telematico rilevate`
+    : 'evidenza schema non presente nel catalogo estratto'
+
+  return (
+    <section className="iu-fas-deposit-type-panel" aria-label="Tipo deposito telematico">
+      <header>
+        <div>
+          <strong>Tipo deposito</strong>
+          <span>Catalogo Studio Telematico: {catalogPreview.total} tipi in {macroareas.length} macroaree. La scelta governa schema, canale e controlli prima della busta.</span>
+        </div>
+        <Badge tone={sendReady ? 'success' : 'warning'}>{sendReady ? 'Operativo' : 'Da completare'}</Badge>
+      </header>
+      <div className="iu-fas-deposit-type-panel__controls">
+        <label>
+          <span>Macroarea</span>
+          <select value={selectedMacro.id} onChange={(event) => selectMacro(event.currentTarget.value)}>
+            {macroareas.map((macro) => (
+              <option value={macro.id} key={macro.id}>{macro.label} ({macro.total})</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Categoria</span>
+          <select value={selectedCategory.id} onChange={(event) => selectCategory(event.currentTarget.value)}>
+            {selectedMacro.categories.map((category) => (
+              <option value={category.id} key={category.id}>{category.label} ({category.total})</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Deposito</span>
+          <select value={selectedType.key} onChange={(event) => onSelect(event.currentTarget.value)}>
+            {selectedCategory.options.map((option) => (
+              <option value={option.key} key={option.key}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="iu-fas-deposit-type-panel__summary">
+        <article>
+          <span>Registro / servizio</span>
+          <strong>{selectedType.registry.label || selectedType.registry.code}</strong>
+          <small>{selectedMacro.service}</small>
+        </article>
+        <article>
+          <span>Schema DatiAtto</span>
+          <strong>{schemaLabel}</strong>
+          <small>{selectedType.key}</small>
+        </article>
+        <article>
+          <span>Trasporto</span>
+          <strong>{selectedType.ui.transport}</strong>
+          <small>{selectedType.channel}</small>
+        </article>
+      </div>
+      <div className="iu-fas-deposit-type-panel__behavior">
+        <ShieldCheck size={16} aria-hidden="true" />
+        <div>
+          <strong>Comportamento previsto</strong>
+          <span>{selectedType.ui.behavior}</span>
+        </div>
+      </div>
+      {!sendReady && selectedType.rules.real_send_blocker ? (
+        <div className="iu-fas-deposit-type-panel__blocker" role="status">
+          <ShieldAlert size={16} aria-hidden="true" />
+          <span>{selectedType.rules.real_send_blocker}</span>
+        </div>
+      ) : null}
+      <div className="iu-fas-deposit-type-panel__actions">
+        <button type="button" onClick={() => setSchemaOpen((open) => !open)} aria-expanded={schemaOpen}>
+          {schemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Schema
+        </button>
+        <button type="button" onClick={() => setTreeOpen((open) => !open)} aria-expanded={treeOpen}>
+          {treeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {treeOpen ? 'Compatta' : 'Esplodi tutto'}
+        </button>
+      </div>
+      {schemaOpen ? (
+        <div className="iu-fas-deposit-type-panel__schema">
+          <section>
+            <strong>Logica Studio Telematico</strong>
+            <ul>
+              <li>chiave: {selectedType.key}</li>
+              <li>prefisso: {selectedType.prefix || 'non rilevato'}</li>
+              <li>percorso: {selectedType.path || `${selectedMacro.label} > ${selectedCategory.label} > ${selectedType.label}`}</li>
+              <li>{evidenceLabel}</li>
+            </ul>
+          </section>
+          <section>
+            <strong>Controlli automatici</strong>
+            <ul>
+              {selectedType.ui.controls.map((item) => <li key={`${selectedType.key}-control-${item}`}>{item}</li>)}
+            </ul>
+          </section>
+          <section>
+            <strong>Documenti attesi</strong>
+            <ul>
+              {selectedType.ui.documents.map((item) => <li key={`${selectedType.key}-document-${item}`}>{item}</li>)}
+            </ul>
+          </section>
+        </div>
+      ) : null}
+      {treeOpen ? (
+        <div className="iu-fas-deposit-type-panel__tree" aria-label="Albero catalogo deposito">
+          {macroareas.map((macro) => (
+            <section key={`macro-${macro.id}`}>
+              <h4>{macro.label} <span>{macro.total}</span></h4>
+              {macro.categories.map((category) => (
+                <div key={`category-${category.id}`}>
+                  <strong>{category.label} <span>{category.total}</span></strong>
+                  <ul>
+                    {category.options.map((option) => (
+                      <li key={`tree-${option.key}`} className={option.key === selectedType.key ? 'is-selected' : ''}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMacroId(macro.id)
+                            setCategoryId(category.id)
+                            onSelect(option.key)
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      ) : null}
+      <p className="iu-fas-deposit-type-panel__current">
+        <Gavel size={14} aria-hidden="true" />
+        <span>{[currentProfile, currentCode ? `codice ${currentCode}` : '', currentChannel].filter(Boolean).join(' - ') || 'Profilo pratica da confermare'}</span>
+      </p>
+    </section>
+  )
 }
 
 const DEPOSIT_PHASE_IDS = [
@@ -2946,6 +3241,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pecBodyDraft, setPecBodyDraft] = useState('')
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
+  const [selectedDepositTypeKey, setSelectedDepositTypeKey] = useState('')
   const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
   const [localPecPassword, setLocalPecPassword] = useState('')
   const [localPecPasswordError, setLocalPecPasswordError] = useState('')
@@ -3060,6 +3356,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const practiceProfileReason = recordText(regia.profile, 'reason')
   const practiceProfileCode = recordText(regia.profile, 'code')
   const deliveryNote = depositDeliveryNote(recordText(deliveryPolicy, 'note'), deliveryOfficialChannel, practiceProfileName, regia.header.channel)
+  const selectedDepositType = data.depositCatalog.entries.find((entry) => entry.key === selectedDepositTypeKey)
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
   const validationRows = [
     ...regia.validation.blockers.map((row) => ({ tone: 'danger' as const, label: recordText(row, 'title', recordText(row, 'code', 'Blocco')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
@@ -3401,6 +3698,9 @@ function DepositPreparePage({ id }:{id:string}) {
     })
   }
   const depositClassificationPayload = () => ({
+    tipo_deposito_telematico_key: selectedDepositType?.key || '',
+    tipo_deposito_telematico_label: selectedDepositType?.label || '',
+    tipo_deposito_telematico_policy: selectedDepositType?.rules.policy_code || '',
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
       const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
@@ -3509,11 +3809,20 @@ function DepositPreparePage({ id }:{id:string}) {
     await recoverPstOfficeCertificateBeforePackage()
     await runBatchSignatureBeforeDeposit()
   }
+  const selectedDepositPayload = selectedDepositType?.payload
   const depositActionPayload: DepositActionPayload = {
-    tipo_atto: depositActCodeFromDocument(mainActDocument, regia.profile),
-    codice_registro: depositRegistryCode(f),
+    tipo_atto: selectedDepositPayload?.tipo_atto || depositActCodeFromDocument(mainActDocument, regia.profile),
+    codice_registro: selectedDepositPayload?.codice_registro || depositRegistryCode(f),
     oggetto: f.codiceOggettoPst || f.object || f.title,
     codice_oggetto_pst: f.codiceOggettoPst,
+    tipo_deposito_telematico_key: selectedDepositPayload?.tipo_deposito_telematico_key || '',
+    tipo_deposito_telematico_label: selectedDepositPayload?.tipo_deposito_telematico_label || '',
+    tipo_deposito_telematico_channel: selectedDepositPayload?.tipo_deposito_telematico_channel || '',
+    tipo_deposito_telematico_registry: selectedDepositPayload?.tipo_deposito_telematico_registry || '',
+    tipo_deposito_telematico_policy: selectedDepositPayload?.tipo_deposito_telematico_policy || '',
+    tipo_deposito_telematico_schema_status: selectedDepositPayload?.tipo_deposito_telematico_schema_status || '',
+    tipo_deposito_telematico_real_send_allowed: selectedDepositType?.rules.real_send_allowed_from_pct_panel ? '1' : selectedDepositType ? '0' : '',
+    tipo_deposito_telematico_blocker: selectedDepositType?.rules.real_send_blocker || '',
     numero_rg: f.rgNumber ? String(f.rgNumber) : '',
     anno_rg: f.rgYear ? String(f.rgYear) : '',
     tribunale_nome: data.depositOffice.name || f.court || '',
@@ -3554,14 +3863,17 @@ function DepositPreparePage({ id }:{id:string}) {
     : []
   const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)
   const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)
-  const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend
+  const selectedDepositTypeBlocksRealSend = Boolean(selectedDepositType && !selectedDepositType.rules.real_send_allowed_from_pct_panel)
+  const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend && !selectedDepositTypeBlocksRealSend
   const realSendDisabledReason = !packageReadyForRealSend
     ? 'Esegui prima la prova senza invio reale.'
     : proofBlocksDirectSend
       ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
-      : !pecWorkflowAvailable
-        ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e catalogo PST prima dell’invio reale.'
-        : actionBlockedReason
+      : selectedDepositTypeBlocksRealSend
+        ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: completa il generatore ministeriale per il tipo selezionato.'
+        : !pecWorkflowAvailable
+          ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e catalogo PST prima dell’invio reale.'
+          : actionBlockedReason
   const signaturesRequiredBeforeAction = false
   const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
   const preparationTone: FascicoloRow['tone'] = decisiveValidationRows.length ? 'warning' : ready ? 'success' : 'primary'
@@ -4007,6 +4319,14 @@ function DepositPreparePage({ id }:{id:string}) {
                   {packageDocuments.length === 1 ? '1 selezionato' : `${packageDocuments.length} selezionati`}
                 </Badge>
               </header>
+              <DepositTypePreviewPanel
+                catalog={data.depositCatalog}
+                selectedKey={selectedDepositTypeKey}
+                onSelect={setSelectedDepositTypeKey}
+                currentProfile={practiceProfileName}
+                currentCode={practiceProfileCode}
+                currentChannel={deliveryOfficialChannel}
+              />
               <div className="iu-fas-deposit-selection__tools">
                 <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina proposta</button>
                 <button type="button" onClick={selectAllDepositDocuments}><ListChecks size={14}/> Invia tutto</button>

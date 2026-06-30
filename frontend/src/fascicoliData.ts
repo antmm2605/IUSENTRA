@@ -535,6 +535,87 @@ export type FascicoloDepositOffice = {
   message: string
 }
 
+export type FascicoloDepositCatalogEntry = {
+  key: string
+  label: string
+  macro: string
+  category: string
+  path: string
+  prefix: string
+  channel: string
+  registry: { code: string; label: string }
+  quickOrganizer: { rawKey: string; prefix: string; datiattoMethodsCount: number; datiattoRootsCount: number }
+  payload: {
+    tipo_atto: string
+    codice_registro: string
+    tipo_deposito_telematico_key: string
+    tipo_deposito_telematico_label: string
+    tipo_deposito_telematico_channel: string
+    tipo_deposito_telematico_registry: string
+    tipo_deposito_telematico_policy: string
+    tipo_deposito_telematico_schema_status: string
+  }
+  rules: {
+    policy_code: string
+    channel_kind: string
+    official_channel: string
+    registry_code: string
+    registry_label: string
+    transport_kind: string
+    requires_datiatto: boolean
+    requires_indice_busta: boolean
+    requires_atto_enc: boolean
+    requires_pst_cer: boolean
+    requires_local_signer: boolean
+    requires_local_pec: boolean
+    requires_relata: boolean
+    requires_receipts: boolean
+    server_smtp_allowed: boolean
+    can_prepare_in_pct_panel: boolean
+    real_send_allowed_from_pct_panel: boolean
+    real_send_blocker: string
+  }
+  schema: {
+    status: string
+    label: string
+    supported: boolean
+    requiresSpecificGenerator: boolean
+    supportedMinisterialRoot: string
+    evidenceMethodsCount: number
+    evidenceRootsCount: number
+    evidenceMethods: string[]
+    evidenceRoots: string[]
+  }
+  ui: {
+    service: string
+    transport: string
+    behavior: string
+    controls: string[]
+    documents: string[]
+  }
+}
+
+export type FascicoloDepositCatalogMacroarea = {
+  id: string
+  label: string
+  total: number
+  service: string
+  categories: Array<{ id: string; label: string; total: number; optionKeys: string[] }>
+}
+
+export type FascicoloDepositCatalog = {
+  schemaVersion: number
+  source: string
+  sourceOfTruth: string
+  jsonAuthoritative: boolean
+  tenantScope: string
+  generatedAt: string
+  counts: { totalDepositTypes: number; macroareas: Record<string, number>; categories: Record<string, number> }
+  officialSources: Array<{ id: string; label: string; url: string; note: string }>
+  macroareas: FascicoloDepositCatalogMacroarea[]
+  entries: FascicoloDepositCatalogEntry[]
+}
+
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
@@ -561,6 +642,7 @@ export type FascicoloDetailData = {
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
   depositOffice: FascicoloDepositOffice
+  depositCatalog: FascicoloDepositCatalog
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
   auditTrail: FascicoloAuditTrail
   actions: {
@@ -852,6 +934,19 @@ export const emptyDepositOffice: FascicoloDepositOffice = {
   message: 'Ufficio destinatario da verificare prima del deposito.',
 }
 
+export const emptyDepositCatalog: FascicoloDepositCatalog = {
+  schemaVersion: 0,
+  source: '',
+  sourceOfTruth: '',
+  jsonAuthoritative: false,
+  tenantScope: '',
+  generatedAt: '',
+  counts: { totalDepositTypes: 0, macroareas: {}, categories: {} },
+  officialSources: [],
+  macroareas: [],
+  entries: [],
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -876,6 +971,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
+  depositCatalog: emptyDepositCatalog,
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
@@ -1579,6 +1675,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
     depositOffice: normalizeDepositOffice(payload.depositOffice ?? payload.deposit_office),
+    depositCatalog: normalizeDepositCatalog(payload.depositCatalog ?? payload.deposit_catalog),
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
@@ -1589,6 +1686,124 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), auditBundle: text(payload.actions.auditBundle), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
     } : emptyFascicoloDetail.actions,
     options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
+  }
+}
+
+function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
+  const row = isRecord(value) ? value : {}
+  const counts = isRecord(row.counts) ? row.counts : {}
+  const entries = asArray(row.entries).map((entry, index): FascicoloDepositCatalogEntry => {
+    const item = isRecord(entry) ? entry : {}
+    const registry = isRecord(item.registry) ? item.registry : {}
+    const quickOrganizer = isRecord(item.quickOrganizer ?? item.quick_organizer) ? (item.quickOrganizer ?? item.quick_organizer) as Record<string, unknown> : {}
+    const payload = isRecord(item.payload) ? item.payload : {}
+    const rules = isRecord(item.rules) ? item.rules : {}
+    const schema = isRecord(item.schema) ? item.schema : {}
+    const ui = isRecord(item.ui) ? item.ui : {}
+    return {
+      key: text(item.key, `deposito-${index}`),
+      label: text(item.label ?? item.text, 'Tipo deposito'),
+      macro: text(item.macro),
+      category: text(item.category ?? item.categoria),
+      path: text(item.path),
+      prefix: text(item.prefix),
+      channel: text(item.channel),
+      registry: {
+        code: text(registry.code ?? registry.codice),
+        label: text(registry.label ?? registry.nome),
+      },
+      quickOrganizer: {
+        rawKey: text(quickOrganizer.rawKey ?? quickOrganizer.raw_key),
+        prefix: text(quickOrganizer.prefix),
+        datiattoMethodsCount: number(quickOrganizer.datiattoMethodsCount ?? quickOrganizer.datiatto_methods_count),
+        datiattoRootsCount: number(quickOrganizer.datiattoRootsCount ?? quickOrganizer.datiatto_roots_count),
+      },
+      payload: {
+        tipo_atto: text(payload.tipo_atto),
+        codice_registro: text(payload.codice_registro),
+        tipo_deposito_telematico_key: text(payload.tipo_deposito_telematico_key),
+        tipo_deposito_telematico_label: text(payload.tipo_deposito_telematico_label),
+        tipo_deposito_telematico_channel: text(payload.tipo_deposito_telematico_channel),
+        tipo_deposito_telematico_registry: text(payload.tipo_deposito_telematico_registry),
+        tipo_deposito_telematico_policy: text(payload.tipo_deposito_telematico_policy),
+        tipo_deposito_telematico_schema_status: text(payload.tipo_deposito_telematico_schema_status),
+      },
+      rules: {
+        policy_code: text(rules.policy_code),
+        channel_kind: text(rules.channel_kind),
+        official_channel: text(rules.official_channel),
+        registry_code: text(rules.registry_code),
+        registry_label: text(rules.registry_label),
+        transport_kind: text(rules.transport_kind),
+        requires_datiatto: bool(rules.requires_datiatto),
+        requires_indice_busta: bool(rules.requires_indice_busta),
+        requires_atto_enc: bool(rules.requires_atto_enc),
+        requires_pst_cer: bool(rules.requires_pst_cer),
+        requires_local_signer: bool(rules.requires_local_signer),
+        requires_local_pec: bool(rules.requires_local_pec),
+        requires_relata: bool(rules.requires_relata),
+        requires_receipts: bool(rules.requires_receipts),
+        server_smtp_allowed: bool(rules.server_smtp_allowed),
+        can_prepare_in_pct_panel: bool(rules.can_prepare_in_pct_panel),
+        real_send_allowed_from_pct_panel: bool(rules.real_send_allowed_from_pct_panel),
+        real_send_blocker: text(rules.real_send_blocker),
+      },
+      schema: {
+        status: text(schema.status),
+        label: text(schema.label),
+        supported: bool(schema.supported),
+        requiresSpecificGenerator: bool(schema.requiresSpecificGenerator ?? schema.requires_specific_generator),
+        supportedMinisterialRoot: text(schema.supportedMinisterialRoot ?? schema.supported_ministerial_root),
+        evidenceMethodsCount: number(schema.evidenceMethodsCount ?? schema.evidence_methods_count),
+        evidenceRootsCount: number(schema.evidenceRootsCount ?? schema.evidence_roots_count),
+        evidenceMethods: asArray(schema.evidenceMethods ?? schema.evidence_methods).map((item) => text(item)).filter(Boolean),
+        evidenceRoots: asArray(schema.evidenceRoots ?? schema.evidence_roots).map((item) => text(item)).filter(Boolean),
+      },
+      ui: {
+        service: text(ui.service),
+        transport: text(ui.transport),
+        behavior: text(ui.behavior),
+        controls: asArray(ui.controls).map((item) => text(item)).filter(Boolean),
+        documents: asArray(ui.documents).map((item) => text(item)).filter(Boolean),
+      },
+    }
+  })
+  const macroareas = asArray(row.macroareas).map((macro, index): FascicoloDepositCatalogMacroarea => {
+    const item = isRecord(macro) ? macro : {}
+    return {
+      id: text(item.id, `macro-${index}`),
+      label: text(item.label, 'Macroarea'),
+      total: number(item.total),
+      service: text(item.service),
+      categories: asArray(item.categories).map((category, catIndex) => {
+        const cat = isRecord(category) ? category : {}
+        return {
+          id: text(cat.id, `categoria-${index}-${catIndex}`),
+          label: text(cat.label, 'Categoria'),
+          total: number(cat.total),
+          optionKeys: asArray(cat.optionKeys ?? cat.option_keys).map((item) => text(item)).filter(Boolean),
+        }
+      }),
+    }
+  })
+  return {
+    schemaVersion: number(row.schemaVersion ?? row.schema_version),
+    source: text(row.source),
+    sourceOfTruth: text(row.sourceOfTruth ?? row.source_of_truth),
+    jsonAuthoritative: bool(row.jsonAuthoritative ?? row.json_authoritative),
+    tenantScope: text(row.tenantScope ?? row.tenant_scope),
+    generatedAt: text(row.generatedAt ?? row.generated_at),
+    counts: {
+      totalDepositTypes: number(counts.totalDepositTypes ?? counts.total_deposit_types),
+      macroareas: isRecord(counts.macroareas) ? counts.macroareas as Record<string, number> : {},
+      categories: isRecord(counts.categories) ? counts.categories as Record<string, number> : {},
+    },
+    officialSources: asArray(row.officialSources ?? row.official_sources).map((source) => {
+      const item = isRecord(source) ? source : {}
+      return { id: text(item.id), label: text(item.label ?? item.name), url: text(item.url), note: text(item.note) }
+    }),
+    macroareas,
+    entries,
   }
 }
 

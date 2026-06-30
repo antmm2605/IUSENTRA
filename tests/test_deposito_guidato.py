@@ -109,6 +109,10 @@ def test_pst_xsd_sici_20260611_tracciato_come_anticipazione_non_in_esercizio():
     assert preview.production_ready is False
     assert preview.status == "preview"
     assert "11/06/2026" in preview.changelog_name
+    cassazione_preview = channels["CASSAZIONE_20260615_PREVIEW"]
+    assert cassazione_preview.production_ready is False
+    assert cassazione_preview.status == "preview"
+    assert cassazione_preview.package_name == "XSD_Cassazione_20260611.zip"
 
 
 def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):

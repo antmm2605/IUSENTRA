@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://schemi.processotelematico.giustizia.it/siecic/portale/atti/v1" xmlns:bt="http://schemi.processotelematico.giustizia.it/tipi" xmlns:pt="http://schemi.processotelematico.giustizia.it/tipi/atti/v1" xmlns:st="http://schemi.processotelematico.giustizia.it/siecic/tipibase/v2" xmlns:at="http://schemi.processotelematico.giustizia.it/tipi/anagrafiche" xmlns:tns="http://schemi.processotelematico.giustizia.it/siecic/portale/atti/v1" targetNamespace="http://schemi.processotelematico.giustizia.it/siecic/portale/atti/v1" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.1">
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/tipi/atti/v1" schemaLocation="../base_v1/tipi-atti.xsd"/>
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/siecic/tipibase/v2" schemaLocation="../base_v2/tipi-base-siecic.xsd"/>
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/tipi/anagrafiche" schemaLocation="../tipi-anagrafiche.xsd"/>
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/tipi" schemaLocation="../tipi-base.xsd"/>
+	<xs:annotation>
+		<xs:documentation>ATTI  DEL PORTALE SIECIC</xs:documentation>
+	</xs:annotation>
+	<xs:element name="DepositoCertificazione">
+		<xs:annotation>
+			<xs:documentation>Comunicazione delle eventuali domande verificate in udienza ed eventuali rinvii di domande ad altra udienza</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoProcedimento">
+					<xs:sequence>
+						<xs:element name="Lotto" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>Identificativo del lotto (identificativo univoco del portale delle vendite pubbliche)</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="DataOraCertificazione" type="xs:dateTime"/>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="AvvisoVendita">
+		<xs:annotation>
+			<xs:documentation> Ricezione avviso di vendita dal portale PVP</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoProcedimento">
+					<xs:sequence>
+						<xs:element name="Immobile" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="DatiCatastali" type="st:BeneImmobile">
+										<xs:annotation>
+											<xs:appinfo source="http://www.giustizia.it/gl/sgr"/>
+										</xs:annotation>
+									</xs:element>
+									<xs:element name="Descrizione" minOccurs="0">
+										<xs:complexType>
+											<xs:sequence>
+												<xs:element name="Caratteristiche" type="xs:string">
+													<xs:annotation>
+														<xs:documentation>Caratteristiche ritenute utili nella stima in forma libera</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="EpocaCostruzione">
+													<xs:annotation>
+														<xs:documentation>Epoca di costruzione dell'immobile (decennio)</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="Destinazione" type="xs:string">
+													<xs:annotation>
+														<xs:documentation>Destinazione (esempio: abitazione singola o inserita in condominio, porzione di fabbricato etc., ufficio, capannone, etc.)</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="nonCorrispondenza" minOccurs="0">
+													<xs:annotation>
+														<xs:documentation>Difformita' rispetto alla situazione catastale; in caso di difformita' indicarle sinteticamente.
+							    (Se non presente l'elemento il sistema considerera' la corrispondenza tra i dati del pignoramento ed i dati catastali
+							</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="PartiComuni" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+													<xs:annotation>
+														<xs:documentation>Elencazioni Parti comuni e servitù</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="Oneri" minOccurs="0" maxOccurs="unbounded">
+													<xs:annotation>
+														<xs:documentation>Vincoli ed oneri (esempio spese condominali)</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+											</xs:sequence>
+										</xs:complexType>
+									</xs:element>
+									<xs:element name="PassaggiVentennio" minOccurs="0">
+										<xs:complexType>
+											<xs:sequence>
+												<xs:element name="Provenienza" maxOccurs="unbounded">
+													<xs:complexType>
+														<xs:sequence>
+															<xs:element name="Atto" type="xs:string">
+																<xs:annotation>
+																	<xs:documentation>Descrizione libera atto e tipologia di passaggio</xs:documentation>
+																</xs:annotation>
+															</xs:element>
+															<xs:element name="Data" type="xs:date"/>
+															<xs:element name="Anagrafica" type="at:Parte"/>
+														</xs:sequence>
+													</xs:complexType>
+												</xs:element>
+												<xs:element name="StatoCivileEsecutato">
+													<xs:annotation>
+														<xs:documentation>Al momento dell'acquisto</xs:documentation>
+													</xs:annotation>
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:enumeration value="NonConiugato"/>
+															<xs:enumeration value="ConiugatoSeparazioneBeni"/>
+															<xs:enumeration value="ConiugatoComunioneBeni"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:element>
+											</xs:sequence>
+										</xs:complexType>
+									</xs:element>
+									<xs:element name="AttoPregiudizievole" type="xs:string" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+									<xs:element name="RegimeFiscale" minOccurs="0">
+										<xs:simpleType>
+											<xs:restriction base="xs:string">
+												<xs:enumeration value="IVA"/>
+												<xs:enumeration value="Registro"/>
+											</xs:restriction>
+										</xs:simpleType>
+									</xs:element>
+									<xs:element name="Indagine" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Indagine Amministrativa</xs:documentation>
+										</xs:annotation>
+										<xs:complexType>
+											<xs:all>
+												<xs:element name="AnalisiUrbanistica">
+													<xs:annotation>
+														<xs:documentation>Analisi urbanistica e verifica di regolarita'.</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+												<xs:element name="ConformitaEdilizia">
+													<xs:annotation>
+														<xs:documentation>Conformita' edilizia: segnalazione di difformita' e certificazione di condonabilita'</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+											</xs:all>
+										</xs:complexType>
+									</xs:element>
+									<xs:element name="SituazioneOccupazionale" minOccurs="0">
+										<xs:complexType>
+											<xs:sequence>
+												<xs:element name="Disponibile" type="xs:boolean"/>
+												<xs:element name="Descrizione" type="xs:string">
+													<xs:annotation>
+														<xs:documentation>descrizione in forma libera</xs:documentation>
+													</xs:annotation>
+												</xs:element>
+											</xs:sequence>
+										</xs:complexType>
+									</xs:element>
+									<xs:element name="ConsistenzaSuperficiale" type="xs:string" minOccurs="0">
+										<xs:annotation>
+											<xs:documentation>Superficie commerciale, al lordo delle murature, del bene in argomento, puramente a titolo indicativo</xs:documentation>
+										</xs:annotation>
+									</xs:element>
+								</xs:sequence>
+								<xs:attribute name="refLotto" type="xs:long" use="required"/>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="Proprieta" minOccurs="0" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:appinfo source="http://www.giustizia.it/gl/sgr"/>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="DirittiReali" default="1" maxOccurs="unbounded">
+										<xs:annotation>
+											<xs:documentation>Tipologia del diritto associato al bene ad esempio: Proprieta', Nuda Proprieta, Usufrutto</xs:documentation>
+										</xs:annotation>
+										<xs:complexType>
+											<xs:complexContent>
+												<xs:extension base="st:Diritto">
+													<xs:attribute name="refBene" type="xs:NMTOKEN" use="required"/>
+												</xs:extension>
+											</xs:complexContent>
+										</xs:complexType>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="BeneMobile" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:complexContent>
+									<xs:extension base="st:BeneMobile">
+										<xs:attribute name="refLotto" type="xs:long" use="required"/>
+									</xs:extension>
+								</xs:complexContent>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="UtentePVP" type="at:Soggetto"/>
+						<xs:element name="SoggettoDelegato" type="at:Soggetto" minOccurs="0"/>
+						<xs:element name="Lotti" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Descrizione Lotto</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="Descrizione"/>
+									<xs:element name="Numero" type="xs:int"/>
+									<xs:element name="sitoPubblicita" type="xs:string"/>
+									<xs:element name="DataUdienzaVendita" type="xs:dateTime"/>
+									<xs:element name="BaseAsta" type="bt:Valuta"/>
+									<xs:element name="TipoVendita" type="TipoVendita"/>
+								</xs:sequence>
+								<xs:attribute name="ID" type="xs:long" use="required"/>
+								<xs:attribute name="IdInserzione" type="xs:long" use="required"/>
+								<xs:attribute name="IdPrimoLotto" type="xs:long" use="required"/>
+								<xs:attribute name="TipoLotto" type="TipoLotto" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+		<xs:key name="PK_BENE_IMMOBILE">
+			<xs:selector xpath="tns:Immobile/tns:DatiCatastali"/>
+			<xs:field xpath="@ID"/>
+		</xs:key>
+		<xs:keyref name="FK_BENE_IMMOBILE" refer="PK_BENE_IMMOBILE">
+			<xs:selector xpath="tns:Proprieta/tns:DirittiReali"/>
+			<xs:field xpath="@ref"/>
+		</xs:keyref>
+		<xs:key name="PK_BENE_MOBILE">
+			<xs:selector xpath="tns:BeneMobile"/>
+			<xs:field xpath="@ID"/>
+		</xs:key>
+		<xs:keyref name="FK_BENE_MOBILE" refer="PK_BENE_MOBILE">
+			<xs:selector xpath="tns:Proprieta/tns:DirittiReali"/>
+			<xs:field xpath="@ref"/>
+		</xs:keyref>
+		<xs:key name="PK_LOTTO">
+			<xs:selector xpath="tns:Lotti"/>
+			<xs:field xpath="@ID"/>
+		</xs:key>
+		<xs:keyref name="FK_LOTTO_BENE_MOBILE" refer="PK_LOTTO">
+			<xs:selector xpath="tns:BeneMobile"/>
+			<xs:field xpath="@refLotto"/>
+		</xs:keyref>
+		<xs:keyref name="FK_LOTTO_BENE_IMMOBILE" refer="PK_LOTTO">
+			<xs:selector xpath="tns:Immobile"/>
+			<xs:field xpath="@refLotto"/>
+		</xs:keyref>
+	</xs:element>
+	<xs:simpleType name="TipoVendita">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="CONIN$CON_INCANTO"/>
+			<xs:enumeration value="SENIN$SENZA_INCANTO"/>
+			<xs:enumeration value="TRCOM$TRAMITE_COMMISSIONARIO"/>
+			<xs:enumeration value="SINAQ$SENZA_INCANTO___SEGUITO_AUMENTO_DI_UN_QUINTO"/>
+			<xs:enumeration value="COMPE$COMPETITIVA"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="TipoLotto">
+		<xs:annotation>
+			<xs:documentation>Codifica della tipologia dei lotti: 
+			0000=Lotto Immobiliare
+			0001=Lotto Mobiliare
+			0002=Lotto Massa
+			0003=Lotto Azienda
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="0000"/>
+			<xs:enumeration value="0001"/>
+			<xs:enumeration value="0002"/>
+			<xs:enumeration value="0003"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 265.
-- Endpoint con `_richiedi_auth`: 265/265.
+- Endpoint React API censiti: 266.
+- Endpoint con `_richiedi_auth`: 266/266.
 - Endpoint con metodo di scrittura o cancellazione: 137.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 116; critical: 18; high/P1: 75.
@@ -284,6 +284,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/tariffario/<id_voce>` | Tariffario | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/tariffario/calcola` | Tariffario | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/telematico/depositi/catalogo` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico/pst/schema-hint` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico/surface/<surface>` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/template-atti` | Template atti | P1 | `sessione/API tenant-aware` | modelli e compilazione | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

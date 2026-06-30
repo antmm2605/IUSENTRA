@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
 from pct.pst_cifratura import PSTCifraturaError
 from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
@@ -41,6 +42,43 @@ from web.services.deposito_anagrafica_ministeriale import (
     valore_causa_fascicolo as _valore_causa_fascicolo,
 )
 from web.services.security_redaction import redacted_json_response
+
+
+def _deposito_catalogo_entry(form_like: Any) -> tuple[dict[str, Any] | None, str]:
+    key = str(form_like.get("tipo_deposito_telematico_key", "") or "").strip()
+    if not key:
+        return None, ""
+    entry = resolve_deposit_type_payload(key)
+    if not entry:
+        return None, "Tipo deposito Studio Telematico non trovato nel catalogo backend."
+    return entry, ""
+
+
+def _deposito_catalogo_apply(entry: dict[str, Any] | None, tipo_atto: str, codice_registro: str) -> tuple[str, str]:
+    if not entry:
+        return tipo_atto, codice_registro
+    payload = entry.get("payload") if isinstance(entry.get("payload"), dict) else {}
+    return (
+        str(payload.get("tipo_atto") or tipo_atto).strip() or tipo_atto,
+        str(payload.get("codice_registro") or codice_registro).strip() or codice_registro,
+    )
+
+
+def _deposito_catalogo_blocker(entry: dict[str, Any] | None, *, require_real_package: bool) -> str:
+    if not entry:
+        return ""
+    rules = entry.get("rules") if isinstance(entry.get("rules"), dict) else {}
+    if not bool(rules.get("can_prepare_in_pct_panel", True)):
+        return str(
+            rules.get("real_send_blocker")
+            or "Questo tipo Studio Telematico appartiene a un canale diverso dal deposito PCT civile."
+        )
+    if require_real_package and not bool(rules.get("real_send_allowed_from_pct_panel", True)):
+        return str(
+            rules.get("real_send_blocker")
+            or "Per questo tipo deposito serve completare il generatore DatiAtto ministeriale specifico."
+        )
+    return ""
 
 
 def register_deposito_routes(
@@ -219,6 +257,19 @@ def register_deposito_routes(
             return redirect(url_for("lista_fascicoli"))
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
+        catalog_entry, catalog_error = _deposito_catalogo_entry(form)
+        if catalog_error:
+            if _wants_json_response(request.headers):
+                return jsonify({"ok": False, "errore": catalog_error}), 400
+            flash(catalog_error, "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+        tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=True)
+        if catalog_blocker:
+            if _wants_json_response(request.headers):
+                return jsonify({"ok": False, "package_ready": False, "errore": catalog_blocker}), 400
+            flash(catalog_blocker, "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -333,6 +384,13 @@ def register_deposito_routes(
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
+        catalog_entry, catalog_error = _deposito_catalogo_entry(form)
+        if catalog_error:
+            return jsonify({"ok": False, "errore": catalog_error}), 400
+        tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=False)
+        if catalog_blocker:
+            return jsonify({"ok": False, "errore": catalog_blocker}), 400
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -405,6 +463,24 @@ def register_deposito_routes(
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
         tipo_atto = form.get("tipo_atto", "ATTO").strip()
         codice_registro = form.get("codice_registro", "RG").strip()
+        catalog_entry, catalog_error = _deposito_catalogo_entry(form)
+        if catalog_error:
+            return jsonify({"ok": False, "package_ready": False, "errore": catalog_error}), 400
+        tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
+        catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=True)
+        if catalog_blocker:
+            return jsonify(
+                {
+                    "ok": False,
+                    "package_ready": False,
+                    "requires_guided_completion": True,
+                    "errore": catalog_blocker,
+                    "next_actions": [
+                        "Mantieni la scelta nel catalogo Studio Telematico.",
+                        "Completa il generatore ministeriale specifico o usa il flusso corretto per il canale selezionato.",
+                    ],
+                }
+            ), 400
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()

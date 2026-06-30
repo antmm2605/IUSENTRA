@@ -860,6 +860,47 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-deposit-selection__tools button.is-primary{background:var(--iu-blue-700);border-color:var(--iu-blue-700);color:#fff}
 .iu-fas-deposit-selection__tools button:disabled{opacity:.68;cursor:wait}
 .iu-fas-deposit-selection__tools button:hover,.iu-fas-deposit-selection__tools a:hover{background:#eff6ff}
+.iu-fas-deposit-type-panel{display:grid;gap:10px;padding:11px;border:1px solid rgba(30,58,138,.18);border-radius:12px;background:#fff;min-width:0}
+.iu-fas-deposit-type-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.iu-fas-deposit-type-panel>header>div{display:grid;gap:3px;min-width:0}
+.iu-fas-deposit-type-panel>header strong{color:#0f172a;font-size:13.5px;font-weight:950;line-height:1.2}
+.iu-fas-deposit-type-panel>header span{color:#475569;font-size:11.75px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;align-items:end;min-width:0}
+.iu-fas-deposit-type-panel__controls label{display:grid;gap:5px;min-width:0;color:#334155;font-size:11px;font-weight:900}
+.iu-fas-deposit-type-panel__controls select{width:100%;min-height:36px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:#0f172a;padding:0 9px;font-size:12px;font-weight:820;outline:0}
+.iu-fas-deposit-type-panel__controls select:hover{border-color:rgba(37,99,235,.32);background:#f8fbff}
+.iu-fas-deposit-type-panel__controls select:focus-visible{border-color:rgba(37,99,235,.55);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.iu-fas-deposit-type-panel__summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}
+.iu-fas-deposit-type-panel__summary article{display:grid;gap:4px;min-width:0;padding:9px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:#f8fafc}
+.iu-fas-deposit-type-panel__summary span{color:#64748b;font-size:10.5px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.iu-fas-deposit-type-panel__summary strong{color:#0f172a;font-size:12px;font-weight:930;line-height:1.24;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__summary small{color:#64748b;font-size:10.75px;font-weight:780;line-height:1.25;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__behavior{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;padding:9px;border:1px solid rgba(21,128,61,.18);border-radius:10px;background:#f7fdf9;color:#065f46}
+.iu-fas-deposit-type-panel__behavior svg{margin-top:1px}
+.iu-fas-deposit-type-panel__behavior div{display:grid;gap:3px;min-width:0}
+.iu-fas-deposit-type-panel__behavior strong{font-size:12.5px;font-weight:950;line-height:1.2}
+.iu-fas-deposit-type-panel__behavior span{font-size:11.75px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__blocker{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;padding:9px;border:1px solid rgba(185,28,28,.18);border-radius:10px;background:#fff7f7;color:#991b1b;font-size:11.75px;font-weight:820;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__blocker svg{margin-top:1px;flex:0 0 auto}
+.iu-fas-deposit-type-panel__actions{display:flex;gap:8px;flex-wrap:wrap}
+.iu-fas-deposit-type-panel__actions button{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(37,99,235,.18);border-radius:9px;background:#fff;color:var(--iu-blue-700);padding:0 10px;font-size:11.5px;font-weight:900;cursor:pointer}
+.iu-fas-deposit-type-panel__actions button:hover,.iu-fas-deposit-type-panel__actions button:focus-visible{background:#eff6ff;outline:0;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.iu-fas-deposit-type-panel__schema{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.iu-fas-deposit-type-panel__schema section{display:grid;gap:6px;min-width:0;padding:9px;border:1px solid rgba(148,163,184,.22);border-radius:10px;background:#fbfdff}
+.iu-fas-deposit-type-panel__schema strong{color:#0f172a;font-size:12px;font-weight:950;line-height:1.2}
+.iu-fas-deposit-type-panel__schema ul,.iu-fas-deposit-type-panel__tree ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.iu-fas-deposit-type-panel__schema li{position:relative;padding-left:14px;color:#475569;font-size:11.75px;font-weight:780;line-height:1.3;overflow-wrap:anywhere}
+.iu-fas-deposit-type-panel__schema li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--iu-blue-600)}
+.iu-fas-deposit-type-panel__tree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:360px;overflow:auto;padding:8px;border:1px solid rgba(37,99,235,.14);border-radius:10px;background:#f8fbff}
+.iu-fas-deposit-type-panel__tree section{display:grid;gap:7px;min-width:0;padding:9px;border:1px solid rgba(148,163,184,.20);border-radius:10px;background:#fff}
+.iu-fas-deposit-type-panel__tree h4,.iu-fas-deposit-type-panel__tree strong{margin:0;color:#0f172a;font-size:12px;font-weight:950;line-height:1.25}
+.iu-fas-deposit-type-panel__tree h4 span,.iu-fas-deposit-type-panel__tree strong span{color:#64748b;font-size:10.75px}
+.iu-fas-deposit-type-panel__tree div{display:grid;gap:5px;min-width:0}
+.iu-fas-deposit-type-panel__tree button{width:100%;min-height:30px;border:0;border-radius:8px;background:transparent;color:#334155;padding:0 7px;text-align:left;font-size:11.5px;font-weight:820;line-height:1.2;cursor:pointer}
+.iu-fas-deposit-type-panel__tree button:hover,.iu-fas-deposit-type-panel__tree button:focus-visible{background:#eff6ff;color:var(--iu-blue-700);outline:0}
+.iu-fas-deposit-type-panel__tree li.is-selected button{background:#dbeafe;color:var(--iu-blue-700)}
+.iu-fas-deposit-type-panel__current{display:grid;grid-template-columns:18px minmax(0,1fr);gap:7px;align-items:center;margin:0;color:#475569;font-size:11.75px;font-weight:800;line-height:1.3}
+.iu-fas-deposit-type-panel__current span{overflow-wrap:anywhere}
 .iu-fas-deposit-upload{border:1px dashed rgba(37,99,235,.25);border-radius:11px;background:#fff}
 .iu-fas-deposit-upload>summary{min-height:34px;display:flex;align-items:center;gap:7px;padding:0 10px;color:var(--iu-blue-700);font-size:12px;font-weight:930;cursor:pointer}
 .iu-fas-deposit-upload .iu-fas-doc-workspace{padding:10px;margin:0}

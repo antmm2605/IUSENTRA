@@ -3613,3 +3613,71 @@ Stato anti-regressione:
 
 - il test `test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts` fallisce se una PEC di accettazione finale non aggiorna il fascicolo da `NumeroRuolo`, non conserva i metadati ufficiali nella ricevuta o non li espone nel payload React;
 - resta obbligatoria la prova visiva reale su `127.0.0.1:8080` dopo rebuild Docker locale, con apertura del fascicolo collegato e controllo della sezione `Ricevute e cancelleria`.
+
+## Analisi QuickOrganizer: registri, menu PolisWeb e download fascicoli - 2026-06-30
+
+Richiesta utente: analizzare Studio Legale Telematico/QuickOrganizer per capire struttura dei depositi, schemi ministeriali, registri consultazione fascicoli, importazione pratiche da PolisWeb, accesso diretto al PolisWeb, lettura fascicolo dal portale, scarico singoli documenti, scarico intero fascicolo e ricerca fascicoli per anno.
+
+Fonti locali consultate:
+
+- `C:/QuickOrganizer/QuickOrganizer.exe`;
+- `C:/QuickOrganizer/QuickOrganizer.exe.config`;
+- `C:/QuickOrganizer/QuickOrganizer.mdb`;
+- `C:/QuickOrganizer/ListaUfficiGiudiziari.xml`;
+- `C:/QuickOrganizer/QC_Uffici.xml`;
+- sorgenti decompilati in `%TEMP%/quickorganizer_decompiled_full`, in particolare `FormMain.cs`, `WizardImportaPraticheDaPolisWeb.cs`, `PCT.cs`, `BrowserForm.cs`, `Common.cs`, `UfficioRegistroRuolo.cs` e `FormSentMailBee.cs`;
+- cartella `C:/QuickOrganizer` con DLL, sottocartelle, certificati locali e risorse embedded.
+
+Artefatti generati o aggiornati in `artifacts/react-migration`:
+
+- `quickorganizer-indice-artefatti.md`;
+- `catalogo-quickorganizer-depositi.md`;
+- `quickorganizer-deposito-catalogo.json`;
+- `xsd-quickorganizer-datiatto.md`;
+- `quickorganizer-xsd-datiatto-manifest.json`;
+- `quickorganizer-registri-consultazione-fascicoli.md`;
+- `quickorganizer-registri-consultazione-fascicoli.json`;
+- `quickorganizer-portale-lettura-download-fascicolo.md`;
+- `quickorganizer-portale-lettura-download-fascicolo.json`;
+- `quickorganizer-portali-polisweb-download.md`;
+- `quickorganizer-database-fascicoli-pec.md`;
+- `quickorganizer-firma-pin-sessioni.md`;
+- `quickorganizer-pec-notifiche-ricevute.md`;
+- `quickorganizer-confronto-certificati-codici.md`;
+- `quickorganizer-risorse-dll-sottocartelle.md`;
+- `lavoro-specializzazione-deposito-pec-fascicoli.md`.
+
+Risultati tecnici principali:
+
+- il catalogo depositi estratto da QuickOrganizer contiene 270 tipi in 6 macroaree;
+- gli XSD non risultano distribuiti come file sciolti sotto `C:/QuickOrganizer`: QuickOrganizer usa classi generate dagli XSD ministeriali e metodi `Create_DatiAtto_*` dentro l'EXE;
+- sono stati rilevati 148 metodi `Create_DatiAtto_*` e 56 mapping chiave deposito -> metodo DatiAtto;
+- i registri consultazione rilevati coprono `SICID/CC`, `LAV/SIL`, `VG/SIVG`, `MIN/SIMIN`, `SIECIC` esecuzioni mobiliari, esecuzioni immobiliari e concorsuali, `SIGP/GDP`, `CASSCI`, `CASSPE` e registri UNEP;
+- `Agrarie` e `Speciali` risultano tipi/filtro locali QuickOrganizer, senza combinazione JPW autonoma trovata nel catalogo XML;
+- nel menu Studio Telematico la voce `Importa Pratiche dal PolisWeb` apre `ImportaPratichePolisWeb(-1)`, mentre `Cerca_Eventi_Polisweb` apre lo stesso wizard con `PCT.RicercaNuoviEventi=true`;
+- il menu `Accesso al PolisWeb...` contiene azioni distinte: fascicolo d'ufficio, documenti fascicolo, eventi fascicolo, comunicazioni/notifiche, agenda PolisWeb, scadenze, scarico documenti, ricerca RG per costituzione, Cassazione civile, Cassazione penale e notifiche non perfezionate;
+- la lettura del fascicolo dal portale parte da `RecuperaDatiFascicoloUfficio(..., showBrowser:true)` e poi `BrowserForm` seleziona i tab cercando link con `storicofascicolo`, `documentifascicolo` o `comunicazionifascicolo`;
+- per accesso diretto PST QuickOrganizer costruisce URL con `registroRicerca`, `ufficioRicerca` e `ruoloRicerca={ruolo}@{ruolo}`;
+- per `Scarica documenti dal PolisWeb`, `BrowserForm` intercetta download WebView2 di PDF, RTF, TXT, immagini, XML, P7M, ZIP, RAR e ricevute PagoPA, con destinazioni pratica, desktop o calcolo hash;
+- lo scarico di un intero fascicolo non risulta un endpoint unico: QuickOrganizer lo tratta come iterazione/batch di documenti e allegati selezionati;
+- la ricerca per anno usa il numero ruolo quando presente; quando manca, il wizard può usare `numero=0` e `anno=cboAnno.Text` sui metodi/registri che lo prevedono;
+- per SIECIC restano da rispettare `idRuoloJPW`/`idDfa` reali quando richiesti: non vanno inventati;
+- i certificati uffici non sono tutti embedded nell'EXE: QuickOrganizer ha certificati locali limitati, un vecchio `pst.cer` embedded e logica per scaricare certificati PST d'ufficio tramite catalogo servizi.
+
+Implicazioni operative per IUSENTRA:
+
+- separare in React due azioni: `Importa/sincronizza da PolisWeb` e `Accedi al PolisWeb`;
+- il flusso `Accedi al PolisWeb` deve essere portale assistito con certificato/sessione dell'utente, non sostituto silenzioso dei servizi ufficiali;
+- `Scarica intero fascicolo` deve essere batch governato di download singoli con progress, deduplica `idCat/IdDocumento/hash`, ripresa su errore e salvataggio SQL tenant-aware;
+- ogni documento scaricato deve portare tenant, fascicolo, ufficio, registro, ruolo, origine portale, id documento, hash, data italiana e stato download;
+- la ricerca fascicoli deve indicizzare RG, anno, ufficio, registro, oggetto, parti, documenti, PEC, ricevute, notifiche e scadenze;
+- il presidio PEC può migliorare usando la struttura QuickOrganizer `PRATICHE`, `TESTI`, `EMAILS`, `AGENDA` e `TAVOLA`, ma mantenendo SQL/PostgreSQL come fonte operativa e JSON solo mirror;
+- il deposito già provato realmente con accettazione cancelleria non va indebolito: questi artefatti sono mappa di estensione e confronto, non sostituzione dei guardrail esistenti.
+
+Verifiche tecniche eseguite:
+
+- `python -m py_compile scripts/generate_quickorganizer_analysis_artifacts.py`;
+- `python scripts/generate_quickorganizer_analysis_artifacts.py`;
+- controllo JSON dei nuovi file `quickorganizer-registri-consultazione-fascicoli.json` e `quickorganizer-portale-lettura-download-fascicolo.json`.
+
+Stato verifica reale: non verificato su macchina reale. In questa tranche non è stato aperto il portale PST con certificato dell'utente e non è stata modificata/provata la UI IUSENTRA su `127.0.0.1:8080`; prima di trasformare queste mappe in funzione utente serviranno browser reale, sessione portale/certificato, salvataggio su fascicolo e prova visiva React.

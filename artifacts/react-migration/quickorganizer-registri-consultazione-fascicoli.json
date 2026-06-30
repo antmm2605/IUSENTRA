@@ -1,0 +1,1083 @@
+{
+  "generated_at": "30/06/2026 18:10 (Europe/Rome)",
+  "source": {
+    "quickorganizer_xml": "C:\\QuickOrganizer\\ListaUfficiGiudiziari.xml",
+    "quickorganizer_common_cs": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\Common.cs",
+    "quickorganizer_wizard_cs": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\WizardImportaPraticheDaPolisWeb.cs",
+    "iusentra_surface": "frontend/src/components/TelematicoSurfacePage.tsx",
+    "iusentra_api_matrix": "web/blueprints/api_v1_react.py",
+    "iusentra_live_log": "artifacts/audit/pst-mappatura-live-log-20260602.md"
+  },
+  "service_counts": {
+    "PAGAM_TEL": 1036,
+    "DEPOT": 659,
+    "JPW_SIGP": 562,
+    "JPW_SICID": 450,
+    "SICID": 429,
+    "SIECIC": 386,
+    "JPW_SIECIC": 338,
+    "COM_TEL_VAL_LEG": 196,
+    "COM_TEL_136": 158,
+    "COMTEL": 50,
+    "JPW_UNEP": 3,
+    "COM_TEL_SPER": 1,
+    "JPW_CASS": 1
+  },
+  "records": [
+    {
+      "service_code_xml": "JPW_CASS",
+      "service_description_xml": "Consultazione registri di Cassazione",
+      "application_code_xml": "sic",
+      "registry_code_xml": "CASSCI",
+      "registry_description_xml": "Cassazione Civile",
+      "office_count": 1,
+      "office_types": [
+        "CC"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "80417740588",
+          "descrizione": "Corte Suprema di Cassazione",
+          "tipoUfficio": "CC",
+          "pec": "cassazione@ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "CASSCI",
+        "cassazione civile"
+      ],
+      "quick_registry_code": "CASSCI",
+      "logical_service_iusentra": "JPW_CASSCI",
+      "quick_target_path": "JPW_CASS",
+      "urn": "CONS-CASSCI",
+      "query_number_type": "",
+      "quick_search_method": "ExecuteRicercaRicorsiCassazione",
+      "history_method": "profilo/documenti Cassazione",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "AUS",
+        "AVV@AVV"
+      ],
+      "notes": "QuickOrganizer usa anche URL browser PST con ufficio 80417740588, registroRicerca=CASSCI e ruoloRicerca=AVV@AVV."
+    },
+    {
+      "service_code_xml": "JPW_CASS",
+      "service_description_xml": "Consultazione registri di Cassazione",
+      "application_code_xml": "sic",
+      "registry_code_xml": "CASSPE",
+      "registry_description_xml": "Cassazione Penale",
+      "office_count": 1,
+      "office_types": [
+        "CC"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "80417740588",
+          "descrizione": "Corte Suprema di Cassazione",
+          "tipoUfficio": "CC",
+          "pec": "cassazione@ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "CASSPE",
+        "cassazione penale"
+      ],
+      "quick_registry_code": "CASSPE",
+      "logical_service_iusentra": "JPW_CASSPE",
+      "quick_target_path": "JPW_CASS",
+      "urn": "CONS-CASSPE",
+      "query_number_type": "",
+      "quick_search_method": "consultazione browser PST / QP_Ricorsi in IUSENTRA",
+      "history_method": "profilo/documenti Cassazione penale",
+      "allowed_roles": [
+        "AVV@AVV"
+      ],
+      "notes": "Il XML QuickOrganizer espone CASSPE e il menu apre il PST penale; IUSENTRA ha già prove live su JPW_CASSPE/QP_Ricorsi."
+    },
+    {
+      "service_code_xml": "JPW_SICID",
+      "service_description_xml": "Consultazione registri Contenzioso Civile",
+      "application_code_xml": "sicid",
+      "registry_code_xml": "CC",
+      "registry_description_xml": "Contenzioso Civile",
+      "office_count": 421,
+      "office_types": [
+        "CA",
+        "CV",
+        "OR",
+        "SC",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "03200602501",
+          "descrizione": "Commissariato agli usi civici per il FRIULI VENEZIA GIULIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trieste@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "05809102502",
+          "descrizione": "Commissariato agli usi civici per il LAZIO, la TOSCANA e l'UMBRIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.roma@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "00127202505",
+          "descrizione": "Commissariato agli usi civici per il PIEMONTE e la LIGURIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.torino@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02220502501",
+          "descrizione": "Commissariato agli usi civici per il TRENTINO-ALTO ADIGE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trento@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02704202502",
+          "descrizione": "Commissariato agli usi civici per il VENETO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.venezia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06604902501",
+          "descrizione": "Commissariato agli usi civici per l'ABRUZZO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.laquila@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "03700602506",
+          "descrizione": "Commissariato agli usi civici per l'EMILIA ROMAGNA e le MARCHE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.bologna@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "07606302509",
+          "descrizione": "Commissariato agli usi civici per la BASILICATA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.potenza@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "SICID",
+        "RGN",
+        "RNG",
+        "civile ordinario"
+      ],
+      "quick_registry_code": "CC",
+      "logical_service_iusentra": "JPW_SICID",
+      "quick_target_path": "JPW_SICID",
+      "urn": "CONS-SICC-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerTipo",
+      "history_method": "ExecuteStoricoFascicolo",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "NOT",
+        "TUT",
+        "AUS"
+      ],
+      "notes": "Civile ordinario: in QuickOrganizer il registro è CC; IUSENTRA può mantenere alias RGN/RNG ma deve inviare il registro reale CC quando interroga il servizio."
+    },
+    {
+      "service_code_xml": "JPW_SICID",
+      "service_description_xml": "Consultazione registri Contenzioso Civile",
+      "application_code_xml": "sicid",
+      "registry_code_xml": "LAV",
+      "registry_description_xml": "Lavoro",
+      "office_count": 421,
+      "office_types": [
+        "CA",
+        "CV",
+        "OR",
+        "SC",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "03200602501",
+          "descrizione": "Commissariato agli usi civici per il FRIULI VENEZIA GIULIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trieste@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "05809102502",
+          "descrizione": "Commissariato agli usi civici per il LAZIO, la TOSCANA e l'UMBRIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.roma@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "00127202505",
+          "descrizione": "Commissariato agli usi civici per il PIEMONTE e la LIGURIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.torino@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02220502501",
+          "descrizione": "Commissariato agli usi civici per il TRENTINO-ALTO ADIGE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trento@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02704202502",
+          "descrizione": "Commissariato agli usi civici per il VENETO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.venezia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06604902501",
+          "descrizione": "Commissariato agli usi civici per l'ABRUZZO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.laquila@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "03700602506",
+          "descrizione": "Commissariato agli usi civici per l'EMILIA ROMAGNA e le MARCHE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.bologna@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "07606302509",
+          "descrizione": "Commissariato agli usi civici per la BASILICATA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.potenza@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "SIL",
+        "LAV",
+        "lavoro",
+        "previdenza"
+      ],
+      "quick_registry_code": "LAV",
+      "logical_service_iusentra": "JPW_SIL / JPW_SIL_DISTR",
+      "quick_target_path": "JPW_SICID",
+      "urn": "CONS-SIL-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerTipo",
+      "history_method": "ExecuteStoricoFascicolo",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "NOT",
+        "TUT",
+        "AUS"
+      ],
+      "notes": "QuickOrganizer usa gateway JPW_SICID, ma namespace lavoro CONS-SIL-BE. IUSENTRA ha già fallback logico JPW_SIL_DISTR/JPW_SIL."
+    },
+    {
+      "service_code_xml": "JPW_SICID",
+      "service_description_xml": "Consultazione registri Contenzioso Civile",
+      "application_code_xml": "sicid",
+      "registry_code_xml": "MIN",
+      "registry_description_xml": "Minorenni",
+      "office_count": 29,
+      "office_types": [
+        "TM"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "0580910112",
+          "descrizione": "Tribunale per i Minorenni - Roma",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.roma@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0900640115",
+          "descrizione": "Tribunale per i Minorenni - Sassari",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.sassari@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0012720119",
+          "descrizione": "Tribunale per i Minorenni - Torino",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.torino@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0420020117",
+          "descrizione": "Tribunale per i Minorenni di Ancona",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.ancona@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0720060111",
+          "descrizione": "Tribunale per i Minorenni di Bari",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.bari@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0370060118",
+          "descrizione": "Tribunale per i Minorenni di Bologna",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.bologna@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0210080114",
+          "descrizione": "Tribunale per i Minorenni di Bolzano - Bozen",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.bolzano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0170290112",
+          "descrizione": "Tribunale per i Minorenni di Brescia",
+          "tipoUfficio": "TM",
+          "pec": "tribmin.brescia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "MIN",
+        "SIMIN",
+        "minorenni",
+        "minori"
+      ],
+      "quick_registry_code": "MIN",
+      "logical_service_iusentra": "JPW_MIN / JPW_SIMIN",
+      "quick_target_path": "JPW_SICID",
+      "urn": "CONS-MIN-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerTipo",
+      "history_method": "ExecuteStoricoFascicolo",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "NOT",
+        "TUT",
+        "AUS"
+      ],
+      "notes": "Il XML ministeriale QuickOrganizer espone MIN per i tribunali per i minorenni; IUSENTRA distingue MIN e SIMIN come servizi logici già provati."
+    },
+    {
+      "service_code_xml": "JPW_SICID",
+      "service_description_xml": "Consultazione registri Contenzioso Civile",
+      "application_code_xml": "sicid",
+      "registry_code_xml": "VG",
+      "registry_description_xml": "Volontaria Giurisdizione",
+      "office_count": 421,
+      "office_types": [
+        "CA",
+        "CV",
+        "OR",
+        "SC",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "03200602501",
+          "descrizione": "Commissariato agli usi civici per il FRIULI VENEZIA GIULIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trieste@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "05809102502",
+          "descrizione": "Commissariato agli usi civici per il LAZIO, la TOSCANA e l'UMBRIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.roma@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "00127202505",
+          "descrizione": "Commissariato agli usi civici per il PIEMONTE e la LIGURIA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.torino@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02220502501",
+          "descrizione": "Commissariato agli usi civici per il TRENTINO-ALTO ADIGE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.trento@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "02704202502",
+          "descrizione": "Commissariato agli usi civici per il VENETO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.venezia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06604902501",
+          "descrizione": "Commissariato agli usi civici per l'ABRUZZO",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.laquila@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "03700602506",
+          "descrizione": "Commissariato agli usi civici per l'EMILIA ROMAGNA e le MARCHE",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.bologna@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "07606302509",
+          "descrizione": "Commissariato agli usi civici per la BASILICATA",
+          "tipoUfficio": "CV",
+          "pec": "usicivici.potenza@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "SIVG",
+        "VG",
+        "volontaria giurisdizione"
+      ],
+      "quick_registry_code": "VG",
+      "logical_service_iusentra": "JPW_SIVG",
+      "quick_target_path": "JPW_SICID",
+      "urn": "CONS-SIVG-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerTipo",
+      "history_method": "ExecuteStoricoFascicolo",
+      "allowed_roles": [
+        "AVV",
+        "CTU",
+        "AUS"
+      ],
+      "notes": "Volontaria giurisdizione: servizio logico SIVG, gateway QuickOrganizer JPW_SICID."
+    },
+    {
+      "service_code_xml": "JPW_SIECIC",
+      "service_description_xml": "Consultazione registri esecuzioni civili, immobiliari e concorsuali",
+      "application_code_xml": "siecic",
+      "registry_code_xml": "ESIM",
+      "registry_description_xml": "Esecuzioni Immobiliari",
+      "office_count": 338,
+      "office_types": [
+        "CA",
+        "OR",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "987654321Z",
+          "descrizione": "Corte di Appello di Model Office",
+          "tipoUfficio": "CA",
+          "pec": "mopectest02@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690050192",
+          "descrizione": "Sezione Distaccata - Atessa",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.lanciano.atessa@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0630370193",
+          "descrizione": "Sezione Distaccata - Ischia",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.napoli.ischia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0830410196",
+          "descrizione": "Sezione Distaccata - Lipari",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.barcellonapozzodigotto.lipari@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690580193",
+          "descrizione": "Sezione Distaccata - Ortona",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.chieti.ortona@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0840110194",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD CANICATTI",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0840210195",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD LICATA",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0061140198",
+          "descrizione": "TRIBUNALE DI ALESSANDRIA ex SD NOVI LIGURE",
+          "tipoUfficio": "SD",
+          "pec": ""
+        }
+      ],
+      "ius_aliases": [
+        "SIECIC",
+        "ESIM",
+        "esecuzione immobiliare"
+      ],
+      "quick_registry_code": "ESIM",
+      "logical_service_iusentra": "JPW_SIECIC",
+      "quick_target_path": "JPW_SIECIC",
+      "urn": "CONS-SIECIC-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerNumero",
+      "history_method": "ExecuteStoricoFascicolo con idDfa",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "CUS",
+        "AUS"
+      ],
+      "notes": "Esecuzioni immobiliari SIECIC; richiede gestione ruolo/dfa reale."
+    },
+    {
+      "service_code_xml": "JPW_SIECIC",
+      "service_description_xml": "Consultazione registri esecuzioni civili, immobiliari e concorsuali",
+      "application_code_xml": "siecic",
+      "registry_code_xml": "ESM",
+      "registry_description_xml": "Esecuzioni Mobiliari",
+      "office_count": 338,
+      "office_types": [
+        "CA",
+        "OR",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "987654321Z",
+          "descrizione": "Corte di Appello di Model Office",
+          "tipoUfficio": "CA",
+          "pec": "mopectest02@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690050192",
+          "descrizione": "Sezione Distaccata - Atessa",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.lanciano.atessa@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0630370193",
+          "descrizione": "Sezione Distaccata - Ischia",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.napoli.ischia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0830410196",
+          "descrizione": "Sezione Distaccata - Lipari",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.barcellonapozzodigotto.lipari@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690580193",
+          "descrizione": "Sezione Distaccata - Ortona",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.chieti.ortona@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0840110194",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD CANICATTI",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0840210195",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD LICATA",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0061140198",
+          "descrizione": "TRIBUNALE DI ALESSANDRIA ex SD NOVI LIGURE",
+          "tipoUfficio": "SD",
+          "pec": ""
+        }
+      ],
+      "ius_aliases": [
+        "SIECIC",
+        "ESM",
+        "esecuzione mobiliare"
+      ],
+      "quick_registry_code": "ESM",
+      "logical_service_iusentra": "JPW_SIECIC",
+      "quick_target_path": "JPW_SIECIC",
+      "urn": "CONS-SIECIC-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerNumero",
+      "history_method": "ExecuteStoricoFascicolo con idDfa",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "CUS",
+        "AUS"
+      ],
+      "notes": "Esecuzioni mobiliari SIECIC; stesso gateway delle concorsuali ma registro diverso."
+    },
+    {
+      "service_code_xml": "JPW_SIECIC",
+      "service_description_xml": "Consultazione registri esecuzioni civili, immobiliari e concorsuali",
+      "application_code_xml": "siecic",
+      "registry_code_xml": "FALL",
+      "registry_description_xml": "Procedure Concorsuali",
+      "office_count": 338,
+      "office_types": [
+        "CA",
+        "OR",
+        "SD"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "987654321Z",
+          "descrizione": "Corte di Appello di Model Office",
+          "tipoUfficio": "CA",
+          "pec": "mopectest02@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690050192",
+          "descrizione": "Sezione Distaccata - Atessa",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.lanciano.atessa@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0630370193",
+          "descrizione": "Sezione Distaccata - Ischia",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.napoli.ischia@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0830410196",
+          "descrizione": "Sezione Distaccata - Lipari",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.barcellonapozzodigotto.lipari@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0690580193",
+          "descrizione": "Sezione Distaccata - Ortona",
+          "tipoUfficio": "SD",
+          "pec": "tribunale.chieti.ortona@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0840110194",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD CANICATTI",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0840210195",
+          "descrizione": "TRIBUNALE DI AGRIGENTO ex SD LICATA",
+          "tipoUfficio": "SD",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0061140198",
+          "descrizione": "TRIBUNALE DI ALESSANDRIA ex SD NOVI LIGURE",
+          "tipoUfficio": "SD",
+          "pec": ""
+        }
+      ],
+      "ius_aliases": [
+        "SIECIC",
+        "FALL",
+        "procedure concorsuali",
+        "fallimentare"
+      ],
+      "quick_registry_code": "FALL",
+      "logical_service_iusentra": "JPW_SIECIC",
+      "quick_target_path": "JPW_SIECIC",
+      "urn": "CONS-SIECIC-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerNumero",
+      "history_method": "ExecuteStoricoFascicolo con idDfa",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "CUR",
+        "CUS",
+        "AUS"
+      ],
+      "notes": "Procedure concorsuali SIECIC; per dettaglio può servire idRuoloJPW/idDfa reale, non inventabile."
+    },
+    {
+      "service_code_xml": "JPW_SIGP",
+      "service_description_xml": "Consultazione registri Giudice di Pace",
+      "application_code_xml": "sigp",
+      "registry_code_xml": "GDP",
+      "registry_description_xml": "Giudice di Pace",
+      "office_count": 562,
+      "office_types": [
+        "GP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "06300101547",
+          "descrizione": "GIUDICE DI PACE - Acerra",
+          "tipoUfficio": "GP",
+          "pec": "gdp.acerra@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06500601569",
+          "descrizione": "GIUDICE DI PACE - Amalfi",
+          "tipoUfficio": "GP",
+          "pec": "gdp.amalfi@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "0630491155",
+          "descrizione": "GIUDICE DI PACE - Barra non attivo",
+          "tipoUfficio": "GP",
+          "pec": ""
+        },
+        {
+          "codiceUfficio": "0870370157",
+          "descrizione": "GIUDICE DI PACE - CALTAGIRONE EX GIUD. DI PACE - RAMACCA",
+          "tipoUfficio": "GP",
+          "pec": "gdp.ramacca@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06502501569",
+          "descrizione": "GIUDICE DI PACE - Capaccio",
+          "tipoUfficio": "GP",
+          "pec": "gdp.capaccio@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "07802501515",
+          "descrizione": "GIUDICE DI PACE - Cariati",
+          "tipoUfficio": "GP",
+          "pec": "gdp.cariati@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "06602801539",
+          "descrizione": "GIUDICE DI PACE - Castel di Sangro",
+          "tipoUfficio": "GP",
+          "pec": "gdp.casteldisangro@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "04600901591",
+          "descrizione": "GIUDICE DI PACE - Castelnuovo di Garfagnana",
+          "tipoUfficio": "GP",
+          "pec": "gdp.castelnuovodigarfagnana@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "SIGP",
+        "GDP",
+        "GP",
+        "giudice di pace"
+      ],
+      "quick_registry_code": "GP",
+      "logical_service_iusentra": "JPW_SIGP",
+      "quick_target_path": "JPW_SIGP",
+      "urn": "CONS-SIGP-BE",
+      "query_number_type": "RNG",
+      "quick_search_method": "ExecuteRicercaInformazioniFascicoloPerTipo / ExecuteRicercaInformazioniFascicoloPerRMO",
+      "history_method": "ExecuteStoricoFascicolo",
+      "allowed_roles": [
+        "AVV",
+        "DEL",
+        "CTU",
+        "AUS"
+      ],
+      "notes": "Nel XML il registro è GDP; nel codice QuickOrganizer il filtro storico usa GP. IUSENTRA deve accettare entrambi come alias."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "A",
+      "registry_description_xml": "Atti a Richiesta di Parte a Pagamento",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "A"
+      ],
+      "quick_registry_code": "A",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "A/GP",
+      "registry_description_xml": "Giudice di pace esente",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "A/GP"
+      ],
+      "quick_registry_code": "A/GP",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "A/TER/P",
+      "registry_description_xml": "Atto materia lavoro esente",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "A/TER/P"
+      ],
+      "quick_registry_code": "A/TER/P",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "B/P",
+      "registry_description_xml": "Atto Penale a Pagamento",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "B/P"
+      ],
+      "quick_registry_code": "B/P",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "C",
+      "registry_description_xml": "Esecuzione",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "C"
+      ],
+      "quick_registry_code": "C",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "JPW_UNEP",
+      "service_description_xml": "Consultazione registri Ufficio Notifiche e Protesti",
+      "application_code_xml": "unep",
+      "registry_code_xml": "C/TER",
+      "registry_description_xml": "Esecuzione Lavoro",
+      "office_count": 3,
+      "office_types": [
+        "UP"
+      ],
+      "sample_offices": [
+        {
+          "codiceUfficio": "1514600637",
+          "descrizione": "UNEP - Corte d'Appello - Milano",
+          "tipoUfficio": "UP",
+          "pec": "unep.ca.milano@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01514902233",
+          "descrizione": "UNEP - Tribunale Ordinario - Monza",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.monza@civile.ptel.giustiziacert.it"
+        },
+        {
+          "codiceUfficio": "01811002235",
+          "descrizione": "UNEP - Tribunale Ordinario - PAVIA",
+          "tipoUfficio": "UP",
+          "pec": "unep.tribunale.pavia@civile.ptel.giustiziacert.it"
+        }
+      ],
+      "ius_aliases": [
+        "UNEP",
+        "C/TER"
+      ],
+      "quick_registry_code": "C/TER",
+      "logical_service_iusentra": "JPW_UNEP",
+      "quick_target_path": "JPW_UNEP",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "canale UNEP separato",
+      "allowed_roles": [],
+      "notes": "Registro UNEP esposto dal catalogo uffici; non è scarico fascicolo civile ordinario."
+    },
+    {
+      "service_code_xml": "",
+      "service_description_xml": "Tipo registro locale QuickOrganizer",
+      "application_code_xml": "",
+      "registry_code_xml": "Agrarie",
+      "registry_description_xml": "Controversie Agrarie",
+      "office_count": 0,
+      "office_types": [],
+      "sample_offices": [],
+      "ius_aliases": [
+        "AGRARIE",
+        "controversie agrarie"
+      ],
+      "quick_registry_code": "Agrarie",
+      "logical_service_iusentra": "da verificare",
+      "quick_target_path": "",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "solo filtro locale PRATICHE",
+      "allowed_roles": [],
+      "notes": "QuickOrganizer lo conserva come tipo registro locale/filtro, ma non ho trovato una combinazione JPW autonoma nel XML ministeriale."
+    },
+    {
+      "service_code_xml": "",
+      "service_description_xml": "Tipo registro locale QuickOrganizer",
+      "application_code_xml": "",
+      "registry_code_xml": "Speciali",
+      "registry_description_xml": "Procedimenti Speciali o Sommari",
+      "office_count": 0,
+      "office_types": [],
+      "sample_offices": [],
+      "ius_aliases": [
+        "SPECIALI",
+        "procedimenti speciali",
+        "sommari"
+      ],
+      "quick_registry_code": "Speciali",
+      "logical_service_iusentra": "da verificare",
+      "quick_target_path": "",
+      "urn": "",
+      "query_number_type": "",
+      "quick_search_method": "non rilevata nel wizard import fascicoli",
+      "history_method": "solo filtro locale PRATICHE",
+      "allowed_roles": [],
+      "notes": "QuickOrganizer lo conserva come tipo registro locale/filtro, ma non ho trovato una combinazione JPW autonoma nel XML ministeriale."
+    }
+  ]
+}

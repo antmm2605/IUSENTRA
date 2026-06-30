@@ -1,0 +1,3803 @@
+{
+  "schema_version": 1,
+  "generated_at": "30/06/2026 18:10 (Europe/Rome)",
+  "source": {
+    "application": "QuickOrganizer.exe / Studio Legale Telematico 2026 Rel. 021",
+    "database": "C:\\QuickOrganizer\\QuickOrganizer.mdb",
+    "catalog_extraction": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_deposito_schemi.json",
+    "decompiled_source": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full"
+  },
+  "official_sources": [
+    {
+      "name": "PST - Specifiche Tecniche ex art. 34 DM 44/2011",
+      "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429",
+      "note": "Provvedimento DGSIA 7 agosto 2024, efficace dal 30 settembre 2024, con rettifiche pubblicate dal PST."
+    },
+    {
+      "name": "Normattiva - Decreto 21 febbraio 2011, n. 44",
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=011G0087",
+      "note": "Regole tecniche per processo civile e penale telematico; art. 34 come fonte delle specifiche tecniche."
+    },
+    {
+      "name": "PST - XSD ufficiali Processo Civile Telematico",
+      "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC1579",
+      "note": "Pagina storica XSD ufficiali PCT; IUSENTRA usa anche il catalogo PST/XSD più recente già presente nel repository."
+    },
+    {
+      "name": "PST - comunicazione software house aggiornamento XSD SICID",
+      "url": "https://pst.giustizia.it/PST/page/it/processo_civile_telematico__comunicazione_alle_software_house_aggiornamento_specifiche_tecniche_deposito_atti_sicid?contentId=NWS4594",
+      "note": "News PST del 26/01/2026 sugli XSD SICID anticipati alle software house."
+    }
+  ],
+  "counts": {
+    "total_deposit_types": 270,
+    "macroareas": {
+      "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione": 125,
+      "Corte di Cassazione (civile)": 33,
+      "Giudice di Pace": 28,
+      "Procedimenti concorsuali": 18,
+      "Processo esecutivo": 48,
+      "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti": 18
+    },
+    "categories": {
+      "Atti Delegati": 11,
+      "Atti del Consulente": 24,
+      "Atti del Curatore": 1,
+      "Atti del Custode": 5,
+      "Atti endo-processuali": 144,
+      "Atti introduttivi": 59,
+      "Comparse di costituzione": 4,
+      "Controricorsi": 4,
+      "Pagamenti": 2,
+      "Richieste di Notifica": 5,
+      "Richieste di pignoramento": 9,
+      "Richieste di restituzione": 1,
+      "Richieste di ricerca beni da pignorare": 1
+    }
+  },
+  "entries": [
+    {
+      "key": "Introduttivi_SICID::CitazioneAppello",
+      "text": "Atto di Citazione (in Appello)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Atto di Citazione (in Appello)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::Citazione",
+      "text": "Atto di Citazione (primo grado)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Atto di Citazione (primo grado)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [
+        "Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale",
+        "Create_DatiAtto_CusSiecicEsecuzioni_DepositoSemplice",
+        "Create_DatiAtto_DelSiecicEsecuzioni_AggiudicazioneLotto",
+        "Create_DatiAtto_DelSiecicEsecuzioni_DepositoSemplice",
+        "Create_DatiAtto_DelSiecicEsecuzioni_MinutaDecreto",
+        "Create_DatiAtto_DelSiecicEsecuzioni_ProgettoDistribuzione",
+        "Create_DatiAtto_DelSiecicEsecuzioni_PropostaProgetto",
+        "Create_DatiAtto_Introduttivi_Ricorso702Bis",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneAppello",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneInRiassunzione",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_CitazioneSfratto",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniDivorzio",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_ModificaCondizioniSeparazione",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_OpposizioneDecretoIngiuntivo",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Ricorso",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoAppello",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCAInibitoria",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoCautelareAnteCausam",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDecretoIngiuntivo",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoDivorzio",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazione",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoImmigrazioneConvalida",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoOpposizioneDecretoIngiuntivo",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoReclamoSospensiva",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoRitoSemplificatoCartabia",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSeparazione",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroConservativo",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_RicorsoSequestroGiudiziario",
+        "Create_DatiAtto_Introduttivi_SICID_Cartabia_Successioni",
+        "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenni",
+        "Create_DatiAtto_Introduttivi_SICID_RicorsoMinorenniSoggettoInteressato",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloNuovoConcordato",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPignoramentoIstanzaCreditore",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_IscrizioneRuoloPrefallimentare",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoAmmissConcordatoPreventivoCCIPU",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoDichiarazioneInsolvenzaCCIPU",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneControllataCCIPU",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoLiquidazioneGiudizialeCCIPU",
+        "Create_DatiAtto_Introduttivi_SIECIC_Cartabia_RicorsoOmologaAccordiRistrutturazioneCCIPU",
+        "Create_DatiAtto_Introduttivi_SIGP_Cartabia_RicorsoImmigrazioneGDP",
+        "Create_DatiAtto_ParteCassazione_ControRicorso",
+        "Create_DatiAtto_ParteCassazione_ControRicorsoIncidentale",
+        "Create_DatiAtto_ParteCassazione_Ricorso",
+        "Create_DatiAtto_ParteSiecicConcorsuali_AttoCostituzioneAvvocato",
+        "Create_DatiAtto_ParteSiecicConcorsuali_RinunciaInsinuazione",
+        "Create_DatiAtto_ParteSiecicEsecuzioni_AttoCostituzioneAvvocato",
+        "Create_DatiAtto_ParteSiecicEsecuzioni_DepositoRelazioneNotarile",
+        "Create_DatiAtto_ParteSiecicEsecuzioni_NotaPrecisazioneCredito",
+        "Create_DatiAtto_ParteSiecicEsecuzioni_RinunciaDebitori",
+        "Create_DatiAtto_Parte_AttoCostituzioneNuovoAvvocato",
+        "Create_DatiAtto_Parte_AttoNonCodificato",
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenerico",
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_AttoGenericoCCIPU",
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_CostituzioneDebitoreCCI",
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_MemoriaCCI",
+        "Create_DatiAtto_Parte_CONCORSUALI_SIECIC_NotaDepositoCCI",
+        "Create_DatiAtto_Parte_Comparsa180",
+        "Create_DatiAtto_Parte_ComparsaConclusionale190",
+        "Create_DatiAtto_Parte_ComparsaConclusionaleReplica190",
+        "Create_DatiAtto_Parte_ComparsaCostituzioneAppello",
+        "Create_DatiAtto_Parte_ComparsaCostituzioneAppelloIncidentale",
+        "Create_DatiAtto_Parte_CostituzioneConRiconvenzionale",
+        "Create_DatiAtto_Parte_CostituzioneSemplice",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoGenerico",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_AttoIntervento",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaAssegnazione",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaDistribuzione",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_IstanzaVendita",
+        "Create_DatiAtto_Parte_ESECUZIONI_SIECIC_Opposizione",
+        "Create_DatiAtto_Parte_IstanzaGenerica",
+        "Create_DatiAtto_Parte_Memoria183",
+        "Create_DatiAtto_Parte_MemoriaDifensivaCA",
+        "Create_DatiAtto_Parte_MemoriaGenerica",
+        "Create_DatiAtto_Parte_MemoriaReplica183",
+        "Create_DatiAtto_Parte_MemoriaReplicaProvaContraria183",
+        "Create_DatiAtto_Parte_MemorieCartabia",
+        "Create_DatiAtto_Parte_NominaCTPexart87",
+        "Create_DatiAtto_Parte_PrecisazioneConclusioni",
+        "Create_DatiAtto_Parte_Preverbale",
+        "Create_DatiAtto_Parte_ProduzioneDocumentiRichiesti",
+        "Create_DatiAtto_Parte_Reclamo",
+        "Create_DatiAtto_Parte_RicorsoCautelareCorsoCausa",
+        "Create_DatiAtto_Parte_RicorsoGenerico",
+        "Create_DatiAtto_Parte_RicorsoSequestroConservativoCorsoCausa",
+        "Create_DatiAtto_Parte_RicorsoSequestroGiudiziarioCorsoCausa",
+        "Create_DatiAtto_Parte_ScrittiDifensivi",
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoRelazioneNotarile",
+        "Create_DatiAtto_ProfSiecicConcorsuali_DepositoSemplice",
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoRelazioneNotarile",
+        "Create_DatiAtto_ProfSiecicEsecuzioni_DepositoSemplice",
+        "Create_DatiAtto_ProfSiecicEsecuzioni_IstanzaProrogaCTU",
+        "Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione",
+        "Create_DatiAtto_Professionista_DepositoSemplice",
+        "Create_DatiAtto_Professionista_SIGP_DepositoSemplice"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "depositoRelazioneIniziale",
+          "type": "DepositoRelazioneIniziale"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "CusSiecicEsecuzioni.DepositoSemplice"
+        },
+        {
+          "variable": "aggiudicazioneLotto",
+          "type": "AggiudicazioneLotto"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "DelSiecicEsecuzioni.DepositoSemplice"
+        },
+        {
+          "variable": "minutaDecreto",
+          "type": "MinutaDecreto"
+        },
+        {
+          "variable": "progettoDistribuzione",
+          "type": "DelSiecicEsecuzioni.ProgettoDistribuzione"
+        },
+        {
+          "variable": "propostaProgetto",
+          "type": "PropostaProgetto"
+        },
+        {
+          "variable": "ricorso702Bis",
+          "type": "Ricorso702Bis"
+        },
+        {
+          "variable": "citazione",
+          "type": "IntroduttiviSicid.Citazione"
+        },
+        {
+          "variable": "citazioneAppello",
+          "type": "CitazioneAppello"
+        },
+        {
+          "variable": "citazioneInRiassunzione",
+          "type": "IntroduttiviSicid.CitazioneInRiassunzione"
+        },
+        {
+          "variable": "citazioneSfratto",
+          "type": "CitazioneSfratto"
+        },
+        {
+          "variable": "modificaCondizioniDivorzio",
+          "type": "ModificaCondizioniDivorzio"
+        },
+        {
+          "variable": "modificaCondizioniSeparazione",
+          "type": "ModificaCondizioniSeparazione"
+        },
+        {
+          "variable": "opposizioneDecretoIngiuntivo",
+          "type": "IntroduttiviSicid.OpposizioneDecretoIngiuntivo"
+        },
+        {
+          "variable": "ricorso",
+          "type": "IntroduttiviSicid.Ricorso"
+        },
+        {
+          "variable": "ricorsoAppello",
+          "type": "RicorsoAppello"
+        },
+        {
+          "variable": "ricorsoCAeInibitoria",
+          "type": "RicorsoCAeInibitoria"
+        },
+        {
+          "variable": "ricorsoCautelareAnteCausam",
+          "type": "RicorsoCautelareAnteCausam"
+        },
+        {
+          "variable": "ricorsoDecretoIngiuntivo",
+          "type": "IntroduttiviSicid.RicorsoDecretoIngiuntivo"
+        },
+        {
+          "variable": "ricorsoDivorzio",
+          "type": "RicorsoDivorzio"
+        },
+        {
+          "variable": "ricorsoImmigrazione",
+          "type": "IntroduttiviSicid.RicorsoImmigrazione"
+        },
+        {
+          "variable": "ricorsoImmigrazioneConvalida",
+          "type": "RicorsoImmigrazioneConvalida"
+        },
+        {
+          "variable": "ricorsoOpposizioneDecretoIngiuntivo",
+          "type": "IntroduttiviSicid.RicorsoOpposizioneDecretoIngiuntivo"
+        },
+        {
+          "variable": "ricorsoReclamoSospensiva",
+          "type": "RicorsoReclamoSospensiva"
+        },
+        {
+          "variable": "ricorsoRitoSemplificatoCartabia",
+          "type": "RicorsoRitoSemplificatoCartabia"
+        },
+        {
+          "variable": "ricorsoSeparazione",
+          "type": "RicorsoSeparazione"
+        },
+        {
+          "variable": "ricorsoSequestroConservativo",
+          "type": "RicorsoSequestroConservativo"
+        },
+        {
+          "variable": "ricorsoSequestroGiudiziario",
+          "type": "RicorsoSequestroGiudiziario"
+        },
+        {
+          "variable": "successioni",
+          "type": "Successioni"
+        },
+        {
+          "variable": "ricorsoMinorenni",
+          "type": "RicorsoMinorenni"
+        },
+        {
+          "variable": "ricorsoMinorenniSoggettoInteressato",
+          "type": "RicorsoMinorenniSoggettoInteressato"
+        },
+        {
+          "variable": "iscrizioneRuoloNuovoConcordato",
+          "type": "IscrizioneRuoloNuovoConcordato"
+        },
+        {
+          "variable": "iscrizioneRuoloPrefallimentare",
+          "type": "IscrizioneRuoloPrefallimentare"
+        },
+        {
+          "variable": "ricorsoAmmissConcordatoPreventivoCCIPU",
+          "type": "RicorsoAmmissConcordatoPreventivoCCIPU"
+        },
+        {
+          "variable": "attoRichiestaVisibilita",
+          "type": "ParteSiecicConcorsuali.AttoRichiestaVisibilita"
+        },
+        {
+          "variable": "attoRichiestaVisibilita",
+          "type": "ParteSiecicConcorsuali.AttoRichiestaVisibilita"
+        },
+        {
+          "variable": "attoRichiestaVisibilita",
+          "type": "ParteSiecicConcorsuali.AttoRichiestaVisibilita"
+        },
+        {
+          "variable": "attoRichiestaVisibilita",
+          "type": "ParteSiecicConcorsuali.AttoRichiestaVisibilita"
+        },
+        {
+          "variable": "ricorsoDichiarazioneInsolvenzaCCIPU",
+          "type": "RicorsoDichiarazioneInsolvenzaCCIPU"
+        },
+        {
+          "variable": "ricorsoLiquidazioneControllataCCIPU",
+          "type": "RicorsoLiquidazioneControllataCCIPU"
+        },
+        {
+          "variable": "ricorsoLiquidazioneGiudizialeCCIPU",
+          "type": "RicorsoLiquidazioneGiudizialeCCIPU"
+        },
+        {
+          "variable": "ricorsoOmologaAccordiRistrutturazCCIPU",
+          "type": "RicorsoOmologaAccordiRistrutturazCCIPU"
+        },
+        {
+          "variable": "ricorsoImmigrazione",
+          "type": "Introduttivi_SIGP.RicorsoImmigrazione"
+        },
+        {
+          "variable": "controRicorso",
+          "type": "ControRicorso"
+        },
+        {
+          "variable": "controRicorsoIncidentale",
+          "type": "ControRicorsoIncidentale"
+        },
+        {
+          "variable": "ricorso",
+          "type": "ParteCassazione.Ricorso"
+        },
+        {
+          "variable": "attoCostituzioneAvvocato",
+          "type": "ParteSiecicConcorsuali.AttoCostituzioneAvvocato"
+        },
+        {
+          "variable": "rinunciaInsinuazione",
+          "type": "RinunciaInsinuazione"
+        },
+        {
+          "variable": "attoCostituzioneAvvocato",
+          "type": "ParteSiecicEsecuzioni.AttoCostituzioneAvvocato"
+        },
+        {
+          "variable": "depositoRelazioneNotarile",
+          "type": "ParteSiecicEsecuzioni.DepositoRelazioneNotarile"
+        },
+        {
+          "variable": "notaPrecisazioneCredito",
+          "type": "NotaPrecisazioneCredito"
+        },
+        {
+          "variable": "rinunciaDebitori",
+          "type": "RinunciaDebitori"
+        },
+        {
+          "variable": "attoCostituzioneNuovoAvvocato",
+          "type": "AttoCostituzioneNuovoAvvocato"
+        },
+        {
+          "variable": "attoNonCodificato",
+          "type": "AttoNonCodificato"
+        },
+        {
+          "variable": "attoGenerico",
+          "type": "ParteSiecicConcorsuali.AttoGenerico"
+        },
+        {
+          "variable": "attoGenericoCCIPU",
+          "type": "AttoGenericoCCIPU"
+        },
+        {
+          "variable": "costituzioneDebitoreCCI",
+          "type": "CostituzioneDebitoreCCI"
+        },
+        {
+          "variable": "memoriaCCI",
+          "type": "ParteSiecicConcorsuali.MemoriaCCI"
+        },
+        {
+          "variable": "notaDepositoCCI",
+          "type": "ParteSiecicConcorsuali.NotaDepositoCCI"
+        },
+        {
+          "variable": "comparsa",
+          "type": "Comparsa180"
+        },
+        {
+          "variable": "comparsaConclusionale",
+          "type": "ComparsaConclusionale190"
+        },
+        {
+          "variable": "comparsaConclusionaleReplica",
+          "type": "ComparsaConclusionaleReplica190"
+        },
+        {
+          "variable": "comparsaCostituzioneAppello",
+          "type": "ComparsaCostituzioneAppello"
+        },
+        {
+          "variable": "comparsaCostituzioneAppelloIncidentale",
+          "type": "ComparsaCostituzioneAppelloIncidentale"
+        },
+        {
+          "variable": "costituzioneConRiconvenzionale",
+          "type": "CostituzioneConRiconvenzionale"
+        },
+        {
+          "variable": "costituzioneSemplice",
+          "type": "Parte.CostituzioneSemplice"
+        },
+        {
+          "variable": "attoGenerico",
+          "type": "ParteSiecicEsecuzioni.AttoGenerico"
+        },
+        {
+          "variable": "attoIntervento",
+          "type": "AttoIntervento"
+        },
+        {
+          "variable": "istanzaAssegnazione",
+          "type": "IstanzaAssegnazione"
+        },
+        {
+          "variable": "istanzaDistribuzione",
+          "type": "IstanzaDistribuzione"
+        },
+        {
+          "variable": "istanzaVendita",
+          "type": "IstanzaVendita"
+        },
+        {
+          "variable": "opposizione",
+          "type": "Opposizione"
+        },
+        {
+          "variable": "istanzaGenerica",
+          "type": "Parte.IstanzaGenerica"
+        },
+        {
+          "variable": "memoria",
+          "type": "Memoria183"
+        },
+        {
+          "variable": "memoriaDifensivaCA",
+          "type": "MemoriaDifensivaCA"
+        },
+        {
+          "variable": "memoriaGenerica",
+          "type": "MemoriaGenerica"
+        },
+        {
+          "variable": "memoriaReplica",
+          "type": "MemoriaReplica183"
+        },
+        {
+          "variable": "memoriaReplicaProvaContraria",
+          "type": "MemoriaReplicaProvaContraria183"
+        },
+        {
+          "variable": "memorieCartabia",
+          "type": "MemorieCartabia"
+        },
+        {
+          "variable": "nominaCTPexart",
+          "type": "NominaCTPexart87"
+        },
+        {
+          "variable": "precisazioneConclusioni",
+          "type": "PrecisazioneConclusioni"
+        },
+        {
+          "variable": "preverbale",
+          "type": "Preverbale"
+        },
+        {
+          "variable": "produzioneDocumentiRichiesti",
+          "type": "Parte.ProduzioneDocumentiRichiesti"
+        },
+        {
+          "variable": "reclamo",
+          "type": "Reclamo"
+        },
+        {
+          "variable": "ricorsoCautelareCorsoCausa",
+          "type": "RicorsoCautelareCorsoCausa"
+        },
+        {
+          "variable": "ricorso",
+          "type": "Parte.Ricorso"
+        },
+        {
+          "variable": "ricorsoSequestroConservativoCorsoCausa",
+          "type": "RicorsoSequestroConservativoCorsoCausa"
+        },
+        {
+          "variable": "ricorsoSequestroGiudiziarioCorsoCausa",
+          "type": "RicorsoSequestroGiudiziarioCorsoCausa"
+        },
+        {
+          "variable": "scrittiDifensivi",
+          "type": "ScrittiDifensivi"
+        },
+        {
+          "variable": "depositoRelazioneNotarile",
+          "type": "ProfSiecicConcorsuali.DepositoRelazioneNotarile"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "ProfSiecicConcorsuali.DepositoSemplice"
+        },
+        {
+          "variable": "depositoRelazioneNotarile",
+          "type": "ProfSiecicEsecuzioni.DepositoRelazioneNotarile"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "ProfSiecicEsecuzioni.DepositoSemplice"
+        },
+        {
+          "variable": "istanzaProrogaCTU",
+          "type": "IstanzaProrogaCTU"
+        },
+        {
+          "variable": "progettoDistribuzione",
+          "type": "ProfSiecicEsecuzioni.ProgettoDistribuzione"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "Professionista.DepositoSemplice"
+        },
+        {
+          "variable": "depositoSemplice",
+          "type": "Professionista_SIGP.DepositoSemplice"
+        }
+      ]
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneSfratto",
+      "text": "Atto di Citazione (sfratto)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Atto di Citazione (sfratto)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzioneAppello",
+      "text": "Atto di Citazione in riassunzione (in Appello)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Atto di Citazione in riassunzione (in Appello)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzione",
+      "text": "Atto di Citazione in riassunzione (primo grado)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Atto di Citazione in riassunzione (primo grado)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniDivorzio",
+      "text": "Modifica Condizioni Divorzio",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Modifica Condizioni Divorzio",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneCongiunto",
+      "text": "Modifica Condizioni Separazione (congiunto)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Modifica Condizioni Separazione (congiunto)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneGiudiziale",
+      "text": "Modifica Condizioni Separazione (giudiziale)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Modifica Condizioni Separazione (giudiziale)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneDecretoIngiuntivo",
+      "text": "Opposizione a decreto ingiuntivo",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Opposizione a decreto ingiuntivo",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoOpposizioneDecretoIngiuntivo",
+      "text": "Opposizione a decreto ingiuntivo (mediante ricorso)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Opposizione a decreto ingiuntivo (mediante ricorso)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneLeggeFornero",
+      "text": "Opposizione L. 92-2012 cd. Legge Fornero",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Opposizione L. 92-2012 cd. Legge Fornero",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoReclamoSospensiva",
+      "text": "Reclamo avverso diniego sospensione provvedimento di trattenimento immigrati (Corte d'Appello)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Reclamo avverso diniego sospensione provvedimento di trattenimento immigrati (Corte d'Appello)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoAccertamentoTecnicoPreventivo",
+      "text": "Ricorso (accertamento tecnico preventivo)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (accertamento tecnico preventivo)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoCAInibitoria",
+      "text": "Ricorso (class action)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (class action)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::EreditàSuccessioni",
+      "text": "Ricorso (eredità o successioni)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (eredità o successioni)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::Ricorso",
+      "text": "Ricorso (generico)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (generico)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSeparazione",
+      "text": "Ricorso (separazione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (separazione)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSequestroConservativo",
+      "text": "Ricorso (sequestro conservativo)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (sequestro conservativo)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoSequestroGiudiziario",
+      "text": "Ricorso (sequestro giudiziario)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso (sequestro giudiziario)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoCautelareAnteCausam",
+      "text": "Ricorso cautelare (ante causam)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso cautelare (ante causam)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDivorzioCongiunto",
+      "text": "Ricorso divorzio (congiunto)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso divorzio (congiunto)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDivorzioGiudiziale",
+      "text": "Ricorso divorzio (giudiziale)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso divorzio (giudiziale)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::Ricorso702Bis",
+      "text": "Ricorso ex art. 702 bis c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso ex art. 702 bis c.p.c.",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoAppello",
+      "text": "Ricorso generico (in Appello)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso generico (in Appello)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoImmigrazione",
+      "text": "Ricorso Immigrazione (Tribunale Ordinario)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso Immigrazione (Tribunale Ordinario)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniPadre",
+      "text": "Ricorso minorenni (presentato dal padre)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso minorenni (presentato dal padre)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniMadre",
+      "text": "Ricorso minorenni (presentato dalla madre)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso minorenni (presentato dalla madre)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoMinorenniSoggettoInteressato",
+      "text": "Ricorso minorenni ex art.28 L.184 1983, con soggetto interessato ",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso minorenni ex art.28 L.184 1983, con soggetto interessato ",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoImmigrazioneConvalida",
+      "text": "Ricorso per convalida o proroga del provvedimento di trattenimento immigrati (Corte d'Appello)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per convalida o proroga del provvedimento di trattenimento immigrati (Corte d'Appello)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamConsegnaBeni",
+      "text": "Ricorso per decreto ingiuntivo ante causam (consegna beni)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (consegna beni)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamAssistenzaObbligatoria",
+      "text": "Ricorso per decreto ingiuntivo ante causam (in materia di assistenza obbligatoria)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (in materia di assistenza obbligatoria)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamMateriaLavoro",
+      "text": "Ricorso per decreto ingiuntivo ante causam (in materia di lavoro)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (in materia di lavoro)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPrevidenzaObbligatoria",
+      "text": "Ricorso per decreto ingiuntivo ante causam (in materia di previdenza obbligatoria)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (in materia di previdenza obbligatoria)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoIntermediazioneFinanziaria",
+      "text": "Ricorso per decreto ingiuntivo ante causam (intermediazione finanziaria, bancaria e creditizia)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (intermediazione finanziaria, bancaria e creditizia)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamOneriCondominiali",
+      "text": "Ricorso per decreto ingiuntivo ante causam (oneri condominiali)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (oneri condominiali)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSommaAndConsegnaBeni",
+      "text": "Ricorso per decreto ingiuntivo ante causam (pagamento somma e consegna beni)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (pagamento somma e consegna beni)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoDecretoIngiuntivoAnteCausamPagamentoSomma",
+      "text": "Ricorso per decreto ingiuntivo ante causam (pagamento somma)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso per decreto ingiuntivo ante causam (pagamento somma)",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoRitoSemplificatoCartabia",
+      "text": "Ricorso rito semplificato Cartabia",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti introduttivi",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti introduttivi > Ricorso rito semplificato Cartabia",
+      "prefix": "Introduttivi_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaCostituzioneAppelloIncidentale",
+      "text": "Comparsa di costituzione (con appello incidentale)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Comparse di costituzione > Comparsa di costituzione (con appello incidentale)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::CostituzioneConRiconvenzionale",
+      "text": "Comparsa di costituzione (con riconvenzionale)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Comparse di costituzione > Comparsa di costituzione (con riconvenzionale)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::CostituzioneSemplice",
+      "text": "Comparsa di costituzione (semplice)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Comparse di costituzione > Comparsa di costituzione (semplice)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaCostituzioneAppello",
+      "text": "Comparsa di costituzione in Appello",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Comparse di costituzione",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Comparse di costituzione > Comparsa di costituzione in Appello",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::AttoCostituzioneNuovoAvvocato",
+      "text": "Atto di costituzione nuovo avvocato (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Atto di costituzione nuovo avvocato (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaConclusionaleReplica190",
+      "text": "Comparsa conclusionale di replica ex art. 190",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Comparsa conclusionale di replica ex art. 190",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ComparsaConclusionale190",
+      "text": "Comparsa conclusionale ex art. 190",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Comparsa conclusionale ex art. 190",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Comparsa180",
+      "text": "Comparsa ex art. 180",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Comparsa ex art. 180",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DocumentazioneIntegrativaAUSL",
+      "text": "Deposito documentazione integrativa AUSL (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito documentazione integrativa AUSL (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DocumentazioneIntegrativaPM",
+      "text": "Deposito documentazione integrativa PM (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito documentazione integrativa PM (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DepositoDocumentiRichiesti",
+      "text": "Deposito documenti richiesti (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito documenti richiesti (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::AttoNonCodificato",
+      "text": "Deposito generico (atto non codificato)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito generico (atto non codificato)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::InventarioEreditaGiacente",
+      "text": "Deposito inventario eredità giacente (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito inventario eredità giacente (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::depositoNotaSpese",
+      "text": "Deposito nota spese",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito nota spese",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DepositoProveExArt210Cpc",
+      "text": "Deposito prove ex art. 210 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito prove ex art. 210 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneAmministrazioneSostegno",
+      "text": "Deposito relazione amministrazione di sostegno (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito relazione amministrazione di sostegno (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneFinaleArt2409cc",
+      "text": "Deposito relazione finale art. 2409 c.c. (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito relazione finale art. 2409 c.c. (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RelazioneIspettoreArt2409cc",
+      "text": "Deposito relazione ispettore art. 2409 c.c. (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito relazione ispettore art. 2409 c.c. (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RendicontoAmministrazioneSostegno",
+      "text": "Deposito rendiconto amministrazione di sostegno (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito rendiconto amministrazione di sostegno (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RendicontoEreditaGiacente",
+      "text": "Deposito rendiconto eredità giacente (volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Deposito rendiconto eredità giacente (volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaCongiuntaFissazioneUdienza",
+      "text": "Istanza congiunta di fissazione udienza",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza congiunta di fissazione udienza",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaAccoglimentoDomanda183ter",
+      "text": "Istanza di accoglimento della domanda ex art. 183-ter c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di accoglimento della domanda ex art. 183-ter c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaAnticipazioneUdienza",
+      "text": "Istanza di anticipazione udienza",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di anticipazione udienza",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaCorrezioneErroreMateriale",
+      "text": "Istanza di correzione errore materiale",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di correzione errore materiale",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaDeferimentoGiuramento",
+      "text": "Istanza di deferimento giuramento",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di deferimento giuramento",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaDifferimentoUdienza",
+      "text": "Istanza di differimento udienza",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di differimento udienza",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaEstromissione",
+      "text": "Istanza di estromissione dal giudizio",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di estromissione dal giudizio",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaFissazioneUdienza",
+      "text": "Istanza di fissazione udienza",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di fissazione udienza",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaFissazioneUdienzaCollegamentiAudioVisivi",
+      "text": "Istanza di fissazione udienza con collegamenti audiovisivi",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di fissazione udienza con collegamenti audiovisivi",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaInterruzione",
+      "text": "Istanza di interruzione del giudizio",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di interruzione del giudizio",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRevocaUdienzaCollegamentiAudioVisivi",
+      "text": "Istanza di revoca fissazione udienza con collegamenti audiovisivi",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di revoca fissazione udienza con collegamenti audiovisivi",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRicusazioneGiudice",
+      "text": "Istanza di ricusazione del Giudice",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di ricusazione del Giudice",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRigettoDomanda183quater",
+      "text": "Istanza di rigetto della domanda ex art. 183-quater c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di rigetto della domanda ex art. 183-quater c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRimessioneInIstruttoria",
+      "text": "Istanza di rimessione della causa in istruttoria",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di rimessione della causa in istruttoria",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRimessioneTermini",
+      "text": "Istanza di rimessione in termini",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di rimessione in termini",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRinuncia",
+      "text": "Istanza di rinuncia",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di rinuncia",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRinvioXDiscussioneOrale",
+      "text": "Istanza di Rinvio per Discussione Orale",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di Rinvio per Discussione Orale",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaSospensioneProvvisoriaEsecuzione",
+      "text": "Istanza di sospensione della provvisoria esecuzione",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di sospensione della provvisoria esecuzione",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaTrasformazioneInConsensuale",
+      "text": "Istanza di trasformazione in consensuale",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza di trasformazione in consensuale",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Bis",
+      "text": "Istanza ex art. 186 bis c.p.c. (pagamento di somme non contestate)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza ex art. 186 bis c.p.c. (pagamento di somme non contestate)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Quater",
+      "text": "Istanza ex art. 186 quater c.p.c. (condanna post-istruttoria)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza ex art. 186 quater c.p.c. (condanna post-istruttoria)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaExArt186Ter",
+      "text": "Istanza ex art. 186 ter c.p.c. (ingiunzione in corso di causa)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza ex art. 186 ter c.p.c. (ingiunzione in corso di causa)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaGenerica",
+      "text": "Istanza generica (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Istanza generica (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplica183UC",
+      "text": "Memoria di Replica ex art. 183 cpc ultimo comma",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria di Replica ex art. 183 cpc ultimo comma",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaDifensivaCA",
+      "text": "Memoria difensiva (class action)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria difensiva (class action)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Memoria171ter1",
+      "text": "Memoria ex art. 171-ter n.1 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 171-ter n.1 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Repliche171ter2",
+      "text": "Memoria ex art. 171-ter n.2 c.p.c. (memoria di replica)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 171-ter n.2 c.p.c. (memoria di replica)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Controrepliche171ter3",
+      "text": "Memoria ex art. 171-ter n.3 c.p.c. (controreplica)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 171-ter n.3 c.p.c. (controreplica)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Memoria183",
+      "text": "Memoria ex art. 183 c.p.c. comma 6 n.1",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 183 c.p.c. comma 6 n.1",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplica183",
+      "text": "Memoria ex art. 183 c.p.c. comma 6 n.2 (memoria di replica)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 183 c.p.c. comma 6 n.2 (memoria di replica)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaReplicaProvaContraria183",
+      "text": "Memoria ex art. 183 c.p.c. comma 6 n.3 (prova contraria)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 183 c.p.c. comma 6 n.3 (prova contraria)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DepositoMemoria2409",
+      "text": "Memoria ex art. 2409 c.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria ex art. 2409 c.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaGenerica",
+      "text": "Memoria generica (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria generica (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemoriaIstruttoria183UC",
+      "text": "Memoria Istruttoria ex art.183 cpc ultimo comma",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memoria Istruttoria ex art.183 cpc ultimo comma",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::MemorieCartabia",
+      "text": "Memorie Cartabia (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Memorie Cartabia (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NominaCTPexart87",
+      "text": "Nomina CTP ex art. 87 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Nomina CTP ex art. 87 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NotaDeposito",
+      "text": "Nota di deposito (atto non codificato)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Nota di deposito (atto non codificato)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NoteConclusionali350Bis",
+      "text": "Note Conclusionali ex art.350Bis cpc",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Note Conclusionali ex art.350Bis cpc",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NoteTrattazione",
+      "text": "Note di trattazione scritta (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Note di trattazione scritta (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NoteScrittePC",
+      "text": "Note Scritte di Prec. Conclusioni",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Note Scritte di Prec. Conclusioni",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::NoteScrittePC_DiscussioneOrale",
+      "text": "Note Scritte di Prec. Conclusioni (con richiesta di discussione orale)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Note Scritte di Prec. Conclusioni (con richiesta di discussione orale)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::OpposizioneTardivaExArt668",
+      "text": "Opposizione tardiva ex art. 668 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Opposizione tardiva ex art. 668 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::PrecisazioneConclusioni",
+      "text": "Precisazione delle conclusioni",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Precisazione delle conclusioni",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::Preverbale",
+      "text": "Pre-verbale (con possibilita' di scambio con le controparti)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Pre-verbale (con possibilita' di scambio con le controparti)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ProduzioneDocumentiRichiesti",
+      "text": "Produzione documenti richiesti (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Produzione documenti richiesti (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoResistente",
+      "text": "Reclamo generico (del resistente)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Reclamo generico (del resistente)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoRicorrente",
+      "text": "Reclamo generico (del ricorrente)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Reclamo generico (del ricorrente)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ReclamoIntervenuto",
+      "text": "Reclamo generico (dell'intervenuto)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Reclamo generico (dell'intervenuto)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRichiestaEsecutorietaExArt647",
+      "text": "Richiesta di esecutorieta' ex art. 647 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di esecutorieta' ex art. 647 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaFissazioneModalitaProvvedimento",
+      "text": "Richiesta di fissazione modalita provvedimento",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di fissazione modalita provvedimento",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaFormulaEsecutiva",
+      "text": "Richiesta di formula esecutiva (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di formula esecutiva (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RichiestaInefficaciaMisuraCautelare",
+      "text": "Richiesta di inefficacia di una misura cautelare",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di inefficacia di una misura cautelare",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::IstanzaRichiestaInefficaciaExArt188",
+      "text": "Richiesta di inefficacia ex art. 188 c.p.c.",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di inefficacia ex art. 188 c.p.c.",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::AttoRichiestaVisibilità",
+      "text": "Richiesta di visibilita' fascicolo (contenzioso civile)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Richiesta di visibilita' fascicolo (contenzioso civile)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoCautelareCorsoCausa",
+      "text": "Ricorso cautelare (in corso di causa)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Ricorso cautelare (in corso di causa)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento",
+      "text": "Ricorso per fissazione udienza di prosecuzione del giudizio",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Ricorso per fissazione udienza di prosecuzione del giudizio",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::DepositoRicorsoDiRiassunzione",
+      "text": "Ricorso per riassunzione",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Ricorso per riassunzione",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoSequestroConservativoCorsoCausa",
+      "text": "Ricorso per sequestro conservativo (in corso di causa)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Ricorso per sequestro conservativo (in corso di causa)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::RicorsoSequestroGiudiziarioCorsoCausa",
+      "text": "Ricorso per sequestro giudiziario (in corso di causa)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Ricorso per sequestro giudiziario (in corso di causa)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_SICID::ScrittiDifensivi",
+      "text": "Scritti difensivi (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti endo-processuali",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti endo-processuali > Scritti difensivi (contenzioso civile, lavoro e volontaria giurisdizione)",
+      "prefix": "Parte_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoGiuramentoTelematico",
+      "text": "Deposito Giuramento Telematico (del CTU)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Deposito Giuramento Telematico (del CTU)",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIntegrazionePerizia",
+      "text": "Deposito integrazione perizia",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Deposito integrazione perizia",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoPerizia",
+      "text": "Deposito perizia",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Deposito perizia",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoRichiestaProrogaTerminiPerizia",
+      "text": "Istanza di richiesta di proroga dei termini per il deposito della perizia",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Istanza di richiesta di proroga dei termini per il deposito della perizia",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIstanzaGenerica",
+      "text": "Istanza generica (del professionista)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Istanza generica (del professionista)",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::DepositoIstanzaLiquidazioneCTU",
+      "text": "Istanza liquidazione consulenza tecnica di ufficio",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Istanza liquidazione consulenza tecnica di ufficio",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SICID::NotaDepositoProfessionista",
+      "text": "Nota di deposito (del professionista)",
+      "macro": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione",
+      "categoria": "Atti del Consulente",
+      "path": "Contenzioso civile, Lavoro, Minorenni e Volontaria giurisdizione > Atti del Consulente > Nota di deposito (del professionista)",
+      "prefix": "Professionista_SICID::",
+      "channel": "SICID",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
+      "text": "Iscrizione a ruolo pignoramento immobiliare (art. 557 c.p.c.), ad istanza del creditore",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "path": "Processo esecutivo > Atti introduttivi > Iscrizione a ruolo pignoramento immobiliare (art. 557 c.p.c.), ad istanza del creditore",
+      "prefix": "Introduttivi_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
+      "text": "Iscrizione a ruolo pignoramento mobiliare presso il debitore (art. 518 c.p.c.), ad istanza del creditore",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "path": "Processo esecutivo > Atti introduttivi > Iscrizione a ruolo pignoramento mobiliare presso il debitore (art. 518 c.p.c.), ad istanza del creditore",
+      "prefix": "Introduttivi_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
+      "text": "Iscrizione a ruolo pignoramento mobiliare presso terzi (art. 543 c.p.c.), ad istanza del creditore",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti introduttivi",
+      "path": "Processo esecutivo > Atti introduttivi > Iscrizione a ruolo pignoramento mobiliare presso terzi (art. 543 c.p.c.), ad istanza del creditore",
+      "prefix": "Introduttivi_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoCostituzioneAvvocato",
+      "text": "Atto di costituzione avvocato (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Atto di costituzione avvocato (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaMandato",
+      "text": "Atto di rinuncia al mandato (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Atto di rinuncia al mandato (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRinunciaEsecuzione",
+      "text": "Atto di rinuncia all'esecuzione",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Atto di rinuncia all'esecuzione",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoIntervento",
+      "text": "Atto d'intervento (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Atto d'intervento (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoGenerico",
+      "text": "Atto Generico (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Atto Generico (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoIstanza41TUB",
+      "text": "Deposito Istanza ex art.41 T.U.B.  (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Deposito Istanza ex art.41 T.U.B.  (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "text": "Deposito Relazione Notarile (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Deposito Relazione Notarile (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaAssegnazione",
+      "text": "Istanza di assegnazione (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Istanza di assegnazione (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaDistribuzione",
+      "text": "Istanza di distribuzione (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Istanza di distribuzione (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::IstanzaVendita",
+      "text": "Istanza di vendita (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Istanza di vendita (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NotaDeposito",
+      "text": "Nota di deposito (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Nota di deposito (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NotaPrecisazioneCredito",
+      "text": "Nota Precisazione Credito (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Nota Precisazione Credito (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::NoteTrattazione",
+      "text": "Note di trattazione scritta (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Note di trattazione scritta (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi",
+      "text": "Opposizione agli atti esecutivi (ex art. 617)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Opposizione agli atti esecutivi (ex art. 617)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaDistribuzione",
+      "text": "Opposizione alla disttribuzione (ex art. 512 comma 2)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Opposizione alla disttribuzione (ex art. 512 comma 2)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneAllaEsecuzione",
+      "text": "Opposizione alla esecuzione (ex art. 615 comma 2)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Opposizione alla esecuzione (ex art. 615 comma 2)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneDiTerzi",
+      "text": "Opposizione di terzi (ex art. 619 comma 2)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Opposizione di terzi (ex art. 619 comma 2)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::OpposizioneCumuloMezziEspropiazione",
+      "text": "Opposizione per cumulo dei mezzi di espropriazione (ex art. 483)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Opposizione per cumulo dei mezzi di espropriazione (ex art. 483)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RichiestaFormulaEsecutiva",
+      "text": "Richiesta di formula esecutiva (in materia di esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Richiesta di formula esecutiva (in materia di esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
+      "text": "Richiesta di visibilita' fascicolo (esecuzioni)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Richiesta di visibilita' fascicolo (esecuzioni)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RicorsoExArt534Ter",
+      "text": "Ricorso ex art. 534 Ter.",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Ricorso ex art. 534 Ter.",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_ESECUZIONI_SIECIC::RinunciaDebitori",
+      "text": "Rinuncia nei confronti di un debitore (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti endo-processuali",
+      "path": "Processo esecutivo > Atti endo-processuali > Rinuncia nei confronti di un debitore (processo esecutivo)",
+      "prefix": "Parte_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::AttoNonCodificatoCustode",
+      "text": "Atto non codificato del Custode",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "path": "Processo esecutivo > Atti del Custode > Atto non codificato del Custode",
+      "prefix": "Custode_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::IstanzaGenericaCustode",
+      "text": "Istanza generica del Custode",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "path": "Processo esecutivo > Atti del Custode > Istanza generica del Custode",
+      "prefix": "Custode_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::IstanzaLiquidazioneCustode",
+      "text": "Istanza Liquidazione del Custode",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "path": "Processo esecutivo > Atti del Custode > Istanza Liquidazione del Custode",
+      "prefix": "Custode_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::NotaDepositoCustode",
+      "text": "Nota di deposito (atto del custode)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "path": "Processo esecutivo > Atti del Custode > Nota di deposito (atto del custode)",
+      "prefix": "Custode_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Custode_ESECUZIONI_SIECIC::RendicontoCustode",
+      "text": "Rendiconto del Custode",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Custode",
+      "path": "Processo esecutivo > Atti del Custode > Rendiconto del Custode",
+      "prefix": "Custode_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::AttoNonCodificato",
+      "text": "Atto non codificato CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Atto non codificato CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoIntegrazioneCTU",
+      "text": "Deposito integrazione CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Deposito integrazione CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneCTU",
+      "text": "Deposito relazione CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Deposito relazione CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::DepositoRelazioneNotarile",
+      "text": "Deposito relazione Notarile (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Deposito relazione Notarile (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::IstanzaProrogaCTU",
+      "text": "Istanza proroga CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Istanza proroga CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::NotaDeposito",
+      "text": "Nota di deposito del CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Nota di deposito del CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione",
+      "text": "Progetto di distribuzione CTU (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti del Consulente",
+      "path": "Processo esecutivo > Atti del Consulente > Progetto di distribuzione CTU (processo esecutivo)",
+      "prefix": "Professionista_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::AggiudicazioneLotto",
+      "text": "Aggiudicazione Lotto (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Aggiudicazione Lotto (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::attoNonCodificato",
+      "text": "Atto Delegato non codificato (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Atto Delegato non codificato (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::avvisoVendita",
+      "text": "Avviso Vendita (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Avviso Vendita (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::depositoPrezzo",
+      "text": "Deposito Prezzo (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Deposito Prezzo (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::istanzaRevocaDecadenzaAggiudicatario",
+      "text": "Istanza Revoca Decadenza Aggiudicatario (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Istanza Revoca Decadenza Aggiudicatario (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::MinutaDecreto",
+      "text": "Minuta Decreto (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Minuta Decreto (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::NotaDeposito",
+      "text": "Nota di deposito (processo esecutivo - atto delegato)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Nota di deposito (processo esecutivo - atto delegato)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+      "text": "Progetto di distribuzione Delegato (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Progetto di distribuzione Delegato (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::PropostaProgetto",
+      "text": "Proposta Progetto (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Proposta Progetto (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::relazionePeriodicaDelegato",
+      "text": "Relazione Periodica del Delegato",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Relazione Periodica del Delegato",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Delegati_ESECUZIONI_SIECIC::verbaleAggiudicazione",
+      "text": "Verbale Aggiudicazione (processo esecutivo)",
+      "macro": "Processo esecutivo",
+      "categoria": "Atti Delegati",
+      "path": "Processo esecutivo > Atti Delegati > Verbale Aggiudicazione (processo esecutivo)",
+      "prefix": "Delegati_ESECUZIONI_SIECIC::",
+      "channel": "SIECIC esecuzioni",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoAmmissConcordatoPreventivoCCIPUIstanzaDebitore",
+      "text": "Ricorso per ammissione concordato preventivo CCIPU, ad istanza del debitore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "path": "Procedimenti concorsuali > Atti introduttivi > Ricorso per ammissione concordato preventivo CCIPU, ad istanza del debitore",
+      "prefix": "Introduttivi_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoDichiarazioneInsolvenzaCCIPUIstanzaCreditore",
+      "text": "Ricorso per la dichiarazione dello stato d'insolvenza CCIPU, ad istanza del creditore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "path": "Procedimenti concorsuali > Atti introduttivi > Ricorso per la dichiarazione dello stato d'insolvenza CCIPU, ad istanza del creditore",
+      "prefix": "Introduttivi_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneControllataCCIPUIstanzaCreditore",
+      "text": "Ricorso per liquidazione controllata CCIPU, ad istanza del creditore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "path": "Procedimenti concorsuali > Atti introduttivi > Ricorso per liquidazione controllata CCIPU, ad istanza del creditore",
+      "prefix": "Introduttivi_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoLiquidazioneGiudizialeCCIPUIstanzaCreditore",
+      "text": "Ricorso per liquidazione giudiziale CCIPU, ad istanza del creditore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "path": "Procedimenti concorsuali > Atti introduttivi > Ricorso per liquidazione giudiziale CCIPU, ad istanza del creditore",
+      "prefix": "Introduttivi_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_CONCORSUALI_SIECIC::RicorsoOmologaAccordiRistrutturazioneCCIPUOrdinarioIstanzaDebitore",
+      "text": "Ricorso per omologa accordi di ristrutturazione CCIPU, ad istanza del debitore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti introduttivi",
+      "path": "Procedimenti concorsuali > Atti introduttivi > Ricorso per omologa accordi di ristrutturazione CCIPU, ad istanza del debitore",
+      "prefix": "Introduttivi_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoCostituzioneAvvocato",
+      "text": "Atto Costituzione Avvocato (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Atto Costituzione Avvocato (in materia concorsuale)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoGenericoCCIPU",
+      "text": "Atto Generico (codice crisi impresa CCIPU)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Atto Generico (codice crisi impresa CCIPU)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoGenerico",
+      "text": "Atto Generico (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Atto Generico (in materia concorsuale)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::DepositoMemorie",
+      "text": "Deposito Memorie (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Deposito Memorie (in materia concorsuale)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::NotaDepositoCCI",
+      "text": "Nota di deposito CCI (codice crisi impresa)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Nota di deposito CCI (codice crisi impresa)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::NoteTrattazione",
+      "text": "Note di trattazione scritta (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Note di trattazione scritta (in materia concorsuale)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
+      "text": "Richiesta di visibilita' fascicolo (concorsuali)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti endo-processuali",
+      "path": "Procedimenti concorsuali > Atti endo-processuali > Richiesta di visibilita' fascicolo (concorsuali)",
+      "prefix": "Parte_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "",
+      "text": "Atti del Curatore",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Curatore",
+      "path": "Procedimenti concorsuali > Atti del Curatore",
+      "prefix": "",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::AttoNonCodificato",
+      "text": "Atto non codificato CTU (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "path": "Procedimenti concorsuali > Atti del Consulente > Atto non codificato CTU (in materia concorsuale)",
+      "prefix": "Professionista_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoIntegrazioneCTU",
+      "text": "Deposito integrazione CTU (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "path": "Procedimenti concorsuali > Atti del Consulente > Deposito integrazione CTU (in materia concorsuale)",
+      "prefix": "Professionista_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneCTU",
+      "text": "Deposito relazione CTU (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "path": "Procedimenti concorsuali > Atti del Consulente > Deposito relazione CTU (in materia concorsuale)",
+      "prefix": "Professionista_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::DepositoRelazioneNotarile",
+      "text": "Deposito Relazione Notarile (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "path": "Procedimenti concorsuali > Atti del Consulente > Deposito Relazione Notarile (in materia concorsuale)",
+      "prefix": "Professionista_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_CONCORSUALI_SIECIC::NotaDeposito",
+      "text": "Nota di deposito del CTU (in materia concorsuale)",
+      "macro": "Procedimenti concorsuali",
+      "categoria": "Atti del Consulente",
+      "path": "Procedimenti concorsuali > Atti del Consulente > Nota di deposito del CTU (in materia concorsuale)",
+      "prefix": "Professionista_CONCORSUALI_SIECIC::",
+      "channel": "SIECIC concorsuali",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::Ricorso",
+      "text": "Ricorso (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti introduttivi",
+      "path": "Corte di Cassazione (civile) > Atti introduttivi > Ricorso (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorso",
+      "text": "Controricorso (con numero di RG)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "path": "Corte di Cassazione (civile) > Controricorsi > Controricorso (con numero di RG)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIscrittoDalControricorrente",
+      "text": "Controricorso (iscritto a ruolo dal controricorrente)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "path": "Corte di Cassazione (civile) > Controricorsi > Controricorso (iscritto a ruolo dal controricorrente)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIncidentale",
+      "text": "Controricorso incidentale (con numero di RG)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "path": "Corte di Cassazione (civile) > Controricorsi > Controricorso incidentale (con numero di RG)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::ControRicorsoIncidentaleIscrittoDalControricorrente",
+      "text": "Controricorso incidentale (iscritto a ruolo dal controricorrente)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Controricorsi",
+      "path": "Corte di Cassazione (civile) > Controricorsi > Controricorso incidentale (iscritto a ruolo dal controricorrente)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AccettazioneRinunciaRicorso",
+      "text": "Accettazione rinuncia (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Accettazione rinuncia (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_AccettazioneRinunciaRicorso"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "accettazioneRinunciaRicorso",
+          "type": "AccettazioneRinunciaRicorso"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::AttoGenerico",
+      "text": "Atto generico (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Atto generico (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaControricorso",
+      "text": "Avviso ricevuta di avvenuta notifica Controricorso (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Avviso ricevuta di avvenuta notifica Controricorso (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaControricorso"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "avvisoRicevutaNotificaControricorso",
+          "type": "AvvisoRicevutaNotificaControricorso"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::AvvisoRicevutaNotificaRicorso",
+      "text": "Avviso ricevuta di avvenuta notifica Ricorso (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Avviso ricevuta di avvenuta notifica Ricorso (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_AvvisoRicevutaNotificaRicorso"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "avvisoRicevutaNotificaRicorso",
+          "type": "AvvisoRicevutaNotificaRicorso"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::DepositoExArt372",
+      "text": "Deposito ex art. 372 c.p.c. (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Deposito ex art. 372 c.p.c. (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_DepositoExArt372"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "depositoExArt",
+          "type": "DepositoExArt372"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::DocumentiCondonoFiscale",
+      "text": "Documenti condono fiscale (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Documenti condono fiscale (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_DocumentiCondonoFiscale"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "documentiCondonoFiscale",
+          "type": "DocumentiCondonoFiscale"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IntegrazioneContradittorio",
+      "text": "Integrazione del contraddittorio (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Integrazione del contraddittorio (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IntegrazioneSpeseGiustizia",
+      "text": "Integrazione spese di giustizia (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Integrazione spese di giustizia (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaAssegnazioneSezioniUnite",
+      "text": "Istanza di assegnazione alle Sezioni Unite (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di assegnazione alle Sezioni Unite (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaAssegnazioneSezioniUnite"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaAssegnazioneSezioniUnite",
+          "type": "IstanzaAssegnazioneSezioniUnite"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaCessazioneMateriaContendere",
+      "text": "Istanza di Cessazione della materia del contendere (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di Cessazione della materia del contendere (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaCessazioneMateriaContendere"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaCessazioneMateriaContendere",
+          "type": "IstanzaCessazioneMateriaContendere"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaPatrocinioASpeseDelloStato",
+      "text": "Istanza di gratuito patrocinio (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di gratuito patrocinio (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaPatrocinioASpeseDelloStato"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaPatrocinioASpeseDelloStato",
+          "type": "IstanzaPatrocinioASpeseDelloStato"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaOpposizione380bis",
+      "text": "Istanza di opposizione ex art. 380 bis (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di opposizione ex art. 380 bis (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaOpposizione380bis"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaOpposizione380bis",
+          "type": "IstanzaOpposizione380bis"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRimborsoSpeseGiustizia",
+      "text": "Istanza di rimborso delle spese di giustizia (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di rimborso delle spese di giustizia (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRimborsoSpeseGiustizia"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaRimborsoSpeseGiustizia",
+          "type": "IstanzaRimborsoSpeseGiustizia"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRinnovoNotificaRicorso",
+      "text": "Istanza di rinnovo notifica (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di rinnovo notifica (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRinnovoNotificaRicorso"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaRinnovoNotificaRicorso",
+          "type": "IstanzaRinnovoNotificaRicorso"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRinvioUdienza",
+      "text": "Istanza di rinvio udienza (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di rinvio udienza (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRinvioUdienza"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaRinvioUdienza",
+          "type": "IstanzaRinvioUdienza"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaRiunioneRicorsi",
+      "text": "Istanza di riunione ricorsi (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di riunione ricorsi (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaRiunioneRicorsi"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaRiunioneRicorsi",
+          "type": "IstanzaRiunioneRicorsi"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::SegnalazioneErroreMateriale",
+      "text": "Istanza di segnalazione di errore materiale (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di segnalazione di errore materiale (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_CorsoCausa_SIGP_CostituzioneSemplice",
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoMemorie",
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteConclusionali",
+        "Create_DatiAtto_CorsoCausa_SIGP_DepositoNoteScritteSostUdie",
+        "Create_DatiAtto_CorsoCausa_SIGP_IstanzaGenerica",
+        "Create_DatiAtto_CorsoCausa_SIGP_ProduzioneDocumentiRichiesti",
+        "Create_DatiAtto_Introduttivi_SIGP_Citazione",
+        "Create_DatiAtto_Introduttivi_SIGP_CitazioneInRiassunzione",
+        "Create_DatiAtto_Introduttivi_SIGP_OpposizioneDecretoIngiuntivo",
+        "Create_DatiAtto_Introduttivi_SIGP_Ricorso",
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoDecretoIngiuntivo",
+        "Create_DatiAtto_Introduttivi_SIGP_RicorsoOpposizioneSanzioneAmministrativa",
+        "Create_DatiAtto_ParteCassazione_IntegrazioneAnagrafica",
+        "Create_DatiAtto_ParteCassazione_IntegrazioneSpeseGiustizia",
+        "Create_DatiAtto_ParteCassazione_SegnalazioneErroreMateriale",
+        "Create_DatiAtto_UNEP_PagamentoRichiesta",
+        "Create_DatiAtto_UNEP_RichiestaNotifica",
+        "Create_DatiAtto_UNEP_RichiestaNotificaDebito",
+        "Create_DatiAtto_UNEP_RichiestaPignoramento",
+        "Create_DatiAtto_UNEP_RichiestaPignoramentoADebito",
+        "Create_DatiAtto_UNEP_RichiestaRestituzioneSomme",
+        "Create_DatiAtto_UNEP_RichiestaRicercaBeni"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "costituzioneSemplice",
+          "type": "CorsoCausa_SIGP.CostituzioneSemplice"
+        },
+        {
+          "variable": "depositoMemorie",
+          "type": "DepositoMemorie"
+        },
+        {
+          "variable": "depositoNoteConclusionali",
+          "type": "DepositoNoteConclusionali"
+        },
+        {
+          "variable": "depositoNoteScritteSostUdie",
+          "type": "CorsoCausa_SIGP.DepositoNoteScritteSostUdie"
+        },
+        {
+          "variable": "istanzaGenerica",
+          "type": "CorsoCausa_SIGP.IstanzaGenerica"
+        },
+        {
+          "variable": "produzioneDocumentiRichiesti",
+          "type": "CorsoCausa_SIGP.ProduzioneDocumentiRichiesti"
+        },
+        {
+          "variable": "citazione",
+          "type": "Introduttivi_SIGP.Citazione"
+        },
+        {
+          "variable": "citazioneInRiassunzione",
+          "type": "Introduttivi_SIGP.CitazioneInRiassunzione"
+        },
+        {
+          "variable": "opposizioneDecretoIngiuntivo",
+          "type": "Introduttivi_SIGP.OpposizioneDecretoIngiuntivo"
+        },
+        {
+          "variable": "ricorso",
+          "type": "Introduttivi_SIGP.Ricorso"
+        },
+        {
+          "variable": "ricorsoDecretoIngiuntivo",
+          "type": "Introduttivi_SIGP.RicorsoDecretoIngiuntivo"
+        },
+        {
+          "variable": "oSA",
+          "type": "OSA"
+        },
+        {
+          "variable": "iscrizioneRuoloPignoramento",
+          "type": "IscrizioneRuoloPignoramento"
+        },
+        {
+          "variable": "integrazioneAnagrafica",
+          "type": "IntegrazioneAnagrafica"
+        },
+        {
+          "variable": "integrazioneSpeseGiustizia",
+          "type": "IntegrazioneSpeseGiustizia"
+        },
+        {
+          "variable": "segnalazioneErroreMateriale",
+          "type": "SegnalazioneErroreMateriale"
+        },
+        {
+          "variable": "pagamentoRichiesta",
+          "type": "PagamentoRichiesta"
+        },
+        {
+          "variable": "richiestaParte",
+          "type": "RichiestaParte"
+        },
+        {
+          "variable": "richiestaParteDebito",
+          "type": "RichiestaParteDebito"
+        },
+        {
+          "variable": "richiestaPignoramento",
+          "type": "RichiestaPignoramento"
+        },
+        {
+          "variable": "richiestaPignoramentoDebito",
+          "type": "RichiestaPignoramentoDebito"
+        },
+        {
+          "variable": "richiestaRestituzioneSomme",
+          "type": "RichiestaRestituzioneSomme"
+        },
+        {
+          "variable": "richiestaRicercaBeni",
+          "type": "RichiestaRicercaBeni"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaSollecitaFissazione",
+      "text": "Istanza di sollecita fissazione (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di sollecita fissazione (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaSollecitaFissazione"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaSollecitaFissazione",
+          "type": "IstanzaSollecitaFissazione"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::IstanzaSospensioneGiudizio",
+      "text": "Istanza di sospensione del giudizio (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Istanza di sospensione del giudizio (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_IstanzaSospensioneGiudizio"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "istanzaSospensioneGiudizio",
+          "type": "IstanzaSospensioneGiudizio"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria378",
+      "text": "Memoria ex art. 378 (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Memoria ex art. 378 (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_Memoria378"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "memoria",
+          "type": "Memoria378"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380bis",
+      "text": "Memoria ex art. 380 bis (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Memoria ex art. 380 bis (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_Memoria380bis"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "memoria380bis",
+          "type": "Memoria380bis"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380bis1",
+      "text": "Memoria ex art. 380 bis 1 (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Memoria ex art. 380 bis 1 (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_Memoria380bis1"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "memoria380bis",
+          "type": "Memoria380bis1"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::Memoria380ter",
+      "text": "Memoria ex art. 380 ter (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Memoria ex art. 380 ter (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_Memoria380ter"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "memoria380ter",
+          "type": "Memoria380ter"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::NoteDiDeposito",
+      "text": "Nota di deposito (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Nota di deposito (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_AttoGenerico"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "attoGenerico",
+          "type": "ParteCassazione.AttoGenerico"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::ProvvedimentoImpugnato",
+      "text": "Provvedimento impugnato (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Provvedimento impugnato (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_ProvvedimentoImpugnato"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "provvedimentoImpugnato",
+          "type": "ProvvedimentoImpugnato"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::RicorsoRinnovoNotifica",
+      "text": "Ricorso per rinnovo notifica (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Ricorso per rinnovo notifica (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_RicorsoRinnovoNotifica"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "ricorsoRinnovoNotifica",
+          "type": "RicorsoRinnovoNotifica"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::RinunciaRicorso",
+      "text": "Rinuncia al ricorso (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Rinuncia al ricorso (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_RinunciaRicorso"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "rinunciaRicorso",
+          "type": "RinunciaRicorso"
+        }
+      ]
+    },
+    {
+      "key": "Parte_CASSAZIONE::RinunciaProcura",
+      "text": "Rinuncia alla procura (Corte di Cassazione)",
+      "macro": "Corte di Cassazione (civile)",
+      "categoria": "Atti endo-processuali",
+      "path": "Corte di Cassazione (civile) > Atti endo-processuali > Rinuncia alla procura (Corte di Cassazione)",
+      "prefix": "Parte_CASSAZIONE::",
+      "channel": "Cassazione civile",
+      "datiatto_methods": [
+        "Create_DatiAtto_ParteCassazione_RinunciaProcura"
+      ],
+      "datiatto_roots": [
+        {
+          "variable": "rinunciaProcura",
+          "type": "RinunciaProcura"
+        }
+      ]
+    },
+    {
+      "key": "Introduttivi_SIGP::Citazione",
+      "text": "Atto di citazione (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Atto di citazione (Giudice di Pace)",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::CitazioneInRiassunzione",
+      "text": "Atto di citazione in riassunzione (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Atto di citazione in riassunzione (Giudice di Pace)",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OpposizioneDecretoIngiuntivo",
+      "text": "Opposizione a decreto ingiuntivo (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Opposizione a decreto ingiuntivo (Giudice di Pace)",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_CartellaEsattoriale",
+      "text": "Opposizione a sanzione amministrativa (Cartella esattoriale) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Opposizione a sanzione amministrativa (Cartella esattoriale) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_IngiunzionePagamento",
+      "text": "Opposizione a sanzione amministrativa (Ingiunzione Prefettizia) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Opposizione a sanzione amministrativa (Ingiunzione Prefettizia) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::OSA_VerbaleAccertamento",
+      "text": "Opposizione a sanzione amministrativa (Verbale di accertamento) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Opposizione a sanzione amministrativa (Verbale di accertamento) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::Ricorso",
+      "text": "Ricorso (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso (Giudice di Pace)",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoImmigrazione",
+      "text": "Ricorso Immigrazione (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso Immigrazione (Giudice di Pace)",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoConsegnaBeni",
+      "text": "Ricorso per decreto ingiuntivo (consegna beni) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso per decreto ingiuntivo (consegna beni) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoOneriCondominiale",
+      "text": "Ricorso per decreto ingiuntivo (oneri condominiali) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso per decreto ingiuntivo (oneri condominiali) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoSommaAndConsegnaBeni",
+      "text": "Ricorso per decreto ingiuntivo (pagamento somma e consegna beni) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso per decreto ingiuntivo (pagamento somma e consegna beni) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Introduttivi_SIGP::RicorsoDecretoIngiuntivoPagamentoSomma",
+      "text": "Ricorso per decreto ingiuntivo (pagamento somma) - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti introduttivi",
+      "path": "Giudice di Pace > Atti introduttivi > Ricorso per decreto ingiuntivo (pagamento somma) - Giudice di Pace",
+      "prefix": "Introduttivi_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::CostituzioneSemplice",
+      "text": "Comparsa di costituzione semplice (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Comparsa di costituzione semplice (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoMemorie",
+      "text": "Deposito memorie (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Deposito memorie (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoNoteConclusionali",
+      "text": "Deposito note conclusionali (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Deposito note conclusionali (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::DepositoNoteScritteSostUdie",
+      "text": "Deposito note scritte sostitutive udienza (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Deposito note scritte sostitutive udienza (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Bis",
+      "text": "Istanza ex Art. 186-Bis c.p.c. (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Istanza ex Art. 186-Bis c.p.c. (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Quater",
+      "text": "Istanza ex Art. 186-Quater c.p.c. (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Istanza ex Art. 186-Quater c.p.c. (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaExArt186Ter",
+      "text": "Istanza ex Art. 186-Ter c.p.c. (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Istanza ex Art. 186-Ter c.p.c. (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::IstanzaGenerica",
+      "text": "Istanza Generica (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Istanza Generica (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::ProduzioneDocumentiRichiesti",
+      "text": "Produzione di documenti richiesti (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Produzione di documenti richiesti (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::RichiestaEsecutorietaExArt647",
+      "text": "Richiesta di escutorieta ex Art. 647 c.p.c. (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Richiesta di escutorieta ex Art. 647 c.p.c. (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "CorsoCausa_SIGP::AttoRichiestaVisibilità",
+      "text": "Richiesta di visibilità fascicolo (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti endo-processuali",
+      "path": "Giudice di Pace > Atti endo-processuali > Richiesta di visibilità fascicolo (Giudice di Pace)",
+      "prefix": "CorsoCausa_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoPerizia",
+      "text": "Deposito perizia (Giudice di Pace)",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "path": "Giudice di Pace > Atti del Consulente > Deposito perizia (Giudice di Pace)",
+      "prefix": "Professionista_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoRichiestaProrogaTerminiPerizia",
+      "text": "Istanza di richiesta di proroga dei termini per il deposito della perizia - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "path": "Giudice di Pace > Atti del Consulente > Istanza di richiesta di proroga dei termini per il deposito della perizia - Giudice di Pace",
+      "prefix": "Professionista_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoIstanzaGenerica",
+      "text": "Istanza generica del professionista - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "path": "Giudice di Pace > Atti del Consulente > Istanza generica del professionista - Giudice di Pace",
+      "prefix": "Professionista_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SIGP::DepositoIstanzaLiquidazioneCTU",
+      "text": "Istanza liquidazione consulenza tecnica di ufficio - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "path": "Giudice di Pace > Atti del Consulente > Istanza liquidazione consulenza tecnica di ufficio - Giudice di Pace",
+      "prefix": "Professionista_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Professionista_SIGP::NotaDepositoProfessionista",
+      "text": "Nota di deposito del professionista - Giudice di Pace",
+      "macro": "Giudice di Pace",
+      "categoria": "Atti del Consulente",
+      "path": "Giudice di Pace > Atti del Consulente > Nota di deposito del professionista - Giudice di Pace",
+      "prefix": "Professionista_SIGP::",
+      "channel": "SIGP / Giudice di Pace",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::AttoCivileDebito",
+      "text": "Richiesta di notifica di atto Civile (a debito)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di Notifica > Richiesta di notifica di atto Civile (a debito)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::AttoCivileAPagamento",
+      "text": "Richiesta di notifica di atto Civile a pagamento",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di Notifica > Richiesta di notifica di atto Civile a pagamento",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::AttoEsenteLavoro",
+      "text": "Richiesta di notifica di atto Lavoro (esente)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di Notifica > Richiesta di notifica di atto Lavoro (esente)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::AttoPenaleDebito",
+      "text": "Richiesta di notifica di atto Penale (a debito)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di Notifica > Richiesta di notifica di atto Penale (a debito)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::AttoPenaleAPagamento",
+      "text": "Richiesta di notifica di atto Penale (a pagamento)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di Notifica",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di Notifica > Richiesta di notifica di atto Penale (a pagamento)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaRicercaBeni",
+      "text": "Richiesta di ricerca beni da pignorare ex art. 492-bis c.p.c.",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di ricerca beni da pignorare",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di ricerca beni da pignorare > Richiesta di ricerca beni da pignorare ex art. 492-bis c.p.c.",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliare",
+      "text": "Richiesta di pignoramento immobiliare",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento immobiliare",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
+      "text": "Richiesta di pignoramento immobiliare (a debito)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento immobiliare (a debito)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
+      "text": "Richiesta di pignoramento immobiliare (in materia di lavoro)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento immobiliare (in materia di lavoro)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliare",
+      "text": "Richiesta di pignoramento mobiliare",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento mobiliare",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+      "text": "Richiesta di pignoramento mobiliare (a debito)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento mobiliare (a debito)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+      "text": "Richiesta di pignoramento mobiliare (in materia di lavoro)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento mobiliare (in materia di lavoro)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
+      "text": "Richiesta di pignoramento presso terzi",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento presso terzi",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
+      "text": "Richiesta di pignoramento presso terzi (a debito)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento presso terzi (a debito)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
+      "text": "Richiesta di pignoramento presso terzi (in materia di lavoro)",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di pignoramento",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di pignoramento > Richiesta di pignoramento presso terzi (in materia di lavoro)",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::PagamentoRichiestaNotifica",
+      "text": "Pagamento della richiesta di notifica",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Pagamenti",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Pagamenti > Pagamento della richiesta di notifica",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::PagamentoRichiestaPignoramento",
+      "text": "Pagamento della richiesta di pignoramento",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Pagamenti",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Pagamenti > Pagamento della richiesta di pignoramento",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    },
+    {
+      "key": "Atti_UNEP::RichiestaRestituzioneSomme",
+      "text": "Richiesta di restituzione somme in eccesso",
+      "macro": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti",
+      "categoria": "Richieste di restituzione",
+      "path": "UNEP - Ufficio Notificazioni, Esecuzioni e Protesti > Richieste di restituzione > Richiesta di restituzione somme in eccesso",
+      "prefix": "Atti_UNEP::",
+      "channel": "UNEP",
+      "datiatto_methods": [],
+      "datiatto_roots": []
+    }
+  ]
+}

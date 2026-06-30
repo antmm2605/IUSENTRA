@@ -1,0 +1,22 @@
+{
+  "generated_at": "30/06/2026 18:10 (Europe/Rome)",
+  "privacy": "Sono esportati solo conteggi, nomi tabella e colonne; nessun valore personale o credenziale.",
+  "databases": [
+    {
+      "path": "C:\\QuickOrganizer\\QuickOrganizer.mdb",
+      "error": "Formato inatteso da PowerShell"
+    },
+    {
+      "path": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer.Databases.QuickOrganizer.mdb",
+      "error": "Formato inatteso da PowerShell"
+    }
+  ],
+  "key_tables": [
+    "PRATICHE",
+    "TESTI",
+    "EMAILS",
+    "AGENDA",
+    "TAVOLA",
+    "Accounts"
+  ]
+}

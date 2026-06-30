@@ -1,0 +1,1681 @@
+{
+  "generated_at": "30/06/2026 18:10 (Europe/Rome)",
+  "quick_root": "C:\\QuickOrganizer",
+  "file_counts": {
+    "total_files": 10850,
+    "without_webview2": 9919,
+    "extensions_all": {
+      ".pdf": 9427,
+      "(no extension)": 807,
+      ".dll": 195,
+      ".zip": 76,
+      ".eml": 53,
+      ".hyb": 52,
+      ".rtf": 51,
+      ".xml": 51,
+      ".old": 22,
+      ".p7m": 20,
+      ".json": 16,
+      ".mdb": 11,
+      ".log": 11,
+      ".txt": 8,
+      ".exe": 5,
+      ".png": 5,
+      ".ldb": 4,
+      ".config": 3,
+      ".dic": 3,
+      ".db": 3,
+      ".pb": 3,
+      ".jpg": 2,
+      ".xslt": 2,
+      ".cer": 2,
+      ".dat": 2,
+      ".db-journal": 2,
+      ".jpeg": 1,
+      ".ps1": 1,
+      ".htm": 1,
+      ".reg": 1,
+      ".ico": 1,
+      ".txd": 1,
+      ".aff": 1,
+      ".pma": 1,
+      ".js": 1,
+      ".0-a82cb2897a8bf9445d68dcc2be05af89ad4b2fda1fddb2952693be7cd5353ad3": 1,
+      ".db-wal": 1,
+      ".journal": 1,
+      ".baj": 1,
+      ".baf": 1
+    },
+    "extensions_without_webview2": {
+      ".pdf": 9427,
+      ".dll": 193,
+      ".zip": 76,
+      ".eml": 53,
+      ".rtf": 51,
+      ".xml": 51,
+      ".p7m": 20,
+      ".mdb": 11,
+      ".txt": 7,
+      ".exe": 5,
+      ".png": 5,
+      ".config": 3,
+      ".dic": 3,
+      ".jpg": 2,
+      ".xslt": 2,
+      ".cer": 2,
+      ".jpeg": 1,
+      ".json": 1,
+      ".ps1": 1,
+      ".htm": 1,
+      ".reg": 1,
+      ".ico": 1,
+      ".txd": 1,
+      ".aff": 1
+    }
+  },
+  "dll_exe_inventory": [],
+  "library_categories": {},
+  "domain_keyword_hits": [
+    {
+      "path": "C:/QuickOrganizer/QuickOrganizer.exe",
+      "bytes": 77663824,
+      "hits": {
+        "processotelematico": 1025,
+        "CatalogoServizi": 2,
+        "getCertificato": 2,
+        "DatiAtto": 155,
+        "Atto.enc": 12,
+        "IndiceBusta": 4,
+        "IndiceDocumenti": 3,
+        "QualifiedCertificate": 12,
+        "MailBee": 22,
+        "SignLib": 5,
+        "PolisWeb": 23,
+        "WebView2": 42,
+        "PortaleNotifiche": 1,
+        "ReGIndE": 2,
+        "PAVVP": 1,
+        "PEC": 4238,
+        "Notificazione": 2,
+        "L. 53": 3,
+        "CAdES": 6,
+        "PAdES": 3,
+        "pkcs": 7,
+        "2.16.840.1.101.3.4.1.42": 1,
+        "pin": 513
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ListaUfficiGiudiziari.xml",
+      "bytes": 3543211,
+      "hits": {
+        "PEC": 1606,
+        "pin": 23
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Web.WebView2.Core.dll",
+      "bytes": 536152,
+      "hits": {
+        "WebView2": 1120,
+        "PEC": 10,
+        "pin": 14
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.v11.1.dll",
+      "bytes": 3907584,
+      "hits": {
+        "PEC": 212,
+        "pin": 410
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Web.WebView2.DevToolsProtocolExtension.dll",
+      "bytes": 1099696,
+      "hits": {
+        "WebView2": 521,
+        "PEC": 47,
+        "pin": 11
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinGrid.v11.1.dll",
+      "bytes": 2322432,
+      "hits": {
+        "PEC": 277,
+        "pin": 149
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinSchedule.v11.1.dll",
+      "bytes": 2457600,
+      "hits": {
+        "PEC": 109,
+        "pin": 156
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/MailBee.NET.dll",
+      "bytes": 1827080,
+      "hits": {
+        "MailBee": 187,
+        "PEC": 34,
+        "PAdES": 1,
+        "pkcs": 3,
+        "2.16.840.1.101.3.4.1.42": 2,
+        "pin": 22
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/SignLib.dll",
+      "bytes": 3633152,
+      "hits": {
+        "SignLib": 7,
+        "PEC": 59,
+        "CAdES": 6,
+        "PAdES": 3,
+        "pkcs": 66,
+        "AES256": 8,
+        "pin": 66
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Documents.Excel.v11.1.dll",
+      "bytes": 1781760,
+      "hits": {
+        "PEC": 144,
+        "pin": 15
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics3.Documents.Excel.v11.1.dll",
+      "bytes": 1789952,
+      "hits": {
+        "PEC": 144,
+        "pin": 15
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinToolbars.v11.1.dll",
+      "bytes": 2756608,
+      "hits": {
+        "PEC": 86,
+        "pin": 65
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.Misc.v11.1.dll",
+      "bytes": 1179648,
+      "hits": {
+        "PEC": 73,
+        "pin": 66
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/QuickOrganizer.exe.WebView2/EBWebView/Speech Recognition/1.15.0.1/Microsoft.CognitiveServices.Speech.core.dll",
+      "bytes": 2692424,
+      "hits": {
+        "PEC": 88,
+        "pin": 32
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Text.Json.dll",
+      "bytes": 644888,
+      "hits": {
+        "PEC": 100,
+        "pkcs": 2,
+        "pin": 17
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinChart.v11.1.dll",
+      "bytes": 1794048,
+      "hits": {
+        "PEC": 74,
+        "pin": 40
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinEditors.v11.1.dll",
+      "bytes": 499712,
+      "hits": {
+        "PEC": 38,
+        "pin": 66
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinCalcManager.v11.1.dll",
+      "bytes": 458752,
+      "hits": {
+        "PEC": 91,
+        "pin": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/WebView2.DevTools.Dom.dll",
+      "bytes": 243712,
+      "hits": {
+        "WebView2": 93,
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinTree.v11.1.dll",
+      "bytes": 651264,
+      "hits": {
+        "PEC": 47,
+        "pin": 20
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/AutoMapper.dll",
+      "bytes": 209408,
+      "hits": {
+        "PEC": 13,
+        "pin": 50
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Web.WebView2.Wpf.dll",
+      "bytes": 47680,
+      "hits": {
+        "WebView2": 58,
+        "PEC": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Web.WebView2.WinForms.dll",
+      "bytes": 40528,
+      "hits": {
+        "WebView2": 58
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Newtonsoft.Json.dll",
+      "bytes": 711952,
+      "hits": {
+        "PEC": 46,
+        "pin": 12
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/netstandard.dll",
+      "bytes": 98048,
+      "hits": {
+        "PEC": 18,
+        "pkcs": 5,
+        "pin": 35
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinMaskedEdit.v11.1.dll",
+      "bytes": 86016,
+      "hits": {
+        "PEC": 23,
+        "pin": 29
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.SupportDialogs.v11.1.dll",
+      "bytes": 860160,
+      "hits": {
+        "PEC": 29,
+        "pin": 22
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/TXTextControl.dll",
+      "bytes": 414720,
+      "hits": {
+        "PEC": 42,
+        "pin": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Documents.Reports.v11.1.dll",
+      "bytes": 1437696,
+      "hits": {
+        "PEC": 12,
+        "pkcs": 1,
+        "pin": 29
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinListView.v11.1.dll",
+      "bytes": 348160,
+      "hits": {
+        "PEC": 24,
+        "pin": 16
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Shared.v11.1.dll",
+      "bytes": 311296,
+      "hits": {
+        "PEC": 30,
+        "pin": 9
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Compattazione.exe",
+      "bytes": 1129040,
+      "hits": {
+        "PEC": 24,
+        "AES256": 2,
+        "pin": 11
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/QC_Uffici.xml",
+      "bytes": 1347461,
+      "hits": {
+        "PEC": 8,
+        "pin": 20
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/DynamicDotNetTWAIN.dll",
+      "bytes": 2135648,
+      "hits": {
+        "PEC": 14,
+        "pkcs": 5,
+        "pin": 8
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinTabControl.v11.1.dll",
+      "bytes": 262144,
+      "hits": {
+        "PEC": 13,
+        "pin": 14
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinDataSource.v11.1.dll",
+      "bytes": 110592,
+      "hits": {
+        "PEC": 22,
+        "pin": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinGrid.ExcelExport.v11.1.dll",
+      "bytes": 131072,
+      "hits": {
+        "PEC": 5,
+        "pin": 17
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/TXDocumentServer.dll",
+      "bytes": 355840,
+      "hits": {
+        "PEC": 22
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Memory.dll",
+      "bytes": 142240,
+      "hits": {
+        "PEC": 11,
+        "pin": 10
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Diagnostics.DiagnosticSource.dll",
+      "bytes": 189088,
+      "hits": {
+        "PEC": 20
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Chat Temporanea.txt",
+      "bytes": 31777,
+      "hits": {
+        "PEC": 11,
+        "pin": 8
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Dictionaries/README_it_IT.txt",
+      "bytes": 38653,
+      "hits": {
+        "PEC": 19
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Net.Http.dll",
+      "bytes": 200600,
+      "hits": {
+        "PEC": 18
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Google.Apis.Calendar.v3.dll",
+      "bytes": 102912,
+      "hits": {
+        "PEC": 13,
+        "pin": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/TrasferimentoDati.exe",
+      "bytes": 966736,
+      "hits": {
+        "PEC": 3,
+        "pin": 13
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Security.Cryptography.Pkcs.dll",
+      "bytes": 22288,
+      "hits": {
+        "pkcs": 15
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/WebView2Loader.dll",
+      "bytes": 117312,
+      "hits": {
+        "WebView2": 12,
+        "pin": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/it/txtextcontrol.resources.dll",
+      "bytes": 73728,
+      "hits": {
+        "PEC": 14
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/log4net.dll",
+      "bytes": 270336,
+      "hits": {
+        "PEC": 7,
+        "pin": 7
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20230920191049043.XML",
+      "bytes": 1884,
+      "hits": {
+        "processotelematico": 9,
+        "DatiAtto": 2,
+        "IndiceBusta": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/QuickOrganizer.exe.config",
+      "bytes": 35232,
+      "hits": {
+        "QualifiedCertificate": 3,
+        "MailBee": 1,
+        "PolisWeb": 1,
+        "WebView2": 1,
+        "PEC": 3,
+        "pkcs": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Data.Common.dll",
+      "bytes": 25136,
+      "hits": {
+        "PEC": 1,
+        "pin": 11
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinStatusBar.v11.1.dll",
+      "bytes": 212992,
+      "hits": {
+        "PEC": 9,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_pdf.dll",
+      "bytes": 755200,
+      "hits": {
+        "PEC": 7,
+        "pkcs": 1,
+        "pin": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/HtmlAgilityPack.dll",
+      "bytes": 171008,
+      "hits": {
+        "PEC": 2,
+        "PAdES": 1,
+        "pkcs": 6,
+        "pin": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_css.dll",
+      "bytes": 459264,
+      "hits": {
+        "PEC": 2,
+        "pin": 7
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.IO.Compression.dll",
+      "bytes": 68504,
+      "hits": {
+        "PEC": 8
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20240704170347787.xml",
+      "bytes": 256021,
+      "hits": {
+        "PEC": 1,
+        "pin": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Google.Apis.Auth.dll",
+      "bytes": 230912,
+      "hits": {
+        "PEC": 2,
+        "pkcs": 3,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinListBar.v11.1.dll",
+      "bytes": 98304,
+      "hits": {
+        "PEC": 7
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/MicrosoftEdgeWebview2Setup.exe",
+      "bytes": 1613664,
+      "hits": {
+        "WebView2": 1,
+        "PEC": 1,
+        "pin": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Text.Encodings.Web.dll",
+      "bytes": 79024,
+      "hits": {
+        "PEC": 1,
+        "pin": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20240702184047256.xml",
+      "bytes": 261092,
+      "hits": {
+        "pin": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/MC_v1.1.xslt.xml",
+      "bytes": 8927,
+      "hits": {
+        "PEC": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/NS_v1.1.xslt.xml",
+      "bytes": 9915,
+      "hits": {
+        "PEC": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/RC_v1.1.xslt.xml",
+      "bytes": 9552,
+      "hits": {
+        "PEC": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Net.Ping.dll",
+      "bytes": 20528,
+      "hits": {
+        "pin": 6
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_doc.dll",
+      "bytes": 763904,
+      "hits": {
+        "PEC": 2,
+        "pin": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_rtf.dll",
+      "bytes": 669696,
+      "hits": {
+        "PEC": 2,
+        "pin": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20240102185601901.XML",
+      "bytes": 956,
+      "hits": {
+        "processotelematico": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20240213095058569.xml",
+      "bytes": 1266,
+      "hits": {
+        "PEC": 4,
+        "Notificazione": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Extensions.DependencyInjection.dll",
+      "bytes": 96928,
+      "hits": {
+        "PEC": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Microsoft.Extensions.Logging.Abstractions.dll",
+      "bytes": 67856,
+      "hits": {
+        "PEC": 4,
+        "pin": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.ComponentModel.TypeConverter.dll",
+      "bytes": 22064,
+      "hits": {
+        "PEC": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Security.Cryptography.Algorithms.dll",
+      "bytes": 22064,
+      "hits": {
+        "pkcs": 5
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_dox.dll",
+      "bytes": 1262080,
+      "hits": {
+        "PEC": 2,
+        "pin": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_xml.dll",
+      "bytes": 410112,
+      "hits": {
+        "PEC": 2,
+        "pin": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/GooglePasswordApp.htm",
+      "bytes": 7906,
+      "hits": {
+        "PEC": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/JETCOMP.exe",
+      "bytes": 65536,
+      "hits": {
+        "PEC": 2,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Runtime.InteropServices.dll",
+      "bytes": 23600,
+      "hits": {
+        "PEC": 2,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/fatturaPA_v1.2.1.xslt",
+      "bytes": 123555,
+      "hits": {
+        "PEC": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/fatturaordinaria_v1.2.1.xslt",
+      "bytes": 123554,
+      "hits": {
+        "PEC": 4
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/tx22_htm.dll",
+      "bytes": 944128,
+      "hits": {
+        "PEC": 1,
+        "PAdES": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/txic.dll",
+      "bytes": 543744,
+      "hits": {
+        "PEC": 2,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/txpdf.dll",
+      "bytes": 643584,
+      "hits": {
+        "PEC": 1,
+        "PAdES": 2,
+        "pin": 1
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinCalcManager.v11.1.FormulaBuilder.dll",
+      "bytes": 114688,
+      "hits": {
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinGrid.DocumentExport.v11.1.dll",
+      "bytes": 131072,
+      "hits": {
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/Infragistics2.Win.UltraWinPrintPreviewDialog.v11.1.dll",
+      "bytes": 163840,
+      "hits": {
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/System.Collections.Specialized.dll",
+      "bytes": 20528,
+      "hits": {
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/TXSpell.Windows.Forms.dll",
+      "bytes": 307712,
+      "hits": {
+        "PEC": 3
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/txtools.dll",
+      "bytes": 450048,
+      "hits": {
+        "PEC": 1,
+        "pin": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250418115535736.xml",
+      "bytes": 3188,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250424114419668.xml",
+      "bytes": 3181,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250424115218661.xml",
+      "bytes": 3508,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250503102148487.xml",
+      "bytes": 3155,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250503104204444.xml",
+      "bytes": 3165,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250606181407886.xml",
+      "bytes": 3494,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250624185633624.xml",
+      "bytes": 3504,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250702113320502.xml",
+      "bytes": 3496,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250813114521375.xml",
+      "bytes": 3504,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250813123501264.xml",
+      "bytes": 3498,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250902105737980.xml",
+      "bytes": 3484,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250904102024669.xml",
+      "bytes": 3504,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250904102117927.xml",
+      "bytes": 3504,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20250908173042017.xml",
+      "bytes": 3503,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251027121532595.xml",
+      "bytes": 3527,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251103174430243.xml",
+      "bytes": 3497,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251104115215502.xml",
+      "bytes": 3506,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251112150905196.xml",
+      "bytes": 3507,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251113195121115.xml",
+      "bytes": 3573,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20251125103516164.xml",
+      "bytes": 3501,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260107115226390.xml",
+      "bytes": 3510,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260107122005361.xml",
+      "bytes": 3503,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260113090237954.xml",
+      "bytes": 3508,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260122092534846.xml",
+      "bytes": 3535,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260122173832218.xml",
+      "bytes": 3510,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260212091234033.xml",
+      "bytes": 3512,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260317080850321.xml",
+      "bytes": 3513,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260317082000403.xml",
+      "bytes": 3491,
+      "hits": {
+        "PEC": 2
+      }
+    },
+    {
+      "path": "C:/QuickOrganizer/ATTI/20260317101507526.xml",
+      "bytes": 3489,
+      "hits": {
+        "PEC": 2
+      }
+    }
+  ],
+  "embedded_resources": {
+    "csproj_resource_includes": [
+      "QuickOrganizer.Agenda.Google.Apis.Calendar.v3.dll",
+      "QuickOrganizer.Agenda.client_secrets.json",
+      "QuickOrganizer.Contabilità.FatturaElettronica.MC_v1.1.xslt.xml",
+      "QuickOrganizer.Contabilità.FatturaElettronica.MT_v1.1.xml",
+      "QuickOrganizer.Contabilità.FatturaElettronica.NS_v1.1.xslt.xml",
+      "QuickOrganizer.Contabilità.FatturaElettronica.RC_v1.1.xslt.xml",
+      "QuickOrganizer.Contabilità.FatturaElettronica.fatturaPA_v1.2.1.xslt",
+      "QuickOrganizer.Contabilità.FatturaElettronica.fatturaordinaria_v1.2.1.xslt",
+      "QuickOrganizer.CoverPages.CondizioniGenerali.rtf",
+      "QuickOrganizer.CoverPages.CoverPageAgenda.rtf",
+      "QuickOrganizer.CoverPages.CoverPageContabilità.rtf",
+      "QuickOrganizer.CoverPages.CoverPageEmail.rtf",
+      "QuickOrganizer.CoverPages.CoverPageMovimentazioni.rtf",
+      "QuickOrganizer.CoverPages.CoverPageRubrica.rtf",
+      "QuickOrganizer.CoverPages.CoverPageSchedario.rtf",
+      "QuickOrganizer.CoverPages.CoverPageStrumenti.rtf",
+      "QuickOrganizer.CoverPages.CoverPageVideoscrittura.rtf",
+      "QuickOrganizer.Databases.Comuni.mdb",
+      "QuickOrganizer.Databases.DM_140_2012.mdb",
+      "QuickOrganizer.Databases.DM_147_2022.mdb",
+      "QuickOrganizer.Databases.DM_55_2014.mdb",
+      "QuickOrganizer.Databases.JETCOMP.exe",
+      "QuickOrganizer.Databases.LogAccessi.txt",
+      "QuickOrganizer.Databases.QuickOrganizer.mdb",
+      "QuickOrganizer.Databases.TariffarioVoci.mdb",
+      "QuickOrganizer.Databases.TariffarioVoci_DM2014.mdb",
+      "QuickOrganizer.Databases.TariffarioVoci_DM2022.mdb",
+      "QuickOrganizer.Databases.Utenti.xml",
+      "QuickOrganizer.Emails.GooglePasswordApp.htm",
+      "QuickOrganizer.ProcessoTelematico.UfficiGiudiziari.ListaUfficiGiudiziari.xml",
+      "QuickOrganizer.ProcessoTelematico.UfficiGiudiziari.QC_Uffici.xml",
+      "QuickOrganizer.ProcessoTelematico.pst.cer",
+      "QuickOrganizer.QuickWord.FormatPainter.cur",
+      "QuickOrganizer.Resources.Edi_16.png",
+      "QuickOrganizer.Sounds.NOTIFY.WAV",
+      "QuickOrganizer.Videoscrittura.TXSpell.resources.dll",
+      "QuickOrganizer.Videoscrittura.hyph_it_IT.dic",
+      "QuickOrganizer.Videoscrittura.it_IT.aff",
+      "QuickOrganizer.Videoscrittura.it_IT.dic",
+      "QuickOrganizer.Videoscrittura.txtextcontrol.resources.dll",
+      "QuickOrganizer.exe.licenses"
+    ],
+    "extracted_resource_files": [
+      {
+        "name": "FormSentMailBee.resx",
+        "extension": ".resx",
+        "bytes": 4861,
+        "sha256": "31153ce1f6b63e90b8e99b3ecbb50dedf39cec87cdfb61176457bee01382fe89"
+      },
+      {
+        "name": "QuickOrganizer.Agenda.Google.Apis.Calendar.v3.dll",
+        "extension": ".dll",
+        "bytes": 102912,
+        "sha256": "a5b7bddc02f350cf0bd9cdcb486bb6c0d6095ab5b91a463ec5028fd2691fa0f0"
+      },
+      {
+        "name": "QuickOrganizer.Backup.resx",
+        "extension": ".resx",
+        "bytes": 2361,
+        "sha256": "99323177c5b7ea0234048fae27bdfaf6f328303c6a17f6531c1c378fd180a42c"
+      },
+      {
+        "name": "QuickOrganizer.BrowserForm.resx",
+        "extension": ".resx",
+        "bytes": 35590,
+        "sha256": "96ba3da21293feced0242885a5d692ff925bb99c35423a6947a8b16dcf2dd40e"
+      },
+      {
+        "name": "QuickOrganizer.Compattazione.resx",
+        "extension": ".resx",
+        "bytes": 2258,
+        "sha256": "36b9246545401d59f57c12fd98a6a3afaab567c7d69947585a1379a59bc0e194"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.fatturaordinaria_v1.2.1.xslt",
+        "extension": ".xslt",
+        "bytes": 123554,
+        "sha256": "7e781d58f301055d3caa55aed2d1a8993185c60369004b418aec03a00ec2835a"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.fatturaPA_v1.2.1.xslt",
+        "extension": ".xslt",
+        "bytes": 123555,
+        "sha256": "ac278f980b84ae59a428544adf3eb52fc1685e381e441f5b8302cfffe902fc7d"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.MC_v1.1.xslt.xml",
+        "extension": ".xml",
+        "bytes": 8927,
+        "sha256": "691391786d353e8ef3ea3dbae075ef94d1f216144e75fc9b8a8aa0d8f55dd48c"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.MT_v1.1.xml",
+        "extension": ".xml",
+        "bytes": 7169,
+        "sha256": "14afe7ab683ad2471a35a55986bd70c1e3ef2864893ef803a8c74b3c3a5b0fa7"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.NS_v1.1.xslt.xml",
+        "extension": ".xml",
+        "bytes": 9915,
+        "sha256": "402ac7cd7301d01c3ddec8c4620dc3ee368991dc5fd817120dc9bfe27a8b9790"
+      },
+      {
+        "name": "QuickOrganizer.Contabilità.FatturaElettronica.RC_v1.1.xslt.xml",
+        "extension": ".xml",
+        "bytes": 9552,
+        "sha256": "d9398c161ec638e17c83eb7a5cda4ab11960ba500fff88b081669e2edcbc56db"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CondizioniGenerali.rtf",
+        "extension": ".rtf",
+        "bytes": 4117,
+        "sha256": "13e8117db2674f648796dcd880f2fc4ecdf2fc9f1a93c073fe2bb278886e9549"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageAgenda.rtf",
+        "extension": ".rtf",
+        "bytes": 7130111,
+        "sha256": "ce7fb256874ff064c194f11518898384df1cbbe6ad41a39ff90aea24dfad9730"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageContabilità.rtf",
+        "extension": ".rtf",
+        "bytes": 6109905,
+        "sha256": "8ac861f6a6ee936b9199f260a8c837f8e162d373e4da71e31778e954443697a5"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageEmail.rtf",
+        "extension": ".rtf",
+        "bytes": 6350223,
+        "sha256": "936253d37b3544077a62dbe7dc4c97fd14474918960ce89dc4bda24d2c55642b"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageMovimentazioni.rtf",
+        "extension": ".rtf",
+        "bytes": 6109868,
+        "sha256": "378ddf6ea2726bd620aede65dd938d2a8c8b3dc29612a0090e633ed71d2e2d15"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageRubrica.rtf",
+        "extension": ".rtf",
+        "bytes": 6236591,
+        "sha256": "25b7903ef46e3c98878caa6949abbbcafcf35c95b387ef6e0ffe239a49d09f77"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageSchedario.rtf",
+        "extension": ".rtf",
+        "bytes": 6176689,
+        "sha256": "bbdb9b31e01ecef607a4c461f96b22a019804484634314db789aeb15521f5edc"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageStrumenti.rtf",
+        "extension": ".rtf",
+        "bytes": 398888,
+        "sha256": "7a0aba09bd506a827a64cc40de9d8c6eea85878e459b72edef6b7f42c5ae9de0"
+      },
+      {
+        "name": "QuickOrganizer.CoverPages.CoverPageVideoscrittura.rtf",
+        "extension": ".rtf",
+        "bytes": 9261877,
+        "sha256": "e9da0f52a966cfc30b7f3c8a3393bf1ee6eb3cb13da15662338535ad8bf5c8b0"
+      },
+      {
+        "name": "QuickOrganizer.DatabasePath.resx",
+        "extension": ".resx",
+        "bytes": 18458,
+        "sha256": "5cac0db9d445ad9905ec36bda8c842a64c2cf405ff2f13fbc727ec48b87df21c"
+      },
+      {
+        "name": "QuickOrganizer.Databases.Comuni.mdb",
+        "extension": ".mdb",
+        "bytes": 1126400,
+        "sha256": "a8b7ccbf5713a5ea26da0a5c5d191825bb46d35566bcf963272848163da45566"
+      },
+      {
+        "name": "QuickOrganizer.Databases.DM_140_2012.mdb",
+        "extension": ".mdb",
+        "bytes": 274432,
+        "sha256": "599a786cd46ed40cf986184472c213b2dbb59e7c61fcf849f9286a84403114b0"
+      },
+      {
+        "name": "QuickOrganizer.Databases.DM_147_2022.mdb",
+        "extension": ".mdb",
+        "bytes": 540672,
+        "sha256": "5d718475f0c6499057691ff1c67e8a4b4b777102fe35cf11725209d1056a2ee6"
+      },
+      {
+        "name": "QuickOrganizer.Databases.DM_55_2014.mdb",
+        "extension": ".mdb",
+        "bytes": 401408,
+        "sha256": "c7107e7484366437ea22e335c35d5515285ab65d40cc85e0208afc7aa07ff764"
+      },
+      {
+        "name": "QuickOrganizer.Databases.JETCOMP.exe",
+        "extension": ".exe",
+        "bytes": 65536,
+        "sha256": "6f3edd5c980f9000613fb3cf44c763764498fa817f10c1227dee3b8bee490bb3"
+      },
+      {
+        "name": "QuickOrganizer.Databases.LogAccessi.txt",
+        "extension": ".txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "QuickOrganizer.Databases.QuickOrganizer.mdb",
+        "extension": ".mdb",
+        "bytes": 1007616,
+        "sha256": "dd5951c6501184843275cb02a4956edcf7ea2610eb416570106bbb699d652f94"
+      },
+      {
+        "name": "QuickOrganizer.Databases.TariffarioVoci.mdb",
+        "extension": ".mdb",
+        "bytes": 417792,
+        "sha256": "79659c0bf98542d2ed0465fdcb342dcb76c0bd0e08c357ab8260b26d189ea4eb"
+      },
+      {
+        "name": "QuickOrganizer.Databases.TariffarioVoci_DM2014.mdb",
+        "extension": ".mdb",
+        "bytes": 417792,
+        "sha256": "f0bd7e94ff29499ac17b9dde5a1499fdbbe3f50635ad983eab7a1a0cd8557268"
+      },
+      {
+        "name": "QuickOrganizer.Databases.TariffarioVoci_DM2022.mdb",
+        "extension": ".mdb",
+        "bytes": 417792,
+        "sha256": "94f1a8ef2f17becc8118d13e912675ef5efe8059824f7fd86460c47c9cda1156"
+      },
+      {
+        "name": "QuickOrganizer.Databases.Utenti.xml",
+        "extension": ".xml",
+        "bytes": 372,
+        "sha256": "c2a9dc41e777c78b1f8ff21bf63292083310a1d54b4a3d4f771da11ab22637b2"
+      },
+      {
+        "name": "QuickOrganizer.DotNetTwain.resx",
+        "extension": ".resx",
+        "bytes": 87386,
+        "sha256": "cadf945793ce9b391f00feccee700366f64fde965e1801af483a2b92ce09a908"
+      },
+      {
+        "name": "QuickOrganizer.Emails.GooglePasswordApp.htm",
+        "extension": ".htm",
+        "bytes": 7906,
+        "sha256": "2f64876574d23ebb440225a2ff9063eab3ef1d03cee463e790509b087a2d8d7a"
+      },
+      {
+        "name": "QuickOrganizer.exe.licenses",
+        "extension": ".licenses",
+        "bytes": 12288,
+        "sha256": "35f5fdb1a2eccb52144061e47b53fdd8c51b00a1a8c3d731916a0ffa1e13c939"
+      },
+      {
+        "name": "QuickOrganizer.FattureAcquisto.resx",
+        "extension": ".resx",
+        "bytes": 5627,
+        "sha256": "76254a762090d38b60a6d90ce3f058fec4ec74f7c68aa6b4812d223fd2acf9f5"
+      },
+      {
+        "name": "QuickOrganizer.FormCodiceFiscale.resx",
+        "extension": ".resx",
+        "bytes": 39105,
+        "sha256": "0faa452fde58e3e583a4b60b77d8ff1ed2d402e0f25c87e034976e2cedaaf534"
+      },
+      {
+        "name": "QuickOrganizer.FormComprimiFiles.resx",
+        "extension": ".resx",
+        "bytes": 2920,
+        "sha256": "39aadc5a282b5d38c3268d721a9a6d759427a36b906b413f84288859ccd4191d"
+      },
+      {
+        "name": "QuickOrganizer.FormCountDown.resx",
+        "extension": ".resx",
+        "bytes": 218845,
+        "sha256": "66241ce4660f87a04f887a415a2139385200ee63816a1dac629088565f86e6c6"
+      },
+      {
+        "name": "QuickOrganizer.FormDepositaConSoftwareEsterno.resx",
+        "extension": ".resx",
+        "bytes": 2172,
+        "sha256": "2332c84c1384e989da9d5382e05a37f2d802ed41603263f4e27bd3c53b3bece9"
+      },
+      {
+        "name": "QuickOrganizer.FormHash.resx",
+        "extension": ".resx",
+        "bytes": 2232,
+        "sha256": "53f1878ca497f6546b29536b8b30f9054f2062c5ea11b96ba339875301eb727e"
+      },
+      {
+        "name": "QuickOrganizer.FormMain.resx",
+        "extension": ".resx",
+        "bytes": 1341656,
+        "sha256": "76aabd533bad2464b5c5be1ae277846c32c12fd3d1e72645fec4174f41343dd9"
+      },
+      {
+        "name": "QuickOrganizer.FormQualeScarico.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.FormScorporo.resx",
+        "extension": ".resx",
+        "bytes": 8180,
+        "sha256": "291402a84ae8b1b9cf83d26ca33d263f5cdd912273f91bc02f7404b6dd411972"
+      },
+      {
+        "name": "QuickOrganizer.FormUnisciPDF.resx",
+        "extension": ".resx",
+        "bytes": 3426,
+        "sha256": "e7149d2264ffbe6c6d328a91d9aa4f0129203abe97c7deffacef75bf227655f7"
+      },
+      {
+        "name": "QuickOrganizer.FormVerificaFirmeDigitali.resx",
+        "extension": ".resx",
+        "bytes": 12016,
+        "sha256": "9cc987a5ea2f5211ebb223a743d5a048da19b80d128335896bbc9b01fc138269"
+      },
+      {
+        "name": "QuickOrganizer.frmAccountSettings.resx",
+        "extension": ".resx",
+        "bytes": 35950,
+        "sha256": "f786502b73c7e9052e80d7ccc62e4106d1e50a1768efb383d15b2bf2c8f89cf2"
+      },
+      {
+        "name": "QuickOrganizer.frmAddressBook.resx",
+        "extension": ".resx",
+        "bytes": 8180,
+        "sha256": "0c75a1fcc2dfae20fe805529117b56bd5b6ee95d9204ddd0e1910aeca7924f07"
+      },
+      {
+        "name": "QuickOrganizer.frmFaldoni.resx",
+        "extension": ".resx",
+        "bytes": 2355,
+        "sha256": "eff4921bc3f9fe41429a34d8cc90c91c3fb17d9dafe249e9a3c64951b4654062"
+      },
+      {
+        "name": "QuickOrganizer.frmFindReplace.resx",
+        "extension": ".resx",
+        "bytes": 2426,
+        "sha256": "b7dd2a018c23cb3e9214f084fe75e1d00724da75dcc97253224e43b3d9720f95"
+      },
+      {
+        "name": "QuickOrganizer.frmMittenteSettings.resx",
+        "extension": ".resx",
+        "bytes": 35950,
+        "sha256": "f786502b73c7e9052e80d7ccc62e4106d1e50a1768efb383d15b2bf2c8f89cf2"
+      },
+      {
+        "name": "QuickOrganizer.frmSoapError.resx",
+        "extension": ".resx",
+        "bytes": 2237,
+        "sha256": "da72e613f8ba18b1dbf4b9e2ce928703592431f788d5620704bad7a23f9f53af"
+      },
+      {
+        "name": "QuickOrganizer.GoogleCalendar.resx",
+        "extension": ".resx",
+        "bytes": 8243,
+        "sha256": "5fcb01b2548d2b89c03c44a2d7a67e47807b34c6499ec777c808fe2dfeef67d5"
+      },
+      {
+        "name": "QuickOrganizer.LicenzaUsoDepostoTelematico.resx",
+        "extension": ".resx",
+        "bytes": 12016,
+        "sha256": "9cc987a5ea2f5211ebb223a743d5a048da19b80d128335896bbc9b01fc138269"
+      },
+      {
+        "name": "QuickOrganizer.NotificaEsito.resx",
+        "extension": ".resx",
+        "bytes": 2654,
+        "sha256": "2ad2323468c26903e55dff9a511776840025903ecc9d89bbae74135ce38568ad"
+      },
+      {
+        "name": "QuickOrganizer.NuovoTariffarioPersonale.resx",
+        "extension": ".resx",
+        "bytes": 2250,
+        "sha256": "8d6e6e28d7067213433556aea2739e02f8b16f3da604846582a838d5eb644aa3"
+      },
+      {
+        "name": "QuickOrganizer.PoliswebRole.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.ProcessoTelematico.pst.cer",
+        "extension": ".cer",
+        "bytes": 1303,
+        "sha256": "54acf4a6420c41be0844c072ae41f1c473302e0343ab63e10185c67d12b97904"
+      },
+      {
+        "name": "QuickOrganizer.ProcessoTelematico.UfficiGiudiziari.ListaUfficiGiudiziari.xml",
+        "extension": ".xml",
+        "bytes": 3543211,
+        "sha256": "a3c4cfd298d989560f82536534869af9613a812bc9bbe820d592987218094709"
+      },
+      {
+        "name": "QuickOrganizer.ProcessoTelematico.UfficiGiudiziari.QC_Uffici.xml",
+        "extension": ".xml",
+        "bytes": 1347461,
+        "sha256": "40014589bf5a40dccc430186136f94fd7cd1c45dcf15ad88072274053e68447a"
+      },
+      {
+        "name": "QuickOrganizer.Properties.Resources.resx",
+        "extension": ".resx",
+        "bytes": 1197240,
+        "sha256": "bf9ef6dfa3810e0ec52e26087dac18cdd818a78daa947b87ab09802fd160723c"
+      },
+      {
+        "name": "QuickOrganizer.QualeModificaContabilità.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.QualeParcella.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.QualeParcellaNotaSpese.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.QualeSchedario.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.QualeVideoscrittura.resx",
+        "extension": ".resx",
+        "bytes": 8041,
+        "sha256": "ae5361e2b8988203d08475a7f93e15ad88aff8bf7375f8015f6c351f58179e97"
+      },
+      {
+        "name": "QuickOrganizer.QualifiedCertificate.resx",
+        "extension": ".resx",
+        "bytes": 279091,
+        "sha256": "c0c59807ebae966202153fb5b9355eb096fe6788235c5360fc4f38c15521fd5c"
+      },
+      {
+        "name": "QuickOrganizer.QuickWord.FormatPainter.cur",
+        "extension": ".cur",
+        "bytes": 326,
+        "sha256": "5161945e64b0c2d7afdf67a02e6e0d682eeb3439573920f1e5af73a076483de5"
+      },
+      {
+        "name": "QuickOrganizer.Resources.Edi_16.png",
+        "extension": ".png",
+        "bytes": 681,
+        "sha256": "ed96095d8d6c034abd43d09e2be858f1113a2bdc34cc053964bd5f2fac77bbf9"
+      },
+      {
+        "name": "QuickOrganizer.Restore.resx",
+        "extension": ".resx",
+        "bytes": 2371,
+        "sha256": "e15f7d0eb424a5ec0fe77ea57b2c5a5793ca5a563e1e33ad0870e3cec679157a"
+      },
+      {
+        "name": "QuickOrganizer.SchedaAgenda.resx",
+        "extension": ".resx",
+        "bytes": 4832,
+        "sha256": "a3132d236554260b43f293fcd0bc625252366a5f1404f3503fefed44e6918247"
+      },
+      {
+        "name": "QuickOrganizer.SchedaAllarme.resx",
+        "extension": ".resx",
+        "bytes": 2809,
+        "sha256": "9726630ff64d6403c52881a8ec26e109be5d19a5a379194c60e92fb0003eebe8"
+      },
+      {
+        "name": "QuickOrganizer.SchedaAnagrafica.resx",
+        "extension": ".resx",
+        "bytes": 14889,
+        "sha256": "a0492f5e16f22f94a1bd932886769ceae83b5d80e9ffc8af2bd7baa63cf5dbaa"
+      },
+      {
+        "name": "QuickOrganizer.SchedaAnagraficaUtente.resx",
+        "extension": ".resx",
+        "bytes": 22848,
+        "sha256": "6ea7cd26dec764a9ad2efd9b2f531215ebcc2afd8c2052a584f34b208df145e7"
+      },
+      {
+        "name": "QuickOrganizer.SchedaDocumento.resx",
+        "extension": ".resx",
+        "bytes": 3698,
+        "sha256": "28d028537452ef210ed3dcc7f7698a9e36922fb9360dc26f828f5c5af942d99c"
+      },
+      {
+        "name": "QuickOrganizer.SchedaOnorari.resx",
+        "extension": ".resx",
+        "bytes": 3307,
+        "sha256": "61e28f3a0588d16df9b1b89e1c44c2935f7ffbe72c310bab9ca318e2c43b2aef"
+      },
+      {
+        "name": "QuickOrganizer.SchedaParcella.resx",
+        "extension": ".resx",
+        "bytes": 6968,
+        "sha256": "67b0f88ef28ac9530a35b8fdc6ac83258d2c1dd4926a4bcca93f26f6a629f9c0"
+      },
+      {
+        "name": "QuickOrganizer.SchedaPrestazioniUpDown.resx",
+        "extension": ".resx",
+        "bytes": 12311,
+        "sha256": "d3b4e0799174e06a43982ab49236fefdbb01224dbf9294eab85307f19b527604"
+      },
+      {
+        "name": "QuickOrganizer.SchedaSviluppoMacro.resx",
+        "extension": ".resx",
+        "bytes": 8860,
+        "sha256": "0f0364fbabc8d159909e13467168940fa45940fec37ffd18a4bc0ee931c9a954"
+      },
+      {
+        "name": "QuickOrganizer.Sounds.NOTIFY.WAV",
+        "extension": ".wav",
+        "bytes": 119384,
+        "sha256": "160e0fa1d103850311bd16f74dd448b2b93ff690e10bc8ddc866d03e1aa8825b"
+      },
+      {
+        "name": "QuickOrganizer.SplashScreenQuickOrganizer.resx",
+        "extension": ".resx",
+        "bytes": 2280,
+        "sha256": "ea02c65aa777e0bda78abee41890f906ff8c1e2e3398c38080f59bfd03143360"
+      },
+      {
+        "name": "QuickOrganizer.UserControls.Privacy.resx",
+        "extension": ".resx",
+        "bytes": 2323,
+        "sha256": "2630a91e7b22b2d7f5edeb2758f0645a9dde50140ece88f39efda8ba6c349ea5"
+      },
+      {
+        "name": "QuickOrganizer.UserControls.UserControlHome.resx",
+        "extension": ".resx",
+        "bytes": 7421,
+        "sha256": "c240bc8f32661433e104a95a1b1c727e8d94fb6a7630ec1f9f4ea56ba21ea8e5"
+      },
+      {
+        "name": "QuickOrganizer.UserControls.UserControlStrumenti.resx",
+        "extension": ".resx",
+        "bytes": 2159,
+        "sha256": "b3b4651954d85f94d9d074d295ffa128b71c63aebd2d35453567e932bebc5bfe"
+      },
+      {
+        "name": "QuickOrganizer.Videoscrittura.hyph_it_IT.dic",
+        "extension": ".dic",
+        "bytes": 2158,
+        "sha256": "047d78ba12b2495b62427ac90bb0ccec7c149773361dc0e02b54579a361c522c"
+      },
+      {
+        "name": "QuickOrganizer.Videoscrittura.it_IT.aff",
+        "extension": ".aff",
+        "bytes": 80216,
+        "sha256": "64116f6dedcd70c934914d442ad1b86fbccbc19721f5c90490d0513b9c270426"
+      },
+      {
+        "name": "QuickOrganizer.Videoscrittura.it_IT.dic",
+        "extension": ".dic",
+        "bytes": 1290681,
+        "sha256": "6989488bf411dc2c91fd08a8d54ba00658f29ce442873286b8e05251ef1df1c4"
+      },
+      {
+        "name": "QuickOrganizer.Videoscrittura.TXSpell.resources.dll",
+        "extension": ".dll",
+        "bytes": 17408,
+        "sha256": "7238bb3850fda6e9a4e33621e37de376f5e60b060653fa48fb7aa683b636bcbf"
+      },
+      {
+        "name": "QuickOrganizer.Videoscrittura.txtextcontrol.resources.dll",
+        "extension": ".dll",
+        "bytes": 73728,
+        "sha256": "5eb949175389f1209d2e84285cb46c11973fddd627cbe78eac6baa24ba37f38e"
+      },
+      {
+        "name": "QuickOrganizer.WaitForm.resx",
+        "extension": ".resx",
+        "bytes": 218150,
+        "sha256": "1e3bf5d71f8905baf41c8be2cf54aedb5476eb32ac36df23068ce95c935c95fb"
+      },
+      {
+        "name": "QuickOrganizer.WaitProgressBar.resx",
+        "extension": ".resx",
+        "bytes": 218458,
+        "sha256": "40848d588c7116e9f12ad9afa6386442280ec8fcca656972409cce79d466a743"
+      },
+      {
+        "name": "QuickOrganizer.WizardImportaPraticheDaPolisWeb.resx",
+        "extension": ".resx",
+        "bytes": 281975,
+        "sha256": "02b0c479f7b623740901f18151a9ecac60434d34fd206233fe188f17acdfeef1"
+      },
+      {
+        "name": "QuickOrganizer.WizardRinvia.resx",
+        "extension": ".resx",
+        "bytes": 250918,
+        "sha256": "a9b52bfcb16c930792840b05225f86772084248e9785ea4a88784f35851cf23d"
+      },
+      {
+        "name": "QuickWord.FrmMaxRowsPreview.resx",
+        "extension": ".resx",
+        "bytes": 115910,
+        "sha256": "c4daf704e7951e200f420ef7cf6ce737cad752b17af60ea63b7d6becec68cc64"
+      },
+      {
+        "name": "QuickWord.FrmMergeWaitDialog.resx",
+        "extension": ".resx",
+        "bytes": 115910,
+        "sha256": "c4daf704e7951e200f420ef7cf6ce737cad752b17af60ea63b7d6becec68cc64"
+      },
+      {
+        "name": "QuickWord.GoToDialog.resx",
+        "extension": ".resx",
+        "bytes": 57490,
+        "sha256": "0ca3084685db4c2a35f2b5b102015c963b284b0b073e67df7d90ff25687aaa2d"
+      },
+      {
+        "name": "QuickWord.QuickWordMain.resx",
+        "extension": ".resx",
+        "bytes": 415104,
+        "sha256": "da780dc7f792c2136b3d868f452fdf55be831efb0bab9649fe754700ee12e837"
+      }
+    ],
+    "extension_counts": {
+      ".resx": 57,
+      ".dll": 3,
+      ".xslt": 2,
+      ".xml": 7,
+      ".rtf": 9,
+      ".mdb": 8,
+      ".exe": 1,
+      ".txt": 1,
+      ".htm": 1,
+      ".licenses": 1,
+      ".cer": 1,
+      ".cur": 1,
+      ".png": 1,
+      ".wav": 1,
+      ".dic": 2,
+      ".aff": 1
+    }
+  },
+  "certificates_seen": []
+}

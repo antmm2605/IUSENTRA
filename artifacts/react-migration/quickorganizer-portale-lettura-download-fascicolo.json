@@ -1,0 +1,378 @@
+{
+  "generated_at": "30/06/2026 18:10 (Europe/Rome)",
+  "source": {
+    "wizard": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\WizardImportaPraticheDaPolisWeb.cs",
+    "pct": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\PCT.cs",
+    "browser": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\BrowserForm.cs",
+    "common": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\Common.cs",
+    "form_main": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\FormMain.cs",
+    "ufficio_registro_ruolo": "C:\\Users\\antmm\\AppData\\Local\\Temp\\quickorganizer_decompiled_full\\QuickOrganizer\\UfficioRegistroRuolo.cs"
+  },
+  "studio_telematico_menu": {
+    "access_menu_caption": "Accesso al PolisWeb...",
+    "commands": [
+      {
+        "key": "Importa_Pratiche_PolisWeb",
+        "caption": "Importa Pratiche dal PolisWeb",
+        "launcher": "ImportaPratichePolisWeb(-1)",
+        "kind": "wizard_servizi",
+        "behavior": "Apre `WizardImportaPraticheDaPolisWeb` in modalità importazione; interroga i servizi e crea/aggiorna pratiche, profilo, eventi e documenti."
+      },
+      {
+        "key": "Cerca_Eventi_Polisweb",
+        "caption": "Eventi di Cancelleria",
+        "launcher": "ImportaPratichePolisWeb(-2)",
+        "kind": "wizard_servizi",
+        "behavior": "Apre lo stesso wizard con `PCT.RicercaNuoviEventi=true` per cercare eventi di cancelleria."
+      },
+      {
+        "key": "Fascicolo_Ufficio",
+        "caption": "Fascicolo d'ufficio",
+        "launcher": "RecuperaDatiFascicoloUfficio(numeroPratica, showBrowser:true)",
+        "kind": "portale_pst_browser",
+        "behavior": "Parte dalla pratica selezionata e apre la pagina PST `_infofascicolo` nel browser interno."
+      },
+      {
+        "key": "Fascicolo_Ufficio_Eventi",
+        "caption": "Eventi fascicolo d'ufficio",
+        "launcher": "RecuperaDatiFascicoloUfficio(...); BrowserForm.SelezionaTabEventiFascicolo()",
+        "kind": "portale_pst_browser",
+        "behavior": "Dopo `_infofascicolo` cerca link contenente `storicofascicolo` e naviga alla scheda eventi/storico."
+      },
+      {
+        "key": "Fascicolo_Ufficio_Documenti",
+        "caption": "Documenti fascicolo d'ufficio",
+        "launcher": "RecuperaDatiFascicoloUfficio(...); BrowserForm.SelezionaTabDocumentiFascicolo()",
+        "kind": "portale_pst_browser",
+        "behavior": "Dopo `_infofascicolo` cerca link contenente `documentifascicolo` e naviga alla scheda documenti."
+      },
+      {
+        "key": "Fascicolo_Ufficio_Notifiche",
+        "caption": "Comunicazioni/notifiche fascicolo d'ufficio",
+        "launcher": "RecuperaDatiFascicoloUfficio(...); BrowserForm.SelezionaTabNotificheFascicolo()",
+        "kind": "portale_pst_browser",
+        "behavior": "Dopo `_infofascicolo` cerca link contenente `comunicazionifascicolo` e naviga alla scheda comunicazioni/notifiche."
+      },
+      {
+        "key": "Agenda_PolisWeb",
+        "caption": "Ricerca nello storico delle attività",
+        "launcher": "UfficioRegistroRuolo(\"Agenda\")",
+        "kind": "portale_pst_browser",
+        "behavior": "Costruisce URL PST agenda per registro/ufficio/ruolo; BrowserForm compila `dataDal`, `dataAl` e clicca dopo `ruoloRicerca`."
+      },
+      {
+        "key": "Scarica_Udienze_Scadenze_PolisWeb",
+        "caption": "Ricerca nel registro delle scadenze",
+        "launcher": "UfficioRegistroRuolo(\"Scadenze\")",
+        "kind": "portale_pst_browser",
+        "behavior": "Costruisce URL PST scadenze per registro/ufficio/ruolo; BrowserForm compila intervallo date e avvia la ricerca."
+      },
+      {
+        "key": "Scarica_Documenti_PolisWeb",
+        "caption": "Scarica documenti dal PolisWeb",
+        "launcher": "UfficioRegistroRuolo(\"Documenti\")",
+        "kind": "portale_pst_browser_download",
+        "behavior": "Costruisce URL PST documenti; BrowserForm seleziona `tipiDocumento-5`, date deposito e intercetta i download WebView2."
+      },
+      {
+        "key": "Ricerca_Fascicoli_Costituzione",
+        "caption": "Ricerca RG per costituzione",
+        "launcher": "UfficioRegistroRuolo(\"Costituzione\")",
+        "kind": "portale_pst_browser",
+        "behavior": "Costruisce URL PST per ricerca fascicoli ai fini della costituzione."
+      },
+      {
+        "key": "Consultazione_Fascicoli_Cassazione_Civile",
+        "caption": "Cassazione civile",
+        "launcher": "URL diretto PST",
+        "kind": "portale_pst_browser",
+        "behavior": "Apre `pst_2_9_2_2.wp?ufficioRicerca=80417740588&registroRicerca=CASSCI&ruoloRicerca=AVV@AVV`."
+      },
+      {
+        "key": "Consultazione_Fascicoli_Cassazione_Penale",
+        "caption": "Cassazione penale",
+        "launcher": "URL diretto PST",
+        "kind": "portale_pst_browser",
+        "behavior": "Apre `pst_2_9_1_2.wp?ufficioRicerca=80417740588&registroRicerca=CASSPE&ruoloRicerca=AVV@AVV`."
+      },
+      {
+        "key": "NotificheNonPerfezionate",
+        "caption": "Area notifiche non perfezionate",
+        "launcher": "BrowserForm via autenticazione PST",
+        "kind": "portale_pst_browser",
+        "behavior": "Parte da `authentication/it/pst_ar.wp`; BrowserForm rimappa la descrizione su `https://servizipst.giustizia.it/PST/PortaleNotifiche`."
+      }
+    ]
+  },
+  "portal_url_matrix": {
+    "base": "https://servizipst.giustizia.it/PST/it/",
+    "query": [
+      "registroRicerca",
+      "ufficioRicerca",
+      "ruoloRicerca={role}@{role}"
+    ],
+    "registry_paths": [
+      {
+        "registry": "CC",
+        "description": "Contenzioso civile",
+        "area": "pst_2_1_1"
+      },
+      {
+        "registry": "MIN",
+        "description": "Minorenni",
+        "area": "pst_2_1_1"
+      },
+      {
+        "registry": "LAV",
+        "description": "Lavoro",
+        "area": "pst_2_1_2"
+      },
+      {
+        "registry": "FALL",
+        "description": "Procedure concorsuali",
+        "area": "pst_2_1_3"
+      },
+      {
+        "registry": "ESIM",
+        "description": "Esecuzioni immobiliari",
+        "area": "pst_2_1_4"
+      },
+      {
+        "registry": "ESM",
+        "description": "Esecuzioni mobiliari",
+        "area": "pst_2_1_5"
+      },
+      {
+        "registry": "GP/GDP",
+        "description": "Giudice di Pace",
+        "area": "pst_2_1_6",
+        "registroRicerca": "GDP"
+      },
+      {
+        "registry": "VG",
+        "description": "Volontaria giurisdizione",
+        "area": "pst_2_1_14"
+      }
+    ],
+    "function_suffixes": [
+      {
+        "function": "Agenda",
+        "suffix": "_1.wp"
+      },
+      {
+        "function": "Scadenze",
+        "suffix": "_2.wp"
+      },
+      {
+        "function": "Documenti",
+        "suffix": "_4.wp"
+      },
+      {
+        "function": "Costituzione",
+        "suffix": "_5.wp"
+      }
+    ],
+    "cassazione": [
+      {
+        "registry": "CASSCI",
+        "url": "https://servizipst.giustizia.it/PST/it/pst_2_9_2_2.wp?ufficioRicerca=80417740588&registroRicerca=CASSCI&ruoloRicerca=AVV@AVV"
+      },
+      {
+        "registry": "CASSPE",
+        "url": "https://servizipst.giustizia.it/PST/it/pst_2_9_1_2.wp?ufficioRicerca=80417740588&registroRicerca=CASSPE&ruoloRicerca=AVV@AVV"
+      }
+    ]
+  },
+  "browser_download_handler": {
+    "webview2_event": "OnWebView2DownloadStarting",
+    "accepted_extensions_or_patterns": [
+      ".PDF",
+      ".RTF",
+      ".TXT",
+      ".JPG",
+      ".GIF",
+      ".TIFF",
+      ".XML",
+      ".P7M",
+      ".ZIP",
+      ".RAR",
+      "action?crs="
+    ],
+    "save_targets": [
+      {
+        "target": "PRATICA",
+        "behavior": "Se non c'è pratica corrente chiede una pratica; poi salva file e record in `TESTI` con `TIPO=PCT` e `NUMEROPRATICA`."
+      },
+      {
+        "target": "DESKTOP",
+        "behavior": "Sposta il file in `Desktop\\POLISWEB\\` o `Desktop\\WHATSAPP\\`."
+      },
+      {
+        "target": "HASH",
+        "behavior": "Sposta in cartella temporanea e mostra SHA-256 tramite `FormHash`."
+      }
+    ],
+    "p7m_handling": "Se il `.p7m` non risulta firma CAdES valida, prova a normalizzare l'estensione verso il contenuto originale (`.pdf`, `.xml`, `.zip`, ecc.)."
+  },
+  "search_modes": [
+    {
+      "mode": "ricerca_esatta_numero_anno",
+      "quick_behavior": "Se `NumeroPratica > 0`, il wizard passa numero ruolo e anno ruolo ai metodi di ricerca.",
+      "methods": [
+        "ExecuteRicercaInformazioniFascicoloPerTipo",
+        "ExecuteRicercaInformazioniFascicoloPerNumero",
+        "ExecuteRicercaRicorsiCassazione"
+      ],
+      "payload_fields": [
+        "idUfficio",
+        "tipo=RNG/RGN",
+        "numero",
+        "anno",
+        "role",
+        "registro"
+      ]
+    },
+    {
+      "mode": "ricerca_per_anno",
+      "quick_behavior": "Se non c'è numero ruolo, il wizard passa `numeroRuolo=0` e `anno=cboAnno.Text`; il portale restituisce l'elenco dei fascicoli visibili per quell'anno.",
+      "methods": [
+        "ExecuteRicercaInformazioniFascicoloPerTipo",
+        "ExecuteRicercaInformazioniFascicoloPerNumero",
+        "ExecuteRicercaRicorsiCassazione",
+        "ExecuteRicercaInformazioniFascicoloPerRMO per SIGP senza numero"
+      ],
+      "payload_fields": [
+        "idUfficio",
+        "tipo=RNG/RGN",
+        "numero=0",
+        "anno",
+        "role",
+        "registro"
+      ]
+    },
+    {
+      "mode": "cassazione_per_anno",
+      "quick_behavior": "La busta `EnvelopeRicercaRicorsiCassazione` usa `QC_Ricorsi` per civile e in IUSENTRA `QP_Ricorsi` per penale; per annuale si usano intervalli data dell'anno.",
+      "methods": [
+        "ExecuteRicercaRicorsiCassazione"
+      ],
+      "payload_fields": [
+        "DATADEP_DA/DATADEP_AL o DATAISCR_DA/DATAISCR_AL",
+        "ufficio 80417740588",
+        "registro CASSCI/CASSPE"
+      ]
+    }
+  ],
+  "fascicolo_flow": [
+    {
+      "step": 1,
+      "name": "selezione registro/ufficio/ruolo/anno",
+      "details": "Il wizard sceglie `sUrn`, `sTargetPath`, `sRole`, `sIDUfficio`, `sAnnoRuoloGenerale`, `sIdRegistro`."
+    },
+    {
+      "step": 2,
+      "name": "ricerca elenco fascicoli",
+      "details": "Chiama `RicercaInformazioniFascicoloPerTipo`, `RicercaInformazioniFascicoloPerNumero`, `RicercaInformazioniFascicoloPerRMO` o `RicercaRicorsiCassazione`."
+    },
+    {
+      "step": 3,
+      "name": "profilo fascicolo",
+      "details": "`ExecuteProfiloFascicolo` recupera oggetto, stato, data iscrizione, sezione, numero sezionale e dati base."
+    },
+    {
+      "step": 4,
+      "name": "storico fascicolo",
+      "details": "`ExecuteStoricoFascicolo` recupera eventi/storico e `IDDOCUMENTO` degli atti collegati."
+    },
+    {
+      "step": 5,
+      "name": "master/detail documenti",
+      "details": "`SelezionaDocumentiFascicolo` scorre lo storico; per ogni `IDDOCUMENTO` chiama `EstraiMasterDetailAtto` o `EstraiMasterDetailAttoSIECIC`."
+    },
+    {
+      "step": 6,
+      "name": "download singolo documento",
+      "details": "`DownloadDocumentoDIGSIA` invia `downloadDocumento` con `idCat` e `original=true/false`; estrae la parte MIME base64 e salva il file."
+    },
+    {
+      "step": 7,
+      "name": "download intero fascicolo",
+      "details": "Non risulta un endpoint unico: QuickOrganizer scarica l'intero fascicolo iterando tutti i documenti selezionati nella griglia, inclusi allegati."
+    }
+  ],
+  "download_options": [
+    {
+      "label": "Scarica come duplicato",
+      "duplicato": true,
+      "original": true,
+      "effect": "salva duplicato; se PDF marca `signed=true` nel record TESTI"
+    },
+    {
+      "label": "Scarica come copia",
+      "duplicato": false,
+      "original": false,
+      "effect": "salva copia informatica e normalizza estensioni `.p7m` verso estensione originale quando possibile"
+    },
+    {
+      "label": "Non scaricare",
+      "effect": "salta il documento"
+    }
+  ],
+  "document_fields": [
+    "dataDeposito",
+    "autore",
+    "tipo",
+    "idUfficio",
+    "IdDocumento",
+    "IdDocMittente",
+    "stato",
+    "annoDocumento",
+    "numeroDocumento",
+    "annoFascicolo",
+    "numeroFascicolo",
+    "subprocedimento",
+    "IdCat",
+    "nomeFileOriginale",
+    "CognomeNomeDepositante",
+    "TIPOLOGIA",
+    "DOWNLOAD"
+  ],
+  "local_persistence": {
+    "PRATICHE": [
+      "TIPO",
+      "AUT_GIUDIZ",
+      "RUOLO_GEN",
+      "ANNO_RUOLO_GEN",
+      "SUB_PROCEDIMENTO",
+      "SEZIONE",
+      "ISTRUTTORE",
+      "Stato_Pratica"
+    ],
+    "TESTI": [
+      "TIPO=PCT",
+      "NUMEROPRATICA",
+      "IdCat",
+      "NOME_ATTO",
+      "NOME_DOS",
+      "Tipologia",
+      "signed",
+      "DATA_ATTO"
+    ],
+    "AGENDA": [
+      "IdStorico",
+      "Controllo",
+      "NumeroPratica",
+      "StartDateTime",
+      "Subject",
+      "Ruolo",
+      "Anno_Ruolo_Gen",
+      "SUB_PROCEDIMENTO"
+    ]
+  },
+  "iusentra_rules": [
+    "Salvare ogni documento con hash, idCat/IdDocumento, origine portale, registro, ufficio, ruolo e data italiana.",
+    "Deduplicare per tenant/fascicolo/idCat/hash prima di scaricare di nuovo.",
+    "Scarico intero fascicolo = batch governato di download singoli con progress e ripresa su errore.",
+    "Non inventare `idRuoloJPW`/`idDfa`: se il portale non li espone, il job deve fermarsi con motivo puntuale."
+  ]
+}

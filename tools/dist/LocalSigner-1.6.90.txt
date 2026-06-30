@@ -1,0 +1,6 @@
+IUSENTRA Local Signer
+Versione: 1.6.90
+Pacchetto generato: 2026-06-30 13:33:26
+Piattaforme generate contestualmente: Windows, macOS, Linux
+Ponte PEC locale: test SMTP e invio dal PC dello studio
+Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma

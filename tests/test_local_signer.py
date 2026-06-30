@@ -1870,6 +1870,7 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     installer = (Path(__file__).resolve().parents[1] / "tools" / "installa_local_signer_locale.ps1").read_text(encoding="utf-8")
     launcher = (Path(__file__).resolve().parents[1] / "tools" / "avvia_local_signer.bat").read_text(encoding="utf-8")
     monitor = (Path(__file__).resolve().parents[1] / "web" / "static" / "js" / "local-signer-monitor.js").read_text(encoding="utf-8")
+    telematico_runtime = (Path(__file__).resolve().parents[1] / "web" / "services" / "telematico_runtime.py").read_text(encoding="utf-8")
 
     assert 'set "SILENT_MODE=0"' in installer
     assert 'set "PYE=%DIR%python\\python.exe"' in installer
@@ -1882,6 +1883,12 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYE -ArgumentList @($env:PY) -RedirectStandardOutput $env:OUTLOG -RedirectStandardError $env:ERRLOG' in installer
     assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)' in installer
     assert "function Wait-LocalSigner([int]$Attempts = 45)" in installer
+    assert '"http://127.0.0.1:27272/ping?light=1"' in installer
+    assert '"http://127.0.0.1:27272/ping" -UseBasicParsing' not in installer
+    assert "127.0.0.1:27272/ping?light=1" in telematico_runtime
+    assert '"http://127.0.0.1:27272/ping" -UseBasicParsing' not in telematico_runtime
+    assert "'http://127.0.0.1:27272/ping' -UseBasicParsing" not in telematico_runtime
+    assert "Write-LocalSignerStartupDiagnostics" in installer
     assert "$protected = @{}" not in installer
     assert "$keep=@{}" not in installer
     assert "ParentProcessId" not in installer

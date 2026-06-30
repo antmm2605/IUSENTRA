@@ -3519,3 +3519,52 @@ Guardrail anti-regressione aggiunti:
 - test che impedisce il ritorno della pausa `Read-Host` nel percorso normale dell'installer.
 
 Stato: il pacchetto da pubblicare per il cliente è `1.6.89`; la `1.6.88` resta solo come diagnosi del difetto e non deve essere distribuita.
+
+## Local Signer 1.6.90: prima installazione cliente e ping leggero - 2026-06-30
+
+Richiesta utente: il problema non è sul PC di sviluppo, dove il Local Signer funziona, ma su un PC cliente con prima installazione. L'utente ha condiviso la cartella `E:\LocalSignerno\LocalSigner`.
+
+Diagnosi sui file cliente:
+
+- `E:\LocalSignerno\LocalSigner\local_signer.py` è versione `1.6.89`;
+- nella cartella cliente sono presenti sia Python portatile (`python\python.exe`, `python\pythonw.exe`) sia `local_signer_mod`, incluso `security.py`;
+- `installer.log` mostra installazioni ripetute con Python portatile scaricato, dipendenze installate, protocollo locale registrato e collegamento Startup creato;
+- `local_signer.err.log` mostra che il servizio riceveva decine di richieste `HTTP GET /ping` tra le `13:15:34` e le `13:17:33`, ma l'installer concludeva comunque `Avvio non riuscito`;
+- quindi il difetto reale non era la mancanza dei file principali in quella copia, ma il controllo finale dell'installer: usava `/ping` completo, che può interrogare certificati/token e non è un test corretto per dire se il servizio locale è partito.
+
+Correzione applicata in `1.6.90`:
+
+- `tools/installa_local_signer_locale.ps1`: `Wait-LocalSigner`, `Test-LocalSignerOnline` e il launcher Windows usano solo `http://127.0.0.1:27272/ping?light=1` per validare avvio e aggiornamento automatico;
+- se il ping leggero fallisce davvero, l'installer scrive nel log cartella installata, Python selezionato, presenza dei file chiave, processo che occupa la porta `27272` e ultime righe di `local_signer.err.log`/`local_signer.out.log`;
+- `web/services/telematico_runtime.py`: allineato anche il generatore legacy, così nessun percorso secondario torna al `/ping` completo;
+- `frontend/src/components/TelematicoSurfacePage.tsx`: mantenuto il messaggio utente senza dettagli tecnici su `fetch`, `xhr` o endpoint;
+- `web/blueprints/api_v1_react.py`: rimosso il riferimento pubblico al vecchio helper `.ps1` di Studio Telematico, mantenendo l'exe operativo.
+
+Pacchetti generati:
+
+- `SetupLocalSigner-1.6.90.exe`;
+- alias `SetupLocalSigner.exe`;
+- `InstallaLocalSigner-1.6.90.ps1`;
+- `InstallaLocalSigner-1.6.90.command`;
+- `InstallaLocalSigner-1.6.90.run`;
+- hash SHA256 Windows: `483CA298C6D7CF221849BABE349077AE92B4B283DD51FFA3EF38C82F5CFF8F67`.
+
+Prova reale eseguita sulla macchina locale Windows:
+
+- eseguito `tools\dist\SetupLocalSigner-1.6.90.exe /Q`;
+- log installazione: `Ping leggero Local Signer riuscito versione 1.6.90`;
+- ping reale: `http://127.0.0.1:27272/ping?light=1` ha risposto `ok=true`, `versione=1.6.90`, `piattaforma=win32`;
+- processo attivo: un solo `python.exe` collegato a `%APPDATA%\IUSENTRA\LocalSigner\local_signer.py`;
+- la prova sul PC cliente reale resta da ripetere dopo deploy del pacchetto `1.6.90`, perché i file condivisi sono una copia diagnostica e non consentono di eseguire materialmente l'installer sulla macchina cliente dalla repository locale.
+
+Verifiche automatiche eseguite:
+
+- `python -m pytest tests/test_local_signer.py -q` -> verde;
+- `python -m pytest tests/test_build_dist.py -q` -> verde;
+- `python -m pytest tests/test_react_shell.py -q -k "telematico_scroll_usa_offset_topbar_non_scroll_into_view or import_studio_telematico_react_pubblica_exe_e_barra_avanzamento or local_signer"` -> verde.
+
+Guardrail anti-regressione:
+
+- test che vieta il ritorno del `/ping` completo nel controllo di avvio degli installer Windows;
+- test che verifica il dist Local Signer e la diagnostica di avvio;
+- test React sul messaggio Local Signer e sul flusso telematico.

@@ -1,5 +1,11 @@
 # Pytest issue aperte e risoluzioni
 
+## Local Signer 1.6.90 - prima installazione PC cliente - 2026-06-30
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Prima installazione su PC cliente | Cartella condivisa `E:\LocalSignerno\LocalSigner` + nuovo installer `1.6.90` | Aperto fino a prova materiale sul PC cliente | La diagnosi sulla copia cliente ha escluso l'assenza dei file principali: `python.exe`, `pythonw.exe`, `local_signer.py`, `local_signer_mod/security.py` e i log runtime erano presenti. Il servizio riceveva `/ping`, ma l'installer aspettava il ping completo e registrava `Avvio non riuscito`; il nuovo pacchetto usa il ping leggero e scrive diagnostica utile solo se il servizio non ascolta davvero. | Dopo deploy e download del nuovo pacchetto, ripetere installazione sul PC cliente reale e verificare nel browser `Servizio locale IUSENTRA sul PC in uso - ultima versione 1.6.90`; finché questa prova non viene fatta, non dichiarare la macchina cliente risolta. |
+
 ## Vista economica fascicoli 2.253.132 - 2026-06-27
 
 | Area | Gate | Stato | Nota | Azione |

@@ -5172,7 +5172,7 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
         session_id=session_id,
         _external=True,
     ).rsplit("/stato", 1)[0]
-    helper_url = f"{request.url_root.rstrip('/')}/static/tools/prepara_import_studio_telematico.ps1"
+    helper_url = f"{request.url_root.rstrip('/')}/static/tools/PreparaPacchettoStudioTelematico.exe"
     script = "\r\n".join(
         [
             "@echo off",
@@ -5181,14 +5181,14 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
             f"set \"SESSION_ID={session_id}\"",
             f"set \"BASE_URL={base_url}\"",
             f"set \"TOKEN={token}\"",
-            "set \"TARGET=%TEMP%\\iusentra-prepara-studio-telematico-%SESSION_ID%.ps1\"",
+            "set \"TARGET=%TEMP%\\iusentra-prepara-studio-telematico-%SESSION_ID%.exe\"",
             (
                 "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
                 "\"Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%TARGET%' -UseBasicParsing\""
             ),
             "if errorlevel 1 exit /b %ERRORLEVEL%",
             (
-                "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%TARGET%\" "
+                "\"%TARGET%\" "
                 "-AutoUploadBaseUrl \"%BASE_URL%\" -AutoUploadToken \"%TOKEN%\" -AutoSessionId \"%SESSION_ID%\""
             ),
             "exit /b %ERRORLEVEL%",

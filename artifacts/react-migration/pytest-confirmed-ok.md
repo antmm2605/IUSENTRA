@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Local Signer 1.6.90 - prima installazione Windows e ping leggero - 2026-06-30
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_local_signer.py -q` | OK | Suite Local Signer confermata: l'installer Windows, il launcher e il generatore runtime usano `127.0.0.1:27272/ping?light=1` per la prontezza e non tornano al ping completo. |
+| `python -m pytest tests/test_build_dist.py -q` | OK | `7/7` passati: il pacchetto Windows include il controllo leggero, il lock installer e la nuova diagnostica `Write-LocalSignerStartupDiagnostics`. |
+| `python -m pytest tests/test_react_shell.py -q -k "telematico_scroll_usa_offset_topbar_non_scroll_into_view or import_studio_telematico_react_pubblica_exe_e_barra_avanzamento or local_signer"` | OK | `8/8` passati: superficie telematica React, pacchetto rapido Studio Telematico e messaggi Local Signer restano coerenti. |
+| `pnpm --filter @iusentra/studio build` | OK | Build React/Vite completata; gli asset generati sono stati rimossi dalla worktree perché l'immagine Docker li rigenera dallo stesso commit. |
+| `tools/build_local_signer_windows_exe.ps1` | OK | Generati `SetupLocalSigner-1.6.90.exe`, alias `SetupLocalSigner.exe`, pacchetti macOS/Linux e note versione. SHA256 Windows: `483CA298C6D7CF221849BABE349077AE92B4B283DD51FFA3EF38C82F5CFF8F67`. |
+| Prima installazione locale Windows con pacchetto `1.6.90` | OK osservato localmente | `%APPDATA%\IUSENTRA\LocalSigner\installer.log` riporta `Ping leggero Local Signer riuscito versione 1.6.90` e `Installazione completata con servizio attivo`; `http://127.0.0.1:27272/ping?light=1` restituisce `ok=true`, `versione=1.6.90`, `piattaforma=win32`. |
+| Cartella cliente condivisa `E:\LocalSignerno\LocalSigner` | Diagnosi eseguita | I log mostrano richieste HTTP `GET /ping` ricevute dal servizio fra `13:15:34` e `13:17:33`, mentre l'installer dichiarava `Avvio non riuscito`: il problema era la validazione di prontezza, non l'assenza del servizio o della cartella Python. Prova materiale sul PC cliente reale ancora da ripetere dopo installazione del nuovo pacchetto. |
+
 ## Deposito PCT - formato MIME Atto.msg anti IndiceBusta non trovato - 2026-06-29
 
 | Comando / verifica | Esito | Note |

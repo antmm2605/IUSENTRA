@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.143 - 2026-06-30
+
+- Local Signer `1.6.90`: corretta la prima installazione Windows sui PC cliente. L'installer ora considera pronto il servizio con il ping leggero `127.0.0.1:27272/ping?light=1`, lo stesso usato dal browser, evitando il falso fallimento quando il ping completo resta impegnato in controlli più pesanti.
+- Local Signer `1.6.90`: aggiunta diagnostica reale in `installer.log` solo quando il servizio non risponde davvero, con Python selezionato, file installati, porta 27272 e ultime righe dei log runtime; così un nuovo blocco non viene più nascosto da un log generico.
+- Telematico React e runtime legacy di supporto: allineato anche il generatore storico del pacchetto Local Signer al ping leggero, perché quel ramo poteva reintrodurre il comportamento vecchio nelle nuove installazioni.
+- Studio Telematico: il pacchetto rapido pubblica l'eseguibile `.exe` invece dello script PowerShell e il controllo scroll della superficie telematica resta ancorato all'offset topbar, senza regressioni sui guardrail React.
+
 ## 2.253.137 - 2026-06-29
 
 - Deposito PCT reale: corretto il caso PST `IDBUSTA 152647579` con esito `Indice busta ambiguo`, impedendo la coesistenza tra `IndiceBusta.xml` esterno e `IndiceBusta` interno nel `DatiAtto.xml.p7m`.

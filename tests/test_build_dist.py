@@ -125,6 +125,8 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert '(Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe"' in contenuto
     assert "pillow>=10.0.0" in contenuto
     assert "function Wait-LocalSigner([int]$Attempts = 45)" in contenuto
+    assert '"http://127.0.0.1:27272/ping?light=1"' in contenuto
+    assert '"http://127.0.0.1:27272/ping" -UseBasicParsing' not in contenuto
     assert "RedirectStandardOutput $env:OUTLOG" in contenuto
     assert '$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL' in contenuto
     assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
@@ -133,6 +135,7 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Acquire-InstallerLock" in contenuto
     assert "Release-InstallerLock" in contenuto
     assert '$venvConfig = Join-Path $venvDir "pyvenv.cfg"' in contenuto
+    assert "Write-LocalSignerStartupDiagnostics" in contenuto
     assert "Virtualenv incompleta rilevata" in contenuto
 
 

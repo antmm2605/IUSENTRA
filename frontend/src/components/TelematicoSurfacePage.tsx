@@ -1157,10 +1157,6 @@ function scrollToSurfaceTarget(targetId: string) {
   const target = document.getElementById(targetId)
   if (!target) return
   const topbar = document.querySelector<HTMLElement>('.iu-topbar')
-  if (!topbar) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    return
-  }
   const offset = (topbar?.getBoundingClientRect().height || 76) + 18
   const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset)
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches

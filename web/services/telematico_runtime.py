@@ -4696,7 +4696,7 @@ Write-Host "  Installo dipendenze Local Signer..."
 
 function Test-LocalSignerOnline {{
     try {{
-        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping" -UseBasicParsing -TimeoutSec 2
+        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping?light=1" -UseBasicParsing -TimeoutSec 2
         return [bool]$resp.ok
     }} catch {{
         return $false
@@ -4743,7 +4743,7 @@ echo %ARGS% | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_
 if "%UPDATE_MODE%"=="1" goto :update
 
 if "%FORCE_RESTART%"=="0" (
-powershell -NoProfile -WindowStyle Hidden -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
+powershell -NoProfile -WindowStyle Hidden -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
 if not errorlevel 1 goto :online
 )
 
@@ -4858,7 +4858,7 @@ Write-Host "  Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = $false
 for ($i = 0; $i -lt 15; $i++) {{
     try {{
-        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping" -UseBasicParsing -TimeoutSec 2
+        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping?light=1" -UseBasicParsing -TimeoutSec 2
         if ($resp.ok) {{
             $online = $true
             break

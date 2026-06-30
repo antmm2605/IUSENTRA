@@ -190,6 +190,24 @@ if (-not (Test-Path $outputExeVersioned)) {
 
 Copy-Item $outputExeVersioned $outputExeAlias -Force
 Copy-Item $localSignerPy (Join-Path $distDir "local_signer.py") -Force
+Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") (Join-Path $distDir "local_ai_host_bridge.py") -Force
+Copy-Item (Join-Path $toolsDir "lex_document_context.py") (Join-Path $distDir "lex_document_context.py") -Force
+Copy-Item $visibleSignaturePy (Join-Path $distDir "visible_signature.py") -Force
+Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") (Join-Path $distDir "requirements_local_signer.txt") -Force
+Copy-Item $ufficiJson (Join-Path $distDir "uffici_ministero.json") -Force
+Copy-Item $ufficiPstPubbliciJson (Join-Path $distDir "uffici_pst_pubblici.json") -Force
+
+$distModuleDir = Join-Path $distDir "local_signer_mod"
+New-Item -ItemType Directory -Force -Path $distModuleDir | Out-Null
+$expectedModuleFiles = @{}
+foreach ($moduleFile in $moduleFiles) {
+    $source = Join-Path $localSignerModDir $moduleFile
+    Copy-Item $source (Join-Path $distModuleDir $moduleFile) -Force
+    $expectedModuleFiles[$moduleFile] = $true
+}
+Get-ChildItem -LiteralPath $distModuleDir -Filter "*.py" | Where-Object {
+    -not $expectedModuleFiles.ContainsKey($_.Name)
+} | Remove-Item -Force
 
 $macTemplate = @'
 #!/bin/bash

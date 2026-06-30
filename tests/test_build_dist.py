@@ -152,6 +152,8 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
     assert "FILE7=uffici_pst_pubblici.json" in builder
     assert "FILE14=local_signer_mod__server_bootstrap.py" in builder
     assert "FILE15=local_signer_mod__support_agent.py" in builder
+    assert '$distModuleDir = Join-Path $distDir "local_signer_mod"' in builder
+    assert 'Copy-Item $source (Join-Path $distModuleDir $moduleFile) -Force' in builder
     assert "pillow" in builder.lower()
 
 

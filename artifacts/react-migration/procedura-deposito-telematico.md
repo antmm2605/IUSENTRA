@@ -3465,3 +3465,57 @@ Verifiche eseguite:
 - `pnpm --filter @iusentra/studio build` -> ok.
 
 Stato: protocollo Windows verificato, correzione React pronta per deploy. La prova finale con Google Chrome reale del PC cliente resta da eseguire dopo deploy della pagina aggiornata perché il browser integrato non può aprire protocolli esterni.
+
+## Local Signer 1.6.88: launcher VBS portabile e diagnosi cartella cliente - 2026-06-30
+
+Richiesta utente: la cartella copiata dal PC cliente (`E:\LocalSigner`) mostra ancora che l'installazione non viene eseguita correttamente.
+
+Diagnosi sulla cartella condivisa:
+
+- `E:\LocalSigner\local_signer.py` è versione `1.6.83`, quindi non è il pacchetto aggiornato `1.6.87`;
+- `E:\LocalSigner\start_local_signer.cmd --force --silent` avvia correttamente il servizio dalla copia condivisa e il ping risponde con `ok=true`, versione `1.6.83`;
+- il problema non è l'eseguibilità del servizio in sé, ma l'aggiornamento/installazione che lascia il cliente su una copia vecchia o agganciata a un launcher creato con percorsi non più validi.
+
+Correzione applicata al pacchetto `1.6.88`:
+
+- `tools/installa_local_signer_locale.ps1`: `start_local_signer.vbs` non incorpora più il percorso assoluto del `.cmd`; calcola `start_local_signer.cmd` dalla propria cartella con `WScript.ScriptFullName` e `Scripting.FileSystemObject`;
+- `tools/local_signer.py` e `tools/dist/local_signer.py`: versione aggiornata a `1.6.88`;
+- pacchetti rigenerati: `SetupLocalSigner-1.6.88.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.88.ps1`, `.command`, `.run` e nota release.
+
+Stato prova reale:
+
+- la copia condivisa `E:\LocalSigner` è stata avviata manualmente con il suo `start_local_signer.cmd` e ha risposto su `127.0.0.1:27272`;
+- il pacchetto `1.6.88` non è stato promosso perché la prova d'installazione ha mostrato un modulo `local_signer_mod/security.py` non allineato al nuovo `local_signer.py`.
+
+## Local Signer 1.6.89: installazione automatica reale e moduli allineati - 2026-06-30
+
+Problema reale risolto:
+
+- la cartella condivisa dal PC cliente `E:\LocalSigner` contiene ancora `local_signer.py` versione `1.6.83`;
+- la copia `1.6.83` parte se avviata direttamente, quindi il servizio Python non era il punto rotto;
+- il pacchetto successivo `1.6.88` è stato provato e scartato perché l'installazione copiava `local_signer.py` nuovo ma lasciava `local_signer_mod/security.py` vecchio, causando `ImportError: cannot import name 'is_allowed_origin_or_referer'`;
+- lo stesso difetto avrebbe mascherato l'errore come "servizio non rilevato", senza spiegare che il processo cadeva prima di aprire `127.0.0.1:27272`.
+
+Correzione applicata in `1.6.89`:
+
+- `tools/build_local_signer_windows_exe.ps1` ora aggiorna anche `tools/dist/local_signer_mod/*.py`, oltre ai file inclusi nell'EXE IExpress;
+- `tools/installa_local_signer_locale.ps1` genera un `start_local_signer.vbs` portabile che calcola il `.cmd` dalla propria cartella, senza percorso assoluto incorporato;
+- lo stesso installer non resta più in attesa di `Invio` dopo il successo o negli errori automatici: la pausa è possibile solo impostando `IUSENTRA_LOCAL_SIGNER_KEEP_INSTALLER_OPEN=1` per debug;
+- `tools/local_signer.py` e `tools/dist/local_signer.py` sono versione `1.6.89`;
+- `SetupLocalSigner-1.6.89.exe` e alias `SetupLocalSigner.exe` hanno SHA256 `E9DC7EF5EE7958927F0B1D20844FD9F2FFCF57E6D7B41B3DEAFB84DC14646E9B`.
+
+Prova reale eseguita sulla macchina locale Windows:
+
+- eseguito `tools\dist\SetupLocalSigner-1.6.89.exe /Q`;
+- l'installer è terminato con exit code `0`;
+- `http://127.0.0.1:27272/ping?light=1` ha risposto `ok=true`, `versione=1.6.89`, `piattaforma=win32`;
+- processo attivo verificato: `python.exe ...\IUSENTRA\LocalSigner\local_signer.py`;
+- file installati verificati in `%APPDATA%\IUSENTRA\LocalSigner`: `local_signer.py` versione `1.6.89` e `local_signer_mod\security.py` con `is_allowed_origin_or_referer`.
+
+Guardrail anti-regressione aggiunti:
+
+- test che confronta `tools/dist/local_signer_mod/*.py` con `local_signer_mod/*.py`;
+- test che verifica il contratto degli import da `local_signer_mod.security`;
+- test che impedisce il ritorno della pausa `Read-Host` nel percorso normale dell'installer.
+
+Stato: il pacchetto da pubblicare per il cliente è `1.6.89`; la `1.6.88` resta solo come diagnosi del difetto e non deve essere distribuita.

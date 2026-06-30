@@ -16,6 +16,8 @@ tools/dist/*
 !tools/dist/InstallaLocalSigner-*.run
 !tools/dist/LocalSigner-*.txt
 !tools/dist/local_signer.py
+!tools/dist/local_signer_mod/
+!tools/dist/local_signer_mod/*.py
 !tools/dist/requirements_local_signer.txt
 !tools/dist/uffici_ministero.json
 tools/.iexpress-build/

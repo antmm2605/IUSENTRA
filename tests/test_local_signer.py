@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import base64
 import io
 import importlib.util
@@ -861,11 +862,17 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
     root = Path(__file__).resolve().parents[1]
     version = _local_signer_version()
     source = root / "tools" / "local_signer.py"
+    source_mod = root / "local_signer_mod"
     dist = root / "tools" / "dist"
+    dist_mod = dist / "local_signer_mod"
 
     assert (dist / "local_signer.py").read_text(encoding="utf-8") == source.read_text(
         encoding="utf-8"
     )
+    for module_source in sorted(source_mod.glob("*.py")):
+        assert (dist_mod / module_source.name).read_text(encoding="utf-8") == module_source.read_text(
+            encoding="utf-8"
+        )
     for name in (
         "SetupLocalSigner.exe",
         f"InstallaLocalSigner-{version}.command",
@@ -900,6 +907,29 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
     assert f"Versione: {version}" in (dist / f"LocalSigner-{version}.txt").read_text(
         encoding="utf-8"
     )
+
+
+def test_local_signer_security_contract_allineato_a_moduli_distribuiti():
+    root = Path(__file__).resolve().parents[1]
+    local_signer_tree = ast.parse((root / "tools" / "local_signer.py").read_text(encoding="utf-8"))
+    security_source = (root / "local_signer_mod" / "security.py").read_text(encoding="utf-8")
+    security_dist = (root / "tools" / "dist" / "local_signer_mod" / "security.py").read_text(
+        encoding="utf-8"
+    )
+    security_names = {
+        node.name
+        for node in ast.parse(security_source).body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+    }
+
+    imported_names = set()
+    for node in ast.walk(local_signer_tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "local_signer_mod.security":
+            imported_names.update(alias.name for alias in node.names)
+
+    assert {"build_allowed_origins", "is_allowed_origin", "is_allowed_origin_or_referer"} <= imported_names
+    assert imported_names <= security_names
+    assert security_dist == security_source
 
 
 def test_rileva_endpoint_pst_legacy():
@@ -1858,6 +1888,14 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "ProcessId -ne [int]$owner" in installer
     assert "-ArgumentList @($pythonScript)" in installer
     assert "-ArgumentList $pythonScript" not in installer
+    assert "WScript.ScriptFullName" in installer
+    assert 'starter = fso.BuildPath(here, "start_local_signer.cmd")' in installer
+    assert "shell.Run Chr(34) & starter & Chr(34) & extra, 0, False" in installer
+    assert "__STARTER_CMD__" not in installer
+    assert "function Wait-InstallerDebugExit" in installer
+    assert 'IUSENTRA_LOCAL_SIGNER_KEEP_INSTALLER_OPEN' in installer
+    assert 'if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }' not in installer
+    assert 'if (-not $Quiet) {\n        Read-Host "Premere Invio per chiudere"\n    }' not in installer
     assert "schtasks /Run /TN" in launcher
     assert "ping?light=1" in launcher
     assert "pyvenv.cfg" in installer

@@ -1343,7 +1343,34 @@ def test_cors_preflight_private_network_risponde_header_atteso():
 
     assert ("Access-Control-Allow-Origin", "https://studio-legale-pct-production.up.railway.app") in captured
     assert ("Access-Control-Allow-Private-Network", "true") in captured
-    assert ("Access-Control-Allow-Headers", "Content-Type, X-Signer-Token, X-Requested-With") in captured
+    assert ("Access-Control-Allow-Headers", "Accept, Content-Type, X-Signer-Token, X-Requested-With") in captured
+
+
+def test_cors_origin_null_richiede_referer_iusentra():
+    module = _load_local_signer()
+
+    orig = module.LOCAL_SIGNER_ALLOWED_ORIGINS
+    try:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = "https://app.iusentra.it http://127.0.0.1:8080"
+        assert module._origin_cors_consentita(
+            "null",
+            "https://app.iusentra.it/portali/pst/acquisizione",
+        )
+        assert module._origin_cors_consentita(
+            "null",
+            "http://127.0.0.1:8080/portali/pst/acquisizione",
+        )
+        assert not module._origin_cors_consentita("null", "")
+        assert not module._origin_cors_consentita(
+            "null",
+            "file:///C:/Users/antmm/Desktop/test.html",
+        )
+        assert not module._origin_cors_consentita(
+            "null",
+            "https://evil.example.test/portali/pst/acquisizione",
+        )
+    finally:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = orig
 
 
 def test_endpoint_pec_locale_viene_dispatchato_dal_local_signer():
@@ -1816,15 +1843,24 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
 
     assert 'set "SILENT_MODE=0"' in installer
     assert 'set "PYE=%DIR%python\\python.exe"' in installer
+    assert "pyvenv.cfg" in installer
+    assert "PYTHONPATH" in installer
+    assert "Get-LocalSignerServicePython" in installer
+    assert "Set-LocalSignerRuntimeEnvironment" in installer
     assert 'set "OUTLOG=%DIR%local_signer.out.log"' in installer
     assert 'set "ERRLOG=%DIR%local_signer.err.log"' in installer
     assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYE -ArgumentList @($env:PY) -RedirectStandardOutput $env:OUTLOG -RedirectStandardError $env:ERRLOG' in installer
     assert 'Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)' in installer
     assert "function Wait-LocalSigner([int]$Attempts = 45)" in installer
-    assert "$protected = @{}" in installer
-    assert "$keep=@{}" in installer
-    assert "ParentProcessId" in installer
-    assert "ProcessId -ne $owner" not in installer
+    assert "$protected = @{}" not in installer
+    assert "$keep=@{}" not in installer
+    assert "ParentProcessId" not in installer
+    assert "ProcessId -ne [int]$owner" in installer
+    assert "schtasks /Run /TN" in launcher
+    assert "ping?light=1" in launcher
+    assert "pyvenv.cfg" in installer
+    assert "ProcessId -ne [int]$owner" not in launcher
+    assert "Stop-LocalSignerDuplicateProcesses" not in installer[installer.index("Write-Step \"Attendo che il servizio risponda"):]
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in installer
     assert "Register-LocalSignerScheduledTask" in installer
     scheduled_task_start = installer.index("function Register-LocalSignerScheduledTask")
@@ -1849,7 +1885,7 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "Invoke-Pip" in installer
     assert "PIP_NO_CACHE_DIR" in installer
     assert "pillow>=10.0.0" in installer
-    assert '$servicePythonExe = $pythonExe' in installer
+    assert '$servicePythonExe = Get-LocalSignerServicePython' in installer
     assert '$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL' in installer
     assert 'set "SILENT_MODE=0"' in launcher
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher

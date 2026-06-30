@@ -639,15 +639,32 @@ def build_telematico_runtime(
                 if text and text not in candidates:
                     candidates.append(text)
             id_cat = _effective_id_cat(item)
+            nome = str(item.get("nome") or item.get("nome_documento") or "").strip()
+            data_deposito = str(item.get("data_deposito") or item.get("data_documento") or "").strip()
+            data_documento = str(item.get("data_documento") or "").strip()
+            try:
+                dimensione_bytes = int(item.get("dimensione_bytes") or 0)
+            except (TypeError, ValueError):
+                dimensione_bytes = 0
+            has_document_shape = bool(
+                id_documento
+                or id_cat
+                or data_deposito
+                or data_documento
+                or dimensione_bytes > 0
+                or Path(nome).suffix.lower() in {".pdf", ".p7m", ".xml", ".eml", ".msg", ".zip", ".doc", ".docx", ".rtf", ".odt"}
+            )
+            if not has_document_shape:
+                continue
             rows.append(
                 {
                     "id_documento": id_documento,
-                    "nome": str(item.get("nome") or item.get("nome_documento") or "").strip(),
+                    "nome": nome,
                     "tipo": str(item.get("tipo") or "").strip(),
                     "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
-                    "data_deposito": str(item.get("data_deposito") or item.get("data_documento") or "").strip(),
+                    "data_deposito": data_deposito,
                     "mittente": str(item.get("mittente") or "").strip(),
-                    "dimensione_bytes": int(item.get("dimensione_bytes") or 0),
+                    "dimensione_bytes": dimensione_bytes,
                     "disponibile": bool(item.get("disponibile", True)),
                     "id_deposito": str(
                         item.get("id_deposito")
@@ -665,7 +682,7 @@ def build_telematico_runtime(
                     "servizio_portale": str(item.get("servizio_portale") or "").strip()
                     or SERVIZIO_PST_DOCUMENTI_FASCICOLO,
                     "sezione_portale": str(item.get("sezione_portale") or "").strip(),
-                    "data_documento": str(item.get("data_documento") or "").strip(),
+                    "data_documento": data_documento,
                     "id_documento_padre": str(item.get("id_documento_padre") or item.get("parent_id_documento") or "").strip(),
                     "parent_nome": str(item.get("parent_nome") or "").strip(),
                     "is_allegato": bool(item.get("is_allegato")),
@@ -926,6 +943,8 @@ def build_telematico_runtime(
                     or doc.get("id_deposito_pct")
                     or ""
                 ).strip()
+                if deposito.startswith("__"):
+                    deposito = ""
                 role = "allegato" if doc.get("is_allegato") or parent else "principale"
                 return "|".join(
                     part
@@ -1704,9 +1723,19 @@ def build_telematico_runtime(
     def _find_exact_fascicolo_locale_portale(
         portale: str, selection: dict[str, Any]
     ) -> Optional[Fascicolo]:
+        return _find_exact_fascicolo_locale_portale_in_list(
+            portale,
+            selection,
+            list(get_fascicoli().tutti()),
+        )
+
+    def _find_exact_fascicolo_locale_portale_in_list(
+        portale: str,
+        selection: dict[str, Any],
+        fascicoli: list[Fascicolo],
+    ) -> Optional[Fascicolo]:
         identity = _selection_rg_identity(selection)
         expected_external_id = identity["external_id"]
-        fascicoli = list(get_fascicoli().tutti())
         if expected_external_id:
             for fasc in fascicoli:
                 if not _is_fascicolo_type_compatible_for_portale(fasc, portale, selection):
@@ -1717,6 +1746,43 @@ def build_telematico_runtime(
             if _fascicolo_matches_selection(fasc, portale, selection, strict=True):
                 return fasc
         return None
+
+    def _fascicolo_locale_portale_payload(fasc: Fascicolo) -> dict[str, Any]:
+        stato = getattr(fasc, "stato", "")
+        return {
+            "id": str(getattr(fasc, "id", "") or "").strip(),
+            "numero": str(
+                getattr(fasc, "numero", "")
+                or getattr(fasc, "rg_completo", "")
+                or getattr(fasc, "id", "")
+                or ""
+            ).strip(),
+            "titolo": str(getattr(fasc, "titolo", "") or "").strip(),
+            "rg_completo": str(getattr(fasc, "rg_completo", "") or "").strip(),
+            "tribunale": str(getattr(fasc, "tribunale", "") or "").strip(),
+            "stato": str(getattr(stato, "value", stato) or "").strip(),
+            "source": str(getattr(fasc, "source", "") or "IUSENTRA").strip(),
+        }
+
+    def _annotate_portale_search_rows_with_local_matches(
+        portale: str,
+        rows: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        if not rows:
+            return []
+        fascicoli = list(get_fascicoli().tutti())
+        annotated: list[dict[str, Any]] = []
+        for raw_row in rows:
+            row = dict(raw_row or {})
+            exact = _find_exact_fascicolo_locale_portale_in_list(portale, row, fascicoli)
+            if exact:
+                row["fascicolo_locale_id"] = exact.id
+                row["local_match"] = _fascicolo_locale_portale_payload(exact)
+                row["already_present"] = True
+                row["suggested_mode"] = "update_existing"
+                row["mapping_mode"] = "update_existing"
+            annotated.append(row)
+        return annotated
 
     def _resolve_portale_import_target(
         portale: str,
@@ -3398,7 +3464,7 @@ def build_telematico_runtime(
                 or quick in str(row.get("oggetto") or "").lower()
                 or quick in str(row.get("stato") or "").lower()
             ]
-        return rows
+        return _annotate_portale_search_rows_with_local_matches(portale, rows)
 
     def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
         portale = (portale or "").strip().lower()
@@ -5001,6 +5067,7 @@ read -r -p "Premi Invio per chiudere..." _
         "spec_portale_acquisizione": _spec_portale_acquisizione,
         "build_access_status_payload": _build_access_status_payload,
         "search_fascicoli_portale_server": _search_fascicoli_portale_server,
+        "annotate_portale_search_rows": _annotate_portale_search_rows_with_local_matches,
         "preview_documenti_portale_server": _preview_documenti_portale_server,
         "build_portale_preview": _build_portale_preview,
         "coerce_import_options": _coerce_import_options,

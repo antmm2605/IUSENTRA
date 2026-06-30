@@ -3378,11 +3378,17 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
         )
         for portale, titolo in [
             ("pst", "Importa pratica da PST"),
-            ("pdp", "Importa pratica da PDP Penale"),
-            ("pat", "Importa pratica da PAT"),
-            ("ptt", "Importa pratica da PTT"),
+            ("pdp", "Fascicolo penale interno da PDP"),
+            ("pat", "Fascicolo amministrativo interno da PAT"),
+            ("ptt", "Fascicolo tributario interno da PTT / SIGIT"),
         ]:
-            response = client.get(f"/portali/{portale}/acquisizione", follow_redirects=True)
+            shell_response = client.get(f"/portali/{portale}/acquisizione", follow_redirects=True)
+            shell_body = shell_response.data.decode("utf-8")
+            assert shell_response.status_code == 200
+            assert '<html lang="it" class="react-shell-document">' in shell_body
+            assert 'id="root"' in shell_body
+
+            response = client.get(f"/portali/{portale}/acquisizione?_legacy=1", follow_redirects=True)
             body = response.data.decode("utf-8")
             assert response.status_code == 200
             assert titolo in body
@@ -3397,7 +3403,7 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
                 assert 'id="scarica_originale_portale" checked' not in body
                 assert "Scarica duplicato/originale senza coccarda ministeriale" in body
                 assert "Default PST: copia di consultazione/copia informatica con annotazioni ministeriali" in body
-        manual_response = client.get("/portali/pat/acquisizione?focus=manual-upload", follow_redirects=True)
+        manual_response = client.get("/portali/pat/acquisizione?_legacy=1&focus=manual-upload", follow_redirects=True)
         manual_body = manual_response.data.decode("utf-8")
         assert manual_response.status_code == 200
         assert "Importazione dei file gia scaricati" in manual_body
@@ -3428,7 +3434,7 @@ def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get("/portali/pdp/acquisizione", follow_redirects=True)
+        response = client.get("/portali/pdp/acquisizione?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -3438,7 +3444,7 @@ def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
     assert "Servizio remoto non disponibile" not in body
 
 
-def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
+def test_api_acquisizione_status_pst_p12_non_forza_browser_only(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
@@ -3473,7 +3479,7 @@ def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get("/api/portali/pdp/acquisizione/status", follow_redirects=True)
+        response = client.get("/api/portali/pst/acquisizione/status", follow_redirects=True)
 
     data = response.get_json()
     assert response.status_code == 200
@@ -3705,6 +3711,12 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "await awEnsurePstPreviewDocumentCatalog()" in template
     assert "/pst/ricerca-snapshot" in template
     assert "function awCanUsePstSearchSnapshot" in template
+    assert "localMatchesUrl" in template
+    assert "async function awEnrichResultsWithLocalMatches" in template
+    assert "Pratica già presente" in template
+    assert "Aggiorna pratica" in template
+    assert "await awSelectResult(autoIndex, true, { documenti: [] });" in template
+    assert "anteprima aperta automaticamente" not in template
     assert "async function awNormalizeInitialOfficeCode" in template
     assert "item?.codice_ministero" in template
     assert "officeValue.value = codice" in template
@@ -3799,8 +3811,8 @@ def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):
     assert response.status_code == 200
     assert data["ok"] is True
     assert data["status"]["browser_channel_required"] is True
-    assert data["status"]["status_text"] == "Consultazione via Portale dell'Avvocato"
-    assert data["status"]["environment_label"] == "Produzione guidata assistita"
+    assert data["status"]["status_text"] == "Portale ufficiale assistito PAT"
+    assert data["status"]["environment_label"] == "Sessione assistita locale"
 
 
 def test_api_acquisizione_status_ptt_forza_browser_ufficiale(tmp_path):
@@ -3844,8 +3856,8 @@ def test_api_acquisizione_status_ptt_forza_browser_ufficiale(tmp_path):
     assert response.status_code == 200
     assert data["ok"] is True
     assert data["status"]["browser_channel_required"] is True
-    assert data["status"]["status_text"] == "Consultazione via PTT / SIGIT"
-    assert data["status"]["environment_label"] == "Produzione guidata assistita"
+    assert data["status"]["status_text"] == "Portale ufficiale assistito PTT / SIGIT"
+    assert data["status"]["environment_label"] == "Sessione assistita locale"
 
 
 def test_api_acquisizione_status_portali_browser_guided_restano_fuori_demo_senza_certificato(tmp_path):
@@ -3873,9 +3885,9 @@ def test_api_acquisizione_status_portali_browser_guided_restano_fuori_demo_senza
             follow_redirects=True,
         )
         for portale, expected_status in (
-            ("pdp", "Consultazione via PDP Penale ufficiale"),
-            ("pat", "Consultazione via Portale dell'Avvocato"),
-            ("ptt", "Consultazione via PTT / SIGIT"),
+            ("pdp", "Portale ufficiale assistito PDP"),
+            ("pat", "Portale ufficiale assistito PAT"),
+            ("ptt", "Portale ufficiale assistito PTT / SIGIT"),
         ):
             response = client.get(f"/api/portali/{portale}/acquisizione/status", follow_redirects=True)
             data = response.get_json()
@@ -4109,10 +4121,11 @@ def test_route_ptt_ricerca_reindirizza_al_wizard_guidato(tmp_path):
     assert "Telecontenzioso" in body
 
 
-def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkeypatch):
+def test_api_acquisizione_search_pst_p12_usa_backend_server_e_portali_assistiti_no(tmp_path, monkeypatch):
     from pct.auth import GestioneUtenti, RuoloUtente
     import pct.pdp as pdp_module
     import pct.pat as pat_module
+    import pct.polisWeb as polisweb_module
     import pct.sigit as sigit_module
     from web.app import create_app
 
@@ -4140,29 +4153,32 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
         email="avvocato@example.com",
     )
 
-    class _FakePdpClient:
+    class _FakePstClient:
         def ricerca_fascicoli(self, **kwargs):
             return [
-                SimpleNamespace(
+                FascicoloPolisWeb(
                     numero_rg="4521",
                     anno_rg=2026,
-                    tipo_registro="RGNR",
-                    fase="INDAGINI",
+                    ruolo="CIVILE_COGNIZIONE",
                     stato="PENDENTE",
-                    reato="Truffa",
-                    sezione="GIP",
+                    oggetto="Truffa contrattuale",
+                    sezione="CIVILE",
                     giudice="Dott. Verdi",
                     data_iscrizione="2026-01-10",
                     data_udienza="2026-05-12",
-                    imputati=["Mario Rossi"],
-                    parti_offese=["Parte Offesa"],
+                    parti=["Mario Rossi"],
                     note="",
                     codice_ufficio="0580010",
-                    nome_ufficio="Procura di Reggio Calabria",
+                    nome_ufficio="Tribunale di Palmi",
                 )
             ]
 
-    monkeypatch.setattr(pdp_module, "crea_client_pdp", lambda demo=False: _FakePdpClient())
+    monkeypatch.setattr(polisweb_module, "crea_client", lambda demo=False: _FakePstClient())
+    monkeypatch.setattr(
+        pdp_module,
+        "crea_client_pdp",
+        lambda demo=False: (_ for _ in ()).throw(AssertionError("PDP resta assistito salvo manifest diretto verificato.")),
+    )
     monkeypatch.setattr(
         pat_module,
         "crea_client_pat",
@@ -4182,7 +4198,7 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
             follow_redirects=True,
         )
         ok_checks = [
-            ("pdp", {"ufficio_codice": "0580010", "numero": "4521", "anno": "2026"}),
+            ("pst", {"ufficio_codice": "0580010", "numero": "4521", "anno": "2026"}),
         ]
         for portale, payload in ok_checks:
             response = client.post(
@@ -4195,26 +4211,29 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
             assert data["ok"] is True
             assert len(data["results"]) == 1
 
-        pat_response = client.post(
-            "/api/portali/pat/acquisizione/search",
-            json={"ufficio_codice": "TARLZ", "numero": "1876", "anno": "2026"},
-            follow_redirects=True,
-        )
-        ptt_response = client.post(
-            "/api/portali/ptt/acquisizione/search",
-            json={"ufficio_codice": "CPT030000", "numero": "1234", "anno": "2026"},
-            follow_redirects=True,
-        )
+        assisted_responses = {
+            "pdp": client.post(
+                "/api/portali/pdp/acquisizione/search",
+                json={"ufficio_codice": "0580010", "numero": "4521", "anno": "2026"},
+                follow_redirects=True,
+            ),
+            "pat": client.post(
+                "/api/portali/pat/acquisizione/search",
+                json={"ufficio_codice": "TARLZ", "numero": "1876", "anno": "2026"},
+                follow_redirects=True,
+            ),
+            "ptt": client.post(
+                "/api/portali/ptt/acquisizione/search",
+                json={"ufficio_codice": "CPT030000", "numero": "1234", "anno": "2026"},
+                follow_redirects=True,
+            ),
+        }
 
-    pat_data = pat_response.get_json()
-    ptt_data = ptt_response.get_json()
-    assert pat_response.status_code == 200
-    assert pat_data["ok"] is False
-    assert "Portale dell'Avvocato" in pat_data["errore"]
-    assert ptt_response.status_code == 200
-    assert ptt_data["ok"] is False
-    assert "PTT / SIGIT" in ptt_data["errore"]
-    assert "Telecontenzioso" in ptt_data["errore"]
+    for portale, response in assisted_responses.items():
+        data = response.get_json()
+        assert response.status_code == 200
+        assert data["ok"] is False
+        assert "ufficiale assistito" in data["errore"] or "Portale dell'Avvocato" in data["errore"] or "PTT / SIGIT" in data["errore"]
 
 
 def test_api_acquisizione_search_pst_subpro_restituisce_messaggio_operativo(tmp_path, monkeypatch):
@@ -4270,6 +4289,158 @@ def test_api_acquisizione_search_pst_subpro_restituisce_messaggio_operativo(tmp_
     assert data["ok"] is False
     assert "sotto-procedimento" in data["errore"]
     assert "SOAP-ENV" not in data["errore"]
+
+
+def test_api_acquisizione_search_pst_marca_fascicolo_locale_da_aggiornare(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.polisWeb as polisweb_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="Montagnese c. Stillitano",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+        source="PST",
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakePstClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                FascicoloPolisWeb(
+                    numero_rg="1025",
+                    anno_rg=2024,
+                    ruolo="CIVILE_COGNIZIONE",
+                    stato="PENDENTE",
+                    oggetto="Vendita di cose immobili",
+                    codice_ufficio="0580010",
+                    nome_ufficio="Tribunale di Palmi",
+                    parti=["MONTAGNESE ELISABETTA"],
+                )
+            ]
+
+    monkeypatch.setattr(polisweb_module, "crea_client", lambda demo=False: _FakePstClient())
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/search",
+            json={"ufficio_codice": "0580010", "numero": "1025", "anno": "2024"},
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert len(data["results"]) == 1
+    row = data["results"][0]
+    assert row["fascicolo_locale_id"] == fascicolo.id
+    assert row["already_present"] is True
+    assert row["suggested_mode"] == "update_existing"
+    assert row["local_match"]["id"] == fascicolo.id
+    assert row["local_match"]["titolo"] == "Montagnese c. Stillitano"
+
+
+def test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="Ricerca locale già acquisita",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        source="PST",
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/local-matches",
+            json={
+                "results": [
+                    {
+                        "external_id": "0580010:1025:2024:CIVILE_COGNIZIONE",
+                        "numero": "1025",
+                        "anno": 2024,
+                        "ufficio_codice": "0580010",
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "procedimento": "CIVILE_COGNIZIONE",
+                        "oggetto": "Vendita di cose immobili",
+                    }
+                ]
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    row = data["results"][0]
+    assert row["fascicolo_locale_id"] == fascicolo.id
+    assert row["already_present"] is True
+    assert row["mapping_mode"] == "update_existing"
+    assert row["local_match"]["titolo"] == "Ricerca locale già acquisita"
 
 
 def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):

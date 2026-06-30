@@ -1279,23 +1279,6 @@ def build_react_telematico_payload(
         "blocked": _int(summary_raw.get("blocked") or len(control_payload["blockedCases"])),
         "attentionNeeded": sum(_int(channel.get("attentionNeeded")) for channel in channels),
     }
-    notices = []
-    if summary["blocked"] or summary["warnings"]:
-        notices.append(
-            {
-                "tone": "warning",
-                "title": "Regia telematica da presidiare",
-                "body": f"Sono presenti {summary['warnings']} warning e {summary['blocked']} blocchi nei controlli telematici.",
-            }
-        )
-    if any(channel.get("demoMode") for channel in channels):
-        notices.append(
-            {
-                "tone": "warning",
-                "title": "Canale assistito",
-                "body": "Almeno un portale richiede apertura guidata o import manuale autorizzato: non usare scraping HTML.",
-            }
-        )
     return {
         "source": "repository_reali",
         "generatedAt": _iso_now(),
@@ -1310,7 +1293,7 @@ def build_react_telematico_payload(
         "recentCases": [_case_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(recent_cases)],
         "recentEvents": [_event_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(list(recent_events) + list(control_tower.get("recent_events") or []))][:14],
         "controlTower": control_payload,
-        "notices": notices,
+        "notices": [],
         "actions": {
             "checklistHref": _safe_url("checklist_deposito", "/deposito/checklist"),
             "firmaDigitaleHref": "/guida/firma-digitale",

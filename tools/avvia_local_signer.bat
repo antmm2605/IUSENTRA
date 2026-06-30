@@ -23,9 +23,19 @@ echo.
 
 schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
 if not errorlevel 1 (
-    echo Servizio gia' installato. Avvio in background...
+    echo Servizio gia' installato. Controllo stato locale...
+    if "%FORCE_RESTART%"=="0" (
+        powershell -NoProfile -WindowStyle Hidden -Command "try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if ($r.ok) { exit 0 } } catch {}; exit 1" >nul 2>&1
+        if not errorlevel 1 (
+            if "%BACKGROUND_MODE%"=="1" exit /b 0
+            if "%SILENT_MODE%"=="1" exit /b 0
+            start "" "http://127.0.0.1:27272/diagnosi"
+            exit /b 0
+        )
+    )
+    echo Avvio in background...
     if "%FORCE_RESTART%"=="1" (
-        powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }" >nul 2>&1
+        powershell -NoProfile -WindowStyle Hidden -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match 'local_signer.py' } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }; Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }" >nul 2>&1
     )
     schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
     if "%BACKGROUND_MODE%"=="1" exit /b 0

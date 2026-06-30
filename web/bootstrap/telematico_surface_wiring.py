@@ -28,6 +28,7 @@ def register_telematico_surfaces(
         _pdp_penale_workspace_url_for_fascicolo=telematico["pdp_penale_workspace_url_for_fascicolo_early"],
         _build_access_status_payload=telematico["build_access_status_payload"],
         _search_fascicoli_portale_server=telematico["search_fascicoli_portale_server"],
+        _annotate_portale_search_rows=telematico["annotate_portale_search_rows"],
         _preview_documenti_portale_server=telematico["preview_documenti_portale_server"],
         _build_portale_preview=telematico["build_portale_preview"],
         _coerce_import_options=telematico["coerce_import_options"],

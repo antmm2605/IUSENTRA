@@ -1285,6 +1285,13 @@ def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
     assert {card["id"] for card in payload["channels"]} == {"pst", "pdp", "pat", "ptt"}
     assert "summary" in payload
     assert "controlTower" in payload
+    notice_text = " ".join(
+        f"{item.get('title', '')} {item.get('body', '')}"
+        for item in payload.get("notices", [])
+    )
+    assert "Regia telematica da presidiare" not in notice_text
+    assert "Canale assistito" not in notice_text
+    assert "non usare scraping HTML" not in notice_text
 
 
 def test_react_superfici_telematiche_collegate_nav_api_css():
@@ -2032,7 +2039,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "isDesktopLocalSignerHost" in source
     assert "portalNeedsLocalSigner && !localSignerDesktopSupported" in source
     assert "Da mobile o tablet il controllo non viene eseguito" in source
-    assert "Local Signer non rilevato su questo PC" in source
+    assert "Local Signer non raggiungibile dal browser" in source
+    assert "Endpoint provati" not in source
+    assert "Dettaglio browser" not in source
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
     assert "Local Signer non pronto sul PC" not in source
     assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" in source
@@ -2073,6 +2082,39 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "function statusHasPstCertificatePreference" in source
     assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
     assert "const certificateStatus = await statusForPstCertificate()" in source
+
+
+def test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+
+    unsupported_block = source[
+        source.index("if (!localSignerDesktopSupported)"):
+        source.index("if (tryStart) requestLocalSignerStart()")
+    ]
+    ping_start = source.index("const endpoint = localSignerEndpoint('/ping?light=1', baseUrl)")
+    set_status = source.index("if (!options.silent) setLocalSigner(next)", ping_start)
+    auto_update = source.index("if (outdated && reachable && !options.silent)", ping_start)
+    return_next = source.index("return next", set_status)
+
+    assert "updateLocalSignerAutomatically" not in unsupported_block
+    assert "LOCAL_SIGNER_DEFAULT_BASE_URLS" in source
+    assert "http://127.0.0.1:27272" in source
+    assert "http://localhost:27272" in source
+    assert "localSignerBrowserJson(endpoint, undefined, 3500)" in source[ping_start:set_status]
+    assert "localSignerFetchJson" in source
+    assert "localSignerXhrJson" in source
+    assert "XMLHttpRequest bloccato dal browser" not in source
+    assert "Canale locale non raggiungibile dal browser" in source
+    assert "Local Signer non raggiungibile dal browser" in source
+    assert set_status < auto_update < return_next
+    assert "const updated = await updateLocalSignerAutomatically()" in source[auto_update:return_next]
+    assert "return updated || next" in source[auto_update:return_next]
+
+
+def test_local_signer_cors_permette_accept_per_preflight_browser():
+    for path in ("tools/local_signer.py", "tools/dist/local_signer.py"):
+        source = Path(path).read_text(encoding="utf-8")
+        assert "Accept, Content-Type, X-Signer-Token, X-Requested-With" in source
 
 
 def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():

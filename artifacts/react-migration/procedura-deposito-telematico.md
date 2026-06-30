@@ -3344,3 +3344,71 @@ Verifiche eseguite:
 - controllo XML prodotto nel container: `Oggetto=222050`, `ValoreCausa=500.00`.
 
 Stato operativo: il deposito reale già inviato va monitorato, non duplicato, perché l'esito ministeriale indica accettazione comunque prevista. Per eventuali buste successive sullo stesso fascicolo, la produzione ora usa il ramo corretto `Pubblico impiego` e valorizza il `ValoreCausa` ministeriale; indice, firma e trasporto restano invariati rispetto alla versione che ha superato gli errori bloccanti precedenti.
+
+## Acquisizione PST: ricerca rapida, pratica locale da aggiornare e avvisi rimossi - 2026-06-30
+
+Richiesta utente: sulla pagina `https://app.iusentra.it/portali/pst/acquisizione` la ricerca del fascicolo deve essere più veloce; se il fascicolo è già presente in IUSENTRA deve comparire subito come pratica da aggiornare; nella dashboard telematica vanno rimosse le voci generiche `Regia telematica da presidiare` e `Canale assistito`.
+
+Correzione applicata:
+
+- `web/services/react_telematico_bridge.py`: il payload React telematico non genera più i due avvisi generici richiesti dall'utente; restano intatti gli avvisi specifici di superficie quando servono.
+- `web/services/telematico_runtime.py`: i risultati della ricerca portale vengono arricchiti con match locale calcolato sui fascicoli IUSENTRA esistenti, usando `source_external_id` e confronto RG/anno/ufficio compatibile con il tipo di portale.
+- `web/bootstrap/portali_acquisizione_routes.py`: nuovo endpoint leggero `/api/portali/<portale>/acquisizione/local-matches`, usato per arricchire i risultati arrivati dal Local Signer senza avviare preview, download documenti o importazioni.
+- `web/templates/portale/acquisizione_wizard.html`: se il risultato è già presente, la card mostra `Pratica già presente`, il pulsante diventa `Aggiorna pratica` e la mappatura seleziona automaticamente la pratica locale compatibile.
+- `web/templates/portale/acquisizione_wizard.html`: quando il risultato PST è univoco, l'apertura automatica resta leggera e non scarica subito i documenti via Local Signer; i documenti restano caricabili dal comando dedicato.
+- `web/bootstrap/portali_acquisizione_routes.py`: i blocchi operativi di import PST e i messaggi di canale ufficiale assistito non vengono più sostituiti da errori generici.
+- `web/services/telematico_runtime.py`: il preview PST scarta righe testuali senza forma documentale e deduplica il master/detail quando il deposito sintetico serve solo a raggruppare lo stesso documento.
+
+Verifiche automatiche eseguite:
+
+- `python -m py_compile web/services/telematico_runtime.py web/bootstrap/portali_acquisizione_routes.py web/bootstrap/telematico_surface_wiring.py web/services/react_telematico_bridge.py` -> OK;
+- `python -m pytest tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests/test_polisweb.py::test_api_acquisizione_search_pst_marca_fascicolo_locale_da_aggiornare tests/test_polisweb.py::test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer tests/test_react_shell.py::test_react_telematico_bridge_payload_minimo -q` -> `4 passed`;
+- `python -m pytest tests/test_polisweb.py::test_portale_acquisizione_wizard_renderizza_javascript_valido -q` -> `1 passed`;
+- `python -m pytest tests/test_portali_payload_import_ui.py -q` -> `32 passed`;
+- `python -m pytest tests/test_polisweb.py -k "acquisizione or portale_acquisizione or portale_wizard" -q` -> `39 passed`;
+- `python -m pytest tests/test_react_shell.py::test_react_telematico_bridge_payload_minimo -q` -> `1 passed`.
+
+Stato server reale 2026-06-30: hotfix server-first copiato su Hetzner in `/opt/iusentra/repo` e nel container unico `iusentra-app`; `docker exec iusentra-app python -m py_compile ...` -> OK; dopo `docker restart iusentra-app`, `docker ps` mostra `iusentra-app` healthy e `https://app.iusentra.it/api/pronto` risponde `ok=true`, `timezone=Europe/Rome`, versione `2.253.137`. Il browser reale è stato aperto su `https://app.iusentra.it/portali/pst/acquisizione`, ma la pagina reindirizza a `https://app.iusentra.it/login?next=/portali/pst/acquisizione`: ricerca PST non ancora avviabile finché l'utente non completa l'accesso nella scheda visibile.
+
+Stato verifica reale: codice e test mirati locali risultano coerenti. La prova materiale sul browser reale autenticato in produzione e sulla copia locale `127.0.0.1:8080` resta ancora da eseguire prima di dichiarare il flusso operativo concluso.
+
+## Local Signer 1.6.86: avvio e aggiornamento automatico nella pagina PST - 2026-06-30
+
+Richiesta utente: recuperare il comportamento già risolto nelle versioni precedenti, cioè Local Signer che si avvia e si aggiorna automaticamente dalla pagina `https://app.iusentra.it/portali/pst/acquisizione`, senza assistenza operativa dell'avvocato e senza testi tecnici visibili come endpoint, `fetch` o `XMLHttpRequest`.
+
+Correzione applicata:
+
+- `frontend/src/components/TelematicoSurfacePage.tsx`: il pulsante `Avvia e verifica` non usa più un iframe nascosto per `iusentra-local-signer://restart`; ora attiva il protocollo locale tramite link generato dal gesto reale del browser e poi ricontrolla il servizio.
+- `frontend/src/components/TelematicoSurfacePage.tsx`: i dettagli tecnici di trasporto non vengono più composti nel messaggio utente. Il testo visibile resta governato e non espone URL locali, `fetch`, `xhr`, `XMLHttpRequest`, endpoint o diagnostica browser.
+- `tests/test_react_shell.py`: aggiornati i guardrail per impedire il ritorno di `Endpoint provati`, `Dettaglio browser` e `XMLHttpRequest bloccato dal browser` nella superficie React.
+- Local Signer distribuito come versione `1.6.86` con installer Windows `SetupLocalSigner-1.6.86.exe` e servizio locale aggiornabile dai sorgenti ufficiali serviti da IUSENTRA.
+
+Verifiche automatiche eseguite:
+
+- `pnpm --filter @iusentra/studio build` -> OK; bundle corrente `assets/TelematicoSurfacePage-BeJ-kLvh.js`;
+- `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia -q` -> `2 passed`;
+- controllo testuale sul bundle corrente pubblicato: nessuna occorrenza di `Endpoint provati`, `Dettaglio browser`, `XMLHttpRequest bloccato dal browser`, `fetch: Failed to fetch`, `xhr:`, `comando provati`, `Regia telematica da presidiare`, `Canale assistito`, `non usare scraping HTML`; presenti invece il messaggio pulito e il protocollo `iusentra-local-signer://restart`.
+
+Hotfix produzione eseguito:
+
+- pacchetto React pulito copiato su Hetzner in `/opt/iusentra/repo` e nel container unico `iusentra-app`;
+- copiati anche `TelematicoSurfacePage.tsx`, `react_telematico_bridge.py`, sorgenti Local Signer e installer `1.6.86`;
+- `docker restart iusentra-app` -> container `iusentra-app` healthy;
+- `https://app.iusentra.it/api/pronto` -> `ok=true`, `timezone=Europe/Rome`, versione `2.253.137`;
+- `https://app.iusentra.it/polisWeb/local-signer/setup/windows` -> `SetupLocalSigner-1.6.86.exe`, `content-length=393216`;
+- `docker ps` -> un solo container applicativo, nome esatto `iusentra-app`.
+
+Prova reale su Google Chrome dell'utente:
+
+- pagina reale autenticata: `https://app.iusentra.it/portali/pst/acquisizione`;
+- hard reload della scheda Chrome e ritorno allo `Step 1 - Accesso`;
+- click su `Verifica Local Signer` con servizio attivo: UI visibile `Local Signer pronto`, `Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.`, `ultima versione 1.6.86`, `rilevata 1.6.86`;
+- nessun testo visibile con endpoint, `fetch`, `xhr`, `XMLHttpRequest`, `comando provati`, `Regia telematica da presidiare`, `Canale assistito` o `non usare scraping HTML`;
+- processo locale fermato manualmente per test: `ping` su `127.0.0.1:27272` non raggiungibile;
+- click reale su `Avvia e verifica` dalla stessa pagina Chrome: il protocollo locale ha riavviato Local Signer senza prompt operativo aggiuntivo; dopo pochi secondi `ping` tornato `ok=true`, versione `1.6.86`, e la UI è tornata a `Local Signer pronto`;
+- processo dopo il riavvio automatico: un solo `python.exe` con `C:\Users\antmm\AppData\Roaming\IUSENTRA\LocalSigner\local_signer.py`;
+- chiamata reale a `/update` del Local Signer: `ok=true`, `versione_corrente=1.6.86`, sorgenti aggiornati, riavvio automatico eseguito;
+- controllo finale dopo update: un solo processo Local Signer, nessun `pythonw.exe` duplicato, `ping` ancora `ok=true`, versione `1.6.86`;
+- nuovo click su `Verifica Local Signer`: UI ancora `Local Signer pronto`, versione `1.6.86`, zero testi tecnici o vecchie voci richieste dall'utente.
+
+Stato operativo: server reale e Chrome reale dell'utente hanno confermato avvio da servizio fermo, aggiornamento endpoint e processo unico. Restano da completare, prima della chiusura formale del lavoro, riallineamento locale Docker su `127.0.0.1:8080`, commit, push dei branch gemelli, controlli GitHub richiesti e deploy ordinato sullo stesso commit.

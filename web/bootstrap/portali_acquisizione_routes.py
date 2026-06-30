@@ -18,6 +18,7 @@ def register_portali_acquisizione_routes(
     _pdp_penale_workspace_url_for_fascicolo: Callable[[str], str],
     _build_access_status_payload: Callable[[str], dict[str, Any]],
     _search_fascicoli_portale_server: Callable[[str, dict[str, Any]], Any],
+    _annotate_portale_search_rows: Callable[[str, list[dict[str, Any]]], list[dict[str, Any]]],
     _preview_documenti_portale_server: Callable[[str, dict[str, Any]], list[dict[str, Any]]],
     _build_portale_preview: Callable[[str, dict[str, Any], list[dict[str, Any]]], dict[str, Any]],
     _coerce_import_options: Callable[[dict[str, Any]], dict[str, Any]],
@@ -245,6 +246,27 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "results": risultati, "pst_session": pst_session})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_search(%s): %s", portale, e)
+            detail = str(e).strip()
+            public_error = (
+                detail
+                if "portale ufficiale assistito" in detail.lower()
+                else _portale_public_error(portale, "search")
+            )
+            return jsonify({"ok": False, "errore": public_error, "results": []}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/local-matches", methods=["POST"])
+    def api_portale_acquisizione_local_matches(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            raw_results = data.get("results")
+            if not isinstance(raw_results, list):
+                selection = data.get("selection")
+                raw_results = [selection] if isinstance(selection, dict) else []
+            rows = [dict(item) for item in raw_results if isinstance(item, dict)]
+            return jsonify({"ok": True, "results": _annotate_portale_search_rows(portale, rows)})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_local_matches(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": _portale_public_error(portale, "search"), "results": []}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/preview", methods=["POST"])
@@ -310,7 +332,13 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, "pst_session": data.get("pst_session") or {}, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import")}), 200
+            detail = str(e).strip()
+            public_error = (
+                detail
+                if detail.startswith("Importazione ") and " bloccata" in detail
+                else _portale_public_error(portale, "import")
+            )
+            return jsonify({"ok": False, "errore": public_error}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/importa-payload", methods=["POST"])
     def api_portale_acquisizione_importa_payload(portale: str):

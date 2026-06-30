@@ -106,6 +106,7 @@ from local_signer_mod.ai_handlers import LocalAiHandlerFacade  # noqa: E402
 from local_signer_mod.security import (  # noqa: E402
     build_allowed_origins,
     is_allowed_origin,
+    is_allowed_origin_or_referer,
     is_loopback_origin,
     normalize_origin,
 )
@@ -115,7 +116,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.83"
+VERSION = "1.6.86"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1230,8 +1231,8 @@ def _origini_hacs_consentite() -> set[str]:
     return build_allowed_origins(LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
-def _origin_cors_consentita(origin: str) -> bool:
-    return is_allowed_origin(origin, LOCAL_SIGNER_ALLOWED_ORIGINS)
+def _origin_cors_consentita(origin: str, referer: str = "") -> bool:
+    return is_allowed_origin_or_referer(origin, referer, LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
 def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
@@ -9957,17 +9958,18 @@ class _Handler(BaseHTTPRequestHandler):
     def _cors_ok(self) -> bool:
         """Verifica che l'origine sia localhost o una origin IUSENTRA esplicitamente fidata."""
         origin = self.headers.get("Origin", "")
-        return _origin_cors_consentita(origin)
+        referer = self.headers.get("Referer", "")
+        return _origin_cors_consentita(origin, referer)
 
     def _add_cors(self):
         origin = self.headers.get("Origin", "")
+        referer = self.headers.get("Referer", "")
         allowed_origin = "*"
         if origin:
-            allowed_origin = (
-                _normalizza_origin(origin)
-                if _origin_cors_consentita(origin)
-                else "null"
-            )
+            if _origin_cors_consentita(origin, referer):
+                allowed_origin = "null" if origin.strip().lower() == "null" else _normalizza_origin(origin)
+            else:
+                allowed_origin = "null"
         self.send_header(
             "Access-Control-Allow-Origin",
             allowed_origin
@@ -9975,7 +9977,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header(
             "Access-Control-Allow-Headers",
-            "Content-Type, X-Signer-Token, X-Requested-With"
+            "Accept, Content-Type, X-Signer-Token, X-Requested-With"
         )
         self.send_header("Access-Control-Max-Age", "86400")
         self.send_header("Vary", "Origin")

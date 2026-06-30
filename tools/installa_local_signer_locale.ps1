@@ -342,20 +342,10 @@ function Stop-LocalSignerDuplicateProcesses {
         return
     }
     $processes = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)
-    $protected = @{}
-    $cursor = [int]$owner
-    while ($cursor -and -not $protected.ContainsKey($cursor)) {
-        $protected[$cursor] = $true
-        $parent = $processes | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId
-        if (-not $parent) {
-            break
-        }
-        $cursor = [int]$parent
-    }
     $processes |
         Where-Object {
             $_.Name -in @("python.exe", "pythonw.exe") -and
-            -not $protected.ContainsKey([int]$_.ProcessId) -and
+            [int]$_.ProcessId -ne [int]$owner -and
             $_.CommandLine -and
             $_.CommandLine -like "*local_signer*"
         } |
@@ -366,6 +356,50 @@ function Stop-LocalSignerDuplicateProcesses {
             } catch {
             }
         }
+}
+
+function Get-LocalSignerServicePython {
+    $embeddedPython = Join-Path $embeddedPythonDir "python.exe"
+    if (Test-Path $embeddedPython) {
+        return $embeddedPython
+    }
+    $venvConfig = Join-Path $venvDir "pyvenv.cfg"
+    if (Test-Path $venvConfig) {
+        try {
+            $line = Get-Content -LiteralPath $venvConfig -ErrorAction Stop |
+                Where-Object { $_ -match "^\s*executable\s*=" } |
+                Select-Object -First 1
+            if ($line) {
+                $resolved = ($line -replace "^\s*executable\s*=\s*", "").Trim()
+                if ($resolved -and (Test-Path $resolved)) {
+                    return $resolved
+                }
+            }
+        } catch {
+            Write-InstallerLog "Python reale da pyvenv.cfg non risolto: $($_.Exception.Message)"
+        }
+    }
+    if (Test-Path $pythonExe) {
+        return $pythonExe
+    }
+    if (Test-Path $pythonwExe) {
+        return $pythonwExe
+    }
+    return $null
+}
+
+function Set-LocalSignerRuntimeEnvironment {
+    $paths = @()
+    $venvSitePackages = Join-Path $venvDir "Lib\site-packages"
+    if (Test-Path $venvSitePackages) {
+        $paths += $venvSitePackages
+    }
+    $paths += $targetDir
+    if ($env:PYTHONPATH) {
+        $paths += $env:PYTHONPATH
+    }
+    $env:PYTHONPATH = ($paths -join ";")
+    $env:VIRTUAL_ENV = $venvDir
 }
 
 function Uninstall-ExistingLocalSigner {
@@ -467,9 +501,12 @@ if "%UPDATE_MODE%"=="1" goto :update
 
 rem Cerca Python: prima python.exe per log diagnostici, poi pythonw.exe come fallback
 set "PYE=%DIR%python\python.exe"
+if not exist "%PYE%" for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "$cfg=Join-Path $env:DIR '.venv\pyvenv.cfg'; if (Test-Path $cfg) { $line=Get-Content -LiteralPath $cfg | Where-Object { $_ -match '^\s*executable\s*=' } | Select-Object -First 1; if ($line) { ($line -replace '^\s*executable\s*=\s*','').Trim() } }"`) do set "PYE=%%P"
 if not exist "%PYE%" set "PYE=%DIR%.venv\Scripts\python.exe"
 set "PYW=%DIR%python\pythonw.exe"
 if not exist "%PYW%" set "PYW=%DIR%.venv\Scripts\pythonw.exe"
+set "VENVSITE=%DIR%.venv\Lib\site-packages"
+if exist "%VENVSITE%" set "PYTHONPATH=%VENVSITE%;%DIR%;%PYTHONPATH%"
 set "OUTLOG=%DIR%local_signer.out.log"
 set "ERRLOG=%DIR%local_signer.err.log"
 
@@ -489,7 +526,7 @@ if exist "%PYE%" (
 ) else (
     exit /b 1
 )
-powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; $target=[regex]::Escape($env:TARGET); $owner=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($owner) { $all=@(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue); $keep=@{}; $cursor=[int]$owner; while ($cursor -and -not $keep.ContainsKey($cursor)) { $keep[$cursor]=$true; $parent=$all | Where-Object { [int]$_.ProcessId -eq $cursor } | Select-Object -First 1 -ExpandProperty ParentProcessId; if (-not $parent) { break }; $cursor=[int]$parent }; $all | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and -not $keep.ContainsKey([int]$_.ProcessId) -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} } }"
+powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if (-not $r.ok) { exit 1 } } catch { exit 1 }"
 
 :online
 if /I "%~1"=="--background" exit /b 0
@@ -746,13 +783,11 @@ if (-not $autostartOk) {
 Write-Step "Avvio subito il servizio in background..."
 Stop-LocalSignerProcesses
 Remove-Item $runtimeStdoutLog, $runtimeStderrLog -Force -ErrorAction SilentlyContinue
-$servicePythonExe = $pythonExe
-if (-not (Test-Path $servicePythonExe)) {
-    $servicePythonExe = $pythonwExe
-}
+$servicePythonExe = Get-LocalSignerServicePython
 if (Test-Path $servicePythonExe) {
     $env:PCT_LOCAL_SIGNER_ALLOWED_ORIGINS = $defaultAllowedOrigins
     $env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
+    Set-LocalSignerRuntimeEnvironment
     if ((Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe") {
         Start-Process `
             -WindowStyle Hidden `
@@ -774,9 +809,6 @@ if (Test-Path $servicePythonExe) {
 
 Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = Wait-LocalSigner
-if ($online) {
-    Stop-LocalSignerDuplicateProcesses
-}
 $exitCode = 0
 if (-not $online) {
     $exitCode = 1

@@ -192,6 +192,15 @@ type BrowserLocalSignerStatus = {
   version: string
   tokenLabel: string
   message: string
+  baseUrl?: string
+  probeUrls?: string[]
+}
+
+type LocalSignerBrowserRequestResult = {
+  payload: JsonRecord
+  status: number
+  ok: boolean
+  transport: 'fetch' | 'xhr'
 }
 
 type AssistantSession = {
@@ -278,6 +287,7 @@ const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000
 const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000
 const LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS = 3_500
 const LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS = 8_000
+const LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -320,6 +330,129 @@ function asRecord(value: unknown): JsonRecord {
 
 function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
+}
+
+function normalizeLocalSignerBaseUrl(value: unknown): string {
+  return asText(value).replace(/\/+$/, '')
+}
+
+function localSignerCandidateBaseUrls(...values: unknown[]): string[] {
+  return Array.from(new Set(
+    [...values, ...LOCAL_SIGNER_DEFAULT_BASE_URLS]
+      .map(normalizeLocalSignerBaseUrl)
+      .filter(Boolean),
+  ))
+}
+
+function localSignerEndpoint(path: string, baseUrl: string): string {
+  const suffix = path.startsWith('/') ? path : `/${path}`
+  return `${normalizeLocalSignerBaseUrl(baseUrl)}${suffix}`
+}
+
+function localSignerErrorText(error: unknown): string {
+  if (error instanceof DOMException && error.name === 'AbortError') return 'tempo massimo superato'
+  if (error instanceof Error) return error.message
+  return asText(error)
+}
+
+function localSignerIsTimeoutError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true
+  return localSignerErrorText(error).toLowerCase().includes('tempo massimo superato')
+}
+
+function localSignerProbeFailureMessage(probeUrls: string[], detail = ''): string {
+  void probeUrls
+  void detail
+  return 'Local Signer non raggiungibile dal browser. Premi Avvia e verifica: IUSENTRA prova ad avviare il servizio locale e ricontrolla automaticamente.'
+}
+
+function parseLocalSignerResponseText(text: string): JsonRecord {
+  try {
+    return asRecord(text ? JSON.parse(text) : {})
+  } catch {
+    throw new Error('Risposta non valida dal Local Signer.')
+  }
+}
+
+async function localSignerFetchJson(
+  endpoint: string,
+  body?: JsonRecord,
+  timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS,
+): Promise<LocalSignerBrowserRequestResult> {
+  if (typeof fetch !== 'function') throw new Error('Canale locale non disponibile.')
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(endpoint, {
+      method: body ? 'POST' : 'GET',
+      cache: 'no-store',
+      mode: 'cors',
+      headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    })
+    const text = await response.text()
+    return {
+      payload: parseLocalSignerResponseText(text),
+      status: response.status,
+      ok: response.ok,
+      transport: 'fetch',
+    }
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+function localSignerXhrJson(
+  endpoint: string,
+  body?: JsonRecord,
+  timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS,
+): Promise<LocalSignerBrowserRequestResult> {
+  if (typeof XMLHttpRequest === 'undefined') {
+    return Promise.reject(new Error('Canale locale non disponibile.'))
+  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(body ? 'POST' : 'GET', endpoint, true)
+    xhr.timeout = timeoutMs
+    xhr.setRequestHeader('Accept', 'application/json')
+    if (body) xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.onload = () => {
+      try {
+        resolve({
+          payload: parseLocalSignerResponseText(xhr.responseText || ''),
+          status: xhr.status,
+          ok: xhr.status >= 200 && xhr.status < 300,
+          transport: 'xhr',
+        })
+      } catch (error: unknown) {
+        reject(error)
+      }
+    }
+    xhr.onerror = () => reject(new Error('Canale locale non raggiungibile.'))
+    xhr.ontimeout = () => reject(new Error('tempo massimo superato'))
+    xhr.onabort = () => reject(new Error('richiesta annullata dal browser'))
+    xhr.send(body ? JSON.stringify(body) : undefined)
+  })
+}
+
+async function localSignerBrowserJson(
+  endpoint: string,
+  body?: JsonRecord,
+  timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS,
+): Promise<LocalSignerBrowserRequestResult> {
+  let fetchError: unknown = null
+  try {
+    return await localSignerFetchJson(endpoint, body, timeoutMs)
+  } catch (error: unknown) {
+    fetchError = error
+  }
+  try {
+    return await localSignerXhrJson(endpoint, body, timeoutMs)
+  } catch {
+    void fetchError
+    throw new Error('Canale locale non raggiungibile dal browser.')
+  }
 }
 
 function readStoredRecord(key: string): JsonRecord | null {
@@ -2561,11 +2694,13 @@ function isDesktopLocalSignerHost(): boolean {
 
 function requestLocalSignerProtocol(uri: string) {
   if (!isDesktopLocalSignerHost()) return
-  const iframe = document.createElement('iframe')
-  iframe.hidden = true
-  iframe.src = uri
-  document.body.appendChild(iframe)
-  window.setTimeout(() => iframe.remove(), 3000)
+  const link = document.createElement('a')
+  link.href = uri
+  link.style.display = 'none'
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  window.setTimeout(() => link.remove(), 3000)
 }
 
 function requestLocalSignerStart() {
@@ -3429,6 +3564,7 @@ function AcquisitionWizard({
     unsupported: !isDesktopLocalSignerHost(),
     version: '',
     tokenLabel: '',
+    baseUrl: localSignerCandidateBaseUrls(data.localSigner.browserUrl)[0] || LOCAL_SIGNER_DEFAULT_BASE_URLS[0],
     message: isDesktopLocalSignerHost()
       ? 'Controllo Local Signer non ancora eseguito su questo PC.'
       : 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
@@ -3546,22 +3682,21 @@ function AcquisitionWizard({
         message: tryStart ? 'Avvio Local Signer e verifico il servizio locale...' : 'Verifica Local Signer in corso...',
       }))
     }
-    const controller = new AbortController()
-    const timer = window.setTimeout(() => controller.abort(), 3500)
-    try {
-      const response = await fetch(`${data.localSigner.browserUrl}/ping?light=1`, {
-        method: 'GET',
-        cache: 'no-store',
-        signal: controller.signal,
-      })
-      const payload = asRecord(await response.json().catch(() => ({})))
-      const version = asText(payload.versione || payload.version || payload.local_signer_version)
-      const tokenList = asList(payload.token || payload.tokens)
-      const firstToken = asRecord(tokenList[0])
-      const tokenLabel = asText(firstToken.label || firstToken.manufacturer || firstToken.subject)
-      const outdated = Boolean(data.localSigner.latestVersion && version && compareVersions(version, data.localSigner.latestVersion) < 0)
-      const reachable = response.ok && Boolean(payload.ok !== false)
-      const next = {
+    const candidateBaseUrls = localSignerCandidateBaseUrls(localSigner.baseUrl, data.localSigner.browserUrl)
+    const probeUrls: string[] = []
+    let lastError = ''
+    for (const baseUrl of candidateBaseUrls) {
+      const endpoint = localSignerEndpoint('/ping?light=1', baseUrl)
+      probeUrls.push(endpoint)
+      try {
+        const { payload, ok } = await localSignerBrowserJson(endpoint, undefined, 3500)
+        const version = asText(payload.versione || payload.version || payload.local_signer_version)
+        const tokenList = asList(payload.token || payload.tokens)
+        const firstToken = asRecord(tokenList[0])
+        const tokenLabel = asText(firstToken.label || firstToken.manufacturer || firstToken.subject)
+        const outdated = Boolean(data.localSigner.latestVersion && version && compareVersions(version, data.localSigner.latestVersion) < 0)
+        const reachable = ok && Boolean(payload.ok !== false)
+        const next = {
         checked: true,
         checking: false,
         ok: reachable,
@@ -3569,15 +3704,25 @@ function AcquisitionWizard({
         unsupported: false,
         version,
         tokenLabel,
+        baseUrl,
+        probeUrls,
         message: outdated && reachable
           ? `Local Signer rilevato su questo PC, ma serve la versione ${data.localSigner.latestVersion}. Aggiorno prima di avviare la ricerca.`
           : reachable
             ? 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.'
             : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
       }
-      if (!options.silent) setLocalSigner(next)
-      return next
-    } catch {
+        if (!options.silent) setLocalSigner(next)
+        if (outdated && reachable && !options.silent) {
+          const updated = await updateLocalSignerAutomatically()
+          return updated || next
+        }
+        return next
+      } catch (error: unknown) {
+        lastError = localSignerErrorText(error)
+      }
+    }
+    {
       const next = {
         checked: true,
         checking: false,
@@ -3586,12 +3731,12 @@ function AcquisitionWizard({
         unsupported: false,
         version: '',
         tokenLabel: '',
-        message: 'Local Signer non rilevato su questo PC. Avvialo o installa il pacchetto aggiornato, poi ripeti la verifica.',
+        baseUrl: candidateBaseUrls[0] || LOCAL_SIGNER_DEFAULT_BASE_URLS[0],
+        probeUrls,
+        message: localSignerProbeFailureMessage(probeUrls, lastError),
       }
       if (!options.silent) setLocalSigner(next)
       return next
-    } finally {
-      window.clearTimeout(timer)
     }
   }
 
@@ -3662,34 +3807,35 @@ function AcquisitionWizard({
   }
 
   const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS): Promise<JsonRecord> => {
-    const controller = new AbortController()
-    const timer = window.setTimeout(() => controller.abort(), timeoutMs)
-    try {
-      const response = await fetch(`${data.localSigner.browserUrl}${path}`, {
-        method: body ? 'POST' : 'GET',
-        cache: 'no-store',
-        headers: body ? { 'Content-Type': 'application/json' } : {},
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      })
-      const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida dal Local Signer.' })))
-      if (!response.ok || payload.ok === false) {
-        throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${response.status}).`))
+    const candidateBaseUrls = localSignerCandidateBaseUrls(localSigner.baseUrl, data.localSigner.browserUrl)
+    const probeUrls: string[] = []
+    let lastError: unknown = null
+    for (const baseUrl of candidateBaseUrls) {
+      const endpoint = localSignerEndpoint(path, baseUrl)
+      probeUrls.push(endpoint)
+      try {
+        const { payload, ok, status } = await localSignerBrowserJson(endpoint, body, timeoutMs)
+        if (!ok || payload.ok === false) {
+          throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${status}).`))
+        }
+        setLocalSigner((current) => (current.baseUrl === baseUrl ? current : { ...current, baseUrl, probeUrls }))
+        return payload
+      } catch (error: unknown) {
+        lastError = error
       }
-      return payload
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
+    }
+    {
+      const error = lastError
+      if (localSignerIsTimeoutError(error)) {
         if (path.includes('/pst/download-documenti-batch')) {
           throw new Error('Scaricamento dal PST ancora in attesa: il portale ufficiale non ha risposto entro il tempo massimo. Il Local Signer era attivo; riprova dalla stessa schermata senza riselezionare il certificato.')
         }
         if (path.includes('/pst/')) {
           throw new Error('Consultazione PST ancora in attesa: il portale ufficiale sta rispondendo lentamente. Il Local Signer era attivo; riprova dalla stessa schermata mantenendo inserito il token.')
         }
-        throw new Error('Il servizio locale non ha risposto entro il tempo massimo. Verifica che Local Signer sia avviato sul PC e riprova.')
+        throw new Error(`${localSignerProbeFailureMessage(probeUrls, 'tempo massimo superato')}`)
       }
-      throw error
-    } finally {
-      window.clearTimeout(timer)
+      throw new Error(localSignerProbeFailureMessage(probeUrls, localSignerErrorText(error)))
     }
   }
 

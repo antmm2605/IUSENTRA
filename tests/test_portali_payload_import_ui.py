@@ -244,7 +244,7 @@ def test_payload_autorizzato_portali_arriva_nella_ui_fascicolo(tmp_path: Path, p
 
         detail = client.get(f"/fascicoli/{id_fasc}", follow_redirects=True)
         react_detail = client.get(
-            f"/api/v1/ui/fascicoli/{id_fasc}",
+            f"/api/v1/ui/fascicoli/{id_fasc}?include=all",
             headers={"X-API-Key": "react-test-key"},
         )
         react_payload = react_detail.get_json()

@@ -321,6 +321,7 @@ const AW_BOOT = {{ {
   "status": wizard_status,
   "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale),
   "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale),
+  "localMatchesUrl": url_for('api_portale_acquisizione_local_matches', portale=wizard_portale),
   "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale),
   "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale),
   "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale),
@@ -391,6 +392,31 @@ const AW_PST_SESSION_KEY = `hacs-aw-pst-session-v2-${AW_BOOT.portale}`;
 const AW_PST_IMPORT_SESSION_KEY = `hacs-aw-pst-import-session-v2-${AW_BOOT.portale}`;
 function awJson(url, options = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
+}
+function awLocalMatchFromRow(row) {
+  const source = row || {};
+  const match = source.local_match || {};
+  const id = String(source.fascicolo_locale_id || match.id || '').trim();
+  if (!id) return null;
+  return {
+    id,
+    numero: match.numero || source.rg_completo || `Fascicolo ${id}`,
+    titolo: match.titolo || source.oggetto || 'Pratica locale da aggiornare',
+    rg_completo: match.rg_completo || source.rg_completo || `RG ${source.numero || ''}/${source.anno || ''}`.replace(/\/$/, '').trim(),
+    source: match.source || 'IUSENTRA',
+  };
+}
+async function awEnrichResultsWithLocalMatches(results) {
+  const rows = Array.isArray(results) ? results : [];
+  if (!rows.length || !AW_BOOT.localMatchesUrl) return rows;
+  try {
+    const data = await awJson(AW_BOOT.localMatchesUrl, {
+      method: 'POST',
+      body: JSON.stringify({ results: rows }),
+    });
+    if (data.ok && Array.isArray(data.results)) return data.results;
+  } catch (_) {}
+  return rows;
 }
 function awAssistantUrl(template) {
   const sessionId = AW_STATE.assistantSession?.session_id || '';
@@ -1317,6 +1343,11 @@ function awMapPstLocalSignerSearchRows(rows, query, tribunale) {
       servizio_pst: row.servizio_pst || '',
       registro_portale: row.registro_portale || row.tipo_registro || '',
       tabella_ministeriale: row.tabella_ministeriale || '',
+      fascicolo_locale_id: row.fascicolo_locale_id || row.local_match?.id || '',
+      local_match: row.local_match || null,
+      already_present: Boolean(row.already_present || row.fascicolo_locale_id || row.local_match?.id),
+      suggested_mode: row.suggested_mode || '',
+      mapping_mode: row.mapping_mode || '',
       payload: row,
     };
     return manualMode
@@ -2224,13 +2255,18 @@ async function awRunSearch() {
       return;
     }
     let results = [];
+    let enrichLocalMatches = false;
     if (awShouldUseLocalSigner()) {
       await awEnsureLocalSignerReachable({ light: true });
       results = await awSearchViaLocalSigner(query);
+      enrichLocalMatches = true;
     } else {
       const data = await awJson(AW_BOOT.searchUrl, { method: 'POST', body: JSON.stringify(query) });
       if (!data.ok) throw new Error(data.errore || 'Ricerca non riuscita');
       results = data.results || [];
+    }
+    if (enrichLocalMatches) {
+      results = await awEnrichResultsWithLocalMatches(results);
     }
     AW_STATE.results = results;
     AW_STATE.selection = null;
@@ -2246,9 +2282,9 @@ async function awRunSearch() {
     const autoIndex = awPickAutoSelectionIndex(results, query);
     if (autoIndex >= 0) {
       meta.textContent = results.length === 1
-        ? 'Fascicolo univoco trovato: anteprima aperta automaticamente.'
-        : 'Corrispondenza esatta trovata: anteprima aperta automaticamente.';
-      await awSelectResult(autoIndex, true);
+        ? 'Fascicolo univoco trovato: dati aperti subito, documenti caricabili quando servono.'
+        : 'Corrispondenza esatta trovata: dati aperti subito, documenti caricabili quando servono.';
+      await awSelectResult(autoIndex, true, { documenti: [] });
     }
   } catch (err) {
     AW_STATE.results = [];
@@ -2281,7 +2317,9 @@ function awRenderResults() {
   meta.textContent = annualSearch
     ? `${AW_STATE.results.length} fascicolo/i trovati per anno`
     : `${AW_STATE.results.length} fascicolo/i trovati`;
-  root.innerHTML = AW_STATE.results.map((row, index) => `
+  root.innerHTML = AW_STATE.results.map((row, index) => {
+    const localMatch = awLocalMatchFromRow(row);
+    return `
     <div class="aw-result ${AW_STATE.selection && AW_STATE.selection.external_id === row.external_id ? 'border border-' + AW_BOOT.spec.color : ''}" data-aw-result-open="${index}" role="button" tabindex="0">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div class="flex-grow-1">
@@ -2289,19 +2327,22 @@ function awRenderResults() {
             <span class="badge text-bg-light border">${awEscape(row.ufficio_nome || row.ufficio_codice || 'Ufficio')}</span>
             <strong>RG ${awEscape(row.numero)}/${awEscape(row.anno)}</strong>
             <span class="badge text-bg-secondary">${awEscape(row.procedimento || 'Procedimento')}</span>
+            ${localMatch ? '<span class="badge text-bg-success">Pratica già presente</span>' : ''}
             ${row.manual_mode ? '<span class="badge text-bg-warning">Manuale assistita</span>' : ''}
             ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
           </div>
           <div class="fw-semibold mb-1">${awEscape(row.oggetto || 'Oggetto non disponibile')}</div>
+          ${localMatch ? `<div class="small text-success mb-1">Aggiorna ${awEscape(localMatch.numero)} - ${awEscape(localMatch.titolo)}</div>` : ''}
           <div class="small text-muted mb-1">${awEscape((row.parti || []).slice(0, 3).join(' - ') || 'Parti non disponibili')}</div>
           <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">${annualSearch ? 'Apri fascicolo' : 'Anteprima'}</button>
-          <button type="button" class="btn btn-sm btn-${AW_BOOT.spec.color}" data-aw-select="${index}">Seleziona</button>
+          <button type="button" class="btn btn-sm btn-${AW_BOOT.spec.color}" data-aw-select="${index}">${localMatch ? 'Aggiorna pratica' : 'Seleziona'}</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   root.querySelectorAll('[data-aw-result-open]').forEach(row => {
     row.addEventListener('click', event => {
       if (event.target.closest('button,a,input,select,textarea,label')) return;
@@ -2705,7 +2746,11 @@ function awRenderMappingMatches() {
   if (!target) return;
   const current = target.value;
   const linked = awLinkedFascicoloMatch();
+  const direct = awLocalMatchFromRow(AW_STATE.selection);
   const matches = Array.isArray(analysis.existing_matches) ? [...analysis.existing_matches] : [];
+  if (direct && !matches.some(match => String(match.id) === String(direct.id))) {
+    matches.unshift(direct);
+  }
   if (linked && !matches.some(match => String(match.id) === String(linked.id))) {
     matches.unshift(linked);
   }
@@ -2723,10 +2768,16 @@ function awRenderMappingMatches() {
     matches.map(match => `<option value="${awEscape(match.id)}">${awEscape(match.numero)} - ${awEscape(match.titolo)} ${match.rg_completo ? `(${awEscape(match.rg_completo)})` : ''}</option>`).join('');
   if (matches.some(match => String(match.id) === String(current))) {
     target.value = current;
+  } else if (direct && matches.some(match => String(match.id) === String(direct.id))) {
+    target.value = String(direct.id);
   } else {
     if (initialTarget && awCurrentMapping().mode !== 'create_new' && matches.some(match => String(match.id) === String(initialTarget))) {
       target.value = String(initialTarget);
     }
+  }
+  if (direct && String(target.value) === String(direct.id)) {
+    const updateRadio = document.querySelector('input[name="awMapMode"][value="update_existing"]');
+    if (updateRadio) updateRadio.checked = true;
   }
   target.disabled = awCurrentMapping().mode === 'create_new';
   const box = document.getElementById('awMatches');

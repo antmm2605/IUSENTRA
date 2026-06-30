@@ -118,7 +118,10 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
     assert "Uninstall-ExistingLocalSigner" in contenuto
     assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in contenuto
-    assert "$servicePythonExe = $pythonExe" in contenuto
+    assert "function Get-LocalSignerServicePython" in contenuto
+    assert "function Set-LocalSignerRuntimeEnvironment" in contenuto
+    assert "$servicePythonExe = Get-LocalSignerServicePython" in contenuto
+    assert "$env:PYTHONPATH" in contenuto
     assert '(Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe"' in contenuto
     assert "pillow>=10.0.0" in contenuto
     assert "function Wait-LocalSigner([int]$Attempts = 45)" in contenuto

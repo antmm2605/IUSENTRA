@@ -13,6 +13,7 @@ from flask import Flask, flash, g, make_response, redirect, render_template, req
 from core.security.login_guard import get_login_guard
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
 from pct.core_storage_backend import build_core_storage_backend
+from web.services.app_v2_routing import is_safe_internal_path
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
@@ -73,6 +74,10 @@ def register_auth_runtime(
                 flash(alert.message, alert.category)
         except Exception as exc:  # pragma: no cover - il login non deve fallire per un avviso accessorio
             app.logger.warning("Avviso certificato firma non mostrato: %s", exc)
+
+    def _safe_login_next(value: str) -> str:
+        candidate = str(value or "").strip()
+        return candidate if is_safe_internal_path(candidate) else ""
 
     def _tenant_user_manager(tenant_slug: str, *, include_studio_db: bool = True) -> GestioneUtenti:
         from pct.tenant import GestioneTenant
@@ -676,9 +681,9 @@ def register_auth_runtime(
                     )
                     session["totp_pending_auth_scope"] = auth_scope
                     session["totp_pending_auth_tenant_slug"] = auth_tenant_slug or ""
-                    session["totp_pending_next"] = request.args.get("next") or url_for(
-                        "dashboard"
-                    )
+                    session["totp_pending_next"] = _safe_login_next(
+                        request.args.get("next", "")
+                    ) or url_for("dashboard")
                     session["totp_pending_force_password_change"] = bool(
                         getattr(utente, "must_change_password", False)
                     )
@@ -707,7 +712,7 @@ def register_auth_runtime(
                         "warning",
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
-                next_url = ""
+                next_url = _safe_login_next(request.args.get("next", ""))
                 if not next_url:
                     next_url = (
                         url_for("admin.dashboard")
@@ -802,7 +807,7 @@ def register_auth_runtime(
         if request.method == "POST":
             codice = request.form.get("codice", "").strip()
             if verifica_totp(utente.totp_secret, codice):
-                next_url = session.pop("totp_pending_next", "")
+                next_url = _safe_login_next(session.pop("totp_pending_next", ""))
                 force_password_change = bool(
                     session.pop("totp_pending_force_password_change", False)
                 )

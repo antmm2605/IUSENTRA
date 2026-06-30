@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import email
 import hashlib
+import html
 import io
 import imaplib
 import json
@@ -4203,8 +4204,62 @@ def _append_note_once(note: str, lines: Iterable[str]) -> str:
     return "\n".join(parts).strip()
 
 
+def _pct_display_token(value: Any, limit: int = 240) -> str:
+    return clean_text(html.unescape(str(value or "")), limit).strip(" ;,")
+
+
+def _pct_address_display(value: Any, limit: int = 240) -> str:
+    if isinstance(value, list):
+        for item in value:
+            rendered = _pct_address_display(item, limit=limit)
+            if rendered:
+                return rendered
+        return ""
+    if isinstance(value, dict):
+        name = _pct_display_token(value.get("name"), limit)
+        email_value = _pct_display_token(value.get("email"), limit)
+        if name and email_value and email_value not in name:
+            return clean_text(f"{name} <{email_value}>", limit)
+        return name or email_value
+    return _pct_display_token(value, limit)
+
+
+def _pct_split_numero_ruolo(value: Any) -> tuple[str, str]:
+    text = _pct_display_token(value, 80)
+    match = re.search(r"\b(\d{1,8})\s*/\s*(\d{4})\b", text)
+    if not match:
+        return "", ""
+    return match.group(1), match.group(2)
+
+
+def _pct_datetime_display(value: Any) -> str:
+    raw = _pct_display_token(value, 80)
+    if not raw:
+        return ""
+    parsed: datetime | None = None
+    try:
+        parsed = parsedate_to_datetime(raw)
+    except Exception:
+        parsed = None
+    if parsed is None:
+        for sample in (raw.replace("Z", "+00:00"), raw[:19], raw[:10]):
+            try:
+                parsed = datetime.fromisoformat(sample)
+                break
+            except ValueError:
+                continue
+    if parsed is None:
+        return raw
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ROME_TZ)
+    else:
+        parsed = parsed.astimezone(ROME_TZ)
+    return parsed.strftime("%d/%m/%Y %H:%M")
+
+
 def _render_pct_deposit_receipt_text(parsed: dict[str, Any], lifecycle: dict[str, Any], attachments: list[dict[str, Any]]) -> str:
     headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else {}
     body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
     receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
     correlation = lifecycle.get("correlation") if isinstance(lifecycle.get("correlation"), dict) else {}
@@ -4212,13 +4267,26 @@ def _render_pct_deposit_receipt_text(parsed: dict[str, Any], lifecycle: dict[str
     if headers.get("subject"):
         lines.append(f"Oggetto: {headers.get('subject')}")
     if headers.get("message_id"):
-        lines.append(f"Message-ID: {headers.get('message_id')}")
+        lines.append(f"Message-ID: {_pct_display_token(headers.get('message_id'), 240)}")
+    sender_field = fields.get("mittente") if isinstance(fields.get("mittente"), dict) else {}
+    sender = _pct_address_display(sender_field.get("value") if isinstance(sender_field, dict) else "") or _pct_address_display(headers.get("from"))
+    recipient = _pct_address_display(headers.get("to"))
+    if sender:
+        lines.append(f"Mittente PEC: {sender}")
+    if recipient:
+        lines.append(f"Destinatario PEC: {recipient}")
     if headers.get("date"):
-        lines.append(f"Data PEC: {headers.get('date')}")
+        lines.append(f"Data PEC: {_pct_datetime_display(headers.get('date'))}")
     if receipt.get("occurred_at"):
-        lines.append(f"Data esito: {receipt.get('occurred_at')}")
+        lines.append(f"Data esito: {_pct_datetime_display(receipt.get('occurred_at'))}")
+    numero_ruolo = _pct_display_token(receipt.get("numero_ruolo") or correlation.get("rg"), 80)
+    if numero_ruolo:
+        lines.append(f"Numero ruolo: {numero_ruolo}")
     if correlation.get("idbusta"):
         lines.append(f"IDBUSTA: {correlation.get('idbusta')}")
+    source_message_id = _pct_display_token(correlation.get("source_message_id"), 240)
+    if source_message_id:
+        lines.append(f"Message-ID deposito: {source_message_id}")
     if receipt.get("outcome_code") is not None:
         lines.append(f"Codice esito: {receipt.get('outcome_code')}")
     if receipt.get("description"):
@@ -5225,6 +5293,9 @@ class PecAuditRepository:
         stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
         stage_id = str(stage.get("id") or "")
         receipt = lifecycle.get("receipt") if isinstance(lifecycle.get("receipt"), dict) else {}
+        official_rg_number, official_rg_year = _pct_split_numero_ruolo(
+            receipt.get("numero_ruolo") or correlation.get("rg") or ""
+        )
         external_id = clean_text(correlation.get("idbusta") or correlation.get("ref_id") or correlation.get("key"), 180)
         marker = f"PEC_DEPOSIT_CORRELATION:{correlation.get('key')}"
         event_marker = f"PEC_DEPOSIT_EVENT:{message_id}:{stage_id}:{receipt.get('outcome_code') if receipt.get('outcome_code') is not None else ''}"
@@ -5258,6 +5329,22 @@ class PecAuditRepository:
             deposito.servizio_portale = "PEC ricevute deposito"
             created = True
 
+        rg_note_lines: list[str] = []
+        if official_rg_number and official_rg_year:
+            current_rg_display = _fascicolo_rg_display(fascicolo)
+            current_rg_number, current_rg_year = _pct_split_numero_ruolo(current_rg_display)
+            official_display = f"{official_rg_number}/{official_rg_year}"
+            if (current_rg_number, current_rg_year) != (official_rg_number, official_rg_year):
+                previous_display = current_rg_display or "non indicato"
+                fascicolo.numero_rg = official_rg_number
+                try:
+                    fascicolo.anno_rg = int(official_rg_year)
+                except ValueError:
+                    fascicolo.anno_rg = 0
+                rg_note_lines.append(
+                    f"RG fascicolo aggiornato da EsitoAtto.xml: {official_display} (precedente: {previous_display})."
+                )
+
         if _PCT_DEPOSIT_STATE_RANK.get(state, 0) >= _PCT_DEPOSIT_STATE_RANK.get(str(getattr(deposito, "stato", "") or ""), 0):
             deposito.stato = state
         deposito.tipo_atto = getattr(deposito, "tipo_atto", "") or "DEPOSITO_PCT"
@@ -5281,6 +5368,7 @@ class PecAuditRepository:
         ]
         if lifecycle.get("requires_new_deposit") is False:
             note_lines.append("Nuovo deposito richiesto: no.")
+        note_lines.extend(rg_note_lines)
         deposito.note = _append_note_once(getattr(deposito, "note", ""), note_lines)
         try:
             fascicolo.modificato_il = datetime.now().isoformat()

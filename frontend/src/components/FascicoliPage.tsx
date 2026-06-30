@@ -5511,12 +5511,31 @@ function documentAutoSectionId(doc: FascicoloDocument): string {
 }
 
 function depositCommunicationText(dep: FascicoloDeposit): string {
-  return normaliseText([dep.status, dep.actType, dep.message, dep.pec, dep.source, dep.timestamp].join(' '))
+  return normaliseText([
+    dep.status,
+    dep.actType,
+    dep.message,
+    dep.pec,
+    dep.source,
+    dep.timestamp,
+    dep.roleNumber,
+    dep.externalId,
+    dep.acceptedAt,
+    dep.acceptedBy,
+  ].join(' '))
 }
 
 function depositMetaLine(dep: FascicoloDeposit): string {
   const docs = dep.documentsCount === 1 ? '1 documento' : dep.documentsCount > 1 ? `${dep.documentsCount} documenti` : ''
-  return [dep.timestamp || 'Data non indicata', dep.pec, docs, dep.source].filter(Boolean).join(' - ')
+  const date = dep.acceptedAt
+    ? `Accettato il ${dep.acceptedAt}`
+    : dep.sentAt
+      ? `Depositato il ${dep.sentAt}`
+      : dep.timestamp || 'Data non indicata'
+  const role = dep.roleNumber ? `RG ${dep.roleNumber}` : ''
+  const external = dep.externalId ? `IDBUSTA ${dep.externalId}` : ''
+  const registered = dep.registeredBy ? `registrato da ${dep.registeredBy}` : ''
+  return [date, role, external, registered, docs, dep.source].filter(Boolean).join(' - ')
 }
 
 function depositStatusLabel(status: string): string {
@@ -5611,10 +5630,19 @@ function DepositReceiptActions({ dep, onDone, onError }:{dep:FascicoloDeposit; o
 
 function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
   const summary = depositPhaseSummary(dep)
+  const facts = [
+    dep.roleNumber ? `RG ${dep.roleNumber}` : '',
+    dep.externalId ? `IDBUSTA ${dep.externalId}` : '',
+    dep.acceptedAt ? `Accettato il ${dep.acceptedAt}` : '',
+    dep.acceptedBy ? `Da ${dep.acceptedBy}` : '',
+    dep.registeredBy ? `Registrato da ${dep.registeredBy}` : '',
+    dep.sourceMessageId ? `Messaggio deposito ${dep.sourceMessageId}` : '',
+  ].filter(Boolean)
   return (
     <div className={`iu-fas-deposit-state iu-fas-deposit-state--${summary.tone}`}>
       <Badge tone={summary.tone}>{summary.label}</Badge>
       <span>{summary.body}</span>
+      {facts.length ? <small>{facts.join(' - ')}</small> : null}
     </div>
   )
 }

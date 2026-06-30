@@ -1736,6 +1736,69 @@ def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history
     assert second["duplicate"] is False
 
 
+def test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+    from web.services.react_fascicoli_bridge import _deposits
+
+    fixtures = Path("tests/fixtures/pec")
+    acceptance_xml = (fixtures / "esito_atto_accettazione_manuale.xml").read_text(encoding="utf-8")
+    raw_mime = _pct_esito_mime(
+        "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso Punturiero RG: 1733/2026",
+        acceptance_xml,
+        message_id="<accepted-direct-upsert-35508878@example.test>",
+        when="Tue, 16 Jun 2026 07:36:00 +0200",
+    )
+    parsed = parse_pec_message(raw_mime)
+    report = build_validation_report(parsed, [{"classification": "daticert", "filename": "daticert.xml"}])
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo(
+        "Ricorso Punturiero",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Mario Rossi",
+        tribunale="Tribunale di Palmi",
+        numero_rg="",
+        anno_rg=0,
+        controparte="Mario Rossi",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+
+    result = repo._upsert_pct_deposit_from_report(
+        "accepted-direct-upsert-35508878@example.test",
+        parsed=parsed,
+        report=report,
+        attachments=[{"classification": "daticert", "filename": "daticert.xml"}],
+        fascicolo_id=fascicolo.id,
+        actor="codex-test",
+    )
+
+    assert result["ok"] is True
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved is not None
+    assert saved.numero_rg == "1733"
+    assert saved.anno_rg == 2026
+    assert len(saved.depositi_pct) == 1
+    deposito = saved.depositi_pct[0]
+    assert deposito.stato == "ACCETTATO_CANCELLERIA"
+    assert "Numero ruolo: 1733/2026" in deposito.ricevuta_cancelleria
+    assert "Message-ID deposito: <jpec1329.20260615160803.99187.407.1.1@pec.aruba.it>" in deposito.ricevuta_cancelleria
+    assert "RG fascicolo aggiornato da EsitoAtto.xml: 1733/2026" in deposito.note
+
+    rows = _deposits(saved)
+    assert rows[0]["roleNumber"] == "1733/2026"
+    assert rows[0]["acceptedAt"] == "16/06/2026 07:35"
+    assert rows[0]["acceptedBy"] == "cancelleria@giustiziapec.it"
+    assert rows[0]["registeredBy"] == "codex-test"
+    assert rows[0]["externalId"] == "35508878"
+    assert rows[0]["sourceMessageId"] == "<jpec1329.20260615160803.99187.407.1.1@pec.aruba.it>"
+
+
 def test_scadenziario_ignora_ricevute_generiche_senza_azione_operativa():
     parsed = {
         "headers": {"subject": "Ricevuta protocollo"},

@@ -3568,3 +3568,37 @@ Guardrail anti-regressione:
 - test che vieta il ritorno del `/ping` completo nel controllo di avvio degli installer Windows;
 - test che verifica il dist Local Signer e la diagnostica di avvio;
 - test React sul messaggio Local Signer e sul flusso telematico.
+
+## Presidio PEC deposito accettato e aggiornamento automatico RG - 2026-06-30
+
+Richiesta utente: la PEC di accettazione deposito ricevuta deve risultare nel flusso del deposito e nel fascicolo, mostrando quando il deposito è stato registrato, da chi, quando è stato accettato e aggiornando automaticamente il numero RG ufficiale letto da `EsitoAtto.xml`.
+
+Dati reali consultati:
+
+- file PEC locale: `C:/Users/antmm/Downloads/pec_00119fb0a3713fdb69faaf7d.eml`;
+- allegato tecnico: `EsitoAtto.xml`;
+- `NumeroRuolo`: `1084/2026`;
+- `IDBUSTA`: `152649431`;
+- `CodiceEsito`: `2`;
+- esito: `Accettazione manuale avvenuta con successo`;
+- data esito ministeriale: `30/06/2026 08:44`;
+- message-id deposito originario: `<jpec1329.20260630000219.66240.402.1.1@pec.aruba.it>`.
+
+Modifiche applicate:
+
+- `pct/pec_pipeline.py`: il testo ricevuta PCT ora conserva mittente PEC, destinatario PEC, data PEC in formato italiano, data esito in formato italiano, `Numero ruolo`, `IDBUSTA`, message-id del deposito originario e codice esito;
+- `pct/pec_pipeline.py`: quando una ricevuta PCT forte contiene `NumeroRuolo`, il fascicolo collegato aggiorna automaticamente `numero_rg` e `anno_rg`; l'eventuale valore precedente viene annotato nelle note del deposito con la dicitura `RG fascicolo aggiornato da EsitoAtto.xml`;
+- `web/services/react_fascicoli_bridge.py`: il payload React dei depositi espone `sentAt`, `acceptedAt`, `acceptedBy`, `registeredBy`, `registeredAt`, `roleNumber`, `receiptMessageId` e `sourceMessageId`, convertendo le date visibili in `Europe/Rome`;
+- `frontend/src/components/FascicoliPage.tsx` e `frontend/src/components/FascicoliPage.css`: la sezione `Ricevute e cancelleria` mostra nella riga deposito e nello stato i fatti ufficiali principali: RG, IDBUSTA, data di accettazione, mittente PEC, utente che ha registrato e message-id del deposito.
+
+Verifiche automatiche eseguite:
+
+- `python -m pytest tests/test_pec_audit_pipeline.py::test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history tests/test_pec_audit_pipeline.py::test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts -q` -> verde;
+- `python -m pytest tests/test_pec_audit_pipeline.py::test_pct_esito_atto_fixtures_extract_strong_correlation_and_receipt_profile -q` -> verde;
+- `npm --prefix frontend run typecheck` -> verde;
+- parsing diretto del file reale `pec_00119fb0a3713fdb69faaf7d.eml` -> estratti `Numero ruolo: 1084/2026`, `IDBUSTA: 152649431`, `Data PEC: 30/06/2026 08:44`, `Data esito: 30/06/2026 08:44`.
+
+Stato anti-regressione:
+
+- il test `test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts` fallisce se una PEC di accettazione finale non aggiorna il fascicolo da `NumeroRuolo`, non conserva i metadati ufficiali nella ricevuta o non li espone nel payload React;
+- resta obbligatoria la prova visiva reale su `127.0.0.1:8080` dopo rebuild Docker locale, con apertura del fascicolo collegato e controllo della sezione `Ricevute e cancelleria`.

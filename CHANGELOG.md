@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.144 - 2026-06-30
+
+- Deposito PCT accettato: la pipeline PEC legge `EsitoAtto.xml`, aggiorna automaticamente il R.G. del fascicolo da `NumeroRuolo` e registra IDBUSTA, Message-ID deposito, mittente PEC, data PEC e data esito in formato italiano.
+- Fascicolo React: la sezione `Comunicazioni / Cancelleria` mostra quando il deposito è stato accettato, da chi risulta arrivata la PEC, chi lo ha registrato e il riepilogo `RG / IDBUSTA / Message-ID`, così l'avvocato vede subito lo stato della cancelleria.
+- Login studio: il redirect post-accesso rispetta di nuovo `next=/fascicoli/...` solo per percorsi interni sicuri, evitando il ritorno in Panoramica durante l'apertura diretta del fascicolo.
+
 ## 2.253.143 - 2026-06-30
 
 - Local Signer `1.6.90`: corretta la prima installazione Windows sui PC cliente. L'installer ora considera pronto il servizio con il ping leggero `127.0.0.1:27272/ping?light=1`, lo stesso usato dal browser, evitando il falso fallimento quando il ping completo resta impegnato in controlli più pesanti.

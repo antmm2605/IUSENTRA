@@ -281,6 +281,14 @@ export type FascicoloDepositReceiptStep = {
 export type FascicoloDeposit = {
   id: string
   timestamp: string
+  sentAt: string
+  acceptedAt: string
+  acceptedBy: string
+  registeredBy: string
+  registeredAt: string
+  roleNumber: string
+  receiptMessageId: string
+  sourceMessageId: string
   status: string
   actType: string
   pec: string
@@ -1529,6 +1537,14 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       return {
         id: text(row.id, `dep-${index}`),
         timestamp: text(row.timestamp),
+        sentAt: text(row.sentAt ?? row.sent_at),
+        acceptedAt: text(row.acceptedAt ?? row.accepted_at),
+        acceptedBy: text(row.acceptedBy ?? row.accepted_by),
+        registeredBy: text(row.registeredBy ?? row.registered_by),
+        registeredAt: text(row.registeredAt ?? row.registered_at),
+        roleNumber: text(row.roleNumber ?? row.role_number ?? row.numero_ruolo),
+        receiptMessageId: text(row.receiptMessageId ?? row.receipt_message_id),
+        sourceMessageId: text(row.sourceMessageId ?? row.source_message_id),
         status: text(row.status ?? row.stato),
         actType: text(row.actType ?? row.tipo_atto),
         pec: text(row.pec ?? row.pec_destinatario),

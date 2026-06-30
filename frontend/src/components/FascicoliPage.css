@@ -1145,6 +1145,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-deposit-prepare-box .iu-fas-sync-note span{grid-column:3;color:#334155;font-size:12px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
 .iu-fas-deposit-state{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;margin-top:3px;padding:8px;border:1px solid var(--iu-border);border-radius:10px;background:#f8fafc}
 .iu-fas-deposit-state span{color:#334155;font-size:11.5px;font-weight:760;line-height:1.35}
+.iu-fas-deposit-state small{grid-column:1/-1;color:#475569;font-size:11px;font-weight:820;line-height:1.35;overflow-wrap:anywhere}
 .iu-fas-deposit-state--success{border-color:rgba(22,163,74,.22);background:#ecfdf3}
 .iu-fas-deposit-state--warning{border-color:rgba(245,158,11,.28);background:#fffbeb}
 .iu-fas-deposit-state--danger{border-color:rgba(239,68,68,.24);background:#fff1f2}

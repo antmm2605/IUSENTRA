@@ -17,6 +17,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 from flask import current_app, has_app_context
 
@@ -34,6 +35,7 @@ from pct.document_signature_state import (
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+ROME_TZ = ZoneInfo("Europe/Rome")
 
 
 def _now() -> str:
@@ -801,9 +803,20 @@ def _parse_datetime(value: Any) -> datetime | None:
             except ValueError:
                 continue
         if parsed is None:
+            for sample, fmt in (
+                (raw[:19], "%d/%m/%Y %H:%M:%S"),
+                (raw[:16], "%d/%m/%Y %H:%M"),
+                (raw[:10], "%d/%m/%Y"),
+            ):
+                try:
+                    parsed = datetime.strptime(sample, fmt)
+                    break
+                except ValueError:
+                    continue
+        if parsed is None:
             return None
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone().replace(tzinfo=None)
+        parsed = parsed.astimezone(ROME_TZ).replace(tzinfo=None)
     return parsed
 
 
@@ -914,6 +927,13 @@ def _time_label(value: Any) -> str:
     if not parsed:
         return ""
     return parsed.strftime("%H:%M")
+
+
+def _datetime_label(value: Any) -> str:
+    parsed = _parse_datetime(value)
+    if not parsed:
+        return _text(value)
+    return parsed.strftime("%d/%m/%Y %H:%M")
 
 
 def _euro(value: Any) -> str:
@@ -3237,6 +3257,37 @@ def _deposit_dedupe_key(dep: Any, portal_docs: list[dict[str, Any]]) -> tuple[st
     )
 
 
+def _deposit_receipt_texts(dep: Any) -> list[str]:
+    texts: list[str] = []
+    for attr in (
+        "ricevuta_cancelleria",
+        "ricevuta_controlli_automatici",
+        "ricevuta_consegna",
+        "ricevuta_accettazione",
+    ):
+        value = _text(getattr(dep, attr, ""))
+        if value:
+            texts.append(value)
+    return texts
+
+
+def _deposit_receipt_field(dep: Any, label: str) -> str:
+    pattern = re.compile(rf"(?im)^\s*{re.escape(label)}\s*:\s*(.+?)\s*$")
+    for text in _deposit_receipt_texts(dep):
+        match = pattern.search(text)
+        if match:
+            return _text(match.group(1))
+    return ""
+
+
+def _fascicolo_role_number(fascicolo: Any) -> str:
+    numero = _text(getattr(fascicolo, "numero_rg", ""))
+    anno = _text(getattr(fascicolo, "anno_rg", ""))
+    if numero and anno and "/" not in numero:
+        return f"{numero}/{anno}"
+    return numero
+
+
 def _activities(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
@@ -3338,10 +3389,20 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         message = _deposit_display_message(dep, portal_docs)
         simulated = is_simulated_deposit(dep)
         next_phase = next_receipt_phase(dep)
+        accepted_at = _datetime_label(_deposit_receipt_field(dep, "Data esito"))
+        role_number = _deposit_receipt_field(dep, "Numero ruolo") or _fascicolo_role_number(fascicolo)
         out.append(
             {
                 "id": did,
                 "timestamp": _date_label(getattr(dep, "timestamp", "")),
+                "sentAt": _datetime_label(getattr(dep, "timestamp", "")),
+                "acceptedAt": accepted_at,
+                "acceptedBy": _deposit_receipt_field(dep, "Mittente PEC"),
+                "registeredBy": _text(getattr(dep, "registrato_da", "")),
+                "registeredAt": _datetime_label(getattr(dep, "registrato_il", "")),
+                "roleNumber": role_number,
+                "receiptMessageId": _deposit_receipt_field(dep, "Message-ID"),
+                "sourceMessageId": _deposit_receipt_field(dep, "Message-ID deposito"),
                 "status": status.replace("_", " "),
                 "actType": _portal_act_label(getattr(dep, "tipo_atto", "")),
                 "pec": _text(getattr(dep, "pec_destinatario", "")),

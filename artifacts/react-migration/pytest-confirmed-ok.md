@@ -6040,6 +6040,17 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `docker compose build app`; `docker compose up -d app`; `/api/pronto` | OK | Immagine `iusentra-app:latest` `sha256:4334f442b7ba0c2c359ea57fefa17f3b04d0aa6728c7965ddc8e8207331e8d3d`; app healthy; `/api/pronto` `ok=true`, `timestamp=2026-06-28T21:46:05+02:00`, `timezone=Europe/Rome`, `versione=2.253.134`. |
 | Browser integrato locale: Tariffario, Fatturazione PDF, PEC, email ordinaria | OK osservato | Tariffario senza `Data UTC`/ISO raw; PDF parcella in viewer reale con `Data e ora italiana: 28/06/2026 21:48 (Europe/Rome)`; PEC e email ordinaria senza timestamp ISO raw o `Data UTC`, con date italiane visibili. |
 
+## Deposito PCT accettato, RG automatico e fascicolo React - 2026-06-30
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_pec_audit_pipeline.py::test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history tests/test_pec_audit_pipeline.py::test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts tests/test_pec_audit_pipeline.py::test_pct_esito_atto_fixtures_extract_strong_correlation_and_receipt_profile -q` | OK | `3/3` passati: `EsitoAtto.xml` aggiorna il R.G. del fascicolo, conserva `IDBUSTA`, Message-ID deposito e dati accettazione per il payload React. |
+| `python -m pytest tests/test_storage_strategy.py::test_login_route_con_studio_slug_legge_utenti_dal_sqlite_del_tenant tests/test_storage_strategy.py::test_login_route_rispetta_next_interno_e_blocca_redirect_esterni tests/test_web_bootstrap.py::test_auth_guard_keeps_login_public_and_redirects_protected_routes tests/test_web_security.py::test_login_headers_e_bootstrap_password_forzata -q` | OK | `4/4` passati: il login studio rispetta `next=/fascicoli/...` e blocca redirect esterni. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript React senza errori dopo nuovi campi deposito/cancelleria. |
+| `python -m pytest tests/test_utf8_integrity.py -q` | OK | `4/4` passati per integrità UTF-8. |
+| Docker locale `docker compose build --no-cache && docker compose up -d` + `http://127.0.0.1:8080/api/pronto` | OK | Copia reale locale healthy su versione `2.253.144`, timestamp `2026-06-30T15:41:49+02:00`, timezone `Europe/Rome`. |
+| Browser integrato reale su `http://127.0.0.1:8080/fascicoli/A1FB22FE#cancelleria` | OK osservato | Login con `next=/fascicoli/A1FB22FE` atterra direttamente sul fascicolo; testata `RG 1084/2026`; pannello `Comunicazioni / Cancelleria` mostra `Deposito confermato`, `Accettato il 30/06/2026 08:44`, `RG 1084/2026`, `IDBUSTA 152649431`, mittente PEC tribunale Vicenza e Message-ID `<jpec1329.20260630000219.66240.402.1.1@pec.aruba.it>`. Console browser senza errori; controllati desktop, tablet `1024x768` e mobile `390x844`. |
+
 ## Standard unico date/orari/importi - verifica parcella reale 2.253.135 - 2026-06-28
 
 | Comando / verifica | Esito | Note |

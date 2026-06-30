@@ -1021,6 +1021,56 @@ def test_login_route_con_studio_slug_legge_utenti_dal_sqlite_del_tenant(tmp_path
         assert session_data["user_id"] == tenant_user.id
 
 
+def test_login_route_rispetta_next_interno_e_blocca_redirect_esterni(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_user = tenant_users.crea(
+        username="antonella-next",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    with app.test_client() as client:
+        response = client.post(
+            "/login?next=/fascicoli/A1FB22FE",
+            data={
+                "username": tenant_user.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/fascicoli/A1FB22FE")
+
+    with app.test_client() as client:
+        response = client.post(
+            "/login?next=https://evil.example/fascicoli/A1FB22FE",
+            data={
+                "username": tenant_user.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+    assert "evil.example" not in response.headers["Location"]
+
+
 def test_profilo_tenant_cambia_password_anche_se_sqlite_auth_non_e_disponibile(
     tmp_path: Path, monkeypatch
 ):

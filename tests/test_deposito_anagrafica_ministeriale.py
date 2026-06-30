@@ -91,6 +91,38 @@ def test_indirizzo_studio_mancante_non_blocca_anagrafica_ricorso():
     assert b"Montagnese" in xml
 
 
+def test_indirizzi_mancanti_non_bloccano_anagrafica_sigp_introduttivo():
+    xml = anagrafica_xml_se_ricorso(
+        tipo_atto="ATTO_DI_CITAZIONE",
+        fascicolo=_fascicolo(),
+        get_clienti=lambda: _clienti(_cliente(cap="", via="", civico="", comune="", provincia="")),
+        get_config_studio=lambda: _config_studio(indirizzo="", city="", province=""),
+        operatore="Giuseppe Montagnese",
+        datiatto_root_name="Ricorso",
+        datiatto_generator_class="Introduttivi_SIGP",
+    )
+
+    assert xml is not None
+    assert b"AnagraficaProcedimento" in xml
+    assert b"sigp/tipi/atti/v3" in xml
+
+
+def test_indirizzi_mancanti_non_bloccano_anagrafica_cassazione():
+    xml = anagrafica_xml_se_ricorso(
+        tipo_atto="RICORSO",
+        fascicolo=_fascicolo(),
+        get_clienti=lambda: _clienti(_cliente(cap="", via="", civico="", comune="", provincia="")),
+        get_config_studio=lambda: _config_studio(indirizzo="", city="", province=""),
+        operatore="Giuseppe Montagnese",
+        datiatto_root_name="Ricorso",
+        datiatto_generator_class="ParteCassazione",
+    )
+
+    assert xml is not None
+    assert b"AnagraficaProcedimento" in xml
+    assert b"cassazione/tipi/atti/v13" in xml
+
+
 def test_codice_fiscale_cliente_mancante_resta_bloccante_senza_indirizzo_cliente():
     with pytest.raises(ValueError) as exc:
         anagrafica_xml_se_ricorso(

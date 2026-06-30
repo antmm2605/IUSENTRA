@@ -1,6 +1,6 @@
-# IUSENTRA - Builder pacchetto Windows per import Studio Telematico
-# Genera web/static/tools/PreparaPacchettoStudioTelematico.exe partendo dallo
-# script locale che raccoglie QuickOrganizer.mdb, ATTI ed EMAILS.
+# IUSENTRA - Builder pacchetto Windows per import pratiche
+# Genera web/static/tools/PreparaPacchettoPratiche.exe partendo dallo
+# script locale che raccoglie archivio dati, ATTI ed EMAILS.
 
 $ErrorActionPreference = "Stop"
 
@@ -8,13 +8,14 @@ $toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoDir = Split-Path -Parent $toolsDir
 $staticToolsDir = Join-Path $repoDir "web\static\tools"
 $sourcePs1 = Join-Path $staticToolsDir "prepara_import_studio_telematico.ps1"
-$outputExe = Join-Path $staticToolsDir "PreparaPacchettoStudioTelematico.exe"
-$buildDir = Join-Path $toolsDir ".studio-telematico-iexpress-build"
+$outputExe = Join-Path $staticToolsDir "PreparaPacchettoPratiche.exe"
+$legacyOutputExe = Join-Path $staticToolsDir "PreparaPacchettoStudioTelematico.exe"
+$buildDir = Join-Path $toolsDir ".import-pratiche-iexpress-build"
 $iexpressExe = Join-Path $env:SystemRoot "System32\iexpress.exe"
 $sedFile = Join-Path $buildDir "prepara_import_studio_telematico.sed"
 
 if (-not (Test-Path $sourcePs1)) {
-    throw "Script preparazione Studio Telematico non trovato: $sourcePs1"
+    throw "Script preparazione pratiche non trovato: $sourcePs1"
 }
 if (-not (Test-Path $iexpressExe)) {
     throw "IExpress non trovato. Verificare l'installazione di Windows."
@@ -30,8 +31,8 @@ Copy-Item $sourcePs1 (Join-Path $buildDir "prepara_import_studio_telematico.ps1"
 
 $escapedSource = $buildDir.Replace("\", "\\")
 $escapedTarget = $outputExe.Replace("\", "\\")
-$friendlyName = "IUSENTRA Prepara Pacchetto Studio Telematico"
-$finishMessage = "Pacchetto Studio Telematico preparato. Carica lo ZIP in IUSENTRA."
+$friendlyName = "IUSENTRA Prepara Pacchetto Pratiche"
+$finishMessage = "Pacchetto pratiche preparato. Carica lo ZIP in IUSENTRA."
 
 $sed = @"
 [Version]
@@ -65,7 +66,7 @@ FILE0=prepara_import_studio_telematico.ps1
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
 
-Write-Host "Genero pacchetto Windows: PreparaPacchettoStudioTelematico.exe" -ForegroundColor Cyan
+Write-Host "Genero pacchetto Windows: PreparaPacchettoPratiche.exe" -ForegroundColor Cyan
 & $iexpressExe /N $sedFile | Out-Null
 
 if (-not (Test-Path $outputExe)) {
@@ -76,5 +77,7 @@ $signature = [System.IO.File]::ReadAllBytes($outputExe)[0..1]
 if ($signature[0] -ne 0x4d -or $signature[1] -ne 0x5a) {
     throw "Il file generato non e' un eseguibile Windows valido."
 }
+
+Copy-Item -LiteralPath $outputExe -Destination $legacyOutputExe -Force
 
 Write-Host "OK: $outputExe" -ForegroundColor Green

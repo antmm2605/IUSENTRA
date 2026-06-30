@@ -537,7 +537,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             _surface_card(
                 "pat-formweb",
                 "Prepara deposito Formweb",
-                "Scegli tipologia, materia, modulo ufficiale e controlli PAdES prima di aprire la sessione SIGA.",
+                "Scegli tipologia, materia, modulo ufficiale e controlli firma prima di aprire la sessione SIGA.",
                 tone="success",
                 icon="workflow",
                 actions=[
@@ -648,8 +648,8 @@ def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
                         },
                         {
                             "id": "pades",
-                            "label": "Firma PAdES, nessun Atto.enc PAT",
-                            "description": "PAT/SIGA non usa certificati .cer PST né busta Atto.enc: la firma richiesta è PAdES.",
+                            "label": "Firma digitale richiesta",
+                            "description": "Per questo canale la firma resta sul documento e non richiede il pacchetto protetto del deposito civile.",
                             "critical": True,
                         },
                     ],
@@ -676,7 +676,7 @@ def _deposit_checklist_groups() -> list[dict[str, Any]]:
             "title": "PCT civile",
             "items": [
                 {"id": "atto-principale", "label": "Atto principale selezionato", "description": "L'atto principale deve essere quello effettivo da inserire in busta.", "critical": True},
-                {"id": "ufficio-pct", "label": "Ufficio abilitato verificato", "description": "Controlla codice ufficio e PEC destinataria prima dell'invio.", "critical": True},
+                {"id": "ufficio-pct", "label": "Ufficio abilitato verificato", "description": "Controlla ufficio e PEC destinataria prima dell'invio.", "critical": True},
                 {"id": "busta", "label": "Busta e allegati coerenti", "description": "Informazioni, registro, RG, anno, oggetto e allegati devono combaciare.", "critical": True},
             ],
         },
@@ -977,7 +977,7 @@ def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
 
 
 def _office_certificate_payload(row: dict[str, Any], office: dict[str, Any]) -> dict[str, Any]:
-    """Stato .cer PST collegato al registro uffici, senza download in render."""
+    """Stato certificato ufficio collegato al registro, senza download in render."""
 
     codice_ministero = _office_text(row, "codice_ministero") or str(office.get("codiceMinistero") or "").strip()
     codice = codice_ministero
@@ -996,13 +996,13 @@ def _office_certificate_payload(row: dict[str, Any], office: dict[str, Any]) -> 
         "verificato": False,
         "stato": "Non richiesto" if not richiesto else "Da acquisire",
         "dettaglio": (
-            "Ufficio storico/non attivo nel catalogo ministeriale: non entra nel conteggio .cer Atto.enc."
+            "Ufficio storico o non attivo: non entra nel conteggio dei certificati deposito."
             if storico
-            else "Codice PST ministeriale mancante: selezionare un ufficio operativo prima del deposito."
+            else "Dato ufficio mancante: selezionare un ufficio operativo prima del deposito."
             if not codice
-            else "Il canale dell'ufficio non usa la cifratura PCT Atto.enc."
+            else "Il canale dell'ufficio non richiede il certificato deposito."
             if not richiesto
-            else "Certificato pubblico PST .cer non ancora associato alla cache."
+            else "Certificato dell'ufficio non ancora associato."
         ),
         "notValidAfter": "",
         "sha256": "",
@@ -1021,15 +1021,15 @@ def _office_certificate_payload(row: dict[str, Any], office: dict[str, Any]) -> 
         return {
             **base,
             "stato": "Non valido",
-            "dettaglio": f"Certificato .cer in cache non validabile: {exc}",
+            "dettaglio": f"Certificato dell'ufficio non validabile: {exc}",
         }
     if info is None:
         return {
             **base,
             "dettaglio": (
-                "Certificato indicato dal catalogo PST ma non ancora presente nella cache locale."
+                "Certificato dell'ufficio non ancora presente nella cache locale."
                 if nome_certificato
-                else "Nome .cer non esposto nel catalogo XML; il recupero ministeriale diretto usa il codice PST."
+                else "Certificato non esposto nell'elenco ufficiale; IUSENTRA prova il recupero diretto dall'ufficio."
             ),
         }
     return {
@@ -1037,7 +1037,7 @@ def _office_certificate_payload(row: dict[str, Any], office: dict[str, Any]) -> 
         "presente": True,
         "verificato": True,
         "stato": "Verificato",
-        "dettaglio": "Certificato pubblico PST .cer associato e validato.",
+        "dettaglio": "Certificato dell'ufficio associato e validato.",
         "notValidAfter": info.not_valid_after,
         "sha256": info.sha256,
         "sourceUrl": info.source_url,
@@ -1159,7 +1159,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
                 metrics=[
                     {"label": "Uffici", "value": len(offices)},
                     {"label": "PEC censite", "value": pec_count},
-                    {"label": ".cer associati", "value": cert_summary["present"]},
+                    {"label": "Certificati associati", "value": cert_summary["present"]},
                 ],
             ),
             _surface_card(
@@ -1214,7 +1214,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             }
         ],
         "lexSuggestions": [
-            "Prima del deposito verifica sempre codice ufficio e PEC destinataria.",
+            "Prima del deposito verifica sempre ufficio e PEC destinataria.",
             "Se l'elenco risulta da aggiornare, avvia l'aggiornamento o controlla il report variazioni.",
         ],
         "offices": offices,

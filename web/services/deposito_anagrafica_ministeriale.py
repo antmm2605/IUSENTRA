@@ -9,6 +9,10 @@ from web.services.deposito_semantic_helpers import ministerial_valore_causa_for_
 
 _ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
 _ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
+_SIGP_ATTI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3"
+_SIGP_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/anagrafiche/v2"
+_CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
+_CASSAZIONE_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v13"
 
 
 def _clean_cf(value: Any) -> str:
@@ -46,15 +50,23 @@ def _ministero_istruzione_counterparty(nome: str) -> dict[str, str] | None:
     return None
 
 
-def _indirizzo_node(parent: Any, *, via: str, cap: str, localita: str, provincia: str) -> None:
+def _indirizzo_node(
+    parent: Any,
+    *,
+    via: str,
+    cap: str,
+    localita: str,
+    provincia: str,
+    anagrafiche_ns: str = _ANAGRAFICHE_NS,
+) -> None:
     from lxml import etree
 
-    indirizzo = etree.SubElement(parent, f"{{{_ANAGRAFICHE_NS}}}indirizzo")
-    etree.SubElement(indirizzo, f"{{{_ANAGRAFICHE_NS}}}via").text = str(via or "").strip()
-    etree.SubElement(indirizzo, f"{{{_ANAGRAFICHE_NS}}}cap").text = str(cap or "").strip()
-    etree.SubElement(indirizzo, f"{{{_ANAGRAFICHE_NS}}}localita").text = str(localita or "").strip()
-    etree.SubElement(indirizzo, f"{{{_ANAGRAFICHE_NS}}}provincia").text = str(provincia or "").strip().upper()
-    etree.SubElement(indirizzo, f"{{{_ANAGRAFICHE_NS}}}stato").text = "IT"
+    indirizzo = etree.SubElement(parent, f"{{{anagrafiche_ns}}}indirizzo")
+    etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}via").text = str(via or "").strip()
+    etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}cap").text = str(cap or "").strip()
+    etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}localita").text = str(localita or "").strip()
+    etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}provincia").text = str(provincia or "").strip().upper()
+    etree.SubElement(indirizzo, f"{{{anagrafiche_ns}}}stato").text = "IT"
 
 
 def _anagrafica_procedimento_deposito_xml(
@@ -63,6 +75,8 @@ def _anagrafica_procedimento_deposito_xml(
     cliente: Any | None,
     cfg_studio: Any | None,
     operatore: str,
+    atti_ns: str = _ATTI_NS,
+    anagrafiche_ns: str = _ANAGRAFICHE_NS,
 ) -> bytes:
     from lxml import etree
 
@@ -136,41 +150,64 @@ def _anagrafica_procedimento_deposito_xml(
     if missing:
         raise ValueError("Dati anagrafici ministeriali mancanti: " + ", ".join(dict.fromkeys(missing)))
 
-    root = etree.Element(f"{{{_ATTI_NS}}}AnagraficaProcedimento", nsmap={None: _ATTI_NS, "at": _ANAGRAFICHE_NS})
-    partecipanti = etree.SubElement(root, f"{{{_ATTI_NS}}}Partecipanti")
+    root = etree.Element(f"{{{atti_ns}}}AnagraficaProcedimento", nsmap={None: atti_ns, "at": anagrafiche_ns})
+    partecipanti = etree.SubElement(root, f"{{{atti_ns}}}Partecipanti")
     natura_cliente = "ENP" if ("GIURIDICA" in cliente_tipo.upper() or len(cliente_cf) == 11) else "PFI"
-    parte = etree.SubElement(partecipanti, f"{{{_ATTI_NS}}}Parte", naturaGiuridica=natura_cliente, ID=parte_id)
+    parte = etree.SubElement(partecipanti, f"{{{atti_ns}}}Parte", naturaGiuridica=natura_cliente, ID=parte_id)
     if natura_cliente == "PFI":
-        etree.SubElement(parte, f"{{{_ANAGRAFICHE_NS}}}denominazione").text = cliente_cognome or cliente_nome
+        etree.SubElement(parte, f"{{{anagrafiche_ns}}}denominazione").text = cliente_cognome or cliente_nome
         if cliente_nome:
-            etree.SubElement(parte, f"{{{_ANAGRAFICHE_NS}}}nome").text = cliente_nome
+            etree.SubElement(parte, f"{{{anagrafiche_ns}}}nome").text = cliente_nome
     else:
-        etree.SubElement(parte, f"{{{_ANAGRAFICHE_NS}}}denominazione").text = (
+        etree.SubElement(parte, f"{{{anagrafiche_ns}}}denominazione").text = (
             cliente_denominazione or " ".join(part for part in (cliente_cognome, cliente_nome) if part)
         )
-    etree.SubElement(parte, f"{{{_ANAGRAFICHE_NS}}}codiceFiscale").text = cliente_cf
-    _indirizzo_node(parte, via=cliente_via, cap=cliente_cap, localita=cliente_localita, provincia=cliente_provincia)
+    etree.SubElement(parte, f"{{{anagrafiche_ns}}}codiceFiscale").text = cliente_cf
+    _indirizzo_node(
+        parte,
+        via=cliente_via,
+        cap=cliente_cap,
+        localita=cliente_localita,
+        provincia=cliente_provincia,
+        anagrafiche_ns=anagrafiche_ns,
+    )
 
-    controparte = etree.SubElement(partecipanti, f"{{{_ATTI_NS}}}ControParte", naturaGiuridica="ENP", ID="controparte_1")
-    etree.SubElement(controparte, f"{{{_ANAGRAFICHE_NS}}}denominazione").text = controparte_nome
-    etree.SubElement(controparte, f"{{{_ANAGRAFICHE_NS}}}codiceFiscale").text = controparte_cf
+    controparte = etree.SubElement(partecipanti, f"{{{atti_ns}}}ControParte", naturaGiuridica="ENP", ID="controparte_1")
+    etree.SubElement(controparte, f"{{{anagrafiche_ns}}}denominazione").text = controparte_nome
+    etree.SubElement(controparte, f"{{{anagrafiche_ns}}}codiceFiscale").text = controparte_cf
     _indirizzo_node(
         controparte,
         via=(controparte_addr or {}).get("via", ""),
         cap=(controparte_addr or {}).get("cap", ""),
         localita=(controparte_addr or {}).get("localita", ""),
         provincia=(controparte_addr or {}).get("provincia", ""),
+        anagrafiche_ns=anagrafiche_ns,
     )
 
-    soggetti = etree.SubElement(root, f"{{{_ATTI_NS}}}Soggetti")
-    avvocato = etree.SubElement(soggetti, f"{{{_ATTI_NS}}}Avvocato")
-    etree.SubElement(avvocato, f"{{{_ANAGRAFICHE_NS}}}cognome").text = avvocato_cognome
+    soggetti = etree.SubElement(root, f"{{{atti_ns}}}Soggetti")
+    avvocato = etree.SubElement(soggetti, f"{{{atti_ns}}}Avvocato")
+    etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}cognome").text = avvocato_cognome
     if avvocato_nome:
-        etree.SubElement(avvocato, f"{{{_ANAGRAFICHE_NS}}}nome").text = avvocato_nome
-    etree.SubElement(avvocato, f"{{{_ANAGRAFICHE_NS}}}codiceFiscale").text = avvocato_cf
-    _indirizzo_node(avvocato, via=studio_via, cap="", localita=studio_city, provincia=studio_province)
-    etree.SubElement(avvocato, f"{{{_ANAGRAFICHE_NS}}}parteRappresentata", ref=parte_id)
+        etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}nome").text = avvocato_nome
+    etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}codiceFiscale").text = avvocato_cf
+    _indirizzo_node(
+        avvocato,
+        via=studio_via,
+        cap="",
+        localita=studio_city,
+        provincia=studio_province,
+        anagrafiche_ns=anagrafiche_ns,
+    )
+    etree.SubElement(avvocato, f"{{{anagrafiche_ns}}}parteRappresentata", ref=parte_id)
     return etree.tostring(root, pretty_print=True, xml_declaration=False, encoding="UTF-8")
+
+
+def _namespace_anagrafica_per_generatore(generator_class: str) -> tuple[str, str]:
+    if "SIGP" in generator_class:
+        return _SIGP_ATTI_NS, _SIGP_ANAGRAFICHE_NS
+    if generator_class.startswith("ParteCassazione"):
+        return _CASSAZIONE_ATTI_NS, _CASSAZIONE_ANAGRAFICHE_NS
+    return _ATTI_NS, _ANAGRAFICHE_NS
 
 
 def anagrafica_xml_se_ricorso(
@@ -180,9 +217,15 @@ def anagrafica_xml_se_ricorso(
     get_clienti: Callable[[], Any],
     get_config_studio: Callable[[], Any],
     operatore: str,
+    datiatto_root_name: str = "",
+    datiatto_generator_class: str = "",
 ) -> bytes | None:
-    if str(tipo_atto or "").strip().upper() != "RICORSO":
+    root_name = str(datiatto_root_name or "").strip()
+    generator_class = str(datiatto_generator_class or "").strip()
+    requires_anagrafica = generator_class.startswith("Introduttivi") or generator_class.startswith("ParteCassazione")
+    if str(tipo_atto or "").strip().upper() != "RICORSO" and not requires_anagrafica:
         return None
+    atti_ns, anagrafiche_ns = _namespace_anagrafica_per_generatore(generator_class)
     cfg_studio = None
     try:
         cfg_studio = get_config_studio().config
@@ -193,6 +236,8 @@ def anagrafica_xml_se_ricorso(
         cliente=_cliente_deposito(get_clienti, fascicolo),
         cfg_studio=cfg_studio,
         operatore=operatore,
+        atti_ns=atti_ns,
+        anagrafiche_ns=anagrafiche_ns,
     )
 
 

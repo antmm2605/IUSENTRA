@@ -1344,7 +1344,7 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert payload["azioni"]["firmaDigitale"] == "/guida/firma-digitale"
 
 
-def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_quickorganizer():
+def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_import_pratiche():
     documento = SimpleNamespace(
         id="doc-quick-1",
         nome_originale="20260510185021337.PDF",
@@ -1352,9 +1352,9 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_quick
         nome="20260510185021337.PDF",
         percorso="20260510185021337.PDF",
         tipo_atto_portale="",
-        classificazione_portale="QuickOrganizer",
+        classificazione_portale="Gestionale precedente",
         note=(
-            "Import QuickOrganizer. Ricorso Lisciotto.pdf - Depositante: Studio. "
+            "Import pratiche. Ricorso Lisciotto.pdf - Depositante: Studio. "
             "PEC: ads.rc@mailcert.avvocaturastato.it; dgosv@postcert.istruzione.it"
         ),
         fonte_documento="PORTALE_TELEMATICO",
@@ -1449,15 +1449,15 @@ def test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto(monkeypatc
         nome_portale="",
         percorso="fascicolo-1\\20260510185021337.PDF",
         tipo_atto_portale="",
-        classificazione_portale="QuickOrganizer",
-        note="Import QuickOrganizer. ",
+        classificazione_portale="Gestionale precedente",
+        note="Import pratiche. ",
         fonte_documento="IMPORT_ESTERNO",
         servizio_portale="",
         hash_sha256="",
         data_documento="",
         data_deposito_portale="",
         id_documento_portale="",
-        tags=["quickorganizer"],
+        tags=["import-pratiche"],
     )
     fascicolo = SimpleNamespace(id="fascicolo-1", documenti=[documento])
 

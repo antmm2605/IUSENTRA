@@ -15,6 +15,7 @@ const apiAliasMarkers = new Map([
   ['/soggetti/nuovo', ['("/clienti/nuovo")', "('/clienti/nuovo')"]],
   ['/privacy/registro/nuovo', ['("/privacy/registro")', "('/privacy/registro')"]],
   ['/registro-gdpr', ['("/privacy/registro")', "('/privacy/registro')"]],
+  ['/importa-pratiche', ['("/import/quickorganizer")', "('/import/quickorganizer')"]],
   ['/importa-pratiche-studio-telematico', ['("/import/quickorganizer")', "('/import/quickorganizer')"]],
   ['/scadenziario/:id', ['("/scadenziario")', "('/scadenziario')"]],
   ['/scadenziario/:id/modifica', ['("/scadenziario/nuova")', "('/scadenziario/nuova')"]],

@@ -526,9 +526,23 @@ def _clean_document_filename(value: Any) -> str:
     return name
 
 
+def _is_import_pratiche_marker(value: Any) -> bool:
+    text = _text(value).casefold()
+    return any(
+        marker in text
+        for marker in (
+            "quickorganizer",
+            "import quickorganizer",
+            "import pratiche",
+            "gestionale precedente",
+            "pacchetto pratiche",
+        )
+    )
+
+
 def _quickorganizer_name_from_note(note: Any) -> str:
     text = _text(note)
-    if not text.lower().startswith("import quickorganizer."):
+    if not re.match(r"^(?:import\s+quickorganizer|import\s+pratiche)\.", text, flags=re.IGNORECASE):
         return ""
     tail = text.split(".", 1)[1].strip() if "." in text else ""
     candidate = tail.split(" - ", 1)[0].strip()
@@ -565,7 +579,7 @@ def _document_type_label(value: Any) -> str:
 def _source_label_for_document(doc: Any) -> str:
     source = _enum_value(getattr(doc, "fonte_documento", ""))
     portal_class = _text(getattr(doc, "classificazione_portale", ""))
-    if source == "IMPORT_ESTERNO" and portal_class.lower() == "quickorganizer":
+    if source == "IMPORT_ESTERNO" and _is_import_pratiche_marker(portal_class):
         return "Importazione fascicolo"
     if source == "TEMPLATE_ATTI_COMPILATORE":
         return "Redazione atti"
@@ -578,7 +592,7 @@ def _source_label_for_document(doc: Any) -> str:
 
 def _portal_class_for_document(doc: Any) -> str:
     portal_class = _text(getattr(doc, "classificazione_portale", ""))
-    if portal_class.lower() == "quickorganizer":
+    if _is_import_pratiche_marker(portal_class):
         return _document_type_label(getattr(doc, "tipo", ""))
     return portal_class
 
@@ -3714,11 +3728,12 @@ def build_react_fascicolo_detail_payload(
     conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(fid), []) if preventivi_repo else []
     parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(fid), [])
     timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
+    visible_activity_records = _visible_activity_records(fascicolo)
     visible_activities = _activities(fascicolo) if load_activities else []
     activities = visible_activities if load_activities else []
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
-    visible_deposits = _deposits(fascicolo) if load_deposits else []
+    visible_deposits = _deposits(fascicolo)
     notification_communication_count = len(_notification_communication_documents(fascicolo))
     notification_relata = _notification_relata(fascicolo) if load_relata else _notification_relata(fascicolo, [])
     relata_count = max(
@@ -3731,9 +3746,9 @@ def build_react_fascicolo_detail_payload(
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
-        "attivita": len(getattr(fascicolo, "attivita", []) or []),
+        "attivita": len(visible_activity_records),
         "udienze_scadenze": len(scadenze) + len(apps),
-        "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []) + notification_communication_count,
+        "comunicazioni": len(visible_deposits) + notification_communication_count,
         "istanze": len(visible_requests),
         "relata_notifica": relata_count,
     }

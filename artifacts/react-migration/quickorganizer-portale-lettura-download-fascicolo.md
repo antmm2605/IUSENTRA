@@ -1,6 +1,6 @@
 # Accesso PolisWeb, lettura fascicolo e download QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 Questo file separa i due comportamenti che in Studio Telematico convivono nello stesso menu: import/sincronizzazione dati tramite wizard e accesso diretto assistito al portale PST tramite browser WebView2.
 

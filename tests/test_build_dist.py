@@ -166,7 +166,8 @@ def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
     packager = (root / "web" / "static" / "tools" / "prepara_import_studio_telematico.ps1").read_text(encoding="utf-8")
     api_source = (root / "web" / "blueprints" / "api_v1_react.py").read_text(encoding="utf-8")
     ts_source = (root / "frontend" / "src" / "quickOrganizerImportData.ts").read_text(encoding="utf-8")
-    exe = root / "web" / "static" / "tools" / "PreparaPacchettoStudioTelematico.exe"
+    exe = root / "web" / "static" / "tools" / "PreparaPacchettoPratiche.exe"
+    legacy_exe = root / "web" / "static" / "tools" / "PreparaPacchettoStudioTelematico.exe"
 
     assert '$iexpressExe = Join-Path $env:SystemRoot "System32\\iexpress.exe"' in builder
     assert "Class=IEXPRESS" in builder
@@ -182,10 +183,13 @@ def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
     assert "System.IO.Compression.ZipArchive" in packager
     assert "CreateEntryFromFile" in packager
     assert "Compress-Archive" not in packager
-    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in api_source
-    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in ts_source
+    assert "/static/tools/PreparaPacchettoPratiche.exe" in api_source
+    assert "/static/tools/PreparaPacchettoPratiche.exe" in ts_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" not in api_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" not in ts_source
     assert exe.exists()
     assert exe.read_bytes()[:2] == b"MZ"
+    assert legacy_exe.exists()
 
 
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):

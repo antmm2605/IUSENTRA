@@ -1,6 +1,6 @@
 # Lavoro IUSENTRA da aggiungere dopo analisi QuickOrganizer
 
-Generato: 30/06/2026 18:10 (Europe/Rome).
+Generato: 30/06/2026 21:39 (Europe/Rome).
 
 ## Obiettivo
 

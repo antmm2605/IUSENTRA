@@ -80,6 +80,7 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
     assert "/legal-skills" in required_react_routes()
     assert "/workflow-agents" in required_react_routes()
     assert "/guida/firma-digitale" in required_react_routes()
+    assert "/importa-pratiche" in required_react_routes()
     assert "/importa-pratiche-studio-telematico" in required_react_routes()
     assert "/database" not in required_react_routes()
     assert "messaggi" in required_sqlite_tables()
@@ -106,9 +107,7 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
     assert menu["Editor professionale"] == {"/editor-professionale"}
     assert menu["Regia Agentica"] == {"/workflow-agents"}
     assert menu["Guida firma digitale"] == {"/guida/firma-digitale"}
-    assert menu["Importa pratiche da Studio Telematico"] == {
-        "/importa-pratiche-studio-telematico"
-    }
+    assert menu["Importa pratiche"] == {"/importa-pratiche"}
 
     for key, area in areas.items():
         if area["menu_items"]:

@@ -5,16 +5,15 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
-from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
 from pct.pst_cifratura import PSTCifraturaError
-from web.blueprints.react_shell import render_react_shell_response
+from web.bootstrap.deposito_esito_routes import register_deposito_esito_routes
 from web.bootstrap.deposito_legacy_send_routes import register_deposito_legacy_send_route
+from web.bootstrap.deposito_prepara_routes import register_deposito_prepara_route
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
     deposito_oggetto as _deposito_oggetto,
     guided_transport_completion_response as _guided_transport_completion_response,
-    manual_deposito_payload as _manual_deposito_payload,
     ufficio_deposito_destinatario as _ufficio_deposito_destinatario,
     ufficio_da_nome as _ufficio_da_nome,
     validate_busta_document_selection as _validate_busta_document_selection,
@@ -41,44 +40,13 @@ from web.services.deposito_anagrafica_ministeriale import (
     anagrafica_xml_se_ricorso as _anagrafica_xml_se_ricorso,
     valore_causa_fascicolo as _valore_causa_fascicolo,
 )
+from web.services.deposito_catalogo_runtime import (
+    deposito_catalogo_apply as _deposito_catalogo_apply,
+    deposito_catalogo_blocker as _deposito_catalogo_blocker,
+    deposito_catalogo_datiatto_hint as _deposito_catalogo_datiatto_hint,
+    deposito_catalogo_entry as _deposito_catalogo_entry,
+)
 from web.services.security_redaction import redacted_json_response
-
-
-def _deposito_catalogo_entry(form_like: Any) -> tuple[dict[str, Any] | None, str]:
-    key = str(form_like.get("tipo_deposito_telematico_key", "") or "").strip()
-    if not key:
-        return None, ""
-    entry = resolve_deposit_type_payload(key)
-    if not entry:
-        return None, "Tipo deposito Studio Telematico non trovato nel catalogo backend."
-    return entry, ""
-
-
-def _deposito_catalogo_apply(entry: dict[str, Any] | None, tipo_atto: str, codice_registro: str) -> tuple[str, str]:
-    if not entry:
-        return tipo_atto, codice_registro
-    payload = entry.get("payload") if isinstance(entry.get("payload"), dict) else {}
-    return (
-        str(payload.get("tipo_atto") or tipo_atto).strip() or tipo_atto,
-        str(payload.get("codice_registro") or codice_registro).strip() or codice_registro,
-    )
-
-
-def _deposito_catalogo_blocker(entry: dict[str, Any] | None, *, require_real_package: bool) -> str:
-    if not entry:
-        return ""
-    rules = entry.get("rules") if isinstance(entry.get("rules"), dict) else {}
-    if not bool(rules.get("can_prepare_in_pct_panel", True)):
-        return str(
-            rules.get("real_send_blocker")
-            or "Questo tipo Studio Telematico appartiene a un canale diverso dal deposito PCT civile."
-        )
-    if require_real_package and not bool(rules.get("real_send_allowed_from_pct_panel", True)):
-        return str(
-            rules.get("real_send_blocker")
-            or "Per questo tipo deposito serve completare il generatore DatiAtto ministeriale specifico."
-        )
-    return ""
 
 
 def register_deposito_routes(
@@ -111,6 +79,13 @@ def register_deposito_routes(
     def guida_firma_digitale():
         """Guida interattiva per la firma digitale."""
         return render_template("guida_firma_digitale.html")
+    register_deposito_prepara_route(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_config_studio=get_config_studio,
+        deposito_correction_context=deposito_correction_context,
+        luogo_timbro_firma_visibile=luogo_timbro_firma_visibile,
+    )
     register_deposito_legacy_send_route(
         app,
         get_fascicoli=get_fascicoli,
@@ -121,45 +96,12 @@ def register_deposito_routes(
         polis_demo_mode=polis_demo_mode,
         documenti_busta_nomi=_documenti_busta_nomi,
     )
-    @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])
-    def aggiungi_esito_deposito(id_fasc):
-        """Registra manualmente un esito di deposito telematico nel fascicolo."""
-        gestore_fascicoli = get_fascicoli()
-        utente = g.utente_corrente
-        form = request.form
-        try:
-            actor = utente.username if utente else ""
-            gestore_fascicoli.aggiungi_esito_deposito(
-                id_fasc=id_fasc,
-                **_manual_deposito_payload(form, actor, actor_key="registrato_da"),
-            )
-            flash("Esito deposito registrato nel fascicolo.", "success")
-            audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
-            sync_pubblica("modifica", "fascicoli", id_fasc, utente=actor)
-        except (ValueError, KeyError) as exc:
-            app.logger.warning("Deposito manuale non valido %s: %s", id_fasc, exc)
-            flash("Esito deposito non registrato. Verifica i dati e riprova.", "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-    @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
-    def modifica_esito_deposito(id_fasc, id_dep):
-        """Modifica manualmente un esito di deposito telematico nel fascicolo."""
-        gestore_fascicoli = get_fascicoli()
-        utente = g.utente_corrente
-        form = request.form
-        try:
-            actor = utente.username if utente else ""
-            gestore_fascicoli.modifica_esito_deposito(
-                id_fasc=id_fasc,
-                id_dep=id_dep,
-                **_manual_deposito_payload(form, actor, actor_key="modificato_da"),
-            )
-            flash("Deposito aggiornato.", "success")
-            audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
-            sync_pubblica("modifica", "fascicoli", id_fasc, utente=actor)
-        except (ValueError, KeyError) as exc:
-            app.logger.warning("Modifica deposito non valida %s/%s: %s", id_fasc, id_dep, exc)
-            flash("Deposito non aggiornato. Verifica i dati e riprova.", "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+    register_deposito_esito_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+    )
     @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
     def api_deposito_valida(id_fasc):
         try:
@@ -270,6 +212,7 @@ def register_deposito_routes(
                 return jsonify({"ok": False, "package_ready": False, "errore": catalog_blocker}), 400
             flash(catalog_blocker, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+        datiatto_hint = _deposito_catalogo_datiatto_hint(catalog_entry)
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -327,6 +270,8 @@ def register_deposito_routes(
                 get_clienti=get_clienti,
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
+                datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
+                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
             )
         except ValueError as exc:
             flash(str(exc), "danger")
@@ -344,6 +289,12 @@ def register_deposito_routes(
             cf_mittente="",
             valore_causa=_valore_causa_fascicolo(fascicolo),
             anagrafica_procedimento_xml=anagrafica_xml,
+            datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
+            datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
+            datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
+            datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
+            datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
+            data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         try:
             output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
@@ -476,11 +427,12 @@ def register_deposito_routes(
                     "requires_guided_completion": True,
                     "errore": catalog_blocker,
                     "next_actions": [
-                        "Mantieni la scelta nel catalogo Studio Telematico.",
-                        "Completa il generatore ministeriale specifico o usa il flusso corretto per il canale selezionato.",
+                        "Mantieni la scelta nel catalogo depositi.",
+                        "Completa i dati obbligatori richiesti dal canale selezionato.",
                     ],
                 }
             ), 400
+        datiatto_hint = _deposito_catalogo_datiatto_hint(catalog_entry)
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -727,6 +679,8 @@ def register_deposito_routes(
                 get_clienti=get_clienti,
                 get_config_studio=get_config_studio,
                 operatore=utente.username if utente else "",
+                datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
+                datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
             )
         except ValueError as exc:
             return jsonify(
@@ -754,6 +708,12 @@ def register_deposito_routes(
             cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
             valore_causa=_valore_causa_fascicolo(fascicolo),
             anagrafica_procedimento_xml=anagrafica_xml,
+            datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
+            datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
+            datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
+            datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
+            datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
+            data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
         requested_busta_id = str(form.get("busta_id", "") or "").strip() or None
@@ -1028,48 +988,4 @@ def register_deposito_routes(
                 "message_id": ris.get("message_id", ""),
                 "messaggio": "Deposito inviato via PEC e registrato nel fascicolo.",
             }
-        )
-    @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
-    def deposito_prepara(id_fasc):
-        """Mostra il riepilogo documenti e la guida al deposito telematico."""
-        if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
-            return render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")
-        gestore_fascicoli = get_fascicoli()
-        fascicolo = gestore_fascicoli.get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-        ufficio_deposito = _ufficio_deposito_destinatario(fascicolo)
-        pec_tribunale = str(ufficio_deposito.get("pec_dest") or "")
-        pdfa_stato: dict[str, Any] = {}
-        try:
-            from pct.validazione import verifica_dimensione, verifica_pdfa
-            for documento in fascicolo.documenti:
-                try:
-                    percorso = str(gestore_fascicoli.percorso_documento(id_fasc, documento.id))
-                    pdfa = verifica_pdfa(percorso)
-                    dimensione = verifica_dimensione(percorso)
-                    pdfa_stato[documento.id] = {**pdfa, "dimensione": dimensione}
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        pec_configurata = False
-        try:
-            cfg = get_config_studio().config
-            pec_configurata = bool(cfg and cfg.pec and cfg.pec.indirizzo and cfg.pec.password)
-        except Exception:
-            cfg = None
-            pass
-        firma_cfg = getattr(cfg, "firma", None) if cfg else None
-        return render_template(
-            "fascicoli/deposito_prepara.html",
-            fascicolo=fascicolo,
-            pec_tribunale=pec_tribunale,
-            pec_configurata=pec_configurata,
-            pdfa_stato=pdfa_stato,
-            correction_context=deposito_correction_context(fascicolo),
-            firma_visibile_place=luogo_timbro_firma_visibile(),
-            firma_visibile_mode=getattr(firma_cfg, "visible_signature_mode", "laterale"),
-            oggi=date.today(),
         )

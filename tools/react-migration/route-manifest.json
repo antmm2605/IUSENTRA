@@ -724,6 +724,27 @@
       ]
     },
     {
+      "workspaceTarget": "/app/importa-pratiche",
+      "route": "/importa-pratiche",
+      "family": "amministrazione",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/QuickOrganizerImportPage.tsx",
+      "targetData": "frontend/src/quickOrganizerImportData.ts",
+      "targetBridge": "web/services/quickorganizer_import.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/importa-pratiche-studio-telematico.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "import guidato pratiche",
+        "documenti letti dalla cartella ATTI",
+        "email lette dalla cartella EMAILS",
+        "anteprima prima della scrittura",
+        "permessi e audit backend",
+        "nessun duplicato su reimport",
+        "nessun percorso backup"
+      ]
+    },
+    {
       "workspaceTarget": "/app/importa-pratiche-studio-telematico",
       "route": "/importa-pratiche-studio-telematico",
       "family": "amministrazione",

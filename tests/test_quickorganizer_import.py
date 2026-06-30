@@ -291,7 +291,7 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(soggetti.tutti()) == 2
 
 
-def test_import_studio_telematico_sqlite_scrive_tabelle_core_senza_json(tmp_path: Path):
+def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirror(tmp_path: Path):
     package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
     studio_db, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
 
@@ -316,7 +316,9 @@ def test_import_studio_telematico_sqlite_scrive_tabelle_core_senza_json(tmp_path
     assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti").fetchone()[0] == 2
     assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti").fetchone()[0] == 2
     assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti WHERE id_fascicolo IS NOT NULL").fetchone()[0] == 2
-    assert not (tmp_path / "tenant" / "fascicoli" / "fascicoli.json").exists()
+    fascicoli_mirror = tmp_path / "tenant" / "fascicoli" / "fascicoli.json"
+    assert fascicoli_mirror.exists()
+    assert len(json.loads(fascicoli_mirror.read_text(encoding="utf-8"))) == 1
     assert not (tmp_path / "tenant" / "clienti" / "anagrafica.json").exists()
     assert not (tmp_path / "tenant" / "soggetti" / "anagrafica.json").exists()
     assert not (tmp_path / "tenant" / "soggetti" / "parti.json").exists()
@@ -464,8 +466,8 @@ def test_import_studio_telematico_legge_zip_con_sole_cartelle_senza_errore_gener
         {
             "code": "archivio_dati_assente",
             "message": (
-                "Il pacchetto contiene file da ATTI o EMAILS, ma manca l'archivio dati QuickOrganizer. "
-                "Prepara di nuovo il pacchetto dalla postazione Studio Telematico completa."
+                "Il pacchetto contiene documenti o comunicazioni, ma manca l'archivio dati. "
+                "Prepara di nuovo il pacchetto dalla postazione autorizzata completa."
             ),
         }
     ]
@@ -487,7 +489,7 @@ def test_import_studio_telematico_stage_percorso_locale_non_copia_zip_grande(tmp
 
 
 def test_import_studio_telematico_upload_a_blocchi_ricompone_e_stagia(tmp_path: Path):
-    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    source = _write_package(tmp_path / "IUSENTRA-PacchettoPratiche.zip")
     payload = source.read_bytes()
     stage_root = tmp_path / "staging"
     session = begin_chunked_upload(
@@ -550,7 +552,7 @@ def test_import_studio_telematico_preparazione_automatica_tokenizzata(tmp_path: 
 
 
 def test_import_studio_telematico_preparazione_automatica_carica_e_controlla_zip(tmp_path: Path):
-    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    source = _write_package(tmp_path / "IUSENTRA-PacchettoPratiche.zip")
     payload = source.read_bytes()
     index_root = tmp_path / "prepare-index"
     staging_root = tmp_path / "staging"
@@ -603,7 +605,7 @@ def test_import_studio_telematico_upload_a_blocchi_preserva_sessione_se_staging_
     tmp_path: Path,
     monkeypatch,
 ):
-    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    source = _write_package(tmp_path / "IUSENTRA-PacchettoPratiche.zip")
     payload = source.read_bytes()
     stage_root = tmp_path / "staging"
     session = begin_chunked_upload(
@@ -644,7 +646,7 @@ def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(
     monkeypatch,
 ):
     def _raise_unreadable(path: Path, **kwargs):
-        raise QuickOrganizerImportError("Il database QuickOrganizer non è leggibile su questo ambiente.")
+        raise QuickOrganizerImportError("L'archivio dati non è leggibile su questo ambiente.")
 
     monkeypatch.setattr(quickorganizer_import, "_package_from_mdb", _raise_unreadable)
 
@@ -655,7 +657,7 @@ def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(
     assert analysis["ok"] is False
     assert analysis["summary"]["availableFiles"] == 2
     assert analysis["warnings"][0]["code"] == "archivio_dati_non_leggibile"
-    assert "PreparaPacchettoStudioTelematico.exe" in analysis["warnings"][0]["message"]
+    assert "preparatore pacchetto" in analysis["warnings"][0]["message"]
 
 
 def test_import_studio_telematico_mdb_passa_percorso_a_powershell_come_parametro(

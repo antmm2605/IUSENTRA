@@ -143,6 +143,288 @@ def _raw_roots(entry: dict[str, Any]) -> list[str]:
     return _unique_texts(roots)
 
 
+def _norm_code(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", _text(value).casefold())
+
+
+DATIATTO_GENERATOR_CLASSES = frozenset(
+    {
+        "IntroduttiviSicid",
+        "Introduttivi_SIGP",
+        "IntroduttiviSiecicConcorsuali",
+        "IntroduttiviSiecicEsecuzioni",
+        "Parte",
+        "ParteCassazione",
+        "ParteSiecicConcorsuali",
+        "ParteSiecicEsecuzioni",
+        "CorsoCausa_SIGP",
+        "Professionista",
+        "Professionista_SIGP",
+        "ProfSiecicConcorsuali",
+        "ProfSiecicEsecuzioni",
+        "CurSiecicConcorsuali",
+        "CusSiecicEsecuzioni",
+        "DelSiecicEsecuzioni",
+        "AttoSistemaSicid",
+        "AttoSistemaSiecic",
+        "AttoSistema_SIGP",
+    }
+)
+
+
+def _studio_variable_from_root(root_name: str) -> str:
+    if not root_name:
+        return ""
+    return root_name[:1].casefold() + root_name[1:]
+
+
+def _split_datiatto_root(root: str) -> tuple[str, str, str]:
+    parts = [part for part in _text(root).split(".") if part]
+    if len(parts) >= 3:
+        return parts[0], parts[-2], parts[-1]
+    if len(parts) == 2:
+        if parts[0] in DATIATTO_GENERATOR_CLASSES:
+            return parts[0], parts[1], _studio_variable_from_root(parts[1])
+        return "", parts[0], parts[1]
+    if len(parts) == 1:
+        return "", parts[0], ""
+    return "", "", ""
+
+
+def _method_generator_class(entry: dict[str, Any]) -> str:
+    key = _text(entry.get("key"))
+    methods = [_text(item) for item in (entry.get("datiatto_methods") or [])]
+    for method in methods:
+        if not method.startswith("Create_DatiAtto_"):
+            continue
+        name = method.removeprefix("Create_DatiAtto_")
+        if name.startswith("Introduttivi_SICID"):
+            return "IntroduttiviSicid"
+        if name.startswith("Introduttivi_SIGP"):
+            return "Introduttivi_SIGP"
+        if name.startswith("Introduttivi_SIECIC"):
+            if "CONCORSUALI" in key:
+                return "IntroduttiviSiecicConcorsuali"
+            return "IntroduttiviSiecicEsecuzioni"
+        if name.startswith("ParteCassazione"):
+            return "ParteCassazione"
+        if name.startswith("Parte_ESECUZIONI_SIECIC") or name.startswith("ParteSiecicEsecuzioni"):
+            return "ParteSiecicEsecuzioni"
+        if name.startswith("Parte_CONCORSUALI_SIECIC") or name.startswith("ParteSiecicConcorsuali"):
+            return "ParteSiecicConcorsuali"
+        if name.startswith("Parte_"):
+            return "Parte"
+        if name.startswith("CorsoCausa_SIGP"):
+            return "CorsoCausa_SIGP"
+        if name.startswith("Professionista_SIGP"):
+            return "Professionista_SIGP"
+        if name.startswith("Professionista_"):
+            return "Professionista"
+        if name.startswith("ProfSiecicEsecuzioni"):
+            return "ProfSiecicEsecuzioni"
+        if name.startswith("ProfSiecicConcorsuali"):
+            return "ProfSiecicConcorsuali"
+        if name.startswith("CusSiecicEsecuzioni"):
+            return "CusSiecicEsecuzioni"
+        if name.startswith("CurSiecicConcorsuali"):
+            return "CurSiecicConcorsuali"
+        if name.startswith("DelSiecicEsecuzioni"):
+            return "DelSiecicEsecuzioni"
+        if name.startswith("AttoSistema_SIGP"):
+            return "AttoSistema_SIGP"
+        if name.startswith("AttoSistemaSicid"):
+            return "AttoSistemaSicid"
+        if name.startswith("AttoSistemaSiecic"):
+            return "AttoSistemaSiecic"
+        if name.startswith("DepositiComplementari_SIGP"):
+            return "AttoSistema_SIGP"
+        if name.startswith("DepositiComplementari_Sicid"):
+            return "AttoSistemaSicid"
+        if name.startswith("DepositiComplementari_Siecic"):
+            return "AttoSistemaSiecic"
+    return ""
+
+
+def _best_datiatto_root(entry: dict[str, Any], roots: list[str], tipo_atto: str) -> str:
+    if not roots:
+        return ""
+    key_tail = _text(entry.get("key")).split("::")[-1]
+    key_norm = _norm_code(key_tail)
+    label_norm = _norm_code(entry.get("text"))
+    tipo_norm = _norm_code(tipo_atto)
+    best_root = roots[0]
+    best_score = -1
+    for index, root in enumerate(roots):
+        generator_class, root_name, studio_variable = _split_datiatto_root(root)
+        root_norm = _norm_code(root_name)
+        variable_norm = _norm_code(studio_variable)
+        class_norm = _norm_code(generator_class)
+        score = 0
+        if key_norm and root_norm == key_norm:
+            score += 1000
+        if key_norm and variable_norm == key_norm:
+            score += 920
+        if key_norm and root_norm and (key_norm in root_norm or root_norm in key_norm):
+            score += 420 - min(180, abs(len(root_norm) - len(key_norm)))
+        if root_norm and root_norm in label_norm:
+            score += 160
+        if variable_norm and variable_norm in label_norm:
+            score += 130
+        if tipo_norm == "ricorso" and root_norm == "ricorso":
+            score += 900
+        if tipo_norm == "attodicitazione" and root_norm == "citazione":
+            score += 900
+        if class_norm:
+            score += 20
+        score -= index
+        if score > best_score:
+            best_score = score
+            best_root = root
+    return best_root
+
+
+_PROCEDIMENTO_BASE_ROOTS = {
+    "Comparsa180",
+    "DepositoNoteConclusionali",
+    "Memoria183",
+    "MemoriaReplica183",
+    "MemoriaReplica183N3",
+    "PrecisazioneConclusioni",
+    "ProduzioneDocumentiRichiesti",
+    "ScrittiDifensivi",
+}
+
+
+def _quick_required_data(entry: dict[str, Any]) -> list[str]:
+    return _unique_texts([_text(item) for item in (entry.get("datiatto_required_data") or [])])
+
+
+def _operational_required_data(
+    *,
+    generator_class: str,
+    root_name: str,
+    quick_required: list[str],
+) -> list[str]:
+    required: list[str] = []
+    quick_norm = {_norm_code(item) for item in quick_required}
+    if generator_class.startswith("Introduttivi"):
+        required.append("AnagraficaProcedimento")
+    if root_name and "citazione" in _norm_code(root_name):
+        required.append("Datacitazione")
+    if (
+        "riferimentoprocedimento" in quick_norm
+        or (
+            _is_procedimento_generator_class(generator_class)
+            and not _is_sistema_generator_class(generator_class)
+        )
+    ):
+        required.extend(["numero RG", "anno RG"])
+    if "codiceoggetto" in quick_norm:
+        required.append("codice oggetto")
+    if "valorecausa" in quick_norm:
+        required.append("valore causa quando presente")
+    return _unique_texts(required)
+
+
+def _is_procedimento_generator_class(generator_class: str) -> bool:
+    return bool(
+        generator_class
+        and (
+            generator_class == "Parte"
+            or generator_class.startswith("ParteSiecic")
+            or generator_class.startswith("CorsoCausa")
+            or generator_class.startswith("Professionista")
+            or generator_class.startswith("ProfSiecic")
+            or generator_class.startswith("CurSiecic")
+            or generator_class.startswith("CusSiecic")
+            or generator_class.startswith("DelSiecic")
+            or generator_class.startswith("AttoSistema")
+        )
+    )
+
+
+def _is_sistema_generator_class(generator_class: str) -> bool:
+    return bool(generator_class and generator_class.startswith("AttoSistema"))
+
+
+def _datiatto_root_hint(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str) -> dict[str, Any]:
+    roots = _raw_roots(entry)
+    primary = _best_datiatto_root(entry, roots, tipo_atto)
+    generator_class, root_name, studio_variable = _split_datiatto_root(primary)
+    if not generator_class:
+        generator_class = _method_generator_class(entry)
+    if not root_name and tipo_atto == "RICORSO":
+        generator_class = "IntroduttiviSicid"
+        root_name = "Ricorso"
+        studio_variable = "ricorso"
+    quick_required = _quick_required_data(entry)
+    if rules.get("channel_kind") == "unep_notifiche":
+        mode = "canale_notifiche_separato"
+        required_data: list[str] = []
+    elif generator_class.startswith("Introduttivi") and root_name and "citazione" in _norm_code(root_name):
+        mode = "introduttivo_citazione"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        )
+    elif generator_class.startswith("Introduttivi"):
+        mode = "introduttivo_anagrafica"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        )
+    elif generator_class.startswith("ParteCassazione"):
+        mode = "cassazione_parte"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        ) or ["campi Cassazione previsti dallo XSD ministeriale"]
+    elif _is_sistema_generator_class(generator_class):
+        mode = "sistema_destinazione"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        )
+    elif (
+        generator_class.startswith("Parte")
+        or _is_procedimento_generator_class(generator_class)
+        or root_name in _PROCEDIMENTO_BASE_ROOTS
+    ):
+        mode = "procedimento_base"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        ) or ["numero RG", "anno RG"]
+    elif root_name:
+        mode = "schema_root_catalogato"
+        required_data = _operational_required_data(
+            generator_class=generator_class,
+            root_name=root_name,
+            quick_required=quick_required,
+        ) or ["dati obbligatori previsti dallo XSD ministeriale"]
+    else:
+        mode = "datiatto_generico_iusentra"
+        required_data = []
+    return {
+        "generatorClass": generator_class,
+        "ministerialRoot": root_name,
+        "studioVariable": studio_variable,
+        "generatorMode": mode,
+        "requiredData": required_data,
+        "quickRequiredData": quick_required,
+        "quickDepositFlags": entry.get("deposit_menu_flags") if isinstance(entry.get("deposit_menu_flags"), dict) else {},
+        "quickFixedObjectCodes": entry.get("deposit_fixed_object_codes")
+        if isinstance(entry.get("deposit_fixed_object_codes"), list)
+        else [],
+        "primaryEvidenceRoot": primary,
+    }
+
+
 @lru_cache(maxsize=1)
 def load_deposit_catalog_raw() -> dict[str, Any]:
     if not CATALOG_PATH.exists() or CATALOG_PATH.stat().st_size == 0:
@@ -208,6 +490,7 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
     channel_kind = _text(rules.get("channel_kind"))
     roots = _raw_roots(entry)
     methods = _unique_texts([_text(item) for item in (entry.get("datiatto_methods") or [])])
+    hint = _datiatto_root_hint(entry, rules, tipo_atto)
     if channel_kind == "unep_notifiche":
         return {
             "status": "canale_notifiche_separato",
@@ -219,6 +502,7 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
             "evidenceRootsCount": len(roots),
             "evidenceMethods": methods[:12],
             "evidenceRoots": roots[:12],
+            **hint,
         }
     if tipo_atto == "RICORSO":
         return {
@@ -231,17 +515,23 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
             "evidenceRootsCount": len(roots),
             "evidenceMethods": methods[:12],
             "evidenceRoots": roots[:12],
+            **hint,
         }
     return {
-        "status": "generatore_specifico_da_completare",
-        "label": "Richiede generatore DatiAtto ministeriale specifico per questo tipo",
-        "supported": False,
-        "requiresSpecificGenerator": True,
-        "supportedMinisterialRoot": "",
+        "status": "supportato_root_catalogo",
+        "label": (
+            f"DatiAtto.xml {hint['ministerialRoot']} governato dal catalogo"
+            if hint["ministerialRoot"]
+            else "DatiAtto.xml governato dal generatore attuale"
+        ),
+        "supported": True,
+        "requiresSpecificGenerator": False,
+        "supportedMinisterialRoot": hint["ministerialRoot"],
         "evidenceMethodsCount": len(methods),
         "evidenceRootsCount": len(roots),
         "evidenceMethods": methods[:12],
         "evidenceRoots": roots[:12],
+        **hint,
     }
 
 
@@ -329,7 +619,7 @@ def _controls_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
 
 def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
     label = _text(entry.get("text"), _text(entry.get("key"), f"Deposito {index + 1}"))
-    macro = _text(entry.get("macro"), "Catalogo Studio Telematico")
+    macro = _text(entry.get("macro"), "Catalogo depositi")
     category = _text(entry.get("categoria"), "Senza categoria")
     path = _text(entry.get("path"), " > ".join(part for part in (macro, category, label) if part))
     key = _text(entry.get("key")) or f"studio-telematico::{_slug(path)}::{index + 1}"
@@ -343,8 +633,8 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
             **rules,
             "real_send_allowed_from_pct_panel": False,
             "real_send_blocker": (
-                "Il catalogo Studio Telematico è stato riconosciuto, ma per questo tipo serve "
-                "un generatore DatiAtto ministeriale specifico prima dell'invio reale."
+                "Il catalogo depositi è stato riconosciuto, ma questo canale non è abilitato "
+                "nel pannello PCT corrente."
             ),
         }
     return {
@@ -371,6 +661,10 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
             "tipo_deposito_telematico_registry": registry["code"],
             "tipo_deposito_telematico_policy": rules["policy_code"],
             "tipo_deposito_telematico_schema_status": schema["status"],
+            "datiatto_generator_class": schema["generatorClass"],
+            "datiatto_root_name": schema["ministerialRoot"],
+            "datiatto_studio_variable": schema["studioVariable"],
+            "datiatto_generator_mode": schema["generatorMode"],
         },
         "rules": rules,
         "schema": schema,

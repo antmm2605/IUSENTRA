@@ -3802,3 +3802,96 @@ Aggiornamento fonti ministeriali 2026-06-30:
 - scaricati e letti gli XSD Cassazione preview `XSD_Cassazione_20260611.zip` dalla pagina PST `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4951`: `116` XSD estratti e archiviati in `docs/specs/ministero/xsd/2026-06-15-cassazione-preview/XSD_Cassazione_20260611/`;
 - aggiornato il catalogo PST versionato `pct/pst_catalog.py` e il payload deposito `pct/deposito_telematico_catalogo.py` con `ministerialXsdChannels` e `ministerialSchemaEvidence`, mantenendo il blocco anti falso-verde sulle fonti preview;
 - file settoriale creato: `artifacts/react-migration/fonti-ministeriali-deposito-2026-06-30.md`.
+
+Aggiornamento CI/governance 2026-06-30:
+
+- dopo il push dello SHA `8ae954e`, GitHub ha bloccato `quality-gates` perché `web/bootstrap/deposito_routes.py` era salito a `1075` righe oltre il limite governance `1000`;
+- la logica nuova non è stata rimossa: è stata estratta in moduli dedicati `web/services/deposito_catalogo_runtime.py`, `web/bootstrap/deposito_prepara_routes.py` e `web/bootstrap/deposito_esito_routes.py`;
+- `web/bootstrap/deposito_routes.py` è rientrato a `972` righe, mantenendo il flusso React-first e il fallback legacy governato;
+- controlli locali dopo il refactor: `python tools/check_repo_governance.py` -> OK; `python -m compileall -q web/bootstrap/deposito_routes.py web/bootstrap/deposito_prepara_routes.py web/bootstrap/deposito_esito_routes.py web/services/deposito_catalogo_runtime.py pct/deposito_telematico_catalogo.py` -> OK; test mirati deposito/catalogo -> `5 passed`;
+- il refactor non abilita invio PEC server-side e non modifica le regole `Atto.enc`, Local Signer, PST `.cer` o blocco anti falso-verde dei 270 tipi.
+
+## Generatore busta guidato dal tipo deposito QuickOrganizer - 2026-06-30
+
+Richiesta utente: creare anche il generatore busta in base a quanto trovato in Studio Telematico/QuickOrganizer e in base al tipo deposito selezionato, senza usare messaggi generici o strade alternative.
+
+Analisi tecnica incorporata:
+
+- la nuova lettura dell'eseguibile ha corretto il mapping precedente: il vecchio catalogo runtime associava alcune chiavi a troppi `Create_DatiAtto_*`, mentre la nuova estrazione legge `664` casi `AttoDaInviareKey` e `148` metodi `Create_DatiAtto_*`;
+- il catalogo runtime `pct/data/cataloghi/quickorganizer_depositi_studio_telematico.json` viene ora rigenerato dallo script `scripts/generate_quickorganizer_analysis_artifacts.py`, insieme agli artifact di analisi, così il prodotto non usa una matrice diversa dalla documentazione;
+- per ogni tipo deposito vengono portati nel backend metodi QuickOrganizer, root `DatiAtto`, flag menu, dati richiesti e oggetti fissi quando rilevati;
+- esempi verificati in runtime: `Introduttivi_SICID::Citazione` -> `Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione` e root `IntroduttiviSicid.Citazione`; `Parte_SICID::DepositoDocumentiRichiesti` -> root `Parte.ProduzioneDocumentiRichiesti`; `Parte_ESECUZIONI_SIECIC::AttoIntervento` -> root `ParteSiecicEsecuzioni.AttoIntervento`; `Parte_CASSAZIONE::Ricorso` -> root `ParteCassazione.Ricorso`.
+
+Codice aggiornato:
+
+- `pct/deposito_telematico_catalogo.py`: ricava `generatorClass`, root ministeriale, modalità e dati richiesti dal mapping reale QuickOrganizer; quando il root non contiene la classe, la ricava dal metodo `Create_DatiAtto_*`;
+- `web/services/deposito_catalogo_runtime.py`: passa a `DatiBusta` anche `datiatto_required_data`;
+- `web/bootstrap/deposito_routes.py`: `genera-busta` e `invia-pec` usano i dati `DatiAtto` risolti dal catalogo backend;
+- `web/services/deposito_anagrafica_ministeriale.py`: genera `AnagraficaProcedimento` non solo per il ricorso base, ma per gli introduttivi e Cassazione, usando il namespace della famiglia quando noto;
+- `pct/busta.py`: il generatore `DatiAtto.xml` seleziona root e namespace in base a `datiatto_generator_class`, `datiatto_root_name` e `datiatto_generator_mode`; gli introduttivi generano destinazione/oggetto/anagrafica, gli atti in corso causa generano riferimento procedimento, Cassazione usa il ramo dedicato con anagrafica.
+
+Regola esplicita sui dati anagrafici non bloccanti:
+
+- CAP, via, civico, comune, città, provincia, indirizzo cliente e indirizzo studio non sono requisiti bloccanti per la generazione della busta;
+- se presenti vengono scritti nell'anagrafica, se assenti restano vuoti senza fermare il deposito;
+- restano bloccanti solo i dati essenziali già necessari al `DatiAtto` ministeriale: codice fiscale cliente, controparte, codice fiscale controparte quando non risolvibile da dati noti, codice fiscale/cognome avvocato e i requisiti specifici del tipo deposito come data citazione o numero/anno RG.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile pct\busta.py pct\deposito_telematico_catalogo.py web\services\deposito_anagrafica_ministeriale.py web\services\deposito_catalogo_runtime.py web\bootstrap\deposito_routes.py scripts\generate_quickorganizer_analysis_artifacts.py`;
+- `python scripts\generate_quickorganizer_analysis_artifacts.py`: `270` tipi, `6` macroaree, `57` namespace XML, `148` metodi `Create_DatiAtto_*`, `664` mapping chiave/metodo;
+- `python -m pytest tests\test_busta.py tests\test_deposito_anagrafica_ministeriale.py tests\test_deposito_telematico_catalogo.py -q --tb=short` -> `41 passed`.
+
+Stato verifica:
+
+- verifica automatica completata sul perimetro catalogo/generatore/anagrafica;
+- non verificato su macchina reale per questa tranche finché la copia `127.0.0.1:8080` non viene aggiornata e il pannello deposito aperto nel browser reale non viene ricaricato e cliccato.
+## Pulizia UI da riferimenti tecnici e nomi del vecchio gestionale - 2026-06-30
+
+Richiesta utente: nella UI non devono comparire riferimenti a Studio Telematico o QuickOrganizer e non devono essere mostrati dettagli tecnici come nomi interni di file, schemi, certificati o sigle di trasporto.
+
+Modifiche applicate:
+
+- nel pannello `Prepara deposito`, sezione `2. Documenti da inviare`, il menu del tipo deposito mostra area, categoria, deposito, controlli automatici e documenti attesi con linguaggio utente;
+- rimossi dalla resa visibile i riferimenti `Logica Studio Telematico`, `Catalogo Studio Telematico`, `DatiAtto`, `IndiceBusta`, `Atto.msg`, `Atto.enc`, `AES`, `.cer`, `PST` tecnico, `schema`, `hash`, `slot`, `token` e codici ufficio non necessari;
+- gli stati di avanzamento dei pulsanti usano passaggi leggibili: controllo dati deposito, firma controlli, indice documenti, preparazione pacchetto e verifica finale;
+- la modale PIN firma parla di `firma dati deposito` e `pacchetto finale`, senza mostrare il nome del file interno;
+- la bozza PEC parla di `pacchetto di deposito telematico`, senza esporre il nome tecnico dell'allegato;
+- i messaggi provenienti da backend, prova pacchetto, compatibilità, blocchi e Local Signer passano da normalizzazione UI prima di essere mostrati;
+- la voce amministrativa e la pagina di import pratiche sono state rinominate in `Importa pratiche`, lasciando invariati route, permessi e compatibilità interne.
+
+Guardrail aggiornati:
+
+- `tests/test_regia_ui_react.py` ora presidia la resa pulita del deposito e impedisce il ritorno dei vecchi messaggi tecnici nel componente React;
+- `tests/test_react_shell.py` e `tests/test_data_flow_contract.py` presidiano la nuova etichetta `Importa pratiche` sulla rotta esistente;
+- il motore tecnico e gli artifact di analisi restano disponibili nei file di lavoro, ma non devono essere esposti nella UI operativa.
+
+Stato verifica:
+
+- test e prova reale devono essere rieseguiti dopo rebuild locale Docker su `127.0.0.1:8080`;
+- il lavoro non va dichiarato chiuso finché la pagina reale non viene ricaricata e controllata visivamente nel browser integrato senza riferimenti visibili al vecchio gestionale e senza dettagli tecnici nel pannello deposito.
+
+Aggiornamento 30/06/2026 23:44 (Europe/Rome):
+
+- seconda lettura metadata di `C:\QuickOrganizer\QuickOrganizer.exe`: assembly `QuickOrganizer, Version=26.21.0.0`, `4394` tipi caricati, `576` tipi collegati a busta, deposito e schema;
+- risorse embedded utili confermate: `ListaUfficiGiudiziari.xml`, `QC_Uffici.xml`, risorse `FormSentMailBee`, `FormDepositaConSoftwareEsterno`, `PoliswebRole`, `QualifiedCertificate`, `WizardImportaPraticheDaPolisWeb`, oltre a risorse contabili XML/XSLT;
+- namespace schema più presenti nell'EXE: `CurSiecicConcorsuali` `88`, `ParteSiecicConcorsuali` `87`, `Atti_UNEP` `73`, `IntroduttiviSiecicConcorsuali` `68`, `IntroduttiviSicid` `50`, `Parte` `34`, `ParteCassazione` `29`, `ParteSiecicEsecuzioni` `20`, `ProfSiecicConcorsuali` `17`, `ProfSiecicEsecuzioni` `15`, `CusSiecicEsecuzioni` `14`, `CorsoCausa_SIGP` `12`;
+- confermato contratto comune delle buste: `IndiceBusta` con `AttoPrincipale` e `Any`, riferimenti allegati tramite ID, `DepositoComplementare` con `RefId`, famiglie corso causa con `procedimento`, `riferimento`, `RefId`, `urgente`;
+- correzione incorporata subito in IUSENTRA: i generatori `AttoSistema...` hanno `destinazione` e `IndiceBusta`, non `procedimento`; quindi il generatore non chiede numero/anno RG per questi root;
+- codice aggiornato in `pct/deposito_telematico_catalogo.py` e `pct/busta.py`: riconoscimento operativo di `AttoSistemaSicid`, `AttoSistemaSiecic`, `AttoSistema_SIGP` nel parser root e nei metodi `Create_DatiAtto_*`, nuova modalità `sistema_destinazione`, namespace sistema per le tre famiglie, test anti-regressione `test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio` e `test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg`;
+- testi utente import pratiche corretti: i messaggi di errore/avviso non mostrano più cartelle tecniche `ATTI`/`EMAILS`, ma parlano di documenti e comunicazioni;
+- guardrail mirati eseguiti: `python -m py_compile pct\busta.py pct\deposito_telematico_catalogo.py web\services\quickorganizer_import.py`; `python -m pytest tests\test_busta.py::test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg tests\test_busta.py::test_dati_atto_ministeriale_catalogo_siecic_esecuzioni_usa_procedimento tests\test_deposito_telematico_catalogo.py tests\test_quickorganizer_import.py::test_import_studio_telematico_legge_zip_con_sole_cartelle_senza_errore_generico -q --tb=short` -> `7 passed`; `python -m pytest tests\test_deposito_telematico_catalogo.py::test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio tests\test_deposito_telematico_catalogo.py::test_catalogo_normalizza_chiave_mancante_e_canali_pct tests\test_busta.py::test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg -q --tb=short` -> `3 passed`;
+- prova reale locale ancora da ripetere dopo rebuild Docker su `127.0.0.1:8080`: non dichiarare chiuso il flusso finché non sono stati visti deposito e import pratiche nel browser integrato.
+
+Aggiornamento 01/07/2026 00:20 (Europe/Rome):
+
+- rebuild locale completato su copia reale Docker: `docker compose build app`, `docker compose up -d app`, container `iusentra-app` healthy su `127.0.0.1:8080`;
+- `/api/pronto` locale ha risposto `ok=true`, versione `2.253.144`, timestamp `2026-07-01T00:06:00+02:00`, fuso `Europe/Rome`;
+- guardrail automatici ripetuti: `npm --prefix frontend run typecheck`; `npm --prefix frontend run build`; `python -m pytest tests\test_busta.py::test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg tests\test_deposito_telematico_catalogo.py::test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio tests\test_regia_ui_react.py -q --tb=short` -> `7 passed`;
+- prova reale nel browser integrato visibile su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#proposta-busta`: visto bundle React aggiornato, sezione `2. Documenti da inviare`, menu `Tipo deposito`, catalogo `270 tipi disponibili in 6 aree`, nessun riferimento visibile a Studio Telematico, QuickOrganizer, `DatiAtto`, `Atto.enc`, `Atto.msg`, `IndiceBusta`, `PKCS`, `AES256`, `Codice PST`, `ATTI` o `EMAILS`;
+- corretto subito il residuo visibile `Deposito deposito telematico`, poi ricaricato il browser con cache busting e verificato il testo finale `Deposito telematico: il software deve risolvere ufficio, registro, codice oggetto, firme, busta e ricevute`;
+- clic reali eseguiti su `Dettagli`, `Esplodi tutto`, `Macroarea`, `Categoria`, `Deposito`; confermata la presenza delle 6 macroaree e l'elenco esteso dei tipi;
+- selezionate nel menu compatto le macroaree `Giudice di Pace`, `Corte di Cassazione (civile)`, `Procedimenti concorsuali`, `Processo esecutivo`, `UNEP` e ritorno a `Contenzioso civile`: nessun riferimento vietato e nessun overflow; per UNEP la UI passa al comportamento separato notifiche/UNEP, non al deposito PCT civile;
+- verificata l'icona `Modifica nome` accanto a `Visualizza` e `Scarica originale` per `decretoGenerico.pdf` e gli altri documenti: il click apre il campo `Nuovo nome file decretoGenerico.pdf` senza uscire dal flusso;
+- verificata la pagina `http://127.0.0.1:8080/importa-pratiche`: titolo `Importa pratiche`, testi su pratiche, documenti e comunicazioni, nessun nome visibile dei programmi sorgente e nessuna cartella tecnica `ATTI`/`EMAILS`;
+- responsive materiale ripetuto con viewport `1366x900`, `768x900` e `390x844`: deposito e import pratiche senza overflow orizzontale, testi leggibili, catalogo 270 tipi presente su tutti i formati, viewport ripristinata al termine.

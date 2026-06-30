@@ -394,7 +394,7 @@
       {% set dep_portale_label = 'Consulta su PDP' %}
       {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale con firma digitale, oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% elif ftipo == 'AMMINISTRATIVO' %}
       {% set dep_icon      = 'bi-building' %}
       {% set dep_col       = 'info' %}
@@ -402,7 +402,7 @@
       {% set dep_portale_label = 'Consulta su PAT' %}
       {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo con firma digitale, oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% else %}
       {% set dep_icon      = 'bi-send-fill' %}
       {% set dep_col       = 'primary' %}
@@ -1284,7 +1284,7 @@
             <input type="file" name="file" id="firma-file-input" class="form-control"
                    accept=".p7m,.pdf,.sig,.pkcs7">
             <div class="form-text">
-              Formati accettati: <code>.p7m</code> (CAdES-BES), <code>.pdf</code> con firma PAdES.
+              Carica il file firmato prodotto dal software di firma.
               Se non carichi un file il documento viene semplicemente marcato come firmato.
             </div>
           </div>

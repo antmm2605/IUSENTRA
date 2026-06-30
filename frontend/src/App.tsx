@@ -517,7 +517,7 @@ const navSections: NavSection[] = [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
       { label: 'Registro Attività', icon: ClipboardList, href: '/audit' },
-      { label: 'Importa pratiche da Studio Telematico', icon: CloudUpload, href: '/importa-pratiche-studio-telematico' },
+      { label: 'Importa pratiche', icon: CloudUpload, href: '/importa-pratiche' },
       { label: 'Database', icon: Database, href: '/admin/database' },
       { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
     ]
@@ -564,7 +564,7 @@ function requiredPermissionsForHref(href: string): string[] {
   if (route.startsWith('/sito-studio') || route.startsWith('/studio') || route.startsWith('/statistiche') || route.startsWith('/strumenti-legali') || route.startsWith('/strumenti-operativi') || route.startsWith('/applicazioni')) return ['admin.leggi', 'fascicoli.leggi']
   if (route.startsWith('/impostazioni') || route.startsWith('/notifiche') || route.startsWith('/backup') || route.startsWith('/sincronizzazione-calendari')) return ['admin.configura', 'backup.leggi']
   if (route.startsWith('/utenti/nuovo')) return ['utenti.scrivi']
-  if (route.startsWith('/importa-pratiche-studio-telematico') || route.startsWith('/import/quickorganizer')) return ['admin.configura', 'fascicoli.scrivi', 'clienti.scrivi']
+  if (route.startsWith('/importa-pratiche') || route.startsWith('/import/quickorganizer')) return ['admin.configura', 'fascicoli.scrivi', 'clienti.scrivi']
   if (route.startsWith('/utenti') || route.startsWith('/profili') || route.startsWith('/admin/database') || route.startsWith('/database') || route.startsWith('/amministrazione') || route.startsWith('/privacy/registro') || route.startsWith('/registro-gdpr')) return ['utenti.leggi', 'admin.leggi']
   if (route.startsWith('/audit') || route.startsWith('/registro-attivita')) return ['audit.leggi']
   return []
@@ -1262,7 +1262,7 @@ export default function App() {
   const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isPrivacyRegistroPage = routeKey === '/privacy/registro' || routeKey === '/privacy/registro/nuovo' || routeKey === '/registro-gdpr'
   const isAdminDatabasePage = routeKey === '/admin/database'
-  const isQuickOrganizerImportPage = routeKey === '/importa-pratiche-studio-telematico' || routeKey === '/import/quickorganizer'
+  const isQuickOrganizerImportPage = routeKey === '/importa-pratiche' || routeKey === '/importa-pratiche-studio-telematico' || routeKey === '/import/quickorganizer'
   const isStatistichePage = routeKey === '/statistiche'
   const isImpostazioniPage = routeKey === '/impostazioni' || routeKey === '/impostazioni-studio' || routeKey === '/impostazioni/sdi' || routeKey === '/impostazioni/canali-sdi' || routeKey === '/impostazioni/pagamenti' || routeKey === '/notifiche' || routeKey === '/notifiche-whatsapp' || routeKey === '/backup' || routeKey === '/impostazioni/calendario' || routeKey === '/sincronizzazione-calendari'
   const isAuditPage = routeKey === '/audit'

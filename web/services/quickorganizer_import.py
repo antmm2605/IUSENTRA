@@ -1,4 +1,4 @@
-"""Import guidato da QuickOrganizer verso gli archivi IUSENTRA."""
+"""Import guidato di pratiche da pacchetti esterni verso gli archivi IUSENTRA."""
 
 from __future__ import annotations
 
@@ -360,7 +360,7 @@ def _read_json_payload(path: Path, *, extra_roots: Iterable[str | Path] = ()) ->
         # lgtm[py/path-injection] Percorso già normalizzato da resolve_runtime_path.
         return json.loads(path.read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError as exc:
-        raise QuickOrganizerImportError("Il file dati QuickOrganizer non è un JSON valido.") from exc
+        raise QuickOrganizerImportError("Il file dati preparato non è un JSON valido.") from exc
 
 
 def _files_from_directory(root: Path, *, extra_roots: Iterable[str | Path] = ()) -> dict[str, PackageFile]:
@@ -478,11 +478,11 @@ def _package_from_zip(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> 
                 if files:
                     return QuickOrganizerPackage(path, _empty_quickorganizer_tables(), files, source_kind="zip-files")
                 raise QuickOrganizerImportError(
-                    "Nel pacchetto non trovo QuickOrganizer.mdb, il file dati preparato, la cartella ATTI o la cartella EMAILS."
+                    "Nel pacchetto non trovo l'archivio dati preparato, i documenti o le comunicazioni."
                 )
             payload = json.loads(archive.read(json_name).decode("utf-8-sig"))
     except zipfile.BadZipFile as exc:
-        raise QuickOrganizerImportError("Il pacchetto QuickOrganizer non è un archivio ZIP valido.") from exc
+        raise QuickOrganizerImportError("Il pacchetto pratiche non è un archivio ZIP valido.") from exc
     except json.JSONDecodeError as exc:
         raise QuickOrganizerImportError("Il file dati nel pacchetto non è leggibile.") from exc
     return QuickOrganizerPackage(path, _table_payload(payload), files, source_kind="zip")
@@ -500,7 +500,7 @@ def _package_from_mdb(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> 
     path = _safe_existing_file(path, allowed_suffixes={".mdb"}, extra_roots=extra_roots)
     if platform.system().lower() != "windows":
         raise QuickOrganizerImportError(
-            "Per l'archivio Access serve il pacchetto preparato dal PC QuickOrganizer."
+            "Per l'archivio Access serve il pacchetto preparato dalla postazione autorizzata."
         )
     script = r"""
 param([string]$mdb)
@@ -565,7 +565,7 @@ try {
         shell=False,
     )
     if completed.returncode != 0:
-        raise QuickOrganizerImportError("Il database QuickOrganizer non è leggibile su questo ambiente.")
+        raise QuickOrganizerImportError("L'archivio dati non è leggibile su questo ambiente.")
     output = completed.stdout.strip()
     json_start = output.find("{")
     if json_start > 0:
@@ -573,7 +573,7 @@ try {
     try:
         payload = json.loads(output)
     except json.JSONDecodeError as exc:
-        raise QuickOrganizerImportError("La lettura del database QuickOrganizer non ha prodotto dati validi.") from exc
+        raise QuickOrganizerImportError("La lettura dell'archivio dati non ha prodotto dati validi.") from exc
     files = _files_from_directory(path.parent, extra_roots=extra_roots)
     return QuickOrganizerPackage(path, _table_payload(payload), files, source_kind="mdb")
 
@@ -588,7 +588,7 @@ def load_quickorganizer_package(path: str | Path, *, local_source: bool = False)
         return _package_from_json(source, extra_roots=extra_roots)
     if suffix == ".mdb":
         return _package_from_mdb(source, extra_roots=extra_roots)
-    raise QuickOrganizerImportError("Carica un pacchetto ZIP QuickOrganizer o un archivio dati preparato.")
+    raise QuickOrganizerImportError("Carica un pacchetto ZIP pratiche o un archivio dati preparato.")
 
 
 def _find_file(package: QuickOrganizerPackage, filename: Any, *, section: str = "") -> PackageFile | None:
@@ -753,7 +753,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             warnings.append(
                 {
                     "code": "tabella_export_mancante",
-                    "message": f"Nel file dati preparato manca la tabella {table}; prepara nuovamente il pacchetto dalla postazione Studio Telematico.",
+                    "message": f"Nel file dati preparato manca la tabella {table}; prepara nuovamente il pacchetto dalla postazione autorizzata.",
                 }
             )
     for item in missing_fields[:12]:
@@ -799,17 +799,17 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             warnings.append({
                 "code": "archivio_dati_non_leggibile",
                 "message": (
-                    "Il pacchetto contiene l'archivio dati QuickOrganizer, ma questa installazione non riesce a leggerlo. "
-                    "Esegui il nuovo PreparaPacchettoStudioTelematico.exe sul PC dove era installato Studio Telematico: "
-                    "creerà un pacchetto completo con archivio dati, ATTI ed EMAILS."
+                    "Il pacchetto contiene l'archivio dati, ma questa installazione non riesce a leggerlo. "
+                    "Esegui il preparatore pacchetto sulla postazione autorizzata: "
+                    "creerà un pacchetto completo con archivio dati, documenti e comunicazioni."
                 ),
             })
         elif package.files:
             warnings.append({
                 "code": "archivio_dati_assente",
                 "message": (
-                    "Il pacchetto contiene file da ATTI o EMAILS, ma manca l'archivio dati QuickOrganizer. "
-                    "Prepara di nuovo il pacchetto dalla postazione Studio Telematico completa."
+                    "Il pacchetto contiene documenti o comunicazioni, ma manca l'archivio dati. "
+                    "Prepara di nuovo il pacchetto dalla postazione autorizzata completa."
                 ),
             })
         else:
@@ -968,7 +968,7 @@ def _split_person_name(row: Mapping[str, Any]) -> tuple[str, str]:
     parts = name.split()
     if len(parts) >= 2:
         return " ".join(parts[1:]), parts[0]
-    return "", name or "Nominativo QuickOrganizer"
+    return "", name or "Nominativo importato"
 
 
 def _subject_type(row: Mapping[str, Any]) -> TipoSoggetto:
@@ -1142,7 +1142,7 @@ def _client_from_subject(
     valid_cf = cf if cf and len(cf) == 16 and clienti.valida_cf(cf) else ""
     cliente = clienti.nuovo(
         tipo=tipo,
-        ragione_sociale=_text(_row_value(row, "NOME")) or _text(_row_value(row, "COGNOME"), "Cliente QuickOrganizer"),
+        ragione_sociale=_text(_row_value(row, "NOME")) or _text(_row_value(row, "COGNOME"), "Cliente importato"),
         codice_fiscale=valid_cf,
         partita_iva=valid_piva,
         rappresentante_legale=_text(_row_value(row, "LEG_RAPP")),
@@ -1166,7 +1166,7 @@ def _client_placeholder_from_matter(
     *,
     provenance: str,
 ) -> Cliente:
-    title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica QuickOrganizer {_row_value(row, 'NUMEROPRATICA')}"
+    title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {_row_value(row, 'NUMEROPRATICA')}"
     expected_name = title.casefold()
     existing = next(
         (
@@ -1183,10 +1183,10 @@ def _client_placeholder_from_matter(
         ragione_sociale=title,
         stato=StatoCliente.ATTIVO,
         provenienza=provenance,
-        note="Cliente ricostruito dalla pratica Studio Telematico: nel pacchetto non era presente un titolare collegato.",
+        note="Cliente ricostruito dalla pratica importata: nel pacchetto non era presente un titolare collegato.",
         data_prima_acquisizione=_iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
     )
-    cliente.tag = ["quickorganizer", "cliente-da-pratica"]
+    cliente.tag = ["import-pratiche", "cliente-da-pratica"]
     return clienti.aggiorna(cliente.id, tag=cliente.tag)
 
 
@@ -1292,7 +1292,7 @@ def import_quickorganizer_package(
         subject_ids_by_num[num] = subject_id
         if _is_client_control(row):
             try:
-                client, created = _client_from_subject(clienti, row, provenance="Import QuickOrganizer")
+                client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
                 client_ids_by_num[num] = client.id
                 counters["clientsCreated"] += 1 if created else 0
             except Exception:
@@ -1314,7 +1314,7 @@ def import_quickorganizer_package(
                 client = clienti.get(client_ids_by_num.get(client_num, "")) if client_num else None
                 created = False
                 if client is None:
-                    client, created = _client_from_subject(clienti, client_row, provenance="Import QuickOrganizer")
+                    client, created = _client_from_subject(clienti, client_row, provenance="Import pratiche")
                     if client_num:
                         client_ids_by_num[client_num] = client.id
                 client_id = client.id
@@ -1326,7 +1326,7 @@ def import_quickorganizer_package(
             client = _client_placeholder_from_matter(
                 clienti,
                 row,
-                provenance="Import QuickOrganizer",
+                provenance="Import pratiche",
             )
             client_id = client.id
             client_name = client.nome_completo
@@ -1353,7 +1353,7 @@ def import_quickorganizer_package(
             "data_apertura": _iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
             "data_chiusura": _iso_date(_row_value(row, "DATA_ARC")),
             "note": _text(_row_value(row, "NOTE")),
-            "source": "QUICKORGANIZER",
+                "source": "IMPORT_PRATICHE",
             "source_external_id": source_external_id,
             "sync_status": "IMPORTATO",
             "last_sync_at": _iso_now(),
@@ -1367,7 +1367,7 @@ def import_quickorganizer_package(
             matter = fascicoli.aggiorna(existing.id, **payload)
             counters["mattersUpdated"] += 1
         else:
-            title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica QuickOrganizer {number}"
+            title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {number}"
             matter = fascicoli.nuovo(
                 titolo=title,
                 tipo=_matter_type(row),
@@ -1390,7 +1390,7 @@ def import_quickorganizer_package(
                 matter.id,
                 subject_id,
                 role,
-                note=f"Import QuickOrganizer pratica {number}",
+                note=f"Import pratiche: pratica {number}",
             )
             after = len(soggetti.parti_fascicolo(matter.id))
             counters["partyLinksCreated"] += max(after - before, 0)
@@ -1417,15 +1417,15 @@ def import_quickorganizer_package(
             document_name,
             _document_type(document_name, filename),
             data,
-            note=f"Import QuickOrganizer. {_text(_row_value(row, 'BreveDescrizioneContenutoDocumento'))}",
-            tags=["quickorganizer"],
+            note=f"Import pratiche. {_text(_row_value(row, 'BreveDescrizioneContenutoDocumento'))}",
+            tags=["import-pratiche"],
             data_documento=_iso_date(_row_value(row, "DATA_ATTO")),
             firmato=_bool(_row_value(row, "signed")),
             caricato_da=actor,
             fonte_documento="IMPORT_ESTERNO",
             nome_originale=filename,
             nome_portale=document_name,
-            classificazione_portale="QuickOrganizer",
+            classificazione_portale="Gestionale precedente",
             id_documento_portale=external_id,
             nome_archivio=filename,
         )
@@ -1454,15 +1454,15 @@ def import_quickorganizer_package(
             document_name,
             TipoDocumento.COMUNICAZIONE,
             data,
-            note=f"Email importata da QuickOrganizer. Oggetto: {subject}",
-            tags=["quickorganizer", "email"],
+            note=f"Email importata dal pacchetto pratiche. Oggetto: {subject}",
+            tags=["import-pratiche", "email"],
             data_documento=_iso_date(_row_value(row, "Data")),
             firmato=_bool(_row_value(row, "IsSigned")),
             caricato_da=actor,
             fonte_documento="IMPORT_ESTERNO",
             nome_originale=filename,
             nome_portale=document_name,
-            classificazione_portale="QuickOrganizer",
+            classificazione_portale="Gestionale precedente",
             mittente_portale=_text(_row_value(row, "Mittente")),
             id_documento_portale=external_id,
             nome_archivio=filename,
@@ -1488,7 +1488,7 @@ def import_quickorganizer_package(
             title,
             descrizione=_text(_row_value(row, "Description")),
             luogo=_text(_row_value(row, "Location")),
-            note=f"{marker} Import QuickOrganizer. {_text(_row_value(row, 'Provvedimento'))}",
+            note=f"{marker} Import pratiche. {_text(_row_value(row, 'Provvedimento'))}",
             avvocato=actor,
         )
         counters["activitiesImported"] += 1
@@ -1563,7 +1563,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "soggetto_mancante",
-                f"Soggetto QuickOrganizer { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
+                f"Soggetto importato { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
             )
 
     for row in client_rows_by_identity.values():
@@ -1574,7 +1574,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "cliente_nominativo_mancante",
-                f"Cliente QuickOrganizer { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
+                f"Cliente importato { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
             )
 
     matter_id_by_number: dict[int, str] = {}
@@ -1586,7 +1586,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "fascicolo_mancante",
-                f"Pratica QuickOrganizer {number} non trovata come fascicolo importato.",
+                f"Pratica importata {number} non trovata come fascicolo importato.",
             )
             continue
         found["matters"] += 1
@@ -1599,7 +1599,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "cliente_pratica_mancante",
-                f"Pratica QuickOrganizer {number} senza cliente collegato.",
+                f"Pratica importata {number} senza cliente collegato.",
             )
 
     for link in tavola:
@@ -1681,7 +1681,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "agenda_non_allineata",
-                f"Appuntamento QuickOrganizer {task_id} non trovato nella pratica {matter_number}.",
+                f"Appuntamento importato {task_id} non trovato nella pratica {matter_number}.",
             )
 
     return {
@@ -1977,7 +1977,7 @@ def begin_auto_prepare_session(
         "stagingRoot": str(staging),
         "status": "pending",
         "progress": 0,
-        "detail": "Preparazione in attesa sulla postazione Studio Telematico.",
+        "detail": "Preparazione in attesa sulla postazione autorizzata.",
         "createdAt": now.isoformat().replace("+00:00", "Z"),
         "expiresAt": expires.isoformat().replace("+00:00", "Z"),
         "uploadId": "",

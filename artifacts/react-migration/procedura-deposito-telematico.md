@@ -3598,6 +3598,17 @@ Verifiche automatiche eseguite:
 - `npm --prefix frontend run typecheck` -> verde;
 - parsing diretto del file reale `pec_00119fb0a3713fdb69faaf7d.eml` -> estratti `Numero ruolo: 1084/2026`, `IDBUSTA: 152649431`, `Data PEC: 30/06/2026 08:44`, `Data esito: 30/06/2026 08:44`.
 
+Aggiornamento produzione eseguito dopo deploy `2.253.144`:
+
+- tenant produzione: `studio-legale-giuseppe-montagnese`;
+- fascicolo reale: `795C50AC`, `Marchetti c. MIM`;
+- messaggio PEC presidiato: `pec_00119fb0a3713fdb69faaf7d`;
+- pipeline rilanciata nel container `iusentra-app` con attore `codex-presidio-pec-rg`;
+- report PEC rigenerato con `final_state=accepted_manually`, `NumeroRuolo=1084/2026`, `IDBUSTA=152649431`, `CodiceEsito=2`;
+- fonte SQL produzione aggiornata: `fascicoli.numero_rg=1084`, `fascicoli.anno_rg=2026`;
+- deposito registrato nel fascicolo: `F909FC53`, stato `ACCETTATO_CANCELLERIA`, `fonte_portale=PEC_PCT`, `id_deposito_esterno=152649431`;
+- payload React produzione verificato nel container: la riga espone `acceptedAt=30/06/2026 08:44`, `acceptedBy=tribunale.vicenza@civile.ptel.giustiziacert.it`, `registeredBy=codex-presidio-pec-rg`, `roleNumber=1084/2026`, `receiptMessageId=<6E7707DF.01498C2D.174555AE.80D717CE.posta-certificata@legalmail.it>` e `sourceMessageId=<jpec1329.20260630000219.66240.402.1.1@pec.aruba.it>`.
+
 Stato anti-regressione:
 
 - il test `test_pct_acceptance_updates_fascicolo_rg_and_react_deposit_facts` fallisce se una PEC di accettazione finale non aggiorna il fascicolo da `NumeroRuolo`, non conserva i metadati ufficiali nella ricevuta o non li espone nel payload React;

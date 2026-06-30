@@ -3412,3 +3412,29 @@ Prova reale su Google Chrome dell'utente:
 - nuovo click su `Verifica Local Signer`: UI ancora `Local Signer pronto`, versione `1.6.86`, zero testi tecnici o vecchie voci richieste dall'utente.
 
 Stato operativo: server reale e Chrome reale dell'utente hanno confermato avvio da servizio fermo, aggiornamento endpoint e processo unico. Restano da completare, prima della chiusura formale del lavoro, riallineamento locale Docker su `127.0.0.1:8080`, commit, push dei branch gemelli, controlli GitHub richiesti e deploy ordinato sullo stesso commit.
+
+## Local Signer 1.6.87: installazione Windows su profili utente con spazi - 2026-06-30
+
+Richiesta utente: su un PC cliente l'installer arriva a `Il servizio non ha ancora risposto su http://127.0.0.1:27272`; il Local Signer quindi non parte dopo l'installazione.
+
+Causa tecnica probabile individuata nel pacchetto 1.6.86: l'avvio immediato dell'installer passava `local_signer.py` a Python come stringa nuda. Su profili Windows con spazi nel percorso utente, per esempio `C:\Users\Studio Legale\...`, Python poteva ricevere il percorso spezzato e uscire prima di aprire la porta `27272`.
+
+Correzione applicata:
+
+- `tools/installa_local_signer_locale.ps1`: l'avvio immediato usa `-ArgumentList @($pythonScript)` sia per `python.exe` sia per `pythonw.exe`;
+- `tools/local_signer.py` e `tools/dist/local_signer.py`: versione aggiornata a `1.6.87`;
+- pacchetti rigenerati: `SetupLocalSigner-1.6.87.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.87.ps1`, `.command`, `.run` e nota release;
+- hash Windows `SetupLocalSigner-1.6.87.exe`: `CB8250451DD37B6188E64ED33E03D427C09B67D1C528B560444D17C057601005`.
+
+Verifiche automatiche eseguite:
+
+- `python -m pytest tests/test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati tests/test_local_signer.py::test_local_signer_launcher_windows_usa_avvio_silenzioso tests/test_local_signer.py::test_installer_locale_windows_registra_protocollo_e_attesa_ping tests/test_build_dist.py::test_build_windows_ps1_include_versione_e_script_originale -q` -> `4 passed`;
+- controllo pacchetti: `SetupLocalSigner-1.6.87.exe` e alias `SetupLocalSigner.exe` hanno lo stesso hash SHA256;
+- controllo script versionato: `InstallaLocalSigner-1.6.87.ps1` contiene `-ArgumentList @($pythonScript)` e non l'avvio immediato con argomento nudo.
+
+Diagnosi da fare sul PC cliente se il pacchetto 1.6.87 non risponde ancora:
+
+- leggere `%APPDATA%\IUSENTRA\LocalSigner\local_signer.err.log`;
+- verificare che esista un solo processo `python.exe`/`pythonw.exe` collegato a `local_signer.py`;
+- controllare `Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272`;
+- verificare il ping `http://127.0.0.1:27272/ping?light=1`.

@@ -1856,6 +1856,8 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "$keep=@{}" not in installer
     assert "ParentProcessId" not in installer
     assert "ProcessId -ne [int]$owner" in installer
+    assert "-ArgumentList @($pythonScript)" in installer
+    assert "-ArgumentList $pythonScript" not in installer
     assert "schtasks /Run /TN" in launcher
     assert "ping?light=1" in launcher
     assert "pyvenv.cfg" in installer

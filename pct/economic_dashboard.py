@@ -297,6 +297,7 @@ def build_fascicolo_economic_dashboard(
     timesheet_entries: list[Any],
     preventivo: Any | None = None,
     conferimento: Any | None = None,
+    sentenze: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     rows = _build_fascicolo_rows([fascicolo], parcelle, timesheet_entries)
     row = rows[0] if rows else {
@@ -317,7 +318,7 @@ def build_fascicolo_economic_dashboard(
     elif conferimento and not parcelle:
         next_action = "Trasforma le attivita' e il timesheet in prima parcella."
 
-    return {
+    payload = {
         "scope": "fascicolo",
         "headline": f"Economia fascicolo {fascicolo.numero}",
         "next_action": next_action,
@@ -354,3 +355,10 @@ def build_fascicolo_economic_dashboard(
         "produttivita_utenti": _build_produttivita_utenti(timesheet_entries)[:4],
         "top_fascicoli": rows,
     }
+    # Blocco sentenze additivo: i loop del template rendono i nuovi item senza modifiche.
+    if sentenze:
+        if sentenze.get("kpi"):
+            payload["kpis"].append(sentenze["kpi"])
+        payload["worklist"].extend(sentenze.get("worklist", []))
+        payload["totals"]["sentenze_economiche"] = sentenze.get("totals", {})
+    return payload

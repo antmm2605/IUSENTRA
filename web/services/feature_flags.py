@@ -40,6 +40,7 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "lex.workflowAgents.scheduledRuns",
         "lex.procedureCompletion.voiceRead.enabled",
         "features.sentenzaEconomicControl",
+        "lex.economicContextTools",
     }
 )
 
@@ -217,6 +218,7 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.clientPortal.videoCalls", "Link videocall governati nel Portale Cliente."),
     _flag("routes.appV2.clientPortal.signatures", "Firma semplice con evidenza nel Portale Cliente."),
     _flag("features.sentenzaEconomicControl", "Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off."),
+    _flag("lex.economicContextTools", "Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off."),
     FeatureFlagDefinition(
         "routes.appV2.docsPanel",
         "IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL",

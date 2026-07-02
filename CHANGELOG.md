@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.145 - 2026-07-02
+
+- Sentenza Economic Control V1 (nuovo modulo, default-off `features.sentenzaEconomicControl`): controllo economico-probatorio delle sentenze civili. Prima di alimentare qualunque contesto economico, il sistema dimostra che la sentenza appartiene al fascicolo (uguaglianza RG esatta + punteggio cliente/ufficio, riuso dello scorer del presidio PEC), poi estrae spese liquidate, distrazione ex art. 93 c.p.c. e contributo unificato, e propone azioni solo da confermare. 10 regole anti-errore hardcoded. Fonti: art. 91/93/133/325 c.p.c., D.M. 55/2014, D.P.R. 115/2002.
+- Incr.1 — motore puro `pct/sentenza_economic_audit.py` + persistenza tenant-aware `pct/sentenza_economic_repository.py` (SQLite/PostgreSQL gemelli + registro probatorio firmato a catena di hash) + ruleset civile versionato `pct/data/economic_legal_rules_v2026_07.json`.
+- Incr.2 — `pct/sentenza_economic_dashboard.py`: riepilogo additivo innestato in `build_fascicolo_economic_dashboard(..., sentenze=None)` + blocco di contesto pass-through.
+- Incr.3 — `lex/tools/economic_context_tools.py`: 5 tool Lex read-only governati (flag `lex.economicContextTools` default-off), astensione se RG non combacia; sorgente `EconomicJudgmentSource`.
+- Incr.4 — runtime `web/services/sentenza_economic_runtime.py` (core iniettabile) + blueprint `/api/v1/ui/sentenza-economic/*` dietro auth studio + backend-security.
+- Incr.5 — `pct/sentenza_economic_workflow.py`: trigger PEC automatico su `deposito_sentenza` (solo anteprima) e parcella da credito confermato (`origine="sentenza"`). Docs `docs/specs/SENTENZA_ECONOMIC_CONTROL_V1.md`.
+- 31 nuovi test verdi; nessuna regressione su operational-knowledge, source registry, feature flag, dashboard economica.
+
 ## 2.253.144 - 2026-06-30
 
 - Deposito PCT accettato: la pipeline PEC legge `EsitoAtto.xml`, aggiorna automaticamente il R.G. del fascicolo da `NumeroRuolo` e registra IDBUSTA, Message-ID deposito, mittente PEC, data PEC e data esito in formato italiano.

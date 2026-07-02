@@ -256,9 +256,93 @@ def confirm_economic_action(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "eventId": event_id, "status": _CONFIRM_STATUS[decision]}
 
 
+def run_pec_economic_trigger(
+    *,
+    classification: dict[str, Any],
+    fascicolo: Any,
+    testo: str,
+    repo: SentenzaEconomicRepository,
+    cu_tiers: list[tuple[float, float]] | None = None,
+    tenant_id: str = "",
+    message_id: str = "",
+    document_hash_sha256: str = "",
+    actor_id: str = "pec-presidio",
+) -> dict[str, Any]:
+    """Auto-trigger dal presidio PEC: SOLO su 'deposito_sentenza', SOLO in anteprima.
+
+    Non scrive nulla di definitivo: l'audit e gli eventi restano `to_review` come
+    alert 'documento da verificare economicamente'. La conferma resta manuale.
+    """
+
+    from pct.sentenza_economic_workflow import should_trigger_economic_audit
+
+    if not should_trigger_economic_audit(classification):
+        return {"ok": False, "code": "not_triggered", "message": "PEC non classificata come deposito di sentenza."}
+    if not testo.strip():
+        return {"ok": False, "code": "validation_error", "message": "Testo del provvedimento non disponibile: OCR mancante."}
+    return run_analysis(
+        fascicolo=fascicolo,
+        testo=testo,
+        repo=repo,
+        cu_tiers=cu_tiers,
+        fonte="PEC",
+        message_id=message_id,
+        document_hash_sha256=document_hash_sha256,
+        valore_causa=float(getattr(fascicolo, "valore_causa", 0.0) or 0.0),
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+    )
+
+
+def genera_parcella_from_event(payload: dict[str, Any]) -> dict[str, Any]:
+    """Wrapper con contesto: genera la parcella da un credito confermato."""
+
+    if not _flag_on():
+        return {"ok": False, "code": "feature_disabled", "message": "Controllo economico sentenze non attivo."}
+    tenant_id = _tenant_id()
+    if not tenant_id:
+        return {"ok": False, "code": "tenant_context_required", "message": "Contesto studio non disponibile."}
+    event_id = str(payload.get("eventId") or "").strip()
+    fascicolo_id = str(payload.get("fascicoloId") or "").strip()
+    if not event_id or not fascicolo_id:
+        return {"ok": False, "code": "validation_error", "message": "Evento e fascicolo obbligatori."}
+    repo = _repo()
+    evento = next(
+        (e for e in repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id) if e.get("id") == event_id),
+        None,
+    )
+    if evento is None:
+        return {"ok": False, "code": "not_found", "message": "Evento economico non trovato."}
+    fascicolo = _resolve_fascicolo(fascicolo_id)
+    if fascicolo is None:
+        return {"ok": False, "code": "not_found", "message": "Fascicolo non trovato."}
+    try:
+        from web.helpers import get_fatturazione
+        from pct.sentenza_economic_workflow import genera_parcella_da_credito
+
+        result = genera_parcella_da_credito(
+            evento=evento, fascicolo=fascicolo, fatturazione=get_fatturazione(),
+            creato_da=_actor_id(), audit_id=str(evento.get("source_id", "") or ""),
+        )
+    except Exception:
+        return {"ok": False, "code": "error", "message": "Generazione parcella non riuscita."}
+    if result.get("ok"):
+        parcella = result.get("parcella")
+        repo.record_decision(
+            tenant_id=tenant_id, actor_id=_actor_id(), kind="parcella_generata_da_sentenza",
+            subject_ref=fascicolo_id, decision="parcella_creata",
+            rationale=f"Parcella origine=sentenza da evento {event_id}",
+            evidence={"event_id": event_id, "parcella_id": str(getattr(parcella, "id", "") or "")},
+        )
+        return {"ok": True, "parcellaId": str(getattr(parcella, "id", "") or ""), "eventId": event_id}
+    return result
+
+
 __all__ = [
     "run_analysis",
     "analyze_fascicolo_document",
     "build_sentenza_economic_payload",
     "confirm_economic_action",
+    "run_pec_economic_trigger",
+    "genera_parcella_from_event",
 ]

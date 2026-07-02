@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.147 - 2026-07-02
+
+- Sentenza Economic Control V1 — cablaggio reale degli "ultimi metri" (prima i pezzi esistevano ma erano scollegati dal percorso vivo, così gli importi liquidati non si vedevano in UI):
+  - **UI React**: il payload dettaglio fascicolo (`react_fascicoli_bridge.build_react_fascicolo_detail_payload`) espone ora la chiave `sentenzeEconomiche` (riuso di `sentenza_economic_runtime.build_sentenza_economic_payload`, che gestisce flag + tenant *slug* + repository + riepilogo). Nuova sezione "Sentenze — controllo economico" in `FascicoloDetail` (crediti cliente art. 91, crediti avvocato antistatario art. 93, alert contributo unificato, spese liquidate totale), con stato vuoto quando il flag è spento o non ci sono sentenze analizzate. Nessun inline style (governance React rispettata).
+  - **Auto da PEC**: nuova `pec_pipeline_runtime.trigger_economic_audits_for_paths` agganciata a `run_workers_for_paths`: sui job `link` classificati `deposito_sentenza`, con flag `features.sentenzaEconomicControl` attivo, lancia l'audit economico in **sola anteprima** (`to_review`, mai definitivo), leggendo il testo OCR del PDF provvedimento dagli allegati e usando lo slug tenant minuscolo (coincidente con la lettura UI).
+  - Precondizione (invariata): gli importi compaiono solo con flag ON e almeno un audit per il fascicolo (auto da PEC o `analyze` manuale). Default-off.
+  - 7 nuovi test (prova reale del flusso repo→runtime→payload→bridge; auto-trigger PEC su deposito sentenza; gate flag). Typecheck frontend verde.
+
 ## 2.253.146 - 2026-07-02
 
 - CI: sblocco deploy/sync — corretta la regressione "check fantasma CodeQL su push". `.github/required-checks.json` chiedeva il context `CodeQL` sia su push sia su pull_request, ma l'ombrello Code Scanning "CodeQL" è creato da GitHub **solo sulle pull request** (sui push esiste solo il job required `Analyze (python)`). Su push `CodeQL` restava eternamente "missing" → il gate `check_github_required_gates.py --wait` non raggiungeva mai 84/84 → il deploy Hetzner (che attende i gate) andava in timeout/`cancelled` e il sync gemello non partiva. `CodeQL` torna richiesto solo su `["pull_request"]` (come nel fix v2.251.2, poi regredito): resta bloccante sulle PR e su push la scansione è coperta da `Analyze (python)`.

@@ -402,6 +402,20 @@ export type FascicoloAuditTrail = {
 export type FascicoloParty = { id: string; name: string; role: string; taxCode: string; email: string; pec: string; phone: string; href: string }
 export type FascicoloHistory = { date: string; description: string; from: string; to: string; notes: string; lawyer: string }
 export type FascicoloMoney = { id: string; label: string; value: string; note: string; href: string; tone: Tone }
+export type FascicoloSentenzeEconomicheItem = { label: string; hint: string; value: string; tone: Tone }
+export type FascicoloSentenzeEconomiche = {
+  totals: {
+    sentenze_lette: number
+    sentenze_verificate: number
+    da_verificare: number
+    crediti_cliente: number
+    crediti_avvocato_antistatario: number
+    spese_liquidate_totale: number
+    contributo_unificato_alert: number
+  }
+  worklist: FascicoloSentenzeEconomicheItem[]
+  kpi: { label: string; value: string; tone: Tone }
+}
 export type FascicoloPerson = { id: string; name: string; taxCode: string; vat: string; email: string; pec: string; phone: string; address: string; href: string }
 export type FascicoloSourceSnapshot = {
   portale: string
@@ -636,6 +650,7 @@ export type FascicoloDetailData = {
   history: FascicoloHistory[]
   client?: FascicoloPerson
   economics: FascicoloMoney[]
+  sentenzeEconomiche: FascicoloSentenzeEconomiche | null
   workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
   regia: RegiaOperativaData
   notificationRelata: FascicoloNotificationRelata
@@ -969,7 +984,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
   quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
-  economics: [], workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
+  economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
   regia: emptyRegiaOperativa,
@@ -1669,6 +1684,25 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     history: asArray(payload.history).map((entry) => { const row = isRecord(entry) ? entry : {}; return { date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), from: text(row.from ?? row.stato_precedente), to: text(row.to ?? row.stato_nuovo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato) } }),
     client: isRecord(payload.client) ? { id: text(payload.client.id), name: text(payload.client.name ?? payload.client.nome, 'Cliente'), taxCode: text(payload.client.taxCode ?? payload.client.codice_fiscale), vat: text(payload.client.vat ?? payload.client.partita_iva), email: text(payload.client.email), pec: text(payload.client.pec), phone: text(payload.client.phone ?? payload.client.telefono), address: text(payload.client.address ?? payload.client.indirizzo), href: text(payload.client.href, '/clienti') } : undefined,
     economics: asArray(payload.economics).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `money-${index}`), label: text(row.label), value: text(row.value), note: text(row.note), href: text(row.href, '/fatturazione'), tone: text(row.tone, 'neutral') as Tone } }),
+    sentenzeEconomiche: ((): FascicoloSentenzeEconomiche | null => {
+      const se = isRecord(payload.sentenzeEconomiche) ? payload.sentenzeEconomiche : null
+      if (!se) return null
+      const t = isRecord(se.totals) ? se.totals : {}
+      const kpi = isRecord(se.kpi) ? se.kpi : {}
+      return {
+        totals: {
+          sentenze_lette: number(t.sentenze_lette),
+          sentenze_verificate: number(t.sentenze_verificate),
+          da_verificare: number(t.da_verificare),
+          crediti_cliente: number(t.crediti_cliente),
+          crediti_avvocato_antistatario: number(t.crediti_avvocato_antistatario),
+          spese_liquidate_totale: number(t.spese_liquidate_totale),
+          contributo_unificato_alert: number(t.contributo_unificato_alert),
+        },
+        worklist: asArray(se.worklist).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), hint: text(row.hint), value: text(row.value), tone: text(row.tone, 'neutral') as Tone } }),
+        kpi: { label: text(kpi.label), value: text(kpi.value), tone: text(kpi.tone, 'neutral') as Tone },
+      }
+    })(),
     workflow: asArray(payload.workflow).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     regia: normalizeRegia(payload.regia),
     notificationRelata: normalizeNotificationRelata(payload.notificationRelata ?? payload.notification_relata),

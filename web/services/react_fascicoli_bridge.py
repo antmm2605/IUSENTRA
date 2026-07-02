@@ -3687,6 +3687,35 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
     return base
 
 
+def _sentenze_economiche(fid: str) -> dict[str, Any] | None:
+    """Contesto economico da sentenza per il fascicolo (credito cliente art. 91,
+    credito avvocato antistatario art. 93, alert contributo unificato).
+
+    Riusa il runtime che gestisce gia' flag + tenant (slug) + repository + riepilogo:
+    non aprire il repo con `_current_tenant_id()` (usa g.tenant.id, mentre gli audit
+    sono scritti per slug -> liste vuote). Ritorna None se il flag e' spento, se manca
+    il contesto studio o se non ci sono sentenze analizzate: la sezione UI resta vuota.
+    """
+
+    try:
+        from web.services.sentenza_economic_runtime import build_sentenza_economic_payload
+
+        payload = build_sentenza_economic_payload(str(fid or ""))
+    except Exception:
+        return None
+    if not payload.get("ok"):
+        return None
+    summary = payload.get("summary") or {}
+    totals = summary.get("totals") or {}
+    if not int(totals.get("sentenze_lette") or 0):
+        return None
+    return {
+        "totals": totals,
+        "worklist": summary.get("worklist") or [],
+        "kpi": summary.get("kpi") or {},
+    }
+
+
 def build_react_fascicolo_detail_payload(
     *,
     get_fascicoli: Callable[[], Any],
@@ -3843,6 +3872,7 @@ def build_react_fascicolo_detail_payload(
         "history": _history(fascicolo),
         "client": _client_payload(cliente),
         "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo),
+        "sentenzeEconomiche": _sentenze_economiche(fid),
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "regia": regia_payload,
         "telematic": _telematic(fascicolo),

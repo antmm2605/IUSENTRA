@@ -95,6 +95,19 @@ def run_workers_for_paths(
         # La notifica è best-effort: la scadenza resta comunque registrata
         # in scadenziario/agenda anche se il centro notifiche non è raggiungibile.
         pass
+    try:
+        economic = trigger_economic_audits_for_paths(
+            paths,
+            tenant_label=tenant_label,
+            jobs=list(report.get("jobs") or []),
+            pec_repo=repo,
+        )
+        if economic.get("triggered") or economic.get("errors"):
+            report["economic_audits"] = economic
+    except Exception:
+        # Best-effort: il controllo economico è un'anteprima aggiuntiva; un suo
+        # errore non deve fermare il presidio PEC (parse/classify/link restano validi).
+        pass
     return report
 
 
@@ -234,6 +247,116 @@ def notify_auto_deadlines_for_paths(
                 report["created" if created else "duplicates"] += 1
             except Exception:
                 report["errors"] += 1
+    return report
+
+
+def _economic_control_enabled() -> bool:
+    try:
+        from web.services.feature_flags import is_feature_enabled
+
+        config = current_app.config if has_app_context() else None
+        return bool(is_feature_enabled("features.sentenzaEconomicControl", config))
+    except Exception:
+        return False
+
+
+def _sentenza_ocr_text(detail: Mapping[str, Any]) -> tuple[str, str]:
+    """Testo OCR del PDF provvedimento fra gli allegati (il più lungo), + suo sha256.
+
+    Esclude ricevute/daticert/eml/tecnici: la sentenza arriva come atto/PDF. Il motore
+    ri-estrae RG e importi dal testo, quindi basta il PDF principale.
+    """
+
+    best_text, best_hash = "", ""
+    for att in list(detail.get("attachments") or []):
+        if not isinstance(att, dict):
+            continue
+        classification = str(att.get("classification") or "").lower()
+        if any(marker in classification for marker in ("daticert", "ricevut", "eml", "tecnic")):
+            continue
+        content_type = str(att.get("content_type") or "").lower()
+        filename = str(att.get("filename") or "").lower()
+        if not (content_type.startswith("application/pdf") or filename.endswith(".pdf")):
+            continue
+        text = str(att.get("ocr_text") or "")
+        if len(text) > len(best_text):
+            best_text, best_hash = text, str(att.get("sha256") or "")
+    return best_text, best_hash
+
+
+def trigger_economic_audits_for_paths(
+    paths: Mapping[str, Any],
+    *,
+    tenant_label: str,
+    jobs: list[dict[str, Any]],
+    pec_repo: PecAuditRepository,
+) -> dict[str, Any]:
+    """Auto-trigger del controllo economico su PEC di deposito sentenza (anteprima).
+
+    Speculare a `notify_auto_deadlines_for_paths`: scorre i job `link` con fascicolo
+    collegato e, se la PEC è classificata `deposito_sentenza` e il flag
+    `features.sentenzaEconomicControl` è attivo, lancia l'audit economico in **sola
+    anteprima** (audit/eventi `to_review`, mai definitivi). Il tenant per il repository
+    economico è lo **slug minuscolo**, così coincide con ciò che legge la UI React.
+    """
+
+    report = {"triggered": 0, "skipped": 0, "errors": 0}
+    if not _economic_control_enabled():
+        return report
+    pairs: list[tuple[str, str]] = []
+    for job in jobs:
+        if str(job.get("job_type") or "") != "link":
+            continue
+        result = job.get("result") if isinstance(job.get("result"), dict) else {}
+        fascicolo_id = str(result.get("fascicolo_id") or "").strip()
+        message_id = str(job.get("message_id") or "").strip()
+        if fascicolo_id and message_id:
+            pairs.append((message_id, fascicolo_id))
+    if not pairs:
+        return report
+
+    from pct.sentenza_economic_repository import SentenzaEconomicRepository
+    from pct.sentenza_economic_workflow import should_trigger_economic_audit
+    from web.services.sentenza_economic_runtime import run_pec_economic_trigger
+
+    tenant_id = str(tenant_label or "").strip().lower()
+    se_db = _path_from_mapping(paths, "SENTENZA_ECONOMIC_DB", "./economico/sentenza_economic.db")
+    try:
+        se_repo = SentenzaEconomicRepository(se_db)
+        fasc_manager = pec_repo._fascicoli_manager()  # noqa: SLF001 - stessa pipeline
+    except Exception:
+        report["errors"] += 1
+        return report
+
+    for message_id, fascicolo_id in pairs:
+        try:
+            detail = pec_repo.get_message_detail(message_id)
+            parsed = detail.get("parsed") if isinstance(detail.get("parsed"), dict) else {}
+            classification = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
+            if not should_trigger_economic_audit(classification):
+                report["skipped"] += 1
+                continue
+            fascicolo = fasc_manager.get(fascicolo_id) if fasc_manager else None
+            if fascicolo is None:
+                report["skipped"] += 1
+                continue
+            testo, doc_hash = _sentenza_ocr_text(detail)
+            if not testo.strip():
+                report["skipped"] += 1
+                continue
+            outcome = run_pec_economic_trigger(
+                classification=classification,
+                fascicolo=fascicolo,
+                testo=testo,
+                repo=se_repo,
+                cu_tiers=None,
+                tenant_id=tenant_id,
+                message_id=message_id,
+                document_hash_sha256=doc_hash,
+            )
+            report["triggered" if outcome.get("ok") else "skipped"] += 1
+        except Exception:
+            report["errors"] += 1
     return report
 
 

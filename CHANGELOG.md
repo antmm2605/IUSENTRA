@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.148 - 2026-07-02
+
+- Presidio PEC — comprensione udienza, chiusura gap (incr. A.1):
+  - **Bug link udienza risolto**: i link di collegamento (Teams/Zoom) presenti SOLO nell'attributo `<a href="...">` andavano persi, perché il corpo HTML veniva spogliato dei tag prima dell'estrazione e `build_remote_hearing_profile` leggeva una chiave `body["html"]` inesistente. Ora `parse_pec_message` estrae gli URL dagli href (nuova chiave `body.href_urls`, inclusi in `body_all` e nel profilo udienza remota) e li dà in pasto all'estrattore link esistente. Un link Teams solo-href viene finalmente riconosciuto.
+  - **Escalation P0 "udienza da remoto senza link"**: quando la PEC indica un'udienza da remoto/audiovisiva ma non si trova alcun link (corpo, href, PDF, ICS) né un PDF da leggere, il report ora emette l'issue `remote_hearing_link_missing` a severità `danger`/priorità `P0` (prima solo `warning`), con azione "controllare allegati/fascicolo/sito ufficio o cancelleria".
+  - Riuso integrale del motore remote-hearing esistente (allow/block-list, contesto negativo note-scritte, ricongiunzione URL da OCR, `remote_hearing_verified`); nessuna duplicazione. 4 test nuovi; nessuna regressione sui test PEC.
+  - Prossimo (incr. A.2): parsing allegati `.ics` (riuso `parse_ics`) e tassonomia modalità unica {presenza/remoto/mista/note_scritte/incerta}.
+
 ## 2.253.147 - 2026-07-02
 
 - Sentenza Economic Control V1 — cablaggio reale degli "ultimi metri" (prima i pezzi esistevano ma erano scollegati dal percorso vivo, così gli importi liquidati non si vedevano in UI):

@@ -462,6 +462,29 @@ def extract_message_parts(msg: Message) -> tuple[str, str, list[AttachmentPayloa
     return "\n".join(part.strip() for part in text_parts if part.strip()), "\n".join(part.strip() for part in html_parts if part.strip()), attachments
 
 
+_HTML_HREF_RE = re.compile(r'href\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+
+
+def extract_html_hrefs(html_body: str) -> list[str]:
+    """URL http(s) dagli attributi href dell'HTML.
+
+    I link di udienza (Teams/Zoom) vivono spesso SOLO nell'href: il corpo HTML
+    tag-stripped ne conserva solo il testo dell'ancora ("Partecipa alla riunione"),
+    perdendo l'URL. Qui li recuperiamo, deduplicati preservando l'ordine.
+    """
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for match in _HTML_HREF_RE.finditer(html_body or ""):
+        url = str(match.group(1) or "").strip()
+        if not url.lower().startswith(("http://", "https://")):
+            continue
+        if url not in seen:
+            seen.add(url)
+            out.append(url)
+    return out
+
+
 def extract_xml_texts(attachments: list[AttachmentPayload]) -> dict[str, str]:
     texts: dict[str, str] = {}
     for item in attachments:
@@ -1767,7 +1790,8 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
     parsed_profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
     sources: list[dict[str, Any]] = [
         {"name": "Oggetto PEC", "type": "oggetto", "text": clean_text(headers.get("subject") or "", 2000)},
-        {"name": "Corpo PEC", "type": "corpo", "text": clean_text(body.get("text") or body.get("html") or "", 20000)},
+        {"name": "Corpo PEC", "type": "corpo", "text": clean_text(body.get("text") or "", 20000)},
+        {"name": "Link HTML (href)", "type": "html_href", "text": " ".join(str(u) for u in (body.get("href_urls") or []) if u)},
         {
             "name": "Profilo Comunicazione.xml",
             "type": "profilo",
@@ -2697,7 +2721,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     cc_addresses = extract_addresses(msg.get("Cc", ""))
     sender = from_addresses[0]["email"] if from_addresses else ""
     sender_name = from_addresses[0]["name"] if from_addresses else ""
-    body_all = "\n".join([subject, text_body, clean_text(re.sub(r"<[^>]+>", " ", html_body)), xml_joined])
+    html_href_urls = extract_html_hrefs(html_body)
+    body_all = "\n".join([subject, text_body, clean_text(re.sub(r"<[^>]+>", " ", html_body)), " ".join(html_href_urls), xml_joined])
     procedural_dates = extract_procedural_dates(xml_texts, plain_text=body_all)
     receipt_xml_type = xml_tag_value(xml_joined, ("tipo", "tipoRicevuta", "ricevuta"))
     receipt_text_type, receipt_features = receipt_type_from_text(body_all)
@@ -2911,6 +2936,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "body": {
             "text": clean_text(text_body, 20000),
             "html_text": clean_text(re.sub(r"<[^>]+>", " ", html_body), 20000),
+            "href_urls": html_href_urls,
         },
         "xml_documents": [{"filename": name, "sha256": sha256_bytes(text.encode("utf-8", errors="replace"))} for name, text in xml_texts.items()],
         "procedural_dates": procedural_dates,
@@ -3976,6 +4002,19 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                     "blocking": False,
                     "title": "Link udienza da leggere nel PDF",
                     "detail": "La PEC richiama un'udienza da remoto/audiovisiva, ma il link non è ancora stato estratto: acquisire o leggere il PDF allegato prima di chiudere il presidio.",
+                }
+            )
+        elif remote_hearing.get("detected") and not remote_hearing.get("links"):
+            # Regola P0: udienza da remoto/mista rilevata ma nessun link (corpo, href,
+            # PDF, ICS) e nessun PDF da leggere -> collegamento mancante senza traccia.
+            issues.append(
+                {
+                    "code": "remote_hearing_link_missing",
+                    "severity": "danger",
+                    "blocking": False,
+                    "priority": "P0",
+                    "title": "Udienza da remoto senza link",
+                    "detail": "La PEC indica un'udienza da remoto/audiovisiva ma non e' stato trovato alcun link (corpo, href, PDF o ICS): controllare gli allegati, il fascicolo telematico, il sito dell'ufficio o contattare la cancelleria.",
                 }
             )
         elif remote_hearing.get("links"):

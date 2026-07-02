@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.152 - 2026-07-02
+
+- Toolchain: aggiornamento a **Node 24 LTS** (GitHub ha deprecato Node 20 sui runner Actions, avviso "Node 20 is being deprecated... running with Node 24 by default"):
+  - `actions/setup-node@v5` → `node-version: "24"` nei workflow `ci.yml`, `frontend-ci.yml`, `security-supply-chain.yml` (prima 22);
+  - `actions/github-script@v7` → `@v8` in `branch-hygiene.yml` (v7 girava su runtime node20, era la fonte dell'avviso di deprecazione; v8 è node24-nativo);
+  - Dockerfile stage `frontend-builder`: `node:22-slim` → `node:24-slim` (parità di build CI/Docker; Vite 6.4.3 supporta Node ≥22.12, quindi 24 pienamente);
+  - le altre action erano già su major node24-native (checkout@v5, setup-python@v5, upload-artifact@v5, setup-node@v5). Nessuna modifica al codice applicativo; bundle React committato invariato (il rebuild Docker su Hetzner avviene con Node 24).
+
 ## 2.253.151 - 2026-07-02
 
 - **Lex AI — Fondazione di apprendimento autonomo governato** (deterministico, zero LLM, default-off): Lex rileva ciò che non sa, formula domande di ricerca, cerca fonti ufficiali, ne valuta l'affidabilità, legge con cortesia, aggiorna una memoria ispezionabile e PROPONE miglioramenti — senza mai inventare diritto, committare o toccare produzione (revisione umana obbligatoria su ogni proposta). Approccio chirurgico: riuso dei motori esistenti (Source Policy System/`ai_lex_sources`, registro fonti, `pct/legal_reference_extractor`, `pct/legal_context_questions`, `official_web`, `OfficialSourceHttpClient`/extractors), costruito solo ciò che mancava davvero. Docs: `docs/lex_autonomous_learning.md` + `docs/lex_source_policy.md`.

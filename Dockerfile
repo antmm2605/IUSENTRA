@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 #  Stage 3 - frontend: compila il bundle React con Vite
 #  (Node solo qui; lo stage runtime non porta dietro Node)
 # -------------------------------------------------------------
-FROM node:22-slim AS frontend-builder
+FROM node:24-slim AS frontend-builder
 
 WORKDIR /build
 ENV NODE_ENV=production
@@ -113,7 +113,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.253.151" \
+      org.opencontainers.image.version="2.253.152" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

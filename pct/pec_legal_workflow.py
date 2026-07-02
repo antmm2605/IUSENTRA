@@ -280,6 +280,26 @@ def _classifica_famiglia(text: str, sender: str, registri: list[dict[str, Any]])
         return "deposito_penale_pdp", "Deposito penale / PDP"
     if "notificazione ai sensi della legge n. 53" in lower or "l. 53/1994" in lower or "relata" in lower:
         return "notifica_avvocato", "Notifica avvocato"
+    if any(item.get("registro_normalizzato") in {"FALL"} for item in registri) or any(
+        token in lower for token in ("liquidazione giudiziale", "procedura concorsuale", "concordato preventivo", "falliment", "curatore", "giudice delegato")
+    ):
+        return "procedure_concorsuali", "Procedure concorsuali"
+    if any(item.get("registro_normalizzato") in {"ESM", "ESIM"} for item in registri) or any(
+        token in lower for token in ("esecuzione immobiliare", "esecuzione mobiliare", "pignoramento", "vendita all'asta", "custode giudiziario", "delega alla vendita")
+    ):
+        return "esecuzione", "Esecuzione (mobiliare/immobiliare)"
+    if any(
+        token in lower for token in ("tribunale per i minorenni", "responsabilita genitoriale", "affidamento dei figli", "473-bis", "curatore speciale del minore", "adozione")
+    ):
+        return "famiglia_minori", "Famiglia e minori"
+    if "giustizia-amministrativa" in sender_lower or any(
+        token in lower for token in ("tribunale amministrativo regionale", " tar ", "consiglio di stato", "processo amministrativo telematico", "p.a.t.")
+    ):
+        return "comunicazione_pat", "Comunicazione PAT (amministrativo)"
+    if any(
+        token in lower for token in ("corte di giustizia tributaria", "commissione tributaria", "processo tributario telematico", "sigit", "p.t.t.")
+    ):
+        return "comunicazione_ptt_sigit", "Comunicazione PTT/SIGIT (tributario)"
     if "cancelleria" in lower or "giustiziacert" in sender_lower:
         return "comunicazione_cancelleria_civile", "Comunicazione cancelleria civile"
     if "controparte" in lower:

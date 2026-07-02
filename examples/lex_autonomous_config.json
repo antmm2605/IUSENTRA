@@ -1,0 +1,87 @@
+{
+  "schema_version": "iusentra.lex_autonomous_config.v1",
+  "descrizione": "Configurazione di esempio del ciclo di apprendimento autonomo di Lex. Modalità offline: il provider di ricerca usa i risultati precotti in 'offline_results' (estratti didattici di fonti ufficiali), zero rete. La modalità web è default OFF e richiede allow_web=true + allowlist non vuota.",
+  "mode": "offline",
+  "allow_web": false,
+  "limits": {
+    "max_cycles": 3,
+    "max_queries": 30,
+    "max_sources": 8,
+    "max_runtime_seconds": 300,
+    "max_questions_per_cycle": 5,
+    "max_queries_per_question": 3,
+    "min_sources_per_area": 2
+  },
+  "sources": {
+    "require_official_sources": true,
+    "source_mode": "strict",
+    "allowlist": [
+      "normattiva.it",
+      "gazzettaufficiale.it",
+      "cortecostituzionale.it",
+      "cortedicassazione.it",
+      "giustizia-amministrativa.it",
+      "giustizia.it",
+      "garanteprivacy.it",
+      "eur-lex.europa.eu",
+      "curia.europa.eu",
+      "edpb.europa.eu"
+    ],
+    "denylist": [
+      "facebook.com",
+      "instagram.com",
+      "x.com",
+      "twitter.com",
+      "reddit.com",
+      "quora.com",
+      "medium.com"
+    ]
+  },
+  "politeness": {
+    "min_interval_seconds": 2.0,
+    "timeout_seconds": 20,
+    "max_bytes": 2000000,
+    "respect_robots": true
+  },
+  "memory": {
+    "dir": null
+  },
+  "offline_results": {
+    "art. 2043 c.c. site:normattiva.it": [
+      {
+        "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043",
+        "title": "Art. 2043 c.c. — Risarcimento per fatto illecito",
+        "source_id": "normattiva",
+        "confidence": 0.9,
+        "content": "Art. 2043 c.c. Risarcimento per fatto illecito. Qualunque fatto doloso o colposo, che cagiona ad altri un danno ingiusto, obbliga colui che ha commesso il fatto a risarcire il danno. La responsabilità civile presuppone il nesso causale tra la condotta e il danno ingiusto."
+      }
+    ],
+    "art. 6 Regolamento (UE) 2016/679 site:eur-lex.europa.eu": [
+      {
+        "url": "https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32016R0679#art6",
+        "title": "Regolamento (UE) 2016/679 — Articolo 6, Liceità del trattamento",
+        "source_id": "eurlex",
+        "confidence": 0.9,
+        "content": "Articolo 6 Regolamento (UE) 2016/679. Liceità del trattamento. Il trattamento dati è lecito solo se e nella misura in cui ricorre almeno una delle seguenti condizioni: l'interessato ha espresso il consenso; il trattamento è necessario all'esecuzione di un contratto; per adempiere un obbligo legale; per la salvaguardia di interessi vitali; per un compito di interesse pubblico; per il perseguimento del legittimo interesse del titolare del trattamento."
+      }
+    ],
+    "L. 241/1990 site:normattiva.it": [
+      {
+        "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241",
+        "title": "L. 241/1990 — Nuove norme sul procedimento amministrativo",
+        "source_id": "normattiva",
+        "confidence": 0.9,
+        "content": "L. 241/1990. Nuove norme in materia di procedimento amministrativo e di diritto di accesso ai documenti amministrativi. La legge disciplina il responsabile del procedimento, la motivazione del provvedimento amministrativo, la partecipazione al procedimento e il diritto di accesso agli atti."
+      }
+    ],
+    "D.Lgs. 196/2003 site:normattiva.it": [
+      {
+        "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2003-06-30;196",
+        "title": "D.Lgs. 196/2003 — Codice in materia di protezione dei dati personali",
+        "source_id": "normattiva",
+        "confidence": 0.9,
+        "content": "D.Lgs. 196/2003, codice in materia di protezione dei dati personali, integrato con le modifiche introdotte per l'adeguamento al Regolamento (UE) 2016/679. Disciplina il trattamento dati in ambito nazionale insieme alle disposizioni del GDPR."
+      }
+    ]
+  }
+}

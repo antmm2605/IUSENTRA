@@ -27,6 +27,11 @@ Lex vive fuori da `web/app.py` e fuori dal vecchio blueprint monolitico:
 - `lex/providers/ollama_runtime.py` possiede la risoluzione runtime Ollama e il warmup del modello
 - `lex/providers/` isola il runtime LLM e i bridge provider
 - `lex/retrieval/document_parser_docling.py` contiene l'adapter opzionale Docling per parsing locale di documenti complessi, attivo solo con `LEX_DOCLING_ENABLED=1` e fallback automatico al parser legacy
+- `lex/learning/` estrae citazioni (facciata su `pct/legal_reference_extractor` + estensione UE/GDPR) e profili linguistici deterministici
+- `lex/knowledge/` possiede la memoria di apprendimento ispezionabile (JSONL append-only), il grafo dei concetti e l'ontologia giuridica seed
+- `lex/autonomy/` orchestra il ciclo di apprendimento autonomo governato (lacune → domande → query ufficiali → lettura cortese → proposte in revisione umana; vedi `docs/lex_autonomous_learning.md` e `docs/lex_source_policy.md`)
+- `lex/sources/polite_fetcher.py` e `lex/sources/trust.py` aggiungono robots.txt/rate-limit per dominio e la decisione di ammissione fonti fail-closed
+- `lex/evaluation/learning_metrics.py` misura i cicli di apprendimento con segnali deterministici
 
 ## Compatibilita'
 

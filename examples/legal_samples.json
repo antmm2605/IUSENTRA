@@ -1,0 +1,30 @@
+{
+  "schema_version": "iusentra.lex_legal_samples.v1",
+  "descrizione": "Campioni legali di partenza per il ciclo di apprendimento autonomo di Lex. Testi didattici su norme reali, nessun dato personale.",
+  "samples": [
+    {
+      "sample_id": "civile_art_2043",
+      "area": "civile",
+      "title": "Responsabilità extracontrattuale",
+      "source_type": "sample",
+      "text": "Ai sensi dell'art. 2043 c.c. qualunque fatto doloso o colposo che cagiona ad altri un danno ingiusto obbliga colui che ha commesso il fatto a risarcire il danno. La responsabilità aquiliana richiede la prova del nesso causale tra condotta e danno ingiusto, oltre all'elemento soggettivo del dolo o della colpa. Il risarcimento del danno resta la conseguenza tipica dell'illecito civile.",
+      "expected_citations": ["art. 2043 c.c."]
+    },
+    {
+      "sample_id": "privacy_gdpr_art_6",
+      "area": "privacy",
+      "title": "Basi giuridiche del trattamento",
+      "source_type": "sample",
+      "text": "L'art. 6 GDPR individua le condizioni di liceità del trattamento dati: il consenso dell'interessato, l'esecuzione di un contratto, un obbligo legale, la salvaguardia di interessi vitali, un compito di interesse pubblico oppure il legittimo interesse del titolare del trattamento. Il GDPR impone al titolare del trattamento di documentare la base giuridica prescelta; il codice privacy integra la disciplina nazionale.",
+      "expected_citations": ["art. 6 Regolamento (UE) 2016/679", "Regolamento (UE) 2016/679", "D.Lgs. 196/2003"]
+    },
+    {
+      "sample_id": "amministrativo_l_241_1990",
+      "area": "amministrativo",
+      "title": "Procedimento amministrativo e accesso",
+      "source_type": "sample",
+      "text": "La L. 241/1990 disciplina il procedimento amministrativo, il responsabile del procedimento e il diritto di accesso agli atti. Accanto all'accesso documentale si è affermato l'accesso civico, che consente a chiunque di richiedere dati e documenti; l'accesso civico generalizzato amplia la trasparenza. L'istituto dell'accesso civico richiede comunque il bilanciamento con la riservatezza dei controinteressati, e il provvedimento amministrativo di diniego deve essere motivato.",
+      "expected_citations": ["L. 241/1990"]
+    }
+  ]
+}

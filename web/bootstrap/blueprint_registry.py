@@ -44,6 +44,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/client-portal",
     ),
     BlueprintRegistration(
+        "api_v1_sentenza_economic",
+        "web.blueprints.api_v1_sentenza_economic",
+        "api_v1_sentenza_economic",
+        "/api/v1/ui/sentenza-economic",
+    ),
+    BlueprintRegistration(
         "api_v1_guida_pratica",
         "web.blueprints.api_v1_guida_pratica",
         "api_v1_guida_pratica",

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.146 - 2026-07-02
+
+- CI: sblocco deploy/sync — corretta la regressione "check fantasma CodeQL su push". `.github/required-checks.json` chiedeva il context `CodeQL` sia su push sia su pull_request, ma l'ombrello Code Scanning "CodeQL" è creato da GitHub **solo sulle pull request** (sui push esiste solo il job required `Analyze (python)`). Su push `CodeQL` restava eternamente "missing" → il gate `check_github_required_gates.py --wait` non raggiungeva mai 84/84 → il deploy Hetzner (che attende i gate) andava in timeout/`cancelled` e il sync gemello non partiva. `CodeQL` torna richiesto solo su `["pull_request"]` (come nel fix v2.251.2, poi regredito): resta bloccante sulle PR e su push la scansione è coperta da `Analyze (python)`.
+- Salvaguardia anti-recidiva rafforzata: rimossa l'esenzione `github_generated_checks={"CodeQL"}` in `tests/test_ci_cd_gates_phase11.py`, così `test_every_push_required_check_has_a_producing_job` cattura una futura ri-aggiunta di CodeQL (o altro check senza job produttore) fra i required su push. Aggiornato il commento in `tools/check_github_required_gates.py`.
+
 ## 2.253.145 - 2026-07-02
 
 - Sentenza Economic Control V1 (nuovo modulo, default-off `features.sentenzaEconomicControl`): controllo economico-probatorio delle sentenze civili. Prima di alimentare qualunque contesto economico, il sistema dimostra che la sentenza appartiene al fascicolo (uguaglianza RG esatta + punteggio cliente/ufficio, riuso dello scorer del presidio PEC), poi estrae spese liquidate, distrazione ex art. 93 c.p.c. e contributo unificato, e propone azioni solo da confermare. 10 regole anti-errore hardcoded. Fonti: art. 91/93/133/325 c.p.c., D.M. 55/2014, D.P.R. 115/2002.

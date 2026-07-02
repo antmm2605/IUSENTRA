@@ -89,11 +89,12 @@ def expand_required_checks(config: dict[str, Any], event: str | None = None) -> 
 
 def branch_protection_contexts(config: dict[str, Any]) -> list[str]:
     # Solo i check producibili su push: i branch protetti ricevono push di
-    # mirroring (Sync Twin Branches), mai merge di PR. Un check PR-only
-    # (review dipendenze) non esiste mai su un commit pushato senza PR aperta:
-    # richiederlo nella protection rende il push del sync impossibile per
-    # sempre (GH006 "N of M expected"). CodeQL/code scanning viene invece
-    # prodotto anche sui push ed e' bloccante.
+    # mirroring (Sync Twin Branches), mai merge di PR. Un check PR-only non
+    # esiste mai su un commit pushato senza PR aperta: richiederlo nella
+    # protection rende il push del sync impossibile per sempre (GH006 "N of M
+    # expected"). Rientrano fra i PR-only sia "Review dipendenze in ingresso"
+    # sia "CodeQL" (l'ombrello Code Scanning nasce solo sulle PR; su push la
+    # scansione e' coperta dal job required "Analyze (python)").
     names = {check.name for check in expand_required_checks(config, event="push")}
     final_gate = config.get("final_gate_check")
     if final_gate:

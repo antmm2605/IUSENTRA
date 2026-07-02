@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.253.149 - 2026-07-02
+
+- Presidio PEC "Legal Presidio Pro" — potenziamento a incrementi (riuso dei motori esistenti, niente modulo greenfield; deterministico-first, fail-closed):
+  - **A.2 udienza**: parsing allegati `.ics` (riuso `ical_import.parse_ics`, finora non agganciato — il link Teams vive spesso nella DESCRIPTION dell'invito) e **tassonomia modalità unica** `{presenza, remoto, mista, note_scritte, incerta}` (`remote_hearing.mode_unified`), con note-scritte e mista come classi positive.
+  - **B termini legali** (pezzo prima mancante): `pct/pec_legal_deadline_proposer.py` estrae norma + dies a quo + direzione dal testo PEC, risolve norma→template (ruleset versionato `legal_pec_deadline_rules_v2026_07.json`) e delega il CALCOLO al motore deterministico `ItalianDeadlineCalculator` (avanti/a ritroso, sospensione feriale). Nuovi template 644 (60gg), 669-terdecies (15gg), 380-bis (40gg), 127-ter (5gg). Regole bloccanti: deposito sentenza → nessun termine breve ex art. 325 dalla sola comunicazione (art. 133 c.p.c.); "assegna termine" senza durata → revisione. Mai fonte unica, sempre human_review.
+  - **C vista unificata**: `pct/pec_legal_event_understanding.py` aggrega i segnali (classificazione + udienza + termine + ricevute PCT) nello schema `iusentra.pec.legal_event_understanding.v2`, sola lettura; `web_push_safe_title` senza PII (P0 su udienza remota senza link); Lex solo per l'ambiguo.
+  - **D famiglie**: `_classifica_famiglia` riconosce ora concorsuali, esecuzioni mobiliari/immobiliari, famiglia/minori, PAT (amministrativo), PTT/SIGIT (tributario) prima del fallback generico, così le regole civili non si applicano automaticamente a PAT/PTT/penale.
+  - (A.1, già in 2.253.148: fix link udienza in `<a href>` + escalation P0 remoto-senza-link.)
+  - 21 test nuovi in questa release; nessuna regressione causata dalle modifiche (i fallimenti sandbox su Lex router/PDF import/migrazione SQLite sono preesistenti al netto di queste modifiche).
+
 ## 2.253.148 - 2026-07-02
 
 - Presidio PEC — comprensione udienza, chiusura gap (incr. A.1):

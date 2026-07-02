@@ -1,0 +1,31 @@
+{
+  "version": "2026.07",
+  "ambito": "civile",
+  "descrizione": "Mappa deterministica norma→template per il proponente-termini legali della PEC. Il proponente estrae {norma, dies a quo, direzione}; il calcolo della data resta al motore ItalianDeadlineCalculator. NON applicare a penale/PAT/PTT.",
+  "fonti": {
+    "art_133_cpc": "La comunicazione di deposito sentenza non fa decorrere i termini brevi ex art. 325 c.p.c.",
+    "art_325_cpc": "Termini brevi di impugnazione (decorrono dalla notificazione, non dalla comunicazione)",
+    "art_127_ter_cpc": "Note scritte: opposizione entro 5 giorni dalla comunicazione",
+    "art_171_ter_cpc": "Memorie 40/20/10 giorni prima dell'udienza (a ritroso)",
+    "art_644_cpc": "Decreto ingiuntivo da notificare entro 60 giorni dalla pronuncia",
+    "art_669_terdecies_cpc": "Reclamo cautelare entro 15 giorni",
+    "art_380_bis_cpc": "Cassazione: richiesta decisione entro 40 giorni dalla comunicazione",
+    "art_641_cpc": "Opposizione a decreto ingiuntivo entro 40 giorni dalla notificazione"
+  },
+  "blocco_art_325": {
+    "keywords": ["deposito sentenza", "pubblicazione sentenza", "sentenza depositata", "sentenza pubblicata"],
+    "regola": "La comunicazione di deposito/pubblicazione della sentenza NON fa decorrere il termine breve ex art. 325 (art. 133 c.p.c.): nessun termine breve automatico dalla sola comunicazione di cancelleria."
+  },
+  "assegnazione_generica_keywords": ["assegna termine", "assegnato il termine", "entro il termine assegnato", "concede termine"],
+  "regole": [
+    {"template_code": "CIV_OPPOSIZIONE_127_TER", "keywords": ["127-ter", "127 ter", "trattazione scritta", "note scritte in sostituzione", "sostituisce l'udienza con note"], "dies_a_quo_type": "comunicazione", "tipo": "perentorio", "confidence": 0.85, "azione": "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)"},
+    {"template_code": "CIV_MEMORIA_171_TER_1", "keywords": ["171-ter n. 1", "171-ter n.1", "171 ter n 1", "prima memoria 171-ter", "memoria di cui al n. 1"], "dies_a_quo_type": "udienza", "direzione": "a_ritroso", "tipo": "perentorio", "confidence": 0.8, "azione": "Prima memoria ex art. 171-ter c.p.c. (40 giorni prima dell'udienza)"},
+    {"template_code": "CIV_MEMORIA_171_TER_2", "keywords": ["171-ter n. 2", "171-ter n.2", "171 ter n 2", "seconda memoria 171-ter", "memoria di cui al n. 2"], "dies_a_quo_type": "udienza", "direzione": "a_ritroso", "tipo": "perentorio", "confidence": 0.8, "azione": "Seconda memoria ex art. 171-ter c.p.c. (20 giorni prima dell'udienza)"},
+    {"template_code": "CIV_MEMORIA_171_TER_3", "keywords": ["171-ter n. 3", "171-ter n.3", "171 ter n 3", "terza memoria 171-ter", "memoria di cui al n. 3"], "dies_a_quo_type": "udienza", "direzione": "a_ritroso", "tipo": "perentorio", "confidence": 0.8, "azione": "Terza memoria ex art. 171-ter c.p.c. (10 giorni prima dell'udienza)"},
+    {"template_code": "CIV_RECLAMO_CAUTELARE_669_TERDECIES", "keywords": ["669-terdecies", "669 terdecies", "reclamo cautelare", "reclamo avverso l'ordinanza cautelare"], "dies_a_quo_type": "pronuncia_udienza", "tipo": "perentorio", "confidence": 0.8, "azione": "Reclamo cautelare ex art. 669-terdecies c.p.c. (15 giorni)"},
+    {"template_code": "CIV_CASSAZIONE_380_BIS", "keywords": ["380-bis", "380 bis", "proposta di definizione", "richiesta di decisione della cassazione"], "dies_a_quo_type": "comunicazione", "tipo": "perentorio", "confidence": 0.8, "azione": "Richiesta di decisione dopo proposta ex art. 380-bis c.p.c. (40 giorni dalla comunicazione)"},
+    {"template_code": "CIV_DI_NOTIFICA_644", "keywords": ["decreto ingiuntivo", "notificare il decreto", "art. 644", "notifica del decreto ingiuntivo"], "dies_a_quo_type": "pronuncia_decreto", "tipo": "perentorio", "confidence": 0.75, "azione": "Notifica del decreto ingiuntivo ex art. 644 c.p.c. (60 giorni dalla pronuncia)"},
+    {"template_code": "CIV_OPPOSIZIONE_DI", "keywords": ["opposizione a decreto ingiuntivo", "641", "opporsi al decreto"], "dies_a_quo_type": "notificazione", "tipo": "perentorio", "confidence": 0.75, "azione": "Opposizione a decreto ingiuntivo ex art. 641 c.p.c. (40 giorni dalla notificazione)"},
+    {"template_code": "CIV_APPELLO_BREVE", "keywords": ["termine breve", "appello breve", "impugnazione breve"], "dies_a_quo_type": "notificazione", "tipo": "perentorio", "confidence": 0.7, "azione": "Appello - termine breve ex art. 325 c.p.c. (dalla notificazione, non dalla comunicazione)"}
+  ]
+}

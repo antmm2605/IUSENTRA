@@ -1515,6 +1515,7 @@ class GestioneTenant:
             "PORTALE_DB":        f"{base}/portale/portali.json",
             "PORTALE_UPLOADS":   f"{base}/portale/uploads",
             "FATTURAZIONE_DB":   f"{base}/fatturazione/parcelle.json",
+            "SENTENZA_ECONOMIC_DB": f"{base}/economico/sentenza_economic.db",
             "NOTIFICHE_LOG":     f"{base}/notifiche/log.json",
             "NOTIFICATIONS_DB":   f"{base}/notifications/notifications.db",
             "PAGAMENTI_DIR":     f"{base}/pagamenti",

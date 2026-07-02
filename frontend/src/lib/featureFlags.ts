@@ -1,6 +1,7 @@
 import { apiJson } from '@/lib/apiClient'
 
 export type FeatureFlagKey =
+  | 'features.sentenzaEconomicControl'
   | 'routes.appV2.dashboard.home'
   | 'routes.appV2.dashboard.regia'
   | 'routes.appV2.search.global'

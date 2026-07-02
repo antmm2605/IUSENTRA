@@ -1,0 +1,86 @@
+{
+  "version": "2026.07",
+  "ambito": "civile",
+  "descrizione": "Regole deterministiche per il controllo economico-probatorio delle sentenze civili. Ogni gruppo di keyword è ancorato a una norma. NON applicare a penale/PAT/PTT (serve ruleset separato).",
+  "fonti": {
+    "spese_liquidazione": "art. 91 c.p.c. — condanna alle spese liquidate in sentenza a favore della parte vittoriosa",
+    "distrazione": "art. 93 c.p.c. — distrazione a favore del difensore antistatario (credito diretto dell'avvocato)",
+    "comunicazione_deposito": "art. 133 c.p.c. — la comunicazione di deposito NON fa decorrere i termini brevi ex art. 325 c.p.c.",
+    "spese_generali": "D.M. 55/2014 — rimborso forfettario spese generali di regola 15% del compenso",
+    "contributo_unificato": "D.P.R. 115/2002 artt. 9, 13, 14 (obbligo/scaglioni), 15-16 (controllo ufficio), 248 (invito al pagamento)",
+    "gratuito_patrocinio": "D.P.R. 115/2002 artt. 82-85 — compenso liquidato con decreto di pagamento, importi prenotati a debito"
+  },
+  "match": {
+    "soglia_documento": 0.75,
+    "soglia_cliente": 0.30,
+    "rg_uguaglianza_esatta": true
+  },
+  "provvedimento": {
+    "sentenza_keywords": ["sentenza", "definitivamente pronunciando", "p.q.m.", "per questi motivi"],
+    "ordinanza_keywords": ["ordinanza", "cosi' provvede", "così provvede"],
+    "decreto_keywords": ["decreto", "decreta"]
+  },
+  "esito": {
+    "favorevole_keywords": ["accoglie", "in accoglimento", "condanna la parte convenuta", "condanna il convenuto"],
+    "sfavorevole_keywords": ["rigetta", "respinge", "dichiara inammissibile", "dichiara improcedibile"],
+    "parziale_keywords": ["accoglie parzialmente", "in parziale accoglimento", "parzialmente"]
+  },
+  "spese": {
+    "condanna_keywords": [
+      "condanna alle spese",
+      "al pagamento delle spese",
+      "alla rifusione delle spese",
+      "rifusione delle spese",
+      "spese di lite",
+      "spese liquidate",
+      "liquida in complessiv",
+      "liquidate in complessiv"
+    ],
+    "compensazione_keywords": [
+      "compensa le spese",
+      "compensa integralmente",
+      "spese compensate",
+      "compensazione delle spese",
+      "integrale compensazione",
+      "compensate integralmente",
+      "compensate tra le parti"
+    ],
+    "compensazione_parziale_keywords": [
+      "parzialmente compensate",
+      "compensa per la meta'",
+      "compensa nella misura"
+    ],
+    "distrazione_keywords": [
+      "distrae le spese",
+      "distrazione delle spese",
+      "con distrazione",
+      "in favore del procuratore antistatario",
+      "procuratore antistatario",
+      "antistatario",
+      "dichiaratosi antistatario",
+      "difensore antistatario",
+      "ex art. 93",
+      "art. 93 c.p.c."
+    ],
+    "gratuito_patrocinio_keywords": [
+      "patrocinio a spese dello stato",
+      "gratuito patrocinio",
+      "ammesso al patrocinio",
+      "liquidazione con decreto di pagamento",
+      "prenotate a debito",
+      "prenotato a debito"
+    ],
+    "spese_generali_pct": 15.0
+  },
+  "contributo_unificato": {
+    "pagato_keywords": ["contributo unificato versato", "contributo unificato pagato", "cu versato", "versamento del contributo unificato", "ricevuta di pagamento del contributo"],
+    "esente_keywords": ["esente dal contributo", "esenzione dal contributo unificato", "non soggetto a contributo", "contributo non dovuto"],
+    "prenotato_debito_keywords": ["prenotato a debito", "prenotazione a debito", "patrocinio a spese dello stato"],
+    "invito_keywords": ["invito al pagamento", "art. 248", "omesso versamento del contributo", "integrare il contributo"],
+    "insufficiente_keywords": ["contributo insufficiente", "versamento insufficiente", "importo inferiore al dovuto", "differenza da versare"]
+  },
+  "esecutivita": {
+    "provvisoria_esecutivita_keywords": ["provvisoriamente esecutiva", "provvisoria esecutorieta'", "provvisoria esecutorietà"],
+    "titolo_esecutivo_keywords": ["titolo esecutivo", "in forma esecutiva"]
+  }
+}

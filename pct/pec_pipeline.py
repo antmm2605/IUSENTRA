@@ -485,6 +485,36 @@ def extract_html_hrefs(html_body: str) -> list[str]:
     return out
 
 
+def extract_ics_texts(attachments: list[AttachmentPayload]) -> str:
+    """Testo leggibile dagli allegati `.ics` (invito calendario): titolo, luogo,
+    descrizione (dove spesso vive il link Teams) e data/ora dei VEVENT.
+
+    Riusa il parser RFC 5545 esistente (`pct.ical_import.parse_ics`), finora non
+    agganciato alla pipeline PEC. Fail-soft: un `.ics` illeggibile non blocca il parse.
+    """
+
+    from pct.ical_import import parse_ics
+
+    parts: list[str] = []
+    for item in attachments:
+        name = str(item.filename or "").lower()
+        if not (name.endswith(".ics") or item.content_type in {"text/calendar", "application/ics"}):
+            continue
+        try:
+            testo = item.data.decode("utf-8", errors="replace")
+            for evento in parse_ics(testo):
+                parts.append(
+                    " ".join(
+                        str(value)
+                        for value in (evento.titolo, evento.luogo, evento.descrizione, evento.data_ora, evento.organizzatore)
+                        if value
+                    )
+                )
+        except Exception:
+            continue
+    return "\n".join(part for part in parts if part.strip())
+
+
 def extract_xml_texts(attachments: list[AttachmentPayload]) -> dict[str, str]:
     texts: dict[str, str] = {}
     for item in attachments:
@@ -1782,6 +1812,40 @@ def _extract_remote_hearing_access_lines(text: str) -> list[str]:
     return values[:8]
 
 
+_HEARING_PLACE_KEYWORDS = (
+    "aula", "piano", "in presenza", "presso il tribunale", "presso la corte",
+    "comparizione personale", "stanza n", "sezione",
+)
+_HEARING_MIXED_KEYWORDS = (
+    "udienza mista", "aula mvc", "parte in presenza e parte da remoto",
+    "presenza per chi ne ha fatto richiesta", "modalita mista", "modalità mista",
+)
+
+
+def _unified_hearing_mode(all_text_lower: str, *, remote_detected: bool) -> str:
+    """Tassonomia unica della modalità udienza: {presenza, remoto, mista, note_scritte, incerta}.
+
+    Consolida i segnali oggi incoerenti. note-scritte e mista sono classi POSITIVE
+    (127-ter sostituisce l'udienza; mista = presenza + remoto insieme).
+    """
+
+    text = all_text_lower or ""
+    is_note = any(str(k).lower() in text for k in REMOTE_HEARING_NEGATIVE_CONTEXT_KEYWORDS)
+    is_place = any(k in text for k in _HEARING_PLACE_KEYWORDS)
+    is_mixed = any(k in text for k in _HEARING_MIXED_KEYWORDS)
+    if is_mixed or (remote_detected and is_place):
+        return "mista"
+    if remote_detected:
+        return "remoto"
+    if is_note:
+        return "note_scritte"
+    if is_place:
+        return "presenza"
+    if "udienza" in text:
+        return "incerta"
+    return ""
+
+
 def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[str, Any]]) -> dict[str, Any]:
     """Individua udienze remote/audiovisive e link contenuti anche nei PDF letti via OCR."""
 
@@ -1792,6 +1856,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
         {"name": "Oggetto PEC", "type": "oggetto", "text": clean_text(headers.get("subject") or "", 2000)},
         {"name": "Corpo PEC", "type": "corpo", "text": clean_text(body.get("text") or "", 20000)},
         {"name": "Link HTML (href)", "type": "html_href", "text": " ".join(str(u) for u in (body.get("href_urls") or []) if u)},
+        {"name": "Invito calendario (.ics)", "type": "ics", "text": clean_text(body.get("ics_text") or "", 8000)},
         {
             "name": "Profilo Comunicazione.xml",
             "type": "profilo",
@@ -1902,6 +1967,7 @@ def build_remote_hearing_profile(parsed: dict[str, Any], attachments: list[dict[
     profile = {
         "detected": bool(remote_detected or link_sources),
         "mode": mode,
+        "mode_unified": _unified_hearing_mode(lower_all, remote_detected=bool(remote_detected or link_sources)),
         "links": link_sources,
         "times": times,
         "access_info": access_lines,
@@ -2722,7 +2788,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     sender = from_addresses[0]["email"] if from_addresses else ""
     sender_name = from_addresses[0]["name"] if from_addresses else ""
     html_href_urls = extract_html_hrefs(html_body)
-    body_all = "\n".join([subject, text_body, clean_text(re.sub(r"<[^>]+>", " ", html_body)), " ".join(html_href_urls), xml_joined])
+    ics_readable = extract_ics_texts(attachments)
+    body_all = "\n".join([subject, text_body, clean_text(re.sub(r"<[^>]+>", " ", html_body)), " ".join(html_href_urls), ics_readable, xml_joined])
     procedural_dates = extract_procedural_dates(xml_texts, plain_text=body_all)
     receipt_xml_type = xml_tag_value(xml_joined, ("tipo", "tipoRicevuta", "ricevuta"))
     receipt_text_type, receipt_features = receipt_type_from_text(body_all)
@@ -2937,6 +3004,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             "text": clean_text(text_body, 20000),
             "html_text": clean_text(re.sub(r"<[^>]+>", " ", html_body), 20000),
             "href_urls": html_href_urls,
+            "ics_text": clean_text(ics_readable, 8000),
         },
         "xml_documents": [{"filename": name, "sha256": sha256_bytes(text.encode("utf-8", errors="replace"))} for name, text in xml_texts.items()],
         "procedural_dates": procedural_dates,

@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from pct.pec_pipeline import build_remote_hearing_profile, build_validation_report, extract_html_hrefs
+from pct.pec_pipeline import (
+    AttachmentPayload,
+    _unified_hearing_mode,
+    build_remote_hearing_profile,
+    build_validation_report,
+    extract_html_hrefs,
+    extract_ics_texts,
+)
 
 
 TEAMS = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc/0?context=xyz"
@@ -69,3 +76,31 @@ def test_remoto_con_link_non_e_P0():
     codes = {i.get("code") for i in report.get("issues", [])}
     assert "remote_hearing_link_missing" not in codes
     assert "remote_hearing_link_detected" in codes
+
+
+def test_modalita_unica_taxonomy():
+    assert _unified_hearing_mode("trattazione scritta ex art. 127-ter, deposito note scritte", remote_detected=False) == "note_scritte"
+    assert _unified_hearing_mode("udienza in presenza aula 3 piano 2 presso il tribunale", remote_detected=False) == "presenza"
+    assert _unified_hearing_mode("udienza da remoto in videoconferenza", remote_detected=True) == "remoto"
+    assert _unified_hearing_mode("udienza mista, parte in presenza e parte da remoto, aula mvc", remote_detected=True) == "mista"
+    assert _unified_hearing_mode("nessun riferimento", remote_detected=False) == ""
+
+
+def test_link_udienza_da_ics_estratto():
+    ics = (
+        b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:x@t\r\n"
+        b"DTSTART:20260710T090000\r\nSUMMARY:Udienza\r\n"
+        b"DESCRIPTION:Collegamento https://teams.microsoft.com/l/meetup-join/19%3aABC/0\r\n"
+        b"END:VEVENT\r\nEND:VCALENDAR"
+    )
+    att = AttachmentPayload(index=0, filename="invito.ics", content_type="text/calendar", data=ics)
+    ics_text = extract_ics_texts([att])
+    assert "teams.microsoft.com" in ics_text
+    parsed = {
+        "headers": {"subject": "Fissazione udienza"},
+        "body": {"text": "udienza da remoto", "html_text": "", "href_urls": [], "ics_text": ics_text},
+        "procedural_profile": {},
+    }
+    profile = build_remote_hearing_profile(parsed, [])
+    assert any("teams" in (link.get("url") or "") for link in profile.get("links", []))
+    assert profile.get("mode_unified") == "remoto"

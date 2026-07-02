@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.150 - 2026-07-02
+
+- Presidio PEC "Legal Presidio Pro" — chiusura dei due cablaggi vivi (i motori B/C esistevano ma non erano ancora agganciati al percorso reale scadenza/UI):
+  - **Cablaggio B (termine legale → scadenza reale)**: `build_validation_report` aggancia il termine legale calcolato dal proponente (`deadline_proposal.legal_deadline_proposal`, dies a quo risolto da `propose_from_parsed`: comunicazione/udienza/notificazione). `schedule_deadline`/`schedule_deadline_from_payload` creano ora la scadenza sulla **data legale** (fallback quando il presidio operativo non ha una data), con campi legali persistiti (`legal_due_at`, `raw_due_at`, `trace_json` del calcolo, `perentorio`, `deadline_profile_code=<template>`) e titolo = azione legale (es. "Opposizione ex art. 127-ter"). L'auto-creazione in `link_fascicolo` scatta anche sui termini legali riconosciuti (`_report_has_legal_deadline`), e la pulizia scadenze generiche non rimuove più una scadenza con termine legale. Additivo e fail-closed: nessuna norma riconosciuta ⇒ presidio operativo `PEC_AUTO_PRESIDIO` invariato; ogni termine resta non definitivo (nota "revisione professionale obbligatoria"). Helper unico `_legal_deadline_scadenza_fields` (niente duplicazione tra i due percorsi).
+  - **Cablaggio C (vista unificata esposta)**: `get_message_detail` espone `legal_event_understanding` (schema `iusentra.pec.legal_event_understanding.v2`), che riusa il termine legale già calcolato dal report (nessun ricalcolo). Superato l'endpoint `GET /api/pec/messages/<id>` senza modifiche di blueprint.
+  - **UI React**: la riga stato scadenza nel presidio PEC mostra ora il termine legale (`Termine perentorio ex art. …: <data> — proposta automatica, revisione professionale obbligatoria`), e il pulsante "Scadenza automatica" si abilita anche quando esiste un termine legale (non solo sul presidio operativo). Nessun inline style (governance React rispettata).
+  - 8 test nuovi (`test_pec_legal_deadline_cablaggio.py`): predicato/helper puri, aggancio nel report, blocco art. 325 su deposito sentenza, end-to-end su DB reale (scadenza legale creata + idempotenza), vista unificata nel detail. Nessuna regressione sui test PEC/scadenziario.
+
 ## 2.253.149 - 2026-07-02
 
 - Presidio PEC "Legal Presidio Pro" — potenziamento a incrementi (riuso dei motori esistenti, niente modulo greenfield; deterministico-first, fail-closed):

@@ -58,9 +58,15 @@ def build_legal_event_understanding(
     text = " ".join(str(v) for v in (headers.get("subject"), body.get("text"), body.get("ics_text")) if v)
 
     hearing = _hearing_view(remote_hearing)
-    deadline = propose_legal_deadline(
-        text, dies_a_quo_date=dies_a_quo_date or headers.get("date") or "", event_type=event_type
-    )
+    # Preferisci il termine legale GIÀ calcolato dal report (Incremento B): stessa
+    # risoluzione del dies a quo (comunicazione/udienza/notificazione) e nessun
+    # ricalcolo. Fallback deterministico dal testo solo se il report non lo porta.
+    report_proposal = _dict(report.get("deadline_proposal"))
+    deadline = report_proposal.get("legal_deadline_proposal")
+    if not isinstance(deadline, dict):
+        deadline = propose_legal_deadline(
+            text, dies_a_quo_date=dies_a_quo_date or headers.get("date") or "", event_type=event_type
+        )
 
     pct_receipt = _dict(parsed.get("pct_deposit_receipt")) or None
 

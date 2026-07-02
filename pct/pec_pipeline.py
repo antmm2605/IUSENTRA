@@ -30,6 +30,8 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from pct.email_client import cartelle_imap_standard
+from pct.pec_legal_deadline_proposer import propose_from_parsed
+from pct.pec_legal_event_understanding import build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 
 SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
@@ -2065,6 +2067,69 @@ def _remote_hearing_note_lines(report: dict[str, Any], proposal: dict[str, Any] 
     if extra.get("remote_hearing_access_info"):
         lines.append(f"Istruzioni accesso udienza: {clean_text(extra['remote_hearing_access_info'], 400)}")
     return lines
+
+
+def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str, Any]:
+    """Deriva i campi scadenza dal termine LEGALE proposto (Incremento B).
+
+    Fonte certa: quando `build_validation_report` aggancia un termine calcolato dal
+    motore deterministico `termini_processuali` (`proposal["legal_deadline_proposal"]`),
+    la scadenza creata porta anche i campi legali (perentorietà, date grezza/legale,
+    trace di calcolo, template) oltre al presidio operativo storico.
+
+    Fail-closed: se non c'è termine legale riconosciuto, `present=False` e i default
+    preservano esattamente il comportamento del presidio operativo automatico
+    (`PEC_AUTO_PRESIDIO`, nessun campo legale, nota invariata). Mai fonte unica:
+    ogni termine legale resta `human_review_required=True` a monte.
+    """
+
+    proposal = proposal if isinstance(proposal, dict) else {}
+    legal_dl = proposal.get("legal_deadline_proposal") if isinstance(proposal.get("legal_deadline_proposal"), dict) else {}
+    present = bool(legal_dl.get("ok") and legal_dl.get("deadline"))
+    if not present:
+        return {
+            "present": False,
+            "perentorio": False,
+            "due_date": "",
+            "title": "",
+            "note_line": "Termine legale conclusivo: no, presidio operativo automatico da verificare professionalmente.",
+            "profile_code": "PEC_AUTO_PRESIDIO",
+            "source_event_type": "",
+            "source_event_at": "",
+            "extra": {},
+        }
+    return {
+        "present": True,
+        "perentorio": str(legal_dl.get("tipo") or "") == "perentorio",
+        "due_date": str(legal_dl.get("deadline") or ""),
+        "title": clean_text(legal_dl.get("azione") or "", 120),
+        "note_line": (
+            f"Termine legale proposto ({legal_dl.get('norma') or 'norma'} · {legal_dl.get('template_code') or ''}): "
+            f"{legal_dl.get('deadline')} — revisione professionale obbligatoria, non definitivo."
+        ),
+        "profile_code": str(legal_dl.get("template_code") or "") or "PEC_AUTO_PRESIDIO",
+        "source_event_type": str(legal_dl.get("dies_a_quo_type") or ""),
+        "source_event_at": str(legal_dl.get("dies_a_quo_date") or ""),
+        "extra": {
+            "legal_due_at": str(legal_dl.get("deadline") or ""),
+            "raw_due_at": str(legal_dl.get("raw_deadline") or legal_dl.get("deadline") or ""),
+            "trace_json": json.dumps(legal_dl.get("steps") or [], ensure_ascii=False),
+        },
+    }
+
+
+def _report_has_legal_deadline(proposal: dict[str, Any] | None) -> bool:
+    """True se il report porta un termine legale calcolato (Incremento B).
+
+    Usato per estendere l'auto-creazione scadenza ai termini legali riconosciuti,
+    senza toccare il presidio operativo storico. Un termine perentorio (es. 127-ter,
+    669-terdecies) non deve restare solo in vista: va portato nello scadenziario con
+    nota di revisione professionale obbligatoria.
+    """
+
+    proposal = proposal if isinstance(proposal, dict) else {}
+    legal = proposal.get("legal_deadline_proposal")
+    return bool(isinstance(legal, dict) and legal.get("ok") and legal.get("deadline"))
 
 
 def _remote_hearing_needs_pdf_link_refresh(report: dict[str, Any]) -> bool:
@@ -4112,6 +4177,25 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
     if remote_hearing:
         deadline_proposal = dict(deadline_proposal)
         deadline_proposal["remote_hearing"] = remote_hearing
+    # Proponente-termini LEGALI (deterministico): aggancia il motore
+    # `termini_processuali` alla PEC. Additivo e fail-closed: se la norma non è
+    # riconosciuta o il dies a quo manca, non produce nulla e il presidio
+    # operativo resta invariato. Mai fonte unica: `human_review_required=True`.
+    try:
+        _comm_iso = _field_date_value(parsed, "data_consegna", "data_invio")
+        _hearing_raw = clean_text(procedural_profile.get("udienza_data_ora") or "", 80)
+        _hearing_iso = parse_italian_date(_hearing_raw.split()[0]) if _hearing_raw else ""
+        legal_deadline = propose_from_parsed(
+            parsed,
+            event_type=event_type,
+            comunicazione_date=_comm_iso,
+            udienza_date=_hearing_iso,
+        )
+        if isinstance(legal_deadline, dict):
+            deadline_proposal = dict(deadline_proposal)
+            deadline_proposal["legal_deadline_proposal"] = legal_deadline
+    except Exception:
+        pass
     lawyer_checklist = [str(item) for item in list(procedural_profile.get("checklist_avvocato") or []) if str(item or "").strip()]
     procedural_questions = [str(item) for item in list(procedural_profile.get("domande_lex") or []) if str(item or "").strip()]
     agent_questions = _unique_preserving_order(
@@ -5552,7 +5636,7 @@ class PecAuditRepository:
                     actor=actor,
                 )
             proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
-            if proposal.get("auto_create"):
+            if proposal.get("auto_create") or _report_has_legal_deadline(proposal):
                 auto_deadline = self.schedule_deadline(message_id, actor=actor)
         except Exception as exc:
             auto_deadline = {"ok": False, "message": f"Scadenza automatica non registrata: {exc}"}
@@ -6301,13 +6385,27 @@ class PecAuditRepository:
             parsed_meta = _row_to_dict(parsed_row) if parsed_row else {}
             if parsed_meta:
                 parsed_meta.pop("parsed_json", None)
+            validation_report = self.latest_report(conn, message_id)
+            # Vista unificata di comprensione dell'evento legale (Incremento C):
+            # aggrega i segnali già prodotti (classificazione, udienza, termine
+            # legale, catena ricevute PCT) in un unico schema pulito e sola-lettura.
+            # Deterministico e fail-closed: non crea una nuova source of truth.
+            try:
+                legal_event_understanding = build_legal_event_understanding(
+                    parsed,
+                    validation_report,
+                    dies_a_quo_date=_field_date_value(parsed, "data_consegna", "data_invio"),
+                )
+            except Exception:
+                legal_event_understanding = {}
             return {
                 "message": item,
                 "parsed": parsed,
                 "parsed_version": parsed_meta,
                 "attachments": self.attachment_rows(conn, message_id, str(parsed_meta.get("id") or "")),
-                "validation_report": self.latest_report(conn, message_id),
+                "validation_report": validation_report,
                 "fascicolo_link": self.latest_link(conn, message_id),
+                "legal_event_understanding": legal_event_understanding,
             }
 
     def find_by_header_message_id(self, message_id_header: str) -> dict[str, Any] | None:
@@ -7480,7 +7578,7 @@ class PecAuditRepository:
                 proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
                 current_title = clean_text(getattr(scadenza, "titolo", "") or "", 180)
                 is_generic_notice = current_title.startswith("Valuta termini da notifica PEC")
-                if is_generic_notice and not proposal.get("auto_create"):
+                if is_generic_notice and not proposal.get("auto_create") and not _report_has_legal_deadline(proposal):
                     scadenza_id = str(getattr(scadenza, "id", "") or "")
                     agenda_id = str(getattr(scadenza, "id_appuntamento", "") or "")
                     if agenda is not None:
@@ -7784,7 +7882,8 @@ class PecAuditRepository:
         if not report or not isinstance(report.get("deadline_proposal"), dict):
             report = self._validation_report_from_parsed(parsed)
         proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
-        target_date = due_date or clean_text(proposal.get("due_date"))
+        legal_fields = _legal_deadline_scadenza_fields(proposal)
+        target_date = due_date or clean_text(proposal.get("due_date")) or legal_fields["due_date"]
         if not target_date:
             return {"ok": False, "message": "Nessuna scadenza automatica calcolabile per questa PEC.", "proposal": proposal}
         if self._is_expired_deadline_date(target_date):
@@ -7807,7 +7906,7 @@ class PecAuditRepository:
                 "expired": True,
                 "proposal": proposal,
             }
-        title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
+        title = clean_text(legal_fields["title"] or proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         marker = f"PEC_AUDIT:{message_id}"
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
@@ -7891,16 +7990,18 @@ class PecAuditRepository:
                         f"Tipo evento: {proposal.get('source_event_type') or report.get('event_type') or '-'}",
                         f"Decorrenza letta: {proposal.get('source_event_at') or '-'}",
                         *remote_note_lines,
-                        "Termine legale conclusivo: no, presidio operativo automatico da verificare professionalmente.",
+                        legal_fields["note_line"],
                     )
                     if part
                 ),
                 id_utente_responsabile=_deadline_responsible_actor(actor),
-                source_event_type=str(proposal.get("source_event_type") or report.get("event_type") or ""),
-                source_event_at=str(proposal.get("source_event_at") or ""),
+                perentorio=bool(legal_fields["perentorio"]),
+                source_event_type=str(legal_fields["source_event_type"] or proposal.get("source_event_type") or report.get("event_type") or ""),
+                source_event_at=str(legal_fields["source_event_at"] or proposal.get("source_event_at") or ""),
                 operational_due_at=target_date,
-                deadline_profile_code="PEC_AUTO_PRESIDIO",
+                deadline_profile_code=legal_fields["profile_code"],
                 **remote_extra,
+                **legal_fields["extra"],
             )
         except Exception as exc:
             return {"ok": False, "message": f"Scadenza non creata: {exc}"}
@@ -7966,7 +8067,8 @@ class PecAuditRepository:
         parsed = detail.get("parsed") or {}
         report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
         proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
-        target_date = due_date or clean_text(proposal.get("due_date"))
+        legal_fields = _legal_deadline_scadenza_fields(proposal)
+        target_date = due_date or clean_text(proposal.get("due_date")) or legal_fields["due_date"]
         if due_date:
             proposal = dict(proposal)
             proposal["force_agenda_without_time"] = True
@@ -7989,7 +8091,7 @@ class PecAuditRepository:
                 "expired": True,
                 "proposal": proposal,
             }
-        title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
+        title = clean_text(legal_fields["title"] or proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
         marker = f"PEC_AUDIT:{message_id}"
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
@@ -8073,16 +8175,18 @@ class PecAuditRepository:
                         f"Tipo evento: {proposal.get('source_event_type') or report.get('event_type') or '-'}",
                         f"Decorrenza letta: {proposal.get('source_event_at') or '-'}",
                         *remote_note_lines,
-                        "Termine legale conclusivo: no, presidio operativo automatico da verificare professionalmente.",
+                        legal_fields["note_line"],
                     )
                     if part
                 ),
                 id_utente_responsabile=_deadline_responsible_actor(actor),
-                source_event_type=str(proposal.get("source_event_type") or report.get("event_type") or ""),
-                source_event_at=str(proposal.get("source_event_at") or ""),
+                perentorio=bool(legal_fields["perentorio"]),
+                source_event_type=str(legal_fields["source_event_type"] or proposal.get("source_event_type") or report.get("event_type") or ""),
+                source_event_at=str(legal_fields["source_event_at"] or proposal.get("source_event_at") or ""),
                 operational_due_at=target_date,
-                deadline_profile_code="PEC_AUTO_PRESIDIO",
+                deadline_profile_code=legal_fields["profile_code"],
                 **remote_extra,
+                **legal_fields["extra"],
             )
         except Exception as exc:
             return {"ok": False, "message": f"Scadenza non creata: {exc}"}

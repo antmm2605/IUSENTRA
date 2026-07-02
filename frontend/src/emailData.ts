@@ -622,7 +622,13 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
       runAudit: '/api/pec/workers/run',
       saveMatter: `/api/pec/messages/${encoded}/salva-fascicolo`,
       requestMissingAttachment: `/api/pec/messages/${encoded}/richiedi-allegato-mancante`,
-      scheduleDeadline: isRecord(report.deadline_proposal) && report.deadline_proposal.auto_create ? `/api/pec/messages/${encoded}/schedula-scadenza` : '',
+      scheduleDeadline:
+        isRecord(report.deadline_proposal) &&
+        (report.deadline_proposal.auto_create ||
+          (isRecord(report.deadline_proposal.legal_deadline_proposal) &&
+            (report.deadline_proposal.legal_deadline_proposal as Record<string, unknown>).ok === true))
+          ? `/api/pec/messages/${encoded}/schedula-scadenza`
+          : '',
       openMime: `/api/pec/messages/${encoded}/mime`,
     },
   })

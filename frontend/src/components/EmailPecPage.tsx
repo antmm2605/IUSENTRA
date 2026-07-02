@@ -413,6 +413,17 @@ function formatPecAuditDate(value: string): string {
 
 function auditDeadlineStatus(audit?: PecAuditSummary): string {
   const proposal = record(audit?.deadlineProposal)
+  // Termine LEGALE calcolato dal motore deterministico (cablaggio B): ha priorità
+  // sul presidio operativo. Sempre presentato come proposta da rivedere, mai definitivo.
+  const legal = record(proposal.legal_deadline_proposal ?? proposal.legalDeadlineProposal)
+  if (legal.ok === true) {
+    const norma = text(legal.norma)
+    const legalDue = text(legal.deadline)
+    const legalLabel = formatPecAuditDate(legalDue) || legalDue
+    const tipo = text(legal.tipo) === 'perentorio' ? 'perentorio' : 'ordinatorio'
+    const head = `Termine ${tipo}${norma ? ` ex ${norma}` : ''}${legalLabel ? `: ${legalLabel}` : ''}`
+    return `${head} — proposta automatica, revisione professionale obbligatoria.`
+  }
   const autoCreate = proposal.auto_create === true || proposal.autoCreate === true
   const dueDate = text(proposal.due_date ?? proposal.dueDate)
   if (!autoCreate && !dueDate) return ''

@@ -157,4 +157,41 @@ def propose_legal_deadline(
     }
 
 
-__all__ = ["load_ruleset", "propose_legal_deadline"]
+def _resolve_dies_a_quo(dtype: str, *, comunicazione_date: str, udienza_date: str) -> str:
+    if dtype in ("udienza", "pronuncia_udienza"):
+        return udienza_date
+    if dtype == "comunicazione":
+        return comunicazione_date
+    if dtype == "notificazione":
+        # Fail-closed: il termine breve NON si calcola dalla PEC di cancelleria;
+        # serve la data di notifica (evento distinto) -> revisione umana.
+        return ""
+    return comunicazione_date  # pronuncia_decreto ecc.: best-effort, resta human_review
+
+
+def propose_from_parsed(
+    parsed: dict[str, Any],
+    *,
+    event_type: str = "",
+    comunicazione_date: str = "",
+    udienza_date: str = "",
+    ruleset: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Proponente dal PEC parsato: risolve la norma, sceglie il dies a quo corretto
+    (comunicazione/udienza/notificazione) dai dati disponibili e delega al motore."""
+
+    rules = ruleset or load_ruleset()
+    parsed = parsed if isinstance(parsed, dict) else {}
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+    text = " ".join(str(value) for value in (headers.get("subject"), body.get("text"), body.get("ics_text")) if value)
+    rule = _resolve_rule(_norm(text), rules)
+    if rule is None:
+        return propose_legal_deadline(text, dies_a_quo_date=comunicazione_date, event_type=event_type, ruleset=rules)
+    dies = _resolve_dies_a_quo(
+        str(rule.get("dies_a_quo_type") or ""), comunicazione_date=comunicazione_date, udienza_date=udienza_date
+    )
+    return propose_legal_deadline(text, dies_a_quo_date=dies, event_type=event_type, ruleset=rules)
+
+
+__all__ = ["load_ruleset", "propose_legal_deadline", "propose_from_parsed"]

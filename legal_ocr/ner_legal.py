@@ -37,14 +37,9 @@ _UFFICIO_TIPI = (
     "TAR",
 )
 
-# R.G. / Ruolo Generale: numero/anno con molte varianti di scrittura.
-_RG_RE = re.compile(
-    r"\b(?:proc\.?\s*n\.?\s*)?(?:n\.?\s*)?(?:R\.?\s*G\.?\s*A\.?\s*C\.?|RGAC|"
-    r"R\.?\s*G\.?(?:\s*N\.?\s*R\.?\s*)?|R\.?G\.?N\.?R\.?|"
-    r"ruolo\s+generale|reg\.?\s*gen\.?)\s*(?:n\.?|numero)?\s*"
-    r"(?P<num>\d{1,6})\s*/\s*(?P<anno>\d{2,4})\b",
-    re.IGNORECASE,
-)
+# R.G. / Ruolo Generale: il numero/anno viene letto con un pattern lineare e
+# il contesto legale viene verificato a stringhe, evitando regex complesse su OCR.
+_RG_NUM_ANNO_RE = re.compile(r"(?<!\d)(?P<num>\d{1,6})[ \t]*/[ \t]*(?P<anno>\d{2,4})(?!\d)")
 
 _UFFICIO_RE = re.compile(
     r"\b(?P<tipo>" + "|".join(re.escape(t) for t in _UFFICIO_TIPI) + r")"
@@ -116,7 +111,11 @@ def _norm_anno(anno: str) -> str:
 def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    for match in _RG_RE.finditer(text or ""):
+    source = str(text or "")
+    for match in _RG_NUM_ANNO_RE.finditer(source):
+        prefix = source[max(0, match.start() - 90) : match.start()]
+        if not _has_rg_context(prefix):
+            continue
         num = match.group("num")
         anno = _norm_anno(match.group("anno"))
         key = (num, anno)
@@ -125,6 +124,16 @@ def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
         seen.add(key)
         out.append({"numero": num, "anno": anno, "testo": _collapse_spaces(match.group(0))})
     return out
+
+
+def _has_rg_context(prefix: str) -> bool:
+    normalized = _collapse_spaces(prefix).lower()
+    compact = "".join(ch for ch in normalized if ch.isalnum())
+    if any(term in normalized for term in ("r.g", "r g", "ruolo generale", "reg gen", "reg. gen")):
+        return True
+    if any(marker in compact for marker in ("nrg", "rgn", "rgac", "rgnr", "reggen", "ruologenerale")):
+        return True
+    return normalized.rstrip().endswith(("rg", "r.g", "r g"))
 
 
 def _norm_sede(sede: str) -> str:

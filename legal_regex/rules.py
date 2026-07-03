@@ -8,10 +8,9 @@ from typing import Any
 LEGAL_REGEX_PACK_VERSION = "2026.05.24-legal-ocr-v1"
 
 _CF_RE = re.compile(r"\b([A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z])\b", re.I)
-_RG_RE = re.compile(r"\b(?:N\.?\s*)?(?:R\.?\s*G\.?|RG|R\.?\s*G\.?\s*AC|R\.?\s*G\.?\s*CIV\.?|R\.?\s*G\.?\s*TRIB\.?)\s*(?:n\.?\s*)?([0-9]{1,7})\s*(?:[/\-]\s*([12][0-9]{3}))?\b", re.I)
+_RG_NUM_ANNO_RE = re.compile(r"(?<!\d)([0-9]{1,7})[ \t]*/[ \t]*([12][0-9]{3})(?!\d)")
 _PEC_RE = re.compile(r"\b[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.I)
 _DATE_RE = re.compile(r"\b((?:0?[1-9]|[12][0-9]|3[01])[\-/\.](?:0?[1-9]|1[0-2])[\-/\.](?:18|19|20|21|22|23|24|25|26|27|28|29)[0-9]{2}|(?:18|19|20|21|22|23|24|25|26|27|28|29)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))\b")
-_AMOUNT_RE = re.compile(r"(?<![A-Z0-9])(?:EUR|Euro|€)?\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2}|[0-9]+,[0-9]{2})(?![A-Z0-9])", re.I)
 _PEC_DOMAINS = ("giustiziacert.it", "giustizia.it", "postacert.it")
 _CF_CHECK = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _ODD = dict(zip("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", [1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23]))
@@ -58,10 +57,10 @@ def validate_regex_pack(text: str, *, attempts: int = 1, now: date | None = None
     today = now or datetime.now(timezone.utc).date()
     cf_all = tuple(dict.fromkeys(m.group(1).upper() for m in _CF_RE.finditer(source)))
     cf_valid = tuple(v for v in cf_all if validate_codice_fiscale_persona_fisica(v))
-    rg = tuple(dict.fromkeys(_norm_rg(m) for m in _RG_RE.finditer(source)))
+    rg = tuple(dict.fromkeys(_extract_rg(source)))
     pec = tuple(dict.fromkeys(m.group(0).lower() for m in _PEC_RE.finditer(source) if _valid_pec(m.group(0))))
     dates, invalid_dates = _dates(source, today)
-    amounts = tuple(dict.fromkeys(_remove_spaces(m.group(1)) for m in _AMOUNT_RE.finditer(source)))
+    amounts = tuple(dict.fromkeys(_extract_amounts(source)))
     fields = [
         _field("cf_avvocato", cf_valid, attempts, "cf.it.persona_fisica.v1", "Codice fiscale persona fisica valido non trovato."),
         _field("n_rg", rg, attempts, "procedimento.rg.v1", "Numero RG non trovato."),
@@ -78,10 +77,61 @@ def _field(field_id: str, values: tuple[str, ...], attempts: int, rule_id: str, 
     return RegexFieldResult(field_id, "ok" if values else "fail", values[0] if values else "", values, max(1, attempts), "Campo validato." if values else fail, rule_id)
 
 
-def _norm_rg(match: re.Match[str]) -> str:
-    n = _digits_only(match.group(1) or "")
-    y = _digits_only(match.group(2) or "")
-    return f"{n}/{y}" if y else n
+def _extract_rg(source: str) -> list[str]:
+    values: list[str] = []
+    for match in _RG_NUM_ANNO_RE.finditer(source):
+        prefix = source[max(0, match.start() - 90) : match.start()]
+        if not _has_rg_context(prefix):
+            continue
+        n = _digits_only(match.group(1) or "")
+        y = _digits_only(match.group(2) or "")
+        if n and y:
+            values.append(f"{n}/{y}")
+    return values
+
+
+def _has_rg_context(prefix: str) -> bool:
+    normalized = " ".join(str(prefix or "").split()).lower()
+    compact = "".join(ch for ch in normalized if ch.isalnum())
+    if any(term in normalized for term in ("r.g", "r g", "ruolo generale", "reg gen", "reg. gen")):
+        return True
+    if any(marker in compact for marker in ("nrg", "rgn", "rgac", "rgciv", "rgtrib", "reggen", "ruologenerale")):
+        return True
+    return normalized.rstrip().endswith(("rg", "r.g", "r g"))
+
+
+def _extract_amounts(source: str) -> list[str]:
+    values: list[str] = []
+    previous_was_currency = False
+    for raw in str(source or "").replace("\n", " ").split():
+        token = raw.strip(" \t\r\n.,;:()[]{}<>")
+        lower = token.lower()
+        if lower in {"eur", "euro", "€"}:
+            previous_was_currency = True
+            continue
+        if _is_amount_token(token):
+            values.append(_remove_spaces(token))
+            previous_was_currency = False
+            continue
+        if previous_was_currency and _is_amount_token(token.lstrip("€")):
+            values.append(_remove_spaces(token.lstrip("€")))
+        previous_was_currency = False
+    return values
+
+
+def _is_amount_token(token: str) -> bool:
+    value = _remove_spaces(token).lstrip("€")
+    integer, sep, cents = value.partition(",")
+    if sep != "," or len(cents) != 2 or not cents.isdigit() or not integer:
+        return False
+    if "." not in integer:
+        return integer.isdigit()
+    groups = integer.split(".")
+    return (
+        1 <= len(groups[0]) <= 3
+        and groups[0].isdigit()
+        and all(len(group) == 3 and group.isdigit() for group in groups[1:])
+    )
 
 
 def _valid_pec(value: str) -> bool:

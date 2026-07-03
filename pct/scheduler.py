@@ -1080,6 +1080,9 @@ def start_scheduler(app):
                     document_errors = _as_int(document_presidio.get("errors"))
                     if isinstance(document_presidio.get("errors"), list):
                         document_errors = len(document_presidio.get("errors") or [])
+                    document_retries = _as_int(document_presidio.get("retry_locked_documents"))
+                    if isinstance(document_presidio.get("transient_errors"), list):
+                        document_retries = max(document_retries, len(document_presidio.get("transient_errors") or []))
                     totals["document_errors"] += document_errors
                     notifications = report.get("auto_deadline_notifications") if isinstance(report.get("auto_deadline_notifications"), dict) else {}
                     totals["notification_errors"] += _as_int(notifications.get("errors"))
@@ -1096,12 +1099,14 @@ def start_scheduler(app):
                         }
                     )
                     logger.info(
-                        "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, notifiche=%s/%s",
+                        "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, rinviati=%d, errori documenti=%d, notifiche=%s/%s",
                         label,
                         report.get("processed", 0),
                         report.get("failed", 0),
                         document_presidio.get("checked_documents", 0),
                         document_presidio.get("checked_fascicoli", 0),
+                        document_retries,
+                        document_errors,
                         (report.get("auto_deadline_notifications") or {}).get("created", 0)
                         if isinstance(report.get("auto_deadline_notifications"), dict)
                         else 0,

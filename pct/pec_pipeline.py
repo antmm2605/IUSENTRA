@@ -4589,6 +4589,34 @@ def _document_presidio_context_snippet(candidate: dict[str, Any]) -> str:
     return clean_text(context, 520)
 
 
+def _is_transient_sqlite_busy(exc: Any) -> bool:
+    text = str(exc or "").lower()
+    return any(
+        marker in text
+        for marker in (
+            "database is locked",
+            "database table is locked",
+            "database is busy",
+            "sqlite_busy",
+            "locked database",
+        )
+    )
+
+
+def _document_presidio_transient_warnings(indexing: Any) -> tuple[list[str], list[str]]:
+    transient: list[str] = []
+    hard: list[str] = []
+    for warning in list(getattr(indexing, "errors", []) or []):
+        text = clean_text(warning, 500)
+        if not text:
+            continue
+        if _is_transient_sqlite_busy(text):
+            transient.append(text)
+        else:
+            hard.append(text)
+    return transient, hard
+
+
 def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate: dict[str, Any]) -> dict[str, Any]:
     parties = _fascicolo_parties_for_profile(fascicolo)
     cliente = clean_text(getattr(fascicolo, "nome_cliente", "") or "", 180)
@@ -6011,6 +6039,8 @@ class PecAuditRepository:
             "already_presided": 0,
             "skipped_prefixed_deadline": 0,
             "skipped": 0,
+            "retry_locked_documents": 0,
+            "transient_errors": [],
             "errors": [],
             "items": [],
             "notification_jobs": [],
@@ -6099,9 +6129,24 @@ class PecAuditRepository:
                 )
                 report["indexed_documents"] += int(getattr(indexing, "indexed", 0) or 0)
                 report["indexing_skipped"] += int(getattr(indexing, "skipped", 0) or 0)
-                for warning in list(getattr(indexing, "errors", []) or [])[:5]:
+                transient_warnings, hard_warnings = _document_presidio_transient_warnings(indexing)
+                if transient_warnings:
+                    report["retry_locked_documents"] += len(transient_warnings)
+                    for warning in transient_warnings[:5]:
+                        report["transient_errors"].append(f"{fascicolo_id}: {warning}")
+                for warning in hard_warnings[:5]:
                     report["errors"].append(f"{fascicolo_id}: {warning}")
-                records = service.list_fascicolo_documents(self.tenant_id, fascicolo_id, user_context)
+                try:
+                    records = service.list_fascicolo_documents(self.tenant_id, fascicolo_id, user_context)
+                except Exception as exc:
+                    if _is_transient_sqlite_busy(exc):
+                        report["retry_locked_documents"] += len(unchecked_sources)
+                        report["transient_errors"].append(
+                            f"{fascicolo_id}: elenco documenti Lex rinviato ({exc})"
+                        )
+                    else:
+                        report["errors"].append(f"{fascicolo_id}: elenco documenti Lex non leggibile ({exc})")
+                    continue
                 source_by_sha = {source.sha256: source for source in unchecked_sources if source.sha256}
                 source_by_name = {source.filename.casefold(): source for source in unchecked_sources if source.filename}
                 source_by_name.update({source.safe_filename.casefold(): source for source in unchecked_sources if source.safe_filename})
@@ -6121,7 +6166,13 @@ class PecAuditRepository:
                             user_context,
                         )
                     except Exception as exc:
-                        report["errors"].append(f"{fascicolo_id}/{source.filename}: testo Lex non leggibile ({exc})")
+                        if _is_transient_sqlite_busy(exc):
+                            report["retry_locked_documents"] += 1
+                            report["transient_errors"].append(
+                                f"{fascicolo_id}/{source.filename}: testo Lex rinviato ({exc})"
+                            )
+                        else:
+                            report["errors"].append(f"{fascicolo_id}/{source.filename}: testo Lex non leggibile ({exc})")
                         continue
                     text = clean_text(getattr(extracted, "text", "") or "", 50000)
                     if not text:
@@ -6318,7 +6369,12 @@ class PecAuditRepository:
                     if checked_resource:
                         checked_resource_ids.add(checked_resource)
             except Exception as exc:
-                report["errors"].append(f"{fascicolo_id}: {exc}")
+                if _is_transient_sqlite_busy(exc):
+                    report["retry_locked_documents"] += 1
+                    report["transient_errors"].append(f"{fascicolo_id}: controllo documentale rinviato ({exc})")
+                else:
+                    report["errors"].append(f"{fascicolo_id}: {exc}")
+        report["transient_errors"] = list(report["transient_errors"])[:30]
         report["errors"] = list(report["errors"])[:30]
         return report
 

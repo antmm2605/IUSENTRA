@@ -1944,6 +1944,75 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
 
 
+def test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Ricorso lavoro con documento da riprendere",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Lock",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="697",
+        anno_rg=2025,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Ordinanza udienza.txt",
+        TipoDocumento.ORDINANZA,
+        b"Fissa udienza da remoto del 23/09/2026 ore 09:30.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class LockedDocumentService:
+        calls = 0
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls += len(sources)
+            return SimpleNamespace(
+                indexed=0,
+                skipped=0,
+                errors=["Ordinanza udienza.txt: indicizzazione non completata (database is locked)"],
+            )
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    locked_service = LockedDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: locked_service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+
+    assert report["new_or_changed_documents"] == 1
+    assert report["processed_new_documents"] == 1
+    assert report["retry_locked_documents"] == 1
+    assert report["transient_errors"]
+    assert report["errors"] == []
+    with repo.connect() as conn:
+        checked = conn.execute(
+            "SELECT COUNT(*) FROM pec_audit_log WHERE action='pec.document_presidio.checked'"
+        ).fetchone()[0]
+    assert checked == 0
+
+    second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+    assert second["new_or_changed_documents"] == 1
+    assert locked_service.calls == 2
+
+
 def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successivo(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.scadenziario import GestioneScadenziario, TipoTermine

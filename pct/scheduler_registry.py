@@ -1302,6 +1302,57 @@ class SchedulerRegistryRepository:
         template_key = str((job or {}).get("template_key") or job_id)
         now = _iso()
         with self.connect() as conn:
+            if status != "running":
+                running_row = conn.execute(
+                    """
+                    SELECT run_id, started_at
+                    FROM scheduled_job_runs
+                    WHERE job_id=?
+                      AND origin='scheduler'
+                      AND status='running'
+                      AND scheduled_at=?
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (job_id, scheduled_at),
+                ).fetchone()
+                if running_row is None and not scheduled_at:
+                    running_row = conn.execute(
+                        """
+                        SELECT run_id, started_at
+                        FROM scheduled_job_runs
+                        WHERE job_id=?
+                          AND origin='scheduler'
+                          AND status='running'
+                        ORDER BY id DESC
+                        LIMIT 1
+                        """,
+                        (job_id,),
+                    ).fetchone()
+                if running_row is not None:
+                    started_at = str(running_row["started_at"] or now)
+                    conn.execute(
+                        """
+                        UPDATE scheduled_job_runs
+                        SET status=?,
+                            finished_at=?,
+                            duration_ms=?,
+                            message=?,
+                            result_json=?,
+                            error_message=?
+                        WHERE run_id=?
+                        """,
+                        (
+                            status,
+                            now,
+                            _duration_ms(started_at, now),
+                            message,
+                            _json_dumps(result or {}),
+                            error_message,
+                            str(running_row["run_id"]),
+                        ),
+                    )
+                    return
             conn.execute(
                 """
                 INSERT INTO scheduled_job_runs (
@@ -1318,7 +1369,7 @@ class SchedulerRegistryRepository:
                     status,
                     scheduled_at,
                     now,
-                    now,
+                    "" if status == "running" else now,
                     message,
                     _json_dumps(result or {}),
                     error_message,

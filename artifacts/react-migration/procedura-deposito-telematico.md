@@ -3923,3 +3923,20 @@ Stato verifica:
 - DB audit locale aggiornato con eventi `pec.document_presidio.checked` e `scan_mode=incremental_new_or_changed_only`;
 - prova visiva autenticata su `http://127.0.0.1:8080/scadenziario?vista=pec`: pagina `Scadenziario Legale` caricata, contatori visibili, nessuna nuova scadenza generata in locale per assenza di candidati operativi futuri nei documenti analizzati;
 - prova reale server ancora da eseguire dopo deploy: non dichiarare chiuso il flusso finche' job vivo, fascicolo, agenda, scadenziario, notifiche e link remoto non sono stati verificati su `https://app.iusentra.it`.
+
+## Presidio PEC incrementale e audit tenant-aware - 2026-07-03
+
+Verifica produzione Hetzner: i due `pec_audit.sqlite` presenti sul server corrispondono a due tenant attivi e non sono duplicati da accorpare. La regola operativa resta un archivio audit PEC per tenant/studio, per preservare isolamento, fascicoli, allegati, audit e stati di lavorazione.
+
+Correzione applicata:
+
+- il presidio PEC resta incrementale: `pec_local_acquire_runs` conserva il cursore e `pec_local_acquire_items` marca i messaggi gia' letti/presidiati;
+- i giri successivi non rileggono tutto l'archivio, ma partono dai nuovi arrivi e saltano gli elementi gia' presidiati;
+- i lock temporanei del DB documentale Lex AI non falliscono l'intero job: vengono tracciati come documenti rinviati, non marcati come letti, e ripresi al ciclo successivo;
+- il registro scheduler chiude la riga `running` con l'esito reale dello stesso avvio, cosi' il controllo operativo non mostra job appesi quando il worker ha realmente finito.
+
+Test mirati:
+
+- `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`;
+- `test_scheduler_registry_chiude_evento_scheduler_senza_running_residui`;
+- test PEC incrementali su cursore e `skipped_presided`.

@@ -68,3 +68,33 @@ Il controllo e' un doppio presidio rispetto alla PEC: non deve sovrascrivere o d
   - prova visiva autenticata su `http://127.0.0.1:8080/scadenziario?vista=pec`: pagina `Scadenziario Legale` caricata, contatori coerenti, nessuna nuova scadenza per il giro locale perche' i documenti analizzati non contenevano candidati operativi futuri.
 
 - Da completare prima della chiusura: commit/push branch gemelli, deploy Hetzner, verifica job vivo su server, prova visiva su `https://app.iusentra.it`, controlli container/API e igiene repository.
+
+## Aggiornamento PEC incrementale e database audit - 03/07/2026
+
+Verifica server: i due database `pec_audit.sqlite` trovati su Hetzner non sono una doppia copia dello stesso archivio, ma due archivi tenant-aware separati:
+
+- `studio-legale-giuseppe-montagnese/email/pec_audit.sqlite`;
+- `5adafa47-dadb-4d87-87fc-8dec71f8e3e5/email/pec_audit.sqlite` per il tenant con slug `antonella-mammola`.
+
+Decisione tecnica: non vanno fusi in un database unico globale, perche' il presidio PEC contiene messaggi, allegati, audit, collegamenti fascicolo e stati di lavorazione dello studio. Unificare i due archivi romperebbe isolamento tenant, privacy e deduplica per studio. Il comportamento corretto e' un database audit PEC per tenant/studio attivo.
+
+Regola prestazionale confermata:
+
+- l'acquisizione PEC usa `pec_local_acquire_runs` come cursore incrementale e `pec_local_acquire_items` come ledger dei messaggi gia' presidiati;
+- una PEC acquisita o classificata come gia' presidiata viene registrata con `status` tecnico (`ingested`, `duplicate`, `missing_mime` o stato equivalente) e non viene riletta a ogni ciclo;
+- il giro successivo parte dai nuovi arrivi dopo il cursore, mantenendo un piccolo boundary solo per sicurezza contro ordinamenti instabili;
+- il worker continua a lavorare i job pendenti gia' accodati senza riscaricare tutte le PEC.
+
+Correzione 03/07/2026:
+
+- i lock temporanei SQLite dell'indice documentale Lex AI (`database is locked`, `database table is locked`, `SQLITE_BUSY`) non vengono piu' trattati come errore duro del job PEC;
+- il documento viene contato in `retry_locked_documents` e `transient_errors`, non viene marcato come `pec.document_presidio.checked` e viene ripreso automaticamente al giro successivo;
+- il repository Documenti AI SQLite usa `timeout=30` e `PRAGMA busy_timeout=30000` per ridurre falsi lock;
+- il registro scheduler aggiorna la riga `running` quando arriva l'esito dello stesso `job_id`/`scheduled_at`, evitando righe "in corso" residue che falsano il controllo operativo;
+- il log del job PEC mostra anche documenti rinviati e errori documentali reali.
+
+Guardrail mirati aggiunti:
+
+- `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`;
+- `test_scheduler_registry_chiude_evento_scheduler_senza_running_residui`;
+- test PEC cursor gia' presenti su `scan_mode=incremental`, `skipped_presided` e nuove PEC dopo cursore.

@@ -6569,6 +6569,7 @@ class PecAuditRepository:
                 source_by_sha = {source.sha256: source for source in unchecked_sources if source.sha256}
                 source_by_name = {source.filename.casefold(): source for source in unchecked_sources if source.filename}
                 source_by_name.update({source.safe_filename.casefold(): source for source in unchecked_sources if source.safe_filename})
+                seen_document_candidates: set[tuple[str, str, str]] = set()
                 for record in records:
                     if str(getattr(record, "status", "") or "") != "ready":
                         continue
@@ -6611,7 +6612,6 @@ class PecAuditRepository:
                         continue
                     document_name = clean_text(source.filename or getattr(record, "original_filename", "") or "Documento fascicolo", 240)
                     document_candidate_count = 0
-                    seen_document_candidates: set[tuple[str, str, str]] = set()
                     for candidate in extract_procedural_dates({document_name: text}, plain_text=""):
                         kind = _procedural_date_kind(candidate)
                         if kind not in {"udienza", "termine"}:

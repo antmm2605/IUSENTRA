@@ -119,6 +119,7 @@ Regola applicata ora a tutti i fascicoli:
 - il worker usa anche i testi Lex gia' estratti in `studio.db` (`fascicolo_documenti_ai` + `fascicolo_documenti_ai_testi`) per promuovere i fascicoli con udienza da remoto e link reale Teams/Zoom/Meet/Webex; questo evita che `RG 1754/2026` e casi analoghi restino dietro a molti decreti nominalmente simili ma senza collegamento;
 - dopo prova server reale, il parser riconosce anche la formula `FISSA l'udienza in data ... alle ore ...` e ricompone i link Teams `meet?p=` spezzati a capo dal PDF/OCR;
 - i checked con `candidates=0` creati prima della versione parser corrente non sono definitivi: vengono rivalutati una volta, poi marcati con `parser_version` per evitare riletture infinite;
+- se Lex AI conserva piu' record `ready` per lo stesso hash/documento, il worker deduplica il candidato operativo per documento, tipo e data: una sola attivita' nel fascicolo e una sola riga report, senza conteggi gonfiati;
 - i lock SQLite restano transitori: non vengono marcati come letti e vengono ripresi al giro successivo.
 
 Nuovi campi report:
@@ -136,6 +137,7 @@ Guardrail aggiunti o rilanciati:
 - `test_extract_procedural_dates_reads_fissa_udienza_in_data_formula`;
 - `test_remote_hearing_rebuilds_teams_meet_parameter_split_by_pdf_line_break`;
 - `test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio`;
+- `test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash`;
 - `test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato`;
 - `test_react_fascicoli_attivita_udienza_remota_preserva_link_cliccabile`;
 - rilancio mirato di `test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag` e `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`.

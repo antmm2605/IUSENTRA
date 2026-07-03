@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.158 - 2026-07-03
+
+- Presidio documentale udienze: il report del worker deduplica ora i candidati operativi per documento/tipo/data anche quando Lex AI conserva piu' record `ready` con lo stesso hash. L'attivita' nel fascicolo era gia' idempotente; ora anche `candidate_dates`, `past_remote_hearings_recorded` e `items` non vengono gonfiati da duplicati.
+- Aggiunto guardrail che simula due record AI sullo stesso documento e verifica una sola riga report e una sola attivita' `UDIENZA`.
+
 ## 2.253.157 - 2026-07-03
 
 - Presidio documentale udienze: il parser riconosce ora la formula reale dei decreti `FISSA l'udienza in data ... alle ore ...`, usata nei provvedimenti di fissazione da remoto.

@@ -2161,6 +2161,74 @@ def test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio
     assert repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")["new_or_changed_documents"] == 0
 
 
+def test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    hearing_day = date.today() - timedelta(days=44)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza (originale notificato).txt",
+        TipoDocumento.DECRETO,
+        b"Documento gia indicizzato da Lex.",
+    )
+    text = (
+        "DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO. "
+        "N. R.G. 1754/2026. "
+        f"FISSA l'udienza in data {hearing_it}, alle ore 10:00. "
+        "Collegamento ipertestuale: https://teams.microsoft.com/meet/38858779158973?p=abcDEF123"
+    )
+
+    class DuplicateDocumentService:
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            return SimpleNamespace(indexed=0, skipped=len(sources), errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return [
+                SimpleNamespace(id="docai-1", status="ready", sha256=doc.hash_sha256, original_filename=doc.nome),
+                SimpleNamespace(id="docai-2", status="ready", sha256=doc.hash_sha256, original_filename=doc.nome),
+            ]
+
+        def get_fascicolo_document_text(self, tenant_id, fascicolo_id, document_id, user_context):
+            return SimpleNamespace(text=text)
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: DuplicateDocumentService())
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["candidate_dates"] == 1
+    assert report["past_remote_hearings_recorded"] == 1
+    assert len([item for item in report["items"] if item["fascicolo_id"] == fascicolo.id]) == 1
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(fascicolo.id)
+    assert saved is not None
+    assert len([att for att in saved.attivita if att.tipo == TipoAttivita.UDIENZA]) == 1
+
+
 def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_con_lotto_piccolo(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

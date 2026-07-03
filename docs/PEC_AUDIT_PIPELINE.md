@@ -16,6 +16,8 @@ Per ogni PEC acquisita il software:
 - deduplica su `Message-ID` e hash MIME;
 - esegue worker asincroni `parse`, `classify`, `ocr`, `signcheck`, `validate`, `link`, `digest`;
 - produce un `validation_report` strutturato, non bloccante, con anomalie, basi normative, domande operative, azioni suggerite e `deadline_proposal`;
+- produce `legal_event_understanding` schema `iusentra.pec.legal_event_understanding.v2`, con udienze, termini, pagamenti, catena PCT, azioni e memoria Lex auditabile;
+- materializza il presidio V2 nelle tabelle `pec_legal_events`, `pec_legal_deadlines`, `pec_legal_hearings` e `pec_legal_payments`;
 - propone il collegamento al fascicolo con matching multi-seme su RG, parti, ufficio e parole chiave;
 - genera digest giornaliero alle 08:00 Europe/Rome.
 
@@ -53,6 +55,23 @@ La funzione `detect_pec_legal_context()` riconosce i principali contesti PEC pro
 | Domicilio digitale | REGINDE, INI-PEC, INAD, Registro PPAA, art. 16-ter/sexies | segnala fonte dell'indirizzo e coerenza destinatario |
 
 Il parser serializza ogni campo con `value`, `confidence`, `motivation` e `features`. Per esempio una PEC con oggetto `GIUDICE DI PACE - Notificazione ai sensi del D.L. 179/2012` produce evento `notifica_giudice_pace`, warning non bloccante `legal_notice_review_required` e domande operative su atto notificato, data di consegna, RG/fascicolo e termini.
+
+## Comprensione legale V2
+
+Il presidio professionale vive in `pct/pec_legal_event_understanding.py` e usa il ruleset `pct/data/legal_pec_rules_v2026_07.json`. La specifica completa è in `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`.
+
+Regole operative principali:
+
+- una udienza da remoto o mista senza link diventa priorità `P0`;
+- un link Teams viene estratto anche da HTML `href`, testo e allegati OCR;
+- la sola comunicazione di deposito sentenza non genera termine breve automatico ex art. 325 c.p.c.;
+- spese senza distrazione sono credito della parte, non pagamento diretto all'avvocato;
+- distrazione, antistatario o formula equivalente aprono presidio incasso avvocato;
+- contributo unificato viene distinto da esborsi e spese vive;
+- gratuito patrocinio, SIAMM, LSG o DPR 115/2002 aprono workflow spese di giustizia con revisione umana;
+- penale, PAT, PTT e SIGIT non ereditano regole civili automatiche senza ruleset dedicato.
+
+Il worker `validate` salva il JSON V2 in modo idempotente per tenant, PEC e versione parser. Questo permette a Lex, filtri operativi, controlli job e futura UI di leggere dati strutturati senza ricalcolare ogni volta l'intera PEC.
 
 ## Fonti verificate per la matrice notifiche
 
@@ -107,7 +126,7 @@ Schema SQLite/PostgreSQL:
 - `pct/sql/20260521_pec_audit_pipeline.sql`
 - `pct/sql/20260521_pec_audit_pipeline_postgres.sql`
 
-Tabelle principali: `pec_messages`, `pec_parsed_versions`, `pec_attachments`, `pec_validation_reports`, `pec_fascicolo_links`, `pec_jobs`, `pec_digest_runs`, `pec_retention_policies`, `pec_audit_log`.
+Tabelle principali: `pec_messages`, `pec_parsed_versions`, `pec_attachments`, `pec_validation_reports`, `pec_fascicolo_links`, `pec_legal_events`, `pec_legal_deadlines`, `pec_legal_hearings`, `pec_legal_payments`, `pec_jobs`, `pec_digest_runs`, `pec_retention_policies`, `pec_audit_log`.
 
 ## Incrementalità e marker persistenti
 

@@ -3984,5 +3984,39 @@ Aggiornamento 03/07/2026 12:18 (Europe/Rome):
 - prova server dopo deploy `2.253.156`: il worker vivo ha avviato automaticamente il run `12:05`, ha chiuso `ok=true`, `processed_jobs=6`, `ai_priority_fascicoli=84` per il tenant Montagnese e zero errori, ma `EFBE9117` risultava ancora marcato `checked` con `candidates=0`;
 - causa corretta: il parser non riconosceva la formula reale `FISSA l'udienza in data 20/05/2026, alle ore 10:00` e il link Teams `meet?p=` spezzato a capo veniva troncato;
 - hotfix `2.253.157`: aggiunti pattern `udienza in data`, ricomposizione link Teams `meet?p=` su riga successiva e `parser_version` nel ledger audit per rivalutare una volta i checked senza candidati creati prima del fix;
-- hotfix `2.253.158`: il report operativo deduplica i candidati per documento/tipo/data quando Lex AI restituisce piu' record `ready` con lo stesso hash, cosi' i controlli job non ripetono lo stesso evento pur mantenendo idempotente il salvataggio dell'attivita';
+- hotfix `2.253.158`: il report operativo deduplica i candidati per documento/tipo/data quando Lex AI restituisce più record `ready` con lo stesso hash, così i controlli job non ripetono lo stesso evento pur mantenendo idempotente il salvataggio dell'attività;
 - guardrail aggiunti: `test_extract_procedural_dates_reads_fissa_udienza_in_data_formula`, `test_remote_hearing_rebuilds_teams_meet_parameter_split_by_pdf_line_break`, `test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio`, `test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash`.
+
+## PEC Legal Event Understanding V2 - 2026-07-03
+
+Richiesta utente: trasformare il presidio PEC in un motore professionale di comprensione dell'evento legale, collegato a fascicoli, Agenda, Scadenziario, notifiche, web push, Lex AI e DB vettoriale, senza risposte automatiche o termini conclusivi non verificati.
+
+Modifiche applicate:
+
+- aggiunto `pct/pec_legal_event_understanding.py` come motore V2 deterministico-first;
+- aggiunto ruleset `pct/data/legal_pec_rules_v2026_07.json`;
+- aggiunta specifica operativa `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`, da rileggere dopo compattazione per lavori PEC/Lex/udienze/scadenze;
+- il worker `validate` della pipeline PEC materializza il presidio in `pec_legal_events`, `pec_legal_deadlines`, `pec_legal_hearings` e `pec_legal_payments`;
+- le migrazioni SQLite e PostgreSQL sono state aggiornate in parità;
+- Lex riceve memoria strutturata con fatti, fonti hashate e limiti di inferenza, non solo testo libero;
+- le udienze da remoto/miste senza link diventano priorità `P0`;
+- i link Teams vengono estratti anche da HTML `href`, testo e allegati OCR;
+- la comunicazione di deposito sentenza non genera termine breve automatico ex art. 325 c.p.c.;
+- spese, distrazione, antistatario, contributo unificato, esborsi e gratuito patrocinio vengono distinti nel payload pagamenti;
+- penale, PAT, PTT e SIGIT restano fail-closed se non esiste ruleset dedicato.
+
+Guardrail automatici eseguiti:
+
+- `python -m pytest tests/test_pec_legal_event_understanding.py -q`;
+- `python -m pytest tests/test_pec_hearing_understanding.py tests/test_pec_legal_workflow.py tests/test_pec_legal_deadline_cablaggio.py -q`;
+- `python -m pytest tests/test_pec_audit_pipeline.py -k "pec_pipeline_ingests_synthetic_dataset_with_audit_grade_storage or pec_audit_header_summaries_support_lightweight_mode or lex_operational_tools_expose_pec_audit_control_context" -q`;
+- `python -m pytest tests/test_pec_auto_acquire.py::test_worker_pec_rispetta_budget_documentale_scheduler tests/test_scheduler.py::test_pec_audit_pipeline_job_restituisce_report_operativo -q`;
+- `python -m pytest tests/test_utf8_integrity.py -q`;
+- controllo schema SQLite in memoria sulle nuove quattro tabelle.
+
+Stato verifica:
+
+- prova reale locale Docker eseguita su `127.0.0.1:8080`, versione `2.253.159`: `/api/pronto` `ok=true`, container `iusentra-app` e `iusentra-scheduler` healthy;
+- worker reale nel container eseguito sul tenant `studio-montagnese`: `processed=0`, `failed=0`, nessun job PEC pendente, presidio documentale concluso senza errori;
+- campione runtime isolato nel container: PEC con `RG 1754/2026`, udienza Teams, data `20/05/2026`, ora `10:00`, art. 127-bis; worker `parse/classify/ocr/signcheck/validate/link` completato con `processed=6`, `failed=0`, link Teams verificato, priorità `P1`, nessun falso errore PCT per placeholder `deposito_da_ricondurre`;
+- prova server da eseguire dopo deploy: non dichiarare chiuso il presidio finché Hetzner non risulta sullo stesso commit, healthy e con worker verificato.

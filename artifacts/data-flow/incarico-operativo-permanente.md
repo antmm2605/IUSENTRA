@@ -6,6 +6,8 @@ Questo file va riletto dopo ogni compattazione insieme ad `AGENTS.md` prima di r
 
 Per lavori su PolisWeb, accesso PST, ricerca/import fascicoli, scarico documenti, eventi di cancelleria, notifiche PEC da fascicolo, agenda/scadenziario alimentati dal portale o presidio PEC collegato ai fascicoli, va riletto anche `artifacts/react-migration/polisweb-studio-telematico-end-to-end.md`. Quel file contiene la matrice registro per registro e campo per campo ricostruita da Studio Telematico, sorgenti locali e fonti ministeriali; non procedere a memoria.
 
+Per lavori su presidio PEC, comprensione evento legale, udienze lette da PEC/documenti, link audiovisivi, sentenze, spese, liquidazioni, gratuito patrocinio, Agenda, Scadenziario, notifiche, web push o Lex AI alimentato da PEC va riletto anche `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`. Quel file contiene la matrice V2, lo schema dati, le tabelle SQLite/PostgreSQL e i test obbligatori del presidio legale professionale.
+
 ## Incarico permanente deposito telematico e relata
 
 Questa parte non va più ricostruita dalla chat. Dopo ogni compattazione, quando si riprende deposito, PEC, firma digitale, Local Signer, certificati PST, scheduler, relata o prova notifica, l'obiettivo operativo è uno solo: chiudere il flusso reale, verificabile documento per documento, senza regressioni e senza dichiarare verde ciò che non è stato visto sulla macchina reale o sul server reale richiesto.

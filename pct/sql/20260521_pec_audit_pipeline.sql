@@ -98,6 +98,77 @@ CREATE TABLE IF NOT EXISTS pec_fascicolo_links (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS pec_legal_events (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    message_id TEXT NOT NULL REFERENCES pec_messages(id),
+    parsed_version_id TEXT NOT NULL REFERENCES pec_parsed_versions(id),
+    rulepack_version TEXT NOT NULL,
+    family TEXT NOT NULL,
+    primary_event TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    human_review_required INTEGER NOT NULL,
+    event_json TEXT NOT NULL,
+    event_sha256 TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (tenant_id, message_id, parsed_version_id, event_sha256)
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_deadlines (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL REFERENCES pec_legal_events(id) ON DELETE CASCADE,
+    deadline_type TEXT NOT NULL,
+    norm_ref TEXT NOT NULL,
+    dies_a_quo_type TEXT NOT NULL,
+    dies_a_quo_date TEXT NOT NULL DEFAULT '',
+    duration_value INTEGER,
+    duration_unit TEXT NOT NULL DEFAULT '',
+    direction TEXT NOT NULL DEFAULT 'forward',
+    peremptory INTEGER,
+    deterministic_status TEXT NOT NULL,
+    scadenziario_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_hearings (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL REFERENCES pec_legal_events(id) ON DELETE CASCADE,
+    hearing_date TEXT NOT NULL DEFAULT '',
+    hearing_time TEXT NOT NULL DEFAULT '',
+    mode TEXT NOT NULL,
+    platform TEXT NOT NULL DEFAULT '',
+    link TEXT NOT NULL DEFAULT '',
+    link_verified INTEGER NOT NULL DEFAULT 0,
+    aula TEXT NOT NULL DEFAULT '',
+    piano TEXT NOT NULL DEFAULT '',
+    indirizzo TEXT NOT NULL DEFAULT '',
+    agenda_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_payments (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL REFERENCES pec_legal_events(id) ON DELETE CASCADE,
+    payment_event_type TEXT NOT NULL,
+    beneficiary_type TEXT NOT NULL,
+    payer TEXT NOT NULL DEFAULT '',
+    lawyer_direct_credit INTEGER NOT NULL DEFAULT 0,
+    amounts_json TEXT NOT NULL,
+    workflow_status TEXT NOT NULL DEFAULT 'to_review',
+    incasso_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS pec_jobs (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL,
@@ -198,6 +269,11 @@ END;
 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_deadlines_event ON pec_legal_deadlines(tenant_id, legal_event_id);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_hearings_event ON pec_legal_hearings(tenant_id, legal_event_id, hearing_date);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_payments_event ON pec_legal_payments(tenant_id, legal_event_id);
 CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
 CREATE INDEX IF NOT EXISTS idx_pec_local_runs_status ON pec_local_acquire_runs(tenant_id, status, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_run ON pec_local_acquire_items(tenant_id, run_id, status);

@@ -31,7 +31,7 @@ from zoneinfo import ZoneInfo
 
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
-from pct.pec_legal_event_understanding import build_legal_event_understanding
+from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 
 SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
@@ -156,6 +156,82 @@ CREATE TABLE IF NOT EXISTS pec_fascicolo_links (
     FOREIGN KEY(parsed_version_id) REFERENCES pec_parsed_versions(id)
 );
 
+CREATE TABLE IF NOT EXISTS pec_legal_events (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    parsed_version_id TEXT NOT NULL,
+    rulepack_version TEXT NOT NULL,
+    family TEXT NOT NULL,
+    primary_event TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    human_review_required INTEGER NOT NULL,
+    event_json TEXT NOT NULL,
+    event_sha256 TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(message_id) REFERENCES pec_messages(id),
+    FOREIGN KEY(parsed_version_id) REFERENCES pec_parsed_versions(id),
+    UNIQUE (tenant_id, message_id, parsed_version_id, event_sha256)
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_deadlines (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL,
+    deadline_type TEXT NOT NULL,
+    norm_ref TEXT NOT NULL,
+    dies_a_quo_type TEXT NOT NULL,
+    dies_a_quo_date TEXT NOT NULL DEFAULT '',
+    duration_value INTEGER,
+    duration_unit TEXT NOT NULL DEFAULT '',
+    direction TEXT NOT NULL DEFAULT 'forward',
+    peremptory INTEGER,
+    deterministic_status TEXT NOT NULL,
+    scadenziario_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(legal_event_id) REFERENCES pec_legal_events(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_hearings (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL,
+    hearing_date TEXT NOT NULL DEFAULT '',
+    hearing_time TEXT NOT NULL DEFAULT '',
+    mode TEXT NOT NULL,
+    platform TEXT NOT NULL DEFAULT '',
+    link TEXT NOT NULL DEFAULT '',
+    link_verified INTEGER NOT NULL DEFAULT 0,
+    aula TEXT NOT NULL DEFAULT '',
+    piano TEXT NOT NULL DEFAULT '',
+    indirizzo TEXT NOT NULL DEFAULT '',
+    agenda_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(legal_event_id) REFERENCES pec_legal_events(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS pec_legal_payments (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    legal_event_id TEXT NOT NULL,
+    payment_event_type TEXT NOT NULL,
+    beneficiary_type TEXT NOT NULL,
+    payer TEXT NOT NULL DEFAULT '',
+    lawyer_direct_credit INTEGER NOT NULL DEFAULT 0,
+    amounts_json TEXT NOT NULL,
+    workflow_status TEXT NOT NULL DEFAULT 'to_review',
+    incasso_id TEXT NOT NULL DEFAULT '',
+    human_review_required INTEGER NOT NULL,
+    evidence_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(legal_event_id) REFERENCES pec_legal_events(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS pec_jobs (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL,
@@ -258,6 +334,11 @@ END;
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_deadlines_event ON pec_legal_deadlines(tenant_id, legal_event_id);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_hearings_event ON pec_legal_hearings(tenant_id, legal_event_id, hearing_date);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_payments_event ON pec_legal_payments(tenant_id, legal_event_id);
 CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
 CREATE INDEX IF NOT EXISTS idx_pec_local_runs_status ON pec_local_acquire_runs(tenant_id, status, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_run ON pec_local_acquire_items(tenant_id, run_id, status);
@@ -5417,6 +5498,203 @@ class PecAuditRepository:
         )
         return {"message_id": message_id, "report_id": report_id, "severity": report["severity"], "report_sha256": report_hash}
 
+    def _persist_legal_event_understanding(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        message_id: str,
+        parsed_version_id: str,
+        parsed: dict[str, Any],
+        report: dict[str, Any],
+        actor: str,
+    ) -> dict[str, Any]:
+        """Materializza lo schema V2 in tabelle dedicate del DB audit PEC.
+
+        La riga principale resta derivata da `parsed_json` + `report_json`: viene
+        rigenerata idempotentemente a ogni validazione, senza usare `pec_messages`
+        come contenitore generico.
+        """
+
+        understanding = build_legal_event_understanding(
+            parsed,
+            report,
+            dies_a_quo_date=_field_date_value(parsed, "data_consegna", "data_invio"),
+        )
+        event_hash = str(understanding.get("event_sha256") or sha256_json(understanding))
+        event_id = f"ple_{event_hash[:28]}"
+        created_at = iso_now()
+        classification = understanding.get("classification") if isinstance(understanding.get("classification"), dict) else {}
+
+        scope_args = (self.tenant_id, message_id, parsed_version_id)
+        conn.execute(
+            """
+            DELETE FROM pec_legal_deadlines
+            WHERE legal_event_id IN (
+                SELECT id FROM pec_legal_events
+                WHERE tenant_id=? AND message_id=? AND parsed_version_id=?
+            )
+            """,
+            scope_args,
+        )
+        conn.execute(
+            """
+            DELETE FROM pec_legal_hearings
+            WHERE legal_event_id IN (
+                SELECT id FROM pec_legal_events
+                WHERE tenant_id=? AND message_id=? AND parsed_version_id=?
+            )
+            """,
+            scope_args,
+        )
+        conn.execute(
+            """
+            DELETE FROM pec_legal_payments
+            WHERE legal_event_id IN (
+                SELECT id FROM pec_legal_events
+                WHERE tenant_id=? AND message_id=? AND parsed_version_id=?
+            )
+            """,
+            scope_args,
+        )
+        conn.execute(
+            """
+            DELETE FROM pec_legal_events
+            WHERE tenant_id=? AND message_id=? AND parsed_version_id=?
+            """,
+            scope_args,
+        )
+
+        conn.execute(
+            """
+            INSERT INTO pec_legal_events
+            (id, tenant_id, message_id, parsed_version_id, rulepack_version, family, primary_event,
+             priority, confidence, human_review_required, event_json, event_sha256, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_id,
+                self.tenant_id,
+                message_id,
+                parsed_version_id,
+                str((understanding.get("audit") or {}).get("rulepack_version") or RULEPACK_VERSION),
+                str(classification.get("family") or ""),
+                str(classification.get("primary_event") or ""),
+                str(understanding.get("priority") or "P2"),
+                float(classification.get("confidence") or 0.0),
+                1 if understanding.get("human_review_required") else 0,
+                canonical_json(understanding),
+                event_hash,
+                created_at,
+            ),
+        )
+
+        for index, deadline in enumerate(list(understanding.get("deadlines") or [])):
+            if not isinstance(deadline, dict):
+                continue
+            conn.execute(
+                """
+                INSERT INTO pec_legal_deadlines
+                (id, tenant_id, legal_event_id, deadline_type, norm_ref, dies_a_quo_type, dies_a_quo_date,
+                 duration_value, duration_unit, direction, peremptory, deterministic_status, scadenziario_id,
+                 human_review_required, evidence_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"{event_id}_dl_{index}",
+                    self.tenant_id,
+                    event_id,
+                    clean_text(deadline.get("deadline_type"), 240),
+                    clean_text(deadline.get("norma"), 120),
+                    clean_text(deadline.get("dies_a_quo_type"), 80),
+                    clean_text(deadline.get("dies_a_quo_date"), 40),
+                    deadline.get("duration_value") if isinstance(deadline.get("duration_value"), int) else None,
+                    clean_text(deadline.get("duration_unit"), 40),
+                    clean_text(deadline.get("direction") or "forward", 40),
+                    None if deadline.get("peremptory") is None else 1 if deadline.get("peremptory") else 0,
+                    "ready" if deadline.get("create_in_scadenziario") else "review",
+                    clean_text(deadline.get("scadenziario_id"), 120),
+                    1 if deadline.get("human_review_required") else 0,
+                    canonical_json(deadline.get("evidence") or []),
+                    created_at,
+                ),
+            )
+
+        for index, hearing in enumerate(list(understanding.get("hearings") or [])):
+            if not isinstance(hearing, dict):
+                continue
+            conn.execute(
+                """
+                INSERT INTO pec_legal_hearings
+                (id, tenant_id, legal_event_id, hearing_date, hearing_time, mode, platform, link,
+                 link_verified, aula, piano, indirizzo, agenda_id, human_review_required, evidence_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"{event_id}_hr_{index}",
+                    self.tenant_id,
+                    event_id,
+                    clean_text(hearing.get("date"), 40),
+                    clean_text(hearing.get("time"), 40),
+                    clean_text(hearing.get("mode"), 40),
+                    clean_text(hearing.get("platform"), 120),
+                    clean_text(hearing.get("link"), 1200),
+                    1 if hearing.get("link_verified") else 0,
+                    clean_text(hearing.get("aula"), 80),
+                    clean_text(hearing.get("piano"), 80),
+                    clean_text(hearing.get("indirizzo"), 240),
+                    clean_text(hearing.get("agenda_id"), 120),
+                    1 if hearing.get("human_review_required") else 0,
+                    canonical_json(hearing.get("evidence") or []),
+                    created_at,
+                ),
+            )
+
+        for index, payment in enumerate(list(understanding.get("payments") or [])):
+            if not isinstance(payment, dict):
+                continue
+            conn.execute(
+                """
+                INSERT INTO pec_legal_payments
+                (id, tenant_id, legal_event_id, payment_event_type, beneficiary_type, payer,
+                 lawyer_direct_credit, amounts_json, workflow_status, incasso_id, human_review_required,
+                 evidence_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"{event_id}_pay_{index}",
+                    self.tenant_id,
+                    event_id,
+                    clean_text(payment.get("payment_event_type"), 80),
+                    clean_text(payment.get("beneficiary"), 80),
+                    clean_text(payment.get("payer"), 160),
+                    1 if payment.get("lawyer_direct_credit") else 0,
+                    canonical_json(payment.get("amounts") or {}),
+                    "to_review" if payment.get("human_review_required") else "ready",
+                    clean_text(payment.get("incasso_id"), 120),
+                    1 if payment.get("human_review_required") else 0,
+                    canonical_json(payment.get("evidence") or []),
+                    created_at,
+                ),
+            )
+
+        self.append_audit(
+            conn,
+            action="pec.legal_event_understood",
+            resource_type="pec_legal_event",
+            resource_id=event_id,
+            payload={
+                "message_id": message_id,
+                "parsed_version_id": parsed_version_id,
+                "event_sha256": event_hash,
+                "priority": understanding.get("priority"),
+                "deadlines": len(list(understanding.get("deadlines") or [])),
+                "hearings": len(list(understanding.get("hearings") or [])),
+                "payments": len(list(understanding.get("payments") or [])),
+            },
+            actor=actor,
+        )
+        return {"ok": True, "id": event_id, "event_sha256": event_hash, "understanding": understanding}
+
     def parse_and_store(self, message_id: str, *, actor: str = "pec-parser") -> dict[str, Any]:
         with self.connect() as conn:
             row = self.get_message_row(conn, message_id)
@@ -5621,6 +5899,14 @@ class PecAuditRepository:
                 report=report,
                 actor=actor,
             )
+            self._persist_legal_event_understanding(
+                conn,
+                message_id=message_id,
+                parsed_version_id=str(parsed_row["id"]),
+                parsed=parsed,
+                report=report,
+                actor=actor,
+            )
             self.enqueue_job(conn, "link", message_id=message_id, priority=45, actor=actor)
         return result
 
@@ -5678,6 +5964,14 @@ class PecAuditRepository:
                         report=report,
                         actor=actor,
                         action="pec.validation.refreshed",
+                    )
+                    self._persist_legal_event_understanding(
+                        conn,
+                        message_id=message_id,
+                        parsed_version_id=parsed_id,
+                        parsed=parsed,
+                        report=report,
+                        actor=actor,
                     )
                     updated += 1
                 except Exception as exc:

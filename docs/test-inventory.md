@@ -123,7 +123,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_regia_apertura_fascicolo.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_regia_channels.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_runtime_service_checks.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Backend domain | Backend | tests/test_scheduler_registry.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_scheduler_registry.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_structured_logging.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_uffici_competenti.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | E2E | tests/e2e/test_ai_pipeline_full.py | audit | richiede ambiente/credenziali quando esce dal test client | censito |

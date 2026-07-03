@@ -163,7 +163,12 @@ def _is_pec_operational_text(*values: Any) -> bool:
 
 def _is_document_presidio_lex_text(*values: Any) -> bool:
     text = " ".join(str(value or "") for value in values).lower()
-    return "docpresidio:" in text or "documento_fascicolo_lex" in text or "presidio documentale lex" in text
+    return (
+        "docpresidio:" in text
+        or "fascicolo_documenti_audit" in text
+        or "documento_fascicolo_lex" in text
+        or "presidio documentale lex" in text
+    )
 
 
 def _docpresidio_kind(*values: Any) -> str:

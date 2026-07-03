@@ -1004,9 +1004,9 @@ def start_scheduler(app):
                 except (TypeError, ValueError):
                     worker_jobs = 20
                 try:
-                    document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "0") or 0)
+                    document_presidio_limit = int(os.environ.get("IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT", "10") or 10)
                 except (TypeError, ValueError):
-                    document_presidio_limit = 0
+                    document_presidio_limit = 10
                 processed_targets = 0
                 processed_jobs = 0
                 tenant_reports: list[dict[str, object]] = []

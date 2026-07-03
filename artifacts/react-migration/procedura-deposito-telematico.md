@@ -3895,3 +3895,31 @@ Aggiornamento 01/07/2026 00:20 (Europe/Rome):
 - verificata l'icona `Modifica nome` accanto a `Visualizza` e `Scarica originale` per `decretoGenerico.pdf` e gli altri documenti: il click apre il campo `Nuovo nome file decretoGenerico.pdf` senza uscire dal flusso;
 - verificata la pagina `http://127.0.0.1:8080/importa-pratiche`: titolo `Importa pratiche`, testi su pratiche, documenti e comunicazioni, nessun nome visibile dei programmi sorgente e nessuna cartella tecnica `ATTI`/`EMAILS`;
 - responsive materiale ripetuto con viewport `1366x900`, `768x900` e `390x844`: deposito e import pratiche senza overflow orizzontale, testi leggibili, catalogo 270 tipi presente su tutti i formati, viewport ripristinata al termine.
+
+## Presidio documentale udienze da fascicolo - 2026-07-03
+
+Richiesta utente: i documenti gia' presenti nel fascicolo devono essere letti automaticamente per recuperare udienze, trattazioni scritte e collegamenti audiovisivi solo quando il fascicolo non ha gia' una scadenza prefissata da PEC, PST o operatore.
+
+Modifiche applicate:
+
+- il provider tecnico del controllo e' `fascicolo_documenti_audit`, collegato al presidio PEC ma distinguibile dai messaggi PEC;
+- il job `pec_audit_pipeline_workers` esegue anche il presidio documentale con lotto piccolo di default (`IUSENTRA_PEC_DOCUMENT_PRESIDIO_LIMIT=10`);
+- il budget del job riguarda i documenti nuovi o modificati, non il numero di fascicoli: un fascicolo gia' presidiato viene saltato e il giro prosegue al fascicolo successivo;
+- prima di indicizzare Lex AI vengono controllati `data_prossima_udienza`, `data_prima_udienza`, attivita' future del fascicolo e scadenziario aperto;
+- se esiste gia' una scadenza futura, il report registra `skipped_prefixed_deadline` e non crea duplicati;
+- se il documento produce una data valida, il flusso continua a salvare scadenziario, agenda, attivita' fascicolo, link udienza da remoto e coda notifiche/web push tramite il presidio automatico esistente;
+- i bridge React di Agenda e Scadenziario riconoscono sia il vecchio `documento_fascicolo_lex` sia il nuovo `fascicolo_documenti_audit`.
+
+Guardrail automatici eseguiti:
+
+- `python -m pytest tests/test_pec_audit_pipeline.py::test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag tests/test_pec_audit_pipeline.py::test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successivo -q` -> passato;
+- `python -m pytest tests/test_scheduler.py::test_pec_audit_pipeline_job_restituisce_report_operativo tests/test_pec_auto_acquire.py::test_worker_pec_rispetta_budget_documentale_scheduler tests/test_pec_auto_acquire.py::test_notifica_scadenze_automatiche_agli_utenti_dello_studio tests/test_react_scadenziario_additions.py::test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_pec_generica -q` -> passato.
+
+Stato verifica:
+
+- test automatici mirati completati;
+- prova reale locale completata dopo rebuild Docker di `app` e `scheduler-worker`: `/api/pronto` locale `ok=true`, container `iusentra-app` e `iusentra-scheduler` healthy;
+- job reale `pec_audit_pipeline_workers` passato automaticamente alle `08:35` con `documenti Lex limit=10`, esito `0 job completati, 0 errori, documenti=39/2, notifiche=0/0`;
+- DB audit locale aggiornato con eventi `pec.document_presidio.checked` e `scan_mode=incremental_new_or_changed_only`;
+- prova visiva autenticata su `http://127.0.0.1:8080/scadenziario?vista=pec`: pagina `Scadenziario Legale` caricata, contatori visibili, nessuna nuova scadenza generata in locale per assenza di candidati operativi futuri nei documenti analizzati;
+- prova reale server ancora da eseguire dopo deploy: non dichiarare chiuso il flusso finche' job vivo, fascicolo, agenda, scadenziario, notifiche e link remoto non sono stati verificati su `https://app.iusentra.it`.

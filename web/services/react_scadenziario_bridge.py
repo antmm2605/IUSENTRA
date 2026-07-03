@@ -83,7 +83,11 @@ def _pec_context(scadenza: Any) -> str:
 
 def _is_document_presidio_lex(scadenza: Any) -> bool:
     context = _normalise_for_matching(_pec_context(scadenza))
-    return "documento_fascicolo_lex" in context or "docpresidio:" in context
+    return (
+        "fascicolo_documenti_audit" in context
+        or "documento_fascicolo_lex" in context
+        or "docpresidio:" in context
+    )
 
 
 def _pec_rg_label(context: str) -> str:

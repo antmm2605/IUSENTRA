@@ -391,7 +391,7 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
             "processed": 2,
             "failed": 0,
             "jobs": [],
-            "document_presidio": {"skipped_service": True, "reason": "budget_scheduler_esaurito", "limit": 0},
+            "document_presidio": {"checked_fascicoli": 1, "scheduled": 0, "limit": document_presidio_limit},
             "auto_deadline_notifications": {"created": 1, "errors": 0},
         }
 
@@ -423,8 +423,8 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
         assert result["totals"]["scanned"] == 1
         assert result["totals"]["processed_jobs"] == 2
         assert result["totals"]["errors"] == 0
-        assert result["document_presidio_limit"] == 0
-        assert worker_calls == [{"limit": 20, "document_presidio_limit": 0}]
+        assert result["document_presidio_limit"] == 10
+        assert worker_calls == [{"limit": 20, "document_presidio_limit": 10}]
         assert result["tenants"][0]["acquired"]["cursor_saved"] is True
     finally:
         if scheduler is not None:

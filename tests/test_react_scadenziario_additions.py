@@ -381,8 +381,8 @@ def test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_
                 "Cliente: Mario Rossi Codex Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale."
             ),
             deadline_profile_code="PEC_AUTO_PRESIDIO",
-            source_event_type="documento_fascicolo_lex",
-            note="PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-07-09\nTipo evento: documento_fascicolo_lex",
+            source_event_type="fascicolo_documenti_audit",
+            note="PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-07-09\nTipo evento: fascicolo_documenti_audit",
         )
 
     response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})

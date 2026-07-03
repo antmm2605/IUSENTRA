@@ -1888,8 +1888,11 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
 
     report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
 
+    assert report["provider"] == "fascicolo_documenti_audit"
     assert report["checked_fascicoli"] == 1
     assert report["new_or_changed_documents"] == 1
+    assert report["processed_new_documents"] == 1
+    assert report["skipped_prefixed_deadline"] == 0
     assert report["already_checked"] == 0
     assert report["indexed_documents"] == 1
     assert report["candidate_dates"] == 2
@@ -1903,6 +1906,7 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     assert {item["retrieval_metadata"]["ufficio"] for item in report["items"]} == {"Tribunale di Palmi"}
     scadenze = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)
     assert len(scadenze) == 2
+    assert {item.source_event_type for item in scadenze} == {"fascicolo_documenti_audit"}
     titles = "\n".join(item.titolo for item in scadenze)
     descriptions = "\n".join(item.descrizione for item in scadenze)
     assert "Deposito note scritte ex art. 127-ter c.p.c." in titles
@@ -1933,10 +1937,115 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     assert second["scheduled"] == 0
     assert second["candidate_dates"] == 0
     assert second["already_presided"] == 0
-    assert second["already_checked"] == 1
+    assert second["already_checked"] == 0
     assert second["new_or_changed_documents"] == 0
+    assert second["skipped_prefixed_deadline"] == 1
     assert len(GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)) == 2
     assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
+
+
+def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successivo(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    prefixed_day = date.today() + timedelta(days=15)
+    hearing_day = date.today() + timedelta(days=32)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    link = "https://meet.google.com/abc-defg-hij"
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    target = fascicoli.nuovo(
+        "Ricorso lavoro da presidiare",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Da Presidiare",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="101",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    target_doc = fascicoli.aggiungi_documento(
+        target.id,
+        "Ordinanza fissazione udienza.txt",
+        TipoDocumento.ORDINANZA,
+        (
+            f"Il giudice fissa udienza da remoto del {hearing_it} ore 11:15 "
+            f"con collegamento audiovisivo al link {link}."
+        ).encode("utf-8"),
+    )
+
+    prefixed = fascicoli.nuovo(
+        "Ricorso lavoro gia presidiato",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Gia Presidiato",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="100",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        prefixed.id,
+        "Verbale gia presidiato.txt",
+        TipoDocumento.VERBALE,
+        f"Si fissa udienza da remoto del {hearing_it} ore 10:00. Collegamento: {link}".encode("utf-8"),
+    )
+    fascicoli.aggiungi_attivita(
+        prefixed.id,
+        TipoAttivita.UDIENZA,
+        prefixed_day.isoformat(),
+        "Udienza gia presente da presidio PEC",
+    )
+    GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).nuova(
+        titolo="Udienza gia presente da presidio PEC",
+        tipo=TipoTermine.UDIENZA,
+        data_scadenza=prefixed_day.isoformat(),
+        id_fascicolo=prefixed.id,
+        source_event_type="pec_audit",
+    )
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["checked_fascicoli"] == 2
+    assert report["skipped_prefixed_deadline"] == 1
+    assert report["new_or_changed_documents"] == 1
+    assert report["processed_new_documents"] == 1
+    assert report["pending_new_or_changed_documents"] == 0
+    assert report["scheduled"] == 1
+    assert any(item["status"] == "skipped_prefixed_deadline" and item["fascicolo_id"] == prefixed.id for item in report["items"])
+
+    scadenze = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)
+    created = [item for item in scadenze if item.id_fascicolo == target.id]
+    assert len(created) == 1
+    scadenza = created[0]
+    assert scadenza.id_fascicolo == target.id
+    assert scadenza.tipo == TipoTermine.UDIENZA
+    assert scadenza.remote_hearing_url == link
+    assert scadenza.source_event_type == "fascicolo_documenti_audit"
+
+    agenda_items = Agenda(str(agenda_db), studio_db=studio_db).tutti()
+    assert len(agenda_items) == 1
+    assert agenda_items[0].id == scadenza.id_appuntamento
+    assert agenda_items[0].cliente == "Cliente Da Presidiare"
+    assert agenda_items[0].procedimento == "RG 101/2026"
+
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(target.id)
+    assert saved is not None
+    assert saved.data_prossima_udienza == hearing_day.isoformat()
+    assert any(att.tipo == TipoAttivita.UDIENZA and att.id_documento == target_doc.id for att in saved.attivita)
 
 
 def test_presidio_documentale_worker_usa_sqlite_documenti_ai_se_studio_db_sola_lettura(tmp_path):

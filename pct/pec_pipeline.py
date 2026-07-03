@@ -4611,6 +4611,9 @@ def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate:
     }
 
 
+DOCUMENT_PRESIDIO_EVENT_TYPE = "fascicolo_documenti_audit"
+
+
 def _document_presidio_deadline_proposal(
     parsed: dict[str, Any],
     candidate: dict[str, Any],
@@ -4656,7 +4659,7 @@ def _document_presidio_deadline_proposal(
         "title": title or activity,
         "due_date": target_date,
         "reason": reason,
-        "source_event_type": "documento_fascicolo_lex",
+        "source_event_type": DOCUMENT_PRESIDIO_EVENT_TYPE,
         "source_event_at": target_date,
         "deadline_kind": kind,
         "event_time": _hearing_time_for_procedural_date(parsed, candidate) if kind == "udienza" else "",
@@ -5871,6 +5874,58 @@ class PecAuditRepository:
             return {}
         return {}
 
+    def _document_presidio_prefixed_deadline(self, fascicolo: Any, *, today: date) -> dict[str, str]:
+        """Rileva una scadenza futura gia' presidiata prima di leggere i documenti."""
+
+        fascicolo_id = clean_text(getattr(fascicolo, "id", "") or "", 80)
+        for field, label in (
+            ("data_prossima_udienza", "fascicolo.data_prossima_udienza"),
+            ("data_prima_udienza", "fascicolo.data_prima_udienza"),
+        ):
+            parsed = _date_from_iso_or_it(str(getattr(fascicolo, field, "") or ""))
+            if parsed and parsed >= today:
+                return {"source": label, "due_date": parsed.isoformat(), "fascicolo_id": fascicolo_id}
+
+        try:
+            prossima = getattr(fascicolo, "prossima_scadenza", None)
+        except Exception:
+            prossima = None
+        if prossima is not None:
+            parsed = _date_from_iso_or_it(str(getattr(prossima, "data", "") or ""))
+            if parsed and parsed >= today:
+                return {
+                    "source": "fascicolo.attivita",
+                    "due_date": parsed.isoformat(),
+                    "fascicolo_id": fascicolo_id,
+                    "activity_id": clean_text(getattr(prossima, "id", "") or "", 80),
+                    "title": clean_text(getattr(prossima, "titolo", "") or "", 160),
+                }
+
+        if not self.scadenziario_db_path or not fascicolo_id:
+            return {}
+        try:
+            manager = self._scadenziario_manager()
+            for item in manager.tutte(solo_aperte=False):
+                if str(getattr(item, "id_fascicolo", "") or "") != fascicolo_id:
+                    continue
+                parsed = _date_from_iso_or_it(str(getattr(item, "data_scadenza", "") or ""))
+                if not parsed or parsed < today:
+                    continue
+                raw_status = getattr(item, "stato", "")
+                status = clean_text(getattr(raw_status, "value", raw_status) or "", 80).upper()
+                if status in {"COMPLETATO", "ANNULLATO"}:
+                    continue
+                return {
+                    "source": "scadenziario",
+                    "due_date": parsed.isoformat(),
+                    "fascicolo_id": fascicolo_id,
+                    "deadline_id": clean_text(getattr(item, "id", "") or "", 80),
+                    "title": clean_text(getattr(item, "titolo", "") or "", 160),
+                }
+        except Exception:
+            return {}
+        return {}
+
     def _upsert_document_presidio_activity(
         self,
         fascicoli_manager: Any,
@@ -5941,8 +5996,12 @@ class PecAuditRepository:
         """Recupera da Lex AI udienze, termini e attività operative presenti nei documenti del fascicolo."""
 
         report: dict[str, Any] = {
+            "provider": DOCUMENT_PRESIDIO_EVENT_TYPE,
             "checked_fascicoli": 0,
             "checked_documents": 0,
+            "document_budget": max(1, int(limit or 50)),
+            "processed_new_documents": 0,
+            "pending_new_or_changed_documents": 0,
             "new_or_changed_documents": 0,
             "already_checked": 0,
             "indexed_documents": 0,
@@ -5950,6 +6009,7 @@ class PecAuditRepository:
             "candidate_dates": 0,
             "scheduled": 0,
             "already_presided": 0,
+            "skipped_prefixed_deadline": 0,
             "skipped": 0,
             "errors": [],
             "items": [],
@@ -5964,19 +6024,36 @@ class PecAuditRepository:
 
             fascicoli_manager = self._fascicoli_manager()
             service = self._document_ai_service_for_fascicoli(fascicoli_manager)
-            fascicoli = fascicoli_manager.tutti(archiviati=False)[: max(1, int(limit or 50))]
+            fascicoli = fascicoli_manager.tutti(archiviati=False)
         except Exception as exc:
             return {**report, "skipped_service": True, "reason": f"runtime_lex_non_disponibile: {exc}"}
 
         user_context = {"user_id": actor, "skip_permission_check": True}
         today = datetime.now(ROME_TZ).date()
         checked_resource_ids = self._document_presidio_checked_resource_ids()
+        document_budget = int(report["document_budget"])
+        processed_new_documents = 0
         for fascicolo in fascicoli:
+            if processed_new_documents >= document_budget:
+                break
             fascicolo_id = str(getattr(fascicolo, "id", "") or "")
             if not fascicolo_id:
                 continue
             report["checked_fascicoli"] += 1
             try:
+                prefixed_deadline = self._document_presidio_prefixed_deadline(fascicolo, today=today)
+                if prefixed_deadline:
+                    report["skipped_prefixed_deadline"] += 1
+                    if len(report["items"]) < 30:
+                        report["items"].append(
+                            {
+                                "status": "skipped_prefixed_deadline",
+                                "fascicolo_id": fascicolo_id,
+                                "reason": "fascicolo_gia_presidiato",
+                                "prefixed_deadline": prefixed_deadline,
+                            }
+                        )
+                    continue
                 sources = collect_fascicolo_document_sources(
                     tenant_id=self.tenant_id,
                     fascicolo_id=fascicolo_id,
@@ -5994,16 +6071,25 @@ class PecAuditRepository:
                     )
                     for source in sources
                 }
-                unchecked_sources = [
+                unchecked_sources_all = [
                     source
                     for source in sources
                     if source_resource_ids.get(id(source)) not in checked_resource_ids
                 ]
-                already_checked = len(sources) - len(unchecked_sources)
+                already_checked = len(sources) - len(unchecked_sources_all)
                 report["already_checked"] += already_checked
-                report["new_or_changed_documents"] += len(unchecked_sources)
-                if not unchecked_sources:
+                if not unchecked_sources_all:
                     continue
+                remaining_budget = document_budget - processed_new_documents
+                if remaining_budget <= 0:
+                    report["pending_new_or_changed_documents"] += len(unchecked_sources_all)
+                    break
+                unchecked_sources = unchecked_sources_all[:remaining_budget]
+                if len(unchecked_sources_all) > remaining_budget:
+                    report["pending_new_or_changed_documents"] += len(unchecked_sources_all) - remaining_budget
+                report["new_or_changed_documents"] += len(unchecked_sources)
+                processed_new_documents += len(unchecked_sources)
+                report["processed_new_documents"] = processed_new_documents
                 indexing = service.process_lex_indexing_sources(
                     self.tenant_id,
                     fascicolo_id,
@@ -6107,7 +6193,7 @@ class PecAuditRepository:
                             document_id=source.source_id or str(getattr(record, "id", "") or ""),
                         )
                         report_payload = {
-                            "event_type": "documento_fascicolo_lex",
+                            "event_type": DOCUMENT_PRESIDIO_EVENT_TYPE,
                             "blocking": False,
                             "issues": [],
                             "procedural_profile": profile,

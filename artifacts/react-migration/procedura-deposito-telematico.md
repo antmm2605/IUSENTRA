@@ -3966,3 +3966,9 @@ Aggiornamento 03/07/2026 11:10 (Europe/Rome):
 - il ciclo automatico delle 11:05 ha dimostrato che, pur non fallendo piu', un fascicolo con molti documenti poteva ancora consumare il lotto e ritardare i fascicoli successivi;
 - il worker ora applica anche `max_documents_per_fascicolo`: con il limite standard lavora solo una quota per fascicolo e poi passa agli altri, mantenendo prestazioni prevedibili senza lasciare indietro RG 1754/2026 e casi analoghi;
 - guardrail aggiunto: `test_presidio_documentale_un_fascicolo_grande_non_monopolizza_il_lotto`.
+
+Aggiornamento 03/07/2026 11:35 (Europe/Rome):
+
+- la priorita' documentale non tratta piu' allo stesso modo un decreto generico e un decreto di fissazione udienza: segnali forti come `fissazione udienza`, link audiovisivi, Teams/Zoom/Meet/Webex, trattazione, 127-ter e note scritte passano prima dei soli `decreto`/`ordinanza`/`verbale`;
+- i fascicoli gia' parzialmente presidiati vengono ruotati dietro ai fascicoli mai letti con segnali operativi, cosi' il worker vivo distribuisce il lotto sui casi analoghi e non resta agganciato sempre agli stessi archivi grandi;
+- guardrail aggiunti: `test_presidio_documentale_fissazione_udienza_precede_decreto_generico` e `test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato`.

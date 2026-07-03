@@ -2174,6 +2174,163 @@ def test_presidio_documentale_un_fascicolo_grande_non_monopolizza_il_lotto(tmp_p
     assert service.calls_by_fascicolo[target.id] == 1
 
 
+def test_presidio_documentale_fissazione_udienza_precede_decreto_generico(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    generic = fascicoli.nuovo(
+        "Fascicolo con decreto generico",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Decreto",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="100",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        generic.id,
+        "Decreto generico.txt",
+        TipoDocumento.DECRETO,
+        b"Provvedimento generico senza fissazione di udienza.",
+    )
+    target = fascicoli.nuovo(
+        "Fascicolo con udienza da leggere",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Udienza",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="101",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        target.id,
+        "Decreto fissazione udienza.txt",
+        TipoDocumento.DECRETO,
+        b"Fissa udienza da remoto del 20/05/2026 ore 10:00.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class CountingDocumentService:
+        def __init__(self):
+            self.calls_order = []
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls_order.append(fascicolo_id)
+            return SimpleNamespace(indexed=len(sources), skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = CountingDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["processed_new_documents"] == 1
+    assert service.calls_order == [target.id]
+
+
+def test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    grande = fascicoli.nuovo(
+        "Fascicolo grande gia toccato",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Grande",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="100",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    first_doc = None
+    for index in range(5):
+        created = fascicoli.aggiungi_documento(
+            grande.id,
+            f"Decreto fissazione udienza storico {index}.txt",
+            TipoDocumento.DECRETO,
+            b"Fissa udienza remota gia presidiata o da verificare.",
+        )
+        first_doc = first_doc or created
+    target = fascicoli.nuovo(
+        "Fascicolo mai toccato",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Nuovo",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="101",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        target.id,
+        "Decreto fissazione udienza nuovo.txt",
+        TipoDocumento.DECRETO,
+        b"Fissa udienza da remoto del 20/05/2026 ore 10:00.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    assert first_doc is not None
+    repo._append_document_presidio_checked(
+        resource_id=_document_presidio_checked_resource_id(
+            fascicolo_id=grande.id,
+            document_id=first_doc.id,
+            sha256=first_doc.hash_sha256,
+        ),
+        fascicolo_id=grande.id,
+        document_id=first_doc.id,
+        document_ai_id="",
+        filename=first_doc.nome,
+        sha256=first_doc.hash_sha256,
+        candidates=0,
+        actor="old-scheduler",
+    )
+
+    class CountingDocumentService:
+        def __init__(self):
+            self.calls_order = []
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls_order.append(fascicolo_id)
+            return SimpleNamespace(indexed=len(sources), skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = CountingDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=2, actor="codex-test")
+
+    assert report["processed_new_documents"] == 2
+    assert service.calls_order[0] == target.id
+    assert grande.id in service.calls_order
+
+
 def test_presidio_documentale_riprende_vecchio_checked_senza_status_su_decreto_udienza(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.155 - 2026-07-03
+
+- Presidio documentale udienze: la coda incrementale distingue ora i documenti realmente operativi (`fissazione udienza`, collegamenti audiovisivi, Teams/Zoom/Meet/Webex, trattazione, 127-ter, note scritte) dai provvedimenti generici (`decreto`, `ordinanza`, `verbale`). I decreti generici non possono piu' passare davanti ai decreti di fissazione udienza e ai link remoti.
+- Il worker ruota i fascicoli gia' toccati dal presidio dietro a fascicoli mai analizzati con documenti operativi, cosi' un archivio grande gia' in lavorazione non ritarda `RG 1754/2026` e gli altri fascicoli analoghi.
+- Aggiunti guardrail mirati su priorita' `fissazione udienza` rispetto a `decreto generico` e su rotazione dopo fascicolo gia' parzialmente presidiato.
+
 ## 2.253.154 - 2026-07-03
 
 - Presidio documentale udienze: il budget incrementale resta piccolo, ma ora viene ripartito tra fascicoli. Con il limite standard il worker processa solo una quota per singolo fascicolo e passa agli altri, evitando che un fascicolo con molti decreti/verbali storici ritardi RG 1754/2026 e gli altri fascicoli analoghi.

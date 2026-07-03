@@ -114,6 +114,8 @@ Regola applicata ora a tutti i fascicoli:
 - i documenti non indicizzabili per limite dimensione o formato non supportato vengono marcati in audit come `skipped_non_blocking`, non fanno fallire il job vivo e non vengono riletti a ogni ciclo;
 - i riferimenti documentali storici che puntano a file fisici non piu' presenti sul tenant vengono marcati in audit come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`: sono inconsistenze da presidiare, ma non devono far fallire il worker ne' impedire la lettura dei fascicoli successivi;
 - il budget incrementale viene ripartito tra fascicoli: un fascicolo con molti documenti nuovi o molti riferimenti storici non deve monopolizzare il lotto e ritardare gli altri fascicoli con decreti/ordinanze/verbali di udienza;
+- la priorita' del lotto distingue ora i segnali forti (`fissazione udienza`, collegamenti audiovisivi, Teams/Zoom/Meet/Webex, trattazione, 127-ter, note scritte) dai provvedimenti generici (`decreto`, `ordinanza`, `verbale`): il worker deve leggere prima i documenti che possono davvero generare udienza/link, senza farsi bloccare da sentenze o provvedimenti strategici non pertinenti;
+- i fascicoli gia' toccati dal presidio documentale vengono ruotati dietro ai fascicoli mai letti con segnali forti, mantenendo il lotto piccolo ma distribuendo il lavoro sui casi analoghi;
 - i lock SQLite restano transitori: non vengono marcati come letti e vengono ripresi al giro successivo.
 
 Nuovi campi report:
@@ -125,5 +127,7 @@ Guardrail aggiunti o rilanciati:
 
 - `test_presidio_documentale_registra_udienza_remota_passata_senza_scadenza_futura`;
 - `test_presidio_documentale_file_non_indicizzabile_non_fallisce_job_e_viene_marcato`;
+- `test_presidio_documentale_fissazione_udienza_precede_decreto_generico`;
+- `test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato`;
 - `test_react_fascicoli_attivita_udienza_remota_preserva_link_cliccabile`;
 - rilancio mirato di `test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag` e `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`.

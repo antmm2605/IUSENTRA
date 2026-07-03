@@ -4645,18 +4645,28 @@ def _document_presidio_warning_source(warning: str, sources_by_name: dict[str, A
     return sources_by_name.get(name)
 
 
-DOCUMENT_PRESIDIO_PRIORITY_MARKERS = (
+DOCUMENT_PRESIDIO_STRONG_PRIORITY_MARKERS = (
     "udienza",
     "fissazione",
-    "decreto",
-    "ordinanza",
-    "verbale",
     "rinvio",
     "collegamento",
     "audiovisiv",
     "trattazione",
     "127-ter",
     "127 ter",
+    "teams.microsoft",
+    "zoom.us",
+    "meet.google",
+    "webex",
+    "stanza virtuale",
+    "note scritte",
+    "sostituzione dell'udienza",
+)
+
+DOCUMENT_PRESIDIO_GENERIC_PRIORITY_MARKERS = (
+    "decreto",
+    "ordinanza",
+    "verbale",
 )
 
 
@@ -4664,9 +4674,23 @@ def _document_presidio_priority_text(*values: Any) -> str:
     return " ".join(clean_text(value, 260) for value in values if value).casefold()
 
 
-def _document_presidio_has_priority_marker(*values: Any) -> bool:
+def _document_presidio_priority_rank(*values: Any) -> int:
+    """0 = udienza/link reale, 1 = provvedimento generico, 2 = resto."""
+
     text = _document_presidio_priority_text(*values)
-    return bool(text and any(marker in text for marker in DOCUMENT_PRESIDIO_PRIORITY_MARKERS))
+    if not text:
+        return 2
+    if any(marker in text for marker in DOCUMENT_PRESIDIO_STRONG_PRIORITY_MARKERS):
+        return 0
+    if "udienza" in text and any(marker in text for marker in DOCUMENT_PRESIDIO_GENERIC_PRIORITY_MARKERS):
+        return 0
+    if any(marker in text for marker in DOCUMENT_PRESIDIO_GENERIC_PRIORITY_MARKERS):
+        return 1
+    return 2
+
+
+def _document_presidio_has_priority_marker(*values: Any) -> bool:
+    return _document_presidio_priority_rank(*values) < 2
 
 
 def _document_presidio_source_priority(source: Any) -> tuple[int, str, str]:
@@ -4680,9 +4704,11 @@ def _document_presidio_source_priority(source: Any) -> tuple[int, str, str]:
         )
         if value
     ).casefold()
-    if _document_presidio_has_priority_marker(text):
-        return (0, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
-    return (1, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
+    return (
+        _document_presidio_priority_rank(text),
+        clean_text(getattr(source, "updated_at", "") or "", 80),
+        clean_text(getattr(source, "filename", "") or "", 260),
+    )
 
 
 def _document_presidio_fascicolo_priority(fascicolo: Any, *, today: date) -> tuple[int, str, str]:
@@ -4717,12 +4743,11 @@ def _document_presidio_fascicolo_priority(fascicolo: Any, *, today: date) -> tup
                 " ".join(str(tag) for tag in (getattr(document, "tags", []) or []) if tag),
             )
         )
+    priority_rank = _document_presidio_priority_rank(*document_values)
     if has_future_direct_deadline:
         bucket = 2
-    elif _document_presidio_has_priority_marker(*document_values):
-        bucket = 0
     else:
-        bucket = 1
+        bucket = priority_rank
     return (
         bucket,
         clean_text(getattr(fascicolo, "numero", "") or "", 80),
@@ -5988,6 +6013,36 @@ class PecAuditRepository:
             checked.add(resource_id)
         return checked
 
+    def _document_presidio_checked_fascicolo_ids(self) -> set[str]:
+        """Fascicoli gia' toccati dal presidio documentale, per rotazione dei lotti."""
+
+        try:
+            with self.connect() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT payload_json
+                    FROM pec_audit_log
+                    WHERE tenant_id=?
+                      AND action='pec.document_presidio.checked'
+                      AND resource_type='fascicolo_documento'
+                    """,
+                    (self.tenant_id,),
+                ).fetchall()
+        except Exception:
+            return set()
+        checked: set[str] = set()
+        for row in rows:
+            try:
+                payload = json.loads(row["payload_json"] or "{}")
+            except Exception:
+                payload = {}
+            if _document_presidio_legacy_checked_needs_retry(payload):
+                continue
+            fascicolo_id = clean_text(payload.get("fascicolo_id") or "", 80)
+            if fascicolo_id:
+                checked.add(fascicolo_id)
+        return checked
+
     def _append_document_presidio_checked(
         self,
         *,
@@ -6234,6 +6289,7 @@ class PecAuditRepository:
         user_context = {"user_id": actor, "skip_permission_check": True}
         today = datetime.now(ROME_TZ).date()
         checked_resource_ids = self._document_presidio_checked_resource_ids()
+        checked_fascicolo_ids = self._document_presidio_checked_fascicolo_ids()
         document_budget = int(report["document_budget"])
         if document_budget <= 3:
             max_documents_per_fascicolo = document_budget
@@ -6241,7 +6297,16 @@ class PecAuditRepository:
             max_documents_per_fascicolo = min(10, max(3, document_budget // 3))
         report["max_documents_per_fascicolo"] = max_documents_per_fascicolo
         processed_new_documents = 0
-        fascicoli = sorted(fascicoli, key=lambda item: _document_presidio_fascicolo_priority(item, today=today))
+
+        def fascicolo_presidio_sort_key(item: Any) -> tuple[int, int, str, str]:
+            priority = _document_presidio_fascicolo_priority(item, today=today)
+            touched = 1 if clean_text(getattr(item, "id", "") or "", 80) in checked_fascicolo_ids else 0
+            return (priority[0], touched, priority[1], priority[2])
+
+        fascicoli = sorted(
+            fascicoli,
+            key=fascicolo_presidio_sort_key,
+        )
         for fascicolo in fascicoli:
             if processed_new_documents >= document_budget:
                 break

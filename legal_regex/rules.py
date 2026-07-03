@@ -8,7 +8,6 @@ from typing import Any
 LEGAL_REGEX_PACK_VERSION = "2026.05.24-legal-ocr-v1"
 
 _CF_RE = re.compile(r"\b([A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z])\b", re.I)
-_RG_NUM_ANNO_RE = re.compile(r"(?<!\d)([0-9]{1,7})[ \t]*/[ \t]*([12][0-9]{3})(?!\d)")
 _PEC_RE = re.compile(r"\b[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.I)
 _DATE_RE = re.compile(r"\b((?:0?[1-9]|[12][0-9]|3[01])[\-/\.](?:0?[1-9]|1[0-2])[\-/\.](?:18|19|20|21|22|23|24|25|26|27|28|29)[0-9]{2}|(?:18|19|20|21|22|23|24|25|26|27|28|29)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))\b")
 _PEC_DOMAINS = ("giustiziacert.it", "giustizia.it", "postacert.it")
@@ -79,15 +78,49 @@ def _field(field_id: str, values: tuple[str, ...], attempts: int, rule_id: str, 
 
 def _extract_rg(source: str) -> list[str]:
     values: list[str] = []
-    for match in _RG_NUM_ANNO_RE.finditer(source):
-        prefix = source[max(0, match.start() - 90) : match.start()]
+    for start, end, n, y in _iter_rg_num_anno(source):
+        prefix = source[max(0, start - 90) : start]
         if not _has_rg_context(prefix):
             continue
-        n = _digits_only(match.group(1) or "")
-        y = _digits_only(match.group(2) or "")
         if n and y:
             values.append(f"{n}/{y}")
     return values
+
+
+def _iter_rg_num_anno(source: str):
+    text = str(source or "")
+    length = len(text)
+    index = 0
+    while index < length:
+        if not text[index].isdigit() or (index > 0 and text[index - 1].isdigit()):
+            index += 1
+            continue
+        num_start = index
+        while index < length and text[index].isdigit() and index - num_start < 7:
+            index += 1
+        numero = text[num_start:index]
+        if index < length and text[index].isdigit():
+            continue
+        cursor = _skip_spaces(text, index)
+        if cursor >= length or text[cursor] != "/":
+            continue
+        cursor = _skip_spaces(text, cursor + 1)
+        year_start = cursor
+        while cursor < length and text[cursor].isdigit() and cursor - year_start < 4:
+            cursor += 1
+        anno = text[year_start:cursor]
+        if len(anno) != 4 or anno[0] not in {"1", "2"}:
+            continue
+        if cursor < length and text[cursor].isdigit():
+            continue
+        yield num_start, cursor, numero, anno
+
+
+def _skip_spaces(text: str, index: int) -> int:
+    length = len(text)
+    while index < length and text[index] in {" ", "\t"}:
+        index += 1
+    return index
 
 
 def _has_rg_context(prefix: str) -> bool:

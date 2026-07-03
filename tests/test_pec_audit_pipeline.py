@@ -34,6 +34,7 @@ from pct.pec_pipeline import (
     build_validation_report,
     detect_pec_legal_context,
     detect_pct_deposit_stage,
+    extract_procedural_dates,
     extract_text_with_coverage,
     ingest_synthetic_dataset,
     parse_pec_message,
@@ -678,6 +679,35 @@ def test_remote_hearing_extracts_full_teams_launcher_url_without_truncation():
 
     assert [item["url"] for item in links] == [launcher_link]
     assert links[0]["integrity"] == "exact"
+
+
+def test_remote_hearing_rebuilds_teams_meet_parameter_split_by_pdf_line_break():
+    expected_link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19oPeQ"
+    text = (
+        "Collegamento alla stanza virtuale cliccando sul seguente collegamento ipertestuale\n"
+        "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19o\n"
+        "PeQ [...];\n"
+        "la parte convenuta ha l'onere di costituirsi."
+    )
+
+    links = _extract_remote_hearing_links(text)
+
+    assert [item["url"] for item in links] == [expected_link]
+    assert links[0]["integrity"] == "ricostruito_da_controllare"
+
+
+def test_extract_procedural_dates_reads_fissa_udienza_in_data_formula():
+    text = (
+        "DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO\n"
+        "N. R.G. 1754/2026\n"
+        "FISSA\n"
+        "l'udienza in data 20/05/2026, alle ore 10:00,\n"
+        "Collegamento ipertestuale: https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19oPeQ"
+    )
+
+    candidates = extract_procedural_dates({"Decreto fissazione udienza.pdf": text})
+
+    assert [(item["label"].lower(), item["date"]) for item in candidates] == [("udienza", "2026-05-20")]
 
 
 def test_remote_hearing_rebuilds_teams_url_split_by_pdf_ocr_spaces():
@@ -2027,6 +2057,108 @@ def test_presidio_documentale_registra_udienza_remota_passata_senza_scadenza_fut
 
     third = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
     assert third["new_or_changed_documents"] == 0
+
+
+def test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    hearing_day = date.today() - timedelta(days=44)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19oPeQ"
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.PDF",
+        TipoDocumento.DECRETO,
+        (
+            "Tribunale di Milano\n"
+            "DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO\n"
+            "N. R.G. 1754/2026\n"
+            "FISSA\n"
+            f"l'udienza in data {hearing_it}, alle ore 10:00,\n"
+            "seguente collegamento ipertestuale\n"
+            "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19o\n"
+            "PeQ [...];\n"
+        ).encode("utf-8"),
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    resource_id = _document_presidio_checked_resource_id(
+        fascicolo_id=fascicolo.id,
+        document_id=doc.id,
+        sha256=doc.hash_sha256,
+    )
+    with repo.connect() as conn:
+        repo.append_audit(
+            conn,
+            action="pec.document_presidio.checked",
+            resource_type="fascicolo_documento",
+            resource_id=resource_id,
+            payload={
+                "fascicolo_id": fascicolo.id,
+                "document_id": doc.id,
+                "document_ai_id": "docai-old",
+                "filename": doc.nome,
+                "sha256": doc.hash_sha256,
+                "candidates": 0,
+                "status": "checked",
+                "scan_mode": "incremental_new_or_changed_only",
+            },
+            actor="old-worker",
+        )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["new_or_changed_documents"] == 1
+    assert report["past_remote_hearings_recorded"] == 1
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(fascicolo.id)
+    assert saved is not None
+    activities = [att for att in saved.attivita if att.tipo == TipoAttivita.UDIENZA]
+    assert len(activities) == 1
+    assert f"Link udienza audiovisiva: {link}" in activities[0].descrizione
+
+    with repo.connect() as conn:
+        payloads = [
+            row["payload_json"]
+            for row in conn.execute(
+                """
+                SELECT payload_json
+                FROM pec_audit_log
+                WHERE action='pec.document_presidio.checked'
+                  AND resource_id=?
+                ORDER BY occurred_at, id
+                """,
+                (resource_id,),
+            ).fetchall()
+        ]
+    assert len(payloads) == 2
+    assert any(
+        '"candidates":1' in payload and '"parser_version":"2026-07-03-udienza-in-data-teams-wrap"' in payload
+        for payload in payloads
+    )
+    assert repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")["new_or_changed_documents"] == 0
 
 
 def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_con_lotto_piccolo(tmp_path):

@@ -3978,3 +3978,10 @@ Aggiornamento 03/07/2026 11:55 (Europe/Rome):
 - il worker non ordina piu' solo per nome documento: quando `studio.db` contiene testo Lex gia' estratto, legge in sola lettura `fascicolo_documenti_ai` e `fascicolo_documenti_ai_testi` per promuovere i fascicoli con udienza da remoto e link reale Teams/Zoom/Meet/Webex;
 - controllo server in sola lettura: `EFBE9117` (`RG 1754/2026`) ha testo AI con `DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO`, `N. R.G. 1754/2026`, data `20/05/2026 alle ore 10:00` e link `https://teams.microsoft.com/meet/38858779158973...`; la nuova priorita' lo classifica tra i fascicoli a priorita' massima non ancora letti;
 - guardrail aggiunto: `test_presidio_documentale_testo_ai_con_link_remoto_precede_decreti_generici`.
+
+Aggiornamento 03/07/2026 12:18 (Europe/Rome):
+
+- prova server dopo deploy `2.253.156`: il worker vivo ha avviato automaticamente il run `12:05`, ha chiuso `ok=true`, `processed_jobs=6`, `ai_priority_fascicoli=84` per il tenant Montagnese e zero errori, ma `EFBE9117` risultava ancora marcato `checked` con `candidates=0`;
+- causa corretta: il parser non riconosceva la formula reale `FISSA l'udienza in data 20/05/2026, alle ore 10:00` e il link Teams `meet?p=` spezzato a capo veniva troncato;
+- hotfix `2.253.157`: aggiunti pattern `udienza in data`, ricomposizione link Teams `meet?p=` su riga successiva e `parser_version` nel ledger audit per rivalutare una volta i checked senza candidati creati prima del fix;
+- guardrail aggiunti: `test_extract_procedural_dates_reads_fissa_udienza_in_data_formula`, `test_remote_hearing_rebuilds_teams_meet_parameter_split_by_pdf_line_break`, `test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio`.

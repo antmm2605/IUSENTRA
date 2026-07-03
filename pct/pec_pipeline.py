@@ -938,7 +938,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
                 add_candidate(source=source, label=label, raw_date=value, context=f"{tag}: {value}", confidence=0.94)
         searchable = clean_text(re.sub(r"<[^>]+>", " ", text), 20000)
         for pattern in (
-            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|comparizione|rinvio|discussione)\b[^.\n]{0,80}?\b(?:del|per il|per|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|comparizione|rinvio|discussione)\b[^.\n]{0,120}?\b(?:del|per il|per|al|il|in data)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
             r"\b(?P<label>termine|scadenza|deposito|costituzione)\b[^.\n]{0,80}?\b(?:del|entro il|entro|al|il)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
         ):
             for match in re.finditer(pattern, searchable, flags=re.I):
@@ -965,7 +965,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
     if plain_text:
         searchable = clean_text(plain_text, 20000)
         for match in re.finditer(
-            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|termine|scadenza)\b[^.\n]{0,80}?\b(?:del|per il|per|al|il|entro il|entro)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+            r"\b(?P<label>udienza|pubblica udienza|camera di consiglio|termine|scadenza)\b[^.\n]{0,120}?\b(?:del|per il|per|al|il|in data|entro il|entro)\s+(?P<date>\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
             searchable,
             flags=re.I,
         ):
@@ -1637,6 +1637,15 @@ def _should_join_ocr_url_chunk(current_url: str, next_chunk: str) -> bool:
         return False
     lower_chunk = chunk.lower()
     if current.endswith(("-", "/", "=", "%", "?", "&", "_", ":", ".")):
+        return True
+    lower_current = current.lower()
+    if (
+        "teams.microsoft.com/meet/" in lower_current
+        and re.search(r"[?&]p=[A-Za-z0-9_-]{6,}$", current)
+        and re.fullmatch(r"[A-Za-z0-9_-]{3,32}", chunk)
+        and any(char.islower() for char in chunk)
+        and any(char.isupper() for char in chunk)
+    ):
         return True
     if lower_chunk.startswith(
         (
@@ -4867,7 +4876,10 @@ def _document_presidio_legacy_checked_needs_retry(payload: Any) -> bool:
 
     if not isinstance(payload, dict):
         return False
-    if clean_text(payload.get("status") or "", 80):
+    status = clean_text(payload.get("status") or "", 80)
+    if status and status != "checked":
+        return False
+    if clean_text(payload.get("parser_version") or "", 120) == DOCUMENT_PRESIDIO_PARSER_VERSION:
         return False
     try:
         candidates = int(payload.get("candidates") or 0)
@@ -4906,6 +4918,7 @@ def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate:
 
 
 DOCUMENT_PRESIDIO_EVENT_TYPE = "fascicolo_documenti_audit"
+DOCUMENT_PRESIDIO_PARSER_VERSION = "2026-07-03-udienza-in-data-teams-wrap"
 
 
 def _document_presidio_deadline_proposal(
@@ -6203,6 +6216,7 @@ class PecAuditRepository:
                         "candidates": int(candidates or 0),
                         "status": clean_text(status or "checked", 80),
                         "reason": clean_text(reason or "", 220),
+                        "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
                         "scan_mode": "incremental_new_or_changed_only",
                     },
                     actor=actor,

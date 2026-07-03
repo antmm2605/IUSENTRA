@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.157 - 2026-07-03
+
+- Presidio documentale udienze: il parser riconosce ora la formula reale dei decreti `FISSA l'udienza in data ... alle ore ...`, usata nei provvedimenti di fissazione da remoto.
+- Il link Teams `teams.microsoft.com/meet/... ?p=...` spezzato a capo dal PDF/OCR viene ricomposto quando il parametro di accesso continua nella riga successiva, evitando link tronchi.
+- I documenti gia' marcati `checked` con `candidates=0` prima del fix vengono rivalutati una volta tramite versione parser, cosi' `RG 1754/2026` e casi analoghi non restano bloccati dal run precedente.
+
 ## 2.253.156 - 2026-07-03
 
 - Presidio documentale udienze: il worker usa ora anche i testi Lex gia' estratti in `studio.db` per ordinare prima i fascicoli che contengono udienza da remoto e link reale Teams/Zoom/Meet/Webex, senza aumentare il lotto e senza hardcoding su un singolo RG.

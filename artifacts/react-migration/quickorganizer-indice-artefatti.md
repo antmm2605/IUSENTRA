@@ -41,6 +41,7 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 - `artifacts/react-migration/quickorganizer-portale-lettura-download-fascicolo.md`
 - `artifacts/react-migration/quickorganizer-portali-polisweb-download.md`
 - `artifacts/react-migration/polisweb-studio-telematico-end-to-end.md`
+- `artifacts/react-migration/polisweb-controllo-fonti-iusentra-2026-07-03.md`
 - `artifacts/react-migration/quickorganizer-registri-consultazione-fascicoli.json`
 - `artifacts/react-migration/quickorganizer-registri-consultazione-fascicoli.md`
 - `artifacts/react-migration/quickorganizer-risorse-dll-sottocartelle.json`

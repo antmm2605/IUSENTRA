@@ -18,11 +18,12 @@ Regola UI: in IUSENTRA non devono comparire riferimenti visibili a Studio Telema
 - `pct/polisWeb.py`
 - `web/services/telematico_runtime.py`
 - `frontend/src/components/TelematicoSurfacePage.tsx`
-- Fonte ufficiale PST: `https://pst.giustizia.it/PST/resources/cms/documents/Documentazione_servizi_web_v1.67.pdf`
-- Pagina ufficiale PST documentazione: `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3883`
+- Fonte ufficiale PST corrente controllata il 03/07/2026: `https://pst.giustizia.it/PST/resources/cms/documents/Documentazione_servizi_web_v1.69.pdf`
+- Pagina ufficiale PST documentazione corrente: `https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571`
 - Pagina ufficiale PST servizi: `https://pst.giustizia.it/PST/it/services.page`
+- Controllo triangolato fonte/Studio Telematico/IUSENTRA: `artifacts/react-migration/polisweb-controllo-fonti-iusentra-2026-07-03.md`
 
-Fonte ministeriale verificata: il dettaglio PST indica `Documentazione servizi web esposti (versione 1.67)` con ultimo aggiornamento `13/01/2025`. La documentazione conferma che i servizi si invocano via SOAP/QBuilder con `InvocationDomain name="JPW"`, `group` come codice ufficio e `role` come ruolo applicativo; per Cassazione il `group` non va specificato nell'InvocationDomain.
+Fonte ministeriale verificata: il dettaglio PST indica `Documentazione servizi web esposti (versione 1.69)` con ultimo aggiornamento `12/02/2026`. La documentazione conferma che i servizi si invocano via SOAP/QBuilder con `InvocationDomain name="JPW"`, `group` come codice ufficio e `role` come ruolo applicativo; per Cassazione il `group` non va specificato nell'InvocationDomain. La v1.69 aggiunge namespace per consultazioni anonime Minorenni e Giudice di Pace: sono da conservare come catalogo/futuro canale anonimo, ma non sostituiscono il flusso autenticato di import fascicolo reale.
 
 ## Obiettivo operativo
 
@@ -90,7 +91,7 @@ Ruoli esposti dal wizard:
 | `NOT` | Notaio | SICID/Lavoro/Minorenni nel codice Studio |
 | `TUT` | Tutore | SICID/Lavoro/Minorenni |
 
-Fonte PST v1.67: i ruoli ufficiali cambiano per sistema (`SICID`, `SIECIC`, `SIGP`, `CASSAZIONE`). IUSENTRA non deve inventare ruoli, ma deve salvare ruolo richiesto, ruolo effettivamente inviato e risposta ministeriale. Se il ruolo non è abilitato per quel certificato, la UI deve mostrare un blocco puntuale, non una ricerca vuota generica.
+Fonte PST v1.69: i ruoli ufficiali cambiano per sistema (`SICID`, `SIECIC`, `SIGP`, `CASSAZIONE`). IUSENTRA non deve inventare ruoli, ma deve salvare ruolo richiesto, ruolo effettivamente inviato e risposta ministeriale. Se il ruolo non è abilitato per quel certificato, la UI deve mostrare un blocco puntuale, non una ricerca vuota generica.
 
 ### PIN e sessione PST
 
@@ -462,7 +463,7 @@ Payload SIECIC:
 | `idCat` | id catalogo file |
 | `original` | `true` per duplicato, `false` per copia |
 
-Fonte PST v1.67: `original=true` restituisce il documento originale/firmato nel repository; `original=false` restituisce copia con rimozione/annotazione informazioni di firma secondo il tipo di firma. IUSENTRA deve quindi mostrare due opzioni distinte: `Duplicato informatico` e `Copia informatica`, salvando il valore richiesto.
+Fonte PST v1.69: `original=true` restituisce il documento originale/firmato nel repository; `original=false` restituisce copia con rimozione/annotazione informazioni di firma secondo il tipo di firma. IUSENTRA deve quindi mostrare due opzioni distinte: `Duplicato informatico` e `Copia informatica`, salvando il valore richiesto.
 
 Campi da salvare sul documento importato:
 
@@ -537,7 +538,7 @@ Questi punti vanno chiusi prima di dichiarare la ricerca/import PolisWeb complet
 
 ## Stato implementazione 02/07/2026
 
-Confronto eseguito su tre fonti: sorgenti decompilati Studio Telematico (`PCT.cs`, `Common.cs`, `WizardImportaPraticheDaPolisWeb.cs`), cataloghi locali `ListaUfficiGiudiziari.xml`/`QC_Uffici.xml` e fonte ufficiale PST `Documentazione servizi web esposti v1.67`, pubblicata nella pagina PST con ultimo aggiornamento `13/01/2025`.
+Confronto eseguito su tre fonti: sorgenti decompilati Studio Telematico (`PCT.cs`, `Common.cs`, `WizardImportaPraticheDaPolisWeb.cs`), cataloghi locali `ListaUfficiGiudiziari.xml`/`QC_Uffici.xml` e fonte ufficiale PST `Documentazione servizi web esposti v1.69`, pubblicata nella pagina PST con ultimo aggiornamento `12/02/2026`.
 
 Aggiornamenti applicati in IUSENTRA:
 

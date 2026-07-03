@@ -17,6 +17,37 @@ def _load_local_signer():
     return module
 
 
+def test_polisweb_memoria_operativa_usa_fonte_pst_corrente():
+    root = Path(__file__).resolve().parents[1]
+    end_to_end = (root / "artifacts" / "react-migration" / "polisweb-studio-telematico-end-to-end.md").read_text(
+        encoding="utf-8"
+    )
+    controllo = (
+        root
+        / "artifacts"
+        / "react-migration"
+        / "polisweb-controllo-fonti-iusentra-2026-07-03.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Documentazione_servizi_web_v1.69.pdf" in end_to_end
+    assert "contentId=ACC4571" in end_to_end
+    assert "Documentazione servizi web esposti (versione 1.69)" in end_to_end
+    assert "Documentazione_servizi_web_v1.67" not in end_to_end
+    assert "contentId=ACC3883" not in end_to_end
+
+    for token in (
+        "RicercaInformazioniFascicoloPerTipo",
+        "RicercaInformazioniFascicoloPerNumero",
+        "RicercaInformazioniFascicoloPerRMO",
+        "QC_Ricorsi",
+        "QP_Ricorsi",
+        "idDfa",
+        "idCat",
+        "Local Signer",
+    ):
+        assert token in controllo
+
+
 @pytest.mark.parametrize(
     ("servizio", "distretto", "namespace"),
     [

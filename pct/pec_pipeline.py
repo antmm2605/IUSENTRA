@@ -38,6 +38,7 @@ SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
 DEADLINE_POLICY_VERSION = "2026-06-03.procedural-dates-v1"
 DEFAULT_TENANT_ID = "default"
 ROME_TZ = ZoneInfo("Europe/Rome")
+_JSON_DIGEST_ITERATIONS = 20_000
 ATTACHMENT_CLASSES = {
     "atto",
     "procura",
@@ -395,7 +396,7 @@ def sha256_bytes(data: bytes) -> str:
 
 def sha256_json(value: Any) -> str:
     data = canonical_json(redact_sensitive_digest_value(value)).encode("utf-8")
-    return hashlib.blake2b(data, digest_size=32, key=b"iusentra-pec-json-digest-v1").hexdigest()
+    return hashlib.pbkdf2_hmac("sha256", data, b"iusentra-pec-json-digest-v1", _JSON_DIGEST_ITERATIONS).hex()
 
 
 def decode_header_value(value: Any) -> str:

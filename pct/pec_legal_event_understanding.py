@@ -22,6 +22,7 @@ from pct.pec_legal_workflow import classifica_pec_legale, estrai_registri
 SCHEMA = "iusentra.pec.legal_event_understanding.v2"
 RULEPACK_VERSION = "legal_pec_rules_v2026_07"
 DEFAULT_RULEPACK_PATH = Path(__file__).with_name("data") / f"{RULEPACK_VERSION}.json"
+_EVENT_DIGEST_ITERATIONS = 20_000
 
 _RULEPACK_CACHE: dict[str, dict[str, Any]] = {}
 _URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
@@ -73,7 +74,7 @@ def _list(value: Any) -> list[Any]:
 
 def _sha256_json(value: Any) -> str:
     data = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.blake2b(data, digest_size=32, key=b"iusentra-pec-legal-event-v2").hexdigest()
+    return hashlib.pbkdf2_hmac("sha256", data, b"iusentra-pec-legal-event-v2", _EVENT_DIGEST_ITERATIONS).hex()
 
 
 def _redact_for_event_digest(value: Any) -> Any:

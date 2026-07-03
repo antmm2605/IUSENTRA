@@ -169,7 +169,23 @@ def _is_amount_token(token: str) -> bool:
 
 def _valid_pec(value: str) -> bool:
     domain = str(value or "").lower().strip(".").rsplit("@", 1)[-1]
-    return ".." not in value and re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", domain) is not None and (domain.endswith(".pec.it") or "pec" in domain or any(domain == d or domain.endswith("." + d) for d in _PEC_DOMAINS))
+    return (
+        ".." not in value
+        and _valid_domain_name(domain)
+        and (domain.endswith(".pec.it") or "pec" in domain or any(domain == d or domain.endswith("." + d) for d in _PEC_DOMAINS))
+    )
+
+
+def _valid_domain_name(domain: str) -> bool:
+    labels = domain.split(".")
+    if len(labels) < 2 or len(labels[-1]) < 2 or not labels[-1].isalpha():
+        return False
+    for label in labels:
+        if not label or label.startswith("-") or label.endswith("-"):
+            return False
+        if not all(ch.isalnum() or ch == "-" for ch in label):
+            return False
+    return True
 
 
 def _dates(source: str, today: date) -> tuple[tuple[str, ...], tuple[str, ...]]:

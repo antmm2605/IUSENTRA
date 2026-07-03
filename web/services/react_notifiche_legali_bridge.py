@@ -33,10 +33,38 @@ from pct.notifiche_legali import (
 
 
 _LEGACY_IMPORT_CONTENT_LABEL_CACHE: dict[str, str] = {}
+_UI_TECHNICAL_LABEL_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", re.IGNORECASE), "gestionale precedente"),
+    (re.compile(r"\bDatiAtto(?:\.xml)?\b", re.IGNORECASE), "riepilogo del deposito"),
+    (re.compile(r"\bTAVOLA\b", re.IGNORECASE), "prospetto dati"),
+)
 
 
 def _text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _sanitize_ui_string(value: str) -> str:
+    cleaned = value
+    for pattern, replacement in _UI_TECHNICAL_LABEL_REPLACEMENTS:
+        cleaned = pattern.sub(replacement, cleaned)
+    return cleaned
+
+
+def _sanitize_ui_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _sanitize_ui_payload(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_ui_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_sanitize_ui_payload(item) for item in value)
+    if isinstance(value, str):
+        return _sanitize_ui_string(value)
+    return value
+
+
+def sanitize_react_notifiche_legali_payload(value: Any) -> Any:
+    return _sanitize_ui_payload(value)
 
 
 def _display_text(value: Any) -> str:
@@ -44,7 +72,7 @@ def _display_text(value: Any) -> str:
     if not raw:
         return ""
     cleaned = re.sub(r"\b(demo|sample|repository)\b", "", raw, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", "gestionale precedente", cleaned, flags=re.IGNORECASE)
+    cleaned = _sanitize_ui_string(cleaned)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([,.;:])", r"\1", cleaned)
     cleaned = re.sub(r"[-–—]\s*$", "", cleaned).strip()
@@ -826,16 +854,16 @@ def build_react_notifiche_legali_practice_documents_payload(
     repo = _repo_from_getter(get_fascicoli)
     fascicolo = _safe_call("fascicolo", lambda: repo.get(_text(id_fascicolo)), None) if repo is not None else None
     if fascicolo is None:
-        return {"ok": False, "message": "Pratica non trovata.", "documenti": []}
+        return _sanitize_ui_payload({"ok": False, "message": "Pratica non trovata.", "documenti": []})
     documents = [
         _document_from_fascicolo(documento, resolve_content_label=True)
         for documento in (getattr(fascicolo, "documenti", []) or [])[:40]
     ]
-    return {
+    return _sanitize_ui_payload({
         "ok": True,
         "practiceId": _text(getattr(fascicolo, "id", "")) or _text(id_fascicolo),
         "documenti": documents,
-    }
+    })
 
 
 def build_react_notifiche_legali_payload(
@@ -854,7 +882,7 @@ def build_react_notifiche_legali_payload(
     studio_nome = _text(getattr(studio, "nome", "")) or "IUSENTRA"
     city = _text(getattr(studio, "city", ""))
     province = _text(getattr(studio, "province", ""))
-    return {
+    return _sanitize_ui_payload({
         "source": "configurazione_studio",
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "contracts": {
@@ -952,7 +980,7 @@ def build_react_notifiche_legali_payload(
             "Art. 16-ter D.L. 179/2012: pubblici elenchi rilevanti per notificazioni e comunicazioni.",
             "Controllo ricevute e documenti collegati al fascicolo prima dell'invio.",
         ],
-    }
+    })
 
 
 def _recipient_role_label(value: str) -> str:

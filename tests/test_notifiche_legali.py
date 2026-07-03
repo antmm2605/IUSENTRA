@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1542,6 +1543,14 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
 def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_import_pratiche():
     assert "QuickOrganizer" not in react_notifiche_legali_bridge._display_text("QuickOrganizer")
     assert "Studio Telematico" not in react_notifiche_legali_bridge._display_text("Studio Telematico")
+    sanitized_result = react_notifiche_legali_bridge.sanitize_react_notifiche_legali_payload(
+        {"blockers": ["QuickOrganizer DatiAtto.xml TAVOLA Studio Telematico"]}
+    )
+    serialized_result = json.dumps(sanitized_result, ensure_ascii=False)
+    assert "QuickOrganizer" not in serialized_result
+    assert "DatiAtto.xml" not in serialized_result
+    assert "TAVOLA" not in serialized_result
+    assert "Studio Telematico" not in serialized_result
 
     documento = SimpleNamespace(
         id="doc-quick-1",
@@ -1556,7 +1565,7 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_impor
             "PEC: ads.rc@mailcert.avvocaturastato.it; dgosv@postcert.istruzione.it"
         ),
         fonte_documento="PORTALE_TELEMATICO",
-        servizio_portale="PST",
+        servizio_portale="PST QuickOrganizer DatiAtto.xml TAVOLA Studio Telematico",
         hash_sha256="f" * 64,
         data_documento="2026-05-10",
         data_deposito_portale="",
@@ -1604,6 +1613,11 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_impor
     assert documento_payload["nomeFile"] == "Ricorso Lisciotto.pdf"
     assert documento_payload["label"] == "Ricorso Lisciotto.pdf"
     assert "QuickOrganizer" not in documento_payload["label"]
+    serialized_payload = json.dumps(payload, ensure_ascii=False)
+    assert "QuickOrganizer" not in serialized_payload
+    assert "DatiAtto.xml" not in serialized_payload
+    assert "TAVOLA" not in serialized_payload
+    assert "Studio Telematico" not in serialized_payload
 
 
 def test_payload_react_notifiche_legali_deriva_rg_da_numero_fascicolo():

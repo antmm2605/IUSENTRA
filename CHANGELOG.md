@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.163 - 2026-07-03
+
+- Notifiche legali React: il payload API e le risposte dei controlli operativi filtrano in modo ricorsivo riferimenti tecnici non destinati alla UI.
+- UI: i messaggi di blocker/warning del pannello notifiche sostituiscono le diciture tecniche con testi operativi comprensibili per l'avvocato.
+- Test: aggiunto guardrail sul JSON completo del pannello notifiche e rilanciati test mirati backend/frontend.
+
 ## 2.253.162 - 2026-07-03
 
 - Notifiche legali React: aggiunti flussi dedicati `UNEP` e `Non PEC` nello stesso pannello operativo, con controlli reali, API JSON e azioni non simulate.

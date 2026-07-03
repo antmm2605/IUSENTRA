@@ -121,6 +121,7 @@ from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payloa
 from web.services.react_notifiche_legali_bridge import (
     build_react_notifiche_legali_payload,
     build_react_notifiche_legali_practice_documents_payload,
+    sanitize_react_notifiche_legali_payload,
 )
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.react_privacy_bridge import build_react_privacy_registro_payload
@@ -2930,7 +2931,7 @@ def email_ordinaria_react_bulk_action():
 
 
 def _notifiche_legali_result_response(result: Any, *, success_message: str):
-    payload = result.to_dict()
+    payload = sanitize_react_notifiche_legali_payload(result.to_dict())
     payload["message"] = success_message if result.ok else "Controlla i punti bloccanti prima di proseguire."
     if result.ok:
         _audit_event("notifiche_legali.preview", "notifica_legale", "", success_message)

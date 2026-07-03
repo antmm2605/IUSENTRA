@@ -113,3 +113,21 @@ Queste aree non devono essere confuse con la prova PEC L. 53. Dopo la tranche ag
 ## Stato verifica reale
 
 Non verificato su macchina reale autenticata. La copia Docker reale è stata ricostruita senza cache con `docker compose build --no-cache app` e riavviata con `docker compose up -d app`; `http://127.0.0.1:8080/api/pronto` ha risposto `ok=true`, versione `2.253.162`, fuso `Europe/Rome`, container `iusentra-app` healthy. Il browser integrato Codex ha esposto il backend `Codex In-app Browser`, ma la nuova scheda su `/notifiche-legali` non si è agganciata alla webview (`Timed out waiting for the Browser webview to attach`); l'accesso HTTP diretto senza sessione ha restituito redirect a login. Prima di dichiarare chiuso il lavoro serve prova visiva/materiale autenticata su `http://127.0.0.1:8080/notifiche-legali`, con controllo dei tab `Notifica PEC`, `Deposito prova`, `UNEP`, `Non PEC` e `Cliente`, testi visibili, hover/focus, responsive e assenza di riferimenti a Studio Telematico.
+
+## Correzione payload UI - 2026-07-03, versione 2.253.163
+
+Durante la prova autenticata su `https://app.iusentra.it/notifiche-legali` il pannello visibile non mostrava riferimenti tecnici, ma il payload JSON dell'API conteneva ancora diciture storiche non destinate alla UI. La correzione applicata in `web/services/react_notifiche_legali_bridge.py`, `web/blueprints/api_v1_react.py` e `frontend/src/components/NotificheLegaliPage.tsx` filtra ricorsivamente il payload del pannello, il payload documenti pratica e le risposte dei controlli operativi.
+
+Guardrail eseguiti prima del deploy:
+
+- `python -m pytest tests\test_notifiche_legali.py -q` -> passato;
+- `npm --prefix frontend run typecheck` -> passato;
+- `python -m pytest tests\test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q` -> passato;
+- `python -m pytest tests\test_react_shell.py::test_react_comunicazioni_email_messaggi_collegate_nav_e_shell -q` -> passato;
+- `python -m pytest tests\test_react_shell.py::test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento -q` -> passato;
+- `python -m pytest tests\test_react_shell.py::test_react_telematico_bridge_payload_minimo -q` -> passato;
+- `python -m pytest tests\test_utf8_integrity.py -q` -> passato;
+- `npm --prefix frontend run build` -> passato;
+- `git diff --check` -> passato.
+
+Stato da completare: deploy Hetzner della versione `2.253.163` e nuova verifica produzione su `https://app.iusentra.it/notifiche-legali`.

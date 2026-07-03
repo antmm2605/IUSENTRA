@@ -4091,3 +4091,21 @@ Stato verifica:
 - copia Docker reale ricostruita senza cache e avviata su `127.0.0.1:8080`, container `iusentra-app` healthy, `/api/pronto` `ok=true`, versione `2.253.162`, fuso `Europe/Rome`;
 - il browser integrato Codex ha esposto il backend `Codex In-app Browser`, ma non si è agganciato alla webview durante l'apertura di `/notifiche-legali`; l'accesso diretto senza sessione ha restituito redirect a login, quindi non è stata eseguita la prova materiale dei pulsanti;
 - prima di dichiarare concluso il lavoro va provato materialmente `/notifiche-legali` in sessione autenticata, in particolare i tab `Notifica PEC`, `Deposito prova`, `UNEP`, `Non PEC`, `Cliente`, tutti i pulsanti di controllo, i testi visibili, hover/focus e responsive desktop/tablet/mobile.
+
+## Notifiche legali React - correzione payload UI 2026-07-03
+
+Durante la prova su produzione autenticata è stato trovato un problema non visibile nella schermata ma presente nel JSON dell'API: alcune diciture tecniche storiche potevano arrivare al frontend. La versione `2.253.163` aggiunge una sanitizzazione ricorsiva lato backend per il payload del pannello notifiche, il payload documenti pratica e le risposte dei controlli operativi; il formatter React dei blocker/warning applica la stessa sostituzione prima di mostrare il testo all'avvocato.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests\test_notifiche_legali.py -q`;
+- `npm --prefix frontend run typecheck`;
+- `python -m pytest tests\test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica -q`;
+- `python -m pytest tests\test_react_shell.py::test_react_comunicazioni_email_messaggi_collegate_nav_e_shell -q`;
+- `python -m pytest tests\test_react_shell.py::test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento -q`;
+- `python -m pytest tests\test_react_shell.py::test_react_telematico_bridge_payload_minimo -q`;
+- `python -m pytest tests\test_utf8_integrity.py -q`;
+- `npm --prefix frontend run build`;
+- `git diff --check`.
+
+Stato: da ridistribuire su Hetzner e da riverificare in produzione con browser reale autenticato su `https://app.iusentra.it/notifiche-legali`.

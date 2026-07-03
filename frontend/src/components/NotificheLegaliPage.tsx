@@ -141,9 +141,11 @@ function localClockLabel(value: string) {
 function userFacingNotice(value: string) {
   return String(value || '')
     .replace(/^[A-Z0-9_]+:\s*/, '')
+    .replace(/\b(?:QuickOrganizer|Studio\s+Telematico)\b/gi, 'gestionale precedente')
     .replace(/\bhash SHA-256\b/gi, 'impronta del file')
     .replace(/\bSHA-256\b/g, 'impronta del file')
     .replace(/\bDatiAtto\.xml\b/g, 'riepilogo del deposito')
+    .replace(/\bTAVOLA\b/g, 'prospetto dati')
     .replace(/\bRAC\b/g, 'ricevuta di accettazione')
     .replace(/\bRdAC\b/g, 'ricevuta di consegna')
     .trim()

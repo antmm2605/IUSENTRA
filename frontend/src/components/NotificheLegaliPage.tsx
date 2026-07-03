@@ -1784,6 +1784,10 @@ export function NotificheLegaliPage() {
   })
 
   const run = async (key: TabKey) => {
+    const scrollResultIntoView = () => window.setTimeout(
+      () => resultPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      0,
+    )
     setWorking(true)
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
     const endpoint = key === 'notifica'
@@ -1843,9 +1847,9 @@ export function NotificheLegaliPage() {
         setRelataDraftText(response.relataText)
         setRelataDraftDirty(false)
       }
-      window.setTimeout(() => resultPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 0)
     }
     setResult(response)
+    scrollResultIntoView()
     setWorking(false)
   }
 

@@ -4108,4 +4108,41 @@ Guardrail eseguiti:
 - `npm --prefix frontend run build`;
 - `git diff --check`.
 
-Stato: da ridistribuire su Hetzner e da riverificare in produzione con browser reale autenticato su `https://app.iusentra.it/notifiche-legali`.
+Stato: ridistribuito su Hetzner e verificato in produzione con browser reale autenticato su `https://app.iusentra.it/notifiche-legali` prima della correzione UX `2.253.164`.
+
+## Notifiche legali React - verifica produzione e feedback controlli 2026-07-03
+
+Prova produzione autenticata eseguita su `https://app.iusentra.it/notifiche-legali`, utente amministratore, senza riportare credenziali nei log o nella documentazione.
+
+Verifica server:
+
+- commit produzione verificato su Hetzner prima della correzione UX: `d5a71e8e395a2f1c04cea949a5fd007ea5a7169d`;
+- `/api/pronto` produzione: `ok=true`, versione `2.253.163`, fuso `Europe/Rome`;
+- container applicativo unico: `iusentra-app`, stato `healthy`;
+- API pannello e validazioni controllate senza stringhe tecniche vietate nel payload utente.
+
+Verifica browser reale eseguita:
+
+- `Notifica ex L. 53/1994`: campi pratica, destinatari, documenti, modello relata, bozza relata, firma relata, approvazione finale; `Controlla relata` produce esito e blocchi specifici; `Invia PEC` resta bloccato con motivi puntuali finché mancano requisiti obbligatori;
+- `Deposito prova notifica`: atto notificato, relata firmata, messaggio PEC, ricevute, destinatario, pubblico elenco e ricevuta completa; `Controlla prova deposito` produce elenco bloccante dei documenti/ricevute mancanti;
+- `UNEP`: tipo notifica, ufficio NEP, destinatario, recapito, precetto, spese, atto, richiesta/relata e ricevuta pagamento; `Controlla richiesta UNEP` produce verifiche normative con stati bloccanti/superati;
+- `Non PEC`: data, identificativo, raccomandata, spedizione, ricezione/giacenza, prova documentale e note; `Controlla notifica non PEC` conserva il canale separato da PEC L. 53;
+- `Comunica al cliente`: modelli, oggetto e corpo ordinari separati dalla relata; il controllo ha evidenziato un difetto UX perché l'esito non veniva portato automaticamente in vista dopo il click.
+
+Correzione applicata dopo la prova:
+
+- versione `2.253.164`;
+- `frontend/src/components/NotificheLegaliPage.tsx` ora porta sempre in vista il pannello esito dopo ogni controllo, compreso `Prepara comunicazione`;
+- `tests/test_notifiche_legali.py` contiene il guardrail `test_ui_notifiche_legali_ogni_controllo_porta_esito_in_vista`;
+- bundle React rigenerato con asset `NotificheLegaliPage-bdr8lesz.js`.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests\test_notifiche_legali.py -q` -> passato;
+- `npm --prefix frontend run typecheck` -> passato;
+- `npm --prefix frontend run build` -> passato;
+- `python scripts\react-migration\generate_api_contracts.py --check` -> passato;
+- `python scripts\validate_openapi.py docs\openapi.yaml` -> passato;
+- `python -m pytest tests\test_utf8_integrity.py -q` -> passato.
+
+Stato operativo: prima di confermare la chiusura della versione `2.253.164` resta obbligatorio commit/push branch gemelli, deploy Hetzner, verifica `/api/pronto`, container unico healthy e nuova prova produzione del pulsante `Prepara comunicazione` con esito portato in vista.

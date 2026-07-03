@@ -1751,6 +1751,17 @@ def test_ui_notifiche_legali_carica_relata_firmata_nel_flusso_operativo():
     assert "setNotifica((current) => ({ ...current, relata_firmata: true }))" in page
 
 
+def test_ui_notifiche_legali_ogni_controllo_porta_esito_in_vista():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "const scrollResultIntoView" in page
+    assert "scrollIntoView({ behavior: 'smooth', block: 'start' })" in page
+    result_index = page.index("setResult(response)")
+    scroll_index = page.index("scrollResultIntoView()", result_index)
+    working_index = page.index("setWorking(false)", result_index)
+    assert result_index < scroll_index < working_index
+
+
 def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeypatch):
     fascicolo = SimpleNamespace(
         id="fascicolo-portale",

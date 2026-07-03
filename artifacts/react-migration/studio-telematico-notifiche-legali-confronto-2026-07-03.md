@@ -112,7 +112,18 @@ Queste aree non devono essere confuse con la prova PEC L. 53. Dopo la tranche ag
 
 ## Stato verifica reale
 
-Non verificato su macchina reale autenticata. La copia Docker reale è stata ricostruita senza cache con `docker compose build --no-cache app` e riavviata con `docker compose up -d app`; `http://127.0.0.1:8080/api/pronto` ha risposto `ok=true`, versione `2.253.162`, fuso `Europe/Rome`, container `iusentra-app` healthy. Il browser integrato Codex ha esposto il backend `Codex In-app Browser`, ma la nuova scheda su `/notifiche-legali` non si è agganciata alla webview (`Timed out waiting for the Browser webview to attach`); l'accesso HTTP diretto senza sessione ha restituito redirect a login. Prima di dichiarare chiuso il lavoro serve prova visiva/materiale autenticata su `http://127.0.0.1:8080/notifiche-legali`, con controllo dei tab `Notifica PEC`, `Deposito prova`, `UNEP`, `Non PEC` e `Cliente`, testi visibili, hover/focus, responsive e assenza di riferimenti a Studio Telematico.
+Verifica produzione autenticata eseguita su `https://app.iusentra.it/notifiche-legali` con browser reale visibile e utente amministratore. Il server Hetzner è stato verificato sul commit distribuito, container applicativo unico `iusentra-app` healthy, `/api/pronto` `ok=true`, versione `2.253.163`, fuso `Europe/Rome`.
+
+Controllo visivo e funzionale eseguito:
+
+- tab `Notifica ex L. 53/1994`: campi pratica, destinatari, documenti, modello relata, dati avvocato/destinatario, verifica PEC con data/ora italiana, bozza relata, firma relata, approvazione finale, `Controlla relata` e `Invia PEC` con blocchi espliciti;
+- tab `Deposito prova notifica`: campi atto notificato, relata firmata, PEC inviata, ricevute, destinatario e ricevuta completa; `Controlla prova deposito` produce blocchi documentali e ricevute mancanti;
+- tab `UNEP`: tipo notifica, ufficio NEP, destinatario, indirizzo/comune, precetto, spese, atto, richiesta/relata, ricevuta pagamento; `Controlla richiesta UNEP` produce verifiche normative con stati `bloccante` e `superato`;
+- tab `Non PEC`: data notifica, identificativo, destinatario, atto, raccomandata, spedizione, ricezione/giacenza, prova documentale; `Controlla notifica non PEC` produce blocchi specifici senza trattare il canale come PEC L. 53;
+- tab `Comunica al cliente`: modelli cliente separati, oggetto e corpo ordinari, nessuna relata generata; il primo controllo visuale ha mostrato che il risultato non veniva portato in vista come negli altri tab, quindi la versione `2.253.164` aggiunge lo scroll automatico al pannello esito per tutti i controlli;
+- pulsanti superiori reali verificati: `PEC studio` apre `Componi PEC`, `Comunica al cliente` apre `Componi email ordinaria`, `Controlli deposito` apre `Controlli Atti`.
+
+Controllo payload produzione eseguito dopo deploy: `/api/v1/ui/notifiche-legali` non contiene `QuickOrganizer`, `Studio Telematico`, `DatiAtto.xml` o `TAVOLA`; anche le risposte di validazione per `notifica`, `comunicazione-cliente`, `prova-deposito`, `unep`, `non-pec` e `area-web-pst` restituiscono blocchi controllati senza diciture tecniche vietate.
 
 ## Correzione payload UI - 2026-07-03, versione 2.253.163
 
@@ -130,4 +141,16 @@ Guardrail eseguiti prima del deploy:
 - `npm --prefix frontend run build` -> passato;
 - `git diff --check` -> passato.
 
-Stato da completare: deploy Hetzner della versione `2.253.163` e nuova verifica produzione su `https://app.iusentra.it/notifiche-legali`.
+## Correzione feedback esito - 2026-07-03, versione 2.253.164
+
+Durante la prova produzione il pulsante `Prepara comunicazione` del percorso cliente inviava la richiesta ma non portava automaticamente in vista il pannello di esito. La correzione applicata in `frontend/src/components/NotificheLegaliPage.tsx` usa ora un helper unico `scrollResultIntoView()` richiamato dopo ogni `setResult(response)`, così tutti i pulsanti di controllo mostrano feedback immediato nello stesso pannello laterale.
+
+Guardrail aggiunti/eseguiti:
+
+- `python -m pytest tests\test_notifiche_legali.py -q` -> passato;
+- `npm --prefix frontend run typecheck` -> passato;
+- `npm --prefix frontend run build` -> passato;
+- `python scripts\react-migration\generate_api_contracts.py --check` -> passato;
+- `python scripts\validate_openapi.py docs\openapi.yaml` -> passato.
+
+Stato da completare: commit, push dei branch gemelli, deploy Hetzner della versione `2.253.164` e nuova prova produzione del tab cliente dopo deploy.

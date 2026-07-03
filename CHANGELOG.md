@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.164 - 2026-07-03
+
+- Notifiche legali React: ogni controllo operativo porta ora il pannello di esito in vista, inclusa la comunicazione cliente, così i pulsanti mostrano sempre feedback immediato e motivi di blocco.
+- Test: aggiunto guardrail UI per impedire regressioni sul feedback visibile dei controlli del pannello notifiche.
+
 ## 2.253.163 - 2026-07-03
 
 - Notifiche legali React: il payload API e le risposte dei controlli operativi filtrano in modo ricorsivo riferimenti tecnici non destinati alla UI.

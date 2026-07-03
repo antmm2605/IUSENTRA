@@ -109,6 +109,8 @@ Regola applicata ora a tutti i fascicoli:
 - se il documento contiene una udienza da remoto gia' passata, il flusso non crea scadenza futura e non alimenta agenda/scadenziario, ma registra comunque una attivita' `UDIENZA` nel fascicolo con documento sorgente, data, ora, contesto e `Link udienza audiovisiva`;
 - il bridge React del fascicolo non tronca piu' la descrizione prima del link e la UI rende gli URL cliccabili con hover/focus visibili;
 - il lotto incrementale privilegia i documenti che nel nome o nei metadati contengono termini come `udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `rinvio`, `collegamento`, `audiovisivo`, cosi' i fascicoli analoghi vengono presidiati prima senza aumentare il carico del job;
+- il lotto incrementale privilegia ora anche i fascicoli che non hanno una scadenza futura visibile e contengono documenti con termini come `udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `rinvio`, `collegamento`, `audiovisivo`; il budget resta piccolo, ma non viene consumato prima da allegati generici di fascicoli meno urgenti;
+- gli audit `pec.document_presidio.checked` creati prima di questa correzione, privi di campo `status`, con `candidates=0` e nome documento riconducibile a udienza/decreto, non sono piu' considerati lettura definitiva: vengono ripresi una volta, rivalutati con la nuova regola e poi marcati con `status=checked`;
 - i documenti non indicizzabili per limite dimensione o formato non supportato vengono marcati in audit come `skipped_non_blocking`, non fanno fallire il job vivo e non vengono riletti a ogni ciclo;
 - i lock SQLite restano transitori: non vengono marcati come letti e vengono ripresi al giro successivo.
 

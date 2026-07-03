@@ -4634,6 +4634,30 @@ def _document_presidio_warning_source(warning: str, sources_by_name: dict[str, A
     return sources_by_name.get(name)
 
 
+DOCUMENT_PRESIDIO_PRIORITY_MARKERS = (
+    "udienza",
+    "fissazione",
+    "decreto",
+    "ordinanza",
+    "verbale",
+    "rinvio",
+    "collegamento",
+    "audiovisiv",
+    "trattazione",
+    "127-ter",
+    "127 ter",
+)
+
+
+def _document_presidio_priority_text(*values: Any) -> str:
+    return " ".join(clean_text(value, 260) for value in values if value).casefold()
+
+
+def _document_presidio_has_priority_marker(*values: Any) -> bool:
+    text = _document_presidio_priority_text(*values)
+    return bool(text and any(marker in text for marker in DOCUMENT_PRESIDIO_PRIORITY_MARKERS))
+
+
 def _document_presidio_source_priority(source: Any) -> tuple[int, str, str]:
     text = " ".join(
         clean_text(value, 260)
@@ -4645,24 +4669,75 @@ def _document_presidio_source_priority(source: Any) -> tuple[int, str, str]:
         )
         if value
     ).casefold()
-    if any(
-        marker in text
-        for marker in (
-            "udienza",
-            "fissazione",
-            "decreto",
-            "ordinanza",
-            "verbale",
-            "rinvio",
-            "collegamento",
-            "audiovisiv",
-            "trattazione",
-            "127-ter",
-            "127 ter",
-        )
-    ):
+    if _document_presidio_has_priority_marker(text):
         return (0, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
     return (1, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
+
+
+def _document_presidio_fascicolo_priority(fascicolo: Any, *, today: date) -> tuple[int, str, str]:
+    """Mette prima i fascicoli senza scadenza visibile e con documenti udienza/decreto."""
+
+    direct_dates = [
+        getattr(fascicolo, "data_prossima_udienza", "") or "",
+        getattr(fascicolo, "data_prima_udienza", "") or "",
+    ]
+    try:
+        prossima = getattr(fascicolo, "prossima_scadenza", None)
+    except Exception:
+        prossima = None
+    if prossima is not None:
+        direct_dates.append(getattr(prossima, "data", "") or "")
+    has_future_direct_deadline = any(
+        parsed and parsed >= today
+        for parsed in (_date_from_iso_or_it(str(value or "")) for value in direct_dates)
+    )
+    document_values: list[Any] = [
+        getattr(fascicolo, "titolo", "") or "",
+        getattr(fascicolo, "oggetto", "") or "",
+    ]
+    for document in getattr(fascicolo, "documenti", []) or []:
+        document_values.extend(
+            (
+                getattr(document, "nome", "") or "",
+                getattr(document, "nome_originale", "") or "",
+                getattr(document, "nome_portale", "") or "",
+                getattr(document, "tipo", "") or "",
+                getattr(document, "note", "") or "",
+                " ".join(str(tag) for tag in (getattr(document, "tags", []) or []) if tag),
+            )
+        )
+    if has_future_direct_deadline:
+        bucket = 2
+    elif _document_presidio_has_priority_marker(*document_values):
+        bucket = 0
+    else:
+        bucket = 1
+    return (
+        bucket,
+        clean_text(getattr(fascicolo, "numero", "") or "", 80),
+        clean_text(getattr(fascicolo, "id", "") or "", 80),
+    )
+
+
+def _document_presidio_legacy_checked_needs_retry(payload: Any) -> bool:
+    """Vecchi checked senza status possono aver saltato udienze remote passate."""
+
+    if not isinstance(payload, dict):
+        return False
+    if clean_text(payload.get("status") or "", 80):
+        return False
+    try:
+        candidates = int(payload.get("candidates") or 0)
+    except Exception:
+        candidates = 0
+    if candidates > 0:
+        return False
+    return _document_presidio_has_priority_marker(
+        payload.get("filename") or "",
+        payload.get("document_id") or "",
+        payload.get("document_ai_id") or "",
+        payload.get("reason") or "",
+    )
 
 
 def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate: dict[str, Any]) -> dict[str, Any]:
@@ -5877,7 +5952,7 @@ class PecAuditRepository:
             with self.connect() as conn:
                 rows = conn.execute(
                     """
-                    SELECT resource_id
+                    SELECT resource_id, payload_json
                     FROM pec_audit_log
                     WHERE tenant_id=?
                       AND action='pec.document_presidio.checked'
@@ -5887,7 +5962,20 @@ class PecAuditRepository:
                 ).fetchall()
         except Exception:
             return set()
-        return {clean_text(row["resource_id"], 180) for row in rows if clean_text(row["resource_id"], 180)}
+        checked: set[str] = set()
+        for row in rows:
+            resource_id = clean_text(row["resource_id"], 180)
+            if not resource_id:
+                continue
+            payload: Any = {}
+            try:
+                payload = json.loads(row["payload_json"] or "{}")
+            except Exception:
+                payload = {}
+            if _document_presidio_legacy_checked_needs_retry(payload):
+                continue
+            checked.add(resource_id)
+        return checked
 
     def _append_document_presidio_checked(
         self,
@@ -5910,18 +5998,24 @@ class PecAuditRepository:
             with self.connect() as conn:
                 existing = conn.execute(
                     """
-                    SELECT 1
+                    SELECT payload_json
                     FROM pec_audit_log
                     WHERE tenant_id=?
                       AND action='pec.document_presidio.checked'
                       AND resource_type='fascicolo_documento'
                       AND resource_id=?
+                    ORDER BY occurred_at DESC, id DESC
                     LIMIT 1
                     """,
                     (self.tenant_id, clean_resource),
                 ).fetchone()
                 if existing:
-                    return
+                    try:
+                        existing_payload = json.loads(existing["payload_json"] or "{}")
+                    except Exception:
+                        existing_payload = {}
+                    if not _document_presidio_legacy_checked_needs_retry(existing_payload):
+                        return
                 self.append_audit(
                     conn,
                     action="pec.document_presidio.checked",
@@ -6131,6 +6225,7 @@ class PecAuditRepository:
         checked_resource_ids = self._document_presidio_checked_resource_ids()
         document_budget = int(report["document_budget"])
         processed_new_documents = 0
+        fascicoli = sorted(fascicoli, key=lambda item: _document_presidio_fascicolo_priority(item, today=today))
         for fascicolo in fascicoli:
             if processed_new_documents >= document_budget:
                 break

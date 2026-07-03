@@ -3948,3 +3948,9 @@ Aggiornamento 03/07/2026 10:04 (Europe/Rome):
 - il job incrementale ordina prima i documenti probabilmente rilevanti (`udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `collegamento`, `audiovisivo`) per raggiungere rapidamente i casi operativi anche con lotto piccolo;
 - gli errori non bloccanti di indicizzazione documentale, come file sopra limite Documenti AI o formato non supportato, vengono marcati in audit e non fanno fallire il worker PEC/documenti; i lock SQLite continuano invece a essere ritentati;
 - la UI React del fascicolo conserva descrizioni attivita' piu' lunghe e rende cliccabili gli URL, con stile hover/focus, cosi' il link remoto resta leggibile nel dettaglio fascicolo.
+
+Aggiornamento 03/07/2026 10:35 (Europe/Rome):
+
+- il worker PEC/documenti mantiene il lotto piccolo per non appesantire il server, ma ordina prima i fascicoli senza scadenza futura visibile che contengono documenti con segnali `udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `rinvio`, `collegamento`, `audiovisivo`;
+- i vecchi audit `pec.document_presidio.checked` senza campo `status`, con `candidates=0` e documento riconducibile a decreto/udienza, non bloccano piu' la nuova lettura: vengono rivalutati una volta e poi marcati con `status=checked`;
+- guardrail aggiunti: priorita' tra fascicoli anche con lotto `limit=1` e ripresa di vecchio checked senza `status` sui decreti udienza.

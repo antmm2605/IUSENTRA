@@ -23,6 +23,7 @@ from pct.pec_pipeline import (
     AttachmentPayload,
     PecAuditRepository,
     _extract_remote_hearing_links,
+    _document_presidio_checked_resource_id,
     _remote_hearing_deadline_extra,
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
@@ -2028,6 +2029,170 @@ def test_presidio_documentale_registra_udienza_remota_passata_senza_scadenza_fut
     assert third["new_or_changed_documents"] == 0
 
 
+def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_con_lotto_piccolo(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    hearing_day = date.today() - timedelta(days=44)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19o"
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    target = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    doc = fascicoli.aggiungi_documento(
+        target.id,
+        "Decreto fissazione udienza (originale notificato).txt",
+        TipoDocumento.DECRETO,
+        (
+            "TRIBUNALE DI MILANO\n"
+            "N. R.G. 1754/2026\n"
+            f"Fissa udienza da remoto del {hearing_it} ore 10:00 con collegamento audiovisivo.\n"
+            f"Link stanza virtuale: {link}\n"
+        ).encode("utf-8"),
+    )
+    generic = fascicoli.nuovo(
+        "Fascicolo deposito generico",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Generico",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="999",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        generic.id,
+        "Deposito telematico generico.txt",
+        TipoDocumento.ALTRO,
+        b"Documento senza udienza o collegamento.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["new_or_changed_documents"] == 1
+    assert report["past_remote_hearings_recorded"] == 1
+    assert report["items"][0]["fascicolo_id"] == target.id
+    assert report["items"][0]["document"] == "Decreto fissazione udienza (originale notificato).txt"
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(target.id)
+    assert saved is not None
+    activities = [att for att in saved.attivita if att.tipo == TipoAttivita.UDIENZA]
+    assert len(activities) == 1
+    assert activities[0].id_documento == doc.id
+    assert f"Link udienza audiovisiva: {link}" in activities[0].descrizione
+
+
+def test_presidio_documentale_riprende_vecchio_checked_senza_status_su_decreto_udienza(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    hearing_day = date.today() - timedelta(days=44)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19o"
+
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza (originale notificato).txt",
+        TipoDocumento.DECRETO,
+        (
+            "TRIBUNALE DI MILANO\n"
+            "N. R.G. 1754/2026\n"
+            f"Fissa udienza da remoto del {hearing_it} ore 10:00 con collegamento audiovisivo.\n"
+            f"Link stanza virtuale: {link}\n"
+        ).encode("utf-8"),
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    resource_id = _document_presidio_checked_resource_id(
+        fascicolo_id=fascicolo.id,
+        document_id=doc.id,
+        sha256=doc.hash_sha256,
+    )
+    with repo.connect() as conn:
+        repo.append_audit(
+            conn,
+            action="pec.document_presidio.checked",
+            resource_type="fascicolo_documento",
+            resource_id=resource_id,
+            payload={
+                "fascicolo_id": fascicolo.id,
+                "document_id": doc.id,
+                "filename": doc.nome,
+                "sha256": doc.hash_sha256,
+                "candidates": 0,
+                "scan_mode": "incremental_new_or_changed_only",
+            },
+            actor="old-scheduler",
+        )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=2, actor="codex-test")
+
+    assert report["already_checked"] == 0
+    assert report["new_or_changed_documents"] == 1
+    assert report["past_remote_hearings_recorded"] == 1
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(fascicolo.id)
+    assert saved is not None
+    activities = [att for att in saved.attivita if att.tipo == TipoAttivita.UDIENZA]
+    assert len(activities) == 1
+    assert f"Link udienza audiovisiva: {link}" in activities[0].descrizione
+    with repo.connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_id=?
+            ORDER BY occurred_at DESC
+            """,
+            (resource_id,),
+        ).fetchall()
+    assert len(rows) == 2
+    assert any('"status":"checked"' in row[0] for row in rows)
+
+    second = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+    assert second["new_or_changed_documents"] == 0
+
+
 def test_presidio_documentale_file_non_indicizzabile_non_fallisce_job_e_viene_marcato(tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB
@@ -2241,7 +2406,7 @@ def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successi
         agenda_db_path=agenda_db,
     )
 
-    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=2, actor="codex-test")
 
     assert report["checked_fascicoli"] == 2
     assert report["skipped_prefixed_deadline"] == 1

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.156 - 2026-07-03
+
+- Presidio documentale udienze: il worker usa ora anche i testi Lex gia' estratti in `studio.db` per ordinare prima i fascicoli che contengono udienza da remoto e link reale Teams/Zoom/Meet/Webex, senza aumentare il lotto e senza hardcoding su un singolo RG.
+- Il caso `RG 1754/2026` rientra nel gruppo a priorita' massima perche' il decreto contiene `N. R.G. 1754/2026`, udienza del `20/05/2026 alle ore 10:00` e link Teams gia' presente nel testo AI.
+- Aggiunto guardrail che dimostra che un fascicolo con testo AI e link remoto passa davanti ai decreti generici, anche se il suo numero progressivo lo avrebbe spostato piu' in basso.
+
 ## 2.253.155 - 2026-07-03
 
 - Presidio documentale udienze: la coda incrementale distingue ora i documenti realmente operativi (`fissazione udienza`, collegamenti audiovisivi, Teams/Zoom/Meet/Webex, trattazione, 127-ter, note scritte) dai provvedimenti generici (`decreto`, `ordinanza`, `verbale`). I decreti generici non possono piu' passare davanti ai decreti di fissazione udienza e ai link remoti.

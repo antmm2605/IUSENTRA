@@ -2243,6 +2243,126 @@ def test_presidio_documentale_fissazione_udienza_precede_decreto_generico(tmp_pa
     assert service.calls_order == [target.id]
 
 
+def test_presidio_documentale_testo_ai_con_link_remoto_precede_decreti_generici(tmp_path, monkeypatch):
+    from pct.document_intelligence.repository import DocumentAIRepository
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db_path = tmp_path / "studio.db"
+    studio_db = StudioDB.get(str(studio_db_path))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    generic = fascicoli.nuovo(
+        "Fascicolo con decreto generico",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Decreto",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="001",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        generic.id,
+        "Decreto fissazione udienza generico.txt",
+        TipoDocumento.DECRETO,
+        b"Fissa udienza senza collegamento da remoto.",
+    )
+    target = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Milano",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    target_doc = fascicoli.aggiungi_documento(
+        target.id,
+        "Decreto fissazione udienza (originale notificato).txt",
+        TipoDocumento.DECRETO,
+        b"Documento gia indicizzato da Lex.",
+    )
+    DocumentAIRepository.from_sqlite_db(studio_db_path, storage_root=tmp_path / "documenti_ai")
+    with sqlite3.connect(studio_db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO fascicolo_documenti_ai
+            (id, tenant_id, fascicolo_id, original_filename, safe_filename, file_type, mime_type,
+             size_bytes, sha256, status, current_version_id, page_count, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "docai-target-remoto",
+                "default",
+                target.id,
+                target_doc.nome,
+                "Decreto-fissazione-udienza-originale-notificato.txt",
+                "txt",
+                "text/plain",
+                target_doc.dimensione_bytes,
+                target_doc.hash_sha256,
+                "ready",
+                "docaiver-target-remoto",
+                1,
+                "scheduler",
+                "2026-07-03T09:00:00+00:00",
+                "2026-07-03T09:00:00+00:00",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO fascicolo_documenti_ai_testi
+            (tenant_id, fascicolo_id, document_id, version_id, extraction_engine, text, pages_json, warnings_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "default",
+                target.id,
+                "docai-target-remoto",
+                "docaiver-target-remoto",
+                "test",
+                "DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO. "
+                "N. R.G. 1754/2026. FISSA l'udienza in data 20/05/2026, alle ore 10:00. "
+                "Collegamento ipertestuale: https://teams.microsoft.com/meet/38858779158973",
+                "[]",
+                "[]",
+                "2026-07-03T09:00:00+00:00",
+            ),
+        )
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class CountingDocumentService:
+        def __init__(self):
+            self.calls_order = []
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls_order.append(fascicolo_id)
+            return SimpleNamespace(indexed=len(sources), skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = CountingDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["ai_priority_fascicoli"] == 1
+    assert report["processed_new_documents"] == 1
+    assert service.calls_order == [target.id]
+
+
 def test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato(tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

@@ -4674,10 +4674,10 @@ def _document_presidio_priority_text(*values: Any) -> str:
     return " ".join(clean_text(value, 260) for value in values if value).casefold()
 
 
-def _document_presidio_priority_rank(*values: Any) -> int:
+def _document_presidio_priority_rank_for_text(text: str) -> int:
     """0 = udienza/link reale, 1 = provvedimento generico, 2 = resto."""
 
-    text = _document_presidio_priority_text(*values)
+    text = str(text or "").casefold()
     if not text:
         return 2
     if any(marker in text for marker in DOCUMENT_PRESIDIO_STRONG_PRIORITY_MARKERS):
@@ -4687,6 +4687,10 @@ def _document_presidio_priority_rank(*values: Any) -> int:
     if any(marker in text for marker in DOCUMENT_PRESIDIO_GENERIC_PRIORITY_MARKERS):
         return 1
     return 2
+
+
+def _document_presidio_priority_rank(*values: Any) -> int:
+    return _document_presidio_priority_rank_for_text(_document_presidio_priority_text(*values))
 
 
 def _document_presidio_has_priority_marker(*values: Any) -> bool:
@@ -4753,6 +4757,109 @@ def _document_presidio_fascicolo_priority(fascicolo: Any, *, today: date) -> tup
         clean_text(getattr(fascicolo, "numero", "") or "", 80),
         clean_text(getattr(fascicolo, "id", "") or "", 80),
     )
+
+
+def _document_presidio_studio_db_path(fascicoli_db_path: Path | None) -> Path | None:
+    if not fascicoli_db_path:
+        return None
+    path = Path(fascicoli_db_path)
+    candidates = [
+        path.parent.parent / "studio.db",
+        path.parent / "studio.db",
+        path.with_name("studio.db"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _document_presidio_ai_signal_rank(filename: str, text: str) -> int:
+    combined = f"{clean_text(filename, 260)} {clean_text(text, 5000)}".casefold()
+    if not combined.strip():
+        return 9
+    remote_markers = (
+        "teams.microsoft",
+        "zoom.us",
+        "meet.google",
+        "webex",
+        "collegamento da remoto",
+        "collegamento alla stanza virtuale",
+        "collegamento ipertestuale",
+        "stanza virtuale",
+        "audiovisiv",
+    )
+    if "udienza" in combined and any(marker in combined for marker in remote_markers):
+        return 0
+    priority = _document_presidio_priority_rank_for_text(combined)
+    if priority == 0:
+        return 1
+    if priority == 1:
+        return 2
+    return 9
+
+
+def _document_presidio_ai_priority_by_fascicolo(
+    *,
+    fascicoli_db_path: Path | None,
+    tenant_id: str,
+    limit: int = 1500,
+) -> dict[str, int]:
+    """Usa il testo Lex gia' estratto per ordinare prima udienze remote reali."""
+
+    db_path = _document_presidio_studio_db_path(fascicoli_db_path)
+    if db_path is None:
+        return {}
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        try:
+            tables = {
+                str(row["name"])
+                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+            if not {"fascicolo_documenti_ai", "fascicolo_documenti_ai_testi"}.issubset(tables):
+                return {}
+            rows = conn.execute(
+                """
+                SELECT d.fascicolo_id, d.original_filename, COALESCE(t.text, '') AS text
+                FROM fascicolo_documenti_ai d
+                LEFT JOIN fascicolo_documenti_ai_testi t
+                  ON t.document_id = d.id
+                  OR t.version_id = d.current_version_id
+                WHERE d.status = 'ready'
+                  AND d.tenant_id IN (?, 'default', '')
+                  AND (
+                    lower(COALESCE(d.original_filename, '')) LIKE '%fissazione%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%udienza%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%collegamento%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%audiovisiv%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%decreto%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%ordinanza%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%verbale%'
+                    OR lower(COALESCE(d.original_filename, '')) LIKE '%note scritte%'
+                  )
+                ORDER BY COALESCE(d.updated_at, d.created_at, '') DESC
+                LIMIT ?
+                """,
+                (clean_text(tenant_id, 120), int(limit or 1500)),
+            ).fetchall()
+        finally:
+            conn.close()
+    except Exception:
+        return {}
+    priorities: dict[str, int] = {}
+    for row in rows:
+        fascicolo_id = clean_text(row["fascicolo_id"] or "", 80)
+        if not fascicolo_id:
+            continue
+        rank = _document_presidio_ai_signal_rank(row["original_filename"] or "", row["text"] or "")
+        if rank >= 9:
+            continue
+        current = priorities.get(fascicolo_id)
+        if current is None or rank < current:
+            priorities[fascicolo_id] = rank
+    return priorities
 
 
 def _document_presidio_legacy_checked_needs_retry(payload: Any) -> bool:
@@ -6290,6 +6397,11 @@ class PecAuditRepository:
         today = datetime.now(ROME_TZ).date()
         checked_resource_ids = self._document_presidio_checked_resource_ids()
         checked_fascicolo_ids = self._document_presidio_checked_fascicolo_ids()
+        ai_priority_by_fascicolo = _document_presidio_ai_priority_by_fascicolo(
+            fascicoli_db_path=self.fascicoli_db_path,
+            tenant_id=self.tenant_id,
+        )
+        report["ai_priority_fascicoli"] = len(ai_priority_by_fascicolo)
         document_budget = int(report["document_budget"])
         if document_budget <= 3:
             max_documents_per_fascicolo = document_budget
@@ -6298,10 +6410,12 @@ class PecAuditRepository:
         report["max_documents_per_fascicolo"] = max_documents_per_fascicolo
         processed_new_documents = 0
 
-        def fascicolo_presidio_sort_key(item: Any) -> tuple[int, int, str, str]:
+        def fascicolo_presidio_sort_key(item: Any) -> tuple[int, int, int, str, str]:
             priority = _document_presidio_fascicolo_priority(item, today=today)
-            touched = 1 if clean_text(getattr(item, "id", "") or "", 80) in checked_fascicolo_ids else 0
-            return (priority[0], touched, priority[1], priority[2])
+            fascicolo_id = clean_text(getattr(item, "id", "") or "", 80)
+            ai_priority = ai_priority_by_fascicolo.get(fascicolo_id, 9)
+            touched = 1 if fascicolo_id in checked_fascicolo_ids else 0
+            return (priority[0], ai_priority, touched, priority[1], priority[2])
 
         fascicoli = sorted(
             fascicoli,

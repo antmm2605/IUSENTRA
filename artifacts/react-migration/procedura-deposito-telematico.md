@@ -3972,3 +3972,9 @@ Aggiornamento 03/07/2026 11:35 (Europe/Rome):
 - la priorita' documentale non tratta piu' allo stesso modo un decreto generico e un decreto di fissazione udienza: segnali forti come `fissazione udienza`, link audiovisivi, Teams/Zoom/Meet/Webex, trattazione, 127-ter e note scritte passano prima dei soli `decreto`/`ordinanza`/`verbale`;
 - i fascicoli gia' parzialmente presidiati vengono ruotati dietro ai fascicoli mai letti con segnali operativi, cosi' il worker vivo distribuisce il lotto sui casi analoghi e non resta agganciato sempre agli stessi archivi grandi;
 - guardrail aggiunti: `test_presidio_documentale_fissazione_udienza_precede_decreto_generico` e `test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato`.
+
+Aggiornamento 03/07/2026 11:55 (Europe/Rome):
+
+- il worker non ordina piu' solo per nome documento: quando `studio.db` contiene testo Lex gia' estratto, legge in sola lettura `fascicolo_documenti_ai` e `fascicolo_documenti_ai_testi` per promuovere i fascicoli con udienza da remoto e link reale Teams/Zoom/Meet/Webex;
+- controllo server in sola lettura: `EFBE9117` (`RG 1754/2026`) ha testo AI con `DECRETO PER LO SVOLGIMENTO DI UDIENZA MEDIANTE COLLEGAMENTO DA REMOTO`, `N. R.G. 1754/2026`, data `20/05/2026 alle ore 10:00` e link `https://teams.microsoft.com/meet/38858779158973...`; la nuova priorita' lo classifica tra i fascicoli a priorita' massima non ancora letti;
+- guardrail aggiunto: `test_presidio_documentale_testo_ai_con_link_remoto_precede_decreti_generici`.

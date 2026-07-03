@@ -2229,6 +2229,57 @@ def test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash(tmp_p
     assert len([att for att in saved.attivita if att.tipo == TipoAttivita.UDIENZA]) == 1
 
 
+def test_presidio_documentale_limita_fascicoli_visitati_per_tick(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    for index in range(3):
+        fascicolo = fascicoli.nuovo(
+            f"Fascicolo {index}",
+            TipoFascicolo.CIVILE,
+            nome_cliente=f"Cliente {index}",
+            tribunale="Tribunale di Vicenza",
+            numero_rg=str(1700 + index),
+            anno_rg=2026,
+            controparte="MIM",
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            f"Documento {index}.txt",
+            TipoDocumento.ALTRO,
+            b"Documento ordinario senza udienza.",
+        )
+
+    class NoopDocumentService:
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            return SimpleNamespace(indexed=0, skipped=len(sources), errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: NoopDocumentService())
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["fascicolo_budget"] == 1
+    assert report["checked_fascicoli"] == 1
+    assert report["pending_fascicoli"] >= 1
+
+
 def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_con_lotto_piccolo(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

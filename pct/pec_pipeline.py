@@ -6424,7 +6424,7 @@ class PecAuditRepository:
                     FROM pec_audit_log
                     WHERE tenant_id=?
                       AND action='pec.document_presidio.checked'
-                      AND resource_type='fascicolo_documento'
+                      AND resource_type IN ('fascicolo_documento', 'fascicolo')
                     """,
                     (self.tenant_id,),
                 ).fetchall()
@@ -6530,6 +6530,51 @@ class PecAuditRepository:
                         "reason": clean_text(reason or "", 220),
                         "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
                         "scan_mode": "incremental_new_or_changed_only",
+                    },
+                    actor=actor,
+                )
+        except Exception:
+            pass
+
+    def _append_document_presidio_fascicolo_visited(
+        self,
+        *,
+        fascicolo_id: str,
+        actor: str,
+        status: str = "visited",
+        reason: str = "",
+    ) -> None:
+        clean_fascicolo_id = clean_text(fascicolo_id, 80)
+        if not clean_fascicolo_id:
+            return
+        resource_id = f"docpresidio-fascicolo:{clean_fascicolo_id}"
+        try:
+            with self.connect() as conn:
+                existing = conn.execute(
+                    """
+                    SELECT 1
+                    FROM pec_audit_log
+                    WHERE tenant_id=?
+                      AND action='pec.document_presidio.checked'
+                      AND resource_type='fascicolo'
+                      AND resource_id=?
+                    LIMIT 1
+                    """,
+                    (self.tenant_id, resource_id),
+                ).fetchone()
+                if existing:
+                    return
+                self.append_audit(
+                    conn,
+                    action="pec.document_presidio.checked",
+                    resource_type="fascicolo",
+                    resource_id=resource_id,
+                    payload={
+                        "fascicolo_id": clean_fascicolo_id,
+                        "status": clean_text(status or "visited", 80),
+                        "reason": clean_text(reason or "", 220),
+                        "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
+                        "scan_mode": "incremental_fascicolo_rotation",
                     },
                     actor=actor,
                 )
@@ -6687,7 +6732,9 @@ class PecAuditRepository:
             "checked_fascicoli": 0,
             "checked_documents": 0,
             "document_budget": max(1, int(limit or 50)),
+            "fascicolo_budget": max(1, int(limit or 50)),
             "processed_new_documents": 0,
+            "pending_fascicoli": 0,
             "pending_new_or_changed_documents": 0,
             "new_or_changed_documents": 0,
             "already_checked": 0,
@@ -6729,12 +6776,14 @@ class PecAuditRepository:
         )
         report["ai_priority_fascicoli"] = len(ai_priority_by_fascicolo)
         document_budget = int(report["document_budget"])
+        fascicolo_budget = max(1, int(report["fascicolo_budget"]))
         if document_budget <= 3:
             max_documents_per_fascicolo = document_budget
         else:
             max_documents_per_fascicolo = min(10, max(3, document_budget // 3))
         report["max_documents_per_fascicolo"] = max_documents_per_fascicolo
         processed_new_documents = 0
+        visited_fascicoli = 0
 
         def fascicolo_presidio_sort_key(item: Any) -> tuple[int, int, int, str, str]:
             priority = _document_presidio_fascicolo_priority(item, today=today)
@@ -6747,13 +6796,23 @@ class PecAuditRepository:
             fascicoli,
             key=fascicolo_presidio_sort_key,
         )
-        for fascicolo in fascicoli:
+        for index, fascicolo in enumerate(fascicoli):
             if processed_new_documents >= document_budget:
+                report["pending_fascicoli"] += max(0, len(fascicoli) - index)
+                break
+            if visited_fascicoli >= fascicolo_budget:
+                report["pending_fascicoli"] += max(0, len(fascicoli) - index)
                 break
             fascicolo_id = str(getattr(fascicolo, "id", "") or "")
             if not fascicolo_id:
                 continue
             report["checked_fascicoli"] += 1
+            visited_fascicoli += 1
+            self._append_document_presidio_fascicolo_visited(
+                fascicolo_id=fascicolo_id,
+                actor=actor,
+                status="visited",
+            )
             try:
                 prefixed_deadline = self._document_presidio_prefixed_deadline(fascicolo, today=today)
                 if prefixed_deadline:

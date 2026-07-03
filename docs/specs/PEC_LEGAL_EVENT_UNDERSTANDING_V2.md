@@ -27,6 +27,7 @@ Flusso governato:
 7. Agenda, Scadenziario, notifiche/web push, fascicolo e Lex usano il dato strutturato, non testo libero non verificato.
 
 Il worker resta incrementale: usa i job pendenti e i marker già presenti, non rilegge l'archivio intero a ogni giro.
+Il presidio documenti collegato alla pipeline usa lo stesso budget anche come limite di fascicoli visitati per tick: un lotto `1` può attraversare al massimo un fascicolo e registra un marker di rotazione, così i giri successivi ripartono da casi non ancora toccati invece di rileggere sempre le stesse pratiche.
 
 ## Schema prodotto
 
@@ -152,6 +153,7 @@ Implementato:
 - persistenza SQLite/PostgreSQL;
 - integrazione nel worker `validate` e nel refresh report;
 - test mirati su matrice eventi, udienze, termini, pipeline e scheduler.
+- guardrail prestazionale sul presidio documenti: budget applicato anche ai fascicoli visitati e marker di rotazione `pec.document_presidio.checked`.
 
 Da rieseguire a ogni modifica futura:
 

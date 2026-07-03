@@ -5,6 +5,7 @@ import io
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
@@ -5957,6 +5958,47 @@ def test_react_fascicoli_bridge_formatta_date_e_referenti_visibili():
     assert _italian_dates_in_text("Errore 2026-99-99 non valido") == "Errore 2026-99-99 non valido"
     assert _lead_lawyer_label("roberto.montagnese", "Avv. Roberto Montagnese") == "Avv. Roberto Montagnese"
     assert _lead_lawyer_label("roberto.montagnese") == "Roberto Montagnese"
+
+
+def test_react_fascicoli_attivita_udienza_remota_preserva_link_cliccabile():
+    from web.services.react_fascicoli_bridge import _activities
+
+    link = "https://teams.microsoft.com/meet/38858779158973?p=Js9ShyCOEg7O19o"
+    long_description = (
+        "Contesto letto dal documento di fissazione udienza. "
+        + ("testo verificato " * 30)
+        + f"Link udienza audiovisiva: {link}"
+    )
+    payload = _activities(
+        SimpleNamespace(
+            id="FASC-1",
+            attivita=[
+                SimpleNamespace(
+                    id="ATT-1",
+                    tipo="UDIENZA",
+                    esito="IN_ATTESA",
+                    titolo="Udienza da remoto",
+                    data="2026-05-20",
+                    descrizione=long_description,
+                    note="PEC_DOCUMENT_PRESIDIO:test",
+                    luogo="",
+                    avvocato="",
+                    id_documento="DOC-1",
+                    id_deposito_pct="",
+                )
+            ],
+        )
+    )
+
+    assert link in payload[0]["description"]
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    assert "renderActivityText(activity.description)" in page_source
+    assert 'target="_blank"' in page_source
+    assert 'rel="noopener noreferrer"' in page_source
+    assert ".iu-fas-activity-main .iu-fas-inline-link" in css
+    assert ".iu-fas-activity-main .iu-fas-inline-link:hover" in css
+    assert ".iu-fas-activity-main .iu-fas-inline-link:focus-visible" in css
 
 
 def test_fascicolo_form_react_preserva_referente_salvato_su_titolare_studio(tmp_path: Path):

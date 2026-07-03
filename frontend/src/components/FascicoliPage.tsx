@@ -7071,6 +7071,24 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   )
 }
 
+const activityUrlPattern = /(https?:\/\/[^\s<>"']+)/gi
+
+function renderActivityText(value: string): ReactNode {
+  if (!value) return null
+  const parts = value.split(activityUrlPattern)
+  return parts.map((part, index) => {
+    if (!/^https?:\/\//i.test(part)) return <Fragment key={`text-${index}`}>{part}</Fragment>
+    const cleanHref = part.replace(/[),.;:]+$/g, '')
+    const suffix = part.slice(cleanHref.length)
+    return (
+      <Fragment key={`url-${index}`}>
+        <a className="iu-fas-inline-link" href={cleanHref} target="_blank" rel="noopener noreferrer">{cleanHref}</a>
+        {suffix}
+      </Fragment>
+    )
+  })
+}
+
 function ActivityRow({ activity }:{activity:FascicoloActivity}) {
   const resultText = normaliseText(activity.result)
   const badgeText = !resultText || /non applicabile/.test(resultText)
@@ -7080,7 +7098,7 @@ function ActivityRow({ activity }:{activity:FascicoloActivity}) {
   return (
     <article className="iu-fas-activity-row">
       <div className="iu-fas-activity-date"><Badge tone={activity.tone}>{badgeText}</Badge><time>{activity.date || 'n.d.'}</time></div>
-      <div className="iu-fas-activity-main"><strong>{activity.title}</strong>{metaLine ? <span>{metaLine}</span> : null}{activity.description ? <p>{activity.description}</p> : null}{activity.notes ? <em>{activity.notes}</em> : null}</div>
+      <div className="iu-fas-activity-main"><strong>{activity.title}</strong>{metaLine ? <span>{metaLine}</span> : null}{activity.description ? <p>{renderActivityText(activity.description)}</p> : null}{activity.notes ? <em>{renderActivityText(activity.notes)}</em> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-activity-actions">
         {activity.updateAction ? <JsonPostForm action={activity.updateAction} className="iu-fas-mini-form iu-fas-mini-form--activity"><select name="esito" defaultValue={activity.result || 'IN_ATTESA'} aria-label="Esito attivita"><option value="IN_ATTESA">In attesa</option><option value="FAVOREVOLE">Favorevole</option><option value="PARZIALE">Parziale</option><option value="SFAVOREVOLE">Sfavorevole</option><option value="RINVIATO">Rinviato</option><option value="ANNULLATO">Annullato</option></select><button type="submit"><CheckCircle2 size={13}/> Salva</button></JsonPostForm> : null}
         {activity.deleteAction ? <PostAction action={activity.deleteAction} tone="danger" confirm="Eliminare questa attività?"><Trash2 size={14}/></PostAction> : null}

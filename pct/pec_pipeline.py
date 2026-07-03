@@ -4617,6 +4617,54 @@ def _document_presidio_transient_warnings(indexing: Any) -> tuple[list[str], lis
     return transient, hard
 
 
+def _document_presidio_non_blocking_warning(value: Any) -> str:
+    text = clean_text(value, 500)
+    lower = text.lower()
+    if "file superiore al limite configurato per i documenti ai" in lower:
+        return "file_superiore_limite_documenti_ai"
+    if "formato non supportato per indicizzazione lex" in lower:
+        return "formato_non_supportato_documenti_ai"
+    return ""
+
+
+def _document_presidio_warning_source(warning: str, sources_by_name: dict[str, Any]) -> Any | None:
+    name = clean_text(str(warning or "").split(":", 1)[0], 260).casefold()
+    if not name:
+        return None
+    return sources_by_name.get(name)
+
+
+def _document_presidio_source_priority(source: Any) -> tuple[int, str, str]:
+    text = " ".join(
+        clean_text(value, 260)
+        for value in (
+            getattr(source, "filename", "") or "",
+            getattr(source, "safe_filename", "") or "",
+            getattr(source, "source_type", "") or "",
+            " ".join(str(v) for v in dict(getattr(source, "metadata", {}) or {}).values() if v),
+        )
+        if value
+    ).casefold()
+    if any(
+        marker in text
+        for marker in (
+            "udienza",
+            "fissazione",
+            "decreto",
+            "ordinanza",
+            "verbale",
+            "rinvio",
+            "collegamento",
+            "audiovisiv",
+            "trattazione",
+            "127-ter",
+            "127 ter",
+        )
+    ):
+        return (0, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
+    return (1, clean_text(getattr(source, "updated_at", "") or "", 80), clean_text(getattr(source, "filename", "") or "", 260))
+
+
 def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate: dict[str, Any]) -> dict[str, Any]:
     parties = _fascicolo_parties_for_profile(fascicolo)
     cliente = clean_text(getattr(fascicolo, "nome_cliente", "") or "", 180)
@@ -4696,6 +4744,20 @@ def _document_presidio_deadline_proposal(
         "document_id": document_id,
         "force_agenda_without_time": True,
     }
+
+
+def _document_presidio_activity_description(proposal: dict[str, Any], report_payload: dict[str, Any]) -> str:
+    return clean_text(
+        "\n".join(
+            part
+            for part in (
+                clean_text(proposal.get("reason") or "", 1400),
+                *_remote_hearing_note_lines(report_payload, proposal),
+            )
+            if part
+        ),
+        2200,
+    )
 
 
 class PecAuditRepository:
@@ -5838,6 +5900,8 @@ class PecAuditRepository:
         sha256: str,
         candidates: int,
         actor: str,
+        status: str = "checked",
+        reason: str = "",
     ) -> None:
         clean_resource = clean_text(resource_id, 180)
         if not clean_resource:
@@ -5870,6 +5934,8 @@ class PecAuditRepository:
                         "filename": filename,
                         "sha256": sha256,
                         "candidates": int(candidates or 0),
+                        "status": clean_text(status or "checked", 80),
+                        "reason": clean_text(reason or "", 220),
                         "scan_mode": "incremental_new_or_changed_only",
                     },
                     actor=actor,
@@ -6037,7 +6103,9 @@ class PecAuditRepository:
             "candidate_dates": 0,
             "scheduled": 0,
             "already_presided": 0,
+            "past_remote_hearings_recorded": 0,
             "skipped_prefixed_deadline": 0,
+            "skipped_non_blocking_documents": 0,
             "skipped": 0,
             "retry_locked_documents": 0,
             "transient_errors": [],
@@ -6106,6 +6174,7 @@ class PecAuditRepository:
                     for source in sources
                     if source_resource_ids.get(id(source)) not in checked_resource_ids
                 ]
+                unchecked_sources_all = sorted(unchecked_sources_all, key=_document_presidio_source_priority)
                 already_checked = len(sources) - len(unchecked_sources_all)
                 report["already_checked"] += already_checked
                 if not unchecked_sources_all:
@@ -6120,6 +6189,18 @@ class PecAuditRepository:
                 report["new_or_changed_documents"] += len(unchecked_sources)
                 processed_new_documents += len(unchecked_sources)
                 report["processed_new_documents"] = processed_new_documents
+                unchecked_source_by_warning_name = {
+                    source.filename.casefold(): source
+                    for source in unchecked_sources
+                    if source.filename
+                }
+                unchecked_source_by_warning_name.update(
+                    {
+                        source.safe_filename.casefold(): source
+                        for source in unchecked_sources
+                        if source.safe_filename
+                    }
+                )
                 indexing = service.process_lex_indexing_sources(
                     self.tenant_id,
                     fascicolo_id,
@@ -6134,8 +6215,41 @@ class PecAuditRepository:
                     report["retry_locked_documents"] += len(transient_warnings)
                     for warning in transient_warnings[:5]:
                         report["transient_errors"].append(f"{fascicolo_id}: {warning}")
-                for warning in hard_warnings[:5]:
-                    report["errors"].append(f"{fascicolo_id}: {warning}")
+                hard_error_count = 0
+                for warning in hard_warnings:
+                    non_blocking_reason = _document_presidio_non_blocking_warning(warning)
+                    if not non_blocking_reason:
+                        if hard_error_count < 5:
+                            report["errors"].append(f"{fascicolo_id}: {warning}")
+                        hard_error_count += 1
+                        continue
+                    report["skipped_non_blocking_documents"] += 1
+                    source = _document_presidio_warning_source(warning, unchecked_source_by_warning_name)
+                    if source is not None:
+                        checked_resource = source_resource_ids.get(id(source), "")
+                        self._append_document_presidio_checked(
+                            resource_id=checked_resource,
+                            fascicolo_id=fascicolo_id,
+                            document_id=source.source_id,
+                            document_ai_id="",
+                            filename=source.filename,
+                            sha256=source.sha256,
+                            candidates=0,
+                            actor=actor,
+                            status="skipped_non_blocking",
+                            reason=non_blocking_reason,
+                        )
+                        if checked_resource:
+                            checked_resource_ids.add(checked_resource)
+                    if len(report["items"]) < 30:
+                        report["items"].append(
+                            {
+                                "status": "skipped_non_blocking_document",
+                                "fascicolo_id": fascicolo_id,
+                                "document": clean_text(getattr(source, "filename", "") if source is not None else str(warning).split(":", 1)[0], 260),
+                                "reason": non_blocking_reason,
+                            }
+                        )
                 try:
                     records = service.list_fascicolo_documents(self.tenant_id, fascicolo_id, user_context)
                 except Exception as exc:
@@ -6203,11 +6317,9 @@ class PecAuditRepository:
                             continue
                         seen_document_candidates.add(dedupe_key)
                         parsed_day = _date_from_iso_or_it(target_date)
-                        if not parsed_day or parsed_day < today:
+                        if not parsed_day:
                             report["skipped"] += 1
                             continue
-                        report["candidate_dates"] += 1
-                        document_candidate_count += 1
                         message_id = _document_presidio_message_id(
                             fascicolo_id=fascicolo_id,
                             document_id=source.source_id or str(getattr(record, "id", "") or ""),
@@ -6260,6 +6372,40 @@ class PecAuditRepository:
                                 "remote_hearing_evidence": remote_hearing,
                             },
                         }
+                        activity_description = _document_presidio_activity_description(proposal, report_payload)
+                        if parsed_day < today:
+                            if kind == "udienza" and active_remote_hearing:
+                                report["candidate_dates"] += 1
+                                report["past_remote_hearings_recorded"] += 1
+                                document_candidate_count += 1
+                                activity = self._upsert_document_presidio_activity(
+                                    fascicoli_manager,
+                                    fascicolo_id=fascicolo_id,
+                                    document_id=source.source_id,
+                                    message_id=message_id,
+                                    kind=kind,
+                                    target_date=target_date,
+                                    title=proposal["title"],
+                                    description=activity_description,
+                                    agenda_id="",
+                                )
+                                report["items"].append(
+                                    {
+                                        "status": "past_remote_hearing_recorded" if activity.get("ok") else "past_remote_hearing_not_recorded",
+                                        "fascicolo_id": fascicolo_id,
+                                        "message_id": message_id,
+                                        "document": document_name,
+                                        "due_date": target_date,
+                                        "kind": kind,
+                                        "retrieval_metadata": dict(source.metadata),
+                                        "activity": activity,
+                                    }
+                                )
+                            else:
+                                report["skipped"] += 1
+                            continue
+                        report["candidate_dates"] += 1
+                        document_candidate_count += 1
                         existing_deadline = self._document_presidio_existing_deadline(
                             fascicolo_id=fascicolo_id,
                             target_date=target_date,
@@ -6275,7 +6421,7 @@ class PecAuditRepository:
                                 kind=kind,
                                 target_date=target_date,
                                 title=proposal["title"],
-                                description=proposal["reason"],
+                                description=activity_description,
                                 agenda_id=existing_deadline.get("agenda_id", ""),
                             )
                             report["items"].append(
@@ -6310,7 +6456,7 @@ class PecAuditRepository:
                             kind=kind,
                             target_date=target_date,
                             title=proposal["title"],
-                            description=proposal["reason"],
+                            description=activity_description,
                             agenda_id=agenda_id,
                         )
                         item = {

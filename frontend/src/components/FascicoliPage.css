@@ -1204,6 +1204,8 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-activity-main{min-width:0}
 .iu-fas-activity-main span{display:block;margin-top:3px;color:var(--iu-blue-700);font-size:11.5px;font-weight:850;text-transform:none}
 .iu-fas-activity-main p{margin-top:6px;max-width:78ch}
+.iu-fas-activity-main .iu-fas-inline-link{color:var(--iu-blue-700);font-weight:900;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.iu-fas-activity-main .iu-fas-inline-link:hover,.iu-fas-activity-main .iu-fas-inline-link:focus-visible{color:var(--iu-blue-900);outline:2px solid rgba(37,99,235,.25);outline-offset:2px;border-radius:4px}
 .iu-fas-activity-actions{align-self:start;justify-content:flex-end}
 .iu-fas-mini-form--activity{gap:6px}
 .iu-fas-mini-form--activity select{width:116px}

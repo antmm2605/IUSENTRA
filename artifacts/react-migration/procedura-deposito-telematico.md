@@ -3940,3 +3940,11 @@ Test mirati:
 - `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`;
 - `test_scheduler_registry_chiude_evento_scheduler_senza_running_residui`;
 - test PEC incrementali su cursore e `skipped_presided`.
+
+Aggiornamento 03/07/2026 10:04 (Europe/Rome):
+
+- caso produzione `RG 1754/2026`: il documento di fissazione udienza conteneva udienza da remoto gia' passata e link Teams; il presidio ora registra comunque l'attivita' nel fascicolo con data, ora, fonte documento e `Link udienza audiovisiva`, senza creare una scadenza futura falsa in agenda/scadenziario;
+- la stessa regola vale per tutti i fascicoli analoghi: udienza futura senza scadenza prefissata crea agenda/scadenziario/notifiche, udienza remota passata resta come attivita' documentale consultabile nel fascicolo;
+- il job incrementale ordina prima i documenti probabilmente rilevanti (`udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `collegamento`, `audiovisivo`) per raggiungere rapidamente i casi operativi anche con lotto piccolo;
+- gli errori non bloccanti di indicizzazione documentale, come file sopra limite Documenti AI o formato non supportato, vengono marcati in audit e non fanno fallire il worker PEC/documenti; i lock SQLite continuano invece a essere ritentati;
+- la UI React del fascicolo conserva descrizioni attivita' piu' lunghe e rende cliccabili gli URL, con stile hover/focus, cosi' il link remoto resta leggibile nel dettaglio fascicolo.

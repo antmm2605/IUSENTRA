@@ -98,3 +98,28 @@ Guardrail mirati aggiunti:
 - `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`;
 - `test_scheduler_registry_chiude_evento_scheduler_senza_running_residui`;
 - test PEC cursor gia' presenti su `scan_mode=incremental`, `skipped_presided` e nuove PEC dopo cursore.
+
+## Aggiornamento RG 1754/2026 e fascicoli analoghi - 03/07/2026 10:04
+
+Problema reale riscontrato su produzione: il fascicolo `RG 1754/2026` aveva nel documento `Decreto fissazione udienza (originale notificato).pdf` una udienza da remoto con link Teams, ma il presidio non mostrava il dato nel fascicolo. Causa tecnica: la data dell'udienza era gia' passata rispetto al giorno corrente e il job scartava tutto il candidato prima di salvare l'attivita' documentale. Questo impediva di vedere nel fascicolo data, ora, fonte e link, pur essendo corretto non creare una nuova scadenza futura.
+
+Regola applicata ora a tutti i fascicoli:
+
+- se il documento contiene una udienza futura e il fascicolo non ha gia' scadenza prefissata, il flusso continua a creare scadenziario, agenda, attivita' fascicolo, notifiche e web push governate;
+- se il documento contiene una udienza da remoto gia' passata, il flusso non crea scadenza futura e non alimenta agenda/scadenziario, ma registra comunque una attivita' `UDIENZA` nel fascicolo con documento sorgente, data, ora, contesto e `Link udienza audiovisiva`;
+- il bridge React del fascicolo non tronca piu' la descrizione prima del link e la UI rende gli URL cliccabili con hover/focus visibili;
+- il lotto incrementale privilegia i documenti che nel nome o nei metadati contengono termini come `udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `rinvio`, `collegamento`, `audiovisivo`, cosi' i fascicoli analoghi vengono presidiati prima senza aumentare il carico del job;
+- i documenti non indicizzabili per limite dimensione o formato non supportato vengono marcati in audit come `skipped_non_blocking`, non fanno fallire il job vivo e non vengono riletti a ogni ciclo;
+- i lock SQLite restano transitori: non vengono marcati come letti e vengono ripresi al giro successivo.
+
+Nuovi campi report:
+
+- `past_remote_hearings_recorded`;
+- `skipped_non_blocking_documents`.
+
+Guardrail aggiunti o rilanciati:
+
+- `test_presidio_documentale_registra_udienza_remota_passata_senza_scadenza_futura`;
+- `test_presidio_documentale_file_non_indicizzabile_non_fallisce_job_e_viene_marcato`;
+- `test_react_fascicoli_attivita_udienza_remota_preserva_link_cliccabile`;
+- rilancio mirato di `test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag` e `test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto`.

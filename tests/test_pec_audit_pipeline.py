@@ -2101,6 +2101,79 @@ def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_co
     assert f"Link udienza audiovisiva: {link}" in activities[0].descrizione
 
 
+def test_presidio_documentale_un_fascicolo_grande_non_monopolizza_il_lotto(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    grande = fascicoli.nuovo(
+        "Fascicolo con molti decreti",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Grande",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="1000",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    for index in range(8):
+        fascicoli.aggiungi_documento(
+            grande.id,
+            f"Decreto udienza storico {index}.txt",
+            TipoDocumento.DECRETO,
+            b"Documento storico senza candidato operativo.",
+        )
+    target = fascicoli.nuovo(
+        "Vinci Rosa Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Vinci Rosa Maria",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        target.id,
+        "Decreto fissazione udienza.txt",
+        TipoDocumento.DECRETO,
+        b"Fissa udienza da remoto del 20/05/2026 ore 10:00.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class CountingDocumentService:
+        def __init__(self):
+            self.calls_by_fascicolo = {}
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls_by_fascicolo[fascicolo_id] = self.calls_by_fascicolo.get(fascicolo_id, 0) + len(sources)
+            return SimpleNamespace(indexed=len(sources), skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = CountingDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=4, actor="codex-test")
+
+    assert report["max_documents_per_fascicolo"] == 3
+    assert report["processed_new_documents"] == 4
+    assert report["pending_new_or_changed_documents"] == 5
+    assert service.calls_by_fascicolo[grande.id] == 3
+    assert service.calls_by_fascicolo[target.id] == 1
+
+
 def test_presidio_documentale_riprende_vecchio_checked_senza_status_su_decreto_udienza(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

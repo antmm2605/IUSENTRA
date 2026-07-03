@@ -6235,6 +6235,11 @@ class PecAuditRepository:
         today = datetime.now(ROME_TZ).date()
         checked_resource_ids = self._document_presidio_checked_resource_ids()
         document_budget = int(report["document_budget"])
+        if document_budget <= 3:
+            max_documents_per_fascicolo = document_budget
+        else:
+            max_documents_per_fascicolo = min(10, max(3, document_budget // 3))
+        report["max_documents_per_fascicolo"] = max_documents_per_fascicolo
         processed_new_documents = 0
         fascicoli = sorted(fascicoli, key=lambda item: _document_presidio_fascicolo_priority(item, today=today))
         for fascicolo in fascicoli:
@@ -6289,9 +6294,10 @@ class PecAuditRepository:
                 if remaining_budget <= 0:
                     report["pending_new_or_changed_documents"] += len(unchecked_sources_all)
                     break
-                unchecked_sources = unchecked_sources_all[:remaining_budget]
-                if len(unchecked_sources_all) > remaining_budget:
-                    report["pending_new_or_changed_documents"] += len(unchecked_sources_all) - remaining_budget
+                per_fascicolo_budget = min(remaining_budget, max_documents_per_fascicolo)
+                unchecked_sources = unchecked_sources_all[:per_fascicolo_budget]
+                if len(unchecked_sources_all) > per_fascicolo_budget:
+                    report["pending_new_or_changed_documents"] += len(unchecked_sources_all) - per_fascicolo_budget
                 report["new_or_changed_documents"] += len(unchecked_sources)
                 processed_new_documents += len(unchecked_sources)
                 report["processed_new_documents"] = processed_new_documents

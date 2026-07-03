@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.154 - 2026-07-03
+
+- Presidio documentale udienze: il budget incrementale resta piccolo, ma ora viene ripartito tra fascicoli. Con il limite standard il worker processa solo una quota per singolo fascicolo e passa agli altri, evitando che un fascicolo con molti decreti/verbali storici ritardi RG 1754/2026 e gli altri fascicoli analoghi.
+- Aggiunto test di regressione che dimostra che un fascicolo grande non monopolizza il lotto e che il fascicolo successivo viene comunque analizzato nello stesso giro automatico.
+
 ## 2.253.153 - 2026-07-03
 
 - Presidio documentale udienze: i riferimenti storici a file fisici non piu' presenti nel tenant non fanno piu' fallire il worker PEC/documenti. Il documento viene auditato come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`, non viene riletto a ogni ciclo e il lotto prosegue sui fascicoli successivi, inclusi i fascicoli analoghi a `RG 1754/2026` con decreti/ordinanze/verbali di udienza.

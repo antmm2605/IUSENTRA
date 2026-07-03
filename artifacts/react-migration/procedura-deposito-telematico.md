@@ -3960,3 +3960,9 @@ Aggiornamento 03/07/2026 10:55 (Europe/Rome):
 - durante il deploy su Hetzner il worker vivo ha intercettato riferimenti storici a documenti `.p7m` non piu' presenti nel path tenant-aware del fascicolo `0D4A4802`;
 - questi riferimenti non devono essere scambiati per esito positivo, ma non devono nemmeno bloccare tutto il lotto PEC/documenti: il presidio ora li registra come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`;
 - dopo la marcatura il giro successivo non rilegge gli stessi riferimenti rotti e puo' proseguire sui fascicoli successivi, incluso `RG 1754/2026` e gli altri fascicoli analoghi con decreti/ordinanze/verbali di udienza.
+
+Aggiornamento 03/07/2026 11:10 (Europe/Rome):
+
+- il ciclo automatico delle 11:05 ha dimostrato che, pur non fallendo piu', un fascicolo con molti documenti poteva ancora consumare il lotto e ritardare i fascicoli successivi;
+- il worker ora applica anche `max_documents_per_fascicolo`: con il limite standard lavora solo una quota per fascicolo e poi passa agli altri, mantenendo prestazioni prevedibili senza lasciare indietro RG 1754/2026 e casi analoghi;
+- guardrail aggiunto: `test_presidio_documentale_un_fascicolo_grande_non_monopolizza_il_lotto`.

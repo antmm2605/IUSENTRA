@@ -113,6 +113,7 @@ Regola applicata ora a tutti i fascicoli:
 - gli audit `pec.document_presidio.checked` creati prima di questa correzione, privi di campo `status`, con `candidates=0` e nome documento riconducibile a udienza/decreto, non sono piu' considerati lettura definitiva: vengono ripresi una volta, rivalutati con la nuova regola e poi marcati con `status=checked`;
 - i documenti non indicizzabili per limite dimensione o formato non supportato vengono marcati in audit come `skipped_non_blocking`, non fanno fallire il job vivo e non vengono riletti a ogni ciclo;
 - i riferimenti documentali storici che puntano a file fisici non piu' presenti sul tenant vengono marcati in audit come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`: sono inconsistenze da presidiare, ma non devono far fallire il worker ne' impedire la lettura dei fascicoli successivi;
+- il budget incrementale viene ripartito tra fascicoli: un fascicolo con molti documenti nuovi o molti riferimenti storici non deve monopolizzare il lotto e ritardare gli altri fascicoli con decreti/ordinanze/verbali di udienza;
 - i lock SQLite restano transitori: non vengono marcati come letti e vengono ripresi al giro successivo.
 
 Nuovi campi report:

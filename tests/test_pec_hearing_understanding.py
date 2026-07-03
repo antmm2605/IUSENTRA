@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from pct.pec_pipeline import (
     AttachmentPayload,
     _unified_hearing_mode,
@@ -95,12 +97,13 @@ def test_link_udienza_da_ics_estratto():
     )
     att = AttachmentPayload(index=0, filename="invito.ics", content_type="text/calendar", data=ics)
     ics_text = extract_ics_texts([att])
-    assert "teams.microsoft.com" in ics_text
+    assert "Collegamento" in ics_text
     parsed = {
         "headers": {"subject": "Fissazione udienza"},
         "body": {"text": "udienza da remoto", "html_text": "", "href_urls": [], "ics_text": ics_text},
         "procedural_profile": {},
     }
     profile = build_remote_hearing_profile(parsed, [])
-    assert any("teams" in (link.get("url") or "") for link in profile.get("links", []))
+    links = [str(link.get("url") or "") for link in profile.get("links", [])]
+    assert any((urlparse(url).hostname or "") == "teams.microsoft.com" for url in links)
     assert profile.get("mode_unified") == "remoto"

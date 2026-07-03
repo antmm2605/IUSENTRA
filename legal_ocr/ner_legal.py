@@ -95,10 +95,14 @@ _IMPORTO_RE = re.compile(
 def _dedupe(values: list[str]) -> list[str]:
     seen: dict[str, None] = {}
     for value in values:
-        key = re.sub(r"\s+", " ", value).strip()
+        key = _collapse_spaces(value)
         if key and key not in seen:
             seen[key] = None
     return list(seen)
+
+
+def _collapse_spaces(value: str) -> str:
+    return " ".join(str(value or "").split())
 
 
 def _norm_anno(anno: str) -> str:
@@ -119,7 +123,7 @@ def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
         if key in seen:
             continue
         seen.add(key)
-        out.append({"numero": num, "anno": anno, "testo": re.sub(r"\s+", " ", match.group(0)).strip()})
+        out.append({"numero": num, "anno": anno, "testo": _collapse_spaces(match.group(0))})
     return out
 
 

@@ -38,11 +38,19 @@ class RegexFieldResult:
 
 
 def validate_codice_fiscale_persona_fisica(value: str) -> bool:
-    cf = re.sub(r"\s+", "", str(value or "").upper())
+    cf = _remove_spaces(value).upper()
     if not re.fullmatch(r"[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]", cf):
         return False
     total = sum((_ODD if idx % 2 else _EVEN).get(char, 0) for idx, char in enumerate(cf[:15], start=1))
     return _CF_CHECK[total % 26] == cf[-1]
+
+
+def _remove_spaces(value: str) -> str:
+    return "".join(str(value or "").split())
+
+
+def _digits_only(value: str) -> str:
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
 
 
 def validate_regex_pack(text: str, *, attempts: int = 1, now: date | None = None) -> dict[str, Any]:
@@ -53,7 +61,7 @@ def validate_regex_pack(text: str, *, attempts: int = 1, now: date | None = None
     rg = tuple(dict.fromkeys(_norm_rg(m) for m in _RG_RE.finditer(source)))
     pec = tuple(dict.fromkeys(m.group(0).lower() for m in _PEC_RE.finditer(source) if _valid_pec(m.group(0))))
     dates, invalid_dates = _dates(source, today)
-    amounts = tuple(dict.fromkeys(re.sub(r"\s+", "", m.group(1)) for m in _AMOUNT_RE.finditer(source)))
+    amounts = tuple(dict.fromkeys(_remove_spaces(m.group(1)) for m in _AMOUNT_RE.finditer(source)))
     fields = [
         _field("cf_avvocato", cf_valid, attempts, "cf.it.persona_fisica.v1", "Codice fiscale persona fisica valido non trovato."),
         _field("n_rg", rg, attempts, "procedimento.rg.v1", "Numero RG non trovato."),
@@ -71,8 +79,8 @@ def _field(field_id: str, values: tuple[str, ...], attempts: int, rule_id: str, 
 
 
 def _norm_rg(match: re.Match[str]) -> str:
-    n = re.sub(r"\D+", "", match.group(1) or "")
-    y = re.sub(r"\D+", "", match.group(2) or "")
+    n = _digits_only(match.group(1) or "")
+    y = _digits_only(match.group(2) or "")
     return f"{n}/{y}" if y else n
 
 

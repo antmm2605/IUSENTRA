@@ -1085,14 +1085,20 @@ def start_scheduler(app):
                         document_retries = max(document_retries, len(document_presidio.get("transient_errors") or []))
                     totals["document_errors"] += document_errors
                     notifications = report.get("auto_deadline_notifications") if isinstance(report.get("auto_deadline_notifications"), dict) else {}
+                    processed_count = _as_int(report.get("processed"))
+                    failed_count = _as_int(report.get("failed"))
+                    checked_documents = _as_int(document_presidio.get("checked_documents"))
+                    checked_fascicoli = _as_int(document_presidio.get("checked_fascicoli"))
+                    notification_created = _as_int(notifications.get("created"))
+                    notification_failed = _as_int(notifications.get("errors"))
                     totals["notification_errors"] += _as_int(notifications.get("errors"))
                     tenant_reports.append(
                         {
                             "tenant": label,
                             "acquired": acquired,
                             "workers": {
-                                "processed": _as_int(report.get("processed")),
-                                "failed": _as_int(report.get("failed")),
+                                "processed": processed_count,
+                                "failed": failed_count,
                                 "document_presidio": document_presidio,
                                 "auto_deadline_notifications": notifications,
                             },
@@ -1101,18 +1107,14 @@ def start_scheduler(app):
                     logger.info(
                         "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, rinviati=%d, errori documenti=%d, notifiche=%s/%s",
                         label,
-                        report.get("processed", 0),
-                        report.get("failed", 0),
-                        document_presidio.get("checked_documents", 0),
-                        document_presidio.get("checked_fascicoli", 0),
+                        processed_count,
+                        failed_count,
+                        checked_documents,
+                        checked_fascicoli,
                         document_retries,
                         document_errors,
-                        (report.get("auto_deadline_notifications") or {}).get("created", 0)
-                        if isinstance(report.get("auto_deadline_notifications"), dict)
-                        else 0,
-                        (report.get("auto_deadline_notifications") or {}).get("errors", 0)
-                        if isinstance(report.get("auto_deadline_notifications"), dict)
-                        else 0,
+                        notification_created,
+                        notification_failed,
                     )
                 if processed_targets:
                     logger.info("[scheduler] Pipeline PEC controllata per %d target; job=%d", processed_targets, processed_jobs)

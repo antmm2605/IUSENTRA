@@ -373,12 +373,28 @@ def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
 
 
+def redact_sensitive_digest_value(value: Any) -> Any:
+    """Rimuove segreti operativi dai JSON usati solo per impronte audit."""
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if key_text.lower() in {"password", "passcode", "codice_accesso", "smtp_password", "pec_password"}:
+                redacted[key_text] = "[redacted]"
+            else:
+                redacted[key_text] = redact_sensitive_digest_value(item)
+        return redacted
+    if isinstance(value, list):
+        return [redact_sensitive_digest_value(item) for item in value]
+    return value
+
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
 def sha256_json(value: Any) -> str:
-    return sha256_bytes(canonical_json(value).encode("utf-8"))
+    return sha256_bytes(canonical_json(redact_sensitive_digest_value(value)).encode("utf-8"))
 
 
 def decode_header_value(value: Any) -> str:
@@ -879,7 +895,7 @@ def build_pct_deposit_correlation(
             "atto": atto.casefold(),
             "parti": [item.casefold() for item in parties[:4]],
         }
-        key = f"compound:{hashlib.sha256(canonical_json(compound).encode('utf-8')).hexdigest()[:24]}"
+        key = f"compound:{sha256_json(compound)[:24]}"
     else:
         manual_review = True
     warnings: list[str] = []

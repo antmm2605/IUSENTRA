@@ -75,6 +75,18 @@ def _sha256_json(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+def _redact_for_event_digest(value: Any) -> Any:
+    if isinstance(value, dict):
+        sensitive_keys = {"passcode", "password", "codice_accesso"}
+        return {
+            str(key): ("[redacted]" if str(key).lower() in sensitive_keys else _redact_for_event_digest(item))
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_for_event_digest(item) for item in value]
+    return value
+
+
 def _message_date(value: Any) -> str:
     text = _clean(value, 80)
     if not text:
@@ -186,18 +198,24 @@ def _extract_links(text: str, remote_report: dict[str, Any]) -> list[dict[str, A
 
 def _platform_from_url(url: str) -> str:
     host = (urlsplit(url).hostname or "").lower()
-    if "teams.microsoft.com" in host:
+    if _host_matches(host, "teams.microsoft.com"):
         return "Microsoft Teams"
-    if "zoom.us" in host:
+    if _host_matches(host, "zoom.us"):
         return "Zoom"
-    if "meet.google" in host:
+    if _host_matches(host, "meet.google.com"):
         return "Google Meet"
     return "altra" if host else ""
 
 
+def _host_matches(host: str, domain: str) -> bool:
+    host = host.rstrip(".").lower()
+    domain = domain.rstrip(".").lower()
+    return host == domain or host.endswith(f".{domain}")
+
+
 def _is_trusted_hearing_url(url: str) -> bool:
     host = (urlsplit(url).hostname or "").lower()
-    return host.endswith("teams.microsoft.com") or host.endswith("zoom.us") or host.endswith("meet.google.com")
+    return _host_matches(host, "teams.microsoft.com") or _host_matches(host, "zoom.us") or _host_matches(host, "meet.google.com")
 
 
 def _hearing_mode(text: str, remote_report: dict[str, Any], links: list[dict[str, Any]]) -> str:
@@ -726,7 +744,7 @@ def build_legal_event_understanding(
     result["hearing"] = hearings[0] if hearings else None
     result["deadline"] = legacy_deadline
     result["pct_receipt"] = pct
-    result["event_sha256"] = _sha256_json(result)
+    result["event_sha256"] = _sha256_json(_redact_for_event_digest(result))
     return result
 
 

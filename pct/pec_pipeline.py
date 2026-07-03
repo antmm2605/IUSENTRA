@@ -10,6 +10,7 @@ from __future__ import annotations
 import email
 import hashlib
 import html
+import hmac
 import io
 import imaplib
 import json
@@ -394,7 +395,8 @@ def sha256_bytes(data: bytes) -> str:
 
 
 def sha256_json(value: Any) -> str:
-    return sha256_bytes(canonical_json(redact_sensitive_digest_value(value)).encode("utf-8"))
+    data = canonical_json(redact_sensitive_digest_value(value)).encode("utf-8")
+    return hmac.new(b"iusentra-pec-json-digest-v1", data, hashlib.sha256).hexdigest()
 
 
 def decode_header_value(value: Any) -> str:

@@ -9,6 +9,7 @@ azioni dispositive o termini processuali conclusivi.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import re
 from datetime import datetime
@@ -72,7 +73,8 @@ def _list(value: Any) -> list[Any]:
 
 
 def _sha256_json(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    data = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(b"iusentra-pec-legal-event-v2", data, hashlib.sha256).hexdigest()
 
 
 def _redact_for_event_digest(value: Any) -> Any:

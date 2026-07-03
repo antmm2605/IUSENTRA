@@ -6132,3 +6132,15 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Generazione tecnica `DatiAtto.xml` locale | OK | Input equivalente a `Marchetti c. MIM`: XML con `Oggetto=222050` e `ValoreCausa=500.00`. |
 | Hotfix Hetzner runtime | OK | File copiati in `iusentra-app`, `py_compile` nel container OK, fascicolo SQL `795C50AC` riallineato a `codice_oggetto_pst=222050` e `valore_causa=500.0`, container unico healthy, `https://app.iusentra.it/api/pronto` OK. |
 | Verifica runtime server su fascicolo reale `795C50AC` | OK | Helper nel container restituisce `codice=222050`, `valore_causa=500.0`; controllo XML nel container restituisce `Oggetto=222050`, `ValoreCausa=500.00`. |
+
+## Deposito React catalogo Studio Telematico - 2026-07-03
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests\test_deposito_telematico_catalogo.py tests\test_regia_ui_react.py -q --tb=short` | OK | `11/11` passati: documenti attesi derivati dai flag Studio Telematico, pannello `Documenti richiesti` legato al tipo deposito, `Deseleziona tutto`, hover/focus e Local Signer senza avvio automatico fuori gesto utente. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript React completato senza errori. |
+| `npm --prefix frontend run build` | OK | Build Vite completata; asset hashati generati dal build ripuliti dal diff. |
+| `python -m py_compile pct\deposito_telematico_catalogo.py pct\practice_engine\validators.py` | OK | Sintassi confermata su catalogo deposito e validatori utente. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | `4/4` passati dopo changelog/report. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI valido dopo bump versione. |
+| Prova visiva locale Docker `127.0.0.1:8080` | OK osservato | Fascicolo `DC5BF1DB`, versione `2.253.161`: `Deseleziona tutto` porta la selezione da `18` a `0`; `Invia tutto` a `20`; `Ripristina proposta` a `18`; `Salva classificazione` HTTP `200`, hover/focus blu con testo bianco. Cambi tipo verificati: Citazione `8`, Memoria 183 `4`, Cassazione `9`, UNEP `6`; desktop/tablet/mobile senza overflow orizzontale. |

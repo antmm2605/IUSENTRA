@@ -35,6 +35,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    local_signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
     assert "include: 'all'" in source
     assert "Inventario fascicolo" in source
@@ -67,7 +68,23 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert 'type="checkbox"' in source
     assert "Ripristina proposta" in source
     assert "Invia tutto" in source
+    assert "Deseleziona tutto" in source
     assert "Salva classificazione" in source
+    assert "deselectAllDepositDocuments" in source
+    assert "buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)" in source
+    assert 'count={sortedSlots.length}' in source
+    assert 'catalogOnly' in source
+    assert 'catalogRequirementKind' in source
+    assert 'canLinkSlot' in source
+    assert "ATTO_DA_NOTIFICARE" in source
+    assert "atto_da_notificare" in source
+    assert "baseSlotKey = slotKey === 'ATTO_DA_NOTIFICARE' ? 'ATTO_PRINCIPALE' : slotKey" in source
+    assert "mainActBaseSlot" in source
+    assert "actualBaseKey" in source
+    assert "useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE'" in source
+    assert "catalogUsesNotifiableAct" in source
+    assert "catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)" in source
+    assert "regia.documentSlots.length" not in source[source.index('id="slot-deposito-rail"'):source.index('id="audit-deposito"')]
     assert "DEPOSIT_DOCUMENT_ROLE_OPTIONS" in source
     role_options = source[
         source.index("const DEPOSIT_DOCUMENT_ROLE_OPTIONS"):
@@ -102,6 +119,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "#slot-deposito-rail{display:none" not in css
     assert "#slot-deposito-rail {display:none" not in css
     assert ".iu-fas-deposit-step-layout>.iu-fas-detail-side{display:grid!important}" in css
+    assert ".iu-fas-deposit-selection__tools button.is-primary:hover" in css
+    assert ".iu-fas-deposit-selection__tools button.is-primary:focus-visible" in css
+    assert ".iu-fas-deposit-selection__tools button:focus-visible" in css
     assert "updateDepositClassification(doc.id" in source
     assert "[doc.id]: event.currentTarget.checked" not in source
     assert "depositSelectionSatisfiesSlot" in source
@@ -129,6 +149,12 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "recoverLocalSignerAutomatically" in source
     assert "localSignerOutdated" in source
     assert "Riallinea automaticamente" in source
+    assert "canRequestLocalSignerProtocol" in source
+    assert "if (signableDocuments.length) void checkLocalSigner(false)" in source
+    assert "if (signableDocuments.length) void checkLocalSigner(true)" not in source
+    assert "refreshInfo()\n    checkLocalSigner(false)" in source
+    assert "canRequestProtocolStart" in local_signer
+    assert "activation?.isActive !== false" in local_signer
     assert "Riavvia Local Signer e premi Riverifica" not in source
     assert "Prima riavvia e riverifica Local Signer." not in source
     assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function relataStatusDisplayLabel")]

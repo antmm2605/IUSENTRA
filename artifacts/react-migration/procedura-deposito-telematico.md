@@ -3987,6 +3987,37 @@ Aggiornamento 03/07/2026 12:18 (Europe/Rome):
 - hotfix `2.253.158`: il report operativo deduplica i candidati per documento/tipo/data quando Lex AI restituisce più record `ready` con lo stesso hash, così i controlli job non ripetono lo stesso evento pur mantenendo idempotente il salvataggio dell'attività;
 - guardrail aggiunti: `test_extract_procedural_dates_reads_fissa_udienza_in_data_formula`, `test_remote_hearing_rebuilds_teams_meet_parameter_split_by_pdf_line_break`, `test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio`, `test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash`.
 
+## Catalogo documenti deposito Studio Telematico - 2026-07-03
+
+Richiesta utente: nel flusso React `Prepara deposito` i documenti attesi e i documenti richiesti non devono restare uguali quando cambia il tipo deposito; servono anche `Deseleziona tutto` e stati hover/focus leggibili sul pulsante `Salva classificazione`.
+
+Modifiche applicate:
+
+- `pct/deposito_telematico_catalogo.py` non usa più una lista generica fissa `atto principale / procura / allegati`;
+- i documenti attesi derivano dai flag importati dal catalogo Studio Telematico: `needProcura`, `needContributoUnificato`, `needNotaIscrizioneRuolo`, `VisualizzaAnagraficaProcedimento`, `VisualizzaGrigliaTerzi` e dai dati obbligatori `datiatto_required_data`;
+- esempi presidiati: `Citazione` mostra atto, procura, contributo unificato, anagrafica procedimento, data citazione e valore causa; `Memoria 183` non mostra procura e contributo se Studio Telematico non li richiede; `Ricorso Cassazione` mostra nota iscrizione, provvedimento impugnato e prova notifica; UNEP resta nel flusso notifiche con relata, destinatari, spese e ricevute;
+- `frontend/src/components/FascicoliPage.tsx` costruisce il pannello laterale `Documenti richiesti` dal tipo deposito selezionato, riusando gli slot reali della Regia quando esistono e marcando come requisiti di catalogo quelli derivati dalla matrice;
+- i requisiti che sono dati del deposito, non file fisici, non mostrano il form `Collega` per evitare controlli apparenti;
+- aggiunto il pulsante `Deseleziona tutto` accanto a `Invia tutto`;
+- lo stile hover/focus di `Salva classificazione` resta blu con testo bianco e focus visibile.
+
+Guardrail automatici eseguiti:
+
+- `python -m pytest tests\test_deposito_telematico_catalogo.py tests\test_regia_ui_react.py -q --tb=short` -> passato;
+- `python -m py_compile pct\deposito_telematico_catalogo.py` -> passato;
+- `npm --prefix frontend run typecheck` -> passato;
+- `npm --prefix frontend run build` -> passato.
+
+Stato verifica:
+
+- prova reale locale Docker eseguita il 03/07/2026 su `http://127.0.0.1:8080/fascicoli/DC5BF1DB/deposito/prepara#proposta-busta`, versione `2.253.161`, container `iusentra-app` healthy e `/api/pronto` `ok=true`;
+- il browser integrato Codex non era disponibile (`agent.browsers.list() = []`), quindi la prova visiva è stata eseguita con Chrome locale via Playwright sulla stessa copia Docker reale `127.0.0.1:8080`;
+- click reali eseguiti: `Deseleziona tutto` porta i documenti selezionati da `18` a `0`, `Invia tutto` porta la selezione a `20`, `Ripristina proposta` torna a `18`, `Salva classificazione` chiude con HTTP `200` e messaggio visibile `Classificazione deposito salvata: 18 documenti pronti per la busta.`;
+- hover/focus di `Salva classificazione`: testo bianco, sfondo blu `rgb(37, 99, 235)`, bordo blu e focus ring visibile, senza bianco su fondo chiaro;
+- cambio tipo deposito verificato in UI reale: `Atto di Citazione (in Appello)` mostra `8` documenti richiesti; `Memoria di Replica ex art. 183 cpc ultimo comma` mostra `4`; `Ricorso (Corte di Cassazione)` mostra `9` con `Nota iscrizione a ruolo`, `Provvedimento impugnato` e `Prova notifica`; `Richiesta di notifica di atto Civile (a debito)` UNEP mostra `6` con `Atto da notificare`, `Relata o richiesta`, `Destinatari`, `Contributo o anticipazione spese UNEP`, `Allegati`, `Ricevute`;
+- screenshot fuori repository: `C:\Users\antmm\AppData\Local\Temp\iusentra-deposito-desktop-v6-top.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-deposito-desktop-v6-rail.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-deposito-desktop-v7-cassazione-rail-open.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-deposito-mobile-v6.png`, `C:\Users\antmm\AppData\Local\Temp\iusentra-deposito-tablet-v6.png`;
+- responsive controllato su desktop `1365x820`, tablet `900x900` e mobile `390x844`: nessun overflow orizzontale rilevato.
+
 ## PEC Legal Event Understanding V2 - 2026-07-03
 
 Richiesta utente: trasformare il presidio PEC in un motore professionale di comprensione dell'evento legale, collegato a fascicoli, Agenda, Scadenziario, notifiche, web push, Lex AI e DB vettoriale, senza risposte automatiche o termini conclusivi non verificati.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.161 - 2026-07-03
+
+- Deposito telematico React: aggiunto `Deseleziona tutto` nella lista `Documenti da inviare` e corretto hover/focus di `Salva classificazione`, che ora resta leggibile con testo bianco su sfondo blu.
+- I `Documenti attesi` e il pannello `Documenti richiesti` cambiano ora in base al tipo deposito selezionato, usando i flag importati dal catalogo Studio Telematico (`needProcura`, `needContributoUnificato`, `needNotaIscrizioneRuolo`, dati obbligatori e regole UNEP/Cassazione).
+- Il pannello laterale riusa gli slot reali della Regia quando esistono e distingue i requisiti di catalogo che sono dati del deposito dai documenti fisici da collegare.
+
 ## 2.253.158 - 2026-07-03
 
 - Presidio documentale udienze: il report del worker deduplica ora i candidati operativi per documento/tipo/data anche quando Lex AI conserva piu' record `ready` con lo stesso hash. L'attivita' nel fascicolo era gia' idempotente; ora anche `candidate_dates`, `past_remote_hearings_recorded` e `items` non vengono gonfiati da duplicati.

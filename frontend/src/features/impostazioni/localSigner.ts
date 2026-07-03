@@ -54,12 +54,20 @@ async function fetchJsonWithTimeout(
   }
 }
 
-function requestStart(protocol: string) {
+function canRequestProtocolStart(): boolean {
+  if (!isDesktopHost()) return false
+  const activation = (window.navigator as Navigator & { userActivation?: { isActive?: boolean } }).userActivation
+  return activation?.isActive !== false
+}
+
+function requestStart(protocol: string): boolean {
+  if (!canRequestProtocolStart()) return false
   const iframe = document.createElement('iframe')
   iframe.style.display = 'none'
   iframe.src = protocol
   document.body.appendChild(iframe)
   window.setTimeout(() => iframe.remove(), 2500)
+  return true
 }
 
 function text(value: unknown, fallback = ''): string {

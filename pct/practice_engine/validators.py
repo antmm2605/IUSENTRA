@@ -295,8 +295,8 @@ def file_presente(ctx: ValidationContext, *, slot_key: str = "") -> ValidationRe
     slot = _slot(ctx, slot_key=slot_key) if slot_key else _slot(ctx, SlotType.ATTO_PRINCIPALE.value, "ATTO_PRINCIPALE")
     doc = _document_for_slot(ctx, slot)
     if doc:
-        return _ok("file_presente", "Documento collegato allo slot.", evidence={"document_id": getattr(doc, "id", "")})
-    return _block("file_presente", "Impossibile validare: file non collegato allo slot.", "Collega un documento reale prima della verifica.")
+        return _ok("file_presente", "Documento collegato ai documenti richiesti.", evidence={"document_id": getattr(doc, "id", "")})
+    return _block("file_presente", "Impossibile validare: file non collegato ai documenti richiesti.", "Collega un documento reale prima della verifica.")
 
 
 def file_apribile(ctx: ValidationContext, *, slot_key: str = "") -> ValidationResult:
@@ -414,7 +414,7 @@ def atto_principale_pdfa_pre_firma(ctx: ValidationContext) -> ValidationResult:
 def schema_xsd_presente(ctx: ValidationContext) -> ValidationResult:
     if not getattr(ctx.profile, "depositable", False):
         return _na("schema_xsd_presente")
-    return _warning("schema_xsd_presente", "Schema ministeriale non verificato nel runtime corrente.", "Esegui predeposito con connettore ministeriale configurato.")
+    return _warning("schema_xsd_presente", "Schema ministeriale non verificato nell'ambiente di lavoro corrente.", "Esegui predeposito con connettore ministeriale configurato.")
 
 
 def schema_xsd_versione_corrente(ctx: ValidationContext) -> ValidationResult:

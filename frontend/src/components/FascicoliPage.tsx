@@ -3495,7 +3495,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const advisoryValidationRows = validationRows.filter((row) => !isDecisiveDepositIssue(row))
   const recentDeposits = data.deposits.slice(0, 8)
   const documentsById = new Map(data.documents.map((doc) => [doc.id, doc]))
-  const sortedSlots = [...regia.documentSlots].sort((a, b) => Number(recordText(a, 'sortOrder') || 0) - Number(recordText(b, 'sortOrder') || 0))
+  const sortedSlots = buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)
+    .sort((a, b) => Number(recordText(a, 'sortOrder') || 0) - Number(recordText(b, 'sortOrder') || 0))
   const mainSlot = sortedSlots.find(isMainActSlot)
   const proposedMainActDocument = mainSlot ? documentsById.get(recordText(mainSlot, 'documentId')) : undefined
   const linkedSlotDocuments = sortedSlots
@@ -3792,6 +3793,17 @@ function DepositPreparePage({ id }:{id:string}) {
         role,
         alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
         requiresSignature: defaultSignatureRequiredForDepositRole(doc, role),
+      }]
+    })))
+  }
+  const deselectAllDepositDocuments = () => {
+    setDepositClassificationById((current) => Object.fromEntries(depositSelectableDocuments.map((doc) => {
+      const role = current[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
+      return [doc.id, {
+        selected: false,
+        role,
+        alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
+        requiresSignature: false,
       }]
     })))
   }
@@ -4456,6 +4468,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <div className="iu-fas-deposit-selection__tools">
                 <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina proposta</button>
                 <button type="button" onClick={selectAllDepositDocuments}><ListChecks size={14}/> Invia tutto</button>
+                <button type="button" onClick={deselectAllDepositDocuments}><RotateCcw size={14}/> Deseleziona tutto</button>
                 <button type="button" className="is-primary" onClick={() => { void saveDepositClassification() }} disabled={classificationSaving}>
                   <Save size={14}/> {classificationSaving ? 'Salvataggio...' : 'Salva classificazione'}
                 </button>
@@ -4973,19 +4986,22 @@ function DepositPreparePage({ id }:{id:string}) {
               { label: 'Canale', value: regia.header.channel || 'da verificare' },
             ]}/>
           </DetailSection>
-          <DetailSection id="slot-deposito-rail" title="Documenti richiesti" icon={<PackageCheck size={17}/>} count={regia.documentSlots.length}>
+          <DetailSection id="slot-deposito-rail" title="Documenti richiesti" icon={<PackageCheck size={17}/>} count={sortedSlots.length}>
             <div className="iu-fas-regia-list">
               {sortedSlots.map((slot) => {
                 const slotKey = recordText(slot, 'slotKey')
                 const linkedDocument = documentsById.get(recordText(slot, 'documentId'))
                 const slotStatus = slotStatusDisplay(recordText(slot, 'status'), Boolean(linkedDocument))
+                const catalogOnly = recordBool(slot, 'catalogOnly')
+                const catalogRequirementKind = recordText(slot, 'catalogRequirementKind')
+                const canLinkSlot = Boolean(slotKey && !catalogOnly)
                 return (
-                  <article className="iu-fas-slot-row" key={slotKey || recordText(slot, 'label')}>
+                  <article className="iu-fas-slot-row" key={`${selectedDepositType?.key || 'regia'}-${slotKey || recordText(slot, 'label')}`}>
                     <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
                     <strong>{recordText(slot, 'label')}</strong>
-                    <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : depositUserFacingMessage(recordText(slot, 'message', 'Documento da collegare'))}</span>
+                    <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : depositUserFacingMessage(recordText(slot, 'message', catalogRequirementKind === 'data' ? 'Dato deposito da verificare.' : 'Documento da collegare'))}</span>
                     <small>{depositUserFacingMessage(recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.'))}</small>
-                    {slotKey ? (
+                    {canLinkSlot ? (
                       <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
                         <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
                           <option value="">Scegli documento</option>
@@ -4997,7 +5013,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   </article>
                 )
               })}
-              {!regia.documentSlots.length ? <p className="iu-empty">Documenti richiesti non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
+              {!sortedSlots.length ? <p className="iu-empty">Documenti richiesti non ancora disponibili: aggiorna la Regia dopo aver classificato i documenti.</p> : null}
             </div>
           </DetailSection>
           <DetailSection id="audit-deposito" title="Audit" icon={<Fingerprint size={17}/>} count={data.auditTrail.summary.total}>
@@ -5087,7 +5103,7 @@ function DepositBatchSignaturePanel({
   }
 
   useEffect(() => {
-    if (signableDocuments.length) void checkLocalSigner(true)
+    if (signableDocuments.length) void checkLocalSigner(false)
   }, [signableDocuments.length])
 
   const scheduleLocalSignerRestartCheck = () => {
@@ -5280,7 +5296,7 @@ function DepositBatchSignaturePanel({
         : `${localSignerTokenLabel(displayToken)} - lettore ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun dispositivo di firma disponibile.'
-      : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
+      : localSigner?.messaggio || localSigner?.error || 'Usa Riallinea automaticamente per avviare il Local Signer dal PC in uso.'
 
   return (
     <section className="iu-fas-batch-signature">
@@ -5725,7 +5741,7 @@ function defaultDepositRoleForDocument(doc: FascicoloDocument | undefined, linke
   if (!doc) return 'allegato'
   const slot = normaliseText(linkedSlotKey)
   const text = documentSearchText(doc)
-  if (isProposedMainAct || /atto principale|atto_principale/.test(slot)) return 'atto_principale'
+  if (isProposedMainAct || /atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slot)) return 'atto_principale'
   if (doc.depositRole === 'atto_principale') return 'atto_principale'
   if (doc.depositRole === 'procura') return 'procura'
   if (doc.depositRole === 'prova_notifica') return 'prova_notifica'
@@ -5810,7 +5826,7 @@ function depositDocumentMatchesSlot(slot: Record<string, unknown>, doc: Fascicol
     recordText(slot, 'message'),
   ].join(' '))
   const docText = documentSearchText(doc)
-  if (/atto principale|atto_principale/.test(slotText)) return isMainActCandidateDocument(doc)
+  if (/atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slotText)) return isMainActCandidateDocument(doc)
   if (/procura/.test(slotText)) return doc.catalogRole === 'procura' || /procura/.test(docText)
   if (/contributo|pagamento|pagopa/.test(slotText)) return doc.catalogRole === 'contributo_unificato' || /(contributo|unificato|pagopa|ricevuta telematica|rt xml)/.test(docText)
   if (/marca|bollo/.test(slotText)) return /(marca|bollo)/.test(docText)
@@ -5823,7 +5839,7 @@ function depositDocumentMatchesSlot(slot: Record<string, unknown>, doc: Fascicol
 function slotMatchesDepositRole(slot: Record<string, unknown>, role: DepositDocumentRole): boolean {
   const uiRole = normaliseDepositRoleForUi(role)
   const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
-  if (/atto principale|atto_principale/.test(slotText)) return uiRole === 'atto_principale'
+  if (/atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slotText)) return uiRole === 'atto_principale'
   if (/procura/.test(slotText)) return uiRole === 'procura'
   if (/prova|notifica|ricevuta|rac|rdac/.test(slotText)) return uiRole === 'prova_notifica'
   if (/allegat|documento/.test(slotText)) return uiRole === 'allegato'
@@ -5839,7 +5855,7 @@ function depositSelectionSatisfiesSlot(
   const linkedDocumentId = recordText(slot, 'documentId')
   if (linkedDocumentId) return selectedDocuments.some((doc) => doc.id === linkedDocumentId)
   const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
-  if (/atto principale|atto_principale/.test(slotText)) return Boolean(mainAct)
+  if (/atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slotText)) return Boolean(mainAct)
   if (selectedDocuments.some((doc) => slotMatchesDepositRole(slot, classificationById[doc.id]?.role || defaultDepositRoleForDocument(doc)))) return true
   return selectedDocuments.some((doc) => depositDocumentMatchesSlot(slot, doc))
 }
@@ -5852,6 +5868,113 @@ function slotStatusDisplay(value: string, linked = false): { label: string; tone
   if (key === 'MANCANTE') return { label: linked ? 'Collegato' : 'Da scegliere', tone: linked ? 'primary' : 'warning' }
   if (key === 'NON_VALIDO') return { label: linked ? 'Da correggere' : 'Da scegliere', tone: 'warning' }
   return { label: linked ? 'Collegato' : 'Da scegliere', tone: linked ? 'primary' : 'warning' }
+}
+
+function depositCatalogRequirementLabel(value: string): string {
+  const clean = value.trim().replace(/\s+/g, ' ')
+  return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : 'Requisito deposito'
+}
+
+function depositCatalogRequirementKind(label: string): 'file' | 'data' {
+  const text = normaliseText(label)
+  if (/(anagrafica|valore causa|data citazione|istanze|riferimento procedimento|dati procedura|dati terzi|modifiche anagrafica)/.test(text)) return 'data'
+  return 'file'
+}
+
+function depositCatalogSlotKey(label: string, index: number): string {
+  const text = normaliseText(label)
+  if (/atto da notificare/.test(text)) return 'ATTO_DA_NOTIFICARE'
+  if (/atto principale/.test(text)) return 'ATTO_PRINCIPALE'
+  if (/procura/.test(text)) return 'PROCURA'
+  if (/contributo/.test(text)) return 'CONTRIBUTO_UNIFICATO'
+  if (/nota iscrizione|nir/.test(text)) return 'NOTA_ISCRIZIONE_RUOLO'
+  if (/provvedimento impugnato/.test(text)) return 'PROVVEDIMENTO_IMPUGNATO'
+  if (/prova notifica/.test(text)) return 'PROVA_NOTIFICA'
+  if (/relata|richiesta/.test(text)) return 'RELATA_NOTIFICA'
+  if (/destinatari/.test(text)) return 'DESTINATARI'
+  if (/ricevute/.test(text)) return 'RICEVUTE'
+  if (/allegati/.test(text)) return 'ALLEGATI'
+  return `REQUISITO_CATALOGO_${index + 1}`
+}
+
+function depositCatalogSlotType(label: string): string {
+  const text = normaliseText(label)
+  if (/atto da notificare/.test(text)) return 'ATTO_DA_NOTIFICARE'
+  if (/atto principale/.test(text)) return 'ATTO_PRINCIPALE'
+  if (/procura/.test(text)) return 'PROCURA'
+  if (/contributo/.test(text)) return 'CONTRIBUTO_UNIFICATO'
+  if (/nota iscrizione|nir/.test(text)) return 'NOTA_ISCRIZIONE_RUOLO'
+  if (/prova notifica|provvedimento impugnato|relata|ricevute|allegati/.test(text)) return 'DOCUMENTO'
+  return depositCatalogRequirementKind(label) === 'data' ? 'DATO_DEPOSITO' : 'DOCUMENTO'
+}
+
+function depositCatalogSlotRequired(label: string): boolean {
+  const text = normaliseText(label)
+  if (depositCatalogRequirementKind(label) === 'data') return false
+  if (/allegati|ricevute|destinatari/.test(text)) return false
+  return true
+}
+
+function buildDepositCatalogSlots(
+  selectedType: FascicoloDepositCatalogEntry | undefined,
+  baseSlots: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  const catalogDocuments = (selectedType?.ui.documents || []).map((item) => item.trim()).filter(Boolean)
+  if (!catalogDocuments.length) return [...baseSlots]
+  const baseByKey = new Map<string, Record<string, unknown>>()
+  baseSlots.forEach((slot) => {
+    const key = recordText(slot, 'slotKey').toUpperCase()
+    if (key) baseByKey.set(key, slot)
+  })
+  const mainActBaseSlot = baseSlots.find((slot) => /atto principale|atto_principale/.test(normaliseText([
+    recordText(slot, 'slotKey'),
+    recordText(slot, 'label'),
+    recordText(slot, 'type'),
+  ].join(' '))))
+  const used = new Set<string>()
+  const catalogSlots: Array<Record<string, unknown>> = catalogDocuments.map((label, index) => {
+    const slotKey = depositCatalogSlotKey(label, index)
+    const baseSlotKey = slotKey === 'ATTO_DA_NOTIFICARE' ? 'ATTO_PRINCIPALE' : slotKey
+    const baseSlot = baseByKey.get(slotKey) || baseByKey.get(baseSlotKey) || (slotKey === 'ATTO_DA_NOTIFICARE' ? mainActBaseSlot : undefined)
+    if (baseSlot) used.add(baseSlotKey)
+    if (baseSlot) {
+      const actualBaseKey = recordText(baseSlot, 'slotKey').toUpperCase()
+      if (actualBaseKey) used.add(actualBaseKey)
+    }
+    if (baseSlot && baseSlotKey !== slotKey) used.add(slotKey)
+    const kind = depositCatalogRequirementKind(label)
+    const labelText = depositCatalogRequirementLabel(label)
+    const useCatalogLabel = slotKey === 'ATTO_DA_NOTIFICARE'
+    return {
+      ...(baseSlot || {}),
+      slotKey,
+      label: useCatalogLabel ? labelText : (recordText(baseSlot, 'label') || labelText),
+      type: useCatalogLabel ? depositCatalogSlotType(label) : (recordText(baseSlot, 'type') || depositCatalogSlotType(label)),
+      required: baseSlot ? recordBool(baseSlot, 'required') : depositCatalogSlotRequired(label),
+      sortOrder: recordText(baseSlot, 'sortOrder') || String((index + 1) * 10),
+      status: recordText(baseSlot, 'status') || (kind === 'data' ? 'WARNING' : 'MANCANTE'),
+      catalogOnly: !baseSlot,
+      catalogRequirementKind: kind,
+      message: recordText(baseSlot, 'message') || (
+        kind === 'data'
+          ? 'Dato richiesto dal tipo deposito selezionato: verifica nel pannello dati deposito.'
+          : 'Documento richiesto dal tipo deposito selezionato.'
+      ),
+      suggestedAction: recordText(baseSlot, 'suggestedAction') || (
+        kind === 'data'
+          ? 'Controlla il dato prima della generazione della busta.'
+        : 'Classifica o seleziona il documento corretto nella lista Documenti da inviare.'
+      ),
+    }
+  })
+  const catalogUsesNotifiableAct = catalogSlots.some((slot) => recordText(slot, 'slotKey').toUpperCase() === 'ATTO_DA_NOTIFICARE')
+  const linkedExtraSlots = baseSlots.filter((slot) => {
+    const key = recordText(slot, 'slotKey').toUpperCase()
+    const text = normaliseText([key, recordText(slot, 'label'), recordText(slot, 'type')].join(' '))
+    if (catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)) return false
+    return key && !used.has(key) && recordText(slot, 'documentId')
+  })
+  return [...catalogSlots, ...linkedExtraSlots]
 }
 
 function depositPackageKindLabel(value: string): string {
@@ -6429,8 +6552,15 @@ function isDesktopLocalSignerHost(): boolean {
   return !isMobileOrTablet && !isIpadDesktopMode
 }
 
-function requestLocalSignerStart(): boolean {
+function canRequestLocalSignerProtocol(): boolean {
   if (!isDesktopLocalSignerHost()) return false
+  if (typeof navigator === 'undefined') return true
+  const activation = (navigator as Navigator & { userActivation?: { isActive?: boolean } }).userActivation
+  return activation?.isActive !== false
+}
+
+function requestLocalSignerStart(): boolean {
+  if (!canRequestLocalSignerProtocol()) return false
   const link = document.createElement('a')
   link.href = LOCAL_SIGNER_RESTART_URI
   link.rel = 'noreferrer'
@@ -6442,7 +6572,7 @@ function requestLocalSignerStart(): boolean {
 }
 
 function requestLocalSignerUpdate(): boolean {
-  if (!isDesktopLocalSignerHost()) return false
+  if (!canRequestLocalSignerProtocol()) return false
   const link = document.createElement('a')
   link.href = LOCAL_SIGNER_UPDATE_URI
   link.rel = 'noreferrer'
@@ -6735,7 +6865,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
         : `${localSignerTokenLabel(displayToken)} - lettore ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun dispositivo di firma disponibile.'
-      : localSigner?.messaggio || localSigner?.error || 'IUSENTRA tenta l’avvio automatico del Local Signer su questo PC.'
+      : localSigner?.messaggio || localSigner?.error || 'Usa Riallinea automaticamente per avviare il Local Signer dal PC in uso.'
   const signatureCount = info?.firme?.length || 0
   const alreadySigned = Boolean(doc?.signed || signatureCount > 0)
   const setVisibleSignatureChoice = (mode: VisibleSignatureMode) => {
@@ -6819,7 +6949,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
   useEffect(() => {
     refreshInfo()
-    checkLocalSigner(true)
+    checkLocalSigner(false)
   }, [infoUrl])
 
   const firmaConLocalSigner = async () => {

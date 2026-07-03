@@ -584,17 +584,68 @@ def _rules_for(entry: dict[str, Any], registry: dict[str, str]) -> dict[str, Any
     }
 
 
+def _deposit_menu_flags(entry: dict[str, Any]) -> dict[str, Any]:
+    flags = entry.get("deposit_menu_flags")
+    return flags if isinstance(flags, dict) else {}
+
+
+def _flag_enabled(flags: dict[str, Any], key: str) -> bool:
+    value = flags.get(key)
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return _text(value).casefold() in {"1", "true", "si", "sì", "yes", "on"}
+
+
+def _required_data_codes(entry: dict[str, Any]) -> set[str]:
+    return {_norm_code(_text(item)) for item in (entry.get("datiatto_required_data") or []) if _text(item)}
+
+
 def _documents_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
-    category = _text(entry.get("categoria"))
+    flags = _deposit_menu_flags(entry)
+    required = _required_data_codes(entry)
+    haystack = " ".join(
+        _text(entry.get(key))
+        for key in ("key", "text", "channel", "macro", "categoria", "path")
+    ).casefold()
+    need_procura = _flag_enabled(flags, "needProcura")
+    need_contributo = _flag_enabled(flags, "needContributoUnificato") or "contributounificato" in required
+    need_nota_ruolo = _flag_enabled(flags, "needNotaIscrizioneRuolo")
     if rules.get("channel_kind") == "unep_notifiche":
-        return ["atto da notificare", "relata o richiesta", "destinatari", "allegati", "ricevute"]
-    documents = ["atto principale", "procura alle liti", "allegati"]
-    if "introduttivi" in category.casefold():
-        documents.append("dati iscrizione a ruolo")
-    if "cassazione" in _text(entry.get("channel")).casefold():
+        documents = ["atto da notificare", "relata o richiesta", "destinatari"]
+        if need_contributo:
+            documents.append("contributo o anticipazione spese UNEP")
+        documents.extend(["allegati", "ricevute"])
+        return _unique_texts(documents)
+
+    documents = ["atto principale"]
+    if need_procura:
+        documents.append("procura alle liti")
+    if need_contributo:
+        documents.append("ricevuta contributo unificato")
+    if need_nota_ruolo:
+        documents.append("nota iscrizione a ruolo")
+    if "cassazione" in haystack:
         documents.extend(["provvedimento impugnato", "prova notifica"])
-    if "siecic" in _text(entry.get("channel")).casefold():
+    if "siecic" in haystack:
         documents.append("dati procedura SIECIC quando richiesti")
+    if _flag_enabled(flags, "VisualizzaGrigliaTerzi"):
+        documents.append("dati terzi pignorati")
+    if _flag_enabled(flags, "VisualizzaAnagraficaProcedimento") or "anagraficaprocedimento" in required:
+        documents.append("anagrafica procedimento")
+    if "datacitazione" in required:
+        documents.append("data citazione")
+    if "valorecausa" in required:
+        documents.append("valore causa o esenzione")
+    if "istanze" in required:
+        documents.append("istanze o richieste")
+    if "modificheanagrafica" in required:
+        documents.append("modifiche anagrafica")
+    if "riferimentoprocedimento" in required:
+        documents.append("riferimento procedimento")
+    if "allegatiinindicebusta" in required:
+        documents.append("allegati")
     return _unique_texts(documents)
 
 

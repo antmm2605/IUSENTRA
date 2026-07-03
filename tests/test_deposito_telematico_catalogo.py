@@ -75,6 +75,44 @@ def test_catalogo_unep_non_attiva_busta_pct_civile():
     assert "UNEP" in unep["rules"]["real_send_blocker"]
 
 
+def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
+    citazione = resolve_deposit_type_payload("Introduttivi_SICID::Citazione")
+    memoria = resolve_deposit_type_payload("Parte_SICID::Memoria183")
+    cassazione = resolve_deposit_type_payload("Parte_CASSAZIONE::Ricorso")
+    unep = resolve_deposit_type_payload("Atti_UNEP::AttoCivileDebito")
+
+    assert citazione is not None
+    citazione_docs = citazione["ui"]["documents"]
+    assert "atto principale" in citazione_docs
+    assert "procura alle liti" in citazione_docs
+    assert "ricevuta contributo unificato" in citazione_docs
+    assert "nota iscrizione a ruolo" not in citazione_docs
+    assert "anagrafica procedimento" in citazione_docs
+    assert "data citazione" in citazione_docs
+    assert "valore causa o esenzione" in citazione_docs
+
+    assert memoria is not None
+    memoria_docs = memoria["ui"]["documents"]
+    assert "atto principale" in memoria_docs
+    assert "procura alle liti" not in memoria_docs
+    assert "ricevuta contributo unificato" not in memoria_docs
+    assert "riferimento procedimento" in memoria_docs
+    assert "istanze o richieste" in memoria_docs
+
+    assert cassazione is not None
+    cassazione_docs = cassazione["ui"]["documents"]
+    assert "procura alle liti" in cassazione_docs
+    assert "ricevuta contributo unificato" in cassazione_docs
+    assert "nota iscrizione a ruolo" in cassazione_docs
+    assert "provvedimento impugnato" in cassazione_docs
+    assert "prova notifica" in cassazione_docs
+
+    assert unep is not None
+    unep_docs = unep["ui"]["documents"]
+    assert unep_docs[:3] == ["atto da notificare", "relata o richiesta", "destinatari"]
+    assert "contributo o anticipazione spese UNEP" in unep_docs
+
+
 def test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio():
     roots = [
         ("AttoSistemaSicid.DepositoComplementare", "AttoSistemaSicid"),

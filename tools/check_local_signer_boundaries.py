@@ -80,8 +80,8 @@ def main() -> int:
             "FlashWindow",
             "def _cf_avvocato_pst",
             "if explicit:\n        return explicit",
-            "for candidate in _pst_document_id_candidates(doc):",
             "Master-detail PST:",
+            "Master/detail usa idDoc/idDocumento; idCat resta un recupero finale",
             "allow_cert_retry=False",
         )
         for snippet in required_snippets:

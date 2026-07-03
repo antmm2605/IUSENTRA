@@ -100,6 +100,18 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
     )
+
+    def _env_or_data_peer_path(env_key: str, folder: str, filename: str) -> str:
+        fallback = _data_peer_path(app.config["CLIENTI_DB"], folder, filename)
+        if "CLIENTI_DB" in cfg:
+            return fallback
+        return os.getenv(env_key, fallback)
+
+    def _env_or_explicit_root_default(env_key: str, fallback: str, *root_keys: str) -> str:
+        if any(key in cfg for key in ("CLIENTI_DB", *root_keys)):
+            return fallback
+        return os.getenv(env_key, fallback)
+
     def _data_peer_path(base_path: str, folder: str, filename: str) -> str:
         base = Path(base_path)
         if base.parent.name.lower() == "clienti" and base.name.lower() == "anagrafica.json":
@@ -272,19 +284,16 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["FEATURE_FLAGS"] = resolve_feature_flags(cfg)
     app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "IUSENTRA")
-    default_portale_db = os.getenv(
-        "PCT_PORTALE_DB",
-        _data_peer_path(app.config["CLIENTI_DB"], "portale", "portali.json"),
-    )
+    default_portale_db = _env_or_data_peer_path("PCT_PORTALE_DB", "portale", "portali.json")
     app.config["PORTALE_DB"] = cfg.get("PORTALE_DB", default_portale_db)
     portale_root = Path(app.config["PORTALE_DB"]).parent
     app.config["PORTALE_UPLOADS"] = cfg.get(
         "PORTALE_UPLOADS",
-        os.getenv("PCT_PORTALE_UPLOADS", str(portale_root / "uploads")),
+        _env_or_explicit_root_default("PCT_PORTALE_UPLOADS", str(portale_root / "uploads"), "PORTALE_DB"),
     )
     app.config["PORTALE_IMPORT_LOG_DB"] = cfg.get(
         "PORTALE_IMPORT_LOG_DB",
-        os.getenv("PCT_PORTALE_IMPORT_LOG_DB", str(portale_root / "import_log.json")),
+        _env_or_explicit_root_default("PCT_PORTALE_IMPORT_LOG_DB", str(portale_root / "import_log.json"), "PORTALE_DB"),
     )
     app.config["FATTURAZIONE_DB"] = cfg.get(
         "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")
@@ -344,17 +353,11 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["SOGGETTI_DB"] = cfg.get(
         "SOGGETTI_DB",
-        os.getenv(
-            "PCT_SOGGETTI_DB",
-            _data_peer_path(app.config["CLIENTI_DB"], "soggetti", "anagrafica.json"),
-        ),
+        _env_or_data_peer_path("PCT_SOGGETTI_DB", "soggetti", "anagrafica.json"),
     )
     app.config["SOGGETTI_PARTI_DB"] = cfg.get(
         "SOGGETTI_PARTI_DB",
-        os.getenv(
-            "PCT_SOGGETTI_PARTI_DB",
-            _data_peer_path(app.config["CLIENTI_DB"], "soggetti", "parti.json"),
-        ),
+        _env_or_data_peer_path("PCT_SOGGETTI_PARTI_DB", "soggetti", "parti.json"),
     )
     app.config["WIZARD_PRO_DB"] = cfg.get(
         "WIZARD_PRO_DB", os.getenv(

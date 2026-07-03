@@ -39,6 +39,7 @@ import {
   type TelematicoSurfaceId,
 } from '../telematicoSurfacesData'
 import type { Tone } from '../data'
+import { formatDateTimeIt } from '../formatting'
 import './TelematicoSurfacePage.css'
 
 const iconMap: Record<string, LucideIcon> = {
@@ -496,6 +497,16 @@ function normaliseAcquisitionHistoryEvent(value: unknown): AcquisitionHistoryEve
   }
 }
 
+function userFacingTelematicoText(value: string): string {
+  return value
+    .replace(/\bFailed to fetch\b/gi, 'connessione non riuscita')
+    .replace(/\bNetworkError\b/gi, 'errore di rete')
+}
+
+function acquisitionEventTimestampLabel(value: string): string {
+  return formatDateTimeIt(value, value)
+}
+
 function readAcquisitionHistory(portal = ''): AcquisitionHistoryEvent[] {
   try {
     const raw = window.localStorage?.getItem(REACT_ACQUISITION_HISTORY_KEY)
@@ -631,7 +642,7 @@ function importResultRedirectHref(result: JsonRecord): string {
 }
 
 function friendlyAcquisitionReason(value: unknown): string {
-  const raw = asText(value, 'Operazione non completata.')
+  const raw = userFacingTelematicoText(asText(value, 'Operazione non completata.'))
   const lower = raw.toLowerCase()
   if (lower.includes('tempo massimo') || lower.includes('timeout') || lower.includes('non ha risposto')) {
     return 'Il portale ufficiale non ha risposto entro il tempo massimo; possibile sovraffollamento, puoi riprovare con gli stessi dati.'
@@ -659,7 +670,7 @@ function acquisitionHistorySubtitle(query: AcquisitionQuery, reason: string): st
   const parts = [
     query.ufficioNome || query.ufficio || 'Ufficio non indicato',
     rg ? `R.G. ${rg}` : '',
-    reason,
+    userFacingTelematicoText(reason),
   ].filter(Boolean)
   return parts.join(' - ')
 }
@@ -823,7 +834,7 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
       quick_filter: 'cassazione penale',
       tabella_ministeriale: 'JPW_CASSPE',
       servizio_pst_preferito: 'JPW_CASSPE',
-      registro_portale: 'JPW_CASSPE',
+      registro_portale: 'CASSPE',
     }
   }
   if (raw.includes('cass') && raw.includes('civil')) {
@@ -835,7 +846,7 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
       quick_filter: 'cassazione civile',
       tabella_ministeriale: 'JPW_CASSCI',
       servizio_pst_preferito: 'JPW_CASSCI',
-      registro_portale: 'JPW_CASSCI',
+      registro_portale: 'CASSCI',
     }
   }
   if (raw.includes('lavor') || raw.includes('previd') || raw.includes('assistenz') || raw.includes('sicid_lavoro') || raw.includes('jpw_sil')) {
@@ -847,7 +858,7 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
       quick_filter: 'lavoro',
       tabella_ministeriale: 'SICID_LAVORO',
       servizio_pst_preferito: raw.includes('silp') ? 'JPW_SILP_DISTR' : 'JPW_SIL_DISTR',
-      registro_portale: 'JPW_SIL',
+      registro_portale: 'LAV',
     }
   }
   if (raw.includes('volontar') || raw.includes('sivg')) {
@@ -859,67 +870,91 @@ function ministerialProfileFromSchema(value: unknown): JsonRecord {
       quick_filter: 'volontaria',
       tabella_ministeriale: 'SICID_VOLONTARIA_GIURISDIZIONE',
       servizio_pst_preferito: 'JPW_SIVG',
-      registro_portale: 'JPW_SIVG',
+      registro_portale: 'VG',
     }
   }
   if (raw.includes('simin')) {
     return {
       schema: 'minori',
-      materia: 'Minori',
+      materia: 'Minorenni',
       registro: 'MIN',
       tipo_registro: 'MIN',
       quick_filter: 'minori',
       tabella_ministeriale: 'SICID_SIMIN',
       servizio_pst_preferito: 'JPW_SIMIN',
-      registro_portale: 'JPW_SIMIN',
+      registro_portale: 'MIN',
     }
   }
   if (raw.includes('minor') || raw.includes('minoren') || raw.includes('sicid_minori') || raw.includes('jpw_min')) {
     return {
       schema: 'minori',
-      materia: 'Minori',
+      materia: 'Minorenni',
       registro: 'MIN',
       tipo_registro: 'MIN',
       quick_filter: 'minori',
       tabella_ministeriale: 'SICID_MINORI',
       servizio_pst_preferito: 'JPW_MIN',
-      registro_portale: 'JPW_MIN',
+      registro_portale: 'MIN',
     }
   }
-  if (raw.includes('siecic') || raw.includes('esecuz') || raw.includes('concors') || raw.includes('falliment') || raw.includes('pignor')) {
+  if (raw.includes('falliment') || raw.includes('concors')) {
     return {
-      schema: 'esecuzioni',
-      materia: 'Esecuzioni e concorsuali',
-      registro: 'SIECIC',
-      tipo_registro: 'SIECIC',
-      quick_filter: 'esecuzioni',
-      tabella_ministeriale: 'SIECIC_ESECUZIONI_CONCORSUALI',
+      schema: 'procedure concorsuali',
+      materia: 'Procedure concorsuali',
+      registro: 'FALL',
+      tipo_registro: 'FALL',
+      quick_filter: 'procedure concorsuali',
+      tabella_ministeriale: 'SIECIC_PROCEDURE_CONCORSUALI',
       servizio_pst_preferito: 'JPW_SIECIC',
-      registro_portale: 'JPW_SIECIC',
+      registro_portale: 'FALL',
+    }
+  }
+  if (raw.includes('immobil') || raw.includes('pignor')) {
+    return {
+      schema: 'esecuzioni immobiliari',
+      materia: 'Esecuzioni immobiliari',
+      registro: 'ESIM',
+      tipo_registro: 'ESIM',
+      quick_filter: 'esecuzioni immobiliari',
+      tabella_ministeriale: 'SIECIC_ESECUZIONI_IMMOBILIARI',
+      servizio_pst_preferito: 'JPW_SIECIC',
+      registro_portale: 'ESIM',
+    }
+  }
+  if (raw.includes('mobil') || raw.includes('esecuz') || raw.includes('siecic')) {
+    return {
+      schema: 'esecuzioni mobiliari',
+      materia: 'Esecuzioni mobiliari',
+      registro: raw.includes('siecic') && !raw.includes('esecuz') ? 'SIECIC' : 'ESM',
+      tipo_registro: raw.includes('siecic') && !raw.includes('esecuz') ? 'SIECIC' : 'ESM',
+      quick_filter: 'esecuzioni mobiliari',
+      tabella_ministeriale: 'SIECIC_ESECUZIONI_MOBILIARI',
+      servizio_pst_preferito: 'JPW_SIECIC',
+      registro_portale: raw.includes('siecic') && !raw.includes('esecuz') ? 'SIECIC' : 'ESM',
     }
   }
   if (raw.includes('giudice di pace') || raw.includes('sigp') || raw.includes('gdp')) {
     return {
       schema: 'giudice di pace',
-      materia: 'Giudice di pace',
+      materia: 'Giudice di Pace',
       registro: 'GDP',
       tipo_registro: 'GDP',
       quick_filter: 'giudice di pace',
       tabella_ministeriale: 'SIGP_GIUDICE_DI_PACE',
       servizio_pst_preferito: 'JPW_SIGP',
-      registro_portale: 'JPW_SIGP',
+      registro_portale: 'GDP',
     }
   }
   if (raw.includes('sicid') || raw.includes('civil') || raw.includes('rgn') || raw.includes('contenzioso')) {
     return {
       schema: 'civile',
-      materia: 'Civile contenzioso',
-      registro: 'RGN',
-      tipo_registro: 'RGN',
+      materia: 'Civile ordinario',
+      registro: 'CC',
+      tipo_registro: 'CC',
       quick_filter: 'civile',
       tabella_ministeriale: 'SICID_CONTENZIOSO_CIVILE',
       servizio_pst_preferito: 'JPW_SICID',
-      registro_portale: 'JPW_SICID',
+      registro_portale: 'CC',
     }
   }
   return {}
@@ -1009,7 +1044,7 @@ function ministerialSchemaFromQuery(query: AcquisitionQuery): string {
       query.materia,
     ].filter(Boolean).join(' '),
   )
-  return asText(profile.schema || query.schema || query.registro || query.materia || query.oggetto)
+  return asText(profile.schema || query.schema)
 }
 
 function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord {
@@ -1409,8 +1444,8 @@ function EventsPanel({ data, localEvents = [] }:{ data:TelematicoSurfaceData; lo
               <Badge tone={item.tone}>{item.badge || 'Evento'}</Badge>
               <div>
                 <strong>{item.title}</strong>
-                <span>{item.subtitle}</span>
-                <time>{item.timestamp}</time>
+                <span>{userFacingTelematicoText(item.subtitle)}</span>
+                <time>{acquisitionEventTimestampLabel(item.timestamp)}</time>
               </div>
               {item.local ? <em>Riprova</em> : null}
             </a>
@@ -1423,14 +1458,21 @@ function EventsPanel({ data, localEvents = [] }:{ data:TelematicoSurfaceData; lo
 
 function AcquisitionProgressView({ progress }: { progress: ImportProgress }) {
   if (!(progress.active || progress.phase || progress.failures.length)) return null
+  const phase = progress.phase || (progress.active ? 'Operazione in corso' : 'Operazione non avviata')
+  const current = progress.current || (progress.active ? 'Preparazione dati' : 'Controllo fermo')
+  const summary = progress.total
+    ? `${progress.completed}/${progress.total} passaggi`
+    : progress.active
+      ? 'Operazione in corso'
+      : 'Nessun passaggio avviato'
   return (
     <div className="iu-tel-acq-progress" aria-live="polite">
       <div>
-        <strong>{progress.phase || 'Operazione in corso'}</strong>
-        <span>{progress.current || 'Preparazione dati'}</span>
-        <small>{progress.total ? `${progress.completed}/${progress.total} passaggi` : 'Operazione in corso'}</small>
+        <strong>{phase}</strong>
+        <span>{current}</span>
+        <small>{summary}</small>
       </div>
-      <progress value={progress.total ? progress.completed : undefined} max={progress.total || undefined}/>
+      {progress.active ? <progress value={progress.total ? progress.completed : undefined} max={progress.total || undefined}/> : null}
       {progress.failures.length ? (
         <ul>
           {progress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
@@ -4011,6 +4053,19 @@ function AcquisitionWizard({
 
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const applyMinisterialSchema = (schemaValue: string) => {
+    if (!schemaValue) {
+      setQuery((current) => ({
+        ...current,
+        schema: '',
+        registro: '',
+        materia: '',
+        tabellaMinisteriale: '',
+        servizioPstPreferito: '',
+        registroPortale: '',
+      }))
+      setPstSchemaHint({})
+      return
+    }
     const profile = ministerialProfileFromSchema(schemaValue)
     setQuery((current) => {
       const next = {
@@ -4025,9 +4080,6 @@ function AcquisitionWizard({
       rememberPstMinisterialProfile(next, 'manual')
       return next
     })
-    if (!schemaValue) {
-      setPstSchemaHint({})
-    }
   }
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => {
@@ -5460,12 +5512,14 @@ function AcquisitionWizard({
                     ) : (
                       <>
                         <option value="">Automatica</option>
-                        <option value="civile">Civile contenzioso</option>
+                        <option value="civile">Civile ordinario</option>
                         <option value="lavoro">Lavoro e previdenza</option>
                         <option value="volontaria">Volontaria giurisdizione</option>
-                        <option value="minori">Minori</option>
-                        <option value="esecuzioni">Esecuzioni e concorsuali</option>
-                        <option value="giudice di pace">Giudice di pace</option>
+                        <option value="minori">Minorenni</option>
+                        <option value="esecuzioni mobiliari">Esecuzioni mobiliari</option>
+                        <option value="esecuzioni immobiliari">Esecuzioni immobiliari</option>
+                        <option value="procedure concorsuali">Procedure concorsuali</option>
+                        <option value="giudice di pace">Giudice di Pace</option>
                         <option value="cassazione civile">Cassazione civile</option>
                         <option value="cassazione penale">Cassazione penale</option>
                       </>
@@ -5489,9 +5543,6 @@ function AcquisitionWizard({
                     Tabella ministeriale applicata automaticamente:
                     {' '}
                     <strong>{asText(pstSchemaHint.materia || query.materia || query.schema)}</strong>
-                    {asText(query.servizioPstPreferito || pstSchemaHint.servizio_pst_preferito)
-                      ? ` (${asText(query.servizioPstPreferito || pstSchemaHint.servizio_pst_preferito)})`
-                      : ''}
                   </span>
                 </div>
               ) : null}
@@ -5896,8 +5947,8 @@ function AcquisitionWizard({
                     <Badge tone={item.tone}>{item.badge || 'Riprova'}</Badge>
                     <div>
                       <strong>{item.title}</strong>
-                      <span>{item.subtitle}</span>
-                      <small>{italianDate(item.timestamp)}</small>
+                      <span>{userFacingTelematicoText(item.subtitle)}</span>
+                      <small>{acquisitionEventTimestampLabel(item.timestamp)}</small>
                     </div>
                   </a>
                 ))}

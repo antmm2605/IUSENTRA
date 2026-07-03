@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+from xml.sax.saxutils import escape as _xml_escape
 
 from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
 from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, risolvi_ufficio
@@ -44,9 +45,18 @@ _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
 _WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
 _PST_SERVICE_ALIASES = {
     "JPW_CASS": "JPW_CASSCI",
+    "JPW_SIL": "JPW_SIL_DISTR",
+    "JPW_SILP": "JPW_SILP_DISTR",
 }
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIL_DISTR": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP_DISTR": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SIVG": "urn:CONS-SIVG-BE",
+    "JPW_MIN": "urn:CONS-MIN-BE",
+    "JPW_SIMIN": "urn:CONS-MIN-BE",
     "JPW_SIECIC": "urn:CONS-SIECIC-BE",
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
@@ -54,6 +64,41 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_UNEP": "urn:CONS-UNEP",
 }
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
+
+
+@dataclass(frozen=True)
+class PolisWebRegistroSpec:
+    registro: str
+    label: str
+    servizio_preferito: str
+    tipo_ricerca: str = "RGN"
+    registro_portale: str = ""
+    aliases: tuple[str, ...] = ()
+    richiede_id_dfa: bool = False
+    cassazione: bool = False
+    siecic: bool = False
+    sigp: bool = False
+
+
+_POLISWEB_REGISTRI: tuple[PolisWebRegistroSpec, ...] = (
+    PolisWebRegistroSpec("CC", "Civile ordinario", "JPW_SICID", "RGN", "CC", ("SICID", "RGN", "RNG", "CIVILE", "CONTENZIOSO", "JPW_SICID")),
+    PolisWebRegistroSpec("LAV", "Lavoro", "JPW_SIL_DISTR", "LAV", "LAV", ("SIL", "SICID_LAVORO", "JPW_SIL", "JPW_SIL_DISTR", "JPW_SILP", "JPW_SILP_DISTR")),
+    PolisWebRegistroSpec("VG", "Volontaria giurisdizione", "JPW_SIVG", "VG", "VG", ("SIVG", "VOLONTARIA", "JPW_SIVG")),
+    PolisWebRegistroSpec("MIN", "Minorenni", "JPW_MIN", "MIN", "MIN", ("SIMIN", "MINORI", "MINORENNI", "JPW_MIN", "JPW_SIMIN")),
+    PolisWebRegistroSpec("ESM", "Esecuzioni mobiliari", "JPW_SIECIC", "ESM", "ESM", ("SIECIC_ESM", "ESECUZIONE_MOBILIARE", "ESECUZIONI_MOBILIARI"), True, siecic=True),
+    PolisWebRegistroSpec("ESIM", "Esecuzioni immobiliari", "JPW_SIECIC", "ESIM", "ESIM", ("SIECIC_ESIM", "ESECUZIONE_IMMOBILIARE", "ESECUZIONI_IMMOBILIARI", "PIGNORAMENTO"), True, siecic=True),
+    PolisWebRegistroSpec("FALL", "Procedure concorsuali", "JPW_SIECIC", "FALL", "FALL", ("SIECIC_FALL", "FALLIMENTARE", "CONCORSUALE", "PROCEDURE_CONCORSUALI"), True, siecic=True),
+    PolisWebRegistroSpec("SIECIC", "Esecuzioni e concorsuali", "JPW_SIECIC", "SIECIC", "SIECIC", ("JPW_SIECIC",), True, siecic=True),
+    PolisWebRegistroSpec("GP", "Giudice di Pace", "JPW_SIGP", "GDP", "GDP", ("GDP", "SIGP", "GIUDICE_DI_PACE", "JPW_SIGP"), sigp=True),
+    PolisWebRegistroSpec("CASSCI", "Cassazione civile", "JPW_CASSCI", "CASSCI", "CASSCI", ("CASSAZIONE_CIVILE", "JPW_CASSCI", "JPW_CASS"), cassazione=True),
+    PolisWebRegistroSpec("CASSPE", "Cassazione penale", "JPW_CASSPE", "CASSPE", "CASSPE", ("CASSAZIONE_PENALE", "JPW_CASSPE"), cassazione=True),
+)
+_POLISWEB_REGISTRI_BY_TOKEN: dict[str, PolisWebRegistroSpec] = {}
+for _spec in _POLISWEB_REGISTRI:
+    for _token in (_spec.registro, _spec.registro_portale, _spec.servizio_preferito, *_spec.aliases):
+        cleaned = re.sub(r"[^A-Z0-9]+", "_", str(_token or "").strip().upper()).strip("_")
+        if cleaned:
+            _POLISWEB_REGISTRI_BY_TOKEN.setdefault(cleaned, _spec)
 
 
 def _pst_endpoint_legacy(base_url: str) -> bool:
@@ -85,6 +130,65 @@ def _pst_servizio_proxy(base_url: str) -> str:
 
 def _pst_namespace_qbuilder(base_url: str) -> str:
     return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
+
+
+def _xml_value(value: Any) -> str:
+    return _xml_escape("" if value is None else str(value), {'"': "&quot;"})
+
+
+def _polisweb_token(value: Any) -> str:
+    return re.sub(r"[^A-Z0-9]+", "_", str(value or "").strip().upper()).strip("_")
+
+
+def _polisweb_registro_spec(*values: Any, base_url: str = "") -> PolisWebRegistroSpec:
+    for value in values:
+        token = _polisweb_token(value)
+        if token in _POLISWEB_REGISTRI_BY_TOKEN:
+            return _POLISWEB_REGISTRI_BY_TOKEN[token]
+        if "CASS" in token and "PEN" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["CASSPE"]
+        if "CASS" in token and "CIV" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["CASSCI"]
+        if "LAVOR" in token or "PREVID" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["LAV"]
+        if "VOLONTAR" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["VG"]
+        if "MINOR" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["MIN"]
+        if "IMMOB" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["ESIM"]
+        if "MOBIL" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["ESM"]
+        if "FALL" in token or "CONCORS" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["FALL"]
+        if "PACE" in token:
+            return _POLISWEB_REGISTRI_BY_TOKEN["GP"]
+    servizio = _pst_servizio_proxy(base_url)
+    if servizio:
+        token = _polisweb_token(servizio)
+        if token in _POLISWEB_REGISTRI_BY_TOKEN:
+            return _POLISWEB_REGISTRI_BY_TOKEN[token]
+    return _POLISWEB_REGISTRI_BY_TOKEN["CC"]
+
+
+def _normalizza_ruolo_polisweb(role: str = "") -> str:
+    return (role or "AVV").strip().upper() or "AVV"
+
+
+def _numero_ruolo_value(numero_rg: Optional[str]) -> str:
+    value = str(numero_rg or "").strip()
+    if value.isdigit():
+        return str(int(value))
+    return value
+
+
+def _nrg_reale_cassazione(numero_rg: Optional[str], anno_rg: Optional[int]) -> str:
+    numero = re.sub(r"\D+", "", str(numero_rg or ""))
+    if not numero or not anno_rg:
+        return ""
+    if len(numero) >= 10 and numero.startswith(str(anno_rg)):
+        return numero
+    return f"{int(anno_rg):04d}{int(numero):06d}00"
 
 
 def _pst_servizio_sigp(base_url: str) -> bool:
@@ -216,7 +320,13 @@ def _qbuilder_parti_dettaglio(row: Dict[str, Any]) -> List[Dict[str, str]]:
     return dettagli
 
 
-def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
+def _map_qbuilder_fascicolo(
+    row: Dict[str, Any],
+    *,
+    spec: Optional[PolisWebRegistroSpec] = None,
+    base_url: str = "",
+) -> FascicoloPolisWeb:
+    spec = spec or _polisweb_registro_spec(row.get("REGISTRO"), row.get("RUOLO"), base_url=base_url)
     codice_ufficio = (
         row.get("IDUFFICIO")
         or row.get("CODICEUFFICIO")
@@ -248,17 +358,37 @@ def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
         codice_ufficio=codice_ufficio,
         nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
         sub_procedimento=str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        tipo_registro=spec.registro,
+        registro_portale=spec.registro_portale or spec.registro,
+        servizio_pst=spec.servizio_preferito,
+        urn=_pst_namespace_qbuilder(base_url).replace("urn:", "") if base_url else "",
+        target_path=_pst_servizio_proxy(base_url) if base_url else spec.servizio_preferito,
+        id_dfa=str(row.get("IDDFA") or row.get("ID_DFA") or "").strip(),
+        id_fascicolo=str(row.get("IDFASCICOLO") or row.get("ID_FASCICOLO") or "").strip(),
+        registro_decode=str(row.get("REGISTODECODE") or row.get("REGISTRODECODE") or "").strip(),
+        numero_estensione=str(row.get("NUMEROESTENSIONE") or "").strip(),
+        codice_rito=str(row.get("CODRITO") or "").strip(),
+        descrizione_rito=str(row.get("DESCRRITO") or row.get("RITO") or "").strip(),
+        materia=str(row.get("MATERIA") or row.get("DESCMATERIA") or "").strip(),
+        data_ultima_modifica=_parse_data(str(row.get("DATAULTIMAMODIFICA") or "").strip()),
         note="",
     )
 
 
-def _map_qbuilder_documento(row: Dict[str, Any]) -> DocumentoPolisWeb:
+def _map_qbuilder_documento(
+    row: Dict[str, Any],
+    *,
+    spec: Optional[PolisWebRegistroSpec] = None,
+) -> DocumentoPolisWeb:
+    spec = spec or _polisweb_registro_spec(row.get("REGISTRO"))
     id_documento = (
         row.get("IDDOCUMENTO")
+        or row.get("IDATTO")
         or row.get("NUMERODOCUMENTO")
         or row.get("IDDOCMITTENTE")
         or ""
     ).strip()
+    id_cat = str(row.get("IDCAT") or row.get("IdCat") or row.get("idCat") or "").strip()
     tipo = _qbuilder_tipo_documento(row.get("TIPO") or row.get("TIPODOCUMENTO") or "")
     nome = (row.get("NOMEFILE") or row.get("NOME") or "").strip()
     if not nome:
@@ -273,6 +403,17 @@ def _map_qbuilder_documento(row: Dict[str, Any]) -> DocumentoPolisWeb:
         disponibile=(row.get("STATO") or "").strip().lower() != "non disponibile",
         id_deposito=(row.get("IDBUSTA") or row.get("IDDEPOSITO") or "").strip(),
         tipo_atto=tipo,
+        id_cat=id_cat,
+        id_sub_item=str(row.get("IDSUBITEM") or row.get("IdSubItem") or row.get("idSubItem") or id_documento).strip(),
+        id_doc_mittente=str(row.get("IDDOCMITTENTE") or "").strip(),
+        stato=str(row.get("STATO") or "").strip(),
+        anno_documento=str(row.get("ANNODOCUMENTO") or "").strip(),
+        numero_documento=str(row.get("NUMERODOCUMENTO") or "").strip(),
+        anno_fascicolo=str(row.get("ANNOFASCICOLO") or row.get("ANNORUOLO") or "").strip(),
+        numero_fascicolo=str(row.get("NUMEROFASCICOLO") or row.get("NUMERO") or "").strip(),
+        sub_procedimento=str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        registro_portale=spec.registro_portale or spec.registro,
+        servizio_pst=spec.servizio_preferito,
     )
 
 
@@ -293,6 +434,17 @@ _DOCUMENTO_SOAP_ATTRS = (
     "tipoAtto",
     "descTipoAtto",
     "tipoAtta",
+    "idCat",
+    "IdCat",
+    "idSubItem",
+    "IdSubItem",
+    "idDocMittente",
+    "stato",
+    "annoDocumento",
+    "numeroDocumento",
+    "annoFascicolo",
+    "numeroFascicolo",
+    "subprocedimento",
 )
 
 
@@ -437,6 +589,20 @@ class FascicoloPolisWeb:
     codice_ufficio: str = ""    # codice MinGiust del tribunale
     nome_ufficio: str = ""
     sub_procedimento: str = ""
+    tipo_registro: str = ""
+    registro_portale: str = ""
+    servizio_pst: str = ""
+    urn: str = ""
+    target_path: str = ""
+    id_dfa: str = ""
+    id_fascicolo: str = ""
+    ruolo_polisweb: str = ""
+    registro_decode: str = ""
+    numero_estensione: str = ""
+    codice_rito: str = ""
+    descrizione_rito: str = ""
+    materia: str = ""
+    data_ultima_modifica: str = ""
 
 
 @dataclass
@@ -452,6 +618,17 @@ class DocumentoPolisWeb:
     # Raggruppamento per busta/deposito (tutti i file della stessa busta condividono id_deposito)
     id_deposito: str = ""       # identificativo univoco della busta telematica
     tipo_atto: str = ""         # tipo atto della busta (es. "Decreto Ingiuntivo", "Memoria")
+    id_cat: str = ""            # identificativo catalogo usato per il download PST
+    id_sub_item: str = ""       # id documento/atto padre del master-detail
+    id_doc_mittente: str = ""
+    stato: str = ""
+    anno_documento: str = ""
+    numero_documento: str = ""
+    anno_fascicolo: str = ""
+    numero_fascicolo: str = ""
+    sub_procedimento: str = ""
+    registro_portale: str = ""
+    servizio_pst: str = ""
 
 
 @dataclass
@@ -525,6 +702,17 @@ def _documento_polisweb_to_dict(documento: DocumentoPolisWeb) -> Dict[str, Any]:
         "disponibile": bool(documento.disponibile),
         "id_deposito": _chiave_deposito_polisweb(documento),
         "tipo_atto": (documento.tipo_atto or _tipo_atto_gruppo_polisweb([documento])).strip(),
+        "id_cat": (documento.id_cat or "").strip(),
+        "id_sub_item": (documento.id_sub_item or "").strip(),
+        "id_doc_mittente": (documento.id_doc_mittente or "").strip(),
+        "stato": (documento.stato or "").strip(),
+        "anno_documento": (documento.anno_documento or "").strip(),
+        "numero_documento": (documento.numero_documento or "").strip(),
+        "anno_fascicolo": (documento.anno_fascicolo or "").strip(),
+        "numero_fascicolo": (documento.numero_fascicolo or "").strip(),
+        "sub_procedimento": (documento.sub_procedimento or "").strip(),
+        "registro_portale": (documento.registro_portale or "").strip(),
+        "servizio_pst": (documento.servizio_pst or "").strip(),
     }
 
 
@@ -1557,6 +1745,13 @@ class ClientPolisWeb:
         nome_parte: Optional[str] = None,
         codice_fiscale_parte: Optional[str] = None,
         max_risultati: int = 50,
+        registro: str = "",
+        tipo_registro: str = "",
+        servizio_pst_preferito: str = "",
+        registro_portale: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
     ) -> List[FascicoloPolisWeb]:
         """
         Cerca fascicoli nel registro del tribunale tramite PST SOAP.
@@ -1577,7 +1772,14 @@ class ClientPolisWeb:
             ConnectionError: se il PST non è raggiungibile.
             PermissionError: se il certificato non è valido / scaduto.
         """
-        base_pst = self._risolvi_base_pst(tribunale)
+        spec = _polisweb_registro_spec(
+            registro,
+            tipo_registro,
+            registro_portale,
+            servizio_pst_preferito,
+        )
+        preferito = servizio_pst_preferito or spec.servizio_preferito
+        base_pst = self._risolvi_base_pst(tribunale, preferito=preferito)
         codice_pst = self._risolvi_codice_ufficio(tribunale)
 
         if _pst_usa_qbuilder(base_pst):
@@ -1590,9 +1792,25 @@ class ClientPolisWeb:
                     anno_rg=anno_rg,
                     nome_parte=nome_parte,
                     codice_fiscale_parte=codice_fiscale_parte,
+                    registro=spec.registro,
+                    servizio_pst_preferito=preferito,
+                    ruolo_polisweb=ruolo_polisweb,
+                    sub_procedimento=sub_procedimento,
+                    id_dfa=id_dfa,
                 ),
             )
-            fascicoli = self._parse_fascicoli_qbuilder_xml(xml)
+            fascicoli = self._parse_fascicoli_qbuilder_xml(xml, spec=spec, base_url=base_pst)
+            for fascicolo in fascicoli:
+                fascicolo.tipo_registro = spec.registro
+                fascicolo.registro_portale = spec.registro_portale or spec.registro
+                fascicolo.servizio_pst = preferito
+                fascicolo.ruolo_polisweb = _normalizza_ruolo_polisweb(ruolo_polisweb)
+                fascicolo.urn = _pst_namespace_qbuilder(base_pst).replace("urn:", "")
+                fascicolo.target_path = _pst_servizio_proxy(base_pst)
+                if sub_procedimento and not fascicolo.sub_procedimento:
+                    fascicolo.sub_procedimento = sub_procedimento
+                if id_dfa and not fascicolo.id_dfa:
+                    fascicolo.id_dfa = id_dfa
             if fascicoli and len(fascicoli) <= min(max_risultati, 10):
                 fascicoli = self._arricchisci_fascicoli_con_profilo(base_pst, fascicoli)
             if not (numero_rg and anno_rg) and (nome_parte or codice_fiscale_parte):
@@ -1617,6 +1835,8 @@ class ClientPolisWeb:
             request_dict["nominativoParte"] = nome_parte
         if codice_fiscale_parte:
             request_dict["codiceFiscaleParte"] = codice_fiscale_parte.upper()
+        if spec.registro:
+            request_dict["registro"] = spec.registro
 
         try:
             risposta = client.service.ricercaFascicoli(**request_dict)
@@ -1632,6 +1852,11 @@ class ClientPolisWeb:
         codice_ufficio: str,
         numero_rg: str,
         anno_rg: int,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
+        servizio_pst_preferito: str = "",
     ) -> List[DocumentoPolisWeb]:
         """
         Recupera l'elenco dei documenti depositati nel fascicolo telematico.
@@ -1644,7 +1869,9 @@ class ClientPolisWeb:
         Returns:
             Lista di DocumentoPolisWeb.
         """
-        base_pst = self._risolvi_base_pst(codice_ufficio)
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito)
+        preferito = servizio_pst_preferito or spec.servizio_preferito
+        base_pst = self._risolvi_base_pst(codice_ufficio, preferito=preferito)
         codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
 
         if _pst_usa_qbuilder(base_pst):
@@ -1655,9 +1882,14 @@ class ClientPolisWeb:
                     codice_ufficio=codice_pst,
                     numero_rg=numero_rg,
                     anno_rg=anno_rg,
+                    registro=spec.registro,
+                    ruolo_polisweb=ruolo_polisweb,
+                    sub_procedimento=sub_procedimento,
+                    id_dfa=id_dfa,
+                    servizio_pst_preferito=preferito,
                 ),
             )
-            return self._parse_documenti_qbuilder_xml(xml)
+            return self._parse_documenti_qbuilder_xml(xml, spec=spec)
 
         client = self._get_client(_wsdl_consultazione(base_pst))
         try:
@@ -1688,6 +1920,12 @@ class ClientPolisWeb:
                 fascicolo_pw.codice_ufficio,
                 fascicolo_pw.numero_rg,
                 fascicolo_pw.anno_rg,
+                registro=getattr(fascicolo_pw, "tipo_registro", "")
+                or getattr(fascicolo_pw, "registro_portale", ""),
+                ruolo_polisweb=getattr(fascicolo_pw, "ruolo_polisweb", "") or "AVV",
+                sub_procedimento=getattr(fascicolo_pw, "sub_procedimento", ""),
+                id_dfa=getattr(fascicolo_pw, "id_dfa", ""),
+                servizio_pst_preferito=getattr(fascicolo_pw, "servizio_pst", ""),
             )
             return list(documenti or []), []
         except Exception as e:
@@ -2045,17 +2283,22 @@ class ClientPolisWeb:
         name: str,
         values: List[tuple[str, str, Any]],
         order_by: str = "",
+        *,
+        ruolo_polisweb: str = "AVV",
+        group: Optional[str] = None,
     ) -> str:
         ns = _pst_namespace_qbuilder(base_pst)
         valori = ''.join(
-            f'<value name="{k}" type="{tipo}">{"" if v is None else v}</value>'
+            f'<value name="{_xml_value(k)}" type="{_xml_value(tipo)}">{_xml_value(v)}</value>'
             for k, tipo, v in values
-            if not (k in {'subProc', 'subpro'} and v in ('', None))
+            if not (k in {'subProc', 'subpro', 'idDfa', 'registro', 'idRuoloJPW'} and v in ('', None))
         )
         order_xml = f'<orderBy><entry property="{order_by}" mode="asc"/></orderBy>' if order_by else '<orderBy/>'
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        group_value = codice_ufficio if group is None else group
         body = (
             f'<execute xmlns="{ns}">'
-            f'<domain><InvocationDomain name="JPW" role="AVV" group="{codice_ufficio}"/></domain>'
+            f'<domain><InvocationDomain name="JPW" role="{_xml_value(role)}" group="{_xml_value(group_value)}"/></domain>'
             f'<name>{name}</name>'
             f'<valueSet>{valori}</valueSet>'
             f'{order_xml}'
@@ -2071,19 +2314,119 @@ class ClientPolisWeb:
         anno_rg: Optional[int],
         nome_parte: Optional[str],
         codice_fiscale_parte: Optional[str],
+        registro: str = "",
+        servizio_pst_preferito: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
     ) -> str:
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito, base_url=base_pst)
+        numero_value = _numero_ruolo_value(numero_rg)
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+
         if numero_rg and anno_rg:
+            if spec.cassazione:
+                nrg_reale = _nrg_reale_cassazione(numero_rg, anno_rg)
+                method = "QP_Ricorsi" if spec.registro == "CASSPE" else "QC_Ricorsi"
+                values = [("NRGREALE", "string", nrg_reale)] if nrg_reale else [("NRG", "string", numero_value)]
+                return self._soap_qbuilder_execute_body(
+                    base_pst,
+                    codice_ufficio,
+                    method,
+                    values,
+                    ruolo_polisweb=role,
+                    group="",
+                )
+            if spec.siecic:
+                return self._soap_qbuilder_execute_body(
+                    base_pst,
+                    codice_ufficio,
+                    'RicercaInformazioniFascicoloPerNumero',
+                    [
+                        ('idUfficio', 'string', codice_ufficio),
+                        ('idRuoloJPW', 'string', role),
+                        ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
+                        ('tipo', 'string', 'RNG'),
+                        ('numero', 'integer', numero_value),
+                        ('anno', 'string', anno_rg),
+                        ('NUMEROUNITARIO', 'string', ''),
+                    ],
+                    order_by='ANNORUOLO, NUMERORUOLO',
+                    ruolo_polisweb=role,
+                )
             return self._soap_qbuilder_execute_body(
                 base_pst,
                 codice_ufficio,
                 'RicercaInformazioniFascicoloPerTipo',
                 [
                     ('idUfficio', 'string', codice_ufficio),
-                    ('tipo', 'string', _pst_tipo_ricerca_qbuilder(base_pst)),
-                    ('numero', 'integer', numero_rg),
+                    ('tipo', 'string', spec.tipo_ricerca or _pst_tipo_ricerca_qbuilder(base_pst)),
+                    ('numero', 'integer', numero_value),
+                    ('anno', 'string', anno_rg),
+                    ('subpro', 'integer', sub_procedimento if spec.sigp and sub_procedimento else ''),
+                ],
+                order_by='ANNORUOLO, NUMERORUOLO',
+                ruolo_polisweb=role,
+            )
+
+        if anno_rg and not str(numero_rg or "").strip() and not (nome_parte or codice_fiscale_parte):
+            if spec.cassazione:
+                method = "QP_Ricorsi" if spec.registro == "CASSPE" else "QC_Ricorsi"
+                return self._soap_qbuilder_execute_body(
+                    base_pst,
+                    codice_ufficio,
+                    method,
+                    [
+                        ('DATADEP_DA', 'date', f'01/01/{int(anno_rg):04d}'),
+                        ('DATADEP_AL', 'date', f'31/12/{int(anno_rg):04d}'),
+                    ],
+                    ruolo_polisweb=role,
+                    group="",
+                )
+            if spec.sigp:
+                return self._soap_qbuilder_execute_body(
+                    base_pst,
+                    codice_ufficio,
+                    'RicercaInformazioniFascicoloPerRMO',
+                    [('idUfficio', 'string', codice_ufficio)],
+                    order_by='ANNORUOLO, NUMERORUOLO',
+                    ruolo_polisweb=role,
+                )
+            if spec.siecic:
+                return self._soap_qbuilder_execute_body(
+                    base_pst,
+                    codice_ufficio,
+                    'RicercaInformazioniFascicoloPerNumero',
+                    [
+                        ('idUfficio', 'string', codice_ufficio),
+                        ('idRuoloJPW', 'string', role),
+                        ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
+                        ('tipo', 'string', 'RNG'),
+                        ('numero', 'integer', ''),
+                        ('anno', 'string', anno_rg),
+                        ('NUMEROUNITARIO', 'string', ''),
+                    ],
+                    order_by='ANNORUOLO, NUMERORUOLO',
+                    ruolo_polisweb=role,
+                )
+            return self._soap_qbuilder_execute_body(
+                base_pst,
+                codice_ufficio,
+                'RicercaInformazioniFascicoloPerTipo',
+                [
+                    ('idUfficio', 'string', codice_ufficio),
+                    ('tipo', 'string', spec.tipo_ricerca or _pst_tipo_ricerca_qbuilder(base_pst)),
+                    ('numero', 'integer', ''),
                     ('anno', 'string', anno_rg),
                 ],
                 order_by='ANNORUOLO, NUMERORUOLO',
+                ruolo_polisweb=role,
+            )
+
+        if spec.cassazione:
+            raise RuntimeError(
+                "Per la Cassazione usare numero/anno del ricorso oppure una lettura per anno; "
+                "la ricerca per parte non ha lo stesso contratto dei registri civili."
             )
 
         return self._soap_qbuilder_execute_body(
@@ -2099,21 +2442,61 @@ class ClientPolisWeb:
                 ('dataRuoloA', 'string', ''),
             ],
             order_by='ANNORUOLO, NUMERORUOLO',
+            ruolo_polisweb=role,
         )
 
-    def _soap_documenti_qbuilder(self, base_pst: str, codice_ufficio: str, numero_rg: str, anno_rg: int) -> str:
+    def _soap_documenti_qbuilder(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        numero_rg: str,
+        anno_rg: int,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
+        servizio_pst_preferito: str = "",
+    ) -> str:
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito, base_url=base_pst)
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        numero_value = _numero_ruolo_value(numero_rg)
         return self._soap_qbuilder_execute_body(
             base_pst,
             codice_ufficio,
             'DocumentiFascicolo',
             [
                 ('idUfficio', 'string', codice_ufficio),
+                ('idRuoloJPW', 'string', role),
+                ('numero', 'integer', numero_value),
                 ('anno', 'string', anno_rg),
-                ('numero', 'string', numero_rg),
+                ('subpro', 'integer', sub_procedimento if spec.sigp and sub_procedimento else ''),
+                ('subProc', 'string', sub_procedimento if (sub_procedimento and not spec.sigp and not spec.siecic) else ''),
+                ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
+                ('idDfa', 'string', id_dfa),
             ],
+            ruolo_polisweb=role,
         )
 
-    def _soap_profilo_fascicolo_qbuilder(self, base_pst: str, codice_ufficio: str, fascicolo: FascicoloPolisWeb) -> str:
+    def _soap_profilo_fascicolo_qbuilder(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        fascicolo: FascicoloPolisWeb,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        id_dfa: str = "",
+        servizio_pst_preferito: str = "",
+    ) -> str:
+        spec = _polisweb_registro_spec(
+            registro,
+            getattr(fascicolo, "tipo_registro", ""),
+            getattr(fascicolo, "registro_portale", ""),
+            servizio_pst_preferito,
+            getattr(fascicolo, "servizio_pst", ""),
+            base_url=base_pst,
+        )
+        role = _normalizza_ruolo_polisweb(ruolo_polisweb)
+        subpro = getattr(fascicolo, "sub_procedimento", "") or ""
         return self._soap_qbuilder_execute_body(
             base_pst,
             codice_ufficio,
@@ -2121,21 +2504,24 @@ class ClientPolisWeb:
             [
                 ('idUfficio', 'string', codice_ufficio),
                 ('anno', 'string', fascicolo.anno_rg),
-                ('numero', 'string', fascicolo.numero_rg),
-            ]
-            + (
-                [('subpro', 'string', _pst_subpro_sigp(fascicolo.sub_procedimento))]
-                if _pst_servizio_sigp(base_pst) and _pst_subpro_sigp(fascicolo.sub_procedimento)
-                else []
-            ),
+                ('numero', 'integer', _numero_ruolo_value(fascicolo.numero_rg)),
+                ('subpro', 'integer', subpro if spec.sigp and subpro else ''),
+                ('subProc', 'string', subpro if (subpro and not spec.sigp and not spec.siecic) else ''),
+                ('fascPrecedente', 'boolean', '0'),
+                ('scadTermini', 'boolean', '0'),
+                ('idRuoloJPW', 'string', role),
+                ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
+                ('idDfa', 'string', id_dfa or getattr(fascicolo, "id_dfa", "")),
+            ],
+            ruolo_polisweb=role,
         )
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:
         """Risolve nome tribunale -> codice ufficio MinGiust."""
         return risolvi_codice_ministero(nome_o_codice)
 
-    def _risolvi_base_pst(self, nome_o_codice: str) -> str:
-        return risolvi_base_pst(nome_o_codice, base_url=_WSP_BASE)
+    def _risolvi_base_pst(self, nome_o_codice: str, preferito: str = "") -> str:
+        return risolvi_base_pst(nome_o_codice, base_url=_WSP_BASE, preferito=preferito)
 
     # ---------------------------------------------------------------- Parser risposte SOAP
 
@@ -2166,10 +2552,16 @@ class ClientPolisWeb:
             pass
         return fascicoli
 
-    def _parse_fascicoli_qbuilder_xml(self, xml_text: str) -> List[FascicoloPolisWeb]:
+    def _parse_fascicoli_qbuilder_xml(
+        self,
+        xml_text: str,
+        *,
+        spec: Optional[PolisWebRegistroSpec] = None,
+        base_url: str = "",
+    ) -> List[FascicoloPolisWeb]:
         fascicoli: List[FascicoloPolisWeb] = []
         for row in _parse_qbuilder_row_list(xml_text):
-            fascicolo = _map_qbuilder_fascicolo(row)
+            fascicolo = _map_qbuilder_fascicolo(row, spec=spec, base_url=base_url)
             setattr(fascicolo, 'parti_dettaglio', _qbuilder_parti_dettaglio(row))
             fascicoli.append(fascicolo)
         return fascicoli
@@ -2200,6 +2592,15 @@ class ClientPolisWeb:
                     disponibile=disponibile,
                     id_deposito=str(fields.get('idBusta', fields.get('idDeposito', '')) or ''),
                     tipo_atto=str(fields.get('tipoAtto', fields.get('descTipoAtto', fields.get('tipoAtta', ''))) or ''),
+                    id_cat=str(fields.get('idCat', fields.get('IdCat', '')) or ''),
+                    id_sub_item=str(fields.get('idSubItem', fields.get('IdSubItem', '')) or ''),
+                    id_doc_mittente=str(fields.get('idDocMittente', '') or ''),
+                    stato=str(fields.get('stato', '') or ''),
+                    anno_documento=str(fields.get('annoDocumento', '') or ''),
+                    numero_documento=str(fields.get('numeroDocumento', '') or ''),
+                    anno_fascicolo=str(fields.get('annoFascicolo', '') or ''),
+                    numero_fascicolo=str(fields.get('numeroFascicolo', '') or ''),
+                    sub_procedimento=str(fields.get('subprocedimento', '') or ''),
                 )
                 chiave = (
                     d.id_documento,
@@ -2217,8 +2618,13 @@ class ClientPolisWeb:
             pass
         return documenti
 
-    def _parse_documenti_qbuilder_xml(self, xml_text: str) -> List[DocumentoPolisWeb]:
-        return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_text)]
+    def _parse_documenti_qbuilder_xml(
+        self,
+        xml_text: str,
+        *,
+        spec: Optional[PolisWebRegistroSpec] = None,
+    ) -> List[DocumentoPolisWeb]:
+        return [_map_qbuilder_documento(row, spec=spec) for row in _parse_qbuilder_row_list(xml_text)]
 
     def _arricchisci_fascicoli_con_profilo(self, base_pst: str, fascicoli: List[FascicoloPolisWeb]) -> List[FascicoloPolisWeb]:
         arricchiti: List[FascicoloPolisWeb] = []
@@ -2230,9 +2636,26 @@ class ClientPolisWeb:
             try:
                 xml = self._execute_qbuilder(
                     base_pst,
-                    self._soap_profilo_fascicolo_qbuilder(base_pst, codice_ufficio, fascicolo),
+                    self._soap_profilo_fascicolo_qbuilder(
+                        base_pst,
+                        codice_ufficio,
+                        fascicolo,
+                        registro=getattr(fascicolo, "tipo_registro", ""),
+                        ruolo_polisweb="AVV",
+                        id_dfa=getattr(fascicolo, "id_dfa", ""),
+                        servizio_pst_preferito=getattr(fascicolo, "servizio_pst", ""),
+                    ),
                 )
-                profili = self._parse_fascicoli_qbuilder_xml(xml)
+                profili = self._parse_fascicoli_qbuilder_xml(
+                    xml,
+                    spec=_polisweb_registro_spec(
+                        getattr(fascicolo, "tipo_registro", ""),
+                        getattr(fascicolo, "registro_portale", ""),
+                        getattr(fascicolo, "servizio_pst", ""),
+                        base_url=base_pst,
+                    ),
+                    base_url=base_pst,
+                )
             except Exception:
                 arricchiti.append(fascicolo)
                 continue
@@ -2279,14 +2702,22 @@ class ClientPolisWebDemo(ClientPolisWeb):
     def ricerca_fascicoli(self, tribunale: str, numero_rg=None,
                           anno_rg=None, nome_parte=None,
                           codice_fiscale_parte=None,
-                          max_risultati: int = 50) -> List[FascicoloPolisWeb]:
+                          max_risultati: int = 50,
+                          registro: str = "",
+                          tipo_registro: str = "",
+                          servizio_pst_preferito: str = "",
+                          registro_portale: str = "",
+                          ruolo_polisweb: str = "AVV",
+                          sub_procedimento: str = "",
+                          id_dfa: str = "") -> List[FascicoloPolisWeb]:
         """Ritorna fascicoli demo."""
         anno = anno_rg or date.today().year
+        spec = _polisweb_registro_spec(registro, tipo_registro, registro_portale, servizio_pst_preferito)
         return [
             FascicoloPolisWeb(
                 numero_rg=numero_rg or "1234",
                 anno_rg=anno,
-                ruolo="CIVILE_COGNIZIONE",
+                ruolo=spec.label or "CIVILE_COGNIZIONE",
                 stato="PENDENTE",
                 oggetto="Causa di risarcimento danni — Demo",
                 sezione="Prima sezione civile",
@@ -2297,15 +2728,32 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 note="Dato demo — collegare al PST con certificato reale",
                 codice_ufficio=tribunale if tribunale.isdigit() else "0000000",
                 nome_ufficio=self._nome_ufficio_demo(tribunale),
+                sub_procedimento=sub_procedimento,
+                tipo_registro=spec.registro,
+                registro_portale=spec.registro_portale or spec.registro,
+                servizio_pst=servizio_pst_preferito or spec.servizio_preferito,
+                id_dfa=id_dfa,
+                ruolo_polisweb=_normalizza_ruolo_polisweb(ruolo_polisweb),
             )
         ]
 
-    def consulta_documenti(self, codice_ufficio, numero_rg, anno_rg) -> List[DocumentoPolisWeb]:
+    def consulta_documenti(
+        self,
+        codice_ufficio,
+        numero_rg,
+        anno_rg,
+        registro: str = "",
+        ruolo_polisweb: str = "AVV",
+        sub_procedimento: str = "",
+        id_dfa: str = "",
+        servizio_pst_preferito: str = "",
+    ) -> List[DocumentoPolisWeb]:
         """
         Dati demo: simula un fascicolo telematico con 4 buste realistiche
         (Decreto Ingiuntivo, Comparsa di risposta, Memoria, Provvedimento cancelleria).
         """
         anno = str(anno_rg)
+        spec = _polisweb_registro_spec(registro, servizio_pst_preferito)
         # Busta 1 — Ricorso per Decreto Ingiuntivo (depositato dall'avvocato ricorrente)
         busta1 = [
             DocumentoPolisWeb(
@@ -2385,7 +2833,14 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 id_deposito="BUSTA-MEM-004", tipo_atto="Memoria Difensiva",
             ),
         ]
-        return busta1 + busta2 + busta3 + busta4
+        documenti = busta1 + busta2 + busta3 + busta4
+        for index, documento in enumerate(documenti, start=1):
+            documento.id_cat = documento.id_cat or f"DEMO-CAT-{numero_rg}-{anno}-{index:02d}"
+            documento.id_sub_item = documento.id_sub_item or documento.id_documento
+            documento.sub_procedimento = sub_procedimento
+            documento.registro_portale = spec.registro_portale or spec.registro
+            documento.servizio_pst = servizio_pst_preferito or spec.servizio_preferito
+        return documenti
 
 
 class ClientPolisWebImportOnly(ClientPolisWebDemo):

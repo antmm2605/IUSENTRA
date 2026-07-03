@@ -3977,6 +3977,43 @@ def _pst_react_service_from_text(*values: Any) -> tuple[str, str]:
     return "", text
 
 
+def _pst_react_apply_siecic_schema(hint: dict[str, Any], source: Any) -> dict[str, Any]:
+    text = _pst_react_norm(source)
+    if not text:
+        return hint
+    if "IMMOBIL" in text or "PIGNOR" in text:
+        hint.update({
+            "schema": "esecuzioni immobiliari",
+            "materia": "Esecuzioni immobiliari",
+            "registro": "ESIM",
+            "tipo_registro": "ESIM",
+            "quick_filter": "esecuzioni immobiliari",
+            "tabella_ministeriale": "SIECIC_ESECUZIONI_IMMOBILIARI",
+            "registro_portale": "ESIM",
+        })
+    elif "FALL" in text or "CONCORS" in text:
+        hint.update({
+            "schema": "procedure concorsuali",
+            "materia": "Procedure concorsuali",
+            "registro": "FALL",
+            "tipo_registro": "FALL",
+            "quick_filter": "procedure concorsuali",
+            "tabella_ministeriale": "SIECIC_PROCEDURE_CONCORSUALI",
+            "registro_portale": "FALL",
+        })
+    elif "MOBIL" in text or "ESECUZ" in text:
+        hint.update({
+            "schema": "esecuzioni mobiliari",
+            "materia": "Esecuzioni mobiliari",
+            "registro": "ESM",
+            "tipo_registro": "ESM",
+            "quick_filter": "esecuzioni mobiliari",
+            "tabella_ministeriale": "SIECIC_ESECUZIONI_MOBILIARI",
+            "registro_portale": "ESM",
+        })
+    return hint
+
+
 def _pst_react_service_from_fascicolo(fascicolo: Any) -> tuple[str, str]:
     profile = getattr(fascicolo, "profilo_deposito", None)
     if not isinstance(profile, Mapping):
@@ -4028,6 +4065,8 @@ def _pst_react_schema_hint_from_fascicolo(fascicolo: Any) -> dict[str, Any]:
     hint = dict(_PST_REACT_SCHEMA_BY_SERVICE.get(service, {}))
     if not hint:
         return {}
+    if service == "JPW_SIECIC":
+        hint = _pst_react_apply_siecic_schema(hint, source)
     hint.update({
         "source": "fascicolo_locale",
         "service_source": source,

@@ -768,6 +768,17 @@ def build_telematico_runtime(
                 "codice_ufficio": fascicolo.codice_ufficio,
                 "nome_ufficio": fascicolo.nome_ufficio,
                 "sub_procedimento": getattr(fascicolo, "sub_procedimento", ""),
+                "tipo_registro": getattr(fascicolo, "tipo_registro", ""),
+                "registro_portale": getattr(fascicolo, "registro_portale", ""),
+                "servizio_pst": getattr(fascicolo, "servizio_pst", ""),
+                "urn": getattr(fascicolo, "urn", ""),
+                "target_path": getattr(fascicolo, "target_path", ""),
+                "id_dfa": getattr(fascicolo, "id_dfa", ""),
+                "ruolo_polisweb": getattr(fascicolo, "ruolo_polisweb", ""),
+                "registro_decode": getattr(fascicolo, "registro_decode", ""),
+                "codice_rito": getattr(fascicolo, "codice_rito", ""),
+                "descrizione_rito": getattr(fascicolo, "descrizione_rito", ""),
+                "materia": getattr(fascicolo, "materia", ""),
             }
             numero = fascicolo.numero_rg
             anno = fascicolo.anno_rg
@@ -875,6 +886,11 @@ def build_telematico_runtime(
             "ufficio_nome": str(uff_nome or _resolve_ufficio_nome(str(uff_cod or ""))).strip(),
             "procedimento": str(procedimento or "").strip(),
             "sub_procedimento": str(payload.get("sub_procedimento") or "").strip(),
+            "tipo_registro": str(payload.get("tipo_registro") or payload.get("registro_portale") or "").strip(),
+            "registro_portale": str(payload.get("registro_portale") or payload.get("tipo_registro") or "").strip(),
+            "servizio_pst": str(payload.get("servizio_pst") or "").strip(),
+            "id_dfa": str(payload.get("id_dfa") or "").strip(),
+            "ruolo_polisweb": str(payload.get("ruolo_polisweb") or "").strip(),
             "sezione": str(payload.get("sezione") or "").strip(),
             "stato": str(stato or "").strip(),
             "oggetto": str(oggetto or "").strip(),
@@ -2967,15 +2983,16 @@ def build_telematico_runtime(
         gsog = get_soggetti()
         id_fasc = ""
         created = False
+        pst_has_import_payload = bool(importa_file_portale or files or selected_preview_docs)
 
         if mode == "create_new":
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _portale_local_channel_enabled(portale):
+                if _portale_local_channel_enabled(portale) or pst_has_import_payload:
                     client = ClientPolisWebImportOnly()
                 else:
-                    client = crea_client(demo=_portale_demo_mode(portale))
+                    client = crea_client(demo=False)
                 documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.importa_fascicolo(
                     fascicolo_pw=selection_dc,
@@ -3038,10 +3055,10 @@ def build_telematico_runtime(
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _portale_local_channel_enabled(portale):
+                if _portale_local_channel_enabled(portale) or pst_has_import_payload:
                     client = ClientPolisWebImportOnly()
                 else:
-                    client = crea_client(demo=_portale_demo_mode(portale))
+                    client = crea_client(demo=False)
                 documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.sincronizza_fascicolo_esistente(
                     fascicolo_pw=selection_dc,
@@ -3375,6 +3392,24 @@ def build_telematico_runtime(
         oggetto = str(query.get("oggetto") or "").strip().lower()
         stato_filter = str(query.get("stato") or "").strip().lower()
         quick = str(query.get("quick_filter") or "").strip().lower()
+        tipo_registro = str(
+            query.get("tipo_registro")
+            or query.get("registro")
+            or query.get("registro_portale")
+            or query.get("tabella_ministeriale")
+            or query.get("schema")
+            or ""
+        ).strip()
+        registro_portale = str(query.get("registro_portale") or tipo_registro or "").strip()
+        servizio_pst_preferito = str(
+            query.get("servizio_pst_preferito")
+            or query.get("servizio_pst")
+            or query.get("tabella_ministeriale")
+            or ""
+        ).strip()
+        ruolo_polisweb = str(query.get("ruolo_polisweb") or query.get("ruolo") or "AVV").strip() or "AVV"
+        sub_procedimento = str(query.get("sub_procedimento") or "").strip()
+        id_dfa = str(query.get("id_dfa") or query.get("IDDFA") or "").strip()
 
         # I canali browser/Local Signer sono un percorso operativo previsto,
         # non un guasto runtime: non devono consumare il circuit breaker.
@@ -3398,12 +3433,19 @@ def build_telematico_runtime(
                     ufficio = risolvi_codice_ministero(ufficio_raw) if ufficio_raw else ""
                     if not ufficio:
                         raise ValueError("Seleziona un ufficio giudiziario.")
-                    return crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
+                    return crea_client(demo=False).ricerca_fascicoli(
                         tribunale=ufficio,
                         numero_rg=numero,
                         anno_rg=anno,
                         nome_parte=assistito or controparte,
                         codice_fiscale_parte=cf,
+                        registro=tipo_registro,
+                        tipo_registro=tipo_registro,
+                        registro_portale=registro_portale,
+                        servizio_pst_preferito=servizio_pst_preferito,
+                        ruolo_polisweb=ruolo_polisweb,
+                        sub_procedimento=sub_procedimento,
+                        id_dfa=id_dfa,
                     )
                 if portale == "pdp":
                     from pct.pdp import crea_client_pdp
@@ -3482,10 +3524,34 @@ def build_telematico_runtime(
                 if portale == "pst":
                     from pct.polisWeb import crea_client
 
-                    return crea_client(demo=_portale_demo_mode(portale)).consulta_documenti(
+                    payload = dict(selection.get("payload") or {}) if isinstance(selection.get("payload"), dict) else {}
+                    registro = str(
+                        selection.get("tipo_registro")
+                        or selection.get("registro_portale")
+                        or selection.get("procedimento")
+                        or payload.get("tipo_registro")
+                        or payload.get("registro_portale")
+                        or payload.get("ruolo")
+                        or ""
+                    ).strip()
+                    servizio_pst = str(
+                        selection.get("servizio_pst")
+                        or selection.get("servizio_pst_preferito")
+                        or payload.get("servizio_pst")
+                        or payload.get("servizio_pst_preferito")
+                        or ""
+                    ).strip()
+                    ruolo = str(selection.get("ruolo_polisweb") or payload.get("ruolo_polisweb") or "AVV").strip() or "AVV"
+
+                    return crea_client(demo=False).consulta_documenti(
                         str(selection.get("ufficio_codice") or "").strip(),
                         str(selection.get("numero") or "").strip(),
                         int(selection.get("anno") or 0),
+                        registro=registro,
+                        ruolo_polisweb=ruolo,
+                        sub_procedimento=str(selection.get("sub_procedimento") or payload.get("sub_procedimento") or "").strip(),
+                        id_dfa=str(selection.get("id_dfa") or payload.get("id_dfa") or "").strip(),
+                        servizio_pst_preferito=servizio_pst,
                     )
                 if portale == "pdp":
                     from pct.pdp import crea_client_pdp

@@ -3308,9 +3308,11 @@ def test_pst_acquisizione_deduce_registri_ministeriali_non_lavoro(tmp_path: Path
     minori = minori_response.get_json()
     assert siecic_response.status_code == 200
     assert minori_response.status_code == 200
-    assert siecic["hint"]["schema"] == "esecuzioni"
+    assert siecic["hint"]["schema"] == "esecuzioni immobiliari"
+    assert siecic["hint"]["registro"] == "ESIM"
+    assert siecic["hint"]["tipo_registro"] == "ESIM"
     assert siecic["hint"]["servizio_pst_preferito"] == "JPW_SIECIC"
-    assert siecic["hint"]["tabella_ministeriale"] == "SIECIC_ESECUZIONI_CONCORSUALI"
+    assert siecic["hint"]["tabella_ministeriale"] == "SIECIC_ESECUZIONI_IMMOBILIARI"
     assert minori["hint"]["schema"] == "minori"
     assert minori["hint"]["servizio_pst_preferito"] == "JPW_MIN"
     assert minori["hint"]["tabella_ministeriale"] == "SICID_MINORI"
@@ -3336,6 +3338,8 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert run_search_block.index("precheckedPstCert = await requirePstCertificateBeforeSearch()") < run_search_block.index("updateLocalSignerAutomatically()")
     assert "let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()" in run_search_block
     assert "Ricerca PST non avviata" in source
+    assert "Nessun passaggio avviato" in page_source
+    assert "progress.active ? <progress" in page_source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
     assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
     assert "fromExistingCode?.codice || explicitOfficeCode" in page_source
@@ -3363,6 +3367,56 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "recordAcquisitionHistory('failed'" in page_source
     assert "auto_pst_test" in page_source
     assert "add('cf'" not in page_source
+
+
+def test_pst_acquisizione_badge_tabella_non_mostra_codici_tecnici():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    badge_block = source[
+        source.index("Tabella ministeriale applicata automaticamente:"):
+        source.index("<div className=\"iu-tel-acq-results\">")
+    ]
+
+    assert "Studio Telematico" not in badge_block
+    assert "QuickOrganizer" not in badge_block
+    assert "servizio_pst_preferito" not in badge_block
+    assert "query.servizioPstPreferito" not in badge_block
+    assert "JPW_" not in badge_block
+
+
+def test_pst_acquisizione_registri_e_cronologia_restano_visibili_professionali():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    formatting_source = Path("frontend/src/formatting.ts").read_text(encoding="utf-8")
+    events_block = source[source.index("function EventsPanel"):source.index("function AcquisitionProgressView")]
+    retry_start = source.index("title=\"Riprova scarico\"")
+    retry_block = source[retry_start:source.index("</aside>", retry_start)]
+
+    assert "materia: 'Civile ordinario'" in source
+    assert "materia: 'Minorenni'" in source
+    assert "materia: 'Giudice di Pace'" in source
+    assert '<option value="civile">Civile ordinario</option>' in source
+    assert '<option value="minori">Minorenni</option>' in source
+    assert '<option value="giudice di pace">Giudice di Pace</option>' in source
+    assert "Civile contenzioso" not in source
+    assert "materia: 'Minori'" not in source
+    assert ">Minori<" not in source
+    assert "materia: 'Giudice di pace'" not in source
+    assert ">Giudice di pace<" not in source
+
+    assert "function userFacingTelematicoText" in source
+    assert "connessione non riuscita" in source
+    assert "function acquisitionEventTimestampLabel" in source
+    assert "formatDateTimeIt(value, value)" in source
+    assert ".format(parsed).replace(/,\\s*/, ' ')" in formatting_source
+    assert "return asText(profile.schema || query.schema)" in source
+    assert "if (!schemaValue)" in source
+    assert "servizioPstPreferito: ''," in source
+    assert "registroPortale: ''," in source
+    assert "userFacingTelematicoText(item.subtitle)" in events_block
+    assert "<time>{acquisitionEventTimestampLabel(item.timestamp)}</time>" in events_block
+    assert "userFacingTelematicoText(item.subtitle)" in retry_block
+    assert "<small>{acquisitionEventTimestampLabel(item.timestamp)}</small>" in retry_block
+    assert "<time>{item.timestamp}</time>" not in source
+    assert "italianDate(item.timestamp)" not in source
 
 
 def test_local_signer_diagnostics_salva_server_studio(tmp_path: Path):

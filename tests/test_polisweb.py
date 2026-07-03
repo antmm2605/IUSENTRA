@@ -70,6 +70,14 @@ def _cfg_web(tmp_path: Path) -> dict:
     }
 
 
+def _assert_react_shell(response) -> str:
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in body
+    assert 'id="root"' in body
+    return body
+
+
 def test_polisweb_qbuilder_namespace_sicid():
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
     assert _pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
@@ -123,11 +131,15 @@ def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
 
     for xml in (documenti_xml, profilo_xml):
         assert '<value name="anno" type="string">2024</value>' in xml
-        assert '<value name="numero" type="string">1025</value>' in xml
+        assert '<value name="numero" type="integer">1025</value>' in xml
+        assert '<value name="idRuoloJPW" type="string">AVV</value>' in xml
+        assert '<value name="registro" type="string">CC</value>' in xml
         assert 'name="subProc"' not in xml
         assert 'name="annoRuolo"' not in xml
         assert 'name="numeroRuolo"' not in xml
         assert 'name="subpro"' not in xml
+    assert '<value name="fascPrecedente" type="boolean">0</value>' in profilo_xml
+    assert '<value name="scadTermini" type="boolean">0</value>' in profilo_xml
 
 
 def test_api_portale_acquisizione_analyze_usa_alias_fascicolo_locale_per_update(tmp_path: Path):
@@ -378,6 +390,102 @@ def test_polisweb_qbuilder_sigp_usa_registro_gdp_senza_subpro_implicito():
     for xml in (ricerca_xml, documenti_xml, profilo_xml):
         assert 'name="subpro"' not in xml
         assert 'name="subProc"' not in xml
+    for xml in (documenti_xml, profilo_xml):
+        assert '<value name="idRuoloJPW" type="string">AVV</value>' in xml
+        assert '<value name="registro" type="string">GP</value>' in xml
+
+
+def test_polisweb_qbuilder_siecic_esim_usa_metodo_numero_registro_e_iddfa():
+    client = _client()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+    fascicolo = FascicoloPolisWeb(
+        numero_rg="3441",
+        anno_rg=2025,
+        ruolo="ESECUZIONE_IMMOBILIARE",
+        stato="PENDENTE",
+        oggetto="Pignoramento immobiliare",
+        tipo_registro="ESIM",
+        id_dfa="DFA-ESIM-3441",
+    )
+
+    ricerca_xml = client._soap_ricerca_fascicoli_qbuilder(
+        base,
+        "0800570094",
+        "3441",
+        2025,
+        None,
+        None,
+        registro="ESIM",
+        ruolo_polisweb="CUS",
+        id_dfa="DFA-ESIM-3441",
+    )
+    documenti_xml = client._soap_documenti_qbuilder(
+        base,
+        "0800570094",
+        "3441",
+        2025,
+        registro="ESIM",
+        ruolo_polisweb="CUS",
+        id_dfa="DFA-ESIM-3441",
+    )
+    profilo_xml = client._soap_profilo_fascicolo_qbuilder(
+        base,
+        "0800570094",
+        fascicolo,
+        registro="ESIM",
+        ruolo_polisweb="CUS",
+        id_dfa="DFA-ESIM-3441",
+    )
+
+    assert "<name>RicercaInformazioniFascicoloPerNumero</name>" in ricerca_xml
+    assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
+    assert '<value name="idRuoloJPW" type="string">CUS</value>' in ricerca_xml
+    assert '<value name="registro" type="string">ESIM</value>' in ricerca_xml
+    assert '<value name="tipo" type="string">RNG</value>' in ricerca_xml
+    assert '<value name="numero" type="integer">3441</value>' in ricerca_xml
+    for xml in (documenti_xml, profilo_xml):
+        assert '<value name="idRuoloJPW" type="string">CUS</value>' in xml
+        assert '<value name="registro" type="string">ESIM</value>' in xml
+        assert '<value name="idDfa" type="string">DFA-ESIM-3441</value>' in xml
+
+
+def test_polisweb_qbuilder_sigp_ricerca_per_anno_usa_rmo():
+    client = _client()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+
+    xml = client._soap_ricerca_fascicoli_qbuilder(
+        base,
+        "0800570152",
+        "",
+        2025,
+        None,
+        None,
+        registro="GDP",
+    )
+
+    assert "<name>RicercaInformazioniFascicoloPerRMO</name>" in xml
+    assert '<value name="idUfficio" type="string">0800570152</value>' in xml
+    assert 'name="numero"' not in xml
+
+
+def test_polisweb_qbuilder_cassazione_penale_usa_ricorsi_penali_senza_group():
+    client = _client()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE"
+
+    xml = client._soap_ricerca_fascicoli_qbuilder(
+        base,
+        "80417740588",
+        "123",
+        2024,
+        None,
+        None,
+        registro="CASSPE",
+    )
+
+    assert '<execute xmlns="urn:CONS-CASSPE">' in xml
+    assert 'InvocationDomain name="JPW" role="AVV" group=""' in xml
+    assert "<name>QP_Ricorsi</name>" in xml
+    assert '<value name="NRGREALE" type="string">202400012300</value>' in xml
 
 
 def test_polisweb_parse_qbuilder_fascicoli_xml():
@@ -422,13 +530,40 @@ def test_polisweb_parse_qbuilder_fascicoli_normalizza_date_e_codiceufficio():
     assert fascicoli[0].sezione == "CIVILE"
 
 
+def test_polisweb_parse_qbuilder_fascicolo_preserva_registro_siecic_iddfa_e_rito():
+    client = _client()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SIECIC-BE"><return available="1" time="2026-03-29 18:51:21" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="InfoFascicoloExt"><ns2:property name="IDFASCICOLO" type="string">SIECIC-172944</ns2:property><ns2:property name="IDUFFICIO" type="string">0800570094</ns2:property><ns2:property name="ANNORUOLO" type="long">2025</ns2:property><ns2:property name="NUMERORUOLO" type="string">00003441</ns2:property><ns2:property name="REGISTRO" type="string">ESIM</ns2:property><ns2:property name="REGISTODECODE" type="string">Esecuzioni immobiliari</ns2:property><ns2:property name="IDDFA" type="string">DFA-ESIM-3441</ns2:property><ns2:property name="CODRITO" type="string">ESIM</ns2:property><ns2:property name="DESCRRITO" type="string">Esecuzione immobiliare</ns2:property><ns2:property name="MATERIA" type="string">Pignoramento immobiliare</ns2:property><ns2:property name="DATAULTIMAMODIFICA" type="date">02/07/2026 09:30:00.000</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicolo = client._parse_fascicoli_qbuilder_xml(
+        xml,
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+    )[0]
+
+    assert fascicolo.numero_rg == "3441"
+    assert fascicolo.tipo_registro == "ESIM"
+    assert fascicolo.registro_portale == "ESIM"
+    assert fascicolo.id_dfa == "DFA-ESIM-3441"
+    assert fascicolo.id_fascicolo == "SIECIC-172944"
+    assert fascicolo.registro_decode == "Esecuzioni immobiliari"
+    assert fascicolo.codice_rito == "ESIM"
+    assert fascicolo.descrizione_rito == "Esecuzione immobiliare"
+    assert fascicolo.materia == "Pignoramento immobiliare"
+    assert fascicolo.data_ultima_modifica == "2026-07-02"
+
+
 def test_polisweb_parse_qbuilder_documenti_xml():
     client = _client()
 
     xml = """<?xml version='1.0' encoding='UTF-8'?>
 <SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 <SOAP-ENV:Body>
-<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:52:17" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="DocumentoFascicolo"><ns2:property name="IDUFFICIO" type="string">0800570094</ns2:property><ns2:property name="IDDOCUMENTO" type="string">33581101</ns2:property><ns2:property name="TIPO" type="string">{http://schemi.processotelematico.giustizia.it/sicid/magistrato/Sentenza/v3}:SentenzaDefinitiva</ns2:property><ns2:property name="STATO" type="string">depositato</ns2:property><ns2:property name="AUTORE" type="string">GIOVANNELLA MARIA ELENA</ns2:property><ns2:property name="NUMERODOCUMENTO" type="string">33581101</ns2:property><ns2:property name="DATADEPOSITO" type="date">08/01/2026 18:55:28.000</ns2:property></ns2:row></return></ns1:executeResponse>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:52:17" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="DocumentoFascicolo"><ns2:property name="IDUFFICIO" type="string">0800570094</ns2:property><ns2:property name="IDDOCUMENTO" type="string">33581101</ns2:property><ns2:property name="IDCAT" type="string">CAT-33581101</ns2:property><ns2:property name="IDSUBITEM" type="string">SUB-33581101</ns2:property><ns2:property name="TIPO" type="string">{http://schemi.processotelematico.giustizia.it/sicid/magistrato/Sentenza/v3}:SentenzaDefinitiva</ns2:property><ns2:property name="STATO" type="string">depositato</ns2:property><ns2:property name="AUTORE" type="string">GIOVANNELLA MARIA ELENA</ns2:property><ns2:property name="NUMERODOCUMENTO" type="string">33581101</ns2:property><ns2:property name="DATADEPOSITO" type="date">08/01/2026 18:55:28.000</ns2:property></ns2:row></return></ns1:executeResponse>
 </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>"""
 
@@ -436,6 +571,8 @@ def test_polisweb_parse_qbuilder_documenti_xml():
 
     assert len(documenti) == 1
     assert documenti[0].id_documento == "33581101"
+    assert documenti[0].id_cat == "CAT-33581101"
+    assert documenti[0].id_sub_item == "SUB-33581101"
     assert documenti[0].tipo == "SentenzaDefinitiva"
     assert documenti[0].nome == "Documento_33581101.pdf"
 
@@ -525,7 +662,7 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
         sezione="CIVILE",
         giudice="GIOVANNELLA MARIA ELENA",
         data_iscrizione="2026-03-29",
-        data_udienza="2026-05-10",
+        data_udienza="2099-05-10",
         parti=["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."],
         parti_dettaglio=[
             {
@@ -564,8 +701,8 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert fascicolo.controparte == "BANCA ALFA S.P.A."
     assert fascicolo.cf_controparte == "12345678901"
     assert fascicolo.stato == StatoFascicolo.IN_CORSO
-    assert fascicolo.data_prima_udienza == "2026-05-10"
-    assert fascicolo.data_prossima_udienza == "2026-05-10"
+    assert fascicolo.data_prima_udienza == "2099-05-10"
+    assert fascicolo.data_prossima_udienza == "2099-05-10"
     assert len(fascicolo.attivita) >= 2
     assert risultato.depositi_importati >= 1
     assert risultato.documenti_importati >= 1
@@ -1425,12 +1562,14 @@ def test_route_documenti_pat_reindirizza_a_home_con_portale_ufficiale(tmp_path):
             "/pat/documenti?codice_ufficio=T0001&numero_ricorso=1876&anno=2026&demo_mode=1",
             follow_redirects=True,
         )
+        legacy_response = client.get("/portali/pat/acquisizione?_legacy=1", follow_redirects=True)
 
-    body = response.data.decode("utf-8")
-    assert response.status_code == 200
-    assert "Portale dell'Avvocato ufficiale" in body
-    assert "Fascicolo PAT interno" in body
-    assert "Acquisizione guidata" in body
+    _assert_react_shell(response)
+    legacy_body = legacy_response.data.decode("utf-8")
+    assert legacy_response.status_code == 200
+    assert "Portale dell'Avvocato ufficiale" in legacy_body
+    assert "fascicolo PAT interno" in legacy_body
+    assert "Acquisizione guidata" in legacy_body
 
 
 def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
@@ -1540,7 +1679,7 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
             follow_redirects=True,
         )
         response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
-        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
+        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/depositi")
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -3305,15 +3444,17 @@ def test_route_home_sigit_mostra_hub_ptt_guidato(tmp_path):
             follow_redirects=True,
         )
         response = client.get("/sigit", follow_redirects=True)
+        legacy_response = client.get("/sigit?_legacy=1", follow_redirects=True)
 
-    body = response.data.decode("utf-8")
-    assert response.status_code == 200
-    assert "Portale ufficiale PTT / SIGIT - Telecontenzioso" in body
-    assert "Apri PTT / SIGIT" in body
-    assert "Apri Telecontenzioso" in body
-    assert "Accesso temporaneo al fascicolo" in body
-    assert "Fascicolo Tributario Interno" in body
-    assert "Cerca nel SIGIT" not in body
+    _assert_react_shell(response)
+    legacy_body = legacy_response.data.decode("utf-8")
+    assert legacy_response.status_code == 200
+    assert "Portale ufficiale PTT / SIGIT - Telecontenzioso" in legacy_body
+    assert "Apri PTT / SIGIT" in legacy_body
+    assert "Apri Telecontenzioso" in legacy_body
+    assert "Accesso temporaneo al fascicolo" in legacy_body
+    assert "Fascicolo Tributario Interno" in legacy_body
+    assert "Cerca nel SIGIT" not in legacy_body
 
 
 def test_route_documenti_sigit_reindirizza_al_wizard_guidato(tmp_path):
@@ -3344,12 +3485,14 @@ def test_route_documenti_sigit_reindirizza_al_wizard_guidato(tmp_path):
             "/sigit/documenti?codice_commissione=CPT030000&numero_rgt=1234&anno_rgt=2026&demo_mode=1",
             follow_redirects=True,
         )
+        legacy_response = client.get("/portali/ptt/acquisizione?_legacy=1", follow_redirects=True)
 
-    body = response.data.decode("utf-8")
-    assert response.status_code == 200
-    assert "Acquisizione guidata" in body
-    assert "PTT / SIGIT" in body
-    assert "Telecontenzioso" in body
+    _assert_react_shell(response)
+    legacy_body = legacy_response.data.decode("utf-8")
+    assert legacy_response.status_code == 200
+    assert "Acquisizione guidata" in legacy_body
+    assert "PTT / SIGIT" in legacy_body
+    assert "Telecontenzioso" in legacy_body
 
 
 def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
@@ -3756,6 +3899,16 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "awEscape(dep.data_deposito || 'n.d.')" not in template
 
 
+def test_runtime_pst_react_non_usa_client_demo_per_ricerca_import_e_preview():
+    source = (Path(__file__).resolve().parents[1] / "web" / "services" / "telematico_runtime.py").read_text(encoding="utf-8")
+
+    assert "return crea_client(demo=False).ricerca_fascicoli(" in source
+    assert "return crea_client(demo=False).consulta_documenti(" in source
+    assert "client = crea_client(demo=False)" in source
+    assert "crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli" not in source
+    assert "crea_client(demo=_portale_demo_mode(portale)).consulta_documenti" not in source
+
+
 def test_polisweb_classico_non_chiede_preflight_pin_prima_delle_operazioni_reali():
     root = Path(__file__).resolve().parents[1]
     for template_path in (root / "web" / "templates" / "polisWeb.html", root / "web" / "polisWeb.html"):
@@ -4077,11 +4230,13 @@ def test_route_pat_ricerca_reindirizza_al_wizard_guidato(tmp_path):
             data={"ufficio": "TARLZ", "numero_ricorso": "1876", "anno": "2026"},
             follow_redirects=True,
         )
+        legacy_response = client.get("/portali/pat/acquisizione?_legacy=1", follow_redirects=True)
 
-    body = response.data.decode("utf-8")
-    assert response.status_code == 200
-    assert "Acquisizione guidata" in body
-    assert "Portale dell'Avvocato ufficiale" in body
+    _assert_react_shell(response)
+    legacy_body = legacy_response.data.decode("utf-8")
+    assert legacy_response.status_code == 200
+    assert "Acquisizione guidata" in legacy_body
+    assert "Portale dell'Avvocato ufficiale" in legacy_body
 
 
 def test_route_ptt_ricerca_reindirizza_al_wizard_guidato(tmp_path):
@@ -4113,12 +4268,14 @@ def test_route_ptt_ricerca_reindirizza_al_wizard_guidato(tmp_path):
             data={"commissione": "CPT030000", "numero_rgt": "1234", "anno_rgt": "2026"},
             follow_redirects=True,
         )
+        legacy_response = client.get("/portali/ptt/acquisizione?_legacy=1", follow_redirects=True)
 
-    body = response.data.decode("utf-8")
-    assert response.status_code == 200
-    assert "Acquisizione guidata" in body
-    assert "PTT / SIGIT" in body
-    assert "Telecontenzioso" in body
+    _assert_react_shell(response)
+    legacy_body = legacy_response.data.decode("utf-8")
+    assert legacy_response.status_code == 200
+    assert "Acquisizione guidata" in legacy_body
+    assert "PTT / SIGIT" in legacy_body
+    assert "Telecontenzioso" in legacy_body
 
 
 def test_api_acquisizione_search_pst_p12_usa_backend_server_e_portali_assistiti_no(tmp_path, monkeypatch):
@@ -7133,11 +7290,13 @@ def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path,
         config_pec,
         state_path,
         limite=100,
+        incremental_only=True,
     ):
         osservato["indirizzo"] = config_pec.indirizzo
         osservato["imap_host"] = config_pec.imap_host
         osservato["state_path"] = state_path
         osservato["limite"] = limite
+        osservato["incremental_only"] = incremental_only
         osservato["documents_dir"] = str(gestione_fascicoli.documents_dir)
         osservato["archive_dir"] = str(gestione_fascicoli.archive_dir)
         return {
@@ -7170,5 +7329,6 @@ def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path,
     assert osservato["imap_host"] == "imaps.pec.aruba.it"
     assert osservato["state_path"].endswith("pec_cancelleria_state.json")
     assert osservato["limite"] == 100
+    assert osservato["incremental_only"] is True
     assert osservato["documents_dir"] == cfg["FASCICOLI_DOCS"]
     assert osservato["archive_dir"] == cfg["FASCICOLI_ARCH"]

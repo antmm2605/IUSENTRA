@@ -854,6 +854,150 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
     assert calls["batch_base_url"].endswith("/JPW_SIL")
 
 
+def test_pst_download_batch_applica_servizio_documenti_senza_perdere_sessione_view(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    calls = {}
+
+    class _NullLock:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0580010",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "pst_session_id": "SID-VIEW",
+                "preflight_auth": False,
+                "documents": [
+                    {
+                        "id_documento": "DOC-ESIM-1",
+                        "nome_documento": "ordinanza.pdf",
+                        "registro_portale": "ESIM",
+                        "servizio_pst": "JPW_SIECIC",
+                    }
+                ],
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0151460094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(module, "_pst_session_lock_for", lambda session_entry: _NullLock())
+    monkeypatch.setattr(module, "_reuse_view_session_id_if_available", lambda session_id, *_args: session_id)
+    monkeypatch.setattr(
+        module,
+        "_resolve_pst_session_entry",
+        lambda session_id: {
+            "session_id": session_id,
+            "purpose": "view",
+            "cookie_file": "C:\\temp\\pst.cookies",
+            "auth_ready": True,
+            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+        },
+    )
+
+    def _fake_ensure(requested_session_id, **kwargs):
+        calls["requested_session_id"] = requested_session_id
+        calls["ensure_purpose"] = kwargs.get("purpose")
+        calls["ensure_base_url"] = kwargs.get("base_url")
+        return (
+            {
+                "session_id": requested_session_id,
+                "purpose": kwargs.get("purpose"),
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": True,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "base_url": kwargs.get("base_url"),
+            },
+            False,
+        )
+
+    def _fake_download_payloads(**kwargs):
+        calls["batch_base_url"] = kwargs.get("base_url")
+        calls["batch_do_preflight"] = kwargs.get("do_preflight")
+        calls["documenti"] = kwargs.get("documenti")
+        return {
+            "ok": True,
+            "files": [],
+            "failures": [],
+            "documenti_richiesti": 1,
+            "documenti_scaricati": 0,
+        }
+
+    monkeypatch.setattr(module, "_ensure_pst_session_entry", _fake_ensure)
+    monkeypatch.setattr(module, "_pst_prepare_authenticated_session", lambda session_entry, **kwargs: (session_entry, True))
+    monkeypatch.setattr(module, "_pst_download_documenti_batch_payloads", _fake_download_payloads)
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+
+    module._Handler._pst_download_documenti_batch(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert calls["requested_session_id"] == "SID-VIEW"
+    assert calls["ensure_purpose"] == "view"
+    assert calls["ensure_base_url"].endswith("/JPW_SIECIC")
+    assert calls["batch_base_url"].endswith("/JPW_SIECIC")
+    assert calls["batch_do_preflight"] is False
+    assert calls["documenti"][0]["registro_portale"] == "ESIM"
+
+
+def test_pst_download_batch_inietta_contesto_ministeriale_su_documenti_legacy():
+    module = _load_local_signer()
+
+    result = module._pst_documenti_con_contesto_ministeriale(
+        [{"id_documento": "DOC-LEGACY", "nome_documento": "Atto.pdf"}],
+        servizio_pst="JPW_SIGP",
+        registro_portale="GDP",
+    )
+
+    assert result[0]["servizio_pst"] == "JPW_SIGP"
+    assert result[0]["servizio_pst_preferito"] == "JPW_SIGP"
+    assert result[0]["registro_portale"] == "GDP"
+    assert result[0]["tipo_registro"] == "GDP"
+
+
+def test_pst_download_file_payload_conserva_servizio_e_registro():
+    module = _load_local_signer()
+
+    payload = module._assemble_download_file_payload(
+        {
+            "filename": "ordinanza.pdf",
+            "content": b"%PDF-1.7\ncontenuto",
+            "content_type": "application/pdf",
+        },
+        {
+            "id_documento": "DOC-ESIM-1",
+            "id_cat": "CAT-ESIM-1",
+            "servizio_pst": "JPW_SIECIC",
+            "registro_portale": "ESIM",
+        },
+        "DOC-ESIM-1",
+        "ordinanza.pdf",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+        original=True,
+    )
+
+    assert payload["servizio_pst"] == "JPW_SIECIC"
+    assert payload["registro_portale"] == "ESIM"
+    assert payload["tipo_registro"] == "ESIM"
+    assert payload["modalita_documento_portale"] == "originale"
+
+
 def _local_signer_version():
     return _load_local_signer().VERSION
 
@@ -3060,6 +3204,77 @@ def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
         assert "<name>DocumentiFascicolo</name>" not in xml
 
 
+def test_qbuilder_siecic_generico_non_cambia_percorso_gia_testato():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+
+    assert module._pst_registro_portale_da_payload({"registro_portale": "SIECIC"}) == "SIECIC"
+
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_portale="SIECIC",
+    )
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_portale="SIECIC",
+    )
+
+    assert "<name>InfoFascicolo</name>" in ricerca_xml
+    assert "<name>ElencoDocumenti</name>" in documenti_xml
+    assert "<name>RicercaInformazioniFascicoloPerNumero</name>" not in ricerca_xml
+    assert "<name>DocumentiFascicolo</name>" not in documenti_xml
+
+
+def test_qbuilder_siecic_registro_specifico_usa_campi_ministeriali_completi():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_portale="ESIM",
+        id_ruolo_jpw="CUS",
+    )
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_portale="ESIM",
+        id_ruolo_jpw="CUS",
+        id_dfa="DFA-ESIM-3441",
+    )
+    profilo_xml = module._soap_profilo_fascicolo_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        registro_portale="ESIM",
+        id_ruolo_jpw="CUS",
+        id_dfa="DFA-ESIM-3441",
+    )
+
+    assert "<name>RicercaInformazioniFascicoloPerNumero</name>" in ricerca_xml
+    assert '<value name="registro" type="string">ESIM</value>' in ricerca_xml
+    assert '<value name="idRuoloJPW" type="string">CUS</value>' in ricerca_xml
+    assert "<name>DocumentiFascicolo</name>" in documenti_xml
+    assert '<value name="idDfa" type="string">DFA-ESIM-3441</value>' in documenti_xml
+    assert '<value name="registro" type="string">ESIM</value>' in documenti_xml
+    assert "<name>ProfiloFascicolo</name>" in profilo_xml
+    assert '<value name="idDfa" type="string">DFA-ESIM-3441</value>' in profilo_xml
+    assert '<value name="registro" type="string">ESIM</value>' in profilo_xml
+    assert "name=\"numeroRuolo\"" not in documenti_xml
+    assert "name=\"annoRuolo\"" not in profilo_xml
+
+
 def test_qbuilder_siecic_accetta_id_ruolo_jpw_autorizzato():
     module = _load_local_signer()
     base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
@@ -3725,12 +3940,37 @@ def test_pst_master_detail_prova_tutti_gli_identificativi_del_catalogo(monkeypat
     )
 
     bodies = [request["soap_body"] for request in captured]
-    assert len(bodies) == 3
+    assert len(bodies) == 2
     assert any("<idDoc>ID-KO</idDoc>" in body for body in bodies)
     assert any("<idDoc>ID-OK</idDoc>" in body for body in bodies)
-    assert any("<idDoc>CAT-KO</idDoc>" in body for body in bodies)
+    assert not any("<idDoc>CAT-KO</idDoc>" in body for body in bodies)
     assert any(doc["nome"] == "PROCURA.PDF" and doc["is_allegato"] is True for doc in result)
     assert any(doc["nome"] == "DatiAtto.xml.p7m" and doc["is_allegato"] is True for doc in result)
+
+
+def test_pst_master_detail_usa_idcat_solo_se_manca_iddocumento(monkeypatch):
+    module = _load_local_signer()
+    captured = []
+
+    def fake_batch(requests, **kwargs):
+        captured.extend(requests)
+        return [{"error": "dettaglio non disponibile", "body_bytes": b""} for _ in requests]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", fake_batch)
+
+    module._pst_arricchisci_documenti_con_master_detail(
+        [{"id_documento": "", "id_cat": "CAT-FALLBACK", "nome": "Atto.pdf"}],
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+        url_documenti="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC/BEAFascicoloInformatico",
+        codice_ufficio="0800570094",
+        cf_avvocato="MNTRRT64L01L063H",
+        cert_thumbprint="CERT-TEST",
+        cookie_file="cookie.txt",
+        prefer_cookie_only=False,
+    )
+
+    assert len(captured) == 1
+    assert "<idDoc>CAT-FALLBACK</idDoc>" in captured[0]["soap_body"]
 
 
 def test_pst_arricchimenti_cookie_only_non_riaprono_prompt_pin(monkeypatch):
@@ -5742,8 +5982,8 @@ def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fal
     assert esito["documenti_scaricati"] == 2
     assert esito["failures"] == []
     assert calls["downloads"]
-    assert calls["downloads"][0][0]["soap_body"].find("<idDoc>DOC-KO</idDoc>") != -1
-    assert calls["downloads"][0][1]["soap_body"].find("<idDoc>DOC-OK</idDoc>") != -1
+    assert calls["downloads"][0][0]["soap_body"].find("<idCat>DOC-KO</idCat>") != -1
+    assert calls["downloads"][0][1]["soap_body"].find("<idCat>CAT-OK</idCat>") != -1
 
 
 def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():

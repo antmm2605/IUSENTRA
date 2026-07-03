@@ -40,6 +40,7 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 - `artifacts/react-migration/quickorganizer-portale-lettura-download-fascicolo.json`
 - `artifacts/react-migration/quickorganizer-portale-lettura-download-fascicolo.md`
 - `artifacts/react-migration/quickorganizer-portali-polisweb-download.md`
+- `artifacts/react-migration/polisweb-studio-telematico-end-to-end.md`
 - `artifacts/react-migration/quickorganizer-registri-consultazione-fascicoli.json`
 - `artifacts/react-migration/quickorganizer-registri-consultazione-fascicoli.md`
 - `artifacts/react-migration/quickorganizer-risorse-dll-sottocartelle.json`
@@ -53,5 +54,6 @@ Questo indice va riletto dopo ogni compattazione prima di proseguire su deposito
 ## Regola di manutenzione
 
 - Se si scoprono nuove azioni, campi, DLL o schemi, aggiornare `scripts/generate_quickorganizer_analysis_artifacts.py` e rigenerare.
+- Per ricerca/import fascicoli, download documenti, sessione PIN PST e mappatura registri leggere anche `artifacts/react-migration/polisweb-studio-telematico-end-to-end.md`, aggiornato il 03/07/2026 con verifica reale su `/portali/pst/acquisizione`.
 - Le decisioni sensibili restano replicate in `artifacts/react-migration/procedura-deposito-telematico.md`.
 - Questo set è analisi documentale: la prova utente reale va fatta sulla copia IUSENTRA `127.0.0.1:8080` quando si modifica la UI o il flusso operativo.

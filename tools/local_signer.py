@@ -1388,12 +1388,110 @@ def _pst_servizio_ministeriale_da_payload(*payloads: Any) -> str:
     return ""
 
 
+def _pst_registro_portale_da_payload(*payloads: Any) -> str:
+    explicit_keys = (
+        "registro_portale",
+        "tipo_registro",
+        "registro",
+        "tipo_ricerca",
+    )
+    hint_keys = (
+        "tabella_ministeriale",
+        "schema",
+        "materia",
+        "quick_filter",
+        "procedimento",
+        "oggetto",
+        "ruolo",
+    )
+    collected: list[str] = []
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        for key in (*explicit_keys, *hint_keys):
+            value = payload.get(key)
+            if value not in (None, ""):
+                collected.append(str(value))
+
+    tokens: list[str] = []
+    for value in collected:
+        tokens.extend(_pst_hint_tokens_ministeriali(value))
+    text = " ".join(tokens)
+    if not text:
+        return ""
+    if "CASSPE" in text or ("CASS" in text and "PENAL" in text):
+        return "CASSPE"
+    if "CASSCI" in text or ("CASS" in text and "CIVIL" in text):
+        return "CASSCI"
+    if "ESIM" in text or "IMMOBIL" in text or "PIGNOR" in text:
+        return "ESIM"
+    if "FALL" in text or "CONCORS" in text or "FALLIMENT" in text:
+        return "FALL"
+    if "ESM" in text or "MOBIL" in text:
+        return "ESM"
+    if "SIECIC" in text:
+        return "SIECIC"
+    if "ESECUZ" in text:
+        return "ESM"
+    if "GDP" in text or "SIGP" in text or ("GIUDICE" in text and "PACE" in text):
+        return "GDP"
+    if "LAV" in text or "SIL" in text or "LAVOR" in text or "PREVIDENZ" in text:
+        return "LAV"
+    if "VG" in text or "SIVG" in text or "VOLONTARI" in text:
+        return "VG"
+    if "MIN" in text or "SIMIN" in text or "MINOR" in text:
+        return "MIN"
+    if "CC" in text or "RGN" in text or "RNG" in text or "SICID" in text or "CIVILE" in text:
+        return "CC"
+    return ""
+
+
+def _pst_tipo_ricerca_qbuilder_da_payload(base_url: str, *payloads: Any) -> str:
+    registro = _pst_registro_portale_da_payload(*payloads)
+    servizio = _pst_servizio_proxy(base_url)
+    if registro == "CC":
+        return "RGN"
+    if registro in {"LAV", "VG", "MIN", "GDP"}:
+        return registro
+    if servizio == "JPW_SIGP":
+        return "GDP"
+    return _pst_tipo_ricerca_qbuilder(base_url)
+
+
+def _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw: str = "") -> str:
+    return str(id_ruolo_jpw or "").strip().upper() or "AVV"
+
+
 def _pst_base_url_con_preferenza_payload(base_url: str, *payloads: Any) -> str:
     servizio = _pst_servizio_ministeriale_da_payload(*payloads)
     if not servizio:
         return base_url.rstrip("/") if base_url else ""
     preferita = _pst_base_url_con_servizio(base_url, servizio)
     return preferita or (base_url.rstrip("/") if base_url else "")
+
+
+def _pst_documenti_con_contesto_ministeriale(
+    documenti: list[Any],
+    *,
+    servizio_pst: str = "",
+    registro_portale: str = "",
+) -> list[Any]:
+    enriched: list[Any] = []
+    servizio = str(servizio_pst or "").strip()
+    registro = str(registro_portale or "").strip()
+    for item in documenti:
+        if not isinstance(item, dict):
+            enriched.append(item)
+            continue
+        updated = dict(item)
+        if servizio and not str(updated.get("servizio_pst") or updated.get("servizio_pst_preferito") or "").strip():
+            updated["servizio_pst"] = servizio
+            updated["servizio_pst_preferito"] = servizio
+        if registro and not str(updated.get("registro_portale") or updated.get("tipo_registro") or updated.get("registro") or "").strip():
+            updated["registro_portale"] = registro
+            updated["tipo_registro"] = registro
+        enriched.append(updated)
+    return enriched
 
 
 def _pst_servizi_qbuilder_ufficio(codice_o_nome: str) -> list[str]:
@@ -6482,7 +6580,8 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                                   cf_parte: Optional[str] = None,
                                   cf_avvocato: str = "",
                                   sub_procedimento: str = "",
-                                  id_ruolo_jpw: str = "") -> str:
+                                  id_ruolo_jpw: str = "",
+                                  registro_portale: str = "") -> str:
     """Costruisce il body SOAP per RicercaFascicoliRegistro o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
@@ -6500,6 +6599,24 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                     empty_order=True,
                 )
             if _pst_servizio_siecic(base_url):
+                registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+                if registro_siecic in {"ESM", "ESIM", "FALL"}:
+                    return _soap_qbuilder_execute_body(
+                        namespace,
+                        "RicercaInformazioniFascicoloPerNumero",
+                        [
+                            ("idUfficio", "string", codice_ufficio),
+                            ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
+                            ("registro", "string", registro_siecic),
+                            ("tipo", "string", "RNG"),
+                            ("numero", "integer", numero_value),
+                            ("anno", "string", str(anno_rg)),
+                            ("NUMEROUNITARIO", "string", ""),
+                        ],
+                        role="AVV",
+                        group=codice_ufficio,
+                        order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+                    )
                 return _soap_qbuilder_execute_body(
                     namespace,
                     "InfoFascicolo",
@@ -6514,7 +6631,10 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 )
             values = [
                 ("idUfficio", "string", codice_ufficio),
-                ("tipo", "string", _pst_tipo_ricerca_qbuilder(base_url)),
+                ("tipo", "string", _pst_tipo_ricerca_qbuilder_da_payload(
+                    base_url,
+                    {"registro_portale": registro_portale},
+                )),
                 ("numero", "integer", numero_value),
                 ("anno", "string", str(anno_rg)),
             ]
@@ -6544,6 +6664,24 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                     empty_order=True,
                 )
             if _pst_servizio_siecic(base_url):
+                registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+                if registro_siecic in {"ESM", "ESIM", "FALL"}:
+                    return _soap_qbuilder_execute_body(
+                        namespace,
+                        "RicercaInformazioniFascicoloPerNumero",
+                        [
+                            ("idUfficio", "string", codice_ufficio),
+                            ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
+                            ("registro", "string", registro_siecic),
+                            ("tipo", "string", "RNG"),
+                            ("numero", "integer", ""),
+                            ("anno", "string", str(anno_rg)),
+                            ("NUMEROUNITARIO", "string", ""),
+                        ],
+                        role="AVV",
+                        group=codice_ufficio,
+                        order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+                    )
                 return _soap_qbuilder_execute_body(
                     namespace,
                     "RicercaArchivioPC",
@@ -6560,9 +6698,14 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 ("anno", "string", str(anno_rg)),
             ]
             if _pst_servizio_sigp(base_url):
-                sigp_subpro = _pst_subpro_sigp(sub_procedimento)
-                if sigp_subpro:
-                    values.append(("subpro", "string", sigp_subpro))
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    "RicercaInformazioniFascicoloPerRMO",
+                    [("idUfficio", "string", codice_ufficio)],
+                    role="AVV",
+                    group=codice_ufficio,
+                    order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+                )
             return _soap_qbuilder_execute_body(
                 namespace,
                 "ArchivioFascicoli",
@@ -6629,7 +6772,8 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
 
 def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno_rg: int,
                                         cf_avvocato: str = "", sub_procedimento: str = "",
-                                        id_ruolo_jpw: str = "") -> list[str]:
+                                        id_ruolo_jpw: str = "",
+                                        registro_portale: str = "") -> list[str]:
     """Body per la lista annuale dei fascicoli, usando i nomi ministeriali per registro."""
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace or not anno_rg:
@@ -6641,9 +6785,23 @@ def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
                 id_ruolo_jpw=id_ruolo_jpw,
+                registro_portale=registro_portale,
             )
         ]
     if _pst_servizio_siecic(base_url):
+        registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+        if registro_siecic in {"ESM", "ESIM", "FALL"}:
+            return [
+                _soap_ricerca_fascicoli_body(
+                    base_url=base_url,
+                    codice_ufficio=codice_ufficio,
+                    anno_rg=anno_rg,
+                    cf_avvocato=cf_avvocato,
+                    sub_procedimento=sub_procedimento,
+                    id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_siecic,
+                )
+            ]
         values = _pst_values_con_id_ruolo_jpw([
             ("idUfficio", "string", codice_ufficio),
             ("annoRuolo", "integer", str(anno_rg)),
@@ -6674,18 +6832,40 @@ def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno
             cf_avvocato=cf_avvocato,
             sub_procedimento=sub_procedimento,
             id_ruolo_jpw=id_ruolo_jpw,
+            registro_portale=registro_portale,
         )
     ]
 
 
 def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
                           anno_rg: int, cf_avvocato: str = "", sub_procedimento: str = "",
-                          id_ruolo_jpw: str = "") -> str:
+                          id_ruolo_jpw: str = "",
+                          registro_portale: str = "",
+                          id_dfa: str = "") -> str:
     """Costruisce il body SOAP per ConsultazioneAvanzataDocumenti o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
         numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
         if _pst_servizio_siecic(base_url):
+            registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+            if registro_siecic in {"ESM", "ESIM", "FALL"}:
+                values = [
+                    ("idUfficio", "string", codice_ufficio),
+                    ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
+                    ("numero", "integer", numero_value),
+                    ("anno", "string", str(anno_rg)),
+                    ("subpro", "integer", sub_procedimento if sub_procedimento else ""),
+                    ("registro", "string", registro_siecic),
+                    ("idDfa", "string", str(id_dfa or "").strip()),
+                ]
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    "DocumentiFascicolo",
+                    values,
+                    role="AVV",
+                    group=codice_ufficio,
+                    order_entries=[("DATADEPOSITO", "desc")],
+                )
             return _soap_qbuilder_execute_body(
                 namespace,
                 "ElencoDocumenti",
@@ -6751,18 +6931,34 @@ def _soap_sigp_ricerca_atti_body(codice_ufficio: str, numero_rg: str, anno_rg: i
 
 def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: str,
                                  anno_rg: int, sub_procedimento: str = "",
-                                 id_ruolo_jpw: str = "") -> str:
+                                 id_ruolo_jpw: str = "",
+                                 registro_portale: str = "",
+                                 id_dfa: str = "") -> str:
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace:
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     if _pst_servizio_siecic(base_url):
-        values = _pst_values_con_id_ruolo_jpw([
-            ("idUfficio", "string", codice_ufficio),
-            ("numeroRuolo", "string", numero_value),
-            ("annoRuolo", "integer", str(anno_rg)),
-            ("scadTermini", "boolean", "false"),
-        ], id_ruolo_jpw)
+        registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+        if registro_siecic in {"ESM", "ESIM", "FALL"}:
+            values = [
+                ("idUfficio", "string", codice_ufficio),
+                ("anno", "string", str(anno_rg)),
+                ("numero", "integer", numero_value),
+                ("subpro", "integer", sub_procedimento if sub_procedimento else ""),
+                ("fascPrecedente", "boolean", "false"),
+                ("scadTermini", "boolean", "false"),
+                ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
+                ("registro", "string", registro_siecic),
+                ("idDfa", "string", str(id_dfa or "").strip()),
+            ]
+        else:
+            values = _pst_values_con_id_ruolo_jpw([
+                ("idUfficio", "string", codice_ufficio),
+                ("numeroRuolo", "string", numero_value),
+                ("annoRuolo", "integer", str(anno_rg)),
+                ("scadTermini", "boolean", "false"),
+            ], id_ruolo_jpw)
     else:
         values = [
             ("idUfficio", "string", codice_ufficio),
@@ -8693,6 +8889,8 @@ def _pst_download_documento_payload(
             nome_finale += ".p7m"
     elif parsed["content"].startswith(b"%PDF") and not nome_finale.lower().endswith(".pdf"):
         nome_finale += ".pdf"
+    servizio_pst = _pst_servizio_proxy(base_url)
+    registro_portale = _pst_tipo_ricerca_qbuilder(base_url) if _pst_namespace_qbuilder(base_url) else ""
 
     return {
         "nome": nome_finale,
@@ -8709,6 +8907,9 @@ def _pst_download_documento_payload(
         "original_documento_portale": bool(original),
         "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
+        "servizio_pst": servizio_pst,
+        "registro_portale": registro_portale,
+        "tipo_registro": registro_portale,
     }
 
 
@@ -8740,6 +8941,15 @@ def _assemble_download_file_payload(
             nome_finale += ".p7m"
     elif parsed["content"].startswith(b"%PDF") and not nome_finale.lower().endswith(".pdf"):
         nome_finale += ".pdf"
+    servizio_pst = str(item.get("servizio_pst") or item.get("servizio_pst_preferito") or _pst_servizio_proxy(base_url) or "").strip()
+    registro_portale = str(
+        item.get("registro_portale")
+        or item.get("tipo_registro")
+        or item.get("registro")
+        or _pst_registro_portale_da_payload(item)
+        or _pst_tipo_ricerca_qbuilder(base_url)
+        or ""
+    ).strip()
     return {
         "nome": nome_finale,
         "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
@@ -8754,6 +8964,9 @@ def _assemble_download_file_payload(
         "original_documento_portale": bool(original),
         "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
+        "servizio_pst": servizio_pst,
+        "registro_portale": registro_portale,
+        "tipo_registro": registro_portale,
         "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{document_id_output or 'documento'}",
         "id_deposito_esterno": str(item.get("id_deposito_esterno") or "").strip(),
         "id_deposito_pct": str(item.get("id_deposito_pct") or "").strip(),
@@ -8798,6 +9011,49 @@ def _pst_primary_document_id(item: Optional[dict]) -> str:
     return ""
 
 
+def _pst_master_detail_id_candidates(item: dict) -> list[str]:
+    """
+    Master/detail usa idDoc/idDocumento; idCat resta un recupero finale solo
+    quando il catalogo non espone un identificativo documento distinto.
+    """
+    candidates: list[str] = []
+
+    def _add(value: Any) -> None:
+        candidate = str(value or "").strip()
+        if candidate and not candidate.startswith("#") and candidate not in candidates:
+            candidates.append(candidate)
+
+    for value in (
+        item.get("id_documento"),
+        item.get("id_documento_portale"),
+        item.get("idDocumento"),
+        item.get("idDoc"),
+        item.get("IdDocumento"),
+        item.get("numero_documento"),
+        item.get("id_doc_mittente"),
+    ):
+        _add(value)
+    raw_candidates = item.get("id_documento_candidates")
+    if isinstance(raw_candidates, (list, tuple, set)):
+        for value in raw_candidates:
+            _add(value)
+    else:
+        _add(raw_candidates)
+    if not candidates:
+        for value in (
+            item.get("id_cat"),
+            item.get("idCat"),
+            item.get("id_repeatto"),
+            item.get("idRepeatTo"),
+            item.get("id_reperto"),
+            item.get("idReperto"),
+            item.get("msg_id"),
+            item.get("msgId"),
+        ):
+            _add(value)
+    return candidates
+
+
 def _pst_master_detail_max_items() -> int:
     raw = str(os.getenv("IUSENTRA_PST_MASTER_DETAIL_MAX", "") or "").strip()
     if not raw:
@@ -8837,7 +9093,7 @@ def _pst_arricchisci_documenti_con_master_detail(
     extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
     registro = str(registro_portale or "").strip().upper() or _pst_registro_documenti_sicid(base_url)
     for doc_index, doc in enumerate(source_docs):
-        for candidate in _pst_document_id_candidates(doc):
+        for candidate in _pst_master_detail_id_candidates(doc):
             if _pst_servizio_sicid_family(base_url):
                 soap_body = _soap_bea_sicid_body(
                     "estraiMasterDetailAtto",
@@ -8957,17 +9213,32 @@ def _soap_qbuilder_fascicolo_section_body(
     service_name: str,
     *,
     sub_procedimento: str = "",
+    id_ruolo_jpw: str = "",
+    registro_portale: str = "",
+    id_dfa: str = "",
 ) -> str:
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace:
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     if _pst_servizio_siecic(base_url):
-        values = [
-            ("idUfficio", "string", codice_ufficio),
-            ("numeroRuolo", "string", numero_value),
-            ("annoRuolo", "integer", str(anno_rg)),
-        ]
+        registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+        if registro_siecic in {"ESM", "ESIM", "FALL"}:
+            values = [
+                ("idUfficio", "string", codice_ufficio),
+                ("anno", "string", str(anno_rg)),
+                ("numero", "integer", numero_value),
+                ("subpro", "integer", sub_procedimento if sub_procedimento else ""),
+                ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
+                ("registro", "string", registro_siecic),
+                ("idDfa", "string", str(id_dfa or "").strip()),
+            ]
+        else:
+            values = [
+                ("idUfficio", "string", codice_ufficio),
+                ("numeroRuolo", "string", numero_value),
+                ("annoRuolo", "integer", str(anno_rg)),
+            ]
     else:
         values = [
             ("idUfficio", "string", codice_ufficio),
@@ -9142,6 +9413,9 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
     cookie_file: str = "",
     prefer_cookie_only: bool = False,
     allow_cert_retry: bool = True,
+    id_ruolo_jpw: str = "",
+    registro_portale: str = "",
+    id_dfa: str = "",
 ) -> dict[str, list[dict]]:
     if not _pst_namespace_qbuilder(base_url):
         return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
@@ -9163,6 +9437,9 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
             anno_rg,
             servizio,
             sub_procedimento=sub_procedimento,
+            id_ruolo_jpw=id_ruolo_jpw,
+            registro_portale=registro_portale,
+            id_dfa=id_dfa,
         )
         if not body:
             continue
@@ -9576,11 +9853,11 @@ def _pst_download_documenti_batch_payloads(
                     soap_action = ""
                     extra_h = extra_base
                 elif servizio == "JPW_SIECIC":
-                    if not id_doc:
-                        raise RuntimeError("idDoc mancante nel lotto SIECIC.")
+                    if not id_cat:
+                        raise RuntimeError("idCat mancante nel lotto SIECIC.")
                     soap_body = _soap_bea_siecic_body(
                         "downloadDocumento",
-                        [("idDoc", id_doc), ("original", "true" if original else "false")],
+                        [("idCat", id_cat), ("original", "true" if original else "false")],
                     )
                     soap_action = ""
                     extra_h = extra_base
@@ -9761,6 +10038,8 @@ def _arricchisci_fascicoli_con_profilo(
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
     id_ruolo_jpw: str = "",
+    registro_portale: str = "",
+    id_dfa: str = "",
 ) -> list[dict]:
     if not _pst_namespace_qbuilder(base_url):
         return fascicoli
@@ -9775,6 +10054,13 @@ def _arricchisci_fascicoli_con_profilo(
             anno_rg=int(fascicolo.get("anno_rg") or 0),
             sub_procedimento=str(fascicolo.get("sub_procedimento") or "").strip(),
             id_ruolo_jpw=id_ruolo_jpw,
+            registro_portale=str(
+                fascicolo.get("registro_portale")
+                or fascicolo.get("tipo_registro")
+                or registro_portale
+                or ""
+            ).strip(),
+            id_dfa=str(fascicolo.get("id_dfa") or id_dfa or "").strip(),
         )
         if not soap:
             continue
@@ -11221,6 +11507,14 @@ class _Handler(BaseHTTPRequestHandler):
             )
             sub_procedimento = str(data.get("sub_procedimento") or data.get("subpro") or "").strip()
             id_ruolo_jpw = _pst_id_ruolo_jpw_da_payload(data)
+            registro_portale = str(
+                data.get("registro_portale")
+                or data.get("tipo_registro")
+                or data.get("registro")
+                or data.get("tipo_ricerca")
+                or ""
+            ).strip()
+            id_dfa = str(data.get("id_dfa") or data.get("idDfa") or data.get("IDDFA") or "").strip()
             if is_year_only_archive:
                 soap_bodies = _soap_ricerca_fascicoli_anno_bodies(
                     base_url=base_url,
@@ -11229,6 +11523,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     sub_procedimento=sub_procedimento,
                     id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_portale,
                 )
             else:
                 soap_bodies = [
@@ -11242,6 +11537,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_avvocato=cf_avvocato,
                         sub_procedimento=sub_procedimento,
                         id_ruolo_jpw=id_ruolo_jpw,
+                        registro_portale=registro_portale,
                     )
                 ]
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
@@ -11330,6 +11626,8 @@ class _Handler(BaseHTTPRequestHandler):
                     cookie_file=cookie_file,
                     prefer_cookie_only=prefer_cookie_only,
                     id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_portale,
+                    id_dfa=id_dfa,
                 )
             if session_entry:
                 _update_pst_session(
@@ -11442,6 +11740,14 @@ class _Handler(BaseHTTPRequestHandler):
 
             sub_procedimento = str(data.get("sub_procedimento") or data.get("subpro") or "").strip()
             id_ruolo_jpw = _pst_id_ruolo_jpw_da_payload(data)
+            registro_portale = str(
+                data.get("registro_portale")
+                or data.get("tipo_registro")
+                or data.get("registro")
+                or data.get("tipo_ricerca")
+                or ""
+            ).strip()
+            id_dfa = str(data.get("id_dfa") or data.get("idDfa") or data.get("IDDFA") or "").strip()
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             soap_ricerca = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
@@ -11453,6 +11759,7 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
                 id_ruolo_jpw=id_ruolo_jpw,
+                registro_portale=registro_portale,
             )
             soap_documenti = _soap_documenti_body(
                 base_url=base_url,
@@ -11462,6 +11769,8 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=sub_procedimento,
                 id_ruolo_jpw=id_ruolo_jpw,
+                registro_portale=registro_portale,
+                id_dfa=id_dfa,
             )
             soap_profilo = _soap_profilo_fascicolo_body(
                 base_url=base_url,
@@ -11470,6 +11779,8 @@ class _Handler(BaseHTTPRequestHandler):
                 anno_rg=anno_rg,
                 sub_procedimento=sub_procedimento,
                 id_ruolo_jpw=id_ruolo_jpw,
+                registro_portale=registro_portale,
+                id_dfa=id_dfa,
             ) if _pst_namespace_qbuilder(base_url) else ""
 
             with _pst_session_lock_for(session_entry):
@@ -11556,6 +11867,8 @@ class _Handler(BaseHTTPRequestHandler):
                             anno_rg=anno_rg,
                             sub_procedimento=sub_procedimento,
                             id_ruolo_jpw=id_ruolo_jpw,
+                            registro_portale=registro_portale,
+                            id_dfa=id_dfa,
                         )
                         fallback_info = {
                             "base_url": fallback_base_url,
@@ -11579,6 +11892,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 cf_avvocato=cf_avvocato,
                                 sub_procedimento=sub_procedimento,
                                 id_ruolo_jpw=id_ruolo_jpw,
+                                registro_portale=registro_portale,
                             ),
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
@@ -11606,6 +11920,8 @@ class _Handler(BaseHTTPRequestHandler):
                                 cf_avvocato=cf_avvocato,
                                 sub_procedimento=sub_procedimento,
                                 id_ruolo_jpw=id_ruolo_jpw,
+                                registro_portale=registro_portale,
+                                id_dfa=id_dfa,
                             ),
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
@@ -11857,12 +12173,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    registro=str(
-                        data.get("registro_portale")
-                        or data.get("registro")
-                        or data.get("tipo_ricerca")
-                        or ""
-                    ).strip(),
+                    registro=registro_portale,
                 )
                 web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
                 if isinstance(web_documenti, list) and web_documenti:
@@ -11878,12 +12189,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cookie_file=cookie_file,
                         prefer_cookie_only=True,
                         allow_cert_retry=True,
-                        registro_portale=str(
-                            data.get("registro_portale")
-                            or data.get("registro")
-                            or data.get("tipo_ricerca")
-                            or ""
-                        ).strip(),
+                        registro_portale=registro_portale,
                     )
                 sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                     base_url=base_url,
@@ -11897,6 +12203,9 @@ class _Handler(BaseHTTPRequestHandler):
                     cookie_file=cookie_file,
                     prefer_cookie_only=True,
                     allow_cert_retry=False,
+                    id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_portale,
+                    id_dfa=id_dfa,
                 )
                 if isinstance(web_info, dict):
                     sezioni_pst["eventi"] = _merge_pst_section_items(
@@ -11954,6 +12263,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "anno": int(fascicolo_row.get("anno_rg") or anno_rg),
                     "anno_rg": int(fascicolo_row.get("anno_rg") or anno_rg),
                     "id_fascicolo": str(fascicolo_row.get("id_fascicolo") or data.get("id_fascicolo") or ""),
+                    "id_dfa": str(fascicolo_row.get("id_dfa") or id_dfa or data.get("id_dfa") or ""),
                     "procedimento": str(fascicolo_row.get("ruolo") or ""),
                     "oggetto": str(fascicolo_row.get("oggetto") or data.get("oggetto") or ""),
                     "materia": str(fascicolo_row.get("materia") or ""),
@@ -11969,7 +12279,18 @@ class _Handler(BaseHTTPRequestHandler):
                     "parti": fascicolo_row.get("parti") if isinstance(fascicolo_row.get("parti"), list) else [],
                     "controparti": fascicolo_row.get("controparti") if isinstance(fascicolo_row.get("controparti"), list) else [],
                     "servizio_pst": _pst_servizio_proxy(base_url),
-                    "registro_portale": _pst_tipo_ricerca_qbuilder(base_url),
+                    "registro_portale": str(
+                        fascicolo_row.get("registro_portale")
+                        or fascicolo_row.get("tipo_registro")
+                        or registro_portale
+                        or _pst_tipo_ricerca_qbuilder(base_url)
+                    ),
+                    "tipo_registro": str(
+                        fascicolo_row.get("tipo_registro")
+                        or fascicolo_row.get("registro_portale")
+                        or registro_portale
+                        or _pst_tipo_ricerca_qbuilder(base_url)
+                    ),
                     "tabella_ministeriale": str(tabella_policy.get("tabella") or ""),
                     "scadenze_termini": fascicolo_row.get("scadenze_termini") if isinstance(fascicolo_row.get("scadenze_termini"), list) else [],
                     "fascicoli_precedenti": fascicolo_row.get("fascicoli_precedenti") if isinstance(fascicolo_row.get("fascicoli_precedenti"), list) else [],
@@ -12073,6 +12394,14 @@ class _Handler(BaseHTTPRequestHandler):
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
                     "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
                 )
+            registro_portale = str(
+                data.get("registro_portale")
+                or data.get("tipo_registro")
+                or data.get("registro")
+                or data.get("tipo_ricerca")
+                or ""
+            ).strip()
+            id_dfa = str(data.get("id_dfa") or data.get("idDfa") or data.get("IDDFA") or "").strip()
             session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=codice,
@@ -12103,6 +12432,8 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato=cf_avvocato,
                 sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
                 id_ruolo_jpw=_pst_id_ruolo_jpw_da_payload(data),
+                registro_portale=registro_portale,
+                id_dfa=id_dfa,
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             is_sigp = _pst_servizio_sigp(base_url)
@@ -12155,8 +12486,8 @@ class _Handler(BaseHTTPRequestHandler):
                 else:
                     documenti = _sigp_merge_documenti_con_profili(
                         documenti,
-                            _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
-                        )
+                        _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
+                    )
             if _pst_namespace_qbuilder(base_url):
                 web_info = _pst_carica_infofascicolo_web(
                     base_url=base_url,
@@ -12171,12 +12502,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    registro=str(
-                        data.get("registro_portale")
-                        or data.get("registro")
-                        or data.get("tipo_ricerca")
-                        or ""
-                    ).strip(),
+                    registro=str(registro_portale or data.get("tipo_ricerca") or "").strip(),
                 )
                 web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
                 if isinstance(web_documenti, list) and web_documenti:
@@ -12192,12 +12518,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cookie_file=cookie_file,
                         prefer_cookie_only=True,
                         allow_cert_retry=False,
-                        registro_portale=str(
-                            data.get("registro_portale")
-                            or data.get("registro")
-                            or data.get("tipo_ricerca")
-                            or ""
-                        ).strip(),
+                        registro_portale=registro_portale,
                     )
             if session_entry:
                 _update_pst_session(
@@ -12273,6 +12594,26 @@ class _Handler(BaseHTTPRequestHandler):
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
                     "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
                 )
+            registro_portale = str(
+                data.get("registro_portale")
+                or data.get("tipo_registro")
+                or data.get("registro")
+                or selection.get("registro_portale")
+                or selection.get("tipo_registro")
+                or selection.get("registro")
+                or data.get("tipo_ricerca")
+                or ""
+            ).strip()
+            id_dfa = str(
+                data.get("id_dfa")
+                or data.get("idDfa")
+                or data.get("IDDFA")
+                or selection.get("id_dfa")
+                or selection.get("idDfa")
+                or selection.get("IDDFA")
+                or ""
+            ).strip()
+            id_ruolo_jpw = _pst_id_ruolo_jpw_da_payload(data, selection)
             session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=codice,
@@ -12308,7 +12649,9 @@ class _Handler(BaseHTTPRequestHandler):
                         or data.get("subpro")
                         or ""
                     ).strip(),
-                    id_ruolo_jpw=_pst_id_ruolo_jpw_da_payload(data, selection),
+                    id_ruolo_jpw=id_ruolo_jpw,
+                    registro_portale=registro_portale,
+                    id_dfa=id_dfa,
                 )
                 extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
                 is_sigp = _pst_servizio_sigp(base_url)
@@ -12379,14 +12722,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_avvocato=cf_avvocato,
                         cert_thumbprint=cert_thumbprint,
                         cookie_file=cookie_file,
-                        registro=str(
-                            data.get("registro_portale")
-                            or data.get("registro")
-                            or selection.get("registro_portale")
-                            or selection.get("registro")
-                            or data.get("tipo_ricerca")
-                            or ""
-                        ).strip(),
+                        registro=registro_portale,
                     )
                     web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
                     if isinstance(web_documenti, list) and web_documenti:
@@ -12402,14 +12738,7 @@ class _Handler(BaseHTTPRequestHandler):
                             cookie_file=cookie_file,
                             prefer_cookie_only=True,
                             allow_cert_retry=True,
-                            registro_portale=str(
-                                data.get("registro_portale")
-                                or data.get("registro")
-                                or selection.get("registro_portale")
-                                or selection.get("registro")
-                                or data.get("tipo_ricerca")
-                                or ""
-                            ).strip(),
+                            registro_portale=registro_portale,
                         )
                     sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                         base_url=base_url,
@@ -12428,6 +12757,9 @@ class _Handler(BaseHTTPRequestHandler):
                         cookie_file=cookie_file,
                         prefer_cookie_only=True,
                         allow_cert_retry=False,
+                        id_ruolo_jpw=id_ruolo_jpw,
+                        registro_portale=registro_portale,
+                        id_dfa=id_dfa,
                     )
                     if isinstance(web_info, dict):
                         sezioni_pst["eventi"] = _merge_pst_section_items(
@@ -12457,6 +12789,10 @@ class _Handler(BaseHTTPRequestHandler):
                 "anno": anno,
                 "anno_rg": anno,
                 "id_fascicolo": selection.get("id_fascicolo") or data.get("id_fascicolo") or "",
+                "id_dfa": id_dfa,
+                "registro_portale": registro_portale,
+                "tipo_registro": registro_portale,
+                "servizio_pst": _pst_servizio_proxy(base_url),
                 "procedimento": selection.get("procedimento") or "",
                 "oggetto": selection.get("oggetto") or "",
                 "stato": selection.get("stato") or "",
@@ -12941,7 +13277,10 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
             download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
+            document_payloads = [item for item in documenti if isinstance(item, dict)]
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data, *document_payloads)
             base_url = _risolvi_base_pst_runtime(tribunale)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data, *document_payloads)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint")
@@ -12955,7 +13294,17 @@ class _Handler(BaseHTTPRequestHandler):
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
-                base_url = session_base_url
+                base_url = (
+                    _pst_base_url_con_servizio(session_base_url, servizio_hint)
+                    if servizio_hint
+                    else session_base_url
+                )
+            registro_hint = _pst_registro_portale_da_payload(data, *document_payloads)
+            documenti = _pst_documenti_con_contesto_ministeriale(
+                documenti,
+                servizio_pst=_pst_servizio_proxy(base_url) or servizio_hint,
+                registro_portale=registro_hint,
+            )
             session_kwargs = {
                 "tribunale": tribunale,
                 "base_url": base_url,

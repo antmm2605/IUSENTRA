@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.153 - 2026-07-03
+
+- Presidio documentale udienze: i riferimenti storici a file fisici non piu' presenti nel tenant non fanno piu' fallire il worker PEC/documenti. Il documento viene auditato come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`, non viene riletto a ogni ciclo e il lotto prosegue sui fascicoli successivi, inclusi i fascicoli analoghi a `RG 1754/2026` con decreti/ordinanze/verbali di udienza.
+- Aggiunto test di regressione sul caso reale `FileNotFoundError` durante indicizzazione Lex AI documentale, preservando i guardrail su priorita' fascicoli, vecchi checked senza status, lock SQLite transitori e link udienza remoto cliccabile.
+
 ## 2.253.152 - 2026-07-02
 
 - Toolchain: aggiornamento a **Node 24 LTS** (GitHub ha deprecato Node 20 sui runner Actions, avviso "Node 20 is being deprecated... running with Node 24 by default"):

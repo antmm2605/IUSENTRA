@@ -2264,6 +2264,81 @@ def test_presidio_documentale_file_non_indicizzabile_non_fallisce_job_e_viene_ma
     assert service.calls == 1
 
 
+def test_presidio_documentale_file_sorgente_mancante_non_blocca_worker_e_viene_marcato(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Ricorso lavoro con decreto udienza",
+        TipoFascicolo.LAVORO,
+        nome_cliente="Cliente Documento Mancante",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="1754",
+        anno_rg=2026,
+        controparte="MIM",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.pdf.p7m",
+        TipoDocumento.DECRETO,
+        b"Documento remoto da indicizzare.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    class MissingSourceService:
+        calls = 0
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls += len(sources)
+            return SimpleNamespace(
+                indexed=0,
+                skipped=0,
+                errors=[
+                    f"{sources[0].filename}: [Errno 2] No such file or directory: "
+                    f"'/data/tenants/studio/fascicoli/documenti/{fascicolo_id}/{sources[0].filename}'"
+                ],
+            )
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = MissingSourceService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+
+    assert report["new_or_changed_documents"] == 1
+    assert report["processed_new_documents"] == 1
+    assert report["errors"] == []
+    assert report["skipped_non_blocking_documents"] == 1
+    assert report["items"][0]["status"] == "skipped_non_blocking_document"
+    assert report["items"][0]["reason"] == "file_documento_sorgente_non_trovato"
+    with repo.connect() as conn:
+        checked = conn.execute(
+            "SELECT payload_json FROM pec_audit_log WHERE action='pec.document_presidio.checked'"
+        ).fetchone()
+    assert checked is not None
+    assert '"status":"skipped_non_blocking"' in checked[0]
+    assert '"reason":"file_documento_sorgente_non_trovato"' in checked[0]
+
+    second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
+    assert second["new_or_changed_documents"] == 0
+    assert service.calls == 1
+
+
 def test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto(tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB

@@ -3954,3 +3954,9 @@ Aggiornamento 03/07/2026 10:35 (Europe/Rome):
 - il worker PEC/documenti mantiene il lotto piccolo per non appesantire il server, ma ordina prima i fascicoli senza scadenza futura visibile che contengono documenti con segnali `udienza`, `fissazione`, `decreto`, `ordinanza`, `verbale`, `rinvio`, `collegamento`, `audiovisivo`;
 - i vecchi audit `pec.document_presidio.checked` senza campo `status`, con `candidates=0` e documento riconducibile a decreto/udienza, non bloccano piu' la nuova lettura: vengono rivalutati una volta e poi marcati con `status=checked`;
 - guardrail aggiunti: priorita' tra fascicoli anche con lotto `limit=1` e ripresa di vecchio checked senza `status` sui decreti udienza.
+
+Aggiornamento 03/07/2026 10:55 (Europe/Rome):
+
+- durante il deploy su Hetzner il worker vivo ha intercettato riferimenti storici a documenti `.p7m` non piu' presenti nel path tenant-aware del fascicolo `0D4A4802`;
+- questi riferimenti non devono essere scambiati per esito positivo, ma non devono nemmeno bloccare tutto il lotto PEC/documenti: il presidio ora li registra come `skipped_non_blocking` con motivo `file_documento_sorgente_non_trovato`;
+- dopo la marcatura il giro successivo non rilegge gli stessi riferimenti rotti e puo' proseguire sui fascicoli successivi, incluso `RG 1754/2026` e gli altri fascicoli analoghi con decreti/ordinanze/verbali di udienza.

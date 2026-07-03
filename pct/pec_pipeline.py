@@ -4624,6 +4624,17 @@ def _document_presidio_non_blocking_warning(value: Any) -> str:
         return "file_superiore_limite_documenti_ai"
     if "formato non supportato per indicizzazione lex" in lower:
         return "formato_non_supportato_documenti_ai"
+    if any(
+        marker in lower
+        for marker in (
+            "no such file or directory",
+            "file not found",
+            "cannot find the file specified",
+            "impossibile trovare il file",
+            "impossibile trovare il percorso",
+        )
+    ):
+        return "file_documento_sorgente_non_trovato"
     return ""
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.162 - 2026-07-03
+
+- Notifiche legali React: aggiunti flussi dedicati `UNEP` e `Non PEC` nello stesso pannello operativo, con controlli reali, API JSON e azioni non simulate.
+- Dati: aggiunte tabelle SQLite/PostgreSQL per richieste UNEP e tracciamento notifiche non PEC/raccomandata, mantenendo il perimetro tenant-aware.
+- Conformità notifiche: la prova di notifica richiede ora destinatario, PEC e pubblico elenco quando si depositano ricevute di accettazione/consegna.
+- UI: nessun riferimento al software confrontato viene esposto nel pannello utente; i messaggi visibili filtrano codici e dettagli tecnici non utili all'avvocato.
+
 ## 2.253.161 - 2026-07-03
 
 - Deposito telematico React: aggiunto `Deseleziona tutto` nella lista `Documenti da inviare` e corretto hover/focus di `Salva classificazione`, che ora resta leggibile con testo bianco su sfondo blu.

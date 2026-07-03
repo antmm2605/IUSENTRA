@@ -37,6 +37,8 @@ def test_extended_schema_idempotente_crea_tabelle_e_audit(tmp_path):
         "notification_evidence_links",
         "notification_proof_deposits",
         "notification_dati_atto_receipt_refs",
+        "notification_unep_requests",
+        "notification_non_pec_tracks",
         "evidence_documents",
         "procedure_audit_log",
     }
@@ -101,6 +103,8 @@ def test_notification_proof_matrix_sqlite_postgres_parity_e_trigger():
         "notification_evidence_links",
         "notification_proof_deposits",
         "notification_dati_atto_receipt_refs",
+        "notification_unep_requests",
+        "notification_non_pec_tracks",
     }
     sqlite_tables = set(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_]+)", sqlite_sql))
     postgres_tables = set(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_]+)", postgres_sql))
@@ -109,4 +113,7 @@ def test_notification_proof_matrix_sqlite_postgres_parity_e_trigger():
     assert expected <= postgres_tables
     assert sqlite_tables == postgres_tables
     assert "FROM notification_proof_bundles" in sqlite_sql
+    assert "FROM notification_proof_bundles" in postgres_sql
     assert "document_id = NEW.proof_bundle_id" not in sqlite_sql
+    assert "iusentra_notification_proof_guard" in postgres_sql
+    assert "trg_pl_notification_block_update_proof_without_guard" in postgres_sql

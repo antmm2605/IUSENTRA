@@ -113,9 +113,44 @@ portale, senza creare automaticamente duplicati.
 | Flusso | Operazione | Output | Blocchi principali |
 | --- | --- | --- | --- |
 | Notifica PEC L. 53/1994 | `notifica_pec_l53` | Oggetto PEC vincolato, relata separata, corpo PEC, checklist, log e piano output | Avvocato abilitato, PEC mittente validata, fonte pubblica PEC destinatario, data/ora verifica, relata firmata, ricevuta completa, documenti e attestazioni |
-| Deposito prova notifica | controllo prova deposito | Evidence pack, distinta prova notifica e scheda esito | Atto, relata firmata, PEC inviata, RAC, RdAC completa e hash SHA-256 |
+| Deposito prova notifica | controllo prova deposito | Evidence pack, distinta prova notifica e scheda esito | Atto, relata firmata, PEC inviata, ricevuta di accettazione, ricevuta di consegna completa e impronte dei file |
+| UNEP | `notifica_unep` | Piano richiesta/notifica UNEP con ufficio, tipo, destinatario, atti, richiesta/relata, spese e ricevute | Ufficio NEP, tipo notifica, recapito destinatario, data precetto quando richiesta, atti e prove documentali |
+| Notifica non PEC | `notifica_non_pec` | Tracciamento notifica raccomandata, ufficiale giudiziario, consegna a mani, estero o altro canale | Data notifica, tipo, identificativo, prova documentale, ricevuta raccomandata o cronologico/canale richiesto |
 | Comunicazione cliente | `comunicazione_cliente_non_notifica` | Oggetto e corpo informativo cliente | Nessuna relata, nessun oggetto L. 53, nessun trattamento come notifica |
 | Area web PST notifica fallita | workflow manuale PST | Evidence pack per causa imputabile al destinatario | Valutazione avvocato obbligatoria, avviso mancata consegna, nessuna dichiarazione di perfezionamento se la causa non e' imputabile al destinatario |
+
+## Confronto Studio Telematico 03/07/2026
+
+Il confronto sul decompilato Studio Telematico è documentato in
+`artifacts/react-migration/studio-telematico-notifiche-legali-confronto-2026-07-03.md`.
+La regola runtime consolidata è:
+
+- gli alias dei pubblici elenchi osservati nel decompilato (`INIPEC-professionisti`,
+  `RegistroImprese`, `RegInde`, `IPA`, `altro`) vengono normalizzati nei valori
+  interni governati da `PUBLIC_PEC_REGISTERS`;
+- la prova deposito della notifica deve avere, per ogni destinatario collegato
+  alle ricevute, codice fiscale o partita IVA, PEC e pubblico elenco;
+- il flusso UNEP è canale autonomo nel pannello React notifiche e richiede tipo
+  notifica, ufficio NEP, destinatario, recapito, atto, richiesta/relata,
+  eventuale data notifica precetto e ricevuta pagamento quando dovuta;
+- il flusso non PEC/raccomandata conserva i campi storici `DataNotifica`,
+  `TipoNotifica`, `DataRicevutaRaccomandata` e `NotificaID` in una tabella
+  propria, senza confonderli con la notifica PEC L. 53;
+- gli stati probatori della notifica restano protetti sia in SQLite sia nello
+  schema PostgreSQL con bundle verificato e deposito prova accettato quando
+  richiesto;
+- la UI non deve mostrare riferimenti al software confrontato o alias tecnici:
+  il confronto resta in codice, test e documentazione operativa.
+
+Controllo perimetro esteso:
+
+- il pannello PEC L. 53 è il perimetro allineato campo per campo;
+- UNEP, notifiche non PEC/raccomandata e ricevute collegate a `TAVOLA` sono
+  flussi separati dalla prova PEC ma ora hanno tab, API e tabelle dedicate nello
+  stesso pannello React `/notifiche-legali`;
+- gli esiti SdI/fatturazione elettronica non sono notifiche legali PEC;
+- la UI non espone riferimenti al software confrontato né sigle tecniche del
+  decompilato.
 
 ## Notifica PEC L. 53/1994
 

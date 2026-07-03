@@ -283,6 +283,73 @@ CREATE INDEX IF NOT EXISTS idx_ndar_recipient_id ON notification_dati_atto_recei
 CREATE INDEX IF NOT EXISTS idx_ndar_receipt_id ON notification_dati_atto_receipt_refs (receipt_id);
 CREATE INDEX IF NOT EXISTS idx_ndar_tenant ON notification_dati_atto_receipt_refs (tenant_id);
 
+CREATE TABLE IF NOT EXISTS notification_unep_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id TEXT,
+    fascicolo_id TEXT NOT NULL,
+    notification_case_id INTEGER,
+    request_uid TEXT NOT NULL UNIQUE,
+    notification_type TEXT NOT NULL,
+    unep_office TEXT NOT NULL,
+    act_filename TEXT,
+    act_hash TEXT,
+    request_filename TEXT,
+    request_hash TEXT,
+    recipient_name TEXT NOT NULL,
+    recipient_tax_code TEXT,
+    recipient_address_json TEXT NOT NULL DEFAULT '{}',
+    recipient_pec TEXT,
+    recipient_address_source TEXT,
+    precetto_notified_at TEXT,
+    fee_due INTEGER NOT NULL DEFAULT 0,
+    payment_filename TEXT,
+    payment_hash TEXT,
+    portal_receipt_document_id TEXT,
+    office_return_document_id TEXT,
+    status TEXT NOT NULL DEFAULT 'DRAFT',
+    source_payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_nur_case_id ON notification_unep_requests (notification_case_id);
+CREATE INDEX IF NOT EXISTS idx_nur_fascicolo_id ON notification_unep_requests (fascicolo_id);
+CREATE INDEX IF NOT EXISTS idx_nur_status ON notification_unep_requests (status);
+CREATE INDEX IF NOT EXISTS idx_nur_tenant ON notification_unep_requests (tenant_id);
+
+CREATE TABLE IF NOT EXISTS notification_non_pec_tracks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id TEXT,
+    fascicolo_id TEXT NOT NULL,
+    notification_case_id INTEGER,
+    track_uid TEXT NOT NULL UNIQUE,
+    notification_type TEXT NOT NULL,
+    notification_id TEXT NOT NULL,
+    recipient_name TEXT NOT NULL,
+    recipient_tax_code TEXT,
+    act_filename TEXT,
+    act_hash TEXT,
+    notified_at TEXT NOT NULL,
+    registered_mail_number TEXT,
+    registered_mail_sent_at TEXT,
+    registered_mail_received_at TEXT,
+    unep_office TEXT,
+    chronological_number TEXT,
+    hand_recipient TEXT,
+    foreign_country TEXT,
+    foreign_authority_or_channel TEXT,
+    proof_filename TEXT,
+    proof_hash TEXT,
+    status TEXT NOT NULL DEFAULT 'DRAFT',
+    source_payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_nnpt_case_id ON notification_non_pec_tracks (notification_case_id);
+CREATE INDEX IF NOT EXISTS idx_nnpt_fascicolo_id ON notification_non_pec_tracks (fascicolo_id);
+CREATE INDEX IF NOT EXISTS idx_nnpt_notification_id ON notification_non_pec_tracks (notification_id);
+CREATE INDEX IF NOT EXISTS idx_nnpt_status ON notification_non_pec_tracks (status);
+CREATE INDEX IF NOT EXISTS idx_nnpt_tenant ON notification_non_pec_tracks (tenant_id);
+
 DROP TRIGGER IF EXISTS trg_pl_notification_block_insert_proof_status;
 CREATE TRIGGER trg_pl_notification_block_insert_proof_status
 BEFORE INSERT ON notification_events

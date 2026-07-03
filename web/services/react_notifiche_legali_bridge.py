@@ -15,7 +15,9 @@ from pct.notifiche_legali import (
     DOCUMENT_ORIGIN_LABELS,
     LEGAL_NOTIFICATION_SUBJECT,
     LEGAL_RECIPIENT_ROLES,
+    NON_PEC_NOTIFICATION_TYPES,
     PUBLIC_PEC_REGISTERS,
+    UNEP_NOTIFICATION_TYPES,
     available_template_fields,
     client_communication_templates_version,
     list_client_communication_templates,
@@ -30,7 +32,7 @@ from pct.notifiche_legali import (
 )
 
 
-_QUICKORGANIZER_CONTENT_LABEL_CACHE: dict[str, str] = {}
+_LEGACY_IMPORT_CONTENT_LABEL_CACHE: dict[str, str] = {}
 
 
 def _text(value: Any) -> str:
@@ -42,6 +44,7 @@ def _display_text(value: Any) -> str:
     if not raw:
         return ""
     cleaned = re.sub(r"\b(demo|sample|repository)\b", "", raw, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(?:QuickOrganizer|Studio\s+Telematico)\b", "gestionale precedente", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+([,.;:])", r"\1", cleaned)
     cleaned = re.sub(r"[-–—]\s*$", "", cleaned).strip()
@@ -289,8 +292,8 @@ def _extract_first_page_text(path: Path) -> str:
     try:
         stat = path.stat()
         cache_key = f"{path}:{stat.st_size}:{int(stat.st_mtime)}"
-        if cache_key in _QUICKORGANIZER_CONTENT_LABEL_CACHE:
-            return _QUICKORGANIZER_CONTENT_LABEL_CACHE[cache_key]
+        if cache_key in _LEGACY_IMPORT_CONTENT_LABEL_CACHE:
+            return _LEGACY_IMPORT_CONTENT_LABEL_CACHE[cache_key]
         if stat.st_size > int(os.getenv("IUSENTRA_NOTIFICHE_OCR_MAX_BYTES", "6000000")):
             return ""
     except (OSError, ValueError):
@@ -331,11 +334,11 @@ def _extract_first_page_text(path: Path) -> str:
             except (OSError, subprocess.SubprocessError):
                 extracted = ""
     if cache_key:
-        _QUICKORGANIZER_CONTENT_LABEL_CACHE[cache_key] = extracted
+        _LEGACY_IMPORT_CONTENT_LABEL_CACHE[cache_key] = extracted
     return extracted
 
 
-def _quickorganizer_content_label(documento: Any) -> str:
+def _legacy_import_content_label(documento: Any) -> str:
     name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
     marker = _first_attr(documento, "classificazione_portale", "note", "fonte_documento")
     tags = " ".join(_text(item) for item in (getattr(documento, "tags", []) or []))
@@ -570,7 +573,7 @@ def _document_from_fascicolo(
     raw_description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note")
     if operational_name and (_is_timestamp_filename(name) or _is_import_pratiche_marker(raw_description)):
         name = operational_name
-    content_label = _quickorganizer_content_label(documento) if resolve_content_label and not operational_name else ""
+    content_label = _legacy_import_content_label(documento) if resolve_content_label and not operational_name else ""
     label = content_label or _document_label(documento) or _display_text(name)
     description = raw_description or name
     if operational_name and _is_import_pratiche_marker(description):
@@ -884,6 +887,14 @@ def build_react_notifiche_legali_payload(
             {"value": role, "label": _recipient_role_label(role)}
             for role in sorted(LEGAL_RECIPIENT_ROLES)
         ],
+        "tipiNotificaUnep": [
+            {"value": key, "label": label}
+            for key, label in UNEP_NOTIFICATION_TYPES.items()
+        ],
+        "tipiNotificaNonPec": [
+            {"value": key, "label": label}
+            for key, label in NON_PEC_NOTIFICATION_TYPES.items()
+        ],
         "originiDocumento": [
             {"value": key, "label": label, "needsAttestazione": key in {"copia_fascicolo_informatico", "comunicazione_cancelleria", "scansione_analogico"}}
             for key, label in DOCUMENT_ORIGIN_LABELS.items()
@@ -927,6 +938,8 @@ def build_react_notifiche_legali_payload(
             "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
+            "unep": "/api/v1/ui/notifiche-legali/unep",
+            "nonPec": "/api/v1/ui/notifiche-legali/non-pec",
             "areaWebPst": "/api/v1/ui/notifiche-legali/area-web-pst",
             "pecCompose": "/email/scrivi?tipo=notifica_l53",
             "clientCompose": "/email-ordinaria/scrivi?tipo=comunicazione_cliente",

@@ -27,6 +27,8 @@ LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
 LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
 LEGAL_NOTIFICATION_SEND_OPERATION = "invio_pec_l53"
 CLIENT_COMMUNICATION_OPERATION = "comunicazione_cliente_non_notifica"
+UNEP_NOTIFICATION_OPERATION = "notifica_unep"
+NON_PEC_NOTIFICATION_OPERATION = "notifica_non_pec"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
 SHA256_HEX_RE = re.compile(r"^[a-fA-F0-9]{64}$")
@@ -55,6 +57,21 @@ LEGAL_RECIPIENT_ROLES = {
 }
 
 CLIENT_RECIPIENT_ROLES = {"cliente", "assistito"}
+
+UNEP_NOTIFICATION_TYPES: dict[str, str] = {
+    "mani": "A mani",
+    "posta": "A mezzo posta",
+    "estero": "All'estero",
+    "telematica": "Telematica",
+}
+
+NON_PEC_NOTIFICATION_TYPES: dict[str, str] = {
+    "raccomandata": "Raccomandata",
+    "ufficiale_giudiziario": "Ufficiale giudiziario",
+    "mani": "Consegna a mani",
+    "estero": "Notifica all'estero",
+    "altro": "Altro canale non PEC",
+}
 
 RECIPIENT_NOTIFICATION_DIRECTIVES: dict[str, dict[str, Any]] = {
     "controparte": {
@@ -303,6 +320,21 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
         "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa.",
     },
     {
+        "id": "pst_xsd_unep_2024",
+        "label": "PST, XSD UNEP 06/11/2024 e messa in esercizio 18/11/2024",
+        "rule": "Canale telematico autonomo per depositi presso gli Uffici NEP, distinto dal deposito PCT civile e dalla notifica PEC L. 53.",
+    },
+    {
+        "id": "cpc_137_149",
+        "label": "Artt. 137-149 c.p.c.",
+        "rule": "Regole generali sulle notificazioni eseguite dall'ufficiale giudiziario e sui canali non PEC.",
+    },
+    {
+        "id": "cpc_149",
+        "label": "Art. 149 c.p.c.",
+        "rule": "Notificazione a mezzo del servizio postale con prova della spedizione e della ricezione.",
+    },
+    {
         "id": "dgsia_2024_art21",
         "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 21",
         "rule": "Comunicazioni e notificazioni provenienti dall'ufficio giudiziario, Comunicazione.xml e ricevute conservate nel fascicolo informatico.",
@@ -320,7 +352,7 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
     {
         "id": "dgsia_2024_art26",
         "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
-        "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml.",
+        "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute e inserimento dei riferimenti nel deposito.",
     },
     {
         "id": "dgsia_2024_art27",
@@ -541,7 +573,7 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "allegati",
         "title": "Preparazione allegati",
-        "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta SHA-256 quando disponibile.",
+        "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta del file quando disponibile.",
         "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
     },
     {
@@ -568,7 +600,7 @@ LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "atti",
         "title": "Raccolta atti notificati",
-        "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
+        "body": "La prova può includere più atti o allegati notificati, con nome e impronta del file.",
         "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
     },
     {
@@ -580,8 +612,8 @@ LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "dati_atto",
         "title": "Indicizzazione ricevute",
-        "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
-        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5; XSD DatiAtto.xml",
+        "body": "I riferimenti delle ricevute sono preparati per il riepilogo del deposito.",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
     },
     {
         "id": "audit",
@@ -783,14 +815,23 @@ def normalise_public_register(value: Any) -> str:
     raw = text(value).lower().replace("-", "_").replace(" ", "_").replace(".", "")
     aliases = {
         "reginde": "reginde",
+        "re_g_ind_e": "reginde",
         "registro_generale_indirizzi_elettronici": "reginde",
+        "registro_generale_indirizzi_elettronici_reginde": "reginde",
         "inipec": "ini_pec",
         "ini_pec": "ini_pec",
+        "inipec_professionisti": "ini_pec",
+        "ini_pec_professionisti": "ini_pec",
+        "inipec_imprese": "ini_pec",
+        "ini_pec_imprese": "ini_pec",
         "registro_imprese": "registro_imprese",
+        "registroimprese": "registro_imprese",
         "imprese": "registro_imprese",
         "registro_ppaa": "registro_ppaa",
         "registro_pst": "registro_ppaa",
         "pst": "registro_ppaa",
+        "ipa": "registro_ppaa",
+        "indice_pubbliche_amministrazioni": "registro_ppaa",
         "inad": "inad",
         "anpr": "anpr",
         "altro": "altro_pubblico_elenco",
@@ -802,6 +843,48 @@ def normalise_public_register(value: Any) -> str:
 def register_label(value: Any) -> str:
     key = normalise_public_register(value)
     return PUBLIC_PEC_REGISTERS.get(key, text(value))
+
+
+def normalise_unep_notification_type(value: Any) -> str:
+    raw = text(value).lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "": "mani",
+        "a_mani": "mani",
+        "mani": "mani",
+        "manuale": "mani",
+        "posta": "posta",
+        "postale": "posta",
+        "a_mezzo_posta": "posta",
+        "raccomandata": "posta",
+        "estero": "estero",
+        "internazionale": "estero",
+        "telematica": "telematica",
+        "pec": "telematica",
+        "digitale": "telematica",
+    }
+    return aliases.get(raw, raw if raw in UNEP_NOTIFICATION_TYPES else "mani")
+
+
+def normalise_non_pec_notification_type(value: Any) -> str:
+    raw = text(value).lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "": "raccomandata",
+        "rac": "raccomandata",
+        "raccomandata_ar": "raccomandata",
+        "raccomandata_a_r": "raccomandata",
+        "posta": "raccomandata",
+        "unep": "ufficiale_giudiziario",
+        "ug": "ufficiale_giudiziario",
+        "ufficiale": "ufficiale_giudiziario",
+        "ufficiale_giudiziario": "ufficiale_giudiziario",
+        "mani": "mani",
+        "a_mani": "mani",
+        "consegna_mani": "mani",
+        "estero": "estero",
+        "internazionale": "estero",
+        "altro": "altro",
+    }
+    return aliases.get(raw, raw if raw in NON_PEC_NOTIFICATION_TYPES else "raccomandata")
 
 
 def notification_directive_matrix() -> dict[str, list[dict[str, Any]]]:
@@ -2339,7 +2422,7 @@ def build_notification_send_plan(
             "PEC inviata in originale digitale .eml o .msg",
             "RAC per ogni destinatario",
             "RdAC completa per ogni destinatario",
-            "Riferimenti ricevute in DatiAtto.xml per il deposito prova",
+            "Riferimenti ricevute per il deposito prova",
         ],
         "ready": all(item["status"] == "superato" for item in checks),
     }
@@ -3386,6 +3469,46 @@ def legal_notification_automation_payload() -> dict[str, list[dict[str, str]]]:
         "notifica": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
         "deposito": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
         "allegati": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
+        "unep": [
+            {
+                "id": "unep_canale",
+                "title": "Seleziona canale UNEP",
+                "body": "Distingui notifica a mani, posta, estero o telematica e usa l'ufficio NEP competente.",
+                "source": "PST, XSD UNEP 06/11/2024.",
+            },
+            {
+                "id": "unep_richiesta",
+                "title": "Controlla richiesta e destinatario",
+                "body": "Atto, richiesta/relata, destinatario, indirizzo o PEC e spese devono essere completi prima del deposito sul canale UNEP.",
+                "source": "Artt. 137-149 c.p.c.; canale UNEP.",
+            },
+            {
+                "id": "unep_ricevute",
+                "title": "Conserva ricevute e ritorni",
+                "body": "Ricevute del portale, pagamenti e ritorno dell'ufficio restano nel fascicolo e non sono prova PEC L. 53.",
+                "source": "Audit IUSENTRA notifiche.",
+            },
+        ],
+        "nonPec": [
+            {
+                "id": "nonpec_tipo",
+                "title": "Classifica il canale",
+                "body": "Raccomandata, ufficiale giudiziario, consegna a mani, estero o altro canale hanno dati e prove diversi.",
+                "source": "Artt. 137-149 c.p.c.",
+            },
+            {
+                "id": "nonpec_date",
+                "title": "Registra data e identificativo",
+                "body": "Data notifica, identificativo interno e dati di ricezione sono obbligatori per ricostruire il tracciamento storico.",
+                "source": "Matrice import dati pratica.",
+            },
+            {
+                "id": "nonpec_prova",
+                "title": "Collega la prova documentale",
+                "body": "Avviso, relata, ricevuta o prova di consegna devono avere file e impronta verificabile.",
+                "source": "Audit IUSENTRA notifiche.",
+            },
+        ],
     }
 
 
@@ -3933,9 +4056,9 @@ def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
         if not item["filename"]:
             missing.append(f"{item['label']}: file mancante.")
         if not item["sha256"]:
-            missing.append(f"{item['label']}: hash SHA-256 mancante.")
+            missing.append(f"{item['label']}: impronta del file mancante.")
         elif not SHA256_HEX_RE.fullmatch(str(item["sha256"])):
-            invalid_hashes.append(f"{item['label']}: hash SHA-256 non valido.")
+            invalid_hashes.append(f"{item['label']}: impronta del file non valida.")
     return {
         "items": items,
         "missing": missing,
@@ -4007,6 +4130,316 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
     )
 
 
+def _file_with_hash(payload: dict[str, Any], file_key: str, hash_key: str, *, label: str, blockers: list[str]) -> dict[str, str]:
+    filename = text(payload.get(file_key))
+    file_hash = text(payload.get(hash_key)).lower()
+    if not filename:
+        blockers.append(f"Allega {label}.")
+    if filename and not file_hash:
+        blockers.append(f"Calcola o inserisci l'impronta del file per {label}.")
+    elif file_hash and not SHA256_HEX_RE.fullmatch(file_hash):
+        blockers.append(block("HASH_SHA256_INVALID", f"{label}: impronta del file non valida."))
+    return {"filename": filename, "sha256": file_hash}
+
+
+def build_unep_notification_checks(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    tipo = normalise_unep_notification_type(payload.get("tipo_notifica_unep") or payload.get("tipo_notifica"))
+    telematica = tipo == "telematica"
+    estero = tipo == "estero"
+    precetto_required = boolish(payload.get("precetto_gia_notificato")) or "precetto" in text(payload.get("atto_descrizione")).lower()
+    address_ok = bool(text(payload.get("destinatario_indirizzo"))) and (
+        bool(text(payload.get("destinatario_comune"))) or bool(text(payload.get("destinatario_paese")))
+    )
+    pec_source = normalise_public_register(payload.get("fonte_pec_destinatario"))
+    payment_due = boolish(payload.get("spese_unep_dovute"))
+    return [
+        _check_row(
+            id="ufficio_unep",
+            label="Ufficio NEP",
+            source="PST, XSD UNEP 06/11/2024",
+            passed=bool(text(payload.get("ufficio_unep"))),
+            detail="La richiesta deve indicare l'ufficio NEP destinatario del deposito.",
+        ),
+        _check_row(
+            id="tipo_notifica",
+            label="Tipo notifica",
+            source="Canale UNEP",
+            passed=tipo in UNEP_NOTIFICATION_TYPES,
+            detail="Il canale deve essere classificato tra mani, posta, estero o telematica.",
+        ),
+        _check_row(
+            id="atto_richiesta",
+            label="Atto e richiesta",
+            source="PST, XSD UNEP 06/11/2024",
+            passed=bool(text(payload.get("atto_notificare"))) and bool(text(payload.get("richiesta_o_relata"))),
+            detail="Atto da notificare e richiesta/relata sono documenti distinti del fascicolo UNEP.",
+        ),
+        _check_row(
+            id="destinatario",
+            label="Destinatario",
+            source="Artt. 137-149 c.p.c.",
+            passed=bool(text(payload.get("destinatario_nome"))),
+            detail="Il destinatario deve essere identificato prima della richiesta.",
+        ),
+        _check_row(
+            id="recapito_destinatario",
+            label="Recapito destinatario",
+            source="Artt. 137-149 c.p.c.; L. 53/1994 solo se il canale è telematico",
+            passed=(
+                bool(text(payload.get("destinatario_pec"))) and pec_source in PUBLIC_PEC_REGISTERS
+                if telematica
+                else address_ok and (not estero or bool(text(payload.get("destinatario_paese"))))
+            ),
+            detail="Il canale telematico richiede PEC e pubblico elenco; gli altri canali richiedono indirizzo fisico completo.",
+        ),
+        _check_row(
+            id="precetto",
+            label="Data notifica precetto",
+            source="Controllo operativo UNEP",
+            passed=not precetto_required or bool(text(payload.get("data_notifica_precetto"))),
+            detail="Quando il precetto è rilevante, la data della sua notifica deve essere esplicita.",
+        ),
+        _check_row(
+            id="spese",
+            label="Spese e pagamenti",
+            source="Canale UNEP",
+            passed=not payment_due or bool(text(payload.get("ricevuta_pagamento"))),
+            detail="Se sono dovute spese o anticipazioni, la ricevuta va collegata al fascicolo.",
+            blocking=payment_due,
+        ),
+    ]
+
+
+def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflowResult:
+    """Validate a governed UNEP notification request without treating it as PEC L. 53 proof."""
+
+    blockers: list[str] = []
+    warnings: list[str] = []
+    tipo = normalise_unep_notification_type(payload.get("tipo_notifica_unep") or payload.get("tipo_notifica"))
+    telematica = tipo == "telematica"
+    estero = tipo == "estero"
+    payment_due = boolish(payload.get("spese_unep_dovute"))
+    precetto_required = boolish(payload.get("precetto_gia_notificato")) or "precetto" in text(payload.get("atto_descrizione")).lower()
+
+    if text(payload.get("operazione")) not in {"", UNEP_NOTIFICATION_OPERATION}:
+        blockers.append(block("OPERAZIONE_UNEP_REQUIRED", "Usa il canale UNEP per questa richiesta."))
+    if not text(payload.get("ufficio_unep")):
+        blockers.append(block("UFFICIO_UNEP_REQUIRED", "Indica l'ufficio NEP destinatario."))
+    if tipo not in UNEP_NOTIFICATION_TYPES:
+        blockers.append(block("TIPO_UNEP_REQUIRED", "Seleziona il tipo di notifica UNEP."))
+    if not text(payload.get("destinatario_nome")):
+        blockers.append(block("DESTINATARIO_REQUIRED", "Indica il destinatario della notifica UNEP."))
+    if telematica:
+        if not text(payload.get("destinatario_pec")):
+            blockers.append(block("DESTINATARIO_PEC_REQUIRED", "Per notifica telematica UNEP indica la PEC destinatario."))
+        if normalise_public_register(payload.get("fonte_pec_destinatario")) not in PUBLIC_PEC_REGISTERS:
+            blockers.append(block("DESTINATARIO_FONTE_PEC_REQUIRED", "Per notifica telematica UNEP indica il pubblico elenco PEC."))
+    else:
+        if not text(payload.get("destinatario_indirizzo")):
+            blockers.append(block("DESTINATARIO_INDIRIZZO_REQUIRED", "Indica l'indirizzo fisico del destinatario."))
+        if not text(payload.get("destinatario_comune")) and not text(payload.get("destinatario_paese")):
+            blockers.append(block("DESTINATARIO_LUOGO_REQUIRED", "Indica comune o paese del destinatario."))
+        if estero and not text(payload.get("destinatario_paese")):
+            blockers.append(block("DESTINATARIO_PAESE_REQUIRED", "Per notifica all'estero indica il paese destinatario."))
+    if precetto_required and not text(payload.get("data_notifica_precetto")):
+        blockers.append(block("DATA_PRECETTO_REQUIRED", "Indica la data di notifica del precetto."))
+
+    atto = _file_with_hash(payload, "atto_notificare", "atto_sha256", label="l'atto da notificare", blockers=blockers)
+    richiesta = _file_with_hash(payload, "richiesta_o_relata", "richiesta_sha256", label="la richiesta o relata UNEP", blockers=blockers)
+    pagamento = {"filename": text(payload.get("ricevuta_pagamento")), "sha256": text(payload.get("ricevuta_pagamento_sha256")).lower()}
+    if payment_due:
+        pagamento = _file_with_hash(payload, "ricevuta_pagamento", "ricevuta_pagamento_sha256", label="la ricevuta di pagamento UNEP", blockers=blockers)
+    elif pagamento["filename"] and pagamento["sha256"] and not SHA256_HEX_RE.fullmatch(pagamento["sha256"]):
+        blockers.append(block("HASH_SHA256_INVALID", "Ricevuta pagamento UNEP: impronta del file non valida."))
+
+    checks = build_unep_notification_checks(payload)
+    evidence_items = [
+        {"kind": "atto", "label": "Atto da notificare", **atto, "required": True},
+        {"kind": "richiesta", "label": "Richiesta o relata", **richiesta, "required": True},
+    ]
+    if pagamento["filename"] or payment_due:
+        evidence_items.append({"kind": "pagamento", "label": "Ricevuta pagamento", **pagamento, "required": payment_due})
+
+    body = (
+        f"Richiesta UNEP {UNEP_NOTIFICATION_TYPES.get(tipo, tipo)} pronta per revisione e deposito sul canale dedicato."
+        if not blockers
+        else "Completa i dati UNEP prima di registrare la richiesta come pronta."
+    )
+    return LegalWorkflowResult(
+        ok=not blockers,
+        blockers=list(dict.fromkeys(blockers)),
+        warnings=warnings,
+        subject="Richiesta UNEP",
+        body=body,
+        template_id="workflow_unep_notifica",
+        template_label="Controllo richiesta UNEP",
+        template_version=template_catalog_version(),
+        next_actions=(
+            "Deposita sul canale UNEP dedicato, non nel deposito PCT civile.",
+            "Conserva ricevute portale, pagamento e ritorno dell'ufficio nel fascicolo.",
+            "Aggiorna lo stato solo dopo prova documentale del ritorno UNEP.",
+        ),
+        output_plan={
+            "workflowSteps": legal_notification_automation_payload()["unep"],
+            "normativeChecks": checks,
+            "evidencePack": {"items": evidence_items, "missing": [], "invalid_hashes": []},
+            "unepRequest": {
+                "tipo": tipo,
+                "tipoLabel": UNEP_NOTIFICATION_TYPES.get(tipo, tipo),
+                "ufficio": text(payload.get("ufficio_unep")),
+                "precettoDate": text(payload.get("data_notifica_precetto")),
+                "channel": "UNEP",
+            },
+            "legalBasis": _legal_source_rows("pst_xsd_unep_2024", "cpc_137_149"),
+        },
+        log_json={
+            "evento": "controllo_notifica_unep",
+            "tipo": tipo,
+            "ufficio": text(payload.get("ufficio_unep")),
+            "fascicolo_id": text(payload.get("fascicolo_id") or payload.get("practice_id")),
+        },
+    )
+
+
+def build_non_pec_notification_checks(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    tipo = normalise_non_pec_notification_type(payload.get("tipo_notifica_non_pec") or payload.get("tipo_notifica"))
+    return [
+        _check_row(
+            id="tipo_notifica",
+            label="Tipo notifica",
+            source="Artt. 137-149 c.p.c.",
+            passed=tipo in NON_PEC_NOTIFICATION_TYPES,
+            detail="Il canale non PEC deve essere classificato prima del tracciamento.",
+        ),
+        _check_row(
+            id="data_notifica",
+            label="Data notifica",
+            source="Tracciamento notifiche",
+            passed=bool(text(payload.get("data_notifica"))),
+            detail="La data della notifica è il riferimento principale del tracciamento.",
+        ),
+        _check_row(
+            id="notifica_id",
+            label="Identificativo notifica",
+            source="Matrice dati pratica",
+            passed=bool(text(payload.get("notifica_id"))),
+            detail="L'identificativo collega il tracciamento alla pratica e ai documenti.",
+        ),
+        _check_row(
+            id="destinatario",
+            label="Destinatario",
+            source="Artt. 137-149 c.p.c.",
+            passed=bool(text(payload.get("destinatario_nome"))),
+            detail="Il soggetto notificato deve essere identificato.",
+        ),
+        _check_row(
+            id="atto",
+            label="Atto notificato",
+            source="Tracciamento notifiche",
+            passed=bool(text(payload.get("atto_notificato"))),
+            detail="L'atto notificato deve essere riconoscibile nel fascicolo.",
+        ),
+        _check_row(
+            id="prova",
+            label="Prova documentale",
+            source="Audit IUSENTRA notifiche",
+            passed=bool(text(payload.get("prova_file"))),
+            detail="Collega avviso, relata, ricevuta o prova di consegna.",
+        ),
+    ]
+
+
+def validate_non_pec_notification_tracking(payload: dict[str, Any]) -> LegalWorkflowResult:
+    """Validate non-PEC notification tracking equivalent to the historical table fields."""
+
+    blockers: list[str] = []
+    warnings: list[str] = []
+    tipo = normalise_non_pec_notification_type(payload.get("tipo_notifica_non_pec") or payload.get("tipo_notifica"))
+
+    if text(payload.get("operazione")) not in {"", NON_PEC_NOTIFICATION_OPERATION}:
+        blockers.append(block("OPERAZIONE_NON_PEC_REQUIRED", "Usa il canale non PEC per questo tracciamento."))
+    if tipo not in NON_PEC_NOTIFICATION_TYPES:
+        blockers.append(block("TIPO_NON_PEC_REQUIRED", "Seleziona il tipo di notifica non PEC."))
+    if not text(payload.get("data_notifica")):
+        blockers.append(block("DATA_NOTIFICA_REQUIRED", "Indica la data della notifica."))
+    if not text(payload.get("notifica_id")):
+        blockers.append(block("NOTIFICA_ID_REQUIRED", "Indica l'identificativo della notifica."))
+    if not text(payload.get("destinatario_nome")):
+        blockers.append(block("DESTINATARIO_REQUIRED", "Indica il destinatario della notifica."))
+    if not text(payload.get("atto_notificato")):
+        blockers.append(block("ATTO_NOTIFICATO_REQUIRED", "Indica l'atto notificato."))
+
+    if tipo == "raccomandata":
+        if not text(payload.get("numero_raccomandata")):
+            blockers.append(block("RACCOMANDATA_NUMERO_REQUIRED", "Indica il numero della raccomandata."))
+        if not text(payload.get("data_spedizione")):
+            blockers.append(block("RACCOMANDATA_SPEDIZIONE_REQUIRED", "Indica la data di spedizione della raccomandata."))
+        if not text(payload.get("data_ricevuta_raccomandata")):
+            blockers.append(block("RACCOMANDATA_RICEZIONE_REQUIRED", "Indica la data di ricezione o compiuta giacenza."))
+    elif tipo == "ufficiale_giudiziario":
+        if not text(payload.get("ufficio_unep")):
+            blockers.append(block("UFFICIO_UNEP_REQUIRED", "Indica l'ufficio dell'ufficiale giudiziario."))
+        if not text(payload.get("numero_cronologico")):
+            blockers.append(block("CRONOLOGICO_REQUIRED", "Indica il numero cronologico se disponibile dal ritorno dell'ufficio."))
+    elif tipo == "mani":
+        if not text(payload.get("consegnatario")):
+            blockers.append(block("CONSEGNATARIO_REQUIRED", "Indica chi ha ricevuto l'atto."))
+    elif tipo == "estero":
+        if not text(payload.get("destinatario_paese")):
+            blockers.append(block("PAESE_REQUIRED", "Indica il paese destinatario."))
+        if not text(payload.get("autorita_o_canale")):
+            blockers.append(block("AUTORITA_CANALE_REQUIRED", "Indica autorità o canale usato per l'estero."))
+    else:
+        warnings.append("Canale non PEC residuale: verifica manuale dell'avvocato obbligatoria prima di considerarlo prova completa.")
+
+    prova = _file_with_hash(payload, "prova_file", "prova_sha256", label="la prova documentale", blockers=blockers)
+    checks = build_non_pec_notification_checks(payload)
+    source_ids = ("cpc_149", "cpc_137_149") if tipo == "raccomandata" else ("cpc_137_149",)
+
+    body = (
+        f"Tracciamento {NON_PEC_NOTIFICATION_TYPES.get(tipo, tipo)} pronto con data, identificativo e prova documentale."
+        if not blockers
+        else "Completa i dati prima di considerare chiusa la notifica non PEC."
+    )
+    return LegalWorkflowResult(
+        ok=not blockers,
+        blockers=list(dict.fromkeys(blockers)),
+        warnings=warnings,
+        subject="Tracciamento notifica non PEC",
+        body=body,
+        template_id="workflow_notifica_non_pec",
+        template_label="Controllo notifica non PEC",
+        template_version=template_catalog_version(),
+        next_actions=(
+            "Registra data e identificativo nel fascicolo.",
+            "Collega la prova documentale con impronta verificabile.",
+            "Aggiorna scadenze e attività solo dopo conferma della data di perfezionamento.",
+        ),
+        output_plan={
+            "workflowSteps": legal_notification_automation_payload()["nonPec"],
+            "normativeChecks": checks,
+            "evidencePack": {
+                "items": [{"kind": "prova_non_pec", "label": "Prova documentale", **prova, "required": True}],
+                "missing": [],
+                "invalid_hashes": [],
+            },
+            "historicalFields": {
+                "DataNotifica": text(payload.get("data_notifica")),
+                "TipoNotifica": NON_PEC_NOTIFICATION_TYPES.get(tipo, tipo),
+                "DataRicevutaRaccomandata": text(payload.get("data_ricevuta_raccomandata")),
+                "NotificaID": text(payload.get("notifica_id")),
+            },
+            "legalBasis": _legal_source_rows(*source_ids),
+        },
+        log_json={
+            "evento": "controllo_notifica_non_pec",
+            "tipo": tipo,
+            "notifica_id": text(payload.get("notifica_id")),
+            "fascicolo_id": text(payload.get("fascicolo_id") or payload.get("practice_id")),
+        },
+    )
+
+
 def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Return checks for depositing proof of a PEC notification."""
 
@@ -4056,14 +4489,14 @@ def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[
         ),
         _check_row(
             id="hash",
-            label="Impronte SHA-256",
+            label="Impronte dei file",
             source="Audit interno IUSENTRA",
             passed=not evidence_pack.get("missing") and not evidence_pack.get("invalid_hashes"),
-            detail="Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+            detail="Ogni file richiesto dal pacchetto prova deve avere impronta valida.",
         ),
         _check_row(
             id="dati_atto",
-            label="Riferimenti DatiAtto.xml",
+            label="Riferimenti ricevute",
             source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
             passed=bool(text(payload.get("dati_atto_ricevute"))),
             detail="I dati identificativi delle ricevute vanno indicizzati nel deposito.",
@@ -4117,6 +4550,9 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
     if not isinstance(recipients, list):
         recipients = [{
             "nome": payload.get("destinatario_nome"),
+            "codice_fiscale_piva": payload.get("destinatario_cf") or payload.get("codice_fiscale_piva"),
+            "pec": payload.get("destinatario_pec"),
+            "fonte_pec": payload.get("fonte_pec_destinatario"),
             "rac_file": payload.get("rac_file"),
             "rdac_file": payload.get("rdac_file"),
             "rac_sha256": payload.get("rac_sha256"),
@@ -4130,6 +4566,30 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
             blockers.append(f"Destinatario {index}: dati ricevute non leggibili.")
             continue
         label = text(recipient.get("nome"), f"destinatario {index}")
+        recipient_tax_code = text(
+            recipient.get("codice_fiscale_piva")
+            or recipient.get("codice_fiscale")
+            or recipient.get("destinatario_cf")
+            or recipient.get("recipient_tax_code")
+        )
+        recipient_pec = text(
+            recipient.get("pec")
+            or recipient.get("destinatario_pec")
+            or recipient.get("recipient_address")
+            or recipient.get("indirizzo_pec")
+        )
+        recipient_source = normalise_public_register(
+            recipient.get("fonte_pec")
+            or recipient.get("fonte_pec_destinatario")
+            or recipient.get("recipient_address_source")
+            or recipient.get("pubblico_elenco")
+        )
+        if not recipient_tax_code:
+            blockers.append(block("DESTINATARIO_CF_REQUIRED", f"{label}: indica codice fiscale o partita IVA del destinatario collegato a RAC e RdAC."))
+        if not recipient_pec:
+            blockers.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC destinatario collegato a RAC e RdAC."))
+        if recipient_source not in PUBLIC_PEC_REGISTERS:
+            blockers.append(block("DESTINATARIO_FONTE_PEC_REQUIRED", f"{label}: indica il pubblico elenco da cui è stata estratta la PEC."))
         for field, human in (("rac_file", "ricevuta di accettazione"), ("rdac_file", "ricevuta di avvenuta consegna completa")):
             filename = text(recipient.get(field))
             if not filename:
@@ -4143,7 +4603,7 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
     blockers.extend(block("HASH_SHA256_INVALID", item) for item in evidence_pack.get("invalid_hashes", []))
 
     if not text(payload.get("dati_atto_ricevute")):
-        blockers.append(block("DATI_ATTO_RICEVUTE_REQUIRED", "Indica i riferimenti delle ricevute in DatiAtto.xml."))
+        blockers.append(block("DATI_ATTO_RICEVUTE_REQUIRED", "Indica i riferimenti delle ricevute per il deposito."))
 
     body = (
         "Prova notifica pronta per il controllo: atto notificato, relata firmata, "
@@ -4161,7 +4621,7 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
         next_actions=(
             "Inserisci atto notificato e ricevute nella busta telematica.",
             "Controlla che RAC e RdAC restino in originale digitale.",
-            "Verifica i riferimenti ricevute in DatiAtto.xml.",
+            "Verifica i riferimenti delle ricevute nel riepilogo del deposito.",
         ),
         output_plan={
             "evidencePack": evidence_pack,

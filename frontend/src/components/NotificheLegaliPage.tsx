@@ -49,7 +49,7 @@ import {
 import { formatDateIt } from '../formatting'
 import './NotificheLegaliPage.css'
 
-type TabKey = 'notifica' | 'deposito' | 'cliente'
+type TabKey = 'notifica' | 'deposito' | 'unep' | 'nonpec' | 'cliente'
 
 type NotificaDocumentPayload = {
   nome_file: string
@@ -136,6 +136,17 @@ function localClockLabel(value: string) {
     minute: '2-digit',
     second: '2-digit',
   }).format(parsed)
+}
+
+function userFacingNotice(value: string) {
+  return String(value || '')
+    .replace(/^[A-Z0-9_]+:\s*/, '')
+    .replace(/\bhash SHA-256\b/gi, 'impronta del file')
+    .replace(/\bSHA-256\b/g, 'impronta del file')
+    .replace(/\bDatiAtto\.xml\b/g, 'riepilogo del deposito')
+    .replace(/\bRAC\b/g, 'ricevuta di accettazione')
+    .replace(/\bRdAC\b/g, 'ricevuta di consegna')
+    .trim()
 }
 
 function Field({
@@ -273,14 +284,14 @@ function DepositFileField({
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return
-    setStatus('Calcolo impronta SHA-256...')
+    setStatus('Calcolo impronta del file...')
     try {
       const digest = await calculateSha256(file)
       onFileComputed(file.name, digest)
       setStatus(`Impronta calcolata: ${digest.slice(0, 12)}...`)
     } catch {
       onFileNameChange(file.name)
-      setStatus('Calcolo automatico non disponibile: incolla una impronta SHA-256 valida.')
+      setStatus('Calcolo automatico non disponibile: incolla una impronta del file valida.')
     }
   }
 
@@ -302,12 +313,12 @@ function DepositFileField({
         <input
           value={shaValue}
           onChange={(event) => onShaChange(normalizeSha256Input(event.currentTarget.value))}
-          placeholder="SHA-256 calcolato dal file"
+          placeholder="Impronta calcolata dal file"
           aria-invalid={hasInvalidSha}
           maxLength={64}
         />
         <small className={hasInvalidSha ? 'is-error' : ''}>
-          {hasInvalidSha ? 'L\'impronta SHA-256 deve avere 64 caratteri esadecimali.' : status || 'Scegli il file: IUSENTRA calcola l\'impronta automaticamente.'}
+          {hasInvalidSha ? 'L\'impronta del file non è valida.' : status || 'Scegli il file: IUSENTRA calcola l\'impronta automaticamente.'}
         </small>
       </div>
     </div>
@@ -325,15 +336,19 @@ function classifyDepositFile(fileName: string): DepositEvidenceKind {
 
 function depositReference(values: {
   destinatario_nome: string
+  destinatario_cf: string
+  destinatario_pec: string
   pec_inviata: string
   rac_file: string
   rdac_file: string
 }) {
   const rows = [
     values.destinatario_nome ? `Destinatario: ${values.destinatario_nome}` : '',
+    values.destinatario_cf ? `C.F./P. IVA: ${values.destinatario_cf}` : '',
+    values.destinatario_pec ? `PEC destinatario: ${values.destinatario_pec}` : '',
     values.pec_inviata ? `PEC inviata: ${values.pec_inviata}` : '',
-    values.rac_file ? `RAC: ${values.rac_file}` : '',
-    values.rdac_file ? `RdAC completa: ${values.rdac_file}` : '',
+    values.rac_file ? `Ricevuta di accettazione: ${values.rac_file}` : '',
+    values.rdac_file ? `Ricevuta di consegna completa: ${values.rdac_file}` : '',
   ].filter(Boolean)
   return rows.join('; ')
 }
@@ -345,7 +360,7 @@ function EvidenceSummaryRow({ label, fileName, shaValue }: { label: string; file
       {ready ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
       <strong>{label}</strong>
       <em>{fileName || 'Da associare'}</em>
-      <small>{shaValue ? `SHA-256 ${shaValue.slice(0, 12)}...` : 'Impronta non calcolata'}</small>
+      <small>{shaValue ? `Impronta ${shaValue.slice(0, 12)}...` : 'Impronta non calcolata'}</small>
     </span>
   )
 }
@@ -529,12 +544,12 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
     >
       {result.blockers.length ? (
         <div className="iu-legal-list iu-legal-list--blockers">
-          {result.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {item}</span>)}
+          {result.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {userFacingNotice(item)}</span>)}
         </div>
       ) : null}
       {result.warnings.length ? (
         <div className="iu-legal-list">
-          {result.warnings.map((item) => <span key={item}><ShieldCheck size={15} /> {item}</span>)}
+          {result.warnings.map((item) => <span key={item}><ShieldCheck size={15} /> {userFacingNotice(item)}</span>)}
         </div>
       ) : null}
       {result.templateLabel ? <div className="iu-legal-output"><span>Modello scelto</span><strong>{result.templateLabel}{result.templateVersion ? ` - ${result.templateVersion}` : ''}</strong></div> : null}
@@ -553,7 +568,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           <div className="iu-legal-evidence-grid">
             {evidenceItems(result.outputPlan).map((item) => (
               <strong key={`${item.label}-${item.filename}`}>
-                {item.label}{item.filename ? ` - ${item.filename}` : ''}{item.sha256 ? ` - SHA-256 ${item.sha256.slice(0, 12)}...` : ''}{item.generated ? ' - preparato' : ''}
+                {item.label}{item.filename ? ` - ${item.filename}` : ''}{item.sha256 ? ` - impronta ${item.sha256.slice(0, 12)}...` : ''}{item.generated ? ' - preparato' : ''}
               </strong>
             ))}
           </div>
@@ -810,6 +825,9 @@ export function NotificheLegaliPage() {
     pec_inviata: '',
     pec_inviata_sha256: '',
     destinatario_nome: '',
+    destinatario_cf: '',
+    destinatario_pec: '',
+    fonte_pec_destinatario: '',
     rac_file: '',
     rac_sha256: '',
     rdac_file: '',
@@ -818,6 +836,51 @@ export function NotificheLegaliPage() {
     dati_atto_ricevute: '',
   })
   const [depositAutoMessage, setDepositAutoMessage] = useState('')
+
+  const [unep, setUnep] = useState({
+    tipo_notifica_unep: 'mani',
+    ufficio_unep: '',
+    atto_notificare: '',
+    atto_sha256: '',
+    richiesta_o_relata: '',
+    richiesta_sha256: '',
+    destinatario_nome: '',
+    destinatario_cf: '',
+    destinatario_indirizzo: '',
+    destinatario_comune: '',
+    destinatario_paese: '',
+    destinatario_pec: '',
+    fonte_pec_destinatario: '',
+    precetto_gia_notificato: false,
+    data_notifica_precetto: '',
+    spese_unep_dovute: false,
+    ricevuta_pagamento: '',
+    ricevuta_pagamento_sha256: '',
+    note: '',
+  })
+
+  const [nonPec, setNonPec] = useState({
+    tipo_notifica_non_pec: 'raccomandata',
+    data_notifica: todayLocalDate(),
+    notifica_id: '',
+    destinatario_nome: '',
+    destinatario_cf: '',
+    destinatario_indirizzo: '',
+    destinatario_comune: '',
+    destinatario_paese: '',
+    atto_notificato: '',
+    atto_sha256: '',
+    numero_raccomandata: '',
+    data_spedizione: todayLocalDate(),
+    data_ricevuta_raccomandata: '',
+    ufficio_unep: '',
+    numero_cronologico: '',
+    consegnatario: '',
+    autorita_o_canale: '',
+    prova_file: '',
+    prova_sha256: '',
+    note: '',
+  })
 
   const [cliente, setCliente] = useState({
     template_id: 'aggiornamento_pratica',
@@ -939,6 +1002,10 @@ export function NotificheLegaliPage() {
     ? [...data.automazioneGuidata.notifica, ...data.automazioneGuidata.allegati]
     : tab === 'deposito'
       ? data.automazioneGuidata.deposito
+      : tab === 'unep'
+        ? data.automazioneGuidata.unep
+        : tab === 'nonpec'
+          ? data.automazioneGuidata.nonPec
       : []
   const automaticValuesCount = [
     notifica.avvocato_nome,
@@ -1053,6 +1120,21 @@ export function NotificheLegaliPage() {
     setDeposito((current) => ({
       ...current,
       destinatario_nome: recipient.nome || current.destinatario_nome,
+      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
+      destinatario_pec: recipient.pec || current.destinatario_pec,
+      fonte_pec_destinatario: recipient.fontePecSuggerita || current.fonte_pec_destinatario,
+    }))
+    setUnep((current) => ({
+      ...current,
+      destinatario_nome: recipient.nome || current.destinatario_nome,
+      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
+      destinatario_pec: recipient.pec || current.destinatario_pec,
+      fonte_pec_destinatario: recipient.fontePecSuggerita || current.fonte_pec_destinatario,
+    }))
+    setNonPec((current) => ({
+      ...current,
+      destinatario_nome: recipient.nome || current.destinatario_nome,
+      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
     }))
   }
 
@@ -1099,8 +1181,8 @@ export function NotificheLegaliPage() {
   const depositEvidenceKindLabel = (documento: LegalDocumentSuggestion) => {
     const kind = depositEvidenceKindFromDocument(documento)
     if (kind === 'relata') return 'Relata'
-    if (kind === 'rac') return 'RAC'
-    if (kind === 'rdac') return 'RdAC'
+    if (kind === 'rac') return 'Ricevuta di accettazione'
+    if (kind === 'rdac') return 'Ricevuta di consegna'
     if (kind === 'pec') return 'PEC inviata'
     return documento.provaNotifica ? 'Atto notificato' : 'Documento'
   }
@@ -1255,6 +1337,16 @@ export function NotificheLegaliPage() {
       procedimento_pendente: documento.origine === 'copia_fascicolo_informatico' ? true : current.procedimento_pendente,
     }))
     setDeposito((current) => syncDepositDraftFromRows([documento], current))
+    setUnep((current) => ({
+      ...current,
+      atto_notificare: documentEvidenceName(documento) || current.atto_notificare,
+      atto_sha256: documento.hashSha256 || current.atto_sha256,
+    }))
+    setNonPec((current) => ({
+      ...current,
+      atto_notificato: documentEvidenceName(documento) || current.atto_notificato,
+      atto_sha256: documento.hashSha256 || current.atto_sha256,
+    }))
     setCliente((current) => ({
       ...current,
       provvedimento_descrizione: documento.descrizione || current.provvedimento_descrizione,
@@ -1371,7 +1463,7 @@ export function NotificheLegaliPage() {
   const handleNotificationFiles = async (files: FileList | null) => {
     const selected = Array.from(files || [])
     if (!selected.length) return
-    setNotificationFilesMessage('Calcolo impronte SHA-256 degli allegati...')
+    setNotificationFilesMessage('Calcolo impronte degli allegati...')
     const calculated: ManualNotificationDocument[] = []
     for (const file of selected) {
       let sha256 = ''
@@ -1398,7 +1490,7 @@ export function NotificheLegaliPage() {
     }
     setManualNotificationDocuments((current) => [...current, ...calculated])
     const withoutHash = calculated.filter((item) => !item.hash_sha256)
-    setNotificationFilesMessage(withoutHash.length ? 'Allegati aggiunti; per alcuni file incolla l’impronta SHA-256 se richiesta dal controllo.' : 'Allegati aggiunti e impronte SHA-256 calcolate.')
+    setNotificationFilesMessage(withoutHash.length ? 'Allegati aggiunti; per alcuni file incolla l’impronta del file se richiesta dal controllo.' : 'Allegati aggiunti e impronte calcolate.')
   }
 
   const toggleNotificationDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
@@ -1516,6 +1608,28 @@ export function NotificheLegaliPage() {
     setDeposito((current) => ({
       ...syncDepositDraftFromRows(selectedDepositRows, current),
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome,
+      destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf,
+      destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
+      fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
+    }))
+    setUnep((current) => ({
+      ...current,
+      ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
+      atto_notificare: primoDocumento ? documentEvidenceName(primoDocumento) || current.atto_notificare : current.atto_notificare,
+      atto_sha256: primoDocumento?.hashSha256 || current.atto_sha256,
+      destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
+      destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
+      destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
+      fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
+    }))
+    setNonPec((current) => ({
+      ...current,
+      notifica_id: current.notifica_id || practice.numero || practice.id,
+      atto_notificato: primoDocumento ? documentEvidenceName(primoDocumento) || current.atto_notificato : current.atto_notificato,
+      atto_sha256: primoDocumento?.hashSha256 || current.atto_sha256,
+      destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
+      destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
+      ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
     }))
   }
 
@@ -1526,6 +1640,8 @@ export function NotificheLegaliPage() {
     const phase = params.get('fase')
     if (phase === 'deposito') setTab('deposito')
     if (phase === 'notifica') setTab('notifica')
+    if (phase === 'unep') setTab('unep')
+    if (phase === 'nonpec' || phase === 'non-pec') setTab('nonpec')
     if (!practiceId) return
     const practice = data.precompilazione.pratiche.find((item) => item.id === practiceId)
     if (practice) applyPractice(practice)
@@ -1616,7 +1732,25 @@ export function NotificheLegaliPage() {
 
   const buildDepositoPayload = (): Record<string, unknown> => {
     const atti = selectedDepositDocuments.map(depositDocumentPayload)
-    const payload: Record<string, unknown> = { ...deposito }
+    const destinatarioCf = deposito.destinatario_cf || notifica.destinatario_cf
+    const destinatarioPec = deposito.destinatario_pec || notifica.destinatario_pec
+    const fontePec = deposito.fonte_pec_destinatario || notifica.fonte_pec_destinatario
+    const payload: Record<string, unknown> = {
+      ...deposito,
+      destinatario_cf: destinatarioCf,
+      destinatario_pec: destinatarioPec,
+      fonte_pec_destinatario: fontePec,
+      destinatari: [{
+        nome: deposito.destinatario_nome || notifica.destinatario_nome,
+        codice_fiscale_piva: destinatarioCf,
+        pec: destinatarioPec,
+        fonte_pec: fontePec,
+        rac_file: deposito.rac_file,
+        rdac_file: deposito.rdac_file,
+        rac_sha256: deposito.rac_sha256,
+        rdac_sha256: deposito.rdac_sha256,
+      }],
+    }
     if (atti.length) {
       payload.atti_notificati = atti
       payload.atto_notificato = atti.map((item) => item.nome_file).join('; ')
@@ -1625,10 +1759,40 @@ export function NotificheLegaliPage() {
     return payload
   }
 
+  const buildUnepPayload = (): Record<string, unknown> => ({
+    ...unep,
+    operazione: 'notifica_unep',
+    practice_id: selectedPracticeId,
+    fascicolo_id: selectedPracticeId,
+    atto_descrizione: unep.atto_notificare || notifica.descrizione_documento,
+    destinatario_nome: unep.destinatario_nome || notifica.destinatario_nome,
+    destinatario_cf: unep.destinatario_cf || notifica.destinatario_cf,
+    destinatario_pec: unep.destinatario_pec || notifica.destinatario_pec,
+    fonte_pec_destinatario: unep.fonte_pec_destinatario || notifica.fonte_pec_destinatario,
+  })
+
+  const buildNonPecPayload = (): Record<string, unknown> => ({
+    ...nonPec,
+    operazione: 'notifica_non_pec',
+    practice_id: selectedPracticeId,
+    fascicolo_id: selectedPracticeId,
+    destinatario_nome: nonPec.destinatario_nome || notifica.destinatario_nome,
+    destinatario_cf: nonPec.destinatario_cf || notifica.destinatario_cf,
+    atto_notificato: nonPec.atto_notificato || notifica.nome_file,
+  })
+
   const run = async (key: TabKey) => {
     setWorking(true)
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
-    const endpoint = key === 'notifica' ? data.azioni.notifica : key === 'deposito' ? data.azioni.provaDeposito : data.azioni.comunicazioneCliente
+    const endpoint = key === 'notifica'
+      ? data.azioni.notifica
+      : key === 'deposito'
+        ? data.azioni.provaDeposito
+        : key === 'unep'
+          ? data.azioni.unep
+          : key === 'nonpec'
+            ? data.azioni.nonPec
+            : data.azioni.comunicazioneCliente
     const verificaPec = key === 'notifica' ? localDateTime() : ''
     if (key === 'notifica') {
       setNotifica((current) => ({ ...current, data_verifica_pec: verificaPec }))
@@ -1637,12 +1801,16 @@ export function NotificheLegaliPage() {
       ? buildNotificaPayload(true, verificaPec)
       : key === 'deposito'
         ? buildDepositoPayload()
-        : {
-            ...cliente,
-            operazione: 'comunicazione_cliente_non_notifica',
-            body_override: cliente.corpo,
-            template_id: cliente.template_id,
-          }
+        : key === 'unep'
+          ? buildUnepPayload()
+          : key === 'nonpec'
+            ? buildNonPecPayload()
+            : {
+                ...cliente,
+                operazione: 'comunicazione_cliente_non_notifica',
+                body_override: cliente.corpo,
+                template_id: cliente.template_id,
+              }
     const response = await postLegalWorkflow(endpoint, payload).catch(() => ({ ...emptyResult, blockers: ['Verifica non completata. Riprova tra poco.'] }))
     if (key === 'cliente' && response.ok) {
       setCliente((current) => ({
@@ -1743,13 +1911,28 @@ export function NotificheLegaliPage() {
   }
   const changeDeposito = (key: keyof typeof deposito, value: string | boolean) => setDeposito((current) => {
     const next = { ...current, [key]: value }
-    if (key === 'destinatario_nome' || key === 'pec_inviata' || key === 'rac_file' || key === 'rdac_file') {
+    if (
+      key === 'destinatario_nome'
+      || key === 'destinatario_cf'
+      || key === 'destinatario_pec'
+      || key === 'pec_inviata'
+      || key === 'rac_file'
+      || key === 'rdac_file'
+    ) {
       return refreshDepositReference(current, next)
     }
     return next
   })
   const updateDepositoFile = (fileKey: keyof typeof deposito, shaKey: keyof typeof deposito, fileName: string, sha256: string) => {
     setDeposito((current) => refreshDepositReference(current, { ...current, [fileKey]: fileName, [shaKey]: sha256 }))
+  }
+  const changeUnep = (key: keyof typeof unep, value: string | boolean) => setUnep((current) => ({ ...current, [key]: value }))
+  const updateUnepFile = (fileKey: keyof typeof unep, shaKey: keyof typeof unep, fileName: string, sha256: string) => {
+    setUnep((current) => ({ ...current, [fileKey]: fileName, [shaKey]: sha256 }))
+  }
+  const changeNonPec = (key: keyof typeof nonPec, value: string) => setNonPec((current) => ({ ...current, [key]: value }))
+  const updateNonPecFile = (fileKey: keyof typeof nonPec, shaKey: keyof typeof nonPec, fileName: string, sha256: string) => {
+    setNonPec((current) => ({ ...current, [fileKey]: fileName, [shaKey]: sha256 }))
   }
   const handleSignedRelataFile = async (files: FileList | null) => {
     const file = Array.from(files || [])[0]
@@ -1815,7 +1998,7 @@ export function NotificheLegaliPage() {
   const handleDepositEvidenceFiles = async (files: FileList | null) => {
     const selected = Array.from(files || [])
     if (!selected.length) return
-    setDepositAutoMessage('Calcolo impronte SHA-256 in corso...')
+    setDepositAutoMessage('Calcolo impronte in corso...')
     const calculated: Array<{ fileName: string; sha256: string; kind: DepositEvidenceKind }> = []
     for (const file of selected) {
       try {
@@ -1826,7 +2009,7 @@ export function NotificheLegaliPage() {
     }
     setDeposito((current) => calculated.reduce((draft, item) => applyDepositFile(draft, item.kind, item.fileName, item.sha256), current))
     const incomplete = calculated.filter((item) => !item.sha256)
-    setDepositAutoMessage(incomplete.length ? 'Alcune impronte non sono state calcolate: riprova o inseriscile manualmente.' : 'File riconosciuti e impronte SHA-256 calcolate.')
+    setDepositAutoMessage(incomplete.length ? 'Alcune impronte non sono state calcolate: riprova o inseriscile manualmente.' : 'File riconosciuti e impronte calcolate.')
   }
   const changeCliente = (key: keyof typeof cliente, value: string) => setCliente((current) => ({ ...current, [key]: value }))
   const changeModelField = (key: string, value: string) => setModelFields((current) => ({ ...current, [key]: value }))
@@ -1853,6 +2036,40 @@ export function NotificheLegaliPage() {
   const sendNotificationTitle = canPrepareNotificationSend
     ? 'Prepara invio PEC dal PC locale dopo controllo positivo.'
     : `Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`
+  const unepTelematica = unep.tipo_notifica_unep === 'telematica'
+  const unepEstero = unep.tipo_notifica_unep === 'estero'
+  const nonPecRaccomandata = nonPec.tipo_notifica_non_pec === 'raccomandata'
+  const nonPecUfficiale = nonPec.tipo_notifica_non_pec === 'ufficiale_giudiziario'
+  const nonPecMani = nonPec.tipo_notifica_non_pec === 'mani'
+  const nonPecEstero = nonPec.tipo_notifica_non_pec === 'estero'
+  const automationSubtitle = tab === 'deposito'
+    ? 'Prova e deposito'
+    : tab === 'unep'
+      ? 'Canale UNEP'
+      : tab === 'nonpec'
+        ? 'Tracciamento non PEC'
+        : 'Notifica L. 53/1994'
+  const blockingRules = tab === 'unep'
+    ? [
+        { icon: <Scale size={15} />, text: 'Ufficio NEP, tipo notifica e destinatario sempre espliciti.' },
+        { icon: <FileText size={15} />, text: 'Atto e richiesta o relata separati con impronta del file.' },
+        { icon: <UserRound size={15} />, text: 'PEC e pubblico elenco solo per canale telematico; indirizzo fisico per gli altri canali.' },
+        { icon: <Inbox size={15} />, text: 'Spese, pagamenti e ritorni dell’ufficio conservati nel fascicolo.' },
+      ]
+    : tab === 'nonpec'
+      ? [
+          { icon: <ClipboardCheck size={15} />, text: 'Tipo, data e identificativo notifica obbligatori.' },
+          { icon: <UserRound size={15} />, text: 'Destinatario e atto notificato devono essere riconoscibili.' },
+          { icon: <FileCheck2 size={15} />, text: 'Raccomandata, relata o prova di consegna devono avere file e impronta.' },
+          { icon: <AlertTriangle size={15} />, text: 'Il canale non PEC non viene trattato come PEC L. 53.' },
+        ]
+      : [
+          { icon: <ShieldCheck size={15} />, text: 'PEC mittente e destinatario da pubblico elenco.' },
+          { icon: <FileDown size={15} />, text: "Documento d'ufficio rilasciato acquisito dal Portale Servizi prima della relata." },
+          { icon: <FileSignature size={15} />, text: 'Relata separata e firmata digitalmente.' },
+          { icon: <Inbox size={15} />, text: 'Ricevuta completa e originali digitali conservati.' },
+          { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
+        ]
   const attestationDocuments = currentNotificationDocuments.filter((documento) => (
     documento.attestazione_conformita_presente || originNeedsAttestazione(documento.origine)
   ))
@@ -1872,8 +2089,8 @@ export function NotificheLegaliPage() {
       <section className="iu-legal-hero">
         <div>
           <span className="iu-legal-eyebrow"><Scale size={16} /> Notifiche e comunicazioni</span>
-          <h1>Notifica, prova e comunicazione restano separate</h1>
-          <p>La notifica ex L. 53/1994 prepara relata, controlli PEC e ricevuta completa. Il deposito raccoglie la prova. Il cliente riceve solo una comunicazione informativa.</p>
+          <h1>Notifica, prova e canali separati</h1>
+          <p>PEC L. 53, deposito prova, UNEP, notifiche non PEC e comunicazioni cliente restano distinti. Ogni canale mostra solo i dati necessari e blocca ciò che non è documentato.</p>
         </div>
         <div className="iu-legal-hero__actions">
           <Button href={data.azioni.pecCompose}><Send size={15} /> PEC studio</Button>
@@ -1894,8 +2111,22 @@ export function NotificheLegaliPage() {
           active={tab === 'deposito'}
           icon={<FileCheck2 size={21} />}
           title="Deposito prova notifica"
-          text="Atto notificato, relata firmata, RAC e RdAC originali."
+          text="Atto notificato, relata firmata e ricevute originali."
           onClick={() => { setTab('deposito'); setResult(emptyResult) }}
+        />
+        <WorkflowCard
+          active={tab === 'unep'}
+          icon={<Scale size={21} />}
+          title="UNEP"
+          text="Richieste a mani, posta, estero o telematiche."
+          onClick={() => { setTab('unep'); setResult(emptyResult) }}
+        />
+        <WorkflowCard
+          active={tab === 'nonpec'}
+          icon={<ClipboardCheck size={21} />}
+          title="Non PEC"
+          text="Raccomandata, ufficiale giudiziario e prove cartacee."
+          onClick={() => { setTab('nonpec'); setResult(emptyResult) }}
         />
         <WorkflowCard
           active={tab === 'cliente'}
@@ -2153,7 +2384,7 @@ export function NotificheLegaliPage() {
                       </div>
                       {relataPreview.blockers.length ? (
                         <div className="iu-legal-list iu-legal-list--blockers">
-                          {relataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {item}</span>)}
+                          {relataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {userFacingNotice(item)}</span>)}
                         </div>
                       ) : (
                         <pre>{relataPreview.previewText || 'Compila i dati principali per vedere la relata con valori e dati mancanti evidenziati.'}</pre>
@@ -2266,7 +2497,7 @@ export function NotificheLegaliPage() {
                 <Field label="Destinatario"><input value={notifica.destinatario_nome} onChange={(event) => changeNotifica('destinatario_nome', event.currentTarget.value)} /></Field>
                 <Field label="C.F. / P. IVA destinatario"><input value={notifica.destinatario_cf} onChange={(event) => changeNotifica('destinatario_cf', event.currentTarget.value.toUpperCase())} /></Field>
                 <Field label="PEC destinatario"><input type="email" value={notifica.destinatario_pec} onChange={(event) => changeNotifica('destinatario_pec', event.currentTarget.value)} /></Field>
-                <Field label="Fonte PEC destinatario">
+                <Field label="Elenco pubblico PEC">
                   <select value={notifica.fonte_pec_destinatario} onChange={(event) => changeNotifica('fonte_pec_destinatario', event.currentTarget.value)}>
                     {data.registriPec.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
@@ -2298,7 +2529,7 @@ export function NotificheLegaliPage() {
                 {notifica.origine_documento === 'comunicazione_cancelleria' ? (
                   <Field label="Data comunicazione cancelleria"><input type="date" value={notifica.data_comunicazione_cancelleria} onChange={(event) => changeNotifica('data_comunicazione_cancelleria', event.currentTarget.value)} /></Field>
                 ) : null}
-                <Field label="Impronta SHA-256 allegato" hint="Facoltativa per la notifica; viene compilata automaticamente quando scegli file dal browser.">
+                <Field label="Impronta allegato" hint="Facoltativa per la notifica; viene compilata automaticamente quando scegli file dal browser.">
                   <input value={notifica.hash_sha256} maxLength={64} onChange={(event) => changeNotifica('hash_sha256', normalizeSha256Input(event.currentTarget.value))} placeholder="64 caratteri esadecimali" />
                 </Field>
                 <div className="iu-legal-template-actions iu-legal-field--wide">
@@ -2450,7 +2681,7 @@ export function NotificheLegaliPage() {
                           {selectedDepositDocuments.map((item) => (
                             <span key={`deposito-selected-${item.id}`}>
                               <FileCheck2 size={15} />
-                              {depositEvidenceKindLabel(item)} - {documentEvidenceName(item)}{item.hashSha256 ? ` - SHA-256 ${item.hashSha256.slice(0, 12)}...` : ''}
+                              {depositEvidenceKindLabel(item)} - {documentEvidenceName(item)}{item.hashSha256 ? ` - impronta ${item.hashSha256.slice(0, 12)}...` : ''}
                             </span>
                           ))}
                         </div>
@@ -2474,13 +2705,13 @@ export function NotificheLegaliPage() {
                 <div className="iu-legal-auto-notes">
                   <span><FileText size={15} /> {documentSuggestions.length} atti dalla pratica corrente.</span>
                   <span><UserRound size={15} /> {recipientSuggestions.length} destinatari proponibili.</span>
-                  <span><Inbox size={15} /> RAC e RdAC restano originali digitali da associare.</span>
+                  <span><Inbox size={15} /> Le ricevute restano originali digitali da associare.</span>
                 </div>
               </div>
               <div className="iu-legal-evidence-uploader">
                 <div className="iu-legal-evidence-uploader__text">
                   <strong>Allega i file della prova</strong>
-                  <span>Scegli insieme atto, relata firmata, PEC inviata, RAC e RdAC: IUSENTRA li riconosce dal nome e calcola automaticamente tutte le impronte SHA-256.</span>
+                  <span>Scegli insieme atto, relata firmata, PEC inviata e ricevute: IUSENTRA li riconosce dal nome e calcola automaticamente le impronte dei file.</span>
                   {depositAutoMessage ? <small>{depositAutoMessage}</small> : null}
                 </div>
                 <label className="iu-legal-evidence-uploader__button">
@@ -2498,16 +2729,28 @@ export function NotificheLegaliPage() {
                 <EvidenceSummaryRow label="Atto" fileName={deposito.atto_notificato} shaValue={deposito.atto_sha256} />
                 <EvidenceSummaryRow label="Relata firmata" fileName={deposito.relata_firmata} shaValue={deposito.relata_sha256} />
                 <EvidenceSummaryRow label="PEC inviata" fileName={deposito.pec_inviata} shaValue={deposito.pec_inviata_sha256} />
-                <EvidenceSummaryRow label="RAC" fileName={deposito.rac_file} shaValue={deposito.rac_sha256} />
-                <EvidenceSummaryRow label="RdAC" fileName={deposito.rdac_file} shaValue={deposito.rdac_sha256} />
+                <EvidenceSummaryRow label="Ricevuta di accettazione" fileName={deposito.rac_file} shaValue={deposito.rac_sha256} />
+                <EvidenceSummaryRow label="Ricevuta di consegna" fileName={deposito.rdac_file} shaValue={deposito.rdac_sha256} />
               </div>
               <div className="iu-legal-form-grid iu-legal-form-grid--compact">
                 <Field label="Destinatario" hint="Il nominativo può arrivare dalla pratica o essere inserito manualmente.">
                   <input value={deposito.destinatario_nome} onChange={(event) => changeDeposito('destinatario_nome', event.currentTarget.value)} />
                 </Field>
-                <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>Confermo che la RdAC selezionata è completa</span></label>
-                <Field label="Riferimenti ricevute nel pacchetto deposito" wide hint="I riferimenti vengono preparati dai file scelti; puoi integrarli prima del controllo.">
-                  <textarea value={deposito.dati_atto_ricevute} rows={3} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} placeholder="RAC e RdAC associate al destinatario..." />
+                <Field label="C.F. / P. IVA destinatario">
+                  <input value={deposito.destinatario_cf} onChange={(event) => changeDeposito('destinatario_cf', event.currentTarget.value.toUpperCase())} />
+                </Field>
+                <Field label="PEC destinatario">
+                  <input type="email" value={deposito.destinatario_pec} onChange={(event) => changeDeposito('destinatario_pec', event.currentTarget.value)} />
+                </Field>
+                <Field label="Elenco pubblico PEC">
+                  <select value={deposito.fonte_pec_destinatario} onChange={(event) => changeDeposito('fonte_pec_destinatario', event.currentTarget.value)}>
+                    <option value="">Usa quello già scelto</option>
+                    {data.registriPec.map((item) => <option value={item.value} key={`deposito-fonte-${item.value}`}>{item.label}</option>)}
+                  </select>
+                </Field>
+                <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>Confermo che la ricevuta di consegna selezionata è completa</span></label>
+                <Field label="Note sulle ricevute da depositare" wide hint="Aggiungi solo le informazioni utili per riconoscere le ricevute.">
+                  <textarea value={deposito.dati_atto_ricevute} rows={3} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} placeholder="Ricevute associate al destinatario..." />
                 </Field>
               </div>
               <details className="iu-legal-manual-evidence">
@@ -2547,7 +2790,7 @@ export function NotificheLegaliPage() {
                     onFileComputed={(fileName, sha256) => updateDepositoFile('pec_inviata', 'pec_inviata_sha256', fileName, sha256)}
                   />
                   <DepositFileField
-                    label="RAC originale"
+                    label="Ricevuta di accettazione"
                     fileName={deposito.rac_file}
                     shaValue={deposito.rac_sha256}
                     filePlaceholder="accettazione.eml"
@@ -2558,7 +2801,7 @@ export function NotificheLegaliPage() {
                     onFileComputed={(fileName, sha256) => updateDepositoFile('rac_file', 'rac_sha256', fileName, sha256)}
                   />
                   <DepositFileField
-                    label="RdAC originale"
+                    label="Ricevuta di consegna completa"
                     fileName={deposito.rdac_file}
                     shaValue={deposito.rdac_sha256}
                     filePlaceholder="consegna.eml"
@@ -2571,6 +2814,284 @@ export function NotificheLegaliPage() {
                 </div>
               </details>
               <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('deposito')}><UploadCloud size={16} /> {working ? 'Controllo...' : 'Controlla prova deposito'}</button>
+            </Panel>
+          ) : null}
+
+          {tab === 'unep' ? (
+            <Panel title="Richiesta UNEP" subtitle="Canale autonomo per notifiche presso l'ufficio competente" icon={<Scale size={17} />}>
+              <div className="iu-legal-auto-box">
+                <div className="iu-legal-auto-box__title">
+                  <WandSparkles size={17} />
+                  <div>
+                    <strong>Compilazione da fascicolo</strong>
+                    <span>Pratica, destinatario e atto possono essere proposti dai dati già presenti; il canale resta distinto dalla notifica PEC.</span>
+                  </div>
+                </div>
+                <div className="iu-legal-form-grid">
+                  <Field label="Pratica IUSENTRA" wide hint="Usa una pratica per proporre ufficio, atto e destinatario.">
+                    <select
+                      value={selectedPracticeId}
+                      onChange={(event) => {
+                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
+                        if (practice) applyPractice(practice)
+                        else clearPracticeSelection()
+                      }}
+                    >
+                      <option value="">Seleziona pratica</option>
+                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`unep-pratica-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Atto dal fascicolo" hint={documentSuggestions.length ? 'Il file viene riportato nella richiesta.' : 'Nessun documento selezionabile.'}>
+                    <select
+                      value={selectedDocumentId}
+                      disabled={!documentSuggestions.length}
+                      onChange={(event) => {
+                        const document = documentSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (document) applyDocument(document)
+                        else setSelectedDocumentId('')
+                      }}
+                    >
+                      <option value="">Seleziona atto</option>
+                      {documentSuggestions.map((item) => <option value={item.id} key={`unep-doc-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Destinatario suggerito" hint={recipientSuggestions.length ? 'Compila nominativo e recapiti dal soggetto collegato.' : 'Compila manualmente se la pratica non contiene il destinatario.'}>
+                    <select
+                      value={selectedRecipientId}
+                      onChange={(event) => {
+                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (recipient) applyRecipient(recipient)
+                        else setSelectedRecipientId('')
+                      }}
+                    >
+                      <option value="">Seleziona destinatario</option>
+                      {recipientSuggestions.map((item) => <option value={item.id} key={`unep-rec-${item.id}`}>{item.label}{item.pec ? ` - ${item.pec}` : ''}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <div className="iu-legal-auto-notes">
+                  <span><Scale size={15} /> Il canale UNEP non genera busta PCT civile.</span>
+                  <span><FileText size={15} /> Atto e richiesta restano documenti separati.</span>
+                  <span><Inbox size={15} /> Ricevute e ritorni vanno conservati nel fascicolo.</span>
+                </div>
+              </div>
+              <div className="iu-legal-form-grid">
+                <Field label="Tipo notifica">
+                  <select value={unep.tipo_notifica_unep} onChange={(event) => changeUnep('tipo_notifica_unep', event.currentTarget.value)}>
+                    {data.tipiNotificaUnep.map((item) => <option value={item.value} key={`unep-tipo-${item.value}`}>{item.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Ufficio NEP">
+                  <input value={unep.ufficio_unep} onChange={(event) => changeUnep('ufficio_unep', event.currentTarget.value)} placeholder="Ufficio competente" />
+                </Field>
+                <Field label="Destinatario">
+                  <input value={unep.destinatario_nome} onChange={(event) => changeUnep('destinatario_nome', event.currentTarget.value)} />
+                </Field>
+                <Field label="C.F. / P. IVA destinatario">
+                  <input value={unep.destinatario_cf} onChange={(event) => changeUnep('destinatario_cf', event.currentTarget.value.toUpperCase())} />
+                </Field>
+                {unepTelematica ? (
+                  <>
+                    <Field label="PEC destinatario">
+                      <input type="email" value={unep.destinatario_pec} onChange={(event) => changeUnep('destinatario_pec', event.currentTarget.value)} />
+                    </Field>
+                    <Field label="Elenco pubblico PEC">
+                      <select value={unep.fonte_pec_destinatario} onChange={(event) => changeUnep('fonte_pec_destinatario', event.currentTarget.value)}>
+                        <option value="">Seleziona elenco</option>
+                        {data.registriPec.map((item) => <option value={item.value} key={`unep-fonte-${item.value}`}>{item.label}</option>)}
+                      </select>
+                    </Field>
+                  </>
+                ) : (
+                  <>
+                    <Field label="Indirizzo destinatario">
+                      <input value={unep.destinatario_indirizzo} onChange={(event) => changeUnep('destinatario_indirizzo', event.currentTarget.value)} />
+                    </Field>
+                    <Field label={unepEstero ? 'Paese destinatario' : 'Comune destinatario'}>
+                      <input value={unepEstero ? unep.destinatario_paese : unep.destinatario_comune} onChange={(event) => changeUnep(unepEstero ? 'destinatario_paese' : 'destinatario_comune', event.currentTarget.value)} />
+                    </Field>
+                  </>
+                )}
+                <label className="iu-legal-check">
+                  <input type="checkbox" checked={unep.precetto_gia_notificato} onChange={(event) => changeUnep('precetto_gia_notificato', event.currentTarget.checked)} />
+                  <span>La richiesta riguarda un precetto già notificato</span>
+                </label>
+                <Field label="Data notifica precetto">
+                  <input type="date" value={unep.data_notifica_precetto} onChange={(event) => changeUnep('data_notifica_precetto', event.currentTarget.value)} disabled={!unep.precetto_gia_notificato} />
+                </Field>
+                <label className="iu-legal-check">
+                  <input type="checkbox" checked={unep.spese_unep_dovute} onChange={(event) => changeUnep('spese_unep_dovute', event.currentTarget.checked)} />
+                  <span>Spese o anticipazioni da documentare</span>
+                </label>
+                <Field label="Note richiesta" wide hint="Usa note sintetiche per dati non presenti nei campi strutturati.">
+                  <textarea value={unep.note} rows={3} onChange={(event) => changeUnep('note', event.currentTarget.value)} />
+                </Field>
+                <DepositFileField
+                  label="Atto da notificare"
+                  fileName={unep.atto_notificare}
+                  shaValue={unep.atto_sha256}
+                  filePlaceholder="atto.pdf"
+                  accept=".pdf,.p7m"
+                  hint="Documento da inviare all'ufficio NEP."
+                  onFileNameChange={(value) => changeUnep('atto_notificare', value)}
+                  onShaChange={(value) => changeUnep('atto_sha256', value)}
+                  onFileComputed={(fileName, sha256) => updateUnepFile('atto_notificare', 'atto_sha256', fileName, sha256)}
+                />
+                <DepositFileField
+                  label="Richiesta o relata"
+                  fileName={unep.richiesta_o_relata}
+                  shaValue={unep.richiesta_sha256}
+                  filePlaceholder="richiesta_unep.pdf"
+                  accept=".pdf,.p7m"
+                  hint="Documento di richiesta, relata o modulo collegato al canale UNEP."
+                  onFileNameChange={(value) => changeUnep('richiesta_o_relata', value)}
+                  onShaChange={(value) => changeUnep('richiesta_sha256', value)}
+                  onFileComputed={(fileName, sha256) => updateUnepFile('richiesta_o_relata', 'richiesta_sha256', fileName, sha256)}
+                />
+                <DepositFileField
+                  label="Ricevuta pagamento"
+                  fileName={unep.ricevuta_pagamento}
+                  shaValue={unep.ricevuta_pagamento_sha256}
+                  filePlaceholder="pagamento_unep.pdf"
+                  accept=".pdf,.p7m"
+                  hint={unep.spese_unep_dovute ? 'Obbligatoria quando sono dovute spese o anticipazioni.' : 'Da compilare solo se presente.'}
+                  onFileNameChange={(value) => changeUnep('ricevuta_pagamento', value)}
+                  onShaChange={(value) => changeUnep('ricevuta_pagamento_sha256', value)}
+                  onFileComputed={(fileName, sha256) => updateUnepFile('ricevuta_pagamento', 'ricevuta_pagamento_sha256', fileName, sha256)}
+                />
+              </div>
+              <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('unep')}><ShieldCheck size={16} /> {working ? 'Controllo...' : 'Controlla richiesta UNEP'}</button>
+            </Panel>
+          ) : null}
+
+          {tab === 'nonpec' ? (
+            <Panel title="Tracciamento non PEC" subtitle="Raccomandata, ufficiale giudiziario e prove documentali" icon={<ClipboardCheck size={17} />}>
+              <div className="iu-legal-auto-box">
+                <div className="iu-legal-auto-box__title">
+                  <WandSparkles size={17} />
+                  <div>
+                    <strong>Allineamento con il fascicolo</strong>
+                    <span>Il tracciamento registra data, tipo, identificativo e prova, senza trasformare il canale in notifica PEC.</span>
+                  </div>
+                </div>
+                <div className="iu-legal-form-grid">
+                  <Field label="Pratica IUSENTRA" wide hint="Compila identificativo, atto e destinatario dai dati già presenti.">
+                    <select
+                      value={selectedPracticeId}
+                      onChange={(event) => {
+                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
+                        if (practice) applyPractice(practice)
+                        else clearPracticeSelection()
+                      }}
+                    >
+                      <option value="">Seleziona pratica</option>
+                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`nonpec-pratica-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Atto dal fascicolo">
+                    <select
+                      value={selectedDocumentId}
+                      disabled={!documentSuggestions.length}
+                      onChange={(event) => {
+                        const document = documentSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (document) applyDocument(document)
+                        else setSelectedDocumentId('')
+                      }}
+                    >
+                      <option value="">Seleziona atto</option>
+                      {documentSuggestions.map((item) => <option value={item.id} key={`nonpec-doc-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Destinatario suggerito">
+                    <select
+                      value={selectedRecipientId}
+                      onChange={(event) => {
+                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (recipient) applyRecipient(recipient)
+                        else setSelectedRecipientId('')
+                      }}
+                    >
+                      <option value="">Seleziona destinatario</option>
+                      {recipientSuggestions.map((item) => <option value={item.id} key={`nonpec-rec-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              </div>
+              <div className="iu-legal-form-grid">
+                <Field label="Tipo notifica">
+                  <select value={nonPec.tipo_notifica_non_pec} onChange={(event) => changeNonPec('tipo_notifica_non_pec', event.currentTarget.value)}>
+                    {data.tipiNotificaNonPec.map((item) => <option value={item.value} key={`nonpec-tipo-${item.value}`}>{item.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Identificativo notifica">
+                  <input value={nonPec.notifica_id} onChange={(event) => changeNonPec('notifica_id', event.currentTarget.value)} placeholder="Numero o riferimento interno" />
+                </Field>
+                <Field label="Data notifica">
+                  <input type="date" value={nonPec.data_notifica} onChange={(event) => changeNonPec('data_notifica', event.currentTarget.value)} />
+                </Field>
+                <Field label="Destinatario">
+                  <input value={nonPec.destinatario_nome} onChange={(event) => changeNonPec('destinatario_nome', event.currentTarget.value)} />
+                </Field>
+                <Field label="C.F. / P. IVA destinatario">
+                  <input value={nonPec.destinatario_cf} onChange={(event) => changeNonPec('destinatario_cf', event.currentTarget.value.toUpperCase())} />
+                </Field>
+                <Field label="Atto notificato">
+                  <input value={nonPec.atto_notificato} onChange={(event) => changeNonPec('atto_notificato', event.currentTarget.value)} />
+                </Field>
+                {nonPecRaccomandata ? (
+                  <>
+                    <Field label="Numero raccomandata">
+                      <input value={nonPec.numero_raccomandata} onChange={(event) => changeNonPec('numero_raccomandata', event.currentTarget.value)} />
+                    </Field>
+                    <Field label="Data spedizione">
+                      <input type="date" value={nonPec.data_spedizione} onChange={(event) => changeNonPec('data_spedizione', event.currentTarget.value)} />
+                    </Field>
+                    <Field label="Data ricezione o compiuta giacenza">
+                      <input type="date" value={nonPec.data_ricevuta_raccomandata} onChange={(event) => changeNonPec('data_ricevuta_raccomandata', event.currentTarget.value)} />
+                    </Field>
+                  </>
+                ) : null}
+                {nonPecUfficiale ? (
+                  <>
+                    <Field label="Ufficio">
+                      <input value={nonPec.ufficio_unep} onChange={(event) => changeNonPec('ufficio_unep', event.currentTarget.value)} />
+                    </Field>
+                    <Field label="Numero cronologico">
+                      <input value={nonPec.numero_cronologico} onChange={(event) => changeNonPec('numero_cronologico', event.currentTarget.value)} />
+                    </Field>
+                  </>
+                ) : null}
+                {nonPecMani ? (
+                  <Field label="Consegnatario">
+                    <input value={nonPec.consegnatario} onChange={(event) => changeNonPec('consegnatario', event.currentTarget.value)} />
+                  </Field>
+                ) : null}
+                {nonPecEstero ? (
+                  <>
+                    <Field label="Paese destinatario">
+                      <input value={nonPec.destinatario_paese} onChange={(event) => changeNonPec('destinatario_paese', event.currentTarget.value)} />
+                    </Field>
+                    <Field label="Autorità o canale">
+                      <input value={nonPec.autorita_o_canale} onChange={(event) => changeNonPec('autorita_o_canale', event.currentTarget.value)} />
+                    </Field>
+                  </>
+                ) : null}
+                <Field label="Note" wide hint="Annota solo elementi utili per ricostruire la prova e la data.">
+                  <textarea value={nonPec.note} rows={3} onChange={(event) => changeNonPec('note', event.currentTarget.value)} />
+                </Field>
+                <DepositFileField
+                  label="Prova documentale"
+                  fileName={nonPec.prova_file}
+                  shaValue={nonPec.prova_sha256}
+                  filePlaceholder={nonPecRaccomandata ? 'avviso_ricevimento.pdf' : 'relata_o_prova.pdf'}
+                  accept=".pdf,.p7m,.jpg,.jpeg,.png"
+                  hint="Avviso, relata, ricevuta o prova di consegna con impronta verificabile."
+                  onFileNameChange={(value) => changeNonPec('prova_file', value)}
+                  onShaChange={(value) => changeNonPec('prova_sha256', value)}
+                  onFileComputed={(fileName, sha256) => updateNonPecFile('prova_file', 'prova_sha256', fileName, sha256)}
+                />
+              </div>
+              <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('nonpec')}><ClipboardCheck size={16} /> {working ? 'Controllo...' : 'Controlla notifica non PEC'}</button>
             </Panel>
           ) : null}
 
@@ -2677,7 +3198,7 @@ export function NotificheLegaliPage() {
 
         <aside className="iu-legal-side">
           {guidedAutomationSteps.length ? (
-            <Panel title="Passaggi automatici" subtitle={tab === 'deposito' ? 'Prova e deposito' : 'Notifica L. 53/1994'} icon={<ClipboardCheck size={17} />}>
+            <Panel title="Passaggi automatici" subtitle={automationSubtitle} icon={<ClipboardCheck size={17} />}>
               <div className="iu-legal-automation-list">
                 {guidedAutomationSteps.map((item, index) => (
                   <article key={item.id}>
@@ -2694,11 +3215,7 @@ export function NotificheLegaliPage() {
           </div>
           <Panel title="Regole di blocco" subtitle="Controlli prima di firma e invio" icon={<AlertTriangle size={17} />}>
             <div className="iu-legal-list">
-              <span><ShieldCheck size={15} /> PEC mittente e destinatario da pubblico elenco.</span>
-              <span><FileDown size={15} /> Documento d'ufficio rilasciato acquisito dal Portale Servizi prima della relata.</span>
-              <span><FileSignature size={15} /> Relata separata e firmata digitalmente.</span>
-              <span><Inbox size={15} /> Ricevuta completa, RAC e RdAC originali.</span>
-              <span><UserRound size={15} /> Il cliente resta nel percorso informativo.</span>
+              {blockingRules.map((item) => <span key={item.text}>{item.icon} {item.text}</span>)}
             </div>
           </Panel>
           {tab === 'cliente' ? (
@@ -2767,7 +3284,7 @@ export function NotificheLegaliPage() {
       <FloatingLex
         context="notifiche-legali"
         title="Lex AI notifiche"
-        body="Posso aiutarti a controllare relata, attestazione, pubblico elenco PEC e prova da depositare, distinguendo notifica e semplice comunicazione al cliente."
+        body="Posso aiutarti a controllare relata, pubblico elenco PEC, richiesta UNEP, prova non PEC e deposito, tenendo separati i canali."
         primaryHref="#lex"
         primaryLabel="Controlla percorso"
         secondaryHref={data.azioni.fascicoli}

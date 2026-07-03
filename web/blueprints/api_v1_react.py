@@ -48,8 +48,10 @@ from pct.notifiche_legali import (
     preview_legal_relata,
     validate_custom_template_body,
     template_preview_text,
+    validate_non_pec_notification_tracking,
     validate_deposit_notification_proof,
     validate_legal_notification,
+    validate_unep_notification_request,
 )
 from pct.preventivi import StatoPreventivo
 from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
@@ -3244,6 +3246,34 @@ def notifiche_legali_prova_deposito():
     return _notifiche_legali_result_response(
         result,
         success_message="Prova della notifica pronta per il controllo busta.",
+    )
+
+
+@api_v1_react.post("/notifiche-legali/unep")
+@_richiedi_auth
+def notifiche_legali_unep():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    result = validate_unep_notification_request(payload)
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Richiesta UNEP pronta per revisione e deposito sul canale dedicato.",
+    )
+
+
+@api_v1_react.post("/notifiche-legali/non-pec")
+@_richiedi_auth
+def notifiche_legali_non_pec():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    result = validate_non_pec_notification_tracking(payload)
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Notifica non PEC tracciata con prova documentale.",
     )
 
 

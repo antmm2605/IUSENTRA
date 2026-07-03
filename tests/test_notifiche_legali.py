@@ -18,6 +18,7 @@ from pct.notifiche_legali import (
     legal_notification_automation_payload,
     list_client_communication_templates,
     list_notification_templates,
+    normalise_public_register,
     get_notification_template,
     notification_directive_matrix,
     office_notification_evidence_from_pec,
@@ -27,6 +28,8 @@ from pct.notifiche_legali import (
     template_catalog_version,
     validate_deposit_notification_proof,
     validate_legal_notification,
+    validate_non_pec_notification_tracking,
+    validate_unep_notification_request,
 )
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
@@ -92,6 +95,26 @@ def test_notifica_l53_genera_relata_solo_con_controlli_completi():
     assert "ricorso.pdf - Ricorso notificato" in result.relata_text
     assert "Registro Imprese" in result.relata_text
     assert "R.G. n. 1234/2026" in result.relata_text
+
+
+def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
+    aliases = {
+        "INIPEC-professionisti": "ini_pec",
+        "RegistroImprese": "registro_imprese",
+        "RegInde": "reginde",
+        "IPA": "registro_ppaa",
+        "altro": "altro_pubblico_elenco",
+    }
+    for raw, expected in aliases.items():
+        assert normalise_public_register(raw) == expected
+
+    payload = _legal_payload()
+    payload["fonte_pec_destinatario"] = "RegistroImprese"
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "Registro Imprese" in result.relata_text
 
 
 def test_notifica_l53_normalizza_avvocato_e_blocco_procedimento():
@@ -945,6 +968,9 @@ def test_prova_deposito_richiede_rac_rdac_originali():
         "pec_inviata": "pec_inviata.eml",
         "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
+        "destinatario_cf": "01234567890",
+        "destinatario_pec": "controparte@example.pec.it",
+        "fonte_pec_destinatario": "RegistroImprese",
         "rac_file": "accettazione.pdf",
         "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
@@ -959,6 +985,9 @@ def test_prova_deposito_richiede_rac_rdac_originali():
         "pec_inviata": "pec_inviata.eml",
         "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
+        "destinatario_cf": "01234567890",
+        "destinatario_pec": "controparte@example.pec.it",
+        "fonte_pec_destinatario": "RegistroImprese",
         "rac_file": "accettazione.eml",
         "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
@@ -985,6 +1014,9 @@ def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
         "pec_inviata": "pec_inviata.eml",
         "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
+        "destinatario_cf": "01234567890",
+        "destinatario_pec": "controparte@example.pec.it",
+        "fonte_pec_destinatario": "RegistroImprese",
         "rac_file": "accettazione.eml",
         "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
@@ -1000,6 +1032,110 @@ def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
     assert result.output_plan["auditTrail"]["documentsCount"] == 2
 
 
+def test_prova_deposito_richiede_metadati_destinatario_studio_telematico():
+    result = validate_deposit_notification_proof({
+        "atto_notificato": "ricorso.pdf",
+        "atto_sha256": "a" * 64,
+        "relata_firmata": "relata_notifica.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "pec_inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
+        "destinatario_nome": "Controparte",
+        "rac_file": "accettazione.eml",
+        "rac_sha256": "d" * 64,
+        "rdac_file": "consegna.eml",
+        "rdac_sha256": "e" * 64,
+        "ricevuta_completa": True,
+        "dati_atto_ricevute": "RAC e RdAC indicizzate",
+    })
+
+    assert result.ok is False
+    assert any("DESTINATARIO_CF_REQUIRED" in item for item in result.blockers)
+    assert any("DESTINATARIO_PEC_REQUIRED" in item for item in result.blockers)
+    assert any("DESTINATARIO_FONTE_PEC_REQUIRED" in item for item in result.blockers)
+
+
+def test_unep_richiede_canale_ufficio_destinatario_e_documenti():
+    result = validate_unep_notification_request({
+        "operazione": "notifica_unep",
+        "tipo_notifica_unep": "telematica",
+        "destinatario_nome": "Controparte",
+        "atto_notificare": "atto.pdf",
+        "atto_sha256": "a" * 64,
+    })
+
+    assert result.ok is False
+    assert any("UFFICIO_UNEP_REQUIRED" in item for item in result.blockers)
+    assert any("DESTINATARIO_PEC_REQUIRED" in item for item in result.blockers)
+    assert any("DESTINATARIO_FONTE_PEC_REQUIRED" in item for item in result.blockers)
+    assert any("richiesta o relata" in item for item in result.blockers)
+
+
+def test_unep_telematica_con_precetto_e_pagamento_produce_piano():
+    result = validate_unep_notification_request({
+        "operazione": "notifica_unep",
+        "tipo_notifica_unep": "telematica",
+        "ufficio_unep": "UNEP presso il Tribunale di Milano",
+        "atto_notificare": "atto.pdf",
+        "atto_sha256": "a" * 64,
+        "richiesta_o_relata": "richiesta_unep.pdf",
+        "richiesta_sha256": "b" * 64,
+        "destinatario_nome": "Controparte",
+        "destinatario_cf": "RSSMRA80A01H501U",
+        "destinatario_pec": "controparte@example.pec.it",
+        "fonte_pec_destinatario": "RegInde",
+        "precetto_gia_notificato": True,
+        "data_notifica_precetto": "2026-07-01",
+        "spese_unep_dovute": True,
+        "ricevuta_pagamento": "pagamento.pdf",
+        "ricevuta_pagamento_sha256": "c" * 64,
+    })
+
+    assert result.ok is True
+    assert result.template_id == "workflow_unep_notifica"
+    assert result.output_plan["unepRequest"]["tipo"] == "telematica"
+    assert any(item["id"] == "recapito_destinatario" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
+
+
+def test_notifica_non_pec_blocca_campi_tavola_mancanti():
+    result = validate_non_pec_notification_tracking({
+        "operazione": "notifica_non_pec",
+        "tipo_notifica_non_pec": "raccomandata",
+        "destinatario_nome": "Controparte",
+    })
+
+    assert result.ok is False
+    assert any("DATA_NOTIFICA_REQUIRED" in item for item in result.blockers)
+    assert any("NOTIFICA_ID_REQUIRED" in item for item in result.blockers)
+    assert any("ATTO_NOTIFICATO_REQUIRED" in item for item in result.blockers)
+    assert any("RACCOMANDATA_NUMERO_REQUIRED" in item for item in result.blockers)
+
+
+def test_notifica_non_pec_raccomandata_traccia_data_tipo_ricevuta_id():
+    result = validate_non_pec_notification_tracking({
+        "operazione": "notifica_non_pec",
+        "tipo_notifica_non_pec": "raccomandata",
+        "data_notifica": "2026-07-03",
+        "notifica_id": "N-2026-15",
+        "destinatario_nome": "Controparte",
+        "atto_notificato": "diffida.pdf",
+        "numero_raccomandata": "1234567890",
+        "data_spedizione": "2026-07-01",
+        "data_ricevuta_raccomandata": "2026-07-03",
+        "prova_file": "avviso_ricevimento.pdf",
+        "prova_sha256": "d" * 64,
+    })
+
+    assert result.ok is True
+    assert result.output_plan["historicalFields"] == {
+        "DataNotifica": "2026-07-03",
+        "TipoNotifica": "Raccomandata",
+        "DataRicevutaRaccomandata": "2026-07-03",
+        "NotificaID": "N-2026-15",
+    }
+    assert result.output_plan["workflowSteps"][0]["id"] == "nonpec_tipo"
+
+
 def test_prova_deposito_blocca_hash_non_sha256_e_dati_atto_mancanti():
     result = validate_deposit_notification_proof({
         "atto_notificato": "ricorso.pdf",
@@ -1009,6 +1145,9 @@ def test_prova_deposito_blocca_hash_non_sha256_e_dati_atto_mancanti():
         "pec_inviata": "pec_inviata.eml",
         "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
+        "destinatario_cf": "01234567890",
+        "destinatario_pec": "controparte@example.pec.it",
+        "fonte_pec_destinatario": "RegistroImprese",
         "rac_file": "accettazione.eml",
         "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
@@ -1050,12 +1189,53 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
         json={"operazione": "comunicazione_cliente_non_notifica", "cliente_nome": "Cliente", "provvedimento_descrizione": "Provvedimento depositato"},
         headers=headers,
     )
+    unep_response = client.post(
+        "/api/v1/ui/notifiche-legali/unep",
+        json={
+            "operazione": "notifica_unep",
+            "tipo_notifica_unep": "telematica",
+            "ufficio_unep": "UNEP presso il Tribunale di Milano",
+            "atto_notificare": "atto.pdf",
+            "atto_sha256": "a" * 64,
+            "richiesta_o_relata": "richiesta_unep.pdf",
+            "richiesta_sha256": "b" * 64,
+            "destinatario_nome": "Controparte",
+            "destinatario_pec": "controparte@example.pec.it",
+            "fonte_pec_destinatario": "RegInde",
+        },
+        headers=headers,
+    )
+    non_pec_response = client.post(
+        "/api/v1/ui/notifiche-legali/non-pec",
+        json={
+            "operazione": "notifica_non_pec",
+            "tipo_notifica_non_pec": "raccomandata",
+            "data_notifica": "2026-07-03",
+            "notifica_id": "N-2026-15",
+            "destinatario_nome": "Controparte",
+            "atto_notificato": "diffida.pdf",
+            "numero_raccomandata": "1234567890",
+            "data_spedizione": "2026-07-01",
+            "data_ricevuta_raccomandata": "2026-07-03",
+            "prova_file": "avviso_ricevimento.pdf",
+            "prova_sha256": "d" * 64,
+        },
+        headers=headers,
+    )
+    non_pec_blocked_response = client.post(
+        "/api/v1/ui/notifiche-legali/non-pec",
+        json={"operazione": "notifica_non_pec", "tipo_notifica_non_pec": "raccomandata"},
+        headers=headers,
+    )
 
     payload = payload_response.get_json()
     invalid_payload = invalid_response.get_json()
     valid_payload = valid_response.get_json()
     send_result = send_response.get_json()
     client_payload = client_response.get_json()
+    unep_payload = unep_response.get_json()
+    non_pec_payload = non_pec_response.get_json()
+    non_pec_blocked_payload = non_pec_blocked_response.get_json()
 
     assert payload_response.status_code == 200
     assert payload["mandatorySubject"] == LEGAL_NOTIFICATION_SUBJECT
@@ -1063,7 +1243,13 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["modelliRelata"][0]["previewText"]
     assert payload["automazioneGuidata"]["notifica"][0]["source"].startswith("L. 53/1994")
     assert payload["automazioneGuidata"]["deposito"][0]["id"] == "atti"
+    assert payload["automazioneGuidata"]["unep"][0]["id"] == "unep_canale"
+    assert payload["automazioneGuidata"]["nonPec"][0]["id"] == "nonpec_tipo"
     assert any(item["id"] == "eml_ufficio" for item in payload["automazioneGuidata"]["allegati"])
+    assert any(item["value"] == "telematica" for item in payload["tipiNotificaUnep"])
+    assert any(item["value"] == "raccomandata" for item in payload["tipiNotificaNonPec"])
+    assert payload["azioni"]["unep"] == "/api/v1/ui/notifiche-legali/unep"
+    assert payload["azioni"]["nonPec"] == "/api/v1/ui/notifiche-legali/non-pec"
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
@@ -1079,6 +1265,15 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""
+    assert unep_response.status_code == 200
+    assert unep_payload["ok"] is True
+    assert unep_payload["outputPlan"]["unepRequest"]["tipo"] == "telematica"
+    assert non_pec_response.status_code == 200
+    assert non_pec_payload["ok"] is True
+    assert non_pec_payload["outputPlan"]["historicalFields"]["NotificaID"] == "N-2026-15"
+    assert non_pec_blocked_response.status_code == 400
+    assert non_pec_blocked_payload["ok"] is False
+    assert any("NOTIFICA_ID_REQUIRED" in item for item in non_pec_blocked_payload["blockers"])
 
 
 def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):
@@ -1345,6 +1540,9 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
 
 
 def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_import_pratiche():
+    assert "QuickOrganizer" not in react_notifiche_legali_bridge._display_text("QuickOrganizer")
+    assert "Studio Telematico" not in react_notifiche_legali_bridge._display_text("Studio Telematico")
+
     documento = SimpleNamespace(
         id="doc-quick-1",
         nome_originale="20260510185021337.PDF",
@@ -1463,7 +1661,7 @@ def test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto(monkeypatc
 
     monkeypatch.setattr(
         react_notifiche_legali_bridge,
-        "_quickorganizer_content_label",
+        "_legacy_import_content_label",
         lambda _documento: "Contratto individuale di lavoro a tempo determinato",
     )
 

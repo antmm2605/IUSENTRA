@@ -4051,3 +4051,43 @@ Stato verifica:
 - worker reale nel container eseguito sul tenant `studio-montagnese`: `processed=0`, `failed=0`, nessun job PEC pendente, presidio documentale concluso senza errori;
 - campione runtime isolato nel container: PEC con `RG 1754/2026`, udienza Teams, data `20/05/2026`, ora `10:00`, art. 127-bis; worker `parse/classify/ocr/signcheck/validate/link` completato con `processed=6`, `failed=0`, link Teams verificato, priorità `P1`, nessun falso errore PCT per placeholder `deposito_da_ricondurre`;
 - prova server da eseguire dopo deploy: non dichiarare chiuso il presidio finché Hetzner non risulta sullo stesso commit, healthy e con worker verificato.
+
+## Confronto notifiche legali Studio Telematico / IUSENTRA - 2026-07-03
+
+Richiesta utente: confrontare il comportamento delle notifiche legali osservato nel decompilato Studio Telematico con IUSENTRA, campo per campo, senza backup e senza portare nella UI riferimenti tecnici o riferimenti a Studio Telematico.
+
+Documento di confronto:
+
+- `artifacts/react-migration/studio-telematico-notifiche-legali-confronto-2026-07-03.md`.
+
+Sintesi operativa:
+
+- Studio Telematico collega atto, relata, ricevuta di accettazione e ricevuta di consegna tramite destinatario, codice fiscale, PEC, pubblico elenco e identificativo notifica;
+- IUSENTRA aveva già un modello più strutturato con `notification_cases`, `notification_recipients`, `notification_receipts`, `notification_evidence_links`, `notification_proof_bundles` e riferimenti deposito;
+- gap corretto: la prova deposito ora non accetta ricevute non collegate a codice fiscale/partita IVA, PEC e pubblico elenco del destinatario;
+- gap corretto: gli alias letterali del decompilato per pubblici elenchi vengono normalizzati nel dominio IUSENTRA;
+- gap corretto: il guard PostgreSQL della matrice probatoria è stato riallineato al presidio SQLite sugli stati prova notifica;
+- gap corretto: le aree UNEP e non PEC/raccomandata sono state portate nello stesso pannello React notifiche come flussi separati, con API e tabelle dedicate;
+- UI corretta: il pannello visibile non mostra riferimenti a Studio Telematico, alias tecnici o testo tecnico del confronto; mostra solo dati operativi leggibili per l'avvocato.
+
+Controllo esteso del perimetro:
+
+- controllati anche `FormTipoNotificaUNEP.cs`, `FormDepositaConSoftwareEsterno.cs`, `NotificaEsito.cs` e i campi `TAVOLA` collegati a data/tipo notifica, ricevuta raccomandata e identificativo notifica;
+- UNEP usa un canale proprio con tipo notifica, eventuale data notifica precetto, spese e ricevute: in IUSENTRA è ora disponibile nel tab `UNEP` di `/notifiche-legali` e resta separato dalla prova PEC L. 53;
+- il tracciamento raccomandata/non PEC in `TAVOLA` è ora coperto dal tab `Non PEC` con campi `DataNotifica`, `TipoNotifica`, `DataRicevutaRaccomandata`, `NotificaID` e prova documentale;
+- `NotificaEsito` riguarda esiti SdI/fatturazione elettronica e non è pertinente al pannello notifiche legali PEC.
+
+Guardrail automatici eseguiti:
+
+- `python -m pytest tests\test_notifiche_legali.py tests\test_procedure_lifecycle_repository.py -q` -> passato;
+- `npm --prefix frontend run typecheck` -> passato;
+- `npm --prefix frontend run test:app-v2` -> passato;
+- `python -m pytest tests\test_utf8_integrity.py -q` -> passato;
+- `git diff --check` -> passato.
+
+Stato verifica:
+
+- non verificato su macchina reale autenticata;
+- copia Docker reale ricostruita senza cache e avviata su `127.0.0.1:8080`, container `iusentra-app` healthy, `/api/pronto` `ok=true`, versione `2.253.162`, fuso `Europe/Rome`;
+- il browser integrato Codex ha esposto il backend `Codex In-app Browser`, ma non si è agganciato alla webview durante l'apertura di `/notifiche-legali`; l'accesso diretto senza sessione ha restituito redirect a login, quindi non è stata eseguita la prova materiale dei pulsanti;
+- prima di dichiarare concluso il lavoro va provato materialmente `/notifiche-legali` in sessione autenticata, in particolare i tab `Notifica PEC`, `Deposito prova`, `UNEP`, `Non PEC`, `Cliente`, tutti i pulsanti di controllo, i testi visibili, hover/focus e responsive desktop/tablet/mobile.

@@ -234,6 +234,8 @@ export type NotificheLegaliData = {
     cases: LegalNotificationDirective[]
   }
   ruoliDestinatario: LegalOption[]
+  tipiNotificaUnep: LegalOption[]
+  tipiNotificaNonPec: LegalOption[]
   originiDocumento: LegalOption[]
   modelliRelata: LegalTemplateOption[]
   modelliControllo: LegalTemplateOption[]
@@ -250,6 +252,8 @@ export type NotificheLegaliData = {
     notifica: LegalAutomationStep[]
     deposito: LegalAutomationStep[]
     allegati: LegalAutomationStep[]
+    unep: LegalAutomationStep[]
+    nonPec: LegalAutomationStep[]
   }
   portaleServizi: {
     defaultPortal: string
@@ -266,6 +270,8 @@ export type NotificheLegaliData = {
     bozzaRelata: string
     comunicazioneCliente: string
     provaDeposito: string
+    unep: string
+    nonPec: string
     areaWebPst: string
     pecCompose: string
     clientCompose: string
@@ -323,6 +329,19 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     cases: [],
   },
   ruoliDestinatario: [],
+  tipiNotificaUnep: [
+    { value: 'mani', label: 'A mani' },
+    { value: 'posta', label: 'A mezzo posta' },
+    { value: 'estero', label: "All'estero" },
+    { value: 'telematica', label: 'Telematica' },
+  ],
+  tipiNotificaNonPec: [
+    { value: 'raccomandata', label: 'Raccomandata' },
+    { value: 'ufficiale_giudiziario', label: 'Ufficiale giudiziario' },
+    { value: 'mani', label: 'Consegna a mani' },
+    { value: 'estero', label: "Notifica all'estero" },
+    { value: 'altro', label: 'Altro canale non PEC' },
+  ],
   originiDocumento: [],
   modelliRelata: [],
   modelliControllo: [],
@@ -339,6 +358,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     notifica: [],
     deposito: [],
     allegati: [],
+    unep: [],
+    nonPec: [],
   },
   portaleServizi: {
     defaultPortal: 'pst',
@@ -355,6 +376,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
+    unep: '/api/v1/ui/notifiche-legali/unep',
+    nonPec: '/api/v1/ui/notifiche-legali/non-pec',
     areaWebPst: '/api/v1/ui/notifiche-legali/area-web-pst',
     pecCompose: '/email/scrivi?tipo=notifica_l53',
     clientCompose: '/email-ordinaria/scrivi?tipo=comunicazione_cliente',
@@ -695,6 +718,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       cases: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.cases : []),
     },
     ruoliDestinatario: options(payload.ruoliDestinatario),
+    tipiNotificaUnep: options(payload.tipiNotificaUnep).length ? options(payload.tipiNotificaUnep) : emptyNotificheLegaliData.tipiNotificaUnep,
+    tipiNotificaNonPec: options(payload.tipiNotificaNonPec).length ? options(payload.tipiNotificaNonPec) : emptyNotificheLegaliData.tipiNotificaNonPec,
     originiDocumento: options(payload.originiDocumento),
     modelliRelata: templateOptions(payload.modelliRelata),
     modelliControllo: templateOptions(payload.modelliControllo),
@@ -711,6 +736,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       notifica: automationSteps(automazioneGuidata.notifica),
       deposito: automationSteps(automazioneGuidata.deposito),
       allegati: automationSteps(automazioneGuidata.allegati),
+      unep: automationSteps(automazioneGuidata.unep),
+      nonPec: automationSteps(automazioneGuidata.nonPec),
     },
     portaleServizi: {
       defaultPortal: text(portaleServizi.defaultPortal, emptyNotificheLegaliData.portaleServizi.defaultPortal),
@@ -727,6 +754,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
+      unep: text(azioni.unep, emptyNotificheLegaliData.azioni.unep),
+      nonPec: text(azioni.nonPec, emptyNotificheLegaliData.azioni.nonPec),
       areaWebPst: text(azioni.areaWebPst, emptyNotificheLegaliData.azioni.areaWebPst),
       pecCompose: text(azioni.pecCompose, emptyNotificheLegaliData.azioni.pecCompose),
       clientCompose: text(azioni.clientCompose, emptyNotificheLegaliData.azioni.clientCompose),

@@ -112,23 +112,27 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           set -euo pipefail
-          # Sulla run auto-innescata dal push, il container deve girare il
-          # CODICE di questo commit (il deploy parte in parallelo): si attende
-          # che /opt/iusentra/repo punti a GITHUB_SHA, max ~25 minuti. Se il
-          # deploy non arriva, si prosegue con un warning (la run resta utile
-          # ma verifica il codice precedente).
+          # Sulla run auto-innescata dal push, il CONTAINER deve girare il
+          # codice di questo commit. Lezione della run #3: controllare il
+          # checkout del repo non basta (avviene PRIMA del rebuild e la fase 2
+          # e' stata uccisa con exit 137 dal restart del container). Segnale
+          # corretto: la versione dentro il container IN ESECUZIONE deve
+          # coincidere con quella del commit; poi 30s di assestamento.
+          expected=$(grep -oP '__version__ = "\K[^"]+' pct/__init__.py)
+          echo "Versione attesa nel container: ${expected}"
           for tentativo in $(seq 1 50); do
-            remote_head=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+            in_container=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
                 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
                 "${HETZNER_USER}@${HETZNER_HOST}" \
-                'git -C /opt/iusentra/repo rev-parse HEAD 2>/dev/null || true')
-            if [ "${remote_head}" = "${GITHUB_SHA}" ]; then
-              echo "Deploy allineato a ${GITHUB_SHA::7} dopo ${tentativo} controlli."
+                "docker exec '${LEX_CONTAINER}' python -c 'import pct; print(pct.__version__)' 2>/dev/null || true")
+            if [ "${in_container}" = "${expected}" ]; then
+              echo "Container aggiornato a ${expected} dopo ${tentativo} controlli: attendo 30s di assestamento."
+              sleep 30
               exit 0
             fi
             sleep 30
           done
-          echo "::warning::Deploy di ${GITHUB_SHA::7} non ancora arrivato: la run verifica il codice attualmente deployato (${remote_head::7})."
+          echo "::warning::Il container gira ancora la versione ${in_container:-n/d} (attesa ${expected}): la run verifica il codice attualmente deployato."
 
       - name: Prepara payload (config con override input, campioni, script semina)
         run: |
@@ -258,13 +262,24 @@ jobs:
           set -euo pipefail
           dry_flag=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then dry_flag=",'--dry-run'"; fi
+          esegui_ciclo() {
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+                -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+                "${HETZNER_USER}@${HETZNER_HOST}" \
+                "docker exec '${LEX_CONTAINER}' python -c \"from lex.autonomy.cli import main; import sys; sys.exit(main(['--config','${CONTAINER_DIR}/config.json','--samples','${CONTAINER_DIR}/samples.json','--memory-dir','${CONTAINER_DIR}/memoria','--report','text'${dry_flag}]))\""
+          }
           set +e
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
-              -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
-              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
-              "${HETZNER_USER}@${HETZNER_HOST}" \
-              "docker exec '${LEX_CONTAINER}' python -c \"from lex.autonomy.cli import main; import sys; sys.exit(main(['--config','${CONTAINER_DIR}/config.json','--samples','${CONTAINER_DIR}/samples.json','--memory-dir','${CONTAINER_DIR}/memoria','--report','text'${dry_flag}]))\""
+          esegui_ciclo
           rc=$?
+          if [ "${rc}" = "137" ]; then
+            # 137 = docker exec ucciso da un restart del container (deploy
+            # concorrente): 60s di attesa e un solo retry.
+            echo "::warning::Fase 1 interrotta dal riavvio del container (exit 137): retry tra 60s."
+            sleep 60
+            esegui_ciclo
+            rc=$?
+          fi
           set -e
           echo "exit_code=${rc}" >> "$GITHUB_OUTPUT"
           case "${rc}" in
@@ -277,11 +292,24 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
-              -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
-              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
-              "${HETZNER_USER}@${HETZNER_HOST}" \
-              "docker exec '${LEX_CONTAINER}' python '${CONTAINER_DIR}/fase2_semina.py'"
+          esegui_semina() {
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+                -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+                "${HETZNER_USER}@${HETZNER_HOST}" \
+                "docker exec '${LEX_CONTAINER}' python '${CONTAINER_DIR}/fase2_semina.py'"
+          }
+          set +e
+          esegui_semina
+          rc=$?
+          if [ "${rc}" = "137" ]; then
+            echo "::warning::Fase 2 interrotta dal riavvio del container (exit 137): retry tra 60s."
+            sleep 60
+            esegui_semina
+            rc=$?
+          fi
+          set -e
+          exit "${rc}"
 
       - name: Riepilogo memoria nel log
         if: ${{ inputs.dry_run != true }}
@@ -291,6 +319,7 @@ jobs:
               -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
               "docker exec '${LEX_CONTAINER}' sh -c 'cd ${CONTAINER_DIR}/memoria 2>/dev/null || exit 0; \
+                 echo \"===== candidati da archivio_locale =====\"; grep -c archivio_locale source_profiles.jsonl 2>/dev/null || echo 0; \
                  for f in source_readings trust_assessments citations improvement_proposals research_questions; do \
                    echo \"===== \$f =====\"; wc -l < \$f.jsonl 2>/dev/null || echo 0; head -c 4000 \$f.jsonl 2>/dev/null; echo; \
                  done'"

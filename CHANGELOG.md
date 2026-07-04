@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.170 - 2026-07-04
+
+- Workflow "Lex ciclo web" — fix della race con il deploy (run #3: fase 2 uccisa con exit 137 dal riavvio del container durante il deploy dello stesso commit; il connettore archivi era comunque gia' verde in produzione):
+  - l'attesa su push ora controlla la VERSIONE dentro il container in esecuzione (`docker exec ... pct.__version__` == versione del commit) e non il checkout del repo (che avviene prima del rebuild), con 30s di assestamento dopo l'allineamento;
+  - retry singolo (60s) su exit 137 per fase 1 e fase 2 — cintura contro riavvii concorrenti;
+  - riepilogo memoria nel log con il conteggio dei candidati `archivio_locale` (visibilita' immediata dell'uso del connettore archivi locali Normattiva/GU).
+
 ## 2.253.169 - 2026-07-04
 
 - **Lex — connettore archivi ufficiali locali Normattiva/GU** (chiude la proposta P5 auto-generata dal ciclo nella run #2, quando le protezioni anti-bot IPZS hanno bloccato i fetch live): la modalità web usa ora un provider composito — `LocalArchiveSearchProvider` legge PRIMA dai mirror sanzionati scaricati ogni notte da `legal_official_archives_daily` (`/data/normativa/normattiva.sqlite`, `/data/fonti_ufficiali/lex_sources.sqlite`, via retriever esistente `official_sources_retriever`), poi `ConfigurableWebSearchProvider` come complemento (`CompositeSearchProvider`, dedup per URL, provider guasto non ferma gli altri). Provenienza onesta: testo dal mirror locale (zero rete), autorità ancorata all'URL ufficiale (URN → `normattiva.it/uri-res/N2Ls?<urn>`), trust sul dominio reale; righe senza ancora http o senza testo scartate fail-closed; archivi assenti → vuoto senza errori. Cablato in CLI web e job notturno. 7 test nuovi.

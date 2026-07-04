@@ -65,6 +65,7 @@ export type FeatureFlagKey =
   | 'lex.legalSkills.trustLayer'
   | 'lex.legalSkills.customSkills'
   | 'lex.legalSkills.scheduledAgents'
+  | 'lex.autonomousLearning'
   | 'lex.workflowAgents.enabled'
   | 'lex.workflowAgents.writeActions'
   | 'lex.workflowAgents.scheduledRuns'

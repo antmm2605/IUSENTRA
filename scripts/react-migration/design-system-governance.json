@@ -35,6 +35,7 @@
     "frontend/src/components/GuidaPraticaSidebar.css",
     "frontend/src/components/IncassiPagamentiPage.css",
     "frontend/src/components/LegalIntelligencePage.css",
+    "frontend/src/components/LexLearningPage.css",
     "frontend/src/components/MessaggiPage.css",
     "frontend/src/components/NotificheLegaliPage.css",
     "frontend/src/components/NuovaScadenzaPage.css",

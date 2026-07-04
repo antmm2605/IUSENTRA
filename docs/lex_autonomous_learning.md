@@ -171,6 +171,15 @@ schede reali). Il corpus locale è in catena fail-closed (vuoto finché i motori
 giurisprudenza non verificano sentenze, mai creato dal ciclo). Esiti completi
 run per run in `docs/reports/lex_web_cycle_2026-07.md`.
 
-## Prossimi passi (fuori da questa fondazione)
+## Superficie web (dal 2026-07-04, flag `lex.autonomousLearning`)
 
-- Feature flag `lex.autonomousLearning` quando nascerà una superficie web.
+Pagina React `/lex-apprendimento` (menu Studio → "Apprendimento Lex", permesso
+`ai.usa`): stato del job notturno (con rimando alla console Pianificazioni per
+l'attivazione — la superficie è READ-ONLY, nessuna azione dispositiva),
+conteggi della memoria durevole, ultime proposte in revisione umana e ultime
+letture con esito fail-closed leggibile. Catena: `lex/autonomy/
+memory_inspection.py` (ispettore senza side-effect) → `web/services/
+react_lex_learning_bridge.py` → `GET /api/v1/ui/lex-learning`
+(`api_v1_lex_learning`, guardie auth + flag + permesso). Il flag è default ON
+perché la pagina solo ispeziona; il CICLO resta default OFF (job notturno in
+pausa finché non lo attivi dalla console).

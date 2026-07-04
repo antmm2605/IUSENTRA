@@ -496,6 +496,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.billing.tariffario | IUSENTRA_FF_ROUTES_APPV2_BILLING_TARIFFARIO | Tariffario nella shell App V2 sperimentale. | on |
 | routes.appV2.notifications.mobilePush | IUSENTRA_FF_ROUTES_APPV2_NOTIFICATIONS_MOBILEPUSH | Notifiche Web Push su dispositivo mobile/tablet. | off |
 | lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Legal Skills Engine governato per Lex. | on |
+| lex.autonomousLearning | IUSENTRA_FF_LEX_AUTONOMOUSLEARNING | Superficie read-only dell'apprendimento autonomo Lex (memoria, letture, proposte in revisione umana). | on |
 | lex.procedureCompletion.enabled | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_ENABLED | Procedure Completion Engine: schede procedura governate con review avvocato. | on |
 | lex.procedureCompletion.voiceRead.enabled | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_VOICEREAD_ENABLED | Lettura vocale delle schede procedura (TTS locale del browser, opt-in). | off |
 | lex.procedureCompletion.voiceRead.localOnly | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_VOICEREAD_LOCALONLY | Vincola la lettura vocale al solo TTS locale, senza provider esterni. | on |

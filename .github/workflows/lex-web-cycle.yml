@@ -15,12 +15,20 @@
 #       Garante, Agenzia Entrate, INPS): prova fetch reale, robots.txt,
 #       rate-limit, trust ed estrazione, qualunque cosa faccia la fase 1.
 #
-#  Solo avvio manuale (workflow_dispatch): nessuna pianificazione automatica.
+#  Avvio: manuale (workflow_dispatch) oppure automatico UNA volta quando questo
+#  stesso file cambia sul branch di sviluppo (push con filtro paths) — serve da
+#  auto-verifica del workflow, dato che il token dell'integrazione non ha il
+#  permesso actions:write per il dispatch via API. Nessuna pianificazione.
 #  Riusa i secrets del deploy: HETZNER_SSH_PRIVATE_KEY, HETZNER_SSH_KNOWN_HOSTS.
 # =============================================================================
 name: Lex ciclo web
 
 on:
+  push:
+    branches:
+      - claude/legal-electronic-filing-kIxcV
+    paths:
+      - .github/workflows/lex-web-cycle.yml
   workflow_dispatch:
     inputs:
       max_queries:
@@ -104,7 +112,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p payload
-          jq --argjson mq "${{ inputs.max_queries }}" --argjson ms "${{ inputs.max_sources }}" \
+          # Su push il contesto inputs è vuoto: valgono i default (20/10).
+          jq --argjson mq "${{ inputs.max_queries || '20' }}" --argjson ms "${{ inputs.max_sources || '10' }}" \
              '.limits.max_queries = $mq | .limits.max_sources = $ms' \
              examples/lex_autonomous_config_web.json > payload/config.json
           cp examples/legal_samples.json payload/samples.json

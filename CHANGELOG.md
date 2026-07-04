@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.166 - 2026-07-04
+
+- Workflow "Lex ciclo web": aggiunto trigger `push` con filtro paths sul file stesso (una sola esecuzione automatica quando il workflow cambia sul branch di sviluppo) — il token dell'integrazione GitHub della sessione non ha `actions: write`, quindi il dispatch via API non è disponibile; il push auto-innesca la prova reale e il dispatch manuale da Actions resta invariato. Input con default sicuri su push (`inputs` vuoto → 20 query / 10 fonti).
+
 ## 2.253.165 - 2026-07-04
 
 - **Lex — modalità web governata: prova reale dal server con fonti forensi** (richiesta utente: acquisire dati realmente utili allo studio — giurisprudenza per strategie di causa, decreti, leggi, prassi):

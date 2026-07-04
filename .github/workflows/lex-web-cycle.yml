@@ -184,6 +184,19 @@ jobs:
               ("https://www.inps.it/", "lavoro", "INPS — circolari e messaggi"),
           ]
 
+          # Drill-down dettagli sentenze: dalle LISTE Cassazione ai testi delle
+          # singole decisioni. I marker rispecchiano i CASSAZIONE_DETAIL_URL_MARKERS
+          # di produzione (pct/legal_update_source_parsers.py).
+          import re
+          from urllib.parse import urljoin
+
+          DETTAGLIO_RE = re.compile(r'href="([^"]*(?:civile|penale)_dettaglio\.page[^"]*)"', re.I)
+          LISTE_CASSAZIONE = {
+              "https://www.cortedicassazione.it/it/giurisprudenza_civile.page",
+              "https://www.cortedicassazione.it/it/giurisprudenza_penale.page",
+          }
+          DETTAGLI_PER_LISTA = 2
+
           config = validate_cycle_config(json.loads((BASE / "config.json").read_text(encoding="utf-8")))
           kb = KnowledgeBase(BASE / "memoria")
           graph = ConceptGraph.load(Path(kb.memory_dir) / "concept_graph.json")
@@ -194,7 +207,9 @@ jobs:
               respect_robots=config.respect_robots,
           )
           esiti = []
-          for url, area, titolo in SEEDS:
+          dettagli_sentenze = []
+
+          def leggi_e_impara(url, area, titolo, *, discovered_by, tipo, contenuto_inline=""):
               assessment = assess_source(
                   url,
                   area=area,
@@ -205,9 +220,12 @@ jobs:
               )
               kb.append("trust_assessments", assessment.stable_id(), assessment.to_dict())
               if not assessment.allowed_for_learning:
-                  esiti.append({"url": url, "area": area, "esito": "respinta_policy", "motivi": assessment.reasons[:2]})
-                  continue
-              candidate = SourceCandidate(url=url, title=titolo, source_id=assessment.source_id, discovered_by="semina", query="fase2")
+                  esiti.append({"url": url, "area": area, "tipo": tipo, "esito": "respinta_policy", "motivi": assessment.reasons[:2]})
+                  return
+              candidate = SourceCandidate(
+                  url=url, title=titolo, source_id=assessment.source_id,
+                  discovered_by=discovered_by, query="fase2", content=contenuto_inline,
+              )
               adesso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
               reading, citations, terms = read_source(candidate, area=area, fetcher=fetcher, iso_now=adesso)
               kb.append("source_readings", reading.stable_id(), reading.to_dict())
@@ -225,16 +243,40 @@ jobs:
               esiti.append({
                   "url": url,
                   "area": area,
+                  "tipo": tipo,
                   "esito": reading.status,
                   "caratteri": reading.text_characters,
                   "citazioni": len(citations),
                   "termini": len(terms),
                   "avvisi": reading.warnings[:1],
               })
+
+          for url, area, titolo in SEEDS:
+              contenuto_inline = ""
+              if url in LISTE_CASSAZIONE:
+                  # Un solo fetch della lista: testo per la lettura + href dei
+                  # dettagli sentenza da approfondire (max DETTAGLI_PER_LISTA).
+                  raw = fetcher.fetch(url)
+                  if raw.status == "ok" and raw.content:
+                      from lex.sources.extractors import extract_text_from_bytes
+
+                      contenuto_inline = extract_text_from_bytes(raw.content, raw.content_type, filename=url)
+                      html = raw.content.decode("utf-8", errors="ignore")
+                      for href in DETTAGLIO_RE.findall(html)[:DETTAGLI_PER_LISTA]:
+                          dettagli_sentenze.append((urljoin(url, href), area))
+              leggi_e_impara(url, area, titolo, discovered_by="semina", tipo="seed", contenuto_inline=contenuto_inline)
+
+          visti = set()
+          for url, area in dettagli_sentenze:
+              if url.casefold() in visti:
+                  continue
+              visti.add(url.casefold())
+              leggi_e_impara(url, area, "Dettaglio sentenza Cassazione", discovered_by="semina_dettaglio", tipo="dettaglio_sentenza")
+
           for proposal in propose_improvements(kb):
               kb.append("improvement_proposals", proposal.stable_id(), proposal.to_dict())
           graph.save(Path(kb.memory_dir) / "concept_graph.json")
-          print(json.dumps({"fase": "semina_fonti_reali", "esiti": esiti, "memoria": kb.snapshot_counts()}, ensure_ascii=False, indent=2))
+          print(json.dumps({"fase": "semina_fonti_reali", "dettagli_sentenze_trovati": len(dettagli_sentenze), "esiti": esiti, "memoria": kb.snapshot_counts()}, ensure_ascii=False, indent=2))
           PYEOF
           echo "Payload pronto:" && ls -la payload/
 

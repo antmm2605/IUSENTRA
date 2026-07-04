@@ -138,8 +138,22 @@ all'URL ufficiale (URN Normattiva → `https://www.normattiva.it/uri-res/N2Ls?<u
 e il trust valuta il dominio reale; righe senza URL http o senza testo sono
 scartate (fail-closed). Archivi assenti → risultato vuoto, mai errori.
 
+## Connettori dettagli sentenze
+
+Dal 2026-07-04 il ciclo acquisisce anche i TESTI delle decisioni, su due canali:
+- **`LocalCorpusSearchProvider`**: legge il corpus giurisprudenza locale
+  (`{PCT_GIURISPRUDENZA_DB} → *_corpus.db`, popolato dai motori di produzione)
+  — massima ufficiale/principio sintetico come contenuto, URL ufficiale come
+  ancora; entrano SOLO le sentenze che superano `can_cite_sentenza`
+  (stato verificato + ancora ufficiale/ECLI). Corpus assente → vuoto, mai
+  creato da qui. Nel composito: archivi → corpus → web.
+- **Drill-down nella fase 2 del workflow**: dalle liste Cassazione
+  (`giurisprudenza_civile/penale.page`) vengono estratti gli href dei dettagli
+  (marker identici ai `CASSAZIONE_DETAIL_URL_MARKERS` di produzione) e letti
+  fino a 2 dettagli per lista con il `PoliteFetcher` (esiti `tipo:
+  dettaglio_sentenza` nel report).
+
 ## Prossimi passi (fuori da questa fondazione)
 
 - Feature flag `lex.autonomousLearning` quando nascerà una superficie web.
-- Connettori dedicati per i dettagli sentenze (Cassazione/Consulta/G.A.) in
-  `lex/sources/connectors`.
+- Estendere il drill-down a Consulta/G.A. quando serviranno liste dedicate.

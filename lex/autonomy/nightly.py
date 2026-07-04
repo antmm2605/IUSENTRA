@@ -26,6 +26,7 @@ from lex.autonomy.discovery import (
     CompositeSearchProvider,
     ConfigurableWebSearchProvider,
     LocalArchiveSearchProvider,
+    LocalCorpusSearchProvider,
     SearchProvider,
 )
 from lex.autonomy.safety import CycleConfigError, SourceAccessError, validate_cycle_config
@@ -103,11 +104,12 @@ def run_lex_autonomous_learning_nightly(
     except (OSError, ValueError):
         samples = []
 
-    # Archivi ufficiali locali prima (mirror sanzionato di Normattiva/GU,
+    # Fonti locali prima (archivi Normattiva/GU + corpus giurisprudenza,
     # zero rete), ricerca web governata come complemento.
     provider: SearchProvider = search_provider or CompositeSearchProvider(
         [
             LocalArchiveSearchProvider(),
+            LocalCorpusSearchProvider(),
             ConfigurableWebSearchProvider(limit_results=cycle_config.max_sources),
         ]
     )

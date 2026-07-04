@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.253.171 - 2026-07-04
+
+- **Lex — connettori per i dettagli sentenze** (dalle liste ai TESTI delle decisioni, il materiale per le strategie di causa):
+  - `LocalCorpusSearchProvider`: legge il corpus giurisprudenza locale (`derive_corpus_db_path` da `PCT_GIURISPRUDENZA_DB`, popolato dai motori di produzione) — contenuto = massima ufficiale + principio sintetico, ancora = URL ufficiale della decisione; entrano SOLO le sentenze che superano `can_cite_sentenza` (stato verificato + ancora ufficiale/ECLI, il predicato di citabilità già esistente in `pct/giurisprudenza_corpus.py`); righe senza massima/principio o senza URL http scartate; corpus assente → vuoto senza MAI crearlo. Composito aggiornato in CLI web e job notturno: archivi Normattiva/GU → corpus giurisprudenza → ricerca web governata.
+  - Workflow "Lex ciclo web", fase 2: **drill-down dei dettagli** — dalle liste Cassazione vengono estratti gli href `*_dettaglio.page` (marker identici ai `CASSAZIONE_DETAIL_URL_MARKERS` di produzione) e letti fino a 2 dettagli per lista via PoliteFetcher, con esiti etichettati `dettaglio_sentenza`; la lista viene letta con un solo fetch (testo inline + estrazione href insieme).
+  - Fix regressione run #4: URN Normattiva vuoto ("urn:" nudo) non produce più l'ancora generica `N2Ls?urn:` (scartato fail-closed).
+  - 6 test nuovi (citabilità fail-closed, scarto senza massima, corpus assente senza side-effect, dedup, URN vuoto) + harness locale della semina con drill-down (2 dettagli letti, citazioni estratte dal testo della decisione).
+
 ## 2.253.170 - 2026-07-04
 
 - Workflow "Lex ciclo web" — fix della race con il deploy (run #3: fase 2 uccisa con exit 137 dal riavvio del container durante il deploy dello stesso commit; il connettore archivi era comunque gia' verde in produzione):

@@ -25,6 +25,7 @@ from lex.autonomy.discovery import (
     CompositeSearchProvider,
     ConfigurableWebSearchProvider,
     LocalArchiveSearchProvider,
+    LocalCorpusSearchProvider,
     SearchProvider,
     StaticSearchProvider,
 )
@@ -72,11 +73,13 @@ def main(argv: list[str] | None = None) -> int:
     provider: SearchProvider
     fetcher: PoliteFetcher | None = None
     if config.mode == "web":
-        # Archivi ufficiali locali PRIMA (mirror sanzionato, zero rete, immune
-        # ai blocchi anti-bot), ricerca web governata come complemento.
+        # Fonti locali PRIMA (mirror sanzionati, zero rete, immuni ai blocchi
+        # anti-bot): archivi Normattiva/GU, poi corpus giurisprudenza
+        # (sentenze/massime verificate); ricerca web governata come complemento.
         provider = CompositeSearchProvider(
             [
                 LocalArchiveSearchProvider(),
+                LocalCorpusSearchProvider(),
                 ConfigurableWebSearchProvider(limit_results=config.max_sources),
             ]
         )

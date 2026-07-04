@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any, Protocol
 
 from lex.sources.models import SourceCandidate
@@ -178,9 +179,97 @@ def _archive_http_url(url_origine: str) -> str:
     value = url_origine.strip()
     if value.casefold().startswith(("http://", "https://")):
         return value
-    if value.casefold().startswith("urn:"):
+    # URN con corpo reale (es. urn:nir:stato:legge:1990-08-07;241): un "urn:"
+    # nudo produrrebbe un'ancora generica non onesta -> scartato (run #4).
+    if value.casefold().startswith("urn:") and len(value) > len("urn:"):
         return f"https://www.normattiva.it/uri-res/N2Ls?{value}"
     return ""
+
+
+class LocalCorpusSearchProvider:
+    """Provider sul corpus giurisprudenza locale (sentenze/massime verificate).
+
+    Legge il corpus SQLite popolato dai motori di produzione
+    (`pct/giurisprudenza_corpus.py`, FTS su sentenze/massime): il contenuto è
+    la massima ufficiale/principio sintetico, l'ancora è l'URL ufficiale della
+    decisione. Entrano SOLO le sentenze che superano `can_cite_sentenza`
+    (stato verificato + ancora ufficiale/ECLI): niente massime non citabili.
+    Corpus assente -> risultato vuoto, senza mai creare il database.
+    """
+
+    def __init__(self, *, db_path: str | Path | None = None, per_query_limit: int = 6) -> None:
+        self._db_path = Path(db_path) if db_path else None
+        self.per_query_limit = max(1, int(per_query_limit))
+
+    def search(self, query: str, *, limit: int = 5) -> list[SourceCandidate]:
+        clean_query = " ".join(
+            token for token in str(query or "").replace('"', " ").split() if not token.casefold().startswith("site:")
+        )
+        if not clean_query:
+            return []
+        db_path = self._db_path or _default_corpus_db_path()
+        if not db_path.exists():
+            return []  # mai creare il corpus da qui: solo lettura
+        try:
+            from pct.giurisprudenza_corpus import GestioneCorpusGiurisprudenza
+
+            manager = GestioneCorpusGiurisprudenza(str(db_path))
+            rows = manager.cerca_sentenze(q=clean_query, limit=self.per_query_limit)
+        except Exception:
+            return []
+        candidates: list[SourceCandidate] = []
+        seen: set[str] = set()
+        for row in rows:
+            if not manager.can_cite_sentenza(row):
+                continue  # fail-closed: solo decisioni verificate e ancorate
+            url = str(row.get("url_pagina_ufficiale") or row.get("url_pdf_ufficiale") or "").strip()
+            massima = " ".join(str(row.get("massima_ufficiale") or "").split())
+            principio = " ".join(str(row.get("principio_sintetico") or "").split())
+            contenuto = " ".join(part for part in (str(row.get("titolo") or ""), massima, principio) if part).strip()
+            if not url or not (massima or principio):
+                continue  # senza ancora http o senza sostanza non si impara
+            key = url.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            estremi = " ".join(
+                str(part)
+                for part in (row.get("organo_giudicante"), row.get("numero_sentenza"), row.get("anno_sentenza"))
+                if part
+            )
+            candidates.append(
+                SourceCandidate(
+                    url=url,
+                    title=str(row.get("titolo") or estremi or "Sentenza dal corpus locale"),
+                    snippet=contenuto[:220],
+                    source_id="corpus_locale:giurisprudenza",
+                    discovered_by="corpus_locale",
+                    query=query,
+                    confidence=0.9,
+                    content=contenuto,
+                    content_type="text/plain",
+                )
+            )
+            if len(candidates) >= max(1, int(limit)):
+                break
+        return candidates
+
+
+def _default_corpus_db_path() -> Path:
+    import os
+
+    from pct.giurisprudenza_corpus import derive_corpus_db_path
+
+    anchor = str(os.getenv("PCT_GIURISPRUDENZA_DB", "") or "").strip()
+    if not anchor:
+        for key in ("PCT_DATA_ROOT", "IUSENTRA_DATA_DIR"):
+            root = str(os.getenv(key, "") or "").strip()
+            if root:
+                anchor = str(Path(root) / "intelligence" / "giurisprudenza.json")
+                break
+    if not anchor:
+        anchor = str(Path("data") / "intelligence" / "giurisprudenza.json")
+    return Path(derive_corpus_db_path(anchor))
 
 
 class CompositeSearchProvider:
@@ -215,6 +304,7 @@ __all__ = [
     "CompositeSearchProvider",
     "ConfigurableWebSearchProvider",
     "LocalArchiveSearchProvider",
+    "LocalCorpusSearchProvider",
     "SearchProvider",
     "StaticSearchProvider",
 ]

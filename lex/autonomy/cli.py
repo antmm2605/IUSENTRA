@@ -116,3 +116,7 @@ def _load_samples(path: Path) -> list[LegalSourceSample]:
 
 
 __all__ = ["main"]
+
+
+if __name__ == "__main__":  # pragma: no cover - eseguibile anche come modulo
+    raise SystemExit(main())

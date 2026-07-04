@@ -25,6 +25,30 @@
       "source_type": "sample",
       "text": "La L. 241/1990 disciplina il procedimento amministrativo, il responsabile del procedimento e il diritto di accesso agli atti. Accanto all'accesso documentale si è affermato l'accesso civico, che consente a chiunque di richiedere dati e documenti; l'accesso civico generalizzato amplia la trasparenza. L'istituto dell'accesso civico richiede comunque il bilanciamento con la riservatezza dei controinteressati, e il provvedimento amministrativo di diniego deve essere motivato.",
       "expected_citations": ["L. 241/1990"]
+    },
+    {
+      "sample_id": "procedura_civile_cartabia",
+      "area": "civile",
+      "title": "Termini processuali dopo la riforma Cartabia",
+      "source_type": "sample",
+      "text": "Il D.Lgs. 149/2022 (riforma Cartabia) ha ridisegnato la fase introduttiva del processo civile: le memorie integrative ex art. 171-ter c.p.c. vanno depositate a ritroso rispetto all'udienza (40, 20 e 10 giorni prima), mentre l'art. 127-ter c.p.c. consente la sostituzione dell'udienza con il deposito di note scritte, con termine di opposizione di 5 giorni dalla comunicazione. Il calcolo del termine processuale e la decorrenza dalla comunicazione o dalla notificazione restano il punto critico per la strategia difensiva e per evitare decadenze.",
+      "expected_citations": ["D.Lgs. 149/2022", "art. 171-ter c.p.c.", "art. 127-ter c.p.c."]
+    },
+    {
+      "sample_id": "lavoro_licenziamento",
+      "area": "lavoro",
+      "title": "Licenziamento e tutele",
+      "source_type": "sample",
+      "text": "Il licenziamento per giusta causa prescinde dal preavviso, mentre il giustificato motivo soggettivo e oggettivo sono disciplinati dalla L. 604/1966. L'art. 18 L. 300/1970 regola la tutela reintegratoria nelle imprese maggiori; per gli assunti dopo il 2015 opera il regime del D.Lgs. 23/2015 a tutele crescenti. La qualificazione della giusta causa e la proporzionalità della sanzione espulsiva sono il terreno tipico del contenzioso e della strategia difensiva del lavoratore e del datore.",
+      "expected_citations": ["L. 604/1966", "art. 18 L. 300/1970", "D.Lgs. 23/2015"]
+    },
+    {
+      "sample_id": "tributario_accertamento",
+      "area": "tributario",
+      "title": "Avviso di accertamento e contraddittorio",
+      "source_type": "sample",
+      "text": "L'avviso di accertamento è l'atto con cui l'ufficio rettifica la dichiarazione del contribuente ai sensi del D.P.R. 600/1973. Il contraddittorio preventivo, oggi generalizzato, condiziona la legittimità dell'atto; la motivazione dell'avviso di accertamento e il rispetto dei termini di decadenza sono i vizi tipici fatti valere nel ricorso. Il ravvedimento operoso consente di ridurre la sanzione amministrativa prima della notifica dell'atto impositivo.",
+      "expected_citations": ["D.P.R. 600/1973"]
     }
   ]
 }

@@ -1,0 +1,57 @@
+{
+  "schema_version": "iusentra.lex_autonomous_config.v1",
+  "descrizione": "Configurazione WEB del ciclo di apprendimento autonomo di Lex, orientata al lavoro reale dello studio legale: giurisprudenza per le strategie di causa (Cassazione, Consulta, G.A., Corte dei conti, CGUE), decreti e leggi (Normattiva, Gazzetta Ufficiale), prassi delle autorità (Garante, Agenzia Entrate, INPS/INAIL, ANAC, Min. Lavoro). Ogni dominio è verificato tier_1/tier_2 nel Source Policy System (fonti certe). Robots.txt sempre rispettato, rate-limit per dominio, budget rigidi: il ciclo legge e propone, non pubblica e non modifica nulla.",
+  "mode": "web",
+  "allow_web": true,
+  "limits": {
+    "max_cycles": 3,
+    "max_queries": 20,
+    "max_sources": 10,
+    "max_runtime_seconds": 300,
+    "max_questions_per_cycle": 5,
+    "max_queries_per_question": 3,
+    "min_sources_per_area": 2
+  },
+  "sources": {
+    "require_official_sources": true,
+    "source_mode": "strict",
+    "allowlist": [
+      "normattiva.it",
+      "gazzettaufficiale.it",
+      "giustizia.it",
+      "cortedicassazione.it",
+      "cortecostituzionale.it",
+      "giustizia-amministrativa.it",
+      "corteconti.it",
+      "curia.europa.eu",
+      "eur-lex.europa.eu",
+      "garanteprivacy.it",
+      "gpdp.it",
+      "edpb.europa.eu",
+      "agenziaentrate.gov.it",
+      "inps.it",
+      "inail.it",
+      "anticorruzione.it",
+      "lavoro.gov.it",
+      "brocardi.it"
+    ],
+    "denylist": [
+      "facebook.com",
+      "instagram.com",
+      "x.com",
+      "twitter.com",
+      "reddit.com",
+      "quora.com",
+      "medium.com"
+    ]
+  },
+  "politeness": {
+    "min_interval_seconds": 2.0,
+    "timeout_seconds": 20,
+    "max_bytes": 2000000,
+    "respect_robots": true
+  },
+  "memory": {
+    "dir": null
+  }
+}

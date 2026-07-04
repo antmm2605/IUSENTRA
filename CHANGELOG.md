@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.253.165 - 2026-07-04
+
+- **Lex — modalità web governata: prova reale dal server con fonti forensi** (richiesta utente: acquisire dati realmente utili allo studio — giurisprudenza per strategie di causa, decreti, leggi, prassi):
+  - Nuovo workflow manuale `.github/workflows/lex-web-cycle.yml` (solo workflow_dispatch): esegue il ciclo autonomo DENTRO il container di produzione `iusentra-app` su Hetzner (che raggiunge le fonti ufficiali), senza toccare produzione (memoria solo in `/tmp` del container, `/data` mai coinvolto, pulizia finale). Fase 1: ciclo web puro con ricerca governata (`official_web` + `PoliteFetcher`); exit 2 "nessuna fonte dalla ricerca" tollerato come esito valido (motori possono bloccare IP datacenter). Fase 2 (sempre): lettura diretta di 11 fonti REALI ad alto valore forense — Normattiva (art. 2043 c.c., L. 241/1990, D.Lgs. 149/2022 Cartabia), Gazzetta Ufficiale ultime pubblicazioni, Cassazione, Consulta, Giustizia amministrativa, EUR-Lex CELEX 32016R0679, Garante Privacy, Agenzia Entrate, INPS — con trust fail-closed, robots.txt, rate-limit, estrazione citazioni e grafo. Log con riepilogo memoria + artifact `lex-web-cycle-memoria` (14 giorni).
+  - `examples/lex_autonomous_config_web.json` (nuovo): configurazione web di riferimento con allowlist di 18 domini TUTTI verificati tier_1/tier_2 nel Source Policy System (normativa, giurisprudenza — Cassazione/Consulta/G.A./Corte conti/CGUE —, UE/privacy, prassi Agenzia Entrate/INPS/INAIL/ANAC/Min. Lavoro; brocardi.it come tier_2); scartati i domini non classificati dai cataloghi (italgiure, hudoc, mef, agcm, cnf — fail-closed).
+  - `examples/legal_samples.json`: +3 campioni strategici che orientano il gap detector sui temi da avvocato (termini Cartabia 171-ter/127-ter, licenziamento art. 18/L. 604, accertamento tributario D.P.R. 600/1973).
+  - `lex/autonomy/cli.py`: guard `__main__` (il ciclo è eseguibile anche con `python -m lex.autonomy.cli`, senza dipendere da `scripts/` dentro l'immagine Docker).
+  - Test: nuova guardia anti-drift sulla config web committata (validazione + ogni dominio nei tier governati); script di semina verificato in locale con fetcher finto (11/11 letture, memoria e grafo popolati).
+
 ## 2.253.164 - 2026-07-03
 
 - Notifiche legali React: ogni controllo operativo porta ora il pannello di esito in vista, inclusa la comunicazione cliente, così i pulsanti mostrano sempre feedback immediato e motivi di blocco.

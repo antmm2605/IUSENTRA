@@ -1,0 +1,288 @@
+# =============================================================================
+#  Lex — ciclo di apprendimento autonomo in modalità WEB (prova governata).
+#
+#  Esegue il ciclo `lex.autonomy` DENTRO il container di produzione
+#  `iusentra-app` sul server Hetzner (che raggiunge le fonti ufficiali, a
+#  differenza degli ambienti di sviluppo), SENZA toccare produzione:
+#  memoria solo in /tmp del container, /data mai coinvolto, pulizia finale.
+#
+#  Due fasi:
+#    1. ciclo web puro (ricerca governata via official_web + PoliteFetcher);
+#       exit 2 = "nessuna fonte trovata dalla ricerca" è un esito valido da
+#       riportare (i motori di ricerca possono bloccare IP datacenter);
+#    2. lettura diretta di fonti seminate REALI utili allo studio
+#       (Normattiva, Gazzetta Ufficiale, Cassazione, Consulta, G.A., EUR-Lex,
+#       Garante, Agenzia Entrate, INPS): prova fetch reale, robots.txt,
+#       rate-limit, trust ed estrazione, qualunque cosa faccia la fase 1.
+#
+#  Solo avvio manuale (workflow_dispatch): nessuna pianificazione automatica.
+#  Riusa i secrets del deploy: HETZNER_SSH_PRIVATE_KEY, HETZNER_SSH_KNOWN_HOSTS.
+# =============================================================================
+name: Lex ciclo web
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_queries:
+        description: Numero massimo di query di ricerca (tetto rigido 50)
+        type: string
+        default: "20"
+      max_sources:
+        description: Numero massimo di fonti lette (tetto rigido 40)
+        type: string
+        default: "10"
+      dry_run:
+        description: Esegue senza scrivere la memoria (solo fase 1, nessun artifact)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lex-web-cycle
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+  LEX_CONTAINER: iusentra-app
+  REMOTE_DIR: /tmp/lex-web-cycle-${{ github.run_id }}
+  CONTAINER_DIR: /tmp/lex-web-cycle
+
+jobs:
+  web-cycle:
+    name: Ciclo web governato su Hetzner
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Verifica secrets obbligatori
+        env:
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          missing=()
+          if [ -z "${HETZNER_SSH_PRIVATE_KEY:-}" ]; then missing+=("HETZNER_SSH_PRIVATE_KEY"); fi
+          if [ -z "${HETZNER_SSH_KNOWN_HOSTS:-}" ]; then missing+=("HETZNER_SSH_KNOWN_HOSTS"); fi
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Secrets mancanti: ${missing[*]}. Vedere docs/DEPLOY_HETZNER_CPX42.md."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup chiave SSH e known_hosts
+        env:
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$HETZNER_SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$HETZNER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null
+          echo "Chiave SSH e known_hosts pronti."
+
+      - name: Verifica server e container
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker ps --filter name=${LEX_CONTAINER} --format '{{.Names}} {{.Status}}' | grep -q '${LEX_CONTAINER}'" \
+            || { echo "::error::Container ${LEX_CONTAINER} non in esecuzione sul server."; exit 1; }
+          echo "Container ${LEX_CONTAINER} attivo."
+
+      - name: Prepara payload (config con override input, campioni, script semina)
+        run: |
+          set -euo pipefail
+          mkdir -p payload
+          jq --argjson mq "${{ inputs.max_queries }}" --argjson ms "${{ inputs.max_sources }}" \
+             '.limits.max_queries = $mq | .limits.max_sources = $ms' \
+             examples/lex_autonomous_config_web.json > payload/config.json
+          cp examples/legal_samples.json payload/samples.json
+          cat > payload/fase2_semina.py <<'PYEOF'
+          """Fase 2 — lettura diretta di fonti ufficiali REALI utili allo studio.
+
+          Usa la libreria lex.autonomy dentro il container: trust fail-closed,
+          PoliteFetcher (robots + rate-limit), estrazione citazioni/termini,
+          memoria JSONL e grafo. Nessuna scrittura fuori da /tmp/lex-web-cycle.
+          """
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from lex.autonomy.improvement_proposer import propose_improvements
+          from lex.autonomy.safety import validate_cycle_config
+          from lex.autonomy.source_reader import read_source
+          from lex.knowledge.concept_graph import ConceptGraph, node_id
+          from lex.knowledge.knowledge_base import KnowledgeBase
+          from lex.sources.models import SourceCandidate
+          from lex.sources.polite_fetcher import PoliteFetcher
+          from lex.sources.trust import assess_source
+
+          BASE = Path("/tmp/lex-web-cycle")
+          SEEDS = [
+              ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043", "civile", "Art. 2043 c.c. — Normattiva"),
+              ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241", "amministrativo", "L. 241/1990 — Normattiva"),
+              ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022-10-10;149", "civile", "D.Lgs. 149/2022 (riforma Cartabia) — Normattiva"),
+              ("https://www.gazzettaufficiale.it/30giorni/serie_generale", "civile", "Gazzetta Ufficiale — ultime pubblicazioni serie generale"),
+              ("https://www.cortedicassazione.it/", "civile", "Corte di Cassazione — novita' giurisprudenziali"),
+              ("https://www.cortecostituzionale.it/", "civile", "Corte costituzionale — pronunce"),
+              ("https://www.giustizia-amministrativa.it/", "amministrativo", "Giustizia amministrativa — decisioni"),
+              ("https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32016R0679", "privacy", "Regolamento (UE) 2016/679 — EUR-Lex"),
+              ("https://www.garanteprivacy.it/", "privacy", "Garante Privacy — provvedimenti"),
+              ("https://www.agenziaentrate.gov.it/portale/", "tributario", "Agenzia delle Entrate — prassi"),
+              ("https://www.inps.it/", "lavoro", "INPS — circolari e messaggi"),
+          ]
+
+          config = validate_cycle_config(json.loads((BASE / "config.json").read_text(encoding="utf-8")))
+          kb = KnowledgeBase(BASE / "memoria")
+          graph = ConceptGraph.load(Path(kb.memory_dir) / "concept_graph.json")
+          fetcher = PoliteFetcher(
+              min_interval_seconds=config.min_interval_seconds,
+              timeout_seconds=config.timeout_seconds,
+              max_bytes=config.max_bytes,
+              respect_robots=config.respect_robots,
+          )
+          esiti = []
+          for url, area, titolo in SEEDS:
+              assessment = assess_source(
+                  url,
+                  area=area,
+                  mode=config.source_mode,
+                  require_official=config.require_official_sources,
+                  allowlist=config.allowlist,
+                  denylist=config.denylist,
+              )
+              kb.append("trust_assessments", assessment.stable_id(), assessment.to_dict())
+              if not assessment.allowed_for_learning:
+                  esiti.append({"url": url, "area": area, "esito": "respinta_policy", "motivi": assessment.reasons[:2]})
+                  continue
+              candidate = SourceCandidate(url=url, title=titolo, source_id=assessment.source_id, discovered_by="semina", query="fase2")
+              adesso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+              reading, citations, terms = read_source(candidate, area=area, fetcher=fetcher, iso_now=adesso)
+              kb.append("source_readings", reading.stable_id(), reading.to_dict())
+              for citation in citations:
+                  kb.append("citations", citation.stable_id(), {**citation.to_dict(), "area": area})
+                  graph.ensure_node("norma", citation.normalized_text, area=area, seen_at=adesso)
+              for term in terms:
+                  kb.append("legal_terms", term.stable_id(), term.to_dict())
+                  graph.ensure_node("concetto", term.normalized, area=term.area, seen_at=adesso)
+              if reading.status == "ok" and citations:
+                  dominio = url.split("/")[2]
+                  graph.ensure_node("fonte", dominio, seen_at=adesso)
+                  for citation in citations[:20]:
+                      graph.add_edge(node_id("fonte", dominio), node_id("norma", citation.normalized_text), "letta_per")
+              esiti.append({
+                  "url": url,
+                  "area": area,
+                  "esito": reading.status,
+                  "caratteri": reading.text_characters,
+                  "citazioni": len(citations),
+                  "termini": len(terms),
+                  "avvisi": reading.warnings[:1],
+              })
+          for proposal in propose_improvements(kb):
+              kb.append("improvement_proposals", proposal.stable_id(), proposal.to_dict())
+          graph.save(Path(kb.memory_dir) / "concept_graph.json")
+          print(json.dumps({"fase": "semina_fonti_reali", "esiti": esiti, "memoria": kb.snapshot_counts()}, ensure_ascii=False, indent=2))
+          PYEOF
+          echo "Payload pronto:" && ls -la payload/
+
+      - name: Copia payload nel container
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" "mkdir -p '${REMOTE_DIR}'"
+          scp -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              payload/config.json payload/samples.json payload/fase2_semina.py \
+              "${HETZNER_USER}@${HETZNER_HOST}:${REMOTE_DIR}/"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' mkdir -p '${CONTAINER_DIR}' \
+               && docker cp '${REMOTE_DIR}/config.json' '${LEX_CONTAINER}:${CONTAINER_DIR}/config.json' \
+               && docker cp '${REMOTE_DIR}/samples.json' '${LEX_CONTAINER}:${CONTAINER_DIR}/samples.json' \
+               && docker cp '${REMOTE_DIR}/fase2_semina.py' '${LEX_CONTAINER}:${CONTAINER_DIR}/fase2_semina.py'"
+
+      - name: Fase 1 — ciclo web puro (ricerca governata)
+        id: fase1
+        run: |
+          set -euo pipefail
+          dry_flag=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then dry_flag=",'--dry-run'"; fi
+          set +e
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' python -c \"from lex.autonomy.cli import main; import sys; sys.exit(main(['--config','${CONTAINER_DIR}/config.json','--samples','${CONTAINER_DIR}/samples.json','--memory-dir','${CONTAINER_DIR}/memoria','--report','text'${dry_flag}]))\""
+          rc=$?
+          set -e
+          echo "exit_code=${rc}" >> "$GITHUB_OUTPUT"
+          case "${rc}" in
+            0) echo "Fase 1 completata: ciclo web con fonti trovate." ;;
+            2) echo "::warning::Fase 1: nessuna fonte trovata dalla ricerca web (exit 2) — esito valido, la fase 2 prova comunque la lettura reale." ;;
+            *) echo "::error::Fase 1 fallita con exit ${rc} (1=config, 3=ciclo)."; exit "${rc}" ;;
+          esac
+
+      - name: Fase 2 — lettura diretta fonti reali seminate
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' python '${CONTAINER_DIR}/fase2_semina.py'"
+
+      - name: Riepilogo memoria nel log
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' sh -c 'cd ${CONTAINER_DIR}/memoria 2>/dev/null || exit 0; \
+                 for f in source_readings trust_assessments citations improvement_proposals research_questions; do \
+                   echo \"===== \$f =====\"; wc -l < \$f.jsonl 2>/dev/null || echo 0; head -c 4000 \$f.jsonl 2>/dev/null; echo; \
+                 done'"
+
+      - name: Esporta memoria come artifact
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' sh -c 'cd ${CONTAINER_DIR} && tar czf - memoria 2>/dev/null'" \
+              > lex-web-cycle-memoria.tgz
+          ls -la lex-web-cycle-memoria.tgz
+
+      - name: Upload artifact memoria
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: lex-web-cycle-memoria
+          path: lex-web-cycle-memoria.tgz
+          retention-days: 14
+
+      - name: Pulizia (container e host, sempre)
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec '${LEX_CONTAINER}' rm -rf '${CONTAINER_DIR}' 2>/dev/null; rm -rf '${REMOTE_DIR}'" || true
+          echo "Pulizia completata: nessun residuo su container o host."

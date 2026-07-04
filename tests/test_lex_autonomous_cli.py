@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
 
 from lex.autonomy.cli import main
 
@@ -130,3 +129,25 @@ def test_allow_web_flag_non_basta_senza_config_coerente(tmp_path, capsys):
     config = _write(tmp_path, "config.json", _CONFIG_OK)
     assert main(["--config", str(config), "--allow-web"]) == 1
     assert "incoerente" in capsys.readouterr().err.casefold()
+
+
+def test_config_web_di_esempio_valida_e_governata():
+    # Guardia contro drift: la config web committata deve restare valida e con
+    # domini classificati nei tier del Source Policy System (fonti certe).
+    import json
+    from pathlib import Path
+
+    from lex.autonomy.safety import validate_cycle_config
+    from lex.research.source_policy.inference import get_tier_for_domain
+
+    raw = json.loads(Path("examples/lex_autonomous_config_web.json").read_text(encoding="utf-8"))
+    config = validate_cycle_config(raw)
+    assert config.mode == "web"
+    assert config.allow_web is True
+    assert config.respect_robots is True
+    assert config.min_interval_seconds >= 1.0
+    assert len(config.allowlist) >= 15
+    aree = ("civile", "penale", "lavoro", "tributario", "amministrativo", "privacy", "ue")
+    for dominio in config.allowlist:
+        tiers = {get_tier_for_domain(dominio, area).value for area in aree}
+        assert tiers & {"tier_1", "tier_2"}, f"dominio fuori dai tier governati: {dominio}"

@@ -256,11 +256,13 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     documenti_by_originale = {doc.nome_originale: doc for doc in fascicolo.documenti}
     atto = documenti_by_originale["scansione-da-pdf-0001.pdf"]
     email = documenti_by_originale["MSG000088.eml"]
-    assert atto.nome == "Ricorso introduttivo da tabella.pdf"
-    assert atto.nome_portale == "Ricorso introduttivo da tabella.pdf"
+    assert atto.nome == "scansione-da-pdf-0001.pdf"
+    assert atto.nome_portale == "scansione-da-pdf-0001.pdf"
+    assert atto.tipo_atto_portale == "Ricorso introduttivo da tabella.pdf"
     assert Path(atto.percorso).name == "scansione-da-pdf-0001.pdf"
-    assert email.nome == "Invio documenti da tabella.eml"
-    assert email.nome_portale == "Invio documenti da tabella.eml"
+    assert email.nome == "MSG000088.eml"
+    assert email.nome_portale == "MSG000088.eml"
+    assert email.tipo_atto_portale == "Invio documenti da tabella.eml"
     assert Path(email.percorso).name == "MSG000088.eml"
     assert len(parti) == 2
     cliente = clienti.tutti()[0]
@@ -289,6 +291,68 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
     assert len(soggetti.tutti()) == 2
+
+
+def test_import_studio_telematico_reimport_riallinea_nomi_documenti_esistenti(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
+    partial_package = load_quickorganizer_package(
+        _write_package(
+            tmp_path / "studio-telematico-solo-dati.zip",
+            include_atto=False,
+            include_email=False,
+        )
+    )
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+    import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    fascicolo = fascicoli.tutti(archiviati=True)[0]
+    for doc in fascicolo.documenti:
+        if doc.nome_originale == "scansione-da-pdf-0001.pdf":
+            doc.nome = "Ricorso introduttivo da tabella.pdf"
+            doc.nome_portale = "Ricorso introduttivo da tabella.pdf"
+            doc.classificazione_portale = "QuickOrganizer"
+            doc.tags = ["quickorganizer"]
+        if doc.nome_originale == "MSG000088.eml":
+            doc.nome = "Invio documenti da tabella.eml"
+            doc.nome_portale = "Invio documenti da tabella.eml"
+            doc.classificazione_portale = "QuickOrganizer"
+            doc.tags = ["quickorganizer"]
+    fascicoli._salva()
+
+    result = import_quickorganizer_package(
+        partial_package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+        allow_partial=True,
+    )
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+    updated = fascicoli.tutti(archiviati=True)[0]
+    docs = {doc.nome_originale: doc for doc in updated.documenti}
+
+    assert result["summary"]["documentsMetadataRepaired"] == 1
+    assert result["summary"]["emailsMetadataRepaired"] == 1
+    assert docs["scansione-da-pdf-0001.pdf"].nome == "scansione-da-pdf-0001.pdf"
+    assert docs["scansione-da-pdf-0001.pdf"].nome_portale == "scansione-da-pdf-0001.pdf"
+    assert docs["scansione-da-pdf-0001.pdf"].tipo_atto_portale == "Ricorso introduttivo da tabella.pdf"
+    assert docs["scansione-da-pdf-0001.pdf"].classificazione_portale == "Gestionale precedente"
+    assert "import-pratiche" in docs["scansione-da-pdf-0001.pdf"].tags
+    assert docs["MSG000088.eml"].nome == "MSG000088.eml"
+    assert docs["MSG000088.eml"].nome_portale == "MSG000088.eml"
+    assert docs["MSG000088.eml"].tipo_atto_portale == "Invio documenti da tabella.eml"
+    assert audit["ok"] is True
 
 
 def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirror(tmp_path: Path):

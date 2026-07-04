@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.177 - 2026-07-04
+
+- **Import pratiche Montagnese da Studio Telematico**: il reimport da `E:\QuickOrganizer` ora mantiene il nome file originale come nome visibile del documento (`nome`, `nome_originale`, `nome_portale`) e conserva il titolo tabellare separato in `tipo_atto_portale`, in coerenza con il comportamento decompilato di Studio Telematico su `nomeFileOriginale`.
+- Riesecuzione produzione sul tenant `studio-legale-giuseppe-montagnese`: create `8` pratiche mancanti, importati `246` documenti e `197` email mancanti, riparati i metadati di `8934` documenti e `4182` email già presenti; audit post-import con `331/331` pratiche, `13559/13559` documenti/email attesi, `0` mancanti e `0` mismatch sui nomi.
+- Test: aggiunto guardrail di reimport parziale che ricarica il repository da disco e verifica la persistenza dei nomi file originali.
+
 ## 2.253.176 - 2026-07-04
 
 - **Lex — la memoria appresa alimenta le risposte + apprendimento notturno attivo di default** (richiesta esplicita dello studio: «Lex deve imparare in autonomia dalle fonti che riceve»):

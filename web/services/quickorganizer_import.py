@@ -960,6 +960,35 @@ def _document_name_from_table(row: Mapping[str, Any], fields: Iterable[str], fal
     return fallback
 
 
+def _import_visible_filename(filename: Any) -> str:
+    return _normalise_filename(filename)
+
+
+def _repair_imported_document_metadata(doc: Any, *, filename: str, table_name: str) -> bool:
+    changed = False
+    visible_name = _import_visible_filename(filename)
+    for attr, value in (
+        ("nome", visible_name),
+        ("nome_originale", visible_name),
+        ("nome_portale", visible_name),
+    ):
+        if _text(getattr(doc, attr, "")) != value:
+            setattr(doc, attr, value)
+            changed = True
+    if table_name and _text(getattr(doc, "tipo_atto_portale", "")) != table_name:
+        setattr(doc, "tipo_atto_portale", table_name)
+        changed = True
+    if _text(getattr(doc, "classificazione_portale", "")) != "Gestionale precedente":
+        setattr(doc, "classificazione_portale", "Gestionale precedente")
+        changed = True
+    tags = list(getattr(doc, "tags", []) or [])
+    if "import-pratiche" not in tags:
+        tags.append("import-pratiche")
+        setattr(doc, "tags", tags)
+        changed = True
+    return changed
+
+
 def _split_person_name(row: Mapping[str, Any]) -> tuple[str, str]:
     name = _text(_row_value(row, "NOME"))
     surname = _text(_row_value(row, "COGNOME"))
@@ -1264,8 +1293,10 @@ def import_quickorganizer_package(
         "mattersUpdated": 0,
         "documentsImported": 0,
         "documentsMissing": 0,
+        "documentsMetadataRepaired": 0,
         "emailsImported": 0,
         "emailsMissing": 0,
+        "emailsMetadataRepaired": 0,
         "activitiesImported": 0,
         "duplicatesSkipped": 0,
     }
@@ -1401,23 +1432,34 @@ def import_quickorganizer_package(
         filename = _normalise_filename(_row_value(row, "NOME_DOS"))
         if not matter_id or not filename:
             continue
+        matter = fascicoli.get(matter_id)
+        external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
+        table_document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
+        existing_doc = next(
+            (
+                doc
+                for doc in getattr(matter, "documenti", [])
+                if _text(getattr(doc, "id_documento_portale", "")) == external_id
+            ),
+            None,
+        )
+        if existing_doc:
+            if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
+                counters["documentsMetadataRepaired"] += 1
+            counters["duplicatesSkipped"] += 1
+            continue
         source_file = _find_file(package, filename, section="ATTI")
         if not source_file:
             counters["documentsMissing"] += 1
             continue
-        matter = fascicoli.get(matter_id)
-        external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
-        if any(_text(getattr(doc, "id_documento_portale", "")) == external_id for doc in getattr(matter, "documenti", [])):
-            counters["duplicatesSkipped"] += 1
-            continue
         data = read_package_file(source_file)
-        document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
+        document_name = _import_visible_filename(filename)
         fascicoli.aggiungi_documento(
             matter_id,
             document_name,
-            _document_type(document_name, filename),
+            _document_type(table_document_name, filename),
             data,
-            note=f"Import pratiche. {_text(_row_value(row, 'BreveDescrizioneContenutoDocumento'))}",
+            note=f"Import pratiche. {table_document_name}",
             tags=["import-pratiche"],
             data_documento=_iso_date(_row_value(row, "DATA_ATTO")),
             firmato=_bool(_row_value(row, "signed")),
@@ -1426,6 +1468,7 @@ def import_quickorganizer_package(
             nome_originale=filename,
             nome_portale=document_name,
             classificazione_portale="Gestionale precedente",
+            tipo_atto_portale=table_document_name,
             id_documento_portale=external_id,
             nome_archivio=filename,
         )
@@ -1437,18 +1480,29 @@ def import_quickorganizer_package(
         filename = _normalise_filename(_row_value(row, "NOME_DOS"))
         if not matter_id or not filename:
             continue
+        matter = fascicoli.get(matter_id)
+        external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
+        table_document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
+        existing_doc = next(
+            (
+                doc
+                for doc in getattr(matter, "documenti", [])
+                if _text(getattr(doc, "id_documento_portale", "")) == external_id
+            ),
+            None,
+        )
+        if existing_doc:
+            if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
+                counters["emailsMetadataRepaired"] += 1
+            counters["duplicatesSkipped"] += 1
+            continue
         source_file = _find_file(package, filename, section="EMAILS")
         if not source_file:
             counters["emailsMissing"] += 1
             continue
-        matter = fascicoli.get(matter_id)
-        external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
-        if any(_text(getattr(doc, "id_documento_portale", "")) == external_id for doc in getattr(matter, "documenti", [])):
-            counters["duplicatesSkipped"] += 1
-            continue
         data = read_package_file(source_file)
         subject = _text(_row_value(row, "Subject"), filename)
-        document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
+        document_name = _import_visible_filename(filename)
         fascicoli.aggiungi_documento(
             matter_id,
             document_name,
@@ -1463,6 +1517,7 @@ def import_quickorganizer_package(
             nome_originale=filename,
             nome_portale=document_name,
             classificazione_portale="Gestionale precedente",
+            tipo_atto_portale=table_document_name,
             mittente_portale=_text(_row_value(row, "Mittente")),
             id_documento_portale=external_id,
             nome_archivio=filename,
@@ -1638,13 +1693,19 @@ def audit_quickorganizer_import(
         external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
         doc = docs_by_matter.get(matter_id, {}).get(external_id)
         expected_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
-        if doc and _text(getattr(doc, "nome_originale", "")) == filename and _text(getattr(doc, "nome_portale", "")) == expected_name:
+        if (
+            doc
+            and _text(getattr(doc, "nome", "")) == filename
+            and _text(getattr(doc, "nome_originale", "")) == filename
+            and _text(getattr(doc, "nome_portale", "")) == filename
+            and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
+        ):
             found["documents"] += 1
         else:
             _append_audit_failure(
                 failures,
                 "documento_non_allineato",
-                f"Documento {filename} della pratica {matter_number} non trovato con nome tabellare {expected_name}.",
+                f"Documento {filename} della pratica {matter_number} non trovato con nome file originale e descrizione {expected_name}.",
             )
 
     for row in emails:
@@ -1657,13 +1718,19 @@ def audit_quickorganizer_import(
         external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
         doc = docs_by_matter.get(matter_id, {}).get(external_id)
         expected_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
-        if doc and _text(getattr(doc, "nome_originale", "")) == filename and _text(getattr(doc, "nome_portale", "")) == expected_name:
+        if (
+            doc
+            and _text(getattr(doc, "nome", "")) == filename
+            and _text(getattr(doc, "nome_originale", "")) == filename
+            and _text(getattr(doc, "nome_portale", "")) == filename
+            and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
+        ):
             found["emails"] += 1
         else:
             _append_audit_failure(
                 failures,
                 "email_non_allineata",
-                f"Email {filename} della pratica {matter_number} non trovata con oggetto tabellare {expected_name}.",
+                f"Email {filename} della pratica {matter_number} non trovata con nome file originale e oggetto {expected_name}.",
             )
 
     for row in agenda:

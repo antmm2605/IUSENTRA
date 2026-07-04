@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.167 - 2026-07-04
+
+- Lex modalità web: **prima prova reale in produzione riuscita** (workflow "Lex ciclo web" run #1 sul container Hetzner, 90s, tutti gli step verdi). Fase 1 ricerca governata: 10 fonti ufficiali lette con 2 query (es. L. 300/1970 → pagine reali Normattiva), 194 citazioni nuove. Fase 2 semina: 10/11 letture ok — D.Lgs. 149/2022 Cartabia (64 riferimenti), GU ultime pubblicazioni con decreti 2026 freschi (D.L. 89/2026, D.Lgs. 83/2026...), Cassazione, Consulta, G.A., GDPR integrale da EUR-Lex (387K caratteri), Garante, Agenzia Entrate, INPS; unico non-ok il tetto byte fail-closed sull'URN dell'intero codice civile. Memoria finale: 548 citazioni, 488 termini, 68 proposte in revisione umana, 0 violazioni di policy (0 respinte, 0 robots_blocked). Report permanente in `docs/reports/lex_web_cycle_2026-07.md` + nota di verifica in `docs/lex_autonomous_learning.md`.
+
 ## 2.253.166 - 2026-07-04
 
 - Workflow "Lex ciclo web": aggiunto trigger `push` con filtro paths sul file stesso (una sola esecuzione automatica quando il workflow cambia sul branch di sviluppo) — il token dell'integrazione GitHub della sessione non ha `actions: write`, quindi il dispatch via API non è disponibile; il push auto-innesca la prova reale e il dispatch manuale da Actions resta invariato. Input con default sicuri su push (`inputs` vuoto → 20 query / 10 fonti).

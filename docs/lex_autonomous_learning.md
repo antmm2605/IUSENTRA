@@ -89,6 +89,12 @@ Exit code: 0 successo · 1 configurazione/input · 2 errore fonti · 3 errore ci
 
 ## Come abilitare la modalità web (default OFF)
 
+**Verificata in produzione il 2026-07-04** (workflow "Lex ciclo web" run #1 sul container
+Hetzner): 10 fonti ufficiali lette in fase di ricerca governata + 10/11 letture dirette
+seminate (Cartabia, GU, Cassazione, Consulta, G.A., EUR-Lex/GDPR, Garante, Agenzia
+Entrate, INPS), 548 citazioni e 488 termini in memoria, 0 violazioni di policy.
+Report completo: `docs/reports/lex_web_cycle_2026-07.md`.
+
 Nel config: `"mode": "web"`, `"allow_web": true` e una `allowlist` di domini non
 vuota; `politeness.min_interval_seconds >= 1.0` e `respect_robots: true` sono
 obbligatori. La ricerca passa dal motore governato esistente

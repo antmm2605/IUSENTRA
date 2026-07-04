@@ -138,12 +138,18 @@ jobs:
           from lex.sources.trust import assess_source
 
           BASE = Path("/tmp/lex-web-cycle")
+          # URL "!vig=" = versione vigente del SINGOLO articolo (l'URN nudo
+          # restituisce l'intero codice > 2MB, scartato dal tetto byte nella
+          # run #1). Le pagine giurisprudenza_*.page di Cassazione sono le
+          # liste reali gia' crawlate in produzione dal motore aggiornamenti
+          # (pct/legal_update_source_parsers.py, CASSAZIONE_LATEST_CATEGORY_MARKERS).
           SEEDS = [
-              ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043", "civile", "Art. 2043 c.c. — Normattiva"),
+              ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043!vig=", "civile", "Art. 2043 c.c. (vigente) — Normattiva"),
               ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241", "amministrativo", "L. 241/1990 — Normattiva"),
               ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022-10-10;149", "civile", "D.Lgs. 149/2022 (riforma Cartabia) — Normattiva"),
               ("https://www.gazzettaufficiale.it/30giorni/serie_generale", "civile", "Gazzetta Ufficiale — ultime pubblicazioni serie generale"),
-              ("https://www.cortedicassazione.it/", "civile", "Corte di Cassazione — novita' giurisprudenziali"),
+              ("https://www.cortedicassazione.it/it/giurisprudenza_civile.page", "civile", "Cassazione — giurisprudenza civile (lista sentenze)"),
+              ("https://www.cortedicassazione.it/it/giurisprudenza_penale.page", "penale", "Cassazione — giurisprudenza penale (lista sentenze)"),
               ("https://www.cortecostituzionale.it/", "civile", "Corte costituzionale — pronunce"),
               ("https://www.giustizia-amministrativa.it/", "amministrativo", "Giustizia amministrativa — decisioni"),
               ("https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32016R0679", "privacy", "Regolamento (UE) 2016/679 — EUR-Lex"),

@@ -1429,6 +1429,32 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(hour=2, minute=40), id="lex_autonomous_learning_nightly")
+    def _lex_autonomous_learning_nightly():
+        # Default OFF: il template di registro nasce enabled=False, quindi
+        # apply_scheduler_registry mette il job in pausa all'avvio; si attiva
+        # solo dalla console Pianificazioni. Il runner ricontrolla comunque il
+        # registro (cintura contro la finestra di avvio).
+        with app.app_context():
+            try:
+                from lex.autonomy.nightly import run_lex_autonomous_learning_nightly
+
+                report = run_lex_autonomous_learning_nightly(app=app)
+                if report.get("skipped"):
+                    logger.info("[scheduler] Apprendimento autonomo Lex: saltato (%s)", report.get("reason"))
+                elif report.get("ok"):
+                    logger.info(
+                        "[scheduler] Apprendimento autonomo Lex: %d letture, %d citazioni nuove, %d proposte, stop=%s",
+                        int(report.get("letture") or 0),
+                        int(report.get("nuove_citazioni") or 0),
+                        int(report.get("proposte") or 0),
+                        report.get("stop_reason"),
+                    )
+                else:
+                    logger.warning("[scheduler] Apprendimento autonomo Lex non riuscito: %s", report.get("error"))
+            except Exception as e:
+                logger.error("[scheduler] Apprendimento autonomo Lex fallito: %s", e)
+
     @scheduler.scheduled_job(CronTrigger(hour=1, minute=45), id="lex_dataset_nightly")
     def _lex_dataset_nightly():
         with app.app_context():

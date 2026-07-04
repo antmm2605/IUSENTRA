@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 497.
+- File pytest censiti: 498.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 77 |
+| API contract | 78 |
 | Backend | 56 |
 | E2E | 8 |
 | Frontend static gate | 1 |
@@ -33,7 +33,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 39 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 42 |
-| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 158 |
+| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 159 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 123 |
 
@@ -421,6 +421,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_cli.py | feature flag, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_discovery_web.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_autonomous_learning.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Lex/Ricerca | API contract | tests/test_lex_autonomous_nightly.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_docling_parser.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_fascicolo_first_retrieval.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_giurisprudenza_workflow.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

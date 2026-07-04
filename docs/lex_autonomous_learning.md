@@ -112,9 +112,19 @@ robots.txt (serve un connettore dedicato). L'upstreaming dell'estensione GDPR de
 `pct/legal_reference_extractor.py` è esso stesso una proposta tracciata (il modulo pct
 serve il presidio PEC in produzione e si tocca solo con regressioni dedicate).
 
+## Job notturno delegato (default OFF)
+
+Dal 2026-07-04 esiste il job `lex_autonomous_learning_nightly` (cron 02:40):
+template registrato nella console Pianificazioni con `enabled=False` — il job
+APScheduler nasce **in pausa** e si attiva solo dalla console. Doppia cintura
+fail-closed nel runner (`lex/autonomy/nightly.py`): senza riga di registro
+abilitata il ciclo NON parte. Quando attivo: modalità web con la config
+governata committata, budget notturni prudenti (2 cicli, 10 query, 5 fonti,
+240s), memoria durevole in `{PCT_DATA_ROOT}/intelligence/lex_memory` che si
+accumula notte dopo notte (dedup → convergenza `no_new_information`).
+
 ## Prossimi passi (fuori da questa fondazione)
 
-- Registrazione del job notturno delegato (template `enabled=False` in
-  `pct/scheduler_registry.py`) dopo verifica dell'executor.
 - Feature flag `lex.autonomousLearning` quando nascerà una superficie web.
-- Fonti aggiuntive tramite connettori dedicati in `lex/sources/connectors`.
+- Fonti aggiuntive tramite connettori dedicati in `lex/sources/connectors`
+  (es. articolo singolo Normattiva oltre l'URN `!vig=`, dettagli sentenze).

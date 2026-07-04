@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.168 - 2026-07-04
+
+- Lex apprendimento autonomo — tre raffinamenti dalla prova web reale:
+  - **Job notturno delegato default-OFF**: nuovo `lex_autonomous_learning_nightly` (cron 02:40) — template `enabled=False` nella console Pianificazioni (job APScheduler in pausa all'avvio via `apply_scheduler_registry`), runner `lex/autonomy/nightly.py` con doppia cintura fail-closed (senza riga di registro abilitata NON parte, nemmeno se il job viene ripreso a mano). Quando attivato dalla console: ciclo web con la config governata committata, budget notturni prudenti (2 cicli/10 query/5 fonti/240s), memoria durevole in `{PCT_DATA_ROOT}/intelligence/lex_memory` che si accumula notte dopo notte. 6 test dedicati.
+  - **Stop-word legalese estese** nell'analizzatore (`lex/learning/legal_language_analyzer.py`): i testi normativi integrali producevano candidati rumorosi ("trattamento tale", "trattamento nonché", "qualsiasi pena" dalla run reale); congiunzioni/dimostrativi/aggettivi generici non formano più bigrammi; i concetti legittimi ("legittimo interesse", "trattamento dati", "accesso civico") sopravvivono (test di regressione dedicati).
+  - **Seed del workflow "Lex ciclo web" migliorati**: URN Normattiva del singolo articolo con suffisso `!vig=` (l'URN nudo restituiva l'intero codice > 2MB → too_large nella run #1) e liste sentenze REALI di Cassazione (`giurisprudenza_civile.page` + `giurisprudenza_penale.page`, le stesse già crawlate in produzione dal motore aggiornamenti) al posto della homepage. Il push di questo file esegue automaticamente la run di verifica.
+
 ## 2.253.167 - 2026-07-04
 
 - Lex modalità web: **prima prova reale in produzione riuscita** (workflow "Lex ciclo web" run #1 sul container Hetzner, 90s, tutti gli step verdi). Fase 1 ricerca governata: 10 fonti ufficiali lette con 2 query (es. L. 300/1970 → pagine reali Normattiva), 194 citazioni nuove. Fase 2 semina: 10/11 letture ok — D.Lgs. 149/2022 Cartabia (64 riferimenti), GU ultime pubblicazioni con decreti 2026 freschi (D.L. 89/2026, D.Lgs. 83/2026...), Cassazione, Consulta, G.A., GDPR integrale da EUR-Lex (387K caratteri), Garante, Agenzia Entrate, INPS; unico non-ok il tetto byte fail-closed sull'URN dell'intero codice civile. Memoria finale: 548 citazioni, 488 termini, 68 proposte in revisione umana, 0 violazioni di policy (0 respinte, 0 robots_blocked). Report permanente in `docs/reports/lex_web_cycle_2026-07.md` + nota di verifica in `docs/lex_autonomous_learning.md`.

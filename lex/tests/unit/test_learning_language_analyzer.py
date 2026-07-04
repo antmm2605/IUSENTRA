@@ -52,3 +52,38 @@ def test_testo_vuoto_non_produce_nulla():
     assert profile.citations == []
     assert profile.terms == []
     assert profile.complexity_index == 0.0
+
+
+def test_stopword_legalese_non_generano_candidati_rumorosi():
+    # Regressione dalla prova web reale (2026-07-04): il testo integrale del GDPR
+    # produceva candidati come "trattamento tale" / "trattamento nonché" /
+    # "qualsiasi pena". Le funzioni grammaticali del legalese non sono concetti.
+    testo = (
+        "Tale trattamento, nonché il trattamento seguente, riguarda qualsiasi pena "
+        "e ciascuna sanzione; il medesimo trattamento informa l'interessato del "
+        "presente regolamento, salvo eventuale deroga."
+    )
+    observations = extract_term_observations(testo, "privacy")
+    normalized = {observation.normalized for observation in observations}
+    for rumoroso in (
+        "trattamento tale",
+        "tale trattamento",
+        "trattamento nonché",
+        "trattamento seguente",
+        "qualsiasi pena",
+        "medesimo trattamento",
+        "trattamento informa",
+        "eventuale sanzione",
+    ):
+        assert rumoroso not in normalized, f"candidato rumoroso non filtrato: {rumoroso}"
+
+
+def test_concetti_legittimi_sopravvivono_alle_stopword():
+    testo = (
+        "Il legittimo interesse del titolare del trattamento e il trattamento dati "
+        "richiedono il bilanciamento; il danno ingiusto obbliga al risarcimento del danno."
+    )
+    observations = extract_term_observations(testo, "privacy")
+    normalized = {observation.normalized for observation in observations}
+    assert "legittimo interesse" in normalized
+    assert "trattamento dati" in normalized

@@ -22,7 +22,12 @@ from pathlib import Path
 from typing import Any
 
 from lex.autonomy.autonomous_cycle import run_autonomous_cycle
-from lex.autonomy.discovery import ConfigurableWebSearchProvider, SearchProvider
+from lex.autonomy.discovery import (
+    CompositeSearchProvider,
+    ConfigurableWebSearchProvider,
+    LocalArchiveSearchProvider,
+    SearchProvider,
+)
 from lex.autonomy.safety import CycleConfigError, SourceAccessError, validate_cycle_config
 from lex.learning.models import LegalSourceSample
 from lex.sources.polite_fetcher import PoliteFetcher
@@ -98,7 +103,14 @@ def run_lex_autonomous_learning_nightly(
     except (OSError, ValueError):
         samples = []
 
-    provider: SearchProvider = search_provider or ConfigurableWebSearchProvider(limit_results=cycle_config.max_sources)
+    # Archivi ufficiali locali prima (mirror sanzionato di Normattiva/GU,
+    # zero rete), ricerca web governata come complemento.
+    provider: SearchProvider = search_provider or CompositeSearchProvider(
+        [
+            LocalArchiveSearchProvider(),
+            ConfigurableWebSearchProvider(limit_results=cycle_config.max_sources),
+        ]
+    )
     polite = fetcher or PoliteFetcher(
         min_interval_seconds=cycle_config.min_interval_seconds,
         timeout_seconds=cycle_config.timeout_seconds,

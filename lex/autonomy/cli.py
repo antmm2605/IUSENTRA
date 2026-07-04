@@ -21,7 +21,13 @@ import sys
 from pathlib import Path
 
 from lex.autonomy.autonomous_cycle import run_autonomous_cycle
-from lex.autonomy.discovery import ConfigurableWebSearchProvider, SearchProvider, StaticSearchProvider
+from lex.autonomy.discovery import (
+    CompositeSearchProvider,
+    ConfigurableWebSearchProvider,
+    LocalArchiveSearchProvider,
+    SearchProvider,
+    StaticSearchProvider,
+)
 from lex.autonomy.report import render_json, render_text
 from lex.autonomy.safety import CycleConfigError, CycleError, SourceAccessError, validate_cycle_config
 from lex.learning.models import LegalSourceSample
@@ -66,7 +72,14 @@ def main(argv: list[str] | None = None) -> int:
     provider: SearchProvider
     fetcher: PoliteFetcher | None = None
     if config.mode == "web":
-        provider = ConfigurableWebSearchProvider(limit_results=config.max_sources)
+        # Archivi ufficiali locali PRIMA (mirror sanzionato, zero rete, immune
+        # ai blocchi anti-bot), ricerca web governata come complemento.
+        provider = CompositeSearchProvider(
+            [
+                LocalArchiveSearchProvider(),
+                ConfigurableWebSearchProvider(limit_results=config.max_sources),
+            ]
+        )
         fetcher = PoliteFetcher(
             min_interval_seconds=config.min_interval_seconds,
             timeout_seconds=config.timeout_seconds,

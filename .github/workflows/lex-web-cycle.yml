@@ -63,7 +63,7 @@ jobs:
   web-cycle:
     name: Ciclo web governato su Hetzner
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Verifica secrets obbligatori
@@ -107,6 +107,28 @@ jobs:
               "docker ps --filter name=${LEX_CONTAINER} --format '{{.Names}} {{.Status}}' | grep -q '${LEX_CONTAINER}'" \
             || { echo "::error::Container ${LEX_CONTAINER} non in esecuzione sul server."; exit 1; }
           echo "Container ${LEX_CONTAINER} attivo."
+
+      - name: Attendi il deploy di questo commit (solo su push)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          set -euo pipefail
+          # Sulla run auto-innescata dal push, il container deve girare il
+          # CODICE di questo commit (il deploy parte in parallelo): si attende
+          # che /opt/iusentra/repo punti a GITHUB_SHA, max ~25 minuti. Se il
+          # deploy non arriva, si prosegue con un warning (la run resta utile
+          # ma verifica il codice precedente).
+          for tentativo in $(seq 1 50); do
+            remote_head=$(ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+                -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+                "${HETZNER_USER}@${HETZNER_HOST}" \
+                'git -C /opt/iusentra/repo rev-parse HEAD 2>/dev/null || true')
+            if [ "${remote_head}" = "${GITHUB_SHA}" ]; then
+              echo "Deploy allineato a ${GITHUB_SHA::7} dopo ${tentativo} controlli."
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::warning::Deploy di ${GITHUB_SHA::7} non ancora arrivato: la run verifica il codice attualmente deployato (${remote_head::7})."
 
       - name: Prepara payload (config con override input, campioni, script semina)
         run: |

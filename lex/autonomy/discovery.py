@@ -1,4 +1,4 @@
-"""Provider di ricerca del ciclo autonomo (astrazione offline/web).
+"""Provider di ricerca del ciclo autonomo (astrazione offline/web/archivi).
 
 - `SearchProvider`: interfaccia (Protocol) — un metodo `search`.
 - `StaticSearchProvider`: risultati precotti per i test e la modalità offline;
@@ -9,6 +9,17 @@
   guardia SSRF + cache). L'import è PIGRO dentro `search()`: quel modulo
   importa `pct.legal_intelligence` a livello di modulo (catena pesante,
   stubbata nei test unit), quindi il percorso offline non lo tocca mai.
+- `LocalArchiveSearchProvider`: legge gli ARCHIVI UFFICIALI LOCALI di
+  Normattiva e Gazzetta Ufficiale (scaricati ogni notte dal job
+  `legal_official_archives_daily` via canali sanzionati) tramite il retriever
+  esistente `lex.retrieval.official_sources_retriever`. Il testo arriva dal
+  mirror locale (zero rete, immune ai blocchi anti-bot del sito live), ma
+  l'autorità resta ancorata all'URL ufficiale (URN Normattiva risolto in
+  `https://www.normattiva.it/uri-res/N2Ls?<urn>`): il trust valuta il dominio
+  reale, mai un indirizzo fabbricato. Righe senza URL http o senza testo
+  vengono scartate (fail-closed).
+- `CompositeSearchProvider`: concatena più provider in ordine (archivi locali
+  PRIMA della ricerca web) con dedup per URL e tetto complessivo.
 """
 
 from __future__ import annotations
@@ -106,4 +117,104 @@ class ConfigurableWebSearchProvider:
         return candidates[: max(1, int(limit))]
 
 
-__all__ = ["ConfigurableWebSearchProvider", "SearchProvider", "StaticSearchProvider"]
+class LocalArchiveSearchProvider:
+    """Provider sugli archivi ufficiali locali Normattiva/Gazzetta (zero rete)."""
+
+    def __init__(self, *, per_archive_limit: int = 4) -> None:
+        self.per_archive_limit = max(1, int(per_archive_limit))
+
+    def search(self, query: str, *, limit: int = 5) -> list[SourceCandidate]:
+        clean_query = " ".join(
+            token for token in str(query or "").replace('"', " ").split() if not token.casefold().startswith("site:")
+        )
+        if not clean_query:
+            return []
+        # Import pigro del retriever (stdlib puro: sqlite3/json/re).
+        try:
+            from lex.retrieval import official_sources_retriever as retriever
+        except Exception:
+            return []
+        rows: list[tuple[str, Mapping[str, Any]]] = []
+        try:
+            rows.extend(("normattiva", row) for row in retriever.search_normattiva(clean_query, limit=self.per_archive_limit))
+        except Exception:
+            pass
+        try:
+            rows.extend(("gazzetta_ufficiale", row) for row in retriever.search_gazzetta(clean_query, limit=self.per_archive_limit))
+        except Exception:
+            pass
+        candidates: list[SourceCandidate] = []
+        seen: set[str] = set()
+        for archive_id, row in rows:
+            url = _archive_http_url(str(row.get("url_origine") or ""))
+            testo = " ".join(str(row.get("testo") or "").split())
+            if not url or not testo:
+                continue  # fail-closed: niente ancora ufficiale o niente testo
+            key = url.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(
+                SourceCandidate(
+                    url=url,
+                    title=str(row.get("titolo") or ""),
+                    snippet=testo[:220],
+                    source_id=f"archivio_locale:{archive_id}",
+                    discovered_by="archivio_locale",
+                    query=query,
+                    confidence=0.9,
+                    content=testo,
+                    content_type="text/plain",
+                )
+            )
+            if len(candidates) >= max(1, int(limit)):
+                break
+        return candidates
+
+
+def _archive_http_url(url_origine: str) -> str:
+    """URL http ufficiale della riga d'archivio; '' se non ancorabile."""
+
+    value = url_origine.strip()
+    if value.casefold().startswith(("http://", "https://")):
+        return value
+    if value.casefold().startswith("urn:"):
+        return f"https://www.normattiva.it/uri-res/N2Ls?{value}"
+    return ""
+
+
+class CompositeSearchProvider:
+    """Concatena provider in ordine (es. archivi locali, poi web governato)."""
+
+    def __init__(self, providers: list[SearchProvider]) -> None:
+        self.providers = list(providers)
+
+    def search(self, query: str, *, limit: int = 5) -> list[SourceCandidate]:
+        cap = max(1, int(limit))
+        results: list[SourceCandidate] = []
+        seen: set[str] = set()
+        for provider in self.providers:
+            if len(results) >= cap:
+                break
+            try:
+                candidates = provider.search(query, limit=cap - len(results))
+            except Exception:
+                continue  # un provider guasto non ferma gli altri
+            for candidate in candidates:
+                key = candidate.url.casefold()
+                if not candidate.url or key in seen:
+                    continue
+                seen.add(key)
+                results.append(candidate)
+                if len(results) >= cap:
+                    break
+        return results
+
+
+__all__ = [
+    "CompositeSearchProvider",
+    "ConfigurableWebSearchProvider",
+    "LocalArchiveSearchProvider",
+    "SearchProvider",
+    "StaticSearchProvider",
+]

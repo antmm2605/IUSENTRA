@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.253.169 - 2026-07-04
+
+- **Lex — connettore archivi ufficiali locali Normattiva/GU** (chiude la proposta P5 auto-generata dal ciclo nella run #2, quando le protezioni anti-bot IPZS hanno bloccato i fetch live): la modalità web usa ora un provider composito — `LocalArchiveSearchProvider` legge PRIMA dai mirror sanzionati scaricati ogni notte da `legal_official_archives_daily` (`/data/normativa/normattiva.sqlite`, `/data/fonti_ufficiali/lex_sources.sqlite`, via retriever esistente `official_sources_retriever`), poi `ConfigurableWebSearchProvider` come complemento (`CompositeSearchProvider`, dedup per URL, provider guasto non ferma gli altri). Provenienza onesta: testo dal mirror locale (zero rete), autorità ancorata all'URL ufficiale (URN → `normattiva.it/uri-res/N2Ls?<urn>`), trust sul dominio reale; righe senza ancora http o senza testo scartate fail-closed; archivi assenti → vuoto senza errori. Cablato in CLI web e job notturno. 7 test nuovi.
+- Workflow "Lex ciclo web": sulla run auto-innescata dal push ora ATTENDE che il deploy dello stesso commit arrivi sul server (poll fino a ~25 min, warning se non arriva) così la verifica gira sempre sul codice nuovo; timeout job 20→40 min.
+
 ## 2.253.168 - 2026-07-04
 
 - Lex apprendimento autonomo — tre raffinamenti dalla prova web reale:

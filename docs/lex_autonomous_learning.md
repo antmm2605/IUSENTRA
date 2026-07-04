@@ -123,8 +123,23 @@ governata committata, budget notturni prudenti (2 cicli, 10 query, 5 fonti,
 240s), memoria durevole in `{PCT_DATA_ROOT}/intelligence/lex_memory` che si
 accumula notte dopo notte (dedup → convergenza `no_new_information`).
 
+## Connettore archivi ufficiali locali (Normattiva/GU)
+
+Dal 2026-07-04 la modalità web usa un provider composito: **archivi ufficiali
+locali PRIMA, ricerca web governata come complemento**
+(`LocalArchiveSearchProvider` + `CompositeSearchProvider` in
+`lex/autonomy/discovery.py`). Gli archivi sono i mirror sanzionati scaricati
+ogni notte dal job `legal_official_archives_daily`
+(`/data/normativa/normattiva.sqlite`, `/data/fonti_ufficiali/lex_sources.sqlite`),
+letti tramite il retriever esistente `lex/retrieval/official_sources_retriever`.
+Provenienza onesta: il testo arriva dal mirror locale (zero rete, immune ai
+blocchi anti-bot del sito live — vedi run #2), ma l'autorità resta ancorata
+all'URL ufficiale (URN Normattiva → `https://www.normattiva.it/uri-res/N2Ls?<urn>`)
+e il trust valuta il dominio reale; righe senza URL http o senza testo sono
+scartate (fail-closed). Archivi assenti → risultato vuoto, mai errori.
+
 ## Prossimi passi (fuori da questa fondazione)
 
 - Feature flag `lex.autonomousLearning` quando nascerà una superficie web.
-- Fonti aggiuntive tramite connettori dedicati in `lex/sources/connectors`
-  (es. articolo singolo Normattiva oltre l'URN `!vig=`, dettagli sentenze).
+- Connettori dedicati per i dettagli sentenze (Cassazione/Consulta/G.A.) in
+  `lex/sources/connectors`.

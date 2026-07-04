@@ -63,6 +63,17 @@ Ogni valutazione è persistita in `trust_assessments.jsonl` con motivazioni.
   tracciabile a una fonte con tier noto; se le fonti mancano il ciclo registra
   la lacuna (`unknown_concepts`) invece di inventare.
 
+## Archivi ufficiali locali (mirror sanzionati)
+
+Per Normattiva e Gazzetta Ufficiale il ciclo legge PRIMA dagli archivi locali
+(scaricati ogni notte dal job `legal_official_archives_daily` tramite i canali
+ufficiali OpenData): zero traffico verso il sito live e nessun attrito con le
+protezioni anti-bot (che nella run reale #2 hanno bloccato i fetch diretti —
+gestiti fail-closed). Regola di provenienza: il contenuto viene dal mirror, ma
+l'ancora di fiducia è sempre l'URL ufficiale del documento (URN risolto sul
+dominio normattiva.it) e la valutazione tier resta quella del dominio reale;
+un contenuto senza ancora ufficiale non entra in memoria.
+
 ## Come proporre nuove fonti
 
 Il ciclo stesso genera `ImprovementProposal` quando incontra domini ufficiali non

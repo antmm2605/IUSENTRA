@@ -153,6 +153,12 @@ Dal 2026-07-04 il ciclo acquisisce anche i TESTI delle decisioni, su due canali:
   fino a 2 dettagli per lista con il `PoliteFetcher` (esiti `tipo:
   dettaglio_sentenza` nel report).
 
+**Verificato in produzione il 2026-07-04** (run #5 del workflow): 2 dettagli
+Cassazione letti dal vivo (uno civile e uno penale, 30 citazioni normalizzate
+estratte dai testi delle decisioni); il corpus locale è in catena fail-closed
+(vuoto finché i motori giurisprudenza non verificano sentenze, mai creato dal
+ciclo). Esiti completi run per run in `docs/reports/lex_web_cycle_2026-07.md`.
+
 ## Prossimi passi (fuori da questa fondazione)
 
 - Feature flag `lex.autonomousLearning` quando nascerà una superficie web.

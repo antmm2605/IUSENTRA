@@ -93,3 +93,81 @@ raccoglitore di bigrammi per i testi normativi lunghi.
   il file cambia sul branch di sviluppo).
 - Config: `examples/lex_autonomous_config_web.json` (18 domini tier_1/tier_2 verificati).
 - Architettura: `docs/lex_autonomous_learning.md`, policy fonti: `docs/lex_source_policy.md`.
+
+---
+
+# Run #5 (2026-07-04) — connettori dettagli sentenze e archivi locali verificati
+
+Esecuzione: run #5 del workflow (commit `5b7c907d`, v2.253.171), auto-innescata dal push.
+Il job ha atteso il deploy dello stesso commit nel container (12'47"), poi fase 1 in 54s e
+fase 2 in 65s — **tutti gli step verdi**, artifact `lex-web-cycle-memoria` sulla run.
+Le run intermedie: #2 ha rivelato i blocchi anti-bot IPZS (P5 auto-generata → connettore
+archivi locali della v2.253.169), #3 è fallita per la race deploy/run (fix v2.253.170),
+#4 ha verificato il connettore archivi.
+
+## Fase 1 — il composito «archivi locali → corpus → web» al lavoro: exit 0
+
+```
+Modalità: web | Cicli: 1 | Arresto: raggiunto il numero massimo di fonti (10)
+Domande generate: 5 | Query eseguite: 2 | Fonti lette: 10 | Respinte: 0
+Nuovi termini: 43 | Nuove citazioni: 86 | Letture: 10 | Lacune: 18 | Proposte: 2
+```
+
+La novità rispetto alla run #1: le prime letture arrivano dal **mirror locale
+Normattiva/GU** (`archivio_locale:gazzetta_ufficiale`, 4 candidati nel riepilogo), zero
+rete e immune ai blocchi anti-bot. Dalla query `L. 300/1970 site:normattiva.it` (nata dal
+campione lavoro) sono entrate Gazzette fresche di maggio/giugno 2026 (Serie Generale
+n. 125 dell'1/6, n. 120 del 26/5, n. 96 del 27/4 + S.O. 17) con citazioni normalizzate
+reali: `L. 20 maggio 1970, n. 300`, `D.Lgs. 10 agosto 2018, n. 101`,
+`Regolamento (UE) 2016/679`, `direttiva (UE) 2019/1152`. Trust: `tier_1 /
+istituzionale_o_primaria / score 1.0` su ogni lettura.
+
+`LocalCorpusSearchProvider` (corpus giurisprudenza) è in catena ma non ha prodotto
+candidati: il corpus di produzione è ancora vuoto — si popola man mano che i motori
+giurisprudenza verificano sentenze. Comportamento fail-closed confermato: nessun DB
+creato, nessun errore.
+
+## Fase 2 — drill-down dei dettagli Cassazione: i TESTI delle decisioni
+
+Il nuovo passo ha estratto **4 href di dettaglio** dalle due liste ufficiali
+(`giurisprudenza_civile.page` + `giurisprudenza_penale.page`) e ne ha letti 2 unici
+(dedup sugli href duplicati delle liste):
+
+| Dettaglio | Area | Esito | Caratteri | Citazioni |
+|---|---|---|---|---|
+| `civile_dettaglio.page?contentId=SZC51228` | civile | ok | 3.955 | **18** |
+| `penale_dettaglio.page?contentId=SZP51291` | penale | ok | 4.315 | **12** |
+
+È il salto di qualità chiesto: non più solo le liste-vetrina ma il **contenuto della
+singola decisione** (30 citazioni normalizzate estratte dai due provvedimenti), il
+materiale con cui si costruiscono le strategie di causa.
+
+Seed diretti: 8/12 ok (liste Cassazione civile/penale, Consulta, G.A., Garante,
+Agenzia Entrate, INPS); Normattiva ×3 e listing GU `robots_blocked` live (IPZS,
+fail-closed — è esattamente il buco che il connettore archivi locali copre in fase 1);
+EUR-Lex `empty_text` sullo stesso URL CELEX che nella run #1 aveva reso 387K caratteri
+(risposta server intermittente, es. interstitial: gestita fail-closed, nessun
+apprendimento da testo vuoto).
+
+## Memoria finale (artifact)
+
+`legal_terms: 155 · citations: 361 · source_readings: 24 · source_profiles: 16 ·
+unknown_concepts: 18 · research_questions: 5 · learning_signals: 9 ·
+improvement_proposals: 8 · trust_assessments: 24`
+
+Le proposte scendono da 68 (run #1) a **8**: le stop-word estese della v2.253.168 hanno
+tolto il rumore dai bigrammi («accesso civico» resta, «trattamento nonché» sparisce).
+Tra le 8: la P4 attesa su «accesso civico» e la P5 sul connettore Normattiva (gli
+archivi locali la soddisfano già per la normativa; resta aperta per il fetch live).
+Tutte con `requires_human_review: true`.
+
+## Stato dei connettori a valle delle 5 run
+
+| Canale | Stato | Copertura |
+|---|---|---|
+| Archivi locali Normattiva/GU (mirror notturni) | ✅ verificato (run #4, #5) | normativa + Gazzette, zero rete |
+| Corpus giurisprudenza locale (`can_cite_sentenza`) | ✅ in catena, fail-closed | massime verificate (si popola con l'uso) |
+| Drill-down dettagli Cassazione (fase 2) | ✅ verificato (run #5) | testi delle decisioni civile/penale |
+| Ricerca web governata + seed diretti | ✅ verificato (run #1, #5) | Cassazione, Consulta, G.A., Garante, AE, INPS |
+| Normattiva/GU live | ⛔ robots IPZS (fail-closed) | coperto dagli archivi locali |
+| EUR-Lex testo integrale | ⚠️ `empty_text` intermittente (run #5; ok in run #1 con 387K caratteri) | GDPR e atti UE via CELEX |

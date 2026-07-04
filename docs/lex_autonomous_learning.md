@@ -162,11 +162,14 @@ Dal 2026-07-04 il ciclo acquisisce anche i TESTI delle decisioni, su due canali:
   passano dall'estrattore esistente (`extract_text_from_bytes` → pypdf,
   fail-closed).
 
-**Verificato in produzione il 2026-07-04** (run #5 del workflow): 2 dettagli
-Cassazione letti dal vivo (uno civile e uno penale, 30 citazioni normalizzate
-estratte dai testi delle decisioni); il corpus locale è in catena fail-closed
-(vuoto finché i motori giurisprudenza non verificano sentenze, mai creato dal
-ciclo). Esiti completi run per run in `docs/reports/lex_web_cycle_2026-07.md`.
+**Verificato in produzione il 2026-07-04** (run #5 e #6 del workflow): 6
+dettagli letti dal vivo nella run #6 — 4 sentenze Cassazione (civile+penale) e
+2 PDF G.A. via pypdf, tra cui un provvedimento reale da 16K caratteri e 36
+citazioni; Consulta a 0 dettagli in quella run (homepage servita in variante
+minimale senza href: fail-closed corretto, regola pronta e testata sulle
+schede reali). Il corpus locale è in catena fail-closed (vuoto finché i motori
+giurisprudenza non verificano sentenze, mai creato dal ciclo). Esiti completi
+run per run in `docs/reports/lex_web_cycle_2026-07.md`.
 
 ## Prossimi passi (fuori da questa fondazione)
 

@@ -1,4 +1,4 @@
-#  version: 2.253.173
+#  version: 2.253.174
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -113,7 +113,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.253.173" \
+      org.opencontainers.image.version="2.253.174" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

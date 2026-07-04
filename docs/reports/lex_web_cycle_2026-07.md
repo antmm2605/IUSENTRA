@@ -171,3 +171,52 @@ Tutte con `requires_human_review: true`.
 | Ricerca web governata + seed diretti | ✅ verificato (run #1, #5) | Cassazione, Consulta, G.A., Garante, AE, INPS |
 | Normattiva/GU live | ⛔ robots IPZS (fail-closed) | coperto dagli archivi locali |
 | EUR-Lex testo integrale | ⚠️ `empty_text` intermittente (run #5; ok in run #1 con 387K caratteri) | GDPR e atti UE via CELEX |
+
+---
+
+# Run #6 (2026-07-04) — drill-down esteso a Consulta e G.A. verificato
+
+Esecuzione: run #6 (commit `fab800bb`, v2.253.173), auto-innescata dal push; attesa del
+deploy 12'44", fase 1 in 58s, fase 2 in 80s — **tutti gli step verdi**. Le regole di
+drill-down ora vivono in `lex/autonomy/detail_links.py` (pattern di produzione, test di
+allineamento) e la fase 2 le applica a ogni lista riconosciuta.
+
+## Dettagli letti: 6, su due delle tre corti
+
+| Dettaglio | Area | Caratteri | Citazioni |
+|---|---|---|---|
+| Cassazione `civile_dettaglio` SZC51228 | civile | 3.955 | 18 |
+| Cassazione `civile_dettaglio` SZC51180 | civile | 4.956 | 24 |
+| Cassazione `penale_dettaglio` SZP51291 | penale | 4.315 | 12 |
+| Cassazione `penale_dettaglio` SZP51231 | penale | 4.083 | 14 |
+| G.A. `documents/…/Note+di+rilascio…pdf` | amministrativo | 3.285 | 0 |
+| **G.A. `documents/…/202603287_11.pdf`** | amministrativo | **16.122** | **36** |
+
+- **Cassazione raddoppia**: 4 dettagli unici (erano 2 nella run #5) perché il dedup ora
+  avviene DENTRO l'estrattore, prima del tetto per lista — i duplicati non bruciano più
+  gli slot.
+- **G.A. funziona davvero**: il seed nuovo `dcsnprr` ("Decisioni e pareri", pagina
+  censita in produzione) ha reso 5.397 caratteri e 64 citazioni, e il drill-down ha
+  letto **un provvedimento reale in PDF** (`202603287_11.pdf`, nomenclatura classica
+  G.A., 16K caratteri e 36 citazioni estratte via pypdf). Il secondo PDF pescato dalla
+  homepage è una "Note di rilascio" del portale: rumore onesto — corrisponde alla forma
+  `/documents/*.pdf` censita, il filtro di merito resta umano.
+- **Consulta: 0 dettagli in questa run** (fail-closed corretto): la homepage ha servito
+  al datacenter la variante minimale da 687 caratteri senza href `scheda-pronuncia`
+  (nella run #1 la stessa pagina rendeva 9K). La regola è pronta e testata sulle schede
+  reali (`/scheda-pronuncia/2010/80…2024/128`); scatterà quando la lista esporrà i link
+  — e le pronunce Consulta restano coperte da ricerca governata e open data di
+  produzione (`dati.cortecostituzionale.it`).
+- EUR-Lex di nuovo pieno (387.678 caratteri, 264 termini): confermata l'intermittenza
+  della run #5, oggi il CELEX ha risposto.
+
+## Memoria finale (artifact)
+
+`legal_terms: 444 · citations: 459 · source_readings: 29 · source_profiles: 16 ·
+unknown_concepts: 18 · research_questions: 5 · learning_signals: 9 ·
+improvement_proposals: 61 · trust_assessments: 29`
+
+Le proposte risalgono a 61 (dagli 8 della run #5) perché stavolta è passato il GDPR
+integrale + il provvedimento G.A.: accanto a candidati sensati («ricorso
+giurisdizionale», «danno subito») resta rumore da elisione («nell interesse») —
+tutte in revisione umana, il filtro di merito non cambia.

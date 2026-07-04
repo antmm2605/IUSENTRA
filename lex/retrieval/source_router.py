@@ -9,6 +9,7 @@ from .sources.giurisprudenza import GiurisprudenzaSource
 from .sources.guida_pratica import GuidaPraticaSource
 from .sources.legal_intelligence import LegalIntelligenceSource
 from .sources.legal_updates import LegalUpdatesSource
+from .sources.lex_memory import LexMemorySource
 from .sources.normative import NormativeSource
 from .sources.official_web import OfficialWebSource
 from .sources.operational import OperationalSource
@@ -126,7 +127,10 @@ class SourceRouter:
             local_sources.extend([FascicoliSource(), DocumentiSource()])
 
         if _should_include_legal_sources(request, workflow):
-            legal_sources.extend([LegalUpdatesSource(), LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
+            # La memoria di apprendimento autonomo entra tra le fonti legali:
+            # estratti gia' LETTI da fonti ufficiali (trust tier_1/2, ancora
+            # all'URL ufficiale), prima del web governato.
+            legal_sources.extend([LegalUpdatesSource(), LegalIntelligenceSource(), NormativeSource(), LexMemorySource(), GiurisprudenzaSource()])
 
         if workflow in {"telematico", "telematico_status"}:
             workflow_sources.extend([TelematicoSource(), ComplianceSource()])

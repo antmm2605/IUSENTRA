@@ -15,6 +15,10 @@ from lex.learning.models import LegalCitation, LegalTermObservation, SourceReadi
 from lex.sources.models import SourceCandidate
 from lex.sources.polite_fetcher import PoliteFetcher
 
+# Tetto dell'estratto persistito in memoria: abbastanza per rispondere a una
+# domanda puntuale (testo di un articolo, massima) senza far crescere i JSONL.
+EXCERPT_MAX_CHARS = 1800
+
 
 def read_source(
     candidate: SourceCandidate,
@@ -91,10 +95,14 @@ def read_source(
         text_characters=len(text),
         citations_normalized=sorted({citation.normalized_text for citation in citations}),
         terms_normalized=sorted({term.normalized for term in terms}),
+        # La memoria conserva il CONTENUTO letto (non solo i conteggi): è ciò
+        # che la sorgente retrieval lex_memory serve alle risposte, con
+        # l'ancora ufficiale dell'URL.
+        excerpt=" ".join(text.split())[:EXCERPT_MAX_CHARS],
         fetched_at=iso_now,
         warnings=warnings,
     )
     return reading, citations, terms
 
 
-__all__ = ["read_source"]
+__all__ = ["EXCERPT_MAX_CHARS", "read_source"]

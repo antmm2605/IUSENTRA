@@ -40,8 +40,12 @@ def _prepara_memoria(tmp_path, monkeypatch):
 
 
 def test_payload_completo_con_memoria_e_stato_job(tmp_path, monkeypatch):
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
     _prepara_memoria(tmp_path, monkeypatch)
-    payload = build_react_lex_learning_payload({})
+    registry_db = tmp_path / "scheduler_registry.sqlite"
+    SchedulerRegistryRepository(registry_db).upsert_default_jobs({})
+    payload = build_react_lex_learning_payload({"SCHEDULER_REGISTRY_DB": str(registry_db)})
     assert payload["ok"] is True
     assert payload["memoria_presente"] is True
     assert payload["conteggi"]["improvement_proposals"] == 1
@@ -50,14 +54,15 @@ def test_payload_completo_con_memoria_e_stato_job(tmp_path, monkeypatch):
     job = payload["job_notturno"]
     assert job["job_id"] == "lex_autonomous_learning_nightly"
     assert job["console"] == "/admin/pianificazioni"
-    # Il template nasce disabilitato: la superficie non deve mai mostrarlo attivo di default.
-    assert job["abilitato"] is False
+    # Dal 2026-07-04 il default e' ATTIVO (richiesta esplicita dello studio):
+    # il seed fresco del registro nasce abilitato, disattivabile dalla console.
+    assert job["abilitato"] is True
 
 
 def test_payload_onesto_senza_memoria(tmp_path, monkeypatch):
     monkeypatch.setenv("PCT_DATA_ROOT", str(tmp_path))
     monkeypatch.delenv("IUSENTRA_DATA_DIR", raising=False)
-    payload = build_react_lex_learning_payload({})
+    payload = build_react_lex_learning_payload({"SCHEDULER_REGISTRY_DB": str(tmp_path / "registry.sqlite")})
     assert payload["ok"] is True
     assert payload["memoria_presente"] is False
     assert payload["proposte"] == [] and payload["letture"] == []

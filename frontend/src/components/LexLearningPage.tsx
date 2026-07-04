@@ -140,7 +140,7 @@ export function LexLearningPage() {
         }
       >
         <div className="lex-learning-page__job">
-          <Badge tone={job.abilitato ? 'success' : 'neutral'}>{job.abilitato ? 'Attivo' : 'In pausa (default)'}</Badge>
+          <Badge tone={job.abilitato ? 'success' : 'neutral'}>{job.abilitato ? 'Attivo' : 'In pausa'}</Badge>
           <span className="lex-learning-page__job-note">
             {loading ? 'Caricamento…' : job.stato || 'Stato non disponibile.'}
             {job.pianificazione ? ` — ${job.pianificazione}` : ''}

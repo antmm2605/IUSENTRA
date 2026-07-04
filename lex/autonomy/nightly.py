@@ -1,10 +1,12 @@
-"""Job notturno delegato del ciclo di apprendimento autonomo (default OFF).
+"""Job notturno delegato del ciclo di apprendimento autonomo.
 
 Registrato come template `lex_autonomous_learning_nightly` nel registro
-pianificazioni (`pct/scheduler_registry.py`) con `enabled=False`: il job
-APScheduler nasce IN PAUSA e si attiva solo dalla console Pianificazioni.
-Doppia cintura: anche a job attivo, il runner ricontrolla la riga di registro
-e salta se risulta disabilitata (protezione dalla finestra di avvio).
+pianificazioni (`pct/scheduler_registry.py`). Dal 2026-07-04 il default è
+ATTIVO su richiesta esplicita dello studio ("Lex deve imparare in autonomia
+dalle fonti che riceve"); resta disattivabile in ogni momento dalla console
+Pianificazioni, e qualunque scelta fatta dalla console vince per sempre sul
+default. Doppia cintura: anche a job attivo, il runner ricontrolla la riga di
+registro e salta se risulta disabilitata (protezione dalla finestra di avvio).
 
 Quando attivo esegue il ciclo in modalità WEB con la configurazione governata
 committata (`examples/lex_autonomous_config_web.json`) e budget notturni

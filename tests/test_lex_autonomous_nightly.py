@@ -9,13 +9,15 @@ from lex.autonomy.discovery import StaticSearchProvider
 from lex.autonomy.nightly import JOB_ID, NIGHTLY_LIMITS, run_lex_autonomous_learning_nightly
 
 
-def test_template_registrato_default_off():
+def test_template_registrato_default_on_disattivabile():
     from pct.scheduler_registry import default_scheduler_templates
 
     templates = {template.key: template for template in default_scheduler_templates({})}
     template = templates.get(JOB_ID)
     assert template is not None, "template del job notturno assente dal registro"
-    assert template.enabled is False  # default OFF: si abilita solo dalla console
+    # Default ON per scelta esplicita dello studio (2026-07-04): il job resta
+    # disattivabile dalla console e il runner ricontrolla comunque il registro.
+    assert template.enabled is True
     assert template.built_in is True
     assert template.trigger_kind == "cron"
     assert (template.hour, template.minute) == ("2", "40")
@@ -104,3 +106,32 @@ def test_errore_del_ciclo_non_propaga(monkeypatch, tmp_path):
     report = run_lex_autonomous_learning_nightly(config={}, memory_dir=tmp_path / "memoria")
     assert report["ok"] is False
     assert "guasto notturno simulato" in report["error"]
+
+
+def test_promozione_default_on_rispetta_le_scelte_umane(tmp_path):
+    """Il flip una-tantum a ON tocca solo righe mai modificate da un umano."""
+
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler_registry.sqlite")
+    repo.upsert_default_jobs({})
+    row = repo.get_job(JOB_ID)
+    assert row and row.get("enabled") is True  # seed fresco: default ON
+
+    # Riga legacy (seminata enabled=0 dai deploy precedenti, mai toccata): promossa.
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE scheduled_jobs SET enabled=0, updated_by='system' WHERE job_id=?",
+            (JOB_ID,),
+        )
+    repo.upsert_default_jobs({})
+    assert (repo.get_job(JOB_ID) or {}).get("enabled") is True
+
+    # Scelta umana dalla console (updated_by valorizzato): MAI sovrascritta.
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE scheduled_jobs SET enabled=0, updated_by='avvocato' WHERE job_id=?",
+            (JOB_ID,),
+        )
+    repo.upsert_default_jobs({})
+    assert (repo.get_job(JOB_ID) or {}).get("enabled") is False

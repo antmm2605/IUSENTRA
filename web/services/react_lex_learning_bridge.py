@@ -39,7 +39,7 @@ def _stato_job_notturno(config: Mapping[str, Any] | None) -> dict[str, Any]:
         stato["stato"] = "mai abilitato dalla console"
         return stato
     stato["abilitato"] = bool(row.get("enabled"))
-    stato["stato"] = "attivo" if stato["abilitato"] else "in pausa (default)"
+    stato["stato"] = "attivo" if stato["abilitato"] else "in pausa (disattivato dalla console)"
     hour = str(row.get("hour") or "").strip()
     minute = str(row.get("minute") or "").strip()
     if hour:

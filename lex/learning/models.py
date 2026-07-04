@@ -217,6 +217,10 @@ class SourceReadingResult:
     text_characters: int = 0
     citations_normalized: list[str] = field(default_factory=list)
     terms_normalized: list[str] = field(default_factory=list)
+    # Estratto governato del testo letto (spazi normalizzati, lunghezza
+    # limitata dal lettore): e' cio' che la sorgente retrieval `lex_memory`
+    # puo' servire alle risposte con l'ancora ufficiale.
+    excerpt: str = ""
     trust: dict[str, Any] = field(default_factory=dict)
     fetched_at: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -234,6 +238,7 @@ class SourceReadingResult:
             "text_characters": int(self.text_characters),
             "citations_normalized": list(self.citations_normalized),
             "terms_normalized": list(self.terms_normalized),
+            "excerpt": self.excerpt,
             "trust": dict(self.trust),
             "fetched_at": self.fetched_at,
             "warnings": list(self.warnings),
@@ -250,6 +255,7 @@ class SourceReadingResult:
             text_characters=int(payload.get("text_characters") or 0),
             citations_normalized=[_clean(item) for item in payload.get("citations_normalized") or [] if _clean(item)],
             terms_normalized=[_clean(item) for item in payload.get("terms_normalized") or [] if _clean(item)],
+            excerpt=str(payload.get("excerpt") or "").strip(),
             trust=dict(payload.get("trust") or {}),
             fetched_at=_clean(payload.get("fetched_at")),
             warnings=[_clean(item) for item in payload.get("warnings") or [] if _clean(item)],

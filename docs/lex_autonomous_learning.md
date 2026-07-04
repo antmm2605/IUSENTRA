@@ -112,16 +112,19 @@ robots.txt (serve un connettore dedicato). L'upstreaming dell'estensione GDPR de
 `pct/legal_reference_extractor.py` è esso stesso una proposta tracciata (il modulo pct
 serve il presidio PEC in produzione e si tocca solo con regressioni dedicate).
 
-## Job notturno delegato (default OFF)
+## Job notturno delegato (default ON dal 2026-07-04)
 
-Dal 2026-07-04 esiste il job `lex_autonomous_learning_nightly` (cron 02:40):
-template registrato nella console Pianificazioni con `enabled=False` — il job
-APScheduler nasce **in pausa** e si attiva solo dalla console. Doppia cintura
-fail-closed nel runner (`lex/autonomy/nightly.py`): senza riga di registro
-abilitata il ciclo NON parte. Quando attivo: modalità web con la config
-governata committata, budget notturni prudenti (2 cicli, 10 query, 5 fonti,
-240s), memoria durevole in `{PCT_DATA_ROOT}/intelligence/lex_memory` che si
-accumula notte dopo notte (dedup → convergenza `no_new_information`).
+Il job `lex_autonomous_learning_nightly` (cron 02:40) è **attivo di default**
+su richiesta esplicita dello studio («Lex deve imparare in autonomia dalle
+fonti che riceve»): il seeding promuove a ON solo le righe di registro mai
+toccate da un umano (`updated_by='system'`) — qualunque scelta fatta dalla
+console Pianificazioni (attiva/disattiva) vince per sempre sul default.
+Doppia cintura nel runner (`lex/autonomy/nightly.py`): a ogni esecuzione
+ricontrolla la riga di registro e salta se disabilitata. Quando attivo:
+modalità web con la config governata committata, budget notturni prudenti
+(2 cicli, 10 query, 5 fonti, 240s), memoria durevole in
+`{PCT_DATA_ROOT}/intelligence/lex_memory` che si accumula notte dopo notte
+(dedup → convergenza `no_new_information`).
 
 ## Connettore archivi ufficiali locali (Normattiva/GU)
 
@@ -181,5 +184,6 @@ letture con esito fail-closed leggibile. Catena: `lex/autonomy/
 memory_inspection.py` (ispettore senza side-effect) → `web/services/
 react_lex_learning_bridge.py` → `GET /api/v1/ui/lex-learning`
 (`api_v1_lex_learning`, guardie auth + flag + permesso). Il flag è default ON
-perché la pagina solo ispeziona; il CICLO resta default OFF (job notturno in
-pausa finché non lo attivi dalla console).
+perché la pagina solo ispeziona; dal 2026-07-04 anche il CICLO notturno è
+attivo di default (vedi sezione job notturno), sempre disattivabile dalla
+console.

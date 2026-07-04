@@ -470,11 +470,11 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "lex_autonomous_learning_nightly",
             "Apprendimento autonomo Lex (web)",
             "Agenti delegati",
-            "Ciclo di apprendimento autonomo su fonti ufficiali governate (robots.txt e rate-limit rispettati, trust fail-closed); memoria durevole in /data/intelligence/lex_memory; le proposte restano SOLO in revisione umana. Disattivato di default: si abilita da questa console.",
+            "Ciclo di apprendimento autonomo su fonti ufficiali governate (robots.txt e rate-limit rispettati, trust fail-closed); memoria durevole in /data/intelligence/lex_memory; le proposte restano SOLO in revisione umana. Attivo di default su richiesta esplicita dello studio: resta disattivabile da questa console.",
             "cron",
             "2",
             "40",
-            enabled=False,
+            enabled=True,
             built_in=True,
             criteria=(
                 "Legge solo domini tier_1/tier_2 della allowlist governata (mai blog, forum o social).",
@@ -629,6 +629,12 @@ class SchedulerRegistryRepository:
                 """
             )
 
+    # Promozione una-tantum di default: job il cui default e' passato a ON per
+    # scelta esplicita dello studio. Il flip tocca SOLO righe mai modificate da
+    # un umano (updated_by='system'): qualunque intervento dalla console
+    # (attiva/disattiva) vince per sempre sul default.
+    _DEFAULT_ON_PROMOTIONS: tuple[str, ...] = ("lex_autonomous_learning_nightly",)
+
     def upsert_default_jobs(self, config: dict[str, Any] | None = None) -> None:
         now = _iso()
         with self.connect() as conn:
@@ -667,6 +673,15 @@ class SchedulerRegistryRepository:
                         now,
                         now,
                     ),
+                )
+            for job_id in self._DEFAULT_ON_PROMOTIONS:
+                conn.execute(
+                    """
+                    UPDATE scheduled_jobs
+                    SET enabled=1, updated_at=?
+                    WHERE job_id=? AND enabled=0 AND updated_by='system'
+                    """,
+                    (now, job_id),
                 )
             for template in legal_source_scheduler_templates(config):
                 source_code = str((template.args or {}).get("source_code") or "").strip()

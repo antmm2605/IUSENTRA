@@ -5528,6 +5528,7 @@ def studio_telematico_import_run():
             fascicoli=_fascicoli_loader()(),
             clienti=get_clienti(),
             soggetti=get_soggetti(),
+            agenda_repo=get_agenda(),
             actor=_actor_label(),
             allow_partial=allow_partial,
         )

@@ -1,5 +1,17 @@
 # Import pratiche Montagnese da Studio Telematico
 
+## Rettifica operativa 05/07/2026
+
+Il report del 04/07/2026 registrava come comportamento corretto l’uso del nome file fisico (`2026...PDF`, `MSG...eml`) anche come nome visibile del documento. Il confronto visivo con Studio Telematico ha chiarito che quella scelta era una regressione per l’utente: nella griglia Studio Telematico il documento è identificato dalla descrizione della tabella (`Contratto 21-22`, `Procura Dalla Valle`, ecc.), mentre il file fisico resta il nome archivio/download.
+
+La correzione 2.253.178 ripristina quindi questa regola:
+
+- `nome` e `nome_portale`: descrizione Studio Telematico, con estensione coerente;
+- `nome_originale`, `nome_archivio` e percorso fisico: nome file reale del pacchetto;
+- `tipo_atto_portale`: descrizione Studio Telematico conservata come metadato.
+
+Lo stesso intervento aggiunge la creazione automatica di contesto sorgente, contesto economico e appuntamenti Agenda quando il pacchetto Studio Telematico contiene dati AGENDA/VALORE.
+
 Data operativa: 04/07/2026, fuso `Europe/Rome`.
 
 Tenant produzione: `studio-legale-giuseppe-montagnese`.

@@ -4,11 +4,12 @@ from pathlib import Path
 
 from datetime import date
 
+from pct.agenda import TipoAppuntamento
 from pct.fascicoli import StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.scadenziario import TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
-from web.helpers import get_fascicoli, get_scadenziario
+from web.helpers import get_agenda, get_fascicoli, get_scadenziario
 
 
 def _seed_fascicoli(app, total: int = 31):
@@ -186,3 +187,44 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
     assert "notificationRelata" in relata
     assert audit["auditTrail"]["status"] != "lazy_non_caricato"
     assert lex["lex_indexing"]["total_documents"] == 1
+
+
+def test_fascicolo_dettaglio_collega_agenda_importata_da_source_external_id(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo("Import QuickOrganizer", TipoFascicolo.CIVILE, numero_rg="", anno_rg=0)
+        fascicolo = fascicoli.aggiorna(
+            fascicolo.id,
+            source="IMPORT_PRATICHE",
+            source_external_id="quickorganizer:101",
+            source_snapshot={
+                "portale": "Import pratiche",
+                "external_id": "quickorganizer:101",
+                "counts": {"documenti": 2, "eventi": 1, "udienze": 1},
+            },
+            events_sync_enabled=True,
+        )
+        get_agenda().aggiungi(
+            "Udienza importata Studio Telematico",
+            TipoAppuntamento.UDIENZA,
+            "2026-09-10T09:30:00",
+            luogo="Tribunale di Milano",
+            allow_overlap=True,
+            cliente="Rossi Mario",
+            procedimento="quickorganizer:101",
+            external_provider="import_pratiche",
+            external_source_url="quickorganizer:101",
+            external_profile_id=f"fascicolo:{fascicolo.id}",
+            external_uid="quickorganizer:agenda:99",
+        )
+
+    headers = {"X-API-Key": "react-test-key"}
+    with app.test_client() as client:
+        main = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers=headers).get_json()
+        scadenze = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/scadenze", headers=headers).get_json()
+
+    assert main["quickCounts"]["udienze_scadenze"] == 1
+    assert main["fascicolo"]["sourceExternalId"] == "quickorganizer:101"
+    assert [item["title"] for item in scadenze["appointments"]] == ["Udienza importata Studio Telematico"]
+    assert scadenze["appointments"][0]["type"] == "UDIENZA"

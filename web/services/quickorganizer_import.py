@@ -23,6 +23,7 @@ from typing import Any, Callable, Iterable, Mapping
 from werkzeug.utils import safe_join as werkzeug_safe_join
 from werkzeug.utils import secure_filename
 
+from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import (
     Cliente,
     GestioneClienti,
@@ -31,6 +32,7 @@ from pct.clienti import (
     StatoCliente,
     TipoCliente,
 )
+from pct.economico_context import costruisci_contesto_economico
 from pct.fascicoli import (
     GestioneFascicoli,
     StatoFascicolo,
@@ -38,6 +40,7 @@ from pct.fascicoli import (
     TipoDocumento,
     TipoFascicolo,
 )
+from pct.ical_import import EventoImportato
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 
@@ -318,6 +321,55 @@ def _iso_date(value: Any) -> str:
     if match:
         return f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
     return ""
+
+
+def _iso_datetime(value: Any, *, default_time: str = "09:00:00") -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    for suffix in ("Z", "+00:00"):
+        if raw.endswith(suffix):
+            raw = raw[: -len(suffix)]
+            break
+    raw = raw.replace("T", " ").strip()
+    formats = (
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H.%M.%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y",
+    )
+    for fmt in formats:
+        try:
+            parsed = datetime.strptime(raw[:19], fmt)
+            if fmt in {"%Y-%m-%d", "%d/%m/%Y"}:
+                parsed = datetime.strptime(f"{parsed.date().isoformat()} {default_time}", "%Y-%m-%d %H:%M:%S")
+            return parsed.replace(microsecond=0).isoformat()
+        except ValueError:
+            continue
+    date_only = _iso_date(raw)
+    return f"{date_only}T{default_time}" if date_only else ""
+
+
+def _date_it(value: Any) -> str:
+    iso = _iso_date(value)
+    if not iso:
+        return ""
+    year, month, day = iso.split("-")
+    return f"{day}/{month}/{year}"
+
+
+def _datetime_it(value: Any) -> str:
+    iso = _iso_datetime(value)
+    if not iso:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(iso)
+    except ValueError:
+        return _date_it(value)
+    return parsed.strftime("%d/%m/%Y %H:%M")
 
 
 def _normalise_filename(name: Any) -> str:
@@ -706,6 +758,7 @@ def _deferred_repository_saves(
     fascicoli: GestioneFascicoli,
     clienti: GestioneClienti,
     soggetti: GestioneSoggetti,
+    agenda: Agenda | None = None,
 ) -> Iterable[None]:
     originals: list[tuple[Any, str, Any]] = []
 
@@ -720,6 +773,8 @@ def _deferred_repository_saves(
     _defer(soggetti, "_salva")
     _defer(soggetti, "_salva_parti")
     _defer(fascicoli, "_salva")
+    if agenda is not None:
+        _defer(agenda, "_salva")
     try:
         yield
     except Exception:
@@ -960,16 +1015,18 @@ def _document_name_from_table(row: Mapping[str, Any], fields: Iterable[str], fal
     return fallback
 
 
-def _import_visible_filename(filename: Any) -> str:
-    return _normalise_filename(filename)
+def _import_visible_document_name(table_name: Any, filename: Any) -> str:
+    visible = _clean_display_document_name(table_name)
+    return visible or _normalise_filename(filename)
 
 
 def _repair_imported_document_metadata(doc: Any, *, filename: str, table_name: str) -> bool:
     changed = False
-    visible_name = _import_visible_filename(filename)
+    original_filename = _normalise_filename(filename)
+    visible_name = _import_visible_document_name(table_name, original_filename)
     for attr, value in (
         ("nome", visible_name),
-        ("nome_originale", visible_name),
+        ("nome_originale", original_filename),
         ("nome_portale", visible_name),
     ):
         if _text(getattr(doc, attr, "")) != value:
@@ -1256,12 +1313,280 @@ def _activity_kind(row: Mapping[str, Any]) -> TipoAttivita:
     return TipoAttivita.ALTRO
 
 
+def _agenda_kind(row: Mapping[str, Any]) -> TipoAppuntamento:
+    activity_kind = _activity_kind(row)
+    if activity_kind == TipoAttivita.UDIENZA:
+        return TipoAppuntamento.UDIENZA
+    if activity_kind == TipoAttivita.TERMINE_SCADENZA:
+        return TipoAppuntamento.SCADENZA
+    return TipoAppuntamento.ALTRO
+
+
+def _agenda_duration(row: Mapping[str, Any]) -> int:
+    explicit = _number(_row_value(row, "Duration", "DurataMinuti", "Durata"))
+    if explicit > 0:
+        return explicit
+    start = _iso_datetime(_row_value(row, "StartDateTime"))
+    end = _iso_datetime(_row_value(row, "EndDateTime", "End"))
+    if start and end:
+        try:
+            minutes = int((datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() // 60)
+            if minutes > 0:
+                return min(minutes, 24 * 60)
+        except ValueError:
+            pass
+    return 60
+
+
+def _matter_rg_label(row: Mapping[str, Any]) -> str:
+    numero = _text(_row_value(row, "RUOLO_GEN"))
+    anno = _number(_row_value(row, "ANNO_RUOLO_GEN"))
+    if numero and anno:
+        return f"RG {numero}/{anno}"
+    return numero
+
+
+def _matter_counts(
+    *,
+    number: int,
+    links_by_matter: Mapping[int, list[dict[str, Any]]],
+    testi_by_matter: Mapping[int, list[dict[str, Any]]],
+    emails_by_matter: Mapping[int, list[dict[str, Any]]],
+    agenda_by_matter: Mapping[int, list[dict[str, Any]]],
+) -> dict[str, int]:
+    documenti = len(testi_by_matter.get(number, []))
+    emails = len(emails_by_matter.get(number, []))
+    eventi = len(agenda_by_matter.get(number, []))
+    udienze = sum(1 for row in agenda_by_matter.get(number, []) if _activity_kind(row) == TipoAttivita.UDIENZA)
+    return {
+        "parti": len(links_by_matter.get(number, [])),
+        "documenti": documenti + emails,
+        "documenti_atti": documenti,
+        "email": emails,
+        "documenti_governati": documenti + emails,
+        "depositi": 0,
+        "eventi": eventi,
+        "udienze": udienze,
+        "appuntamenti": eventi,
+    }
+
+
+def _hearing_dates(rows: Iterable[Mapping[str, Any]]) -> tuple[str, str]:
+    dates = sorted(
+        {
+            day
+            for row in rows
+            if _activity_kind(row) == TipoAttivita.UDIENZA
+            for day in [_iso_date(_row_value(row, "StartDateTime"))]
+            if day
+        }
+    )
+    if not dates:
+        return "", ""
+    today = date.today().isoformat()
+    future = next((day for day in dates if day >= today), "")
+    return dates[0], future
+
+
+def _matter_source_snapshot(
+    row: Mapping[str, Any],
+    *,
+    number: int,
+    counts: Mapping[str, int],
+    first_hearing: str = "",
+    next_hearing: str = "",
+    party_names: Iterable[str] = (),
+) -> dict[str, Any]:
+    rg = _matter_rg_label(row)
+    return {
+        "portale": "Import pratiche",
+        "external_id": f"quickorganizer:{number}",
+        "numero": _text(_row_value(row, "RUOLO_GEN")),
+        "anno": _number(_row_value(row, "ANNO_RUOLO_GEN")),
+        "ufficio_nome": _text(_row_value(row, "AUT_GIUDIZ")),
+        "ufficio_codice": "",
+        "procedimento": rg or _text(_row_value(row, "PRATICA")),
+        "sub_procedimento": "",
+        "sezione": _text(_row_value(row, "SEZIONE")),
+        "stato": _text(_row_value(row, "Stato_Pratica")),
+        "oggetto": _text(_row_value(row, "OGGETTO_PRATICA")),
+        "data_iscrizione": _date_it(_row_value(row, "DATA_APE")),
+        "data_udienza": _date_it(next_hearing or first_hearing),
+        "ultima_attivita": "",
+        "acquisito_il": _datetime_it(_iso_now()),
+        "parti": [name for name in party_names if name],
+        "controparti": [],
+        "difensori": [],
+        "counts": dict(counts),
+    }
+
+
+def _document_rows_text(rows: Iterable[Mapping[str, Any]], *, fields: Iterable[str], filename_field: str = "NOME_DOS") -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for row in rows:
+        filename = _normalise_filename(_row_value(row, filename_field))
+        title = _document_name_from_table(row, fields, filename) if filename else _clean_display_document_name(_row_value(row, "Subject", "NOME_ATTO", "Oggetto"))
+        text = " ".join(part for part in (title, filename) if part)
+        if text:
+            out.append((title or filename, text.casefold()))
+    return out
+
+
+def _first_document_match(rows: list[tuple[str, str]], *tokens: str) -> str:
+    for title, text in rows:
+        if all(token in text for token in tokens):
+            return title
+    return ""
+
+
+def _payment_seed(
+    *,
+    kind: str,
+    status: str,
+    note: str,
+    document_source: str = "",
+    amount: float | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "kind": kind,
+        "status": status,
+        "previsto": status != "non_previsto",
+        "pagato": status == "pagato",
+        "valuta": "EUR",
+        "origine": "Import pratiche",
+        "updated_at": _iso_now(),
+        "updated_by": "Import pratiche",
+        "note": note,
+    }
+    if amount is not None:
+        payload["importo"] = round(float(amount), 2)
+    if document_source:
+        payload["documento_fonte"] = document_source
+    return payload
+
+
+def _merge_import_economic_context(
+    existing: Mapping[str, Any] | None,
+    row: Mapping[str, Any],
+    *,
+    docs_rows: Iterable[Mapping[str, Any]],
+    email_rows: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    payments = dict(existing or {})
+    valore = _decimal(_row_value(row, "VALORE"))
+    document_texts = _document_rows_text(docs_rows, fields=DOCUMENT_TITLE_FIELDS)
+    email_texts = _document_rows_text(email_rows, fields=EMAIL_TITLE_FIELDS)
+    all_texts = document_texts + email_texts
+    contributo_doc = _first_document_match(all_texts, "contribut")
+    spese_doc = _first_document_match(all_texts, "spes") or _first_document_match(all_texts, "esbors")
+    parcella_doc = (
+        _first_document_match(all_texts, "parcell")
+        or _first_document_match(all_texts, "fattur")
+        or _first_document_match(all_texts, "proforma")
+    )
+    if "contesto_economico" not in payments:
+        payments["contesto_economico"] = costruisci_contesto_economico(
+            source="import_pratiche",
+            source_label="Import pratiche",
+            oggetto=_text(_row_value(row, "OGGETTO_PRATICA")) or _text(_row_value(row, "PRATICA")),
+            id_pratica=f"quickorganizer:{_number(_row_value(row, 'NUMEROPRATICA'))}",
+            pratica_label=_text(_row_value(row, "PRATICA")),
+            tipo_procedimento=_text(_row_value(row, "OGGETTO_PRATICA")),
+            grado_sede=_text(_row_value(row, "AUT_GIUDIZ")),
+            valore_controversia=valore,
+        )
+    if "contributo_unificato" not in payments:
+        payments["contributo_unificato"] = _payment_seed(
+            kind="contributo_unificato",
+            status="da_registrare",
+            document_source=contributo_doc,
+            note=(
+                "Presidio creato automaticamente dall'import pratiche; "
+                "verificare ricevuta PagoPA/contributo nel fascicolo importato."
+            ),
+        )
+    if spese_doc and "spese_esborsi" not in payments:
+        payments["spese_esborsi"] = _payment_seed(
+            kind="spese_esborsi",
+            status="da_registrare",
+            document_source=spese_doc,
+            note="Voce economica rilevata automaticamente dai documenti importati.",
+        )
+    if "parcella" not in payments:
+        payments["parcella"] = _payment_seed(
+            kind="parcella",
+            status="da_emettere",
+            document_source=parcella_doc,
+            amount=None,
+            note="Presidio parcella creato automaticamente dall'import pratiche.",
+        )
+    return payments
+
+
+def _sync_agenda_from_import(
+    agenda: Agenda,
+    *,
+    row: Mapping[str, Any],
+    matter: Any,
+    matter_row: Mapping[str, Any],
+    client_name: str,
+    actor: str,
+) -> tuple[str, bool]:
+    task_id = _number(_row_value(row, "TaskID"))
+    start = _iso_datetime(_row_value(row, "StartDateTime"))
+    if not start:
+        return "", False
+    title = _text(_row_value(row, "Subject"), "Appuntamento importato")
+    uid_seed = task_id or hashlib.sha1(f"{getattr(matter, 'id', '')}|{start}|{title}".encode("utf-8")).hexdigest()[:12]
+    marker = f"quickorganizer:agenda:{uid_seed}"
+    rg = _matter_rg_label(matter_row)
+    description_parts = [
+        _text(_row_value(row, "Description")),
+        _text(_row_value(row, "Provvedimento")),
+        f"Fascicolo importato: {_text(getattr(matter, 'titolo', ''))}",
+        f"Riferimento: {_text(getattr(matter, 'source_external_id', ''))}",
+    ]
+    event = EventoImportato(
+        uid=marker,
+        titolo=title,
+        data_ora=start,
+        durata_minuti=_agenda_duration(row),
+        tutto_giorno=False,
+        luogo=_text(_row_value(row, "Location")),
+        descrizione=" | ".join(part for part in description_parts if part),
+        stato_ical="CONFIRMED",
+        organizzatore=actor,
+    )
+    report = agenda.upsert_da_evento_importato(
+        event,
+        provider="import_pratiche",
+        source_url=_text(getattr(matter, "source_external_id", "")),
+        profile_id=f"fascicolo:{_text(getattr(matter, 'id', ''))}",
+        default_tipo=_agenda_kind(row),
+        reminder_minuti=60,
+        allow_overlap=True,
+    )
+    appuntamento = report.get("appuntamento")
+    agenda_id = _text(getattr(appuntamento, "id", ""))
+    if agenda_id:
+        agenda.modifica(
+            agenda_id,
+            cliente=client_name,
+            id_cliente=_text(getattr(matter, "id_cliente", "")),
+            procedimento=" ".join(part for part in (rg, _text(getattr(matter, "source_external_id", ""))) if part),
+            tribunale=_text(getattr(matter, "tribunale", "")),
+            avvocato=actor,
+        )
+    return agenda_id, str(report.get("outcome") or "") in {"created", "updated"}
+
+
 def import_quickorganizer_package(
     package: QuickOrganizerPackage,
     *,
     fascicoli: GestioneFascicoli,
     clienti: GestioneClienti,
     soggetti: GestioneSoggetti,
+    agenda_repo: Agenda | None = None,
     actor: str = "",
     allow_partial: bool = False,
 ) -> dict[str, Any]:
@@ -1276,11 +1601,20 @@ def import_quickorganizer_package(
     tavola = package.table("TAVOLA")
     testi = package.table("TESTI")
     emails = package.table("EMAILS")
-    agenda = package.table("AGENDA")
+    agenda_rows = package.table("AGENDA")
     nomi_by_id = {_number(_row_value(row, "NUM_NOM")): row for row in nomi}
     links_by_matter: dict[int, list[dict[str, Any]]] = {}
     for link in tavola:
         links_by_matter.setdefault(_number(_row_value(link, "NUMEROPRATICA")), []).append(link)
+    testi_by_matter: dict[int, list[dict[str, Any]]] = {}
+    for row in testi:
+        testi_by_matter.setdefault(_number(_row_value(row, "NUMEROPRATICA")), []).append(row)
+    emails_by_matter: dict[int, list[dict[str, Any]]] = {}
+    for row in emails:
+        emails_by_matter.setdefault(_number(_row_value(row, "NumeroPratica")), []).append(row)
+    agenda_by_matter: dict[int, list[dict[str, Any]]] = {}
+    for row in agenda_rows:
+        agenda_by_matter.setdefault(_number(_row_value(row, "NumeroPratica")), []).append(row)
 
     subject_index = _existing_subject_index(soggetti)
     subject_ids_by_num: dict[int, str] = {}
@@ -1298,6 +1632,9 @@ def import_quickorganizer_package(
         "emailsMissing": 0,
         "emailsMetadataRepaired": 0,
         "activitiesImported": 0,
+        "appointmentsImported": 0,
+        "economicContextsPrepared": 0,
+        "sourceContextsPrepared": 0,
         "duplicatesSkipped": 0,
     }
     errors: list[str] = []
@@ -1305,6 +1642,7 @@ def import_quickorganizer_package(
         fascicoli=fascicoli,
         clienti=clienti,
         soggetti=soggetti,
+        agenda=agenda_repo,
     )
     save_guard.__enter__()
     reader_guard = _package_file_reader(package)
@@ -1331,6 +1669,7 @@ def import_quickorganizer_package(
 
     matters_by_number: dict[int, Any] = {}
     matter_id_by_number: dict[int, str] = {}
+    pratiche_by_number = {_number(_row_value(row, "NUMEROPRATICA")): row for row in pratiche}
     for row in pratiche:
         number = _number(_row_value(row, "NUMEROPRATICA"))
         source_external_id = f"quickorganizer:{number}"
@@ -1363,6 +1702,35 @@ def import_quickorganizer_package(
             client_name = client.nome_completo
             counters["clientsCreated"] += 1
         existing = _existing_matter_by_source(fascicoli, source_external_id)
+        matter_agenda_rows = agenda_by_matter.get(number, [])
+        first_hearing, next_hearing = _hearing_dates(matter_agenda_rows)
+        source_counts = _matter_counts(
+            number=number,
+            links_by_matter=links_by_matter,
+            testi_by_matter=testi_by_matter,
+            emails_by_matter=emails_by_matter,
+            agenda_by_matter=agenda_by_matter,
+        )
+        party_names = []
+        for link in matter_links:
+            subject_row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM"))) or {}
+            full_name = " ".join(
+                part
+                for part in (
+                    _text(_row_value(subject_row, "COGNOME")),
+                    _text(_row_value(subject_row, "NOME")),
+                )
+                if part
+            )
+            if full_name:
+                party_names.append(full_name)
+        existing_payments = getattr(existing, "pagamenti", {}) if existing else {}
+        import_payments = _merge_import_economic_context(
+            existing_payments if isinstance(existing_payments, Mapping) else {},
+            row,
+            docs_rows=testi_by_matter.get(number, []),
+            email_rows=emails_by_matter.get(number, []),
+        )
         payload = {
             "stato": _matter_status(row),
             "id_cliente": client_id,
@@ -1378,22 +1746,33 @@ def import_quickorganizer_package(
             "ctp": _text(_row_value(row, "CTP")),
             "oggetto": _text(_row_value(row, "OGGETTO_PRATICA")),
             "valore_causa": _decimal(_row_value(row, "VALORE")),
+            "documenti_iniziali_count": source_counts["documenti_atti"],
+            "email_iniziali_count": source_counts["email"],
             "riferimento_cartaceo": _text(_row_value(row, "RIF")),
             "attore_principale": _text(_row_value(row, "AttorePrincipale")),
             "stato_pratica_operativa": _text(_row_value(row, "Stato_Pratica")),
             "data_apertura": _iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
             "data_chiusura": _iso_date(_row_value(row, "DATA_ARC")),
+            "data_prima_udienza": first_hearing or _text(getattr(existing, "data_prima_udienza", "")),
+            "data_prossima_udienza": next_hearing or _text(getattr(existing, "data_prossima_udienza", "")),
             "note": _text(_row_value(row, "NOTE")),
-                "source": "IMPORT_PRATICHE",
+            "pagamenti": import_payments,
+            "source": "IMPORT_PRATICHE",
             "source_external_id": source_external_id,
             "sync_status": "IMPORTATO",
             "last_sync_at": _iso_now(),
-            "source_snapshot": {
-                "numero_pratica": number,
-                "pratica": _text(_row_value(row, "PRATICA")),
-                "oggetto": _text(_row_value(row, "OGGETTO_PRATICA")),
-            },
+            "events_sync_enabled": True,
+            "source_snapshot": _matter_source_snapshot(
+                row,
+                number=number,
+                counts=source_counts,
+                first_hearing=first_hearing,
+                next_hearing=next_hearing,
+                party_names=party_names,
+            ),
         }
+        counters["economicContextsPrepared"] += 1
+        counters["sourceContextsPrepared"] += 1
         if existing:
             matter = fascicoli.aggiorna(existing.id, **payload)
             counters["mattersUpdated"] += 1
@@ -1453,7 +1832,7 @@ def import_quickorganizer_package(
             counters["documentsMissing"] += 1
             continue
         data = read_package_file(source_file)
-        document_name = _import_visible_filename(filename)
+        document_name = _import_visible_document_name(table_document_name, filename)
         fascicoli.aggiungi_documento(
             matter_id,
             document_name,
@@ -1502,7 +1881,7 @@ def import_quickorganizer_package(
             continue
         data = read_package_file(source_file)
         subject = _text(_row_value(row, "Subject"), filename)
-        document_name = _import_visible_filename(filename)
+        document_name = _import_visible_document_name(table_document_name, filename)
         fascicoli.aggiungi_documento(
             matter_id,
             document_name,
@@ -1524,7 +1903,7 @@ def import_quickorganizer_package(
         )
         counters["emailsImported"] += 1
 
-    for row in agenda:
+    for row in agenda_rows:
         matter_number = _number(_row_value(row, "NumeroPratica"))
         matter_id = matter_id_by_number.get(matter_number)
         if not matter_id:
@@ -1532,7 +1911,29 @@ def import_quickorganizer_package(
         task_id = _number(_row_value(row, "TaskID"))
         matter = fascicoli.get(matter_id)
         marker = f"[quickorganizer:agenda:{task_id}]"
-        if any(marker in _text(getattr(activity, "note", "")) for activity in getattr(matter, "attivita", [])):
+        existing_activity = next(
+            (
+                activity
+                for activity in getattr(matter, "attivita", [])
+                if marker in _text(getattr(activity, "note", ""))
+            ),
+            None,
+        )
+        agenda_id = ""
+        if agenda_repo is not None:
+            agenda_id, changed = _sync_agenda_from_import(
+                agenda_repo,
+                row=row,
+                matter=matter,
+                matter_row=pratiche_by_number.get(matter_number, {}),
+                client_name=_text(getattr(matter, "nome_cliente", "")),
+                actor=actor,
+            )
+            if changed:
+                counters["appointmentsImported"] += 1
+        if existing_activity:
+            if agenda_id and not _text(getattr(existing_activity, "id_appuntamento", "")):
+                existing_activity.id_appuntamento = agenda_id
             counters["duplicatesSkipped"] += 1
             continue
         title = _text(_row_value(row, "Subject"), "Appuntamento importato")
@@ -1544,6 +1945,7 @@ def import_quickorganizer_package(
             descrizione=_text(_row_value(row, "Description")),
             luogo=_text(_row_value(row, "Location")),
             note=f"{marker} Import pratiche. {_text(_row_value(row, 'Provvedimento'))}",
+            id_appuntamento=agenda_id,
             avvocato=actor,
         )
         counters["activitiesImported"] += 1
@@ -1575,6 +1977,7 @@ def audit_quickorganizer_import(
     fascicoli: GestioneFascicoli,
     clienti: GestioneClienti,
     soggetti: GestioneSoggetti,
+    agenda_repo: Agenda | None = None,
 ) -> dict[str, Any]:
     pratiche = package.table("PRATICHE")
     nomi = package.table("NOMI")
@@ -1599,7 +2002,11 @@ def audit_quickorganizer_import(
         "documents": 0,
         "emails": 0,
         "activities": 0,
+        "economicContexts": 0,
+        "sourceContexts": 0,
     }
+    if agenda_repo is not None:
+        expected["agendaAppointments"] = 0
     found = dict.fromkeys(expected, 0)
 
     subject_rows_by_identity: dict[str, Mapping[str, Any]] = {}
@@ -1646,6 +2053,32 @@ def audit_quickorganizer_import(
             continue
         found["matters"] += 1
         matter_id_by_number[number] = matter.id
+        expected["economicContexts"] += 1
+        pagamenti = getattr(matter, "pagamenti", {}) or {}
+        contesto = pagamenti.get("contesto_economico") if isinstance(pagamenti, Mapping) else None
+        if isinstance(contesto, Mapping) and _text(contesto.get("source")) == "import_pratiche":
+            found["economicContexts"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "contesto_economico_mancante",
+                f"Pratica importata {number} senza contesto economico automatico.",
+            )
+        expected["sourceContexts"] += 1
+        source_snapshot = getattr(matter, "source_snapshot", {}) or {}
+        counts = source_snapshot.get("counts") if isinstance(source_snapshot, Mapping) else None
+        if (
+            isinstance(source_snapshot, Mapping)
+            and _text(source_snapshot.get("portale")) == "Import pratiche"
+            and isinstance(counts, Mapping)
+        ):
+            found["sourceContexts"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "contesto_sorgente_mancante",
+                f"Pratica importata {number} senza contesto sorgente e conteggi import.",
+            )
         expected["clientsLinked"] += 1
         linked_client = clienti.get(_text(getattr(matter, "id_cliente", "")))
         if linked_client and _text(getattr(matter, "nome_cliente", "")):
@@ -1695,9 +2128,9 @@ def audit_quickorganizer_import(
         expected_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
         if (
             doc
-            and _text(getattr(doc, "nome", "")) == filename
+            and _text(getattr(doc, "nome", "")) == expected_name
             and _text(getattr(doc, "nome_originale", "")) == filename
-            and _text(getattr(doc, "nome_portale", "")) == filename
+            and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
         ):
             found["documents"] += 1
@@ -1705,7 +2138,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "documento_non_allineato",
-                f"Documento {filename} della pratica {matter_number} non trovato con nome file originale e descrizione {expected_name}.",
+                f"Documento {filename} della pratica {matter_number} non trovato con titolo Studio Telematico {expected_name}.",
             )
 
     for row in emails:
@@ -1720,9 +2153,9 @@ def audit_quickorganizer_import(
         expected_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
         if (
             doc
-            and _text(getattr(doc, "nome", "")) == filename
+            and _text(getattr(doc, "nome", "")) == expected_name
             and _text(getattr(doc, "nome_originale", "")) == filename
-            and _text(getattr(doc, "nome_portale", "")) == filename
+            and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
         ):
             found["emails"] += 1
@@ -1730,7 +2163,7 @@ def audit_quickorganizer_import(
             _append_audit_failure(
                 failures,
                 "email_non_allineata",
-                f"Email {filename} della pratica {matter_number} non trovata con nome file originale e oggetto {expected_name}.",
+                f"Email {filename} della pratica {matter_number} non trovata con oggetto Studio Telematico {expected_name}.",
             )
 
     for row in agenda:
@@ -1750,6 +2183,31 @@ def audit_quickorganizer_import(
                 "agenda_non_allineata",
                 f"Appuntamento importato {task_id} non trovato nella pratica {matter_number}.",
             )
+        if agenda_repo is not None and _iso_datetime(_row_value(row, "StartDateTime")):
+            expected["agendaAppointments"] += 1
+            external_uid = f"quickorganizer:agenda:{task_id or ''}"
+            matter_source = f"quickorganizer:{matter_number}"
+            appuntamento = next(
+                (
+                    item
+                    for item in agenda_repo.tutti()
+                    if _text(getattr(item, "external_provider", "")) == "import_pratiche"
+                    and (
+                        _text(getattr(item, "external_uid", "")) == external_uid
+                        or matter_source in _text(getattr(item, "procedimento", ""))
+                        or matter_source == _text(getattr(item, "external_source_url", ""))
+                    )
+                ),
+                None,
+            )
+            if appuntamento:
+                found["agendaAppointments"] += 1
+            else:
+                _append_audit_failure(
+                    failures,
+                    "appuntamento_agenda_mancante",
+                    f"Appuntamento Agenda {task_id} della pratica {matter_number} non sincronizzato nel calendario.",
+                )
 
     return {
         "ok": not failures and expected == found,

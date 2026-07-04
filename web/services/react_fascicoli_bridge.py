@@ -937,6 +937,62 @@ def _next_hearing_value(fascicolo: Any, apps: Iterable[Any] | None = None) -> st
     return ""
 
 
+def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list[Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    source_external_id = _text(getattr(fascicolo, "source_external_id", ""))
+    rg_key = _fascicolo_rg_key(fascicolo)
+    terms = {
+        value
+        for value in (
+            source_external_id,
+            rg_key,
+            f"RG {rg_key}" if rg_key else "",
+            _text(getattr(fascicolo, "numero_rg", "")),
+        )
+        if value
+    }
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict):
+        terms.add(_text(snapshot.get("external_id")))
+        numero = _text(snapshot.get("numero"))
+        anno = _text(snapshot.get("anno"))
+        if numero and anno:
+            terms.add(f"{numero}/{anno}")
+            terms.add(f"RG {numero}/{anno}")
+    normalized_terms = {_identity_key(term) for term in terms if _identity_key(term)}
+    profile_id = f"fascicolo:{fid}" if fid else ""
+    out: list[Any] = []
+    seen: set[str] = set()
+    for app in get_agenda().tutti():
+        app_id = _text(getattr(app, "id", ""))
+        direct_match = bool(
+            profile_id and _text(getattr(app, "external_profile_id", "")) == profile_id
+            or source_external_id and _text(getattr(app, "external_source_url", "")) == source_external_id
+        )
+        haystack = _identity_key(
+            " ".join(
+                _text(value)
+                for value in (
+                    getattr(app, "titolo", ""),
+                    getattr(app, "note", ""),
+                    getattr(app, "procedimento", ""),
+                    getattr(app, "cliente", ""),
+                    getattr(app, "tribunale", ""),
+                    getattr(app, "external_source_url", ""),
+                    getattr(app, "external_profile_id", ""),
+                    getattr(app, "external_uid", ""),
+                )
+                if _text(value)
+            )
+        )
+        if direct_match or any(term in haystack for term in normalized_terms):
+            if app_id and app_id in seen:
+                continue
+            seen.add(app_id)
+            out.append(app)
+    return sorted(out, key=lambda item: _text(getattr(item, "data_ora", "")))
+
+
 def _time_label(value: Any) -> str:
     parsed = _parse_datetime(value)
     if not parsed:
@@ -3748,7 +3804,7 @@ def build_react_fascicolo_detail_payload(
     load_audit = include_all or "audit" in include
     load_lex = include_all or "lex" in include or "lex_indexing" in include
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
-    apps = _safe("agenda", lambda: get_agenda().cerca(testo=getattr(fascicolo, "numero_rg", "")) if getattr(fascicolo, "numero_rg", "") else [], [])
+    apps = _safe("agenda", lambda: _agenda_for_fascicolo(get_agenda, fascicolo), [])
     scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
     parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(fid), [])
     parties = _parties(parti, fascicolo=fascicolo, cliente=cliente)

@@ -9,6 +9,7 @@ import pytest
 from werkzeug.datastructures import FileStorage
 
 import web.services.quickorganizer_import as quickorganizer_import
+from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.soggetti import GestioneSoggetti
@@ -47,6 +48,7 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
                     "AUT_GIUDIZ": "Tribunale di Milano",
                     "RUOLO_GEN": "1234",
                     "ANNO_RUOLO_GEN": 2025,
+                    "VALORE": "1200,50",
                     "DATA_APE": "10/01/2025",
                     "Stato_Pratica": "In corso",
                 }
@@ -84,7 +86,9 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
                     "TaskID": 99,
                     "Subject": "Udienza comparizione",
                     "StartDateTime": "2025-02-20T09:30:00",
+                    "EndDateTime": "2025-02-20T10:15:00",
                     "Location": "Tribunale di Milano",
+                    "Description": "Prima comparizione parti",
                 }
             ],
         },
@@ -200,6 +204,10 @@ def _repositories(tmp_path: Path):
     return fascicoli, clienti, soggetti
 
 
+def _agenda_repository(tmp_path: Path):
+    return Agenda(db_path=str(tmp_path / "agenda" / "appuntamenti.json"))
+
+
 def _sql_repositories(tmp_path: Path):
     studio_db = StudioDB.get(str(tmp_path / "tenant" / "studio.db"))
     fascicoli = GestioneFascicoli(
@@ -256,12 +264,12 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     documenti_by_originale = {doc.nome_originale: doc for doc in fascicolo.documenti}
     atto = documenti_by_originale["scansione-da-pdf-0001.pdf"]
     email = documenti_by_originale["MSG000088.eml"]
-    assert atto.nome == "scansione-da-pdf-0001.pdf"
-    assert atto.nome_portale == "scansione-da-pdf-0001.pdf"
+    assert atto.nome == "Ricorso introduttivo da tabella.pdf"
+    assert atto.nome_portale == "Ricorso introduttivo da tabella.pdf"
     assert atto.tipo_atto_portale == "Ricorso introduttivo da tabella.pdf"
     assert Path(atto.percorso).name == "scansione-da-pdf-0001.pdf"
-    assert email.nome == "MSG000088.eml"
-    assert email.nome_portale == "MSG000088.eml"
+    assert email.nome == "Invio documenti da tabella.eml"
+    assert email.nome_portale == "Invio documenti da tabella.eml"
     assert email.tipo_atto_portale == "Invio documenti da tabella.eml"
     assert Path(email.percorso).name == "MSG000088.eml"
     assert len(parti) == 2
@@ -313,13 +321,13 @@ def test_import_studio_telematico_reimport_riallinea_nomi_documenti_esistenti(tm
     fascicolo = fascicoli.tutti(archiviati=True)[0]
     for doc in fascicolo.documenti:
         if doc.nome_originale == "scansione-da-pdf-0001.pdf":
-            doc.nome = "Ricorso introduttivo da tabella.pdf"
-            doc.nome_portale = "Ricorso introduttivo da tabella.pdf"
+            doc.nome = "scansione-da-pdf-0001.pdf"
+            doc.nome_portale = "scansione-da-pdf-0001.pdf"
             doc.classificazione_portale = "QuickOrganizer"
             doc.tags = ["quickorganizer"]
         if doc.nome_originale == "MSG000088.eml":
-            doc.nome = "Invio documenti da tabella.eml"
-            doc.nome_portale = "Invio documenti da tabella.eml"
+            doc.nome = "MSG000088.eml"
+            doc.nome_portale = "MSG000088.eml"
             doc.classificazione_portale = "QuickOrganizer"
             doc.tags = ["quickorganizer"]
     fascicoli._salva()
@@ -344,15 +352,62 @@ def test_import_studio_telematico_reimport_riallinea_nomi_documenti_esistenti(tm
 
     assert result["summary"]["documentsMetadataRepaired"] == 1
     assert result["summary"]["emailsMetadataRepaired"] == 1
-    assert docs["scansione-da-pdf-0001.pdf"].nome == "scansione-da-pdf-0001.pdf"
-    assert docs["scansione-da-pdf-0001.pdf"].nome_portale == "scansione-da-pdf-0001.pdf"
+    assert docs["scansione-da-pdf-0001.pdf"].nome == "Ricorso introduttivo da tabella.pdf"
+    assert docs["scansione-da-pdf-0001.pdf"].nome_portale == "Ricorso introduttivo da tabella.pdf"
     assert docs["scansione-da-pdf-0001.pdf"].tipo_atto_portale == "Ricorso introduttivo da tabella.pdf"
     assert docs["scansione-da-pdf-0001.pdf"].classificazione_portale == "Gestionale precedente"
     assert "import-pratiche" in docs["scansione-da-pdf-0001.pdf"].tags
-    assert docs["MSG000088.eml"].nome == "MSG000088.eml"
-    assert docs["MSG000088.eml"].nome_portale == "MSG000088.eml"
+    assert docs["MSG000088.eml"].nome == "Invio documenti da tabella.eml"
+    assert docs["MSG000088.eml"].nome_portale == "Invio documenti da tabella.eml"
     assert docs["MSG000088.eml"].tipo_atto_portale == "Invio documenti da tabella.eml"
     assert audit["ok"] is True
+
+
+def test_import_studio_telematico_crea_contesto_agenda_ed_economico(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+    agenda = _agenda_repository(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        agenda_repo=agenda,
+        actor="Operatore Test",
+    )
+    fascicolo = fascicoli.tutti(archiviati=True)[0]
+    appuntamenti = agenda.tutti()
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        agenda_repo=agenda,
+    )
+
+    assert result["summary"]["appointmentsImported"] == 1
+    assert result["summary"]["economicContextsPrepared"] == 1
+    assert result["summary"]["sourceContextsPrepared"] == 1
+    assert fascicolo.valore_causa == pytest.approx(1200.5)
+    assert fascicolo.data_prima_udienza == "2025-02-20"
+    assert fascicolo.data_prossima_udienza == ""
+    assert fascicolo.events_sync_enabled is True
+    assert fascicolo.source_snapshot["portale"] == "Import pratiche"
+    assert fascicolo.source_snapshot["counts"]["documenti"] == 2
+    assert fascicolo.source_snapshot["counts"]["udienze"] == 1
+    assert fascicolo.pagamenti["contesto_economico"]["source"] == "import_pratiche"
+    assert fascicolo.pagamenti["contesto_economico"]["valore_controversia"] == pytest.approx(1200.5)
+    assert fascicolo.pagamenti["contributo_unificato"]["status"] == "da_registrare"
+    assert fascicolo.pagamenti["parcella"]["status"] == "da_emettere"
+    assert len(appuntamenti) == 1
+    assert appuntamenti[0].tipo == TipoAppuntamento.UDIENZA
+    assert appuntamenti[0].cliente == "Rossi Mario"
+    assert appuntamenti[0].durata_minuti == 45
+    assert "RG 1234/2025" in appuntamenti[0].procedimento
+    assert "quickorganizer:101" in appuntamenti[0].procedimento
+    assert audit["ok"] is True
+    assert audit["expected"] == audit["found"]
 
 
 def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirror(tmp_path: Path):

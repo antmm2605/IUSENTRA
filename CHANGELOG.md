@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.178 - 2026-07-05
+
+- **Import pratiche Studio Telematico / Montagnese**: ripristinato il nome visibile dei documenti dalla descrizione del database Studio Telematico (`NOME_ATTO`/`Subject`), mantenendo il file fisico originale separato in `nome_originale`, `nome_archivio` e percorso su disco. Questo corregge la regressione in cui i documenti venivano mostrati come `2026...PDF` invece che, ad esempio, `Contratto 21-22`.
+- L’import ora prepara automaticamente `source_snapshot`, conteggi sorgente, date udienza, collegamento Agenda e presidio economico (`contesto_economico`, contributo unificato, parcella) durante l’esecuzione o la riparazione parziale del pacchetto.
+- Il dettaglio React del fascicolo collega gli appuntamenti Agenda importati anche tramite `source_external_id`/profilo fascicolo, non solo tramite numero RG.
+- Audit e test bloccano il falso verde: un import Studio Telematico non è allineato se mancano contesto sorgente, contesto economico o appuntamenti Agenda quando il pacchetto li contiene.
+
 ## 2.253.177 - 2026-07-04
 
 - **Import pratiche Montagnese da Studio Telematico**: il reimport da `E:\QuickOrganizer` ora mantiene il nome file originale come nome visibile del documento (`nome`, `nome_originale`, `nome_portale`) e conserva il titolo tabellare separato in `tipo_atto_portale`, in coerenza con il comportamento decompilato di Studio Telematico su `nomeFileOriginale`.

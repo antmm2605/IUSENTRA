@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Import pratiche Montagnese Studio Telematico 2.253.178 - 2026-07-05
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests\test_quickorganizer_import.py -q` | OK | `17/17` passati: nomi visibili da descrizione Studio Telematico, file fisico in `nome_originale`, reimport parziale, contesto sorgente/economico e Agenda. |
+| `python -m pytest tests\test_quickorganizer_import.py tests\test_fascicoli_pagination.py::test_fascicolo_dettaglio_collega_agenda_importata_da_source_external_id tests\test_fascicoli_pagination.py::test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy tests\test_react_shell.py::test_react_fascicoli_bridge_usa_repository_reali -q` | OK | `20/20` passati: import + bridge React dettaglio fascicolo con Agenda collegata da `source_external_id`. |
+| `python -m py_compile web\services\quickorganizer_import.py scripts\audit_quickorganizer_import.py web\services\react_fascicoli_bridge.py web\blueprints\api_v1_react.py tests\test_quickorganizer_import.py tests\test_fascicoli_pagination.py` | OK | Sintassi confermata sul perimetro import, audit, API React e test. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Contratti fase 6 allineati a `2.253.178`, OpenAPI valido, provider verification `auth-error=284`, `public-safe=15`, `success=29`, `backend-security=1`. |
+| `python -m pytest tests\test_utf8_integrity.py -q` | OK | `4/4` passati dopo changelog/report e testi italiani. |
+
 ## Import pratiche Montagnese Studio Telematico 2.253.177 - 2026-07-04
 
 | Comando / verifica | Esito | Note |

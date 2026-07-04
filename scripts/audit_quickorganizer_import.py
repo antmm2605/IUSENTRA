@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from pct.agenda import Agenda
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli
 from pct.soggetti import GestioneSoggetti
@@ -17,7 +18,7 @@ from web.services.quickorganizer_import import (
 )
 
 
-def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, GestioneClienti, GestioneSoggetti]:
+def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, GestioneClienti, GestioneSoggetti, Agenda]:
     studio_db_path = tenant_root / "studio.db"
     studio_db = StudioDB.get(str(studio_db_path)) if studio_db_path.exists() else None
     fascicoli = GestioneFascicoli(
@@ -35,7 +36,11 @@ def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, Gestione
         str(tenant_root / "soggetti" / "parti.json"),
         studio_db=studio_db,
     )
-    return fascicoli, clienti, soggetti
+    agenda = Agenda(
+        db_path=str(tenant_root / "agenda" / "appuntamenti.json"),
+        studio_db=studio_db,
+    )
+    return fascicoli, clienti, soggetti, agenda
 
 
 def _storage_counts(tenant_root: Path) -> dict[str, Any]:
@@ -48,7 +53,7 @@ def _storage_counts(tenant_root: Path) -> dict[str, Any]:
     if not studio_db_path.exists():
         return output
     studio_db = StudioDB.get(str(studio_db_path))
-    for table in ("clienti", "fascicoli", "soggetti", "soggetti_parti"):
+    for table in ("clienti", "fascicoli", "soggetti", "soggetti_parti", "appuntamenti"):
         try:
             row = studio_db.conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
             output["tables"][table] = int(row["n"] if isinstance(row, dict) else row[0])
@@ -58,7 +63,7 @@ def _storage_counts(tenant_root: Path) -> dict[str, Any]:
 
 
 def _counts(tenant_root: Path) -> dict[str, int]:
-    fascicoli, clienti, soggetti = _tenant_repositories(tenant_root)
+    fascicoli, clienti, soggetti, agenda = _tenant_repositories(tenant_root)
     return {
         "fascicoli": len(fascicoli.tutti(stato=None, archiviati=True)),
         "clienti": len(clienti.tutti()),
@@ -66,6 +71,9 @@ def _counts(tenant_root: Path) -> dict[str, int]:
         "parti_fascicolo": sum(len(soggetti.parti_fascicolo(f.id)) for f in fascicoli.tutti(stato=None, archiviati=True)),
         "documenti": sum(len(getattr(f, "documenti", []) or []) for f in fascicoli.tutti(stato=None, archiviati=True)),
         "attivita": sum(len(getattr(f, "attivita", []) or []) for f in fascicoli.tutti(stato=None, archiviati=True)),
+        "appuntamenti": len(agenda.tutti()),
+        "udienze_agenda": sum(1 for item in agenda.tutti() if str(getattr(getattr(item, "tipo", ""), "value", getattr(item, "tipo", ""))) == "UDIENZA"),
+        "contesti_economici": sum(1 for f in fascicoli.tutti(stato=None, archiviati=True) if (getattr(f, "pagamenti", {}) or {}).get("contesto_economico")),
     }
 
 
@@ -77,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--stage-root", required=True, help="Cartella importazioni/quickorganizer del tenant.")
     parser.add_argument("--import-id", required=True, help="Identificativo stage.json da importare o auditare.")
     parser.add_argument("--execute", action="store_true", help="Esegue l'import prima dell'audit.")
+    parser.add_argument("--allow-partial", action="store_true", help="Ripara dati gia' importati anche se il pacchetto non contiene tutti i file fisici.")
     parser.add_argument("--actor", default="SUPERADMIN", help="Operatore registrato sui documenti importati.")
     args = parser.parse_args(argv)
 
@@ -94,21 +103,24 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     if args.execute:
-        fascicoli, clienti, soggetti = _tenant_repositories(tenant_root)
+        fascicoli, clienti, soggetti, agenda = _tenant_repositories(tenant_root)
         output["import"] = import_quickorganizer_package(
             package,
             fascicoli=fascicoli,
             clienti=clienti,
             soggetti=soggetti,
+            agenda_repo=agenda,
             actor=args.actor,
+            allow_partial=args.allow_partial,
         )
 
-    fascicoli, clienti, soggetti = _tenant_repositories(tenant_root)
+    fascicoli, clienti, soggetti, agenda = _tenant_repositories(tenant_root)
     audit = audit_quickorganizer_import(
         package,
         fascicoli=fascicoli,
         clienti=clienti,
         soggetti=soggetti,
+        agenda_repo=agenda,
     )
     output["after"] = _counts(tenant_root)
     output["storage"] = _storage_counts(tenant_root)

@@ -6,6 +6,8 @@
 | --- | --- | --- |
 | `python -m pytest tests\test_quickorganizer_import.py tests\test_utf8_integrity.py -q` | OK | `20/20` passati: import ZIP/MDB, reimport parziale con riparazione persistita dei nomi documento, parità SQLite/mirror e integrità UTF-8. |
 | `python -m py_compile web\services\quickorganizer_import.py scripts\audit_quickorganizer_import.py pct\__init__.py` | OK | Sintassi confermata su import pratiche, audit e bump versione. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI valido dopo rigenerazione contratti per versione `2.253.177`. |
+| `python scripts\verify_openapi_provider.py` | OK | Provider verification: `auth-error=284`, `public-safe=15`, `success=29`, `backend-security=1`. |
 | `git diff --check` | OK | Nessun errore whitespace sul diff corrente. |
 | Audit produzione tenant `studio-legale-giuseppe-montagnese` | OK tecnico dati | Confronto completo `E:\QuickOrganizer`/tenant server: `331/331` pratiche, `13559/13559` documenti/email, `0` documenti mancanti, `0` email mancanti, `0` mismatch nomi, `0` mismatch fisici. Prova UI produzione ancora subordinata a sessione browser autenticata. |
 

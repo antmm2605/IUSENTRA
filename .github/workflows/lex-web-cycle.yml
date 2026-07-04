@@ -168,7 +168,10 @@ jobs:
           # restituisce l'intero codice > 2MB, scartato dal tetto byte nella
           # run #1). Le pagine giurisprudenza_*.page di Cassazione sono le
           # liste reali gia' crawlate in produzione dal motore aggiornamenti
-          # (pct/legal_update_source_parsers.py, CASSAZIONE_LATEST_CATEGORY_MARKERS).
+          # (pct/legal_update_source_parsers.py, CASSAZIONE_LATEST_CATEGORY_MARKERS);
+          # dcsnprr e' la pagina "Decisioni e pareri" G.A. censita in
+          # pct/legal_update_pipeline.py (canale HTML instabile per i crawler:
+          # esito vuoto o bloccato = esito valido, il presidio resta OpenGA).
           SEEDS = [
               ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043!vig=", "civile", "Art. 2043 c.c. (vigente) — Normattiva"),
               ("https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1990-08-07;241", "amministrativo", "L. 241/1990 — Normattiva"),
@@ -178,23 +181,19 @@ jobs:
               ("https://www.cortedicassazione.it/it/giurisprudenza_penale.page", "penale", "Cassazione — giurisprudenza penale (lista sentenze)"),
               ("https://www.cortecostituzionale.it/", "civile", "Corte costituzionale — pronunce"),
               ("https://www.giustizia-amministrativa.it/", "amministrativo", "Giustizia amministrativa — decisioni"),
+              ("https://www.giustizia-amministrativa.it/dcsnprr", "amministrativo", "Giustizia amministrativa — Decisioni e pareri"),
               ("https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32016R0679", "privacy", "Regolamento (UE) 2016/679 — EUR-Lex"),
               ("https://www.garanteprivacy.it/", "privacy", "Garante Privacy — provvedimenti"),
               ("https://www.agenziaentrate.gov.it/portale/", "tributario", "Agenzia delle Entrate — prassi"),
               ("https://www.inps.it/", "lavoro", "INPS — circolari e messaggi"),
           ]
 
-          # Drill-down dettagli sentenze: dalle LISTE Cassazione ai testi delle
-          # singole decisioni. I marker rispecchiano i CASSAZIONE_DETAIL_URL_MARKERS
-          # di produzione (pct/legal_update_source_parsers.py).
-          import re
-          from urllib.parse import urljoin
+          # Drill-down dettagli: dalle LISTE ufficiali ai testi dei singoli
+          # provvedimenti (Cassazione, Consulta, G.A.). Le regole vivono nella
+          # libreria — lex/autonomy/detail_links.py — e rispecchiano i pattern
+          # di produzione (test di allineamento dedicato).
+          from lex.autonomy.detail_links import extract_detail_links, rule_for
 
-          DETTAGLIO_RE = re.compile(r'href="([^"]*(?:civile|penale)_dettaglio\.page[^"]*)"', re.I)
-          LISTE_CASSAZIONE = {
-              "https://www.cortedicassazione.it/it/giurisprudenza_civile.page",
-              "https://www.cortedicassazione.it/it/giurisprudenza_penale.page",
-          }
           DETTAGLI_PER_LISTA = 2
 
           config = validate_cycle_config(json.loads((BASE / "config.json").read_text(encoding="utf-8")))
@@ -253,25 +252,26 @@ jobs:
 
           for url, area, titolo in SEEDS:
               contenuto_inline = ""
-              if url in LISTE_CASSAZIONE:
+              regola = rule_for(url)
+              if regola is not None:
                   # Un solo fetch della lista: testo per la lettura + href dei
-                  # dettagli sentenza da approfondire (max DETTAGLI_PER_LISTA).
+                  # dettagli da approfondire (max DETTAGLI_PER_LISTA per lista).
                   raw = fetcher.fetch(url)
                   if raw.status == "ok" and raw.content:
                       from lex.sources.extractors import extract_text_from_bytes
 
                       contenuto_inline = extract_text_from_bytes(raw.content, raw.content_type, filename=url)
                       html = raw.content.decode("utf-8", errors="ignore")
-                      for href in DETTAGLIO_RE.findall(html)[:DETTAGLI_PER_LISTA]:
-                          dettagli_sentenze.append((urljoin(url, href), area))
+                      for dettaglio in extract_detail_links(url, html, limit=DETTAGLI_PER_LISTA):
+                          dettagli_sentenze.append((dettaglio, area, regola.detail_label))
               leggi_e_impara(url, area, titolo, discovered_by="semina", tipo="seed", contenuto_inline=contenuto_inline)
 
           visti = set()
-          for url, area in dettagli_sentenze:
+          for url, area, etichetta in dettagli_sentenze:
               if url.casefold() in visti:
                   continue
               visti.add(url.casefold())
-              leggi_e_impara(url, area, "Dettaglio sentenza Cassazione", discovered_by="semina_dettaglio", tipo="dettaglio_sentenza")
+              leggi_e_impara(url, area, etichetta, discovered_by="semina_dettaglio", tipo="dettaglio_sentenza")
 
           for proposal in propose_improvements(kb):
               kb.append("improvement_proposals", proposal.stable_id(), proposal.to_dict())

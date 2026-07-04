@@ -147,11 +147,20 @@ Dal 2026-07-04 il ciclo acquisisce anche i TESTI delle decisioni, su due canali:
   ancora; entrano SOLO le sentenze che superano `can_cite_sentenza`
   (stato verificato + ancora ufficiale/ECLI). Corpus assente → vuoto, mai
   creato da qui. Nel composito: archivi → corpus → web.
-- **Drill-down nella fase 2 del workflow**: dalle liste Cassazione
-  (`giurisprudenza_civile/penale.page`) vengono estratti gli href dei dettagli
-  (marker identici ai `CASSAZIONE_DETAIL_URL_MARKERS` di produzione) e letti
-  fino a 2 dettagli per lista con il `PoliteFetcher` (esiti `tipo:
-  dettaglio_sentenza` nel report).
+- **Drill-down nella fase 2 del workflow**: dalle pagine-lista ufficiali agli
+  URL dei singoli provvedimenti, letti (max 2 per lista) con il `PoliteFetcher`
+  (esiti `tipo: dettaglio_sentenza` nel report). Le regole vivono in
+  `lex/autonomy/detail_links.py` e rispecchiano i pattern di produzione
+  (test di allineamento in `tests/test_lex_autonomy_detail_links.py`):
+  Cassazione (`*_dettaglio.page` + `contentId=`, marker identici ai
+  `CASSAZIONE_DETAIL_URL_MARKERS`), Corte costituzionale (schede
+  `/scheda-pronuncia/<anno>/<numero>`, stesso pattern del filtro del parser) e
+  Giustizia amministrativa (provvedimenti PDF sotto `/documents/`, forma
+  censita nella matrice di ricerca; canale best-effort perché l'HTML G.A. è
+  instabile per i crawler — la fonte diretta è disabilitata in produzione a
+  favore di OpenGA, quindi un esito vuoto o bloccato è un esito valido). I PDF
+  passano dall'estrattore esistente (`extract_text_from_bytes` → pypdf,
+  fail-closed).
 
 **Verificato in produzione il 2026-07-04** (run #5 del workflow): 2 dettagli
 Cassazione letti dal vivo (uno civile e uno penale, 30 citazioni normalizzate
@@ -162,4 +171,3 @@ ciclo). Esiti completi run per run in `docs/reports/lex_web_cycle_2026-07.md`.
 ## Prossimi passi (fuori da questa fondazione)
 
 - Feature flag `lex.autonomousLearning` quando nascerà una superficie web.
-- Estendere il drill-down a Consulta/G.A. quando serviranno liste dedicate.

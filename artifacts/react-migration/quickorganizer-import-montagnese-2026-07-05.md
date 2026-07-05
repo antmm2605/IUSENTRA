@@ -35,6 +35,7 @@ Regola documento corretta:
 - `web/services/react_fascicoli_bridge.py`: il dettaglio React collega l’Agenda tramite `source_external_id`/profilo fascicolo oltre al numero RG.
 - `scripts/audit_quickorganizer_import.py`: audit tenant-aware con Agenda, appuntamenti e contesti economici.
 - L’audit applicativo controlla tutti i record `TESTI`/`EMAILS` collegati al fascicolo, anche quando il pacchetto di riparazione contiene solo i file fisici mancanti e non l’intero archivio documentale.
+- I nominativi Studio Telematico vuoti/invisibili usano lo stesso fallback deterministico (`Nominativo importato`) sia in creazione sia in audit, evitando falsi negativi su righe `OWN` prive di nome, cognome, CF e P.IVA.
 
 ## Guardrail automatici
 

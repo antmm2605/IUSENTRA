@@ -1128,7 +1128,8 @@ def _subject_identity(row: Mapping[str, Any]) -> str:
         return f"cf:{cf}"
     if piva:
         return f"piva:{piva}"
-    return f"name:{_text(_row_value(row, 'NOME')).casefold()}:{_text(_row_value(row, 'COGNOME')).casefold()}"
+    nome, cognome = _split_person_name(row)
+    return f"name:{nome.casefold()}:{cognome.casefold()}"
 
 
 def _is_client_control(row: Mapping[str, Any]) -> bool:

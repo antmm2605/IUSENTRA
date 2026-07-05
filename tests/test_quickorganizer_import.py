@@ -410,6 +410,13 @@ def test_import_studio_telematico_crea_contesto_agenda_ed_economico(tmp_path: Pa
     assert audit["expected"] == audit["found"]
 
 
+def test_import_studio_telematico_identita_nominativo_vuoto_usa_stesso_fallback_del_payload():
+    row = {"NUM_NOM": 314, "CONTROLLO": "OWN", "NOME": "", "COGNOME": "", "CODICE_FISCALE": "", "PARTITA_IVA": ""}
+
+    assert quickorganizer_import._subject_identity(row) == "name::nominativo importato"
+    assert quickorganizer_import._subject_payload(row)["cognome"] == "Nominativo importato"
+
+
 def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirror(tmp_path: Path):
     package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
     studio_db, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)

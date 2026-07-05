@@ -167,6 +167,7 @@ export type FascicoliPageParams = {
   status?: FascicoloStato
   court?: string
   sort?: string
+  view?: 'operativa' | 'economica' | string
   alertsOnly?: boolean
   paymentsOnly?: boolean
   cu?: FascicoloPaymentFilter
@@ -2003,6 +2004,7 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.status && params.status !== 'tutti') query.set('status', params.status)
   if (params.court?.trim()) query.set('court', params.court.trim())
   if (params.sort) query.set('sort', params.sort)
+  if (params.view?.trim()) query.set('view', params.view.trim())
   if (params.alertsOnly) query.set('alerts_only', '1')
   if (params.paymentsOnly) query.set('payments_only', '1')
   if (params.cu && params.cu !== 'tutti') query.set('cu', params.cu)

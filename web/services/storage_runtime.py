@@ -125,46 +125,62 @@ def _anchor_seed_tables(anchor_path: Path) -> tuple[str, ...]:
 def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool:
     if not studio_db_path.exists():
         return True
+
+    def _table_count(conn: sqlite3.Connection, table: str) -> int | None:
+        try:
+            row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc).lower():
+                return None
+            raise
+        return int((row or [0])[0] or 0)
+
+    def _is_unseeded_with_connection(conn: sqlite3.Connection) -> bool:
+        operational_tables = (
+            "settings_config",
+            "impostazioni",
+            "moduli_dati",
+            "clienti",
+            "fascicoli",
+            "appuntamenti",
+            "scadenze",
+            "utenti",
+            "soggetti",
+            "parti",
+            "privacy_trattamenti",
+            "condivisioni",
+            "preventivi_records",
+            "conferimenti_records",
+        )
+        for marker_table in operational_tables:
+            count = _table_count(conn, marker_table)
+            if count is not None and count > 0:
+                return False
+        total = 0
+        for table in _anchor_seed_tables(anchor_path):
+            count = _table_count(conn, table)
+            if count is not None:
+                total += count
+        return total == 0
+
     try:
         # Non usare immutable qui: con WAL attivo SQLite puo' non vedere le
         # modifiche appena committate e rilanciare una migrazione JSON inutile.
         db_uri = f"file:{studio_db_path.resolve().as_posix()}?mode=ro"
         conn = sqlite3.connect(db_uri, uri=True, timeout=5)
         try:
-            operational_tables = (
-                "settings_config",
-                "impostazioni",
-                "moduli_dati",
-                "clienti",
-                "fascicoli",
-                "appuntamenti",
-                "scadenze",
-                "utenti",
-                "soggetti",
-                "parti",
-                "privacy_trattamenti",
-                "condivisioni",
-                "preventivi_records",
-                "conferimenti_records",
-            )
-            for marker_table in operational_tables:
-                try:
-                    row = conn.execute(f"SELECT COUNT(*) FROM {marker_table}").fetchone()
-                except sqlite3.Error:
-                    continue
-                if int((row or [0])[0] or 0) > 0:
-                    return False
-            tables = _anchor_seed_tables(anchor_path)
-            total = 0
-            for table in tables:
-                try:
-                    row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
-                except sqlite3.Error:
-                    continue
-                total += int((row or [0])[0] or 0)
-            return total == 0
+            return _is_unseeded_with_connection(conn)
+        except sqlite3.Error as exc:
+            if "unable to open database file" not in str(exc).lower():
+                return False
         finally:
             conn.close()
+        immutable_uri = f"{db_uri}&immutable=1"
+        immutable_conn = sqlite3.connect(immutable_uri, uri=True, timeout=5)
+        try:
+            return _is_unseeded_with_connection(immutable_conn)
+        finally:
+            immutable_conn.close()
     except sqlite3.Error:
         return False
 

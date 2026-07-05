@@ -1832,6 +1832,7 @@ function FascicoliListPage() {
     status,
     court: debouncedCourt,
     sort,
+    view,
     alertsOnly,
     paymentsOnly,
     cu: cuFilter,
@@ -1862,7 +1863,7 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type])
+  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
 
   const visible = data.items
   const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'

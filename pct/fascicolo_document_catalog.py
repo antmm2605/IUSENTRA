@@ -12,7 +12,7 @@ import sqlite3
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from pct.fascicoli import TipoDocumento
 
@@ -645,7 +645,16 @@ def _match_document_id(row: dict[str, Any], by_id: dict[str, str], by_hash: dict
     return ""
 
 
-def _rows_from_repository(repo: Any, tenant_ids: list[str], fascicolo_id: str, storage_root: Path) -> list[dict[str, Any]]:
+def _rows_from_repository(
+    repo: Any,
+    tenant_ids: list[str],
+    fascicolo_id: str,
+    storage_root: Path,
+    *,
+    by_id: dict[str, str] | None = None,
+    by_hash: dict[str, str] | None = None,
+    by_name: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for tenant_id in tenant_ids:
         try:
@@ -654,6 +663,9 @@ def _rows_from_repository(repo: Any, tenant_ids: list[str], fascicolo_id: str, s
             continue
         for record in records:
             row = record.to_dict() if hasattr(record, "to_dict") else dict(record or {})
+            if by_id is not None and by_hash is not None and by_name is not None:
+                if not _match_document_id(row, by_id, by_hash, by_name):
+                    continue
             text = ""
             try:
                 extracted = repo.get_extracted_text(tenant_id, fascicolo_id, row.get("id"))
@@ -762,28 +774,83 @@ def _rows_from_sqlite(sqlite_path: Path, tenant_ids: list[str], fascicolo_id: st
     return rows
 
 
-def _rows_from_extracted_files(storage_root: Path, tenant_ids: list[str], fascicolo_id: str) -> list[dict[str, Any]]:
-    if not storage_root.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    for path in sorted(storage_root.rglob("extracted_text.json")):
+def _fascicolo_id_from_extracted_path(path: Path, wanted_ids: set[str]) -> str:
+    parts = list(path.parts)
+    if wanted_ids:
+        for part in parts:
+            if part in wanted_ids:
+                return part
+        if len(wanted_ids) == 1:
+            return next(iter(wanted_ids))
+    for index, part in enumerate(parts[:-1]):
+        if part.casefold() == "fascicoli" and index + 1 < len(parts):
+            candidate = _text(parts[index + 1])
+            if candidate and candidate.casefold() != "documenti_ai":
+                return candidate
+    return ""
+
+
+def document_ai_extracted_rows_by_fascicolo(
+    *,
+    storage_root: str | Path | None,
+    tenant_ids: Iterable[str] | None = None,
+    fascicolo_ids: Iterable[str] | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """Indicizza i testi estratti una sola volta per richiesta.
+
+    La lista fascicoli puo' dover arricchire piu' righe con evidenze automatiche:
+    scansionare l'albero `extracted_text.json` per ogni fascicolo diventa costoso.
+    Questo helper mantiene la stessa semantica del fallback storico, ma restituisce
+    righe gia' raggruppate per `fascicolo_id`.
+    """
+
+    if storage_root is None:
+        return {}
+    base = Path(storage_root)
+    if not base.exists():
+        return {}
+    candidates = _tenant_candidates(tenant_ids)
+    wanted_ids = {fid for fid in (_text(value) for value in fascicolo_ids or []) if fid}
+    if wanted_ids:
+        scan_roots: list[Path] = []
+        for tenant_id in candidates:
+            for fid in wanted_ids:
+                scan_roots.append(base / tenant_id / "fascicoli" / fid)
+        for fid in wanted_ids:
+            scan_roots.append(base / "fascicoli" / fid)
+            scan_roots.append(base / fid)
+        paths: list[Path] = []
+        seen_paths: set[Path] = set()
+        for root in scan_roots:
+            if not root.exists():
+                continue
+            for path in root.rglob("extracted_text.json"):
+                if path in seen_paths:
+                    continue
+                seen_paths.add(path)
+                paths.append(path)
+    else:
+        paths = list(base.rglob("extracted_text.json"))
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for path in sorted(paths):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
         if not isinstance(payload, dict):
             continue
-        payload_fid = _text(payload.get("fascicolo_id"))
-        if payload_fid and payload_fid != fascicolo_id:
-            continue
         payload_tenant = _text(payload.get("tenant_id"))
-        if payload_tenant and payload_tenant not in tenant_ids:
+        if payload_tenant and payload_tenant not in candidates:
+            continue
+        payload_fid = _text(payload.get("fascicolo_id"))
+        group_fid = payload_fid or _fascicolo_id_from_extracted_path(path, wanted_ids)
+        if wanted_ids and group_fid and group_fid not in wanted_ids:
             continue
         text = _text(payload.get("text")) or _read_extracted_text_payload(path)
         row = {
             "id": _text(payload.get("document_id")) or path.parent.parent.name,
             "document_id": _text(payload.get("document_id")) or path.parent.parent.name,
-            "fascicolo_id": payload_fid or fascicolo_id,
+            "fascicolo_id": group_fid,
             "tenant_id": payload_tenant,
             "original_filename": _text(payload.get("filename") or payload.get("original_filename")),
             "safe_filename": _text(payload.get("safe_filename") or payload.get("filename")),
@@ -791,8 +858,8 @@ def _rows_from_extracted_files(storage_root: Path, tenant_ids: list[str], fascic
             "extracted_text_path": str(path),
             "text": text,
         }
-        rows.append(row)
-    return rows
+        grouped.setdefault(group_fid, []).append(row)
+    return grouped
 
 
 def document_ai_texts_for_catalog(
@@ -803,6 +870,8 @@ def document_ai_texts_for_catalog(
     fascicoli_db_path: str | Path | None = None,
     structured_db: Any = None,
     storage_root: str | Path | None = None,
+    allow_extracted_files_fallback: bool = True,
+    extracted_rows_by_fascicolo: Mapping[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, str]:
     """Restituisce testo OCR indicizzato per id documento fascicolo.
 
@@ -828,7 +897,7 @@ def document_ai_texts_for_catalog(
             from pct.document_intelligence.repository import DocumentAIRepository
 
             repo = DocumentAIRepository.from_fascicoli_db(fascicoli_db_path, structured_db=structured_db)
-            rows.extend(_rows_from_repository(repo, candidates, fid, base))
+            rows.extend(_rows_from_repository(repo, candidates, fid, base, by_id=by_id, by_hash=by_hash, by_name=by_name))
         except Exception:
             rows = []
     if not rows:
@@ -836,7 +905,17 @@ def document_ai_texts_for_catalog(
     if not rows:
         rows.extend(_rows_from_json(base / "documenti_ai.json", candidates, fid, base))
     if not rows:
-        rows.extend(_rows_from_extracted_files(base, candidates, fid))
+        if extracted_rows_by_fascicolo is not None:
+            rows.extend(dict(row) for row in extracted_rows_by_fascicolo.get(fid, []))
+            rows.extend(dict(row) for row in extracted_rows_by_fascicolo.get("", []))
+        elif allow_extracted_files_fallback:
+            extracted_rows = document_ai_extracted_rows_by_fascicolo(
+                storage_root=base,
+                tenant_ids=candidates,
+                fascicolo_ids=[fid],
+            )
+            rows.extend(dict(row) for row in extracted_rows.get(fid, []))
+            rows.extend(dict(row) for row in extracted_rows.get("", []))
     matched: dict[str, str] = {}
     for row in rows:
         doc_id = _match_document_id(row, by_id, by_hash, by_name)

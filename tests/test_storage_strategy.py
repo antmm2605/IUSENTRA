@@ -753,6 +753,58 @@ def test_sqlite_runtime_non_rilancia_migrazione_se_db_core_ha_fascicoli(tmp_path
     assert _sqlite_runtime_is_unseeded(studio_db_path, anchor_path) is False
 
 
+def test_sqlite_runtime_seed_check_usa_immutable_se_readonly_fallisce(monkeypatch, tmp_path: Path):
+    studio_db_path = tmp_path / "tenants" / "demo" / "studio.db"
+    anchor_path = tmp_path / "tenants" / "demo" / "clienti" / "anagrafica.json"
+    studio_db_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.write_text("{}", encoding="utf-8")
+
+    db = StudioDB(str(studio_db_path))
+    try:
+        db.conn.execute(
+            """
+            INSERT OR REPLACE INTO fascicoli
+            (id, numero, titolo, tipo, stato, dati_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "FASC-SQL-DOCKER",
+                "2026/331",
+                "Bind mount c. MIM",
+                "CIVILE",
+                "APERTO",
+                json.dumps({"id": "FASC-SQL-DOCKER"}, ensure_ascii=False),
+            ),
+        )
+        db.conn.commit()
+    finally:
+        db.chiudi()
+
+    real_connect = sqlite3.connect
+
+    class BrokenReadOnlyConnection:
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, *_args, **_kwargs):
+            raise sqlite3.OperationalError("unable to open database file")
+
+        def close(self):
+            self._conn.close()
+
+    def flaky_connect(database, *args, **kwargs):
+        conn = real_connect(database, *args, **kwargs)
+        database_text = str(database)
+        if "mode=ro" in database_text and "immutable=1" not in database_text:
+            return BrokenReadOnlyConnection(conn)
+        return conn
+
+    monkeypatch.setattr(sqlite3, "connect", flaky_connect)
+
+    assert _sqlite_runtime_is_unseeded(studio_db_path, anchor_path) is False
+
+
 def test_request_storage_runtime_external_sql_usa_sqlite_staging_fino_a_cutover(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

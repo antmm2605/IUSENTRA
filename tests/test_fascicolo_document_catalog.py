@@ -4,9 +4,11 @@ from types import SimpleNamespace
 from pct.document_intelligence.models import DocumentAIRecord, DocumentAIText, DocumentAIVersion
 from pct.document_intelligence.repository import DocumentAIRepository
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+import pct.fascicolo_document_catalog as catalog
 from pct.fascicolo_document_catalog import (
     catalog_tipo_documento_per_nome,
     classify_fascicolo_document,
+    document_ai_extracted_rows_by_fascicolo,
     document_ai_texts_for_catalog,
     should_apply_catalog_type,
 )
@@ -173,6 +175,195 @@ def test_document_ai_texts_for_catalog_abbina_per_hash(tmp_path: Path):
     )
 
     assert texts[doc.id] == "SENTENZA del Tribunale"
+
+
+def test_document_ai_texts_for_catalog_riusa_cache_extracted_files(tmp_path: Path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gf.nuovo("Test cache catalogo", TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "sentenza-cache.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\nsentenza\n%%EOF",
+    )
+    storage_root = tmp_path / "fascicoli" / "documenti_ai"
+    extracted = (
+        storage_root
+        / "tenant-test"
+        / "fascicoli"
+        / fascicolo.id
+        / "documenti_ai"
+        / "docai-sentenza"
+        / "v1"
+        / "extracted_text.json"
+    )
+    extracted.parent.mkdir(parents=True, exist_ok=True)
+    extracted.write_text(
+        '{"tenant_id":"tenant-test","document_id":"%s","filename":"sentenza-cache.pdf","sha256":"%s","text":"SENTENZA cache documentale"}'
+        % ("docai-sentenza", doc.hash_sha256),
+        encoding="utf-8",
+    )
+    other = (
+        storage_root
+        / "tenant-test"
+        / "fascicoli"
+        / "ALTRO"
+        / "documenti_ai"
+        / "docai-altro"
+        / "v1"
+        / "extracted_text.json"
+    )
+    other.parent.mkdir(parents=True, exist_ok=True)
+    other.write_text(
+        '{"tenant_id":"tenant-test","fascicolo_id":"ALTRO","document_id":"docai-altro","text":"NON RILEVANTE"}',
+        encoding="utf-8",
+    )
+
+    cache = document_ai_extracted_rows_by_fascicolo(
+        storage_root=storage_root,
+        tenant_ids=["tenant-test"],
+        fascicolo_ids=[fascicolo.id],
+    )
+    assert set(cache) == {fascicolo.id}
+    texts = document_ai_texts_for_catalog(
+        tenant_ids=["tenant-test"],
+        fascicolo_id=fascicolo.id,
+        documents=gf.get(fascicolo.id).documenti,
+        storage_root=storage_root,
+        allow_extracted_files_fallback=False,
+        extracted_rows_by_fascicolo=cache,
+    )
+
+    assert texts[doc.id] == "SENTENZA cache documentale"
+
+
+def test_document_ai_texts_for_catalog_non_scansiona_fallback_se_repo_ha_testi(tmp_path: Path, monkeypatch):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gf.nuovo("Test fallback lazy", TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "sentenza-repository.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\nsentenza\n%%EOF",
+    )
+    storage_root = tmp_path / "fascicoli" / "documenti_ai"
+    repo = DocumentAIRepository(storage_root / "documenti_ai.json", storage_root)
+    repo.create_document(
+        DocumentAIRecord(
+            id="docai-repo",
+            tenant_id="tenant-test",
+            fascicolo_id=fascicolo.id,
+            original_filename="sentenza-repository.pdf",
+            safe_filename="sentenza-repository.pdf",
+            file_type="pdf",
+            mime_type="application/pdf",
+            size_bytes=10,
+            sha256=doc.hash_sha256,
+            status="ready",
+            current_version_id="v1",
+            page_count=1,
+            created_by="test",
+            created_at="2026-07-05T10:00:00Z",
+            updated_at="2026-07-05T10:00:00Z",
+        )
+    )
+    repo.create_version(
+        DocumentAIVersion(
+            id="v1",
+            tenant_id="tenant-test",
+            fascicolo_id=fascicolo.id,
+            document_id="docai-repo",
+            version_number=1,
+            source="upload",
+            storage_path="tenant-test/fascicoli/test/documenti_ai/docai-repo/v1/atto.pdf",
+            extracted_text_path=None,
+            pdf_preview_path=None,
+            sha256=doc.hash_sha256,
+            created_by="test",
+            created_at="2026-07-05T10:00:00Z",
+        )
+    )
+    repo.save_extracted_text(
+        DocumentAIText(
+            document_id="docai-repo",
+            version_id="v1",
+            tenant_id="tenant-test",
+            fascicolo_id=fascicolo.id,
+            text="SENTENZA repository gia indicizzata",
+            pages=[],
+            extraction_engine="test",
+            created_at="2026-07-05T10:00:00Z",
+        )
+    )
+
+    def fail_fallback(*args, **kwargs):  # pragma: no cover - deve restare non chiamato
+        raise AssertionError("fallback extracted_text non deve partire se il repository ha gia i testi")
+
+    monkeypatch.setattr(catalog, "document_ai_extracted_rows_by_fascicolo", fail_fallback)
+
+    texts = document_ai_texts_for_catalog(
+        tenant_ids=["tenant-test"],
+        fascicolo_id=fascicolo.id,
+        documents=gf.get(fascicolo.id).documenti,
+        storage_root=storage_root,
+        allow_extracted_files_fallback=True,
+    )
+
+    assert texts[doc.id] == "SENTENZA repository gia indicizzata"
+
+
+def test_document_ai_texts_for_catalog_fallback_limitato_al_fascicolo(tmp_path: Path, monkeypatch):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gf.nuovo("Test fallback mirato", TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "sentenza-fallback.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\nsentenza\n%%EOF",
+    )
+    storage_root = tmp_path / "fascicoli" / "documenti_ai"
+    calls: list[dict[str, object]] = []
+
+    def fake_extracted_rows_by_fascicolo(**kwargs):
+        calls.append(kwargs)
+        return {
+            fascicolo.id: [
+                {
+                    "document_id": "docai-fallback",
+                    "fascicolo_id": fascicolo.id,
+                    "tenant_id": "tenant-test",
+                    "original_filename": "sentenza-fallback.pdf",
+                    "sha256": doc.hash_sha256,
+                    "text": "SENTENZA fallback mirato",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(catalog, "document_ai_extracted_rows_by_fascicolo", fake_extracted_rows_by_fascicolo)
+
+    texts = document_ai_texts_for_catalog(
+        tenant_ids=["tenant-test"],
+        fascicolo_id=fascicolo.id,
+        documents=gf.get(fascicolo.id).documenti,
+        storage_root=storage_root,
+        allow_extracted_files_fallback=True,
+    )
+
+    assert texts[doc.id] == "SENTENZA fallback mirato"
+    assert calls
+    assert calls[0]["fascicolo_ids"] == [fascicolo.id]
 
 
 def test_reclassify_catalog_apply_corregge_atti_esistenti(tmp_path: Path):

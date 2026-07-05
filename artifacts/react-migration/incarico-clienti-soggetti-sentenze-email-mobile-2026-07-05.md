@@ -107,3 +107,23 @@ Stato verifica reale:
 - Prova reale locale su `http://127.0.0.1:8080/fascicoli?vista=economica`: il fascicolo `RG 466/2023` mostra popolamento automatico di contributo, spese/esborsi, liquidazione, parcella e `Prossima scad.` dai documenti indicizzati.
 - Prova reale locale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB#documenti` in viewport mobile `390x844`: click su `Anteprima interna`, modal `Lettore documento` aperto, URL interno `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`, pagine PDF renderizzate come immagini dentro il lettore e nessun errore console.
 - Prova reale locale diretta su `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`: prima pagina caricata in modo eager, immagine completa, larghezza documento senza overflow orizzontale.
+
+## Aggiornamento correttivo 2026-07-06 - performance vista economica automatica
+
+- Causa rilevata sulla copia Docker reale: la vista `/fascicoli?vista=economica` popolava correttamente i dati automatici, ma preparava sempre il fallback `extracted_text.json` dei documenti prima di sapere se servisse. Questo causava scansioni ripetute dello storage Document AI durante il caricamento lista.
+- Correzione: `web/services/react_fascicoli_bridge.py` non pre-carica più le righe estratte; `pct/fascicolo_document_catalog.py` prova prima repository Document AI, SQLite e JSON indicizzato, e solo in assenza di righe usa il fallback sui file estratti limitandolo al singolo `fascicolo_id`.
+- Guardrail anti-regressione: aggiunti test che impediscono la scansione fallback quando il repository ha già i testi e verificano che il fallback riceva `fascicolo_ids=[id_fascicolo]`.
+- Misura prima del fix su container reale: API economica circa `10,66 s`, con `document_ai_extracted_rows_by_fascicolo` responsabile di circa `9,10 s`.
+- Misura dopo il fix su container reale: API interna circa `2,27 s`; HTTP reale `127.0.0.1:8080` circa `1,62-1,70 s` per `/api/v1/ui/fascicoli?page=1&page_size=25&sort=rg&view=economica`; la vista operativa resta circa `1,33 s`.
+- Prova visiva reale locale desktop `1365x768`: `/fascicoli?vista=economica` carica senza login, overlay, errori console o overflow orizzontale. Il fascicolo `RG 466/2023` mantiene `Prossima scad. 10/03/2026`, contributo `€ 98,00`, spese/esborsi `€ 125,00`, liquidazione `€ 1.500,00` e parcella `€ 2.028,20`.
+- Prova visiva reale locale mobile `390x844`: `/fascicoli/DC5BF1DB#documenti`, scroll fino a `Documenti e atti`, click reale su `Anteprima interna`, modal `Lettore documento` con iframe interno `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`, pagina 1 e pagina 2 renderizzate come immagini. Verifica diretta del viewer: `3` immagini, `2` già caricate nel primo viewport, zero overflow orizzontale e zero errori console.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile pct\fascicolo_document_catalog.py web\services\react_fascicoli_bridge.py web\blueprints\api_v1_react.py web\services\storage_runtime.py` -> passato.
+- `python -m pytest -q tests/test_storage_strategy.py::test_sqlite_runtime_seed_check_usa_immutable_se_readonly_fallisce tests/test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_db_core_ha_fascicoli tests/test_react_shell.py::test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_riusa_cache_extracted_files tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_non_scansiona_fallback_se_repo_ha_testi tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_fallback_limitato_al_fascicolo` -> passato.
+- `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_polisweb.py::test_visualizza_documento_pdf_mobile_renderizza_pagine_png` -> passato.
+- `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py` -> passato.
+- `python -m pytest -q tests/test_utf8_integrity.py` -> passato.
+- `npm --prefix frontend run typecheck` -> passato.
+- `python tools/codex_harness/run_codex_quality_gate.py --mode ui-support` -> non applicabile come verde di prodotto: il gate ha bloccato correttamente file prodotto in `web/`, `pct/`, `frontend/` e `tests/` perché non è una patch di solo supporto UI. Lo stato positivo viene quindi fondato sui gate applicativi sopra e sulle prove reali.

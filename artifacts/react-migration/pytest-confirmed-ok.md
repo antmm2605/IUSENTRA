@@ -6179,3 +6179,21 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | `4/4` passati dopo changelog/report. |
 | `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI valido dopo bump versione. |
 | Prova visiva locale Docker `127.0.0.1:8080` | OK osservato | Fascicolo `DC5BF1DB`, versione `2.253.161`: `Deseleziona tutto` porta la selezione da `18` a `0`; `Invia tutto` a `20`; `Ripristina proposta` a `18`; `Salva classificazione` HTTP `200`, hover/focus blu con testo bianco. Cambi tipo verificati: Citazione `8`, Memoria 183 `4`, Cassazione `9`, UNEP `6`; desktop/tablet/mobile senza overflow orizzontale. |
+
+## Fascicoli economica automatica e lettore mobile - 2026-07-06
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile pct\fascicolo_document_catalog.py web\services\react_fascicoli_bridge.py web\blueprints\api_v1_react.py web\services\storage_runtime.py` | OK | Sintassi confermata su catalogo Document AI, bridge fascicoli React, API e runtime storage. |
+| `python -m pytest -q tests/test_storage_strategy.py::test_sqlite_runtime_seed_check_usa_immutable_se_readonly_fallisce tests/test_storage_strategy.py::test_sqlite_runtime_non_rilancia_migrazione_se_db_core_ha_fascicoli tests/test_react_shell.py::test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_riusa_cache_extracted_files tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_non_scansiona_fallback_se_repo_ha_testi tests/test_fascicolo_document_catalog.py::test_document_ai_texts_for_catalog_fallback_limitato_al_fascicolo` | OK | `8/8` passati: niente Document AI automatico sulla vista operativa; evidenze economiche/scadenza automatiche presenti; fallback OCR non parte se repository/SQL hanno già i testi; fallback limitato al singolo fascicolo. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_polisweb.py::test_visualizza_documento_pdf_mobile_renderizza_pagine_png` | OK | `2/2` passati: shell fascicoli React e viewer mobile PNG. |
+| `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py` | OK | `11/11` passati: runtime sentenze economiche e pannello React. |
+| `python -m pytest -q tests/test_utf8_integrity.py` | OK | `4/4` passati. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript React completato senza errori. |
+| `docker compose build --no-cache app` + `docker compose up -d --force-recreate app scheduler-worker ocr-worker` | OK | Build finale no-cache `2.253.181`; app, scheduler e OCR healthy. |
+| `http://127.0.0.1:8080/api/pronto` | OK | `versione=2.253.181`, timezone `Europe/Rome`. |
+| Misura HTTP locale `/api/v1/ui/fascicoli?...view=economica` | OK | Vista operativa circa `1,50 s`; vista economica circa `2,05 s` sulla build finale. |
+| Prova visiva locale desktop `/fascicoli?vista=economica` | OK osservato | `RG 466/2023` popolato automaticamente: scadenza `10/03/2026`, contributo `€ 98,00`, spese `€ 125,00`, liquidazione `€ 1.500,00`, parcella `€ 2.028,20`; zero errori console e zero overflow orizzontale. |
+| Prova visiva locale mobile viewer documento | OK osservato | `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`: `3` immagini, prime `2` caricate e visibili nel viewport, zero errori console e zero overflow. |
+| Prova visiva mobile PEC | OK osservato | `/email/`: elenco PEC visibile, click su messaggio reale, pannello `Lettura email` aperto con comando `Elenco`, dati PEC/allegati e zero overflow. |
+| Prova visiva desktop clienti | OK osservato | `/clienti`: icone `Apri scheda cliente`, `Modifica cliente`, `Apri cartella cliente`, `Elimina cliente` uniformi `34x34`, zero overflow orizzontale. |

@@ -5574,6 +5574,7 @@ def fascicoli_react_list():
         status_filter=request.args.get("status", ""),
         court=request.args.get("court", ""),
         sort=request.args.get("sort", "rg"),
+        view=request.args.get("view", "") or request.args.get("vista", ""),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
         payment_filters={

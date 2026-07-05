@@ -5077,7 +5077,7 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     monkeypatch.setattr(
         bridge,
         "_document_ai_texts_for_fascicolo",
-        lambda item: {
+        lambda item, documents=None: {
             ricevuta.id: (
                 "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
                 "Tipo pagamento: Contributo unificato. "
@@ -5092,7 +5092,7 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
         else {},
     )
 
-    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
@@ -5105,6 +5105,99 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     assert contributo["importoLabel"] == "€ 21,50"
     assert contributo["dataPagamento"] == "12/05/2026"
     assert contributo["documentoFonte"] == "ricevuta_pagopa_contributo_unificato.pdf"
+
+
+def test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.nuovo(
+        "Lista veloce c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Lista Veloce",
+        tribunale="Tribunale di Torino",
+        numero_rg="4001",
+        anno_rg=2026,
+        oggetto="Retribuzione",
+    )
+
+    def fail_document_ai(item):
+        raise AssertionError(f"Document AI non deve partire nella vista operativa: {getattr(item, 'id', '')}")
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", fail_document_ai)
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert any(row["title"] == "Lista veloce c. MIM" for row in payload["items"])
+
+
+def test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale(tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Candidati mirati c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Candidati Mirati",
+        tribunale="Tribunale di Torino",
+        numero_rg="4100",
+        anno_rg=2026,
+    )
+    for index in range(15):
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            f"allegato_generico_{index:02d}.pdf",
+            TipoDocumento.ALLEGATO,
+            b"%PDF-1.4\nallegato\n%%EOF",
+        )
+    deposito = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Ricevuta deposito PCT.pdf",
+        TipoDocumento.DEPOSITO_PCT,
+        b"%PDF-1.4\ndeposito\n%%EOF",
+    )
+    sentenza = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "SentenzaDefinitiva_33581101.pdf.p7m",
+        TipoDocumento.SENTENZA,
+        b"%PDF-1.4\nsentenza\n%%EOF",
+    )
+    decreto = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.pdf",
+        TipoDocumento.DECRETO,
+        b"%PDF-1.4\ndecreto\n%%EOF",
+    )
+
+    payment_candidates = bridge._document_candidates_for_hints(
+        fascicolo,
+        lambda text, metadata: bridge._document_may_contain_contributo_unificato(text, metadata)
+        or bridge._document_may_contain_sentenza_economica(text, metadata),
+        metadata_matcher=lambda metadata: bridge._document_metadata_may_contain_contributo_unificato(metadata)
+        or bridge._document_metadata_may_contain_sentenza_economica(metadata),
+    )
+    deadline_candidates = bridge._document_candidates_for_hints(
+        fascicolo,
+        bridge._document_may_contain_procedural_deadline,
+        metadata_matcher=bridge._document_metadata_may_contain_procedural_deadline,
+    )
+
+    assert {doc.id for doc in payment_candidates} == {deposito.id, sentenza.id}
+    assert {doc.id for doc in deadline_candidates} == {decreto.id}
 
 
 def test_react_fascicoli_non_collega_rg_ambiguo_senza_cliente_o_parte(tmp_path: Path):

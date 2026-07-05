@@ -18,6 +18,10 @@ def _fasc():
                            tribunale="Tribunale di Milano", controparte="Beta S.r.l.", valore_causa=3000.0)
 
 
+def _sentenza_doc():
+    return SimpleNamespace(id="D1", nome="sentenza-tribunale.pdf", tipo="SENTENZA", hash_sha256="hash-sentenza")
+
+
 def test_bridge_helper_espone_gli_importi_liquidati(monkeypatch):
     monkeypatch.setattr(runtime, "build_sentenza_economic_payload", lambda fid="": {
         "ok": True,
@@ -71,3 +75,49 @@ def test_prova_reale_gli_importi_arrivano_dal_repository(monkeypatch, tmp_path):
     monkeypatch.setattr(runtime, "build_sentenza_economic_payload", lambda fid="": payload)
     block = bridge._sentenze_economiche("F1")
     assert block["totals"]["spese_liquidate_totale"] == 4200.0
+
+
+def test_payload_auto_analizza_documenti_sentenza_non_ancora_letti(monkeypatch, tmp_path):
+    repo = SentenzaEconomicRepository(tmp_path / "se.db")
+    fascicolo = _fasc()
+    fascicolo.documenti = [_sentenza_doc()]
+    monkeypatch.setattr(runtime, "_flag_on", lambda: True)
+    monkeypatch.setattr(runtime, "_tenant_id", lambda: "studio-a")
+    monkeypatch.setattr(runtime, "_repo", lambda: repo)
+    monkeypatch.setattr(runtime, "_resolve_fascicolo", lambda fid: fascicolo if fid == "F1" else None)
+    monkeypatch.setattr(runtime, "_document_texts_for_fascicolo", lambda _fascicolo, _tenant_id: {"D1": SENT_DISTRAZIONE})
+
+    payload = runtime.build_sentenza_economic_payload("F1")
+    assert payload["ok"] is True
+    assert payload["autoAnalysis"]["analyzed"] == 1
+    assert payload["summary"]["totals"]["sentenze_lette"] == 1
+
+    second = runtime.build_sentenza_economic_payload("F1")
+    assert second["autoAnalysis"]["analyzed"] == 0
+    assert second["autoAnalysis"]["skipped"] == 1
+    assert second["summary"]["totals"]["sentenze_lette"] == 1
+
+
+def test_payload_auto_analizza_tutte_le_sentenze_candidate_senza_limite_fisso(monkeypatch, tmp_path):
+    repo = SentenzaEconomicRepository(tmp_path / "se.db")
+    fascicolo = _fasc()
+    fascicolo.documenti = [
+        SimpleNamespace(id=f"D{index}", nome=f"sentenza-{index}.pdf", tipo="SENTENZA", hash_sha256=f"hash-{index}")
+        for index in range(10)
+    ]
+    monkeypatch.setattr(runtime, "_flag_on", lambda: True)
+    monkeypatch.setattr(runtime, "_tenant_id", lambda: "studio-a")
+    monkeypatch.setattr(runtime, "_repo", lambda: repo)
+    monkeypatch.setattr(runtime, "_resolve_fascicolo", lambda fid: fascicolo if fid == "F1" else None)
+    monkeypatch.setattr(
+        runtime,
+        "_document_texts_for_fascicolo",
+        lambda _fascicolo, _tenant_id: {f"D{index}": SENT_DISTRAZIONE for index in range(10)},
+    )
+
+    payload = runtime.build_sentenza_economic_payload("F1")
+
+    assert payload["ok"] is True
+    assert payload["autoAnalysis"]["candidates"] == 10
+    assert payload["autoAnalysis"]["analyzed"] == 10
+    assert payload["summary"]["totals"]["sentenze_lette"] == 10

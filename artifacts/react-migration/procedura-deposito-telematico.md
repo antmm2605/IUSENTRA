@@ -1,6 +1,31 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-06-29.
+Aggiornato: 2026-07-05.
+
+## Aggiornamento 2026-07-05 - Clienti, soggetti, sentenze economiche, email mobile e lettore documenti
+
+Richiesta utente: correggere il salvataggio reale del cliente `FBA5C7FF` su produzione, introdurre suggerimento Comune con CAP/provincia per clienti e soggetti, far leggere automaticamente al fascicolo le sentenze utili al controllo economico, migliorare lettura email PEC/ordinaria su tablet/mobile e rendere fruibile l'anteprima documenti su mobile.
+
+Modifiche applicate nel codice locale:
+
+- `frontend/src/formSubmit.ts` ora considera errore operativo ogni risposta non JSON o redirect a login durante i salvataggi AJAX, impedendo il falso messaggio `salvato` quando la sessione è scaduta o il server risponde HTML;
+- `web/services/territorio_forms.py`, `web/bootstrap/clienti_routes.py` e `web/bootstrap/soggetti_routes.py` normalizzano Comune, CAP e provincia lato server usando il database territoriale condiviso;
+- `frontend/src/components/NuovoClientePage.tsx` usa autocomplete Comuni anche in modifica cliente/soggetto e compila automaticamente CAP/provincia;
+- il runtime `web/services/sentenza_economic_runtime.py` legge i documenti candidati del fascicolo tramite Document AI/OCR/search index, senza limite fisso sui primi documenti, e salva audit/eventi economici quando trova sentenze, ordinanze, decreti o provvedimenti rilevanti;
+- `frontend/src/components/EmailPecPage.tsx` e CSS mostrano su tablet/mobile l'elenco come vista primaria e aprono la email selezionata in un pannello `Lettura email`;
+- `frontend/src/components/FascicoliPage.tsx` e CSS rendono l'anteprima documento un `Lettore documento` mobile/tablet a viewport pieno controllato.
+
+Guardrail automatici eseguiti:
+
+- `npm --prefix frontend run typecheck` -> passato;
+- `python -m pytest -q tests/test_react_shell.py::test_react_comunicazioni_email_messaggi_collegate_nav_e_shell tests/test_react_shell.py::test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf tests/test_react_shell.py::test_submit_form_json_non_accetta_html_come_successo tests/test_react_shell.py::test_post_modifica_cliente_json_normalizza_comune_e_persiste tests/test_react_shell.py::test_post_modifica_soggetto_json_normalizza_comune_e_persiste tests/test_territorio_italia.py tests/test_clienti.py::test_cliente_from_dict_accetta_alias_recapiti_legacy` -> passato;
+- `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py` -> passato.
+
+Stato verifica:
+
+- diagnosi produzione in sola lettura completata: la scheda `FBA5C7FF` esiste nel tenant SQLite Montagnese, ma il browser integrato non era autenticato e la rotta produzione ha reindirizzato a `/login`;
+- non verificato su macchina reale autenticata e non ancora verificato su `https://app.iusentra.it` dopo deploy;
+- il lavoro resta aperto finché produzione, locale `127.0.0.1:8080`, GitHub e Hetzner non risultano sullo stesso commit con prova visiva reale su cliente, soggetti, sentenze economiche, email responsive e lettore documenti.
 
 ## Aggiornamento 2026-06-29 - Prova produzione fascicolo 795C50AC e Local Signer
 

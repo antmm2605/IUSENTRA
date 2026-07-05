@@ -3056,7 +3056,10 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
     <div className="iu-fas-preview-modal" role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
       <div className="iu-fas-preview-modal__box">
         <header>
-          <div><Eye size={16}/><strong>{preview.name}</strong></div>
+          <div className="iu-fas-preview-modal__title">
+            <span><Eye size={14}/> Lettore documento</span>
+            <strong>{preview.name}</strong>
+          </div>
           <nav>
             <a href={preview.downloadUrl}><Download size={15}/> Scarica</a>
             <button type="button" onClick={onClose} aria-label="Chiudi anteprima">Chiudi</button>

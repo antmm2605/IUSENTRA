@@ -27,7 +27,7 @@
 .iu-cln-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,390px);gap:16px;align-items:start}
 .iu-cln-main,.iu-cln-rail{min-width:0}
 .iu-cln-form{display:grid;gap:14px}
-.iu-cln-card{border:1px solid var(--iu-border);border-radius:18px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);overflow:hidden}
+.iu-cln-card{border:1px solid var(--iu-border);border-radius:18px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);overflow:visible}
 .iu-cln-card__head{min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px;border-bottom:1px solid var(--iu-border);background:linear-gradient(180deg,#ffffff,#f8fafc)}
 .iu-cln-card__head>div{display:flex;align-items:center;gap:10px;color:#111827;font-size:14px;font-weight:950}
 .iu-cln-card__head svg{color:var(--iu-blue-600)}
@@ -43,6 +43,12 @@
 .iu-cln-field textarea{min-height:92px;padding-top:10px;resize:vertical}
 .iu-cln-field input:focus,.iu-cln-field select:focus,.iu-cln-field textarea:focus{border-color:rgba(37,99,235,.45);box-shadow:0 0 0 4px rgba(37,99,235,.10)}
 .iu-cln-field.is-mono input,.iu-cln-field input[name*="codice"],.iu-cln-field input[name*="partita"],.iu-cln-field input[name*="provincia"]{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;text-transform:uppercase}
+.iu-cln-comune-field{z-index:5}
+.iu-cln-comune-suggestions{position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;display:grid;gap:4px;max-height:240px;overflow:auto;padding:6px;border:1px solid rgba(37,99,235,.22);border-radius:12px;background:#fff;box-shadow:0 18px 44px rgba(15,23,42,.16)}
+.iu-cln-comune-suggestions button{width:100%;display:grid;gap:2px;padding:9px 10px;border:0;border-radius:9px;background:#fff;color:#0f172a;text-align:left;cursor:pointer}
+.iu-cln-comune-suggestions button:hover,.iu-cln-comune-suggestions button:focus{background:#eff6ff;outline:none}
+.iu-cln-comune-suggestions strong{font-size:13px;font-weight:950}
+.iu-cln-comune-suggestions small,.iu-cln-comune-suggestions__status{color:var(--iu-slate-500);font-size:12px;font-weight:800}
 .iu-cln-field-note{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border-radius:12px;background:rgba(37,99,235,.10);color:#1d4ed8;font-size:12px;font-weight:850}
 .iu-cln-mini-action{position:absolute;right:7px;bottom:7px;min-height:28px;border:1px solid rgba(37,99,235,.22);border-radius:9px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:950;cursor:pointer}
 

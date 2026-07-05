@@ -40,6 +40,13 @@ type ClientType = 'PERSONA_FISICA' | 'PERSONA_GIURIDICA'
 type ClientFormState = Record<string, string | boolean>
 type SubjectFormState = Record<string, string>
 type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
+type ComuneOption = {
+  nome: string
+  label: string
+  cap: string[]
+  siglaProvincia: string
+  provincia: string
+}
 
 const subjectLegalTypes = new Set(['PERSONA_GIURIDICA', 'PUBBLICA_AMMINISTRAZIONE', 'ENTE', 'CONDOMINIO', 'ASSOCIAZIONE'])
 
@@ -665,6 +672,121 @@ function SelectField({
   )
 }
 
+function comuneKey(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '').toLowerCase()
+}
+
+function ComuneAutocompleteField({
+  label,
+  name,
+  capName,
+  provinciaName,
+  value,
+  capValue,
+  onChange,
+}:{
+  label: string
+  name: string
+  capName: string
+  provinciaName: string
+  value: string
+  capValue: string
+  onChange: (name: string, value: string) => void
+}) {
+  const [items, setItems] = useState<ComuneOption[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const query = text(value)
+    if (comuneKey(query).length < 2) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setLoading(true)
+      fetch(`/api/v1/ui/territorio/comuni?q=${encodeURIComponent(query)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
+        .then((payload) => {
+          const rawItems = Array.isArray(payload?.items) ? payload.items : []
+          setItems(rawItems.map((item: Record<string, unknown>) => ({
+            nome: text(item.nome),
+            label: text(item.label),
+            cap: Array.isArray(item.cap) ? item.cap.map((capItem) => text(capItem)).filter(Boolean) : [],
+            siglaProvincia: text(item.siglaProvincia).toUpperCase(),
+            provincia: text(item.provincia),
+          })).filter((item: ComuneOption) => item.nome && item.siglaProvincia))
+        })
+        .catch((error) => {
+          if ((error as Error).name !== 'AbortError') setItems([])
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false)
+        })
+    }, 180)
+    return () => {
+      controller.abort()
+      window.clearTimeout(timer)
+    }
+  }, [value])
+
+  const applyComune = (option: ComuneOption) => {
+    const selectedCap = option.cap.includes(capValue) ? capValue : option.cap[0] || capValue
+    onChange(name, option.nome)
+    onChange(provinciaName, option.siglaProvincia)
+    onChange(capName, selectedCap)
+    setOpen(false)
+  }
+
+  const applyExactIfPresent = () => {
+    const key = comuneKey(value)
+    const exact = items.find((item) => comuneKey(item.nome) === key || comuneKey(item.label) === key)
+    if (exact) applyComune(exact)
+  }
+
+  return (
+    <label className="iu-cln-field iu-cln-comune-field">
+      <span>{label}</span>
+      <input
+        name={name}
+        type="text"
+        value={value}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open && items.length > 0}
+        aria-autocomplete="list"
+        placeholder="Scrivi il Comune"
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => {
+          applyExactIfPresent()
+          setOpen(false)
+        }, 120)}
+        onChange={(event) => {
+          onChange(name, event.currentTarget.value)
+          setOpen(true)
+        }}
+      />
+      {open && (items.length > 0 || loading) ? (
+        <div className="iu-cln-comune-suggestions" role="listbox">
+          {loading ? <span className="iu-cln-comune-suggestions__status">Ricerca Comuni...</span> : null}
+          {items.map((item) => (
+            <button type="button" role="option" key={`${item.nome}-${item.siglaProvincia}`} onMouseDown={(event) => event.preventDefault()} onClick={() => applyComune(item)}>
+              <strong>{item.label || `${item.nome} (${item.siglaProvincia})`}</strong>
+              <small>{item.cap[0] || 'CAP non disponibile'} - {item.provincia}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </label>
+  )
+}
+
 function ChoiceGrid({
   name,
   value,
@@ -989,7 +1111,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       next.add(name)
       return next
     })
-    setValues((current) => ({...current, [name]: name.includes('codice') || name.includes('partita') || name === 'provincia_nascita' ? value.toUpperCase() : value}))
+    setValues((current) => ({...current, [name]: name.includes('codice') || name.includes('partita') || name.includes('provincia') ? value.toUpperCase() : value}))
   }
   const checkbox = (event: ChangeEvent<HTMLInputElement>) => {
     setValues((current) => ({...current, [event.currentTarget.name]: event.currentTarget.checked}))
@@ -1082,13 +1204,30 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
           <Field label={isPhysical ? 'Via residenza' : 'Via sede'} name={isPhysical ? 'via' : 'sl_via'} value={asInputValue(values[isPhysical ? 'via' : 'sl_via'])} onChange={change}/>
           <Field label="Civico" name={isPhysical ? 'civico' : 'sl_civico'} value={asInputValue(values[isPhysical ? 'civico' : 'sl_civico'])} onChange={change}/>
           <Field label="CAP" name={isPhysical ? 'cap' : 'sl_cap'} value={asInputValue(values[isPhysical ? 'cap' : 'sl_cap'])} onChange={change}/>
-          <Field label="Comune" name={isPhysical ? 'comune' : 'sl_comune'} value={asInputValue(values[isPhysical ? 'comune' : 'sl_comune'])} onChange={change}/>
+          <ComuneAutocompleteField
+            label="Comune"
+            name={isPhysical ? 'comune' : 'sl_comune'}
+            capName={isPhysical ? 'cap' : 'sl_cap'}
+            provinciaName={isPhysical ? 'provincia' : 'sl_provincia'}
+            value={asInputValue(values[isPhysical ? 'comune' : 'sl_comune'])}
+            capValue={asInputValue(values[isPhysical ? 'cap' : 'sl_cap'])}
+            onChange={change}
+          />
           <Field label="Provincia" name={isPhysical ? 'provincia' : 'sl_provincia'} value={asInputValue(values[isPhysical ? 'provincia' : 'sl_provincia'])} mono onChange={change}/>
           <Field label="Nazione" name={isPhysical ? 'nazione' : 'sl_nazione'} value={asInputValue(values[isPhysical ? 'nazione' : 'sl_nazione'])} onChange={change}/>
           {isPhysical ? (
             <>
               <Field label="Domicilio via" name="dom_via" value={asInputValue(values.dom_via)} onChange={change}/>
-              <Field label="Domicilio comune" name="dom_comune" value={asInputValue(values.dom_comune)} onChange={change}/>
+              <Field label="Domicilio CAP" name="dom_cap" value={asInputValue(values.dom_cap)} onChange={change}/>
+              <ComuneAutocompleteField
+                label="Domicilio comune"
+                name="dom_comune"
+                capName="dom_cap"
+                provinciaName="dom_provincia"
+                value={asInputValue(values.dom_comune)}
+                capValue={asInputValue(values.dom_cap)}
+                onChange={change}
+              />
               <Field label="Domicilio provincia" name="dom_provincia" value={asInputValue(values.dom_provincia)} mono onChange={change}/>
             </>
           ) : null}
@@ -1455,7 +1594,15 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
           <Field label="Via" name="via" value={values.via} onChange={change}/>
           <Field label="Civico" name="civico" value={values.civico} onChange={change}/>
           <Field label="CAP" name="cap" value={values.cap} onChange={change}/>
-          <Field label="Comune" name="comune" value={values.comune} onChange={change}/>
+          <ComuneAutocompleteField
+            label="Comune"
+            name="comune"
+            capName="cap"
+            provinciaName="provincia"
+            value={values.comune}
+            capValue={values.cap}
+            onChange={change}
+          />
           <Field label="Provincia" name="provincia" value={values.provincia} mono onChange={change}/>
           <Field label="Nazione" name="nazione" value={values.nazione} onChange={change}/>
           <TextAreaField label="Note" name="note" value={values.note} onChange={change}/>

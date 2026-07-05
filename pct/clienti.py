@@ -252,7 +252,12 @@ class Cliente:
                 d[f_name] = f_cls(**d[f_name])
 
         if isinstance(d.get("recapiti"), dict):
-            d["recapiti"] = Recapiti(**d["recapiti"])
+            rec = dict(d["recapiti"])
+            if "email" not in rec and "email_principale" in rec:
+                rec["email"] = rec.get("email_principale", "")
+            if "telefono" not in rec and "telefono_principale" in rec:
+                rec["telefono"] = rec.get("telefono_principale", "")
+            d["recapiti"] = Recapiti(**{k: v for k, v in rec.items() if k in Recapiti.__dataclass_fields__})
 
         if isinstance(d.get("documento"), dict):
             doc = dict(d["documento"])
@@ -332,8 +337,8 @@ class GestioneClienti:
                     c.id, c.tipo.value, c.stato.value,
                     c.cognome, c.nome, c.ragione_sociale,
                     c.codice_fiscale, c.partita_iva,
-                    rec.get("email_principale", "") if isinstance(rec, dict) else "",
-                    rec.get("telefono_principale", "") if isinstance(rec, dict) else "",
+                    rec.get("email", "") if isinstance(rec, dict) else "",
+                    rec.get("telefono", "") if isinstance(rec, dict) else "",
                     c.note, c.creato_il,
                     __import__("datetime").datetime.now().isoformat(),
                     _json.dumps(d, ensure_ascii=False),

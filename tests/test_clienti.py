@@ -206,6 +206,20 @@ def test_aggiorna_recapiti(gc, persona_fisica):
     assert c.recapiti.pec == "mario.rossi@pec.it"
 
 
+def test_cliente_from_dict_accetta_alias_recapiti_legacy():
+    cliente = Cliente.from_dict({
+        "id": "CLILEG01",
+        "tipo": "PERSONA_FISICA",
+        "stato": "ATTIVO",
+        "nome": "Mario",
+        "cognome": "Rossi",
+        "recapiti": {"email_principale": "mario@example.it", "telefono_principale": "3330000000"},
+    })
+
+    assert cliente.recapiti.email == "mario@example.it"
+    assert cliente.recapiti.telefono == "3330000000"
+
+
 def test_aggiorna_indirizzo(gc, persona_fisica):
     c = gc.aggiorna_indirizzo(
         persona_fisica.id,

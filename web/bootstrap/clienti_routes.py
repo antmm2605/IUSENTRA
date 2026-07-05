@@ -11,6 +11,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, TipoDocumento as TipoDocumentoCliente
 from pct.condivisione import RuoloCondivisione
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.territorio_forms import address_fields_from_form
 
 
 def _text(value: Any) -> str:
@@ -108,16 +109,7 @@ def _richiede_json() -> bool:
 
 
 def _salva_indirizzo(gc: Any, id_cliente: str, tipo: str, form: Any, prefix: str = "") -> None:
-    gc.aggiorna_indirizzo(
-        id_cliente,
-        tipo,
-        via=form.get(f"{prefix}via", ""),
-        civico=form.get(f"{prefix}civico", ""),
-        cap=form.get(f"{prefix}cap", ""),
-        comune=form.get(f"{prefix}comune", ""),
-        provincia=form.get(f"{prefix}provincia", ""),
-        nazione=form.get(f"{prefix}nazione", "Italia"),
-    )
+    gc.aggiorna_indirizzo(id_cliente, tipo, **address_fields_from_form(form, prefix))
 
 
 def register_clienti_routes(
@@ -304,9 +296,13 @@ def register_clienti_routes(
         gc = get_clienti()
         cliente = gc.get(id_cliente)
         if not cliente:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Cliente non trovato."}), 404
             flash("Cliente non trovato.", "warning")
             return redirect(url_for("lista_clienti"))
         if not cliente_accessibile(id_cliente, RuoloCondivisione.SCRITTURA):
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Non hai permesso di modificare questa cartella cliente."}), 403
             flash("Non hai permesso di modificare questa cartella cliente.", "danger")
             return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
         if request.method == "GET" and not _richiede_vista_legacy():

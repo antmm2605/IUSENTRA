@@ -20,6 +20,7 @@ from pct.privacy import GestioneTrattamenti
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
+from pct.storage import StudioDB
 from tests.test_applicazioni import _crea_operatore, _login
 from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
@@ -1158,6 +1159,7 @@ def test_react_api_bootstrap_espone_flag_primo_blocco_ufficiale(tmp_path: Path):
 def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
+    email_css = Path("frontend/src/components/EmailPecPage.css").read_text(encoding="utf-8")
     email_data = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
     messaggi_page = Path("frontend/src/components/MessaggiPage.tsx").read_text(encoding="utf-8")
     messaggi_data = Path("frontend/src/messaggiData.ts").read_text(encoding="utf-8")
@@ -1177,6 +1179,11 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "Casella email ordinaria dello studio" in email_page
     assert "Cartelle PEC" in email_page
     assert "Cartelle email ordinaria" in email_page
+    assert "mobileReaderOpen" in email_page
+    assert "Lettura email" in email_page
+    assert "iu-mail-reader-pane" in email_page
+    assert ".iu-mail-reader-pane.is-open" in email_css
+    assert "@media(max-width:1120px)" in email_css
     assert "getEmailPecPage" in email_data
     assert "getEmailOrdinariaPage" in email_data
     assert "/api/v1/ui/email" in email_data
@@ -5387,6 +5394,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-office-card__contacts" in css
     assert ".iu-fas-command-bar" in css
     assert ".iu-fas-preview-modal" in css
+    assert "Lettore documento" in page_source
+    assert ".iu-fas-preview-modal__title" in css
+    assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source
     assert "const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'" in page_source
     assert "const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'" in page_source
@@ -6444,6 +6454,10 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "data.actions.documentReader" in new_page
     assert "target === 'data_nascita'" in new_page
     assert "doc_data_scadenza" in new_page
+    assert "ComuneAutocompleteField" in new_page
+    assert "/api/v1/ui/territorio/comuni" in new_page
+    assert 'name="dom_cap"' in new_page
+    assert ".iu-cln-comune-suggestions" in new_css
     assert 'name="provincia_nascita"' in new_page
     assert 'name="crea_preventivo_iniziale"' in new_page
     assert 'name="qualifica"' in new_page
@@ -6467,6 +6481,98 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert ".iu-sogg-table" in soggetti_css
     assert "@media(max-width:760px)" in new_css
     assert "@media(max-width:760px)" in soggetti_css
+
+
+def test_submit_form_json_non_accetta_html_come_successo():
+    source = Path("frontend/src/formSubmit.ts").read_text(encoding="utf-8")
+
+    assert "if (!contentType.includes('application/json'))" in source
+    assert "Sessione scaduta" in source
+    assert "Il server non ha confermato il salvataggio in formato JSON" in source
+
+
+def test_post_modifica_cliente_json_normalizza_comune_e_persiste(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+
+    headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/clienti/{cliente.id}/modifica",
+            data={
+                "nome": "Mario",
+                "cognome": "Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "comune": "Maddaloni",
+                "cap": "",
+                "provincia": "",
+                "nazione": "Italia",
+            },
+            headers=headers,
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    repo = GestioneClienti(db_path=app.config["CLIENTI_DB"], studio_db=StudioDB.get(str(tmp_path / "studio.db")))
+    salvato = repo.get(cliente.id)
+    assert salvato is not None
+    assert salvato.indirizzo_residenza.comune == "Maddaloni"
+    assert salvato.indirizzo_residenza.provincia == "CE"
+    assert salvato.indirizzo_residenza.cap == "81024"
+
+
+def test_post_modifica_soggetto_json_normalizza_comune_e_persiste(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    repo = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    soggetto = repo.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Luigi",
+        cognome="Bianchi",
+        codice_fiscale="BNCLGU80A01H501B",
+        qualifica="CONTROPARTE",
+    )
+
+    headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/soggetti/{soggetto.id}/modifica",
+            data={
+                "tipo": TipoSoggetto.PERSONA_FISICA.value,
+                "nome": "Luigi",
+                "cognome": "Bianchi",
+                "codice_fiscale": "BNCLGU80A01H501B",
+                "qualifica": "CONTROPARTE",
+                "comune": "Maddaloni",
+                "cap": "",
+                "provincia": "",
+                "nazione": "Italia",
+            },
+            headers=headers,
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    saved_repo = GestioneSoggetti(
+        app.config["SOGGETTI_DB"],
+        app.config["SOGGETTI_PARTI_DB"],
+        studio_db=StudioDB.get(str(tmp_path / "studio.db")),
+    )
+    salvato = saved_repo.get(soggetto.id)
+    assert salvato is not None
+    assert salvato.indirizzo.comune == "Maddaloni"
+    assert salvato.indirizzo.provincia == "CE"
+    assert salvato.indirizzo.cap == "81024"
 
 
 def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path):

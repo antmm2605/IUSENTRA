@@ -369,6 +369,12 @@
   gap:14px;
   align-items:stretch;
 }
+.iu-mail-reader-pane{
+  min-width:0;
+}
+.iu-mail-reader-pane__bar{
+  display:none;
+}
 .iu-mail-list-card,
 .iu-mail-preview-card,
 .iu-mail-inspector .iu-panel{
@@ -1933,6 +1939,64 @@
   .iu-mail-toolbar{grid-template-columns:1fr auto auto}
   .iu-mail-folders{grid-column:1 / -1;overflow:auto}
   .iu-mail-layout{grid-template-columns:1fr}
+  .iu-mail-reader-pane{display:none}
+  .iu-mail-reader-pane.is-open{
+    position:fixed;
+    inset:64px 14px 18px;
+    z-index:1090;
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    overflow:hidden;
+    border:1px solid rgba(148,163,184,.34);
+    border-radius:16px;
+    background:#fff;
+    box-shadow:0 24px 90px rgba(15,23,42,.28);
+  }
+  .iu-mail-reader-pane__bar{
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:0 12px;
+    border-bottom:1px solid var(--iu-border);
+    background:#fff;
+  }
+  .iu-mail-reader-pane__bar button{
+    min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    border:1px solid var(--iu-border);
+    border-radius:10px;
+    background:#fff;
+    color:#0f172a;
+    padding:0 11px;
+    font-size:12px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .iu-mail-reader-pane__bar button:hover,
+  .iu-mail-reader-pane__bar button:focus-visible{
+    border-color:rgba(37,99,235,.28);
+    background:#eff6ff;
+    outline:0;
+  }
+  .iu-mail-reader-pane__bar span{
+    color:#0f172a;
+    font-size:12px;
+    font-weight:950;
+  }
+  .iu-mail-reader-pane.is-open .iu-mail-preview-card,
+  .iu-mail-reader-pane.is-open .iu-mail-preview-empty{
+    min-height:0;
+    height:auto;
+    overflow:auto;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+  }
   .iu-mail-list-card,
   .iu-mail-preview-card,
   .iu-mail-preview-empty{height:auto;min-height:auto}
@@ -1966,6 +2030,7 @@
   .iu-mail-auto-notice{grid-template-columns:auto 1fr}
   .iu-mail-auto-notice__actions{grid-column:1 / -1;width:100%;justify-content:stretch}
   .iu-mail-auto-notice__actions button{flex:1 1 150px}
+  .iu-mail-reader-pane.is-open{inset:58px 8px 78px;border-radius:14px}
   .iu-mail-list-card,.iu-mail-preview-card{border-radius:14px}
   .iu-mail-list-card>header{min-height:48px;padding:0 11px}
   .iu-mail-list{padding:6px}

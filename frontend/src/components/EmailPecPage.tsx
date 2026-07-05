@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   Archive,
   CheckCircle2,
   ChevronDown,
@@ -1445,6 +1446,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
   const [presidioWorking, setPresidioWorking] = useState(false)
+  const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
@@ -1497,12 +1499,14 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
 
   const selectMessage = (id: string) => {
     setSelectedId(id)
+    setMobileReaderOpen(true)
     writeMailboxSelection(mode, folder, id)
   }
 
   const changeFolder = (nextFolder: EmailFolder) => {
     setFolder(nextFolder)
     setSelectedId('')
+    setMobileReaderOpen(false)
     writeMailboxSelection(mode, nextFolder, '')
   }
 
@@ -1715,7 +1719,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyPst} onChange={(event) => setOnlyPst(event.target.checked)} /><span>Solo PEC/PST</span></label> : null}
           <label className="iu-mail-check"><input type="checkbox" checked={onlyAttachments} onChange={(event) => setOnlyAttachments(event.target.checked)} /><span>Solo con allegati</span></label>
           {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyWarnings} onChange={(event) => setOnlyWarnings(event.target.checked)} /><span>Solo da presidiare</span></label> : null}
-          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setOnlyWarnings(false); setPctStatus(''); setQuery('') }}>Reset</button>
+          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setOnlyWarnings(false); setPctStatus(''); setQuery(''); setMobileReaderOpen(false) }}>Reset</button>
         </section>
       ) : null}
 
@@ -1773,7 +1777,15 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
             ) : null}
           </div>
         </div>
-        <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
+        <div className={`iu-mail-reader-pane${mobileReaderOpen ? ' is-open' : ''}`} aria-label="Lettura email selezionata">
+          <div className="iu-mail-reader-pane__bar">
+            <button type="button" onClick={() => setMobileReaderOpen(false)}>
+              <ArrowLeft size={15} /> Elenco
+            </button>
+            <span>Lettura email</span>
+          </div>
+          <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
+        </div>
         {mode === 'pec'
           ? <PecInspector data={data} rows={visible} selectedItem={selected} selectedAudit={selectedAudit} onAction={runAction} />
           : <OrdinaryInspector data={data} rows={visible} />}

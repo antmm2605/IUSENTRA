@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.179 - 2026-07-05
+
+- **Clienti e soggetti**: corretto il falso salvataggio quando la sessione restituisce HTML/login invece di JSON; i salvataggi AJAX ora falliscono con messaggio chiaro e non mostrano più conferme non persistite. Comune, CAP e provincia vengono normalizzati lato server e suggeriti lato React con compilazione automatica su cliente, sede/domicilio e soggetti/parti.
+- **Controllo economico sentenze**: la sezione del fascicolo avvia l'analisi automatica dei documenti candidati già indicizzati da Document AI/OCR, senza limite fisso sui primi documenti, e salva audit/eventi economici per spese liquidate, distrazione, art. 91/93 c.p.c. e contributo unificato da confermare.
+- **Email e documenti mobile**: PEC/email ordinaria su tablet/mobile mostrano prima l'elenco e aprono la email selezionata in un pannello di lettura; l'anteprima documenti del fascicolo è etichettata come lettore documento e occupa il viewport mobile con toolbar compatta.
+
 ## 2.253.178 - 2026-07-05
 
 - **Import pratiche Studio Telematico / Montagnese**: ripristinato il nome visibile dei documenti dalla descrizione del database Studio Telematico (`NOME_ATTO`/`Subject`), mantenendo il file fisico originale separato in `nome_originale`, `nome_archivio` e percorso su disco. Questo corregge la regressione in cui i documenti venivano mostrati come `2026...PDF` invece che, ad esempio, `Contratto 21-22`.

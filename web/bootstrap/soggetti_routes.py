@@ -9,6 +9,7 @@ from flask import Flask, abort, flash, jsonify, redirect, render_template, reque
 
 from pct.soggetti import RuoloSoggetto, TipoSoggetto
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.territorio_forms import address_fields_from_form
 
 
 def _richiede_vista_legacy() -> bool:
@@ -63,14 +64,7 @@ def register_soggetti_routes(
                 tipo = TipoSoggetto.PERSONA_FISICA
             from pct.clienti import Indirizzo, Recapiti
 
-            indirizzo = Indirizzo(
-                via=request.form.get("via", ""),
-                civico=request.form.get("civico", ""),
-                cap=request.form.get("cap", ""),
-                comune=request.form.get("comune", ""),
-                provincia=request.form.get("provincia", ""),
-                nazione=request.form.get("nazione", "Italia"),
-            )
+            indirizzo = Indirizzo(**address_fields_from_form(request.form))
             recapiti = Recapiti(
                 telefono=request.form.get("telefono", ""),
                 cellulare=request.form.get("cellulare", ""),
@@ -157,6 +151,8 @@ def register_soggetti_routes(
         soggetti = get_soggetti()
         soggetto = soggetti.get(id_soggetto)
         if not soggetto:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Soggetto non trovato."}), 404
             abort(404)
         clienti = get_clienti().tutti()
         if request.method == "GET" and not _richiede_vista_legacy():
@@ -169,14 +165,7 @@ def register_soggetti_routes(
                 tipo = soggetto.tipo
             from pct.clienti import Indirizzo, Recapiti
 
-            indirizzo = Indirizzo(
-                via=request.form.get("via", ""),
-                civico=request.form.get("civico", ""),
-                cap=request.form.get("cap", ""),
-                comune=request.form.get("comune", ""),
-                provincia=request.form.get("provincia", ""),
-                nazione=request.form.get("nazione", "Italia"),
-            )
+            indirizzo = Indirizzo(**address_fields_from_form(request.form))
             recapiti = Recapiti(
                 telefono=request.form.get("telefono", ""),
                 cellulare=request.form.get("cellulare", ""),

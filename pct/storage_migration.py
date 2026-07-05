@@ -69,8 +69,8 @@ def _payload_cliente(row: Any) -> dict[str, Any]:
     payload.setdefault("codice_fiscale", raw.get("codice_fiscale") or "")
     payload.setdefault("partita_iva", raw.get("partita_iva") or "")
     recapiti = payload.get("recapiti") if isinstance(payload.get("recapiti"), dict) else {}
-    recapiti.setdefault("email_principale", raw.get("email") or payload.get("email") or "")
-    recapiti.setdefault("telefono_principale", raw.get("telefono") or "")
+    recapiti.setdefault("email", raw.get("email") or payload.get("email") or recapiti.get("email_principale") or "")
+    recapiti.setdefault("telefono", raw.get("telefono") or recapiti.get("telefono_principale") or "")
     payload["recapiti"] = recapiti
     payload.setdefault("note", raw.get("note") or "")
     payload.setdefault("creato_il", raw.get("creato_il") or datetime.now().isoformat())
@@ -125,8 +125,8 @@ def _copy_clienti(sqlite_backend, target_backend) -> None:
                 payload.get("ragione_sociale", ""),
                 payload.get("codice_fiscale", ""),
                 payload.get("partita_iva", ""),
-                recapiti.get("email_principale", ""),
-                recapiti.get("telefono_principale", ""),
+                recapiti.get("email", "") or recapiti.get("email_principale", ""),
+                recapiti.get("telefono", "") or recapiti.get("telefono_principale", ""),
                 payload.get("note", ""),
                 payload.get("creato_il", datetime.now().isoformat()),
                 payload.get("modificato_il", datetime.now().isoformat()),

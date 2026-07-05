@@ -29,6 +29,8 @@ _ACTION_BENEFICIARY_EVENTS = {
     "verifica_riconciliazione",
 }
 _CONFIRM_STATUS = {"confirm": "confirmed", "reject": "rejected", "review": "to_review"}
+_SENTENZA_DOC_TYPES = {"SENTENZA", "ORDINANZA", "DECRETO", "VERBALE"}
+_SENTENZA_DOC_TOKENS = ("sentenza", "ordinanza", "decreto", "provvedimento", "p.q.m", "definitivamente pronunciando")
 
 
 def run_analysis(
@@ -167,7 +169,62 @@ def _resolve_fascicolo(fascicolo_id: str):
     return None
 
 
-def _document_text(fascicolo: Any, documento_id: str) -> tuple[str, str]:
+def _document_id(documento: Any) -> str:
+    return str(getattr(documento, "id", "") or "")
+
+
+def _document_hash(documento: Any) -> str:
+    return str(getattr(documento, "hash_sha256", "") or "")
+
+
+def _document_name(documento: Any) -> str:
+    return str(getattr(documento, "nome", "") or getattr(documento, "nome_file", "") or getattr(documento, "filename", "") or "")
+
+
+def _document_type_value(documento: Any) -> str:
+    value = getattr(documento, "tipo", "")
+    return str(getattr(value, "value", value) or "").upper()
+
+
+def _is_sentenza_candidate(documento: Any) -> bool:
+    tipo = _document_type_value(documento)
+    haystack = " ".join([
+        tipo,
+        _document_name(documento),
+        str(getattr(documento, "descrizione", "") or ""),
+        str(getattr(documento, "note", "") or ""),
+    ]).casefold()
+    return tipo in _SENTENZA_DOC_TYPES or any(token in haystack for token in _SENTENZA_DOC_TOKENS)
+
+
+def _already_analyzed(audits: list[dict[str, Any]], documento: Any) -> bool:
+    doc_id = _document_id(documento)
+    doc_hash = _document_hash(documento)
+    for audit in audits:
+        if doc_id and str(audit.get("documento_id") or "") == doc_id:
+            return True
+        if doc_hash and str(audit.get("document_hash_sha256") or "") == doc_hash:
+            return True
+    return False
+
+
+def _document_texts_for_fascicolo(fascicolo: Any, tenant_id: str) -> dict[str, str]:
+    try:
+        from web.services.tenant_paths import tenant_data_path
+        from pct.fascicolo_document_catalog import document_ai_texts_for_catalog
+
+        return document_ai_texts_for_catalog(
+            tenant_ids=[tenant_id],
+            fascicolo_id=str(getattr(fascicolo, "id", "") or ""),
+            documents=getattr(fascicolo, "documenti", []) or [],
+            fascicoli_db_path=tenant_data_path("FASCICOLI_DB", require_tenant=True),
+            storage_root=tenant_data_path("DOCUMENTI_AI_DIR", require_tenant=True),
+        )
+    except Exception:
+        return {}
+
+
+def _document_text(fascicolo: Any, documento_id: str, document_ai_texts: dict[str, str] | None = None) -> tuple[str, str]:
     """Ritorna (testo, hash) dal documento del fascicolo via cache OCR."""
 
     documento = next(
@@ -177,15 +234,78 @@ def _document_text(fascicolo: Any, documento_id: str) -> tuple[str, str]:
     if documento is None:
         return "", ""
     hash_doc = str(getattr(documento, "hash_sha256", "") or "")
+    document_ai_text = (document_ai_texts or {}).get(documento_id) or ""
+    if document_ai_text.strip():
+        return document_ai_text, hash_doc
     try:
         from web.services.tenant_paths import tenant_data_path
         from pct.search_index import IndiceRicerca
 
         index_path = tenant_data_path("SEARCH_INDEX", require_tenant=True)
-        testo = IndiceRicerca(index_path).get_ocr_cache(hash_doc) or ""
+        indice = IndiceRicerca(index_path)
+        testo = indice.get_ocr_cache(hash_doc) or ""
+        if not testo.strip() and documento_id:
+            row = indice._conn.execute(
+                "SELECT corpo FROM documenti WHERE tipo = ? AND entity_id = ? LIMIT 1",
+                ("documento", f"{getattr(fascicolo, 'id', '')}:{documento_id}"),
+            ).fetchone()
+            testo = row["corpo"] if row else ""
     except Exception:
         testo = ""
     return testo, hash_doc
+
+
+def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, Any]:
+    if not _flag_on():
+        return {"ok": False, "code": "feature_disabled", "analyzed": 0}
+    tenant_id = _tenant_id()
+    if not tenant_id:
+        return {"ok": False, "code": "tenant_context_required", "analyzed": 0}
+    fascicolo = _resolve_fascicolo(str(fascicolo_id or "").strip())
+    if fascicolo is None:
+        return {"ok": False, "code": "not_found", "analyzed": 0}
+
+    repo = _repo()
+    audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=str(getattr(fascicolo, "id", "") or ""))
+    document_ai_texts = _document_texts_for_fascicolo(fascicolo, tenant_id)
+    report = {"ok": True, "analyzed": 0, "skipped": 0, "missing_text": 0, "errors": 0, "candidates": 0}
+    for documento in getattr(fascicolo, "documenti", []) or []:
+        if not _is_sentenza_candidate(documento):
+            continue
+        report["candidates"] += 1
+        if _already_analyzed(audits, documento):
+            report["skipped"] += 1
+            continue
+        doc_id = _document_id(documento)
+        if not doc_id:
+            continue
+        testo, doc_hash = _document_text(fascicolo, doc_id, document_ai_texts)
+        if not testo.strip():
+            report["missing_text"] += 1
+            continue
+        try:
+            try:
+                actor_id = _actor_id() or "sentenza-auto"
+            except Exception:
+                actor_id = "sentenza-auto"
+            result = run_analysis(
+                fascicolo=fascicolo,
+                testo=testo,
+                repo=repo,
+                cu_tiers=_cu_tiers(),
+                fonte="FASCICOLO_AUTO",
+                documento_id=doc_id,
+                document_hash_sha256=doc_hash,
+                valore_causa=float(getattr(fascicolo, "valore_causa", 0.0) or 0.0),
+                actor_id=actor_id,
+                tenant_id=tenant_id,
+            )
+            if result.get("ok"):
+                report["analyzed"] += 1
+                audits.append(result.get("audit") or {"documento_id": doc_id, "document_hash_sha256": doc_hash})
+        except Exception:
+            report["errors"] += 1
+    return report
 
 
 def analyze_fascicolo_document(payload: dict[str, Any]) -> dict[str, Any]:
@@ -204,7 +324,7 @@ def analyze_fascicolo_document(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "code": "not_found", "message": "Fascicolo non trovato."}
     document_hash = ""
     if not testo and documento_id:
-        testo, document_hash = _document_text(fascicolo, documento_id)
+        testo, document_hash = _document_text(fascicolo, documento_id, _document_texts_for_fascicolo(fascicolo, tenant_id))
     if not testo.strip():
         return {"ok": False, "code": "validation_error", "message": "Testo del provvedimento non disponibile (OCR mancante): incollalo o esegui prima l'OCR."}
     result = run_analysis(
@@ -228,11 +348,15 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
     tenant_id = _tenant_id()
     if not tenant_id:
         return {"ok": False, "code": "tenant_context_required", "message": "Contesto studio non disponibile."}
+    try:
+        auto_report = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id) if str(fascicolo_id or "").strip() else {"ok": True, "analyzed": 0}
+    except Exception:
+        auto_report = {"ok": False, "code": "auto_analysis_error", "analyzed": 0}
     repo = _repo()
     audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=fascicolo_id)
     events = repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id)
     summary = build_sentenze_economiche_summary(audits, events)
-    return {"ok": True, "fascicoloId": fascicolo_id, "audits": audits, "eventi": events, "summary": summary}
+    return {"ok": True, "fascicoloId": fascicolo_id, "audits": audits, "eventi": events, "summary": summary, "autoAnalysis": auto_report}
 
 
 def confirm_economic_action(payload: dict[str, Any]) -> dict[str, Any]:
@@ -340,6 +464,7 @@ def genera_parcella_from_event(payload: dict[str, Any]) -> dict[str, Any]:
 
 __all__ = [
     "run_analysis",
+    "ensure_fascicolo_sentenza_economic_analysis",
     "analyze_fascicolo_document",
     "build_sentenza_economic_payload",
     "confirm_economic_action",

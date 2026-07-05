@@ -2601,6 +2601,8 @@ class GestioneDatabase:
                 for c in clienti_raw:
                     try:
                         rec = c.get("recapiti") or {}
+                        email = rec.get("email") or rec.get("email_principale") if isinstance(rec, dict) else c.get("email", "")
+                        telefono = rec.get("telefono") or rec.get("telefono_principale") if isinstance(rec, dict) else c.get("telefono", "")
                         conn.execute("""
                             INSERT OR REPLACE INTO clienti
                             (id, tipo, stato, cognome, nome, ragione_sociale,
@@ -2612,8 +2614,8 @@ class GestioneDatabase:
                             c.get("stato", "ATTIVO"), c.get("cognome", ""),
                             c.get("nome", ""), c.get("ragione_sociale", ""),
                             c.get("codice_fiscale", ""), c.get("partita_iva", ""),
-                            c.get("email", ""),
-                            rec.get("telefono_principale") if isinstance(rec, dict) else c.get("telefono", ""),
+                            email or c.get("email", ""),
+                            telefono or c.get("telefono", ""),
                             c.get("note", ""), c.get("creato_il", ""),
                             json.dumps(c, ensure_ascii=False),
                         ))

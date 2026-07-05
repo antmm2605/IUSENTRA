@@ -62,6 +62,20 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+  if (!contentType.includes('application/json')) {
+    let redirectedToLogin = false
+    try {
+      const responseUrl = new URL(response.url || window.location.href, window.location.href)
+      redirectedToLogin = response.redirected && /\/login(?:\?|$)/.test(responseUrl.pathname + responseUrl.search)
+    } catch {
+      redirectedToLogin = false
+    }
+    throw new Error(
+      redirectedToLogin
+        ? 'Sessione scaduta: rientra in IUSENTRA e ripeti il salvataggio.'
+        : String(visibleText || 'Il server non ha confermato il salvataggio in formato JSON. Ricarica la pagina e riprova.'),
+    )
+  }
   if (!response.ok || payload.ok === false) {
     throw new Error(String(payload.message || payload.errore || payload.error || visibleText || 'Non ho potuto completare l\'operazione: controlla i campi richiesti e riprova.'))
   }

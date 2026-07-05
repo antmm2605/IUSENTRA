@@ -2120,7 +2120,7 @@ def audit_quickorganizer_import(
         matter_number = _number(_row_value(row, "NUMEROPRATICA"))
         matter_id = matter_id_by_number.get(matter_number)
         filename = _normalise_filename(_row_value(row, "NOME_DOS"))
-        if not matter_id or not filename or not _find_file(package, filename, section="ATTI"):
+        if not matter_id or not filename:
             continue
         expected["documents"] += 1
         external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
@@ -2145,7 +2145,7 @@ def audit_quickorganizer_import(
         matter_number = _number(_row_value(row, "NumeroPratica"))
         matter_id = matter_id_by_number.get(matter_number)
         filename = _normalise_filename(_row_value(row, "NOME_DOS"))
-        if not matter_id or not filename or not _find_file(package, filename, section="EMAILS"):
+        if not matter_id or not filename:
             continue
         expected["emails"] += 1
         external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"

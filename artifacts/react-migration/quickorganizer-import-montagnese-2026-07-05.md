@@ -34,6 +34,7 @@ Regola documento corretta:
 - `web/blueprints/api_v1_react.py`: l’esecuzione import passa il repository Agenda reale.
 - `web/services/react_fascicoli_bridge.py`: il dettaglio React collega l’Agenda tramite `source_external_id`/profilo fascicolo oltre al numero RG.
 - `scripts/audit_quickorganizer_import.py`: audit tenant-aware con Agenda, appuntamenti e contesti economici.
+- L’audit applicativo controlla tutti i record `TESTI`/`EMAILS` collegati al fascicolo, anche quando il pacchetto di riparazione contiene solo i file fisici mancanti e non l’intero archivio documentale.
 
 ## Guardrail automatici
 

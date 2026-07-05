@@ -18,8 +18,11 @@ from web.bootstrap.fascicoli_document_helpers import (
     classifica_tipo_documento,
     estrai_pdf_da_raw,
     payload_bool,
+    pdf_mobile_preview_html,
+    pdf_page_count,
     preview_error_html,
     preview_unavailable_html,
+    render_pdf_page_png,
     wants_json_response,
 )
 from web.services.fascicoli_document_rename import rinomina_documento_response
@@ -507,6 +510,59 @@ def register_fascicoli_document_routes(
                 preview_payload = applica_timbro_firma_visibile(preview_payload, firme, documento)
 
             mime, nome_download = preview
+            if mime == "application/pdf" and request.args.get("viewer") == "mobile":
+                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+                raw_page = str(request.args.get("page") or "").strip()
+                if raw_page:
+                    try:
+                        page_number = int(raw_page)
+                        png_payload = render_pdf_page_png(preview_payload, page_number)
+                    except Exception as exc:
+                        app.logger.warning(
+                            "Anteprima mobile PDF non disponibile id_fasc=%s id_doc=%s page=%s: %s",
+                            id_fasc,
+                            id_doc,
+                            raw_page,
+                            exc,
+                        )
+                        return preview_error_html(scarica_url)
+                    audit(
+                        "fascicoli.documento.visualizza.mobile",
+                        "fascicolo",
+                        id_fasc,
+                        dettagli=f"doc {id_doc} - {documento.nome} pagina {page_number}",
+                    )
+                    return send_file(
+                        io.BytesIO(png_payload),
+                        mimetype="image/png",
+                        as_attachment=False,
+                        download_name=f"{Path(nome_download).stem}-pagina-{page_number}.png",
+                    )
+                try:
+                    total_pages = pdf_page_count(preview_payload)
+                    page_urls = [
+                        url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc, viewer="mobile", page=page)
+                        for page in range(1, total_pages + 1)
+                    ]
+                except Exception as exc:
+                    app.logger.warning(
+                        "Lettore mobile PDF non disponibile id_fasc=%s id_doc=%s: %s",
+                        id_fasc,
+                        id_doc,
+                        exc,
+                    )
+                    return preview_error_html(scarica_url)
+                audit(
+                    "fascicoli.documento.visualizza.mobile",
+                    "fascicolo",
+                    id_fasc,
+                    dettagli=f"doc {id_doc} - {documento.nome}",
+                )
+                return pdf_mobile_preview_html(
+                    nome_documento=nome_download or documento.nome,
+                    page_urls=page_urls,
+                    scarica_url=scarica_url,
+                )
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             return send_file(
                 io.BytesIO(preview_payload),

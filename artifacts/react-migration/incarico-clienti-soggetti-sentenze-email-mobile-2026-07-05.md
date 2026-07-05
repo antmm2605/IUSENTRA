@@ -77,3 +77,23 @@ La strategia primaria è correggere i flussi reali già presenti, non creare mot
 
 - Non verificato su macchina reale autenticata e non ancora verificato su `https://app.iusentra.it` autenticato dopo deploy.
 - Da completare prima di report positivo: build React, bump versione, commit/push branch gemelli, check GitHub, deploy Hetzner, container unico `iusentra-app`, `/api/pronto`, prova produzione autenticata e prova locale reale `127.0.0.1:8080` su cliente, soggetti, fascicolo/sentenze, email responsive e lettore documenti.
+
+## Aggiornamento correttivo 2026-07-05 - evidenze automatiche e lettore mobile
+
+- Il controllo economico della lista fascicoli e del dettaglio ora usa anche le evidenze automatiche lette dai documenti indicizzati del fascicolo. Le ricevute PagoPA/contributo unificato popolano importo, stato, data e documento fonte; le sentenze compatibili con RG/parti possono proporre liquidazione, spese/esborsi e parcella; le sentenze non riconciliate restano fuori dal totale automatico.
+- `Prossima scad.` viene arricchita automaticamente dai documenti del fascicolo quando non esiste una scadenza già collegata, riusando la logica di estrazione date processuali da PEC/documenti e validando RG o parti del fascicolo.
+- Il lettore documenti mobile non dipende più dal viewer PDF nativo del telefono. Per gli URL `/fascicoli/<id>/documenti/<id>/visualizza?viewer=mobile` il backend genera una pagina HTML interna con immagini PNG delle pagine PDF, servite dalla stessa route autenticata e tenant-aware.
+- Nelle liste Clienti, Soggetti e Fascicoli le azioni principali sono state spostate nella cella principale della riga e i rail laterali scendono sotto la tabella nei viewport intermedi, così le colonne operative restano leggibili.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile web/bootstrap/fascicoli_document_helpers.py web/bootstrap/fascicoli_document_routes.py web/services/react_fascicoli_bridge.py web/services/sentenza_economic_runtime.py` -> passato.
+- `python -m pytest -q tests/test_polisweb.py::test_visualizza_documento_pdf_mobile_renderizza_pagine_png` -> passato.
+- `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_post_modifica_cliente_json_normalizza_comune_e_persiste` -> passato.
+- `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py` -> passato.
+- `npm --prefix frontend run typecheck` -> passato.
+
+Stato verifica reale:
+
+- Browser integrato collegato e predisposto per prove visive reali desktop/tablet/mobile.
+- Da completare prima del report positivo: rebuild locale reale `127.0.0.1:8080`, prova visiva su produzione dopo deploy, prova visiva locale sulla stessa versione, commit/push branch gemelli, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` produzione e igiene repository.

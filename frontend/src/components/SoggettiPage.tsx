@@ -181,14 +181,19 @@ function SoggettiTable({
               <th>Cliente collegato</th>
               <th>Fascicoli</th>
               <th>Qualita</th>
-              <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
                 <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.name}`}/></td>
-                <td className="iu-sogg-title-cell"><a href={item.href}>{item.name}</a><span>{item.city ? `${item.city} ${item.province ? `(${item.province})` : ''}` : 'Anagrafica soggetto'}</span></td>
+                <td className="iu-sogg-title-cell">
+                  <div className="iu-sogg-title-line">
+                    <a href={item.href}>{item.name}</a>
+                    <RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/>
+                  </div>
+                  <span>{item.city ? `${item.city} ${item.province ? `(${item.province})` : ''}` : 'Anagrafica soggetto'}</span>
+                </td>
                 <td><Badge tone={item.tone}>{item.typeLabel}</Badge></td>
                 <td>{item.role.replaceAll('_', ' ')}</td>
                 <td>{item.identifier || '-'}</td>
@@ -196,7 +201,6 @@ function SoggettiTable({
                 <td>{item.clientName || <span className="iu-sogg-muted">Non collegato</span>}</td>
                 <td>{item.matters}</td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
-                <td><RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/></td>
               </tr>
             ))}
           </tbody>

@@ -136,6 +136,91 @@ def preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+def pdf_page_count(data: bytes) -> int:
+    try:
+        import fitz  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("Motore anteprima PDF non disponibile.") from exc
+    doc = None
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+        return max(0, int(len(doc)))
+    finally:
+        if doc is not None:
+            doc.close()
+
+
+def render_pdf_page_png(data: bytes, page_number: int, *, scale: float = 1.85) -> bytes:
+    if page_number < 1:
+        raise ValueError("Pagina PDF non valida.")
+    try:
+        import fitz  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("Motore anteprima PDF non disponibile.") from exc
+    doc = None
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+        if page_number > len(doc):
+            raise ValueError("Pagina PDF fuori intervallo.")
+        page = doc[page_number - 1]
+        pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+        return bytes(pix.tobytes("png"))
+    finally:
+        if doc is not None:
+            doc.close()
+
+
+def pdf_mobile_preview_html(
+    *,
+    nome_documento: str,
+    page_urls: list[str],
+    scarica_url: str,
+) -> tuple[str, int, dict[str, str]]:
+    escaped_name = escape(nome_documento)
+    escaped_download = escape(scarica_url, quote=True)
+    if page_urls:
+        pages = "".join(
+            '<figure class="page">'
+            f'<figcaption>Pagina {index}</figcaption>'
+            f'<img src="{escape(url, quote=True)}" alt="Pagina {index} di {escaped_name}" loading="lazy">'
+            "</figure>"
+            for index, url in enumerate(page_urls, start=1)
+        )
+    else:
+        pages = (
+            '<section class="empty">'
+            "<strong>Anteprima non disponibile</strong>"
+            "<span>Il documento non contiene pagine PDF leggibili.</span>"
+            "</section>"
+        )
+    html = (
+        '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+        f"<title>{escaped_name}</title>"
+        "<style>"
+        ":root{color-scheme:light}"
+        "*{box-sizing:border-box}"
+        "body{margin:0;background:#e5e7eb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
+        ".reader{min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr)}"
+        "header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#fff}"
+        "header strong{min-width:0;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+        "header a{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:9px;background:#fff;color:#1d4ed8;padding:0 10px;font-size:12px;font-weight:850;text-decoration:none}"
+        ".pages{display:grid;gap:12px;padding:12px;align-content:start}"
+        ".page{margin:0;display:grid;gap:6px}"
+        ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
+        ".page img{width:100%;height:auto;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
+        ".empty{min-height:70vh;display:grid;place-content:center;gap:6px;text-align:center;color:#475569}"
+        ".empty strong{color:#111827;font-size:15px}"
+        "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.page img{border-radius:10px}}"
+        "</style></head><body>"
+        '<main class="reader">'
+        f"<header><strong>{escaped_name}</strong><a href=\"{escaped_download}\">Scarica</a></header>"
+        f'<section class="pages">{pages}</section>'
+        "</main></body></html>"
+    )
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 def payload_bool(value: Any, default: bool = False) -> bool:
     if value is None:
         return default

@@ -55,6 +55,7 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
     assert extras["pdf"] == [
         "mammoth>=1.6.0",
         "pdfplumber>=0.10.0",
+        "PyMuPDF>=1.24.0",
         "pypdf>=6.0.0",
         "asn1crypto>=1.5.0",
         "pytesseract>=0.3.10",

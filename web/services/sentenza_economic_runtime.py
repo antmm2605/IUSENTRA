@@ -211,13 +211,20 @@ def _already_analyzed(audits: list[dict[str, Any]], documento: Any) -> bool:
 def _document_texts_for_fascicolo(fascicolo: Any, tenant_id: str) -> dict[str, str]:
     try:
         from web.services.tenant_paths import tenant_data_path
+        from web.services.storage_runtime import get_request_studio_db
         from pct.fascicolo_document_catalog import document_ai_texts_for_catalog
 
+        fascicoli_db_path = tenant_data_path("FASCICOLI_DB", require_tenant=True)
+        try:
+            structured_db = get_request_studio_db(fascicoli_db_path)
+        except Exception:
+            structured_db = None
         return document_ai_texts_for_catalog(
             tenant_ids=[tenant_id],
             fascicolo_id=str(getattr(fascicolo, "id", "") or ""),
             documents=getattr(fascicolo, "documenti", []) or [],
-            fascicoli_db_path=tenant_data_path("FASCICOLI_DB", require_tenant=True),
+            fascicoli_db_path=fascicoli_db_path,
+            structured_db=structured_db,
             storage_root=tenant_data_path("DOCUMENTI_AI_DIR", require_tenant=True),
         )
     except Exception:

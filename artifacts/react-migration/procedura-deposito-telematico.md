@@ -4171,3 +4171,36 @@ Guardrail eseguiti:
 - `python -m pytest tests\test_utf8_integrity.py -q` -> passato.
 
 Stato operativo: prima di confermare la chiusura della versione `2.253.164` resta obbligatorio commit/push branch gemelli, deploy Hetzner, verifica `/api/pronto`, container unico healthy e nuova prova produzione del pulsante `Prepara comunicazione` con esito portato in vista.
+
+## Fascicoli - lettore documenti mobile ed evidenze economiche automatiche 2026-07-05
+
+Ambito: fascicoli, documenti, controllo economico sentenze, contributo unificato, prossima scadenza e visualizzazione documenti su mobile.
+
+Modifiche applicate:
+
+- la route autenticata `/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza` supporta `?viewer=mobile`: per i PDF genera una pagina HTML interna con immagini PNG delle pagine, senza inviare documenti a servizi esterni e senza dipendere dal viewer PDF nativo del telefono;
+- il componente React `PdfPreviewModal` usa il viewer mobile solo sotto i 900px e solo per documenti del fascicolo, lasciando invariata l'anteprima PDF nativa desktop;
+- il controllo economico del fascicolo usa i testi Document AI/OCR già presenti nel fascicolo per compilare automaticamente contributo unificato, spese/esborsi, liquidazione e parcella quando il contesto RG/parti è compatibile;
+- `Prossima scad.` viene proposta automaticamente dai documenti del fascicolo quando non è già presente una scadenza governata da Agenda/Scadenziario;
+- le liste Clienti, Soggetti e Fascicoli sono state rese più leggibili nei viewport intermedi spostando le azioni nella cella principale della riga.
+
+Fonti dati e vincoli:
+
+- fonte operativa: SQLite/PostgreSQL del tenant e tabelle/indici Document AI già governati;
+- JSON solo mirror/cache, non fonte decisionale;
+- nessuna modifica al canale PEC reale e nessun invio server-side;
+- gli importi visibili restano in formato italiano, per esempio `€ 21,50`;
+- le date visibili restano in formato italiano, per esempio `13/01/2027`.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile web/bootstrap/fascicoli_document_helpers.py web/bootstrap/fascicoli_document_routes.py web/services/react_fascicoli_bridge.py web/services/sentenza_economic_runtime.py`;
+- `python -m pytest -q tests/test_polisweb.py::test_visualizza_documento_pdf_mobile_renderizza_pagine_png`;
+- `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_post_modifica_cliente_json_normalizza_comune_e_persiste`;
+- `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py`;
+- `npm --prefix frontend run typecheck`.
+
+Stato:
+
+- test automatici mirati passati;
+- prove visive reali produzione e locale ancora da completare sulla versione deployata e sulla copia Docker `127.0.0.1:8080` prima di dichiarare chiuso il lavoro.

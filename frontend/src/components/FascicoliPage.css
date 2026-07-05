@@ -2044,3 +2044,11 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-mobile-card__economic span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:850}
 .iu-fas-mobile-card__economic strong{font-size:13px;white-space:nowrap}
 .iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
+
+.iu-fas-table:not(.iu-fas-table--economic){min-width:1030px}
+.iu-fas-title-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.iu-fas-title-line>a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-title-line .iu-fas-actions{justify-content:flex-end;gap:5px}
+.iu-fas-title-line .iu-fas-actions a,
+.iu-fas-title-line .iu-fas-actions button,
+.iu-fas-title-line .iu-fas-actions .iu-fas-post{flex-basis:30px;width:30px;height:30px;min-width:30px;min-height:30px;border-radius:8px}

@@ -63,6 +63,11 @@
 .iu-sogg-actions a:hover,.iu-sogg-actions button:hover{border-color:rgba(37,99,235,.35);color:var(--iu-blue-700)}
 .iu-sogg-actions button[disabled]{opacity:.6;cursor:progress}
 
+.iu-sogg-table{min-width:930px}
+.iu-sogg-title-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.iu-sogg-title-line>a{min-width:0}
+.iu-sogg-title-line .iu-sogg-actions{justify-content:flex-end}
+
 .iu-sogg-mobile-list{display:none}
 .iu-sogg-mobile-card{border:1px solid var(--iu-border);border-radius:16px;background:#fff;box-shadow:var(--iu-shadow-soft);padding:14px}
 .iu-sogg-mobile-card header,.iu-sogg-mobile-card footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -87,6 +92,11 @@
 
 @media(max-width:1180px){
   .iu-sogg-toolbar{grid-template-columns:1fr 1fr}
+  .iu-sogg-layout{grid-template-columns:1fr}
+  .iu-sogg-rail{position:static}
+}
+
+@media(max-width:1700px){
   .iu-sogg-layout{grid-template-columns:1fr}
   .iu-sogg-rail{position:static}
 }

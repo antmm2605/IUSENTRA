@@ -18,6 +18,7 @@ zeep<5
 PyMySQL<2
 APScheduler<4
 pdfplumber<1
+PyMuPDF<2
 pytesseract<0.4
 python-docx<2
 mammoth<2

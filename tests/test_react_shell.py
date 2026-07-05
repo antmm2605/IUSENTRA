@@ -5034,6 +5034,73 @@ def test_react_fascicoli_prossima_scadenza_da_rg_univoco_presidiato(tmp_path: Pa
     assert item["nextDeadline"] != "n.d."
 
 
+def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Spagnolo Sara c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Spagnolo Sara",
+        tribunale="Tribunale di Torino",
+        numero_rg="3950",
+        anno_rg=2026,
+        oggetto="Retribuzione",
+    )
+    ricevuta = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "ricevuta_pagopa_contributo_unificato.pdf",
+        TipoDocumento.DEPOSITO_PCT,
+        b"%PDF-1.4\nricevuta\n%%EOF",
+        note="Ricevuta contributo unificato",
+    )
+    decreto = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.PDF",
+        TipoDocumento.DECRETO,
+        b"%PDF-1.4\ndecreto\n%%EOF",
+        note="Decreto fissazione udienza",
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item: {
+            ricevuta.id: (
+                "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
+                "Tipo pagamento: Contributo unificato. "
+                "Importo totale versato: € 21,50. Data: 12/05/2026. Esito pagamento: 0."
+            ),
+            decreto.id: (
+                "TRIBUNALE DI TORINO RG 3950/2026 Spagnolo Sara c. MIM. "
+                "Decreto fissazione udienza: udienza fissata per il 13/01/2027."
+            ),
+        }
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert item["nextDeadlineIso"] == "2027-01-13"
+    assert item["nextDeadline"] == "13/01/2027"
+    assert contributo["status"] == "pagato"
+    assert contributo["importo"] == 21.5
+    assert contributo["importoLabel"] == "€ 21,50"
+    assert contributo["dataPagamento"] == "12/05/2026"
+    assert contributo["documentoFonte"] == "ricevuta_pagopa_contributo_unificato.pdf"
+
+
 def test_react_fascicoli_non_collega_rg_ambiguo_senza_cliente_o_parte(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -5395,6 +5462,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-command-bar" in css
     assert ".iu-fas-preview-modal" in css
     assert "Lettore documento" in page_source
+    assert "function mobilePreviewUrl" in page_source
+    assert "parsed.searchParams.set('viewer', 'mobile')" in page_source
+    assert "window.matchMedia('(max-width: 900px)')" in page_source
     assert ".iu-fas-preview-modal__title" in css
     assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source
@@ -6517,10 +6587,19 @@ def test_post_modifica_cliente_json_normalizza_comune_e_persiste(tmp_path: Path)
             },
             headers=headers,
         )
+        detail_response = client.get(
+            f"/api/v1/ui/clienti/{cliente.id}/modifica",
+            headers=headers,
+        )
 
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
+    detail_payload = detail_response.get_json()
+    assert detail_response.status_code == 200
+    assert detail_payload["initialClient"]["comune"] == "Maddaloni"
+    assert detail_payload["initialClient"]["provincia"] == "CE"
+    assert detail_payload["initialClient"]["cap"] == "81024"
     repo = GestioneClienti(db_path=app.config["CLIENTI_DB"], studio_db=StudioDB.get(str(tmp_path / "studio.db")))
     salvato = repo.get(cliente.id)
     assert salvato is not None

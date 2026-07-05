@@ -598,6 +598,8 @@ def _indirizzo_values(cliente: Any, attr: str, prefix: str = "") -> dict[str, st
     address = indirizzi.get(attr) if isinstance(indirizzi, dict) else getattr(indirizzi, attr, None)
     if address is None:
         address = getattr(cliente, attr, None)
+    if address is None:
+        address = getattr(cliente, f"indirizzo_{attr}", None)
     return {
         f"{prefix}via": _text(getattr(address, "via", "")),
         f"{prefix}civico": _text(getattr(address, "civico", "")),

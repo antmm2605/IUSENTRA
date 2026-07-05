@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.253.180 - 2026-07-05
+
+- **Fascicoli economici**: la vista economica e il dettaglio fascicolo leggono automaticamente anche i testi Document AI/OCR già indicizzati nel database strutturato dello studio. Contributo unificato, pagamenti e prossima scadenza vengono popolati dai documenti del fascicolo quando non sono già presenti valori manuali.
+- **Sentenze — controllo economico**: il motore usa la stessa sorgente tenant-aware dei documenti AI del fascicolo, così la sezione non resta vuota quando i testi sono già presenti in `studio.db`.
+- **Documenti mobile**: il lettore PDF mobile renderizza le pagine come immagini interne al sistema, evitando il riquadro vuoto dei browser Android/iOS quando l'iframe PDF nativo non è supportato.
+- **Tabelle clienti, soggetti e fascicoli**: le azioni sono state spostate nella colonna principale per liberare spazio visibile e ridurre il taglio dei contenuti su desktop stretto, tablet e mobile.
+
 ## 2.253.179 - 2026-07-05
 
 - **Clienti e soggetti**: corretto il falso salvataggio quando la sessione restituisce HTML/login invece di JSON; i salvataggi AJAX ora falliscono con messaggio chiaro e non mostrano più conferme non persistite. Comune, CAP e provincia vengono normalizzati lato server e suggeriti lato React con compilazione automatica su cliente, sede/domicilio e soggetti/parti.

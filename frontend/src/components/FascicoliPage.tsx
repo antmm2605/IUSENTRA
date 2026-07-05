@@ -1630,7 +1630,6 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               <th>{archive ? 'Esito / archiviazione' : 'Prossima scad.'}</th>
               <th>Stato</th>
               {economic ? <th>Controllo economico</th> : <th>Documenti</th>}
-              {economic ? null : <th>Azioni</th>}
             </tr>
           </thead>
           <tbody>
@@ -1648,7 +1647,10 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     </td>
                     {economic ? null : (
                       <td className="iu-fas-title-cell">
-                        <a href={item.href}>{item.title}</a>
+                        <div className="iu-fas-title-line">
+                          <a href={item.href}>{item.title}</a>
+                          <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
+                        </div>
                         <span>{item.subtitle || item.court}</span>
                         {item.relataStatusLabel ? (
                           <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
@@ -1689,9 +1691,6 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                         </div>
                       </td>
                     ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
-                    {!economic ? (
-                      <td><RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/></td>
-                    ) : null}
                   </tr>
                   {economicEditorOpen ? (
                     <tr className="iu-fas-economic-editor-row">
@@ -3027,7 +3026,7 @@ function FascicoloUfficiCompetentiPanel({ fascicolo }:{fascicolo:FascicoloFull})
   )
 }
 
-type PreviewDocument = { name: string; url: string; downloadUrl: string; objectUrl?: string }
+type PreviewDocument = { name: string; url: string; downloadUrl: string; objectUrl?: string; mobileUrl?: string }
 type LazySectionStatus = 'idle' | 'loading' | 'loaded' | 'error'
 type EmbeddedRecordKind = 'cliente' | 'soggetti' | 'pagopa'
 type EmbeddedRecordState = { kind: EmbeddedRecordKind; title: string; href: string; externalHref?: string }
@@ -3043,7 +3042,23 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   lex: 'idle',
 }
 
+function mobilePreviewUrl(url: string): string {
+  if (!url || !url.includes('/documenti/') || !url.includes('/visualizza')) return ''
+  try {
+    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+    parsed.searchParams.set('viewer', 'mobile')
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}viewer=mobile`
+  }
+}
+
 function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; onClose:()=>void}) {
+  const [isMobileReader, setIsMobileReader] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
+  ))
+
   useEffect(() => {
     const objectUrl = preview?.objectUrl
     return () => {
@@ -3051,7 +3066,22 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
     }
   }, [preview?.objectUrl])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const media = window.matchMedia('(max-width: 900px)')
+    const update = () => setIsMobileReader(media.matches)
+    update()
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', update)
+      return () => media.removeEventListener('change', update)
+    }
+    media.addListener(update)
+    return () => media.removeListener(update)
+  }, [])
+
   if (!preview) return null
+  const mobileUrl = preview.mobileUrl || mobilePreviewUrl(preview.url)
+  const viewerUrl = isMobileReader && mobileUrl ? mobileUrl : preview.url
   return (
     <div className="iu-fas-preview-modal" role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
       <div className="iu-fas-preview-modal__box">
@@ -3065,7 +3095,7 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
             <button type="button" onClick={onClose} aria-label="Chiudi anteprima">Chiudi</button>
           </nav>
         </header>
-        <iframe src={preview.url} title={`Anteprima documento ${preview.name}`}/>
+        <iframe src={viewerUrl} title={`Anteprima documento ${preview.name}`}/>
       </div>
     </div>
   )

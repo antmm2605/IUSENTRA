@@ -229,14 +229,19 @@ function ClientiTable({
               <th>Pratiche</th>
               <th>Qualità</th>
               <th>Stato</th>
-              <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
                 <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.name}`}/></td>
-                <td className="iu-cli-title-cell"><a href={item.href}>{item.name}</a><span>{item.subtitle || item.tags.join(', ') || 'Anagrafica cliente'}</span></td>
+                <td className="iu-cli-title-cell">
+                  <div className="iu-cli-title-line">
+                    <a href={item.href}>{item.name}</a>
+                    <RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/>
+                  </div>
+                  <span>{item.subtitle || item.tags.join(', ') || 'Anagrafica cliente'}</span>
+                </td>
                 <td><Badge tone="neutral">{formatClienteType(item.type)}</Badge></td>
                 <td>{item.fiscalId || '-'}</td>
                 <td><ContactBlock item={item}/></td>
@@ -244,7 +249,6 @@ function ClientiTable({
                 <td><span className="iu-cli-matter-count">{item.matters}</span></td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
                 <td><Badge tone={item.tone}>{formatClienteStatus(item.status)}</Badge></td>
-                <td><RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/></td>
               </tr>
             ))}
           </tbody>

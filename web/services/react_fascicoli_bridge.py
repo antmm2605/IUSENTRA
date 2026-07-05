@@ -15,6 +15,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -410,6 +411,27 @@ def _fascicolo_party_values(fascicolo: Any) -> set[str]:
 
 def _deadline_mentions_fascicolo_party(scadenza: Any, fascicolo: Any) -> bool:
     blob = _identity_key(_deadline_text_blob(scadenza))
+    if not blob:
+        return False
+    return any(_identity_key(value) in blob for value in _fascicolo_party_values(fascicolo))
+
+
+def _rg_candidates_from_text(value: Any) -> set[str]:
+    raw = _text(value)
+    values: set[str] = set()
+    direct = _canonical_rg_reference(raw)
+    if direct:
+        values.add(direct)
+    for match in _RG_PREFIXED_RE.finditer(raw):
+        values.add(f"{int(match.group(1))}/{match.group(2)}")
+    return values
+
+
+def _document_text_matches_fascicolo(fascicolo: Any, text: str) -> bool:
+    rg = _fascicolo_rg_key(fascicolo)
+    if rg and rg in _rg_candidates_from_text(text):
+        return True
+    blob = _identity_key(text)
     if not blob:
         return False
     return any(_identity_key(value) in blob for value in _fascicolo_party_values(fascicolo))
@@ -1116,6 +1138,289 @@ def _amount_label(value: float | None) -> str:
     return _euro(value) if value is not None else ""
 
 
+def _request_cache(name: str) -> dict[str, Any] | None:
+    if not has_app_context():
+        return None
+    try:
+        from flask import g
+
+        cache = getattr(g, name, None)
+        if not isinstance(cache, dict):
+            cache = {}
+            setattr(g, name, cache)
+        return cache
+    except Exception:
+        return None
+
+
+def _current_fascicoli_catalog_paths() -> tuple[Any, Any, Any]:
+    fascicoli_db_path: Any = None
+    storage_root: Any = None
+    structured_db: Any = None
+    try:
+        from web.services.tenant_paths import tenant_data_path
+
+        fascicoli_db_path = tenant_data_path("FASCICOLI_DB", require_tenant=True)
+        storage_root = tenant_data_path("DOCUMENTI_AI_DIR", require_tenant=True)
+    except Exception:
+        if has_app_context():
+            fascicoli_db_path = current_app.config.get("FASCICOLI_DB")
+            storage_root = current_app.config.get("DOCUMENTI_AI_DIR")
+    try:
+        from web.services.storage_runtime import get_request_studio_db
+
+        if fascicoli_db_path:
+            structured_db = get_request_studio_db(fascicoli_db_path)
+    except Exception:
+        structured_db = None
+    return fascicoli_db_path, storage_root, structured_db
+
+
+def _document_ai_texts_for_fascicolo(fascicolo: Any) -> dict[str, str]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid:
+        return {}
+    cache = _request_cache("_react_fascicoli_document_ai_texts")
+    if cache is not None and fid in cache:
+        return cache[fid]
+    documents = list(getattr(fascicolo, "documenti", []) or [])
+    if not documents:
+        result: dict[str, str] = {}
+    else:
+        fascicoli_db_path, storage_root, structured_db = _current_fascicoli_catalog_paths()
+        result = _safe(
+            "document_ai_texts_for_fascicolo",
+            lambda: document_ai_texts_for_catalog(
+                tenant_ids=_current_tenant_catalog_ids(),
+                fascicolo_id=fid,
+                documents=documents,
+                fascicoli_db_path=fascicoli_db_path,
+                structured_db=structured_db,
+                storage_root=storage_root,
+            ),
+            {},
+        )
+    cleaned = {str(key): str(value) for key, value in (result or {}).items() if str(value or "").strip()}
+    if cache is not None:
+        cache[fid] = cleaned
+    return cleaned
+
+
+def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str]:
+    wanted = _text(document_id)
+    for doc in getattr(fascicolo, "documenti", []) or []:
+        did = _text(getattr(doc, "id", ""))
+        if did != wanted:
+            continue
+        filename = _text(
+            getattr(doc, "nome_originale", "")
+            or getattr(doc, "nome_portale", "")
+            or getattr(doc, "nome", "")
+            or getattr(doc, "filename", "")
+        )
+        return {
+            "document_id": did,
+            "documento_id": did,
+            "filename": filename,
+            "original_filename": _text(getattr(doc, "nome_originale", "")) or filename,
+            "safe_filename": _text(getattr(doc, "nome", "")) or filename,
+            "tipo_documento": _enum_value(getattr(doc, "tipo", "")),
+            "classification": _text(getattr(doc, "classificazione_portale", "")),
+            "sha256": _text(getattr(doc, "hash_sha256", "")),
+            "fascicolo_id": _text(getattr(fascicolo, "id", "")),
+        }
+    return {"document_id": wanted, "documento_id": wanted, "fascicolo_id": _text(getattr(fascicolo, "id", ""))}
+
+
+def _payment_date_from_document_text(text: str) -> str:
+    compact = _text(text)
+    for pattern in (
+        r"<(?:dataEsitoSingoloPagamento|dataOraMessaggioRicevuta|dataPagamento)[^>]*>\s*(\d{4}-\d{2}-\d{2})",
+        r"\bData(?:\s+(?:esito|pagamento|ricevuta))?\s*:\s*(\d{1,2}/\d{1,2}/\d{4})",
+        r"\bData/ora\s+Messaggio\s+Ricevuta\s*:\s*(\d{1,2}/\d{1,2}/\d{4})",
+    ):
+        match = re.search(pattern, compact, flags=re.IGNORECASE)
+        if not match:
+            continue
+        parsed = _parse_date(match.group(1))
+        if parsed:
+            return parsed.isoformat()
+    return ""
+
+
+def _raw_payment_is_manual(raw: dict[str, Any]) -> bool:
+    if not raw:
+        return False
+    if isinstance(raw.get("history") or raw.get("storico"), list) and (raw.get("history") or raw.get("storico")):
+        return True
+    updated_by = _text(raw.get("updated_by") or raw.get("updatedBy")).casefold()
+    origin = _text(raw.get("origine") or raw.get("origin")).casefold()
+    automatic_markers = ("import", "automatic", "automatico", "document ai", "lex", "fascicolo")
+    if updated_by and not any(marker in updated_by for marker in automatic_markers):
+        return True
+    if origin and not any(marker in origin for marker in automatic_markers):
+        return True
+    return False
+
+
+def _merge_auto_payment_source(raw: dict[str, Any], automatic: dict[str, Any], *, kind: str) -> dict[str, Any]:
+    if _raw_payment_is_manual(raw):
+        return raw
+    merged = dict(raw)
+    status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
+    auto_status = _normalise_payment_status(automatic.get("status") or automatic.get("stato"), default="")
+    raw_amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    auto_amount = _payment_amount_value(automatic.get("importo") if "importo" in automatic else automatic.get("amount"))
+    should_override_status = (
+        not status
+        or status in {"non_previsto", "da_registrare", "da_emettere"}
+        or (kind == "contributo_unificato" and auto_status == "pagato" and status != "pagato")
+    )
+    if should_override_status and auto_status:
+        merged["status"] = auto_status
+        merged["pagato"] = auto_status == "pagato"
+        merged["previsto"] = auto_status != "non_previsto"
+    if auto_amount is not None and (raw_amount is None or abs(float(raw_amount)) <= 0.01):
+        merged["importo"] = auto_amount
+    for field in (
+        "label",
+        "natura",
+        "valuta",
+        "data_pagamento",
+        "note",
+        "documento_fonte",
+        "origine",
+        "updated_by",
+    ):
+        value = automatic.get(field)
+        if value not in {None, ""} and merged.get(field) in {None, ""}:
+            merged[field] = value
+    return merged
+
+
+def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> dict[str, dict[str, Any]]:
+    texts = _document_ai_texts_for_fascicolo(fascicolo)
+    if not texts:
+        return {}
+    auto: dict[str, dict[str, Any]] = {}
+    try:
+        from pct.fascicolo_sentenza_economica import (
+            analyze_sentenza_tribunale_text,
+            extract_contributo_unificato_document_evidence,
+            validate_sentenza_fascicolo_context,
+        )
+    except Exception:
+        return {}
+
+    cu_candidates: list[dict[str, Any]] = []
+    for document_id, text in texts.items():
+        metadata = _document_metadata_for_id(fascicolo, document_id)
+        evidence = extract_contributo_unificato_document_evidence(text, metadata)
+        if evidence:
+            evidence = dict(evidence)
+            evidence["data_pagamento"] = _payment_date_from_document_text(text)
+            cu_candidates.append(evidence)
+    if cu_candidates:
+        best_cu = sorted(
+            cu_candidates,
+            key=lambda item: (
+                0 if _text(item.get("status")) == "pagato" else 1,
+                0 if _payment_amount_value(item.get("importo")) is not None else 1,
+                _text(item.get("filename")),
+            ),
+        )[0]
+        status = _text(best_cu.get("status")) or ("non_previsto" if best_cu.get("esente") is True else "pagato")
+        auto["contributo_unificato"] = {
+            "kind": "contributo_unificato",
+            "label": "Contributo unificato",
+            "status": status,
+            "previsto": status != "non_previsto",
+            "pagato": status == "pagato",
+            "importo": best_cu.get("importo"),
+            "valuta": "EUR",
+            "data_pagamento": best_cu.get("data_pagamento") or "",
+            "documento_fonte": _text(best_cu.get("filename") or best_cu.get("document_id")),
+            "origine": "Document AI / fascicolo",
+            "updated_by": "IUSENTRA automatico",
+            "note": "Compilato automaticamente dalla ricevuta contributo unificato presente nel fascicolo.",
+        }
+
+    for document_id, text in texts.items():
+        metadata = _document_metadata_for_id(fascicolo, document_id)
+        extraction = analyze_sentenza_tribunale_text(text, metadata)
+        if not getattr(extraction, "found", False):
+            continue
+        context = validate_sentenza_fascicolo_context(
+            text=text,
+            extraction=extraction,
+            fascicolo=fascicolo,
+            metadata=metadata,
+            fascicolo_id=_text(getattr(fascicolo, "id", "")),
+        )
+        if not getattr(context, "ok", False):
+            continue
+        source_name = _text(metadata.get("filename") or document_id)
+        sentence_date = _text(getattr(extraction, "sentence_date", ""))
+        if getattr(extraction, "liquidazione_importo", None) is not None:
+            auto["liquidazione_giudice"] = {
+                "kind": "liquidazione_giudice",
+                "label": "Liquidazione",
+                "status": "da_registrare",
+                "previsto": True,
+                "pagato": False,
+                "importo": getattr(extraction, "liquidazione_importo", None),
+                "valuta": "EUR",
+                "data_pagamento": sentence_date,
+                "documento_fonte": source_name,
+                "origine": "Document AI / sentenza",
+                "updated_by": "IUSENTRA automatico",
+                "note": "Importo liquidato letto automaticamente dalla sentenza del fascicolo.",
+            }
+            auto.setdefault("parcella", {
+                "kind": "parcella",
+                "label": "Parcella",
+                "status": "da_emettere",
+                "previsto": True,
+                "pagato": False,
+                "importo": getattr(extraction, "liquidazione_importo", None),
+                "valuta": "EUR",
+                "data_pagamento": sentence_date,
+                "documento_fonte": source_name,
+                "origine": "Document AI / sentenza",
+                "updated_by": "IUSENTRA automatico",
+                "note": "Parcella proposta automaticamente sulla liquidazione letta in sentenza.",
+            })
+        spese_amount = getattr(extraction, "spese_esborsi_importo", None)
+        if spese_amount is None:
+            spese_amount = getattr(extraction, "fondo_spese_importo", None)
+        if spese_amount is not None:
+            auto["spese_esborsi"] = {
+                "kind": "spese_esborsi",
+                "label": "Spese/esborsi",
+                "status": "da_registrare",
+                "previsto": True,
+                "pagato": False,
+                "importo": spese_amount,
+                "valuta": "EUR",
+                "data_pagamento": sentence_date,
+                "documento_fonte": source_name,
+                "origine": "Document AI / sentenza",
+                "updated_by": "IUSENTRA automatico",
+                "note": "Spese o esborsi letti automaticamente dalla sentenza del fascicolo.",
+            }
+    return auto
+
+
+def _payments_with_automatic_sources(fascicolo: Any, payments: Any, *, enabled: bool) -> dict[str, Any]:
+    base = dict(payments) if isinstance(payments, dict) else {}
+    if not enabled:
+        return base
+    for kind, automatic in _automatic_payment_sources_for_fascicolo(fascicolo, base).items():
+        raw = _payment_source_for_kind(base, kind)
+        base[kind] = _merge_auto_payment_source(raw, automatic, kind=kind)
+    return base
+
+
 def _payment_source_for_kind(payments: Any, kind: str) -> dict[str, Any]:
     if not isinstance(payments, dict):
         return {}
@@ -1235,9 +1540,9 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     }
 
 
-def payment_summary_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
+def payment_summary_for_fascicolo(fascicolo: Any, *, automatic: bool = False) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
-    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    payments = _payments_with_automatic_sources(fascicolo, getattr(fascicolo, "pagamenti", {}) or {}, enabled=automatic)
     items = {
         kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
         for kind in PAYMENT_KINDS
@@ -1640,16 +1945,76 @@ def _rg_order_from_item(item: dict[str, Any]) -> tuple[int, int, int, str, str]:
     return (missing, -anno, -numero, _text(item.get("rg")).casefold(), _text(item.get("id")))
 
 
-def _next_deadline(fascicolo: Any, scadenze_by_fasc: dict[str, list[Any]] | None = None) -> Any | None:
+def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
+    texts = _document_ai_texts_for_fascicolo(fascicolo)
+    if not texts:
+        return None
+    try:
+        from pct.pec_pipeline import _procedural_date_kind, extract_procedural_dates
+    except Exception:
+        return None
+    today = date.today()
+    candidates: list[dict[str, Any]] = []
+    for document_id, text in texts.items():
+        if not _document_text_matches_fascicolo(fascicolo, text):
+            continue
+        metadata = _document_metadata_for_id(fascicolo, document_id)
+        source_name = _text(metadata.get("filename") or metadata.get("safe_filename") or document_id, "Documento fascicolo")
+        for candidate in extract_procedural_dates({source_name: text}, plain_text=""):
+            kind = _procedural_date_kind(candidate)
+            if kind not in {"udienza", "termine"}:
+                continue
+            parsed = _parse_date(candidate.get("date"))
+            if not parsed or parsed < today:
+                continue
+            candidates.append(
+                {
+                    "date": parsed,
+                    "kind": kind,
+                    "document_id": document_id,
+                    "source": source_name,
+                    "label": _text(candidate.get("label"), "Data processuale"),
+                    "context": _short(candidate.get("context"), 220),
+                    "confidence": float(candidate.get("confidence") or 0.0),
+                }
+            )
+    if not candidates:
+        return None
+    best = sorted(candidates, key=lambda item: (item["date"], 0 if item["kind"] == "termine" else 1, -item["confidence"]))[0]
+    title_prefix = "Udienza" if best["kind"] == "udienza" else "Termine"
+    source = _text(best.get("source"), "documento fascicolo")
+    return SimpleNamespace(
+        id=f"document-ai-{_text(getattr(fascicolo, 'id', ''))}-{best['date'].isoformat()}",
+        data_scadenza=best["date"].isoformat(),
+        data=best["date"].isoformat(),
+        tipo="UDIENZA" if best["kind"] == "udienza" else "ALTRO",
+        priorita="ALTA" if best["kind"] == "udienza" else "MEDIA",
+        stato="APERTO",
+        titolo=_short(f"{title_prefix} letta da {source}", 120),
+        descrizione=_text(best.get("context")),
+        note="Prossima scadenza letta automaticamente dai documenti indicizzati del fascicolo.",
+        id_fascicolo=_text(getattr(fascicolo, "id", "")),
+    )
+
+
+def _next_deadline(
+    fascicolo: Any,
+    scadenze_by_fasc: dict[str, list[Any]] | None = None,
+    *,
+    automatic_from_documents: bool = False,
+) -> Any | None:
     prop = getattr(fascicolo, "prossima_scadenza", None)
     if prop:
         return prop
-    if scadenze_by_fasc is None:
-        return None
-    deadlines = scadenze_by_fasc.get(_text(getattr(fascicolo, "id", "")), [])
-    dated = [item for item in deadlines if _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", ""))]
-    dated.sort(key=lambda item: _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", "")) or date.max)
-    return dated[0] if dated else None
+    if scadenze_by_fasc is not None:
+        deadlines = scadenze_by_fasc.get(_text(getattr(fascicolo, "id", "")), [])
+        dated = [item for item in deadlines if _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", ""))]
+        dated.sort(key=lambda item: _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", "")) or date.max)
+        if dated:
+            return dated[0]
+    if automatic_from_documents:
+        return _automatic_next_deadline_from_documents(fascicolo)
+    return None
 
 
 def _next_deadline_date_value(fascicolo: Any, next_deadline: Any | None) -> str:
@@ -1691,11 +2056,17 @@ def _governed_documents_count(fascicolo: Any) -> int:
         return len(getattr(fascicolo, "documenti", []) or [])
 
 
-def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = None, archived: bool | None = None) -> dict[str, Any]:
+def _item(
+    fascicolo: Any,
+    *,
+    scadenze_by_fasc: dict[str, list[Any]] | None = None,
+    archived: bool | None = None,
+    automatic_evidence: bool = False,
+) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     rg_order = _rg_order_from_fascicolo(fascicolo)
-    n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
+    n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc, automatic_from_documents=automatic_evidence)
     n_date = _next_deadline_date_value(fascicolo, n_scadenza)
     docs = _governed_documents_count(fascicolo)
     deposits = getattr(fascicolo, "depositi_pct", []) or []
@@ -1756,11 +2127,12 @@ def _item_light(
     scadenze_by_fasc: dict[str, list[Any]] | None = None,
     archived: bool | None = None,
     office_pec_messages: list[Any] | None = None,
+    automatic_evidence: bool = False,
 ) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     rg_order = _rg_order_from_fascicolo(fascicolo)
-    n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
+    n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc, automatic_from_documents=automatic_evidence)
     n_date = _next_deadline_date_value(fascicolo, n_scadenza)
     deposits = getattr(fascicolo, "depositi_pct", []) or []
     unread = sum(1 for dep in deposits if _enum_value(getattr(dep, "stato", "")).upper() in {"WARN_CONTROLLI", "ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA", "ERRORE"})
@@ -1769,7 +2141,7 @@ def _item_light(
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
-    payment_summary = payment_summary_for_fascicolo(fascicolo)
+    payment_summary = payment_summary_for_fascicolo(fascicolo, automatic=automatic_evidence)
     relata_summary: dict[str, Any] = {}
     if office_pec_messages is not None:
         fid_for_relata = quote(fid)
@@ -2100,7 +2472,16 @@ def build_react_fascicoli_payload(
     scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
     resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
     archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-    light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc) for fascicolo in fascicoli]
+    payment_filters_active = bool(
+        payment_filters
+        and any(_text(value).strip().lower() not in {"", "tutti"} for value in payment_filters.values())
+    )
+    sort_key = _text(sort, "rg")
+    automatic_for_all = bool(payments_only or payment_filters_active or sort_key == "scadenza")
+    light_items = [
+        _item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, automatic_evidence=automatic_for_all)
+        for fascicolo in fascicoli
+    ]
     filtered = [
         item for item in light_items
         if _matches_list_filters(
@@ -2122,7 +2503,21 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
+    if items and not automatic_for_all:
+        fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+        enriched_visible = {
+            item_id: _item_light(
+                fascicoli_by_id[item_id],
+                scadenze_by_fasc=scadenze_by_fasc,
+                automatic_evidence=True,
+            )
+            for item_id in (_text(item.get("id")) for item in items)
+            if item_id in fascicoli_by_id
+        }
+        items = [enriched_visible.get(_text(item.get("id")), item) for item in items]
     items_by_id = {item["id"]: item for item in light_items}
+    for item in items:
+        items_by_id[_text(item.get("id"))] = item
     deadlines30 = len(_deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=30, resolved_matter_ids=resolved_scadenze))
     return {
         "source": "repository_reali",
@@ -3628,7 +4023,7 @@ def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[An
     preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
     conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
     parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
-    payment_summary = payment_summary_for_fascicolo(fascicolo)
+    payment_summary = payment_summary_for_fascicolo(fascicolo, automatic=True)
     return [
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
         {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": conferimento_href, "tone": "purple"},
@@ -3682,7 +4077,7 @@ def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]
 
 
 def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> dict[str, Any]:
-    base = _item_light(fascicolo)
+    base = _item_light(fascicolo, automatic_evidence=True)
     next_hearing = _next_hearing_value(fascicolo, apps)
     closure_date = _closure_date_value(fascicolo)
     base.update(

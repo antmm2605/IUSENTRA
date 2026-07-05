@@ -9,7 +9,7 @@ La fase 4 prepara redirect e fallback senza attivare redirect globali. Ogni pass
 - Route manifest analizzate: 117.
 - Route App V2 frontend analizzate: 16.
 - Alias legacy frontend censiti: 32.
-- Mapping backend sicuri censiti: 69.
+- Mapping backend sicuri censiti: 71.
 - Redirect attivati live in fase 4: 0.
 - Fallback legacy/template: mantenuti per tutte le route non promosse o non abilitate.
 

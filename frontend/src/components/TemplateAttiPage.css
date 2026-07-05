@@ -1828,6 +1828,7 @@ body.iu-template-pro-fullscreen .iu-page-heading {
   overflow: hidden;
   position: absolute;
   right: 0;
+  top: var(--iu-template-sheet-top, 0px);
 }
 
 .iu-template-pro-paper__sheet + .iu-template-pro-paper__sheet {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type MouseEvent } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pilcrow, Plus, Printer, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -1677,26 +1677,44 @@ function ProfessionalTemplateEditorWorkspace({
   const pageStep = pageFrameHeight + TEMPLATE_PAGE_GAP_PX
   const pageStackHeight = (pageFrameHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
   const editorStackHeight = (visualPageHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
-  const paperStyle = {
-    '--iu-template-paper-width': isLandscape ? '70.1rem' : '49.6rem',
-    '--iu-template-paper-page-height': `${pageFrameHeight}px`,
-    '--iu-template-page-gap': `${TEMPLATE_PAGE_GAP_PX}px`,
-    '--iu-template-page-step': `${pageStep}px`,
-    '--iu-template-stack-height': `${pageStackHeight}px`,
-    '--iu-template-editor-stack-height': `${editorStackHeight}px`,
-    '--iu-template-page-padding-top': `${pageMargins.top}mm`,
-    '--iu-template-page-padding-right': `${pageMargins.right}mm`,
-    '--iu-template-page-padding-bottom': `${pageMargins.bottom}mm`,
-    '--iu-template-page-padding-left': `${pageMargins.left}mm`,
-    '--iu-template-editor-height': isLandscape ? '35rem' : '49rem',
-    '--iu-template-stamp-offset-y': `${stampOffsetY}mm`,
-    '--iu-template-stamp-font-size': `${stampFontSize}pt`,
-    '--iu-template-stamp-line-height': stampLineHeight,
-    '--iu-template-stamp-font-family': fontCssStackByKey(data, stampFontKey),
-  } as CSSProperties
   const visualPages = useMemo(() => Array.from({ length: Math.max(1, visualPageCount) }), [visualPageCount])
 
+  const paperRef = useRef<HTMLElement>(null)
   const stampRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const paper = paperRef.current
+    if (!paper) return
+    const variables: Record<string, string> = {
+      '--iu-template-paper-width': isLandscape ? '70.1rem' : '49.6rem',
+      '--iu-template-paper-page-height': `${pageFrameHeight}px`,
+      '--iu-template-page-gap': `${TEMPLATE_PAGE_GAP_PX}px`,
+      '--iu-template-page-step': `${pageStep}px`,
+      '--iu-template-stack-height': `${pageStackHeight}px`,
+      '--iu-template-editor-stack-height': `${editorStackHeight}px`,
+      '--iu-template-page-padding-top': `${pageMargins.top}mm`,
+      '--iu-template-page-padding-right': `${pageMargins.right}mm`,
+      '--iu-template-page-padding-bottom': `${pageMargins.bottom}mm`,
+      '--iu-template-page-padding-left': `${pageMargins.left}mm`,
+      '--iu-template-editor-height': isLandscape ? '35rem' : '49rem',
+      '--iu-template-stamp-offset-y': `${stampOffsetY}mm`,
+      '--iu-template-stamp-font-size': `${stampFontSize}pt`,
+      '--iu-template-stamp-line-height': String(stampLineHeight),
+      '--iu-template-stamp-font-family': fontCssStackByKey(data, stampFontKey),
+    }
+    Object.entries(variables).forEach(([property, value]) => {
+      paper.style.setProperty(property, value)
+    })
+    paper.querySelectorAll<HTMLElement>('.iu-template-pro-paper__sheet').forEach((element, index) => {
+      element.style.setProperty('--iu-template-sheet-top', `${pageStep * index}px`)
+    })
+    paper.querySelectorAll<HTMLElement>('.iu-template-pro-paper__stamp--page-copy').forEach((element, index) => {
+      element.style.setProperty(
+        '--iu-template-repeat-stamp-top',
+        `calc(${pageStep * (index + 1)}px + var(--iu-template-page-padding-top) - .2rem + var(--iu-template-stamp-offset-y, 0mm))`,
+      )
+    })
+  }, [data, editorStackHeight, isLandscape, pageFrameHeight, pageMargins, pageStackHeight, pageStep, stampFontKey, stampFontSize, stampLineHeight, stampOffsetY])
 
   useEffect(() => {
     const values: Record<string, string> = {}
@@ -2646,13 +2664,12 @@ function ProfessionalTemplateEditorWorkspace({
           </div>
         </aside>
         <main className="iu-template-pro-canvas">
-          <article className={paperClassName} style={paperStyle} onClick={focusEditorFromPaper}>
+          <article ref={paperRef} className={paperClassName} onClick={focusEditorFromPaper}>
             <div className="iu-template-pro-paper__sheets" aria-hidden="true">
               {visualPages.map((_, index) => (
                 <div
                   className="iu-template-pro-paper__sheet"
                   key={`page-sheet-${index + 1}`}
-                  style={{ top: `${pageStep * index}px` }}
                 >
                   <div className="iu-template-pro-paper__margin-guide" />
                   <footer className="iu-template-pro-paper__page-footer">
@@ -2681,7 +2698,6 @@ function ProfessionalTemplateEditorWorkspace({
                 aria-hidden="true"
                 className="iu-template-pro-paper__stamp iu-template-pro-paper__stamp--page-copy"
                 key={`stamp-copy-${index + 2}`}
-                style={{ '--iu-template-repeat-stamp-top': `calc(${pageStep * (index + 1)}px + var(--iu-template-page-padding-top) - .2rem + var(--iu-template-stamp-offset-y, 0mm))` } as CSSProperties}
               >
                 {data.stamp.lines.map((line, lineIndex) => (
                   <span className={line.bold ? 'is-bold' : ''} key={`copy-${index}-${line.text}-${lineIndex}`}>{line.text}</span>

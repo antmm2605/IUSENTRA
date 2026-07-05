@@ -53,13 +53,14 @@ Portare l'editor documenti/template atti a una superficie professionale tipo Wor
 - Correzione 05/07/2026: la bozza iniziale non è più identica per tutti i modelli; sono differenziati almeno invito/mediazione, accordo transattivo, appelli civili/amministrativi/lavoro/tributari, appello cautelare, penale e attestazione di conformità/notifica.
 - Prova reale 05/07/2026 nel browser integrato su `http://127.0.0.1:8080`: cliccati 10 template dal catalogo (`Invito alla mediazione`, `Accordo Transattivo`, `Appello al Consiglio di Stato`, `Appello Cautelare`, `Appello cautelare penale`, `Appello nel rito lavoro`, `Appello Previdenziale`, `Appello tributario`, `Attestazione di conformità`, `Atto di appello`). Ogni template apre una bozza coerente, nessuna bozza contiene più `[RECIPIENT_OR_COURT]`, `[TITLE]`, `[CLIENT_OR_SENDER]`, `[COUNTERPARTY_OR_RECIPIENT]`, `[FACTS]`, `[REQUESTS_OR_CONCLUSIONS]`, `[PLACE]`, `[DOCUMENT_DATE]` o `[LAWYER]`.
 - Prova reale 05/07/2026 sul foglio libero dopo rebuild Docker: incollati 14 paragrafi nel corpo documento, create automaticamente 3 pagine e 3 timbri; pagina 2 e pagina 3 hanno circa 235 px tra fondo timbro e primo testo. Reload finale eseguito e foglio lasciato pulito.
+- Correzione 05/07/2026 post-CI: rimosso l'uso di `style={{...}}` da `TemplateAttiPage.tsx`; le variabili dinamiche di pagina, margini, altezza foglio e timbro vengono ora applicate via ref e lette dal CSS governato.
+- Prova reale 05/07/2026 post-CI su `http://127.0.0.1:8080/template-atti/editor`: editor libero pulito con 1 pagina/1 timbro; incollati 14 paragrafi e create automaticamente 4 pagine/4 timbri; inserito con click reale il testo `TEST_PAGINA_2_REALE` nella pagina 2; pagina 2 verificata con timbro riportato e circa 222 px tra fondo timbro e primo testo. Reload finale eseguito e foglio lasciato pulito.
 
 ## Blocco aperto
 
 Restano da completare prima della chiusura complessiva:
 
-1. Testare almeno 10 template dal catalogo laterale e annotare i template non utili.
-2. Verificare font/size/margini/orientamento su selezioni reali in più punti del documento.
-3. Completare commit, push branch gemelli, controlli GitHub/CodeQL e deploy Hetzner.
+1. Verificare font/size/margini/orientamento su selezioni reali in più punti del documento.
+2. Completare commit, push branch gemelli, controlli GitHub/CodeQL e deploy Hetzner.
 
 Finché queste prove estese e i gate di consegna non sono completati, il lavoro resta aperto.

@@ -8,6 +8,7 @@
 | `python -m pytest -q tests/test_polisweb.py::test_visualizza_documento_pdf_mobile_renderizza_pagine_png` | OK | Il visualizzatore mobile PDF restituisce HTML con immagini pagina e PNG non vuoti per `?viewer=mobile&page=1`. |
 | `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_post_modifica_cliente_json_normalizza_comune_e_persiste` | OK | Vista economica/scadenza da documenti, suite React fascicoli e salvataggio cliente/comune confermati. |
 | `python -m pytest -q tests/test_react_fascicoli_sentenze_economiche.py tests/test_sentenza_economic_runtime.py` | OK | Runtime sentenze economiche e validazione contesto fascicolo confermati. |
+| `python tools/check_repo_governance.py`; `python -m py_compile web/bootstrap/fascicoli_document_helpers.py web/bootstrap/fascicoli_document_routes.py` | OK | Route documenti ridotta a `639` righe, sotto il limite governance di `650`; sintassi helper/route confermata. |
 | `npm --prefix frontend run typecheck` | OK | TypeScript React completato senza errori. |
 | `python -m pytest -q tests/test_utf8_integrity.py` | OK | Integrità UTF-8 confermata dopo testi e documentazione. |
 | `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | Contratti API fase 6 e OpenAPI allineati alla versione `2.253.180`. |

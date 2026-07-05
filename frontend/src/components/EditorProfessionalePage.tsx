@@ -1,5 +1,6 @@
 import {
   BookOpenCheck,
+  FilePlus2,
   FileSearch,
   FileText,
   Mail,
@@ -16,11 +17,18 @@ import './EditorProfessionalePage.css'
 
 const workbenchActions = [
   {
+    title: 'Editor libero',
+    text: 'Apre subito un foglio vuoto con timbro studio, formattazione, import e salvataggio nel fascicolo.',
+    href: '/template-atti/editor',
+    icon: FilePlus2,
+    tone: 'primary' as const,
+  },
+  {
     title: 'Redazione atti',
     text: 'Crea e corregge atti, bozze e modelli collegati ai fascicoli.',
     href: '/redazione-atti',
     icon: PenLine,
-    tone: 'primary' as const,
+    tone: 'neutral' as const,
   },
   {
     title: 'Modelli atti',
@@ -54,7 +62,8 @@ export function EditorProfessionalePage() {
       subtitle="Scrittura, controllo, ricerca, allegati firmati e Lex nello stesso spazio operativo."
       actions={
         <>
-          <ButtonLink href="/redazione-atti" tone="primary"><PenLine size={15} /> Redazione atti</ButtonLink>
+          <ButtonLink href="/template-atti/editor" tone="primary"><FilePlus2 size={15} /> Editor libero</ButtonLink>
+          <ButtonLink href="/redazione-atti" tone="neutral"><PenLine size={15} /> Redazione atti</ButtonLink>
           <ButtonLink href="/global-search?tipo=documenti" tone="neutral"><FileSearch size={15} /> Cerca documenti</ButtonLink>
         </>
       }

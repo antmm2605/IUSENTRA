@@ -97,8 +97,45 @@
 }
 
 @media(max-width:1700px){
-  .iu-sogg-layout{grid-template-columns:1fr}
-  .iu-sogg-rail{position:static}
+  .iu-sogg-layout,
+  .iusentra-route-preset--active .iu-sogg-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"]{
+    grid-template-columns:1fr!important
+  }
+  .iusentra-route-preset--active .iu-sogg-layout.iusentra-route-grid>*{
+    grid-column:1!important
+  }
+  .iu-sogg-rail,
+  .iusentra-route-preset--active .iu-sogg-rail.iusentra-route-rail{
+    position:static!important
+  }
+  .iu-sogg-table-wrap{
+    overflow-x:hidden
+  }
+  .iu-sogg-table{
+    min-width:0;
+    table-layout:fixed
+  }
+  .iu-sogg-table th,
+  .iu-sogg-table td{
+    padding-inline:9px
+  }
+  .iu-sogg-table th:nth-child(1),
+  .iu-sogg-table td:nth-child(1){
+    width:38px
+  }
+  .iu-sogg-table th:nth-child(2),
+  .iu-sogg-table td:nth-child(2){
+    width:34%
+  }
+  .iu-sogg-table th:nth-child(8),
+  .iu-sogg-table td:nth-child(8){
+    width:76px;
+    text-align:center
+  }
+  .iu-sogg-table th:nth-child(9),
+  .iu-sogg-table td:nth-child(9){
+    width:120px
+  }
 }
 
 @media(max-width:980px){

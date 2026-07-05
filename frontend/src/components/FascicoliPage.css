@@ -2030,6 +2030,98 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
 .iu-fas-economic-ref a{color:var(--iu-blue-700);text-decoration:none}
 .iu-fas-economic-ref>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:11px;font-weight:650}
+@media(max-width:1700px) and (min-width:761px){
+  .iu-fas-table-wrap{
+    overflow-x:hidden
+  }
+  .iu-fas-table:not(.iu-fas-table--economic){
+    min-width:0;
+    table-layout:fixed
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th,
+  .iu-fas-table:not(.iu-fas-table--economic) td{
+    padding-inline:6px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(1),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(1){
+    width:38px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(2),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(2){
+    width:106px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(3),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(3){
+    width:auto
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(4),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(4){
+    width:76px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(5),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(5){
+    width:124px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(6),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(6){
+    width:124px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(7),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(7){
+    width:108px
+  }
+  .iu-fas-table:not(.iu-fas-table--economic) th:nth-child(8),
+  .iu-fas-table:not(.iu-fas-table--economic) td:nth-child(8){
+    width:92px
+  }
+  .iu-fas-table--economic{
+    min-width:0;
+    table-layout:fixed
+  }
+  .iu-fas-table--economic th:nth-child(1),
+  .iu-fas-table--economic td:nth-child(1){
+    width:38px
+  }
+  .iu-fas-table--economic th:nth-child(2),
+  .iu-fas-table--economic td:nth-child(2){
+    width:116px
+  }
+  .iu-fas-table--economic th:nth-child(3),
+  .iu-fas-table--economic td:nth-child(3){
+    width:176px
+  }
+  .iu-fas-table--economic th:nth-child(4),
+  .iu-fas-table--economic td:nth-child(4){
+    width:106px
+  }
+  .iu-fas-table--economic th:nth-child(5),
+  .iu-fas-table--economic td:nth-child(5){
+    width:92px
+  }
+  .iu-fas-table--economic th:nth-child(6),
+  .iu-fas-table--economic td:nth-child(6){
+    width:auto;
+    min-width:0
+  }
+  .iu-fas-table--economic th,
+  .iu-fas-table--economic td{
+    padding-inline:6px
+  }
+  .iu-fas-economic-summary-grid{
+    gap:6px
+  }
+  .iu-fas-economic-summary{
+    grid-template-columns:minmax(0,1fr);
+    gap:3px;
+    padding:6px
+  }
+  .iu-fas-economic-summary .iu-badge{
+    max-width:100%;
+    justify-self:start;
+    text-align:left;
+    white-space:nowrap
+  }
+}
 
 /* ===== Filtri per voce economica nel pannello avanzato ===== */
 .iu-fas-economic-filters{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px dashed var(--iu-border)}
@@ -2046,6 +2138,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-mobile-card__economic ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
 
 .iu-fas-table:not(.iu-fas-table--economic){min-width:1030px}
+@media(max-width:1700px) and (min-width:761px){
+  .iu-fas-table:not(.iu-fas-table--economic){min-width:0}
+}
 .iu-fas-title-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
 .iu-fas-title-line>a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iu-fas-title-line .iu-fas-actions{justify-content:flex-end;gap:5px}

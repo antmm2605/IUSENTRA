@@ -10,6 +10,102 @@
 .iu-cli-title-line .iu-cli-actions{justify-content:flex-end}
 
 @media(max-width:1700px){
-  .iu-cli-layout{grid-template-columns:1fr}
-  .iu-cli-insights{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .iu-cli-layout,
+  .iusentra-route-preset--active .iu-cli-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"]{
+    grid-template-columns:1fr!important
+  }
+  .iusentra-route-preset--active .iu-cli-layout.iusentra-route-grid>*{
+    grid-column:1!important
+  }
+  .iu-cli-insights,
+  .iusentra-route-preset--active .iu-cli-insights.iusentra-route-rail{
+    position:static!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important
+  }
+  .iu-cli-table-wrap{
+    overflow-x:hidden
+  }
+  .iu-cli-table{
+    min-width:0;
+    table-layout:fixed
+  }
+  .iu-cli-table th,
+  .iu-cli-table td{
+    padding-inline:9px
+  }
+  .iu-cli-table th:nth-child(1),
+  .iu-cli-table td:nth-child(1){
+    width:38px
+  }
+  .iu-cli-table th:nth-child(2),
+  .iu-cli-table td:nth-child(2){
+    width:32%
+  }
+  .iu-cli-table th:nth-child(3),
+  .iu-cli-table td:nth-child(3),
+  .iu-cli-table th:nth-child(4),
+  .iu-cli-table td:nth-child(4){
+    width:112px
+  }
+  .iu-cli-table th:nth-child(5),
+  .iu-cli-table td:nth-child(5){
+    width:82px
+  }
+  .iu-cli-table th:nth-child(6),
+  .iu-cli-table td:nth-child(6){
+    width:104px
+  }
+  .iu-cli-table th:nth-child(7),
+  .iu-cli-table td:nth-child(7){
+    width:72px;
+    text-align:center
+  }
+  .iu-cli-table th:nth-child(8),
+  .iu-cli-table td:nth-child(8),
+  .iu-cli-table th:nth-child(9),
+  .iu-cli-table td:nth-child(9){
+    width:104px
+  }
+  .iu-cli-title-cell{
+    max-width:none
+  }
+  .iu-cli-title-line .iu-cli-actions a,
+  .iu-cli-title-line .iu-cli-actions button{
+    width:34px;
+    height:34px;
+    min-height:34px;
+    padding:0
+  }
+}
+
+.iu-cli-title-line .iu-cli-actions a,
+.iu-cli-title-line .iu-cli-actions button{
+  width:34px;
+  height:34px;
+  min-width:34px;
+  min-height:34px;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 34px;
+  padding:0;
+  line-height:0;
+}
+.iu-cli-title-line .iu-cli-actions a svg,
+.iu-cli-title-line .iu-cli-actions button svg{
+  display:block;
+  flex:0 0 auto;
+  margin:auto;
+}
+.iusentra-preset-active .iu-content .iu-cli-title-line .iu-cli-actions a[href],
+.iusentra-preset-active .iu-content .iu-cli-title-line .iu-cli-actions button{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 34px!important;
+  padding:0!important;
 }

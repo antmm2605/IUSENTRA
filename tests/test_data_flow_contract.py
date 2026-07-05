@@ -105,6 +105,7 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
     assert "/soggetti" in menu["Anagrafica"]
     assert menu["Legal Skills"] == {"/legal-skills"}
     assert menu["Editor professionale"] == {"/editor-professionale"}
+    assert menu["Editor libero"] == {"/template-atti/editor"}
     assert menu["Regia Agentica"] == {"/workflow-agents"}
     assert menu["Guida firma digitale"] == {"/guida/firma-digitale"}
     assert menu["Importa pratiche"] == {"/importa-pratiche"}

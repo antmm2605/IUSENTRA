@@ -475,6 +475,7 @@ const navSections: NavSection[] = [
       { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
       { label: 'Documenti', icon: FileText, href: '/documenti' },
       { label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale' },
+      { label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },
       { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
       { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
       { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },

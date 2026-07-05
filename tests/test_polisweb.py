@@ -3134,6 +3134,10 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     html = html_response.get_data(as_text=True)
     assert "Pagina 1" in html
     assert "viewer=mobile&amp;page=1" in html
+    assert 'loading="eager"' in html
+    assert 'fetchpriority="high"' in html
+    assert "aspect-ratio:1/1.414" in html
+    assert "overflow-x:hidden" in html
     assert "Ricorso.PDF" in html
     assert page_response.status_code == 200
     assert page_response.mimetype == "image/png"

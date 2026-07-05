@@ -221,6 +221,10 @@ def test_editor_libero_ha_route_link_e_payload_dedicato():
     assert "const freeEditorMode = isFreeEditorRoute()" in source
     assert "freeEditorMode ? '' : current" in source
     assert "freeEditorMode && (item.code || '').trim()" in source
+    assert "buildFreeEditorFallbackPage" in data
+    assert "const freeEditorRoute = route === '/template-atti/editor'" in data
+    assert "freeEditorRoute ? buildFreeEditorFallbackPage()" in data
+    assert "timeoutSignal(10000)" in data
     assert "Documento libero" in source
     assert "Foglio indipendente dai modelli" in source
     assert "Scrivi qui il documento libero" in source

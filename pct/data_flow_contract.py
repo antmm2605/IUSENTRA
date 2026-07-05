@@ -219,6 +219,7 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
             ("Compensi Forensi", "/compensi-forensi"),
             ("Documenti", "/documenti"),
             ("Editor professionale", "/editor-professionale"),
+            ("Editor libero", "/template-atti/editor"),
             ("Redazione Atti", "/redazione-atti"),
             ("Statistiche", "/statistiche/"),
             ("Ricerca Legale", "/ricerca-legale"),

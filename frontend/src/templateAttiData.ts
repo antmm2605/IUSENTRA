@@ -602,6 +602,72 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
   },
 }
 
+export function buildFreeEditorFallbackPage(): TemplateCompilerData {
+  return normaliseCompilerPage({
+    ...emptyTemplateCompilerPage,
+    ok: true,
+    message: 'Editor libero disponibile.',
+    model: { code: 'STR_COM_001', name: 'Documento libero', area: 'Studio' },
+    summary: 'Foglio libero indipendente dai modelli, pronto per scrittura e salvataggio nel fascicolo.',
+    catalogHref: '/template-atti/catalogo',
+    submitLabel: 'Salva documento',
+    compliance: {
+      ...emptyTemplateCompilerPage.compliance,
+      available: true,
+      state: 'ready',
+      ready: true,
+      requiresReview: false,
+      overallState: 'ready',
+      canGenerateWorkingDraft: true,
+      canOpenEditor: true,
+      sourceLabel: 'Editor libero',
+    },
+    guidePreview: {
+      enabled: true,
+      eyebrow: 'Editor libero',
+      title: 'Documento libero',
+      subtitle: 'Foglio indipendente dai modelli.',
+      badge: 'Pronto',
+      initialText: '',
+      template: {
+        code: 'STR_COM_001',
+        name: 'Documento libero',
+        reason: 'Scrittura libera con timbro studio e strumenti professionali.',
+        autoLoad: true,
+      },
+      import: {
+        enabled: true,
+        formats: 'PDF, Word, RTF, TXT',
+        note: 'Puoi importare un documento e continuare a lavorarlo nel foglio libero.',
+      },
+      steps: [
+        { id: 'scrittura', label: 'Scrittura libera', state: 'active' },
+        { id: 'salvataggio', label: 'Salvataggio fascicolo', state: 'pending' },
+      ],
+      layoutChecks: [],
+    },
+    templateExamples: [
+      {
+        id: 'STR_COM_001',
+        code: 'STR_COM_001',
+        title: 'Documento libero',
+        description: 'Foglio libero con timbro studio, formattazione, import e salvataggio.',
+        category: 'Editor',
+        tags: ['editor', 'libero'],
+        href: '/template-atti/editor',
+        selected: true,
+      },
+    ],
+  })
+}
+
+function timeoutSignal(timeoutMs: number): AbortSignal | undefined {
+  if (typeof AbortController === 'undefined') return undefined
+  const controller = new AbortController()
+  globalThis.setTimeout(() => controller.abort(), timeoutMs)
+  return controller.signal
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
@@ -1221,14 +1287,21 @@ export async function getTemplateAttiCatalogoPage(): Promise<TemplateAttiPageDat
 export async function getTemplateAttiCompilerPage(modelCode: string): Promise<TemplateCompilerData> {
   const params = new URLSearchParams(window.location.search || '')
   const route = (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase()
-  if (route === '/template-atti/editor' || route === '/template-atti/editor-libero') {
+  const freeEditorRoute = route === '/template-atti/editor' || route === '/template-atti/editor-libero'
+  if (freeEditorRoute) {
     params.set('editor_libero', '1')
   }
   const query = params.toString()
   const search = query ? `?${query}` : ''
-  const payload = await apiJson<unknown>(
-    `/api/v1/ui/template-atti/compila/${encodeURIComponent(modelCode)}${search}`,
-    emptyTemplateCompilerPage,
-  )
-  return normaliseCompilerPage(payload)
+  const fallback = freeEditorRoute ? buildFreeEditorFallbackPage() : emptyTemplateCompilerPage
+  try {
+    const payload = await apiJson<unknown>(
+      `/api/v1/ui/template-atti/compila/${encodeURIComponent(modelCode)}${search}`,
+      fallback,
+      { signal: freeEditorRoute ? timeoutSignal(10000) : undefined },
+    )
+    return normaliseCompilerPage(payload)
+  } catch (_error) {
+    return fallback
+  }
 }

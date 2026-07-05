@@ -185,7 +185,9 @@ def pdf_mobile_preview_html(
         pages = "".join(
             '<figure class="page">'
             f'<figcaption>Pagina {index}</figcaption>'
-            f'<img src="{escape(url, quote=True)}" alt="Pagina {index} di {escaped_name}" loading="lazy">'
+            f'<img src="{escape(url, quote=True)}" alt="Pagina {index} di {escaped_name}" '
+            f'loading="{"eager" if index == 1 else "lazy"}" decoding="async"'
+            f'{" fetchpriority=\"high\"" if index == 1 else ""}>'
             "</figure>"
             for index, url in enumerate(page_urls, start=1)
         )
@@ -203,15 +205,16 @@ def pdf_mobile_preview_html(
         "<style>"
         ":root{color-scheme:light}"
         "*{box-sizing:border-box}"
+        "html,body{max-width:100%;overflow-x:hidden}"
         "body{margin:0;background:#e5e7eb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
-        ".reader{min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr)}"
-        "header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#fff}"
+        ".reader{min-width:0;max-width:100vw;min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);overflow-x:hidden}"
+        "header{position:sticky;top:0;z-index:2;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#fff}"
         "header strong{min-width:0;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
         "header a{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:9px;background:#fff;color:#1d4ed8;padding:0 10px;font-size:12px;font-weight:850;text-decoration:none}"
-        ".pages{display:grid;gap:12px;padding:12px;align-content:start}"
-        ".page{margin:0;display:grid;gap:6px}"
+        ".pages{min-width:0;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow-x:hidden}"
+        ".page{min-width:0;max-width:100%;margin:0;display:grid;gap:6px}"
         ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
-        ".page img{width:100%;height:auto;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
+        ".page img{width:100%;max-width:100%;height:auto;aspect-ratio:1/1.414;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
         ".empty{min-height:70vh;display:grid;place-content:center;gap:6px;text-align:center;color:#475569}"
         ".empty strong{color:#111827;font-size:15px}"
         "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.page img{border-radius:10px}}"

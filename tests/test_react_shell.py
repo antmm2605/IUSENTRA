@@ -289,6 +289,7 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Preventivi e Incarichi",
         "Compensi Forensi",
         "Editor professionale",
+        "Editor libero",
         "Redazione Atti",
         "Statistiche",
         "Ricerca Legale",
@@ -368,6 +369,9 @@ def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
     assert "{ label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' }" in app_source
     assert "const isEditorProfessionalePage = routeKey === '/editor-professionale'" in app_source
     assert "isEditorProfessionalePage?<EditorProfessionalePage/>" in app_source
+    assert "{ label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' }" in app_source
+    assert 'href="/template-atti/editor" tone="primary"' in page_source
+    assert "Apre subito un foglio vuoto con timbro studio" in page_source
     assert "Redazione Atti quando serve il modulo specifico degli atti" in page_source
     assert "Lettore documenti legali" in page_source
     assert "XML.P7M" in page_source
@@ -577,6 +581,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/compensi-forensi", "Tariffario Forense", True),
             ("/documenti", "Documenti", True),
             ("/editor-professionale", "Editor professionale", True),
+            ("/template-atti/editor", "Documento libero", True),
             ("/redazione-atti", "Redazione Atti", True),
             ("/template-atti/catalogo", "Catalogo Atti", False),
             ("/portali/pst/acquisizione", "Importa pratica da PST", False),
@@ -4056,6 +4061,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Compensi Forensi": "/compensi-forensi",
         "Documenti": "/documenti",
         "Editor professionale": "/editor-professionale",
+        "Editor libero": "/template-atti/editor",
         "Redazione Atti": "/redazione-atti",
         "Template Atti": "/template-atti",
         "Catalogo Template": "/template-atti/catalogo",

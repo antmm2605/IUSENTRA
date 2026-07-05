@@ -97,3 +97,13 @@ Stato verifica reale:
 
 - Browser integrato collegato e predisposto per prove visive reali desktop/tablet/mobile.
 - Da completare prima del report positivo: rebuild locale reale `127.0.0.1:8080`, prova visiva su produzione dopo deploy, prova visiva locale sulla stessa versione, commit/push branch gemelli, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` produzione e igiene repository.
+
+## Aggiornamento correttivo 2026-07-05 - navigazione editor libero e verifica visiva locale
+
+- L'`Editor libero` è stato aggiunto come voce autonoma nella navigazione Studio e come azione primaria nella pagina `Editor professionale`, con apertura diretta di `/template-atti/editor`.
+- Il contratto dati/React censisce ora la voce `Editor libero` su `/template-atti/editor`, così il menu non resta solo grafico.
+- Prova reale locale su `http://127.0.0.1:8080/editor-professionale`: pulsante `Editor libero` visibile, click eseguito, apertura di `/template-atti/editor`, vista `Documento libero` caricata con foglio vuoto e nessun errore console. Durante la prova post-build è emerso un blocco reale su `Caricamento compilazione`: è stato aggiunto un fallback governato per la modalità editor libero con timeout sulla fetch del compilatore, poi la prova è stata ripetuta sulla build Docker reale con asset `TemplateAttiPage-Dz0IqbYS.js`.
+- Prova reale locale su `http://127.0.0.1:8080/clienti`: le icone `Apri scheda cliente`, `Modifica cliente`, `Apri cartella cliente` ed `Elimina cliente` risultano centrate e uniformi a `34x34`, come richiesto dall'utente.
+- Prova reale locale su `http://127.0.0.1:8080/fascicoli?vista=economica`: il fascicolo `RG 466/2023` mostra popolamento automatico di contributo, spese/esborsi, liquidazione, parcella e `Prossima scad.` dai documenti indicizzati.
+- Prova reale locale su `http://127.0.0.1:8080/fascicoli/DC5BF1DB#documenti` in viewport mobile `390x844`: click su `Anteprima interna`, modal `Lettore documento` aperto, URL interno `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`, pagine PDF renderizzate come immagini dentro il lettore e nessun errore console.
+- Prova reale locale diretta su `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`: prima pagina caricata in modo eager, immagine completa, larghezza documento senza overflow orizzontale.

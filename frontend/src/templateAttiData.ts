@@ -95,6 +95,7 @@ export type TemplateEditorLayout = {
   stylePreset?: string
   headingSize?: number
   textAlign?: string
+  pageOrientation?: string
   marginTop?: number
   marginRight?: number
   marginBottom?: number
@@ -103,6 +104,9 @@ export type TemplateEditorLayout = {
   signatureSpacing?: number
   stampPosition?: string
   stampOffsetY?: number
+  stampFontFamily?: string
+  stampFontSize?: number
+  stampLineHeight?: number
   printCleanPlaceholders?: boolean
 }
 
@@ -510,6 +514,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     stylePreset: 'giudiziario_civile',
     headingSize: 16,
     textAlign: 'justify',
+    pageOrientation: 'verticale',
     marginTop: 25,
     marginRight: 22,
     marginBottom: 25,
@@ -518,6 +523,9 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     signatureSpacing: 42,
     stampPosition: 'top-center',
     stampOffsetY: 0,
+    stampFontFamily: 'ibm_plex_mono',
+    stampFontSize: 8,
+    stampLineHeight: 1.16,
     printCleanPlaceholders: false,
   },
   editorWorkflow: [],
@@ -577,12 +585,18 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
       stylePreset: 'giudiziario_civile',
       headingSize: 16,
       textAlign: 'justify',
+      pageOrientation: 'verticale',
       marginTop: 25,
       marginRight: 22,
       marginBottom: 25,
       marginLeft: 32,
       paragraphSpacing: 8,
       signatureSpacing: 42,
+      stampPosition: 'top-center',
+      stampOffsetY: 0,
+      stampFontFamily: 'ibm_plex_mono',
+      stampFontSize: 8,
+      stampLineHeight: 1.16,
       printCleanPlaceholders: false,
     },
   },
@@ -836,6 +850,7 @@ function normaliseEditorLayout(input: unknown): TemplateEditorLayout {
     stylePreset: text(item.stylePreset) || text(item.document_style_preset) || fallback.stylePreset,
     headingSize: Number(item.headingSize || item.heading_size || item.heading_size_pt || fallback.headingSize),
     textAlign: text(item.textAlign) || text(item.text_align) || fallback.textAlign,
+    pageOrientation: text(item.pageOrientation) || text(item.page_orientation) || fallback.pageOrientation,
     marginTop: Number(item.marginTop || item.margin_top_mm || fallback.marginTop),
     marginRight: Number(item.marginRight || item.margin_right_mm || fallback.marginRight),
     marginBottom: Number(item.marginBottom || item.margin_bottom_mm || fallback.marginBottom),
@@ -844,6 +859,9 @@ function normaliseEditorLayout(input: unknown): TemplateEditorLayout {
     signatureSpacing: Number(item.signatureSpacing || item.signature_spacing_pt || fallback.signatureSpacing),
     stampPosition: text(item.stampPosition) || text(item.stamp_position) || fallback.stampPosition,
     stampOffsetY: Number(item.stampOffsetY ?? item.stamp_offset_y_mm ?? fallback.stampOffsetY ?? 0),
+    stampFontFamily: text(item.stampFontFamily) || text(item.stamp_font_family) || fallback.stampFontFamily,
+    stampFontSize: Number(item.stampFontSize || item.stamp_font_size_pt || fallback.stampFontSize || 8),
+    stampLineHeight: Number(item.stampLineHeight || item.stamp_line_height || fallback.stampLineHeight || 1.16),
     printCleanPlaceholders: item.printCleanPlaceholders === true || item.print_clean_placeholders === true,
   }
 }
@@ -1201,7 +1219,13 @@ export async function getTemplateAttiCatalogoPage(): Promise<TemplateAttiPageDat
 }
 
 export async function getTemplateAttiCompilerPage(modelCode: string): Promise<TemplateCompilerData> {
-  const search = window.location.search || ''
+  const params = new URLSearchParams(window.location.search || '')
+  const route = (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase()
+  if (route === '/template-atti/editor' || route === '/template-atti/editor-libero') {
+    params.set('editor_libero', '1')
+  }
+  const query = params.toString()
+  const search = query ? `?${query}` : ''
   const payload = await apiJson<unknown>(
     `/api/v1/ui/template-atti/compila/${encodeURIComponent(modelCode)}${search}`,
     emptyTemplateCompilerPage,

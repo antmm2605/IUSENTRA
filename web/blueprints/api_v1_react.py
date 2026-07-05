@@ -9090,8 +9090,16 @@ def _react_template_examples_payload(model_code: str, model_name: str) -> list[d
     except Exception:
         rows = []
     try:
-        from pct.compilatore_atti import get_modello as get_compiler_model
+        from pct.compilatore_atti import (
+            BASE_REQUIRED_FIELDS,
+            HIDDEN_BASE_FIELDS,
+            catalogo_compilatore,
+            get_modello as get_compiler_model,
+        )
     except Exception:
+        BASE_REQUIRED_FIELDS = []
+        HIDDEN_BASE_FIELDS = set()
+        catalogo_compilatore = None
         get_compiler_model = None
     seen_example_codes: set[str] = set()
     for row in rows:
@@ -9131,6 +9139,59 @@ def _react_template_examples_payload(model_code: str, model_name: str) -> list[d
                 "selected": code == model_code or _react_template_attr(row, "id") == model_code,
             }
         )
+    visible_base_count = len([
+        name
+        for name in BASE_REQUIRED_FIELDS
+        if str(name or "").strip() and str(name or "").strip() not in set(HIDDEN_BASE_FIELDS)
+    ])
+
+    def compiler_category(model: dict[str, Any]) -> str:
+        text = " ".join(
+            str(model.get(key) or "")
+            for key in ("code", "name", "description", "area", "act_type")
+        ).lower()
+        if any(token in text for token in ("diffid", "mora", "sollecito", "stragiudizial")):
+            return "Diffide"
+        if any(token in text for token in ("deleg", "procura", "mandato", "rappresentanza")):
+            return "Deleghe"
+        if any(token in text for token in ("parere", "responsabilit", "consulenz", "valutazion")):
+            return "Pareri"
+        if any(token in text for token in ("contratt", "accordo", "locazion", "comodato", "incarico", "privacy", "gdpr")):
+            return "Contratti"
+        return "Atti"
+
+    if callable(catalogo_compilatore):
+        try:
+            compiler_rows = list((catalogo_compilatore() or {}).get("models") or [])
+        except Exception:
+            compiler_rows = []
+        for model in compiler_rows:
+            code = str((model or {}).get("code") or "").strip()
+            if not code or code in seen_example_codes:
+                continue
+            required_extra = (model or {}).get("required_extra_fields") or []
+            title = str((model or {}).get("name") or code).strip()
+            description = str((model or {}).get("description") or "").strip()
+            examples.append(
+                {
+                    "id": code,
+                    "code": code,
+                    "title": title,
+                    "description": professional_description(description, title, model),
+                    "category": compiler_category(model),
+                    "tags": [
+                        str(value).strip()
+                        for value in ((model or {}).get("areas") or [(model or {}).get("area") or ""])
+                        if str(value or "").strip()
+                    ],
+                    "fieldsCount": visible_base_count + len(required_extra),
+                    "href": url_for("template_atti.compila", model_code=code),
+                    "selected": code == model_code,
+                }
+            )
+            seen_example_codes.add(code)
+            if len(examples) >= 28:
+                break
     if not examples:
         examples.append(
             {
@@ -9195,12 +9256,18 @@ def _react_template_guide_preview_payload(
                 "stylePreset": "giudiziario_civile",
                 "headingSize": 16,
                 "textAlign": "justify",
+                "pageOrientation": "verticale",
                 "marginTop": 25,
                 "marginRight": 22,
                 "marginBottom": 25,
                 "marginLeft": 32,
                 "paragraphSpacing": 8,
                 "signatureSpacing": 42,
+                "stampPosition": "top-center",
+                "stampOffsetY": 0,
+                "stampFontFamily": "ibm_plex_mono",
+                "stampFontSize": 8,
+                "stampLineHeight": 1.16,
                 "printCleanPlaceholders": False,
             },
         }
@@ -9277,12 +9344,18 @@ def _react_template_guide_preview_payload(
             "stylePreset": "giudiziario_civile",
             "headingSize": 16,
             "textAlign": "justify",
+            "pageOrientation": "verticale",
             "marginTop": 25,
             "marginRight": 22,
             "marginBottom": 25,
             "marginLeft": 32,
             "paragraphSpacing": 8,
             "signatureSpacing": 42,
+            "stampPosition": "top-center",
+            "stampOffsetY": 0,
+            "stampFontFamily": "ibm_plex_mono",
+            "stampFontSize": 8,
+            "stampLineHeight": 1.16,
             "printCleanPlaceholders": False,
         },
     }
@@ -9372,6 +9445,7 @@ def template_atti_compila_page(model_code: str):
         requested_model_code = str(model_code or "").strip()
         guide_code = str(request.args.get("guida_pratica") or request.args.get("codice_guida") or "").strip()
         origin = str(request.args.get("origine") or request.args.get("source") or "").strip().lower()
+        free_editor = str(request.args.get("editor_libero") or "").strip().lower() in {"1", "true", "si", "yes"}
         selected_fascicolo = None
         selected_fascicolo_id = str(
             request.args.get("id_fascicolo")
@@ -9510,7 +9584,7 @@ def template_atti_compila_page(model_code: str):
             editor_layout = _get_gp().carica()
         except Exception:
             editor_layout = {}
-        model_name = str(model.get("name") or model_code)
+        model_name = "Documento libero" if free_editor else str(model.get("name") or model_code)
         return jsonify(
             {
                 "ok": True,
@@ -9519,10 +9593,10 @@ def template_atti_compila_page(model_code: str):
                     "name": model_name,
                     "area": str(model.get("area") or ""),
                 },
-                "summary": str(guidance.get("summary") or "Compilazione guidata con dati IUSENTRA."),
+                "summary": "Editor libero per scrivere un atto o un documento senza partire da un modello già compilato." if free_editor else str(guidance.get("summary") or "Compilazione guidata con dati IUSENTRA."),
                 "formAction": url_for("template_atti.compila", model_code=model_code),
                 "catalogHref": url_for("template_atti.catalogo"),
-                "submitLabel": "Crea bozza e apri editor" if selected_fascicolo else "Crea bozza dell'atto",
+                "submitLabel": "Salva bozza libera" if free_editor else "Crea bozza e apri editor" if selected_fascicolo else "Crea bozza dell'atto",
                 "selectors": {
                     "clienti": clienti,
                     "fascicoli": fascicoli,
@@ -9569,7 +9643,7 @@ def template_atti_compila_page(model_code: str):
                 ],
                 "guidePreview": _react_template_guide_preview_payload(
                     model_code=model_code,
-                    model_name=str(model.get("name") or model_code),
+                    model_name=model_name,
                     selected_fascicolo=selected_fascicolo,
                     selected_cliente=selected_cliente,
                     guidance=guidance,

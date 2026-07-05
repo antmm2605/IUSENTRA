@@ -11,6 +11,7 @@ from html import escape
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 from typing import Any
 
@@ -63,6 +64,12 @@ TEXT_FIELDS = (
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _contains_normalized_text(haystack: str, needle: str) -> bool:
+    normalized_haystack = re.sub(r"[\s,;]+", " ", _clean(haystack).casefold()).strip()
+    normalized_needle = re.sub(r"[\s,;]+", " ", _clean(needle).casefold()).strip()
+    return bool(normalized_needle and normalized_needle in normalized_haystack)
 
 
 def _as_bool(value: Any, default: bool = False) -> bool:
@@ -124,8 +131,9 @@ def default_timbro_payload(
         if studio
         else app_config.get("STUDIO_NUMERO_ISCRIZIONE_ALBO", "")
     )
-    qualifiche_albo = " - ".join(part for part in [ordine, f"n. {numero_albo}" if numero_albo else ""] if part)
-    qualifiche = qualifica_professionale or qualifiche_albo
+    # Il timbro mostra solo la qualifica professionale configurata: l'ordine/albo
+    # resta dato amministrativo ma non deve occupare una riga come fallback.
+    qualifiche = qualifica_professionale
     payload = {
         "studio_nome": _clean(getattr(studio, "nome", "") if studio else app_config.get("STUDIO_NOME", ""))
         or _clean(app_config.get("STUDIO_NOME", "")),
@@ -234,7 +242,11 @@ class StudioTimbro:
             value = _clean(payload.get(key))
             if value:
                 raw_lines.append((value, key))
-        address_parts = [_clean(payload.get("indirizzo_riga")), _clean(payload.get("cap_citta_provincia"))]
+        indirizzo = _clean(payload.get("indirizzo_riga"))
+        cap_citta = _clean(payload.get("cap_citta_provincia"))
+        address_parts = [indirizzo]
+        if cap_citta and not _contains_normalized_text(indirizzo, cap_citta):
+            address_parts.append(cap_citta)
         if any(address_parts):
             raw_lines.append((" - ".join(part for part in address_parts if part), "indirizzo"))
         fiscal = []

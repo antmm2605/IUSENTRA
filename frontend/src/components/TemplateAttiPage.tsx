@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, Pilcrow, Plus, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent } from 'react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, AlertTriangle, ArrowLeft, Bold, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, Heading1, Heading2, HelpCircle, Highlighter, IndentDecrease, IndentIncrease, Italic, Layers, List, ListOrdered, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pilcrow, Plus, Printer, Quote, Redo2, RefreshCw, Save, Scale, Search, ShieldCheck, Sparkles, Strikethrough, Tags, Type, Underline, Undo2, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -34,11 +34,86 @@ const EDITABLE_DOM_PROPS = {
   suppressContentEditableWarning: true,
 } as Partial<HTMLAttributes<HTMLDivElement>>
 
+const FREE_EDITOR_MODEL_CODE = 'STR_COM_001'
+const FREE_EDITOR_URL = '/template-atti/editor'
+const FONT_SIZE_OPTIONS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28]
+const MAX_TEMPLATE_VISUAL_PAGES = 120
+const TEMPLATE_PAGE_GAP_PX = 56
+const REPEATED_STAMP_TEXT_GAP_PX = 84
+const TEMPLATE_PAGE_FRAME_HEIGHT = {
+  verticale: 1123,
+  orizzontale: 794,
+}
+
+const PLACEHOLDER_LABELS_IT: Record<string, string> = {
+  appeal_court: 'GIUDICE_APPELLO',
+  appeal_tax_court: 'GIUDICE_APPELLO',
+  appellant: 'APPELLANTE',
+  appellee: 'APPELLATO',
+  appellees: 'APPELLATI',
+  appealed_judgment: 'PROVVEDIMENTO_IMPUGNATO',
+  attachments_index: 'INDICE_ALLEGATI',
+  assisted_person: 'ASSISTITO',
+  authority_address: 'INDIRIZZO_AUTORITA',
+  client_or_sender: 'CLIENTE_O_MITTENTE',
+  communication_body: 'CORPO_COMUNICAZIONE',
+  competent_authority: 'AUTORITA_COMPETENTE',
+  competent_court: 'UFFICIO_GIUDIZIARIO',
+  competent_judge: 'GIUDICE_COMPETENTE',
+  conformity_attestation_notes: 'ATTESTAZIONE_CONFORMITA',
+  counterparty_or_recipient: 'CONTROPARTE_O_DESTINATARIO',
+  court_name: 'UFFICIO_GIUDIZIARIO',
+  criminal_proceeding_reference: 'PROCEDIMENTO_PENALE',
+  defendant: 'CONVENUTO',
+  defendant_person: 'ASSISTITO',
+  defensive_arguments: 'ARGOMENTAZIONI_DIFENSIVE',
+  dispute_background: 'PREMESSE_CONTROVERSIA',
+  document_date: 'DATA_DOCUMENTO',
+  documents_offered: 'DOCUMENTI_PRODOTTI',
+  facts: 'FATTI',
+  final_conclusions: 'CONCLUSIONI',
+  final_request: 'RICHIESTA_FINALE',
+  grounds_of_appeal: 'MOTIVI_APPELLO',
+  interim_relief_request: 'ISTANZA_CAUTELARE',
+  issuing_court: 'UFFICIO_GIUDIZIARIO',
+  jurisdiction_clause: 'FORO_COMPETENTE',
+  lawyer: 'AVVOCATO',
+  legal_arguments: 'ARGOMENTAZIONI_GIURIDICHE',
+  legal_basis: 'FONDAMENTO_GIURIDICO',
+  merit_exceptions: 'DIFESE_NEL_MERITO',
+  mutual_obligations: 'OBBLIGHI_RECIPROCI',
+  mutual_waivers: 'RINUNCE_RECIPROCHE',
+  parties: 'PARTI',
+  parties_signatures: 'FIRME_PARTI',
+  place: 'LUOGO',
+  plaintiff: 'ATTORE',
+  position_on_facts: 'POSIZIONE_SUI_FATTI',
+  proceeding_authority: 'AUTORITA_PROCEDENTE',
+  recipient: 'DESTINATARIO',
+  recipient_or_court: 'DESTINATARIO_O_UFFICIO',
+  request_content: 'RICHIESTA',
+  request_reason: 'MOTIVO_RICHIESTA',
+  request_for_reform_or_annulment: 'RICHIESTA_RIFORMA_O_ANNULLAMENTO',
+  requests: 'RICHIESTE',
+  requests_or_conclusions: 'RICHIESTE_E_CONCLUSIONI',
+  sender: 'MITTENTE',
+  signature: 'AVVOCATO',
+  specific_grounds_of_appeal: 'MOTIVI_SPECIFICI_APPELLO',
+  subject: 'OGGETTO',
+  title: 'TITOLO_ATTO',
+}
+
 function isCatalogoRoute() {
   return (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase() === '/template-atti/catalogo'
 }
 
+function isFreeEditorRoute() {
+  const route = (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase()
+  return route === '/template-atti/editor' || route === '/template-atti/editor-libero'
+}
+
 function compilerCodeFromRoute() {
+  if (isFreeEditorRoute()) return FREE_EDITOR_MODEL_CODE
   const match = (window.location.pathname.replace(/\/+$/, '') || '').match(/^\/template-atti\/compila\/([^/]+)$/i)
   return match ? decodeURIComponent(match[1]) : ''
 }
@@ -72,6 +147,43 @@ function allCompilerFields(data: TemplateCompilerData): TemplateCompilerField[] 
 function fieldValueByName(data: TemplateCompilerData, names: string[]) {
   const normalized = names.map((name) => name.toLowerCase())
   return allCompilerFields(data).find((field) => normalized.includes(field.name.toLowerCase()))
+}
+
+function placeholderTokenFromLabel(value: string, fallback: string) {
+  const token = String(value || fallback || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase()
+  return token || String(fallback || 'CAMPO').toUpperCase()
+}
+
+function legacyPlaceholderName(field: TemplateCompilerField) {
+  return `[${placeholderTokenFromLabel(field.name, 'CAMPO')}]`
+}
+
+function placeholderName(field: TemplateCompilerField) {
+  const mapped = PLACEHOLDER_LABELS_IT[field.name.toLowerCase()]
+  const token = mapped || placeholderTokenFromLabel(field.label || field.name, field.name)
+  return `[${token}]`
+}
+
+function placeholderTokens(field: TemplateCompilerField) {
+  const primary = placeholderName(field)
+  const legacy = legacyPlaceholderName(field)
+  return primary === legacy ? [primary] : [primary, legacy]
+}
+
+function localiseDraftPlaceholderTokens(text: string, data: TemplateCompilerData) {
+  let resolved = String(text || '')
+  allCompilerFields(data).forEach((field) => {
+    const primary = placeholderName(field)
+    placeholderTokens(field).forEach((token) => {
+      if (token !== primary) resolved = resolved.replaceAll(token, primary)
+    })
+  })
+  return resolved
 }
 
 function labelForFieldValue(field?: TemplateCompilerField) {
@@ -120,21 +232,243 @@ function appendHiddenInput(form: HTMLFormElement, name: string, value: FormDataE
 }
 
 function guideDraftFromData(data: TemplateCompilerData) {
-  if (data.guidePreview.initialText.trim()) return stripFixedStampFromDraft(data.guidePreview.initialText, data)
+  if (data.guidePreview.initialText.trim()) {
+    return localiseDraftPlaceholderTokens(stripFixedStampFromDraft(data.guidePreview.initialText, data), data)
+  }
   const tokenFor = (names: string[], fallback: string) => {
     const field = fieldValueByName(data, names)
     return field ? placeholderName(field) : fallback
   }
+  const modelCode = String(data.model.code || '').toUpperCase()
+  const modelName = String(data.model.name || data.guidePreview.template.name || '')
+  const modelNameLower = modelName.toLowerCase()
+  const area = String(data.model.area || '').toUpperCase()
   const office = tokenFor(['court_name', 'recipient_or_court', 'competent_court', 'ufficio', 'tribunale'], '[UFFICIO_GIUDIZIARIO]')
   const client = tokenFor(['client_or_sender', 'cliente', 'nome_attore', 'plaintiff'], '[CLIENTE]')
   const counterparty = tokenFor(['counterparty_or_recipient', 'defendant', 'convenuto', 'resistente'], '[CONTROPARTE]')
   const title = tokenFor(['title', 'subject', 'oggetto', 'titolo_atto'], data.model.name || '[TITOLO_ATTO]')
   const facts = tokenFor(['facts', 'motivazioni', 'fatti', 'exposition'], '[ESPOSIZIONE_FATTI]')
-  const merits = tokenFor(['merit_exceptions', 'position_on_facts', 'legal_basis', 'normativa'], '[ARGOMENTAZIONI_GIURIDICHE]')
+  const merits = tokenFor(['legal_arguments', 'merit_exceptions', 'position_on_facts', 'legal_basis', 'normativa'], '[ARGOMENTAZIONI_GIURIDICHE]')
   const requests = tokenFor(['requests_or_conclusions', 'conclusioni', 'domande', 'requests'], '[CONCLUSIONI]')
   const place = tokenFor(['place', 'luogo'], '[LUOGO]')
   const date = tokenFor(['document_date', 'data_atto', 'data'], '[DATA_ATTO]')
   const signature = tokenFor(['signature', 'lawyer', 'difensore'], '[FIRMA]')
+  const subject = tokenFor(['subject', 'oggetto', 'request_reason'], '[OGGETTO]')
+  const appealedJudgment = tokenFor(['appealed_judgment', 'provvedimento_impugnato', 'sentenza_impugnata'], '[PROVVEDIMENTO_IMPUGNATO]')
+  const appealGrounds = tokenFor(['grounds_of_appeal', 'specific_grounds_of_appeal', 'motivi_appello'], '[MOTIVI_APPELLO]')
+  const appealRequest = tokenFor(['request_for_reform_or_annulment', 'final_conclusions', 'requests_or_conclusions'], '[RICHIESTA_RIFORMA_O_ANNULLAMENTO]')
+  const documents = tokenFor(['documents_offered', 'admissible_evidence_or_documents', 'attachments_index'], '[DOCUMENTI_PRODOTTI]')
+  const interimRelief = tokenFor(['interim_relief_request', 'misura_cautelare'], '[ISTANZA_CAUTELARE]')
+  const disputeBackground = tokenFor(['dispute_background', 'premesse'], '[PREMESSE_CONTROVERSIA]')
+  const mutualObligations = tokenFor(['mutual_obligations', 'obblighi_reciproci'], '[OBBLIGHI_RECIPROCI]')
+  const amountsAndDeadlines = tokenFor(['amounts_and_deadlines', 'importi_e_scadenze'], '[IMPORTI_E_SCADENZE]')
+  const mutualWaivers = tokenFor(['mutual_waivers', 'rinunce'], '[RINUNCE_RECIPROCHE]')
+  const jurisdictionClause = tokenFor(['jurisdiction_clause', 'foro_competente'], '[FORO_COMPETENTE]')
+  const authority = tokenFor(['proceeding_authority', 'competent_authority', 'issuing_court'], '[AUTORITA_COMPETENTE]')
+  const assisted = tokenFor(['assisted_person', 'defendant_person', 'indagato', 'imputato'], client)
+  const proceeding = tokenFor(['criminal_proceeding_reference', 'procedimento_penale'], '[PROCEDIMENTO_PENALE]')
+  const defensiveArguments = tokenFor(['defensive_arguments', 'legal_arguments', 'argomentazioni_difensive'], '[ARGOMENTAZIONI_DIFENSIVE]')
+  const notificationNotes = tokenFor(['conformity_attestation_notes', 'attestation_notes', 'relata_notes'], '[ATTESTAZIONE_CONFORMITA]')
+  const sender = tokenFor(['sender', 'client_or_sender'], client)
+  const recipient = tokenFor(['recipient', 'counterparty_or_recipient'], counterparty)
+
+  const isSettlement = modelCode.includes('ATR') || /transattiv|accordo/.test(modelNameLower)
+  const isConformity = modelCode.includes('NOT') || /notifica|conformit/.test(modelNameLower)
+  const isCriminal = modelCode.startsWith('PEN') || area.includes('PENALE')
+  const isInterimAppeal = modelCode.includes('CAUT') || /cautelar/.test(modelNameLower)
+  const isAppeal = modelCode.includes('APP') || /appello/.test(modelNameLower)
+  const isMediation = /mediazion|adr|negoziazion|arbitrato/.test(modelNameLower)
+
+  if (isSettlement) {
+    return [
+      'ACCORDO TRANSATTIVO',
+      '',
+      'Tra',
+      '',
+      client,
+      '',
+      'e',
+      '',
+      counterparty,
+      '',
+      'Premesse',
+      '',
+      disputeBackground,
+      '',
+      'Accordo',
+      '',
+      'Le parti, con reciproche concessioni, convengono quanto segue.',
+      '',
+      mutualObligations,
+      '',
+      'Importi e scadenze',
+      '',
+      amountsAndDeadlines,
+      '',
+      'Rinunce e definizione della controversia',
+      '',
+      mutualWaivers,
+      '',
+      'Spese e foro competente',
+      '',
+      jurisdictionClause,
+      '',
+      `${place}, ${date}`,
+      '',
+      'Firme',
+      '',
+      signature,
+    ].join('\n')
+  }
+
+  if (isConformity) {
+    return [
+      office,
+      '',
+      'ATTESTAZIONE DI CONFORMITA E RELATA DI NOTIFICA',
+      '',
+      `${sender}, tramite il difensore indicato nel fascicolo, predispone la seguente attestazione e relata.`,
+      '',
+      'Destinatario',
+      '',
+      recipient,
+      '',
+      'Oggetto',
+      '',
+      subject,
+      '',
+      'Attestazione',
+      '',
+      notificationNotes,
+      '',
+      'Documenti allegati',
+      '',
+      documents,
+      '',
+      'Conclusioni',
+      '',
+      requests,
+      '',
+      `${place}, ${date}`,
+      '',
+      signature,
+    ].join('\n')
+  }
+
+  if (isCriminal) {
+    return [
+      authority,
+      '',
+      title || 'MEMORIA O ISTANZA PENALE',
+      '',
+      'Assistito',
+      '',
+      assisted,
+      '',
+      'Procedimento',
+      '',
+      proceeding,
+      '',
+      'Premesse in fatto',
+      '',
+      facts,
+      '',
+      'Argomentazioni difensive',
+      '',
+      defensiveArguments,
+      '',
+      'Richieste',
+      '',
+      requests,
+      '',
+      `${place}, ${date}`,
+      '',
+      signature,
+    ].join('\n')
+  }
+
+  if (isInterimAppeal || isAppeal) {
+    const appealTitle = isInterimAppeal
+      ? 'APPELLO CAUTELARE'
+      : area.includes('TRIBUTARIO')
+        ? 'APPELLO TRIBUTARIO'
+        : area.includes('AMMINISTRATIVO')
+          ? 'APPELLO AMMINISTRATIVO'
+          : area.includes('LAVORO')
+            ? 'RICORSO IN APPELLO'
+            : 'ATTO DI APPELLO'
+    return [
+      office,
+      '',
+      appealTitle,
+      '',
+      `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, espone e propone impugnazione.`,
+      '',
+      `Contro ${counterparty}.`,
+      '',
+      'Provvedimento impugnato',
+      '',
+      appealedJudgment,
+      '',
+      'Fatti rilevanti',
+      '',
+      facts,
+      '',
+      'Motivi di impugnazione',
+      '',
+      appealGrounds,
+      '',
+      ...(isInterimAppeal ? ['Istanza cautelare', '', interimRelief, ''] : []),
+      'Conclusioni',
+      '',
+      appealRequest,
+      '',
+      'Documenti prodotti',
+      '',
+      documents,
+      '',
+      `${place}, ${date}`,
+      '',
+      signature,
+    ].join('\n')
+  }
+
+  if (isMediation) {
+    return [
+      office,
+      '',
+      'INVITO ALLA MEDIAZIONE',
+      '',
+      'Parte istante',
+      '',
+      client,
+      '',
+      'Parte invitata',
+      '',
+      counterparty,
+      '',
+      'Oggetto della controversia',
+      '',
+      subject,
+      '',
+      'Fatti',
+      '',
+      facts,
+      '',
+      'Ragioni della domanda',
+      '',
+      merits,
+      '',
+      'Richieste',
+      '',
+      requests,
+      '',
+      `${place}, ${date}`,
+      '',
+      signature,
+    ].join('\n')
+  }
+
   return [
     office,
     '',
@@ -228,7 +562,9 @@ function resolveDraftHtmlPlaceholders(html: string, fields: TemplateCompilerFiel
   fields.forEach((field) => {
     const value = fieldValueForDraft(field, values)
     if (!value) return
-    resolved = resolved.replaceAll(placeholderName(field), escapeHtml(value))
+    placeholderTokens(field).forEach((token) => {
+      resolved = resolved.replaceAll(token, escapeHtml(value))
+    })
   })
   return resolved
 }
@@ -237,7 +573,9 @@ function replaceFieldPlaceholderInHtml(html: string, field: TemplateCompilerFiel
   const token = placeholderName(field)
   const formattedValue = field.type === 'date' ? legalDateValue(value) : value
   const replacement = formattedValue.trim() ? inlineEditorHtml(formattedValue) : token
-  if (html.includes(token)) return html.replaceAll(token, replacement)
+  for (const candidate of placeholderTokens(field)) {
+    if (html.includes(candidate)) return html.replaceAll(candidate, replacement)
+  }
   const previous = String(previousValue || '').trim()
   if (!previous || previous === token || previous === value) return html
   const escapedPrevious = inlineEditorHtml(field.type === 'date' ? legalDateValue(previous) : previous)
@@ -253,14 +591,27 @@ function fontLabelByKey(data: TemplateCompilerData, key: string) {
   return data.fontRegistry.fonts.find((font) => font.key === key)?.label || key || 'Times New Roman'
 }
 
+function fontCssStackByKey(data: TemplateCompilerData, key: string) {
+  return data.fontRegistry.fonts.find((font) => font.key === key)?.cssStack || 'Courier New, monospace'
+}
+
 function normaliseClipboardHtml(html: string, data: TemplateCompilerData) {
-  return stripHtmlStampFromDraft(html, data)
+  const node = document.createElement('div')
+  node.innerHTML = html
+  node.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
+    element.removeAttribute('data-iu-page-spacer')
+    element.style.removeProperty('--iu-template-page-spacer')
+    element.style.removeProperty('margin-top')
+    element.style.removeProperty('padding-top')
+    if (!element.getAttribute('style')) element.removeAttribute('style')
+  })
+  return stripHtmlStampFromDraft(node.innerHTML, data)
 }
 
 function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
   const normalized = token.replace(/^\[|\]$/g, '').toLowerCase()
   return fields.find((field) => (
-    placeholderName(field).replace(/^\[|\]$/g, '').toLowerCase() === normalized
+    placeholderTokens(field).some((placeholder) => placeholder.replace(/^\[|\]$/g, '').toLowerCase() === normalized)
     || field.name.toLowerCase() === normalized
   ))
 }
@@ -970,10 +1321,6 @@ type TemplateEditorProps = {
   onPrepareSignature: (draftOverride?: string, htmlOverride?: string) => void
 }
 
-function placeholderName(field: TemplateCompilerField) {
-  return `[${field.name.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toUpperCase()}]`
-}
-
 function lexModeLabel(mode: string) {
   if (mode === 'Template Builder' || mode === 'Template Editor') return 'Costruttore template'
   if (mode === 'Final Check') return 'Controllo finale'
@@ -1023,7 +1370,9 @@ function resolveDraftPlaceholders(text: string, fields: TemplateCompilerField[],
   fields.forEach((field) => {
     const value = fieldValueForDraft(field, values)
     if (!value) return
-    resolved = resolved.replaceAll(placeholderName(field), value)
+    placeholderTokens(field).forEach((token) => {
+      resolved = resolved.replaceAll(token, value)
+    })
   })
   return resolved
 }
@@ -1045,7 +1394,7 @@ function fontVariantClass(prefix: string, key: string | undefined, fallback: str
 }
 
 function bodySizeClass(value: number) {
-  const size = Math.max(9, Math.min(22, Math.round(value || 12)))
+  const size = Math.max(4, Math.min(28, Math.round(Number(value) || 12)))
   return `iu-template-body-size--${size}`
 }
 
@@ -1080,7 +1429,7 @@ function firstMeaningfulSentence(value: string) {
 
 function buildLocalLexProposal(action: TemplateLexAction, data: TemplateCompilerData, draftText: string, fields: TemplateCompilerField[], customInstructions: string): TemplateLexProposal {
   const original = firstMeaningfulSentence(draftText) || '[TESTO_DOCUMENTO]'
-  const missingPlaceholder = fields.map(placeholderName).find((token) => draftText.includes(token))
+  const missingPlaceholder = fields.flatMap(placeholderTokens).find((token) => draftText.includes(token))
   const firstSource = data.compliance.normativeReferences[0]
   const baseId = `${action.id}_${Date.now()}`
   if (action.id === 'correggi_refusi') {
@@ -1252,6 +1601,20 @@ function ProfessionalTemplateEditorWorkspace({
   const [textAlign, setTextAlign] = useState(data.editorLayout.textAlign || 'justify')
   const [stampPosition, setStampPosition] = useState(data.editorLayout.stampPosition || 'top-center')
   const [stampOffsetY, setStampOffsetY] = useState(Number(data.editorLayout.stampOffsetY || 0))
+  const [stampFontKey, setStampFontKey] = useState(data.editorLayout.stampFontFamily || data.editorLayout.placeholderFontFamily || data.fontRegistry.defaults.placeholder)
+  const [stampFontSize, setStampFontSize] = useState(Number(data.editorLayout.stampFontSize || 8))
+  const [stampLineHeight, setStampLineHeight] = useState(Number(data.editorLayout.stampLineHeight || 1.16))
+  const [toolbarFontKey, setToolbarFontKey] = useState(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
+  const [toolbarFontSize, setToolbarFontSize] = useState(Number(data.editorLayout.fontSize || bodyFontSize || 12))
+  const [activeInlineFormats, setActiveInlineFormats] = useState<Record<string, boolean>>({})
+  const [activeBlockFormat, setActiveBlockFormat] = useState<'h1' | 'h2' | 'p' | 'blockquote'>('p')
+  const [pageOrientation, setPageOrientation] = useState(data.editorLayout.pageOrientation || 'verticale')
+  const [pageMargins, setPageMargins] = useState({
+    top: Number(data.editorLayout.marginTop || 25),
+    right: Number(data.editorLayout.marginRight || 22),
+    bottom: Number(data.editorLayout.marginBottom || 25),
+    left: Number(data.editorLayout.marginLeft || 32),
+  })
   const [activeLexMode, setActiveLexMode] = useState(data.lexRevision.modes[0] || 'Correttore')
   const [customInstructions, setCustomInstructions] = useState('')
   const [proposals, setProposals] = useState<TemplateLexProposal[]>(data.lexRevision.seedProposals)
@@ -1259,11 +1622,20 @@ function ProfessionalTemplateEditorWorkspace({
   const [workspaceStatus, setWorkspaceStatus] = useState('')
   const [visualPageCount, setVisualPageCount] = useState(1)
   const [visualPageHeight, setVisualPageHeight] = useState(784)
+  const [catalogCollapsed, setCatalogCollapsed] = useState(false)
+  const [fieldsCollapsed, setFieldsCollapsed] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const savedSelectionRef = useRef<Range | null>(null)
   const lastPlainDraftFromEditorRef = useRef('')
   const panelRef = useRef<HTMLDivElement>(null)
-  const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || data.templateExamples.find((item) => item.selected) || data.templateExamples[0]
+  const freeEditorMode = isFreeEditorRoute()
+  const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || (!freeEditorMode ? data.templateExamples.find((item) => item.selected) || data.templateExamples[0] : undefined)
+  const showTemplateFields = !freeEditorMode
+  const documentDisplayTitle = freeEditorMode ? 'Documento libero' : selectedTemplate?.title || data.model.name
+  const documentPanelSubtitle = freeEditorMode ? 'Foglio indipendente dai modelli' : selectedTemplate?.title || data.model.name
+  const documentPlaceholder = freeEditorMode
+    ? 'Scrivi qui il documento libero. Il timbro studio resta riportato su ogni pagina.'
+    : 'Scrivi o modifica il documento.'
   const categories = useMemo(() => TEMPLATE_CATEGORY_TABS, [])
   const visibleTemplates = data.templateExamples.filter((item) => {
     const byCategory = templateCategory === 'Tutti' || compactTemplateCategory(item) === templateCategory
@@ -1273,8 +1645,8 @@ function ProfessionalTemplateEditorWorkspace({
   const visibleMultipleTemplates = data.templateExamples.slice(0, 10)
   const visibleMultipleCodes = new Set(visibleMultipleTemplates.map((item) => item.code || item.id).filter(Boolean))
   const selectedMultipleCount = visibleMultipleTemplates.filter((item) => multipleSelection[item.code || item.id] === true).length
-  const completedFields = fields.filter((field) => (fieldValues[field.name] || field.value || '').trim()).length
-  const completion = fields.length ? Math.round((completedFields / fields.length) * 100) : 100
+  const completedFields = showTemplateFields ? fields.filter((field) => (fieldValues[field.name] || field.value || '').trim()).length : 0
+  const completion = showTemplateFields && fields.length ? Math.round((completedFields / fields.length) * 100) : 100
   const lexActions = data.lexRevision.actions
   const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
   const baseDraftText = draftText
@@ -1300,6 +1672,30 @@ function ProfessionalTemplateEditorWorkspace({
     `iu-template-stamp-position--${classToken(stampPosition, 'top_center')}`,
   ].join(' ')
 
+  const isLandscape = pageOrientation === 'orizzontale'
+  const pageFrameHeight = isLandscape ? TEMPLATE_PAGE_FRAME_HEIGHT.orizzontale : TEMPLATE_PAGE_FRAME_HEIGHT.verticale
+  const pageStep = pageFrameHeight + TEMPLATE_PAGE_GAP_PX
+  const pageStackHeight = (pageFrameHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
+  const editorStackHeight = (visualPageHeight * visualPageCount) + (TEMPLATE_PAGE_GAP_PX * Math.max(0, visualPageCount - 1))
+  const paperStyle = {
+    '--iu-template-paper-width': isLandscape ? '70.1rem' : '49.6rem',
+    '--iu-template-paper-page-height': `${pageFrameHeight}px`,
+    '--iu-template-page-gap': `${TEMPLATE_PAGE_GAP_PX}px`,
+    '--iu-template-page-step': `${pageStep}px`,
+    '--iu-template-stack-height': `${pageStackHeight}px`,
+    '--iu-template-editor-stack-height': `${editorStackHeight}px`,
+    '--iu-template-page-padding-top': `${pageMargins.top}mm`,
+    '--iu-template-page-padding-right': `${pageMargins.right}mm`,
+    '--iu-template-page-padding-bottom': `${pageMargins.bottom}mm`,
+    '--iu-template-page-padding-left': `${pageMargins.left}mm`,
+    '--iu-template-editor-height': isLandscape ? '35rem' : '49rem',
+    '--iu-template-stamp-offset-y': `${stampOffsetY}mm`,
+    '--iu-template-stamp-font-size': `${stampFontSize}pt`,
+    '--iu-template-stamp-line-height': stampLineHeight,
+    '--iu-template-stamp-font-family': fontCssStackByKey(data, stampFontKey),
+  } as CSSProperties
+  const visualPages = useMemo(() => Array.from({ length: Math.max(1, visualPageCount) }), [visualPageCount])
+
   const stampRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1308,13 +1704,25 @@ function ProfessionalTemplateEditorWorkspace({
       values[field.name] = fieldDisplayValue(field)
     })
     setFieldValues(values)
-    setSelectedTemplateId((current) => current || data.templateExamples.find((item) => item.selected)?.id || data.templateExamples[0]?.id || '')
+    setSelectedTemplateId((current) => freeEditorMode ? '' : current || data.templateExamples.find((item) => item.selected)?.id || data.templateExamples[0]?.id || '')
     setProposals(data.lexRevision.seedProposals)
     setStampPosition(data.editorLayout.stampPosition || 'top-center')
     setStampOffsetY(Number(data.editorLayout.stampOffsetY || 0))
+    setStampFontKey(data.editorLayout.stampFontFamily || data.editorLayout.placeholderFontFamily || data.fontRegistry.defaults.placeholder)
+    setStampFontSize(Number(data.editorLayout.stampFontSize || 8))
+    setStampLineHeight(Number(data.editorLayout.stampLineHeight || 1.16))
+    setToolbarFontKey(data.editorLayout.fontFamily || data.fontRegistry.defaults.document)
+    setToolbarFontSize(Number(data.editorLayout.fontSize || bodyFontSize || 12))
+    setPageOrientation(data.editorLayout.pageOrientation || 'verticale')
+    setPageMargins({
+      top: Number(data.editorLayout.marginTop || 25),
+      right: Number(data.editorLayout.marginRight || 22),
+      bottom: Number(data.editorLayout.marginBottom || 25),
+      left: Number(data.editorLayout.marginLeft || 32),
+    })
     setContextClienteId(data.selectors.selectedClienteId || '')
     setContextFascicoloId(data.selectors.selectedFascicoloId || '')
-  }, [data.model.code])
+  }, [data.model.code, freeEditorMode])
 
   useEffect(() => {
     const editor = editorRef.current
@@ -1335,10 +1743,18 @@ function ProfessionalTemplateEditorWorkspace({
       fontSize: bodyFontSize,
       lineHeight: bodyLineHeight,
       textAlign,
+      pageOrientation,
+      marginTop: pageMargins.top,
+      marginRight: pageMargins.right,
+      marginBottom: pageMargins.bottom,
+      marginLeft: pageMargins.left,
       stampPosition,
       stampOffsetY,
+      stampFontFamily: stampFontKey,
+      stampFontSize,
+      stampLineHeight,
     })
-  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, stampPosition, stampOffsetY, data.model.code])
+  }, [documentFont, headingFont, uiFont, placeholderFont, fallbackFont, stylePreset, bodyFontSize, bodyLineHeight, textAlign, pageOrientation, pageMargins, stampPosition, stampOffsetY, stampFontKey, stampFontSize, stampLineHeight, data.model.code])
 
   useEffect(() => {
     stampRef.current?.style.setProperty('--iu-template-stamp-offset-y', `${stampOffsetY}mm`)
@@ -1347,25 +1763,142 @@ function ProfessionalTemplateEditorWorkspace({
   useEffect(() => {
     const editor = editorRef.current
     const shell = editor?.closest('.iu-template-pro-paper__body-shell') as HTMLElement | null
+    const paper = editor?.closest('.iu-template-pro-paper') as HTMLElement | null
     if (!editor || !shell) return undefined
 
     let frame = 0
     const recalcPages = () => {
       window.cancelAnimationFrame(frame)
       frame = window.requestAnimationFrame(() => {
+        const paperStyle = paper ? window.getComputedStyle(paper) : null
         const shellStyle = window.getComputedStyle(shell)
         const editorStyle = window.getComputedStyle(editor)
-        const baseHeight = Number.parseFloat(shellStyle.minHeight) || Number.parseFloat(editorStyle.minHeight) || 784
-        const pageHeight = Math.max(560, baseHeight)
-        const contentHeight = Math.max(editor.scrollHeight, editor.getBoundingClientRect().height, pageHeight)
+        const paperPaddingTop = Number.parseFloat(paperStyle?.paddingTop || '0') || 0
+        const paperPaddingBottom = Number.parseFloat(paperStyle?.paddingBottom || '0') || 0
+        const shellMarginTop = Number.parseFloat(shellStyle.marginTop || '0') || 0
+        const editorPaddingTop = Number.parseFloat(editorStyle.paddingTop || '0') || 0
+        const footerReserve = 42
+        const baseHeight = pageFrameHeight - paperPaddingTop - paperPaddingBottom - shellMarginTop - editorPaddingTop - footerReserve
+        const pageHeight = Math.max(420, baseHeight)
+        const pageGap = TEMPLATE_PAGE_GAP_PX
+        const pageStride = pageFrameHeight + pageGap
+        const estimateVisualPageCount = (contentHeight: number) => {
+          if (contentHeight <= pageHeight) return 1
+          return Math.min(MAX_TEMPLATE_VISUAL_PAGES, Math.max(1, Math.ceil((contentHeight - pageHeight) / pageStride) + 1))
+        }
+        const clearPageSpacers = () => {
+          editor.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
+            element.removeAttribute('data-iu-page-spacer')
+            element.style.removeProperty('--iu-template-page-spacer')
+            element.style.removeProperty('margin-top')
+            element.style.removeProperty('padding-top')
+          })
+        }
+        const hasMeaningfulBlockContent = (block: HTMLElement) => (
+          (block.textContent || '').replace(/\u00a0/g, ' ').trim().length > 0
+          || Array.from(block.children).some((child) => child.tagName !== 'BR' && (child.textContent || '').replace(/\u00a0/g, ' ').trim().length > 0)
+        )
+        const getEditorBlocks = () => Array.from(editor.querySelectorAll<HTMLElement>(':scope > p,:scope > h1,:scope > h2,:scope > h3,:scope > h4,:scope > h5,:scope > h6,:scope > ul,:scope > ol,:scope > blockquote,:scope > div'))
+          .filter(hasMeaningfulBlockContent)
+        const measureEditorContentHeight = () => {
+          const measure = editor.cloneNode(true) as HTMLElement
+          measure.removeAttribute('contenteditable')
+          measure.removeAttribute('data-testid')
+          measure.setAttribute('aria-hidden', 'true')
+          measure.querySelectorAll<HTMLElement>('[data-iu-page-spacer="true"]').forEach((element) => {
+            element.removeAttribute('data-iu-page-spacer')
+            element.style.removeProperty('--iu-template-page-spacer')
+            element.style.removeProperty('margin-top')
+            element.style.removeProperty('padding-top')
+          })
+          measure.style.height = 'auto'
+          measure.style.left = '-10000px'
+          measure.style.maxHeight = 'none'
+          measure.style.minHeight = '0px'
+          measure.style.overflow = 'visible'
+          measure.style.pointerEvents = 'none'
+          measure.style.position = 'absolute'
+          measure.style.top = '0'
+          measure.style.visibility = 'hidden'
+          measure.style.width = `${editor.clientWidth || editor.getBoundingClientRect().width}px`
+          ;(paper || document.body).appendChild(measure)
+          const contentHeight = Math.max(measure.scrollHeight, pageHeight)
+          measure.remove()
+          return contentHeight
+        }
+        const applyRepeatedPageSpacing = (initialPageCount: number) => {
+          clearPageSpacers()
+          if (!paper || !data.stamp.lines.length || initialPageCount <= 1) {
+            return initialPageCount
+          }
+          let expectedCount = initialPageCount
+          const naturalContentHeight = measureEditorContentHeight()
+          for (let iteration = 0; iteration < 4; iteration += 1) {
+            clearPageSpacers()
+            const paperRect = paper.getBoundingClientRect()
+            const stampRect = stampRef.current?.getBoundingClientRect()
+            const stampHeight = Math.max(0, stampRect ? stampRect.height : 0)
+            const contentTop = paperPaddingTop + shellMarginTop + editorPaddingTop
+            const safeHeaderBottom = Math.max(contentTop, paperPaddingTop + stampHeight + REPEATED_STAMP_TEXT_GAP_PX)
+            const naturalBlocks = getEditorBlocks().map((block) => {
+              const rect = block.getBoundingClientRect()
+              return {
+                block,
+                bottom: rect.bottom - paperRect.top,
+                top: rect.top - paperRect.top,
+              }
+            })
+            const desired = new Map<HTMLElement, number>()
+            let accumulatedPageShift = 0
+            for (const item of naturalBlocks) {
+              if (desired.has(item.block)) continue
+              const shiftedTop = item.top + accumulatedPageShift
+              const shiftedBottom = item.bottom + accumulatedPageShift
+              const pageIndex = Math.max(0, Math.floor(Math.max(0, shiftedTop) / pageStride))
+              const pageStart = pageStride * pageIndex
+              const pageFrameBottom = pageStart + pageFrameHeight
+              const pageSafeContentTop = pageStart + (pageIndex > 0 ? safeHeaderBottom : contentTop)
+              const pageContentBottom = pageStart + contentTop + pageHeight
+              const blockHeight = Math.max(0, shiftedBottom - shiftedTop)
+              const isInsideHeader = pageIndex > 0 && shiftedTop < pageSafeContentTop
+              const isInsideFooterOrGap = shiftedTop >= pageContentBottom && shiftedTop < pageStart + pageStride
+              const crossesWritableBottom = shiftedTop < pageContentBottom && shiftedBottom > pageContentBottom
+              const fitsOnFreshPage = blockHeight <= Math.max(160, pageHeight - (safeHeaderBottom - contentTop) - 24)
+              const shouldKeepBlockReadable = crossesWritableBottom && fitsOnFreshPage
+              const isInPhysicalGap = shiftedTop >= pageFrameBottom && shiftedTop < pageStart + pageStride
+              const targetTop = isInsideFooterOrGap || shouldKeepBlockReadable || isInPhysicalGap
+                ? ((pageIndex + 1) * pageStride) + safeHeaderBottom
+                : isInsideHeader
+                  ? pageSafeContentTop
+                  : shiftedTop
+              const pageShift = Math.max(0, targetTop - shiftedTop)
+              if (pageShift <= 0.5) continue
+              desired.set(item.block, pageShift)
+              accumulatedPageShift += pageShift
+            }
+            desired.forEach((value, block) => {
+              block.setAttribute('data-iu-page-spacer', 'true')
+              const spacerValue = `${Math.max(0, value)}px`
+              block.style.setProperty('--iu-template-page-spacer', spacerValue)
+              block.style.removeProperty('margin-top')
+              block.style.removeProperty('padding-top')
+            })
+            const measuredCount = estimateVisualPageCount(naturalContentHeight + accumulatedPageShift)
+            if (measuredCount === expectedCount) return expectedCount
+            expectedCount = measuredCount
+          }
+          return expectedCount
+        }
+        const contentHeight = measureEditorContentHeight()
+        const measuredPageCount = estimateVisualPageCount(contentHeight)
+        const settledPageCount = applyRepeatedPageSpacing(measuredPageCount)
         setVisualPageHeight(pageHeight)
-        setVisualPageCount(Math.max(1, Math.ceil(contentHeight / pageHeight)))
+        setVisualPageCount(settledPageCount)
       })
     }
 
     const resizeObserver = new ResizeObserver(recalcPages)
     resizeObserver.observe(editor)
-    resizeObserver.observe(shell)
     const mutationObserver = new MutationObserver(recalcPages)
     mutationObserver.observe(editor, { childList: true, subtree: true, characterData: true })
     window.addEventListener('resize', recalcPages)
@@ -1377,16 +1910,7 @@ function ProfessionalTemplateEditorWorkspace({
       mutationObserver.disconnect()
       window.removeEventListener('resize', recalcPages)
     }
-  }, [baseDraftText, data.model.code])
-
-  useEffect(() => {
-    const paper = editorRef.current?.closest('.iu-template-pro-paper') as HTMLElement | null
-    if (!paper) return
-    paper.querySelectorAll<HTMLElement>('[data-page-marker-index]').forEach((marker) => {
-      const markerIndex = Number(marker.dataset.pageMarkerIndex || 0)
-      marker.style.setProperty('--iu-template-page-marker-top', `${Math.round(visualPageHeight * markerIndex)}px`)
-    })
-  }, [visualPageHeight, visualPageCount])
+  }, [baseDraftText, data.model.code, data.stamp.lines.length, pageOrientation, pageMargins, bodyFontSize, bodyLineHeight, stampOffsetY, stampFontSize, stampLineHeight])
 
   const setTab = (tab: TemplateEditorTab) => {
     setActiveTab(tab)
@@ -1468,6 +1992,94 @@ function ProfessionalTemplateEditorWorkspace({
     if (status) setWorkspaceStatus(status)
   }
 
+  const focusEditorAtEnd = () => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    const selection = window.getSelection()
+    if (!selection) return
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    savedSelectionRef.current = range.cloneRange()
+  }
+
+  const createCaretRangeFromPoint = (editor: HTMLElement, clientX: number, clientY: number) => {
+    const documentAtPoint = editor.ownerDocument
+    const target = documentAtPoint.elementFromPoint(clientX, clientY)
+    const targetElement = target && editor.contains(target) ? target as Element : editor
+    const searchRoot = targetElement.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div') || targetElement
+    const root = editor.contains(searchRoot) ? searchRoot : editor
+    const walker = documentAtPoint.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          return (node.textContent || '').trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+        },
+      },
+    )
+    const probe = documentAtPoint.createRange()
+    let best: { node: Text; offset: number; score: number } | null = null
+    let current = walker.nextNode() as Text | null
+    while (current) {
+      const text = current.textContent || ''
+      const limit = Math.min(text.length, 1200)
+      for (let index = 0; index < limit; index += 1) {
+        probe.setStart(current, index)
+        probe.setEnd(current, Math.min(index + 1, text.length))
+        const rect = Array.from(probe.getClientRects())[0]
+        if (!rect) continue
+        const outsideX = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0
+        const outsideY = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0
+        const score = (outsideY * 1000) + outsideX
+        if (!best || score < best.score) {
+          const offset = clientX > rect.left + (rect.width / 2) ? index + 1 : index
+          best = { node: current, offset, score }
+        }
+      }
+      current = walker.nextNode() as Text | null
+    }
+    probe.detach()
+    const range = documentAtPoint.createRange()
+    if (best) {
+      range.setStart(best.node, best.offset)
+      range.collapse(true)
+      return range
+    }
+    range.selectNodeContents(root)
+    range.collapse(false)
+    return range
+  }
+
+  const placeEditorCaretFromMouse = (event: MouseEvent<HTMLElement>) => {
+    const editor = editorRef.current
+    const target = event.target as Node | null
+    if (!editor || !target || !editor.contains(target)) return
+    const selection = window.getSelection()
+    if (!selection) return
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+      const selectedRange = selection.getRangeAt(0)
+      if (editor.contains(selectedRange.commonAncestorContainer)) {
+        savedSelectionRef.current = selectedRange.cloneRange()
+        return
+      }
+    }
+    const range = createCaretRangeFromPoint(editor, event.clientX, event.clientY)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    savedSelectionRef.current = range.cloneRange()
+  }
+
+  const focusEditorFromPaper = (event: MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement | null
+    if (!target) return
+    if (target.closest('button,a,input,select,textarea,[contenteditable="true"]')) return
+    focusEditorAtEnd()
+  }
+
   const setEditorContentFromText = (text: string, status?: string) => {
     const editor = editorRef.current
     const html = draftToEditorHtml(text)
@@ -1484,9 +2096,23 @@ function ProfessionalTemplateEditorWorkspace({
     const editor = editorRef.current
     const stamp = stampRef.current
     const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false
-    const container = selection.getRangeAt(0).commonAncestorContainer
-    return Boolean((editor && editor.contains(container)) || (stamp && stamp.contains(container)))
+    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      const container = selection.getRangeAt(0).commonAncestorContainer
+      if ((editor && editor.contains(container)) || (stamp && stamp.contains(container))) return true
+    }
+    if (savedSelectionRef.current && !savedSelectionRef.current.collapsed) {
+      const container = savedSelectionRef.current.commonAncestorContainer
+      return Boolean((editor && editor.contains(container)) || (stamp && stamp.contains(container)))
+    }
+    return false
+  }
+
+  const selectionTouchesStamp = () => {
+    const stamp = stampRef.current
+    const selection = window.getSelection()
+    if (!stamp) return false
+    if (selection && selection.rangeCount > 0 && stamp.contains(selection.getRangeAt(0).commonAncestorContainer)) return true
+    return Boolean(savedSelectionRef.current && stamp.contains(savedSelectionRef.current.commonAncestorContainer))
   }
 
   const blockElementFromNode = (node: Node, root: HTMLElement) => {
@@ -1524,6 +2150,7 @@ function ProfessionalTemplateEditorWorkspace({
     selectedBlocks.forEach((block) => {
       block.style.textAlign = align === 'justify' ? 'justify' : align
     })
+    setTextAlign(align)
     syncEditorToDraft(
       align === 'left'
         ? 'Allineamento a sinistra applicato alla selezione.'
@@ -1577,6 +2204,11 @@ function ProfessionalTemplateEditorWorkspace({
   const openTemplateFromSidebar = (item: TemplateExample) => {
     setSelectedTemplateId(item.id)
     const href = appendQueryToHref(item.href || `/template-atti/compila/${encodeURIComponent(item.code || data.model.code)}`)
+    if (freeEditorMode && (item.code || '').trim()) {
+      setWorkspaceStatus(`Apro il modello ${item.title}.`)
+      window.location.assign(href)
+      return
+    }
     if ((item.code || '').trim() && item.code !== data.model.code) {
       setWorkspaceStatus(`Apro il modello ${item.title}.`)
       window.location.assign(href)
@@ -1622,6 +2254,18 @@ function ProfessionalTemplateEditorWorkspace({
   }
 
   const applyFormat = (command: string) => {
+    const labels: Record<string, string> = {
+      bold: 'Grassetto applicato alla selezione.',
+      italic: 'Corsivo applicato alla selezione.',
+      underline: 'Sottolineato applicato alla selezione.',
+      strikeThrough: 'Barrato applicato alla selezione.',
+      insertUnorderedList: 'Elenco puntato applicato alla selezione.',
+      insertOrderedList: 'Elenco numerato applicato alla selezione.',
+      indent: 'Rientro aumentato.',
+      outdent: 'Rientro ridotto.',
+      undo: 'Ultima modifica annullata.',
+      redo: 'Modifica ripristinata.',
+    }
     if (command === 'justifyLeft' || command === 'justifyCenter' || command === 'justifyRight' || command === 'justifyFull') {
       const nextAlign = command === 'justifyLeft'
         ? 'left'
@@ -1637,14 +2281,17 @@ function ProfessionalTemplateEditorWorkspace({
     }
     restoreSelection()
     if (command === 'formatBlock:h1' || command === 'formatBlock:h2' || command === 'formatBlock:p' || command === 'formatBlock:blockquote') {
-      const block = command.split(':')[1]
+      const block = command.split(':')[1] as 'h1' | 'h2' | 'p' | 'blockquote'
       document.execCommand('formatBlock', false, block)
+      setActiveBlockFormat(block)
       syncEditorToDraft(block === 'p' ? 'Paragrafo applicato alla selezione.' : 'Stile blocco applicato alla selezione.')
       return
     }
     if (command === 'hiliteColor') {
-      document.execCommand('hiliteColor', false, 'rgb(255, 242, 194)')
-      syncEditorToDraft('Evidenziazione applicata alla selezione.')
+      const nextActive = !activeInlineFormats.hiliteColor
+      document.execCommand('hiliteColor', false, nextActive ? 'rgb(255, 242, 194)' : 'transparent')
+      setActiveInlineFormats((current) => ({ ...current, hiliteColor: nextActive }))
+      syncEditorToDraft(nextActive ? 'Evidenziazione attiva per la selezione o il testo successivo.' : 'Evidenziazione disattivata.')
       return
     }
     if (command === 'insertHorizontalRule') {
@@ -1652,46 +2299,64 @@ function ProfessionalTemplateEditorWorkspace({
       return
     }
     document.execCommand(command, false)
-    const labels: Record<string, string> = {
-      bold: 'Grassetto applicato alla selezione.',
-      italic: 'Corsivo applicato alla selezione.',
-      underline: 'Sottolineato applicato alla selezione.',
-      strikeThrough: 'Barrato applicato alla selezione.',
-      insertUnorderedList: 'Elenco puntato applicato alla selezione.',
-      insertOrderedList: 'Elenco numerato applicato alla selezione.',
-      indent: 'Rientro aumentato.',
-      outdent: 'Rientro ridotto.',
-      undo: 'Ultima modifica annullata.',
-      redo: 'Modifica ripristinata.',
+    if (command === 'bold' || command === 'italic' || command === 'underline' || command === 'strikeThrough') {
+      const nextActive = !activeInlineFormats[command]
+      setActiveInlineFormats((current) => ({ ...current, [command]: nextActive }))
+      syncEditorToDraft(
+        nextActive
+          ? `${labels[command].replace('applicato alla selezione.', 'attivo per la selezione o il testo successivo.')}`
+          : `${labels[command].replace('applicato alla selezione.', 'disattivato.')}`,
+      )
+      return
     }
     syncEditorToDraft(labels[command] || 'Comando applicato alla selezione.')
   }
 
   const applyFontSelection = (fontKey: string) => {
-    setDocumentFont(fontKey)
+    setToolbarFontKey(fontKey)
+    if (selectionTouchesStamp()) {
+      setStampFontKey(fontKey)
+      setWorkspaceStatus('Font timbro applicato a tutte le righe.')
+      return
+    }
     if (hasEditorSelection()) {
       restoreSelection()
       document.execCommand('fontName', false, fontLabelByKey(data, fontKey))
       syncEditorToDraft('Font applicato alla selezione.')
       return
     }
-    setWorkspaceStatus('Font documento applicato.')
+    setWorkspaceStatus('Seleziona il testo da modificare, poi scegli il font.')
   }
 
   const applySizeSelection = (size: number) => {
-    onBodyFontSizeChange(size)
+    const nextSize = Math.max(4, Math.min(28, Math.round(Number(size) || 12)))
+    setToolbarFontSize(nextSize)
+    if (selectionTouchesStamp()) {
+      setStampFontSize(nextSize)
+      setWorkspaceStatus(`Dimensione timbro impostata a ${nextSize} pt su tutte le righe.`)
+      return
+    }
     if (hasEditorSelection()) {
       restoreSelection()
       document.execCommand('fontSize', false, '4')
-      editorRef.current?.querySelectorAll('font[size="4"]').forEach((node) => {
+      const selection = window.getSelection()
+      const range = selection && selection.rangeCount ? selection.getRangeAt(0) : null
+      const root = range && stampRef.current?.contains(range.commonAncestorContainer) ? stampRef.current : editorRef.current
+      root?.querySelectorAll('font[size="4"]').forEach((node) => {
         const element = node as HTMLElement
-        element.style.fontSize = `${size}pt`
+        element.style.fontSize = `${nextSize}pt`
         element.removeAttribute('size')
       })
       syncEditorToDraft('Dimensione applicata alla selezione.')
       return
     }
-    setWorkspaceStatus('Dimensione corpo documento applicata.')
+    setWorkspaceStatus('Seleziona il testo da modificare, poi scegli la dimensione.')
+  }
+
+  const updatePageMargin = (side: keyof typeof pageMargins, value: number) => {
+    const nextValue = Math.max(5, Math.min(60, Math.round(Number(value) || pageMargins[side])))
+    setPageMargins((current) => ({ ...current, [side]: nextValue }))
+    setWorkspaceStatus('Margini pagina aggiornati.')
   }
 
   const applyPreset = (presetKey: string) => {
@@ -1713,7 +2378,7 @@ function ProfessionalTemplateEditorWorkspace({
     const fallbackProposal = buildLocalLexProposal(action, data, exportPlainText(), fields, customInstructions)
     const formData = new FormData()
     formData.set('model_code', data.model.code)
-    formData.set('title', data.model.name)
+    formData.set('title', documentDisplayTitle)
     formData.set('testo_generato', exportPlainText())
     formData.set('testo_generato_html', exportHtml())
     formData.set('lex_mode', action.mode)
@@ -1847,18 +2512,18 @@ function ProfessionalTemplateEditorWorkspace({
   const panelTabs: TemplateEditorTab[] = TEMPLATE_EDITOR_TABS
   const inlineTools = [
     { label: 'Catalogo template atti', icon: ArrowLeft, action: () => window.location.assign(data.catalogHref || '/template-atti/catalogo') },
-    { label: 'Titolo principale', icon: Heading1, action: () => applyFormat('formatBlock:h1') },
-    { label: 'Titolo sezione', icon: Heading2, action: () => applyFormat('formatBlock:h2') },
-    { label: 'Paragrafo', icon: Pilcrow, action: () => applyFormat('formatBlock:p') },
-    { label: 'Grassetto', icon: Bold, action: () => applyFormat('bold') },
-    { label: 'Corsivo', icon: Italic, action: () => applyFormat('italic') },
-    { label: 'Sottolineato', icon: Underline, action: () => applyFormat('underline') },
-    { label: 'Barrato', icon: Strikethrough, action: () => applyFormat('strikeThrough') },
-    { label: 'Evidenzia', icon: Highlighter, action: () => applyFormat('hiliteColor') },
-    { label: 'Allinea a sinistra', icon: AlignLeft, action: () => applyFormat('justifyLeft') },
-    { label: 'Centra', icon: AlignCenter, action: () => applyFormat('justifyCenter') },
-    { label: 'Allinea a destra', icon: AlignRight, action: () => applyFormat('justifyRight') },
-    { label: 'Giustifica', icon: AlignJustify, action: () => applyFormat('justifyFull') },
+    { label: 'Titolo principale', icon: Heading1, action: () => applyFormat('formatBlock:h1'), active: activeBlockFormat === 'h1' },
+    { label: 'Titolo sezione', icon: Heading2, action: () => applyFormat('formatBlock:h2'), active: activeBlockFormat === 'h2' },
+    { label: 'Paragrafo', icon: Pilcrow, action: () => applyFormat('formatBlock:p'), active: activeBlockFormat === 'p' },
+    { label: 'Grassetto', icon: Bold, action: () => applyFormat('bold'), active: Boolean(activeInlineFormats.bold) },
+    { label: 'Corsivo', icon: Italic, action: () => applyFormat('italic'), active: Boolean(activeInlineFormats.italic) },
+    { label: 'Sottolineato', icon: Underline, action: () => applyFormat('underline'), active: Boolean(activeInlineFormats.underline) },
+    { label: 'Barrato', icon: Strikethrough, action: () => applyFormat('strikeThrough'), active: Boolean(activeInlineFormats.strikeThrough) },
+    { label: 'Evidenzia', icon: Highlighter, action: () => applyFormat('hiliteColor'), active: Boolean(activeInlineFormats.hiliteColor) },
+    { label: 'Allinea a sinistra', icon: AlignLeft, action: () => applyFormat('justifyLeft'), active: textAlign === 'left' },
+    { label: 'Centra', icon: AlignCenter, action: () => applyFormat('justifyCenter'), active: textAlign === 'center' },
+    { label: 'Allinea a destra', icon: AlignRight, action: () => applyFormat('justifyRight'), active: textAlign === 'right' },
+    { label: 'Giustifica', icon: AlignJustify, action: () => applyFormat('justifyFull'), active: textAlign === 'justify' },
     { label: 'Elenco puntato', icon: List, action: () => applyFormat('insertUnorderedList') },
     { label: 'Elenco numerato', icon: ListOrdered, action: () => applyFormat('insertOrderedList') },
     { label: 'Riduci rientro', icon: IndentDecrease, action: () => applyFormat('outdent') },
@@ -1866,7 +2531,7 @@ function ProfessionalTemplateEditorWorkspace({
     { label: 'Citazione', icon: Quote, action: () => applyFormat('formatBlock:blockquote') },
     { label: 'Annulla', icon: Undo2, action: () => applyFormat('undo') },
     { label: 'Ripristina', icon: Redo2, action: () => applyFormat('redo') },
-    { label: 'Segnaposto', icon: Code2, action: () => setTab('Campi') },
+    { label: 'Segnaposto', icon: Code2, action: () => setTab('Campi'), active: activeTab === 'Campi' },
   ]
 
   return (
@@ -1885,6 +2550,10 @@ function ProfessionalTemplateEditorWorkspace({
           <button type="button" onClick={() => window.location.assign(data.catalogHref || '/template-atti/catalogo')}>
             <ArrowLeft size={15} aria-hidden="true" />
             Catalogo
+          </button>
+          <button type="button" onClick={() => window.location.assign(FREE_EDITOR_URL)}>
+            <FilePlus2 size={15} aria-hidden="true" />
+            Editor libero
           </button>
           <button type="button" className="is-success" disabled={importing} onClick={onImport}>
             <UploadCloud size={15} aria-hidden="true" />
@@ -1909,17 +2578,17 @@ function ProfessionalTemplateEditorWorkspace({
         </div>
       </header>
       <div className="iu-template-pro-toolbar" aria-label="Barra strumenti documento">
-        <select aria-label="Font documento" value={documentFont} onChange={(event) => applyFontSelection(event.currentTarget.value)}>
+        <select aria-label="Font testo selezionato" value={toolbarFontKey} onChange={(event) => applyFontSelection(event.currentTarget.value)}>
           {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
         </select>
-        <select aria-label="Dimensione testo" value={bodyFontSize} onChange={(event) => applySizeSelection(Number(event.currentTarget.value))}>
-          {[9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22].map((size) => <option value={size} key={size}>{size}pt</option>)}
+        <select aria-label="Dimensione testo selezionato" value={toolbarFontSize} onChange={(event) => applySizeSelection(Number(event.currentTarget.value))}>
+          {FONT_SIZE_OPTIONS.map((size) => <option value={size} key={size}>{size}pt</option>)}
         </select>
         <div className="iu-template-pro-toolbar__icons">
           {inlineTools.map((tool) => {
             const Icon = tool.icon
             return (
-              <button type="button" title={tool.label} aria-label={tool.label} key={tool.label} onMouseDown={(event) => event.preventDefault()} onClick={tool.action}>
+              <button type="button" className={tool.active ? 'is-active' : ''} title={tool.label} aria-label={tool.label} aria-pressed={Boolean(tool.active)} key={tool.label} onMouseDown={(event) => event.preventDefault()} onClick={tool.action}>
                 <Icon size={15} aria-hidden="true" />
               </button>
             )
@@ -1930,10 +2599,28 @@ function ProfessionalTemplateEditorWorkspace({
         <button type="button" className="iu-template-pro-toolbar__panel" title="Mostra campi" onClick={() => setTab('Campi')}>
           <Columns3 size={15} aria-hidden="true" />
         </button>
+        <button type="button" className="iu-template-pro-print-button" title="Stampa documento" onClick={() => { setWorkspaceStatus('Apro la finestra di stampa del browser.'); window.print() }}>
+          <Printer size={15} aria-hidden="true" />
+          Stampa
+        </button>
       </div>
       {statusText ? <p className="iu-template-pro-status" role="status">{statusText}</p> : null}
-      <div className="iu-template-pro-layout">
-        <aside className="iu-template-pro-sidebar" aria-label="Catalogo template">
+      <div className={[
+        'iu-template-pro-layout',
+        catalogCollapsed ? 'iu-template-pro-layout--catalog-collapsed' : '',
+        fieldsCollapsed ? 'iu-template-pro-layout--fields-collapsed' : '',
+      ].filter(Boolean).join(' ')}>
+        <aside className={`iu-template-pro-sidebar${catalogCollapsed ? ' is-collapsed' : ''}`} aria-label="Catalogo template">
+          <header className="iu-template-pro-sidebar__header">
+            <div>
+              <strong>Catalogo template</strong>
+              <small>{visibleTemplates.length} modelli disponibili</small>
+            </div>
+            <button type="button" title={catalogCollapsed ? 'Apri catalogo template' : 'Chiudi catalogo template'} aria-label={catalogCollapsed ? 'Apri catalogo template' : 'Chiudi catalogo template'} onClick={() => setCatalogCollapsed((value) => !value)}>
+              {catalogCollapsed ? <PanelLeftOpen size={16} aria-hidden="true" /> : <PanelLeftClose size={16} aria-hidden="true" />}
+            </button>
+          </header>
+          <div className="iu-template-pro-sidebar__content">
           <label className="iu-template-pro-search">
             <Search size={15} aria-hidden="true" />
             <input value={templateSearch} placeholder="Cerca template..." onChange={(event) => setTemplateSearch(event.currentTarget.value)} />
@@ -1956,14 +2643,25 @@ function ProfessionalTemplateEditorWorkspace({
             ))}
           </div>
           <footer>{visibleTemplates.length} template disponibili</footer>
+          </div>
         </aside>
         <main className="iu-template-pro-canvas">
-          <nav className="iu-template-pro-flow" aria-label="Flusso documento">
-            {(data.editorWorkflow.length ? data.editorWorkflow : data.guidePreview.steps).slice(0, 10).map((step) => (
-              <span className={`is-${step.state}`} key={step.id}>{step.label}</span>
-            ))}
-          </nav>
-          <article className={paperClassName}>
+          <article className={paperClassName} style={paperStyle} onClick={focusEditorFromPaper}>
+            <div className="iu-template-pro-paper__sheets" aria-hidden="true">
+              {visualPages.map((_, index) => (
+                <div
+                  className="iu-template-pro-paper__sheet"
+                  key={`page-sheet-${index + 1}`}
+                  style={{ top: `${pageStep * index}px` }}
+                >
+                  <div className="iu-template-pro-paper__margin-guide" />
+                  <footer className="iu-template-pro-paper__page-footer">
+                    <span>Pagina {index + 1}</span>
+                    <span>{index > 0 && data.stamp.lines.length ? 'Timbro studio riportato.' : 'Formato documento A4.'}</span>
+                  </footer>
+                </div>
+              ))}
+            </div>
             <div
               ref={stampRef}
               className="iu-template-pro-paper__stamp"
@@ -1976,69 +2674,54 @@ function ProfessionalTemplateEditorWorkspace({
             >
               {data.stamp.lines.length ? data.stamp.lines.map((line, index) => (
                 <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
-              )) : (
-                <>
-                  <span className="is-bold">[NOME_STUDIO]</span>
-                  <span>[INDIRIZZO_STUDIO]</span>
-                </>
-              )}
+              )) : null}
             </div>
-              <div className="iu-template-pro-paper__body-shell">
-                <div
-                  ref={editorRef}
-                  className="iu-template-pro-paper__body"
-                  {...EDITABLE_DOM_PROPS}
-                  spellCheck
-                  data-testid="professional-template-editor"
-                  role="textbox"
-                  aria-multiline="true"
-                  onInput={() => syncEditorToDraft()}
-                  onKeyUp={saveSelection}
-                  onMouseUp={saveSelection}
-                  onBlur={saveSelection}
-                  onFocus={saveSelection}
-                  aria-label="Corpo documento modificabile"
-                />
-                {Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
-                  <div
-                    className="iu-template-pro-page-marker"
-                    data-testid={`template-page-marker-${index + 2}`}
-                    data-page-marker-index={index + 1}
-                    key={`page-marker-${index + 2}`}
-                    aria-label={`Fine pagina ${index + 1} e inizio pagina ${index + 2}`}
-                  >
-                    <span>Fine pagina {index + 1}</span>
-                    <strong>Inizio pagina {index + 2}</strong>
-                  </div>
+            {data.stamp.lines.length ? Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
+              <div
+                aria-hidden="true"
+                className="iu-template-pro-paper__stamp iu-template-pro-paper__stamp--page-copy"
+                key={`stamp-copy-${index + 2}`}
+                style={{ '--iu-template-repeat-stamp-top': `calc(${pageStep * (index + 1)}px + var(--iu-template-page-padding-top) - .2rem + var(--iu-template-stamp-offset-y, 0mm))` } as CSSProperties}
+              >
+                {data.stamp.lines.map((line, lineIndex) => (
+                  <span className={line.bold ? 'is-bold' : ''} key={`copy-${index}-${line.text}-${lineIndex}`}>{line.text}</span>
                 ))}
               </div>
-              <footer className="iu-template-pro-paper__page-footer">
-                <span>Pagina 1</span>
-                <span>{visualPageCount > 1 ? `${visualPageCount} pagine stimate` : 'Il timbro viene ripetuto nelle esportazioni su ogni pagina.'}</span>
-              </footer>
-          </article>
-          {Array.from({ length: Math.max(0, visualPageCount - 1) }).map((_, index) => (
-            <div
-              className="iu-template-pro-page-boundary"
-              data-testid={`template-page-boundary-${index + 2}`}
-              key={`page-boundary-${index + 2}`}
-              aria-label={`Fine pagina ${index + 1} e inizio pagina ${index + 2}`}
-            >
-              <span>Fine pagina {index + 1}</span>
-              <strong>Inizio pagina {index + 2}</strong>
+            )) : null}
+            <div className="iu-template-pro-paper__body-shell">
+              <div
+                ref={editorRef}
+                className="iu-template-pro-paper__body"
+                {...EDITABLE_DOM_PROPS}
+                spellCheck
+                data-placeholder={documentPlaceholder}
+                data-testid="professional-template-editor"
+                role="textbox"
+                aria-multiline="true"
+                onInput={() => syncEditorToDraft()}
+                onKeyUp={saveSelection}
+                onMouseUp={(event) => {
+                  placeEditorCaretFromMouse(event)
+                  saveSelection()
+                }}
+                onBlur={saveSelection}
+                onFocus={saveSelection}
+                aria-label="Corpo documento modificabile"
+              />
             </div>
-          ))}
+          </article>
         </main>
-        <aside className="iu-template-pro-fields" aria-label="Pannello editor template">
+        <aside className={`iu-template-pro-fields${fieldsCollapsed ? ' is-collapsed' : ''}`} aria-label="Pannello editor template">
           <header>
             <div>
-              <strong>{activeTab === 'Campi' ? 'Campi da compilare' : activeTab === 'Export' ? 'Esporta e firma' : activeTab}</strong>
-              <small>{selectedTemplate?.title || data.model.name}</small>
+              <strong>{activeTab === 'Campi' ? (freeEditorMode ? documentDisplayTitle : 'Campi da compilare') : activeTab === 'Export' ? 'Esporta e firma' : activeTab}</strong>
+              <small>{documentPanelSubtitle}</small>
             </div>
-            <button type="button" title="Chiudi pannello" aria-label="Chiudi pannello" onClick={() => setTab('Campi')}>
-              <XCircle size={16} aria-hidden="true" />
+            <button type="button" title={fieldsCollapsed ? 'Apri pannello editor' : 'Chiudi pannello editor'} aria-label={fieldsCollapsed ? 'Apri pannello editor' : 'Chiudi pannello editor'} onClick={() => setFieldsCollapsed((value) => !value)}>
+              {fieldsCollapsed ? <PanelRightOpen size={16} aria-hidden="true" /> : <PanelRightClose size={16} aria-hidden="true" />}
             </button>
           </header>
+          <div className="iu-template-pro-fields__content">
           <nav className="iu-template-pro-tabs" aria-label="Schede editor">
             {panelTabs.map((tab) => (
               <button type="button" className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setTab(tab)}>
@@ -2108,7 +2791,7 @@ function ProfessionalTemplateEditorWorkspace({
                     </div>
                   </section>
                 ) : null}
-                {fieldGroups.map((group) => (
+                {showTemplateFields ? fieldGroups.map((group) => (
                   <section className="iu-template-pro-field-group" key={group.id}>
                     <h3>{group.title}</h3>
                     {group.fields.map((field) => (
@@ -2135,12 +2818,17 @@ function ProfessionalTemplateEditorWorkspace({
                       </label>
                     ))}
                   </section>
-                ))}
-                <div className="iu-template-pro-progress">
+                )) : (
+                  <section className="iu-template-pro-free-editor-note" aria-label="Documento libero">
+                    <h3>Foglio libero</h3>
+                    <p>Scrivi direttamente nel corpo del documento. Se serve una bozza guidata, scegli un modello dal catalogo a sinistra.</p>
+                  </section>
+                )}
+                {showTemplateFields ? <div className="iu-template-pro-progress">
                   <span>Compilazione</span>
                   <progress value={completion} max={100} />
                   <strong>{completion}%</strong>
-                </div>
+                </div> : null}
               </>
             ) : null}
             {activeTab === 'Stile' ? (
@@ -2183,13 +2871,40 @@ function ProfessionalTemplateEditorWorkspace({
                 </label>
                 <div className="iu-template-guide-format-controls" aria-label="Formato testo">
                   <span>Corpo testo</span>
-                  <button type="button" onClick={() => onBodyFontSizeChange(Math.max(9, bodyFontSize - 1))}>A-</button>
+                  <button type="button" onClick={() => onBodyFontSizeChange(Math.max(4, bodyFontSize - 1))}>A-</button>
                   <strong>{bodyFontSize} pt</strong>
-                  <button type="button" onClick={() => onBodyFontSizeChange(Math.min(22, bodyFontSize + 1))}>A+</button>
+                  <button type="button" onClick={() => onBodyFontSizeChange(Math.min(28, bodyFontSize + 1))}>A+</button>
                   <span>Interlinea</span>
                   <button type="button" onClick={() => onBodyLineHeightChange(Math.max(1.2, Number((bodyLineHeight - 0.1).toFixed(2))))}>-</button>
                   <strong>{bodyLineHeight.toFixed(2)}</strong>
                   <button type="button" onClick={() => onBodyLineHeightChange(Math.min(2.6, Number((bodyLineHeight + 0.1).toFixed(2))))}>+</button>
+                </div>
+                <div className="iu-template-pro-page-controls" aria-label="Formato pagina">
+                  <strong>Formato pagina</strong>
+                  <div className="iu-template-pro-segmented iu-template-pro-segmented--two" aria-label="Orientamento pagina">
+                    {[
+                      ['verticale', 'Verticale'],
+                      ['orizzontale', 'Orizzontale'],
+                    ].map(([value, label]) => (
+                      <button type="button" className={pageOrientation === value ? 'is-active' : ''} key={value} onClick={() => { setPageOrientation(value); setWorkspaceStatus(`Pagina ${label.toLowerCase()} applicata.`) }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="iu-template-pro-margin-grid">
+                    {([
+                      ['top', 'Alto'],
+                      ['right', 'Destra'],
+                      ['bottom', 'Basso'],
+                      ['left', 'Sinistra'],
+                    ] as const).map(([side, label]) => (
+                      <label key={side}>
+                        <span>{label}</span>
+                        <input type="number" min={5} max={60} value={pageMargins[side]} onChange={(event) => updatePageMargin(side, Number(event.currentTarget.value))} />
+                        <em>mm</em>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="iu-template-pro-segmented" aria-label="Allineamento documento">
                   {[
@@ -2235,7 +2950,35 @@ function ProfessionalTemplateEditorWorkspace({
                     }} />
                     <strong>{stampOffsetY > 0 ? `+${stampOffsetY}` : stampOffsetY} mm</strong>
                   </label>
-                  <p>Seleziona una riga del timbro o del testo e usa font, dimensione, grassetto o corsivo dalla barra strumenti.</p>
+                  <label className="iu-template-pro-stamp-inline-control">
+                    <span>Font timbro</span>
+                    <select value={stampFontKey} onChange={(event) => {
+                      setStampFontKey(event.currentTarget.value)
+                      setWorkspaceStatus('Font timbro applicato a tutte le righe.')
+                    }}>
+                      {data.fontRegistry.fonts.map((font) => <option value={font.key} key={font.key}>{font.label}</option>)}
+                    </select>
+                  </label>
+                  <div className="iu-template-pro-stamp-metrics">
+                    <label>
+                      <span>Dimensione</span>
+                      <input type="number" min={4} max={28} value={stampFontSize} onChange={(event) => {
+                        const value = Math.max(4, Math.min(28, Math.round(Number(event.currentTarget.value) || 8)))
+                        setStampFontSize(value)
+                        setWorkspaceStatus(`Dimensione timbro impostata a ${value} pt su tutte le righe.`)
+                      }} />
+                      <em>pt</em>
+                    </label>
+                    <label>
+                      <span>Interlinea</span>
+                      <input type="number" min={1} max={2.6} step={0.05} value={stampLineHeight} onChange={(event) => {
+                        const value = Math.max(1, Math.min(2.6, Number(event.currentTarget.value) || 1.16))
+                        setStampLineHeight(Number(value.toFixed(2)))
+                        setWorkspaceStatus(`Interlinea timbro impostata a ${value.toFixed(2)} su tutte le righe.`)
+                      }} />
+                    </label>
+                  </div>
+                  <p>Il timbro usa 8 pt come dimensione predefinita; font, dimensione e interlinea vengono sempre applicati all'intero timbro.</p>
                 </div>
               </section>
             ) : null}
@@ -2364,6 +3107,7 @@ function ProfessionalTemplateEditorWorkspace({
                 </div>
               </section>
             ) : null}
+          </div>
           </div>
         </aside>
       </div>
@@ -2502,9 +3246,9 @@ function GuidePreviewWorkspace({
           <span>Stile studio e corpo testo leggibile nel modello.</span>
           <div className="iu-template-guide-format-controls" aria-label="Formato testo anteprima">
             <span>Corpo testo</span>
-            <button type="button" onClick={() => onBodyFontSizeChange(Math.max(10, bodyFontSize - 1))}>A-</button>
+            <button type="button" onClick={() => onBodyFontSizeChange(Math.max(4, bodyFontSize - 1))}>A-</button>
             <strong>{bodyFontSize} pt</strong>
-            <button type="button" onClick={() => onBodyFontSizeChange(Math.min(22, bodyFontSize + 1))}>A+</button>
+            <button type="button" onClick={() => onBodyFontSizeChange(Math.min(28, bodyFontSize + 1))}>A+</button>
             <span>Interlinea</span>
             <button type="button" onClick={() => onBodyLineHeightChange(Math.max(1.25, Number((bodyLineHeight - 0.1).toFixed(2))))}>-</button>
             <strong>{bodyLineHeight.toFixed(2)}</strong>
@@ -2706,6 +3450,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const previewRenderTimerRef = useRef<number | undefined>(undefined)
   const guideEditorLayoutRef = useRef<Partial<TemplateEditorLayout>>({})
   const hiddenQuery = useMemo(queryHiddenInputs, [])
+  const freeEditorMode = isFreeEditorRoute()
+  const guideDocumentTitle = freeEditorMode ? 'Documento libero' : data.model.name || data.guidePreview.template.name || 'Atto'
 
   useEffect(() => {
     document.body.classList.add('iu-template-pro-fullscreen')
@@ -2717,7 +3463,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     getTemplateAttiCompilerPage(modelCode)
       .then((payload) => {
         setData(payload)
-        setGuideDraftText(guideDraftFromData(payload))
+        setGuideDraftText(isFreeEditorRoute() ? '' : guideDraftFromData(payload))
         setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || payload.editorLayout.fontSize || 12)
         setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || payload.editorLayout.lineHeight || 1.9)
       })
@@ -2790,7 +3536,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     collectControlData(compilerRef.current).forEach((value, name) => formData.set(name, value))
     formData.set('_react_return', '1')
     formData.set('model_code', data.model.code || modelCode)
-    formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
+    formData.set('title', guideDocumentTitle)
     formData.set('testo_generato', stripFixedStampFromDraft(editorHtmlToPlainText(richHtml), data))
     formData.set('testo_generato_html', stripHtmlStampFromDraft(richHtml, data))
     formData.set('testo_generato__editor_layout', JSON.stringify({
@@ -2803,6 +3549,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       font_size_pt: guideEditorLayoutRef.current.fontSize || guideFontSize,
       line_height: guideLineHeight,
       text_align: guideEditorLayoutRef.current.textAlign || data.editorLayout.textAlign || 'justify',
+      page_orientation: guideEditorLayoutRef.current.pageOrientation || data.editorLayout.pageOrientation || 'verticale',
+      margin_top_mm: guideEditorLayoutRef.current.marginTop || data.editorLayout.marginTop || 25,
+      margin_right_mm: guideEditorLayoutRef.current.marginRight || data.editorLayout.marginRight || 22,
+      margin_bottom_mm: guideEditorLayoutRef.current.marginBottom || data.editorLayout.marginBottom || 25,
+      margin_left_mm: guideEditorLayoutRef.current.marginLeft || data.editorLayout.marginLeft || 32,
       stamp_position: guideEditorLayoutRef.current.stampPosition || data.editorLayout.stampPosition || 'top-center',
       stamp_offset_y_mm: Number(guideEditorLayoutRef.current.stampOffsetY ?? data.editorLayout.stampOffsetY ?? 0),
       page_scale: data.guidePreview.editorLayout.pageScale || 100,
@@ -2869,7 +3620,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   ) => {
     if (!endpoint) return
     const formData = buildGuideFormData(draftOverride, htmlOverride)
-    const title = data.model.name || data.guidePreview.template.name || 'Atto'
+    const title = guideDocumentTitle
     if (!String(formData.get('title') || '').trim()) formData.set('title', title)
     if (!String(formData.get('testo_generato') || '').trim()) {
       formData.set(
@@ -3210,6 +3961,9 @@ function TemplateCatalogView() {
           </Button>
           <ButtonLink href="/redazione-atti" tone="primary">
             Redazione atti
+          </ButtonLink>
+          <ButtonLink href={FREE_EDITOR_URL} tone="neutral">
+            Editor libero
           </ButtonLink>
         </>
       }

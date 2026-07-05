@@ -418,6 +418,8 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower == "/template-atti/nuovo":
         return True
+    if lower in {"/template-atti/editor", "/template-atti/editor-libero"}:
+        return False
     if lower.startswith("/template-atti/compila/"):
         return False
     if lower.startswith("/template-atti/") and lower != "/template-atti/catalogo":

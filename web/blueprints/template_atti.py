@@ -22,6 +22,7 @@ from flask import (Blueprint, abort, current_app, flash, g, jsonify,
 from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.app_v2_routing import is_safe_internal_path
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
@@ -1496,6 +1497,13 @@ def usa(id_template: str):
         selected_cliente_id=selected_cliente_id,
         selected_fascicolo_id=selected_fascicolo_id,
     )
+
+
+@template_atti.route("/editor", methods=["GET"])
+@template_atti.route("/editor-libero", methods=["GET"])
+@_richiedi_login
+def editor_libero():
+    return render_react_shell_response(request.path.lstrip("/"))
 
 
 @template_atti.route("/compila/<model_code>", methods=["GET", "POST"])

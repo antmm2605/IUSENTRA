@@ -121,6 +121,8 @@ LEGACY_TO_APP_V2_TARGETS: Mapping[str, str] = {
     "/tariffario": "/app-v2/tariffario",
     "/template-atti": "/app-v2/template-atti",
     "/template-atti/catalogo": "/app-v2/template-atti/catalogo",
+    "/template-atti/editor": "/app-v2/template-atti/editor",
+    "/template-atti/editor-libero": "/app-v2/template-atti/editor-libero",
     "/timesheet": "/app-v2/timesheet",
     "/utenti": "/app-v2/utenti",
     "/utenti/nuovo": "/app-v2/utenti/nuovo",

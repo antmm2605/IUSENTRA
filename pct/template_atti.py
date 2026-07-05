@@ -215,6 +215,7 @@ DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
     "heading_size_pt": 16,
     "line_height": 1.9,
     "text_align": "justify",
+    "page_orientation": "verticale",
     "margin_top_mm": 25,
     "margin_right_mm": 22,
     "margin_bottom_mm": 25,
@@ -224,6 +225,9 @@ DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
     "print_clean_placeholders": False,
     "stamp_position": "top-center",
     "stamp_offset_y_mm": 0,
+    "stamp_font_family": "ibm_plex_mono",
+    "stamp_font_size_pt": 8,
+    "stamp_line_height": 1.16,
 }
 
 
@@ -382,7 +386,7 @@ def _clamp_float(value: Any, default: float, minimum: float, maximum: float) -> 
 
 def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     raw = layout or {}
-    font_key = _font_key(raw.get("font_family"), DEFAULT_EDITOR_LAYOUT["font_family"])
+    font_key = _font_key(raw.get("font_family", raw.get("fontFamily")), DEFAULT_EDITOR_LAYOUT["font_family"])
     if (
         font_key == "source_serif"
         and not any(
@@ -397,14 +401,18 @@ def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[st
         )
     ):
         font_key = DEFAULT_EDITOR_LAYOUT["font_family"]
-    heading_font_key = _font_key(raw.get("heading_font_family"), DEFAULT_EDITOR_LAYOUT["heading_font_family"])
-    ui_font_key = _font_key(raw.get("ui_font_family"), DEFAULT_EDITOR_LAYOUT["ui_font_family"])
-    placeholder_font_key = _font_key(raw.get("placeholder_font_family"), DEFAULT_EDITOR_LAYOUT["placeholder_font_family"])
-    fallback_font_key = _font_key(raw.get("fallback_font_family"), DEFAULT_EDITOR_LAYOUT["fallback_font_family"])
-    text_align = str(raw.get("text_align", DEFAULT_EDITOR_LAYOUT["text_align"]) or "").lower()
+    heading_font_key = _font_key(raw.get("heading_font_family", raw.get("headingFontFamily")), DEFAULT_EDITOR_LAYOUT["heading_font_family"])
+    ui_font_key = _font_key(raw.get("ui_font_family", raw.get("uiFontFamily")), DEFAULT_EDITOR_LAYOUT["ui_font_family"])
+    placeholder_font_key = _font_key(raw.get("placeholder_font_family", raw.get("placeholderFontFamily")), DEFAULT_EDITOR_LAYOUT["placeholder_font_family"])
+    fallback_font_key = _font_key(raw.get("fallback_font_family", raw.get("fallbackFontFamily")), DEFAULT_EDITOR_LAYOUT["fallback_font_family"])
+    stamp_font_key = _font_key(raw.get("stamp_font_family", raw.get("stampFontFamily")), DEFAULT_EDITOR_LAYOUT["stamp_font_family"])
+    text_align = str(raw.get("text_align", raw.get("textAlign", DEFAULT_EDITOR_LAYOUT["text_align"])) or "").lower()
     if text_align not in {"justify", "left", "center", "right"}:
         text_align = DEFAULT_EDITOR_LAYOUT["text_align"]
-    style_preset = str(raw.get("document_style_preset", DEFAULT_EDITOR_LAYOUT["document_style_preset"]) or "").strip()
+    page_orientation = str(raw.get("page_orientation", raw.get("pageOrientation", DEFAULT_EDITOR_LAYOUT["page_orientation"])) or "").lower()
+    if page_orientation not in {"verticale", "orizzontale"}:
+        page_orientation = DEFAULT_EDITOR_LAYOUT["page_orientation"]
+    style_preset = str(raw.get("document_style_preset", raw.get("stylePreset", DEFAULT_EDITOR_LAYOUT["document_style_preset"])) or "").strip()
     preset_keys = {str(item.get("key") or "") for item in _registry_style_presets()}
     if style_preset not in preset_keys:
         style_preset = DEFAULT_EDITOR_LAYOUT["document_style_preset"]
@@ -415,24 +423,36 @@ def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[st
         "placeholder_font_family": placeholder_font_key,
         "fallback_font_family": fallback_font_key,
         "document_style_preset": style_preset,
-        "font_size_pt": _clamp_int(raw.get("font_size_pt"), DEFAULT_EDITOR_LAYOUT["font_size_pt"], 9, 18),
-        "heading_size_pt": _clamp_int(raw.get("heading_size_pt"), DEFAULT_EDITOR_LAYOUT["heading_size_pt"], 11, 24),
+        "font_size_pt": _clamp_int(raw.get("font_size_pt", raw.get("fontSize")), DEFAULT_EDITOR_LAYOUT["font_size_pt"], 4, 28),
+        "heading_size_pt": _clamp_int(raw.get("heading_size_pt", raw.get("headingSize")), DEFAULT_EDITOR_LAYOUT["heading_size_pt"], 11, 28),
         "line_height": round(
-            _clamp_float(raw.get("line_height"), DEFAULT_EDITOR_LAYOUT["line_height"], 1.2, 2.6),
+            _clamp_float(raw.get("line_height", raw.get("lineHeight")), DEFAULT_EDITOR_LAYOUT["line_height"], 1.2, 2.6),
             2,
         ),
         "text_align": text_align,
-        "stamp_position": _stamp_position_key(raw.get("stamp_position"), DEFAULT_EDITOR_LAYOUT["stamp_position"]),
+        "page_orientation": page_orientation,
+        "stamp_position": _stamp_position_key(raw.get("stamp_position", raw.get("stampPosition")), DEFAULT_EDITOR_LAYOUT["stamp_position"]),
         "stamp_offset_y_mm": _clamp_int(
             raw.get("stamp_offset_y_mm", raw.get("stampOffsetY")),
             DEFAULT_EDITOR_LAYOUT["stamp_offset_y_mm"],
             -40,
             80,
         ),
-        "margin_top_mm": _clamp_int(raw.get("margin_top_mm"), DEFAULT_EDITOR_LAYOUT["margin_top_mm"], 10, 45),
-        "margin_right_mm": _clamp_int(raw.get("margin_right_mm"), DEFAULT_EDITOR_LAYOUT["margin_right_mm"], 10, 40),
-        "margin_bottom_mm": _clamp_int(raw.get("margin_bottom_mm"), DEFAULT_EDITOR_LAYOUT["margin_bottom_mm"], 10, 45),
-        "margin_left_mm": _clamp_int(raw.get("margin_left_mm"), DEFAULT_EDITOR_LAYOUT["margin_left_mm"], 15, 50),
+        "stamp_font_family": stamp_font_key,
+        "stamp_font_size_pt": _clamp_int(
+            raw.get("stamp_font_size_pt", raw.get("stampFontSize")),
+            DEFAULT_EDITOR_LAYOUT["stamp_font_size_pt"],
+            4,
+            28,
+        ),
+        "stamp_line_height": round(
+            _clamp_float(raw.get("stamp_line_height", raw.get("stampLineHeight")), DEFAULT_EDITOR_LAYOUT["stamp_line_height"], 1.0, 2.6),
+            2,
+        ),
+        "margin_top_mm": _clamp_int(raw.get("margin_top_mm", raw.get("marginTop")), DEFAULT_EDITOR_LAYOUT["margin_top_mm"], 5, 60),
+        "margin_right_mm": _clamp_int(raw.get("margin_right_mm", raw.get("marginRight")), DEFAULT_EDITOR_LAYOUT["margin_right_mm"], 5, 60),
+        "margin_bottom_mm": _clamp_int(raw.get("margin_bottom_mm", raw.get("marginBottom")), DEFAULT_EDITOR_LAYOUT["margin_bottom_mm"], 5, 60),
+        "margin_left_mm": _clamp_int(raw.get("margin_left_mm", raw.get("marginLeft")), DEFAULT_EDITOR_LAYOUT["margin_left_mm"], 5, 60),
         "paragraph_spacing_pt": _clamp_int(
             raw.get("paragraph_spacing_pt"),
             DEFAULT_EDITOR_LAYOUT["paragraph_spacing_pt"],

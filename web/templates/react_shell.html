@@ -50,7 +50,7 @@ npm run build</code></pre>
   </section>
   {% endif %}
   {% for js_file in react_assets.js %}
-  <script type="module" src="{{ js_file }}?v={{ app_version }}"></script>
+  <script type="module" src="{{ js_file }}"></script>
   {% endfor %}
   {% endif %}
   {% include "components/pct_ai_widget.html" %}

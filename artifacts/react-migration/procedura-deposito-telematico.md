@@ -4413,6 +4413,16 @@ Guardrail automatici eseguiti:
 
 Prova reale obbligatoria prima della chiusura:
 
-- rebuild Docker locale `127.0.0.1:8080` sul commit `2.253.193`;
+- rebuild Docker locale `127.0.0.1:8080` sul commit finale `2.253.194`;
 - vista `/fascicoli?vista=economica`: verificare che i fascicoli con RT XML PagoPA mostrino importo italiano, stato `Pagato`, data italiana e fonte documento; verificare che le autocertificazioni reddituali pertinenti mostrino `Non previsto`;
 - controllare almeno il caso `Alfano Giuseppe c. MIM / RG 1100/2026` e un caso con autocertificazione CU, poi ripetere su produzione Hetzner prima del report finale.
+
+## React shell - entry Vite senza query string 2026-07-06
+
+Aggiornamento operativo `2.253.194`.
+
+Durante la prova reale su `https://app.iusentra.it/fascicoli?vista=economica` il browser integrato mostrava solo il widget Lex e il `#root` React restava vuoto. La diagnosi con Chrome separato ha evidenziato che l'entry Vite veniva richiesta due volte: `/static/react/assets/index-Dpk0SLzI.js?v=2.253.193` dal template e `/static/react/assets/index-Dpk0SLzI.js` dai chunk importati. Poiché i file Vite sono già hashati nel nome, la query `?v=` sull'entry ES module non è necessaria e può creare istanze modulo non canoniche.
+
+Regola corretta: gli asset ES module Vite nella shell React si caricano con URL hashato puro (`{{ js_file }}`), mentre gli script classici non hashati restano versionati con `?v={{ app_version }}`. Guardrail aggiornati: `tests/test_react_shell.py::test_react_shell_mobile_sblocca_scroll_e_compatta_card` e `frontend/scripts/check-react-contracts.mjs`.
+
+Prova locale eseguita su Docker reale `127.0.0.1:8080` dopo rebuild `--no-cache`: `/api/pronto` risponde `2.253.194`, `iusentra-app` è healthy, la pagina `/fascicoli?vista=economica` monta `#root` React e l'entry osservata è `/static/react/assets/index-Dpk0SLzI.js` senza query `?v=`.

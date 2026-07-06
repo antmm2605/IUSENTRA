@@ -5592,6 +5592,59 @@ def test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai(monk
     assert all(row["duplicateHref"].startswith("/fascicoli?rg=") for row in duplicates)
 
 
+def test_react_fascicoli_lista_segnala_rg_da_acquisire_senza_usare_numero_interno(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Contarese c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Contarese Cristina",
+        tribunale="Tribunale di Vibo Valentia",
+        numero_rg="",
+        anno_rg=0,
+        oggetto="222050 - Retribuzione",
+        source="IMPORT_PRATICHE",
+        source_external_id="quickorganizer:328",
+        source_snapshot={
+            "portale": "Import pratiche",
+            "external_id": "quickorganizer:328",
+            "rg_missing": True,
+            "rg_status": "da_acquisire",
+            "rg_action": "Acquisire il numero di ruolo dal portale o da un provvedimento del fascicolo.",
+            "counts": {"documenti": 14},
+        },
+    )
+    fascicolo.numero = "2026/337"
+    fascicoli._salva()
+
+    def fail_document_ai(item, documents=None):
+        raise AssertionError(f"Document AI non deve partire nella vista operativa: {getattr(item, 'id', '')}")
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", fail_document_ai)
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == fascicolo.id)
+
+    assert response.status_code == 200
+    assert payload["summary"]["missingRg"] == 1
+    assert payload["summary"]["duplicatePractices"] == 0
+    assert row["ref"] == "RG da acquisire"
+    assert row["internalRef"] == "2026/337"
+    assert row["rg"] == "Da acquisire"
+    assert row["rgMissing"] is True
+    assert "numero di ruolo" in row["rgStatusLabel"]
+    assert row["alerts"] >= 1
+
+
 def test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 

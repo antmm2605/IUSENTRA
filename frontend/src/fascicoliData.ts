@@ -118,6 +118,9 @@ export type FascicoloRow = {
   rg: string
   rgNumber: number
   rgYear: number
+  rgMissing: boolean
+  rgStatusLabel: string
+  rgSourceLabel: string
   nextDeadline: string
   nextDeadlineIso: string
   status: Exclude<FascicoloStato, 'tutti'>
@@ -173,6 +176,7 @@ export type FascicoliSummary = {
   documents: number
   documentsToClassify: number
   unreadCommunications: number
+  missingRg: number
   economicToReview: number
   invoicesToIssue: number
   invoiceDraftsToReview: number
@@ -899,6 +903,7 @@ const emptySummary: FascicoliSummary = {
   documents: 0,
   documentsToClassify: 0,
   unreadCommunications: 0,
+  missingRg: 0,
   economicToReview: 0,
   invoicesToIssue: 0,
   invoiceDraftsToReview: 0,
@@ -1133,7 +1138,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   requestError: '',
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
-    rgNumber: 0, rgYear: 0, nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
+    rgNumber: 0, rgYear: 0, rgMissing: false, rgStatusLabel: '', rgSourceLabel: '', nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     duplicateCount: 0, duplicateIds: [], duplicateKey: '', duplicateLabel: '', duplicateHref: '',
@@ -1413,6 +1418,9 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     rg,
     rgNumber: number(item.rgNumber ?? item.rg_number ?? item.numeroRg ?? item.numero_rg),
     rgYear: number(item.rgYear ?? item.rg_year ?? item.annoRg ?? item.anno_rg),
+    rgMissing: bool(item.rgMissing ?? item.rg_missing),
+    rgStatusLabel: text(item.rgStatusLabel ?? item.rg_status_label),
+    rgSourceLabel: text(item.rgSourceLabel ?? item.rg_source_label),
     nextDeadline: text(item.nextDeadline ?? item.prossima_scadenza_label ?? item.next_deadline, 'n.d.'),
     nextDeadlineIso: text(item.nextDeadlineIso ?? item.prossima_scadenza ?? item.next_deadline_iso, ''),
     status,
@@ -1463,6 +1471,7 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       documents: number(value.documents ?? value.documenti),
       documentsToClassify: number(value.documentsToClassify ?? value.documenti_da_classificare),
       unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
+      missingRg: number(value.missingRg ?? value.missing_rg),
       economicToReview: number(value.economicToReview ?? value.economic_to_review),
       invoicesToIssue: number(value.invoicesToIssue ?? value.invoices_to_issue),
       invoiceDraftsToReview: number(value.invoiceDraftsToReview ?? value.invoice_drafts_to_review),
@@ -1491,6 +1500,7 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     documents: items.reduce((total, item) => total + item.documents, 0),
     documentsToClassify: items.reduce((total, item) => total + item.alerts, 0),
     unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
+    missingRg: items.filter((item) => item.rgMissing).length,
     economicToReview,
     invoicesToIssue,
     invoiceDraftsToReview,

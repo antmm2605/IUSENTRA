@@ -1515,6 +1515,19 @@ function DuplicatePracticeBadge({ item }:{item:FascicoloRow}) {
   )
 }
 
+function MissingRgBadge({ item, compact = false }:{item:FascicoloRow; compact?:boolean}) {
+  if (!item.rgMissing) return null
+  const label = item.rgStatusLabel || 'Acquisire il numero di ruolo dal portale o da un provvedimento del fascicolo.'
+  const source = item.rgSourceLabel || 'Dato processuale da completare'
+  return (
+    <a className="iu-fas-rg-missing-badge" href={item.editHref} title={label}>
+      <Landmark size={13}/>
+      <span>RG da acquisire</span>
+      {compact ? null : <strong>{source}</strong>}
+    </a>
+  )
+}
+
 function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
   const analysis = row.paymentSummary.analysis
   const proforma = row.paymentSummary.proformaPresidio
@@ -1667,6 +1680,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
       <a href={item.href} className="iu-fas-mobile-card__title">{item.title}</a>
       <p>{item.subtitle || item.court}</p>
       <DuplicatePracticeBadge item={item}/>
+      <MissingRgBadge item={item}/>
       {item.relataStatusLabel ? (
         <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
           <FileSignature size={15}/>
@@ -1677,7 +1691,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
       <dl>
         <div><dt>Cliente</dt><dd>{item.client}</dd></div>
         <div><dt>Tipo</dt><dd>{formatFascicoloType(item.type)}</dd></div>
-        <div><dt>N. causa</dt><dd>{item.rg}</dd></div>
+        <div><dt>N. causa</dt><dd>{item.rgMissing ? 'Da acquisire' : item.rg}</dd></div>
         <div><dt>{archive ? 'Archiviazione' : 'Prossima scad.'}</dt><dd>{archive ? item.archive?.archivedAt || 'n.d.' : item.nextDeadline || 'n.d.'}</dd></div>
       </dl>
       {economic ? (
@@ -1805,7 +1819,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
                     <td>
                       {economic
-                        ? <span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span></span>
+                        ? <span className="iu-fas-economic-ref"><a href={item.href}><strong>{item.ref}</strong></a><span>{item.title}</span><MissingRgBadge item={item} compact/></span>
                         : <><strong>{item.ref}</strong><span>{item.internalRef}</span></>}
                     </td>
                     {economic ? null : (
@@ -1816,6 +1830,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                         </div>
                         <span>{item.subtitle || item.court}</span>
                         <DuplicatePracticeBadge item={item}/>
+                        <MissingRgBadge item={item}/>
                         {item.relataStatusLabel ? (
                           <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
                             <FileSignature size={14}/>
@@ -1844,7 +1859,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                         </span>
                       ) : item.client}
                     </td>
-                    {economic ? null : <td>{item.rg}</td>}
+                    {economic ? null : <td>{item.rgMissing ? <MissingRgBadge item={item} compact/> : item.rg}</td>}
                     <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
                     <td>{statusCell(item)}</td>
                     {economic ? (
@@ -1946,6 +1961,13 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
               <span>Doppioni da verificare</span>
               <strong>{data.summary.duplicatePractices} gruppi stesso cliente/RG</strong>
               <small>Controlla prima di usare importi, scadenze o documenti come fonte operativa.</small>
+            </article>
+          ) : null}
+          {data.summary.missingRg ? (
+            <article>
+              <span>Ruoli da completare</span>
+              <strong>{data.summary.missingRg} fascicoli senza RG</strong>
+              <small>Acquisire il numero di ruolo dal portale o dai provvedimenti prima di deposito e notifiche.</small>
             </article>
           ) : null}
         </div>
@@ -2172,6 +2194,7 @@ function FascicoliListPage() {
           <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple"/>
           <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
           <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'}/>
+          <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" value={data.summary.missingRg} note={data.summary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.summary.missingRg ? 'warning' : 'success'}/>
           <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
           <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
         </section>

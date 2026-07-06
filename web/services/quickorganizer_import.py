@@ -353,6 +353,10 @@ def _iso_datetime(value: Any, *, default_time: str = "09:00:00") -> str:
     return f"{date_only}T{default_time}" if date_only else ""
 
 
+def _matter_is_archived(row: Mapping[str, Any]) -> bool:
+    return _bool(_row_value(row, "ARCHIVIO")) or bool(_iso_date(_row_value(row, "DATA_ARC")))
+
+
 def _date_it(value: Any) -> str:
     iso = _iso_date(value)
     if not iso:
@@ -797,9 +801,28 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
     agenda = tables["AGENDA"]
     document_total, document_missing, document_sample = _count_missing_files(testi, package, section="ATTI")
     email_total, email_missing, email_sample = _count_missing_files(emails, package, section="EMAILS")
-    archived = sum(1 for row in pratiche if _bool(_row_value(row, "ARCHIVIO")))
+    archived = sum(1 for row in pratiche if _matter_is_archived(row))
     active = max(len(pratiche) - archived, 0)
     relation_summary = _quickorganizer_relation_summary(pratiche, nomi, tavola)
+    agenda_by_matter: dict[int, list[dict[str, Any]]] = {}
+    for row in agenda:
+        agenda_by_matter.setdefault(_number(_row_value(row, "NumeroPratica")), []).append(row)
+    rg_summary = {
+        "mattersWithRg": 0,
+        "mattersWithoutRg": 0,
+        "mattersRgFromAgenda": 0,
+    }
+    rg_info_by_matter: dict[int, dict[str, Any]] = {}
+    for row in pratiche:
+        number = _number(_row_value(row, "NUMEROPRATICA"))
+        rg_info = _matter_rg_info(row, agenda_by_matter.get(number, []))
+        rg_info_by_matter[number] = rg_info
+        if rg_info.get("missing"):
+            rg_summary["mattersWithoutRg"] += 1
+        else:
+            rg_summary["mattersWithRg"] += 1
+            if _text(rg_info.get("source")).startswith("AGENDA."):
+                rg_summary["mattersRgFromAgenda"] += 1
     missing_fields = _missing_required_fields(tables)
     missing_core_tables = [table for table in CORE_RELATION_TABLES if not tables.get(table)]
     warnings = []
@@ -832,6 +855,16 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
                 "message": (
                     f"{relation_summary['mattersWithoutClient']} pratiche non hanno un nominativo cliente CLI/OWN collegato; "
                     "l'import crea una scheda di recupero dalla pratica e l'audit finale la evidenzia."
+                ),
+            }
+        )
+    if pratiche and rg_summary["mattersWithoutRg"]:
+        warnings.append(
+            {
+                "code": "rg_da_acquisire",
+                "message": (
+                    f"{rg_summary['mattersWithoutRg']} pratiche non contengono un numero RG nel pacchetto importato; "
+                    "IUSENTRA le segnala come RG da acquisire senza usare il numero interno pratica."
                 ),
             }
         )
@@ -888,6 +921,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             "appointments": len(agenda),
             "availableFiles": len(package.files),
             **relation_summary,
+            **rg_summary,
         },
         "samples": {
             "missingDocuments": document_sample,
@@ -897,7 +931,9 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
                     "id": str(_row_value(row, "NUMEROPRATICA")),
                     "title": _text(_row_value(row, "PRATICA"), "Pratica senza titolo"),
                     "object": _text(_row_value(row, "OGGETTO_PRATICA")),
-                    "status": _text(_row_value(row, "Stato_Pratica")) or ("Archiviata" if _bool(_row_value(row, "ARCHIVIO")) else "Attiva"),
+                    "status": _text(_row_value(row, "Stato_Pratica")) or ("Archiviata" if _matter_is_archived(row) else "Attiva"),
+                    "rgStatus": _text(rg_info_by_matter.get(_number(_row_value(row, "NUMEROPRATICA")), {}).get("status")),
+                    "rgLabel": _text(rg_info_by_matter.get(_number(_row_value(row, "NUMEROPRATICA")), {}).get("label")),
                 }
                 for row in pratiche[:8]
             ],
@@ -935,7 +971,7 @@ def _matter_type(row: Mapping[str, Any]) -> TipoFascicolo:
 
 
 def _matter_status(row: Mapping[str, Any]) -> StatoFascicolo:
-    if _bool(_row_value(row, "ARCHIVIO")):
+    if _matter_is_archived(row):
         return StatoFascicolo.ARCHIVIATO
     text = _text(_row_value(row, "Stato_Pratica")).casefold()
     if "definit" in text or "chius" in text or "conclus" in text:
@@ -1339,12 +1375,132 @@ def _agenda_duration(row: Mapping[str, Any]) -> int:
     return 60
 
 
-def _matter_rg_label(row: Mapping[str, Any]) -> str:
-    numero = _text(_row_value(row, "RUOLO_GEN"))
-    anno = _number(_row_value(row, "ANNO_RUOLO_GEN"))
-    if numero and anno:
-        return f"RG {numero}/{anno}"
-    return numero
+RG_NUMBER_FIELDS = (
+    "RUOLO_GEN",
+    "NUMERORUOLO",
+    "NUMERO_RUOLO",
+    "NUM_RUOLO",
+    "NUMERO_RG",
+    "N_RG",
+    "NRG",
+    "RuoloGen",
+)
+RG_YEAR_FIELDS = (
+    "ANNO_RUOLO_GEN",
+    "ANNORUOLO",
+    "ANNO_RUOLO",
+    "ANNO_RG",
+    "AnnoRuolo",
+    "Anno_Ruolo_Gen",
+)
+AGENDA_RG_NUMBER_FIELDS = ("Ruolo", *RG_NUMBER_FIELDS)
+AGENDA_RG_YEAR_FIELDS = (*RG_YEAR_FIELDS, "Anno_Ruolo")
+RG_FULL_RE = re.compile(r"(?:\bR\.?\s*G\.?\b\s*)?(?P<number>\d{1,7})\s*/\s*(?P<year>(?:19|20)\d{2})", re.IGNORECASE)
+
+
+def _normalise_rg_number(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    full = RG_FULL_RE.search(raw)
+    if full:
+        return str(int(full.group("number")))
+    match = re.search(r"\d{1,7}", raw)
+    if not match:
+        return ""
+    number = match.group(0)
+    # Un anno isolato non e' un numero RG. Il numero interno pratica resta fuori dagli alias.
+    if re.fullmatch(r"(?:19|20)\d{2}", number) and len(re.findall(r"\d+", raw)) == 1:
+        return ""
+    return str(int(number))
+
+
+def _normalise_rg_year(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    full = RG_FULL_RE.search(raw)
+    if full:
+        return full.group("year")
+    match = re.search(r"(?:19|20)\d{2}", raw)
+    return match.group(0) if match else ""
+
+
+def _rg_candidate_from_row(
+    row: Mapping[str, Any],
+    *,
+    source: str,
+    number_fields: Iterable[str],
+    year_fields: Iterable[str],
+) -> dict[str, str] | None:
+    for number_field in number_fields:
+        number_raw = _row_value(row, number_field)
+        if not _text(number_raw):
+            continue
+        numero = _normalise_rg_number(number_raw)
+        anno = _normalise_rg_year(number_raw)
+        for year_field in year_fields:
+            anno = anno or _normalise_rg_year(_row_value(row, year_field))
+            if anno:
+                break
+        if numero and anno:
+            return {"numero": numero, "anno": anno, "source": f"{source}.{number_field}"}
+    for year_field in year_fields:
+        raw = _row_value(row, year_field)
+        if _normalise_rg_year(raw):
+            return {"numero": "", "anno": _normalise_rg_year(raw), "source": f"{source}.{year_field}"}
+    return None
+
+
+def _matter_rg_info(row: Mapping[str, Any], agenda_rows: Iterable[Mapping[str, Any]] = ()) -> dict[str, Any]:
+    candidate = _rg_candidate_from_row(
+        row,
+        source="PRATICHE",
+        number_fields=RG_NUMBER_FIELDS,
+        year_fields=RG_YEAR_FIELDS,
+    )
+    if candidate and candidate.get("numero") and candidate.get("anno"):
+        return {
+            **candidate,
+            "label": f"RG {candidate['numero']}/{candidate['anno']}",
+            "status": "acquisito",
+            "missing": False,
+            "action": "",
+        }
+    partial = candidate or {}
+    for agenda_row in agenda_rows:
+        agenda_candidate = _rg_candidate_from_row(
+            agenda_row,
+            source="AGENDA",
+            number_fields=AGENDA_RG_NUMBER_FIELDS,
+            year_fields=AGENDA_RG_YEAR_FIELDS,
+        )
+        if agenda_candidate and agenda_candidate.get("numero") and agenda_candidate.get("anno"):
+            return {
+                **agenda_candidate,
+                "label": f"RG {agenda_candidate['numero']}/{agenda_candidate['anno']}",
+                "status": "acquisito",
+                "missing": False,
+                "action": "",
+            }
+        if agenda_candidate:
+            partial = partial or agenda_candidate
+    return {
+        "numero": _text(partial.get("numero")),
+        "anno": _text(partial.get("anno")),
+        "source": _text(partial.get("source"), "mancante_archivio_sorgente"),
+        "label": "RG da acquisire",
+        "status": "da_acquisire",
+        "missing": True,
+        "action": "Acquisire il numero di ruolo dal portale o da un provvedimento del fascicolo prima di deposito, notifica o scadenze operative.",
+    }
+
+
+def _matter_rg_label(row: Mapping[str, Any], agenda_rows: Iterable[Mapping[str, Any]] = ()) -> str:
+    info = _matter_rg_info(row, agenda_rows)
+    if not info.get("missing"):
+        return _text(info.get("label"))
+    return _text(info.get("numero"))
 
 
 def _matter_counts(
@@ -1397,13 +1553,20 @@ def _matter_source_snapshot(
     first_hearing: str = "",
     next_hearing: str = "",
     party_names: Iterable[str] = (),
+    rg_info: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    rg = _matter_rg_label(row)
+    rg_payload = dict(rg_info or _matter_rg_info(row))
+    rg = _text(rg_payload.get("label")) if not rg_payload.get("missing") else ""
     return {
         "portale": "Import pratiche",
         "external_id": f"quickorganizer:{number}",
-        "numero": _text(_row_value(row, "RUOLO_GEN")),
-        "anno": _number(_row_value(row, "ANNO_RUOLO_GEN")),
+        "numero": _text(rg_payload.get("numero")),
+        "anno": _number(rg_payload.get("anno")),
+        "rg_label": _text(rg_payload.get("label")),
+        "rg_status": _text(rg_payload.get("status")),
+        "rg_missing": bool(rg_payload.get("missing")),
+        "rg_source": _text(rg_payload.get("source")),
+        "rg_action": _text(rg_payload.get("action")),
         "ufficio_nome": _text(_row_value(row, "AUT_GIUDIZ")),
         "ufficio_codice": "",
         "procedimento": rg or _text(_row_value(row, "PRATICA")),
@@ -1540,7 +1703,7 @@ def _sync_agenda_from_import(
     title = _text(_row_value(row, "Subject"), "Appuntamento importato")
     uid_seed = task_id or hashlib.sha1(f"{getattr(matter, 'id', '')}|{start}|{title}".encode("utf-8")).hexdigest()[:12]
     marker = f"quickorganizer:agenda:{uid_seed}"
-    rg = _matter_rg_label(matter_row)
+    rg = _matter_rg_label(matter_row, [row])
     description_parts = [
         _text(_row_value(row, "Description")),
         _text(_row_value(row, "Provvedimento")),
@@ -1636,6 +1799,9 @@ def import_quickorganizer_package(
         "appointmentsImported": 0,
         "economicContextsPrepared": 0,
         "sourceContextsPrepared": 0,
+        "mattersWithRg": 0,
+        "mattersWithoutRg": 0,
+        "mattersRgFromAgenda": 0,
         "duplicatesSkipped": 0,
     }
     errors: list[str] = []
@@ -1704,6 +1870,13 @@ def import_quickorganizer_package(
             counters["clientsCreated"] += 1
         existing = _existing_matter_by_source(fascicoli, source_external_id)
         matter_agenda_rows = agenda_by_matter.get(number, [])
+        rg_info = _matter_rg_info(row, matter_agenda_rows)
+        if rg_info.get("missing"):
+            counters["mattersWithoutRg"] += 1
+        else:
+            counters["mattersWithRg"] += 1
+            if _text(rg_info.get("source")).startswith("AGENDA."):
+                counters["mattersRgFromAgenda"] += 1
         first_hearing, next_hearing = _hearing_dates(matter_agenda_rows)
         source_counts = _matter_counts(
             number=number,
@@ -1738,8 +1911,8 @@ def import_quickorganizer_package(
             "nome_cliente": client_name,
             "controparte": _text(_row_value(row, "ConvenutoPrincipale")),
             "tribunale": _text(_row_value(row, "AUT_GIUDIZ")),
-            "numero_rg": _text(_row_value(row, "RUOLO_GEN")),
-            "anno_rg": _number(_row_value(row, "ANNO_RUOLO_GEN")),
+            "numero_rg": _text(rg_info.get("numero")),
+            "anno_rg": _number(rg_info.get("anno")),
             "sezione": _text(_row_value(row, "SEZIONE")),
             "giudice": _text(_row_value(row, "ISTRUTTORE")),
             "cancelliere": _text(_row_value(row, "CANCELL")),
@@ -1770,6 +1943,7 @@ def import_quickorganizer_package(
                 first_hearing=first_hearing,
                 next_hearing=next_hearing,
                 party_names=party_names,
+                rg_info=rg_info,
             ),
         }
         counters["economicContextsPrepared"] += 1

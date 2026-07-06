@@ -6197,3 +6197,13 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Prova visiva locale mobile viewer documento | OK osservato | `/fascicoli/DC5BF1DB/documenti/1D095D8B/visualizza?viewer=mobile`: `3` immagini, prime `2` caricate e visibili nel viewport, zero errori console e zero overflow. |
 | Prova visiva mobile PEC | OK osservato | `/email/`: elenco PEC visibile, click su messaggio reale, pannello `Lettura email` aperto con comando `Elenco`, dati PEC/allegati e zero overflow. |
 | Prova visiva desktop clienti | OK osservato | `/clienti`: icone `Apri scheda cliente`, `Modifica cliente`, `Apri cartella cliente`, `Elimina cliente` uniformi `34x34`, zero overflow orizzontale. |
+
+## Fascicoli senza RG da database pratiche originale - 2026-07-06
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_quickorganizer_import.py -q` | OK | `21/21` passati: import pratiche, recupero RG da agenda, blocco uso numero interno come RG e archiviazione da `DATA_ARC`. |
+| `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_segnala_rg_da_acquisire_senza_usare_numero_interno tests/test_react_shell.py::test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai -q` | OK | `2/2` passati: lista React mostra `RG da acquisire`, conserva riferimento interno e non crea falsi doppioni. |
+| `python -m py_compile web/services/quickorganizer_import.py web/services/react_fascicoli_bridge.py` | OK | Sintassi confermata su import pratiche e bridge React fascicoli. |
+| `npm run typecheck` in `frontend` | OK | TypeScript React completato senza errori dopo estensione del contratto `FascicoloRow`. |
+| `python -m pytest tests/test_utf8_integrity.py -q`; `git diff --check` | OK | UTF-8 `4/4`; nessun errore whitespace. |

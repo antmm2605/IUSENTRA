@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.189 - 2026-07-06
+
+- **Fascicoli importati senza RG**: l'import da database pratiche non usa più il numero interno pratica come numero di ruolo. Il RG viene acquisito solo da campi di ruolo sicuri o dall'agenda importata quando contiene numero e anno completi.
+- **Lista fascicoli professionale**: i fascicoli privi di numero di ruolo vengono evidenziati come `RG da acquisire`, con contatore dedicato e indicazione operativa per recuperare il dato dal portale o da un provvedimento prima di deposito, notifiche e scadenze processuali.
+- **Archivio corretto da database sorgente**: la data di archiviazione del database originale è ora sufficiente per classificare la pratica come archiviata, anche se il flag archivio non è valorizzato.
+
 ## 2.253.188 - 2026-07-06
 
 - **Fascicoli - presidio economico automatico**: la vista economica avvia un controllo POST idempotente che crea bozze proforma `BOZZA` per i fascicoli definiti privi di documento economico quando esiste una base sufficiente da sentenza, compenso pattuito o valore preventivato.

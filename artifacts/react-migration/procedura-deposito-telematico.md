@@ -4370,4 +4370,10 @@ Guardrail eseguiti:
 - `python -m py_compile web/services/react_fascicoli_bridge.py pct/fascicolo_sentenza_economica.py`;
 - `python -m pytest tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza -q`.
 
+## Fascicoli importati senza RG - presidio deposito/notifiche 2026-07-06
+
+Verifica sul database originale `E:\QuickOrganizer\QuickOrganizer.mdb`: per i `56` fascicoli senza RG in produzione, `PRATICHE.RUOLO_GEN` è vuoto in tutti i casi e `AGENDA` non contiene righe utili per recuperare `Ruolo`/`Anno_Ruolo_Gen`; `23` risultano già archiviati da `ARCHIVIO` o `DATA_ARC`, `33` restano non archiviati nel sorgente.
+
+Regola per deposito, notifiche e scadenze: il numero interno pratica (`NUMEROPRATICA` o `2026/337`) non è RG e non abilita ricerche, depositi o notifiche come se fosse numero di ruolo. La UI deve mostrare `RG da acquisire`, mantenere il numero interno come riferimento secondario e chiedere acquisizione del numero di ruolo dal portale o da provvedimento prima di usare il fascicolo per adempimenti processuali.
+
 Prova server reale eseguita su `https://app.iusentra.it/fascicoli?vista=economica`: dopo il primo rebuild `2.253.185` la UI non esponeva più `sentenza_key`, `Aggiornato in lettura` o `Lettura documenti`; la stessa prova ha fatto emergere il caso `Merdini Manjola - RG 2848/2026`, corretto con le regole `2.253.186` e `2.253.187` prima della chiusura.

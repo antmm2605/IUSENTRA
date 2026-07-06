@@ -11,7 +11,7 @@ from werkzeug.datastructures import FileStorage
 import web.services.quickorganizer_import as quickorganizer_import
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoFascicolo
 from pct.soggetti import GestioneSoggetti
 from pct.storage import StudioDB
 from web.services.quickorganizer_import import (
@@ -99,6 +99,75 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
             archive.writestr("ATTI/scansione-da-pdf-0001.pdf", b"%PDF-1.4\ncontenuto atto")
         if include_email:
             archive.writestr("EMAILS/MSG000088.eml", b"Subject: Invio documenti\n\nTesto")
+    return path
+
+
+def _write_package_rg_from_agenda(path: Path) -> Path:
+    payload = {
+        "format": "iusentra.quickorganizer.v1",
+        "tables": {
+            "PRATICHE": [
+                {
+                    "NUMEROPRATICA": 337,
+                    "PRATICA": "Contarese c. MIM",
+                    "OGGETTO_PRATICA": "Retribuzione",
+                    "TitolareID": 1,
+                    "TitolareName": "Contarese Cristina",
+                    "AUT_GIUDIZ": "Tribunale di Palmi",
+                    "DATA_APE": "31/05/2026",
+                    "Stato_Pratica": "In corso",
+                }
+            ],
+            "NOMI": [
+                {"NUM_NOM": 1, "CONTROLLO": "CLI", "NOME": "Cristina", "COGNOME": "Contarese"},
+            ],
+            "TAVOLA": [{"NUMEROPRATICA": 337, "NUM_NOM": 1}],
+            "TESTI": [],
+            "EMAILS": [],
+            "AGENDA": [
+                {
+                    "NumeroPratica": 337,
+                    "TaskID": 3370,
+                    "Subject": "Udienza da portale",
+                    "StartDateTime": "2026-09-16T09:30:00",
+                    "Ruolo": "3951",
+                    "Anno_Ruolo_Gen": "2026",
+                }
+            ],
+        },
+    }
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("quickorganizer-export.json", json.dumps(payload, ensure_ascii=False))
+    return path
+
+
+def _write_package_missing_rg(path: Path) -> Path:
+    payload = {
+        "format": "iusentra.quickorganizer.v1",
+        "tables": {
+            "PRATICHE": [
+                {
+                    "NUMEROPRATICA": 338,
+                    "PRATICA": "Precetto Scarfo Tar Roma",
+                    "OGGETTO_PRATICA": "Precetto",
+                    "TitolareID": 2,
+                    "TitolareName": "Alfano Giuseppe",
+                    "AUT_GIUDIZ": "TAR Lazio",
+                    "DATA_APE": "31/05/2026",
+                    "Stato_Pratica": "In corso",
+                }
+            ],
+            "NOMI": [
+                {"NUM_NOM": 2, "CONTROLLO": "CLI", "NOME": "Giuseppe", "COGNOME": "Alfano"},
+            ],
+            "TAVOLA": [{"NUMEROPRATICA": 338, "NUM_NOM": 2}],
+            "TESTI": [],
+            "EMAILS": [],
+            "AGENDA": [],
+        },
+    }
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("quickorganizer-export.json", json.dumps(payload, ensure_ascii=False))
     return path
 
 
@@ -408,6 +477,83 @@ def test_import_studio_telematico_crea_contesto_agenda_ed_economico(tmp_path: Pa
     assert "quickorganizer:101" in appuntamenti[0].procedimento
     assert audit["ok"] is True
     assert audit["expected"] == audit["found"]
+
+
+def test_import_studio_telematico_recupera_rg_da_agenda_se_manca_in_pratica(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package_rg_from_agenda(tmp_path / "studio-telematico-rg-agenda.zip"))
+    analysis = analyze_quickorganizer_package(package)
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    fascicolo = fascicoli.tutti(archiviati=True)[0]
+
+    assert analysis["summary"]["mattersWithRg"] == 1
+    assert analysis["summary"]["mattersRgFromAgenda"] == 1
+    assert analysis["summary"]["mattersWithoutRg"] == 0
+    assert result["summary"]["mattersWithRg"] == 1
+    assert result["summary"]["mattersRgFromAgenda"] == 1
+    assert fascicolo.source_external_id == "quickorganizer:337"
+    assert fascicolo.numero_rg == "3951"
+    assert fascicolo.anno_rg == 2026
+    assert fascicolo.source_snapshot["rg_status"] == "acquisito"
+    assert fascicolo.source_snapshot["rg_source"] == "AGENDA.Ruolo"
+    assert fascicolo.source_snapshot["numero"] == "3951"
+    assert fascicolo.source_snapshot["anno"] == 2026
+
+
+def test_import_studio_telematico_segnala_rg_da_acquisire_senza_usare_numero_pratica(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package_missing_rg(tmp_path / "studio-telematico-rg-mancante.zip"))
+    analysis = analyze_quickorganizer_package(package)
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    fascicolo = fascicoli.tutti(archiviati=True)[0]
+
+    assert analysis["summary"]["mattersWithoutRg"] == 1
+    assert any(warning["code"] == "rg_da_acquisire" for warning in analysis["warnings"])
+    assert result["summary"]["mattersWithoutRg"] == 1
+    assert result["summary"]["mattersWithRg"] == 0
+    assert fascicolo.source_external_id == "quickorganizer:338"
+    assert fascicolo.numero_rg == ""
+    assert fascicolo.anno_rg == 0
+    assert fascicolo.source_snapshot["rg_missing"] is True
+    assert fascicolo.source_snapshot["rg_status"] == "da_acquisire"
+    assert fascicolo.source_snapshot["rg_label"] == "RG da acquisire"
+    assert "numero di ruolo" in fascicolo.source_snapshot["rg_action"]
+
+
+def test_import_studio_telematico_data_archiviazione_prevale_su_flag_archivio(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package_missing_rg(tmp_path / "studio-telematico-data-arc.zip"))
+    package.tables["PRATICHE"][0]["ARCHIVIO"] = False
+    package.tables["PRATICHE"][0]["DATA_ARC"] = "10/06/2026 10:27:49"
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+
+    analysis = analyze_quickorganizer_package(package)
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    fascicolo = fascicoli.tutti(archiviati=True)[0]
+
+    assert analysis["summary"]["archivedMatters"] == 1
+    assert result["summary"]["mattersWithoutRg"] == 1
+    assert fascicolo.stato == StatoFascicolo.ARCHIVIATO
+    assert fascicolo.data_chiusura == "2026-06-10"
 
 
 def test_import_studio_telematico_identita_nominativo_vuoto_usa_stesso_fallback_del_payload():

@@ -3152,6 +3152,64 @@ def _rg(fascicolo: Any) -> str:
     return _text(getattr(fascicolo, "rg_completo", "")) or _text(getattr(fascicolo, "numero_rg", "")) or "n.d."
 
 
+def _rg_missing(fascicolo: Any) -> bool:
+    numero = _first_int(getattr(fascicolo, "numero_rg", ""))
+    anno = _first_int(getattr(fascicolo, "anno_rg", ""))
+    if numero and anno:
+        return False
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict) and bool(snapshot.get("rg_missing")):
+        return True
+    source_external_id = _text(getattr(fascicolo, "source_external_id", ""))
+    if source_external_id.startswith("quickorganizer:"):
+        return True
+    tipo = _type_for_filters(fascicolo)
+    return tipo in {"civile", "penale", "amministrativo", "tributario", "lavoro"} and _status_for_filters(fascicolo) != "archiviato"
+
+
+def _rg_status_label(fascicolo: Any) -> str:
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict):
+        action = _text(snapshot.get("rg_action"))
+        if action:
+            return action
+    return "Acquisire il numero di ruolo dal portale o da un provvedimento del fascicolo."
+
+
+def _rg_source_label(fascicolo: Any) -> str:
+    snapshot = getattr(fascicolo, "source_snapshot", None)
+    if isinstance(snapshot, dict):
+        source = _text(snapshot.get("rg_source"))
+        if source.startswith("AGENDA."):
+            return "Manca anche nell'agenda importata"
+        if source.startswith("PRATICHE."):
+            return "Manca nei dati pratica importati"
+        if source:
+            return "Dato processuale assente"
+    return "Dato processuale da completare"
+
+
+def _rg_meta(fascicolo: Any) -> dict[str, Any]:
+    missing = _rg_missing(fascicolo)
+    raw = _rg(fascicolo)
+    internal = _text(getattr(fascicolo, "numero", ""))
+    if missing:
+        return {
+            "ref": "RG da acquisire",
+            "rg": "Da acquisire",
+            "rgMissing": True,
+            "rgStatusLabel": _rg_status_label(fascicolo),
+            "rgSourceLabel": _rg_source_label(fascicolo),
+        }
+    return {
+        "ref": raw if raw != "n.d." else (internal or "n.d."),
+        "rg": raw,
+        "rgMissing": False,
+        "rgStatusLabel": "",
+        "rgSourceLabel": "",
+    }
+
+
 def _first_int(value: Any) -> int:
     match = re.search(r"\d+", _text(value))
     return int(match.group(0)) if match else 0
@@ -3375,17 +3433,23 @@ def _item(
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
+    rg_meta = _rg_meta(fascicolo)
+    if rg_meta["rgMissing"]:
+        alerts += 1
     archive = getattr(fascicolo, "archivio", None)
     return {
         "id": fid,
-        "ref": _rg(fascicolo) if _rg(fascicolo) != "n.d." else _text(getattr(fascicolo, "numero", ""), fid),
+        "ref": rg_meta["ref"],
         "internalRef": _text(getattr(fascicolo, "numero", "")),
         "title": _short(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or "Fascicolo", 120),
         "subtitle": _short(getattr(fascicolo, "oggetto", ""), 160),
         "type": _type_for_filters(fascicolo),
         "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
-        "rg": _rg(fascicolo),
+        "rg": rg_meta["rg"],
+        "rgMissing": rg_meta["rgMissing"],
+        "rgStatusLabel": rg_meta["rgStatusLabel"],
+        "rgSourceLabel": rg_meta["rgSourceLabel"],
         **rg_order,
         "nextDeadline": _date_label(n_date) if n_date else "n.d.",
         "nextDeadlineIso": n_date,
@@ -3443,6 +3507,9 @@ def _item_light(
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
+    rg_meta = _rg_meta(fascicolo)
+    if rg_meta["rgMissing"]:
+        alerts += 1
     payment_summary = payment_summary_for_fascicolo(
         fascicolo,
         automatic=automatic_evidence,
@@ -3481,14 +3548,17 @@ def _item_light(
             }
     return {
         "id": fid,
-        "ref": _rg(fascicolo) if _rg(fascicolo) != "n.d." else _text(getattr(fascicolo, "numero", ""), fid),
+        "ref": rg_meta["ref"],
         "internalRef": _text(getattr(fascicolo, "numero", "")),
         "title": _short(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or "Fascicolo", 120),
         "subtitle": _short(getattr(fascicolo, "oggetto", ""), 160),
         "type": _type_for_filters(fascicolo),
         "client": _fascicolo_client_label(fascicolo),
         "court": _text(getattr(fascicolo, "tribunale", ""), "Ufficio non impostato"),
-        "rg": _rg(fascicolo),
+        "rg": rg_meta["rg"],
+        "rgMissing": rg_meta["rgMissing"],
+        "rgStatusLabel": rg_meta["rgStatusLabel"],
+        "rgSourceLabel": rg_meta["rgSourceLabel"],
         **rg_order,
         "nextDeadline": _date_label(n_date) if n_date else "n.d.",
         "nextDeadlineIso": n_date,
@@ -3644,6 +3714,7 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "documents": sum(int(item.get("documents") or 0) for item in items),
         "documentsToClassify": sum(int(item.get("alerts") or 0) for item in items),
         "unreadCommunications": sum(int(item.get("unreadCommunications") or 0) for item in items),
+        "missingRg": sum(1 for item in items if item.get("rgMissing")),
         "economicToReview": economic_to_review,
         "invoicesToIssue": invoices_to_issue,
         "invoiceDraftsToReview": invoice_drafts_to_review,
@@ -3759,7 +3830,7 @@ def _matches_list_filters(
     if needle:
         haystack = " ".join(
             _text(item.get(key)).lower()
-            for key in ("ref", "internalRef", "title", "subtitle", "client", "court", "rg")
+            for key in ("ref", "internalRef", "title", "subtitle", "client", "court", "rg", "rgStatusLabel", "rgSourceLabel")
         )
         if needle not in haystack:
             return False
@@ -3770,7 +3841,7 @@ def _matches_list_filters(
     if rg_needle:
         rg_haystack = " ".join(
             _text(value).lower()
-            for value in (item.get("rg"), item.get("ref"), item.get("rgNumber"), item.get("rgYear"))
+            for value in (item.get("rg"), item.get("ref"), item.get("rgNumber"), item.get("rgYear"), item.get("rgStatusLabel"))
         )
         if rg_needle not in rg_haystack:
             return False

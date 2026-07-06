@@ -580,6 +580,16 @@ Verifica reale aggiuntiva 03/07/2026 dopo la correzione del pannello di avanzame
 
 Nota dati reale 03/07/2026: durante la prova UI il tenant locale `tenant-8bf98719c459` aveva `studio.db` corrotto e il container bloccava `/api/v1/ui/telematico`. Il database è stato recuperato da snapshot SQLite valido `.studio.migrazione-20260703005431140775.db`, preservando una copia del DB corrotto in `data/tenants/tenant-8bf98719c459/backup/sqlite_corrupt_recovery/studio_corrotto_20260703_005611.db`. Dopo ripristino `PRAGMA quick_check=ok`; per la copia Docker locale su bind mount Windows il journal SQLite è stato riportato a `DELETE`, evitando il blocco `unable to open database file`.
 
+## Verifica RG importati da database originale 06/07/2026
+
+Controllo richiesto sul database originale `E:\QuickOrganizer\QuickOrganizer.mdb`, eseguito senza modificare il file: il database era in uso da Access (`QuickOrganizer.ldb` presente), quindi è stata creata una copia temporanea in `%TEMP%` e letta con PowerShell 32 bit + `Microsoft.Jet.OLEDB.4.0`. La tabella `PRATICHE` contiene i campi `RUOLO_GEN` e `ANNO_RUOLO_GEN`; la tabella `AGENDA` contiene `Ruolo` e `Anno_Ruolo_Gen`.
+
+Esito sul tenant produzione `studio-legale-giuseppe-montagnese`: i `56` fascicoli che in SQL risultano senza `numero_rg` o `anno_rg` sono stati mappati al rispettivo `quickorganizer:<NUMEROPRATICA>` salvato nel JSON del fascicolo. Nel `.mdb` originale, per tutti e `56` quei `NUMEROPRATICA`, `PRATICHE.RUOLO_GEN` è vuoto; nessuno ha una coppia completa numero/anno. Un solo caso (`quickorganizer:166`, Punturiero) ha solo `ANNO_RUOLO_GEN=2025`, insufficiente per formare il RG. La tabella `AGENDA` non contiene righe per quei `56` `NumeroPratica`, quindi non consente recupero del ruolo.
+
+Controllo stato sullo stesso perimetro: `23` dei `56` hanno `ARCHIVIO=True` o `DATA_ARC` valorizzata nel `.mdb` e in produzione risultano già `ARCHIVIATO`; gli altri `33` non hanno data archiviazione nel sorgente e risultano `IN_CORSO`. L'import deve quindi usare sia `ARCHIVIO` sia `DATA_ARC` per decidere lo stato archiviato, senza trasformare automaticamente in definito un fascicolo che il database sorgente mantiene aperto.
+
+Regola operativa aggiunta: `NUMEROPRATICA`/numero interno IUSENTRA non può mai essere usato come RG. L'import legge il RG solo da campi ruolo sicuri (`RUOLO_GEN`/`ANNO_RUOLO_GEN`, alias equivalenti o `AGENDA.Ruolo` + anno). Se il dato manca anche nel database sorgente, il fascicolo deve essere marcato come `RG da acquisire`, con azione chiara per l'avvocato: recuperare il numero di ruolo dal portale o da un provvedimento prima di deposito, notifica, agenda processuale e controlli economici collegati.
+
 ## Checklist prima di dichiarare completata la tranche
 
 - File di matrice registri implementato o equivalente in codice.

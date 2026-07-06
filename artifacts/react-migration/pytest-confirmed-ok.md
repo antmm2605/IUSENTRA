@@ -6207,3 +6207,14 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m py_compile web/services/quickorganizer_import.py web/services/react_fascicoli_bridge.py` | OK | Sintassi confermata su import pratiche e bridge React fascicoli. |
 | `npm run typecheck` in `frontend` | OK | TypeScript React completato senza errori dopo estensione del contratto `FascicoloRow`. |
 | `python -m pytest tests/test_utf8_integrity.py -q`; `git diff --check` | OK | UTF-8 `4/4`; nessun errore whitespace. |
+
+## Fascicoli azioni riga sotto titolo - 2026-07-06
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `npm run typecheck` in `frontend` | OK | TypeScript React completato dopo lo spostamento di `RowActions` sotto titolo/oggetto. |
+| `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_segnala_rg_da_acquisire_senza_usare_numero_interno tests/test_react_shell.py::test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai -q` | OK | `2/2` passati: lista fascicoli React invariata su RG da acquisire e doppioni. |
+| `python -m pytest tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | Versione `2.253.190` allineata tra package, Dockerfile, Railway e OpenAPI. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `/api/pronto`; versioni container | OK | Copia reale locale `127.0.0.1:8080` healthy; app, scheduler-worker e ocr-worker espongono `pct.__version__=2.253.190`. |
+| Prova visiva locale desktop `/fascicoli` | OK osservato | Browser integrato su `127.0.0.1:8080`: `8` fascicoli visibili, `8` blocchi `.iu-fas-title-actions`, zero azioni rimaste inline nel titolo, icone sotto titolo/oggetto nelle prime righe, nessun overflow orizzontale. |
+| Prova visiva locale tablet/mobile `/fascicoli` | OK osservato | Tablet `900x900` e mobile `390x844`: `8` fascicoli visibili, card leggibili, azioni `Apri`, `Modifica`, `Esporta PDF`, `Elimina` da `44px` sotto i dati del fascicolo e zero overflow orizzontale. |

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.190 - 2026-07-06
+
+- **Fascicoli - azioni riga**: nella vista operativa le icone `Apri`, `Modifica`, `Esporta PDF` ed `Elimina` non sono piu' affiancate al titolo del fascicolo. Restano contestuali alla riga, ma vengono mostrate sotto titolo e oggetto, con allineamento piu' leggibile su desktop e resa coerente nelle card tablet/mobile.
+
 ## 2.253.189 - 2026-07-06
 
 - **Fascicoli importati senza RG**: l'import da database pratiche non usa più il numero interno pratica come numero di ruolo. Il RG viene acquisito solo da campi di ruolo sicuri o dall'agenda importata quando contiene numero e anno completi.

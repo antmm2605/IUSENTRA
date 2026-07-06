@@ -1329,10 +1329,10 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
   )
 }
 
-function RowActions({ item, archive = false, onDeleted, onError }:{item:FascicoloRow; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
+function RowActions({ item, archive = false, onDeleted, onError, className = '' }:{item:FascicoloRow; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; className?:string}) {
   const deleteHref = item.deleteHref || `/fascicoli/${encodeURIComponent(item.id)}/elimina`
   return (
-    <div className="iu-fas-actions" aria-label={`Azioni fascicolo ${item.ref}`}>
+    <div className={`iu-fas-actions ${className}`.trim()} aria-label={`Azioni fascicolo ${item.ref}`}>
       <a href={item.href} aria-label="Apri fascicolo" title="Apri"><Eye size={15}/></a>
       {item.relataStatusLabel ? <a href={relataListHref(item)} aria-label={`Apri Relata notifica ${item.ref}`} title="Relata notifica"><FileSignature size={15}/></a> : null}
       {!archive ? <a href={item.editHref} aria-label="Modifica fascicolo" title="Modifica"><PencilLine size={15}/></a> : null}
@@ -1826,9 +1826,9 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                       <td className="iu-fas-title-cell">
                         <div className="iu-fas-title-line">
                           <a href={item.href}>{item.title}</a>
-                          <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
                         </div>
                         <span>{item.subtitle || item.court}</span>
+                        <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError} className="iu-fas-title-actions"/>
                         <DuplicatePracticeBadge item={item}/>
                         <MissingRgBadge item={item}/>
                         {item.relataStatusLabel ? (

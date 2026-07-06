@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 506.
+- File pytest censiti: 507.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 58 |
 | E2E | 8 |
 | Frontend static gate | 1 |
-| Frontend/UI | 159 |
+| Frontend/UI | 160 |
 | RBAC | 44 |
 | Security | 38 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 42 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 166 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 123 |
+| 09-misc | Test non classificati dalle fasi principali | 124 |
 
 ## Suite CI aggiuntive
 
@@ -327,6 +327,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Backend | tests/test_document_intelligence_pdf_quality.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_fascicoli_document_resilience.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Frontend/UI | tests/test_document_management.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| File/document security | Frontend/UI | tests/test_fascicolo_document_presidio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_lex_document_context.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | RBAC | tests/test_fascicolo_document_catalog.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_client_document_reader.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

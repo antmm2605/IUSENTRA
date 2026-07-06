@@ -40,6 +40,8 @@ export type FascicoloPaymentItem = {
   dataPagamentoIso: string
   metodo: string
   note: string
+  documentoFonte: string
+  origine: string
   updatedAt: string
   updatedAtLabel: string
   updatedBy: string
@@ -118,6 +120,11 @@ export type FascicoloRow = {
   relataPrimaryLabel: string
   relataReleaseDetected: boolean
   relataCount: number
+  duplicateCount: number
+  duplicateIds: string[]
+  duplicateKey: string
+  duplicateLabel: string
+  duplicateHref: string
   paymentSummary: FascicoloPaymentSummary
   archive?: {
     outcome: string
@@ -146,6 +153,8 @@ export type FascicoliSummary = {
   invoicesToIssue: number
   registeredAmount: number
   advancesToRecover: number
+  duplicatePractices: number
+  duplicatePracticeRows: number
 }
 
 export type FascicoliPagination = {
@@ -539,6 +548,33 @@ export type LexIndexingSummary = {
   warnings: string[]
 }
 
+export type FascicoloDocumentPresidioAction = {
+  id: string
+  type: string
+  title: string
+  label: string
+  date: string
+  dateIso: string
+  time: string
+  tone: Tone
+  priority: string
+  peremptory: boolean
+  requiresCommunicationDate: boolean
+  source: string
+  documentId: string
+  description: string
+}
+
+export type FascicoloDocumentPresidio = {
+  status: string
+  tone: Tone
+  summary: string
+  nextAction: FascicoloDocumentPresidioAction | null
+  actions: FascicoloDocumentPresidioAction[]
+  warnings: string[]
+  sources: Array<{ documentId: string; name: string }>
+}
+
 export type FascicoloDepositOffice = {
   name: string
   code: string
@@ -645,6 +681,7 @@ export type FascicoloDetailData = {
   activities: FascicoloActivity[]
   deadlines: FascicoloDeadline[]
   appointments: FascicoloAppointment[]
+  documentPresidio: FascicoloDocumentPresidio
   deposits: FascicoloDeposit[]
   requests: FascicoloActivity[]
   parties: FascicoloParty[]
@@ -792,6 +829,8 @@ const emptySummary: FascicoliSummary = {
   invoicesToIssue: 0,
   registeredAmount: 0,
   advancesToRecover: 0,
+  duplicatePractices: 0,
+  duplicatePracticeRows: 0,
 }
 
 const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
@@ -847,6 +886,8 @@ function emptyPaymentItem(kind: FascicoloPaymentKind, id = ''): FascicoloPayment
     dataPagamentoIso: '',
     metodo: '',
     note: '',
+    documentoFonte: '',
+    origine: '',
     updatedAt: '',
     updatedAtLabel: '',
     updatedBy: '',
@@ -963,6 +1004,16 @@ export const emptyDepositCatalog: FascicoloDepositCatalog = {
   entries: [],
 }
 
+export const emptyDocumentPresidio: FascicoloDocumentPresidio = {
+  status: 'non_disponibile',
+  tone: 'neutral',
+  summary: 'Nessun presidio documentale caricato.',
+  nextAction: null,
+  actions: [],
+  warnings: [],
+  sources: [],
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -973,6 +1024,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     rgNumber: 0, rgYear: 0, nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
+    duplicateCount: 0, duplicateIds: [], duplicateKey: '', duplicateLabel: '', duplicateHref: '',
     paymentSummary: emptyPaymentSummary,
     clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
@@ -984,7 +1036,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, deposits: [], requests: [], parties: [], history: [],
   economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
@@ -1136,6 +1188,8 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     dataPagamentoIso: text(row.dataPagamentoIso ?? row.data_pagamento_iso ?? row.data_pagamento),
     metodo: text(row.metodo ?? row.method),
     note: text(row.note),
+    documentoFonte: text(row.documentoFonte ?? row.documento_fonte ?? row.sourceDocument ?? row.source_document),
+    origine: text(row.origine ?? row.origin),
     updatedAt: text(row.updatedAt ?? row.updated_at),
     updatedAtLabel: text(row.updatedAtLabel ?? row.updated_at_label),
     updatedBy: text(row.updatedBy ?? row.updated_by),
@@ -1228,6 +1282,11 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     relataPrimaryLabel: text(item.relataPrimaryLabel ?? item.relata_primary_label, ''),
     relataReleaseDetected: bool(item.relataReleaseDetected ?? item.relata_release_detected),
     relataCount: number(item.relataCount ?? item.relata_count),
+    duplicateCount: number(item.duplicateCount ?? item.duplicate_count),
+    duplicateIds: asArray(item.duplicateIds ?? item.duplicate_ids).map((value) => text(value)).filter(Boolean),
+    duplicateKey: text(item.duplicateKey ?? item.duplicate_key),
+    duplicateLabel: text(item.duplicateLabel ?? item.duplicate_label),
+    duplicateHref: text(item.duplicateHref ?? item.duplicate_href),
     paymentSummary: normalizePaymentSummary(item.paymentSummary ?? item.payment_summary, id),
     archive: normalizeArchive(item.archive ?? item.archivio),
   }
@@ -1251,9 +1310,12 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       invoicesToIssue: number(value.invoicesToIssue ?? value.invoices_to_issue),
       registeredAmount: number(value.registeredAmount ?? value.registered_amount),
       advancesToRecover: number(value.advancesToRecover ?? value.advances_to_recover),
+      duplicatePractices: number(value.duplicatePractices ?? value.duplicate_practices),
+      duplicatePracticeRows: number(value.duplicatePracticeRows ?? value.duplicate_practice_rows),
     }
   }
   const economicToReview = items.filter((item) => item.paymentSummary.stato === 'da_presidiare' || item.paymentSummary.stato === 'parziale').length
+  const duplicateKeys = new Set(items.filter((item) => item.duplicateCount > 1 && item.duplicateKey).map((item) => item.duplicateKey))
   return {
     total: items.length,
     active: items.filter((item) => item.status !== 'archiviato').length,
@@ -1270,6 +1332,8 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     invoicesToIssue: items.reduce((total, item) => total + item.paymentSummary.parcelleDaEmettere, 0),
     registeredAmount: items.reduce((total, item) => total + item.paymentSummary.totaleRegistrato, 0),
     advancesToRecover: items.reduce((total, item) => total + item.paymentSummary.anticipazioniDaRecuperare, 0),
+    duplicatePractices: duplicateKeys.size,
+    duplicatePracticeRows: items.filter((item) => item.duplicateCount > 1).length,
   }
 }
 
@@ -1526,6 +1590,44 @@ function normalizeSourceSnapshot(value: unknown): FascicoloSourceSnapshot {
   }
 }
 
+function normalizeDocumentPresidioAction(value: unknown, index: number): FascicoloDocumentPresidioAction {
+  const row = isRecord(value) ? value : {}
+  return {
+    id: text(row.id, `presidio-${index}`),
+    type: text(row.type ?? row.tipo),
+    title: text(row.title ?? row.titolo ?? row.label, 'Adempimento documentale'),
+    label: text(row.label ?? row.title ?? row.titolo, 'Adempimento documentale'),
+    date: text(row.date ?? row.data),
+    dateIso: text(row.dateIso ?? row.date_iso ?? row.data_iso),
+    time: text(row.time ?? row.ora),
+    tone: text(row.tone, 'warning') as Tone,
+    priority: text(row.priority ?? row.priorita, 'important'),
+    peremptory: bool(row.peremptory ?? row.perentorio),
+    requiresCommunicationDate: bool(row.requiresCommunicationDate ?? row.requires_communication_date),
+    source: text(row.source ?? row.fonte, 'Documento fascicolo'),
+    documentId: text(row.documentId ?? row.document_id),
+    description: text(row.description ?? row.descrizione),
+  }
+}
+
+function normalizeDocumentPresidio(value: unknown): FascicoloDocumentPresidio {
+  if (!isRecord(value)) return emptyDocumentPresidio
+  const actions = asArray(value.actions ?? value.azioni).map(normalizeDocumentPresidioAction)
+  const nextRaw = value.nextAction ?? value.next_action
+  return {
+    status: text(value.status ?? value.stato, emptyDocumentPresidio.status),
+    tone: text(value.tone, emptyDocumentPresidio.tone) as Tone,
+    summary: text(value.summary ?? value.sintesi, emptyDocumentPresidio.summary),
+    nextAction: isRecord(nextRaw) ? normalizeDocumentPresidioAction(nextRaw, 0) : null,
+    actions,
+    warnings: asArray(value.warnings ?? value.avvisi).map((item) => text(item)).filter(Boolean),
+    sources: asArray(value.sources ?? value.fonti).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return { documentId: text(row.documentId ?? row.document_id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento fascicolo') }
+    }),
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -1644,6 +1746,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       const row = isRecord(entry) ? entry : {}
       return { id: text(row.id, `app-${index}`), title: text(row.title ?? row.titolo, 'Appuntamento'), date: text(row.date ?? row.data), time: text(row.time ?? row.ora), place: text(row.place ?? row.luogo), court: text(row.court ?? row.tribunale), type: text(row.type ?? row.tipo), href: text(row.href, '/agenda'), tone: text(row.tone, 'primary') as Tone }
     }),
+    documentPresidio: normalizeDocumentPresidio(payload.documentPresidio ?? payload.document_presidio),
     deposits: asArray(payload.deposits).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
       return {

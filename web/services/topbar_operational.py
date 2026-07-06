@@ -14,6 +14,7 @@ from flask import current_app, g, session
 from pct.agenda import TipoAppuntamento
 from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
+from pct.fascicolo_document_presidio import duplicate_practice_groups
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService, default_global_search_db_path
 from pct.notifiche_legali import released_office_documents_from_pec
@@ -286,6 +287,33 @@ def _case_title(fascicoli: dict[str, Any], case_id: str) -> str:
     return _clean_text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "numero", ""))
 
 
+def _duplicate_practice_today_items(fascicoli: dict[str, Any], day: date) -> list[dict[str, Any]]:
+    rows = [
+        item
+        for item in fascicoli.values()
+        if _enum_value(getattr(item, "stato", "")).upper() not in {"ARCHIVIATO", "DEFINITO"}
+    ]
+    items: list[dict[str, Any]] = []
+    for index, group in enumerate(duplicate_practice_groups(rows)):
+        ids = [str(value) for value in (group.get("ids") or []) if str(value or "").strip()]
+        first_id = ids[0] if ids else None
+        items.append(
+            {
+                "id": f"duplicate-case-{index}-{group.get('key')}",
+                "type": "task",
+                "title": "Verificare pratiche doppie per cliente e RG",
+                "time": None,
+                "date": day.isoformat(),
+                "priority": "important",
+                "href": f"/fascicoli?rg={quote(str(group.get('rg') or '').replace('RG ', ''), safe='')}",
+                "caseId": first_id,
+                "clientName": _clean_text(group.get("client")) or None,
+                "status": f"{int(group.get('count') or len(ids) or 0)} fascicoli da confrontare",
+            }
+        )
+    return items
+
+
 def _email_manager() -> GestioneEmailRicevute:
     return GestioneEmailRicevute(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
@@ -441,6 +469,16 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
     }
     fascicoli = _case_lookup()
     clienti = _client_lookup()
+
+    if _has_perm(user, "fascicoli.leggi"):
+        try:
+            duplicate_items = _duplicate_practice_today_items(fascicoli, day)
+            if duplicate_items:
+                summary["tasksToday"] += len(duplicate_items)
+                summary["urgentItems"] += len(duplicate_items)
+                items.extend(duplicate_items)
+        except Exception:
+            current_app.logger.info("Top bar oggi: controllo pratiche doppie non disponibile", exc_info=True)
 
     if _has_perm(user, "agenda.leggi"):
         try:

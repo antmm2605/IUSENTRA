@@ -5140,6 +5140,128 @@ def test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico(monkey
     assert any(row["title"] == "Lista veloce c. MIM" for row in payload["items"])
 
 
+def test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.nuovo(
+        "Spagnolo Sara c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Spagnolo Sara",
+        tribunale="Tribunale di Torino",
+        numero_rg="3950",
+        anno_rg=2026,
+        oggetto="Retribuzione",
+    )
+    fascicoli.nuovo(
+        "Spagnolo Sara - import portale",
+        TipoFascicolo.CIVILE,
+        nome_cliente="spagnolo sara",
+        tribunale="Tribunale di Torino",
+        numero_rg="3950",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+
+    def fail_document_ai(item, documents=None):
+        raise AssertionError(f"Document AI non deve partire nella vista operativa: {getattr(item, 'id', '')}")
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", fail_document_ai)
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    duplicates = [row for row in payload["items"] if row.get("duplicateCount") == 2]
+
+    assert response.status_code == 200
+    assert payload["summary"]["duplicatePractices"] == 1
+    assert payload["summary"]["duplicatePracticeRows"] == 2
+    assert len(duplicates) == 2
+    assert all(row["duplicateHref"].startswith("/fascicoli?rg=") for row in duplicates)
+
+
+def test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Punturiero Rosa c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Punturiero Rosa",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1733",
+        anno_rg=2026,
+        oggetto="Retribuzione",
+    )
+    decreto = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza (1).PDF",
+        TipoDocumento.DECRETO,
+        b"%PDF-1.4\ndecreto\n%%EOF",
+        note="Decreto fissazione udienza",
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {
+            decreto.id: (
+                "TRIBUNALE DI PALMI N. R.G. 1733/2026 Punturiero Rosa c. MIM. "
+                "Ai sensi dell'art. 127 ter c.p.c. in sostituzione dell'udienza "
+                "FISSA termine del 10/09/2026 per il deposito di note scritte. "
+                "ONERA parte ricorrente della notificazione entro e non oltre 30 giorni prima dell'udienza fissata. "
+                "ASSEGNA al resistente termine sino a 10 giorni prima della scadenza per la costituzione."
+            )
+        }
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+
+    response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}?include=all", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    presidio = payload["documentPresidio"]
+    by_type = {item["type"]: item for item in presidio["actions"]}
+
+    assert response.status_code == 200
+    assert payload["quickCounts"]["presidio_documenti"] >= 3
+    assert by_type["note_127_ter"]["dateIso"] == "2026-09-10"
+    assert by_type["notifica_ricorso_decreto"]["dateIso"] == "2026-08-11"
+    assert by_type["costituzione_resistente"]["dateIso"] == "2026-08-31"
+
+
+def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "quickCounts: { ...current.quickCounts, ...payload.quickCounts }" in source
+    assert (
+        "documentPresidio: section === 'scadenze' || section === 'documenti' ? "
+        "payload.documentPresidio : current.documentPresidio"
+    ) in source
+
+
+def test_react_fascicoli_fonti_documentali_visibili_senza_id_tecnici():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "function visibleDocumentSource" in source
+    assert "Documento indicizzato del fascicolo" in source
+    assert "normalised.startsWith('pst:')" in source
+    assert "visibleDocumentSource(payment.documentoFonte)" in source
+    assert "visibleDocumentSource(payment.documentoFonte || payment.origine)" in source
+    assert "visibleDocumentSource(action.source)" in source
+
+
 def test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale(tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 

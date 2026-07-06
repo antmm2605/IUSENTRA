@@ -1,6 +1,6 @@
 # Procedura deposito telematico IUSENTRA
 
-Aggiornato: 2026-07-05.
+Aggiornato: 2026-07-06.
 
 ## Aggiornamento 2026-07-05 - Clienti, soggetti, sentenze economiche, email mobile e lettore documenti
 
@@ -4204,3 +4204,58 @@ Stato:
 
 - test automatici mirati passati;
 - prove visive reali produzione e locale ancora da completare sulla versione deployata e sulla copia Docker `127.0.0.1:8080` prima di dichiarare chiuso il lavoro.
+
+## Fascicoli - presidio decreti udienza, doppioni e cosa fare oggi 2026-07-06
+
+Ambito: fascicoli React, documenti indicizzati, decreti di fissazione udienza, termini per note scritte, controllo economico, topbar `Oggi` e panoramica operativa.
+
+Fonti ufficiali considerate:
+
+- art. 127-ter c.p.c. da Gazzetta Ufficiale: termine per note scritte in sostituzione dell'udienza, non inferiore a 15 giorni, con giorno di scadenza trattato come data di udienza;
+- art. 127-bis c.p.c. da Gazzetta Ufficiale: udienza audiovisiva e richiesta di presenza entro 5 giorni dalla comunicazione;
+- Cassazione, Sezioni Unite, sentenza n. 17603/2025: cautela sul termine indicato con orario, da presidiare come termine perentorio del giorno indicato;
+- artt. 91 e 93 c.p.c. e DPR 115/2002 per il raccordo tra liquidazioni, spese, contributo unificato e controllo economico.
+
+Modifiche applicate:
+
+- nuovo presidio `pct/fascicolo_document_presidio.py`: interpreta testi già indicizzati dei documenti fascicolo senza salvare nuovo audio/file e senza introdurre nuove tabelle;
+- riconoscimento dei decreti ex art. 127-ter c.p.c. con termine deposito note, onere notifica 30 giorni prima e verifica costituzione 10 giorni prima;
+- riconoscimento dei decreti ex art. 127-bis c.p.c. con udienza audiovisiva, ora dell'udienza, costituzione 10 giorni prima e alert quando il termine di 5 giorni dipende dalla data di comunicazione non presente nel documento;
+- il payload React dettaglio fascicolo espone `documentPresidio` e la sezione `Udienze e scadenze` mostra il pannello `Presidio documenti fascicolo` con data, fonte documento, perentorietà e avvisi;
+- la lista Fascicoli rileva pratiche potenzialmente doppie tramite cliente normalizzato e RG, anche quando il nominativo arriva invertito da fonti diverse, senza avviare Document AI nella vista operativa;
+- la vista economica mostra fonti documentali dei valori automatici già proposti da Document AI, così contributo, spese, liquidazione e parcella non appaiono come importi privi di origine;
+- topbar `Oggi` e `WorkspaceIntelligente` aggiungono l'attività professionale `Verificare pratiche doppie per cliente e RG` quando il dato richiede controllo prima di usare scadenze, documenti o importi.
+
+Fonti dati e vincoli:
+
+- fonte operativa: repository fascicoli, Agenda, Scadenziario e testi Document AI già tenant-aware;
+- SQL/SQLite/PostgreSQL restano fonte di verità dei dati strutturati; il nuovo presidio è derivato e non sostituisce scadenze o appuntamenti persistenti;
+- la vista operativa `/fascicoli` non avvia Document AI automatico, preservando il caricamento rapido della lista;
+- nessun invio PEC server-side e nessuna modifica al canale Local Signer/PEC locale.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile pct\fascicolo_document_presidio.py web\services\react_fascicoli_bridge.py web\services\topbar_operational.py pct\workspace_intelligente.py`;
+- `python -m pytest tests\test_fascicolo_document_presidio.py tests\test_topbar_operational_api.py tests\test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests\test_react_shell.py::test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico tests\test_react_shell.py::test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai tests\test_react_shell.py::test_react_fascicolo_dettaglio_espone_presidio_documenti_udienza tests\test_react_shell.py::test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti tests\test_react_shell.py::test_react_fascicoli_fonti_documentali_visibili_senza_id_tecnici -q`;
+- `python -m pytest tests\test_utf8_integrity.py -q`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- `docker compose build --no-cache`;
+- `docker compose up -d`;
+- `docker compose ps`;
+- `http://127.0.0.1:8080/api/pronto` -> `ok=true`, `timezone=Europe/Rome`, `versione=2.253.182`;
+- `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` -> `2.253.182`.
+
+Prova reale locale su `127.0.0.1:8080`:
+
+- browser integrato Codex visibile, copia Docker reale `iusentra-app` healthy su porta `8080`;
+- vista `/fascicoli?vista=economica`: caricamento concluso con `Dati aggiornati`, importi in formato italiano, pannello `Lettura documenti` con fonte leggibile `Documento indicizzato del fascicolo`, nessun identificativo tecnico `document_id`, `docai` o `pst:JPW` visibile, nessun timestamp ISO, nessun overflow orizzontale, console senza errori;
+- click materiale su `Modifica controllo economico`: il pulsante passa a `Chiudi modifica`, la tabella resta stabile, niente ID tecnici o date ISO visibili;
+- dettaglio reale `/fascicoli/DC5BF1DB#udienze`, fascicolo `RG 466/2023`, cliente `Alessi Robertino`: click su `Udienze / scadenze`, pannello `Presidio documenti fascicolo` caricato con `8 controlli`, date italiane, fonte `Documento indicizzato del fascicolo`, avvisi comprensibili e accenti corretti (`modalità di trattazione`);
+- responsive verificato su desktop `1280x720`, tablet `900x900` e mobile `390x844` con scroll fino al fondo: nessun overflow orizzontale, nessun ID tecnico visibile, nessuna data ISO, console senza errori;
+- nel tenant locale reale il riepilogo `Doppioni` mostra `0 / nessun gruppo rilevato`; il percorso positivo con due fascicoli stesso cliente/RG è coperto da test mirato senza avviare Document AI nella vista operativa.
+
+Stato:
+
+- codice e prova locale reale completati sulla copia Docker `127.0.0.1:8080`;
+- il gate di rilascio resta legato allo SHA finale: commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` produzione e pulizia Docker devono risultare dal report operativo dello stesso commit.

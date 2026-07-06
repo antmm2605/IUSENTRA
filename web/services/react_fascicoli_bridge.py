@@ -30,6 +30,11 @@ from pct.fascicolo_document_catalog import (
     classify_fascicolo_document,
     document_ai_texts_for_catalog,
 )
+from pct.fascicolo_document_presidio import (
+    analyze_fascicolo_document_texts,
+    duplicate_practice_groups,
+    normalise_practice_duplicate_key,
+)
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.document_signature_state import (
@@ -1183,6 +1188,16 @@ def _document_id(doc: Any) -> str:
     return _text(getattr(doc, "id", "") or getattr(doc, "document_id", "") or getattr(doc, "documento_id", ""))
 
 
+def _readable_document_source(value: Any, *, default: str = "Documento indicizzato del fascicolo") -> str:
+    source = _text(value)
+    if not source:
+        return default
+    marker = source.casefold()
+    if marker.startswith(("document_id:", "documento_id:", "docai-", "docai_", "doc-", "doc_")):
+        return default
+    return source
+
+
 def _document_candidates_for_hints(
     fascicolo: Any,
     matcher: Callable[[str, dict[str, Any]], bool],
@@ -1541,7 +1556,7 @@ def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> d
             "importo": best_cu.get("importo"),
             "valuta": "EUR",
             "data_pagamento": best_cu.get("data_pagamento") or "",
-            "documento_fonte": _text(best_cu.get("filename") or best_cu.get("document_id")),
+            "documento_fonte": _readable_document_source(best_cu.get("filename") or best_cu.get("document_id")),
             "origine": "Document AI / fascicolo",
             "updated_by": "IUSENTRA automatico",
             "note": "Compilato automaticamente dalla ricevuta contributo unificato presente nel fascicolo.",
@@ -1563,7 +1578,7 @@ def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> d
         )
         if not getattr(context, "ok", False):
             continue
-        source_name = _text(metadata.get("filename") or document_id)
+        source_name = _readable_document_source(metadata.get("filename") or document_id)
         sentence_date = _text(getattr(extraction, "sentence_date", ""))
         if getattr(extraction, "liquidazione_importo", None) is not None:
             auto["liquidazione_giudice"] = {
@@ -2158,37 +2173,66 @@ def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
     texts = _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
     if not texts:
         return None
+    metadata_by_document = {document_id: _document_metadata_for_id(fascicolo, document_id) for document_id in texts}
+    document_presidio = analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document)
     try:
         from pct.pec_pipeline import _procedural_date_kind, extract_procedural_dates
     except Exception:
-        return None
+        _procedural_date_kind = None
+        extract_procedural_dates = None
     today = date.today()
     candidates: list[dict[str, Any]] = []
-    for document_id, text in texts.items():
-        metadata = _document_metadata_for_id(fascicolo, document_id)
-        if not _document_may_contain_procedural_deadline(text, metadata):
+    principal_types = {"note_127_ter", "udienza_127_bis", "udienza_documento", "termine_documento"}
+    for action in document_presidio.get("actions") or []:
+        if _text(action.get("type")) not in principal_types:
             continue
-        if not _document_text_matches_fascicolo(fascicolo, text):
+        parsed = _parse_date(action.get("dateIso"))
+        if not parsed or parsed < today:
             continue
-        source_name = _text(metadata.get("filename") or metadata.get("safe_filename") or document_id, "Documento fascicolo")
-        for candidate in extract_procedural_dates({source_name: text}, plain_text=""):
-            kind = _procedural_date_kind(candidate)
-            if kind not in {"udienza", "termine"}:
+        candidates.append(
+            {
+                "date": parsed,
+                "kind": "udienza" if "udienza" in _text(action.get("type")) else "termine",
+                "document_id": _text(action.get("documentId")),
+                "source": _text(action.get("source"), "Documento fascicolo"),
+                "label": _text(action.get("title"), "Data processuale"),
+                "context": _short(action.get("description"), 220),
+                "confidence": 0.99 if _text(action.get("type")) in {"note_127_ter", "udienza_127_bis"} else 0.82,
+                "specific_title": _text(action.get("title")),
+                "priority": "ALTA" if _text(action.get("priority")) in {"urgent", "important"} else "MEDIA",
+            }
+        )
+    if extract_procedural_dates is None or _procedural_date_kind is None:
+        if not candidates:
+            return None
+    else:
+        for document_id, text in texts.items():
+            metadata = metadata_by_document.get(document_id) or {}
+            if not _document_may_contain_procedural_deadline(text, metadata):
                 continue
-            parsed = _parse_date(candidate.get("date"))
-            if not parsed or parsed < today:
+            if not _document_text_matches_fascicolo(fascicolo, text):
                 continue
-            candidates.append(
-                {
-                    "date": parsed,
-                    "kind": kind,
-                    "document_id": document_id,
-                    "source": source_name,
-                    "label": _text(candidate.get("label"), "Data processuale"),
-                    "context": _short(candidate.get("context"), 220),
-                    "confidence": float(candidate.get("confidence") or 0.0),
-                }
-            )
+            source_name = _text(metadata.get("filename") or metadata.get("safe_filename") or document_id, "Documento fascicolo")
+            for candidate in extract_procedural_dates({source_name: text}, plain_text=""):
+                kind = _procedural_date_kind(candidate)
+                if kind not in {"udienza", "termine"}:
+                    continue
+                parsed = _parse_date(candidate.get("date"))
+                if not parsed or parsed < today:
+                    continue
+                candidates.append(
+                    {
+                        "date": parsed,
+                        "kind": kind,
+                        "document_id": document_id,
+                        "source": source_name,
+                        "label": _text(candidate.get("label"), "Data processuale"),
+                        "context": _short(candidate.get("context"), 220),
+                        "confidence": float(candidate.get("confidence") or 0.0),
+                        "specific_title": "",
+                        "priority": "ALTA" if kind == "udienza" else "MEDIA",
+                    }
+                )
     if not candidates:
         return None
     best = sorted(candidates, key=lambda item: (item["date"], 0 if item["kind"] == "termine" else 1, -item["confidence"]))[0]
@@ -2199,13 +2243,34 @@ def _automatic_next_deadline_from_documents(fascicolo: Any) -> Any | None:
         data_scadenza=best["date"].isoformat(),
         data=best["date"].isoformat(),
         tipo="UDIENZA" if best["kind"] == "udienza" else "ALTRO",
-        priorita="ALTA" if best["kind"] == "udienza" else "MEDIA",
+        priorita=_text(best.get("priority"), "ALTA" if best["kind"] == "udienza" else "MEDIA"),
         stato="APERTO",
-        titolo=_short(f"{title_prefix} letta da {source}", 120),
+        titolo=_short(_text(best.get("specific_title")) or f"{title_prefix} letta da {source}", 120),
         descrizione=_text(best.get("context")),
         note="Prossima scadenza letta automaticamente dai documenti indicizzati del fascicolo.",
         id_fascicolo=_text(getattr(fascicolo, "id", "")),
     )
+
+
+def _document_presidio_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
+    deadline_documents = _document_candidates_for_hints(
+        fascicolo,
+        _document_may_contain_procedural_deadline,
+        metadata_matcher=_document_metadata_may_contain_procedural_deadline,
+    )
+    texts = _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
+    if not texts:
+        return {
+            "status": "non_disponibile",
+            "tone": "neutral",
+            "summary": "Nessun testo indicizzato disponibile per decreti, udienze o termini del fascicolo.",
+            "nextAction": None,
+            "actions": [],
+            "warnings": [],
+            "sources": [],
+        }
+    metadata_by_document = {document_id: _document_metadata_for_id(fascicolo, document_id) for document_id in texts}
+    return analyze_fascicolo_document_texts(fascicolo, texts, metadata_by_document)
 
 
 def _next_deadline(
@@ -2416,6 +2481,37 @@ def _item_light(
     }
 
 
+def _annotate_duplicate_items(items: list[dict[str, Any]], groups_by_key: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for item in items:
+        key = normalise_practice_duplicate_key(item)
+        group = groups_by_key.get(key) if key else None
+        if not group:
+            out.append(
+                {
+                    **item,
+                    "duplicateCount": 0,
+                    "duplicateIds": [],
+                    "duplicateKey": "",
+                    "duplicateLabel": "",
+                    "duplicateHref": "",
+                }
+            )
+            continue
+        ids = [_text(value) for value in group.get("ids") or [] if _text(value)]
+        out.append(
+            {
+                **item,
+                "duplicateCount": int(group.get("count") or len(ids) or 0),
+                "duplicateIds": ids,
+                "duplicateKey": _text(group.get("key")),
+                "duplicateLabel": _text(group.get("label")),
+                "duplicateHref": f"/fascicoli?rg={quote(_text(item.get('rg')), safe='')}",
+            }
+        )
+    return out
+
+
 def _group_scadenze_by_fasc(rows: Iterable[Any], fascicoli: Iterable[Any] | None = None) -> dict[str, list[Any]]:
     grouped: dict[str, list[Any]] = {}
     fascicoli_list = list(fascicoli or [])
@@ -2472,6 +2568,7 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
     invoices_to_issue = sum(int((item.get("paymentSummary") or {}).get("parcelleDaEmettere") or 0) for item in items)
     registered_amount = round(sum(float((item.get("paymentSummary") or {}).get("totaleRegistrato") or 0.0) for item in items), 2)
     advances_to_recover = round(sum(float((item.get("paymentSummary") or {}).get("anticipazioniDaRecuperare") or 0.0) for item in items), 2)
+    duplicate_keys = {_text(item.get("duplicateKey")) for item in items if int(item.get("duplicateCount") or 0) > 1 and _text(item.get("duplicateKey"))}
     today = date.today()
     soon_limit = today + timedelta(days=7)
     return {
@@ -2494,6 +2591,8 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "invoicesToIssue": invoices_to_issue,
         "registeredAmount": registered_amount,
         "advancesToRecover": advances_to_recover,
+        "duplicatePractices": len(duplicate_keys),
+        "duplicatePracticeRows": sum(1 for item in items if int(item.get("duplicateCount") or 0) > 1),
     }
 
 
@@ -2693,10 +2792,15 @@ def build_react_fascicoli_payload(
     enrich_visible = view_key in {"economica", "economico", "economic"}
     automatic_for_all = bool(payments_only or payment_filters_active or sort_key == "scadenza")
     enrich_visible = enrich_visible or automatic_for_all
-    light_items = [
-        _item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, automatic_evidence=automatic_for_all)
-        for fascicolo in fascicoli
-    ]
+    duplicate_groups = duplicate_practice_groups(fascicoli)
+    duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
+    light_items = _annotate_duplicate_items(
+        [
+            _item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, automatic_evidence=automatic_for_all)
+            for fascicolo in fascicoli
+        ],
+        duplicate_groups_by_key,
+    )
     filtered = [
         item for item in light_items
         if _matches_list_filters(
@@ -2721,11 +2825,16 @@ def build_react_fascicoli_payload(
     if items and not automatic_for_all and enrich_visible:
         fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
         enriched_visible = {
-            item_id: _item_light(
-                fascicoli_by_id[item_id],
-                scadenze_by_fasc=scadenze_by_fasc,
-                automatic_evidence=True,
-            )
+            item_id: _annotate_duplicate_items(
+                [
+                    _item_light(
+                        fascicoli_by_id[item_id],
+                        scadenze_by_fasc=scadenze_by_fasc,
+                        automatic_evidence=True,
+                    )
+                ],
+                duplicate_groups_by_key,
+            )[0]
             for item_id in (_text(item.get("id")) for item in items)
             if item_id in fascicoli_by_id
         }
@@ -4479,6 +4588,20 @@ def build_react_fascicolo_detail_payload(
     known_document_count = _fast_documents_count(fascicolo)
     if known_document_count and int(lex_indexing.get("total_documents") or 0) == 0:
         lex_indexing = {**lex_indexing, "total_documents": known_document_count}
+    document_presidio = (
+        _document_presidio_for_fascicolo(fascicolo)
+        if load_deadlines or load_documents or include_all
+        else {
+            "status": "lazy_non_caricato",
+            "tone": "neutral",
+            "summary": "Apri udienze, scadenze o documenti per leggere decreti e termini dal fascicolo.",
+            "nextAction": None,
+            "actions": [],
+            "warnings": [],
+            "sources": [],
+        }
+    )
+    quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
     regia_payload = (
         build_react_practice_engine_payload(
             fascicolo_id=fid,
@@ -4532,6 +4655,7 @@ def build_react_fascicolo_detail_payload(
         "activities": activities,
         "deadlines": _deadlines(scadenze) if load_deadlines else [],
         "appointments": _appointments(apps) if load_deadlines else [],
+        "documentPresidio": document_presidio,
         "deposits": visible_deposits if load_deposits else [],
         "requests": requests,
         "parties": parties,

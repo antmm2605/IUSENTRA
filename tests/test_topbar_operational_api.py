@@ -332,6 +332,36 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert stopped.get_json()["timeEntry"]["href"] == "/timesheet"
 
 
+def test_topbar_today_include_pratiche_doppie_cliente_rg(tmp_path: Path):
+    app = create_app(_cfg_web(tmp_path))
+    _create_user(app, "operatore", "Operatore123!")
+    _seed_domain(app)
+    fascicoli = GestioneFascicoli(
+        app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.nuovo(
+        "Recupero credito Alfa - import portale",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Maria Verdi",
+        tribunale="Tribunale di Roma",
+        numero_rg="1234",
+        anno_rg=2026,
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        today = client.get("/api/dashboard/today").get_json()
+        duplicate_item = next(item for item in today["items"] if item["title"] == "Verificare pratiche doppie per cliente e RG")
+
+        assert today["summary"]["tasksToday"] >= 1
+        assert today["summary"]["urgentItems"] >= 1
+        assert duplicate_item["clientName"] == "Maria Verdi"
+        assert duplicate_item["priority"] == "important"
+        assert duplicate_item["href"].startswith("/fascicoli?rg=")
+
+
 def test_topbar_react_traccia_recenti_sulle_rotte_profonde():
     topbar = Path("frontend/src/components/layout/TopBar.tsx").read_text(encoding="utf-8")
     search = Path("frontend/src/components/layout/TopBarSearch.tsx").read_text(encoding="utf-8")

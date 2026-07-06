@@ -1381,10 +1381,32 @@ function compactPaymentLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '')
 }
 
+function visibleDocumentSource(value?: string): string {
+  const source = (value || '').trim()
+  if (!source) return ''
+  const normalised = source.toLowerCase()
+  if (
+    normalised.startsWith('document_id:')
+    || normalised.startsWith('documento_id:')
+    || normalised.startsWith('pst:')
+    || /^docai[-_]/.test(normalised)
+    || /^doc[-_][a-z0-9]/.test(normalised)
+  ) {
+    return 'Documento indicizzato del fascicolo'
+  }
+  if (normalised.includes('document ai') && normalised.includes('sentenza')) {
+    return 'Lettura automatica da sentenza'
+  }
+  if (normalised.includes('document ai')) {
+    return 'Lettura automatica del fascicolo'
+  }
+  return source
+}
+
 function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind}) {
   const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
   const amount = payment.importoLabel || '€ 0,00'
-  const detail = payment.dataPagamento || payment.updatedAtLabel || payment.metodo || payment.note || ''
+  const detail = payment.dataPagamento || visibleDocumentSource(payment.documentoFonte) || payment.updatedAtLabel || payment.metodo || payment.note || ''
   const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
   return (
     <div className={`iu-fas-economic-summary iu-fas-economic-summary--${payment.tone}`} title={title} aria-label={title}>
@@ -1394,6 +1416,39 @@ function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem;
       </div>
       <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
       {detail ? <small>{detail}</small> : null}
+    </div>
+  )
+}
+
+function DuplicatePracticeBadge({ item }:{item:FascicoloRow}) {
+  if (!item.duplicateCount || item.duplicateCount < 2) return null
+  const href = item.duplicateHref || `/fascicoli?rg=${encodeURIComponent(item.rg)}`
+  const label = item.duplicateLabel || `${item.client} - ${item.rg}`
+  return (
+    <a className="iu-fas-duplicate-badge" href={href} title={`Verificare possibili doppioni: ${label}`}>
+      <Copy size={13}/>
+      <span>{item.duplicateCount} pratiche stesso cliente/RG</span>
+    </a>
+  )
+}
+
+function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
+  const evidences = economicPaymentKinds
+    .map((kind) => {
+      const payment = row.paymentSummary.items[kind]
+      if (!payment.documentoFonte && !payment.origine) return null
+      const source = visibleDocumentSource(payment.documentoFonte || payment.origine)
+      if (!source) return null
+      return { kind, label: paymentColumnLabels[kind] || payment.displayLabel || payment.label, source, tone: payment.tone }
+    })
+    .filter(Boolean) as Array<{ kind:FascicoloPaymentKind; label:string; source:string; tone:FascicoloRow['tone'] }>
+  if (!evidences.length) return null
+  return (
+    <div className="iu-fas-economic-evidence" aria-label={`Fonti economiche lette dai documenti per ${row.ref}`}>
+      <span><FileCheck2 size={14}/> Lettura documenti</span>
+      {evidences.slice(0, 3).map((item) => (
+        <small key={item.kind}><Badge tone={item.tone}>{item.label}</Badge>{item.source}</small>
+      ))}
     </div>
   )
 }
@@ -1504,6 +1559,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
       </header>
       <a href={item.href} className="iu-fas-mobile-card__title">{item.title}</a>
       <p>{item.subtitle || item.court}</p>
+      <DuplicatePracticeBadge item={item}/>
       {item.relataStatusLabel ? (
         <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
           <FileSignature size={15}/>
@@ -1652,6 +1708,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                           <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
                         </div>
                         <span>{item.subtitle || item.court}</span>
+                        <DuplicatePracticeBadge item={item}/>
                         {item.relataStatusLabel ? (
                           <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
                             <FileSignature size={14}/>
@@ -1666,6 +1723,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                       {economic ? (
                         <span className="iu-fas-economic-client">
                           <strong>{item.client}</strong>
+                          <DuplicatePracticeBadge item={item}/>
                           <button
                             type="button"
                             className="iu-fas-economic-edit-toggle"
@@ -1689,6 +1747,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                             <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
                           ))}
                         </div>
+                        <EconomicEvidenceStrip row={item}/>
                       </td>
                     ) : <td><span className="iu-fas-doc-count">{item.documents}</span></td>}
                   </tr>
@@ -1706,6 +1765,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                               <span>Chiudi</span>
                             </button>
                           </header>
+                          <EconomicEvidenceStrip row={item}/>
                           <div className="iu-fas-economic-edit-grid">
                             {economicPaymentKinds.map((kind) => (
                               <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError} forceLabel key={kind}/>
@@ -1774,6 +1834,13 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
             <strong>{data.summary.toArchive} fascicoli da chiudere o archiviare</strong>
             <small>{withoutDeadline} pratiche attive non hanno una prossima scadenza visibile.</small>
           </article>
+          {data.summary.duplicatePractices ? (
+            <article>
+              <span>Doppioni da verificare</span>
+              <strong>{data.summary.duplicatePractices} gruppi stesso cliente/RG</strong>
+              <small>Controlla prima di usare importi, scadenze o documenti come fonte operativa.</small>
+            </article>
+          ) : null}
         </div>
       </IusentraPanelCard>
       <IusentraPanelCard title="Alert operativi" icon={Bell} badge={urgent.length} tone="warning">
@@ -1980,6 +2047,7 @@ function FascicoliListPage() {
           <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success"/>
           <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoicesToIssue} note="da emettere" tone="purple"/>
           <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
+          <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'}/>
           <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
           <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
         </section>
@@ -7275,6 +7343,45 @@ function DeadlineRow({ deadline }:{deadline:FascicoloDeadline}) {
   return <a className="iu-fas-deadline-row" href={deadline.href}><Badge tone={deadline.tone}>{deadline.priority || deadline.type || 'termine'}</Badge><strong>{deadline.title}</strong><span>{deadline.date}{deadline.peremptory ? ' · perentorio' : ''}</span></a>
 }
 
+function DocumentPresidioPanel({ data }:{data:FascicoloDetailData}) {
+  const presidio = data.documentPresidio
+  const actions = presidio.actions || []
+  const next = presidio.nextAction || actions[0]
+  return (
+    <section className={`iu-fas-document-presidio iu-fas-document-presidio--${presidio.tone}`}>
+      <header>
+        <div>
+          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} controlli` : 'Da leggere'}</Badge>
+          <strong>{next?.title || 'Presidio documenti fascicolo'}</strong>
+          <span>{next?.date || presidio.summary}</span>
+        </div>
+        <FileCheck2 size={20}/>
+      </header>
+      {actions.length ? (
+        <div className="iu-fas-presidio-actions">
+          {actions.slice(0, 6).map((action) => (
+            <article key={action.id}>
+              <Badge tone={action.tone}>{action.date || 'Data da confermare'}</Badge>
+              <strong>{action.title}</strong>
+              <span>{action.description}</span>
+              <small>
+                {visibleDocumentSource(action.source)}
+                {action.peremptory ? ' · termine perentorio' : ''}
+                {action.requiresCommunicationDate ? ' · serve data comunicazione' : ''}
+              </small>
+            </article>
+          ))}
+        </div>
+      ) : <p className="iu-empty">{presidio.summary}</p>}
+      {presidio.warnings.length ? (
+        <div className="iu-fas-presidio-warnings">
+          {presidio.warnings.slice(0, 3).map((warning) => <span key={warning}><AlertTriangle size={13}/>{warning}</span>)}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 function formatAuditDate(value: string) {
   if (!value) return 'n.d.'
   return formatDateTimeIt(value, value, { includeTimezone: true })
@@ -7388,11 +7495,13 @@ function DetailPage({ id }:{id:string}) {
       .then((payload) => {
         setData((current) => ({
           ...current,
+          quickCounts: { ...current.quickCounts, ...payload.quickCounts },
           documents: section === 'documenti' || (section === 'depositi' && payload.documents.length) ? payload.documents : current.documents,
           activities: section === 'attivita' ? payload.activities : current.activities,
           requests: section === 'attivita' ? payload.requests : current.requests,
           deadlines: section === 'scadenze' ? payload.deadlines : current.deadlines,
           appointments: section === 'scadenze' ? payload.appointments : current.appointments,
+          documentPresidio: section === 'scadenze' || section === 'documenti' ? payload.documentPresidio : current.documentPresidio,
           deposits: section === 'depositi' ? payload.deposits : current.deposits,
           regia: section === 'regia' ? payload.regia : current.regia,
           notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
@@ -7497,6 +7606,7 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} onOpen={() => loadLazySection('scadenze')}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
             {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
+            <DocumentPresidioPanel data={data}/>
             <div className="iu-fas-two-cols"><div><h3>Scadenze</h3>{data.deadlines.map((deadline) => <DeadlineRow deadline={deadline} key={deadline.id}/>)}{lazyStatus.scadenze === 'loaded' && !data.deadlines.length ? <p className="iu-empty">Nessuna scadenza collegata.</p> : null}<a className="iu-fas-inline-link" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuova scadenza</a></div><div><h3>Agenda</h3>{data.appointments.map((app) => <a className="iu-fas-deadline-row" href={app.href} key={app.id}><Badge tone={app.tone}>{app.type || 'agenda'}</Badge><strong>{app.title}</strong><span>{app.date} {app.time} {app.place}</span></a>)}{lazyStatus.scadenze === 'loaded' && !data.appointments.length ? <p className="iu-empty">Nessun appuntamento trovato.</p> : null}<a className="iu-fas-inline-link" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo appuntamento</a></div></div>
           </DetailSection>
           <DetailSection id="cancelleria" title="Comunicazioni / Cancelleria" icon={<Mail size={17}/>} count={communicationTotal || data.quickCounts.comunicazioni || 0} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti') }}>

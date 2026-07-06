@@ -9,6 +9,7 @@ from pct import cache as _cache
 from pct.agenda import Agenda, StatoAppuntamento
 from pct.calendar_sync import GestioneCalendarSync
 from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
+from pct.fascicolo_document_presidio import duplicate_practice_groups
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.scadenziario import GestioneScadenziario, RegolaCalendario, Scadenza
@@ -808,6 +809,12 @@ class WorkspaceIntelligenteService:
         appointments = self._appointments_upcoming(horizon_days=horizon_days, limit=12)
         sync_profiles = self._sync_profiles_status()
         fascicoli_hot = self._fascicoli_hot(horizon_days=horizon_days, limit=hot_limit)
+        try:
+            duplicate_groups = duplicate_practice_groups(
+                item for item in self.fascicoli.tutti() if not _is_closed_fascicolo(item)
+            )
+        except Exception:
+            duplicate_groups = []
         due_notifications = self.scadenziario.scadenze_da_notificare()
         reminders = self.agenda.prossimi_reminder(entro_minuti=180)
 
@@ -871,6 +878,16 @@ class WorkspaceIntelligenteService:
                     "href": "/impostazioni/calendario",
                 }
             )
+        if duplicate_groups:
+            first_group = duplicate_groups[0]
+            actions.append(
+                {
+                    "tone": "warning",
+                    "title": "Verificare pratiche doppie",
+                    "description": f"{len(duplicate_groups)} gruppi hanno stesso cliente e numero RG: controlla prima scadenze, documenti e valori economici.",
+                    "href": f"/fascicoli?rg={str(first_group.get('rg') or '').replace('RG ', '')}",
+                }
+            )
         if fascicoli_hot:
             actions.append(
                 {
@@ -890,6 +907,7 @@ class WorkspaceIntelligenteService:
                 "profili_sync_attivi": len([profile for profile in sync_profiles if profile.get("enabled", True)]),
                 "profili_sync_da_verificare": len([profile for profile in sync_profiles if profile.get("is_stale")]),
                 "fascicoli_attenzionati": len(fascicoli_hot),
+                "pratiche_doppie": len(duplicate_groups),
                 "promemoria_imminenti": len(reminders),
                 "notifiche_scadenze": len(due_notifications),
             },

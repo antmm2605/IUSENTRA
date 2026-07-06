@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.253.182 - 2026-07-06
+
+- **Fascicoli - presidio udienze e documenti**: aggiunta analisi strutturata dei decreti di fissazione udienza e dei documenti del fascicolo per far emergere termini per note ex art. 127-ter c.p.c., udienze audiovisive ex art. 127-bis c.p.c., termini collegati per notifiche/costituzioni e avvisi quando serve la data di comunicazione.
+- **Controllo economico e lavoro quotidiano**: la vista fascicoli segnala pratiche duplicate per cliente/RG, mostra evidenze documentali per importi economici automatici e porta le anomalie rilevanti anche nella topbar "cosa fare oggi" e nella panoramica operativa.
+- **Guardrail professionali**: aggiunti test mirati sul presidio documentale, sui doppioni e sull'integrazione React/topbar, con documentazione operativa aggiornata per il flusso fascicoli/deposito.
+
 ## 2.253.180 - 2026-07-05
 
 - **Fascicoli economici**: la vista economica e il dettaglio fascicolo leggono automaticamente anche i testi Document AI/OCR già indicizzati nel database strutturato dello studio. Contributo unificato, pagamenti e prossima scadenza vengono popolati dai documenti del fascicolo quando non sono già presenti valori manuali.

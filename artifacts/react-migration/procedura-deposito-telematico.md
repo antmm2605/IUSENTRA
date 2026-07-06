@@ -4383,3 +4383,36 @@ Prova server reale eseguita su `https://app.iusentra.it/fascicoli?vista=economic
 La pagina React `/email/` deve mostrare il messaggio completo della PEC in modo forense ma leggibile: una sola busta PEC esterna, una sola sezione per il messaggio allegato `postacert.eml` e allegati testuali separati. Quando il MIME originale contiene sia `text/plain` sia `text/html` con contenuto equivalente, il bridge backend deduplica l'alternativa HTML; quando incontra un allegato `message/rfc822`, lo formatta come messaggio allegato senza attraversarne il corpo una seconda volta come parte autonoma della busta esterna.
 
 Guardrail locale aggiunto: `tests/test_email_client.py::test_email_dettaglio_pec_non_duplica_busta_e_postacert`. La prova reale su `127.0.0.1:8080/email/` deve confermare che `Messaggio completo` non ripete `MESSAGGIO DI POSTA CERTIFICATA` e `CERTIFIED EMAIL MESSAGE`.
+
+## Fascicoli - contributo unificato da RT XML e autocertificazioni generiche 2026-07-06
+
+Aggiornamento operativo `2.253.193`.
+
+Problema reale segnalato nella vista economica: diversi fascicoli mostravano `Contributo` come `Pagato` da `Ricevuta pagoPA`, ma senza importo (`Da verificare`), oppure non consideravano l'autocertificazione reddituale presente nel fascicolo. La causa tecnica era doppia: il presidio economico usava il documento classificato, ma se Document AI non aveva ancora testo non apriva sempre il file fisico PDF/XML; inoltre le RT XML PagoPA del PST espongono importo e causale in tag strutturati (`importoTotalePagato`, `singoloImportoPagato`, `causaleVersamento`) senza la dicitura testuale `Tipo pagamento: Contributo unificato`.
+
+Regola professionale corretta:
+
+- prima di concludere `Pagato senza importo`, il presidio apre il documento fisico del fascicolo se il testo Document AI/OCR non è disponibile;
+- le ricevute telematiche XML PagoPA vengono lette dai tag ministeriali e dalla causale `/RFB/...//importo/TXT/...`, quindi casi come Alfano Giuseppe estraggono `€ 49,00` dalla RT XML reale;
+- la data di pagamento viene letta anche dai tag XML con prefisso namespace, per esempio `<pay_j:dataEsitoSingoloPagamento>2026-05-12</...>`;
+- `Autocertificazione`, `dichiarazione sostitutiva`, `reddito`, `reddituale`, `ISEE`, `art. 76`, `D.P.R. 115/2002` e `art. 9 comma 1-bis` fanno partire la lettura mirata anche quando il nome file non contiene `CU`;
+- se l'autocertificazione contiene la soglia reddituale/esenzione CU, il contributo viene proposto come `Non previsto`, senza importo fittizio;
+- se esiste una ricevuta con importo certo, il sistema registra l'importo; se esiste solo la classificazione del pagamento senza importo, resta un dato da leggere, non una prova economica completa.
+
+Fonti ufficiali considerate:
+
+- Ministero della Giustizia, circolare 11 maggio 2012 su art. 9 comma 1-bis D.P.R. 115/2002: per lavoro, previdenza, assistenza obbligatoria e pubblico impiego l'esenzione soggettiva è collegata alla soglia reddituale pari a tre volte l'importo dell'art. 76 D.P.R. 115/2002;
+- Ministero della Giustizia, provvedimento 27 luglio 2024: la debenza del contributo unificato, anche ai fini dell'eventuale raddoppio, va verificata con riferimento al momento dell'iscrizione a ruolo.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile pct/fascicolo_sentenza_economica.py web/services/react_fascicoli_bridge.py`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai tests/test_react_shell.py::test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mirata tests/test_react_shell.py::test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_importo tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica -q`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_pagamento_cu_classificato_diventa_pagato_senza_importo tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza tests/test_react_shell.py::test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale -q`;
+- `python -m pytest tests/test_react_fascicoli_sentenze_economiche.py tests/test_backfill_sentenza_lex_economics.py::test_backfill_contributo_evidence_rifiuta_carta_docente_e_soglia_reddito tests/test_backfill_sentenza_lex_economics.py::test_backfill_contributo_evidence_non_scambia_iniziali_cu_per_pagamento -q`.
+
+Prova reale obbligatoria prima della chiusura:
+
+- rebuild Docker locale `127.0.0.1:8080` sul commit `2.253.193`;
+- vista `/fascicoli?vista=economica`: verificare che i fascicoli con RT XML PagoPA mostrino importo italiano, stato `Pagato`, data italiana e fonte documento; verificare che le autocertificazioni reddituali pertinenti mostrino `Non previsto`;
+- controllare almeno il caso `Alfano Giuseppe c. MIM / RG 1100/2026` e un caso con autocertificazione CU, poi ripetere su produzione Hetzner prima del report finale.

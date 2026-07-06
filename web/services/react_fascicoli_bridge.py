@@ -1589,11 +1589,18 @@ def _document_metadata_may_contain_contributo_unificato(metadata: dict[str, Any]
             "esenzione cu",
             "esenzione contributo",
             "esenzione dal pagamento",
+            "autocert",
+            "dichiarazione sostitutiva",
+            "reddito",
+            "reddituale",
+            "situazione reddituale",
+            "isee",
             "iscrizione a ruolo",
             "spese di giustizia",
             "dpr 115",
             "d.p.r. 115",
             "art. 9",
+            "art. 76",
             "pagopa",
             "pago pa",
             "iuv",
@@ -1714,11 +1721,18 @@ def _document_may_contain_contributo_unificato(text: str, metadata: dict[str, An
             "esenzione cu",
             "esenzione contributo",
             "esenzione dal pagamento",
+            "autocert",
+            "dichiarazione sostitutiva",
+            "reddito",
+            "reddituale",
+            "situazione reddituale",
+            "isee",
             "iscrizione a ruolo",
             "spese di giustizia",
             "dpr 115",
             "d.p.r. 115",
             "art. 9",
+            "art. 76",
             "pagopa",
             "pago pa",
             "iuv",
@@ -1788,7 +1802,7 @@ def _document_may_contain_procedural_deadline(text: str, metadata: dict[str, Any
 def _payment_date_from_document_text(text: str) -> str:
     compact = _text(text)
     for pattern in (
-        r"<(?:dataEsitoSingoloPagamento|dataOraMessaggioRicevuta|dataPagamento)[^>]*>\s*(\d{4}-\d{2}-\d{2})",
+        r"<(?:[^>:]+:)?(?:dataEsitoSingoloPagamento|dataOraMessaggioRicevuta|dataPagamento)[^>]*>\s*(\d{4}-\d{2}-\d{2})",
         r"\bData(?:\s+(?:esito|pagamento|ricevuta))?\s*:\s*(\d{1,2}/\d{1,2}/\d{4})",
         r"\bData/ora\s+Messaggio\s+Ricevuta\s*:\s*(\d{1,2}/\d{1,2}/\d{4})",
     ):
@@ -2008,6 +2022,17 @@ def _automatic_payment_sources_for_fascicolo(
             )
             if refreshed_texts:
                 texts = {**texts, **refreshed_texts}
+        physical_texts: dict[str, str] = {}
+        for doc in payment_documents:
+            document_id = _document_id(doc)
+            if not document_id or _text(texts.get(document_id)):
+                continue
+            extracted_text = _extract_presidio_text_from_physical_document(source_fascicolo, doc)
+            if extracted_text:
+                physical_texts[document_id] = extracted_text
+        if physical_texts:
+            texts = {**texts, **physical_texts}
+            _cache_document_ai_texts_for_fascicolo(source_fascicolo, payment_documents, texts)
         appended: set[str] = set()
         for document_id, text in texts.items():
             scoped_texts.append((source_fascicolo, document_id, text))

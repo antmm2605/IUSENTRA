@@ -5346,6 +5346,133 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     assert contributo["documentoFonte"] == "Pagamento cu.PDF"
 
 
+def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Alfano Giuseppe c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Alfano Giuseppe",
+        tribunale="Tribunale di Padova",
+        numero_rg="1100",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    xml = b"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<pay_j:RT xmlns:pay_j=\"http://www.digitpa.gov.it/schemas/2011/Pagamenti/\">
+  <pay_j:identificativoMessaggioRicevuta>30003967997109978</pay_j:identificativoMessaggioRicevuta>
+  <pay_j:dataOraMessaggioRicevuta>2026-05-12T12:20:29</pay_j:dataOraMessaggioRicevuta>
+  <pay_j:datiPagamento>
+    <pay_j:codiceEsitoPagamento>0</pay_j:codiceEsitoPagamento>
+    <pay_j:importoTotalePagato>49.00</pay_j:importoTotalePagato>
+    <pay_j:datiSingoloPagamento>
+      <pay_j:singoloImportoPagato>49.00</pay_j:singoloImportoPagato>
+      <pay_j:dataEsitoSingoloPagamento>2026-05-12</pay_j:dataEsitoSingoloPagamento>
+      <pay_j:causaleVersamento>/RFB/30003967997109978//49.00/TXT/Contributo Ricorso carta docente Alfano Giuseppe</pay_j:causaleVersamento>
+      <pay_j:datiSpecificiRiscossione>9/0702100TS/CONTRIB</pay_j:datiSpecificiRiscossione>
+      <pay_j:commissioniApplicatePSP>0.00</pay_j:commissioniApplicatePSP>
+    </pay_j:datiSingoloPagamento>
+  </pay_j:datiPagamento>
+</pay_j:RT>"""
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Pagamento cu.xml",
+        TipoDocumento.ALLEGATO,
+        xml,
+        data_documento="2026-05-12",
+        classificazione_portale="Contributo unificato / pagamento",
+        note="Import QuickOrganizer.",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert documento.id
+    assert contributo["status"] == "pagato"
+    assert contributo["importo"] == 49.0
+    assert contributo["importoLabel"] == "€ 49,00"
+    assert contributo["dataPagamento"] == "12/05/2026"
+    assert contributo["documentoFonte"] == "Pagamento cu.xml"
+
+
+def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mirata(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Autocertificazione reddito c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Reddituale",
+        tribunale="Tribunale di Palmi",
+        numero_rg="4101",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Autocertificazione reddituale.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        note="Import pratiche.",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    def fake_ocr(item, documents=None):
+        calls.append([getattr(doc, "nome", "") for doc in list(documents or [])])
+        return {
+            documento.id: (
+                "DICHIARAZIONE SOSTITUTIVA - AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE. "
+                "Il reddito imponibile non superiore alla soglia di cui all'art. 9 comma 1-bis "
+                "D.P.R. 115/2002 e art. 76 D.P.R. 115/2002 consente l'esenzione dal contributo unificato."
+            )
+        }
+
+    monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert calls == [["Autocertificazione reddituale.PDF"]]
+    assert contributo["status"] == "non_previsto"
+    assert contributo["previsto"] is False
+    assert contributo["importo"] is None
+    assert contributo["natura"] == "esenzione_contributo_unificato"
+    assert contributo["documentoFonte"] == "Autocertificazione reddituale.PDF"
+
+
 def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 

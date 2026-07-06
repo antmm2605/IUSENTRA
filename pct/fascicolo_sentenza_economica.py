@@ -185,6 +185,10 @@ _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
     r"esenzione.{0,90}(?:iscrizione\s+a\s+ruolo|spese\s+di\s+giustizia)|"
     r"art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis.{0,120}d\.?\s*p\.?\s*r\.?.{0,30}115|"
     r"d\.?\s*p\.?\s*r\.?.{0,30}115.{0,120}art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis|"
+    r"(?:autocertificazion[ei]|dichiarazione\s+sostitutiva).{0,260}"
+    r"(?:reddito|reddituale|situazione\s+economica).{0,260}"
+    r"(?:non\s+superiore|inferiore|soglia|limite).{0,180}"
+    r"(?:art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis|art\.?\s*76|d\.?\s*p\.?\s*r\.?.{0,30}115)|"
     r"esente\s+(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
     r"prenotazione\s+a\s+debito"
@@ -204,6 +208,15 @@ _CONTRIBUTO_DOCUMENT_AMOUNT_RE = re.compile(
     + r")",
     re.IGNORECASE | re.DOTALL,
 )
+_CONTRIBUTO_DOCUMENT_AMOUNT_SUFFIX_RE = re.compile(
+    r"\b(?:importo|totale|pagamento|versamento|contributo\s+unificat[oi]|c\.?\s*u\.?)\b"
+    r".{0,90}?"
+    r"(?P<amount>"
+    + _MONEY_AMOUNT_PATTERN
+    + r")\s*"
+    + _MONEY_PREFIX_PATTERN,
+    re.IGNORECASE | re.DOTALL,
+)
 _CONTRIBUTO_RT_PAYMENT_TYPE_RE = re.compile(
     r"\btipo\s+pagamento\s*:\s*contributo\s+unificat[oi]\b",
     re.IGNORECASE,
@@ -211,6 +224,16 @@ _CONTRIBUTO_RT_PAYMENT_TYPE_RE = re.compile(
 _CONTRIBUTO_RT_RECEIPT_RE = re.compile(
     r"\b(?:ricevuta\s+telematica\s+di\s+pagamento|rt\s*xml|pagopa|pago\s*pa)\b",
     re.IGNORECASE,
+)
+_CONTRIBUTO_RT_XML_RE = re.compile(
+    r"<\s*(?:[A-Za-z0-9_:-]+:)?RT\b|"
+    r"<[^>]*(?:identificativoMessaggioRicevuta|datiPagamento|codiceEsitoPagamento|datiSpecificiRiscossione)[^>]*>",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_RT_XML_CONTRIBUTO_RE = re.compile(
+    r"<[^>]*(?:causaleVersamento|datiSpecificiRiscossione)[^>]*>[^<]*(?:contribut|CONTRIB)[^<]*</|"
+    r"/\s*RFB\s*/[^<\s/]+//\s*\d{1,6}(?:[.,]\d{2})\s*/\s*TXT\s*/[^<]{0,220}contribut",
+    re.IGNORECASE | re.DOTALL,
 )
 _CONTRIBUTO_RT_TOTAL_AMOUNT_RE = re.compile(
     r"\b(?:importo\s+totale\s+versato|importo\s+totale\s+pagato|totale\s+versato|totale\s+pagato)"
@@ -222,6 +245,16 @@ _CONTRIBUTO_RT_DIRECT_AMOUNT_RE = re.compile(
     r"\bimporto\s*:\s*(?:" + _MONEY_PREFIX_PATTERN + r"\s*)?"
     r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
     re.IGNORECASE,
+)
+_CONTRIBUTO_RT_XML_AMOUNT_RE = re.compile(
+    r"<[^>]*(?:importoTotalePagato|singoloImportoPagato)[^>]*>\s*"
+    r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")\s*</",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_RT_RFB_AMOUNT_RE = re.compile(
+    r"/\s*RFB\s*/[^<\s/]+//\s*(?P<amount>\d{1,6}(?:[.,]\d{2}))\s*/\s*TXT\s*/"
+    r"(?P<causale>[^<]{0,240})",
+    re.IGNORECASE | re.DOTALL,
 )
 _CU_BACKWARD_ACCEPT_RE = re.compile(
     r"\b(?:c\.?\s*u\.?|contribut[oi]\s+unificat[oi]|spese\s+vive|spese|sommatoria|versat[eiio]?|anticipat[ei])\b",
@@ -1135,11 +1168,19 @@ def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any
 
 
 def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
-    if not _CONTRIBUTO_RT_PAYMENT_TYPE_RE.search(compact):
+    is_rt_receipt = bool(_CONTRIBUTO_RT_RECEIPT_RE.search(compact) or _CONTRIBUTO_RT_XML_RE.search(compact))
+    is_contributo_payment = bool(
+        _CONTRIBUTO_RT_PAYMENT_TYPE_RE.search(compact)
+        or _CONTRIBUTO_RT_XML_CONTRIBUTO_RE.search(compact)
+    )
+    if not is_rt_receipt or not is_contributo_payment:
         return {}
-    if not _CONTRIBUTO_RT_RECEIPT_RE.search(compact):
-        return {}
-    for pattern in (_CONTRIBUTO_RT_TOTAL_AMOUNT_RE, _CONTRIBUTO_RT_DIRECT_AMOUNT_RE):
+    for pattern in (
+        _CONTRIBUTO_RT_XML_AMOUNT_RE,
+        _CONTRIBUTO_RT_RFB_AMOUNT_RE,
+        _CONTRIBUTO_RT_TOTAL_AMOUNT_RE,
+        _CONTRIBUTO_RT_DIRECT_AMOUNT_RE,
+    ):
         match = pattern.search(compact)
         if not match:
             continue
@@ -1189,14 +1230,15 @@ def extract_contributo_unificato_document_evidence(
     if non_payment_source and not has_payment_anchor and not has_due_anchor:
         return exemption
     candidates: list[tuple[int, re.Match[str]]] = []
-    for match in _CONTRIBUTO_DOCUMENT_AMOUNT_RE.finditer(compact):
-        snippet = _snippet(compact, match.start(), match.end(), window=60)
-        if _contributo_document_candidate_rejected(compact, match):
-            continue
-        if not _contributo_document_amount_has_direct_context(compact, match):
-            continue
-        priority = 0 if re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", snippet, re.IGNORECASE) else 1
-        candidates.append((priority, match))
+    for amount_pattern in (_CONTRIBUTO_DOCUMENT_AMOUNT_RE, _CONTRIBUTO_DOCUMENT_AMOUNT_SUFFIX_RE):
+        for match in amount_pattern.finditer(compact):
+            snippet = _snippet(compact, match.start(), match.end(), window=60)
+            if _contributo_document_candidate_rejected(compact, match):
+                continue
+            if not _contributo_document_amount_has_direct_context(compact, match):
+                continue
+            priority = 0 if re.search(r"\bcontributo\s+unificat[oi]\b|\bc\.?\s*u\.?\b", snippet, re.IGNORECASE) else 1
+            candidates.append((priority, match))
     if not candidates:
         money = list(_MONEY_RE.finditer(compact))
         if len(money) != 1:

@@ -12,7 +12,8 @@ import json
 import os
 import re
 import hashlib
-from collections import Counter
+import time
+from collections import Counter, OrderedDict
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -1566,6 +1567,103 @@ def _document_analysis_state(
     }
 
 
+_ECONOMIC_AUTO_SOURCES_CACHE: OrderedDict[str, tuple[float, dict[str, dict[str, Any]]]] = OrderedDict()
+
+
+def _economic_auto_cache_limits() -> tuple[int, float, float]:
+    def _read_int(name: str, default: int) -> int:
+        try:
+            return int(str(os.getenv(name, default)).strip() or default)
+        except Exception:
+            return default
+
+    max_entries = max(0, _read_int("IUSENTRA_ECONOMIC_AUTO_CACHE_MAX", 1024))
+    ttl_seconds = max(0, _read_int("IUSENTRA_ECONOMIC_AUTO_CACHE_TTL_SECONDS", 1800))
+    empty_ttl_seconds = max(0, _read_int("IUSENTRA_ECONOMIC_AUTO_CACHE_EMPTY_TTL_SECONDS", 180))
+    return max_entries, float(ttl_seconds), float(empty_ttl_seconds)
+
+
+def _economic_auto_cache_scope() -> str:
+    tenant_id = _current_tenant_id()
+    if tenant_id:
+        return tenant_id
+    if has_app_context():
+        for key in ("FASCICOLI_DB", "CLIENTI_DB", "DATA_ROOT"):
+            value = current_app.config.get(key)
+            if value:
+                return _text(value)
+    return "default"
+
+
+def _clone_automatic_sources(value: dict[str, dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        _text(kind): dict(source)
+        for kind, source in value.items()
+        if _text(kind) and isinstance(source, dict)
+    }
+
+
+def _economic_auto_cache_get(cache_key: str) -> dict[str, dict[str, Any]] | None:
+    if not cache_key:
+        return None
+    max_entries, ttl_seconds, empty_ttl_seconds = _economic_auto_cache_limits()
+    if max_entries <= 0:
+        return None
+    cached = _ECONOMIC_AUTO_SOURCES_CACHE.get(cache_key)
+    if not cached:
+        return None
+    cached_at, value = cached
+    now = time.monotonic()
+    effective_ttl = ttl_seconds if value else empty_ttl_seconds
+    if effective_ttl and now - cached_at > effective_ttl:
+        _ECONOMIC_AUTO_SOURCES_CACHE.pop(cache_key, None)
+        return None
+    _ECONOMIC_AUTO_SOURCES_CACHE.move_to_end(cache_key)
+    return _clone_automatic_sources(value)
+
+
+def _economic_auto_cache_set(cache_key: str, value: dict[str, dict[str, Any]]) -> None:
+    if not cache_key:
+        return
+    max_entries, _ttl_seconds, _empty_ttl_seconds = _economic_auto_cache_limits()
+    if max_entries <= 0:
+        return
+    _ECONOMIC_AUTO_SOURCES_CACHE[cache_key] = (time.monotonic(), _clone_automatic_sources(value))
+    _ECONOMIC_AUTO_SOURCES_CACHE.move_to_end(cache_key)
+    while len(_ECONOMIC_AUTO_SOURCES_CACHE) > max_entries:
+        _ECONOMIC_AUTO_SOURCES_CACHE.popitem(last=False)
+
+
+def _clear_economic_auto_sources_cache_for_tests() -> None:
+    _ECONOMIC_AUTO_SOURCES_CACHE.clear()
+
+
+def _economic_auto_cache_key(
+    fascicolo: Any,
+    payments: Any,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> str:
+    payment_snapshot: dict[str, Any] = {}
+    for kind in PAYMENT_KINDS:
+        raw = _payment_source_for_kind(payments, kind)
+        if raw:
+            payment_snapshot[kind] = raw
+    payload = {
+        "scope": _economic_auto_cache_scope(),
+        "fascicoloId": _text(getattr(fascicolo, "id", "")),
+        "numero": _text(getattr(fascicolo, "numero", "")),
+        "numeroRg": _text(getattr(fascicolo, "numero_rg", "")),
+        "annoRg": _text(getattr(fascicolo, "anno_rg", "")),
+        "cliente": _text(getattr(fascicolo, "nome_cliente", "")),
+        "documentsFingerprint": _document_analysis_fingerprint(fascicolo, related_fascicoli),
+        "payments": payment_snapshot,
+    }
+    encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _document_evidence_probe(text: str, metadata: dict[str, Any], *, limit: int = 40000) -> str:
     label = " ".join(
         _text(metadata.get(key))
@@ -2197,11 +2295,16 @@ def _payments_with_automatic_sources(
     base = dict(payments) if isinstance(payments, dict) else {}
     if not enabled:
         return base
-    for kind, automatic in _automatic_payment_sources_for_fascicolo(
-        fascicolo,
-        base,
-        related_fascicoli=related_fascicoli,
-    ).items():
+    cache_key = _economic_auto_cache_key(fascicolo, base, related_fascicoli)
+    automatic_sources = _economic_auto_cache_get(cache_key)
+    if automatic_sources is None:
+        automatic_sources = _automatic_payment_sources_for_fascicolo(
+            fascicolo,
+            base,
+            related_fascicoli=related_fascicoli,
+        )
+        _economic_auto_cache_set(cache_key, automatic_sources)
+    for kind, automatic in automatic_sources.items():
         raw = _payment_source_for_kind(base, kind)
         base[kind] = _merge_auto_payment_source(raw, automatic, kind=kind)
     return base

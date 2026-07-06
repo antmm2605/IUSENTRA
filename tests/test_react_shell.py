@@ -5415,6 +5415,118 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     assert contributo["documentoFonte"] == "Pagamento cu.xml"
 
 
+def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    bridge._clear_economic_auto_sources_cache_for_tests()
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Betti C. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Betti Alice",
+        tribunale="Tribunale di Palmi",
+        numero_rg="3685",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Pagamento cu.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        data_documento="2026-05-31",
+        classificazione_portale="Contributo unificato / pagamento",
+        note="Import QuickOrganizer.",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    calls: list[str] = []
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+    monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    def fake_extract(item, doc):
+        calls.append(getattr(doc, "nome", ""))
+        return (
+            "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
+            "Tipo pagamento: Contributo unificato. "
+            "Importo totale versato: euro 49,00. Data pagamento: 17/03/2026. Esito pagamento: 0."
+        )
+
+    monkeypatch.setattr(bridge, "_extract_presidio_text_from_physical_document", fake_extract)
+
+    for _ in range(2):
+        response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+        payload = response.get_json()
+        item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+        contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+        assert response.status_code == 200
+        assert contributo["status"] == "pagato"
+        assert contributo["importo"] == 49.0
+        assert contributo["importoLabel"] == "€ 49,00"
+
+    assert calls == ["Pagamento cu.PDF"]
+    bridge._clear_economic_auto_sources_cache_for_tests()
+
+
+def test_react_fascicoli_economia_cache_cambia_quando_arriva_nuovo_documento(tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    bridge._clear_economic_auto_sources_cache_for_tests()
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Controllo cache c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Cache",
+        tribunale="Tribunale di Palmi",
+        numero_rg="4102",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Pagamento cu.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        classificazione_portale="Contributo unificato / pagamento",
+    )
+    with app.app_context():
+        before = fascicoli.get(fascicolo.id)
+        before_key = bridge._economic_auto_cache_key(before, before.pagamenti)
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Autocertificazione reddituale.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\nautocertificazione\n%%EOF",
+        classificazione_portale="Autocertificazione esenzione contributo unificato",
+    )
+    with app.app_context():
+        after = fascicoli.get(fascicolo.id)
+        after_key = bridge._economic_auto_cache_key(after, after.pagamenti)
+
+    assert before_key != after_key
+    bridge._clear_economic_auto_sources_cache_for_tests()
+
+
 def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mirata(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 

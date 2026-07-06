@@ -4442,6 +4442,31 @@ Prove obbligatorie prima della chiusura del rilascio:
 - verifica server Hetzner su `https://app.iusentra.it/api/pronto`;
 - verifica dati reali produzione: `Betti C. MIM / RG 3685/2026` deve conservare `Pagato € 49,00`, un fascicolo con autocertificazione deve conservare `Non previsto`, mentre `Alfano Giuseppe c. MIM / RG 1100/2026` non deve più risultare `Pagato` senza importo.
 
+## Fascicoli - cache automatica presidio economico documentale 2026-07-06
+
+Aggiornamento operativo `2.253.196`.
+
+Problema emerso dopo la verifica server del rilascio `2.253.195`: la vista economica sui fascicoli dello studio Montagnese produceva dati corretti, ma poteva impiegare troppo tempo perché rileggeva PDF/XML e testi Document AI a ogni richiesta anche quando i documenti del fascicolo non erano cambiati. Questo non è un supporto professionale: il sistema deve sapere quando rianalizzare e quando riusare l'ultima lettura valida.
+
+Regola corretta:
+
+- la lettura automatica di contributo unificato, autocertificazioni, sentenze, liquidazioni e parcelle usa una cache LRU in memoria del processo applicativo;
+- la chiave della cache contiene tenant, fascicolo, numero/RG, cliente, stato pagamenti e impronta documentale calcolata su id, nome, nome originale, tipo, hash, dimensione, data caricamento e id portale;
+- se viene caricato, modificato o ricollegato un documento, l'impronta cambia e la lettura economica torna automaticamente da eseguire;
+- se i documenti e i pagamenti restano identici, la vista economica riusa la fonte automatica già letta e non riapre fisicamente gli stessi file.
+- una lettura senza evidenze ha durata breve, così un OCR di fondo completato dopo il primo caricamento può essere recepito senza attendere modifiche manuali al fascicolo.
+
+Guardrail aggiunti:
+
+- `tests/test_react_shell.py::test_react_fascicoli_economia_non_riapre_documenti_invariati`;
+- `tests/test_react_shell.py::test_react_fascicoli_economia_cache_cambia_quando_arriva_nuovo_documento`.
+
+Prove obbligatorie prima della chiusura del rilascio:
+
+- verificare che i casi reali `Betti`, `Merdini` e `Alfano` conservino gli esiti corretti;
+- misurare due richieste consecutive della vista economica sul server: la seconda deve essere sensibilmente più rapida perché non rilegge i file invariati;
+- verificare locale Docker reale `127.0.0.1:8080`, commit GitHub gemelli, deploy Hetzner e container unico `iusentra-app`.
+
 ## React shell - entry Vite senza query string 2026-07-06
 
 Aggiornamento operativo `2.253.194`.

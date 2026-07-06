@@ -52,6 +52,82 @@ def test_bridge_helper_none_se_nessuna_sentenza(monkeypatch):
     assert bridge._sentenze_economiche("F1") is None
 
 
+def test_bridge_helper_non_mostra_id_documento_numerico():
+    assert bridge._readable_document_source("20260317101453130") == "Documento indicizzato del fascicolo"
+    assert bridge._readable_document_source("20260317101453130.PDF") == "Documento indicizzato del fascicolo"
+
+
+def test_payment_item_non_espone_id_documento_numerico():
+    item = bridge._payment_item(
+        "contributo_unificato",
+        {
+            "status": "pagato",
+            "importo": 49.0,
+            "documento_fonte": "20260317101453130.PDF",
+        },
+        "F1",
+    )
+
+    assert item["documentoFonte"] == "Ricevuta pagoPA"
+    assert item["documentoFonteRaw"] == "20260317101453130.PDF"
+
+
+def test_bridge_helper_sanitizza_fonte_sentenza_runtime(monkeypatch):
+    monkeypatch.setattr(runtime, "build_sentenza_economic_payload", lambda fid="": {
+        "ok": True,
+        "summary": {
+            "kpi": {"label": "Evidenze economiche lette", "value": "€ 258,00", "tone": "success"},
+            "worklist": [{
+                "label": "Liquidazione letta",
+                "value": "€ 258,00",
+                "hint": "Pagato - Fonte: sentenza_key:studio|F1|2026-06-15|652|2026|912|2026",
+                "tone": "success",
+            }],
+            "totals": {"sentenze_lette": 1, "sentenze_verificate": 0, "da_verificare": 0,
+                       "crediti_cliente": 0.0, "crediti_avvocato_antistatario": 0.0,
+                       "spese_liquidate_totale": 258.0, "contributo_unificato_alert": 0},
+        },
+    })
+
+    block = bridge._sentenze_economiche("F1")
+
+    assert block is not None
+    assert "sentenza_key" not in block["worklist"][0]["hint"]
+    assert "Sentenza del 15/06/2026" in block["worklist"][0]["hint"]
+
+
+def test_bridge_helper_mostra_evidenze_economiche_gia_lette_se_audit_vuoto(monkeypatch):
+    monkeypatch.setattr(runtime, "build_sentenza_economic_payload", lambda fid="": {
+        "ok": True, "summary": {"kpi": {}, "worklist": [], "totals": {"sentenze_lette": 0}},
+    })
+    block = bridge._sentenze_economiche("F1", payment_summary={
+        "items": {
+            "liquidazione_giudice": {
+                "status": "pagato",
+                "statusLabel": "Pagato",
+                "importo": 258.0,
+                "documentoFonte": "sentenza_key:studio|F1|2026-06-15|652|2026|912|2026",
+                "tone": "success",
+            },
+            "parcella": {
+                "status": "da_emettere",
+                "statusLabel": "Da emettere",
+                "importo": 376.46,
+                "documentoFonte": "sentenza_key:studio|F1|2026-06-15|652|2026|912|2026",
+                "tone": "warning",
+            },
+        },
+    })
+
+    assert block is not None
+    assert block["totals"]["sentenze_lette"] == 1
+    assert block["totals"]["spese_liquidate_totale"] == 258.0
+    assert block["kpi"]["value"] == "€ 258,00"
+    assert any(item["label"] == "Liquidazione letta" and item["value"] == "€ 258,00" for item in block["worklist"])
+    assert all("sentenza_key" not in item["hint"] for item in block["worklist"])
+    assert any("Sentenza del 15/06/2026" in item["hint"] for item in block["worklist"])
+
+
 def test_prova_reale_gli_importi_arrivano_dal_repository(monkeypatch, tmp_path):
     # Semina un audit reale (distrazione -> credito avvocato 4200) nel repo tenant.
     repo = SentenzaEconomicRepository(tmp_path / "se.db")

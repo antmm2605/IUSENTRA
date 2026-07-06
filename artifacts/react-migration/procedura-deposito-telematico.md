@@ -1,5 +1,54 @@
 # Procedura deposito telematico IUSENTRA
 
+## Fascicoli - proforma automatica in bozza e presidio economico server 2026-07-06
+
+Ambito: fascicoli del tenant produzione `studio-legale-giuseppe-montagnese`, controllo economico, sentenze, contributo unificato, bozze proforma e assenza di doppioni.
+
+Regola professionale confermata:
+
+- la proforma deve essere automatica quando il fascicolo contiene una base economica certa;
+- il documento generato resta `BOZZA` e non viene emesso automaticamente;
+- la UI deve dire all'avvocato che la bozza è da visionare e confermare prima dell'emissione;
+- il motore non deve creare documenti fittizi quando mancano sentenza, liquidazione o compenso pattuito;
+- una parcella/proforma attiva già presente impedisce nuove bozze duplicate;
+- in presenza di stesso cliente e stesso RG il software segnala la riconciliazione prima di aggiornare economia o proforma.
+
+Modifiche applicate:
+
+- `web/services/react_fascicoli_bridge.py` espone `proformaPresidio`, crea bozze automatiche da sentenza o da compenso pattuito/preventivato e legge sentenze fisiche PDF/testo quando non ancora indicizzate;
+- `pct/fascicolo_sentenza_economica.py` normalizza gli RG importati con zeri iniziali, così una sentenza `00001548/2026` può alimentare il fascicolo `RG 1548/2026` se cliente e contesto coincidono;
+- `frontend/src/components/FascicoliPage.tsx` mostra `Bozza proforma da visionare`, fonti leggibili e stati `Da verificare`/`Da calcolare` invece di placeholder tecnici;
+- la route React `/api/v1/ui/fascicoli/presidio-economico/proforme` avvia il presidio idempotente e non crea duplicati.
+
+Esito dati produzione:
+
+- fascicoli in SQL: 333;
+- fascicoli non archiviati visibili in lista: 300;
+- stati SQL attuali: 238 `IN_CORSO`, 61 `DEFINITO`, 33 `ARCHIVIATO`, 1 `APERTO`;
+- la card `Da archiviare` deve contare solo i 61 `DEFINITO` non archiviati; i 33 già archiviati devono restare nota separata, non sommati al numero principale;
+- parcelle/proforme passate da 12 a 21;
+- bozze automatiche create: 9;
+- fascicoli definiti/archiviati ancora senza proforma/parcella: 78;
+- dashboard produzione aggiornata: `ATTIVI 300`, `DA ARCHIVIARE 61`, `DOPPIONI 0`, `REGISTRATO € 14.340,00`, `PARCELLE 67`, `46 da emettere, 21 bozze da visionare`, `DOCUMENTI 13052`.
+
+Prova visiva produzione:
+
+- `https://app.iusentra.it/fascicoli?vista=economica` caricata in sessione autenticata;
+- card iniziali verificate: `Da archiviare 61`, nota `61 definiti, 33 già archiviati`, `Parcelle 67`, nota `46 da emettere, 21 bozze da visionare`, `Doppioni 0`;
+- riga Betti: proforma `2026/005` visibile come bozza da visionare, liquidazione `€ 1.100,00` e parcella `€ 1.605,03`;
+- riga Betti: contributo unificato letto dalla ricevuta pagoPA come `€ 49,00`, stato `Pagato`, data `17/03/2026`, senza esporre il nome tecnico `20260317101453130.PDF`;
+- riga Merdini: contributo unificato non previsto con fonte autocertificazione;
+- ricerca `Betti`: lista ridotta a una sola riga, filtro verificato;
+- nessun `sentenza_key`, `document_id`, `docai` o path tenant visibile nelle evidenze economiche.
+- prova locale reale dopo rebuild Docker `2.253.188`: `http://127.0.0.1:8080/fascicoli?vista=economica` carica React nel browser integrato; sul tenant locale disponibile la card `Parcelle` mostra `1 da emettere, 1 bozze da visionare` e le righe economiche mostrano `Da calcolare` / `DA EMETTERE`, senza vecchia formula `da preparare` nella card.
+
+Guardrail automatici eseguiti:
+
+- `python -m py_compile web/services/react_fascicoli_bridge.py pct/fascicolo_sentenza_economica.py`;
+- `python -m pytest tests/test_fascicolo_sentenza_economica.py::test_sentenza_con_rg_importato_a_zeri_iniziali_aggiorna_economia tests/test_fascicolo_sentenza_economica.py::test_sentenza_con_cliente_ma_rg_diverso_non_aggiorna_economia tests/test_react_shell.py::test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito tests/test_react_shell.py::test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata -q`.
+
+Stato: hotfix verificato sul server reale e riallineato sulla copia Docker locale `127.0.0.1:8080`; restano obbligatori commit, push branch gemelli, deploy Hetzner dal commit finale e controlli GitHub/CodeQL prima della chiusura.
+
 Aggiornato: 2026-07-06.
 
 ## Aggiornamento 2026-07-05 - Clienti, soggetti, sentenze economiche, email mobile e lettore documenti
@@ -2910,11 +2959,11 @@ Verifica reale locale eseguita dopo rebuild Docker:
 
 Dati osservati nel fascicolo locale `RG 466/2023`:
 
-- `Contributo unificato da pagare`: `EUR 98,00`, stato `Da registrare`, data vuota;
-- `Spese/esborsi`: `EUR 125,00`, stato `Pagato`;
-- `Liquidazione giudice`: `EUR 1.500,00`, stato `Pagato`;
-- `Parcella`: `EUR 2.028,20`, stato `Da emettere`;
-- `Totale registrato`: `EUR 1.625,00`, quindi il CU dovuto non viene conteggiato come incasso pagato;
+- `Contributo unificato da pagare`: `€ 98,00`, stato `Da registrare`, data vuota;
+- `Spese/esborsi`: `€ 125,00`, stato `Pagato`;
+- `Liquidazione giudice`: `€ 1.500,00`, stato `Pagato`;
+- `Parcella`: `€ 2.028,20`, stato `Da emettere`;
+- `Totale registrato`: `€ 1.625,00`, quindi il CU dovuto non viene conteggiato come incasso pagato;
 - la voce `Fondo spese` non compare più in tabella, card mobile, filtri economici o riepilogo.
 
 Impatto su deposito/PEC/notifiche: la logica resta unica nella pipeline documentale. Il backfill e il worker scheduler usano lo stesso estrattore CU governato, mentre `fondo_spese` è solo alias legacy verso `spese_esborsi`; di conseguenza Fascicoli, Lex AI, preparazione deposito, notifiche e PEC leggono la stessa matrice economica, evitando importi duplicati o falsi CU da Carta docente/reddito/autocertificazioni.
@@ -4259,3 +4308,66 @@ Stato:
 
 - codice e prova locale reale completati sulla copia Docker `127.0.0.1:8080`;
 - il gate di rilascio resta legato allo SHA finale: commit, push branch gemelli, controlli GitHub/CodeQL, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` produzione e pulizia Docker devono risultare dal report operativo dello stesso commit.
+
+## Fascicoli - logica economica documentale e anti-doppioni 2026-07-06
+
+Ambito: lista Fascicoli economica, documenti indicizzati del fascicolo, contributo unificato, autocertificazioni/esenzioni, sentenze, liquidazioni, parcelle e duplicazioni cliente/RG.
+
+Regola professionale introdotta:
+
+- `€ 0,00` non è un dato economico utilizzabile se lo stato è ancora `Da registrare`, `Da emettere` o `Parziale`: è un placeholder storico e il motore deve provare a sostituirlo con evidenze documentali;
+- se il fascicolo contiene ricevuta PagoPA/CU, la voce `Contributo unificato` viene proposta come pagata con importo, data e documento fonte;
+- se il fascicolo contiene richiesta di versamento CU, la voce resta `Da registrare` ma con importo dovuto e fonte documento;
+- se il fascicolo contiene autocertificazione reddituale, esenzione dal contributo, art. 9 comma 1-bis DPR 115/2002, ammissione al patrocinio a spese dello Stato o prenotazione a debito, la voce viene proposta come `Non previsto`/esente, senza importo fittizio e con fonte documento;
+- se il PDF non è ancora OCRizzato o indicizzato, il nome/metadato del documento resta un'evidenza valida quando è specifico, ad esempio `Autocertificazione esenzione cu diritto lavoro.PDF`: in quel caso il motore deve proporre `Contributo unificato` come `Non previsto`, con fonte documento, senza attendere una lettura testuale;
+- se il fascicolo contiene una sentenza compatibile per RG/parti, liquidazione, spese/esborsi e parcella proposta vengono popolati anche quando i campi storici erano a zero;
+- il controllo economico non deve confondere importi Carta docente, soglie reddituali o valore della causa con contributo unificato pagato;
+- una pratica con stesso cliente normalizzato e stesso RG non deve nascere: la creazione blocca il doppione e la riconciliazione storica accorpa documenti e pagamenti preservando le registrazioni manuali.
+
+Quando rianalizzare:
+
+- ogni aggiunta, sostituzione o rimozione documento marca il fascicolo come `Da rianalizzare`;
+- la vista operativa non avvia lettura documentale pesante, per mantenere rapido il caricamento;
+- la vista economica e il dettaglio, dove il dato è necessario all'avvocato, leggono i testi Document AI/OCR già presenti e mostrano stato, importo se dovuto, fonte e ragione;
+- l'impronta dei documenti del fascicolo e delle pratiche riconciliate impedisce di trattare come aggiornato un controllo economico riferito a documenti cambiati.
+
+Fonti normative e operative considerate:
+
+- art. 9 comma 1-bis DPR 115/2002 per le esenzioni del contributo unificato nei casi previsti;
+- DPR 115/2002 e PagoPA/PST per contributo unificato, versamenti e ricevute;
+- artt. 91 e 93 c.p.c. per spese liquidate, distrazione e credito dell'avvocato antistatario;
+- artt. 127-bis, 127-ter e 171-ter c.p.c. per raccordare udienze, termini e scadenze documentali con la regia operativa del fascicolo.
+
+Guardrail automatici eseguiti in questa tranche:
+
+- `python -m py_compile pct/fascicolo_sentenza_economica.py web/services/react_fascicoli_bridge.py`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza -q`.
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza -q`.
+
+Stato:
+
+- codice locale aggiornato a `2.253.184`;
+- prova server reale, riconciliazione dati produzione, prova visiva su `https://app.iusentra.it/fascicoli?vista=economica`, rebuild locale `127.0.0.1:8080`, commit, push branch gemelli, check GitHub/CodeQL e deploy Hetzner finale restano parte obbligatoria del rilascio prima della chiusura.
+
+## Fascicoli - microcopy e autocertificazione CU importata 2026-07-06
+
+Aggiornamento operativo `2.253.185`/`2.253.186`/`2.253.187`.
+
+Problema reale visto su produzione: la vista economica mostrava chiavi tecniche come `sentenza_key:...` e, su alcuni fascicoli Montagnese, mostrava `Autocertificazione esenzione contributo unificato` senza trasformare il contributo in `Non previsto`. Per l'avvocato questo non è supporto: il sistema deve tradurre fonte, importo e stato in una decisione comprensibile.
+
+Regola aggiunta:
+
+- la fascia `Controllo documenti` non espone più chiavi interne, identificativi Document AI o motivazioni tecniche grezze;
+- sentenze, autocertificazioni, ricevute pagoPA e documenti importati vengono mostrati con fonte leggibile;
+- se un campo economico placeholder contiene nei propri metadati una fonte come `Autocertificazione esenzione cu diritto lavoro.PDF`, l'evidenza viene usata anche senza OCR;
+- i nomi file importati con separatori tecnici, per esempio `AUTOCERTIFICAZIONE_DELLA_SITUAZIONE_REDDITUALE_-_ESENZIONE_CONTRIBUTO_UNIFICATO_2025.PDF`, vengono normalizzati prima della lettura logica;
+- se l'autocertificazione CU è stata importata per errore sotto `spese/esborsi`, il presidio la sposta logicamente sul contributo unificato e non la tratta come spesa da registrare;
+- un valore storico `€ 0,00` resta placeholder quando lo stato è `Da registrare` o `Da emettere`: non deve impedire alla lettura documentale di proporre lo stato corretto.
+
+Guardrail eseguiti:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `python -m py_compile web/services/react_fascicoli_bridge.py pct/fascicolo_sentenza_economica.py`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza -q`.
+
+Prova server reale eseguita su `https://app.iusentra.it/fascicoli?vista=economica`: dopo il primo rebuild `2.253.185` la UI non esponeva più `sentenza_key`, `Aggiornato in lettura` o `Lettura documenti`; la stessa prova ha fatto emergere il caso `Merdini Manjola - RG 2848/2026`, corretto con le regole `2.253.186` e `2.253.187` prima della chiusura.

@@ -811,7 +811,7 @@ class WorkspaceIntelligenteService:
         fascicoli_hot = self._fascicoli_hot(horizon_days=horizon_days, limit=hot_limit)
         try:
             duplicate_groups = duplicate_practice_groups(
-                item for item in self.fascicoli.tutti() if not _is_closed_fascicolo(item)
+                item for item in self.fascicoli.tutti() if not _stato_fascicolo_chiuso(item)
             )
         except Exception:
             duplicate_groups = []

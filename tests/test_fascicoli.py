@@ -97,6 +97,127 @@ def test_titolo_vuoto_errore(gf):
         gf.nuovo(titolo="  ", tipo=TipoFascicolo.CIVILE)
 
 
+def test_nuovo_blocca_doppione_cliente_rg(gf):
+    primo = gf.nuovo(
+        titolo="Spagnolo Sara c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Spagnolo Sara",
+        numero_rg="3950",
+        anno_rg=2026,
+        tribunale="Tribunale di Vicenza",
+    )
+
+    secondo = gf.nuovo(
+        titolo="Spagnolo Sara c. Ministero",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Sara Spagnolo",
+        numero_rg="3950",
+        anno_rg=2026,
+        tribunale="Tribunale di Vicenza",
+    )
+
+    assert secondo.id == primo.id
+    assert len(gf.tutti()) == 1
+    assert any("Creazione doppione bloccata" in item.descrizione for item in secondo.avanzamento)
+
+
+def test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti(gf):
+    principale = gf.nuovo(
+        titolo="Punturiero c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Punturiero Rosa",
+        numero_rg="1733",
+        anno_rg=2026,
+        data_prossima_udienza="",
+    )
+    duplicato = Fascicolo(
+        id="DUP1733A",
+        numero="2026/999",
+        titolo="RG 1733/2026 - retribuzione",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Rosa Punturiero",
+        numero_rg="1733",
+        anno_rg=2026,
+        data_prossima_udienza="2026-09-10",
+        pagamenti={
+            "liquidazione_giudice": {
+                "status": "da_registrare",
+                "importo": 1100,
+                "documento_fonte": "Sentenza.pdf",
+            }
+        },
+    )
+    dup_dir = gf.documents_dir / duplicato.id
+    dup_dir.mkdir(parents=True, exist_ok=True)
+    source_file = dup_dir / "Sentenza.pdf"
+    source_file.write_bytes(b"%PDF-1.4 sentenza")
+    duplicato.documenti.append(
+        Documento(
+            id="DOCSENT1",
+            nome="Sentenza.pdf",
+            tipo=TipoDocumento.SENTENZA,
+            percorso=f"{duplicato.id}/Sentenza.pdf",
+            dimensione_bytes=source_file.stat().st_size,
+            hash_sha256="sentenza-hash",
+        )
+    )
+    gf._fascicoli[duplicato.id] = duplicato
+    gf._salva()
+
+    report = gf.riconcilia_doppioni_cliente_rg()
+    primary_id = report["groups"][0]["primaryId"]
+    aggiornato = gf.get(primary_id)
+
+    assert report["removedDuplicates"] == 1
+    assert primary_id in {principale.id, duplicato.id}
+    assert len(gf.tutti()) == 1
+    assert aggiornato.data_prossima_udienza == "2026-09-10"
+    assert any(doc.nome == "Sentenza.pdf" for doc in aggiornato.documenti)
+    assert gf.percorso_documento_lettura(aggiornato.id, "DOCSENT1").exists()
+    assert aggiornato.pagamenti["liquidazione_giudice"]["importo"] == 1100
+    assert aggiornato.pagamenti["_presidio_documentale"]["status"] == "stale"
+
+
+def test_aggiungi_documento_marca_presidio_da_rianalizzare(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Decreto fissazione udienza.pdf",
+        tipo=TipoDocumento.DECRETO,
+        contenuto=b"%PDF-1.4 decreto",
+    )
+    aggiornato = gf.get(fascicolo_base.id)
+
+    assert aggiornato.pagamenti["_presidio_documentale"]["status"] == "stale"
+    assert aggiornato.pagamenti["_presidio_documentale"]["document_id"] == doc.id
+
+
+def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):
+    primo = gf.nuovo(
+        titolo="Cliente c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Test",
+        numero_rg="701",
+        anno_rg=2026,
+    )
+    secondo = gf.nuovo(
+        titolo="Altro fascicolo",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Altro Cliente",
+        numero_rg="702",
+        anno_rg=2026,
+    )
+
+    aggiornato = gf.aggiorna(
+        secondo.id,
+        nome_cliente="Test Cliente",
+        numero_rg="701",
+        anno_rg=2026,
+    )
+
+    assert aggiornato.id in {primo.id, secondo.id}
+    assert len(gf.tutti()) == 1
+
+
 def test_aggiorna_fascicolo(gf, fascicolo_base):
     f = gf.aggiorna(fascicolo_base.id, giudice="Dott. Neri", sezione="I")
     assert f.giudice == "Dott. Neri"

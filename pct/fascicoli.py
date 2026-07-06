@@ -8,6 +8,7 @@ Ogni fascicolo è legato a un cliente e raccoglie:
 - Archivio con export ZIP quando la pratica è definita
 """
 
+import copy
 import json
 import uuid
 import zipfile
@@ -22,6 +23,7 @@ from enum import Enum
 
 from pct.profilo_deposito import costruisci_profilo_deposito
 from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
+from pct.fascicolo_document_presidio import normalise_practice_duplicate_key
 
 _PROFILO_DEPOSITO_FASCICOLO_FIELDS = {
     "tipo",
@@ -1019,6 +1021,353 @@ class GestioneFascicoli:
                 return candidate
             seq += 1
 
+    # ---------------------------------------------------------------- Presidi qualità dati
+
+    def _chiave_identita_pratica(self, fascicolo: "Fascicolo") -> str:
+        return normalise_practice_duplicate_key(fascicolo)
+
+    def _trova_fascicolo_duplicato(self, candidato: "Fascicolo") -> Optional["Fascicolo"]:
+        key = self._chiave_identita_pratica(candidato)
+        if not key:
+            return None
+        for fascicolo in self._fascicoli.values():
+            if fascicolo.id == candidato.id:
+                continue
+            if self._chiave_identita_pratica(fascicolo) == key:
+                return fascicolo
+        return None
+
+    @staticmethod
+    def _stato_pagamento_vuoto(value: Any) -> bool:
+        if not isinstance(value, dict):
+            return value in {None, ""}
+        amount = value.get("importo") if "importo" in value else value.get("amount")
+        try:
+            has_amount = abs(float(amount or 0)) > 0.01
+        except (TypeError, ValueError):
+            has_amount = False
+        status = str(value.get("status") or value.get("stato") or "").strip().lower()
+        if has_amount:
+            return False
+        return status in {"", "non_previsto", "da_registrare", "da_emettere"}
+
+    @classmethod
+    def _merge_pagamenti_preservando_manualita(
+        cls,
+        primary: dict[str, Any] | None,
+        incoming: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        merged = dict(primary or {})
+        for key, value in dict(incoming or {}).items():
+            if key not in merged or cls._stato_pagamento_vuoto(merged.get(key)):
+                merged[key] = copy.deepcopy(value)
+                continue
+            if isinstance(merged.get(key), dict) and isinstance(value, dict):
+                current = dict(merged[key])
+                for field_name, field_value in value.items():
+                    if field_name not in current or current.get(field_name) in {None, "", []}:
+                        current[field_name] = copy.deepcopy(field_value)
+                merged[key] = current
+        return merged
+
+    @staticmethod
+    def _preferisci_data_prossima(current: str, incoming: str) -> str:
+        current = str(current or "").strip()
+        incoming = str(incoming or "").strip()
+        if not current:
+            return incoming
+        if not incoming:
+            return current
+        oggi = date.today().isoformat()
+        if current >= oggi and incoming >= oggi:
+            return min(current, incoming)
+        if incoming >= oggi and current < oggi:
+            return incoming
+        return current
+
+    def _assorbi_campi_base(self, primary: "Fascicolo", incoming: "Fascicolo") -> bool:
+        changed = False
+        fill_if_empty = (
+            "titolo",
+            "id_cliente",
+            "nome_cliente",
+            "controparte",
+            "cf_controparte",
+            "tribunale",
+            "numero_rg",
+            "anno_rg",
+            "giudice",
+            "sezione",
+            "avvocato_referente",
+            "avvocato_dominus",
+            "oggetto",
+            "tipo_procedimento",
+            "id_pratica",
+            "area_pratica",
+            "codice_oggetto_pst",
+            "fonte_codice_oggetto",
+            "file_fonte_codice_oggetto",
+            "riferimento_cartaceo",
+            "attore_principale",
+            "cancelliere",
+            "ctu",
+            "ctp",
+            "source",
+            "source_external_id",
+            "sync_status",
+            "import_log_id",
+        )
+        for field_name in fill_if_empty:
+            current = getattr(primary, field_name, "")
+            incoming_value = getattr(incoming, field_name, "")
+            if current in {None, "", 0} and incoming_value not in {None, "", 0}:
+                setattr(primary, field_name, copy.deepcopy(incoming_value))
+                changed = True
+        for field_name in ("valore_causa", "valore_preventivato", "compenso_pattuito"):
+            if not float(getattr(primary, field_name, 0) or 0) and float(getattr(incoming, field_name, 0) or 0):
+                setattr(primary, field_name, getattr(incoming, field_name))
+                changed = True
+        for field_name in ("data_apertura", "data_chiusura", "data_prima_udienza"):
+            current = str(getattr(primary, field_name, "") or "").strip()
+            incoming_value = str(getattr(incoming, field_name, "") or "").strip()
+            if not current and incoming_value:
+                setattr(primary, field_name, incoming_value)
+                changed = True
+        next_date = self._preferisci_data_prossima(primary.data_prossima_udienza, incoming.data_prossima_udienza)
+        if next_date != primary.data_prossima_udienza:
+            primary.data_prossima_udienza = next_date
+            changed = True
+        merged_payments = self._merge_pagamenti_preservando_manualita(primary.pagamenti, incoming.pagamenti)
+        if merged_payments != (primary.pagamenti or {}):
+            primary.pagamenti = merged_payments
+            changed = True
+        if not primary.profilo_deposito and incoming.profilo_deposito:
+            primary.profilo_deposito = copy.deepcopy(incoming.profilo_deposito)
+            changed = True
+        if not primary.source_snapshot and incoming.source_snapshot:
+            primary.source_snapshot = copy.deepcopy(incoming.source_snapshot)
+            changed = True
+        return changed
+
+    @staticmethod
+    def _documento_identity_keys(doc: "Documento") -> set[str]:
+        keys: set[str] = set()
+        sha = str(getattr(doc, "hash_sha256", "") or "").strip().lower()
+        if sha:
+            keys.add(f"sha:{sha}")
+        for value in (
+            getattr(doc, "id_documento_portale", ""),
+            getattr(doc, "id_cat_portale", ""),
+            getattr(doc, "id_repeatto_portale", ""),
+            getattr(doc, "msg_id_portale", ""),
+        ):
+            text = str(value or "").strip().lower()
+            if text:
+                keys.add(f"portal:{text}")
+        name = _normalizza_nome_documento_match(
+            getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "") or getattr(doc, "nome", "")
+        )
+        if name:
+            keys.add(f"name:{name}:{int(getattr(doc, 'dimensione_bytes', 0) or 0)}")
+        return keys
+
+    def _copia_documento_su_fascicolo_principale(
+        self,
+        primary: "Fascicolo",
+        source_fascicolo: "Fascicolo",
+        doc: "Documento",
+        *,
+        existing_doc_ids: set[str],
+    ) -> "Documento":
+        cloned = copy.deepcopy(doc)
+        old_id = cloned.id
+        if cloned.id in existing_doc_ids:
+            cloned.id = uuid.uuid4().hex[:8].upper()
+        source_path = self.documents_dir / Path(str(getattr(doc, "percorso", "") or "").replace("\\", "/"))
+        target_dir = self.documents_dir / primary.id
+        target_dir.mkdir(parents=True, exist_ok=True)
+        if source_path.exists():
+            base_name = Path(cloned.percorso or cloned.nome or f"{cloned.id}.bin").name
+            target_path = target_dir / base_name
+            if target_path.exists():
+                stem = target_path.stem
+                suffix = target_path.suffix
+                target_path = target_dir / f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+            shutil.copy2(source_path, target_path)
+            cloned.percorso = str(target_path.relative_to(self.documents_dir))
+        marker = f"Riconciliato da fascicolo {source_fascicolo.numero or source_fascicolo.id}."
+        if marker not in str(cloned.note or ""):
+            cloned.note = " ".join(part for part in [str(cloned.note or "").strip(), marker] if part)
+        tags = list(cloned.tags or [])
+        if "riconciliazione-doppione" not in tags:
+            tags.append("riconciliazione-doppione")
+        cloned.tags = tags
+        existing_doc_ids.add(cloned.id)
+        if old_id != cloned.id:
+            cloned.note = " ".join(part for part in [cloned.note, f"ID origine {old_id}."] if part)
+        return cloned
+
+    @staticmethod
+    def _unique_serialized_rows(rows: Iterable[Any], key_fields: tuple[str, ...]) -> set[tuple[str, ...]]:
+        out: set[tuple[str, ...]] = set()
+        for row in rows or []:
+            out.add(tuple(str(getattr(row, field, "") or "").strip().casefold() for field in key_fields))
+        return out
+
+    @staticmethod
+    def _score_fascicolo_principale(fascicolo: "Fascicolo") -> tuple[int, int, int, int, str]:
+        active = 0 if fascicolo.stato == StatoFascicolo.ARCHIVIATO else 1
+        payments = getattr(fascicolo, "pagamenti", {}) or {}
+        economic = sum(1 for value in payments.values() if not GestioneFascicoli._stato_pagamento_vuoto(value))
+        return (
+            active,
+            len(getattr(fascicolo, "documenti", []) or []),
+            economic,
+            1 if str(getattr(fascicolo, "data_prossima_udienza", "") or "").strip() else 0,
+            str(getattr(fascicolo, "modificato_il", "") or ""),
+        )
+
+    def _segna_analisi_fascicolo_da_rieseguire(
+        self,
+        fascicolo: "Fascicolo",
+        *,
+        reason: str,
+        document_id: str = "",
+    ) -> None:
+        payments = dict(fascicolo.pagamenti or {})
+        payments["_presidio_documentale"] = {
+            "status": "stale",
+            "reason": reason,
+            "document_id": str(document_id or "").strip(),
+            "updated_at": datetime.now().isoformat(),
+        }
+        fascicolo.pagamenti = payments
+
+    def riconcilia_doppioni_cliente_rg(self, *, dry_run: bool = False) -> dict[str, Any]:
+        groups: dict[str, list[Fascicolo]] = {}
+        for fascicolo in self._fascicoli.values():
+            key = self._chiave_identita_pratica(fascicolo)
+            if key:
+                groups.setdefault(key, []).append(fascicolo)
+        report: dict[str, Any] = {
+            "ok": True,
+            "dryRun": bool(dry_run),
+            "groups": [],
+            "merged": 0,
+            "removedDuplicates": 0,
+        }
+        touched = False
+        for key, rows in sorted(groups.items()):
+            if len(rows) < 2:
+                continue
+            ordered = sorted(rows, key=self._score_fascicolo_principale, reverse=True)
+            primary = ordered[0]
+            entry = {
+                "key": key,
+                "primaryId": primary.id,
+                "primaryRef": primary.numero or primary.rg_completo,
+                "mergedIds": [row.id for row in ordered[1:]],
+                "documentsAdded": 0,
+                "documentsSkipped": 0,
+                "activitiesAdded": 0,
+                "depositsAdded": 0,
+            }
+            if dry_run:
+                report["groups"].append(entry)
+                continue
+            existing_doc_ids = {doc.id for doc in primary.documenti}
+            existing_doc_keys = {key for doc in primary.documenti for key in self._documento_identity_keys(doc)}
+            existing_activities = self._unique_serialized_rows(
+                primary.attivita,
+                ("tipo", "data", "titolo", "descrizione", "id_deposito_pct", "id_documento"),
+            )
+            existing_deposits = self._unique_serialized_rows(
+                primary.depositi_pct,
+                ("id_deposito_esterno", "timestamp", "tipo_atto", "messaggio", "fonte_portale"),
+            )
+            for duplicate in ordered[1:]:
+                if self._assorbi_campi_base(primary, duplicate):
+                    touched = True
+                doc_id_map: dict[str, str] = {}
+                for doc in list(duplicate.documenti or []):
+                    doc_keys = self._documento_identity_keys(doc)
+                    if doc_keys and existing_doc_keys.intersection(doc_keys):
+                        doc_id_map[doc.id] = next((existing.id for existing in primary.documenti if self._documento_identity_keys(existing).intersection(doc_keys)), doc.id)
+                        entry["documentsSkipped"] += 1
+                        continue
+                    cloned = self._copia_documento_su_fascicolo_principale(
+                        primary,
+                        duplicate,
+                        doc,
+                        existing_doc_ids=existing_doc_ids,
+                    )
+                    primary.documenti.append(cloned)
+                    doc_id_map[doc.id] = cloned.id
+                    existing_doc_keys.update(self._documento_identity_keys(cloned))
+                    entry["documentsAdded"] += 1
+                    touched = True
+                for dep in list(duplicate.depositi_pct or []):
+                    dep_key = tuple(
+                        str(getattr(dep, field, "") or "").strip().casefold()
+                        for field in ("id_deposito_esterno", "timestamp", "tipo_atto", "messaggio", "fonte_portale")
+                    )
+                    if dep_key in existing_deposits:
+                        continue
+                    cloned_dep = copy.deepcopy(dep)
+                    if cloned_dep.id in {item.id for item in primary.depositi_pct}:
+                        old_dep_id = cloned_dep.id
+                        cloned_dep.id = uuid.uuid4().hex[:8].upper()
+                        for doc in primary.documenti:
+                            if doc.id_deposito_pct == old_dep_id:
+                                doc.id_deposito_pct = cloned_dep.id
+                    cloned_dep.documenti_ids = _deduplica_documenti_ids(
+                        doc_id_map.get(doc_id, doc_id) for doc_id in (cloned_dep.documenti_ids or [])
+                    )
+                    primary.depositi_pct.append(cloned_dep)
+                    existing_deposits.add(dep_key)
+                    entry["depositsAdded"] += 1
+                    touched = True
+                for att in list(duplicate.attivita or []):
+                    att_key = tuple(
+                        str(getattr(att, field, "") or "").strip().casefold()
+                        for field in ("tipo", "data", "titolo", "descrizione", "id_deposito_pct", "id_documento")
+                    )
+                    if att_key in existing_activities:
+                        continue
+                    cloned_att = copy.deepcopy(att)
+                    if cloned_att.id in {item.id for item in primary.attivita}:
+                        cloned_att.id = uuid.uuid4().hex[:8].upper()
+                    if cloned_att.id_documento:
+                        cloned_att.id_documento = doc_id_map.get(cloned_att.id_documento, cloned_att.id_documento)
+                    primary.attivita.append(cloned_att)
+                    existing_activities.add(att_key)
+                    entry["activitiesAdded"] += 1
+                    touched = True
+                primary.avanzamento.append(
+                    AvanzamentoPratica(
+                        data=datetime.now().isoformat(),
+                        descrizione="Riconciliazione automatica doppione cliente/RG",
+                        stato_precedente=primary.stato.value,
+                        stato_nuovo=primary.stato.value,
+                        note=f"Assorbito fascicolo {duplicate.numero or duplicate.id} ({duplicate.id}).",
+                        avvocato="IUSENTRA",
+                    )
+                )
+                self._segna_analisi_fascicolo_da_rieseguire(
+                    primary,
+                    reason="riconciliazione_doppione_cliente_rg",
+                )
+                del self._fascicoli[duplicate.id]
+                report["removedDuplicates"] += 1
+                touched = True
+            if touched:
+                primary.modificato_il = datetime.now().isoformat()
+            report["groups"].append(entry)
+            report["merged"] += 1
+        if touched:
+            self._salva()
+        return report
+
     # ---------------------------------------------------------------- CRUD fascicolo
 
     def _aggiorna_profilo_deposito_fascicolo(
@@ -1071,6 +1420,23 @@ class GestioneFascicoli:
             verifica_certificato=bool(f.tribunale),
             richiedi_ufficio=bool(f.tribunale or f.fascicolo_veloce),
         )
+        existing = self._trova_fascicolo_duplicato(f)
+        if existing is not None:
+            changed = self._assorbi_campi_base(existing, f)
+            existing.avanzamento.append(
+                AvanzamentoPratica(
+                    data=datetime.now().isoformat(),
+                    descrizione="Creazione doppione bloccata: aggiornata la pratica esistente",
+                    stato_precedente=existing.stato.value,
+                    stato_nuovo=existing.stato.value,
+                    note=f"Tentativo di nuova pratica con stesso cliente/RG ({existing.rg_completo}).",
+                    avvocato="IUSENTRA",
+                )
+            )
+            if changed:
+                existing.modificato_il = datetime.now().isoformat()
+            self._salva()
+            return existing
         self._fascicoli[f.id] = f
         self._salva()
         return f
@@ -1089,6 +1455,19 @@ class GestioneFascicoli:
                 richiedi_ufficio=bool(f.tribunale or f.fascicolo_veloce),
             )
         f.modificato_il = datetime.now().isoformat()
+        duplicate_key = self._chiave_identita_pratica(f)
+        if duplicate_key and self._trova_fascicolo_duplicato(f) is not None:
+            report = self.riconcilia_doppioni_cliente_rg()
+            primary_id = next(
+                (
+                    str(group.get("primaryId") or "")
+                    for group in report.get("groups", [])
+                    if group.get("key") == duplicate_key
+                ),
+                "",
+            )
+            if primary_id and primary_id in self._fascicoli:
+                return self._fascicoli[primary_id]
         self._salva()
         return f
 
@@ -1255,13 +1634,20 @@ class GestioneFascicoli:
         )
         original_docs = list(f.documenti)
         original_modificato = f.modificato_il
+        original_pagamenti = dict(f.pagamenti or {})
         f.documenti.append(doc)
+        self._segna_analisi_fascicolo_da_rieseguire(
+            f,
+            reason="nuovo_documento_fascicolo",
+            document_id=doc.id,
+        )
         f.modificato_il = datetime.now().isoformat()
         try:
             self._salva()
         except Exception:
             f.documenti = original_docs
             f.modificato_il = original_modificato
+            f.pagamenti = original_pagamenti
             try:
                 if dest.exists():
                     dest.unlink()
@@ -1323,6 +1709,11 @@ class GestioneFascicoli:
             doc.note = note
         doc.data_caricamento = datetime.now().isoformat()
 
+        self._segna_analisi_fascicolo_da_rieseguire(
+            f,
+            reason="documento_sostituito",
+            document_id=doc.id,
+        )
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return doc
@@ -1634,13 +2025,20 @@ class GestioneFascicoli:
         percorso = self.documents_dir / doc.percorso
         original_docs = list(f.documenti)
         original_modificato = f.modificato_il
+        original_pagamenti = dict(f.pagamenti or {})
         f.documenti = [d for d in f.documenti if d.id != id_doc]
+        self._segna_analisi_fascicolo_da_rieseguire(
+            f,
+            reason="documento_rimosso",
+            document_id=id_doc,
+        )
         f.modificato_il = datetime.now().isoformat()
         try:
             self._salva()
         except Exception:
             f.documenti = original_docs
             f.modificato_il = original_modificato
+            f.pagamenti = original_pagamenti
             raise
         try:
             if percorso.exists():

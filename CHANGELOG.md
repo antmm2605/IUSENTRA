@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.253.188 - 2026-07-06
+
+- **Fascicoli - presidio economico automatico**: la vista economica avvia un controllo POST idempotente che crea bozze proforma `BOZZA` per i fascicoli definiti privi di documento economico quando esiste una base sufficiente da sentenza, compenso pattuito o valore preventivato.
+- **Proforma da visionare**: le bozze automatiche restano collegate al fascicolo e vengono mostrate come `Bozza proforma da visionare`, senza emissione fiscale o registrazione incasso finché l'avvocato non conferma.
+- **Controllo SQL reale**: il riepilogo economico confronta fascicoli e parcelle dalla fonte SQL/repository reale, evidenziando pratiche già coperte, mancanti per assenza di base economica e possibili doppioni cliente/RG.
+
+## 2.253.187 - 2026-07-06
+
+- **Fascicoli - nomi file importati**: l'estrattore del contributo unificato normalizza underscore e trattini nei nomi documento, riconoscendo casi reali come `AUTOCERTIFICAZIONE_DELLA_SITUAZIONE_REDDITUALE_-_ESENZIONE_CONTRIBUTO_UNIFICATO_2025.PDF`.
+- **Controllo economico**: l'esenzione CU viene rilevata anche quando l'OCR manca e l'unica evidenza utile è il nome/metadato del documento importato.
+
+## 2.253.186 - 2026-07-06
+
+- **Fascicoli - autocertificazione CU importata**: se l'import pratiche associa un'autocertificazione di esenzione contributo unificato a una voce economica placeholder, il presidio la interpreta come esenzione CU e porta il contributo a `Non previsto`, senza lasciarlo `Da registrare`.
+- **Spese/esborsi**: se l'autocertificazione CU era finita per errore sotto spese/esborsi, la vista economica non la tratta più come spesa da registrare e mostra uno stato coerente con la fonte documentale.
+
+## 2.253.185 - 2026-07-06
+
+- **Fascicoli - microcopy economico professionale**: la vista economica non mostra più chiavi tecniche come `sentenza_key` o identificativi interni del documento; le evidenze vengono tradotte in indicazioni leggibili per lo studio, per esempio contributo esente, sentenza indicizzata, ricevuta pagoPA o documento da controllare.
+- **Controllo documenti**: la fascia delle fonti economiche ora evita testi troncati e rumore tecnico, va a capo in modo governato e lascia all'avvocato solo risultato, fonte comprensibile e prossima azione.
+
+## 2.253.184 - 2026-07-06
+
+- **Fascicoli - CU esente senza OCR**: il presidio economico riconosce l'esenzione/non debenza del contributo unificato anche dal nome e dai metadati del documento, per esempio `Autocertificazione esenzione cu diritto lavoro.PDF`, evitando di mostrare un falso `€ 0,00` quando il PDF non è ancora indicizzato da Document AI.
+- **Produzione Montagnese**: rafforzata la logica server-first sui fascicoli importati da Studio Telematico, così autocertificazioni e documenti economici diventano evidenze operative subito nella vista economica.
+
+## 2.253.183 - 2026-07-06
+
+- **Fascicoli - logica economica documentale**: il controllo economico tratta `€ 0,00` storico come placeholder quando lo stato è ancora da registrare o da emettere, quindi legge i documenti del fascicolo prima di mostrare la card all'avvocato.
+- **Contributo unificato**: riconoscimento live di ricevute PagoPA, richieste di pagamento, esenzioni, autocertificazioni reddituali, art. 9 comma 1-bis DPR 115/2002 e patrocinio a spese dello Stato, con stato corretto e fonte documento nel riepilogo economico.
+- **Sentenze e parcelle**: liquidazione, spese/esborsi e parcella proposta vengono popolati dalla sentenza del fascicolo anche se i campi economici storici erano ancora a zero.
+- **Doppioni cliente/RG**: rafforzato il blocco di nuove duplicazioni e la riconciliazione dei duplicati storici, preservando documenti e pagamenti già presenti.
+
 ## 2.253.182 - 2026-07-06
 
 - **Fascicoli - presidio udienze e documenti**: aggiunta analisi strutturata dei decreti di fissazione udienza e dei documenti del fascicolo per far emergere termini per note ex art. 127-ter c.p.c., udienze audiovisive ex art. 127-bis c.p.c., termini collegati per notifiche/costituzioni e avvisi quando serve la data di comunicazione.

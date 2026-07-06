@@ -11,6 +11,7 @@ from pct.formatting import format_euro_it
 import json
 import os
 import re
+import hashlib
 from collections import Counter
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
@@ -35,6 +36,7 @@ from pct.fascicolo_document_presidio import (
     duplicate_practice_groups,
     normalise_practice_duplicate_key,
 )
+from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.document_signature_state import (
@@ -1193,6 +1195,15 @@ def _readable_document_source(value: Any, *, default: str = "Documento indicizza
     if not source:
         return default
     marker = source.casefold()
+    source_name = Path(source.replace("\\", "/")).name
+    source_stem = Path(source_name).stem.casefold()
+    if marker.startswith("sentenza_key:") or ("sentenza" in marker and "|" in marker):
+        date_match = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", source)
+        if date_match:
+            return f"Sentenza del {_date_label(date_match.group(1))}"
+        return "Sentenza indicizzata nel fascicolo"
+    if re.fullmatch(r"\d{10,}", marker) or re.fullmatch(r"\d{10,}", source_stem):
+        return default
     if marker.startswith(("document_id:", "documento_id:", "docai-", "docai_", "doc-", "doc_")):
         return default
     return source
@@ -1203,6 +1214,7 @@ def _document_candidates_for_hints(
     matcher: Callable[[str, dict[str, Any]], bool],
     *,
     metadata_matcher: Callable[[dict[str, Any]], bool] | None = None,
+    fallback_all: bool = False,
 ) -> list[Any]:
     documents = list(getattr(fascicolo, "documenti", []) or [])
     if not documents:
@@ -1218,6 +1230,8 @@ def _document_candidates_for_hints(
     ]
     if selected:
         return selected
+    if fallback_all:
+        return documents
     return []
 
 
@@ -1262,6 +1276,90 @@ def _document_ai_texts_for_fascicolo(fascicolo: Any, documents: Iterable[Any] | 
     return cleaned
 
 
+def _cache_document_ai_texts_for_fascicolo(
+    fascicolo: Any,
+    documents: Iterable[Any],
+    texts: dict[str, str],
+) -> None:
+    cache = _request_cache("_react_fascicoli_document_ai_texts")
+    if cache is None:
+        return
+    fid = _text(getattr(fascicolo, "id", ""))
+    documents_list = list(documents or [])
+    doc_ids = sorted(_document_id(doc) for doc in documents_list if _document_id(doc))
+    cleaned = {str(key): str(value) for key, value in (texts or {}).items() if str(value or "").strip()}
+    cache[f"{fid}::{'|'.join(doc_ids)}"] = cleaned
+    all_key = f"{fid}::__all__"
+    all_cached = cache.get(all_key)
+    if isinstance(all_cached, dict):
+        merged = dict(all_cached)
+        merged.update(cleaned)
+        cache[all_key] = merged
+
+
+def _ensure_economic_document_ai_texts_for_fascicolo(
+    fascicolo: Any,
+    documents: Iterable[Any],
+) -> dict[str, str]:
+    """Indicizza in modo mirato i documenti economici non ancora letti da Document AI."""
+
+    fid = _text(getattr(fascicolo, "id", ""))
+    documents_list = [doc for doc in list(documents or []) if _document_id(doc)]
+    if not fid or not documents_list or not has_app_context():
+        return {}
+    max_docs = int(os.getenv("IUSENTRA_ECONOMIC_PRESIDIO_MAX_OCR_DOCUMENTS", "6") or 6)
+    if max_docs <= 0:
+        max_docs = 6
+    documents_list = documents_list[:max_docs]
+    wanted_ids = {_document_id(doc) for doc in documents_list if _document_id(doc)}
+    if not wanted_ids:
+        return {}
+    try:
+        from web.services.document_intelligence_runtime import (
+            build_document_ai_service,
+            collect_document_ai_sources_for_fascicolo,
+            document_ai_tenant_id,
+            document_ai_user_context,
+        )
+
+        tenant_id = document_ai_tenant_id()
+        sources = [
+            source
+            for source in collect_document_ai_sources_for_fascicolo(fid, tenant_id=tenant_id)
+            if _text(getattr(source, "source_id", "")) in wanted_ids
+        ]
+        if not sources:
+            return {}
+        service = build_document_ai_service()
+        service.process_lex_indexing_sources(
+            tenant_id,
+            fid,
+            sources,
+            document_ai_user_context(),
+            retry_errors=True,
+        )
+        fascicoli_db_path, storage_root, structured_db = _current_fascicoli_catalog_paths()
+        refreshed = document_ai_texts_for_catalog(
+            tenant_ids=_current_tenant_catalog_ids(),
+            fascicolo_id=fid,
+            documents=documents_list,
+            fascicoli_db_path=fascicoli_db_path,
+            structured_db=structured_db,
+            storage_root=storage_root,
+            allow_extracted_files_fallback=True,
+        )
+    except Exception:
+        return {}
+    cleaned = {
+        str(key): str(value)
+        for key, value in (refreshed or {}).items()
+        if str(value or "").strip()
+    }
+    if cleaned:
+        _cache_document_ai_texts_for_fascicolo(fascicolo, documents_list, cleaned)
+    return cleaned
+
+
 def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str]:
     wanted = _text(document_id)
     for doc in getattr(fascicolo, "documenti", []) or []:
@@ -1284,8 +1382,188 @@ def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str
             "classification": _text(getattr(doc, "classificazione_portale", "")),
             "sha256": _text(getattr(doc, "hash_sha256", "")),
             "fascicolo_id": _text(getattr(fascicolo, "id", "")),
+            "data_documento": _text(getattr(doc, "data_documento", "")),
+            "data_caricamento": _text(getattr(doc, "data_caricamento", "")),
+            "data_deposito_portale": _text(getattr(doc, "data_deposito_portale", "")),
+            "storage_path": _text(getattr(doc, "percorso", "")),
         }
     return {"document_id": wanted, "documento_id": wanted, "fascicolo_id": _text(getattr(fascicolo, "id", ""))}
+
+
+def _fascicoli_documents_root() -> Path | None:
+    try:
+        from web.services.tenant_paths import tenant_data_path
+
+        raw = tenant_data_path("FASCICOLI_DOCS", require_tenant=True)
+    except Exception:
+        raw = ""
+        if has_app_context():
+            raw = _text(current_app.config.get("FASCICOLI_DOCS"))
+    if not raw:
+        return None
+    try:
+        return Path(raw).resolve()
+    except Exception:
+        return None
+
+
+def _resolve_fascicolo_document_path(fascicolo: Any, doc: Any) -> Path | None:
+    root = _fascicoli_documents_root()
+    raw = _text(getattr(doc, "percorso", ""))
+    if not root or not raw:
+        return None
+    path = Path(raw)
+    candidate = path if path.is_absolute() else root / path
+    try:
+        resolved = candidate.resolve()
+    except Exception:
+        return None
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    fid = _text(getattr(fascicolo, "id", ""))
+    if fid and fid not in {part for part in resolved.parts}:
+        return None
+    return resolved
+
+
+def _extract_native_pdf_text_for_presidio(path: Path) -> str:
+    max_pages = int(os.getenv("IUSENTRA_ECONOMIC_PRESIDIO_MAX_PDF_PAGES", "12") or 12)
+    if max_pages <= 0:
+        max_pages = 12
+    try:
+        import pdfplumber  # type: ignore
+
+        pages: list[str] = []
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages[:max_pages]:
+                pages.append(page.extract_text() or "")
+        text = "\n\n".join(part for part in pages if part.strip()).strip()
+        if text:
+            return text
+    except Exception:
+        pass
+    try:
+        from pypdf import PdfReader  # type: ignore
+
+        reader = PdfReader(str(path))
+        pages = []
+        for page in list(reader.pages)[:max_pages]:
+            pages.append(page.extract_text() or "")
+        return "\n\n".join(part for part in pages if part.strip()).strip()
+    except Exception:
+        return ""
+
+
+def _extract_presidio_text_from_physical_document(fascicolo: Any, doc: Any) -> str:
+    path = _resolve_fascicolo_document_path(fascicolo, doc)
+    if not path or not path.exists() or not path.is_file():
+        return ""
+    max_bytes = int(os.getenv("IUSENTRA_ECONOMIC_PRESIDIO_MAX_DOCUMENT_BYTES", "8000000") or 8000000)
+    try:
+        if path.stat().st_size > max_bytes:
+            return ""
+    except OSError:
+        return ""
+    suffix = path.suffix.lower().lstrip(".") or Path(_text(getattr(doc, "nome", ""))).suffix.lower().lstrip(".")
+    if suffix == "pdf":
+        text = _extract_native_pdf_text_for_presidio(path)
+    elif suffix in {"txt", "xml", "json", "csv"}:
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            text = ""
+    else:
+        text = ""
+    if len(text) < 40:
+        return ""
+    return text[:240000]
+
+
+def _related_duplicate_fascicoli(fascicoli: Iterable[Any], fascicolo: Any) -> list[Any]:
+    key = normalise_practice_duplicate_key(fascicolo)
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not key:
+        return []
+    return [
+        row
+        for row in (fascicoli or [])
+        if _text(getattr(row, "id", "")) != fid and normalise_practice_duplicate_key(row) == key
+    ]
+
+
+def _analysis_fascicoli_scope(fascicolo: Any, related_fascicoli: Iterable[Any] | None = None) -> list[Any]:
+    seen: set[str] = set()
+    out: list[Any] = []
+    for row in [fascicolo, *(list(related_fascicoli or []))]:
+        fid = _text(getattr(row, "id", ""))
+        if not fid or fid in seen:
+            continue
+        seen.add(fid)
+        out.append(row)
+    return out
+
+
+def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[Any] | None = None) -> str:
+    rows: list[dict[str, Any]] = []
+    for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
+        source_id = _text(getattr(source, "id", ""))
+        for doc in list(getattr(source, "documenti", []) or []):
+            rows.append(
+                {
+                    "fascicolo": source_id,
+                    "id": _document_id(doc),
+                    "nome": _text(getattr(doc, "nome", "")),
+                    "nome_originale": _text(getattr(doc, "nome_originale", "")),
+                    "tipo": _enum_value(getattr(doc, "tipo", "")),
+                    "sha256": _text(getattr(doc, "hash_sha256", "")),
+                    "size": int(getattr(doc, "dimensione_bytes", 0) or 0),
+                    "loaded": _text(getattr(doc, "data_caricamento", "")),
+                    "portal": _text(getattr(doc, "id_documento_portale", "")),
+                }
+            )
+    payload = json.dumps(sorted(rows, key=lambda item: (item["fascicolo"], item["id"], item["nome"])), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _document_analysis_state(
+    fascicolo: Any,
+    related_fascicoli: Iterable[Any] | None = None,
+    *,
+    automatic: bool = False,
+) -> dict[str, Any]:
+    payments = getattr(fascicolo, "pagamenti", {}) if fascicolo is not None else {}
+    marker = dict((payments or {}).get("_presidio_documentale") or {}) if isinstance(payments, dict) else {}
+    fingerprint = _document_analysis_fingerprint(fascicolo, related_fascicoli)
+    cached_fingerprint = _text(marker.get("fingerprint") or marker.get("documentFingerprint"))
+    marker_status = _text(marker.get("status") or marker.get("stato")).casefold()
+    related_count = len(_analysis_fascicoli_scope(fascicolo, related_fascicoli)) - 1
+    if marker_status == "stale":
+        status = "da_rianalizzare"
+        label = "Da rianalizzare"
+        reason = _text(marker.get("reason"), "Sono entrati nuovi documenti o è cambiato il fascicolo.")
+    elif cached_fingerprint and cached_fingerprint == fingerprint:
+        status = "aggiornato"
+        label = "Aggiornato"
+        reason = "Analisi allineata ai documenti presenti."
+    elif automatic:
+        status = "aggiornato_provvisorio"
+        label = "Aggiornato in lettura"
+        reason = "Evidenze lette dai documenti per questa vista; consolidare dopo la riconciliazione dei dati."
+    else:
+        status = "da_analizzare"
+        label = "Da analizzare"
+        reason = "Nessuna impronta di analisi consolidata sui documenti correnti."
+    return {
+        "status": status,
+        "statusLabel": label,
+        "tone": "warning" if status in {"da_rianalizzare", "da_analizzare"} else "success",
+        "reason": reason,
+        "fingerprint": fingerprint,
+        "lastAnalyzedAt": _text(marker.get("updated_at") or marker.get("updatedAt") or marker.get("lastAnalyzedAt")),
+        "relatedDuplicateFascicoli": related_count,
+    }
 
 
 def _document_evidence_probe(text: str, metadata: dict[str, Any], *, limit: int = 40000) -> str:
@@ -1306,6 +1584,16 @@ def _document_metadata_may_contain_contributo_unificato(metadata: dict[str, Any]
         token in probe
         for token in (
             "contributo",
+            "c.u.",
+            " cu ",
+            "esenzione cu",
+            "esenzione contributo",
+            "esenzione dal pagamento",
+            "iscrizione a ruolo",
+            "spese di giustizia",
+            "dpr 115",
+            "d.p.r. 115",
+            "art. 9",
             "pagopa",
             "pago pa",
             "iuv",
@@ -1320,6 +1608,78 @@ def _document_metadata_may_contain_contributo_unificato(metadata: dict[str, Any]
 
 def _document_metadata_may_contain_sentenza_economica(metadata: dict[str, Any]) -> bool:
     return "sentenza" in _document_metadata_probe(metadata)
+
+
+def _document_candidate_datetime(doc: Any, metadata: dict[str, Any] | None = None) -> datetime | None:
+    for value in (
+        getattr(doc, "data_documento", ""),
+        getattr(doc, "data_deposito_portale", ""),
+        getattr(doc, "data_caricamento", ""),
+    ):
+        parsed = _parse_datetime(value)
+        if parsed:
+            return parsed
+    probe = " ".join(
+        _text(value)
+        for value in (
+            (metadata or {}).get("filename"),
+            (metadata or {}).get("original_filename"),
+            getattr(doc, "nome_originale", ""),
+            getattr(doc, "nome", ""),
+            getattr(doc, "percorso", ""),
+        )
+    )
+    match = re.search(r"\b(20\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})", probe)
+    if match:
+        try:
+            return datetime(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)),
+                int(match.group(4)),
+                int(match.group(5)),
+                int(match.group(6)),
+            )
+        except ValueError:
+            return None
+    return None
+
+
+def _rank_sentenza_economica_documents(fascicolo: Any, documents: Iterable[Any]) -> list[Any]:
+    max_docs = int(os.getenv("IUSENTRA_ECONOMIC_PRESIDIO_MAX_SENTENZA_DOCUMENTS", "4") or 4)
+    if max_docs <= 0:
+        max_docs = 4
+
+    ranked: list[tuple[tuple[int, int, int, int, str], Any]] = []
+    for index, doc in enumerate(documents or []):
+        document_id = _document_id(doc)
+        metadata = _document_metadata_for_id(fascicolo, document_id)
+        probe = _document_metadata_probe(metadata)
+        score = 100
+        if "sentenza" in probe:
+            score -= 60
+        if _text(metadata.get("tipo_documento")).casefold() == "sentenza":
+            score -= 20
+        if "provvedimento" in probe:
+            score -= 15
+        if "definitiv" in probe or "p.q.m" in probe or "p. q. m" in probe:
+            score -= 10
+        if bool(getattr(doc, "ocr_estratto", False)):
+            score -= 8
+        filename = _text(metadata.get("filename") or metadata.get("safe_filename"))
+        if filename.casefold().startswith("atto_") and "sentenza" not in probe:
+            score += 25
+        try:
+            size = int(getattr(doc, "dimensione_bytes", 0) or 0)
+        except Exception:
+            size = 0
+        if size > 8_000_000:
+            score += 40
+        dated = _document_candidate_datetime(doc, metadata)
+        timestamp = int(dated.timestamp()) if dated else 0
+        ranked.append(((score, -timestamp, size, index, filename.casefold()), doc))
+    ranked.sort(key=lambda item: item[0])
+    return [doc for _, doc in ranked[:max_docs]]
 
 
 def _document_metadata_may_contain_procedural_deadline(metadata: dict[str, Any]) -> bool:
@@ -1351,6 +1711,14 @@ def _document_may_contain_contributo_unificato(text: str, metadata: dict[str, An
             "contributo unificat",
             "c.u.",
             " c u ",
+            "esenzione cu",
+            "esenzione contributo",
+            "esenzione dal pagamento",
+            "iscrizione a ruolo",
+            "spese di giustizia",
+            "dpr 115",
+            "d.p.r. 115",
+            "art. 9",
             "pagopa",
             "pago pa",
             "iuv",
@@ -1433,8 +1801,18 @@ def _payment_date_from_document_text(text: str) -> str:
     return ""
 
 
+def _payment_date_from_document_metadata(metadata: dict[str, Any]) -> str:
+    for key in ("data_documento", "data_deposito_portale", "data_caricamento"):
+        parsed = _parse_date(_text(metadata.get(key)))
+        if parsed:
+            return parsed.isoformat()
+    return ""
+
+
 def _raw_payment_is_manual(raw: dict[str, Any]) -> bool:
     if not raw:
+        return False
+    if _payment_source_is_empty_placeholder(raw):
         return False
     if isinstance(raw.get("history") or raw.get("storico"), list) and (raw.get("history") or raw.get("storico")):
         return True
@@ -1448,10 +1826,55 @@ def _raw_payment_is_manual(raw: dict[str, Any]) -> bool:
     return False
 
 
+def _payment_source_is_empty_placeholder(raw: dict[str, Any]) -> bool:
+    if not raw:
+        return True
+    status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
+    amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    if amount is None and status in {"", "non_previsto", "da_registrare", "da_emettere", "parziale"}:
+        return True
+    if amount is not None and abs(float(amount)) <= 0.01 and status in {"", "da_registrare", "da_emettere", "parziale"}:
+        return True
+    return False
+
+
+def _payment_source_evidence_text(raw: dict[str, Any]) -> str:
+    if not raw:
+        return ""
+    return " ".join(
+        _text(raw.get(field))
+        for field in (
+            "documento_fonte",
+            "documentoFonte",
+            "source",
+            "fonte",
+            "note",
+            "label",
+            "natura",
+            "origine",
+            "origin",
+        )
+        if _text(raw.get(field))
+    )
+
+
+def _payment_source_document_label(raw: dict[str, Any]) -> str:
+    if not raw:
+        return ""
+    return _text(
+        raw.get("documento_fonte")
+        or raw.get("documentoFonte")
+        or raw.get("source")
+        or raw.get("fonte")
+        or raw.get("label")
+    )
+
+
 def _merge_auto_payment_source(raw: dict[str, Any], automatic: dict[str, Any], *, kind: str) -> dict[str, Any]:
     if _raw_payment_is_manual(raw):
         return raw
     merged = dict(raw)
+    raw_placeholder = _payment_source_is_empty_placeholder(raw)
     status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
     auto_status = _normalise_payment_status(automatic.get("status") or automatic.get("stato"), default="")
     raw_amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
@@ -1467,6 +1890,8 @@ def _merge_auto_payment_source(raw: dict[str, Any], automatic: dict[str, Any], *
         merged["previsto"] = auto_status != "non_previsto"
     if auto_amount is not None and (raw_amount is None or abs(float(raw_amount)) <= 0.01):
         merged["importo"] = auto_amount
+    elif raw_placeholder and raw_amount is not None and abs(float(raw_amount)) <= 0.01 and kind == "contributo_unificato":
+        merged["importo"] = None
     for field in (
         "label",
         "natura",
@@ -1478,49 +1903,42 @@ def _merge_auto_payment_source(raw: dict[str, Any], automatic: dict[str, Any], *
         "updated_by",
     ):
         value = automatic.get(field)
-        if value not in {None, ""} and merged.get(field) in {None, ""}:
+        if value not in {None, ""} and (raw_placeholder or merged.get(field) in {None, ""}):
             merged[field] = value
     return merged
 
 
-def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> dict[str, dict[str, Any]]:
-    need_contributo = (
-        _payment_amount_value(
-            _payment_source_for_kind(payments, "contributo_unificato").get("importo")
-            if "importo" in _payment_source_for_kind(payments, "contributo_unificato")
-            else _payment_source_for_kind(payments, "contributo_unificato").get("amount")
-        )
-        is None
-    )
+def _payment_source_needs_automatic_value(payments: Any, kind: str) -> bool:
+    raw = _payment_source_for_kind(payments, kind)
+    if raw and not _payment_source_is_empty_placeholder(raw) and _raw_payment_is_manual(raw):
+        return False
+    status = _normalise_payment_status(raw.get("status") or raw.get("stato"), default="")
+    amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    if amount is None:
+        return True
+    if abs(float(amount)) <= 0.01 and status in {"", "non_previsto", "da_registrare", "da_emettere", "parziale"}:
+        return True
+    return False
+
+
+def _automatic_payment_sources_for_fascicolo(
+    fascicolo: Any,
+    payments: Any,
+    *,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> dict[str, dict[str, Any]]:
+    need_contributo = _payment_source_needs_automatic_value(payments, "contributo_unificato")
     need_sentenza = any(
-        _payment_amount_value(
-            _payment_source_for_kind(payments, kind).get("importo")
-            if "importo" in _payment_source_for_kind(payments, kind)
-            else _payment_source_for_kind(payments, kind).get("amount")
-        )
-        is None
+        _payment_source_needs_automatic_value(payments, kind)
         for kind in ("spese_esborsi", "liquidazione_giudice", "parcella")
     )
     if not need_contributo and not need_sentenza:
-        return {}
-    payment_documents = _document_candidates_for_hints(
-        fascicolo,
-        lambda text, metadata: (
-            need_contributo and _document_may_contain_contributo_unificato(text, metadata)
-        )
-        or (need_sentenza and _document_may_contain_sentenza_economica(text, metadata)),
-        metadata_matcher=lambda metadata: (
-            need_contributo and _document_metadata_may_contain_contributo_unificato(metadata)
-        )
-        or (need_sentenza and _document_metadata_may_contain_sentenza_economica(metadata)),
-    )
-    texts = _document_ai_texts_for_fascicolo(fascicolo, documents=payment_documents)
-    if not texts:
         return {}
     auto: dict[str, dict[str, Any]] = {}
     try:
         from pct.fascicolo_sentenza_economica import (
             analyze_sentenza_tribunale_text,
+            apply_contributo_unificato_pdf_evidence,
             extract_contributo_unificato_document_evidence,
             validate_sentenza_fascicolo_context,
         )
@@ -1528,57 +1946,171 @@ def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> d
         return {}
 
     cu_candidates: list[dict[str, Any]] = []
-    for document_id, text in texts.items():
-        metadata = _document_metadata_for_id(fascicolo, document_id)
+    cu_exemption_from_misclassified_payment = False
+    if need_contributo:
+        for kind in PAYMENT_KINDS:
+            raw_payment = _payment_source_for_kind(payments, kind)
+            if not raw_payment or not _payment_source_is_empty_placeholder(raw_payment):
+                continue
+            evidence_text = _payment_source_evidence_text(raw_payment)
+            if not evidence_text:
+                continue
+            evidence = extract_contributo_unificato_document_evidence(
+                evidence_text,
+                {
+                    "filename": _payment_source_document_label(raw_payment) or evidence_text,
+                    "document_id": _text(raw_payment.get("document_id") or raw_payment.get("documento_id")),
+                    "sha256": _text(raw_payment.get("sha256") or raw_payment.get("hash_sha256")),
+                },
+            )
+            if not evidence:
+                continue
+            evidence = dict(evidence)
+            evidence["filename"] = _payment_source_document_label(raw_payment) or evidence.get("filename") or evidence_text
+            evidence["origine"] = "import_pratiche"
+            cu_candidates.append(evidence)
+            if kind != "contributo_unificato" and (
+                evidence.get("esente") is True
+                or _text(evidence.get("natura")) == "esenzione_contributo_unificato"
+            ):
+                cu_exemption_from_misclassified_payment = True
+
+    scoped_texts: list[tuple[Any, str, str]] = []
+    for source_fascicolo in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
+        payment_documents = _document_candidates_for_hints(
+            source_fascicolo,
+            lambda text, metadata: (
+                need_contributo and _document_may_contain_contributo_unificato(text, metadata)
+            )
+            or (need_sentenza and _document_may_contain_sentenza_economica(text, metadata)),
+            metadata_matcher=lambda metadata: (
+                need_contributo and _document_metadata_may_contain_contributo_unificato(metadata)
+            )
+            or (need_sentenza and _document_metadata_may_contain_sentenza_economica(metadata)),
+            fallback_all=True,
+        )
+        texts = _document_ai_texts_for_fascicolo(source_fascicolo, documents=payment_documents)
+        missing_ocr_documents: list[Any] = []
+        for doc in payment_documents:
+            document_id = _document_id(doc)
+            if not document_id or _text(texts.get(document_id)):
+                continue
+            metadata = _document_metadata_for_id(source_fascicolo, document_id)
+            if (
+                (need_contributo and _document_metadata_may_contain_contributo_unificato(metadata))
+                or (need_sentenza and _document_metadata_may_contain_sentenza_economica(metadata))
+            ):
+                missing_ocr_documents.append(doc)
+        if missing_ocr_documents:
+            refreshed_texts = _ensure_economic_document_ai_texts_for_fascicolo(
+                source_fascicolo,
+                missing_ocr_documents,
+            )
+            if refreshed_texts:
+                texts = {**texts, **refreshed_texts}
+        appended: set[str] = set()
+        for document_id, text in texts.items():
+            scoped_texts.append((source_fascicolo, document_id, text))
+            appended.add(_text(document_id))
+        for doc in payment_documents:
+            document_id = _document_id(doc)
+            if not document_id or document_id in appended:
+                continue
+            metadata = _document_metadata_for_id(source_fascicolo, document_id)
+            if need_contributo and _document_metadata_may_contain_contributo_unificato(metadata):
+                scoped_texts.append((source_fascicolo, document_id, _document_metadata_probe(metadata)))
+                appended.add(document_id)
+    if not scoped_texts and not cu_candidates:
+        return {}
+
+    for source_fascicolo, document_id, text in scoped_texts:
+        metadata = _document_metadata_for_id(source_fascicolo, document_id)
         if not _document_may_contain_contributo_unificato(text, metadata):
             continue
         evidence = extract_contributo_unificato_document_evidence(text, metadata)
         if evidence:
             evidence = dict(evidence)
-            evidence["data_pagamento"] = _payment_date_from_document_text(text)
+            evidence["data_pagamento"] = _payment_date_from_document_text(text) or _payment_date_from_document_metadata(metadata)
+            if _text(getattr(source_fascicolo, "id", "")) != _text(getattr(fascicolo, "id", "")):
+                evidence["filename"] = (
+                    f"{_readable_document_source(evidence.get('filename') or evidence.get('document_id'))} "
+                    f"(da pratica riconciliata {getattr(source_fascicolo, 'numero', '') or getattr(source_fascicolo, 'id', '')})"
+                )
             cu_candidates.append(evidence)
+    best_cu_evidence: dict[str, Any] = {}
     if cu_candidates:
         best_cu = sorted(
             cu_candidates,
             key=lambda item: (
-                0 if _text(item.get("status")) == "pagato" else 1,
+                0 if _text(item.get("status")) == "pagato" and _payment_amount_value(item.get("importo")) is not None else 1,
+                0 if item.get("esente") is True or _text(item.get("natura")) == "esenzione_contributo_unificato" else 1,
                 0 if _payment_amount_value(item.get("importo")) is not None else 1,
                 _text(item.get("filename")),
             ),
         )[0]
+        best_cu_evidence = dict(best_cu)
         status = _text(best_cu.get("status")) or ("non_previsto" if best_cu.get("esente") is True else "pagato")
+        natura = _text(best_cu.get("natura"))
+        note = "Compilato automaticamente dalla ricevuta contributo unificato presente nel fascicolo."
+        if status == "non_previsto" or best_cu.get("esente") is True or natura == "esenzione_contributo_unificato":
+            note = "Esenzione o non debenza del contributo unificato letta automaticamente dal fascicolo."
+        elif status == "da_registrare":
+            note = "Richiesta di versamento del contributo unificato letta automaticamente dal fascicolo."
         auto["contributo_unificato"] = {
             "kind": "contributo_unificato",
-            "label": "Contributo unificato",
+            "label": _text(best_cu.get("label")) or "Contributo unificato",
+            "natura": natura,
             "status": status,
             "previsto": status != "non_previsto",
             "pagato": status == "pagato",
-            "importo": best_cu.get("importo"),
+            "importo": None if status == "non_previsto" else best_cu.get("importo"),
             "valuta": "EUR",
             "data_pagamento": best_cu.get("data_pagamento") or "",
             "documento_fonte": _readable_document_source(best_cu.get("filename") or best_cu.get("document_id")),
             "origine": "Document AI / fascicolo",
             "updated_by": "IUSENTRA automatico",
-            "note": "Compilato automaticamente dalla ricevuta contributo unificato presente nel fascicolo.",
+            "note": note,
         }
+        if cu_exemption_from_misclassified_payment and _payment_source_needs_automatic_value(payments, "spese_esborsi"):
+            auto["spese_esborsi"] = {
+                "kind": "spese_esborsi",
+                "label": "Spese/esborsi",
+                "natura": "nessuna_spesa_documentale",
+                "status": "non_previsto",
+                "previsto": False,
+                "pagato": False,
+                "importo": None,
+                "valuta": "EUR",
+                "data_pagamento": "",
+                "documento_fonte": "Autocertificazione riferita al contributo unificato",
+                "origine": "IUSENTRA automatico",
+                "updated_by": "IUSENTRA automatico",
+                "note": "L'autocertificazione importata riguarda il contributo unificato: non viene trattata come spesa/esborso da registrare.",
+            }
 
-    for document_id, text in texts.items():
-        metadata = _document_metadata_for_id(fascicolo, document_id)
+    for source_fascicolo, document_id, text in scoped_texts:
+        metadata = _document_metadata_for_id(source_fascicolo, document_id)
         if not _document_may_contain_sentenza_economica(text, metadata):
             continue
-        extraction = analyze_sentenza_tribunale_text(text, metadata)
+        sentenza_metadata = dict(metadata)
+        if best_cu_evidence:
+            sentenza_metadata["contributo_unificato_pdf"] = dict(best_cu_evidence)
+        extraction = analyze_sentenza_tribunale_text(text, sentenza_metadata)
+        apply_contributo_unificato_pdf_evidence(extraction, sentenza_metadata)
         if not getattr(extraction, "found", False):
             continue
         context = validate_sentenza_fascicolo_context(
             text=text,
             extraction=extraction,
             fascicolo=fascicolo,
-            metadata=metadata,
+            metadata=sentenza_metadata,
             fascicolo_id=_text(getattr(fascicolo, "id", "")),
         )
         if not getattr(context, "ok", False):
             continue
         source_name = _readable_document_source(metadata.get("filename") or document_id)
+        if _text(getattr(source_fascicolo, "id", "")) != _text(getattr(fascicolo, "id", "")):
+            source_name = f"{source_name} (da pratica riconciliata {getattr(source_fascicolo, 'numero', '') or getattr(source_fascicolo, 'id', '')})"
         sentence_date = _text(getattr(extraction, "sentence_date", ""))
         if getattr(extraction, "liquidazione_importo", None) is not None:
             auto["liquidazione_giudice"] = {
@@ -1630,11 +2162,21 @@ def _automatic_payment_sources_for_fascicolo(fascicolo: Any, payments: Any) -> d
     return auto
 
 
-def _payments_with_automatic_sources(fascicolo: Any, payments: Any, *, enabled: bool) -> dict[str, Any]:
+def _payments_with_automatic_sources(
+    fascicolo: Any,
+    payments: Any,
+    *,
+    enabled: bool,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> dict[str, Any]:
     base = dict(payments) if isinstance(payments, dict) else {}
     if not enabled:
         return base
-    for kind, automatic in _automatic_payment_sources_for_fascicolo(fascicolo, base).items():
+    for kind, automatic in _automatic_payment_sources_for_fascicolo(
+        fascicolo,
+        base,
+        related_fascicoli=related_fascicoli,
+    ).items():
         raw = _payment_source_for_kind(base, kind)
         base[kind] = _merge_auto_payment_source(raw, automatic, kind=kind)
     return base
@@ -1729,7 +2271,22 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     if kind != "parcella" and status == "da_emettere":
         status = "da_registrare"
     amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    if (
+        amount is not None
+        and abs(float(amount)) <= 0.01
+        and status in {"non_previsto", "da_registrare", "da_emettere", "parziale"}
+        and not _raw_payment_is_manual(raw)
+    ):
+        amount = None
     payment_date = _text(raw.get("data_pagamento") or raw.get("dataPagamento") or raw.get("date"))
+    source_raw = _text(raw.get("documento_fonte") or raw.get("documentSource") or raw.get("documentoFonte"))
+    source_visible = _readable_document_source(source_raw) if source_raw else ""
+    if (
+        kind == "contributo_unificato"
+        and source_visible == "Documento indicizzato del fascicolo"
+        and ("pagopa" in f"{label} {natura} {source_raw}".casefold() or "contributo" in f"{label} {natura}".casefold())
+    ):
+        source_visible = "Ricevuta pagoPA"
     return {
         "kind": kind,
         "label": label,
@@ -1750,7 +2307,8 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
         "proformaId": _text(raw.get("proforma_id") or raw.get("proformaId")),
         "proformaNumber": _text(raw.get("proforma_number") or raw.get("proformaNumber")),
         "origine": _text(raw.get("origine") or raw.get("origin")),
-        "documentoFonte": _text(raw.get("documento_fonte") or raw.get("documentSource")),
+        "documentoFonte": source_visible,
+        "documentoFonteRaw": source_raw,
         "updatedAt": _text(raw.get("updated_at") or raw.get("updatedAt")),
         "updatedAtLabel": _date_label(raw.get("updated_at") or raw.get("updatedAt")) if _text(raw.get("updated_at") or raw.get("updatedAt")) else "",
         "updatedBy": _text(raw.get("updated_by") or raw.get("updatedBy")),
@@ -1759,9 +2317,21 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     }
 
 
-def payment_summary_for_fascicolo(fascicolo: Any, *, automatic: bool = False) -> dict[str, Any]:
+def payment_summary_for_fascicolo(
+    fascicolo: Any,
+    *,
+    automatic: bool = False,
+    related_fascicoli: Iterable[Any] | None = None,
+    parcelle: Iterable[Any] | None = None,
+    duplicate_group: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
-    payments = _payments_with_automatic_sources(fascicolo, getattr(fascicolo, "pagamenti", {}) or {}, enabled=automatic)
+    payments = _payments_with_automatic_sources(
+        fascicolo,
+        getattr(fascicolo, "pagamenti", {}) or {},
+        enabled=automatic,
+        related_fascicoli=related_fascicoli,
+    )
     items = {
         kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
         for kind in PAYMENT_KINDS
@@ -1791,6 +2361,13 @@ def payment_summary_for_fascicolo(fascicolo: Any, *, automatic: bool = False) ->
     updated_by = ""
     if latest:
         updated_by = next((_text(item["updatedBy"]) for item in items.values() if _text(item["updatedAt"]) == latest), "")
+    proforma_presidio = _proforma_presidio_for_fascicolo(
+        fascicolo,
+        items=items,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
+    parcella_da_emettere = 1 if proforma_presidio.get("requiresAction") else 0
     state_labels = {
         "completo": "Completo",
         "parziale": "Parziale",
@@ -1811,12 +2388,190 @@ def payment_summary_for_fascicolo(fascicolo: Any, *, automatic: bool = False) ->
         "totaleRegistratoLabel": _euro(total_registered),
         "anticipazioniDaRecuperare": round(advances_to_recover, 2),
         "anticipazioniDaRecuperareLabel": _euro(advances_to_recover),
-        "parcelleDaEmettere": 1 if items["parcella"]["status"] == "da_emettere" else 0,
+        "parcelleDaEmettere": parcella_da_emettere,
         "mancanti": len(missing),
         "updatedAt": latest,
         "updatedAtLabel": _date_label(latest) if latest else "",
         "updatedBy": updated_by,
         "items": items,
+        "proformaPresidio": proforma_presidio,
+        "analysis": _document_analysis_state(
+            fascicolo,
+            related_fascicoli,
+            automatic=automatic,
+        ),
+    }
+
+
+def _enum_upper(value: Any) -> str:
+    return _enum_value(value).upper()
+
+
+def _fascicolo_is_defined(fascicolo: Any) -> bool:
+    return _enum_upper(getattr(fascicolo, "stato", "")) in {"DEFINITO", "CHIUSO", "ARCHIVIATO"}
+
+
+def _parcella_is_active(parcella: Any) -> bool:
+    return _enum_upper(getattr(parcella, "stato", "")) != "ANNULLATA"
+
+
+def _parcella_amount(parcella: Any) -> float:
+    for attr in ("netto_a_pagare", "totale", "imponibile"):
+        try:
+            value = float(getattr(parcella, attr, 0.0) or 0.0)
+        except (TypeError, ValueError):
+            value = 0.0
+        if value:
+            return value
+    return 0.0
+
+
+def _parcella_document_label(parcelle: list[Any]) -> str:
+    if not parcelle:
+        return ""
+    first = parcelle[0]
+    number = _text(getattr(first, "numero", ""))
+    state = _enum_upper(getattr(first, "stato", ""))
+    label = number or _text(getattr(first, "id", ""))
+    if state:
+        label = f"{label} ({state.lower()})" if label else state.lower()
+    if len(parcelle) > 1:
+        label = f"{label} e altri {len(parcelle) - 1}"
+    return label
+
+
+def _proforma_presidio_for_fascicolo(
+    fascicolo: Any,
+    *,
+    items: dict[str, dict[str, Any]],
+    parcelle: Iterable[Any] | None = None,
+    duplicate_group: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    encoded_fid = quote(fid, safe="")
+    all_parcelle = list(parcelle or [])
+    active_parcelle = [item for item in all_parcelle if _parcella_is_active(item)]
+    existing_count = len(active_parcelle)
+    existing_draft_count = sum(1 for item in active_parcelle if _enum_upper(getattr(item, "stato", "")) == "BOZZA")
+    total = round(sum(_parcella_amount(item) for item in active_parcelle), 2)
+    duplicate_count = int((duplicate_group or {}).get("count") or 0)
+    is_defined = _fascicolo_is_defined(fascicolo)
+    parcella_item = items.get("parcella") or {}
+    liquidazione_item = items.get("liquidazione_giudice") or {}
+    source = visible_source = ""
+    for candidate in (parcella_item, liquidazione_item):
+        source = _text(candidate.get("documentoFonte") or candidate.get("documento_fonte") or candidate.get("origine"))
+        if source:
+            visible_source = _readable_document_source(source)
+            break
+    if existing_count:
+        if existing_draft_count:
+            status_label = "Bozza proforma da visionare"
+            tone = "warning"
+            message = (
+                f"Bozza proforma creata automaticamente: {_parcella_document_label(active_parcelle)}. "
+                "L'avvocato deve visionarla e confermarla prima dell'emissione."
+            )
+        else:
+            status_label = "Proforma presente"
+            tone = "success"
+            message = f"Documento economico già collegato: {_parcella_document_label(active_parcelle)}."
+        return {
+            "status": "presente",
+            "statusLabel": status_label,
+            "tone": tone,
+            "message": message,
+            "href": f"/fatturazione?id_fascicolo={encoded_fid}",
+            "existingCount": existing_count,
+            "existingDraftCount": existing_draft_count,
+            "total": total,
+            "totalLabel": _euro(total),
+            "evidence": _parcella_document_label(active_parcelle),
+            "requiresAction": False,
+        }
+    if duplicate_count > 1 and is_defined:
+        return {
+            "status": "doppione_da_riconciliare",
+            "statusLabel": "Doppione da verificare",
+            "tone": "warning",
+            "message": "Fascicolo definito senza proforma: prima riconciliare le pratiche duplicate dello stesso cliente/RG.",
+            "href": f"/fascicoli?rg={quote(_text(getattr(fascicolo, 'numero_rg', '')), safe='')}",
+            "existingCount": 0,
+            "existingDraftCount": 0,
+            "total": 0.0,
+            "totalLabel": _euro(0.0),
+            "evidence": "cliente e RG duplicati",
+            "requiresAction": True,
+        }
+    if is_defined:
+        if parcella_item.get("importo") is not None or liquidazione_item.get("importo") is not None:
+            amount = parcella_item.get("importo") if parcella_item.get("importo") is not None else liquidazione_item.get("importo")
+            return {
+                "status": "da_preparare",
+                "statusLabel": "Proforma da preparare",
+                "tone": "warning",
+                "message": f"Fascicolo definito: prepara la proforma con importo letto {_amount_label(amount)}.",
+                "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
+                "existingCount": 0,
+                "existingDraftCount": 0,
+                "total": 0.0,
+                "totalLabel": _euro(0.0),
+                "evidence": visible_source,
+                "requiresAction": True,
+            }
+        if visible_source:
+            return {
+                "status": "importi_da_confermare",
+                "statusLabel": "Importi da confermare",
+                "tone": "warning",
+                "message": "Fascicolo definito: documento economico letto, ma importo da confermare prima della proforma.",
+                "href": f"/fascicoli/{encoded_fid}#documenti",
+                "existingCount": 0,
+                "existingDraftCount": 0,
+                "total": 0.0,
+                "totalLabel": _euro(0.0),
+                "evidence": visible_source,
+                "requiresAction": True,
+            }
+        return {
+            "status": "sentenza_da_acquisire",
+            "statusLabel": "Sentenza da acquisire",
+            "tone": "warning",
+            "message": "Fascicolo definito senza proforma: acquisire o classificare la sentenza e poi preparare il documento economico.",
+            "href": f"/fascicoli/{encoded_fid}#documenti",
+            "existingCount": 0,
+            "existingDraftCount": 0,
+            "total": 0.0,
+            "totalLabel": _euro(0.0),
+            "evidence": "",
+            "requiresAction": True,
+        }
+    if parcella_item.get("importo") is not None or _text(parcella_item.get("documentoFonte")):
+        return {
+            "status": "da_preparare",
+            "statusLabel": "Proforma da preparare",
+            "tone": "warning",
+            "message": "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma.",
+            "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
+            "existingCount": 0,
+            "existingDraftCount": 0,
+            "total": 0.0,
+            "totalLabel": _euro(0.0),
+            "evidence": visible_source,
+            "requiresAction": True,
+        }
+    return {
+        "status": "non_applicabile",
+        "statusLabel": "Non ancora dovuta",
+        "tone": "neutral",
+        "message": "",
+        "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
+        "existingCount": 0,
+        "existingDraftCount": 0,
+        "total": 0.0,
+        "totalLabel": _euro(0.0),
+        "evidence": "",
+        "requiresAction": False,
     }
 
 
@@ -1959,6 +2714,274 @@ def _sync_linked_proforma_payment(
             "id": proforma_id,
             "message": "Proforma collegata non aggiornata automaticamente.",
         }
+
+
+def _parcelle_by_fascicolo(get_fatturazione: Callable[[], Any] | None) -> dict[str, list[Any]]:
+    if not callable(get_fatturazione):
+        return {}
+    manager = _safe("fatturazione", get_fatturazione, None)
+    if manager is None or not callable(getattr(manager, "tutte", None)):
+        return {}
+    rows = _safe("fatturazione_tutte", lambda: list(manager.tutte()), [])
+    out: dict[str, list[Any]] = {}
+    for item in rows:
+        fid = _text(getattr(item, "id_fascicolo", ""))
+        if fid:
+            out.setdefault(fid, []).append(item)
+    return out
+
+
+def _fascicolo_auto_proforma_amount(fascicolo: Any) -> tuple[float | None, str]:
+    for attr, label in (
+        ("compenso_pattuito", "compenso pattuito nel fascicolo"),
+        ("valore_preventivato", "valore preventivato nel fascicolo"),
+    ):
+        amount = _payment_amount_value(getattr(fascicolo, attr, None))
+        if amount is not None and amount > 0:
+            return float(amount), label
+    return None, ""
+
+
+def _create_review_proforma_from_fascicolo_amount(
+    *,
+    fascicoli_repository: Any,
+    fatturazione_repository: Any,
+    fascicolo: Any,
+    amount: float,
+    amount_source: str,
+    actor: str,
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    id_cliente = _text(getattr(fascicolo, "id_cliente", ""))
+    if not fid or not id_cliente or amount <= 0:
+        return {"created": False, "reason": "Base economica o cliente mancanti."}
+    try:
+        from pct.fatturazione import VoceParcella
+    except Exception as exc:
+        return {"created": False, "reason": f"Modulo fatturazione non disponibile: {type(exc).__name__}."}
+    oggi = date.today()
+    due = oggi + timedelta(days=30)
+    title = _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "oggetto", "")) or _rg(fascicolo)
+    data = {
+        "document": {
+            "tipo_documento": "TD01",
+            "tipo_documento_label": "Proforma",
+            "numero_documento": "",
+            "data_documento": oggi.isoformat(),
+            "causale_oggetto": f"Bozza proforma da verificare - {title}",
+            "documento_operativo": "PROFORMA",
+            "fascicolo_label": title,
+            "revisione_avvocato_richiesta": True,
+        },
+        "payment": {
+            "modalita_pagamento": "MP05",
+            "modalita_pagamento_label": "Bonifico",
+            "modalita_pagamento_codice": "MP05",
+            "data_decorrenza": due.isoformat(),
+            "giorni_termini": "30",
+            "importo_pagamento": "",
+        },
+        "presidio_economico": {
+            "origin": "presidio_economico_fascicolo_definito",
+            "amount_source": amount_source,
+            "created_at": _now(),
+            "review_required": True,
+            "taxes_to_review": True,
+        },
+    }
+    creator = getattr(fatturazione_repository, "crea", None)
+    if not callable(creator):
+        return {"created": False, "reason": "Repository fatturazione non scrivibile."}
+    proforma = creator(
+        id_cliente=id_cliente,
+        id_fascicolo=fid,
+        voci=[
+            VoceParcella(
+                descrizione=f"Compenso professionale da verificare ({amount_source})",
+                quantita=1.0,
+                prezzo_unitario=amount,
+                tipo="ONORARIO",
+            )
+        ],
+        creato_da=_text(actor, "IUSENTRA"),
+        data_emissione=oggi.isoformat(),
+        data_scadenza=due.isoformat(),
+        applica_iva=False,
+        applica_cassa=False,
+        applica_ritenuta=False,
+        applica_bollo=False,
+        percentuale_spese_generali=0.0,
+        note=(
+            "Bozza proforma generata automaticamente dal presidio economico; importo totale indicativo "
+            "da visionare, completare fiscalmente e confermare dall'avvocato prima dell'emissione."
+        ),
+        origine="presidio_economico_fascicolo_definito",
+        tipo_compenso="Bozza automatica da fascicolo definito",
+        tipo_procedimento=_text(getattr(fascicolo, "tipo_procedimento", "")),
+        valore_controversia=float(getattr(fascicolo, "valore_causa", 0.0) or 0.0),
+        dati_personalizzati=data,
+    )
+    data["document"]["numero_documento"] = _text(getattr(proforma, "numero", ""))
+    updater = getattr(fatturazione_repository, "aggiorna", None)
+    if callable(updater):
+        proforma = updater(_text(getattr(proforma, "id", "")), dati_personalizzati=data)
+    payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
+    payments["parcella"] = {
+        "kind": "parcella",
+        "label": "Parcella",
+        "status": "da_emettere",
+        "previsto": True,
+        "pagato": False,
+        "importo": amount,
+        "valuta": "EUR",
+        "data_pagamento": oggi.isoformat(),
+        "documento_fonte": amount_source,
+        "origine": "Presidio economico automatico",
+        "updated_by": _text(actor, "IUSENTRA"),
+        "proforma_id": _text(getattr(proforma, "id", "")),
+        "proforma_number": _text(getattr(proforma, "numero", "")),
+        "note": "Bozza proforma automatica da visionare prima dell'emissione.",
+    }
+    if callable(getattr(fascicoli_repository, "aggiorna", None)):
+        fascicoli_repository.aggiorna(fid, pagamenti=payments)
+    return {
+        "created": True,
+        "proformaId": _text(getattr(proforma, "id", "")),
+        "proformaNumber": _text(getattr(proforma, "numero", "")),
+        "amount": amount,
+        "amountLabel": _euro(amount),
+    }
+
+
+def _ensure_auto_proforma_for_fascicolo(
+    *,
+    fascicoli_repository: Any,
+    fatturazione_repository: Any,
+    fascicolo: Any,
+    actor: str = "IUSENTRA",
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid or not _fascicolo_is_defined(fascicolo):
+        return {"status": "skipped", "reason": "Fascicolo non definito."}
+    existing = [
+        item
+        for item in _safe("parcelle_fascicolo", lambda: list(fatturazione_repository.per_fascicolo(fid)), [])
+        if _parcella_is_active(item)
+    ]
+    if existing:
+        return {"status": "existing", "count": len(existing)}
+    try:
+        from pct.fascicolo_sentenza_economica import apply_sentenza_tribunale_automation
+    except Exception:
+        apply_sentenza_tribunale_automation = None
+    if callable(apply_sentenza_tribunale_automation):
+        payment_documents = _document_candidates_for_hints(
+            fascicolo,
+            lambda text, metadata: _document_may_contain_sentenza_economica(text, metadata),
+            metadata_matcher=lambda metadata: _document_metadata_may_contain_sentenza_economica(metadata),
+            fallback_all=False,
+        )
+        payment_documents = _rank_sentenza_economica_documents(fascicolo, payment_documents)
+        texts = _document_ai_texts_for_fascicolo(fascicolo, documents=payment_documents)
+        for doc in payment_documents:
+            document_id = _document_id(doc)
+            if not document_id or texts.get(document_id):
+                continue
+            extracted_text = _extract_presidio_text_from_physical_document(fascicolo, doc)
+            if extracted_text:
+                texts[document_id] = extracted_text
+        for document_id, text in texts.items():
+            metadata = _document_metadata_for_id(fascicolo, document_id)
+            if not _document_may_contain_sentenza_economica(text, metadata):
+                continue
+            outcome = apply_sentenza_tribunale_automation(
+                fascicoli_repository=fascicoli_repository,
+                fatturazione_repository=fatturazione_repository,
+                fascicolo_id=fid,
+                text=text,
+                document_metadata=metadata,
+                actor=actor,
+            )
+            if _text(getattr(outcome, "proforma_id", "")):
+                return {
+                    "status": "created",
+                    "source": "sentenza",
+                    "proformaId": _text(getattr(outcome, "proforma_id", "")),
+                    "proformaNumber": _text(getattr(outcome, "proforma_number", "")),
+                    "message": _text(getattr(outcome, "message", "")),
+                }
+    amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
+    if amount is not None:
+        created = _create_review_proforma_from_fascicolo_amount(
+            fascicoli_repository=fascicoli_repository,
+            fatturazione_repository=fatturazione_repository,
+            fascicolo=fascicolo,
+            amount=amount,
+            amount_source=amount_source,
+            actor=actor,
+        )
+        if created.get("created"):
+            return {"status": "created", "source": "fascicolo", **created}
+    return {"status": "missing_basis", "reason": "Nessuna sentenza/importo utile per creare una bozza proforma."}
+
+
+def run_react_fascicoli_economic_presidio(
+    *,
+    get_fascicoli: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
+    actor: str = "IUSENTRA",
+    limit: int = 500,
+) -> dict[str, Any]:
+    fascicoli_repository = get_fascicoli()
+    fatturazione_repository = get_fatturazione()
+    fascicoli = _safe("fascicoli_presidio_economico", lambda: list(fascicoli_repository.tutti(archiviati=True)), [])
+    created: list[dict[str, Any]] = []
+    existing = 0
+    missing_basis = 0
+    skipped = 0
+    processed = 0
+    for fascicolo in fascicoli:
+        if not _fascicolo_is_defined(fascicolo):
+            skipped += 1
+            continue
+        if limit and processed >= limit:
+            break
+        processed += 1
+        result = _ensure_auto_proforma_for_fascicolo(
+            fascicoli_repository=fascicoli_repository,
+            fatturazione_repository=fatturazione_repository,
+            fascicolo=fascicolo,
+            actor=actor,
+        )
+        status = _text(result.get("status"))
+        if status == "created":
+            created.append({
+                "fascicoloId": _text(getattr(fascicolo, "id", "")),
+                "ref": _rg(fascicolo),
+                "client": _fascicolo_client_label(fascicolo),
+                **result,
+            })
+        elif status == "existing":
+            existing += 1
+        elif status == "missing_basis":
+            missing_basis += 1
+        else:
+            skipped += 1
+    return {
+        "ok": True,
+        "source": "repository_reali",
+        "generatedAt": _now(),
+        "message": (
+            f"Presidio economico completato: {len(created)} bozze proforma create, "
+            f"{existing} fascicoli già coperti, {missing_basis} da integrare con sentenza/importo."
+        ),
+        "created": created,
+        "createdCount": len(created),
+        "existingCount": existing,
+        "missingBasisCount": missing_basis,
+        "processedDefined": processed,
+        "skippedCount": skipped,
+    }
 
 
 # Stati modificabili inline dall'elenco fascicoli: chiave = valore frontend
@@ -2404,6 +3427,9 @@ def _item_light(
     archived: bool | None = None,
     office_pec_messages: list[Any] | None = None,
     automatic_evidence: bool = False,
+    related_fascicoli: Iterable[Any] | None = None,
+    parcelle: Iterable[Any] | None = None,
+    duplicate_group: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
@@ -2417,7 +3443,13 @@ def _item_light(
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
-    payment_summary = payment_summary_for_fascicolo(fascicolo, automatic=automatic_evidence)
+    payment_summary = payment_summary_for_fascicolo(
+        fascicolo,
+        automatic=automatic_evidence,
+        related_fascicoli=related_fascicoli,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
     relata_summary: dict[str, Any] = {}
     if office_pec_messages is not None:
         fid_for_relata = quote(fid)
@@ -2512,6 +3544,23 @@ def _annotate_duplicate_items(items: list[dict[str, Any]], groups_by_key: dict[s
     return out
 
 
+def _duplicate_group_for_fascicolo(fascicoli: Iterable[Any], fascicolo: Any) -> dict[str, Any] | None:
+    key = normalise_practice_duplicate_key(fascicolo)
+    if not key:
+        return None
+    groups = {str(item.get("key") or ""): item for item in duplicate_practice_groups(fascicoli)}
+    group = groups.get(key)
+    if not group:
+        return None
+    rg = _text(normalise_practice_duplicate_key(fascicolo))
+    href_ref = _rg(fascicolo)
+    return {
+        **group,
+        "href": f"/fascicoli?rg={quote(href_ref, safe='')}" if href_ref and href_ref != "n.d." else "/fascicoli",
+        "identity": rg,
+    }
+
+
 def _group_scadenze_by_fasc(rows: Iterable[Any], fascicoli: Iterable[Any] | None = None) -> dict[str, list[Any]]:
     grouped: dict[str, list[Any]] = {}
     fascicoli_list = list(fascicoli or [])
@@ -2566,6 +3615,14 @@ def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any], fascicoli: Iterab
 def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, Any]:
     economic_to_review = sum(1 for item in items if (item.get("paymentSummary") or {}).get("stato") in {"da_presidiare", "parziale"})
     invoices_to_issue = sum(int((item.get("paymentSummary") or {}).get("parcelleDaEmettere") or 0) for item in items)
+    invoice_drafts_to_review = sum(
+        int(((item.get("paymentSummary") or {}).get("proformaPresidio") or {}).get("existingDraftCount") or 0)
+        for item in items
+    )
+    invoices_present = sum(
+        int(((item.get("paymentSummary") or {}).get("proformaPresidio") or {}).get("existingCount") or 0)
+        for item in items
+    )
     registered_amount = round(sum(float((item.get("paymentSummary") or {}).get("totaleRegistrato") or 0.0) for item in items), 2)
     advances_to_recover = round(sum(float((item.get("paymentSummary") or {}).get("anticipazioniDaRecuperare") or 0.0) for item in items), 2)
     duplicate_keys = {_text(item.get("duplicateKey")) for item in items if int(item.get("duplicateCount") or 0) > 1 and _text(item.get("duplicateKey"))}
@@ -2589,6 +3646,9 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "unreadCommunications": sum(int(item.get("unreadCommunications") or 0) for item in items),
         "economicToReview": economic_to_review,
         "invoicesToIssue": invoices_to_issue,
+        "invoiceDraftsToReview": invoice_drafts_to_review,
+        "invoicesPresent": invoices_present,
+        "invoiceWorkTotal": invoices_to_issue + invoice_drafts_to_review,
         "registeredAmount": registered_amount,
         "advancesToRecover": advances_to_recover,
         "duplicatePractices": len(duplicate_keys),
@@ -2763,6 +3823,7 @@ def build_react_fascicoli_payload(
     *,
     get_fascicoli: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
+    get_fatturazione: Callable[[], Any] | None = None,
     page: int = 1,
     page_size: int = 5,
     query: str = "",
@@ -2794,9 +3855,22 @@ def build_react_fascicoli_payload(
     enrich_visible = enrich_visible or automatic_for_all
     duplicate_groups = duplicate_practice_groups(fascicoli)
     duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
+    fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+    parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+
+    def _related_for_list_row(fascicolo: Any) -> list[Any]:
+        return _related_duplicate_fascicoli(fascicoli, fascicolo)
+
     light_items = _annotate_duplicate_items(
         [
-            _item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, automatic_evidence=automatic_for_all)
+            _item_light(
+                fascicolo,
+                scadenze_by_fasc=scadenze_by_fasc,
+                automatic_evidence=automatic_for_all,
+                related_fascicoli=_related_for_list_row(fascicolo) if automatic_for_all else None,
+                parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
+                duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
+            )
             for fascicolo in fascicoli
         ],
         duplicate_groups_by_key,
@@ -2823,7 +3897,6 @@ def build_react_fascicoli_payload(
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
     if items and not automatic_for_all and enrich_visible:
-        fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
         enriched_visible = {
             item_id: _annotate_duplicate_items(
                 [
@@ -2831,6 +3904,9 @@ def build_react_fascicoli_payload(
                         fascicoli_by_id[item_id],
                         scadenze_by_fasc=scadenze_by_fasc,
                         automatic_evidence=True,
+                        related_fascicoli=_related_for_list_row(fascicoli_by_id[item_id]),
+                        parcelle=parcelle_by_fasc.get(item_id, []),
+                        duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicoli_by_id[item_id])),
                     )
                 ],
                 duplicate_groups_by_key,
@@ -4334,7 +5410,15 @@ def _fatturapa_item(parcelle: list[Any], fascicolo: Any) -> dict[str, Any]:
     }
 
 
-def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[Any], timesheet_entries: list[Any], fascicolo: Any) -> list[dict[str, Any]]:
+def _economics(
+    preventivi: list[Any],
+    conferimenti: list[Any],
+    parcelle: list[Any],
+    timesheet_entries: list[Any],
+    fascicolo: Any,
+    *,
+    duplicate_group: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     minutes = sum(int(getattr(item, "minuti", 0) or 0) for item in timesheet_entries)
     parcelle_total = sum(float(getattr(item, "totale", 0.0) or getattr(item, "netto_a_pagare", 0.0) or 0.0) for item in parcelle)
     fid = quote(_text(getattr(fascicolo, "id", "")), safe="")
@@ -4347,7 +5431,12 @@ def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[An
     preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
     conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
     parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
-    payment_summary = payment_summary_for_fascicolo(fascicolo, automatic=True)
+    payment_summary = payment_summary_for_fascicolo(
+        fascicolo,
+        automatic=True,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
     return [
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
         {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": conferimento_href, "tone": "purple"},
@@ -4400,8 +5489,20 @@ def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]
     ]
 
 
-def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> dict[str, Any]:
-    base = _item_light(fascicolo, automatic_evidence=True)
+def _full_fascicolo(
+    fascicolo: Any,
+    *,
+    apps: Iterable[Any] | None = None,
+    studio_avvocato_titolare: str = "",
+    parcelle: Iterable[Any] | None = None,
+    duplicate_group: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    base = _item_light(
+        fascicolo,
+        automatic_evidence=True,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
     next_hearing = _next_hearing_value(fascicolo, apps)
     closure_date = _closure_date_value(fascicolo)
     base.update(
@@ -4462,7 +5563,103 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
     return base
 
 
-def _sentenze_economiche(fid: str) -> dict[str, Any] | None:
+def _sentenze_economiche_from_payment_summary(payment_summary: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payment_summary, dict):
+        return None
+    items = payment_summary.get("items") or {}
+    if not isinstance(items, dict):
+        return None
+    worklist: list[dict[str, Any]] = []
+    sentence_signal = False
+    pending = 0
+    liquidazione_totale = 0.0
+    for kind in ("liquidazione_giudice", "parcella", "contributo_unificato", "spese_esborsi"):
+        item = items.get(kind) or {}
+        if not isinstance(item, dict):
+            continue
+        status = _text(item.get("status"))
+        amount = item.get("importo")
+        source = _text(item.get("documentoFonte") or item.get("documento_fonte") or item.get("origine"))
+        note = _text(item.get("note"))
+        source_haystack = " ".join([source, _text(item.get("origine")), _text(item.get("natura")), note]).casefold()
+        if "sentenza" in source_haystack or kind in {"liquidazione_giudice", "parcella"} and (amount is not None or source):
+            sentence_signal = True
+        if amount is None and status in {"", "da_registrare", "da_emettere"} and not source:
+            continue
+        amount_number: float | None = None
+        if amount is not None:
+            try:
+                amount_number = float(amount or 0.0)
+            except (TypeError, ValueError):
+                amount_number = None
+        if kind == "liquidazione_giudice" and amount_number is not None:
+            liquidazione_totale += amount_number
+        if status in {"da_registrare", "da_emettere", "parziale"}:
+            pending += 1
+        readable_source = _readable_document_source(source, default="Documento economico del fascicolo") if source else ""
+        hint_parts = [
+            _text(item.get("statusLabel") or PAYMENT_STATUS_LABELS.get(status)),
+            f"Fonte: {readable_source}" if readable_source else "",
+        ]
+        if not readable_source and note:
+            hint_parts.append(_short(note, 130))
+        label = {
+            "liquidazione_giudice": "Liquidazione letta",
+            "parcella": "Proforma/parcella",
+            "contributo_unificato": "Contributo unificato",
+            "spese_esborsi": "Spese/esborsi",
+        }.get(kind, PAYMENT_KIND_LABELS.get(kind, "Controllo economico"))
+        value = _amount_label(amount_number) if amount_number is not None else _text(item.get("importoLabel") or item.get("statusLabel"), "Da verificare")
+        worklist.append(
+            {
+                "label": label,
+                "value": value,
+                "hint": " - ".join(part for part in hint_parts if part),
+                "tone": _text(item.get("tone"), "warning" if status in {"da_registrare", "da_emettere", "parziale"} else "success"),
+            }
+        )
+    if not sentence_signal or not worklist:
+        return None
+    main_value = _euro(liquidazione_totale) if liquidazione_totale else f"{len(worklist)} evidenze"
+    return {
+        "totals": {
+            "sentenze_lette": 1,
+            "sentenze_verificate": 0,
+            "da_verificare": pending,
+            "crediti_cliente": 0.0,
+            "crediti_avvocato_antistatario": 0.0,
+            "spese_liquidate_totale": round(liquidazione_totale, 2),
+            "contributo_unificato_alert": 1 if (items.get("contributo_unificato") or {}).get("status") in {"da_registrare", "parziale"} else 0,
+        },
+        "worklist": worklist,
+        "kpi": {
+            "label": "Evidenze economiche lette",
+            "value": main_value,
+            "tone": "warning" if pending else "success",
+        },
+    }
+
+
+_SENTENZA_SOURCE_KEY_RE = re.compile(r"sentenza_key:[^\s;,)]*")
+
+
+def _sentenze_worklist_visible(worklist: Any) -> list[dict[str, Any]]:
+    visible: list[dict[str, Any]] = []
+    for raw in worklist or []:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        hint = _text(item.get("hint"))
+        if hint:
+            item["hint"] = _SENTENZA_SOURCE_KEY_RE.sub(
+                lambda match: _readable_document_source(match.group(0), default="Sentenza indicizzata nel fascicolo"),
+                hint,
+            )
+        visible.append(item)
+    return visible
+
+
+def _sentenze_economiche(fid: str, payment_summary: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """Contesto economico da sentenza per il fascicolo (credito cliente art. 91,
     credito avvocato antistatario art. 93, alert contributo unificato).
 
@@ -4477,18 +5674,17 @@ def _sentenze_economiche(fid: str) -> dict[str, Any] | None:
 
         payload = build_sentenza_economic_payload(str(fid or ""))
     except Exception:
-        return None
-    if not payload.get("ok"):
-        return None
-    summary = payload.get("summary") or {}
-    totals = summary.get("totals") or {}
-    if not int(totals.get("sentenze_lette") or 0):
-        return None
-    return {
-        "totals": totals,
-        "worklist": summary.get("worklist") or [],
-        "kpi": summary.get("kpi") or {},
-    }
+        payload = {}
+    if payload.get("ok"):
+        summary = payload.get("summary") or {}
+        totals = summary.get("totals") or {}
+        if int(totals.get("sentenze_lette") or 0):
+            return {
+                "totals": totals,
+                "worklist": _sentenze_worklist_visible(summary.get("worklist") or []),
+                "kpi": summary.get("kpi") or {},
+            }
+    return _sentenze_economiche_from_payment_summary(payment_summary)
 
 
 def build_react_fascicolo_detail_payload(
@@ -4588,9 +5784,10 @@ def build_react_fascicolo_detail_payload(
     known_document_count = _fast_documents_count(fascicolo)
     if known_document_count and int(lex_indexing.get("total_documents") or 0) == 0:
         lex_indexing = {**lex_indexing, "total_documents": known_document_count}
+    load_document_presidio = include_all or load_deadlines or load_documents or not include
     document_presidio = (
         _document_presidio_for_fascicolo(fascicolo)
-        if load_deadlines or load_documents or include_all
+        if load_document_presidio
         else {
             "status": "lazy_non_caricato",
             "tone": "neutral",
@@ -4602,6 +5799,34 @@ def build_react_fascicolo_detail_payload(
         }
     )
     quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
+    duplicate_group = _safe(
+        "duplicate_group",
+        lambda: _duplicate_group_for_fascicolo(fascicoli_repo.tutti(), fascicolo),
+        None,
+    )
+    related_duplicate_rows = _safe(
+        "related_duplicate_rows",
+        lambda: _related_duplicate_fascicoli(fascicoli_repo.tutti(), fascicolo),
+        [],
+    )
+    payment_summary_detail = payment_summary_for_fascicolo(
+        fascicolo,
+        automatic=True,
+        related_fascicoli=related_duplicate_rows,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
+    sentenze_economiche = _sentenze_economiche(fid, payment_summary=payment_summary_detail)
+    operational_presidio = build_fascicolo_operational_presidio(
+        fascicolo=fascicolo,
+        document_presidio=document_presidio,
+        notification_relata=notification_relata,
+        payment_summary=payment_summary_detail,
+        deposits=visible_deposits if load_deposits or include_all or not include else [],
+        duplicate_group=duplicate_group,
+        sentenze_economiche=sentenze_economiche,
+    )
+    quick_counts["presidio_operativo"] = len(operational_presidio.get("actions") or [])
     regia_payload = (
         build_react_practice_engine_payload(
             fascicolo_id=fid,
@@ -4647,7 +5872,13 @@ def build_react_fascicolo_detail_payload(
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "fascicolo": _full_fascicolo(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
+        "fascicolo": _full_fascicolo(
+            fascicolo,
+            apps=apps,
+            studio_avvocato_titolare=studio_avvocato_titolare,
+            parcelle=parcelle,
+            duplicate_group=duplicate_group,
+        ),
         "quickCounts": quick_counts,
         "lex_indexing": lex_indexing,
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
@@ -4656,13 +5887,14 @@ def build_react_fascicolo_detail_payload(
         "deadlines": _deadlines(scadenze) if load_deadlines else [],
         "appointments": _appointments(apps) if load_deadlines else [],
         "documentPresidio": document_presidio,
+        "operationalPresidio": operational_presidio,
         "deposits": visible_deposits if load_deposits else [],
         "requests": requests,
         "parties": parties,
         "history": _history(fascicolo),
         "client": _client_payload(cliente),
-        "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo),
-        "sentenzeEconomiche": _sentenze_economiche(fid),
+        "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo, duplicate_group=duplicate_group),
+        "sentenzeEconomiche": sentenze_economiche,
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "regia": regia_payload,
         "telematic": _telematic(fascicolo),

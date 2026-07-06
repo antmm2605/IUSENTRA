@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## Shell React versionata e azioni fascicoli - 2026-07-06
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests/test_react_shell.py::test_react_shell_mobile_sblocca_scroll_e_compatta_card tests/test_react_shell.py::test_react_fascicoli_lista_segnala_rg_da_acquisire_senza_usare_numero_interno tests/test_react_shell.py::test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai -q` | OK | Guardrail sullo script React principale con `?v={{ app_version }}` e regressioni lista fascicoli/RG/doppioni confermate. |
+| `npm --prefix frontend run typecheck`; `node frontend/scripts/check-react-contracts.mjs`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python -m pytest tests/test_packaging_consistency.py::test_versione_allineata_tra_package_docker_e_railway -q`; `python -m pytest tests/test_utf8_integrity.py -q` | OK | TypeScript, contratto React, OpenAPI, versione `2.253.191` e integrità UTF-8 confermati. |
+| Browser reale `127.0.0.1:8080/fascicoli` | OK | Desktop: 8 righe, 8 gruppi azioni, `0` azioni dentro `.iu-fas-title-line`, script `index-Dpk0SLzI.js?v=2.253.191`, nessun overflow. Tablet/mobile: 8 card, pulsanti `Apri`, `Modifica`, `Esporta PDF`, `Elimina` leggibili e nessun overflow. Produzione da ripetere dopo deploy. |
+
 ## Fascicoli economici e lettore documenti mobile - 2026-07-05
 
 | Comando / verifica | Esito | Note |

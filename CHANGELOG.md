@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.191 - 2026-07-06
+
+- **Shell React - caricamento produzione**: il modulo principale React viene servito con parametro di versione applicativa, così una sessione browser non può restare agganciata a un asset principale precedente dopo il deploy.
+
 ## 2.253.190 - 2026-07-06
 
 - **Fascicoli - azioni riga**: nella vista operativa le icone `Apri`, `Modifica`, `Esporta PDF` ed `Elimina` non sono piu' affiancate al titolo del fascicolo. Restano contestuali alla riga, ma vengono mostrate sotto titolo e oggetto, con allineamento piu' leggibile su desktop e resa coerente nelle card tablet/mobile.

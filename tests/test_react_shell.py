@@ -209,6 +209,7 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
 
     assert '<html lang="it" class="react-shell-document">' in template
+    assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>' in template
     assert "body.react-shell-page .iu-shell" in css
     assert "overflow-y:auto!important" in css
     assert ".iu-metrics{\n    grid-template-columns:repeat(2,minmax(0,1fr));" in css

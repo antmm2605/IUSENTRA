@@ -1892,6 +1892,7 @@ assertNotContains(css, '.iu-lex-float{display:none!important}', 'lex react non n
 assertContains(reactShell, 'components/pct_ai_widget.html', 'lex unico incluso nella shell react')
 assertContains(reactShell, 'pct-lex-assistant.js', 'runtime lex unico nella shell react')
 assertContains(reactShell, 'iusentra-react-bootstrap', 'bootstrap JSON profilo reale')
+assertContains(reactShell, '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>', 'script react principale versionato')
 assertContains(css, '@media(max-width:760px)', 'responsive agenda')
 assertContains(css, 'prefers-reduced-motion', 'motion agenda')
 

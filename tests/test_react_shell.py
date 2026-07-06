@@ -5226,7 +5226,9 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(m
     assert contributo["documentoFonte"] == "allegato_portale.pdf"
 
 
-def test_react_fascicoli_economia_pagamento_cu_classificato_diventa_pagato_senza_importo(monkeypatch, tmp_path: Path):
+def test_react_fascicoli_economia_pagamento_cu_classificato_resta_da_registrare_senza_importo(
+    monkeypatch, tmp_path: Path
+):
     import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
@@ -5274,12 +5276,12 @@ def test_react_fascicoli_economia_pagamento_cu_classificato_diventa_pagato_senza
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    assert contributo["status"] == "pagato"
-    assert contributo["statusLabel"] == "Pagato"
+    assert contributo["status"] == "da_registrare"
+    assert contributo["statusLabel"] == "Da registrare"
     assert contributo["importo"] is None
     assert contributo["importoLabel"] == ""
-    assert contributo["dataPagamento"] == "31/05/2026"
-    assert contributo["documentoFonte"] == "Pagamento cu.PDF"
+    assert contributo["dataPagamento"] == ""
+    assert contributo["documentoFonte"] == ""
 
 
 def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_importo(monkeypatch, tmp_path: Path):

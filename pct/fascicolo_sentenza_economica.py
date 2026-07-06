@@ -1242,19 +1242,6 @@ def extract_contributo_unificato_document_evidence(
     if not candidates:
         money = list(_MONEY_RE.finditer(compact))
         if len(money) != 1:
-            if _contributo_document_label_is_payment_evidence(label) and not non_payment_source:
-                filename = _text(meta.get("filename") or meta.get("original_filename") or meta.get("safe_filename"))
-                return {
-                    "importo": None,
-                    "titolo": "Pagamento contributo unificato classificato nel fascicolo",
-                    "natura": "pdf_contributo_unificato",
-                    "label": "Contributo unificato pagato",
-                    "status": "pagato",
-                    "filename": filename,
-                    "document_id": _text(meta.get("document_id") or meta.get("documento_id")),
-                    "sha256": _text(meta.get("sha256")),
-                    "origine": "classificazione_documento_contributo_unificato",
-                }
             return {}
         match = money[0]
         if _contributo_document_candidate_rejected(compact, match):

@@ -254,6 +254,26 @@ def test_pdf_contributo_unificato_legge_campo_rt_pagopa_senza_simbolo_euro():
     assert evidence["document_id"] == "DOC-CU-RT"
 
 
+def test_pdf_contributo_classificato_senza_importo_non_diventa_pagato():
+    marker = (
+        "Presidio creato automaticamente dall'import pratiche; verificare ricevuta "
+        "PagoPA/contributo nel fascicolo importato. Import pratiche"
+    )
+
+    assert extract_contributo_unificato_document_evidence(marker, {"filename": marker}) == {}
+    assert (
+        extract_contributo_unificato_document_evidence(
+            "",
+            {
+                "filename": "Pagamento cu.PDF",
+                "classification": "Contributo unificato / pagamento",
+                "document_id": "DOC-CU-CLASSIFICATO",
+            },
+        )
+        == {}
+    )
+
+
 def test_pdf_richiesta_versamento_cu_non_diventa_pagato_ne_proforma(tmp_path: Path):
     evidence = extract_contributo_unificato_document_evidence(
         """

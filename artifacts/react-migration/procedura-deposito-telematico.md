@@ -4408,7 +4408,7 @@ Guardrail automatici eseguiti:
 
 - `python -m py_compile pct/fascicolo_sentenza_economica.py web/services/react_fascicoli_bridge.py`;
 - `python -m pytest tests/test_react_shell.py::test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai tests/test_react_shell.py::test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mirata tests/test_react_shell.py::test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_importo tests/test_react_shell.py::test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica -q`;
-- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_pagamento_cu_classificato_diventa_pagato_senza_importo tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza tests/test_react_shell.py::test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale -q`;
+- `python -m pytest tests/test_react_shell.py::test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico tests/test_react_shell.py::test_react_fascicoli_economia_pagamento_cu_classificato_resta_da_registrare_senza_importo tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu tests/test_react_shell.py::test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza tests/test_react_shell.py::test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_totale -q`;
 - `python -m pytest tests/test_react_fascicoli_sentenze_economiche.py tests/test_backfill_sentenza_lex_economics.py::test_backfill_contributo_evidence_rifiuta_carta_docente_e_soglia_reddito tests/test_backfill_sentenza_lex_economics.py::test_backfill_contributo_evidence_non_scambia_iniziali_cu_per_pagamento -q`.
 
 Prova reale obbligatoria prima della chiusura:
@@ -4416,6 +4416,31 @@ Prova reale obbligatoria prima della chiusura:
 - rebuild Docker locale `127.0.0.1:8080` sul commit finale `2.253.194`;
 - vista `/fascicoli?vista=economica`: verificare che i fascicoli con RT XML PagoPA mostrino importo italiano, stato `Pagato`, data italiana e fonte documento; verificare che le autocertificazioni reddituali pertinenti mostrino `Non previsto`;
 - controllare almeno il caso `Alfano Giuseppe c. MIM / RG 1100/2026` e un caso con autocertificazione CU, poi ripetere su produzione Hetzner prima del report finale.
+
+## Fascicoli - contributo unificato non pagato senza importo 2026-07-06
+
+Aggiornamento operativo `2.253.195`.
+
+Problema reale verificato sui dati dello studio Montagnese: alcuni fascicoli, tra cui `Alfano Giuseppe c. MIM / RG 1100/2026`, ricevevano lo stato `Pagato` solo perché il documento o il presidio storico erano classificati come `Contributo unificato / pagamento`, ma senza importo letto e senza prova completa. Per l'avvocato questo è fuorviante: una classificazione documentale indica dove leggere, non certifica da sola il pagamento.
+
+Regola corretta:
+
+- un documento classificato come pagamento CU resta candidato prioritario per lettura, OCR e controllo fisico;
+- lo stato `Pagato` viene prodotto solo quando il motore legge un importo certo da ricevuta PagoPA, RT XML, testo OCR o altra evidenza economica completa;
+- l'autocertificazione reddituale o l'esenzione CU possono portare a `Non previsto`, ma devono emergere da testo, nome documento o metadati coerenti;
+- se esiste solo il marker `Import pratiche`, `Ricevuta pagoPA` o `Contributo unificato / pagamento` senza importo, il presidio economico resta `Da registrare` o `Da verificare` e non inventa un pagamento.
+
+Guardrail aggiunti:
+
+- `tests/test_fascicolo_sentenza_economica.py::test_pdf_contributo_classificato_senza_importo_non_diventa_pagato`;
+- `tests/test_react_shell.py::test_react_fascicoli_economia_pagamento_cu_classificato_resta_da_registrare_senza_importo`.
+
+Prove obbligatorie prima della chiusura del rilascio:
+
+- rebuild Docker locale reale su `127.0.0.1:8080` con versione `2.253.195`;
+- verifica API/UI locale React della vista economica;
+- verifica server Hetzner su `https://app.iusentra.it/api/pronto`;
+- verifica dati reali produzione: `Betti C. MIM / RG 3685/2026` deve conservare `Pagato € 49,00`, un fascicolo con autocertificazione deve conservare `Non previsto`, mentre `Alfano Giuseppe c. MIM / RG 1100/2026` non deve più risultare `Pagato` senza importo.
 
 ## React shell - entry Vite senza query string 2026-07-06
 

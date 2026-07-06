@@ -1523,6 +1523,78 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
         assert esito_download.data == xml_bytes
 
 
+def test_email_dettaglio_pec_non_duplica_busta_e_postacert(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+
+    inner = EmailMessage()
+    inner["From"] = "mtspa@pec.notificatributi.it"
+    inner["To"] = "studio@example.pec.it"
+    inner["Subject"] = "DOCUMENTO CONTABILE RIFIUTI SOLIDI URBANI N. 67012"
+    inner.set_content("Avviso Tari Rende da leggere una volta.")
+
+    pec_plain = (
+        "MESSAGGIO DI POSTA CERTIFICATA\n\n"
+        "Il giorno 06/07/2026 alle ore 17:37:22 (+0200) il messaggio "
+        '"DOCUMENTO CONTABILE RIFIUTI SOLIDI URBANI N. 67012" è stato inviato.\n\n'
+        "CERTIFIED EMAIL MESSAGE\n\n"
+        "On 06/07/2026 at 17:37:22 (+0200) the message was sent."
+    )
+    pec_html = (
+        "<p>MESSAGGIO DI POSTA CERTIFICATA</p>"
+        "<p>Il giorno 06/07/2026 alle ore 17:37:22 (+0200) il messaggio "
+        "&quot;DOCUMENTO CONTABILE RIFIUTI SOLIDI URBANI N. 67012&quot; è stato inviato.</p>"
+        "<p>CERTIFIED EMAIL MESSAGE</p>"
+        "<p>On 06/07/2026 at 17:37:22 (+0200) the message was sent.</p>"
+    )
+
+    outer = EmailMessage()
+    outer["From"] = "posta-certificata@sicurezzapostale.it"
+    outer["To"] = "studio@example.pec.it"
+    outer["Subject"] = "POSTA CERTIFICATA: DOCUMENTO CONTABILE RIFIUTI SOLIDI URBANI N. 67012"
+    outer.set_content(pec_plain)
+    outer.add_alternative(pec_html, subtype="html")
+    outer.make_mixed()
+    original_part = EmailMessage()
+    original_part.set_type("message/rfc822")
+    original_part.set_param("name", "postacert.eml")
+    original_part.set_payload([inner])
+    outer.attach(original_part)
+
+    raw_eml = outer.as_bytes()
+    eml_info = ge._salva_eml_originale("MAIL-PEC-DUP", raw_eml)
+    em = EmailRicevuta(
+        id="MAIL-PEC-DUP",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="posta-certificata@sicurezzapostale.it",
+        oggetto="POSTA CERTIFICATA: DOCUMENTO CONTABILE RIFIUTI SOLIDI URBANI N. 67012",
+        data="2026-07-06T17:37:22+02:00",
+        corpo_testo="Messaggio PEC da MIME originale.",
+        allegati=[{"nome": "postacert.eml", "mime": "message/rfc822", "size": 0}],
+        eml_file=eml_info["eml_file"],
+        eml_sha256=eml_info["eml_sha256"],
+    )
+    ge.aggiungi(em)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        dettaglio_json = client.get("/api/v1/ui/email/messaggio/MAIL-PEC-DUP")
+
+    assert dettaglio_json.status_code == 200
+    payload = dettaglio_json.get_json()
+    body = payload["bodyText"]
+    assert payload["bodyCompleteness"] == "originale_acquisito"
+    assert "Email ricevuta originale" in body
+    assert "Messaggio allegato: postacert.eml" in body
+    assert body.count("MESSAGGIO DI POSTA CERTIFICATA") == 1
+    assert body.count("CERTIFIED EMAIL MESSAGE") == 1
+    assert body.count("Avviso Tari Rende da leggere una volta.") == 1
+
+
 def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
     from web.app import create_app
 

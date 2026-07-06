@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.253.192 - 2026-07-06
+
+- **PEC - messaggio completo**: la lettura dell'EML originale non duplica più la busta PEC quando il messaggio contiene testo e HTML equivalenti e non attraversa due volte il messaggio allegato `postacert.eml`.
+
 ## 2.253.191 - 2026-07-06
 
 - **Shell React - caricamento produzione**: il modulo principale React viene servito con parametro di versione applicativa, così una sessione browser non può restare agganciata a un asset principale precedente dopo il deploy.

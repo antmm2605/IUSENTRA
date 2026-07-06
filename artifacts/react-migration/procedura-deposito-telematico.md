@@ -4377,3 +4377,9 @@ Verifica sul database originale `E:\QuickOrganizer\QuickOrganizer.mdb`: per i `5
 Regola per deposito, notifiche e scadenze: il numero interno pratica (`NUMEROPRATICA` o `2026/337`) non è RG e non abilita ricerche, depositi o notifiche come se fosse numero di ruolo. La UI deve mostrare `RG da acquisire`, mantenere il numero interno come riferimento secondario e chiedere acquisizione del numero di ruolo dal portale o da provvedimento prima di usare il fascicolo per adempimenti processuali.
 
 Prova server reale eseguita su `https://app.iusentra.it/fascicoli?vista=economica`: dopo il primo rebuild `2.253.185` la UI non esponeva più `sentenza_key`, `Aggiornato in lettura` o `Lettura documenti`; la stessa prova ha fatto emergere il caso `Merdini Manjola - RG 2848/2026`, corretto con le regole `2.253.186` e `2.253.187` prima della chiusura.
+
+## PEC - lettura messaggio completo senza duplicati 2026-07-06
+
+La pagina React `/email/` deve mostrare il messaggio completo della PEC in modo forense ma leggibile: una sola busta PEC esterna, una sola sezione per il messaggio allegato `postacert.eml` e allegati testuali separati. Quando il MIME originale contiene sia `text/plain` sia `text/html` con contenuto equivalente, il bridge backend deduplica l'alternativa HTML; quando incontra un allegato `message/rfc822`, lo formatta come messaggio allegato senza attraversarne il corpo una seconda volta come parte autonoma della busta esterna.
+
+Guardrail locale aggiunto: `tests/test_email_client.py::test_email_dettaglio_pec_non_duplica_busta_e_postacert`. La prova reale su `127.0.0.1:8080/email/` deve confermare che `Messaggio completo` non ripete `MESSAGGIO DI POSTA CERTIFICATA` e `CERTIFIED EMAIL MESSAGE`.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+from difflib import SequenceMatcher
 from email import policy
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,54 @@ def _clean_multiline_text(value: Any, *, limit: int = 200000) -> str:
     return text
 
 
+def _dedupe_signature(value: Any) -> str:
+    text = html_lib.unescape(_repair_text_encoding_artifacts(str(value or "")))
+    text = unicodedata.normalize("NFKC", text).lower()
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[^\w@./:+-]+", " ", text, flags=re.UNICODE)
+    return text.strip()
+
+
+def _looks_like_duplicate_text(value: str, existing: list[str]) -> bool:
+    signature = _dedupe_signature(value)
+    if not signature:
+        return True
+    for item in existing:
+        other = _dedupe_signature(item)
+        if not other:
+            continue
+        if signature == other:
+            return True
+        if min(len(signature), len(other)) >= 80 and (signature in other or other in signature):
+            return True
+        if min(len(signature), len(other)) >= 160:
+            left = signature[:4000]
+            right = other[:4000]
+            if SequenceMatcher(None, left, right).ratio() >= 0.94:
+                return True
+    return False
+
+
+def _iter_message_display_parts(message: email.message.Message) -> list[email.message.Message]:
+    if not message.is_multipart():
+        return [message]
+    payload = message.get_payload()
+    if not isinstance(payload, list):
+        return [message]
+    parts: list[email.message.Message] = []
+    for part in payload:
+        if not hasattr(part, "get_content_type"):
+            continue
+        if str(part.get_content_type() or "").lower() == "message/rfc822":
+            parts.append(part)
+            continue
+        if part.is_multipart():
+            parts.extend(_iter_message_display_parts(part))
+            continue
+        parts.append(part)
+    return parts
+
+
 def _repair_text_encoding_artifacts(value: str) -> str:
     """Ripara i mojibake piu' comuni nei testi PEC gia' decodificati male."""
     text = value or ""
@@ -97,10 +146,8 @@ def _message_readable_text(message: email.message.Message, *, depth: int = 0) ->
     plain_parts: list[str] = []
     html_parts: list[str] = []
     nested_parts: list[str] = []
-    parts = message.walk() if message.is_multipart() else [message]
+    parts = _iter_message_display_parts(message)
     for part in parts:
-        if part.get_content_maintype() == "multipart":
-            continue
         content_type = str(part.get_content_type() or "").lower()
         disposition = str(part.get_content_disposition() or "").lower()
         filename = str(part.get_filename() or "")
@@ -119,9 +166,13 @@ def _message_readable_text(message: email.message.Message, *, depth: int = 0) ->
             payload = part.get_payload(decode=True)
             content = payload.decode("utf-8", errors="replace") if isinstance(payload, bytes) else str(payload or "")
         if content_type == "text/plain":
-            plain_parts.append(_clean_multiline_text(content))
+            cleaned = _clean_multiline_text(content)
+            if cleaned and not _looks_like_duplicate_text(cleaned, [*plain_parts, *html_parts]):
+                plain_parts.append(cleaned)
         elif content_type == "text/html":
-            html_parts.append(_html_to_readable_text(content))
+            cleaned = _html_to_readable_text(content)
+            if cleaned and not _looks_like_duplicate_text(cleaned, [*plain_parts, *html_parts]):
+                html_parts.append(cleaned)
     body = "\n\n".join(part for part in [*plain_parts, *html_parts, *nested_parts] if part)
     return _clean_multiline_text(body)
 

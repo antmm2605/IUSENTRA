@@ -6226,3 +6226,11 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --force-recreate app scheduler-worker ocr-worker`; `/api/pronto`; versioni container | OK | Copia reale locale `127.0.0.1:8080` healthy; app, scheduler-worker e ocr-worker espongono `pct.__version__=2.253.190`. |
 | Prova visiva locale desktop `/fascicoli` | OK osservato | Browser integrato su `127.0.0.1:8080`: `8` fascicoli visibili, `8` blocchi `.iu-fas-title-actions`, zero azioni rimaste inline nel titolo, icone sotto titolo/oggetto nelle prime righe, nessun overflow orizzontale. |
 | Prova visiva locale tablet/mobile `/fascicoli` | OK osservato | Tablet `900x900` e mobile `390x844`: `8` fascicoli visibili, card leggibili, azioni `Apri`, `Modifica`, `Esporta PDF`, `Elimina` da `44px` sotto i dati del fascicolo e zero overflow orizzontale. |
+
+## PEC messaggio completo senza duplicati - 2026-07-06
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile web/services/react_email_bridge.py` | OK | Sintassi confermata dopo la ricostruzione EML senza attraversare due volte i `message/rfc822`. |
+| `python -m pytest tests/test_email_client.py::test_email_dettaglio_recupera_allegati_da_eml_originale tests/test_email_client.py::test_email_dettaglio_pec_non_duplica_busta_e_postacert -q` | OK | `2/2` passati: corpo EML originale, allegato `postacert.eml` e allegati testuali restano disponibili; la busta PEC plain/HTML equivalente viene mostrata una sola volta. |
+| Prova visiva locale `/email/` | OK osservato | Browser integrato su `127.0.0.1:8080`, messaggio TARI selezionato: `Messaggio completo` visibile, `4 allegati`, una sola occorrenza di `MESSAGGIO DI POSTA CERTIFICATA`, una sola di `CERTIFIED EMAIL MESSAGE`, una sola sezione `Messaggio allegato: postacert.eml`, zero errori console. |

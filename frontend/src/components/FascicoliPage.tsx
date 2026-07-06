@@ -80,6 +80,7 @@ import {
   getFascicoloDetail,
   getFascicoloDetailSection,
   getFascicoloForm,
+  runFascicoliEconomicPresidio,
   updateFascicoloPayment,
   updateFascicoloStatus,
   fascicoloPaymentKinds,
@@ -100,8 +101,10 @@ import {
   type LexIndexingSummary,
   type FascicoloFormData,
   type FascicoloRow,
+  type FascicoloSentenzeEconomiche,
   type FascicoloPaymentKind,
   type FascicoloPaymentItem,
+  type FascicoloPaymentSummary,
   type FascicoloPaymentStatus,
   type FascicoloStato,
   type FascicoloTipo,
@@ -1382,9 +1385,34 @@ function compactPaymentLabel(value: string): string {
 }
 
 function visibleDocumentSource(value?: string): string {
-  const source = (value || '').trim()
+  const source = (value || '').trim().replace(/\s+/g, ' ')
   if (!source) return ''
   const normalised = source.toLowerCase()
+  if (normalised.startsWith('sentenza_key:') || (normalised.includes('|') && normalised.includes('sentenza'))) {
+    const dateMatch = source.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/)
+    if (dateMatch) return `Sentenza del ${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`
+    return 'Sentenza indicizzata nel fascicolo'
+  }
+  const fileName = source.split(/[\\/]/).pop() || source
+  const fileStem = fileName.replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase()
+  if (/^\d{10,}$/.test(normalised) || /^\d{10,}$/.test(fileStem)) {
+    return 'Documento indicizzato del fascicolo'
+  }
+  if (normalised.includes('autocertificazione') && (normalised.includes(' esenzione ') || normalised.includes(' cu ') || normalised.includes('contributo'))) {
+    return 'Autocertificazione esenzione contributo unificato'
+  }
+  if (normalised.includes('esenzione') && (normalised.includes(' cu ') || normalised.includes('contributo unificato'))) {
+    return 'Documento di esenzione contributo unificato'
+  }
+  if (normalised.includes('pagopa') || normalised.includes('pago pa')) {
+    return 'Ricevuta pagoPA'
+  }
+  if (normalised.includes('ricevuta telematica') && normalised.includes('pagamento')) {
+    return 'Ricevuta telematica pagoPA'
+  }
+  if (normalised.includes('sentenza')) {
+    return 'Sentenza del fascicolo'
+  }
   if (
     normalised.startsWith('document_id:')
     || normalised.startsWith('documento_id:')
@@ -1395,17 +1423,72 @@ function visibleDocumentSource(value?: string): string {
     return 'Documento indicizzato del fascicolo'
   }
   if (normalised.includes('document ai') && normalised.includes('sentenza')) {
-    return 'Lettura automatica da sentenza'
+    return 'Sentenza letta automaticamente'
   }
   if (normalised.includes('document ai')) {
-    return 'Lettura automatica del fascicolo'
+    return 'Documento letto automaticamente'
   }
-  return source
+  const readable = fileName
+    .replace(/\.[a-z0-9]{2,5}$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\bcu\b/gi, 'contributo unificato')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!readable) return 'Documento del fascicolo'
+  return readable.length > 72 ? `${readable.slice(0, 69)}...` : readable
+}
+
+function economicEvidenceLabel(kind: FascicoloPaymentKind, payment: FascicoloPaymentItem): string {
+  const amount = payment.importoLabel
+  if (kind === 'contributo_unificato') {
+    if (payment.status === 'non_previsto') return 'Contributo non dovuto o esente'
+    if (payment.status === 'pagato') return amount ? `Contributo pagato: ${amount}` : 'Contributo pagato'
+    if (payment.status === 'parziale') return amount ? `Contributo parziale: ${amount}` : 'Contributo parziale'
+    return amount ? `Contributo da registrare: ${amount}` : 'Contributo da verificare'
+  }
+  if (kind === 'liquidazione_giudice') {
+    if (payment.status === 'pagato') return amount ? `Liquidazione trovata: ${amount}` : 'Liquidazione trovata'
+    return amount ? `Liquidazione da controllare: ${amount}` : 'Liquidazione da controllare'
+  }
+  if (kind === 'parcella') {
+    if (payment.status === 'da_emettere') return amount ? `Parcella da emettere: ${amount}` : 'Parcella da emettere'
+    if (payment.status === 'pagato') return amount ? `Parcella pagata: ${amount}` : 'Parcella pagata'
+    return amount ? `Parcella proposta: ${amount}` : 'Parcella da verificare'
+  }
+  if (kind === 'spese_esborsi') {
+    if (payment.status === 'non_previsto') return 'Spese non risultano dai documenti'
+    return amount ? `Spese/esborsi trovati: ${amount}` : 'Spese/esborsi da verificare'
+  }
+  return amount ? `${payment.statusLabel}: ${amount}` : payment.statusLabel
+}
+
+function economicAnalysisLabel(analysis: FascicoloPaymentSummary['analysis']): string {
+  if (analysis.status === 'da_rianalizzare') return 'Nuovi documenti'
+  if (analysis.status === 'da_analizzare') return 'Da controllare'
+  if (analysis.status === 'aggiornato_provvisorio') return 'Documenti letti'
+  return analysis.statusLabel || 'Controllo documenti'
+}
+
+function economicAnalysisMessage(analysis: FascicoloPaymentSummary['analysis']): string {
+  if (analysis.status === 'da_rianalizzare') {
+    return 'Sono entrati nuovi documenti: aggiorna il controllo prima di usare questi importi.'
+  }
+  if (analysis.status === 'da_analizzare') {
+    return 'Avvia il controllo del fascicolo per contributo, sentenze, spese e parcella.'
+  }
+  if (analysis.status === 'aggiornato_provvisorio') {
+    return 'Il sistema ha letto i documenti disponibili e segnala solo le informazioni utili.'
+  }
+  if (analysis.relatedDuplicateFascicoli) {
+    const suffix = analysis.relatedDuplicateFascicoli === 1 ? 'pratica collegata' : 'pratiche collegate'
+    return `${analysis.relatedDuplicateFascicoli} ${suffix} da riconciliare.`
+  }
+  return ''
 }
 
 function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind}) {
   const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
-  const amount = payment.importoLabel || '€ 0,00'
+  const amount = payment.importoLabel || (payment.status === 'non_previsto' ? 'n.d.' : payment.status === 'da_emettere' ? 'Da calcolare' : 'Da verificare')
   const detail = payment.dataPagamento || visibleDocumentSource(payment.documentoFonte) || payment.updatedAtLabel || payment.metodo || payment.note || ''
   const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
   return (
@@ -1433,21 +1516,45 @@ function DuplicatePracticeBadge({ item }:{item:FascicoloRow}) {
 }
 
 function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
+  const analysis = row.paymentSummary.analysis
+  const proforma = row.paymentSummary.proformaPresidio
   const evidences = economicPaymentKinds
     .map((kind) => {
       const payment = row.paymentSummary.items[kind]
       if (!payment.documentoFonte && !payment.origine) return null
       const source = visibleDocumentSource(payment.documentoFonte || payment.origine)
       if (!source) return null
-      return { kind, label: paymentColumnLabels[kind] || payment.displayLabel || payment.label, source, tone: payment.tone }
+      return { kind, label: economicEvidenceLabel(kind, payment), source, tone: payment.tone }
     })
     .filter(Boolean) as Array<{ kind:FascicoloPaymentKind; label:string; source:string; tone:FascicoloRow['tone'] }>
-  if (!evidences.length) return null
+  const analysisVisible = Boolean(
+    analysis.status
+    && analysis.status !== 'aggiornato'
+    && !(analysis.status === 'aggiornato_provvisorio' && evidences.length)
+  )
+  const proformaVisible = Boolean(proforma.message && proforma.status !== 'non_applicabile')
+  const analysisMessage = economicAnalysisMessage(analysis)
+  if (!evidences.length && !analysisVisible && !proformaVisible) return null
   return (
     <div className="iu-fas-economic-evidence" aria-label={`Fonti economiche lette dai documenti per ${row.ref}`}>
-      <span><FileCheck2 size={14}/> Lettura documenti</span>
-      {evidences.slice(0, 3).map((item) => (
-        <small key={item.kind}><Badge tone={item.tone}>{item.label}</Badge>{item.source}</small>
+      <span><FileCheck2 size={14}/> Controllo documenti</span>
+      {proformaVisible ? (
+        <small className="iu-fas-economic-evidence__proforma">
+          <Badge tone={proforma.tone}>{proforma.statusLabel}</Badge>
+          <a className="iu-fas-economic-evidence__source" href={proforma.href}>{proforma.message}</a>
+        </small>
+      ) : null}
+      {analysisVisible ? (
+        <small>
+          <Badge tone={analysis.tone}>{economicAnalysisLabel(analysis)}</Badge>
+          {analysisMessage ? <span className="iu-fas-economic-evidence__source">{analysisMessage}</span> : null}
+        </small>
+      ) : null}
+      {evidences.slice(0, 4).map((item) => (
+        <small key={item.kind}>
+          <Badge tone={item.tone}>{item.label}</Badge>
+          <span className="iu-fas-economic-evidence__source">{item.source}</span>
+        </small>
       ))}
     </div>
   )
@@ -1694,7 +1801,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               const economicEditorId = `economic-editor-${item.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
               return (
                 <Fragment key={item.id}>
-                  <tr className={economicEditorOpen ? 'is-economic-open' : undefined}>
+                  <tr className={[economicEditorOpen ? 'is-economic-open' : '', item.duplicateCount > 1 ? 'iu-fas-row--duplicate' : ''].filter(Boolean).join(' ') || undefined}>
                     <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
                     <td>
                       {economic
@@ -1832,7 +1939,7 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
           <article>
             <span>Qualità archivio</span>
             <strong>{data.summary.toArchive} fascicoli da chiudere o archiviare</strong>
-            <small>{withoutDeadline} pratiche attive non hanno una prossima scadenza visibile.</small>
+            <small>{data.summary.archived} fascicoli già archiviati. {withoutDeadline} pratiche attive senza prossima scadenza visibile.</small>
           </article>
           {data.summary.duplicatePractices ? (
             <article>
@@ -1890,6 +1997,7 @@ function FascicoliListPage() {
   const [bulkConfirmMessage, setBulkConfirmMessage] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  const economicPresidioRunRef = useRef(false)
 
   const listParams = (): FascicoliPageParams => ({
     page,
@@ -1931,6 +2039,22 @@ function FascicoliListPage() {
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+
+  useEffect(() => {
+    if (view !== 'economica' || loading || economicPresidioRunRef.current || data.summary.invoicesToIssue < 1) return
+    economicPresidioRunRef.current = true
+    runFascicoliEconomicPresidio(1000)
+      .then((result) => {
+        if (result.createdCount > 0) {
+          setToast({ tone: 'success', message: `${result.createdCount} bozze proforma create automaticamente in bozza. L'avvocato deve visionarle prima dell'emissione.` })
+          refresh()
+        }
+      })
+      .catch((error) => {
+        setToast({ tone: 'danger', message: error instanceof Error ? error.message : 'Presidio economico non completato.' })
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.summary.invoicesToIssue, loading, view])
 
   const visible = data.items
   const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
@@ -2042,10 +2166,10 @@ function FascicoliListPage() {
         <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
           <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
           <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
-          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note="definiti o pronti" tone="warning"/>
-          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="da completare — apri vista economica" tone="warning" href="?vista=economica" onClick={(event) => { event.preventDefault(); updateView('economica'); updatePaymentsOnly(true) }}/>
+          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note={`${data.summary.toArchive} definiti, ${data.summary.archived} già archiviati`} tone="warning"/>
+          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="controlli da completare" tone="warning" href="?vista=economica" onClick={(event) => { event.preventDefault(); updateView('economica'); updatePaymentsOnly(true) }}/>
           <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success"/>
-          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoicesToIssue} note="da emettere" tone="purple"/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple"/>
           <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
           <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'}/>
           <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
@@ -7351,7 +7475,7 @@ function DocumentPresidioPanel({ data }:{data:FascicoloDetailData}) {
     <section className={`iu-fas-document-presidio iu-fas-document-presidio--${presidio.tone}`}>
       <header>
         <div>
-          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} controlli` : 'Da leggere'}</Badge>
+          <Badge tone={presidio.tone}>{actions.length ? `${actions.length} controlli` : 'Da controllare'}</Badge>
           <strong>{next?.title || 'Presidio documenti fascicolo'}</strong>
           <span>{next?.date || presidio.summary}</span>
         </div>
@@ -7382,6 +7506,86 @@ function DocumentPresidioPanel({ data }:{data:FascicoloDetailData}) {
   )
 }
 
+function operationalSectorIcon(sectorId: string): ReactNode {
+  if (sectorId === 'pec') return <Mail size={18}/>
+  if (sectorId === 'documenti') return <FileText size={18}/>
+  if (sectorId === 'relata') return <FileSignature size={18}/>
+  if (sectorId === 'economico') return <WalletCards size={18}/>
+  if (sectorId === 'doppioni') return <Copy size={18}/>
+  return <ClipboardCheck size={18}/>
+}
+
+function OperationalPresidioPanel({ data, onOpenSector }:{data:FascicoloDetailData; onOpenSector:(href:string, lazySection?:FascicoloDetailSection)=>void}) {
+  const presidio = data.operationalPresidio
+  const next = presidio.nextAction || presidio.actions[0]
+  const sectors = presidio.sectors.length ? presidio.sectors : []
+  const sectorTargets: Record<string, FascicoloDetailSection | undefined> = {
+    pec: 'depositi',
+    documenti: 'documenti',
+    relata: 'relata',
+    economico: undefined,
+    doppioni: undefined,
+  }
+  const handleSectorClick = (href: string, sectorId?: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    const hashIndex = href.indexOf('#')
+    const target = hashIndex >= 0 ? href.slice(hashIndex) : href
+    if (!target || !target.startsWith('#')) return
+    event.preventDefault()
+    onOpenSector(target, sectorTargets[sectorId || ''])
+  }
+  return (
+    <section id="presidio-operativo" className={`iu-fas-operational-presidio iu-fas-operational-presidio--${presidio.tone}`} aria-label="Presidio operativo del fascicolo">
+      <header>
+        <div>
+          <span><ShieldCheck size={16}/> Presidio operativo</span>
+          <strong>{next?.title || presidio.statusLabel}</strong>
+          <p>{next?.reason || presidio.summary}</p>
+        </div>
+        <Badge tone={presidio.tone}>{presidio.statusLabel}</Badge>
+      </header>
+      {next ? (
+        <div className="iu-fas-operational-next">
+          <Badge tone={next.tone}>{next.priority}</Badge>
+          <strong>{next.date || 'Data da confermare'}</strong>
+          <span>{next.legalBasis || next.source || 'Fonte fascicolo'}</span>
+          {next.href ? <a href={next.href} onClick={handleSectorClick(next.href, next.sector)}>Apri controllo</a> : null}
+        </div>
+      ) : null}
+      <div className="iu-fas-operational-sectors">
+        {sectors.map((sector) => (
+          <a href={sector.href || '#'} onClick={handleSectorClick(sector.href, sector.id)} className={`iu-fas-operational-sector iu-fas-operational-sector--${sector.tone}`} key={sector.id}>
+            <span>{operationalSectorIcon(sector.id)}</span>
+            <div>
+              <Badge tone={sector.tone}>{sector.statusLabel}</Badge>
+              <strong>{sector.label}</strong>
+              <small>{sector.summary}</small>
+            </div>
+          </a>
+        ))}
+      </div>
+      <div className="iu-fas-operational-actions">
+        {presidio.actions.slice(0, 5).map((action) => (
+          <article key={action.id}>
+            <Badge tone={action.tone}>{action.priority}</Badge>
+            <div>
+              <strong>{action.title}</strong>
+              <span>{action.date ? `${action.date} - ` : ''}{action.reason}</span>
+              <small>{[action.legalBasis, visibleDocumentSource(action.source || action.evidence)].filter(Boolean).join(' - ')}</small>
+            </div>
+            {action.href ? <a href={action.href} onClick={handleSectorClick(action.href, action.sector)}>Apri</a> : null}
+          </article>
+        ))}
+      </div>
+      <details className="iu-fas-operational-questions">
+        <summary>Domande che il software presidia prima dell'avvocato</summary>
+        <ul>
+          {(presidio.questions.length ? presidio.questions : sectors.flatMap((sector) => sector.questions)).slice(0, 8).map((question) => <li key={question}>{question}</li>)}
+        </ul>
+      </details>
+    </section>
+  )
+}
+
 function formatAuditDate(value: string) {
   if (!value) return 'n.d.'
   return formatDateTimeIt(value, value, { includeTimezone: true })
@@ -7392,22 +7596,82 @@ function copyAuditHash(value: string) {
   void navigator.clipboard.writeText(value)
 }
 
+function sentenzeEconomicheCount(data: FascicoloSentenzeEconomiche | null) {
+  if (!data) return 0
+  return Math.max(data.worklist.length, data.totals.sentenze_lette ? 1 : 0)
+}
+
+function SentenzeEconomicheSection({
+  data,
+  onOpenDocuments,
+  onOpenEconomia,
+}:{
+  data: FascicoloSentenzeEconomiche | null
+  onOpenDocuments: (event: MouseEvent<HTMLAnchorElement>) => void
+  onOpenEconomia: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  const count = sentenzeEconomicheCount(data)
+  return (
+    <DetailSection id="sentenze-economiche" title="Sentenze: controllo economico" icon={<WalletCards size={17}/>} count={count}>
+      {data && data.worklist.length ? (
+        <div className="iu-fas-side-cards iu-fas-sentenze-economiche">
+          <article>
+            <Badge tone={data.kpi.tone}>{data.kpi.label || 'Controllo economico'}</Badge>
+            <strong>{data.kpi.value || 'Evidenze lette'}</strong>
+            <span>{data.totals.sentenze_lette} sentenze lette, {data.totals.da_verificare} verifiche economiche aperte</span>
+          </article>
+          {data.worklist.map((item) => (
+            <article key={`${item.label}-${item.value}-${item.hint}`}>
+              <Badge tone={item.tone}>{item.label}</Badge>
+              <strong>{item.value}</strong>
+              <span>{item.hint}</span>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="iu-fas-empty-action">
+          <Badge tone="warning">Da alimentare</Badge>
+          <strong>Nessuna sentenza economica letta per questo fascicolo.</strong>
+          <p>Serve una sentenza o un provvedimento conclusivo classificato nel fascicolo: quando il documento contiene liquidazione, distrazione, contributo o spese, il controllo economico viene popolato qui.</p>
+          <div>
+            <a href="#documenti" onClick={onOpenDocuments}><FileText size={14}/> Apri documenti</a>
+            <a href="#economia" onClick={onOpenEconomia}><WalletCards size={14}/> Contesto economico</a>
+          </div>
+        </div>
+      )}
+    </DetailSection>
+  )
+}
+
 function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; loading?:boolean}) {
   const effectiveBundleHref = audit.enabled ? (audit.actions.bundle || bundleHref) : ''
+  const hasEvents = audit.events.length > 0
   return (
     <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} onOpen={onOpen}>
       {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
-      <div className="iu-fas-audit-summary">
-        <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
-        <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
-        <span><Badge tone={audit.summary.snapshotted ? 'success' : 'neutral'}>{audit.summary.snapshotted}</Badge><strong>In snapshot</strong></span>
-        <span><Badge tone={audit.summary.tsaVerified ? 'success' : 'neutral'}>{audit.summary.tsaVerified}</Badge><strong>TSA verificata</strong></span>
-      </div>
-      <div className="iu-fas-audit-actions">
-        {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
-      </div>
-      {!audit.enabled ? <p className="iu-empty">Presidio probatorio non attivo per questo studio.</p> : null}
-      {audit.enabled && !audit.events.length ? <p className="iu-empty">Nessuna evidenza audit registrata per questo fascicolo.</p> : null}
+      {hasEvents ? (
+        <>
+          <div className="iu-fas-audit-summary">
+            <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
+            <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
+            <span><Badge tone={audit.summary.snapshotted ? 'success' : 'neutral'}>{audit.summary.snapshotted}</Badge><strong>In snapshot</strong></span>
+            <span><Badge tone={audit.summary.tsaVerified ? 'success' : 'neutral'}>{audit.summary.tsaVerified}</Badge><strong>TSA verificata</strong></span>
+          </div>
+          <div className="iu-fas-audit-actions">
+            {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
+          </div>
+        </>
+      ) : !loading ? (
+        <div className="iu-fas-empty-action">
+          <Badge tone={audit.enabled ? 'warning' : 'neutral'}>{audit.enabled ? 'Nessuna evidenza' : 'Da configurare'}</Badge>
+          <strong>{audit.enabled ? 'Nessun evento probatorio registrato per questo fascicolo.' : 'Presidio probatorio non attivo per questo studio.'}</strong>
+          <p>{audit.message || (audit.enabled ? 'Le evidenze audit nascono quando il fascicolo registra consultazioni, download, depositi, ricevute o pacchetti probatori.' : 'Attivare il presidio audit prima di usare il bundle come prova operativa.')}</p>
+          <div>
+            <a href="#documenti"><FileText size={14}/> Apri documenti</a>
+            {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={14}/> Scarica bundle</a> : null}
+          </div>
+        </div>
+      ) : null}
       <div className="iu-fas-audit-list">
         {audit.events.map((event) => (
           <article className="iu-fas-audit-row" key={event.eventId}>
@@ -7487,7 +7751,8 @@ function DetailPage({ id }:{id:string}) {
   const comunicazioniRows = data.deposits.filter((dep) => !isCancelleriaCommunication(dep))
   const cancelleriaRows = data.deposits.filter(isCancelleriaCommunication)
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
-  const prossimaAzione = nextDeadline?.title || nextAppointment?.title || (qualityIssues ? 'Controlli qualità da verificare' : 'Nessuna urgenza critica rilevata')
+  const operationalPresidio = data.operationalPresidio
+  const prossimaAzione = operationalPresidio.nextAction?.title || nextDeadline?.title || nextAppointment?.title || (qualityIssues ? 'Controlli qualità da verificare' : 'Nessuna urgenza critica rilevata')
   const loadLazySection = (section: FascicoloDetailSection) => {
     if (lazyStatus[section] === 'loaded' || lazyStatus[section] === 'loading') return
     setLazyStatus((current) => ({ ...current, [section]: 'loading' }))
@@ -7502,6 +7767,7 @@ function DetailPage({ id }:{id:string}) {
           deadlines: section === 'scadenze' ? payload.deadlines : current.deadlines,
           appointments: section === 'scadenze' ? payload.appointments : current.appointments,
           documentPresidio: section === 'scadenze' || section === 'documenti' ? payload.documentPresidio : current.documentPresidio,
+          operationalPresidio: section === 'scadenze' || section === 'documenti' || section === 'depositi' || section === 'relata' ? payload.operationalPresidio : current.operationalPresidio,
           deposits: section === 'depositi' ? payload.deposits : current.deposits,
           regia: section === 'regia' ? payload.regia : current.regia,
           notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
@@ -7537,7 +7803,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#uffici-competenti">Uffici</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#relata-notifica">Relata notifica <b>{notificationRelataCount}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#presidio-operativo">Presidio <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#uffici-competenti">Uffici</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#relata-notifica">Relata notifica <b>{notificationRelataCount}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -7567,6 +7833,10 @@ function DetailPage({ id }:{id:string}) {
           <a href="#conformita"><Badge tone={qualityIssues ? 'warning' : 'success'}>Conformità</Badge><strong>{qualityIssues ? `${qualityIssues} verifiche aperte` : 'Presidio OK'}</strong><span>Controlli qualità, parti, sync portale e dati principali.</span></a>
         </div>
       </section>
+          <OperationalPresidioPanel data={data} onOpenSector={(href, lazySection) => {
+            if (lazySection) loadLazySection(lazySection)
+            openDetailSectionById(href.replace(/^#/, ''))
+          }}/>
           <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<MapPin size={19}/>} label="Uffici" value="Cerca" note="competenza per Comune" tone="success" href="#uffici-competenti" onClick={openSection('uffici-competenti')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica', 'relata')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit', 'audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
@@ -7675,7 +7945,7 @@ function DetailPage({ id }:{id:string}) {
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Contesto economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} onClick={item.href.startsWith('#') ? openSection(item.href.slice(1)) : undefined} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
-          <DetailSection id="sentenze-economiche" title="Sentenze — controllo economico" icon={<WalletCards size={17}/>} count={data.sentenzeEconomiche ? data.sentenzeEconomiche.worklist.length : 0}>{data.sentenzeEconomiche ? <div className="iu-fas-side-cards"><article><Badge tone={data.sentenzeEconomiche.kpi.tone}>{data.sentenzeEconomiche.kpi.label}</Badge><strong>{data.sentenzeEconomiche.kpi.value}</strong><span>{data.sentenzeEconomiche.totals.sentenze_lette} sentenze · {data.sentenzeEconomiche.totals.da_verificare} da verificare</span></article>{data.sentenzeEconomiche.worklist.map((item) => <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.hint}</span></article>)}</div> : <p className="iu-empty">Nessuna sentenza analizzata. Con il controllo economico sentenze attivo, crediti liquidati (art. 91/93 c.p.c.) e contributo unificato compaiono qui in automatico, da confermare.</p>}</DetailSection>
+          <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')}/>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>

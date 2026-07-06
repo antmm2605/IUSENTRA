@@ -114,6 +114,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicoli_payload,
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
+    run_react_fascicoli_economic_presidio,
     update_react_fascicolo_payment,
     update_react_fascicolo_status,
 )
@@ -5565,6 +5566,7 @@ def fascicoli_react_list():
     return jsonify(build_react_fascicoli_payload(
         get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
+        get_fatturazione=get_fatturazione,
         page=_request_int("page", default=1),
         page_size=_request_int("page_size", "pageSize", default=5),
         query=request.args.get("q", ""),
@@ -5584,6 +5586,36 @@ def fascicoli_react_list():
             "parcella": request.args.get("parcella", ""),
         },
     ))
+
+
+@api_v1_react.post("/fascicoli/presidio-economico/proforme")
+@_richiedi_auth
+def fascicoli_react_presidio_economico_proforme():
+    payload, error = _request_json_object()
+    if error:
+        return error
+    raw_limit = payload.get("limit") if isinstance(payload, dict) else None
+    try:
+        limit = int(raw_limit or 500)
+    except (TypeError, ValueError):
+        limit = 500
+    current_user = getattr(g, "user", None)
+    actor = str(getattr(current_user, "nome", "") or getattr(current_user, "username", "") or "IUSENTRA").strip()
+    result = run_react_fascicoli_economic_presidio(
+        get_fascicoli=_fascicoli_loader(),
+        get_fatturazione=get_fatturazione,
+        actor=actor,
+        limit=max(1, min(1000, limit)),
+    )
+    if int(result.get("createdCount") or 0):
+        clear_dashboard_payload_cache()
+        _audit_event(
+            "fascicoli.presidio_economico.proforme",
+            "fascicoli",
+            "presidio-economico",
+            result.get("message", "Bozze proforma generate automaticamente."),
+        )
+    return jsonify(result)
 
 
 @api_v1_react.get("/fascicoli/archivio")

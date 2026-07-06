@@ -49,6 +49,20 @@ export type FascicoloPaymentItem = {
   history: FascicoloPaymentHistoryItem[]
 }
 
+export type FascicoloProformaPresidio = {
+  status: 'presente' | 'da_preparare' | 'sentenza_da_acquisire' | 'importi_da_confermare' | 'doppione_da_riconciliare' | 'non_applicabile'
+  statusLabel: string
+  tone: Tone
+  message: string
+  href: string
+  existingCount: number
+  existingDraftCount: number
+  total: number
+  totalLabel: string
+  evidence: string
+  requiresAction: boolean
+}
+
 export type FascicoloPaymentSummary = {
   stato: 'completo' | 'parziale' | 'da_presidiare' | 'non_previsto'
   statoLabel: string
@@ -63,6 +77,16 @@ export type FascicoloPaymentSummary = {
   updatedAtLabel: string
   updatedBy: string
   items: Record<FascicoloPaymentKind, FascicoloPaymentItem>
+  proformaPresidio: FascicoloProformaPresidio
+  analysis: {
+    status: string
+    statusLabel: string
+    tone: Tone
+    reason: string
+    fingerprint: string
+    lastAnalyzedAt: string
+    relatedDuplicateFascicoli: number
+  }
 }
 
 export type FascicoloPaymentUpdatePayload = {
@@ -151,6 +175,9 @@ export type FascicoliSummary = {
   unreadCommunications: number
   economicToReview: number
   invoicesToIssue: number
+  invoiceDraftsToReview: number
+  invoicesPresent: number
+  invoiceWorkTotal: number
   registeredAmount: number
   advancesToRecover: number
   duplicatePractices: number
@@ -396,6 +423,9 @@ export type FascicoloAuditEvent = {
 
 export type FascicoloAuditTrail = {
   enabled: boolean
+  available: boolean
+  status: string
+  message: string
   events: FascicoloAuditEvent[]
   summary: {
     total: number
@@ -575,6 +605,49 @@ export type FascicoloDocumentPresidio = {
   sources: Array<{ documentId: string; name: string }>
 }
 
+export type FascicoloOperationalPresidioAction = {
+  id: string
+  sector: string
+  title: string
+  label: string
+  reason: string
+  href: string
+  date: string
+  dateIso: string
+  priority: string
+  tone: Tone
+  source: string
+  legalBasis: string
+  blocking: boolean
+  evidence: string
+}
+
+export type FascicoloOperationalPresidioSector = {
+  id: string
+  label: string
+  status: string
+  statusLabel: string
+  tone: Tone
+  summary: string
+  href: string
+  actions: FascicoloOperationalPresidioAction[]
+  evidence: string[]
+  questions: string[]
+}
+
+export type FascicoloOperationalPresidio = {
+  schemaVersion: number
+  status: string
+  statusLabel: string
+  tone: Tone
+  summary: string
+  nextAction: FascicoloOperationalPresidioAction | null
+  actions: FascicoloOperationalPresidioAction[]
+  sectors: FascicoloOperationalPresidioSector[]
+  questions: string[]
+  generatedAt: string
+}
+
 export type FascicoloDepositOffice = {
   name: string
   code: string
@@ -682,6 +755,7 @@ export type FascicoloDetailData = {
   deadlines: FascicoloDeadline[]
   appointments: FascicoloAppointment[]
   documentPresidio: FascicoloDocumentPresidio
+  operationalPresidio: FascicoloOperationalPresidio
   deposits: FascicoloDeposit[]
   requests: FascicoloActivity[]
   parties: FascicoloParty[]
@@ -827,6 +901,9 @@ const emptySummary: FascicoliSummary = {
   unreadCommunications: 0,
   economicToReview: 0,
   invoicesToIssue: 0,
+  invoiceDraftsToReview: 0,
+  invoicesPresent: 0,
+  invoiceWorkTotal: 0,
   registeredAmount: 0,
   advancesToRecover: 0,
   duplicatePractices: 0,
@@ -912,6 +989,28 @@ function createEmptyPaymentSummary(id = ''): FascicoloPaymentSummary {
     updatedAtLabel: '',
     updatedBy: '',
     items,
+    proformaPresidio: {
+      status: 'non_applicabile',
+      statusLabel: 'Non ancora dovuta',
+      tone: 'neutral',
+      message: '',
+      href: id ? `/fatturazione/nuova?id_fascicolo=${encodeURIComponent(id)}` : '/fatturazione/nuova',
+      existingCount: 0,
+      existingDraftCount: 0,
+      total: 0,
+      totalLabel: '€ 0,00',
+      evidence: '',
+      requiresAction: false,
+    },
+    analysis: {
+      status: 'da_analizzare',
+      statusLabel: 'Da analizzare',
+      tone: 'warning',
+      reason: '',
+      fingerprint: '',
+      lastAnalyzedAt: '',
+      relatedDuplicateFascicoli: 0,
+    },
   }
 }
 
@@ -1014,6 +1113,19 @@ export const emptyDocumentPresidio: FascicoloDocumentPresidio = {
   sources: [],
 }
 
+export const emptyOperationalPresidio: FascicoloOperationalPresidio = {
+  schemaVersion: 1,
+  status: 'non_disponibile',
+  statusLabel: 'Da caricare',
+  tone: 'neutral',
+  summary: 'Presidio operativo non ancora caricato.',
+  nextAction: null,
+  actions: [],
+  sectors: [],
+  questions: [],
+  generatedAt: '',
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -1036,7 +1148,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, operationalPresidio: emptyOperationalPresidio, deposits: [], requests: [], parties: [], history: [],
   economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
@@ -1044,6 +1156,9 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
     enabled: false,
+    available: false,
+    status: '',
+    message: '',
     events: [],
     summary: { total: 0, signed: 0, worm: 0, snapshotted: 0, tsaVerified: 0 },
     actions: { bundle: '' },
@@ -1166,6 +1281,37 @@ function normalizePaymentHistory(value: unknown): FascicoloPaymentHistoryItem[] 
   }).filter((row) => row.at || row.by || row.note || row.toStatus)
 }
 
+function normalizeProformaPresidio(value: unknown, id = ''): FascicoloProformaPresidio {
+  const row = isRecord(value) ? value : {}
+  const rawStatus = text(row.status ?? row.stato)
+  const allowed = ['presente', 'da_preparare', 'sentenza_da_acquisire', 'importi_da_confermare', 'doppione_da_riconciliare', 'non_applicabile'] as const
+  const status = allowed.includes(rawStatus as typeof allowed[number]) ? rawStatus as FascicoloProformaPresidio['status'] : 'non_applicabile'
+  const fallbackLabel = status === 'presente'
+    ? 'Proforma presente'
+    : status === 'da_preparare'
+      ? 'Bozza automatica'
+      : status === 'sentenza_da_acquisire'
+        ? 'Sentenza da acquisire'
+        : status === 'importi_da_confermare'
+          ? 'Importi da confermare'
+          : status === 'doppione_da_riconciliare'
+            ? 'Doppione da verificare'
+            : 'Non ancora dovuta'
+  return {
+    status,
+    statusLabel: text(row.statusLabel ?? row.status_label, fallbackLabel),
+    tone: (text(row.tone, status === 'presente' ? 'success' : status === 'non_applicabile' ? 'neutral' : 'warning') as Tone),
+    message: text(row.message ?? row.messaggio),
+    href: text(row.href, id ? `/fatturazione/nuova?id_fascicolo=${encodeURIComponent(id)}` : '/fatturazione/nuova'),
+    existingCount: number(row.existingCount ?? row.existing_count),
+    existingDraftCount: number(row.existingDraftCount ?? row.existing_draft_count),
+    total: number(row.total ?? row.totale),
+    totalLabel: text(row.totalLabel ?? row.total_label, '€ 0,00'),
+    evidence: text(row.evidence ?? row.evidenza),
+    requiresAction: bool(row.requiresAction ?? row.requires_action),
+  }
+}
+
 export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind, id = ''): FascicoloPaymentItem {
   const row = isRecord(value) ? value : {}
   const status = normalizePaymentStatus(row.status ?? row.stato, paymentDefaultStatus[kind])
@@ -1206,6 +1352,7 @@ export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPayme
   ) as Record<FascicoloPaymentKind, FascicoloPaymentItem>
   const statoRaw = text(value.stato)
   const stato = statoRaw === 'completo' || statoRaw === 'parziale' || statoRaw === 'non_previsto' ? statoRaw : 'da_presidiare'
+  const analysis = isRecord(value.analysis ?? value.analisi) ? (value.analysis ?? value.analisi) as Record<string, unknown> : {}
   return {
     stato,
     statoLabel: text(value.statoLabel ?? value.stato_label, stato === 'completo' ? 'Completo' : stato === 'parziale' ? 'Parziale' : stato === 'non_previsto' ? 'Non previsto' : 'Da presidiare'),
@@ -1220,6 +1367,16 @@ export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPayme
     updatedAtLabel: text(value.updatedAtLabel ?? value.updated_at_label),
     updatedBy: text(value.updatedBy ?? value.updated_by),
     items,
+    proformaPresidio: normalizeProformaPresidio(value.proformaPresidio ?? value.proforma_presidio, id),
+    analysis: {
+      status: text(analysis.status ?? analysis.stato),
+      statusLabel: text(analysis.statusLabel ?? analysis.status_label, 'Da analizzare'),
+      tone: (text(analysis.tone, 'warning') as Tone) || 'warning',
+      reason: text(analysis.reason ?? analysis.motivo),
+      fingerprint: text(analysis.fingerprint ?? analysis.impronta),
+      lastAnalyzedAt: text(analysis.lastAnalyzedAt ?? analysis.last_analyzed_at),
+      relatedDuplicateFascicoli: number(analysis.relatedDuplicateFascicoli ?? analysis.related_duplicate_fascicoli),
+    },
   }
 }
 
@@ -1308,6 +1465,9 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
       economicToReview: number(value.economicToReview ?? value.economic_to_review),
       invoicesToIssue: number(value.invoicesToIssue ?? value.invoices_to_issue),
+      invoiceDraftsToReview: number(value.invoiceDraftsToReview ?? value.invoice_drafts_to_review),
+      invoicesPresent: number(value.invoicesPresent ?? value.invoices_present),
+      invoiceWorkTotal: number(value.invoiceWorkTotal ?? value.invoice_work_total ?? value.invoicesToIssue ?? value.invoices_to_issue),
       registeredAmount: number(value.registeredAmount ?? value.registered_amount),
       advancesToRecover: number(value.advancesToRecover ?? value.advances_to_recover),
       duplicatePractices: number(value.duplicatePractices ?? value.duplicate_practices),
@@ -1316,6 +1476,9 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
   }
   const economicToReview = items.filter((item) => item.paymentSummary.stato === 'da_presidiare' || item.paymentSummary.stato === 'parziale').length
   const duplicateKeys = new Set(items.filter((item) => item.duplicateCount > 1 && item.duplicateKey).map((item) => item.duplicateKey))
+  const invoicesToIssue = items.reduce((total, item) => total + item.paymentSummary.parcelleDaEmettere, 0)
+  const invoiceDraftsToReview = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingDraftCount, 0)
+  const invoicesPresent = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingCount, 0)
   return {
     total: items.length,
     active: items.filter((item) => item.status !== 'archiviato').length,
@@ -1329,7 +1492,10 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     documentsToClassify: items.reduce((total, item) => total + item.alerts, 0),
     unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
     economicToReview,
-    invoicesToIssue: items.reduce((total, item) => total + item.paymentSummary.parcelleDaEmettere, 0),
+    invoicesToIssue,
+    invoiceDraftsToReview,
+    invoicesPresent,
+    invoiceWorkTotal: invoicesToIssue + invoiceDraftsToReview,
     registeredAmount: items.reduce((total, item) => total + item.paymentSummary.totaleRegistrato, 0),
     advancesToRecover: items.reduce((total, item) => total + item.paymentSummary.anticipazioniDaRecuperare, 0),
     duplicatePractices: duplicateKeys.size,
@@ -1457,6 +1623,9 @@ function normalizeAuditTrail(value: unknown): FascicoloAuditTrail {
   const actions = isRecord(value.actions) ? value.actions : {}
   return {
     enabled: bool(value.enabled),
+    available: bool(value.available),
+    status: text(value.status),
+    message: text(value.message),
     events: asArray(value.events).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
       return {
@@ -1628,6 +1797,60 @@ function normalizeDocumentPresidio(value: unknown): FascicoloDocumentPresidio {
   }
 }
 
+function normalizeOperationalPresidioAction(value: unknown, index: number): FascicoloOperationalPresidioAction {
+  const row = isRecord(value) ? value : {}
+  return {
+    id: text(row.id, `presidio-operativo-${index}`),
+    sector: text(row.sector ?? row.settore),
+    title: text(row.title ?? row.titolo ?? row.label, 'Azione operativa'),
+    label: text(row.label ?? row.title ?? row.titolo, 'Azione operativa'),
+    reason: text(row.reason ?? row.motivo ?? row.description ?? row.descrizione),
+    href: text(row.href),
+    date: text(row.date ?? row.data),
+    dateIso: text(row.dateIso ?? row.date_iso ?? row.data_iso),
+    priority: text(row.priority ?? row.priorita, 'P2'),
+    tone: text(row.tone, 'warning') as Tone,
+    source: text(row.source ?? row.fonte),
+    legalBasis: text(row.legalBasis ?? row.legal_basis ?? row.norma),
+    blocking: bool(row.blocking ?? row.bloccante),
+    evidence: text(row.evidence ?? row.prova),
+  }
+}
+
+function normalizeOperationalPresidioSector(value: unknown, index: number): FascicoloOperationalPresidioSector {
+  const row = isRecord(value) ? value : {}
+  return {
+    id: text(row.id, `settore-${index}`),
+    label: text(row.label, 'Settore operativo'),
+    status: text(row.status ?? row.stato),
+    statusLabel: text(row.statusLabel ?? row.status_label ?? row.stato_label, 'Da verificare'),
+    tone: text(row.tone, 'neutral') as Tone,
+    summary: text(row.summary ?? row.sintesi),
+    href: text(row.href),
+    actions: asArray(row.actions ?? row.azioni).map(normalizeOperationalPresidioAction),
+    evidence: asArray(row.evidence ?? row.prove).map((item) => text(item)).filter(Boolean),
+    questions: asArray(row.questions ?? row.domande).map((item) => text(item)).filter(Boolean),
+  }
+}
+
+function normalizeOperationalPresidio(value: unknown): FascicoloOperationalPresidio {
+  if (!isRecord(value)) return emptyOperationalPresidio
+  const actions = asArray(value.actions ?? value.azioni).map(normalizeOperationalPresidioAction)
+  const nextRaw = value.nextAction ?? value.next_action
+  return {
+    schemaVersion: number(value.schemaVersion ?? value.schema_version) || 1,
+    status: text(value.status ?? value.stato, emptyOperationalPresidio.status),
+    statusLabel: text(value.statusLabel ?? value.status_label ?? value.stato_label, emptyOperationalPresidio.statusLabel),
+    tone: text(value.tone, emptyOperationalPresidio.tone) as Tone,
+    summary: text(value.summary ?? value.sintesi, emptyOperationalPresidio.summary),
+    nextAction: isRecord(nextRaw) ? normalizeOperationalPresidioAction(nextRaw, 0) : null,
+    actions,
+    sectors: asArray(value.sectors ?? value.settori).map(normalizeOperationalPresidioSector),
+    questions: asArray(value.questions ?? value.domande).map((item) => text(item)).filter(Boolean),
+    generatedAt: text(value.generatedAt ?? value.generated_at),
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -1747,6 +1970,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       return { id: text(row.id, `app-${index}`), title: text(row.title ?? row.titolo, 'Appuntamento'), date: text(row.date ?? row.data), time: text(row.time ?? row.ora), place: text(row.place ?? row.luogo), court: text(row.court ?? row.tribunale), type: text(row.type ?? row.tipo), href: text(row.href, '/agenda'), tone: text(row.tone, 'primary') as Tone }
     }),
     documentPresidio: normalizeDocumentPresidio(payload.documentPresidio ?? payload.document_presidio),
+    operationalPresidio: normalizeOperationalPresidio(payload.operationalPresidio ?? payload.operational_presidio),
     deposits: asArray(payload.deposits).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
       return {
@@ -2120,6 +2344,42 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
 
 export function getFascicoliPage(params: FascicoliPageParams = {}): Promise<FascicoliPageData> {
   return safeFetch(`/api/v1/ui/fascicoli${buildFascicoliQuery(params)}`, normalizePagePayload, emptyFascicoliPage)
+}
+
+export type FascicoliEconomicPresidioResult = {
+  ok: boolean
+  message: string
+  createdCount: number
+  existingCount: number
+  missingBasisCount: number
+  processedDefined: number
+}
+
+export async function runFascicoliEconomicPresidio(limit = 500): Promise<FascicoliEconomicPresidioResult> {
+  const token = csrfToken()
+  const response = await fetch('/api/v1/ui/fascicoli/presidio-economico/proforme', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify({ limit }),
+  })
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+  if (!response.ok || payload.ok === false) {
+    throw new Error(text(payload.message ?? payload.errore ?? payload.error, 'Presidio economico non completato.'))
+  }
+  return {
+    ok: true,
+    message: text(payload.message, 'Presidio economico completato.'),
+    createdCount: number(payload.createdCount ?? payload.created_count),
+    existingCount: number(payload.existingCount ?? payload.existing_count),
+    missingBasisCount: number(payload.missingBasisCount ?? payload.missing_basis_count),
+    processedDefined: number(payload.processedDefined ?? payload.processed_defined),
+  }
 }
 
 export function getFascicoliArchive(): Promise<FascicoliPageData> {

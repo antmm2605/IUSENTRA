@@ -14,7 +14,7 @@ from pct.agenda import Agenda, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
-from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.privacy import GestioneTrattamenti
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
@@ -5107,6 +5107,409 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     assert contributo["documentoFonte"] == "ricevuta_pagopa_contributo_unificato.pdf"
 
 
+def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_generica(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Tescione II c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Tescione Ada Giulia",
+        tribunale="Tribunale di Torino",
+        numero_rg="1477",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "documento_001.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\nautocertificazione\n%%EOF",
+        note="Documento importato dal fascicolo",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {
+            documento.id: (
+                "AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE. "
+                "ESENZIONE DAL CONTRIBUTO UNIFICATO DI ISCRIZIONE A RUOLO "
+                "ai sensi dell'art. 9 comma 1 bis D.P.R. 115/2002 e dell'art. 76 D.P.R. 115/2002."
+            ),
+        }
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "non_previsto"
+    assert contributo["previsto"] is False
+    assert contributo["importo"] is None
+    assert contributo["natura"] == "esenzione_contributo_unificato"
+    assert contributo["documentoFonte"] == "documento_001.pdf"
+    assert "Esenzione" in contributo["note"]
+
+
+def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Romeo Maria c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Romeo Maria",
+        tribunale="Tribunale di Torino",
+        numero_rg="1428",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "allegato_portale.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\npagopa\n%%EOF",
+        note="Documento importato dal fascicolo",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {
+            documento.id: (
+                "RICEVUTA TELEMATICA DI PAGAMENTO PagoPA. "
+                "Tipo pagamento: Contributo unificato. "
+                "Importo totale versato: euro 21,50. Data pagamento: 05/07/2026. Esito pagamento: 0."
+            ),
+        }
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "pagato"
+    assert contributo["importo"] == 21.5
+    assert contributo["importoLabel"] == "€ 21,50"
+    assert contributo["dataPagamento"] == "05/07/2026"
+    assert contributo["documentoFonte"] == "allegato_portale.pdf"
+
+
+def test_react_fascicoli_economia_pagamento_cu_classificato_diventa_pagato_senza_importo(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Betti C. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Betti Alice",
+        tribunale="Tribunale di Palmi",
+        numero_rg="3685",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Pagamento cu.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        data_documento="2026-05-31",
+        classificazione_portale="Contributo unificato / pagamento",
+        note="Import QuickOrganizer.",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {documento.id: ""}
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+    monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "pagato"
+    assert contributo["statusLabel"] == "Pagato"
+    assert contributo["importo"] is None
+    assert contributo["importoLabel"] == ""
+    assert contributo["dataPagamento"] == "31/05/2026"
+    assert contributo["documentoFonte"] == "Pagamento cu.PDF"
+
+
+def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_importo(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Betti C. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Betti Alice",
+        tribunale="Tribunale di Palmi",
+        numero_rg="3685",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Pagamento cu.PDF",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        data_documento="2026-05-31",
+        classificazione_portale="Contributo unificato / pagamento",
+        note="Import QuickOrganizer.",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    def fake_ocr(item, documents=None):
+        calls.append([getattr(doc, "nome", "") for doc in list(documents or [])])
+        return {
+            documento.id: (
+                "RICEVUTA TELEMATICA DI PAGAMENTO. DATI PAGAMENTO. "
+                "Importo totale versato: 49.00. Identificativo versamento: 30003628285360064. "
+                "Importo: 49.00. Commissioni applicate: 0.00. Data: 17/03/2026. "
+                "Causale: Contributo Ricorso carta docente Betti. "
+                "Tipo pagamento: Contributo unificato. Esito: 0."
+            )
+        }
+
+    monkeypatch.setattr(bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fake_ocr)
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert calls == [["Pagamento cu.PDF"]]
+    assert contributo["status"] == "pagato"
+    assert contributo["importo"] == 49.0
+    assert contributo["importoLabel"] == "€ 49,00"
+    assert contributo["dataPagamento"] == "17/03/2026"
+    assert contributo["documentoFonte"] == "Pagamento cu.PDF"
+
+
+def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Romeo Maria c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Romeo Maria",
+        tribunale="Tribunale di Torino",
+        numero_rg="1428",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    sentenza = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "provvedimento.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\nsentenza\n%%EOF",
+        note="Provvedimento importato dal fascicolo",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={
+            "liquidazione_giudice": {"status": "non_previsto", "importo": 0, "updated_at": "2026-07-05"},
+            "parcella": {"status": "da_emettere", "importo": 0, "updated_at": "2026-07-05"},
+        },
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {
+            sentenza.id: (
+                "Tribunale di Torino. Sentenza n. 2208/2026 pubbl. il 28/04/2026. "
+                "RG n. 1428/2026. Romeo Maria contro Ministero dell'Istruzione e del Merito. "
+                "P.Q.M. condanna parte resistente alla rifusione delle spese di lite "
+                "liquidando la complessiva somma di € 321,50, oltre spese generali ed accessori di legge."
+            ),
+        }
+        if getattr(item, "id", "") == fascicolo.id
+        else {},
+    )
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    liquidazione = item["paymentSummary"]["items"]["liquidazione_giudice"]
+    parcella = item["paymentSummary"]["items"]["parcella"]
+
+    assert response.status_code == 200
+    assert liquidazione["status"] == "da_registrare"
+    assert liquidazione["importo"] == 321.5
+    assert liquidazione["importoLabel"] == "€ 321,50"
+    assert parcella["status"] == "da_emettere"
+    assert parcella["importo"] == 321.5
+    assert parcella["documentoFonte"] == "provvedimento.pdf"
+
+
+def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Romeo Letizia c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Romeo Letizia",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1428",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Autocertificazione esenzione cu diritto lavoro.PDF",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\n%%EOF",
+        note="Import pratiche. Autocertificazione esenzione cu diritto lavoro.PDF",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "non_previsto"
+    assert contributo["importo"] is None
+    assert contributo["importoLabel"] == ""
+    assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
+    assert "Esenzione" in contributo["note"]
+
+
+def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(monkeypatch, tmp_path: Path):
+    import web.services.react_fascicoli_bridge as bridge
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Merdini C. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Merdini Manjola",
+        tribunale="Tribunale di Palmi",
+        numero_rg="2848",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={
+            "contributo_unificato": {
+                "status": "da_registrare",
+                "importo": 0,
+                "documento_fonte": "Import pratiche",
+                "updated_at": "2026-07-05",
+            },
+            "spese_esborsi": {
+                "status": "da_registrare",
+                "importo": 0,
+                "documento_fonte": "Autocertificazione esenzione cu diritto lavoro.PDF",
+                "origine": "Import pratiche",
+                "updated_at": "2026-07-05",
+            },
+        },
+    )
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+    spese = item["paymentSummary"]["items"]["spese_esborsi"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "non_previsto"
+    assert contributo["previsto"] is False
+    assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
+    assert contributo["natura"] == "esenzione_contributo_unificato"
+    assert spese["status"] == "non_previsto"
+    assert spese["documentoFonte"] == "Autocertificazione riferita al contributo unificato"
+
+
 def test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 
@@ -5151,7 +5554,7 @@ def test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai(monk
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
     )
-    fascicoli.nuovo(
+    primo = fascicoli.nuovo(
         "Spagnolo Sara c. MIM",
         TipoFascicolo.CIVILE,
         nome_cliente="Spagnolo Sara",
@@ -5160,15 +5563,18 @@ def test_react_fascicoli_lista_operativa_segnala_doppioni_senza_document_ai(monk
         anno_rg=2026,
         oggetto="Retribuzione",
     )
-    fascicoli.nuovo(
-        "Spagnolo Sara - import portale",
-        TipoFascicolo.CIVILE,
+    fascicoli._fascicoli["DUP3950"] = Fascicolo(
+        id="DUP3950",
+        numero="2026/998",
+        titolo="Spagnolo Sara - import portale",
+        tipo=TipoFascicolo.CIVILE,
         nome_cliente="spagnolo sara",
-        tribunale="Tribunale di Torino",
-        numero_rg="3950",
-        anno_rg=2026,
+        tribunale=primo.tribunale,
+        numero_rg=primo.numero_rg,
+        anno_rg=primo.anno_rg,
         oggetto="222050 - Retribuzione",
     )
+    fascicoli._salva()
 
     def fail_document_ai(item, documents=None):
         raise AssertionError(f"Document AI non deve partire nella vista operativa: {getattr(item, 'id', '')}")
@@ -6061,6 +6467,146 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert any(field["key"] == "contributo_unificato_stato" for field in export_payload["fields"])
     assert any(field["key"] == "totale_registrato" for field in export_payload["fields"])
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
+
+
+def test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Ada",
+        cognome="Tescione",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Tescione II c. MIM",
+        TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="1477",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+        compenso_pattuito=376.46,
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        stato=StatoFascicolo.DEFINITO,
+        data_chiusura="2026-06-15",
+    )
+
+    response = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    duplicate_response = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    list_response = client.get(
+        "/api/v1/ui/fascicoli",
+        query_string={"view": "economica", "page_size": 25},
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["createdCount"] == 1
+    assert duplicate_response.get_json()["createdCount"] == 0
+    list_payload = list_response.get_json()
+    assert list_payload["summary"]["invoicesToIssue"] == 0
+    assert list_payload["summary"]["invoiceDraftsToReview"] == 1
+    assert list_payload["summary"]["invoiceWorkTotal"] == 1
+    row = next(item for item in list_payload["items"] if item["id"] == fascicolo.id)
+    presidio = row["paymentSummary"]["proformaPresidio"]
+    assert presidio["status"] == "presente"
+    assert presidio["statusLabel"] == "Bozza proforma da visionare"
+    assert presidio["existingDraftCount"] == 1
+    assert "creata automaticamente" in presidio["message"]
+    assert "visionarla e confermarla" in presidio["message"]
+
+
+def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Ada",
+        cognome="Tescione",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Tescione II c. MIM",
+        TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="1477",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+        compenso_pattuito=0,
+    )
+    sentenza = """
+    N. R.G. 1477/2026
+    REPUBBLICA ITALIANA
+    IN NOME DEL POPOLO ITALIANO
+    TRIBUNALE DI PALMI
+    Il Tribunale ha pronunciato la seguente sentenza nella causa iscritta al RG n. 1477/2026.
+    Sentenza n. 199/2026 pubbl. il 15/06/2026 RG n. 1477/2026.
+    Definitivamente pronunciando, accoglie il ricorso di Ada Tescione e liquida in favore
+    del procuratore antistatario compensi professionali in complessivi euro 258,00,
+    oltre accessori di legge.
+    P.Q.M.
+    """
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Sentenza.txt",
+        TipoDocumento.SENTENZA,
+        sentenza.encode("utf-8"),
+        classificazione_portale="Gestionale precedente",
+        nome_portale="Sentenza.txt",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        stato=StatoFascicolo.DEFINITO,
+        data_chiusura="2026-06-15",
+    )
+
+    response = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    duplicate_response = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    list_response = client.get(
+        "/api/v1/ui/fascicoli",
+        query_string={"view": "economica", "page_size": 25},
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["createdCount"] == 1
+    assert payload["created"][0]["source"] == "sentenza"
+    assert duplicate_response.get_json()["createdCount"] == 0
+    row = next(item for item in list_response.get_json()["items"] if item["id"] == fascicolo.id)
+    assert row["paymentSummary"]["items"]["liquidazione_giudice"]["importo"] == 258.0
+    assert row["paymentSummary"]["items"]["parcella"]["importo"] == 327.35
+    presidio = row["paymentSummary"]["proformaPresidio"]
+    assert presidio["statusLabel"] == "Bozza proforma da visionare"
+    assert presidio["existingDraftCount"] == 1
 
 
 def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: Path):

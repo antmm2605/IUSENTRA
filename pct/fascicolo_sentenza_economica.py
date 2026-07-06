@@ -125,6 +125,10 @@ _CONTRIBUTO_DOCUMENT_PAYMENT_ANCHOR_RE = re.compile(
     r"rt\s*xml|f23|f24|punto\s+di\s+accesso|portale\s+servizi\s+telematici)\b",
     re.IGNORECASE,
 )
+_CONTRIBUTO_DOCUMENT_PAYMENT_LABEL_RE = re.compile(
+    r"\b(?:pagament[oi]|pagopa|pago\s*pa|ricevut[ae]|quietanz[ae]|versament[oi]|f23|f24)\b",
+    re.IGNORECASE,
+)
 _CONTRIBUTO_DOCUMENT_DUE_ANCHOR_RE = re.compile(
     r"\b(?:richiesta\s+(?:di\s+)?versamento|omesso\s+versamento|si\s+invita.{0,120}?a\s+pagare|"
     r"a\s+pagare\s+entro|somma\s+di\s+euro.{0,80}?per\s+omesso\s+versamento|"
@@ -178,6 +182,9 @@ _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
     r"non\s+dovut[oaie]\s+(?:il\s+)?contributo\s+unificat[oi]|"
     r"esente\s+dal\s+pagamento\s+(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"esenzione\s+(?:(?:dal|del)\s+pagamento\s+)?(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"esenzione.{0,90}(?:iscrizione\s+a\s+ruolo|spese\s+di\s+giustizia)|"
+    r"art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis.{0,120}d\.?\s*p\.?\s*r\.?.{0,30}115|"
+    r"d\.?\s*p\.?\s*r\.?.{0,30}115.{0,120}art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis|"
     r"esente\s+(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
     r"prenotazione\s+a\s+debito"
@@ -196,6 +203,25 @@ _CONTRIBUTO_DOCUMENT_AMOUNT_RE = re.compile(
     + _MONEY_AMOUNT_PATTERN
     + r")",
     re.IGNORECASE | re.DOTALL,
+)
+_CONTRIBUTO_RT_PAYMENT_TYPE_RE = re.compile(
+    r"\btipo\s+pagamento\s*:\s*contributo\s+unificat[oi]\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_RT_RECEIPT_RE = re.compile(
+    r"\b(?:ricevuta\s+telematica\s+di\s+pagamento|rt\s*xml|pagopa|pago\s*pa)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_RT_TOTAL_AMOUNT_RE = re.compile(
+    r"\b(?:importo\s+totale\s+versato|importo\s+totale\s+pagato|totale\s+versato|totale\s+pagato)"
+    r"\s*:\s*(?:" + _MONEY_PREFIX_PATTERN + r"\s*)?"
+    r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_RT_DIRECT_AMOUNT_RE = re.compile(
+    r"\bimporto\s*:\s*(?:" + _MONEY_PREFIX_PATTERN + r"\s*)?"
+    r"(?P<amount>" + _MONEY_AMOUNT_PATTERN + r")",
+    re.IGNORECASE,
 )
 _CU_BACKWARD_ACCEPT_RE = re.compile(
     r"\b(?:c\.?\s*u\.?|contribut[oi]\s+unificat[oi]|spese\s+vive|spese|sommatoria|versat[eiio]?|anticipat[ei])\b",
@@ -657,6 +683,15 @@ def _compact(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
 
 
+def _document_label_detection_text(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    raw = re.sub(r"[_]+", " ", raw)
+    raw = re.sub(r"(?<=[A-Za-zÀ-ÿ])[-]+(?=[A-Za-zÀ-ÿ])", " ", raw)
+    return _compact(raw)
+
+
 def _plain(value: Any) -> str:
     raw = unicodedata.normalize("NFKD", str(value or ""))
     ascii_text = "".join(ch for ch in raw if not unicodedata.combining(ch))
@@ -711,7 +746,8 @@ def _normalize_rg_number(value: Any) -> str:
     raw = _text(value)
     if "/" in raw:
         raw = raw.split("/", 1)[0]
-    return re.sub(r"\D+", "", raw)
+    digits = re.sub(r"\D+", "", raw)
+    return digits.lstrip("0") or ("0" if digits else "")
 
 
 def _rg_candidates_from_fascicolo(fascicolo: Any) -> list[tuple[str, str]]:
@@ -1036,6 +1072,14 @@ def _contributo_document_label_has_hint(value: str) -> bool:
     return bool(_CONTRIBUTO_DOCUMENT_LABEL_HINT_RE.search(value))
 
 
+def _contributo_document_label_is_payment_evidence(value: str) -> bool:
+    return bool(
+        _contributo_document_label_has_hint(value)
+        and _CONTRIBUTO_DOCUMENT_PAYMENT_LABEL_RE.search(value)
+        and not _contributo_document_has_due_anchor(value)
+    )
+
+
 def _contributo_document_has_payment_anchor(value: str) -> bool:
     return bool(_CONTRIBUTO_DOCUMENT_PAYMENT_ANCHOR_RE.search(value))
 
@@ -1090,6 +1134,32 @@ def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any
     }
 
 
+def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    if not _CONTRIBUTO_RT_PAYMENT_TYPE_RE.search(compact):
+        return {}
+    if not _CONTRIBUTO_RT_RECEIPT_RE.search(compact):
+        return {}
+    for pattern in (_CONTRIBUTO_RT_TOTAL_AMOUNT_RE, _CONTRIBUTO_RT_DIRECT_AMOUNT_RE):
+        match = pattern.search(compact)
+        if not match:
+            continue
+        amount = _parse_money(match.group("amount"))
+        if amount is None:
+            continue
+        return {
+            "importo": amount,
+            "titolo": _compact(match.group(0)),
+            "natura": "pdf_contributo_unificato",
+            "label": "Contributo unificato da ricevuta PagoPA",
+            "status": "pagato",
+            "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+            "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+            "sha256": _text(metadata.get("sha256")),
+            "origine": "ricevuta_telematica_pagopa_contributo_unificato",
+        }
+    return {}
+
+
 def extract_contributo_unificato_document_evidence(
     text: str,
     metadata: dict[str, Any] | None = None,
@@ -1097,11 +1167,12 @@ def extract_contributo_unificato_document_evidence(
     """Legge l'importo da un PDF dedicato a CU/PagoPA senza confonderlo con Carta docente."""
 
     meta = metadata or {}
-    compact = _compact(text)
-    label = " ".join(
+    raw_label = " ".join(
         _text(meta.get(key))
         for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
     )
+    label = _document_label_detection_text(raw_label)
+    compact = _compact(f"{label} {_text(text)}")
     probe = f"{label} {compact}"
     exemption = _extract_contributo_exemption_evidence(compact, meta)
     label_has_hint = _contributo_document_label_has_hint(label)
@@ -1110,6 +1181,9 @@ def extract_contributo_unificato_document_evidence(
     non_payment_source = _contributo_document_is_non_payment_source(label, compact)
     if exemption:
         return exemption
+    rt_payment = _extract_contributo_rt_payment_evidence(compact, meta)
+    if rt_payment:
+        return rt_payment
     if not label_has_hint and not has_payment_anchor and not has_due_anchor:
         return {}
     if non_payment_source and not has_payment_anchor and not has_due_anchor:
@@ -1126,6 +1200,19 @@ def extract_contributo_unificato_document_evidence(
     if not candidates:
         money = list(_MONEY_RE.finditer(compact))
         if len(money) != 1:
+            if _contributo_document_label_is_payment_evidence(label) and not non_payment_source:
+                filename = _text(meta.get("filename") or meta.get("original_filename") or meta.get("safe_filename"))
+                return {
+                    "importo": None,
+                    "titolo": "Pagamento contributo unificato classificato nel fascicolo",
+                    "natura": "pdf_contributo_unificato",
+                    "label": "Contributo unificato pagato",
+                    "status": "pagato",
+                    "filename": filename,
+                    "document_id": _text(meta.get("document_id") or meta.get("documento_id")),
+                    "sha256": _text(meta.get("sha256")),
+                    "origine": "classificazione_documento_contributo_unificato",
+                }
             return {}
         match = money[0]
         if _contributo_document_candidate_rejected(compact, match):

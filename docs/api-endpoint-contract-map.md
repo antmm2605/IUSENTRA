@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 299.
-- Endpoint P0/P1 contrattualizzati: 261.
+- Endpoint React API contrattualizzati: 300.
+- Endpoint P0/P1 contrattualizzati: 262.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 284.
+- Endpoint con provider verification auth-error: 285.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -119,6 +119,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/archivio` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/export` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/nuovo` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Fascicoli e documenti | `/api/v1/ui/fascicoli/presidio-economico/proforme` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fatturazione | `/api/v1/ui/fatturazione` | `GET` | Fatturazione | P0 | verified | success+auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | verified |
 | Fatturazione | `/api/v1/ui/fatturazione/{id_documento}` | `GET` | Fatturazione | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Fatturazione | `/api/v1/ui/fatturazione/{id_documento}/annulla` | `POST` | Fatturazione | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |

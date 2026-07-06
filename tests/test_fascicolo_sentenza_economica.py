@@ -226,6 +226,34 @@ def test_pdf_contributo_unificato_fornisce_doppia_prova_senza_carta_docente():
     assert carta == {}
 
 
+def test_pdf_contributo_unificato_legge_campo_rt_pagopa_senza_simbolo_euro():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        RICEVUTA TELEMATICA DI PAGAMENTO
+        DATI PAGAMENTO
+        Importo totale versato: 49.00
+        Identificativo versamento: 30003628285360064
+        Importo: 49.00
+        Commissioni applicate: 0.00
+        Data: 17/03/2026
+        Causale: Contributo Ricorso carta docente Betti
+        Tipo pagamento: Contributo unificato
+        Esito: 0
+        """,
+        {
+            "filename": "Pagamento cu.PDF",
+            "classification": "Contributo unificato / pagamento",
+            "document_id": "DOC-CU-RT",
+        },
+    )
+
+    assert evidence["importo"] == 49.00
+    assert evidence["status"] == "pagato"
+    assert evidence["natura"] == "pdf_contributo_unificato"
+    assert evidence["label"] == "Contributo unificato da ricevuta PagoPA"
+    assert evidence["document_id"] == "DOC-CU-RT"
+
+
 def test_pdf_richiesta_versamento_cu_non_diventa_pagato_ne_proforma(tmp_path: Path):
     evidence = extract_contributo_unificato_document_evidence(
         """
@@ -788,6 +816,26 @@ def test_sentenza_con_cliente_ma_rg_diverso_non_aggiorna_economia(tmp_path: Path
     assert outcome.changes["context"]["rg_match"] is False
     assert fascicoli.get("FASC-1").pagamenti == {}
     assert fatturazione.per_fascicolo("FASC-1") == []
+
+
+def test_sentenza_con_rg_importato_a_zeri_iniziali_aggiorna_economia(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fascicoli.fascicolo.numero_rg = "00001548/2023"
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli,
+        fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1",
+        text=SENTENZA_TEXT,
+        document_metadata={"document_id": "DOC-RG-ZERI", "filename": "sentenza-rg-zeri.pdf"},
+        actor="Lex AI",
+    )
+
+    assert outcome.applied is True
+    assert "rg_sentenza_non_coincidente_con_fascicolo" not in outcome.warnings
+    assert fascicoli.get("FASC-1").pagamenti["liquidazione_giudice"]["importo"] == 1100.00
+    assert len(fatturazione.per_fascicolo("FASC-1")) == 1
 
 
 def test_numerazione_configurata_e_conversione_proforma(tmp_path: Path):

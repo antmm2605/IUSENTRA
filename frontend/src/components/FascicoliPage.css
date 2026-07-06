@@ -96,6 +96,14 @@
 .iu-fas-table--economic th:nth-child(6),.iu-fas-table--economic td:nth-child(6){width:486px;min-width:486px}
 .iu-fas-table--economic th{overflow:hidden;text-overflow:ellipsis}
 .iu-fas-table--economic .iu-fas-status-select{width:100%;min-width:0;max-width:100%}
+
+.iu-fas-side-cards article{display:grid;gap:5px;padding:11px;border:1px solid var(--iu-border);border-radius:13px;background:#fff}
+.iu-fas-sentenze-economiche article:first-child{border-color:rgba(37,99,235,.22);background:#f8fbff}
+.iu-fas-empty-action{display:grid;gap:8px;padding:12px;border:1px dashed rgba(245,158,11,.38);border-radius:13px;background:#fffbeb}
+.iu-fas-empty-action strong{color:#111827;font-size:13px;font-weight:950;line-height:1.25}
+.iu-fas-empty-action p{margin:0;color:#475569;font-size:12px;font-weight:760;line-height:1.42}
+.iu-fas-empty-action div{display:flex;gap:8px;flex-wrap:wrap}
+.iu-fas-empty-action a{min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900;text-decoration:none}
 /* La matrice economica deve partecipare al calcolo altezza della riga. */
 .iu-fas-table--economic tbody tr:not(.iu-fas-economic-editor-row)>td{height:auto;vertical-align:top}
 .iu-fas-economic-ref{display:grid;gap:2px;min-width:0}
@@ -134,9 +142,16 @@
 .iu-fas-duplicate-badge{width:max-content;max-width:100%;min-height:24px;display:inline-flex!important;align-items:center;gap:5px;margin-top:5px;padding:3px 7px;border:1px solid rgba(245,158,11,.28);border-radius:999px;background:rgba(255,251,235,.92);color:#92400e!important;font-size:10.5px!important;font-weight:900!important;line-height:1.15;text-decoration:none;white-space:normal;overflow-wrap:anywhere}
 .iu-fas-duplicate-badge:hover{border-color:rgba(245,158,11,.46);background:#fffbeb;color:#78350f!important}
 .iu-fas-duplicate-badge svg{flex:0 0 auto}
-.iu-fas-economic-evidence{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;align-items:start;margin-top:7px;padding:7px 8px;border:1px dashed rgba(37,99,235,.24);border-radius:9px;background:rgba(239,246,255,.54)}
+.iu-fas-table tbody tr.iu-fas-row--duplicate>td{background:linear-gradient(90deg,rgba(255,251,235,.92),#fff 42%)}
+.iu-fas-table tbody tr.iu-fas-row--duplicate>td:first-child{box-shadow:inset 3px 0 0 #f59e0b}
+.iu-fas-table tbody tr.iu-fas-row--duplicate:hover>td{background:linear-gradient(90deg,rgba(254,243,199,.95),rgba(239,246,255,.55))}
+.iu-fas-economic-evidence{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:6px;align-items:start;margin-top:7px;padding:8px 9px;border:1px solid rgba(37,99,235,.16);border-radius:9px;background:rgba(248,250,252,.92)}
 .iu-fas-economic-evidence>span{display:inline-flex;align-items:center;gap:5px;color:var(--iu-blue-700);font-size:10.5px;font-weight:950;text-transform:uppercase;letter-spacing:0}
-.iu-fas-economic-evidence small{min-width:0;display:flex;align-items:center;gap:5px;color:var(--iu-slate-600);font-size:10.5px;font-weight:760;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-fas-economic-evidence small{min-width:0;display:flex;align-items:center;gap:6px;color:var(--iu-slate-600);font-size:10.5px;font-weight:760;line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+.iu-fas-economic-evidence small .iu-badge{max-width:100%;white-space:normal;text-align:left;line-height:1.15}
+.iu-fas-economic-evidence__source{min-width:0;color:var(--iu-slate-600);font-weight:740}
+.iu-fas-economic-evidence a.iu-fas-economic-evidence__source{color:var(--iu-blue-700);text-decoration:none}
+.iu-fas-economic-evidence a.iu-fas-economic-evidence__source:hover,.iu-fas-economic-evidence a.iu-fas-economic-evidence__source:focus{text-decoration:underline}
 .iu-fas-economic-edit-toggle{position:relative;z-index:2;scroll-margin-top:120px;width:100%;max-width:100%;min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:5px 8px;border:1px solid rgba(37,99,235,.18);border-radius:9px;background:#fff;color:var(--iu-blue-700);font-size:11.5px;font-weight:900;line-height:1.12;cursor:pointer}
 .iu-fas-economic-edit-toggle span{min-width:0;white-space:normal;text-align:left;overflow-wrap:anywhere}
 .iu-fas-economic-edit-toggle:hover{border-color:rgba(37,99,235,.38);background:rgba(239,246,255,.92)}
@@ -1246,7 +1261,10 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-doc-row>div:nth-child(2){min-width:0}
 .iu-fas-doc-row .iu-fas-doc-badges,.iu-fas-doc-row .iu-fas-actions--wrap{grid-column:2;justify-content:flex-start}
 .iu-fas-actions--wrap{display:flex;gap:5px}
-.iu-fas-stat:is(a){transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.iu-fas-stat:is(a){display:grid;text-decoration:none;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.iusentra-preset-active main a.iu-fas-stat[href],
+.iusentra-preset-active .iu-content a.iu-fas-stat[href],
+.iu-fascicoli-page .iu-fas-stats>a.iu-fas-stat[href]{display:grid;align-items:center;gap:2px 11px;min-width:0;text-decoration:none}
 .iu-fas-stat:is(a):hover{transform:translateY(-1px);border-color:rgba(37,99,235,.32);box-shadow:0 12px 24px rgba(37,99,235,.10)}
 @media(max-width:900px){.iu-fas-ai-board,.iu-fas-command-bar,.iu-fas-editor-board,.iu-fas-editor-list,.iu-fas-lex-indexing dl,.iu-fas-doc-tools,.iu-fas-doc-upload,.iu-fas-comm-dep-grid,.iu-fas-upload-preview label,.iu-fas-doc-rename-form{grid-template-columns:1fr}.iu-fas-preview-modal__box{height:88vh}.iu-fas-preview-modal__box header{align-items:flex-start;flex-direction:column;padding:10px}.iu-fas-preview-modal__box nav{width:100%;justify-content:space-between}.iu-fas-command-bar .iu-fas-post{min-height:42px}.iu-fas-lex-indexing header,.iu-fas-lex-indexing footer{flex-direction:column;align-items:stretch}.iu-fas-lex-indexing footer div{display:grid}.iu-fas-lex-indexing .iu-fas-post{width:100%;justify-content:center}.iu-fas-doc-upload button{width:100%;min-height:42px}.iu-fas-doc-rename-form{grid-column:1/-1}.iu-fas-doc-rename-form button{min-height:40px}}
 @media(max-width:900px){.iu-fas-preview-modal{place-items:stretch;padding:8px;background:rgba(15,23,42,.58)}.iu-fas-preview-modal__box{width:100%;height:calc(100vh - 16px);max-height:none;border-radius:14px}.iu-fas-preview-modal__box header{min-height:auto}.iu-fas-preview-modal__title{width:100%}.iu-fas-preview-modal__box nav{gap:8px}.iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button{flex:1 1 0;justify-content:center;min-height:40px}.iu-fas-preview-modal__box iframe{min-height:0;background:#fff}}
@@ -1321,6 +1339,166 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   .iu-fas-lex-indexing dl{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-fas-audit-summary{grid-template-columns:1fr}
   .iu-fas-audit-actions{display:grid}
+}
+
+.iu-fas-operational-presidio{
+  display:grid;
+  gap:12px;
+  margin-bottom:16px;
+  padding:14px;
+  border:1px solid rgba(37,99,235,.18);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:var(--iu-shadow-sm);
+}
+.iu-fas-operational-presidio--warning{border-color:rgba(245,158,11,.34);background:linear-gradient(135deg,#fff,#fffbeb)}
+.iu-fas-operational-presidio--danger{border-color:rgba(239,68,68,.28);background:linear-gradient(135deg,#fff,#fff1f2)}
+.iu-fas-operational-presidio--success{border-color:rgba(34,197,94,.24);background:linear-gradient(135deg,#fff,#f0fdf4)}
+.iu-fas-operational-presidio>header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:start;
+}
+.iu-fas-operational-presidio>header>div{display:grid;gap:5px;min-width:0}
+.iu-fas-operational-presidio>header span{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:var(--iu-blue-700);
+  font-size:11px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.iu-fas-operational-presidio>header strong{
+  color:#0f172a;
+  font-size:16px;
+  font-weight:950;
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+.iu-fas-operational-presidio>header p{
+  margin:0;
+  color:#475569;
+  font-size:12.5px;
+  font-weight:760;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+.iu-fas-operational-next{
+  display:grid;
+  grid-template-columns:auto minmax(120px,auto) minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+  min-height:44px;
+  padding:9px 10px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:12px;
+  background:#f8fafc;
+}
+.iu-fas-operational-next strong{color:#0f172a;font-size:13px;font-weight:950;white-space:nowrap}
+.iu-fas-operational-next span{min-width:0;color:#475569;font-size:12px;font-weight:800;overflow-wrap:anywhere}
+.iu-fas-operational-next a,
+.iu-fas-operational-actions a{
+  min-height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 10px;
+  border:1px solid rgba(37,99,235,.2);
+  border-radius:8px;
+  background:#fff;
+  color:var(--iu-blue-700);
+  font-size:11.5px;
+  font-weight:900;
+  text-decoration:none;
+}
+.iu-fas-operational-sectors{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+.iu-fas-operational-sector{
+  min-width:0;
+  min-height:122px;
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  gap:8px;
+  align-items:start;
+  padding:10px;
+  border:1px solid var(--iu-border);
+  border-radius:12px;
+  background:#fff;
+  color:#0f172a;
+  text-decoration:none;
+}
+.iu-fas-operational-sector:hover,
+.iu-fas-operational-sector:focus-visible{
+  border-color:rgba(37,99,235,.35);
+  box-shadow:0 10px 22px rgba(15,23,42,.08);
+  outline:0;
+}
+.iu-fas-operational-sector>span{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:rgba(37,99,235,.08);
+  color:var(--iu-blue-700);
+}
+.iu-fas-operational-sector>div{display:grid;gap:5px;min-width:0}
+.iu-fas-operational-sector strong{font-size:13px;font-weight:950;line-height:1.2}
+.iu-fas-operational-sector small{color:#64748b;font-size:11.5px;font-weight:760;line-height:1.32;overflow-wrap:anywhere}
+.iu-fas-operational-sector--danger{border-color:rgba(239,68,68,.22);background:#fff7f7}
+.iu-fas-operational-sector--warning{border-color:rgba(245,158,11,.26);background:#fffaf0}
+.iu-fas-operational-sector--success{border-color:rgba(34,197,94,.2);background:#f8fff9}
+.iu-fas-operational-actions{
+  display:grid;
+  gap:8px;
+}
+.iu-fas-operational-actions article{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:9px;
+  align-items:center;
+  min-height:54px;
+  padding:9px 10px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:12px;
+  background:#fff;
+}
+.iu-fas-operational-actions article>div{display:grid;gap:3px;min-width:0}
+.iu-fas-operational-actions strong{color:#0f172a;font-size:12.8px;font-weight:950;line-height:1.25;overflow-wrap:anywhere}
+.iu-fas-operational-actions span,
+.iu-fas-operational-actions small{color:#475569;font-size:11.7px;font-weight:760;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-operational-actions small{color:var(--iu-blue-700);font-weight:850}
+.iu-fas-operational-questions{
+  border:1px dashed rgba(37,99,235,.24);
+  border-radius:12px;
+  background:#f8fbff;
+  padding:9px 10px;
+}
+.iu-fas-operational-questions summary{
+  cursor:pointer;
+  color:#0f172a;
+  font-size:12.5px;
+  font-weight:950;
+}
+.iu-fas-operational-questions ul{display:grid;gap:5px;margin:8px 0 0;padding-left:18px}
+.iu-fas-operational-questions li{color:#475569;font-size:12px;font-weight:760;line-height:1.35}
+@media(max-width:1280px){.iu-fas-operational-sectors{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+  .iu-fas-operational-presidio>header,
+  .iu-fas-operational-next,
+  .iu-fas-operational-actions article{
+    grid-template-columns:1fr;
+  }
+  .iu-fas-operational-sectors{grid-template-columns:1fr}
+  .iu-fas-operational-sector{min-height:auto}
+  .iu-fas-operational-next a,
+  .iu-fas-operational-actions a{width:100%;min-height:38px}
 }
 
 /* Preset grafico globale IUSENTRA - Fascicoli come pagina pilota. */

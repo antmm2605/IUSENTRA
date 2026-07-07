@@ -210,10 +210,9 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
 
     assert '<html lang="it" class="react-shell-document">' in template
-    assert '<script type="module" src="{{ js_file }}"' in template
+    assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"' in template
     assert "iusentraEntryScript='loaded'" in template
     assert "iusentraEntryScript='error'" in template
-    assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>' not in template
     assert "window.__IUSENTRA_REACT_BOOTSTRAP_STATE__" in template
     assert "retryEntryUrl()" in template
     assert "iu_boot_retry" in template

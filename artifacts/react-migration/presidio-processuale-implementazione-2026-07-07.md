@@ -174,3 +174,18 @@ Test mirati eseguiti:
 - `python -m pytest tests/test_utf8_integrity.py -q`.
 
 Nota test: il run monolitico `python -m pytest tests/test_react_shell.py -q` è stato interrotto per timeout dopo oltre 240 secondi; i tre casi direttamente collegati al bootstrap/shell sono passati. Resta obbligatoria la verifica visiva in produzione dopo deploy.
+
+## Aggiornamento anti-cache React 2.254.3 del 07/07/2026
+
+Durante la prova visiva reale su `https://app.iusentra.it/fascicoli?vista=economica`, dopo il deploy 2.254.2, la pagina mostrava ancora `Pagina non avviata`. Il server serviva correttamente il nuovo `reactEntry` e `/api/pronto` rispondeva con versione `2.254.2`, ma il browser integrato stava eseguendo una copia cache dell'entry React precedente: il testo visibile era quello vecchio e l'import dinamico cercava ancora `/static/pagina/assets/reactEntry-...`.
+
+Correzione applicata:
+
+- `web/templates/react_shell.html` aggiunge `?v={{ app_version }}` a CSS React, modulepreload e script entry React;
+- i guardrail `tests/test_react_shell.py` e `frontend/scripts/check-react-contracts.mjs` pretendono ora l'entry React versionata;
+- versione applicativa portata a `2.254.3`;
+- `docs/openapi.yaml`, `docs/api-endpoint-contract-map.md` e `docs/api-contracts.md` rigenerati.
+
+Obiettivo della correzione: il browser reale dello studio deve scaricare il bundle corrente dopo ogni deploy e non deve restare agganciato a un entrypoint cacheato che impedisce la visualizzazione dei fascicoli e del controllo economico.
+
+Stato: da testare con build, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` versione `2.254.3` e prova visiva della vista economica in produzione.

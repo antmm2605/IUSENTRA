@@ -66,6 +66,10 @@ npm run build</code></pre>
   </section>
   {% endif %}
   {% if react_assets.inline_entry_code %}
+  <script>
+    window.__IUSENTRA_INLINE_REACT_ENTRY__ = true;
+    document.documentElement.dataset.iusentraEntryScript = 'inline-armed';
+  </script>
   <script type="module" data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}">
 {{ react_assets.inline_entry_code | safe }}
 document.documentElement.dataset.iusentraEntryScript='loaded';

@@ -241,3 +241,17 @@ Correzione applicata:
 - versione applicativa portata a `2.254.6`.
 
 Obiettivo della correzione: togliere dal percorso primario il caricamento del modulo entry esterno che sul browser reale restava rosso, senza cambiare la logica dei fascicoli o dei dati economici. La vista economica va considerata verificabile solo dopo nuova prova visiva reale in produzione con tabella caricata e interazioni eseguite.
+
+## Aggiornamento entry autosufficiente React 2.254.7 del 07/07/2026
+
+La prova visiva reale dopo il deploy 2.254.6 ha mostrato ancora `Pagina non avviata`. L'HTML autenticato consegnava correttamente l'entry inline e riscriveva gli import verso `/static/react/assets/...`, ma il browser non completava l'esecuzione del modulo e il retry esterno restava su `Failed to fetch dynamically imported module`.
+
+Correzione applicata:
+
+- `frontend/vite.config.ts` usa `inlineDynamicImports: true` e rimuove i `manualChunks`, così l'entry React di produzione non dipende da chunk ESM `vendor` separati prima del mount;
+- `frontend/src/main.tsx` accetta il segnale `window.__IUSENTRA_INLINE_REACT_ENTRY__ === true`, necessario perché `import.meta.url` in un modulo inline non è l'URL dell'asset hashato;
+- `web/templates/react_shell.html` arma il flag inline prima del modulo e conserva telemetria `inline-armed` / `loaded`;
+- `frontend/scripts/check-react-contracts.mjs` presidia flag inline, entry autosufficiente e assenza di `manualChunks`;
+- versione applicativa portata a `2.254.7`.
+
+Obiettivo della correzione: rendere il primo caricamento React indipendente da fetch ESM secondari nel browser reale dello studio, poi verificare materialmente la vista economica in produzione.

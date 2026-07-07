@@ -14,6 +14,7 @@ type ReactBootstrapState = {
 declare global {
   interface Window {
     __IUSENTRA_REACT_BOOTSTRAP_STATE__?: ReactBootstrapState
+    __IUSENTRA_INLINE_REACT_ENTRY__?: boolean
   }
 }
 
@@ -27,6 +28,7 @@ const moduleUrl = new URL(import.meta.url)
 const shouldRunBootstrap = import.meta.env.DEV
   || moduleUrl.searchParams.has('v')
   || moduleUrl.searchParams.has('iu_boot_retry')
+  || window.__IUSENTRA_INLINE_REACT_ENTRY__ === true
 
 const appRoot = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
 const supportOperatorRoot = document.getElementById('support-operator-react-root')

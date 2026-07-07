@@ -210,6 +210,7 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
 
     assert '<html lang="it" class="react-shell-document">' in template
+    assert "window.__IUSENTRA_INLINE_REACT_ENTRY__ = true;" in template
     assert 'data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}"' in template
     assert "{{ react_assets.inline_entry_code | safe }}" in template
     assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"' in template

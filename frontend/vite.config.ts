@@ -46,13 +46,9 @@ export default defineConfig({
     rollupOptions: {
       input: './index.html',
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined
-          if (id.includes('/node_modules/lucide-react/')) {
-            return 'vendor-icons'
-          }
-          return 'vendor'
-        },
+        // La shell React viene caricata inline in produzione: l'entry deve
+        // essere autosufficiente, senza import ESM secondari prima del mount.
+        inlineDynamicImports: true,
       },
     }
   },

@@ -6,7 +6,7 @@ Aggiornato: 03/07/2026.
 
 Il presidio PEC non deve limitarsi ad acquisire il messaggio. Dopo MIME, allegati, OCR, XML, ZIP, EML annidati, firme e report di validazione, IUSENTRA deve produrre un evento legale strutturato e auditabile per fascicolo, Agenda, Scadenziario, notifiche, web push e Lex AI.
 
-Il modulo operativo è `pct/pec_legal_event_understanding.py`; la versione schema è `iusentra.pec.legal_event_understanding.v2`; il ruleset corrente è `pct/data/legal_pec_rules_v2026_07.json`.
+Il modulo operativo è `pct/pec_legal_event_understanding.py`; la versione schema è `iusentra.pec.legal_event_understanding.v2`; il ruleset corrente è `pct/data/legal_pec_rules_v2026_08.json`.
 
 ## Regola primaria
 
@@ -71,6 +71,9 @@ Eventi riconosciuti in V2:
 - CTU, decreto ingiuntivo, cautelari, competenza, estinzione, Cassazione;
 - ricevute PCT, mancata consegna, rifiuto deposito, notifica eccezione;
 - contributo unificato e spese documentate;
+- ricevuta di pagamento del contributo unificato (PagoPA/RT, F23/F24) — evento `ricevuta_pagamento_contributo_unificato`;
+- esenzione/autocertificazione dal contributo unificato (art. 9 c. 1-bis / art. 76 D.P.R. 115/2002) — evento `esenzione_contributo_unificato`;
+- richiesta/avviso di versamento del contributo unificato — evento `richiesta_versamento_contributo_unificato`;
 - eventi ambigui da revisione.
 
 La modalità udienza viene estratta da testo, HTML `href`, allegati, ICS ed evidenze già prodotte dal report. Se l'udienza è da remoto o mista ma il link manca, la priorità diventa `P0`.
@@ -82,6 +85,8 @@ La modalità udienza viene estratta da testo, HTML `href`, allegati, ICS ed evid
 - `compensa le spese`: nessun incasso automatico.
 - gratuito patrocinio/DPR 115/2002/SIAMM/LSG: workflow spese di giustizia con revisione umana.
 - contributo unificato viene distinto dagli esborsi: un importo indicato come `€ 21,50 per esborsi` non viene trattato come contributo unificato.
+- classificazione contributo unificato (`pct/pec_economia/`): la ricevuta telematica PagoPA/RT produce `contributo_unificato_pagato`, l'autocertificazione di esenzione produce `contributo_unificato_esente` (nessun incasso), la richiesta di versamento produce `contributo_unificato_da_versare`; gli estrattori sono gli stessi di `pct/fascicolo_sentenza_economica.py` usati dalla vista economica dei fascicoli, così presidio PEC e fascicolo classificano allo stesso modo.
+- quando esiste un'evidenza CU specifica, il record generico `contributo_unificato` (importo citato nel dispositivo) viene sostituito per evitare doppio conteggio nella stessa PEC.
 
 ## Regole udienze
 

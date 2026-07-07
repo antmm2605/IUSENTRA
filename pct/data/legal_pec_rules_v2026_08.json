@@ -1,0 +1,122 @@
+{
+  "version": "legal_pec_rules_v2026_08",
+  "title": "PEC Legal Presidio Pro - regole deterministiche V2",
+  "scope": "Comprensione eventi legali da PEC gia' acquisite da IUSENTRA. Il ruleset non invia PEC, non deposita atti e non calcola termini conclusivi senza motore deterministico e conferma professionale.",
+  "official_sources": {
+    "codice_procedura_civile": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?art.codiceRedazionale=040U1443",
+    "provvedimento_dgsia_7_dicembre_2023": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.09122023.0007511.ID_Regole_Tecniche_Udienze_da_remoto_signed.pdf",
+    "portale_servizi_telematici": "https://pst.giustizia.it/PST/it/homepage.wp",
+    "testo_unico_spese_giustizia": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115"
+  },
+  "fail_closed": [
+    "Non chiudere un deposito PCT con la sola ricevuta di accettazione PEC.",
+    "Non calcolare il termine breve ex art. 325 c.p.c. dalla sola comunicazione del deposito sentenza.",
+    "Non assumere pagamento diretto all'avvocato senza distrazione, antistatario o titolo equivalente.",
+    "Non applicare regole civili automatiche a penale, PAT, PTT o SIGIT senza ruleset dedicato.",
+    "Non mostrare link udienza non verificati come sicuri.",
+    "Non registrare il contributo unificato come pagato senza ricevuta telematica o quietanza (PagoPA/RT, F23/F24).",
+    "Non registrare esenzione dal contributo unificato senza autocertificazione o titolo normativo (art. 9 c. 1-bis / art. 76 D.P.R. 115/2002)."
+  ],
+  "families": [
+    "comunicazione_cancelleria_civile",
+    "comunicazione_giudice_pace_sigp",
+    "comunicazione_lavoro",
+    "volontaria_giurisdizione",
+    "famiglia_minori",
+    "esecuzione_mobiliare",
+    "esecuzione_immobiliare",
+    "procedure_concorsuali",
+    "cassazione_civile",
+    "cassazione_penale",
+    "deposito_pct_civile",
+    "deposito_penale_pdp",
+    "notifica_avvocato_l53",
+    "comunicazione_pat",
+    "comunicazione_ptt_sigit",
+    "liquidazione_spese_giustizia_lsg_siamm",
+    "contributo_unificato_spese_giustizia",
+    "pec_unep",
+    "pec_ctu_ausiliario",
+    "fattura_sdi",
+    "pec_controparte",
+    "pec_non_riconosciuta"
+  ],
+  "events": {
+    "deposito_sentenza": {
+      "priority": "P1",
+      "actions": ["task_avvocato", "lex_ingest"],
+      "do_not_infer": ["termine_breve_art_325_da_sola_comunicazione"]
+    },
+    "sentenza_con_spese_liquidate": {
+      "priority": "P1",
+      "actions": ["incasso", "lex_ingest"],
+      "human_review": true
+    },
+    "sentenza_con_distrazione_spese": {
+      "priority": "P1",
+      "actions": ["incasso"],
+      "lawyer_direct_credit": true,
+      "human_review": true
+    },
+    "sentenza_con_spese_compensate": {
+      "priority": "P2",
+      "actions": ["revisione"],
+      "lawyer_direct_credit": false
+    },
+    "decreto_pagamento_gratuito_patrocinio": {
+      "priority": "P1",
+      "actions": ["liquidazione_spese_giustizia"],
+      "human_review": true
+    },
+    "ricevuta_pagamento_contributo_unificato": {
+      "priority": "P1",
+      "actions": ["economia_fascicolo", "lex_ingest"],
+      "human_review": true,
+      "norma": "Art. 192 D.P.R. 115/2002"
+    },
+    "esenzione_contributo_unificato": {
+      "priority": "P2",
+      "actions": ["economia_fascicolo", "lex_ingest"],
+      "human_review": true,
+      "norma": "Art. 9 c. 1-bis / art. 76 D.P.R. 115/2002"
+    },
+    "richiesta_versamento_contributo_unificato": {
+      "priority": "P1",
+      "actions": ["task_avvocato", "scadenziario", "economia_fascicolo"],
+      "human_review": true,
+      "norma": "Art. 248 D.P.R. 115/2002"
+    },
+    "udienza_da_remoto": {
+      "priority": "P1",
+      "actions": ["agenda", "notifica_web_push", "lex_ingest"],
+      "missing_link_priority": "P0"
+    },
+    "udienza_sostituita_da_note_scritte": {
+      "priority": "P0",
+      "actions": ["scadenziario", "agenda", "notifica_web_push"]
+    },
+    "rifiuto_deposito": {
+      "priority": "P0",
+      "actions": ["task_avvocato", "notifica_web_push"]
+    },
+    "mancata_consegna_pec": {
+      "priority": "P0",
+      "actions": ["task_avvocato", "notifica_web_push"]
+    }
+  },
+  "hearing": {
+    "remote_keywords": ["da remoto", "collegamento audiovisivo", "videoconferenza", "Teams", "Microsoft Teams", "link", "ID riunione", "meeting ID", "passcode"],
+    "presence_keywords": ["in presenza", "aula", "piano", "stanza", "presso il Tribunale", "presso la Corte", "comparizione personale"],
+    "written_notes_keywords": ["sostituisce l'udienza", "trattazione scritta", "deposito note scritte", "note contenenti istanze e conclusioni", "127-ter"],
+    "mixed_keywords": ["udienza mista", "parte in presenza e parte da remoto", "aula MVC", "multi-videoconferenza"]
+  },
+  "payment": {
+    "lawyer_direct_credit_keywords": ["distrae", "distrazione", "antistatario", "procuratore antistatario", "in favore dell'avv", "in favore dell’avv"],
+    "compensation_keywords": ["compensa le spese", "spese compensate"],
+    "legal_aid_keywords": ["patrocinio a spese dello Stato", "gratuito patrocinio", "DPR 115/2002", "decreto di pagamento", "SIAMM", "LSG"],
+    "contributo_unificato_payment_keywords": ["ricevuta telematica", "PagoPA", "IUV", "F23", "F24", "esito pagamento", "importo versato"],
+    "contributo_unificato_exemption_keywords": ["esente dal pagamento", "esenzione dal contributo unificato", "autocertificazione", "dichiarazione sostitutiva", "art. 9 comma 1-bis", "art. 76 DPR 115", "prenotazione a debito", "patrocinio a spese dello Stato"],
+    "contributo_unificato_due_keywords": ["richiesta di versamento", "avviso di pagamento", "importo da pagare", "omesso versamento"],
+    "contributo_unificato_rules_source": "pct.fascicolo_sentenza_economica.extract_contributo_unificato_document_evidence"
+  }
+}

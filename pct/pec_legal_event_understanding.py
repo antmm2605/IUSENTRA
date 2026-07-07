@@ -16,11 +16,12 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
+from pct.pec_economia import classifica_contributo_unificato_pec, integra_contributo_unificato
 from pct.pec_legal_deadline_proposer import propose_legal_deadline
 from pct.pec_legal_workflow import classifica_pec_legale, estrai_registri
 
 SCHEMA = "iusentra.pec.legal_event_understanding.v2"
-RULEPACK_VERSION = "legal_pec_rules_v2026_07"
+RULEPACK_VERSION = "legal_pec_rules_v2026_08"
 DEFAULT_RULEPACK_PATH = Path(__file__).with_name("data") / f"{RULEPACK_VERSION}.json"
 _EVENT_DIGEST_ITERATIONS = 20_000
 
@@ -587,7 +588,7 @@ def _actions(classification: dict[str, Any], deadlines: list[dict[str, Any]], he
             actions.append(
                 {
                     "action_type": "incasso",
-                    "title": "Pagamento/liquidazione da presidiare",
+                    "title": _clean(payment.get("action_title"), 120) or "Pagamento/liquidazione da presidiare",
                     "description": payment.get("workflow_action") or "Verificare beneficiario, importi e documento fonte.",
                     "priority": "P1",
                     "due_hint": None,
@@ -646,10 +647,12 @@ def build_legal_event_understanding(
 
     parsed = _dict(parsed)
     report = _dict(report)
+    attachments = list(attachments or [])
     rules = rulepack or load_rulepack()
     headers = _dict(parsed.get("headers"))
     attachment_names, text_sources, ocr_confidence = _attachment_sources(parsed, attachments)
     text = _body_text(parsed, report)
+    body_text = text
     if attachments:
         text = "\n".join(
             [
@@ -666,6 +669,15 @@ def build_legal_event_understanding(
     hearings = _build_hearings(parsed, report, text)
     deadlines, legacy_deadline = _build_deadlines(parsed, report, text, dies_a_quo_date=dies_a_quo_date)
     payments = _extract_payments(text)
+    # Classificazione contributo unificato (D.P.R. 115/2002): riusa gli
+    # estrattori deterministici della vista economica dei fascicoli, così
+    # ricevute PagoPA, autocertificazioni di esenzione e richieste di
+    # versamento producono lo stesso esito su presidio PEC e fascicolo.
+    contributo_unificato = classifica_contributo_unificato_pec(
+        body_text,
+        attachments=[*_list(parsed.get("attachments")), *attachments],
+    )
+    integra_contributo_unificato(classification, payments, contributo_unificato)
     pct = _pct_receipts(parsed, report)
     priority = _priority(classification, deadlines, hearings, payments, pct)
     actions = _actions(classification, deadlines, hearings, payments, pct)

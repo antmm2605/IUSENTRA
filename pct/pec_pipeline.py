@@ -5525,18 +5525,22 @@ class PecAuditRepository:
         parsed: dict[str, Any],
         report: dict[str, Any],
         actor: str,
+        attachments: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Materializza lo schema V2 in tabelle dedicate del DB audit PEC.
 
         La riga principale resta derivata da `parsed_json` + `report_json`: viene
         rigenerata idempotentemente a ogni validazione, senza usare `pec_messages`
-        come contenitore generico.
+        come contenitore generico. Gli allegati (con testo OCR) permettono la
+        classificazione economica dei documenti allegati (es. ricevute PagoPA
+        e autocertificazioni di esenzione dal contributo unificato).
         """
 
         understanding = build_legal_event_understanding(
             parsed,
             report,
             dies_a_quo_date=_field_date_value(parsed, "data_consegna", "data_invio"),
+            attachments=attachments,
         )
         event_hash = str(understanding.get("event_sha256") or sha256_json(understanding))
         event_id = f"ple_{event_hash[:28]}"
@@ -5924,6 +5928,7 @@ class PecAuditRepository:
                 parsed=parsed,
                 report=report,
                 actor=actor,
+                attachments=attachments,
             )
             self.enqueue_job(conn, "link", message_id=message_id, priority=45, actor=actor)
         return result
@@ -5990,6 +5995,7 @@ class PecAuditRepository:
                         parsed=parsed,
                         report=report,
                         actor=actor,
+                        attachments=attachments,
                     )
                     updated += 1
                 except Exception as exc:
@@ -7354,11 +7360,13 @@ class PecAuditRepository:
             # aggrega i segnali già prodotti (classificazione, udienza, termine
             # legale, catena ricevute PCT) in un unico schema pulito e sola-lettura.
             # Deterministico e fail-closed: non crea una nuova source of truth.
+            attachment_items = self.attachment_rows(conn, message_id, str(parsed_meta.get("id") or ""))
             try:
                 legal_event_understanding = build_legal_event_understanding(
                     parsed,
                     validation_report,
                     dies_a_quo_date=_field_date_value(parsed, "data_consegna", "data_invio"),
+                    attachments=attachment_items,
                 )
             except Exception:
                 legal_event_understanding = {}
@@ -7366,7 +7374,7 @@ class PecAuditRepository:
                 "message": item,
                 "parsed": parsed,
                 "parsed_version": parsed_meta,
-                "attachments": self.attachment_rows(conn, message_id, str(parsed_meta.get("id") or "")),
+                "attachments": attachment_items,
                 "validation_report": validation_report,
                 "fascicolo_link": self.latest_link(conn, message_id),
                 "legal_event_understanding": legal_event_understanding,

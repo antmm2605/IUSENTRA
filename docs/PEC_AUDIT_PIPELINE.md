@@ -58,7 +58,7 @@ Il parser serializza ogni campo con `value`, `confidence`, `motivation` e `featu
 
 ## Comprensione legale V2
 
-Il presidio professionale vive in `pct/pec_legal_event_understanding.py` e usa il ruleset `pct/data/legal_pec_rules_v2026_07.json`. La specifica completa è in `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`.
+Il presidio professionale vive in `pct/pec_legal_event_understanding.py` e usa il ruleset `pct/data/legal_pec_rules_v2026_08.json`. La specifica completa è in `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`.
 
 Regole operative principali:
 

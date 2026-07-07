@@ -4467,6 +4467,45 @@ Prove obbligatorie prima della chiusura del rilascio:
 - misurare due richieste consecutive della vista economica sul server: la seconda deve essere sensibilmente più rapida perché non rilegge i file invariati;
 - verificare locale Docker reale `127.0.0.1:8080`, commit GitHub gemelli, deploy Hetzner e container unico `iusentra-app`.
 
+## Deposito React lazy chunk e E2E Nightly 2026-07-07
+
+Aggiornamento operativo per alleggerire il caricamento iniziale di IUSENTRA e chiudere i failure notturni del workflow E2E Nightly.
+
+Regola corretta:
+
+- il flusso `Prepara deposito` non resta più dentro il blocco iniziale di `FascicoliPage.tsx`;
+- il modulo operativo del deposito vive in `frontend/src/components/FascicoloDepositoPage.tsx`;
+- `FascicoliPage.tsx` importa il deposito con `React.lazy()` solo quando la rotta è `/fascicoli/<id>/deposito/prepara`;
+- la pagina elenco e il dettaglio fascicolo continuano a caricare solo il chunk fascicoli, mentre `FascicoloDepositoPage-*.js` viene richiesto quando l'avvocato clicca `Deposito telematico` o apre direttamente la rotta deposito;
+- l'assistente vocale Studio e il visible text guard partono su finestra idle/fallback, così non competono con il primo render React.
+
+Fix E2E Nightly collegati:
+
+- `GestioneTenant.percorsi_dati()` espone di nuovo l'alias compatibile `STUDIO_CONFIG`, oltre a `CONFIG_STUDIO_DB`;
+- `tests/e2e/test_ai_pipeline_full.py` verifica la tabella `legal_procedures` nel database reale del repository di coverage, non in uno `studio.db` temporaneo privo dello schema.
+
+Guardrail eseguiti:
+
+- `npm run typecheck` in `frontend`;
+- `npm run build` in `frontend`;
+- `npm test` in `frontend`;
+- `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 1 --suite-total-shards 4 --timeout-minutes 5`;
+- `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 2 --suite-total-shards 4 --timeout-minutes 5`;
+- `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 3 --suite-total-shards 4 --timeout-minutes 5`;
+- `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 4 --suite-total-shards 4 --timeout-minutes 5`;
+- `python -m pytest -q tests/test_legal_coverage_surface.py tests/test_ai_coverage_pipeline.py tests/test_storage_postgres_migration.py`;
+- `python -m pytest -q tests/test_web_bootstrap.py::test_tenant_percorsi_dati_fast_path_non_avvia_baseline_runtime tests/test_legal_coverage_pipeline.py::test_sqlite_coverage_repository_supporta_pipeline_end_to_end`;
+- `python -m compileall -q pct web tests`;
+- `docker compose build --no-cache` e `docker compose up -d` sulla copia locale reale.
+
+Misure e prova reale locale:
+
+- build Vite: `FascicoliPage` scende da circa `364 KB` raw a circa `264 KB` raw; il deposito viene emesso come chunk separato di circa `130 KB` raw;
+- Docker reale `127.0.0.1:8080`: `/api/pronto` `http=200`, `time_starttransfer=0.005000`, `time_total=0.005179`;
+- root locale `http=302`, `time_starttransfer=0.004492`, `time_total=0.004592`;
+- browser integrato su `127.0.0.1:8080`: login tenant locale controllato, pagina `/fascicoli` con `8` fascicoli e `75` documenti visibili, stato `Dati aggiornati`, nessun chunk `FascicoloDepositoPage` caricato nell'elenco;
+- click reale su fascicolo `DC5BF1DB`, pulsante `Deposito telematico`: apertura `/fascicoli/DC5BF1DB/deposito/prepara`, testo `Prepara deposito` visibile, stato non bloccato, e link al chunk `FascicoloDepositoPage-CSjEWB3t.js` presente solo dopo il click.
+
 ## React shell - entry Vite senza query string 2026-07-06
 
 Aggiornamento operativo `2.253.194`.

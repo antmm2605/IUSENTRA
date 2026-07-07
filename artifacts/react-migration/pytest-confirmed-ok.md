@@ -6227,6 +6227,23 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Prova visiva locale desktop `/fascicoli` | OK osservato | Browser integrato su `127.0.0.1:8080`: `8` fascicoli visibili, `8` blocchi `.iu-fas-title-actions`, zero azioni rimaste inline nel titolo, icone sotto titolo/oggetto nelle prime righe, nessun overflow orizzontale. |
 | Prova visiva locale tablet/mobile `/fascicoli` | OK osservato | Tablet `900x900` e mobile `390x844`: `8` fascicoli visibili, card leggibili, azioni `Apri`, `Modifica`, `Esporta PDF`, `Elimina` da `44px` sotto i dati del fascicolo e zero overflow orizzontale. |
 
+## E2E Nightly e deposito lazy - 2026-07-07
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `npm run typecheck` in `frontend` | OK | TypeScript React completato dopo estrazione `FascicoloDepositoPage.tsx` e `React.lazy()` in `FascicoliPage.tsx`. |
+| `npm run build` in `frontend` | OK | Build Vite completata: `FascicoliPage` circa `264 KB` raw, nuovo chunk `FascicoloDepositoPage-CSjEWB3t.js` circa `130 KB` raw, entry `index-UoXBVX-b.js`. |
+| `npm test` in `frontend` | OK | Contratti React, preset UI, governance design system, App V2 frontend, assistente vocale Studio, Legal Skills e UI coverage passati. |
+| `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 1 --suite-total-shards 4 --timeout-minutes 5` | OK | Shard 1/4 passato dopo correzione DB coverage in `tests/e2e/test_ai_pipeline_full.py`. |
+| `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 2 --suite-total-shards 4 --timeout-minutes 5` | OK | Shard 2/4 passato. |
+| `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 3 --suite-total-shards 4 --timeout-minutes 5` | OK | Shard 3/4 passato. |
+| `python scripts/run_pytest_phases.py --suite e2e-nightly --suite-shard 4 --suite-total-shards 4 --timeout-minutes 5` | OK | Shard 4/4 passato dopo ripristino alias tenant `STUDIO_CONFIG`. |
+| `python -m pytest -q tests/test_legal_coverage_surface.py tests/test_ai_coverage_pipeline.py tests/test_storage_postgres_migration.py` | OK | `19/19` passati sul perimetro coverage/AI/storage. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_tenant_percorsi_dati_fast_path_non_avvia_baseline_runtime tests/test_legal_coverage_pipeline.py::test_sqlite_coverage_repository_supporta_pipeline_end_to_end` | OK | `2/2` passati: fast path tenant e repository coverage SQLite. |
+| `python -m compileall -q pct web tests` | OK | Sintassi Python confermata. |
+| Docker locale reale `docker compose build --no-cache`; `docker compose up -d`; `curl http://127.0.0.1:8080/api/pronto` | OK | `iusentra-app` healthy; `/api/pronto` `http=200`, TTFB circa `0,005 s`; root `http=302`, TTFB circa `0,0045 s`. |
+| Browser integrato reale `127.0.0.1:8080` | OK osservato | `/fascicoli` autenticata su tenant locale: `8` fascicoli, `75` documenti, stato `Dati aggiornati`, nessun chunk `FascicoloDepositoPage`; click su `Deposito telematico` per `DC5BF1DB` apre `/fascicoli/DC5BF1DB/deposito/prepara`, mostra `Prepara deposito` e carica `FascicoloDepositoPage-CSjEWB3t.js` solo dopo il click. |
+
 ## PEC messaggio completo senza duplicati - 2026-07-06
 
 | Comando / verifica | Esito | Note |

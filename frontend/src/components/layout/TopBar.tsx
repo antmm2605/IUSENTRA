@@ -12,8 +12,14 @@ import { trackRecentItem } from '../../services/topbarApi'
 import type { TopbarCreateContext } from '../../types/topbar'
 
 const StudioVoiceAssistant = lazy(() => import('../StudioVoiceAssistant'))
+const VOICE_ASSISTANT_IDLE_TIMEOUT_MS = 2500
+const VOICE_ASSISTANT_FALLBACK_DELAY_MS = 900
 
 type PanelName = 'create' | 'today' | 'notifications' | 'deadlines' | 'recent' | 'timer' | null
+type IdleHandleWindow = Window & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+  cancelIdleCallback?: (handle: number) => void
+}
 type SupportBootstrap = {
   user?: {
     displayName?: string
@@ -85,8 +91,30 @@ export function TopBar({
   const [openPanel, setOpenPanel] = useState<PanelName>(null)
   const [supportOpening, setSupportOpening] = useState(false)
   const [supportError, setSupportError] = useState('')
+  const [voiceAssistantReady, setVoiceAssistantReady] = useState(false)
   const lastRecentKey = useRef('')
   const context = useMemo(() => currentContext(activePath), [activePath])
+  useEffect(() => {
+    let cancelled = false
+    let idleHandle: number | null = null
+    let timeoutHandle: number | null = null
+    const activate = () => {
+      if (!cancelled) setVoiceAssistantReady(true)
+    }
+    const idleWindow = window as IdleHandleWindow
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleHandle = idleWindow.requestIdleCallback(activate, { timeout: VOICE_ASSISTANT_IDLE_TIMEOUT_MS })
+    } else {
+      timeoutHandle = window.setTimeout(activate, VOICE_ASSISTANT_FALLBACK_DELAY_MS)
+    }
+    return () => {
+      cancelled = true
+      if (idleHandle !== null && typeof idleWindow.cancelIdleCallback === 'function') {
+        idleWindow.cancelIdleCallback(idleHandle)
+      }
+      if (timeoutHandle !== null) window.clearTimeout(timeoutHandle)
+    }
+  }, [])
   useEffect(() => {
     const target = recentTargetFromPath(activePath)
     if (!target) return
@@ -149,9 +177,13 @@ export function TopBar({
         <PanelLeftOpen size={18} />
       </button>
       <TopBarSearch />
-      <Suspense fallback={<div className="iu-voice-assistant__fallback" aria-hidden="true" />}>
-        <StudioVoiceAssistant activePath={activePath} />
-      </Suspense>
+      {voiceAssistantReady ? (
+        <Suspense fallback={<div className="iu-voice-assistant__fallback" aria-hidden="true" />}>
+          <StudioVoiceAssistant activePath={activePath} />
+        </Suspense>
+      ) : (
+        <div className="iu-voice-assistant__fallback" aria-hidden="true" />
+      )}
       {supportEnabled ? (
         <div className="iu-support-request-wrap">
           <button

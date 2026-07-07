@@ -63,6 +63,13 @@ import './index.css'
 import './components/layout/TopBar.css'
 
 const CHUNK_RELOAD_GUARD_WINDOW_MS = 30_000
+const TEXT_GUARD_IDLE_TIMEOUT_MS = 1500
+const TEXT_GUARD_FALLBACK_DELAY_MS = 500
+
+type IdleHandleWindow = Window & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+  cancelIdleCallback?: (handle: number) => void
+}
 
 // Dopo un deploy gli hash dei chunk cambiano: un tab aperto col bundle
 // precedente fallirebbe l'import dinamico mostrando l'error boundary.
@@ -301,6 +308,11 @@ function useVisibleTextGuard() {
   useEffect(() => {
     const root = document.getElementById('root') || document.body
     let frame = 0
+    let observer: MutationObserver | null = null
+    let idleHandle: number | null = null
+    let timeoutHandle: number | null = null
+    let started = false
+    const idleWindow = window as IdleHandleWindow
     const schedule = () => {
       if (frame) return
       frame = window.requestAnimationFrame(() => {
@@ -308,12 +320,23 @@ function useVisibleTextGuard() {
         sanitizeVisibleText(root)
       })
     }
-    schedule()
-    const observer = new MutationObserver(schedule)
-    observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'aria-description', 'placeholder', 'alt'] })
+    const startGuard = () => {
+      if (started) return
+      started = true
+      schedule()
+      observer = new MutationObserver(schedule)
+      observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'aria-description', 'placeholder', 'alt'] })
+    }
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleHandle = idleWindow.requestIdleCallback(startGuard, { timeout: TEXT_GUARD_IDLE_TIMEOUT_MS })
+    } else {
+      timeoutHandle = window.setTimeout(startGuard, TEXT_GUARD_FALLBACK_DELAY_MS)
+    }
     return () => {
-      observer.disconnect()
+      observer?.disconnect()
       if (frame) window.cancelAnimationFrame(frame)
+      if (idleHandle !== null && typeof idleWindow.cancelIdleCallback === 'function') idleWindow.cancelIdleCallback(idleHandle)
+      if (timeoutHandle !== null) window.clearTimeout(timeoutHandle)
     }
   }, [])
 }

@@ -1568,6 +1568,7 @@ class GestioneTenant:
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
             "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
             "CONFIG_STUDIO_DB": f"{base}/config/studio.json",
+            "STUDIO_CONFIG": f"{base}/config/studio.json",
             "STORAGE_CONFIG": f"{base}/config/storage.json",
             "STUDIO_LOCAL_PACK_DB": f"{base}/config/studio_local_pack.json",
             "STUDIO_DB": f"{base}/studio.db",

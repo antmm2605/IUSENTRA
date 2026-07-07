@@ -79,6 +79,7 @@ def test_ai_pipeline_full_genera_review_pubblica_e_aggiorna_il_db(tmp_path):
         draft = repository.get_draft(draft_id)
         history = repository.list_published_history(limit=10)
         review_history = repository.list_review_history(draft_id)
+        coverage_db_path = getattr(repository, "db_path", None)
 
     assert draft is not None
     assert draft["status"] == "published"
@@ -87,7 +88,8 @@ def test_ai_pipeline_full_genera_review_pubblica_e_aggiorna_il_db(tmp_path):
     assert int(history[0]["draft_id"]) == draft_id
     assert any(str(row.get("review_action") or "") == "published" for row in review_history)
 
-    conn = sqlite3.connect(str(tmp_path / "studio.db"))
+    assert coverage_db_path is not None
+    conn = sqlite3.connect(str(coverage_db_path))
     try:
         procedures = conn.execute("SELECT COUNT(*) FROM legal_procedures").fetchone()[0]
         published = conn.execute("SELECT COUNT(*) FROM published_procedure_history").fetchone()[0]

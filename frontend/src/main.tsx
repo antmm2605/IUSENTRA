@@ -25,7 +25,8 @@ bootstrapState.errors = Array.isArray(bootstrapState.errors) ? bootstrapState.er
 window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = bootstrapState
 
 const moduleUrl = new URL(import.meta.url)
-const shouldRunBootstrap = import.meta.env.DEV
+const viteDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV)
+const shouldRunBootstrap = viteDev
   || moduleUrl.searchParams.has('v')
   || moduleUrl.searchParams.has('iu_boot_retry')
   || window.__IUSENTRA_INLINE_REACT_ENTRY__ === true

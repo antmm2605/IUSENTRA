@@ -2017,7 +2017,7 @@ function FascicoliListPage() {
   const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>('tutti')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const [toast, setToast] = useState<{ tone: 'success' | 'warning' | 'danger'; message: string } | null>(null)
   const [bulkConfirmMessage, setBulkConfirmMessage] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)

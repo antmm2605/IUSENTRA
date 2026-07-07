@@ -273,3 +273,19 @@ Correzione applicata:
 Obiettivo della correzione: la vista economica deve essere un supporto professionale, non un pannello che genera allarmi generici. L'avvocato deve vedere dati letti, fonte documentale, bozza proforma da visionare e stati economici; gli errori automatici devono essere mostrati solo quando sono specifici e azionabili.
 
 Stato: da rigenerare build, eseguire test mirati, deploy Hetzner `2.254.8` e ripetere prova visiva reale in produzione verificando caricamento React, assenza del toast generico, dati economici popolati e interazione sulla tabella.
+
+## Aggiornamento typecheck 2.254.9 del 07/07/2026
+
+Dopo il push di `2.254.8`, GitHub ha confermato CodeQL verde ma ha bloccato il gate `Frontend React typecheck` per due motivi:
+
+- il nuovo tono `warning` del toast non era incluso nel tipo locale del componente Fascicoli;
+- `frontend/src/main.tsx` accedeva a `import.meta.env.DEV` senza tipizzazione esplicita in ambiente `tsc --noEmit`.
+
+Correzione applicata:
+
+- il toast della lista fascicoli accetta ora `success`, `warning` e `danger`;
+- `FascicoliPage.css` contiene lo stile governato `.iu-fas-toast--warning`, sobrio e non rosso;
+- `main.tsx` legge `import.meta.env.DEV` tramite cast tipizzato locale, evitando regressioni TypeScript senza cambiare il bootstrap React;
+- il contratto React verifica anche lo stile warning della vista economica.
+
+Stato: da rigenerare bundle, contratti API versione `2.254.9`, test mirati, commit/push, attesa check GitHub, deploy Hetzner e nuova prova visiva reale.

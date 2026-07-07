@@ -255,3 +255,21 @@ Correzione applicata:
 - versione applicativa portata a `2.254.7`.
 
 Obiettivo della correzione: rendere il primo caricamento React indipendente da fetch ESM secondari nel browser reale dello studio, poi verificare materialmente la vista economica in produzione.
+
+## Aggiornamento presidio proforma automatico 2.254.8 del 07/07/2026
+
+Durante il test visivo reale su `https://app.iusentra.it/fascicoli?vista=economica` la vista economica risultava popolata con dati effettivi di fascicolo, importi, stato contributo unificato, liquidazioni, parcelle e fonti documentali. Esempi verificati: `RG 3950/2026` con contributo pagato `€ 21,50`, `RG 3685/2026` con contributo pagato `€ 49,00`, liquidazione `€ 1.100,00` e bozza proforma automatica, `RG 2848/2026` con contributo non dovuto/esente da autocertificazione.
+
+Difetto emerso: il processo automatico di presidio proforma poteva mostrare il toast rosso generico `Presidio economico non completato.` anche quando la tabella era correttamente popolata e l'avvocato non aveva un'azione concreta da svolgere su quel messaggio.
+
+Correzione applicata:
+
+- il presidio proforma automatico resta attivo in vista economica quando esistono parcelle da emettere;
+- se vengono create nuove bozze proforma, resta il toast positivo e la vista viene aggiornata;
+- se il processo automatico fallisce con il messaggio tecnico generico, non viene più mostrato un errore rosso all'avvocato;
+- se il backend restituisce un errore specifico e utile, la UI lo presenta come avviso operativo: `Presidio automatico proforma da ricontrollare: ...`;
+- `frontend/scripts/check-react-contracts.mjs` presidia che il default tecnico non torni come toast `danger`.
+
+Obiettivo della correzione: la vista economica deve essere un supporto professionale, non un pannello che genera allarmi generici. L'avvocato deve vedere dati letti, fonte documentale, bozza proforma da visionare e stati economici; gli errori automatici devono essere mostrati solo quando sono specifici e azionabili.
+
+Stato: da rigenerare build, eseguire test mirati, deploy Hetzner `2.254.8` e ripetere prova visiva reale in produzione verificando caricamento React, assenza del toast generico, dati economici popolati e interazione sulla tabella.

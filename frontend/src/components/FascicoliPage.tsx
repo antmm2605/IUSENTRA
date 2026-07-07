@@ -2075,7 +2075,10 @@ function FascicoliListPage() {
         }
       })
       .catch((error) => {
-        setToast({ tone: 'danger', message: error instanceof Error ? error.message : 'Presidio economico non completato.' })
+        const message = error instanceof Error ? error.message.trim() : ''
+        if (message && message !== 'Presidio economico non completato.') {
+          setToast({ tone: 'warning', message: `Presidio automatico proforma da ricontrollare: ${message}` })
+        }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.summary.invoicesToIssue, loading, view])

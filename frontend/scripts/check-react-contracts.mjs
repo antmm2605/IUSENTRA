@@ -98,6 +98,7 @@ function pythonTupleSource(source, name) {
 
 const app = read('src/App.tsx')
 const mainEntrypoint = read('src/main.tsx')
+const viteConfig = read('vite.config.ts')
 const appRoutes = read('src/app/routes.ts')
 const appRouter = read('src/app/router.tsx')
 const featureFlags = read('src/lib/featureFlags.ts')
@@ -1906,6 +1907,8 @@ assertContains(reactShell, 'Interfaccia non avviata', 'messaggio utente se React
 assertNotContains(reactShell, 'Failed to fetch dynamically imported module', 'nessun errore tecnico del browser visibile nella shell')
 assertContains(reactShell, '<script type="module" src="{{ js_file }}"', 'script react principale hashato senza query')
 assertNotContains(reactShell, '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>', 'entry Vite non duplicata da query string')
+assertContains(viteConfig, 'modulePreload', 'config Vite presidia il preload del bootstrap React')
+assertContains(viteConfig, 'polyfill: false', 'entry React senza polyfill modulepreload prima del bootstrap')
 assertContains(css, '@media(max-width:760px)', 'responsive agenda')
 assertContains(css, 'prefers-reduced-motion', 'motion agenda')
 

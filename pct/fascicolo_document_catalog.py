@@ -15,6 +15,10 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from pct.fascicoli import TipoDocumento
+from pct.presidio_processuale_ruleset import (
+    has_presidio_rule,
+    is_pagopa_rt_contributo_xml,
+)
 
 
 MAX_CATALOG_TEXT_CHARS = 60000
@@ -166,11 +170,56 @@ def _default_result(current_type: TipoDocumento) -> DocumentCatalogClassificatio
 
 
 def _has_contributo_context(text: str) -> bool:
-    if _contains(text, r"\b(contributo\s+unificato|pagopa|pago\s+pa|avviso\s+pagamento|ricevuta\s+telematica|rt\s+xml)\b"):
-        return True
-    return _contains(text, r"\bc\s*u\b") and _contains(
+    if _contains(
         text,
-        r"\b(contributo|unificato|pagamento|pagopa|versamento|iscrizione\s+a\s+ruolo|diritti\s+di\s+cancelleria)\b",
+        r"\b(contributo\s+unificato|pagopa|pago\s+pa|avviso\s+pagamento|ricevuta\s+telematica|rt\s+xml|"
+        r"iuv|0702100ts|dati\s+specifici\s+riscossione)\b",
+    ):
+        return True
+    return _contains(text, r"\b(c\s*u|cu)\b") and _contains(
+        text,
+        r"\b(contributo|unificato|pagamento|pagopa|versamento|iscrizione\s+a\s+ruolo|diritti\s+di\s+cancelleria|"
+        r"esenzione|non\s+dovut|prenotazione\s+a\s+debito)\b",
+    )
+
+
+def _has_pagopa_rt_contributo_context(raw_text: str, normalised_text: str) -> bool:
+    raw = _text(raw_text)
+    norm = _text(normalised_text)
+    if is_pagopa_rt_contributo_xml(raw):
+        return True
+    is_rt = bool(
+        re.search(r"<\s*(?:[A-Za-z0-9_:-]+:)?RT\b", raw, flags=re.IGNORECASE)
+        or re.search(
+            r"<[^>]*(?:identificativoMessaggioRicevuta|datiPagamento|codiceEsitoPagamento|"
+            r"importoTotalePagato|singoloImportoPagato|datiSpecificiRiscossione)[^>]*>",
+            raw,
+            flags=re.IGNORECASE,
+        )
+        or _contains(norm, r"\b(identificativo\s+messaggio\s+ricevuta|dati\s+pagamento|codice\s+esito\s+pagamento)\b")
+    )
+    if not is_rt:
+        return False
+    return bool(
+        re.search(
+            r"<[^>]*(?:causaleVersamento|datiSpecificiRiscossione)[^>]*>[^<]*(?:contribut|CONTRIB|0702100TS)",
+            raw,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        or _contains(norm, r"\b(contributo|contrib|0702100ts|ministero\s+della\s+giustizia|spese\s+di\s+giustizia)\b")
+    )
+
+
+def _contributo_result(*, confidence: int = 95, evidence: str = "nome o OCR: contributo/PagoPA/CU contestuale") -> DocumentCatalogClassification:
+    return _result(
+        role="contributo_unificato",
+        label="Contributo unificato / pagamento",
+        section="pagamenti",
+        confidence=confidence,
+        evidence=evidence,
+        tipo_documento=TipoDocumento.DEPOSITO_PCT,
+        deposit_role="contributo_unificato",
+        deposit_candidate=True,
     )
 
 
@@ -213,11 +262,15 @@ def classify_fascicolo_document(
     """
 
     current_type, name_text, metadata_text = _metadata_for_document(doc, filename=filename, tipo=tipo)
-    ocr_text = _slug(_text(extracted_text)[:MAX_CATALOG_TEXT_CHARS])
+    raw_extracted_text = _text(extracted_text)[:MAX_CATALOG_TEXT_CHARS]
+    ocr_text = _slug(raw_extracted_text)
     head_text = ocr_text[:8000]
     full_text = re.sub(r"\s+", " ", f"{metadata_text} {ocr_text}").strip()
     if not full_text:
         return _default_result(current_type)
+
+    if _has_pagopa_rt_contributo_context(raw_extracted_text, full_text):
+        return _contributo_result(confidence=98, evidence="XML RT pagoPA: ricevuta contributo unificato")
 
     name_is_communication = _contains(
         name_text,
@@ -239,6 +292,95 @@ def classify_fascicolo_document(
         name_text,
         r"\b(autocertificazion[ei]?|dichiarazion[ei]?|situazione\s+reddituale|carta\s+identita|codice\s+fiscale|contratto|lettera\s+di\s+diffida|diffida|richiesta\s+pagamento|annualita|documentazione|allegat[oi])\b",
     ) or _contains(name_text, r"\b(eml|msg)\b")
+    cu_esenzione = has_presidio_rule(full_text, "contributo_unificato_esenzione")
+    cu_invito = has_presidio_rule(full_text, "contributo_unificato_invito")
+    gratuito_patrocinio = has_presidio_rule(full_text, "gratuito_patrocinio")
+    siamm_lsg = has_presidio_rule(full_text, "siamm_lsg_liquidazione")
+    cu_context = _has_contributo_context(full_text) or cu_esenzione or cu_invito
+
+    if cu_context or _contains(full_text, r"\b(marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria)\b"):
+        if cu_esenzione:
+            return _result(
+                role="contributo_unificato",
+                label="Contributo unificato / esenzione",
+                section="pagamenti",
+                confidence=96,
+                evidence="nome o OCR: esenzione/non debenza contributo unificato",
+                tipo_documento=TipoDocumento.DEPOSITO_PCT,
+                deposit_role="contributo_unificato",
+                deposit_candidate=True,
+            )
+        if cu_invito:
+            return _result(
+                role="contributo_unificato",
+                label="Contributo unificato / invito pagamento",
+                section="pagamenti",
+                confidence=94,
+                evidence="nome o OCR: invito/regolarizzazione contributo unificato",
+                tipo_documento=TipoDocumento.COMUNICAZIONE,
+                deposit_role="fuori_busta",
+                deposit_candidate=False,
+            )
+        return _contributo_result()
+
+    if gratuito_patrocinio:
+        return _result(
+            role="gratuito_patrocinio",
+            label="Patrocinio a spese dello Stato",
+            section="pagamenti",
+            confidence=94,
+            evidence="nome o OCR: gratuito patrocinio/SIAMM/decreto pagamento",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+        )
+
+    if siamm_lsg:
+        return _result(
+            role="liquidazione_spese_giustizia",
+            label="Liquidazione spese di giustizia / SIAMM",
+            section="pagamenti",
+            confidence=91,
+            evidence="nome o OCR: SIAMM/LSG/decreto pagamento",
+            tipo_documento=TipoDocumento.ALLEGATO,
+            deposit_role="allegato",
+            deposit_candidate=True,
+        )
+
+    for rule_code, role, label, section, tipo_doc, deposit_role, confidence in (
+        ("udienza_127_ter", "termine_note_scritte", "Note scritte / sostituzione udienza", "udienze", TipoDocumento.DECRETO, "allegato", 94),
+        ("udienza_127_bis", "udienza_remota", "Udienza da remoto / audiovisiva", "udienze", TipoDocumento.DECRETO, "allegato", 94),
+        ("decreto_fissazione_udienza", "decreto_udienza", "Decreto fissazione udienza", "udienze", TipoDocumento.DECRETO, "allegato", 93),
+        ("memorie_171_ter", "termini_memorie", "Termini memorie pre-udienza", "udienze", TipoDocumento.DECRETO, "allegato", 91),
+        ("rito_lavoro_415_420", "rito_lavoro", "Rito lavoro / udienza discussione", "udienze", TipoDocumento.DECRETO, "allegato", 88),
+        ("giudice_pace_sigp", "giudice_pace_sigp", "Giudice di Pace / SIGP", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("famiglia_minori_ascolto", "famiglia_minori", "Famiglia/minori e ascolto", "udienze", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("decreto_ingiuntivo_opposizione", "decreto_ingiuntivo", "Decreto ingiuntivo / opposizione", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 90),
+        ("sfratto_convalida", "sfratto_convalida", "Sfratto / convalida", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 90),
+        ("esecuzione_pignoramento", "esecuzione_pignoramento", "Esecuzione / pignoramento", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 90),
+        ("atp_previdenziale_ctu", "atp_ctu", "ATP previdenziale / CTU", "udienze", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("mediazione_negoziazione", "adr_procedibilita", "Mediazione / negoziazione assistita", "atti", TipoDocumento.ALLEGATO, "allegato", 86),
+        ("notifica_digitale_pa", "notifica_digitale_pa", "Notifica digitale PA", "comunicazioni", TipoDocumento.COMUNICAZIONE, "fuori_busta", 88),
+        ("crisi_impresa_concorsuale", "concorsuale", "Crisi d'impresa / concorsuale", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 86),
+        ("cassazione_civile", "cassazione_civile", "Cassazione civile", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("volontaria_giurisdizione", "volontaria_giurisdizione", "Volontaria giurisdizione", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("appello_civile_lavoro", "appello", "Appello civile / lavoro", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 88),
+        ("impugnazione_amministrativa", "appello_amministrativo", "Appello amministrativo", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 87),
+        ("impugnazione_tributaria", "appello_tributario", "Appello tributario", "atti", TipoDocumento.ATTO_GIUDIZIARIO, "allegato", 87),
+    ):
+        if current_type == TipoDocumento.RICORSO or leading_main_ricorso_name:
+            continue
+        if has_presidio_rule(full_text, rule_code):
+            return _result(
+                role=role,
+                label=label,
+                section=section,
+                confidence=confidence,
+                evidence=f"nome o OCR: regola presidio {rule_code}",
+                tipo_documento=tipo_doc,
+                deposit_role=deposit_role,
+                deposit_candidate=deposit_role != "fuori_busta",
+            )
 
     if (name_is_communication or communication) and not (
         current_type == TipoDocumento.RICORSO and not name_is_communication
@@ -265,7 +407,7 @@ def classify_fascicolo_document(
             deposit_candidate=False,
         )
 
-    if supporting_attachment_name and not leading_main_ricorso_name:
+    if supporting_attachment_name and not leading_main_ricorso_name and not cu_context and not gratuito_patrocinio:
         tipo_doc = TipoDocumento.CONTRATTO if _contains(name_text, r"\bcontratto\b") else TipoDocumento.ALLEGATO
         return _result(
             role="allegato",
@@ -334,6 +476,8 @@ def classify_fascicolo_document(
         label = "Contributo unificato / pagamento"
         if _contains(full_text, r"\b(esente|esenzione|non\s+dovuto|prenotazione\s+a\s+debito)\b"):
             label = "Contributo unificato / esenzione"
+        if label == "Contributo unificato / pagamento":
+            return _contributo_result()
         return _result(
             role="contributo_unificato",
             label=label,

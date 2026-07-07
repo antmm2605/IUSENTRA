@@ -1,5 +1,35 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-07 - Ruleset presidio processuale e CU da RT XML
+
+Ambito: presidio fascicoli/documenti, PEC, controllo economico e classificazione preventiva dei documenti.
+
+Regola operativa aggiunta:
+
+- il motore non deve cercare importi o scadenze in modo indistinto;
+- prima classifica il documento dal contenuto, anche se nome file o tipo importato da QuickOrganizer/Studio Telematico sono generici o sbagliati;
+- poi attiva il parser coerente con quella classe: CU/pagoPA, esenzione, SIAMM/LSG, sentenza, udienza, notifica, deposito, appello, Cassazione, Giudice di Pace, volontaria giurisdizione, famiglia/minori, esecuzione, ADR, concorsuale;
+- `SIAMM` non significa automaticamente gratuito patrocinio: il ruleset distingue `Liquidazione spese di giustizia / SIAMM` da `Patrocinio a spese dello Stato`;
+- una ricevuta telematica pagoPA RT XML può popolare il contributo unificato solo se contiene marcatori ministeriali di contributo/spese di giustizia, come `0702100TS`, `CONTRIB`, `causaleVersamento`, `datiSpecificiRiscossione`, `importoTotalePagato` o `singoloImportoPagato`;
+- la frase generica `spese di giustizia` non basta più a classificare un documento come contributo unificato.
+
+Caso guida coperto:
+
+- fascicolo `Alfano Giuseppe / RG 1100/2026`;
+- documento `rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml` importato come `ATTO_GIUDIZIARIO`;
+- importo RT XML `€ 49,00`, data esito `12/05/2026`, fonte visibile `rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml`.
+
+File e prove tecniche:
+
+- ruleset: `pct/presidio_processuale_ruleset.py`;
+- catalogo: `pct/fascicolo_document_catalog.py`;
+- bridge economico React: `web/services/react_fascicoli_bridge.py`;
+- dossier fonti e query: `artifacts/react-migration/presidio-processuale-ricerche-fonti-2026-07-07.md`;
+- report implementazione: `artifacts/react-migration/presidio-processuale-implementazione-2026-07-07.md`;
+- test mirati: `tests/test_presidio_processuale_ruleset.py`, `tests/test_fascicolo_document_catalog.py`, `tests/test_react_shell.py`.
+
+Stato: logica tecnica implementata e coperta da test mirati; verifica reale locale su `127.0.0.1:8080` eseguita nella vista economica dopo rebuild Docker. Restano obbligatori deploy/controllo server `https://app.iusentra.it`, commit, push e verifica container Hetzner prima della chiusura.
+
 ## Fascicoli - proforma automatica in bozza e presidio economico server 2026-07-06
 
 Ambito: fascicoli del tenant produzione `studio-legale-giuseppe-montagnese`, controllo economico, sentenze, contributo unificato, bozze proforma e assenza di doppioni.

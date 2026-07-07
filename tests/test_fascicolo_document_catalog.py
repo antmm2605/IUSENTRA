@@ -73,6 +73,162 @@ def test_iniziali_cu_senza_pagamento_non_generano_contributo():
     assert classification.role != "contributo_unificato"
 
 
+def test_rt_xml_pagopa_importato_come_atto_giudiziario_diventa_contributo():
+    rt_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <pay_j:RT xmlns:pay_j="http://www.digitpa.gov.it/schemas/2011/Pagamenti/">
+      <pay_j:identificativoMessaggioRicevuta>30003967997109978</pay_j:identificativoMessaggioRicevuta>
+      <pay_j:dataOraMessaggioRicevuta>2026-05-12T12:20:29</pay_j:dataOraMessaggioRicevuta>
+      <pay_j:codiceEsitoPagamento>0</pay_j:codiceEsitoPagamento>
+      <pay_j:datiPagamento>
+        <pay_j:importoTotalePagato>49.00</pay_j:importoTotalePagato>
+        <pay_j:datiSingoloPagamento>
+          <pay_j:singoloImportoPagato>49.00</pay_j:singoloImportoPagato>
+          <pay_j:causaleVersamento>/RFB/30003967997109978//49.00/TXT/Contributo Ricorso carta docente Alfano Giuseppe</pay_j:causaleVersamento>
+          <pay_j:datiSpecificiRiscossione>9/0702100TS/CONTRIB</pay_j:datiSpecificiRiscossione>
+        </pay_j:datiSingoloPagamento>
+      </pay_j:datiPagamento>
+    </pay_j:RT>"""
+    doc = SimpleNamespace(
+        nome="rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        note="Import QuickOrganizer.",
+    )
+
+    classification = classify_fascicolo_document(doc, extracted_text=rt_xml)
+
+    assert classification.role == "contributo_unificato"
+    assert classification.label == "Contributo unificato / pagamento"
+    assert classification.section == "pagamenti"
+    assert classification.tipo_documento == TipoDocumento.DEPOSITO_PCT
+    assert classification.deposit_role == "contributo_unificato"
+    assert should_apply_catalog_type(TipoDocumento.ATTO_GIUDIZIARIO, classification) is True
+
+
+def test_autocertificazione_esenzione_cu_non_resta_allegato_generico():
+    classification = classify_fascicolo_document(
+        filename="Autocertificazione esenzione cu diritto lavoro.PDF",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text=(
+            "Dichiarazione sostitutiva reddituale: la parte dichiara l'esenzione dal pagamento "
+            "del contributo unificato ai sensi dell'art. 9 comma 1-bis DPR 115/2002 e art. 76 DPR 115/2002."
+        ),
+    )
+
+    assert classification.role == "contributo_unificato"
+    assert classification.label == "Contributo unificato / esenzione"
+    assert classification.section == "pagamenti"
+
+
+def test_gratuito_patrocinio_siamm_attiva_classe_economica_dedicata():
+    classification = classify_fascicolo_document(
+        filename="Istanza liquidazione SIAMM gratuito patrocinio.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Istanza di liquidazione per patrocinio a spese dello Stato con decreto di pagamento SIAMM.",
+    )
+
+    assert classification.role == "gratuito_patrocinio"
+    assert classification.label == "Patrocinio a spese dello Stato"
+    assert classification.section == "pagamenti"
+
+
+def test_siamm_generico_attiva_liquidazione_spese_giustizia_non_patroncinio():
+    classification = classify_fascicolo_document(
+        filename="Istanza web SIAMM liquidazione CTU.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Istanza web SIAMM di liquidazione spese di giustizia per CTU e decreto di pagamento.",
+    )
+
+    assert classification.role == "liquidazione_spese_giustizia"
+    assert classification.label == "Liquidazione spese di giustizia / SIAMM"
+    assert classification.section == "pagamenti"
+
+
+def test_ricorso_per_decreto_ingiuntivo_resta_atto_principale():
+    classification = classify_fascicolo_document(
+        filename="Ricorso per decreto ingiuntivo.pdf",
+        tipo=TipoDocumento.RICORSO,
+        extracted_text="Ricorso per decreto ingiuntivo con richiesta di ingiunzione di pagamento.",
+    )
+
+    assert classification.role == "atto_principale"
+    assert classification.tipo_documento == TipoDocumento.RICORSO
+    assert classification.deposit_role == "atto_principale"
+
+
+def test_decreto_127_ter_attiva_classe_udienze():
+    classification = classify_fascicolo_document(
+        filename="Decreto fissazione udienza originale notificato.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text=(
+            "Il giudice dispone ai sensi dell'art. 127-ter c.p.c. il deposito di note scritte "
+            "in sostituzione dell'udienza, contenenti le sole istanze e conclusioni."
+        ),
+    )
+
+    assert classification.role == "termine_note_scritte"
+    assert classification.section == "udienze"
+
+
+def test_provvedimento_cassazione_generico_classificato_da_ocr():
+    classification = classify_fascicolo_document(
+        filename="Atto giudiziario.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text=(
+            "Corte Suprema di Cassazione: fissata adunanza camerale nel ricorso per cassazione. "
+            "Si richiamano controricorso e art. 369 c.p.c."
+        ),
+    )
+
+    assert classification.role == "cassazione_civile"
+    assert classification.label == "Cassazione civile"
+
+
+def test_giudice_pace_sigp_da_ocr():
+    classification = classify_fascicolo_document(
+        filename="documento.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text=(
+            "Opposizione a sanzione amministrativa davanti al Giudice di Pace, servizi online SIGP, "
+            "verbale di accertamento e art. 204-bis."
+        ),
+    )
+
+    assert classification.role == "giudice_pace_sigp"
+    assert classification.label == "Giudice di Pace / SIGP"
+
+
+def test_volontaria_giurisdizione_e_minori_hanno_classi_dedicate():
+    volontaria = classify_fascicolo_document(
+        filename="decreto.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Volontaria giurisdizione: amministrazione di sostegno, giudice tutelare, rendiconto e reclamo ex art. 739.",
+    )
+    minori = classify_fascicolo_document(
+        filename="provvedimento.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Procedimento persone minorenni e famiglie ex 473-bis con ascolto del minore e registrazione audiovisiva.",
+    )
+
+    assert volontaria.role == "volontaria_giurisdizione"
+    assert minori.role == "famiglia_minori"
+
+
+def test_appelli_amministrativo_e_tributario_da_testo_generico():
+    amministrativo = classify_fascicolo_document(
+        filename="atto.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Appello amministrativo al Consiglio di Stato con istanza di appello cautelare ex art. 98 c.p.a.",
+    )
+    tributario = classify_fascicolo_document(
+        filename="atto.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        extracted_text="Appello tributario alla Corte di giustizia tributaria di secondo grado con controdeduzioni dell'appellato.",
+    )
+
+    assert amministrativo.role == "appello_amministrativo"
+    assert tributario.role == "appello_tributario"
+
+
 def test_note_di_trattazione_non_restano_verbale():
     doc = SimpleNamespace(
         nome="note_di_trattazione_scritta_ZURICH_udienza_del_19-03-2025.pdf.p7m",

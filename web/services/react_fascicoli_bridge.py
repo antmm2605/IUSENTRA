@@ -40,6 +40,7 @@ from pct.fascicolo_document_presidio import (
 from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
+from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
 from pct.document_signature_state import (
     document_bytes_have_real_digital_signature,
     document_has_real_digital_signature,
@@ -1368,9 +1369,9 @@ def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str
         if did != wanted:
             continue
         filename = _text(
-            getattr(doc, "nome_originale", "")
-            or getattr(doc, "nome_portale", "")
+            getattr(doc, "nome_portale", "")
             or getattr(doc, "nome", "")
+            or getattr(doc, "nome_originale", "")
             or getattr(doc, "filename", "")
         )
         return {
@@ -1676,12 +1677,40 @@ def _document_metadata_probe(metadata: dict[str, Any]) -> str:
     return _document_evidence_probe("", metadata, limit=0)
 
 
+def _document_metadata_is_xml_document(metadata: dict[str, Any]) -> bool:
+    probe = " ".join(
+        _text(metadata.get(key))
+        for key in (
+            "filename",
+            "original_filename",
+            "safe_filename",
+            "storage_path",
+            "file_type",
+            "mime_type",
+        )
+    ).casefold()
+    return bool(
+        re.search(r"(^|[\\/])rt_[^\\/]+\.xml\b", probe, flags=re.IGNORECASE)
+        or re.search(r"\.xml(?:$|[\s?#])", probe, flags=re.IGNORECASE)
+        or "application/xml" in probe
+    )
+
+
+def _document_text_has_pagopa_rt_xml(text: str) -> bool:
+    return is_pagopa_rt_xml(text)
+
+
 def _document_metadata_may_contain_contributo_unificato(metadata: dict[str, Any]) -> bool:
     probe = _document_metadata_probe(metadata)
+    if _document_metadata_is_xml_document(metadata):
+        return True
     return any(
         token in probe
         for token in (
             "contributo",
+            "contrib",
+            "0702100ts",
+            "rt_",
             "c.u.",
             " cu ",
             "esenzione cu",
@@ -1703,8 +1732,12 @@ def _document_metadata_may_contain_contributo_unificato(metadata: dict[str, Any]
             "pago pa",
             "iuv",
             "ricevuta",
+            "ricevuta telematica",
             "pagamento",
             "versamento",
+            "importototalepagato",
+            "singoloimportopagato",
+            "datispecificiriscossione",
             "f23",
             "f24",
         )
@@ -1810,12 +1843,28 @@ def _document_metadata_may_contain_procedural_deadline(metadata: dict[str, Any])
 
 def _document_may_contain_contributo_unificato(text: str, metadata: dict[str, Any]) -> bool:
     probe = _document_evidence_probe(text, metadata)
+    if is_pagopa_rt_contributo_xml(text):
+        return True
+    if _document_text_has_pagopa_rt_xml(text):
+        return any(
+            token in probe
+            for token in (
+                "contribut",
+                "contrib",
+                "0702100ts",
+                "ministero della giustizia",
+                "spese di giustizia",
+            )
+        )
     return any(
         token in probe
         for token in (
             "contributo unificat",
+            "contrib",
+            "0702100ts",
             "c.u.",
             " c u ",
+            " cu ",
             "esenzione cu",
             "esenzione contributo",
             "esenzione dal pagamento",
@@ -1838,6 +1887,9 @@ def _document_may_contain_contributo_unificato(text: str, metadata: dict[str, An
             "ricevuta telematica",
             "avviso pagamento",
             "esito pagamento",
+            "importototalepagato",
+            "singoloimportopagato",
+            "datispecificiriscossione",
             "f23",
             "f24",
         )

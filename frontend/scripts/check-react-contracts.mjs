@@ -251,11 +251,6 @@ const iusentraPreset = read('src/components/iusentra/IusentraPreset.tsx')
 const iusentraComponentsIndex = read('src/components/iusentra/index.ts')
 const iusentraDesignSystemCss = read('src/styles/iusentra-design-system.css')
 const visualLoadAudit = read('../scripts/react-migration/visual-load-audit.mjs')
-const reactBuildManifest = JSON.parse(read('../web/static/react/.vite/manifest.json'))
-const reactEntryBuildEntry = reactBuildManifest['src/reactEntry.tsx'] ?? Object.entries(reactBuildManifest)
-  .find(([key, value]) => key.includes('reactEntry') || String(value?.file || '').includes('reactEntry'))?.[1]
-const reactEntryBuildFile = reactEntryBuildEntry?.file
-const reactEntryBundle = reactEntryBuildFile ? read(`../web/static/react/${reactEntryBuildFile}`) : ''
 const routeManifest = JSON.parse(read('../tools/react-migration/route-manifest.json'))
 const auditMigration = read('../scripts/react-migration/audit-react-migration.mjs')
 const auditAntiMascheramento = read('../scripts/react-migration/audit-anti-mascheramento.mjs')
@@ -731,7 +726,8 @@ assertNotContains(mainEntrypoint, "import React from 'react'", 'entrypoint React
 assertNotContains(mainEntrypoint, "react-dom/client", 'entrypoint React leggero senza ReactDOM statico')
 assertNotContains(mainEntrypoint, "import App from './app/App'", 'entrypoint React non deve importare l’app prima della telemetria bootstrap')
 assertNotContains(mainEntrypoint, "import SupportOperatorRoom from './components/SupportOperatorRoom'", 'entrypoint React non deve importare supporto remoto prima della telemetria bootstrap')
-assertContains(mainEntrypoint, "await import('./reactEntry')", 'entrypoint React carica il mount React dopo il bootstrap minimo')
+assertContains(mainEntrypoint, "import { mountReactApp } from './reactEntry'", 'entrypoint React importa il mount operativo senza import dinamico fragile')
+assertNotContains(mainEntrypoint, "await import('./reactEntry')", 'entrypoint React non usa import dinamico reactEntry in produzione')
 assertContains(reactEntry, "import App from './app/App'", 'reactEntry importa l app operativa senza ciclo con index')
 assertContains(reactEntry, "import SupportOperatorRoom from './components/SupportOperatorRoom'", 'reactEntry importa supporto remoto senza ciclo con index')
 assertNotContains(reactEntry, "await import('./app/App')", 'reactEntry non usa import dinamico App che reimporta index')
@@ -739,9 +735,6 @@ assertNotContains(reactEntry, "await import('./components/SupportOperatorRoom')"
 assertNotContains(reactEntry, "from './index", 'reactEntry non importa bootstrap index')
 assertContains(reactEntry, 'function resolveDefaultComponent', 'reactEntry risolve il componente senza default export fragile')
 assertContains(reactEntry, 'record.default ?? record.A', 'reactEntry tollera export minificati dal bundle')
-if (!reactEntryBuildFile) {
-  throw new Error('manifest Vite: manca il bundle generato per src/reactEntry.tsx')
-}
 assertContains(mainEntrypoint, 'const moduleUrl = new URL(import.meta.url)', 'entrypoint React legge la URL reale del modulo')
 assertContains(mainEntrypoint, "moduleUrl.searchParams.has('v')", 'entrypoint React parte solo se caricato dalla shell versionata')
 assertContains(mainEntrypoint, "moduleUrl.searchParams.has('iu_boot_retry')", 'entrypoint React parte anche dal retry anti-cache')

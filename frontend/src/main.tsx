@@ -1,5 +1,6 @@
 import './index.css'
 import './styles/iusentra-design-system.css'
+import { mountReactApp } from './reactEntry'
 
 type ReactBootstrapState = {
   entryLoaded?: boolean
@@ -72,7 +73,6 @@ async function bootReact() {
   if (!root) throw new Error('Elemento #root non trovato.')
   renderLoadingShell(root)
   bootstrapState.renderScheduled = true
-  const { mountReactApp } = await import('./reactEntry')
   await mountReactApp({ root, shouldMountSupportOperator })
   bootstrapState.renderCompleted = true
 }

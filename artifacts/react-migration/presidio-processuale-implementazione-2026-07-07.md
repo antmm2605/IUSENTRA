@@ -211,3 +211,17 @@ Correzione applicata:
 - build Vite rigenerata con `reactEntry-k1_nZBOP.js` autonomo, senza import verso `index-...js`.
 
 Obiettivo della correzione: la pagina fascicoli deve montare React senza ciclo di bootstrap e mostrare la vista economica reale, non il fallback tecnico.
+
+## Aggiornamento bootstrap statico React 2.254.5 del 07/07/2026
+
+La prova visiva reale dopo il deploy 2.254.4 su `https://app.iusentra.it/fascicoli?vista=economica` ha smentito il verde tecnico: il server serviva `reactEntry-DoJMBFzJ.js` con HTTP 200, ma il browser continuava a mostrare `Pagina non avviata` con errore `Failed to fetch dynamically imported module`. Quindi il problema non era solo cache o file mancante: il punto fragile restava l'import dinamico dell'entry operativo.
+
+Correzione applicata:
+
+- `frontend/src/main.tsx` importa staticamente `mountReactApp` da `./reactEntry`;
+- resta il guard su `import.meta.url` per eseguire il bootstrap solo dalla shell versionata o dal retry governato;
+- `frontend/scripts/check-react-contracts.mjs` vieta l'import dinamico di `reactEntry` in produzione;
+- versione applicativa portata a `2.254.5`;
+- da rigenerare build Vite e `docs/openapi.yaml`, quindi ripetere test mirati, commit, push, deploy Hetzner e prova visiva reale.
+
+Obiettivo della correzione: eliminare il download dinamico runtime che bloccava la vista economica, facendo caricare il grafo React come entry principale versionata e verificabile dal browser reale.

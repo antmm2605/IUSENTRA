@@ -101,6 +101,13 @@ Durante la seconda verifica server, il bundle corretto risultava servito ma la p
 
 Questa protezione non sostituisce la prova reale: serve a impedire una UI muta e a rendere visibile il problema se un browser o un deploy non avvia l'entry.
 
+Durante la verifica successiva il browser reale mostrava il fallback, ma il dettaglio tecnico indicava un import dinamico fallito dell'entry Vite. Poiché il file hashato era presente e servito correttamente dal server, è stato aggiunto un recupero anti-cache fallita:
+
+- il retry dell'entry React usa una URL tecnica nuova con `iu_boot_retry`, così un fallimento temporaneo durante deploy non avvelena la sessione del browser;
+- il messaggio visibile all'avvocato non espone più errori grezzi del browser come `Failed to fetch dynamically imported module`;
+- il dettaglio tecnico resta tracciato solo come conteggio interno `data-error-count`, senza mostrare path o stack a video;
+- il controllo statico `frontend/scripts/check-react-contracts.mjs` impedisce la regressione del retry e dei messaggi tecnici visibili.
+
 ## Verifiche ancora necessarie prima della chiusura
 
 - Deploy Hetzner e verifica server `https://app.iusentra.it`.

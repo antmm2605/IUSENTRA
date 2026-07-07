@@ -78,22 +78,27 @@ npm run build</code></pre>
       }
       function showStartupError(message) {
         if (!rootIsEmpty()) return;
-        var details = "";
-        if (state.errors && state.errors.length) {
-          details = "<p>" + state.errors.slice(-2).map(function(error) {
-            return String(error).replace(/[<>&]/g, function(char) {
-              return { "<": "&lt;", ">": "&gt;", "&": "&amp;" }[char];
-            });
-          }).join(" · ") + "</p>";
+        var errorCount = state.errors && state.errors.length ? String(state.errors.length) : "0";
+        root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
+      }
+      function retryEntryUrl() {
+        if (!entry) return "";
+        var raw = entry.getAttribute("src") || entry.src || "";
+        if (!raw) return "";
+        try {
+          var url = new URL(raw, window.location.origin);
+          url.searchParams.set("iu_boot_retry", String(Date.now()));
+          return url.href;
+        } catch (error) {
+          return raw.indexOf("?") === -1 ? raw + "?iu_boot_retry=" + Date.now() : raw + "&iu_boot_retry=" + Date.now();
         }
-        root.innerHTML = '<main class="iu-content iu-react-error" role="alert"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p>' + details + '<a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
       }
       window.setTimeout(function() {
         if (!rootIsEmpty() || state.entryLoaded || !entry || !entry.src) return;
-        import(entry.src).catch(function(error) {
+        import(retryEntryUrl()).catch(function(error) {
           state.errors = Array.isArray(state.errors) ? state.errors : [];
-          state.errors.push(error && error.message ? error.message : String(error || "Modulo React non caricato"));
-          showStartupError("Il modulo React non è stato caricato dal browser. Ricarica la pagina; se il problema resta, il presidio tecnico lo intercetta senza lasciare una pagina bianca.");
+          state.errors.push(error && error.message ? error.message : String(error || "Modulo operativo non caricato"));
+          showStartupError("Il modulo operativo non è stato caricato dal browser. Ricarica la pagina; se il problema resta, il presidio tecnico lo intercetta senza lasciare una pagina bianca.");
         });
       }, 1200);
       window.setTimeout(function() {

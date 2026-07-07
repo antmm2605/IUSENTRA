@@ -66,7 +66,9 @@ npm run build</code></pre>
   </section>
   {% endif %}
   {% for js_file in react_assets.js %}
-  <script type="module" src="{{ js_file }}"></script>
+  <script type="module" src="{{ js_file }}"
+          onload="document.documentElement.dataset.iusentraEntryScript='loaded'"
+          onerror="document.documentElement.dataset.iusentraEntryScript='error'"></script>
   {% endfor %}
   <script>
     (function() {
@@ -79,7 +81,11 @@ npm run build</code></pre>
       function showStartupError(message) {
         if (!rootIsEmpty()) return;
         var errorCount = state.errors && state.errors.length ? String(state.errors.length) : "0";
-        root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
+        var lastError = state.errors && state.errors.length ? String(state.errors[state.errors.length - 1] || "") : "";
+        var safeLastError = lastError.replace(/[<>&"]/g, function(char) {
+          return { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[char];
+        });
+        root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '" data-last-error="' + safeLastError + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
       }
       function retryEntryUrl() {
         if (!entry) return "";
@@ -98,6 +104,7 @@ npm run build</code></pre>
         import(retryEntryUrl()).catch(function(error) {
           state.errors = Array.isArray(state.errors) ? state.errors : [];
           state.errors.push(error && error.message ? error.message : String(error || "Modulo operativo non caricato"));
+          document.documentElement.dataset.iusentraEntryRetry = "failed";
           showStartupError("Il modulo operativo non è stato caricato dal browser. Ricarica la pagina; se il problema resta, il presidio tecnico lo intercetta senza lasciare una pagina bianca.");
         });
       }, 1200);

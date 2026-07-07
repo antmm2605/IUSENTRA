@@ -106,6 +106,7 @@ Durante la verifica successiva il browser reale mostrava il fallback, ma il dett
 - il retry dell'entry React usa una URL tecnica nuova con `iu_boot_retry`, così un fallimento temporaneo durante deploy non avvelena la sessione del browser;
 - il messaggio visibile all'avvocato non espone più errori grezzi del browser come `Failed to fetch dynamically imported module`;
 - il dettaglio tecnico resta tracciato solo come conteggio interno `data-error-count`, senza mostrare path o stack a video;
+- la shell scrive anche marcatori DOM invisibili (`data-last-error`, `data-iusentra-entry-script`, `data-iusentra-entry-retry`) per distinguere errore di caricamento, errore di retry e mancato mount durante la verifica reale;
 - il controllo statico `frontend/scripts/check-react-contracts.mjs` impedisce la regressione del retry e dei messaggi tecnici visibili.
 
 ## Verifiche ancora necessarie prima della chiusura

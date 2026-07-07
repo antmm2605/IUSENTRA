@@ -210,15 +210,21 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
 
     assert '<html lang="it" class="react-shell-document">' in template
+    assert 'data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}"' in template
+    assert "{{ react_assets.inline_entry_code | safe }}" in template
     assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"' in template
     assert "iusentraEntryScript='loaded'" in template
     assert "iusentraEntryScript='error'" in template
     assert "window.__IUSENTRA_REACT_BOOTSTRAP_STATE__" in template
+    assert "entrySource()" in template
     assert "retryEntryUrl()" in template
     assert "iu_boot_retry" in template
     assert "data-last-error" in template
     assert "Interfaccia non avviata" in template
     assert "Failed to fetch dynamically imported module" not in template
+    assert "def _inline_react_entry_code" in shell_source
+    assert 'from"./' in shell_source
+    assert 'import("./' in shell_source
     assert "def _global_manifest_css" in shell_source
     assert 'manifest.get("style.css")' in shell_source
     assert "body.react-shell-page .iu-shell" in css

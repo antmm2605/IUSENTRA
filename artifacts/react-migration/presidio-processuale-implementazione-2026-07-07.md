@@ -225,3 +225,19 @@ Correzione applicata:
 - da rigenerare build Vite e `docs/openapi.yaml`, quindi ripetere test mirati, commit, push, deploy Hetzner e prova visiva reale.
 
 Obiettivo della correzione: eliminare il download dinamico runtime che bloccava la vista economica, facendo caricare il grafo React come entry principale versionata e verificabile dal browser reale.
+
+## Aggiornamento entry inline React 2.254.6 del 07/07/2026
+
+La prova visiva reale dopo il deploy 2.254.5 su `https://app.iusentra.it/fascicoli?vista=economica` ha confermato ancora esito negativo: la pagina mostrava `Pagina non avviata`, `#root` restava vuoto e la telemetria della shell indicava `iusentraEntryScript=error`. Il server, però, serviva l'asset principale `index-DiZ6ab-o.js?v=2.254.5` con HTTP 200 e content type JavaScript. Quindi il blocco non era un file assente, ma il caricamento del modulo principale esterno nel browser reale.
+
+Correzione applicata:
+
+- `web/blueprints/react_shell.py` legge l'entry Vite hashata dal manifest e la prepara come `inline_entry_code`;
+- gli import statici e dinamici relativi dell'entry vengono riscritti verso `/static/react/assets/...`, così il modulo inline mantiene il grafo Vite corretto;
+- l'entry inline è cacheata per `mtime_ns`, evitando letture disco ripetute a ogni richiesta;
+- `web/templates/react_shell.html` usa l'entry inline come caricamento primario e conserva lo script esterno solo se il codice inline non è disponibile;
+- il watchdog React usa `data-iusentra-react-entry` come sorgente diagnostica e continua a mostrare un errore governato se il mount non avviene;
+- `tests/test_react_shell.py` e `frontend/scripts/check-react-contracts.mjs` presidiano l'entry inline e la riscrittura degli import;
+- versione applicativa portata a `2.254.6`.
+
+Obiettivo della correzione: togliere dal percorso primario il caricamento del modulo entry esterno che sul browser reale restava rosso, senza cambiare la logica dei fascicoli o dei dati economici. La vista economica va considerata verificabile solo dopo nuova prova visiva reale in produzione con tabella caricata e interazioni eseguite.

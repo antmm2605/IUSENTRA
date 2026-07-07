@@ -20,6 +20,7 @@ from web.services.feature_flags import (
 )
 
 react_shell = Blueprint("react_shell", __name__)
+_INLINE_ENTRY_CACHE: dict[str, tuple[int, str]] = {}
 
 
 _LEGACY_FIRST_PREFIXES = (
@@ -245,6 +246,30 @@ def _global_manifest_css(manifest: dict[str, Any], entry: dict[str, Any]) -> lis
     return list(dict.fromkeys(css))
 
 
+def _inline_react_entry_code(file_name: str) -> str:
+    asset_path = _react_static_dir() / file_name
+    try:
+        stat = asset_path.stat()
+        cached = _INLINE_ENTRY_CACHE.get(str(asset_path))
+        if cached and cached[0] == stat.st_mtime_ns:
+            return cached[1]
+        code = asset_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        current_app.logger.warning("Entry React inline non leggibile: %s", exc)
+        return ""
+
+    rewritten = (
+        code
+        .replace('from"./', 'from"/static/react/assets/')
+        .replace("from'./", "from'/static/react/assets/")
+        .replace('import("./', 'import("/static/react/assets/')
+        .replace("import('./", "import('/static/react/assets/")
+        .replace("</script", "<\\/script")
+    )
+    _INLINE_ENTRY_CACHE[str(asset_path)] = (stat.st_mtime_ns, rewritten)
+    return rewritten
+
+
 def _vite_entry(current_path: str = "") -> dict[str, Any]:
     manifest_path = _react_static_dir() / ".vite" / "manifest.json"
     if not manifest_path.exists():
@@ -285,9 +310,12 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
         }
 
     route_assets = _collect_manifest_assets(manifest, _route_component_key(current_path))
+    entry_file = f"/static/react/{entry['file']}"
     return {
         "ready": True,
-        "js": [f"/static/react/{entry['file']}"],
+        "js": [entry_file],
+        "entry_file": entry_file,
+        "inline_entry_code": _inline_react_entry_code(str(entry["file"])),
         "css": [f"/static/react/{path}" for path in _global_manifest_css(manifest, entry)],
         "preload_js": route_assets["js"],
         "page_css": route_assets["css"],

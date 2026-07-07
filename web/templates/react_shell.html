@@ -65,18 +65,29 @@ npm run build</code></pre>
     {% endfor %}
   </section>
   {% endif %}
-  {% for js_file in react_assets.js %}
-  <script type="module" src="{{ js_file }}?v={{ app_version }}"
-          onload="document.documentElement.dataset.iusentraEntryScript='loaded'"
-          onerror="document.documentElement.dataset.iusentraEntryScript='error'"></script>
-  {% endfor %}
+  {% if react_assets.inline_entry_code %}
+  <script type="module" data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}">
+{{ react_assets.inline_entry_code | safe }}
+document.documentElement.dataset.iusentraEntryScript='loaded';
+  </script>
+  {% else %}
+    {% for js_file in react_assets.js %}
+    <script type="module" src="{{ js_file }}?v={{ app_version }}"
+            onload="document.documentElement.dataset.iusentraEntryScript='loaded'"
+            onerror="document.documentElement.dataset.iusentraEntryScript='error'"></script>
+    {% endfor %}
+  {% endif %}
   <script>
     (function() {
       var root = document.getElementById("root");
       var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
-      var entry = document.querySelector('script[type="module"][src*="/static/react/assets/index-"]');
+      var entry = document.querySelector('script[type="module"][data-iusentra-react-entry],script[type="module"][src*="/static/react/assets/index-"]');
       function rootIsEmpty() {
         return root && root.children.length === 0 && !root.textContent.trim();
+      }
+      function entrySource() {
+        if (!entry) return "";
+        return entry.getAttribute("data-iusentra-react-entry") || entry.getAttribute("src") || entry.src || "";
       }
       function showStartupError(message) {
         if (!rootIsEmpty()) return;
@@ -88,8 +99,7 @@ npm run build</code></pre>
         root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '" data-last-error="' + safeLastError + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
       }
       function retryEntryUrl() {
-        if (!entry) return "";
-        var raw = entry.getAttribute("src") || entry.src || "";
+        var raw = entrySource();
         if (!raw) return "";
         try {
           var url = new URL(raw, window.location.origin);
@@ -100,7 +110,7 @@ npm run build</code></pre>
         }
       }
       window.setTimeout(function() {
-        if (!rootIsEmpty() || state.entryLoaded || !entry || !entry.src) return;
+        if (!rootIsEmpty() || state.entryLoaded || !entrySource()) return;
         import(retryEntryUrl()).catch(function(error) {
           state.errors = Array.isArray(state.errors) ? state.errors : [];
           state.errors.push(error && error.message ? error.message : String(error || "Modulo operativo non caricato"));

@@ -84,6 +84,14 @@ Verificato in test:
 - Istanza SIAMM generica per CTU/liquidazione spese di giustizia non viene più classificata come gratuito patrocinio.
 - Cassazione civile, Giudice di Pace/SIGP, volontaria giurisdizione, famiglia/minori e appelli hanno classi documentali dedicate.
 
+## Correzione produzione durante verifica
+
+Durante la verifica server su `https://app.iusentra.it/fascicoli?vista=economica` dopo il primo deploy, la pagina caricava gli asset e Lex ma non montava la shell React: il contenitore `#root` restava vuoto. Prima di validare il controllo economico è stato corretto `frontend/src/main.tsx`:
+
+- le pagine studio/prodotto montano sempre sul root applicativo `#root` o `#iusentra-react-root`;
+- la stanza operatore usa `#support-operator-react-root` solo nella pagina dedicata all'assistenza remota;
+- la modifica rigenera l'hash dell'entry React, evitando il riuso del vecchio asset principale nella sessione browser dopo deploy.
+
 ## Verifiche ancora necessarie prima della chiusura
 
 - Deploy Hetzner e verifica server `https://app.iusentra.it`.

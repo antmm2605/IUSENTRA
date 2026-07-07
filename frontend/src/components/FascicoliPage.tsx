@@ -259,6 +259,26 @@ function syncListViewInUrl(view: ListView) {
   window.history.replaceState({}, '', url.toString())
 }
 
+function fascicoliListCacheKey(params: FascicoliPageParams): string {
+  const normalized = [
+    params.page || 1,
+    params.pageSize || 25,
+    (params.q || '').trim(),
+    params.type || 'tutti',
+    params.status || 'tutti',
+    (params.court || '').trim(),
+    params.sort || 'rg',
+    params.view || 'operativa',
+    params.alertsOnly ? '1' : '0',
+    params.paymentsOnly ? '1' : '0',
+    params.cu || 'tutti',
+    params.fondoSpese || 'tutti',
+    params.liquidazione || 'tutti',
+    params.parcella || 'tutti',
+  ]
+  return normalized.map((value) => encodeURIComponent(String(value))).join('|')
+}
+
 function formatCurrency(value: number): string {
   return formatEuroIt(value)
 }
@@ -1723,7 +1743,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
   )
 }
 
-function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, view = 'operativa', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; view?:ListView; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
+function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, filtered = false, onDeleted, onError, pagination, pageSize, onPageSizeChange, onPageChange, onPagePrefetch, pendingPage = null, view = 'operativa', viewToggle, onPaymentSaved, onStatusSaved }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; filtered?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; pagination?:FascicoliPagination; pageSize?:number; onPageSizeChange?:(value:number)=>void; onPageChange?:(value:number)=>void; onPagePrefetch?:(value:number)=>void; pendingPage?:number | null; view?:ListView; viewToggle?:ReactNode; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onStatusSaved?:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void}) {
   const economic = view === 'economica' && !archive
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
   const total = pagination?.total ?? items.length
@@ -1737,6 +1757,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   )
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
+  const pageBusy = Boolean(pendingPage && pendingPage !== currentPage)
   const pageNumbers = (() => {
     const last = Math.max(1, totalPages)
     const values = new Set<number>([1, currentPage - 1, currentPage, currentPage + 1, last])
@@ -1755,16 +1776,19 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   ) : null
   const paginationControls = onPageChange && pagination ? (
     <>
-      <button type="button" onClick={() => onPageChange(1)} disabled={currentPage <= 1}>Prima</button>
-      <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Precedente</button>
+      <button type="button" onClick={() => onPageChange(1)} onMouseEnter={() => onPagePrefetch?.(1)} onFocus={() => onPagePrefetch?.(1)} disabled={currentPage <= 1 || pageBusy}>Prima</button>
+      <button type="button" onClick={() => onPageChange(currentPage - 1)} onMouseEnter={() => onPagePrefetch?.(currentPage - 1)} onFocus={() => onPagePrefetch?.(currentPage - 1)} disabled={currentPage <= 1 || pageBusy}>Precedente</button>
       <span>Pagina {currentPage} di {Math.max(1, totalPages)} - {total} {totalLabel}</span>
+      {pageBusy ? <span className="iu-fas-page-loading" role="status">Caricamento pagina {pendingPage}...</span> : null}
       <div className="iu-fas-page-jump" aria-label="Vai a pagina">
         {pageNumbers.map((value, index) => (
           <button
             type="button"
             className={value === currentPage ? 'is-current' : ''}
             onClick={() => onPageChange(value)}
-            disabled={value === currentPage}
+            onMouseEnter={() => onPagePrefetch?.(value)}
+            onFocus={() => onPagePrefetch?.(value)}
+            disabled={value === currentPage || pageBusy}
             aria-current={value === currentPage ? 'page' : undefined}
             key={value}
           >
@@ -1772,8 +1796,8 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
           </button>
         ))}
       </div>
-      <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={totalPages === 0 || currentPage >= totalPages}>Successiva</button>
-      <button type="button" onClick={() => onPageChange(Math.max(1, totalPages))} disabled={totalPages === 0 || currentPage >= totalPages}>Ultima</button>
+      <button type="button" onClick={() => onPageChange(currentPage + 1)} onMouseEnter={() => onPagePrefetch?.(currentPage + 1)} onFocus={() => onPagePrefetch?.(currentPage + 1)} disabled={totalPages === 0 || currentPage >= totalPages || pageBusy}>Successiva</button>
+      <button type="button" onClick={() => onPageChange(Math.max(1, totalPages))} onMouseEnter={() => onPagePrefetch?.(Math.max(1, totalPages))} onFocus={() => onPagePrefetch?.(Math.max(1, totalPages))} disabled={totalPages === 0 || currentPage >= totalPages || pageBusy}>Ultima</button>
     </>
   ) : null
   return (
@@ -2021,9 +2045,12 @@ function FascicoliListPage() {
   const [bulkConfirmMessage, setBulkConfirmMessage] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  const [pendingPage, setPendingPage] = useState<number | null>(null)
+  const pageCacheRef = useRef<Map<string, FascicoliPageData>>(new Map())
+  const pageRequestsRef = useRef<Map<string, Promise<FascicoliPageData>>>(new Map())
   const economicPresidioRunRef = useRef(false)
 
-  const listParams = (): FascicoliPageParams => ({
+  const listParams = (overrides: Partial<FascicoliPageParams> = {}): FascicoliPageParams => ({
     page,
     pageSize,
     q: debouncedQuery,
@@ -2037,11 +2064,43 @@ function FascicoliListPage() {
     cu: cuFilter,
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
+    ...overrides,
   })
 
+  const requestFascicoliPage = (params: FascicoliPageParams, options: { force?: boolean } = {}) => {
+    const key = fascicoliListCacheKey(params)
+    if (!options.force) {
+      const cached = pageCacheRef.current.get(key)
+      if (cached) return Promise.resolve(cached)
+      const running = pageRequestsRef.current.get(key)
+      if (running) return running
+    }
+    const request = getFascicoliPage(params).then((payload) => {
+      pageCacheRef.current.set(key, payload)
+      return payload
+    }).finally(() => {
+      if (pageRequestsRef.current.get(key) === request) pageRequestsRef.current.delete(key)
+    })
+    pageRequestsRef.current.set(key, request)
+    return request
+  }
+
+  const invalidateListCache = () => {
+    pageCacheRef.current.clear()
+    pageRequestsRef.current.clear()
+  }
+
   const refresh = () => {
+    invalidateListCache()
+    const params = listParams()
+    setPendingPage(params.page || page)
     setLoading(true)
-    getFascicoliPage(listParams()).then(setData).finally(() => setLoading(false))
+    requestFascicoliPage(params, { force: true })
+      .then((payload) => {
+        setData(payload)
+        setPendingPage(null)
+      })
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -2055,14 +2114,36 @@ function FascicoliListPage() {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    getFascicoliPage(listParams())
-      .then((payload) => { if (active) setData(payload) })
-      .finally(() => { if (active) setLoading(false) })
+    const params = listParams()
+    const hasCachedPage = pageCacheRef.current.has(fascicoliListCacheKey(params))
+    setPendingPage(hasCachedPage ? null : params.page || page)
+    setLoading(!hasCachedPage)
+    requestFascicoliPage(params)
+      .then((payload) => {
+        if (!active) return
+        setData(payload)
+        setPendingPage(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+
+  useEffect(() => {
+    if (loading || pendingPage) return
+    const current = data.pagination.page || page
+    const totalPages = data.pagination.pages || 0
+    if (totalPages < 2) return
+    ;[current + 1, current + 2].forEach((target) => {
+      if (target < 1 || target > totalPages) return
+      void requestFascicoliPage(listParams({ page: target })).catch(() => undefined)
+    })
+    // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita prefetch su filtri vecchi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, liquidazioneFilter, loading, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, sort, status, type, view])
 
   useEffect(() => {
     if (view !== 'economica' || loading || economicPresidioRunRef.current || data.summary.invoicesToIssue < 1) return
@@ -2096,7 +2177,25 @@ function FascicoliListPage() {
   const updateParcellaFilter = (value: FascicoloPaymentFilter) => { setPage(1); setParcellaFilter(value) }
   const updateView = (value: ListView) => { setView(value); syncListViewInUrl(value) }
   const updatePageSize = (value: number) => { setPage(1); setPageSize(value) }
-  const updatePage = (value: number) => setPage(Math.max(1, Math.min(Math.max(1, data.pagination.pages || 1), value)))
+  const prefetchPage = (value: number) => {
+    const maxPage = Math.max(1, data.pagination.pages || 1)
+    const target = Math.max(1, Math.min(maxPage, value))
+    if (target === data.pagination.page) return
+    void requestFascicoliPage(listParams({ page: target })).catch(() => undefined)
+  }
+  const updatePage = (value: number) => {
+    const maxPage = Math.max(1, data.pagination.pages || 1)
+    const target = Math.max(1, Math.min(maxPage, value))
+    if (target === page && target === data.pagination.page) return
+    const cached = pageCacheRef.current.get(fascicoliListCacheKey(listParams({ page: target })))
+    setPendingPage(target)
+    setPage(target)
+    if (cached) {
+      setData(cached)
+      setLoading(false)
+      setPendingPage(null)
+    }
+  }
 
   const selectedVisible = visible.filter((item) => selected.has(item.id)).length
   const selectedItems = visible.filter((item) => selected.has(item.id))
@@ -2147,6 +2246,7 @@ function FascicoliListPage() {
   }
   const handleListError = (message: string) => setToast({ tone: 'danger', message })
   const handlePaymentSaved = (id: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
+    invalidateListCache()
     setData((current) => ({
       ...current,
       items: current.items.map((item) => item.id === id ? { ...item, paymentSummary } : item),
@@ -2154,6 +2254,7 @@ function FascicoliListPage() {
     setToast({ tone: 'success', message: message || 'Controllo economico aggiornato.' })
   }
   const handleStatusSaved = (id: string, statusValue: FascicoloRow['status'], tone: FascicoloRow['tone'], message?: string) => {
+    invalidateListCache()
     setData((current) => ({
       ...current,
       items: current.items.map((item) => item.id === id ? { ...item, status: statusValue, tone } : item),
@@ -2268,7 +2369,7 @@ function FascicoliListPage() {
               </div>
             </div>
           ) : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} view={view} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} filtered={filtersActive} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage} onPagePrefetch={prefetchPage} pendingPage={pendingPage} view={view} viewToggle={viewToggle} onPaymentSaved={handlePaymentSaved} onStatusSaved={handleStatusSaved}/>
         </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
       </IusentraMainArea>

@@ -1600,6 +1600,19 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   align-items:center;
   gap:4px;
 }
+.iu-fas-page-loading{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:0 9px;
+  border:1px solid #bfdbfe;
+  border-radius:999px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+}
 .iu-fas-page-jump button{
   min-width:44px;
   padding:0 10px;

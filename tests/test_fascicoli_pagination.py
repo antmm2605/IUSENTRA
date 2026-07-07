@@ -103,6 +103,7 @@ def test_fascicoli_api_sort_rg_decrescente_per_anno_e_numero(tmp_path):
 def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css_source = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 
     assert "query.set('page_size', String(params.pageSize))" in data_source
     assert "query.set('client', params.client.trim())" in data_source
@@ -126,6 +127,12 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "loadLazySection('lex')" in page_source
     assert "getFascicoloDetail(id).then" in page_source
     assert "getFascicoloDetail(id, { include: 'all' })" in page_source
+    assert "fascicoliListCacheKey" in page_source
+    assert "pageCacheRef" in page_source
+    assert "pageRequestsRef" in page_source
+    assert "onPagePrefetch" in page_source
+    assert "Caricamento pagina {pendingPage}..." in page_source
+    assert ".iu-fas-page-loading" in css_source
 
 
 def test_fascicoli_route_archivio_e_dettaglio_restano_raggiungibili(tmp_path):

@@ -289,3 +289,41 @@ Correzione applicata:
 - il contratto React verifica anche lo stile warning della vista economica.
 
 Stato: da rigenerare bundle, contratti API versione `2.254.9`, test mirati, commit/push, attesa check GitHub, deploy Hetzner e nuova prova visiva reale.
+
+## Aggiornamento paginazione vista economica 2.254.10 del 08/07/2026
+
+Difetto verificato in produzione su `https://app.iusentra.it/fascicoli?vista=economica`: il click sul pulsante pagina `2` della vista economica restituiva il click in circa 295 ms, ma la tabella restava visivamente ferma su pagina 1 per circa 16,4 secondi prima di mostrare `Pagina 2 di 12 - 300 fascicoli`. Per l'avvocato questo comportamento appare come un blocco della pagina.
+
+Correzione applicata:
+
+- cache frontend per combinazione di pagina, filtri, vista, ordinamento e dimensione pagina;
+- riuso immediato dei payload già letti quando l'avvocato torna su una pagina già caricata;
+- deduplicazione delle richieste in corso per non lanciare più fetch identici durante la paginazione;
+- prelettura delle due pagine successive dopo il caricamento della pagina corrente;
+- prelettura anche su hover e focus dei pulsanti pagina;
+- indicatore visibile accanto alla paginazione: `Caricamento pagina ...` quando una pagina richiesta non è ancora pronta;
+- invalidazione della cache dopo refresh, eliminazione, modifica controllo economico o cambio stato fascicolo.
+
+Prove tecniche eseguite:
+
+- `npm --prefix frontend run typecheck`: verde;
+- `node frontend/scripts/check-react-contracts.mjs`: verde;
+- build Docker locale `docker compose up -d --build app`: completata;
+- `http://127.0.0.1:8080/api/pronto`: `ok:true`.
+
+Prova visiva reale in produzione:
+
+- `https://app.iusentra.it/fascicoli?vista=economica`, dati reali `300 fascicoli`, `12` pagine;
+- click pagina `2`: footer aggiornato a `Pagina 2 di 12 - 300 fascicoli` in circa 0,4 secondi, prima riga visibile `RG 806/2026`;
+- click pagina `3`: footer aggiornato a `Pagina 3 di 12 - 300 fascicoli` in circa 0,4 secondi, prima riga visibile `RG 192/2026`;
+- screenshot acquisito con footer visibile su `Pagina 3 di 12 - 300 fascicoli`.
+
+Prova visiva reale locale:
+
+- `http://127.0.0.1:8080/fascicoli?vista=economica`, tenant locale `studio-montagnese`;
+- la copia locale contiene solo `8` fascicoli, quindi è stata usata la dimensione `5` per pagina per ottenere `2` pagine reali;
+- click pagina `2`: footer aggiornato a `Pagina 2 di 2 - 8 fascicoli` in circa 0,7 secondi;
+- screenshot acquisito con footer locale visibile;
+- l'hash password temporaneo dell'utente locale di test è stato ripristinato dopo la prova.
+
+Obiettivo della correzione: la vista economica deve restare percepita come pronta e governata. Se i dati sono già stati letti o preletti, il cambio pagina deve essere immediato; se una pagina non è pronta, l'avvocato deve vedere subito quale pagina il software sta caricando.

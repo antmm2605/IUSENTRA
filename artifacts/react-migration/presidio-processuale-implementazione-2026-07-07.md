@@ -189,3 +189,25 @@ Correzione applicata:
 Obiettivo della correzione: il browser reale dello studio deve scaricare il bundle corrente dopo ogni deploy e non deve restare agganciato a un entrypoint cacheato che impedisce la visualizzazione dei fascicoli e del controllo economico.
 
 Stato: da testare con build, deploy Hetzner, container unico `iusentra-app`, `/api/pronto` versione `2.254.3` e prova visiva della vista economica in produzione.
+
+## Aggiornamento grafo Vite React 2.254.4 del 07/07/2026
+
+La prova visiva dopo il deploy 2.254.3 ha confermato che il browser scaricava l'entry versionata, ma l'avvio falliva ancora. Il titolo e il percorso tecnico apparivano alterati dal guard visibile (`React` trasformato in `pagina`), mentre il dataset tecnico indicava ancora il fallimento dell'import di `reactEntry`.
+
+Analisi del bundle:
+
+- `main.tsx` importava dinamicamente `reactEntry`;
+- `reactEntry` importava dinamicamente `App`;
+- Vite inseriva nel chunk `reactEntry` l'import dell'helper esportato da `index-...js`;
+- questo creava un ciclo `index -> reactEntry -> index` durante il bootstrap.
+
+Correzione applicata:
+
+- `frontend/src/reactEntry.tsx` importa staticamente `App` e `SupportOperatorRoom`;
+- `main.tsx` resta l'unico bootstrap dinamico e leggero;
+- `main.tsx` esegue il bootstrap solo quando l'entry arriva dalla shell versionata (`?v=...`) o dal retry anti-cache (`iu_boot_retry`), così l'import interno di Vite senza query non rimonta la pagina;
+- `frontend/scripts/check-react-contracts.mjs` impedisce gli import dinamici dentro `reactEntry` e presidia il guard anti-doppio-bootstrap basato su `import.meta.url`;
+- versione applicativa portata a `2.254.4`;
+- build Vite rigenerata con `reactEntry-k1_nZBOP.js` autonomo, senza import verso `index-...js`.
+
+Obiettivo della correzione: la pagina fascicoli deve montare React senza ciclo di bootstrap e mostrare la vista economica reale, non il fallback tecnico.

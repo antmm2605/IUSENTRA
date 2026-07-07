@@ -22,6 +22,11 @@ bootstrapState.entryStartedAt = new Date().toISOString()
 bootstrapState.errors = Array.isArray(bootstrapState.errors) ? bootstrapState.errors : []
 window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = bootstrapState
 
+const moduleUrl = new URL(import.meta.url)
+const shouldRunBootstrap = import.meta.env.DEV
+  || moduleUrl.searchParams.has('v')
+  || moduleUrl.searchParams.has('iu_boot_retry')
+
 const appRoot = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
 const supportOperatorRoot = document.getElementById('support-operator-react-root')
 const shouldMountSupportOperator = Boolean(supportOperatorRoot?.dataset.supportOperatorRoom === '1' && !appRoot)
@@ -72,10 +77,12 @@ async function bootReact() {
   bootstrapState.renderCompleted = true
 }
 
-bootReact().catch((error) => {
-  const message = startupErrorMessage(error)
-  bootstrapState.errors?.push(message)
-  document.documentElement.dataset.iusentraEntryRuntime = 'error'
-  document.documentElement.dataset.iusentraEntryRuntimeError = message
-  if (root) renderStartupError(root, error)
-})
+if (shouldRunBootstrap) {
+  bootReact().catch((error) => {
+    const message = startupErrorMessage(error)
+    bootstrapState.errors?.push(message)
+    document.documentElement.dataset.iusentraEntryRuntime = 'error'
+    document.documentElement.dataset.iusentraEntryRuntimeError = message
+    if (root) renderStartupError(root, error)
+  })
+}

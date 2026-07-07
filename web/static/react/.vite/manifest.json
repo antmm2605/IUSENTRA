@@ -11,9 +11,218 @@
     "file": "assets/geist-latin-wght-normal-Dm3htQBi.woff2",
     "src": "../node_modules/.pnpm/@fontsource-variable+geist@5.2.8/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2"
   },
-  "_App-BNldzJu1.js": {
-    "file": "assets/App-BNldzJu1.js",
-    "name": "App",
+  "_Badge-Dzr8LG6h.js": {
+    "file": "assets/Badge-Dzr8LG6h.js",
+    "name": "Badge",
+    "imports": [
+      "_vendor-D5jv17fb.js"
+    ]
+  },
+  "_CodiceOggettoPstSearch-zFqLWKEj.js": {
+    "file": "assets/CodiceOggettoPstSearch-zFqLWKEj.js",
+    "name": "CodiceOggettoPstSearch",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_Badge-Dzr8LG6h.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_EmptyState-v511pWGW.js": {
+    "file": "assets/EmptyState-v511pWGW.js",
+    "name": "EmptyState",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusEmptyState-C-p0Eek5.js"
+    ]
+  },
+  "_EscalationBox-BS_lXqMw.js": {
+    "file": "assets/EscalationBox-BS_lXqMw.js",
+    "name": "EscalationBox",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_alert-DpjxSm_a.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_FascicoliPage-BruXQULg.js": {
+    "file": "assets/FascicoliPage-BruXQULg.js",
+    "name": "FascicoliPage",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_SyncedTopScrollbar-CFZQaBMc.js",
+      "_formatting-DWrXJ-fi.js",
+      "_CodiceOggettoPstSearch-zFqLWKEj.js",
+      "_studioModuleRuntime-DPAdoEtv.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ],
+    "dynamicImports": [
+      "src/components/FascicoloDepositoPage.tsx"
+    ]
+  },
+  "_IusEmptyState-C-p0Eek5.js": {
+    "file": "assets/IusEmptyState-C-p0Eek5.js",
+    "name": "IusEmptyState",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_IusPageShell-CPBLY-F9.js": {
+    "file": "assets/IusPageShell-CPBLY-F9.js",
+    "name": "IusPageShell",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_KpiCard-1DcTazNF.js": {
+    "file": "assets/KpiCard-1DcTazNF.js",
+    "name": "KpiCard",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_LegalSkillsProfilePage-Da7-rxas.js": {
+    "file": "assets/LegalSkillsProfilePage-Da7-rxas.js",
+    "name": "LegalSkillsProfilePage",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_input-DensYjYq.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_vendor-icons-fgtnUJ9b.js",
+      "_api-Duv_3rlf.js"
+    ]
+  },
+  "_LegalSkillsReviewPage-CbHRbk32.js": {
+    "file": "assets/LegalSkillsReviewPage-CbHRbk32.js",
+    "name": "LegalSkillsReviewPage",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js",
+      "_permissions-BVkih2kj.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_LoadingState-CY9cvxXm.js": {
+    "file": "assets/LoadingState-CY9cvxXm.js",
+    "name": "LoadingState",
+    "imports": [
+      "_vendor-D5jv17fb.js"
+    ]
+  },
+  "_Page-nxIy6V4h.js": {
+    "file": "assets/Page-nxIy6V4h.js",
+    "name": "Page",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_Panel-BUDt1WC0.js": {
+    "file": "assets/Panel-BUDt1WC0.js",
+    "name": "Panel",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_SyncedTopScrollbar-CFZQaBMc.js": {
+    "file": "assets/SyncedTopScrollbar-CFZQaBMc.js",
+    "name": "SyncedTopScrollbar",
+    "imports": [
+      "_vendor-D5jv17fb.js"
+    ]
+  },
+  "_WizardProPage-0mbsuWmo.js": {
+    "file": "assets/WizardProPage-0mbsuWmo.js",
+    "name": "WizardProPage",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_vendor-icons-fgtnUJ9b.js"
+    ]
+  },
+  "_alert-DpjxSm_a.js": {
+    "file": "assets/alert-DpjxSm_a.js",
+    "name": "alert",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_api-BUsR7GMX.js": {
+    "file": "assets/api-BUsR7GMX.js",
+    "name": "api",
+    "imports": [
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_api-DuQacgaS.js": {
+    "file": "assets/api-DuQacgaS.js",
+    "name": "api",
+    "imports": [
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_api-Duv_3rlf.js": {
+    "file": "assets/api-Duv_3rlf.js",
+    "name": "api",
+    "imports": [
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_button-BkO0eNub.js": {
+    "file": "assets/button-BkO0eNub.js",
+    "name": "button",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_formatting-DWrXJ-fi.js": {
+    "file": "assets/formatting-DWrXJ-fi.js",
+    "name": "formatting"
+  },
+  "_input-DensYjYq.js": {
+    "file": "assets/input-DensYjYq.js",
+    "name": "input",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js"
+    ]
+  },
+  "_openDesign-CnHciTfl.js": {
+    "file": "assets/openDesign-CnHciTfl.js",
+    "name": "openDesign"
+  },
+  "_permissions-BVkih2kj.js": {
+    "file": "assets/permissions-BVkih2kj.js",
+    "name": "permissions",
+    "imports": [
+      "_vendor-D5jv17fb.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_vendor-icons-fgtnUJ9b.js",
+      "_alert-DpjxSm_a.js"
+    ]
+  },
+  "_reactEntry-DoJMBFzJ.js": {
+    "file": "assets/reactEntry-DoJMBFzJ.js",
+    "name": "reactEntry",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
@@ -26,7 +235,7 @@
       "src/components/AgendaImportPage.tsx",
       "src/components/NuovoAppuntamentoPage.tsx",
       "src/components/RicercaStudioPage.tsx",
-      "_FascicoliPage-DOrYGkzp.js",
+      "_FascicoliPage-BruXQULg.js",
       "src/components/DocumentEditorPage.tsx",
       "src/components/AnagraficaClientiPage.tsx",
       "src/components/CartellaClientePage.tsx",
@@ -87,235 +296,26 @@
       "src/components/ClientPortalPage.tsx"
     ]
   },
-  "_Badge-Dzr8LG6h.js": {
-    "file": "assets/Badge-Dzr8LG6h.js",
-    "name": "Badge",
-    "imports": [
-      "_vendor-D5jv17fb.js"
-    ]
-  },
-  "_CodiceOggettoPstSearch-zFqLWKEj.js": {
-    "file": "assets/CodiceOggettoPstSearch-zFqLWKEj.js",
-    "name": "CodiceOggettoPstSearch",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_Badge-Dzr8LG6h.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_EmptyState-CwnHfF0A.js": {
-    "file": "assets/EmptyState-CwnHfF0A.js",
-    "name": "EmptyState",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_IusEmptyState-CVXEqUJu.js"
-    ]
-  },
-  "_EscalationBox-DJS4b_Qu.js": {
-    "file": "assets/EscalationBox-DJS4b_Qu.js",
-    "name": "EscalationBox",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_alert-CERS_t1o.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_FascicoliPage-DOrYGkzp.js": {
-    "file": "assets/FascicoliPage-DOrYGkzp.js",
-    "name": "FascicoliPage",
-    "isDynamicEntry": true,
-    "imports": [
-      "index.html",
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_SyncedTopScrollbar-CFZQaBMc.js",
-      "_formatting-DWrXJ-fi.js",
-      "_CodiceOggettoPstSearch-zFqLWKEj.js",
-      "_studioModuleRuntime-BTYSinFQ.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ],
-    "dynamicImports": [
-      "src/components/FascicoloDepositoPage.tsx"
-    ]
-  },
-  "_IusEmptyState-CVXEqUJu.js": {
-    "file": "assets/IusEmptyState-CVXEqUJu.js",
-    "name": "IusEmptyState",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_IusPageShell-BtvK-ONO.js": {
-    "file": "assets/IusPageShell-BtvK-ONO.js",
-    "name": "IusPageShell",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_KpiCard-BTNnQZUN.js": {
-    "file": "assets/KpiCard-BTNnQZUN.js",
-    "name": "KpiCard",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_LegalSkillsProfilePage-Dm4JyPkl.js": {
-    "file": "assets/LegalSkillsProfilePage-Dm4JyPkl.js",
-    "name": "LegalSkillsProfilePage",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_input-BB6N5lwx.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_vendor-icons-fgtnUJ9b.js",
-      "_api-pPRIOawL.js"
-    ]
-  },
-  "_LegalSkillsReviewPage-fdixyEEF.js": {
-    "file": "assets/LegalSkillsReviewPage-fdixyEEF.js",
-    "name": "LegalSkillsReviewPage",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js",
-      "_permissions-C3cQPyg3.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_LoadingState-CY9cvxXm.js": {
-    "file": "assets/LoadingState-CY9cvxXm.js",
-    "name": "LoadingState",
-    "imports": [
-      "_vendor-D5jv17fb.js"
-    ]
-  },
-  "_Page-DGe5pFHM.js": {
-    "file": "assets/Page-DGe5pFHM.js",
-    "name": "Page",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_Panel-Jls1EpR4.js": {
-    "file": "assets/Panel-Jls1EpR4.js",
-    "name": "Panel",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_SyncedTopScrollbar-CFZQaBMc.js": {
-    "file": "assets/SyncedTopScrollbar-CFZQaBMc.js",
-    "name": "SyncedTopScrollbar",
-    "imports": [
-      "_vendor-D5jv17fb.js"
-    ]
-  },
-  "_WizardProPage-Bs8zL-ki.js": {
-    "file": "assets/WizardProPage-Bs8zL-ki.js",
-    "name": "WizardProPage",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
-  "_alert-CERS_t1o.js": {
-    "file": "assets/alert-CERS_t1o.js",
-    "name": "alert",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_api-Dp_SyG2r.js": {
-    "file": "assets/api-Dp_SyG2r.js",
-    "name": "api",
-    "imports": [
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_api-S4KJJEWk.js": {
-    "file": "assets/api-S4KJJEWk.js",
-    "name": "api",
-    "imports": [
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_api-pPRIOawL.js": {
-    "file": "assets/api-pPRIOawL.js",
-    "name": "api",
-    "imports": [
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_button-D-iwzXJm.js": {
-    "file": "assets/button-D-iwzXJm.js",
-    "name": "button",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_formatting-DWrXJ-fi.js": {
-    "file": "assets/formatting-DWrXJ-fi.js",
-    "name": "formatting"
-  },
-  "_input-BB6N5lwx.js": {
-    "file": "assets/input-BB6N5lwx.js",
-    "name": "input",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
-    ]
-  },
-  "_openDesign-CnHciTfl.js": {
-    "file": "assets/openDesign-CnHciTfl.js",
-    "name": "openDesign"
-  },
-  "_permissions-C3cQPyg3.js": {
-    "file": "assets/permissions-C3cQPyg3.js",
-    "name": "permissions",
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_vendor-icons-fgtnUJ9b.js",
-      "_alert-CERS_t1o.js"
-    ]
-  },
-  "_studioData-C4F4PmkW.js": {
-    "file": "assets/studioData-C4F4PmkW.js",
+  "_studioData-BIsFHNSh.js": {
+    "file": "assets/studioData-BIsFHNSh.js",
     "name": "studioData",
     "imports": [
-      "_App-BNldzJu1.js"
+      "_reactEntry-DoJMBFzJ.js"
     ]
   },
-  "_studioModuleRuntime-BTYSinFQ.js": {
-    "file": "assets/studioModuleRuntime-BTYSinFQ.js",
+  "_studioModuleRuntime-DPAdoEtv.js": {
+    "file": "assets/studioModuleRuntime-DPAdoEtv.js",
     "name": "studioModuleRuntime",
     "imports": [
-      "_App-BNldzJu1.js"
+      "_reactEntry-DoJMBFzJ.js"
     ]
   },
-  "_textarea-B5PZdVC8.js": {
-    "file": "assets/textarea-B5PZdVC8.js",
+  "_textarea-BNHalAQC.js": {
+    "file": "assets/textarea-BNHalAQC.js",
     "name": "textarea",
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js"
+      "_reactEntry-DoJMBFzJ.js"
     ]
   },
   "_vendor-D5jv17fb.js": {
@@ -330,12 +330,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/index-Derxmw__.js",
+    "file": "assets/index-DIpJ82Fi.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "dynamicImports": [
-      "src/reactEntry.tsx"
+      "_reactEntry-DoJMBFzJ.js"
     ],
     "assets": [
       "assets/geist-cyrillic-wght-normal-CHSlOQsW.woff2",
@@ -344,433 +344,433 @@
     ]
   },
   "src/components/AdminDatabasePage.tsx": {
-    "file": "assets/AdminDatabasePage-DdE6ARts.js",
+    "file": "assets/AdminDatabasePage-D8yoAU6g.js",
     "name": "AdminDatabasePage",
     "src": "src/components/AdminDatabasePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/AgendaImportPage.tsx": {
-    "file": "assets/AgendaImportPage-Dz6t5dFK.js",
+    "file": "assets/AgendaImportPage-BwBearj2.js",
     "name": "AgendaImportPage",
     "src": "src/components/AgendaImportPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/AgendaPage.tsx": {
-    "file": "assets/AgendaPage-B87Cnrav.js",
+    "file": "assets/AgendaPage-Dt_pC3LV.js",
     "name": "AgendaPage",
     "src": "src/components/AgendaPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/AmministrazionePage.tsx": {
-    "file": "assets/AmministrazionePage-BW4PZhH1.js",
+    "file": "assets/AmministrazionePage-Cyd2EnHo.js",
     "name": "AmministrazionePage",
     "src": "src/components/AmministrazionePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_studioData-C4F4PmkW.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_studioData-BIsFHNSh.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/AnagraficaClientiPage.tsx": {
-    "file": "assets/AnagraficaClientiPage-B-YyNrRY.js",
+    "file": "assets/AnagraficaClientiPage-BeSh05Kc.js",
     "name": "AnagraficaClientiPage",
     "src": "src/components/AnagraficaClientiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_SyncedTopScrollbar-CFZQaBMc.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/AuditPage.tsx": {
-    "file": "assets/AuditPage-BbJKzArz.js",
+    "file": "assets/AuditPage-CAUhVMIS.js",
     "name": "AuditPage",
     "src": "src/components/AuditPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/BackupPage.tsx": {
-    "file": "assets/BackupPage-C3NptO2k.js",
+    "file": "assets/BackupPage-j78cGmCo.js",
     "name": "BackupPage",
     "src": "src/components/BackupPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "src/components/ImpostazioniPage.tsx",
-      "_alert-CERS_t1o.js",
-      "_App-BNldzJu1.js",
+      "_alert-DpjxSm_a.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
       "_vendor-icons-fgtnUJ9b.js",
-      "_button-D-iwzXJm.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_input-BB6N5lwx.js",
-      "_textarea-B5PZdVC8.js",
-      "_api-S4KJJEWk.js",
+      "_button-BkO0eNub.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_input-DensYjYq.js",
+      "_textarea-BNHalAQC.js",
+      "_api-BUsR7GMX.js",
       "_formatting-DWrXJ-fi.js"
     ]
   },
   "src/components/CartellaClientePage.tsx": {
-    "file": "assets/CartellaClientePage-C72H0O8v.js",
+    "file": "assets/CartellaClientePage-K5h8ELl_.js",
     "name": "CartellaClientePage",
     "src": "src/components/CartellaClientePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/CartelleCondivisePage.tsx": {
-    "file": "assets/CartelleCondivisePage-KU31GNc5.js",
+    "file": "assets/CartelleCondivisePage-B3A6R1rK.js",
     "name": "CartelleCondivisePage",
     "src": "src/components/CartelleCondivisePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/ClientPortalPage.tsx": {
-    "file": "assets/ClientPortalPage-ifAT7BKE.js",
+    "file": "assets/ClientPortalPage-DNsCZD4A.js",
     "name": "ClientPortalPage",
     "src": "src/components/ClientPortalPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/CompensiForensiPage.tsx": {
-    "file": "assets/CompensiForensiPage-CBwNAFIH.js",
+    "file": "assets/CompensiForensiPage-L_hZSqdH.js",
     "name": "CompensiForensiPage",
     "src": "src/components/CompensiForensiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_openDesign-CnHciTfl.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
   "src/components/DocumentEditorPage.tsx": {
-    "file": "assets/DocumentEditorPage-BNvYL1Ij.js",
+    "file": "assets/DocumentEditorPage-BkPHQ5JY.js",
     "name": "DocumentEditorPage",
     "src": "src/components/DocumentEditorPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/EditorProfessionalePage.tsx": {
-    "file": "assets/EditorProfessionalePage-CExWRmmG.js",
+    "file": "assets/EditorProfessionalePage-CSykRbCZ.js",
     "name": "EditorProfessionalePage",
     "src": "src/components/EditorProfessionalePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_Panel-Jls1EpR4.js",
+      "_Page-nxIy6V4h.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html"
     ]
   },
   "src/components/EmailPecPage.tsx": {
-    "file": "assets/EmailPecPage-DR43TnAL.js",
+    "file": "assets/EmailPecPage-D0jcLPfi.js",
     "name": "EmailPecPage",
     "src": "src/components/EmailPecPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_formatting-DWrXJ-fi.js",
-      "_studioModuleRuntime-BTYSinFQ.js",
+      "_studioModuleRuntime-DPAdoEtv.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/FascicoloDepositoPage.tsx": {
-    "file": "assets/FascicoloDepositoPage-DMy8X0_t.js",
+    "file": "assets/FascicoloDepositoPage-DLibVW5W.js",
     "name": "FascicoloDepositoPage",
     "src": "src/components/FascicoloDepositoPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_FascicoliPage-DOrYGkzp.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_FascicoliPage-BruXQULg.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
       "_SyncedTopScrollbar-CFZQaBMc.js",
       "_formatting-DWrXJ-fi.js",
       "_CodiceOggettoPstSearch-zFqLWKEj.js",
       "_Badge-Dzr8LG6h.js",
-      "_studioModuleRuntime-BTYSinFQ.js"
+      "_studioModuleRuntime-DPAdoEtv.js"
     ]
   },
   "src/components/FatturazionePage.tsx": {
-    "file": "assets/FatturazionePage-DNUYzXeW.js",
+    "file": "assets/FatturazionePage-aDAhty1x.js",
     "name": "FatturazionePage",
     "src": "src/components/FatturazionePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_api-S4KJJEWk.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_api-BUsR7GMX.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_formatting-DWrXJ-fi.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/GiurisprudenzaPage.tsx": {
-    "file": "assets/GiurisprudenzaPage-DlzxmhgB.js",
+    "file": "assets/GiurisprudenzaPage-CllMJCb8.js",
     "name": "GiurisprudenzaPage",
     "src": "src/components/GiurisprudenzaPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_openDesign-CnHciTfl.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
   "src/components/ImpostazioniPage.tsx": {
-    "file": "assets/ImpostazioniPage-W6dOG9nJ.js",
+    "file": "assets/ImpostazioniPage-D37iFmgV.js",
     "name": "ImpostazioniPage",
     "src": "src/components/ImpostazioniPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_alert-CERS_t1o.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_IusPageShell-BtvK-ONO.js",
+      "_alert-DpjxSm_a.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusPageShell-CPBLY-F9.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_input-BB6N5lwx.js",
-      "_textarea-B5PZdVC8.js",
-      "_api-S4KJJEWk.js",
+      "_input-DensYjYq.js",
+      "_textarea-BNHalAQC.js",
+      "_api-BUsR7GMX.js",
       "_formatting-DWrXJ-fi.js",
       "index.html"
     ]
   },
   "src/components/IncassiPagamentiPage.tsx": {
-    "file": "assets/IncassiPagamentiPage-CF1iQNIJ.js",
+    "file": "assets/IncassiPagamentiPage-DVNs0-o7.js",
     "name": "IncassiPagamentiPage",
     "src": "src/components/IncassiPagamentiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/LegalIntelligencePage.tsx": {
-    "file": "assets/LegalIntelligencePage-B3-pRPdY.js",
+    "file": "assets/LegalIntelligencePage-JdVFh55D.js",
     "name": "LegalIntelligencePage",
     "src": "src/components/LegalIntelligencePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
       "_LoadingState-CY9cvxXm.js",
       "_openDesign-CnHciTfl.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
   "src/components/LexLearningPage.tsx": {
-    "file": "assets/LexLearningPage-D7htYnKn.js",
+    "file": "assets/LexLearningPage-Cesg5GMY.js",
     "name": "LexLearningPage",
     "src": "src/components/LexLearningPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/MessaggiPage.tsx": {
-    "file": "assets/MessaggiPage-Cgv97Y3t.js",
+    "file": "assets/MessaggiPage-Blppsd6K.js",
     "name": "MessaggiPage",
     "src": "src/components/MessaggiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/NotificheLegaliPage.tsx": {
-    "file": "assets/NotificheLegaliPage-BE72qMGn.js",
+    "file": "assets/NotificheLegaliPage-B2ERFR-g.js",
     "name": "NotificheLegaliPage",
     "src": "src/components/NotificheLegaliPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_formatting-DWrXJ-fi.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/NuovaScadenzaPage.tsx": {
-    "file": "assets/NuovaScadenzaPage-D9tLOHcW.js",
+    "file": "assets/NuovaScadenzaPage-CzdSTJvF.js",
     "name": "NuovaScadenzaPage",
     "src": "src/components/NuovaScadenzaPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/NuovoAppuntamentoPage.tsx": {
-    "file": "assets/NuovoAppuntamentoPage-B_JFo7VL.js",
+    "file": "assets/NuovoAppuntamentoPage-Dx_4SM0m.js",
     "name": "NuovoAppuntamentoPage",
     "src": "src/components/NuovoAppuntamentoPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/NuovoClientePage.tsx": {
-    "file": "assets/NuovoClientePage-Bkfw1chz.js",
+    "file": "assets/NuovoClientePage-BwQdempn.js",
     "name": "NuovoClientePage",
     "src": "src/components/NuovoClientePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/PreventiviPage.tsx": {
-    "file": "assets/PreventiviPage-BHpUXiv9.js",
+    "file": "assets/PreventiviPage-8ksQ2AiX.js",
     "name": "PreventiviPage",
     "src": "src/components/PreventiviPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_CodiceOggettoPstSearch-zFqLWKEj.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/PreventivoWizardPage.tsx": {
-    "file": "assets/PreventivoWizardPage-DIchDZRB.js",
+    "file": "assets/PreventivoWizardPage-BNItIjEC.js",
     "name": "PreventivoWizardPage",
     "src": "src/components/PreventivoWizardPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_CodiceOggettoPstSearch-zFqLWKEj.js",
       "_formatting-DWrXJ-fi.js",
       "_LoadingState-CY9cvxXm.js",
@@ -780,87 +780,87 @@
     ]
   },
   "src/components/PrivacyRegistroPage.tsx": {
-    "file": "assets/PrivacyRegistroPage-CmdJTSyt.js",
+    "file": "assets/PrivacyRegistroPage-Adkz9K_M.js",
     "name": "PrivacyRegistroPage",
     "src": "src/components/PrivacyRegistroPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/ProfiliPage.tsx": {
-    "file": "assets/ProfiliPage-Bg64fvsC.js",
+    "file": "assets/ProfiliPage-BLLxkcvH.js",
     "name": "ProfiliPage",
     "src": "src/components/ProfiliPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/ProfiloPage.tsx": {
-    "file": "assets/ProfiloPage-DT6DJbyo.js",
+    "file": "assets/ProfiloPage-e-TPWO9W.js",
     "name": "ProfiloPage",
     "src": "src/components/ProfiloPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/QuickOrganizerImportPage.tsx": {
-    "file": "assets/QuickOrganizerImportPage-DU6gdaTr.js",
+    "file": "assets/QuickOrganizerImportPage-BkTAZk2L.js",
     "name": "QuickOrganizerImportPage",
     "src": "src/components/QuickOrganizerImportPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
   "src/components/RedazioneAttiPage.tsx": {
-    "file": "assets/RedazioneAttiPage-tpwmSeU3.js",
+    "file": "assets/RedazioneAttiPage-BaHtyW8g.js",
     "name": "RedazioneAttiPage",
     "src": "src/components/RedazioneAttiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_openDesign-CnHciTfl.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_formatting-DWrXJ-fi.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
@@ -875,136 +875,136 @@
     ]
   },
   "src/components/ScadenziarioPage.tsx": {
-    "file": "assets/ScadenziarioPage-jzV2TcmT.js",
+    "file": "assets/ScadenziarioPage-9iYK-ArM.js",
     "name": "ScadenziarioPage",
     "src": "src/components/ScadenziarioPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/SitoStudioBuilderPage.tsx": {
-    "file": "assets/SitoStudioBuilderPage-D2Fdu-0m.js",
+    "file": "assets/SitoStudioBuilderPage-BJEKOB4c.js",
     "name": "SitoStudioBuilderPage",
     "src": "src/components/SitoStudioBuilderPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_EmptyState-CwnHfF0A.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_EmptyState-v511pWGW.js",
       "_LoadingState-CY9cvxXm.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/SitoStudioPage.tsx": {
-    "file": "assets/SitoStudioPage-BnvPX8ia.js",
+    "file": "assets/SitoStudioPage-DvUMiLiG.js",
     "name": "SitoStudioPage",
     "src": "src/components/SitoStudioPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_studioData-C4F4PmkW.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_studioData-BIsFHNSh.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/SitoStudioRedazioneAiPage.tsx": {
-    "file": "assets/SitoStudioRedazioneAiPage-DPu7JjBC.js",
+    "file": "assets/SitoStudioRedazioneAiPage-GDGQxQ08.js",
     "name": "SitoStudioRedazioneAiPage",
     "src": "src/components/SitoStudioRedazioneAiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
       "_LoadingState-CY9cvxXm.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/SoggettiPage.tsx": {
-    "file": "assets/SoggettiPage-Dou54i44.js",
+    "file": "assets/SoggettiPage-DOwdxJ2I.js",
     "name": "SoggettiPage",
     "src": "src/components/SoggettiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_SyncedTopScrollbar-CFZQaBMc.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/StatistichePage.tsx": {
-    "file": "assets/StatistichePage-B1NvLtHC.js",
+    "file": "assets/StatistichePage-B0goEUvp.js",
     "name": "StatistichePage",
     "src": "src/components/StatistichePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/StudioModulePage.tsx": {
-    "file": "assets/StudioModulePage-CtQ1AcUv.js",
+    "file": "assets/StudioModulePage-ChgXAazM.js",
     "name": "StudioModulePage",
     "src": "src/components/StudioModulePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_studioModuleRuntime-BTYSinFQ.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_studioModuleRuntime-DPAdoEtv.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/StudioPage.tsx": {
-    "file": "assets/StudioPage-scP_yxTZ.js",
+    "file": "assets/StudioPage-PPhkzFqH.js",
     "name": "StudioPage",
     "src": "src/components/StudioPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_studioData-C4F4PmkW.js",
+      "_studioData-BIsFHNSh.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/StudioVoiceAssistant.tsx": {
@@ -1017,315 +1017,291 @@
       "_vendor-icons-fgtnUJ9b.js"
     ]
   },
-  "src/components/SupportOperatorRoom.tsx": {
-    "file": "assets/SupportOperatorRoom-DjFOWDye.js",
-    "name": "SupportOperatorRoom",
-    "src": "src/components/SupportOperatorRoom.tsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "_vendor-D5jv17fb.js",
-      "_vendor-icons-fgtnUJ9b.js"
-    ]
-  },
   "src/components/TariffarioPage.tsx": {
-    "file": "assets/TariffarioPage-vdF_dy5U.js",
+    "file": "assets/TariffarioPage-BMVf38HD.js",
     "name": "TariffarioPage",
     "src": "src/components/TariffarioPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_LoadingState-CY9cvxXm.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/TelematicoPage.tsx": {
-    "file": "assets/TelematicoPage-ONE4haWo.js",
+    "file": "assets/TelematicoPage-DolbzYKY.js",
     "name": "TelematicoPage",
     "src": "src/components/TelematicoPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/TelematicoSurfacePage.tsx": {
-    "file": "assets/TelematicoSurfacePage-B7761Gpq.js",
+    "file": "assets/TelematicoSurfacePage-BYNY3uFW.js",
     "name": "TelematicoSurfacePage",
     "src": "src/components/TelematicoSurfacePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_formatting-DWrXJ-fi.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/TemplateAttiPage.tsx": {
-    "file": "assets/TemplateAttiPage-Cz9gUlP_.js",
+    "file": "assets/TemplateAttiPage-evZXR98K.js",
     "name": "TemplateAttiPage",
     "src": "src/components/TemplateAttiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_openDesign-CnHciTfl.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js",
       "index.html"
     ]
   },
   "src/components/TimesheetPage.tsx": {
-    "file": "assets/TimesheetPage-Cb55pxQX.js",
+    "file": "assets/TimesheetPage-BRCm2ndt.js",
     "name": "TimesheetPage",
     "src": "src/components/TimesheetPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/UtentiPage.tsx": {
-    "file": "assets/UtentiPage-DWmMRnoU.js",
+    "file": "assets/UtentiPage-mNA8ZIyk.js",
     "name": "UtentiPage",
     "src": "src/components/UtentiPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
+      "_reactEntry-DoJMBFzJ.js",
       "_Badge-Dzr8LG6h.js",
-      "_Page-DGe5pFHM.js",
-      "_EmptyState-CwnHfF0A.js",
-      "_KpiCard-BTNnQZUN.js",
+      "_Page-nxIy6V4h.js",
+      "_EmptyState-v511pWGW.js",
+      "_KpiCard-1DcTazNF.js",
       "_LoadingState-CY9cvxXm.js",
-      "_Panel-Jls1EpR4.js",
+      "_Panel-BUDt1WC0.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_button-D-iwzXJm.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_button-BkO0eNub.js"
     ]
   },
   "src/components/WizardProCompletePage.tsx": {
-    "file": "assets/WizardProCompletePage-BjpKHti9.js",
+    "file": "assets/WizardProCompletePage-VX3WUecK.js",
     "name": "WizardProCompletePage",
     "src": "src/components/WizardProCompletePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_WizardProPage-Bs8zL-ki.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_WizardProPage-0mbsuWmo.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/WizardProPage.tsx": {
-    "file": "assets/WizardProPage-GD0DWneu.js",
+    "file": "assets/WizardProPage-1pWYGpzR.js",
     "name": "WizardProPage",
     "src": "src/components/WizardProPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_WizardProPage-Bs8zL-ki.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_WizardProPage-0mbsuWmo.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/components/WizardProStepPage.tsx": {
-    "file": "assets/WizardProStepPage-BuVj_w0i.js",
+    "file": "assets/WizardProStepPage-BVN6YPT-.js",
     "name": "WizardProStepPage",
     "src": "src/components/WizardProStepPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_WizardProPage-Bs8zL-ki.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_WizardProPage-0mbsuWmo.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/features/legal-skills/pages/ColdStartInterviewPage.tsx": {
-    "file": "assets/ColdStartInterviewPage-DXqt4Ww1.js",
+    "file": "assets/ColdStartInterviewPage-BxBxt63m.js",
     "name": "ColdStartInterviewPage",
     "src": "src/features/legal-skills/pages/ColdStartInterviewPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_LegalSkillsProfilePage-Dm4JyPkl.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
+      "_LegalSkillsProfilePage-Da7-rxas.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
       "_vendor-icons-fgtnUJ9b.js",
-      "_input-BB6N5lwx.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js"
+      "_input-DensYjYq.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js"
     ]
   },
   "src/features/legal-skills/pages/LegalSkillRunPage.tsx": {
-    "file": "assets/LegalSkillRunPage-CbXcTeFt.js",
+    "file": "assets/LegalSkillRunPage-DPx2xtSe.js",
     "name": "LegalSkillRunPage",
     "src": "src/features/legal-skills/pages/LegalSkillRunPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_textarea-B5PZdVC8.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js",
-      "_permissions-C3cQPyg3.js",
-      "_EscalationBox-DJS4b_Qu.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_textarea-BNHalAQC.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js",
+      "_permissions-BVkih2kj.js",
+      "_EscalationBox-BS_lXqMw.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_alert-CERS_t1o.js"
+      "_alert-DpjxSm_a.js"
     ]
   },
   "src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx": {
-    "file": "assets/LegalSkillsCatalogPage-DjTPSX-3.js",
+    "file": "assets/LegalSkillsCatalogPage-DVzhcVCr.js",
     "name": "LegalSkillsCatalogPage",
     "src": "src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js",
-      "_EscalationBox-DJS4b_Qu.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js",
+      "_EscalationBox-BS_lXqMw.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html",
-      "_alert-CERS_t1o.js"
+      "_alert-DpjxSm_a.js"
     ]
   },
   "src/features/legal-skills/pages/PracticeProfilePage.tsx": {
-    "file": "assets/PracticeProfilePage-Dwiz6H2y.js",
+    "file": "assets/PracticeProfilePage-CJ-aY3r1.js",
     "name": "PracticeProfilePage",
     "src": "src/features/legal-skills/pages/PracticeProfilePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_LegalSkillsProfilePage-Dm4JyPkl.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
+      "_LegalSkillsProfilePage-Da7-rxas.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
       "_vendor-icons-fgtnUJ9b.js",
-      "_input-BB6N5lwx.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js"
+      "_input-DensYjYq.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js"
     ]
   },
   "src/features/legal-skills/pages/ReviewerQueuePage.tsx": {
-    "file": "assets/ReviewerQueuePage-DW5pMmtg.js",
+    "file": "assets/ReviewerQueuePage-VJvv8Npz.js",
     "name": "ReviewerQueuePage",
     "src": "src/features/legal-skills/pages/ReviewerQueuePage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_LegalSkillsReviewPage-fdixyEEF.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
+      "_LegalSkillsReviewPage-CbHRbk32.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js",
-      "_permissions-C3cQPyg3.js",
-      "_alert-CERS_t1o.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js",
+      "_permissions-BVkih2kj.js",
+      "_alert-DpjxSm_a.js"
     ]
   },
   "src/features/legal-skills/pages/SkillRunDetailPage.tsx": {
-    "file": "assets/SkillRunDetailPage-DK5u8l4_.js",
+    "file": "assets/SkillRunDetailPage-BlR2yvDM.js",
     "name": "SkillRunDetailPage",
     "src": "src/features/legal-skills/pages/SkillRunDetailPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_LegalSkillsReviewPage-fdixyEEF.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
+      "_LegalSkillsReviewPage-CbHRbk32.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
       "index.html",
       "_vendor-icons-fgtnUJ9b.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-pPRIOawL.js",
-      "_permissions-C3cQPyg3.js",
-      "_alert-CERS_t1o.js"
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-Duv_3rlf.js",
+      "_permissions-BVkih2kj.js",
+      "_alert-DpjxSm_a.js"
     ]
   },
   "src/pages/workflow-agents/AgentApprovalQueue.tsx": {
-    "file": "assets/AgentApprovalQueue-B8-rdfGk.js",
+    "file": "assets/AgentApprovalQueue-Cz6aDy7M.js",
     "name": "AgentApprovalQueue",
     "src": "src/pages/workflow-agents/AgentApprovalQueue.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-Dp_SyG2r.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-DuQacgaS.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/pages/workflow-agents/AgentRunDetail.tsx": {
-    "file": "assets/AgentRunDetail-Dvi9orzN.js",
+    "file": "assets/AgentRunDetail-DgXyQJ_I.js",
     "name": "AgentRunDetail",
     "src": "src/pages/workflow-agents/AgentRunDetail.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_App-BNldzJu1.js",
-      "_IusPageShell-BtvK-ONO.js",
-      "_api-Dp_SyG2r.js",
-      "_button-D-iwzXJm.js",
-      "_IusEmptyState-CVXEqUJu.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusPageShell-CPBLY-F9.js",
+      "_api-DuQacgaS.js",
+      "_button-BkO0eNub.js",
+      "_IusEmptyState-C-p0Eek5.js",
       "_vendor-icons-fgtnUJ9b.js",
       "index.html"
     ]
   },
   "src/pages/workflow-agents/WorkflowAgentsHome.tsx": {
-    "file": "assets/WorkflowAgentsHome-xQhZFD_N.js",
+    "file": "assets/WorkflowAgentsHome-C6GrwE3t.js",
     "name": "WorkflowAgentsHome",
     "src": "src/pages/workflow-agents/WorkflowAgentsHome.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-D5jv17fb.js",
-      "_button-D-iwzXJm.js",
-      "_App-BNldzJu1.js",
-      "_IusEmptyState-CVXEqUJu.js",
-      "_IusPageShell-BtvK-ONO.js",
+      "_button-BkO0eNub.js",
+      "_reactEntry-DoJMBFzJ.js",
+      "_IusEmptyState-C-p0Eek5.js",
+      "_IusPageShell-CPBLY-F9.js",
       "_vendor-icons-fgtnUJ9b.js",
-      "_api-Dp_SyG2r.js",
+      "_api-DuQacgaS.js",
       "index.html"
-    ]
-  },
-  "src/reactEntry.tsx": {
-    "file": "assets/reactEntry-DJtb3hzB.js",
-    "name": "reactEntry",
-    "src": "src/reactEntry.tsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "index.html",
-      "_vendor-D5jv17fb.js"
-    ],
-    "dynamicImports": [
-      "src/components/SupportOperatorRoom.tsx",
-      "_App-BNldzJu1.js"
     ]
   },
   "style.css": {

@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import type { ComponentType } from 'react'
+import App from './app/App'
+import SupportOperatorRoom from './components/SupportOperatorRoom'
 
 type ReactEntryOptions = {
   root: HTMLElement
@@ -9,8 +11,7 @@ type ReactEntryOptions = {
 
 export async function mountReactApp({ root, shouldMountSupportOperator }: ReactEntryOptions) {
   const reactRoot = ReactDOM.createRoot(root)
-  const module = shouldMountSupportOperator ? await import('./components/SupportOperatorRoom') : await import('./app/App')
-  const Component = resolveDefaultComponent(module)
+  const Component = resolveDefaultComponent(shouldMountSupportOperator ? SupportOperatorRoom : App)
 
   reactRoot.render(
     <React.StrictMode>
@@ -19,9 +20,9 @@ export async function mountReactApp({ root, shouldMountSupportOperator }: ReactE
   )
 }
 
-function resolveDefaultComponent(module: unknown): ComponentType {
-  const record = module as { default?: ComponentType; A?: ComponentType }
-  const Component = record.default ?? record.A
+function resolveDefaultComponent(component: unknown): ComponentType {
+  const record = component as { default?: ComponentType; A?: ComponentType }
+  const Component = typeof component === 'function' ? component as ComponentType : record.default ?? record.A
   if (!Component) {
     throw new Error('Componente React operativo non trovato nel bundle.')
   }

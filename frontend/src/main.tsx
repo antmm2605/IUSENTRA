@@ -7,6 +7,7 @@ type ReactBootstrapState = {
   entryLoaded?: boolean
   entryStartedAt?: string
   renderScheduled?: boolean
+  renderCompleted?: boolean
   errors?: string[]
 }
 
@@ -27,6 +28,18 @@ const supportOperatorRoot = document.getElementById('support-operator-react-root
 const shouldMountSupportOperator = Boolean(supportOperatorRoot?.dataset.supportOperatorRoom === '1' && !appRoot)
 const root = shouldMountSupportOperator ? supportOperatorRoot : appRoot ?? supportOperatorRoot
 if (!root) throw new Error('Elemento #root non trovato.')
+const reactRoot = ReactDOM.createRoot(root)
+
+function LoadingShell() {
+  return (
+    <main className="iu-content iu-react-loading" aria-live="polite">
+      <div>
+        <h1>Caricamento interfaccia operativa</h1>
+        <p>Sto aprendo i dati dello studio. L'operazione non modifica fascicoli, documenti o scadenze.</p>
+      </div>
+    </main>
+  )
+}
 
 function startupErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message
@@ -50,14 +63,21 @@ function showStartupError(error: unknown) {
 }
 
 async function mountReactApp() {
-  ReactDOM.createRoot(root).render(
+  bootstrapState.renderScheduled = true
+  reactRoot.render(
     <React.StrictMode>
-      {shouldMountSupportOperator
-        ? React.createElement((await import('./components/SupportOperatorRoom')).default)
-        : React.createElement((await import('./app/App')).default)}
+      <LoadingShell />
     </React.StrictMode>,
   )
-  bootstrapState.renderScheduled = true
+  const Component = shouldMountSupportOperator
+    ? (await import('./components/SupportOperatorRoom')).default
+    : (await import('./app/App')).default
+  reactRoot.render(
+    <React.StrictMode>
+      <Component />
+    </React.StrictMode>,
+  )
+  bootstrapState.renderCompleted = true
 }
 
 mountReactApp().catch((error) => {

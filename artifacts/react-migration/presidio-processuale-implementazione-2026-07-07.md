@@ -116,3 +116,27 @@ Durante la verifica successiva il browser reale mostrava il fallback, ma il dett
 - Commit, push branch gemelli, deploy, container unico `iusentra-app`, `/api/pronto`, prune Docker.
 
 Stato: implementazione tecnica, test mirati e prova reale locale completati; resta la prova server Hetzner sul tenant produzione prima del report finale positivo.
+
+## Aggiornamento bootstrap React del 07/07/2026
+
+Durante il test visivo richiesto su `https://app.iusentra.it/fascicoli?vista=economica` è emerso che il fallback `Interfaccia non avviata` poteva comparire mentre il modulo React principale era ancora in caricamento. La causa operativa non era il presidio economico, ma il root vuoto durante il download del chunk applicativo: il controllo di sicurezza della shell lo interpretava come mancato avvio.
+
+Correzione applicata:
+
+- `frontend/src/main.tsx` crea il root React una sola volta;
+- viene renderizzato subito lo stato `Caricamento interfaccia operativa`, con testo comprensibile per lo studio;
+- il chunk applicativo viene caricato dopo il primo render, poi sostituito dall'app reale;
+- lo stato tecnico distingue `renderScheduled` e `renderCompleted`;
+- `frontend/scripts/check-react-contracts.mjs` impedisce regressioni su caricamento governato, completamento mount e CSS dello stato di caricamento;
+- versione applicativa portata a `2.254.1`.
+
+Test eseguiti dopo la correzione:
+
+- `pnpm --filter @iusentra/studio build:vite`;
+- `node frontend/scripts/check-react-contracts.mjs`;
+- `python -m pytest tests/test_react_shell.py -k "mobile_sblocca_scroll_e_compatta_card or sidebar_usa_profilo_reale_sessione or rt_xml or autocertificazione or pagamento_cu or contributo_unificato or candidati_documentali" -q`;
+- `python -m pytest tests/test_presidio_processuale_ruleset.py tests/test_fascicolo_document_catalog.py -q`;
+- `python -m pytest tests/test_fascicolo_sentenza_economica.py tests/test_backfill_sentenza_lex_economics.py -q`;
+- controllo manifest React: entry `assets/index-BEaP1Vwa.js`, asset mancanti `0`.
+
+Stato: da committare, pushare sui branch gemelli, distribuire su Hetzner e verificare visivamente in produzione prima di dichiarare positivo il funzionamento del controllo economico.

@@ -1908,7 +1908,11 @@ assertNotContains(reactShell, 'Failed to fetch dynamically imported module', 'ne
 assertContains(reactShell, '<script type="module" src="{{ js_file }}"', 'script react principale hashato senza query')
 assertNotContains(reactShell, '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>', 'entry Vite non duplicata da query string')
 assertContains(viteConfig, 'modulePreload', 'config Vite presidia il preload del bootstrap React')
-assertContains(viteConfig, 'polyfill: false', 'entry React senza polyfill modulepreload prima del bootstrap')
+assertContains(viteConfig, 'modulePreload: false', 'entry React senza helper modulepreload prima del bootstrap')
+assertContains(mainEntrypoint, 'function LoadingShell()', 'entry React mostra subito stato di caricamento governato')
+assertContains(mainEntrypoint, 'bootstrapState.renderScheduled = true', 'entry React marca il render prima dei chunk pesanti')
+assertContains(mainEntrypoint, 'bootstrapState.renderCompleted = true', 'entry React marca il completamento del mount operativo')
+assertContains(css, '.iu-react-loading', 'stato di caricamento React visibile e governato')
 assertContains(css, '@media(max-width:760px)', 'responsive agenda')
 assertContains(css, 'prefers-reduced-motion', 'motion agenda')
 

@@ -211,6 +211,9 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     assert '<html lang="it" class="react-shell-document">' in template
     assert '<script type="module" src="{{ js_file }}"></script>' in template
     assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"></script>' not in template
+    assert "window.__IUSENTRA_REACT_BOOTSTRAP_STATE__" in template
+    assert "import(entry.src)" in template
+    assert "Interfaccia non avviata" in template
     assert "body.react-shell-page .iu-shell" in css
     assert "overflow-y:auto!important" in css
     assert ".iu-metrics{\n    grid-template-columns:repeat(2,minmax(0,1fr));" in css

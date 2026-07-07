@@ -38,6 +38,22 @@ npm run build</code></pre>
   {% else %}
   <script id="iusentra-react-bootstrap" type="application/json">{{ react_bootstrap | tojson }}</script>
   <div id="root"></div>
+  <script>
+    window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
+    window.addEventListener("error", function(event) {
+      var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
+      state.errors = Array.isArray(state.errors) ? state.errors : [];
+      state.errors.push(event && event.message ? event.message : "Errore interfaccia non classificato");
+      window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = state;
+    });
+    window.addEventListener("unhandledrejection", function(event) {
+      var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
+      state.errors = Array.isArray(state.errors) ? state.errors : [];
+      var reason = event && event.reason;
+      state.errors.push(reason && reason.message ? reason.message : String(reason || "Errore asincrono interfaccia"));
+      window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = state;
+    });
+  </script>
   {% if react_runtime_flags.settings_guards %}
   <script src="/static/js/react-pec-local-signer-guard.js?v={{ app_version }}" defer></script>
   <script src="/static/js/react-ai-local-guard.js?v={{ app_version }}" defer></script>
@@ -52,6 +68,40 @@ npm run build</code></pre>
   {% for js_file in react_assets.js %}
   <script type="module" src="{{ js_file }}"></script>
   {% endfor %}
+  <script>
+    (function() {
+      var root = document.getElementById("root");
+      var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
+      var entry = document.querySelector('script[type="module"][src*="/static/react/assets/index-"]');
+      function rootIsEmpty() {
+        return root && root.children.length === 0 && !root.textContent.trim();
+      }
+      function showStartupError(message) {
+        if (!rootIsEmpty()) return;
+        var details = "";
+        if (state.errors && state.errors.length) {
+          details = "<p>" + state.errors.slice(-2).map(function(error) {
+            return String(error).replace(/[<>&]/g, function(char) {
+              return { "<": "&lt;", ">": "&gt;", "&": "&amp;" }[char];
+            });
+          }).join(" · ") + "</p>";
+        }
+        root.innerHTML = '<main class="iu-content iu-react-error" role="alert"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p>' + details + '<a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
+      }
+      window.setTimeout(function() {
+        if (!rootIsEmpty() || state.entryLoaded || !entry || !entry.src) return;
+        import(entry.src).catch(function(error) {
+          state.errors = Array.isArray(state.errors) ? state.errors : [];
+          state.errors.push(error && error.message ? error.message : String(error || "Modulo React non caricato"));
+          showStartupError("Il modulo React non è stato caricato dal browser. Ricarica la pagina; se il problema resta, il presidio tecnico lo intercetta senza lasciare una pagina bianca.");
+        });
+      }, 1200);
+      window.setTimeout(function() {
+        if (!rootIsEmpty()) return;
+        showStartupError("Il browser non ha completato l'avvio dell'interfaccia operativa. Il dato non viene modificato: ricarica la pagina o riapri il modulo dal menu.");
+      }, 4500);
+    })();
+  </script>
   {% endif %}
   {% include "components/pct_ai_widget.html" %}
   {% if g.utente_corrente %}

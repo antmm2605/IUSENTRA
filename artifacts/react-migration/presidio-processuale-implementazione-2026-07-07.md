@@ -92,6 +92,15 @@ Durante la verifica server su `https://app.iusentra.it/fascicoli?vista=economica
 - la stanza operatore usa `#support-operator-react-root` solo nella pagina dedicata all'assistenza remota;
 - la modifica rigenera l'hash dell'entry React, evitando il riuso del vecchio asset principale nella sessione browser dopo deploy.
 
+Durante la seconda verifica server, il bundle corretto risultava servito ma la pagina restava comunque muta nel browser reale. Per evitare altri falsi verdi e rendere il difetto diagnosticabile sono stati aggiunti:
+
+- stato runtime `window.__IUSENTRA_REACT_BOOTSTRAP_STATE__` in `frontend/src/main.tsx`;
+- cattura errori `error`/`unhandledrejection` nella shell React;
+- tentativo automatico di import dell'entry React se `#root` resta vuoto dopo il caricamento;
+- messaggio utente `Interfaccia non avviata` con azione `Ricarica` invece di pagina bianca.
+
+Questa protezione non sostituisce la prova reale: serve a impedire una UI muta e a rendere visibile il problema se un browser o un deploy non avvia l'entry.
+
 ## Verifiche ancora necessarie prima della chiusura
 
 - Deploy Hetzner e verifica server `https://app.iusentra.it`.

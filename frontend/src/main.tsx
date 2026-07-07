@@ -1,5 +1,3 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
 import './index.css'
 import './styles/iusentra-design-system.css'
 
@@ -8,6 +6,7 @@ type ReactBootstrapState = {
   entryStartedAt?: string
   renderScheduled?: boolean
   renderCompleted?: boolean
+  shellRendered?: boolean
   errors?: string[]
 }
 
@@ -27,18 +26,9 @@ const appRoot = document.getElementById('root') ?? document.getElementById('iuse
 const supportOperatorRoot = document.getElementById('support-operator-react-root')
 const shouldMountSupportOperator = Boolean(supportOperatorRoot?.dataset.supportOperatorRoom === '1' && !appRoot)
 const root = shouldMountSupportOperator ? supportOperatorRoot : appRoot ?? supportOperatorRoot
-if (!root) throw new Error('Elemento #root non trovato.')
-const reactRoot = ReactDOM.createRoot(root)
 
-function LoadingShell() {
-  return (
-    <main className="iu-content iu-react-loading" aria-live="polite">
-      <div>
-        <h1>Caricamento interfaccia operativa</h1>
-        <p>Sto aprendo i dati dello studio. L'operazione non modifica fascicoli, documenti o scadenze.</p>
-      </div>
-    </main>
-  )
+function escapeHtml(value: string): string {
+  return value.replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char] || char)
 }
 
 function startupErrorMessage(error: unknown): string {
@@ -46,15 +36,26 @@ function startupErrorMessage(error: unknown): string {
   return String(error || 'Modulo operativo non caricato')
 }
 
-function showStartupError(error: unknown) {
-  if (!root) return
+function renderLoadingShell(target: HTMLElement) {
+  bootstrapState.shellRendered = true
+  target.innerHTML = [
+    '<main class="iu-content iu-react-loading" aria-live="polite">',
+    '<div>',
+    '<h1>Caricamento interfaccia operativa</h1>',
+    "<p>Sto aprendo i dati dello studio. L'operazione non modifica fascicoli, documenti o scadenze.</p>",
+    '</div>',
+    '</main>',
+  ].join('')
+}
+
+function renderStartupError(target: HTMLElement, error: unknown) {
   const message = startupErrorMessage(error)
-  root.innerHTML = [
+  target.innerHTML = [
     '<main class="iu-content iu-react-error" role="alert">',
     '<div>',
     '<h1>Interfaccia non avviata</h1>',
     '<p>Il modulo operativo non è stato caricato. Ricarica la pagina; se il problema resta, IUSENTRA registra il dettaglio tecnico senza modificare i dati dello studio.</p>',
-    `<small>${message.replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char] || char)}</small>`,
+    `<small>${escapeHtml(message)}</small>`,
     '<a href="/fascicoli">Apri fascicoli</a>',
     '<button type="button" onclick="window.location.reload()">Ricarica</button>',
     '</div>',
@@ -62,28 +63,19 @@ function showStartupError(error: unknown) {
   ].join('')
 }
 
-async function mountReactApp() {
+async function bootReact() {
+  if (!root) throw new Error('Elemento #root non trovato.')
+  renderLoadingShell(root)
   bootstrapState.renderScheduled = true
-  reactRoot.render(
-    <React.StrictMode>
-      <LoadingShell />
-    </React.StrictMode>,
-  )
-  const Component = shouldMountSupportOperator
-    ? (await import('./components/SupportOperatorRoom')).default
-    : (await import('./app/App')).default
-  reactRoot.render(
-    <React.StrictMode>
-      <Component />
-    </React.StrictMode>,
-  )
+  const { mountReactApp } = await import('./reactEntry')
+  await mountReactApp({ root, shouldMountSupportOperator })
   bootstrapState.renderCompleted = true
 }
 
-mountReactApp().catch((error) => {
+bootReact().catch((error) => {
   const message = startupErrorMessage(error)
   bootstrapState.errors?.push(message)
   document.documentElement.dataset.iusentraEntryRuntime = 'error'
   document.documentElement.dataset.iusentraEntryRuntimeError = message
-  showStartupError(error)
+  if (root) renderStartupError(root, error)
 })

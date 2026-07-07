@@ -140,3 +140,37 @@ Test eseguiti dopo la correzione:
 - controllo manifest React: entry `assets/index-BEaP1Vwa.js`, asset mancanti `0`.
 
 Stato: da committare, pushare sui branch gemelli, distribuire su Hetzner e verificare visivamente in produzione prima di dichiarare positivo il funzionamento del controllo economico.
+
+## Aggiornamento bootstrap React 2.254.2 del 07/07/2026
+
+Nel test visivo successivo su `https://app.iusentra.it/fascicoli?vista=economica` il browser reale mostrava ancora `Pagina non avviata`. Il DOM indicava:
+
+- entry React servita dal server;
+- `#root` popolato dal fallback tecnico;
+- errore di import dinamico dell'entry dopo retry;
+- nessuna riga economica visibile, quindi nessuna verifica positiva possibile sui dati.
+
+La causa tecnica era nel grafo Vite: l'entry iniziale importava React/ReactDOM e fungeva anche da helper condiviso per i chunk dinamici. In produzione questo rendeva fragile il primo caricamento e poteva lasciare la shell senza mount. Correzione applicata:
+
+- `frontend/src/main.tsx` ora è un bootstrap leggero senza import statico di React o ReactDOM;
+- il bootstrap scrive subito nel `#root` lo stato `Caricamento interfaccia operativa`;
+- il mount React vive in `frontend/src/reactEntry.tsx`;
+- `reactEntry` risolve il componente anche quando Vite minifica il default export in export nominato;
+- `frontend/vite.config.ts` usa `cssCodeSplit: false` per evitare chunk CSS che reimportano l'entry;
+- `web/blueprints/react_shell.py` include anche `style.css` quando Vite produce un CSS globale;
+- `frontend/scripts/check-react-contracts.mjs` presidia entry leggero, CSS globale e risoluzione sicura del componente.
+
+Test mirati eseguiti:
+
+- `pnpm --filter @iusentra/studio build:vite`;
+- `node frontend/scripts/check-react-contracts.mjs`;
+- `python scripts/react-migration/generate_api_contracts.py`;
+- `python scripts/validate_openapi.py docs/openapi.yaml`;
+- `python scripts/verify_openapi_provider.py`;
+- `python -m pytest tests/test_openapi_contracts_phase6.py --tb=short -q`;
+- `python -m pytest tests/test_react_shell.py::test_react_shell_mobile_sblocca_scroll_e_compatta_card tests/test_react_shell.py::test_react_shell_sidebar_usa_profilo_reale_sessione tests/test_react_shell.py::test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag -q`;
+- `python -m pytest tests/test_fascicolo_sentenza_economica.py tests/test_backfill_sentenza_lex_economics.py -q`;
+- `python -m pytest tests/test_presidio_processuale_ruleset.py tests/test_fascicolo_document_catalog.py -q`;
+- `python -m pytest tests/test_utf8_integrity.py -q`.
+
+Nota test: il run monolitico `python -m pytest tests/test_react_shell.py -q` è stato interrotto per timeout dopo oltre 240 secondi; i tre casi direttamente collegati al bootstrap/shell sono passati. Resta obbligatoria la verifica visiva in produzione dopo deploy.

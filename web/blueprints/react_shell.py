@@ -236,6 +236,15 @@ def _collect_manifest_assets(manifest: dict[str, Any], key: str) -> dict[str, li
     }
 
 
+def _global_manifest_css(manifest: dict[str, Any], entry: dict[str, Any]) -> list[str]:
+    css: list[str] = [str(path) for path in entry.get("css", []) or [] if path]
+    style_entry = manifest.get("style.css") or {}
+    style_file = style_entry.get("file")
+    if style_file:
+        css.append(str(style_file))
+    return list(dict.fromkeys(css))
+
+
 def _vite_entry(current_path: str = "") -> dict[str, Any]:
     manifest_path = _react_static_dir() / ".vite" / "manifest.json"
     if not manifest_path.exists():
@@ -279,7 +288,7 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
     return {
         "ready": True,
         "js": [f"/static/react/{entry['file']}"],
-        "css": [f"/static/react/{path}" for path in entry.get("css", [])],
+        "css": [f"/static/react/{path}" for path in _global_manifest_css(manifest, entry)],
         "preload_js": route_assets["js"],
         "page_css": route_assets["css"],
         "error": "",

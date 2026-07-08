@@ -1142,7 +1142,13 @@ def start_scheduler(app):
                 logger.error("[scheduler] Pipeline PEC fallita: %s", e)
                 return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
 
-    @scheduler.scheduled_job(CronTrigger(minute="13-58/15"), id="fascicoli_document_economic_presidio")
+    @scheduler.scheduled_job(
+        CronTrigger(minute="13-58/15"),
+        id="fascicoli_document_economic_presidio",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
     def _fascicoli_document_economic_presidio():
         with app.app_context():
             try:
@@ -1153,7 +1159,7 @@ def start_scheduler(app):
                 limit = _parse_positive_int(
                     app.config.get("IUSENTRA_FASCICOLI_PRESIDIO_LIMIT")
                     or os.getenv("IUSENTRA_FASCICOLI_PRESIDIO_LIMIT"),
-                    500,
+                    25,
                 )
                 report = run_fascicoli_document_economic_presidio_for_all_tenants(
                     app,

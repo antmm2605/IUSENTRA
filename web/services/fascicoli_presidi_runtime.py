@@ -52,7 +52,7 @@ def _active_tenants(app: Flask) -> list[Any]:
 
 def run_fascicoli_document_economic_presidio_for_current_context(
     *,
-    limit: int = 500,
+    limit: int = 25,
     actor: str = "IUSENTRA automatico",
 ) -> dict[str, Any]:
     """Esegue il presidio sul tenant già presente in `g`.
@@ -70,7 +70,7 @@ def run_fascicoli_document_economic_presidio_for_current_context(
         get_fascicoli=get_fascicoli,
         get_fatturazione=get_fatturazione,
         actor=actor,
-        limit=max(1, int(limit or 500)),
+        limit=max(1, int(limit or 25)),
     )
     if any(
         int(report.get(key) or 0)
@@ -89,7 +89,7 @@ def run_fascicoli_document_economic_presidio_for_current_context(
 def run_fascicoli_document_economic_presidio_for_all_tenants(
     app: Flask,
     *,
-    limit_per_tenant: int = 500,
+    limit_per_tenant: int = 25,
     actor: str = "IUSENTRA scheduler",
 ) -> dict[str, Any]:
     """Esegue il presidio automatico su tutti gli studi attivi.

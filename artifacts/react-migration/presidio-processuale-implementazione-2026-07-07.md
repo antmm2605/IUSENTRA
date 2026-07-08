@@ -409,6 +409,8 @@ Dato residuo non chiuso: dopo il presidio restano `120` contributi unificati `da
 
 È stato aggiunto il job built-in `fascicoli_document_economic_presidio`, schedulato ogni 15 minuti (`13-58/15`), per chiudere il punto operativo indicato dall'utente: la vista economica non deve lanciare ogni volta la lettura pesante dei fascicoli. Il job lavora fuori UI, per tenant, e salva nel DB gli esiti del presidio documentale/economico.
 
+Correzione prestazionale successiva: il job lavora con lotto ordinario piccolo (`25` fascicoli per tenant, configurabile con `IUSENTRA_FASCICOLI_PRESIDIO_LIMIT`) e `max_instances=1`. In questo modo evita sovrapposizioni, riduce i lock SQLite/PostgreSQL durante la navigazione dell'avvocato e lascia eventuali bonifiche massive a comandi manuali espliciti con limite dichiarato.
+
 Catena governata:
 
 - il presidio PEC resta nel job `pec_audit_pipeline_workers` ogni 5 minuti: acquisisce PEC, legge MIME/allegati/OCR/XML, classifica eventi legali V2, materializza udienze/scadenze/pagamenti nelle tabelle dedicate e attiva anche il recupero documentale collegato;

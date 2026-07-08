@@ -178,6 +178,7 @@ export type FascicoliSummary = {
   unreadCommunications: number
   missingRg: number
   economicToReview: number
+  economicAnalysisDue: number
   invoicesToIssue: number
   invoiceDraftsToReview: number
   invoicesPresent: number
@@ -210,6 +211,8 @@ export type FascicoliPageParams = {
   view?: 'operativa' | 'economica' | string
   alertsOnly?: boolean
   paymentsOnly?: boolean
+  missingRgOnly?: boolean
+  duplicatesOnly?: boolean
   cu?: FascicoloPaymentFilter
   fondoSpese?: FascicoloPaymentFilter
   liquidazione?: FascicoloPaymentFilter
@@ -903,9 +906,10 @@ const emptySummary: FascicoliSummary = {
   documents: 0,
   documentsToClassify: 0,
   unreadCommunications: 0,
-  missingRg: 0,
-  economicToReview: 0,
-  invoicesToIssue: 0,
+    missingRg: 0,
+    economicToReview: 0,
+    economicAnalysisDue: 0,
+    invoicesToIssue: 0,
   invoiceDraftsToReview: 0,
   invoicesPresent: 0,
   invoiceWorkTotal: 0,
@@ -1473,6 +1477,7 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
       missingRg: number(value.missingRg ?? value.missing_rg),
       economicToReview: number(value.economicToReview ?? value.economic_to_review),
+      economicAnalysisDue: number(value.economicAnalysisDue ?? value.economic_analysis_due),
       invoicesToIssue: number(value.invoicesToIssue ?? value.invoices_to_issue),
       invoiceDraftsToReview: number(value.invoiceDraftsToReview ?? value.invoice_drafts_to_review),
       invoicesPresent: number(value.invoicesPresent ?? value.invoices_present),
@@ -1488,6 +1493,10 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
   const invoicesToIssue = items.reduce((total, item) => total + item.paymentSummary.parcelleDaEmettere, 0)
   const invoiceDraftsToReview = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingDraftCount, 0)
   const invoicesPresent = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingCount, 0)
+  const economicAnalysisDue = items.reduce(
+    (total, item) => total + (['da_analizzare', 'da_rianalizzare'].includes(item.paymentSummary.analysis.status) ? 1 : 0),
+    0,
+  )
   return {
     total: items.length,
     active: items.filter((item) => item.status !== 'archiviato').length,
@@ -1502,6 +1511,7 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
     missingRg: items.filter((item) => item.rgMissing).length,
     economicToReview,
+    economicAnalysisDue,
     invoicesToIssue,
     invoiceDraftsToReview,
     invoicesPresent,
@@ -2344,6 +2354,8 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   if (params.view?.trim()) query.set('view', params.view.trim())
   if (params.alertsOnly) query.set('alerts_only', '1')
   if (params.paymentsOnly) query.set('payments_only', '1')
+  if (params.missingRgOnly) query.set('missing_rg_only', '1')
+  if (params.duplicatesOnly) query.set('duplicates_only', '1')
   if (params.cu && params.cu !== 'tutti') query.set('cu', params.cu)
   if (params.fondoSpese && params.fondoSpese !== 'tutti') query.set('fondo_spese', params.fondoSpese)
   if (params.liquidazione && params.liquidazione !== 'tutti') query.set('liquidazione', params.liquidazione)
@@ -2363,6 +2375,11 @@ export type FascicoliEconomicPresidioResult = {
   existingCount: number
   missingBasisCount: number
   processedDefined: number
+  contributiCheckedCount: number
+  contributiUpdatedCount: number
+  contributiMissingCount: number
+  documentAnalysisUpdatedCount: number
+  statusDefinedUpdatedCount: number
 }
 
 export async function runFascicoliEconomicPresidio(limit = 500): Promise<FascicoliEconomicPresidioResult> {
@@ -2389,6 +2406,11 @@ export async function runFascicoliEconomicPresidio(limit = 500): Promise<Fascico
     existingCount: number(payload.existingCount ?? payload.existing_count),
     missingBasisCount: number(payload.missingBasisCount ?? payload.missing_basis_count),
     processedDefined: number(payload.processedDefined ?? payload.processed_defined),
+    contributiCheckedCount: number(payload.contributiCheckedCount ?? payload.contributi_checked_count),
+    contributiUpdatedCount: number(payload.contributiUpdatedCount ?? payload.contributi_updated_count),
+    contributiMissingCount: number(payload.contributiMissingCount ?? payload.contributi_missing_count),
+    documentAnalysisUpdatedCount: number(payload.documentAnalysisUpdatedCount ?? payload.document_analysis_updated_count),
+    statusDefinedUpdatedCount: number(payload.statusDefinedUpdatedCount ?? payload.status_defined_updated_count),
   }
 }
 

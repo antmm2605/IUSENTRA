@@ -30,6 +30,15 @@ from web.services.signed_document_runtime import (
 )
 
 
+def _clear_react_fascicoli_list_cache() -> None:
+    try:
+        from web.blueprints.api_v1_react import clear_react_fascicoli_list_payload_cache
+
+        clear_react_fascicoli_list_payload_cache()
+    except Exception:
+        return
+
+
 def register_fascicoli_document_routes(
     app: Flask,
     *,
@@ -183,6 +192,7 @@ def register_fascicoli_document_routes(
             msg = f"Caricato {count} documento." if count == 1 else f"Caricati {count} documenti."
             flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"{count} file")
+            _clear_react_fascicoli_list_cache()
             if wants_json_response():
                 return jsonify(
                     {
@@ -226,6 +236,7 @@ def register_fascicoli_document_routes(
                 dettagli=f"doc {id_doc}",
             )
             flash("Metadati documento aggiornati.", "success")
+            _clear_react_fascicoli_list_cache()
         except Exception as exc:
             app.logger.exception(
                 "Errore aggiorna_metadati_documento id_fasc=%s id_doc=%s: %s",
@@ -238,7 +249,7 @@ def register_fascicoli_document_routes(
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/rinomina", methods=["POST"])
     def rinomina_documento(id_fasc, id_doc):
-        return rinomina_documento_response(
+        response = rinomina_documento_response(
             app=app,
             get_fascicoli=get_fascicoli,
             audit=audit,
@@ -246,6 +257,8 @@ def register_fascicoli_document_routes(
             id_fasc=id_fasc,
             id_doc=id_doc,
         )
+        _clear_react_fascicoli_list_cache()
+        return response
 
     @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
     def importa_documenti_portale(id_fasc):
@@ -334,6 +347,7 @@ def register_fascicoli_document_routes(
             if albero_originale_salvato:
                 msg += " Albero tecnico originale archiviato."
             flash(msg, "success")
+            _clear_react_fascicoli_list_cache()
             if wants_json_response():
                 return jsonify(
                     {
@@ -397,6 +411,7 @@ def register_fascicoli_document_routes(
                     source_type="portale_telematico",
                     metadata={"trigger": "api_import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
                 )
+            _clear_react_fascicoli_list_cache()
             return (
                 jsonify(
                     {
@@ -579,6 +594,7 @@ def register_fascicoli_document_routes(
             get_fascicoli().rimuovi_documento(id_fasc, id_doc)
             msg = "Documento eliminato dal fascicolo."
             flash(msg, "success")
+            _clear_react_fascicoli_list_cache()
             if wants_json_response():
                 return jsonify(
                     {
@@ -624,6 +640,7 @@ def register_fascicoli_document_routes(
                 errori.append("Archivio documenti momentaneamente occupato.")
 
         if rimossi:
+            _clear_react_fascicoli_list_cache()
             audit(
                 "fascicoli.documento.elimina_multipla",
                 "fascicolo",

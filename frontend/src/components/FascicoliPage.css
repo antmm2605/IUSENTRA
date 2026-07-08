@@ -14,6 +14,8 @@
 @media(min-width:1280px){.iu-fas-stats{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .iu-fas-stat{min-height:104px;height:100%;display:grid;grid-template-columns:42px minmax(0,1fr);grid-template-rows:auto auto auto;grid-template-areas:"icon label" "icon value" "icon note";align-items:center;gap:2px 11px;padding:13px 14px;border:1px solid var(--iu-border);border-radius:14px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .iu-fas-stat[role="link"]:hover,a.iu-fas-stat:hover{transform:translateY(-2px);border-color:rgba(37,99,235,.28);box-shadow:0 14px 32px rgba(15,23,42,.09)}
+.iu-fas-stat:is(a){cursor:pointer;text-decoration:none}
+.iu-fas-stat:is(a):focus-visible{outline:3px solid rgba(37,99,235,.22);outline-offset:2px;border-color:rgba(37,99,235,.42)}
 .iu-fas-stat>div{grid-area:icon;width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:rgba(37,99,235,.1);color:var(--iu-blue-600);align-self:center}
 .iu-fas-stat>span{grid-area:label;color:var(--iu-slate-600);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;line-height:1.25;align-self:end}
 .iu-fas-stat>strong{grid-area:value;font-size:22px;line-height:1.05;color:#0f172a;letter-spacing:-.03em;font-weight:950;align-self:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

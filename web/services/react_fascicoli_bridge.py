@@ -13,6 +13,7 @@ import os
 import re
 import hashlib
 import time
+import threading
 from collections import Counter, OrderedDict
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
@@ -24,7 +25,8 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app, has_app_context
 
-from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct import __version__ as APP_VERSION
+from pct.fascicoli import AvanzamentoPratica, EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_telematico_catalogo import build_deposit_catalog_payload
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
@@ -40,6 +42,11 @@ from pct.fascicolo_document_presidio import (
 from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
+from pct.presidio_documentale_state import (
+    build_marker as build_presidio_documentale_marker,
+    marker_is_current as presidio_marker_is_current,
+    marker_state as presidio_marker_state,
+)
 from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
 from pct.document_signature_state import (
     document_bytes_have_real_digital_signature,
@@ -50,6 +57,17 @@ from web.services.react_practice_engine_bridge import build_react_practice_engin
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 ROME_TZ = ZoneInfo("Europe/Rome")
+
+_FASCICOLI_LIST_BASE_TTL_SECONDS = max(
+    0.0,
+    float(os.getenv("IUSENTRA_REACT_FASCICOLI_BASE_TTL_SECONDS") or 90),
+)
+_FASCICOLI_LIST_BASE_MAX_ENTRIES = max(
+    1,
+    int(os.getenv("IUSENTRA_REACT_FASCICOLI_BASE_MAX_ENTRIES") or 64),
+)
+_FASCICOLI_LIST_BASE_CACHE_LOCK = threading.Lock()
+_FASCICOLI_LIST_BASE_CACHE: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
 
 
 def _now() -> str:
@@ -76,6 +94,125 @@ def _current_tenant_id() -> str:
         return _text(value)
     except Exception:
         return ""
+
+
+def _current_cache_scope() -> str:
+    tenant_id = _current_tenant_id()
+    if tenant_id:
+        return tenant_id.lower()
+    if has_app_context():
+        for key in ("DATA_ROOT", "FASCICOLI_DB", "CLIENTI_DB"):
+            value = current_app.config.get(key)
+            if value:
+                return _text(value).strip().lower()
+    return "default"
+
+
+def clear_react_fascicoli_base_cache() -> None:
+    """Svuota la base lista fascicoli usata per paginazione veloce."""
+
+    with _FASCICOLI_LIST_BASE_CACHE_LOCK:
+        _FASCICOLI_LIST_BASE_CACHE.clear()
+
+
+def _current_user_cache_id() -> str:
+    try:
+        from flask import g
+
+        user = getattr(g, "utente_corrente", None) or getattr(g, "user", None)
+        return _text(
+            getattr(user, "id", "")
+            or getattr(user, "username", "")
+            or getattr(user, "email", "")
+            or "api"
+        ).lower()
+    except Exception:
+        return "api"
+
+
+def _fascicoli_base_cache_key(
+    *,
+    query: str,
+    client_filter: str,
+    rg_filter: str,
+    type_filter: str,
+    status_filter: str,
+    court: str,
+    sort: str,
+    view: str,
+    alerts_only: bool,
+    payments_only: bool,
+    missing_rg_only: bool,
+    duplicates_only: bool,
+    payment_filters: dict[str, str] | None,
+) -> tuple | None:
+    if _FASCICOLI_LIST_BASE_TTL_SECONDS <= 0:
+        return None
+    filters = tuple(
+        sorted(
+            (
+                _normalise_payment_kind(kind) or _text(kind).lower(),
+                _text(value).strip().lower(),
+            )
+            for kind, value in (payment_filters or {}).items()
+        )
+    )
+    return (
+        "fascicoli-list-base",
+        _current_cache_scope(),
+        _current_user_cache_id(),
+        APP_VERSION,
+        _text(query).strip().lower(),
+        _text(client_filter).strip().lower(),
+        _text(rg_filter).strip().lower(),
+        _text(type_filter).strip().lower(),
+        _text(status_filter).strip().lower(),
+        _text(court).strip().lower(),
+        _text(sort, "rg").strip().lower(),
+        _text(view).strip().lower(),
+        bool(alerts_only),
+        bool(payments_only),
+        bool(missing_rg_only),
+        bool(duplicates_only),
+        filters,
+    )
+
+
+def _fascicoli_base_cache_get(key: tuple | None) -> dict[str, Any] | None:
+    if key is None:
+        return None
+    now = time.monotonic()
+    with _FASCICOLI_LIST_BASE_CACHE_LOCK:
+        entry = _FASCICOLI_LIST_BASE_CACHE.get(key)
+        if entry is None:
+            return None
+        expires_at, payload_json = entry
+        if expires_at < now:
+            _FASCICOLI_LIST_BASE_CACHE.pop(key, None)
+            return None
+        _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
+    try:
+        payload = json.loads(payload_json)
+    except Exception:
+        with _FASCICOLI_LIST_BASE_CACHE_LOCK:
+            _FASCICOLI_LIST_BASE_CACHE.pop(key, None)
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _fascicoli_base_cache_set(key: tuple | None, payload: dict[str, Any]) -> None:
+    if key is None or _FASCICOLI_LIST_BASE_TTL_SECONDS <= 0:
+        return
+    try:
+        payload_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    except Exception:
+        return
+    expires_at = time.monotonic() + _FASCICOLI_LIST_BASE_TTL_SECONDS
+    with _FASCICOLI_LIST_BASE_CACHE_LOCK:
+        _FASCICOLI_LIST_BASE_CACHE[key] = (expires_at, payload_json)
+        _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
+        while len(_FASCICOLI_LIST_BASE_CACHE) > _FASCICOLI_LIST_BASE_MAX_ENTRIES:
+            _FASCICOLI_LIST_BASE_CACHE.popitem(last=False)
 
 
 def _current_tenant_catalog_ids() -> list[str]:
@@ -1568,6 +1705,91 @@ def _document_analysis_state(
     }
 
 
+def _document_analysis_marker_state(
+    fascicolo: Any,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> dict[str, Any]:
+    payments = getattr(fascicolo, "pagamenti", {}) if fascicolo is not None else {}
+    marker = dict((payments or {}).get("_presidio_documentale") or {}) if isinstance(payments, dict) else {}
+    fingerprint = _document_analysis_fingerprint(fascicolo, related_fascicoli)
+    related_count = len(list(related_fascicoli or []))
+    return presidio_marker_state(marker, fingerprint, related_count=related_count)
+
+
+def _presidio_documentale_marker_is_current(
+    fascicolo: Any,
+    payments: Any | None = None,
+    related_fascicoli: Iterable[Any] | None = None,
+) -> bool:
+    if payments is None:
+        payments = getattr(fascicolo, "pagamenti", {}) if fascicolo is not None else {}
+    if not isinstance(payments, dict):
+        return False
+    marker = payments.get("_presidio_documentale")
+    return presidio_marker_is_current(marker if isinstance(marker, dict) else {}, _document_analysis_fingerprint(fascicolo, related_fascicoli))
+
+
+def _presidio_documentale_marker(payments: Any) -> dict[str, Any]:
+    if not isinstance(payments, dict):
+        return {}
+    marker = payments.get("_presidio_documentale")
+    return dict(marker) if isinstance(marker, dict) else {}
+
+
+def _presidio_documentale_unresolved_kinds(marker: Any) -> set[str]:
+    if not isinstance(marker, dict):
+        return set()
+    raw = marker.get("unresolvedKinds") or marker.get("unresolved_kinds") or marker.get("da_verificare") or []
+    values: list[Any]
+    if isinstance(raw, str):
+        values = [item.strip() for item in re.split(r"[,;\s]+", raw) if item.strip()]
+    elif isinstance(raw, (list, tuple, set)):
+        values = list(raw)
+    else:
+        values = []
+    return {
+        kind
+        for kind in (_normalise_payment_kind(value) for value in values)
+        if kind in PAYMENT_KINDS
+    }
+
+
+def _presidio_documentale_has_unresolved_kind(marker: Any, kind: str) -> bool:
+    normalized_kind = _normalise_payment_kind(kind)
+    return bool(normalized_kind and normalized_kind in _presidio_documentale_unresolved_kinds(marker))
+
+
+def _presidio_documentale_metadata_rows(fascicolo: Any) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for doc in list(getattr(fascicolo, "documenti", []) or []):
+        document_id = _document_id(doc)
+        if document_id:
+            rows.append(_document_metadata_for_id(fascicolo, document_id))
+    return rows
+
+
+def _build_presidio_documentale_marker(
+    fascicolo: Any,
+    *,
+    actor: str,
+    automatic_sources: dict[str, dict[str, Any]] | None = None,
+    status: str = "aggiornato",
+    reason: str = "Analisi documentale completata e salvata nel fascicolo.",
+) -> dict[str, Any]:
+    return build_presidio_documentale_marker(
+        fingerprint=_document_analysis_fingerprint(fascicolo),
+        actor=actor,
+        document_count=len(list(getattr(fascicolo, "documenti", []) or [])),
+        metadata_rows=_presidio_documentale_metadata_rows(fascicolo),
+        automatic_sources=automatic_sources,
+        readable_source=_readable_document_source,
+        normalise_kind=_normalise_payment_kind,
+        normalise_status=lambda value: _normalise_payment_status(value, default=""),
+        status=status,
+        reason=reason,
+    )
+
+
 _ECONOMIC_AUTO_SOURCES_CACHE: OrderedDict[str, tuple[float, dict[str, dict[str, Any]]]] = OrderedDict()
 
 
@@ -2090,6 +2312,7 @@ def _automatic_payment_sources_for_fascicolo(
     payments: Any,
     *,
     related_fascicoli: Iterable[Any] | None = None,
+    allow_full_document_scan: bool = True,
 ) -> dict[str, dict[str, Any]]:
     need_contributo = _payment_source_needs_automatic_value(payments, "contributo_unificato")
     need_sentenza = any(
@@ -2151,7 +2374,7 @@ def _automatic_payment_sources_for_fascicolo(
                 need_contributo and _document_metadata_may_contain_contributo_unificato(metadata)
             )
             or (need_sentenza and _document_metadata_may_contain_sentenza_economica(metadata)),
-            fallback_all=True,
+            fallback_all=allow_full_document_scan,
         )
         texts = _document_ai_texts_for_fascicolo(source_fascicolo, documents=payment_documents)
         missing_ocr_documents: list[Any] = []
@@ -2579,6 +2802,86 @@ def payment_summary_for_fascicolo(
             fascicolo,
             related_fascicoli,
             automatic=automatic,
+        ),
+    }
+
+
+def payment_summary_for_fascicolo_fast(
+    fascicolo: Any,
+    *,
+    related_fascicoli: Iterable[Any] | None = None,
+    parcelle: Iterable[Any] | None = None,
+    duplicate_group: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    raw_payments = getattr(fascicolo, "pagamenti", {}) or {}
+    payments = dict(raw_payments) if isinstance(raw_payments, dict) else {}
+    items = {
+        kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
+        for kind in PAYMENT_KINDS
+    }
+    expected = [item for item in items.values() if item["previsto"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
+    paid = [item for item in expected if item["status"] == "pagato"]
+    if not expected:
+        state = "non_previsto"
+    elif not missing:
+        state = "completo"
+    elif paid:
+        state = "parziale"
+    else:
+        state = "da_presidiare"
+    total_registered = sum(
+        float(item["importo"] or 0.0)
+        for item in items.values()
+        if item["status"] in {"pagato", "parziale"} and item["importo"] is not None
+    )
+    advances_to_recover = sum(
+        float(item["importo"] or 0.0)
+        for kind, item in items.items()
+        if kind in {"contributo_unificato", "spese_esborsi"} and item["status"] in {"da_registrare", "parziale"} and item["importo"] is not None
+    )
+    latest = max((_text(item["updatedAt"]) for item in items.values()), default="")
+    updated_by = ""
+    if latest:
+        updated_by = next((_text(item["updatedBy"]) for item in items.values() if _text(item["updatedAt"]) == latest), "")
+    proforma_presidio = _proforma_presidio_for_fascicolo(
+        fascicolo,
+        items=items,
+        parcelle=parcelle,
+        duplicate_group=duplicate_group,
+    )
+    parcella_da_emettere = 1 if proforma_presidio.get("requiresAction") else 0
+    state_labels = {
+        "completo": "Completo",
+        "parziale": "Parziale",
+        "da_presidiare": "Da presidiare",
+        "non_previsto": "Non previsto",
+    }
+    state_tones = {
+        "completo": "success",
+        "parziale": "orange",
+        "da_presidiare": "warning",
+        "non_previsto": "neutral",
+    }
+    return {
+        "stato": state,
+        "statoLabel": state_labels[state],
+        "tone": state_tones[state],
+        "totaleRegistrato": round(total_registered, 2),
+        "totaleRegistratoLabel": _euro(total_registered),
+        "anticipazioniDaRecuperare": round(advances_to_recover, 2),
+        "anticipazioniDaRecuperareLabel": _euro(advances_to_recover),
+        "parcelleDaEmettere": parcella_da_emettere,
+        "mancanti": len(missing),
+        "updatedAt": latest,
+        "updatedAtLabel": _date_label(latest) if latest else "",
+        "updatedBy": updated_by,
+        "items": items,
+        "proformaPresidio": proforma_presidio,
+        "analysis": _document_analysis_marker_state(
+            fascicolo,
+            related_fascicoli,
         ),
     }
 
@@ -3105,6 +3408,170 @@ def _ensure_auto_proforma_for_fascicolo(
     return {"status": "missing_basis", "reason": "Nessuna sentenza/importo utile per creare una bozza proforma."}
 
 
+def _ensure_contributo_unificato_for_fascicolo(
+    *,
+    fascicoli_repository: Any,
+    fascicolo: Any,
+    actor: str = "IUSENTRA",
+    persist: bool = True,
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid:
+        return {"status": "skipped", "reason": "Fascicolo senza ID."}
+    payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
+    raw_cu = _payment_source_for_kind(payments, "contributo_unificato")
+    needs_cu_value = _payment_source_needs_automatic_value(payments, "contributo_unificato")
+    marker = _presidio_documentale_marker(payments)
+    if _presidio_documentale_marker_is_current(fascicolo, payments):
+        if not needs_cu_value:
+            return {"status": "existing", "analysisUpdated": False}
+        if _presidio_documentale_has_unresolved_kind(marker, "contributo_unificato"):
+            return {"status": "missing_current", "analysisUpdated": False}
+    scan_payments = dict(payments)
+    for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
+        scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
+    automatic_sources = _automatic_payment_sources_for_fascicolo(
+        fascicolo,
+        scan_payments,
+        allow_full_document_scan=False,
+    )
+    automatic = automatic_sources.get("contributo_unificato") if isinstance(automatic_sources, dict) else None
+    unresolved_kinds: list[str] = []
+    if needs_cu_value and not automatic:
+        unresolved_kinds.append("contributo_unificato")
+    marker = _build_presidio_documentale_marker(
+        fascicolo,
+        actor=actor,
+        automatic_sources=automatic_sources if isinstance(automatic_sources, dict) else {},
+        status="aggiornato",
+        reason="Presidio documentale eseguito: lettura, classificazione e dati salvati nel fascicolo.",
+    )
+    if unresolved_kinds:
+        marker["unresolvedKinds"] = unresolved_kinds
+        marker["reason"] = (
+            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
+            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+        )
+    payments["_presidio_documentale"] = marker
+    updater = getattr(fascicoli_repository, "aggiorna", None)
+    if persist and not callable(updater):
+        return {"status": "error", "reason": "Repository fascicoli non scrivibile.", "analysisUpdated": False}
+    if not isinstance(automatic_sources, dict) or not automatic_sources:
+        _apply_presidio_payments_to_fascicolo(fascicolo, payments)
+        if persist:
+            updater(fid, pagamenti=payments)
+        return {"status": "missing" if unresolved_kinds else "marked", "analysisUpdated": True}
+    updated_kinds: list[str] = []
+    updated_payments: dict[str, dict[str, Any]] = {}
+    for source_kind, automatic_payment in automatic_sources.items():
+        kind = _normalise_payment_kind(source_kind)
+        if kind not in PAYMENT_KINDS or not isinstance(automatic_payment, dict):
+            continue
+        raw_payment = _payment_source_for_kind(payments, kind)
+        merged = _merge_auto_payment_source(raw_payment, automatic_payment, kind=kind)
+        if merged == raw_payment:
+            continue
+        merged.setdefault("kind", kind)
+        merged.setdefault("label", PAYMENT_KIND_LABELS.get(kind, kind.replace("_", " ").title()))
+        merged["updated_by"] = _text(actor, "IUSENTRA")
+        merged["updated_at"] = _now()
+        history = list(raw_payment.get("history") or raw_payment.get("storico") or []) if isinstance(raw_payment, dict) else []
+        history.append(
+            {
+                "at": merged["updated_at"],
+                "by": _text(actor, "IUSENTRA"),
+                "fromStatus": _normalise_payment_status(raw_payment.get("status") or raw_payment.get("stato"), default=""),
+                "toStatus": _normalise_payment_status(merged.get("status") or merged.get("stato"), default=""),
+                "fromImporto": raw_payment.get("importo") if isinstance(raw_payment, dict) else None,
+                "toImporto": merged.get("importo"),
+                "note": "Dato economico consolidato automaticamente dai documenti del fascicolo.",
+                "origine": _text(merged.get("origine") or "Document AI / fascicolo"),
+            }
+        )
+        merged["history"] = history[-25:]
+        payments[kind] = merged
+        updated_kinds.append(kind)
+        updated_payments[kind] = merged
+    if not updated_kinds:
+        _apply_presidio_payments_to_fascicolo(fascicolo, payments)
+        if persist:
+            updater(fid, pagamenti=payments)
+        return {"status": "existing", "analysisUpdated": True}
+    _apply_presidio_payments_to_fascicolo(fascicolo, payments)
+    if persist:
+        updater(fid, pagamenti=payments)
+    merged_cu = updated_payments.get("contributo_unificato") or _payment_source_for_kind(payments, "contributo_unificato")
+    return {
+        "status": "updated" if "contributo_unificato" in updated_kinds else "economic_updated",
+        "amount": _payment_amount_value(merged_cu.get("importo")),
+        "statusValue": _normalise_payment_status(merged_cu.get("status") or merged_cu.get("stato"), default=""),
+        "source": _payment_source_document_label(merged_cu),
+        "updatedKinds": updated_kinds,
+        "analysisUpdated": True,
+    }
+
+
+def _apply_presidio_payments_to_fascicolo(fascicolo: Any, payments: dict[str, Any]) -> None:
+    try:
+        setattr(fascicolo, "pagamenti", payments)
+        if hasattr(fascicolo, "modificato_il"):
+            setattr(fascicolo, "modificato_il", datetime.now().isoformat())
+    except Exception:
+        pass
+
+
+def _ensure_fascicolo_definito_from_economics(
+    *,
+    fascicoli_repository: Any,
+    fascicolo: Any,
+    actor: str = "IUSENTRA",
+    persist: bool = True,
+) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid:
+        return {"updated": False, "reason": "Fascicolo senza ID."}
+    current = _enum_upper(getattr(fascicolo, "stato", ""))
+    if current not in {"APERTO", "IN_CORSO"}:
+        return {"updated": False, "reason": "Stato non modificabile dal presidio economico."}
+    payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
+    liquidazione = _payment_item("liquidazione_giudice", _payment_source_for_kind(payments, "liquidazione_giudice"), fid)
+    parcella = _payment_item("parcella", _payment_source_for_kind(payments, "parcella"), fid)
+    if liquidazione.get("status") != "pagato" or parcella.get("status") != "da_emettere":
+        return {"updated": False, "reason": "Regola economica non soddisfatta."}
+    note = "Definito automaticamente: liquidazione pagata e parcella da emettere."
+    if persist and hasattr(fascicoli_repository, "cambia_stato"):
+        fascicoli_repository.cambia_stato(
+            fid,
+            StatoFascicolo.DEFINITO,
+            note=note,
+            avvocato=_text(actor, "IUSENTRA"),
+        )
+        return {"updated": True, "status": "definito"}
+    previous = _enum_value(getattr(fascicolo, "stato", "")) or current
+    try:
+        setattr(fascicolo, "stato", StatoFascicolo.DEFINITO)
+        if hasattr(fascicolo, "data_chiusura") and not _text(getattr(fascicolo, "data_chiusura", "")):
+            setattr(fascicolo, "data_chiusura", date.today().isoformat())
+        if hasattr(fascicolo, "avanzamento"):
+            avanzamento = list(getattr(fascicolo, "avanzamento", []) or [])
+            avanzamento.append(
+                AvanzamentoPratica(
+                    data=datetime.now().isoformat(),
+                    descrizione=f"Stato cambiato da {previous} a {StatoFascicolo.DEFINITO.value}",
+                    stato_precedente=previous,
+                    stato_nuovo=StatoFascicolo.DEFINITO.value,
+                    note=note,
+                    avvocato=_text(actor, "IUSENTRA"),
+                )
+            )
+            setattr(fascicolo, "avanzamento", avanzamento)
+        if hasattr(fascicolo, "modificato_il"):
+            setattr(fascicolo, "modificato_il", datetime.now().isoformat())
+    except Exception:
+        return {"updated": False, "reason": "Aggiornamento stato non riuscito."}
+    return {"updated": True, "status": "definito"}
+
+
 def run_react_fascicoli_economic_presidio(
     *,
     get_fascicoli: Callable[[], Any],
@@ -3120,12 +3587,50 @@ def run_react_fascicoli_economic_presidio(
     missing_basis = 0
     skipped = 0
     processed = 0
+    contributi_checked = 0
+    contributi_updated = 0
+    contributi_missing = 0
+    document_analysis_updated = 0
+    status_defined_updated = 0
+    batch_save_payments = callable(getattr(fascicoli_repository, "_salva", None))
+    payments_save_pending = False
     for fascicolo in fascicoli:
+        if limit and contributi_checked >= limit:
+            break
+        contributi_checked += 1
+        cu_result = _ensure_contributo_unificato_for_fascicolo(
+            fascicoli_repository=fascicoli_repository,
+            fascicolo=fascicolo,
+            actor=actor,
+            persist=not batch_save_payments,
+        )
+        cu_status = _text(cu_result.get("status"))
+        if cu_status == "updated":
+            contributi_updated += 1
+        elif cu_status == "missing":
+            contributi_missing += 1
+        if cu_result.get("analysisUpdated"):
+            document_analysis_updated += 1
+            payments_save_pending = payments_save_pending or batch_save_payments
+        status_result = _ensure_fascicolo_definito_from_economics(
+            fascicoli_repository=fascicoli_repository,
+            fascicolo=fascicolo,
+            actor=actor,
+            persist=not batch_save_payments,
+        )
+        if status_result.get("updated"):
+            status_defined_updated += 1
+            payments_save_pending = payments_save_pending or batch_save_payments
+        if payments_save_pending and batch_save_payments and (
+            cu_status == "updated"
+            or status_result.get("updated")
+            or document_analysis_updated % 25 == 0
+        ):
+            getattr(fascicoli_repository, "_salva")()
+            payments_save_pending = False
         if not _fascicolo_is_defined(fascicolo):
             skipped += 1
             continue
-        if limit and processed >= limit:
-            break
         processed += 1
         result = _ensure_auto_proforma_for_fascicolo(
             fascicoli_repository=fascicoli_repository,
@@ -3147,19 +3652,28 @@ def run_react_fascicoli_economic_presidio(
             missing_basis += 1
         else:
             skipped += 1
+    if payments_save_pending and batch_save_payments:
+        getattr(fascicoli_repository, "_salva")()
     return {
         "ok": True,
         "source": "repository_reali",
         "generatedAt": _now(),
         "message": (
             f"Presidio economico completato: {len(created)} bozze proforma create, "
-            f"{existing} fascicoli già coperti, {missing_basis} da integrare con sentenza/importo."
+            f"{existing} fascicoli già coperti, {missing_basis} da integrare con sentenza/importo, "
+            f"{contributi_updated} contributi unificati consolidati, "
+            f"{status_defined_updated} fascicoli definiti dal controllo economico."
         ),
         "created": created,
         "createdCount": len(created),
         "existingCount": existing,
         "missingBasisCount": missing_basis,
         "processedDefined": processed,
+        "contributiCheckedCount": contributi_checked,
+        "contributiUpdatedCount": contributi_updated,
+        "contributiMissingCount": contributi_missing,
+        "documentAnalysisUpdatedCount": document_analysis_updated,
+        "statusDefinedUpdatedCount": status_defined_updated,
         "skippedCount": skipped,
     }
 
@@ -3671,6 +4185,7 @@ def _item_light(
     archived: bool | None = None,
     office_pec_messages: list[Any] | None = None,
     automatic_evidence: bool = False,
+    full_payment_summary: bool = True,
     related_fascicoli: Iterable[Any] | None = None,
     parcelle: Iterable[Any] | None = None,
     duplicate_group: dict[str, Any] | None = None,
@@ -3690,13 +4205,21 @@ def _item_light(
     rg_meta = _rg_meta(fascicolo)
     if rg_meta["rgMissing"]:
         alerts += 1
-    payment_summary = payment_summary_for_fascicolo(
-        fascicolo,
-        automatic=automatic_evidence,
-        related_fascicoli=related_fascicoli,
-        parcelle=parcelle,
-        duplicate_group=duplicate_group,
-    )
+    if full_payment_summary:
+        payment_summary = payment_summary_for_fascicolo(
+            fascicolo,
+            automatic=automatic_evidence,
+            related_fascicoli=related_fascicoli,
+            parcelle=parcelle,
+            duplicate_group=duplicate_group,
+        )
+    else:
+        payment_summary = payment_summary_for_fascicolo_fast(
+            fascicolo,
+            related_fascicoli=related_fascicoli,
+            parcelle=parcelle,
+            duplicate_group=duplicate_group,
+        )
     relata_summary: dict[str, Any] = {}
     if office_pec_messages is not None:
         fid_for_relata = quote(fid)
@@ -3864,6 +4387,11 @@ def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any], fascicoli: Iterab
 
 def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, Any]:
     economic_to_review = sum(1 for item in items if (item.get("paymentSummary") or {}).get("stato") in {"da_presidiare", "parziale"})
+    economic_analysis_due = sum(
+        1
+        for item in items
+        if ((item.get("paymentSummary") or {}).get("analysis") or {}).get("status") in {"da_analizzare", "da_rianalizzare"}
+    )
     invoices_to_issue = sum(int((item.get("paymentSummary") or {}).get("parcelleDaEmettere") or 0) for item in items)
     invoice_drafts_to_review = sum(
         int(((item.get("paymentSummary") or {}).get("proformaPresidio") or {}).get("existingDraftCount") or 0)
@@ -3896,6 +4424,7 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "unreadCommunications": sum(int(item.get("unreadCommunications") or 0) for item in items),
         "missingRg": sum(1 for item in items if item.get("rgMissing")),
         "economicToReview": economic_to_review,
+        "economicAnalysisDue": economic_analysis_due,
         "invoicesToIssue": invoices_to_issue,
         "invoiceDraftsToReview": invoice_drafts_to_review,
         "invoicesPresent": invoices_present,
@@ -4004,6 +4533,8 @@ def _matches_list_filters(
     court: str = "",
     alerts_only: bool = False,
     payments_only: bool = False,
+    missing_rg_only: bool = False,
+    duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
 ) -> bool:
     needle = _text(query).lower()
@@ -4038,13 +4569,26 @@ def _matches_list_filters(
         return False
     if payments_only and (item.get("paymentSummary") or {}).get("stato") not in {"da_presidiare", "parziale"}:
         return False
+    if missing_rg_only and not bool(item.get("rgMissing")):
+        return False
+    if duplicates_only and int(item.get("duplicateCount") or 0) <= 1:
+        return False
     if payment_filters:
-        summary_items = (item.get("paymentSummary") or {}).get("items") or {}
+        payment_summary = item.get("paymentSummary") or {}
+        summary_items = payment_summary.get("items") or {}
         for kind, wanted in payment_filters.items():
             wanted_key = _text(wanted).strip().lower()
             if not wanted_key or wanted_key == "tutti":
                 continue
             normalized_kind = _normalise_payment_kind(kind) or kind
+            if normalized_kind == "parcella" and wanted_key == "da_emettere":
+                proforma = payment_summary.get("proformaPresidio") or {}
+                if (
+                    int(payment_summary.get("parcelleDaEmettere") or 0) <= 0
+                    and int(proforma.get("existingDraftCount") or 0) <= 0
+                ):
+                    return False
+                continue
             actual = _text((summary_items.get(normalized_kind) or {}).get("status")).strip().lower()
             if actual != wanted_key:
                 return False
@@ -4087,98 +4631,108 @@ def build_react_fascicoli_payload(
     view: str = "",
     alerts_only: bool = False,
     payments_only: bool = False,
+    missing_rg_only: bool = False,
+    duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    gf = get_fascicoli()
-    scadenze_rows = _open_scadenze(get_scadenziario)
-    fascicoli = _safe("fascicoli", lambda: gf.tutti(archiviati=False), [])
-    scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
-    resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
-    archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-    payment_filters_active = bool(
-        payment_filters
-        and any(_text(value).strip().lower() not in {"", "tutti"} for value in payment_filters.values())
+    base_cache_key = _fascicoli_base_cache_key(
+        query=query,
+        client_filter=client_filter,
+        rg_filter=rg_filter,
+        type_filter=type_filter,
+        status_filter=status_filter,
+        court=court,
+        sort=sort,
+        view=view,
+        alerts_only=alerts_only,
+        payments_only=payments_only,
+        missing_rg_only=missing_rg_only,
+        duplicates_only=duplicates_only,
+        payment_filters=payment_filters,
     )
-    sort_key = _text(sort, "rg")
-    view_key = _text(view).casefold()
-    enrich_visible = view_key in {"economica", "economico", "economic"}
-    automatic_for_all = bool(payments_only or payment_filters_active or sort_key == "scadenza")
-    enrich_visible = enrich_visible or automatic_for_all
-    duplicate_groups = duplicate_practice_groups(fascicoli)
-    duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
-    fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
-    parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+    base = _fascicoli_base_cache_get(base_cache_key)
+    if base is None:
+        gf = get_fascicoli()
+        scadenze_rows = _open_scadenze(get_scadenziario)
+        fascicoli = _safe("fascicoli", lambda: gf.tutti(archiviati=False), [])
+        scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
+        resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
+        archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
+        sort_key = _text(sort, "rg")
+        automatic_deadline_evidence = sort_key == "scadenza"
+        duplicate_groups = duplicate_practice_groups(fascicoli)
+        duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
+        parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
 
-    def _related_for_list_row(fascicolo: Any) -> list[Any]:
-        return _related_duplicate_fascicoli(fascicoli, fascicolo)
-
-    light_items = _annotate_duplicate_items(
-        [
-            _item_light(
-                fascicolo,
-                scadenze_by_fasc=scadenze_by_fasc,
-                automatic_evidence=automatic_for_all,
-                related_fascicoli=_related_for_list_row(fascicolo) if automatic_for_all else None,
-                parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
-                duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
-            )
-            for fascicolo in fascicoli
-        ],
-        duplicate_groups_by_key,
-    )
-    filtered = [
-        item for item in light_items
-        if _matches_list_filters(
-            item,
-            query=query,
-            client_filter=client_filter,
-            rg_filter=rg_filter,
-            type_filter=type_filter,
-            status_filter=status_filter,
-            court=court,
-            alerts_only=alerts_only,
-            payments_only=payments_only,
-            payment_filters=payment_filters,
+        light_items = _annotate_duplicate_items(
+            [
+                _item_light(
+                    fascicolo,
+                    scadenze_by_fasc=scadenze_by_fasc,
+                    automatic_evidence=automatic_deadline_evidence,
+                    full_payment_summary=False,
+                    parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
+                    duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
+                )
+                for fascicolo in fascicoli
+            ],
+            duplicate_groups_by_key,
         )
-    ]
-    sorted_items = _sort_list_items(filtered, sort)
+        filtered = [
+            item for item in light_items
+            if _matches_list_filters(
+                item,
+                query=query,
+                client_filter=client_filter,
+                rg_filter=rg_filter,
+                type_filter=type_filter,
+                status_filter=status_filter,
+                court=court,
+                alerts_only=alerts_only,
+                payments_only=payments_only,
+                missing_rg_only=missing_rg_only,
+                duplicates_only=duplicates_only,
+                payment_filters=payment_filters,
+            )
+        ]
+        sorted_items = _sort_list_items(filtered, sort)
+        items_by_id = {item["id"]: item for item in light_items}
+        base = {
+            "items": sorted_items,
+            "lightItems": light_items,
+            "archivedCount": len(archived),
+            "deadlines30": len(
+                _deadline_rows_from_scadenze(
+                    scadenze_rows,
+                    items_by_id,
+                    days=30,
+                    resolved_matter_ids=resolved_scadenze,
+                )
+            ),
+            "deadlines7": _deadline_rows_from_scadenze(
+                scadenze_rows,
+                items_by_id,
+                days=7,
+                resolved_matter_ids=resolved_scadenze,
+            ),
+        }
+        _fascicoli_base_cache_set(base_cache_key, base)
+    sorted_items = list(base.get("items") or [])
+    light_items = list(base.get("lightItems") or [])
     page_size = _positive_int(page_size, 5, maximum=100)
     page = _positive_int(page, 1, maximum=100000)
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
-    if items and not automatic_for_all and enrich_visible:
-        enriched_visible = {
-            item_id: _annotate_duplicate_items(
-                [
-                    _item_light(
-                        fascicoli_by_id[item_id],
-                        scadenze_by_fasc=scadenze_by_fasc,
-                        automatic_evidence=True,
-                        related_fascicoli=_related_for_list_row(fascicoli_by_id[item_id]),
-                        parcelle=parcelle_by_fasc.get(item_id, []),
-                        duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicoli_by_id[item_id])),
-                    )
-                ],
-                duplicate_groups_by_key,
-            )[0]
-            for item_id in (_text(item.get("id")) for item in items)
-            if item_id in fascicoli_by_id
-        }
-        items = [enriched_visible.get(_text(item.get("id")), item) for item in items]
-    items_by_id = {item["id"]: item for item in light_items}
-    for item in items:
-        items_by_id[_text(item.get("id"))] = item
-    deadlines30 = len(_deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=30, resolved_matter_ids=resolved_scadenze))
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "summary": _summary(filtered, archived_count=len(archived), deadlines30=deadlines30),
+        "summary": _summary(sorted_items, archived_count=int(base.get("archivedCount") or 0), deadlines30=int(base.get("deadlines30") or 0)),
         "items": items,
         "pagination": pagination,
         "facets": _facets(light_items),
-        "deadlines": _deadline_rows_from_scadenze(scadenze_rows, items_by_id, days=7, resolved_matter_ids=resolved_scadenze),
+        "deadlines": list(base.get("deadlines7") or []),
         "actions": _list_actions(),
     }
 
@@ -5914,9 +6468,9 @@ def _sentenze_economiche(fid: str, payment_summary: dict[str, Any] | None = None
     """Contesto economico da sentenza per il fascicolo (credito cliente art. 91,
     credito avvocato antistatario art. 93, alert contributo unificato).
 
-    Riusa il runtime che gestisce gia' flag + tenant (slug) + repository + riepilogo:
+    Riusa il runtime che gestisce già flag + tenant (slug) + repository + riepilogo:
     non aprire il repo con `_current_tenant_id()` (usa g.tenant.id, mentre gli audit
-    sono scritti per slug -> liste vuote). Ritorna None se il flag e' spento, se manca
+    sono scritti per slug -> liste vuote). Ritorna None se il flag è spento, se manca
     il contesto studio o se non ci sono sentenze analizzate: la sezione UI resta vuota.
     """
 

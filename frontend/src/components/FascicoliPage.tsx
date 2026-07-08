@@ -249,7 +249,8 @@ const fascicoloStatusEditOptions: Array<{ value: Exclude<FascicoloStato, 'tutti'
 ]
 
 function initialListView(): ListView {
-  return new URLSearchParams(window.location.search).get('vista') === 'economica' ? 'economica' : 'operativa'
+  const params = new URLSearchParams(window.location.search)
+  return (params.get('vista') || params.get('view')) === 'economica' ? 'economica' : 'operativa'
 }
 
 function syncListViewInUrl(view: ListView) {
@@ -257,6 +258,59 @@ function syncListViewInUrl(view: ListView) {
   if (view === 'economica') url.searchParams.set('vista', 'economica')
   else url.searchParams.delete('vista')
   window.history.replaceState({}, '', url.toString())
+}
+
+type ListContextTarget = {
+  view?: ListView
+  status?: FascicoloStato
+  sort?: SortKey
+  alertsOnly?: boolean
+  paymentsOnly?: boolean
+  missingRgOnly?: boolean
+  duplicatesOnly?: boolean
+  cu?: FascicoloPaymentFilter
+  liquidazione?: FascicoloPaymentFilter
+  parcella?: FascicoloPaymentFilter
+  hash?: string
+}
+
+function syncListContextInUrl(target: ListContextTarget) {
+  const url = new URL('/fascicoli', window.location.origin)
+  if (target.view === 'economica') url.searchParams.set('vista', 'economica')
+  if (target.status && target.status !== 'tutti') url.searchParams.set('status', target.status)
+  if (target.sort && target.sort !== 'rg') url.searchParams.set('sort', target.sort)
+  if (target.alertsOnly) url.searchParams.set('alerts_only', '1')
+  if (target.paymentsOnly) url.searchParams.set('payments_only', '1')
+  if (target.missingRgOnly) url.searchParams.set('missing_rg_only', '1')
+  if (target.duplicatesOnly) url.searchParams.set('duplicates_only', '1')
+  if (target.cu && target.cu !== 'tutti') url.searchParams.set('cu', target.cu)
+  if (target.liquidazione && target.liquidazione !== 'tutti') url.searchParams.set('liquidazione', target.liquidazione)
+  if (target.parcella && target.parcella !== 'tutti') url.searchParams.set('parcella', target.parcella)
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${target.hash || ''}`)
+}
+
+function initialUrlParam(name: string, fallback = ''): string {
+  return new URLSearchParams(window.location.search).get(name) || fallback
+}
+
+function initialUrlBool(...names: string[]): boolean {
+  const params = new URLSearchParams(window.location.search)
+  return names.some((name) => ['1', 'true', 'si', 'sì'].includes((params.get(name) || '').toLowerCase()))
+}
+
+function initialStatusFilter(): FascicoloStato {
+  const raw = initialUrlParam('status').toLowerCase()
+  return ['aperto', 'in_corso', 'definito', 'da_archiviare', 'archiviato', 'sospeso'].includes(raw) ? raw as FascicoloStato : 'tutti'
+}
+
+function initialSortFilter(): SortKey {
+  const raw = initialUrlParam('sort', 'rg').toLowerCase()
+  return ['recenti', 'rg', 'cliente', 'scadenza', 'documenti'].includes(raw) ? raw as SortKey : 'rg'
+}
+
+function initialPaymentFilter(name: string): FascicoloPaymentFilter {
+  const raw = initialUrlParam(name).toLowerCase()
+  return ['non_previsto', 'da_registrare', 'pagato', 'parziale', 'da_emettere'].includes(raw) ? raw as FascicoloPaymentFilter : 'tutti'
 }
 
 function fascicoliListCacheKey(params: FascicoliPageParams): string {
@@ -271,6 +325,8 @@ function fascicoliListCacheKey(params: FascicoliPageParams): string {
     params.view || 'operativa',
     params.alertsOnly ? '1' : '0',
     params.paymentsOnly ? '1' : '0',
+    params.missingRgOnly ? '1' : '0',
+    params.duplicatesOnly ? '1' : '0',
     params.cu || 'tutti',
     params.fondoSpese || 'tutti',
     params.liquidazione || 'tutti',
@@ -334,7 +390,23 @@ function relataListHref(item: FascicoloRow): string {
   return item.relataHref || `${item.href}#relata-notifica`
 }
 
+const statCardContextHref: Record<string, string> = {
+  Attivi: '/fascicoli',
+  'In corso': '?status=in_corso',
+  'Da archiviare': '?status=da_archiviare',
+  Economico: '?vista=economica&payments_only=1',
+  Registrato: '?vista=economica',
+  Parcelle: '?vista=economica&parcella=da_emettere',
+  'Scadenze 7g': '#scadenze-entro-7-giorni',
+  Doppioni: '?duplicates_only=1',
+  'RG da acquisire': '?missing_rg_only=1',
+  Documenti: '?sort=documenti',
+  Comunicazioni: '?alerts_only=1',
+}
+
 function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void}) {
+  const isFascicoliListRoute = window.location.pathname.replace(/\/+$/, '') === '/fascicoli'
+  const contextHref = href || (isFascicoliListRoute ? statCardContextHref[label] : '') || ''
   const body = (
     <>
       <div>{icon}</div>
@@ -343,7 +415,7 @@ function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:
       <small>{note}</small>
     </>
   )
-  return href ? <a className={`iu-fas-stat iu-fas-stat--${tone}`} href={href} onClick={onClick} title={`Apri ${label}`}>{body}</a> : <article className={`iu-fas-stat iu-fas-stat--${tone}`}>{body}</article>
+  return contextHref ? <a className={`iu-fas-stat iu-fas-stat--${tone}`} href={contextHref} onClick={onClick} title={`Visualizza contesto: ${label}`} aria-label={`Visualizza contesto: ${label}`}>{body}</a> : <article className={`iu-fas-stat iu-fas-stat--${tone}`}>{body}</article>
 }
 
 function EmptyState({ icon, title, children, action }:{icon:ReactNode; title:string; children:ReactNode; action?:ReactNode}) {
@@ -2029,16 +2101,18 @@ function FascicoliListPage() {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [type, setType] = useState<FascicoloTipo>('tutti')
-  const [status, setStatus] = useState<FascicoloStato>('tutti')
-  const [sort, setSort] = useState<SortKey>('rg')
+  const [status, setStatus] = useState<FascicoloStato>(initialStatusFilter)
+  const [sort, setSort] = useState<SortKey>(initialSortFilter)
   const [court, setCourt] = useState('')
   const [debouncedCourt, setDebouncedCourt] = useState('')
-  const [alertsOnly, setAlertsOnly] = useState(false)
-  const [paymentsOnly, setPaymentsOnly] = useState(false)
+  const [alertsOnly, setAlertsOnly] = useState(() => initialUrlBool('alerts_only', 'alertsOnly'))
+  const [paymentsOnly, setPaymentsOnly] = useState(() => initialUrlBool('payments_only', 'paymentsOnly'))
+  const [missingRgOnly, setMissingRgOnly] = useState(() => initialUrlBool('missing_rg_only', 'missingRgOnly'))
+  const [duplicatesOnly, setDuplicatesOnly] = useState(() => initialUrlBool('duplicates_only', 'duplicatesOnly'))
   const [view, setView] = useState<ListView>(initialListView)
-  const [cuFilter, setCuFilter] = useState<FascicoloPaymentFilter>('tutti')
-  const [liquidazioneFilter, setLiquidazioneFilter] = useState<FascicoloPaymentFilter>('tutti')
-  const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>('tutti')
+  const [cuFilter, setCuFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('cu'))
+  const [liquidazioneFilter, setLiquidazioneFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('liquidazione'))
+  const [parcellaFilter, setParcellaFilter] = useState<FascicoloPaymentFilter>(() => initialPaymentFilter('parcella'))
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'warning' | 'danger'; message: string } | null>(null)
@@ -2048,7 +2122,7 @@ function FascicoliListPage() {
   const [pendingPage, setPendingPage] = useState<number | null>(null)
   const pageCacheRef = useRef<Map<string, FascicoliPageData>>(new Map())
   const pageRequestsRef = useRef<Map<string, Promise<FascicoliPageData>>>(new Map())
-  const economicPresidioRunRef = useRef(false)
+  const economicPresidioRunRef = useRef('')
 
   const listParams = (overrides: Partial<FascicoliPageParams> = {}): FascicoliPageParams => ({
     page,
@@ -2061,6 +2135,8 @@ function FascicoliListPage() {
     view,
     alertsOnly,
     paymentsOnly,
+    missingRgOnly,
+    duplicatesOnly,
     cu: cuFilter,
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
@@ -2103,6 +2179,30 @@ function FascicoliListPage() {
       .finally(() => setLoading(false))
   }
 
+  const warmEconomicFirstPages = (params: FascicoliPageParams) => {
+    if (params.view !== 'economica' || params.page !== 1) return
+    const hasScopedFilters = Boolean(
+      params.q?.trim()
+      || params.client?.trim()
+      || params.rg?.trim()
+      || params.court?.trim()
+      || (params.type && params.type !== 'tutti')
+      || (params.status && params.status !== 'tutti')
+      || params.alertsOnly
+      || params.paymentsOnly
+      || params.missingRgOnly
+      || params.duplicatesOnly
+      || (params.cu && params.cu !== 'tutti')
+      || (params.fondoSpese && params.fondoSpese !== 'tutti')
+      || (params.liquidazione && params.liquidazione !== 'tutti')
+      || (params.parcella && params.parcella !== 'tutti')
+    )
+    if (hasScopedFilters) return
+    ;[2, 3].forEach((target) => {
+      void requestFascicoliPage({ ...params, page: target }).catch(() => undefined)
+    })
+  }
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setPage(1)
@@ -2118,11 +2218,13 @@ function FascicoliListPage() {
     const hasCachedPage = pageCacheRef.current.has(fascicoliListCacheKey(params))
     setPendingPage(hasCachedPage ? null : params.page || page)
     setLoading(!hasCachedPage)
-    requestFascicoliPage(params)
+    const request = requestFascicoliPage(params)
+    request
       .then((payload) => {
         if (!active) return
         setData(payload)
         setPendingPage(null)
+        if (!hasCachedPage) window.setTimeout(() => warmEconomicFirstPages(params), 250)
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -2130,7 +2232,7 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, liquidazioneFilter, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
 
   useEffect(() => {
     if (loading || pendingPage) return
@@ -2143,15 +2245,24 @@ function FascicoliListPage() {
     })
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita prefetch su filtri vecchi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, liquidazioneFilter, loading, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, sort, status, type, view])
+  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, sort, status, type, view])
 
   useEffect(() => {
-    if (view !== 'economica' || loading || economicPresidioRunRef.current || data.summary.invoicesToIssue < 1) return
-    economicPresidioRunRef.current = true
+    const presidioDue = Number(data.summary.economicAnalysisDue || 0)
+    const presidioKey = `${view}:${data.summary.total || 0}:${data.summary.economicAnalysisDue || 0}`
+    if (view !== 'economica' || loading || economicPresidioRunRef.current === presidioKey || presidioDue < 1) return
+    economicPresidioRunRef.current = presidioKey
     runFascicoliEconomicPresidio(1000)
       .then((result) => {
-        if (result.createdCount > 0) {
-          setToast({ tone: 'success', message: `${result.createdCount} bozze proforma create automaticamente in bozza. L'avvocato deve visionarle prima dell'emissione.` })
+        const changed = result.createdCount + result.contributiUpdatedCount + result.documentAnalysisUpdatedCount + result.statusDefinedUpdatedCount
+        if (changed > 0) {
+          const parts = [
+            result.contributiUpdatedCount ? `${result.contributiUpdatedCount} contributi unificati salvati` : '',
+            result.documentAnalysisUpdatedCount ? `${result.documentAnalysisUpdatedCount} controlli documentali aggiornati` : '',
+            result.statusDefinedUpdatedCount ? `${result.statusDefinedUpdatedCount} fascicoli definiti` : '',
+            result.createdCount ? `${result.createdCount} bozze proforma create` : '',
+          ].filter(Boolean)
+          setToast({ tone: 'success', message: `${parts.join(', ')}. I dati sono stati consolidati nel fascicolo.` })
           refresh()
         }
       })
@@ -2162,11 +2273,11 @@ function FascicoliListPage() {
         }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.summary.invoicesToIssue, loading, view])
+  }, [data.summary.economicAnalysisDue, data.summary.total, loading, view])
 
   const visible = data.items
   const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
-  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly || paymentsOnly || economicFiltersActive)
+  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || alertsOnly || paymentsOnly || missingRgOnly || duplicatesOnly || economicFiltersActive)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
   const updateSort = (value: SortKey) => { setPage(1); setSort(value) }
@@ -2194,6 +2305,43 @@ function FascicoliListPage() {
       setData(cached)
       setLoading(false)
       setPendingPage(null)
+    }
+  }
+  const applyStatContext = (target: ListContextTarget) => (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    const next: Required<Omit<ListContextTarget, 'hash'>> & { hash?: string } = {
+      view: target.view || 'operativa',
+      status: target.status || 'tutti',
+      sort: target.sort || 'rg',
+      alertsOnly: Boolean(target.alertsOnly),
+      paymentsOnly: Boolean(target.paymentsOnly),
+      missingRgOnly: Boolean(target.missingRgOnly),
+      duplicatesOnly: Boolean(target.duplicatesOnly),
+      cu: target.cu || 'tutti',
+      liquidazione: target.liquidazione || 'tutti',
+      parcella: target.parcella || 'tutti',
+      hash: target.hash,
+    }
+    setPage(1)
+    setQuery('')
+    setDebouncedQuery('')
+    setType('tutti')
+    setStatus(next.status)
+    setSort(next.sort)
+    setCourt('')
+    setDebouncedCourt('')
+    setAlertsOnly(next.alertsOnly)
+    setPaymentsOnly(next.paymentsOnly)
+    setMissingRgOnly(next.missingRgOnly)
+    setDuplicatesOnly(next.duplicatesOnly)
+    setView(next.view)
+    setCuFilter(next.cu)
+    setLiquidazioneFilter(next.liquidazione)
+    setParcellaFilter(next.parcella)
+    setSelected(new Set())
+    syncListContextInUrl(next)
+    if (next.hash) {
+      window.setTimeout(() => document.querySelector(next.hash || '')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50)
     }
   }
 
@@ -2292,21 +2440,21 @@ function FascicoliListPage() {
         </section>
 
         <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
-          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
-          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
-          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note={`${data.summary.toArchive} definiti, ${data.summary.archived} già archiviati`} tone="warning"/>
-          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="controlli da completare" tone="warning" href="?vista=economica" onClick={(event) => { event.preventDefault(); updateView('economica'); updatePaymentsOnly(true) }}/>
-          <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success"/>
-          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple"/>
-          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
-          <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'}/>
-          <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" value={data.summary.missingRg} note={data.summary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.summary.missingRg ? 'warning' : 'success'}/>
-          <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
-          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
+          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary" onClick={applyStatContext({})}/>
+          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success" onClick={applyStatContext({ status: 'in_corso' })}/>
+          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note={`${data.summary.toArchive} definiti, ${data.summary.archived} già archiviati`} tone="warning" onClick={applyStatContext({ status: 'da_archiviare' })}/>
+          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="controlli da completare" tone="warning" href="?vista=economica&payments_only=1" onClick={applyStatContext({ view: 'economica', paymentsOnly: true })}/>
+          <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success" onClick={applyStatContext({ view: 'economica' })}/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple" onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
+          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger" onClick={applyStatContext({ hash: '#scadenze-entro-7-giorni' })}/>
+          <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'} onClick={applyStatContext({ duplicatesOnly: true })}/>
+          <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" value={data.summary.missingRg} note={data.summary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.summary.missingRg ? 'warning' : 'success'} onClick={applyStatContext({ missingRgOnly: true })}/>
+          <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple" onClick={applyStatContext({ sort: 'documenti' })}/>
+          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info" onClick={applyStatContext({ alertsOnly: true })}/>
         </section>
 
         {data.deadlines.length ? (
-          <section className="iu-fas-deadline-alert">
+          <section className="iu-fas-deadline-alert" id="scadenze-entro-7-giorni">
             <AlertIcon />
             <div>
               <strong>Scadenze entro 7 giorni</strong>

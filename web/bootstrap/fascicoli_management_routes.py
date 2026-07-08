@@ -46,6 +46,15 @@ def _form_result(message: str, *, status: int, redirect_to: str = "", category: 
     return None
 
 
+def _clear_react_fascicoli_list_cache() -> None:
+    try:
+        from web.blueprints.api_v1_react import clear_react_fascicoli_list_payload_cache
+
+        clear_react_fascicoli_list_payload_cache()
+    except Exception:
+        return
+
+
 def register_fascicoli_management_routes(
     app: Flask,
     *,
@@ -203,6 +212,7 @@ def register_fascicoli_management_routes(
                     note=form.get("note", ""),
                 )
                 sync_pubblica("modifica", "fascicoli", id_fasc)
+                _clear_react_fascicoli_list_cache()
                 redirect_to = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
                 result = _form_result("Fascicolo aggiornato.", status=200, redirect_to=redirect_to, category="success")
                 if result is not None:
@@ -248,6 +258,7 @@ def register_fascicoli_management_routes(
                 note=form.get("note", ""),
                 avvocato=form.get("avvocato", ""),
             )
+            _clear_react_fascicoli_list_cache()
             flash("Stato aggiornato.", "success")
         except (ValueError, KeyError) as exc:
             app.logger.info("Cambio stato fascicolo %s non valido: %s", id_fasc, exc)
@@ -267,6 +278,7 @@ def register_fascicoli_management_routes(
                 dettagli=f"Controlli automatici {'attivati' if enabled else 'disattivati'}",
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
+            _clear_react_fascicoli_list_cache()
             flash(
                 "Controlli automatici attivati." if enabled else "Controlli automatici disattivati.",
                 "success",
@@ -289,6 +301,7 @@ def register_fascicoli_management_routes(
                 note=form.get("note", ""),
                 avvocato=form.get("avvocato", ""),
             )
+            _clear_react_fascicoli_list_cache()
             flash("Fascicolo definito. Pronto per l'archiviazione.", "success")
         except (ValueError, KeyError) as exc:
             app.logger.info("Definizione fascicolo %s non valida: %s", id_fasc, exc)
@@ -304,6 +317,7 @@ def register_fascicoli_management_routes(
                 crea_zip=request.form.get("crea_zip", "1") == "1",
                 avvocato=request.form.get("avvocato", ""),
             )
+            _clear_react_fascicoli_list_cache()
             flash("Fascicolo archiviato con successo.", "success")
             return redirect(url_for("lista_archivio"))
         except (ValueError, KeyError) as exc:
@@ -315,6 +329,7 @@ def register_fascicoli_management_routes(
     def ripristina_fascicolo(id_fasc: str):
         try:
             get_fascicoli().ripristina_da_archivio(id_fasc, avvocato=request.form.get("avvocato", ""))
+            _clear_react_fascicoli_list_cache()
             flash("Fascicolo ripristinato dall'archivio.", "success")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         except (ValueError, KeyError) as exc:
@@ -334,6 +349,7 @@ def register_fascicoli_management_routes(
             msg = "Fascicolo eliminato."
             flash(msg, "success")
             sync_pubblica("elimina", "fascicoli", id_fasc)
+            _clear_react_fascicoli_list_cache()
             if _wants_json_response():
                 return jsonify({"ok": True, "messaggio": msg, "redirect_url": url_for("lista_fascicoli")})
         except KeyError as exc:

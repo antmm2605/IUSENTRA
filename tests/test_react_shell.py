@@ -5779,17 +5779,32 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
 
+    presidio = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    repeat = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
+    assert presidio.status_code == 200
+    assert presidio.get_json()["contributiUpdatedCount"] == 1
+    assert repeat.get_json()["contributiUpdatedCount"] == 0
+    assert repeat.get_json()["documentAnalysisUpdatedCount"] == 0
     assert response.status_code == 200
     assert contributo["status"] == "non_previsto"
     assert contributo["importo"] is None
     assert contributo["importoLabel"] == ""
     assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
     assert "Esenzione" in contributo["note"]
+    assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
 
 
 def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(monkeypatch, tmp_path: Path):
@@ -5832,12 +5847,19 @@ def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(mon
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
 
+    presidio = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
     item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
     spese = item["paymentSummary"]["items"]["spese_esborsi"]
 
+    assert presidio.status_code == 200
+    assert presidio.get_json()["contributiUpdatedCount"] == 1
     assert response.status_code == 200
     assert contributo["status"] == "non_previsto"
     assert contributo["previsto"] is False

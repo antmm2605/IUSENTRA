@@ -9,7 +9,9 @@ from pct.fascicoli import StatoFascicolo, TipoAttivita, TipoDocumento, TipoFasci
 from pct.scadenziario import TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
-from web.helpers import get_agenda, get_fascicoli, get_scadenziario
+from web.blueprints import api_v1_react
+from web.helpers import get_agenda, get_fascicoli, get_fatturazione, get_scadenziario
+from web.services import react_fascicoli_bridge
 
 
 def _seed_fascicoli(app, total: int = 31):
@@ -51,6 +53,432 @@ def test_fascicoli_api_pagina_server_side_massimo_page_size(tmp_path):
     assert payload["contracts"]["mock_fallback"] is False
 
 
+def test_fascicoli_api_cache_ttl_riusa_payload_identico(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 61)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    calls = {"count": 0}
+    original = api_v1_react.build_react_fascicoli_payload
+
+    def counted_payload(**kwargs):
+        calls["count"] += 1
+        return original(**kwargs)
+
+    monkeypatch.setattr(api_v1_react, "build_react_fascicoli_payload", counted_payload)
+
+    with app.test_client() as client:
+        first = client.get("/api/v1/ui/fascicoli?page=2&page_size=25&sort=rg&view=economica", headers={"X-API-Key": "react-test-key"})
+        second = client.get("/api/v1/ui/fascicoli?page=2&pageSize=25&sort=rg&vista=economica", headers={"X-API-Key": "react-test-key"})
+        other_page = client.get("/api/v1/ui/fascicoli?page=3&page_size=25&sort=rg&view=economica", headers={"X-API-Key": "react-test-key"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert other_page.status_code == 200
+    assert calls["count"] == 2
+    assert first.get_data() == second.get_data()
+    assert first.get_json()["pagination"]["page"] == 2
+    assert other_page.get_json()["pagination"]["page"] == 3
+    api_v1_react._clear_fascicoli_list_payload_cache()
+
+
+def test_fascicoli_api_cache_base_riusa_lista_tra_pagine(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 61)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    calls = {"count": 0}
+    original = react_fascicoli_bridge._item_light
+
+    def counted_item(*args, **kwargs):
+        calls["count"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_item_light", counted_item)
+
+    with app.test_client() as client:
+        first = client.get("/api/v1/ui/fascicoli?page=1&page_size=25&sort=rg&view=economica", headers={"X-API-Key": "react-test-key"})
+        second = client.get("/api/v1/ui/fascicoli?page=2&page_size=25&sort=rg&view=economica", headers={"X-API-Key": "react-test-key"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.get_json()["pagination"]["page"] == 1
+    assert second.get_json()["pagination"]["page"] == 2
+    assert calls["count"] == 61
+    api_v1_react._clear_fascicoli_list_payload_cache()
+
+
+def test_fascicoli_vista_economica_legge_dato_consolidato_senza_presidio_massivo(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 31)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+
+    def fail_automatic_scan(*args, **kwargs):
+        raise AssertionError("La lista fascicoli non deve avviare la lettura documentale massiva.")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_automatic_scan)
+
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/fascicoli?page=1&page_size=25&sort=rg&view=economica",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["pagination"] == {"page": 1, "pageSize": 25, "total": 31, "pages": 2}
+    assert payload["items"][0]["paymentSummary"]["analysis"]["status"] in {"da_analizzare", "aggiornato", "da_rianalizzare"}
+
+
+def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Alfano Giuseppe c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Alfano Giuseppe",
+            tribunale="Tribunale di Palmi",
+            numero_rg="1100",
+            anno_rg=2026,
+            oggetto="222050 - Retribuzione",
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"<xml/>",
+            note="Pagamento contributo unificato PagoPA",
+        )
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {
+                    "status": "da_registrare",
+                    "importo": 0,
+                    "documento_fonte": "Import pratiche",
+                    "updated_at": "2026-07-05",
+                }
+            },
+        )
+
+    calls = {"count": 0}
+
+    def fake_auto(fascicolo_arg, payments, **kwargs):
+        calls["count"] += 1
+        assert kwargs.get("allow_full_document_scan") is False
+        return {
+            "contributo_unificato": {
+                "kind": "contributo_unificato",
+                "label": "Contributo unificato",
+                "status": "pagato",
+                "previsto": True,
+                "pagato": True,
+                "importo": 49.0,
+                "valuta": "EUR",
+                "data_pagamento": "2026-05-31",
+                "documento_fonte": "rt_33E000GLVE6L4BIFLARMYPA0VKIRL7DIRYT.xml",
+                "origine": "Document AI / fascicolo",
+                "updated_by": "IUSENTRA automatico",
+                "note": "Compilato automaticamente dalla ricevuta contributo unificato presente nel fascicolo.",
+            }
+        }
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fake_auto)
+    with app.app_context():
+        repo = get_fascicoli()
+        original_save = repo._salva
+        save_calls = {"count": 0}
+
+        def counted_save():
+            save_calls["count"] += 1
+            return original_save()
+
+        def forbidden_single_update(*args, **kwargs):
+            raise AssertionError("Il presidio automatico deve salvare in batch, non con aggiorna() per ogni fascicolo.")
+
+        monkeypatch.setattr(repo, "_salva", counted_save)
+        monkeypatch.setattr(repo, "aggiorna", forbidden_single_update)
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=lambda: repo,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+        saved = get_fascicoli().get(fascicolo.id)
+        marker = saved.pagamenti["_presidio_documentale"]
+
+    assert result["contributiUpdatedCount"] == 1
+    assert result["documentAnalysisUpdatedCount"] == 1
+    assert saved.pagamenti["contributo_unificato"]["status"] == "pagato"
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
+    assert marker["status"] == "aggiornato"
+    assert marker["fingerprint"] == react_fascicoli_bridge._document_analysis_fingerprint(saved)
+
+    with app.app_context():
+        repeat = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+    assert repeat["contributiUpdatedCount"] == 0
+    assert repeat["documentAnalysisUpdatedCount"] == 0
+    assert calls["count"] == 1
+
+    def fail_automatic_scan(*args, **kwargs):
+        raise AssertionError("La lista economica deve leggere il contributo dal DB, non dal parser.")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_automatic_scan)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/fascicoli?page=1&page_size=25&sort=rg&view=economica",
+            headers={"X-API-Key": "react-test-key"},
+        )
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert response.status_code == 200
+    assert contributo["status"] == "pagato"
+    assert contributo["importo"] == 49.0
+    assert contributo["importoLabel"] == "€ 49,00"
+    assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fake_auto)
+    with app.app_context():
+        get_fascicoli().aggiungi_documento(
+            fascicolo.id,
+            "Pagamento integrativo cu.xml",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"<xml/>",
+            note="Nuova ricevuta contributo unificato",
+        )
+        changed = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+
+    assert changed["contributiUpdatedCount"] == 0
+    assert changed["documentAnalysisUpdatedCount"] == 1
+    assert calls["count"] == 2
+
+
+def test_presidio_economico_automatico_non_scansiona_tutti_i_documenti(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Controllo performance presidio",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Performance",
+            tribunale="Tribunale di Palmi",
+            numero_rg="1222",
+            anno_rg=2026,
+        )
+        for index in range(8):
+            fascicoli.aggiungi_documento(
+                fascicolo.id,
+                f"Documento generico {index}.pdf",
+                TipoDocumento.ATTO_GIUDIZIARIO,
+                b"contenuto generico",
+                note="Documento non economico",
+            )
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {
+                    "status": "da_registrare",
+                    "importo": 0,
+                    "documento_fonte": "Import pratiche",
+                }
+            },
+        )
+
+    fallback_flags: list[bool] = []
+
+    def guarded_candidates(*args, **kwargs):
+        fallback_flags.append(bool(kwargs.get("fallback_all")))
+        assert kwargs.get("fallback_all") is False
+        return []
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_document_candidates_for_hints", guarded_candidates)
+
+    with app.app_context():
+        repo = get_fascicoli()
+        original_save = repo._salva
+        save_calls = {"count": 0}
+
+        def counted_save():
+            save_calls["count"] += 1
+            return original_save()
+
+        def forbidden_single_update(*args, **kwargs):
+            raise AssertionError("Il presidio automatico deve salvare in batch, non con aggiorna() per ogni fascicolo.")
+
+        monkeypatch.setattr(repo, "_salva", counted_save)
+        monkeypatch.setattr(repo, "aggiorna", forbidden_single_update)
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=lambda: repo,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+
+    assert result["contributiCheckedCount"] == 1
+    assert result["documentAnalysisUpdatedCount"] == 1
+    assert fallback_flags
+    assert set(fallback_flags) == {False}
+    assert save_calls["count"] == 1
+
+
+def test_presidio_economico_rianalizza_marker_corrente_incompleto_senza_unresolved(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Moscato Marco c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Moscato Marco",
+            tribunale="Tribunale di Palmi",
+            numero_rg="12",
+            anno_rg=2026,
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "Contributo unificato Moscato.PDF",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"pdf",
+            note="Contributo unificato",
+        )
+        saved = fascicoli.get(fascicolo.id)
+        marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+            saved,
+            actor="Import precedente",
+            automatic_sources={},
+        )
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {"status": "da_registrare", "importo": 0},
+                "_presidio_documentale": marker,
+            },
+        )
+
+    calls = {"count": 0}
+
+    def fake_auto(*args, **kwargs):
+        calls["count"] += 1
+        return {
+            "contributo_unificato": {
+                "kind": "contributo_unificato",
+                "status": "pagato",
+                "importo": 21.5,
+                "data_pagamento": "2026-03-17",
+                "documento_fonte": "Contributo unificato Moscato.PDF",
+            }
+        }
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fake_auto)
+    with app.app_context():
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+        saved = get_fascicoli().get(fascicolo.id)
+
+    assert calls["count"] == 1
+    assert result["contributiUpdatedCount"] == 1
+    assert saved.pagamenti["contributo_unificato"]["status"] == "pagato"
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 21.5
+
+
+def test_presidio_economico_non_rilegge_marker_corrente_con_unresolved(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Nessuna ricevuta c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente senza ricevuta",
+            tribunale="Tribunale di Palmi",
+            numero_rg="1300",
+            anno_rg=2026,
+        )
+        saved = fascicoli.get(fascicolo.id)
+        marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+            saved,
+            actor="Test automatico",
+            automatic_sources={},
+        )
+        marker["unresolvedKinds"] = ["contributo_unificato"]
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {"status": "da_registrare", "importo": 0},
+                "_presidio_documentale": marker,
+            },
+        )
+
+    def fail_auto(*args, **kwargs):
+        raise AssertionError("Un marker corrente con unresolvedKinds non deve rilanciare il presidio.")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_auto)
+    with app.app_context():
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+
+    assert result["contributiUpdatedCount"] == 0
+    assert result["documentAnalysisUpdatedCount"] == 0
+
+
+def test_presidio_economico_definisce_fascicolo_con_liquidazione_pagata_e_parcella_da_emettere(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Sentenza economica c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente definito",
+            tribunale="Tribunale di Palmi",
+            numero_rg="1400",
+            anno_rg=2026,
+        )
+        fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.IN_CORSO, avvocato="Tester")
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {"status": "non_previsto", "previsto": False},
+                "liquidazione_giudice": {"status": "pagato", "importo": 258.0, "data_pagamento": "2026-06-15"},
+                "parcella": {"status": "da_emettere", "importo": 376.46},
+            },
+        )
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", lambda *args, **kwargs: {})
+    with app.app_context():
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+        saved = get_fascicoli().get(fascicolo.id)
+
+    assert result["statusDefinedUpdatedCount"] == 1
+    assert saved.stato == StatoFascicolo.DEFINITO
+    assert saved.data_chiusura
+
+
 def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
     app = _app(tmp_path)
     _seed_fascicoli(app, 18)
@@ -77,6 +505,73 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
     assert all(item["status"] == "da_archiviare" for item in by_status["items"])
     assert all("TAR" in item["court"] for item in by_court["items"])
     assert [item["title"] for item in combined["items"]] == ["Pratica paginata 12"]
+
+
+def test_fascicoli_api_filtra_rg_mancanti_da_card(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicoli.nuovo("Senza RG c. MIM", TipoFascicolo.CIVILE, nome_cliente="Cliente Senza RG")
+        fascicoli.nuovo("Completo c. MIM", TipoFascicolo.CIVILE, nome_cliente="Cliente Completo", numero_rg="778", anno_rg=2026)
+
+    with app.test_client() as client:
+        missing_response = client.get("/api/v1/ui/fascicoli?missing_rg_only=1&page_size=25", headers={"X-API-Key": "react-test-key"})
+        duplicate_response = client.get("/api/v1/ui/fascicoli?duplicates_only=1&page_size=25", headers={"X-API-Key": "react-test-key"})
+        missing = missing_response.get_json()
+        duplicates = duplicate_response.get_json()
+
+    assert missing_response.status_code == 200
+    assert duplicate_response.status_code == 200
+    assert missing["pagination"]["total"] == 1
+    assert missing["summary"]["missingRg"] == 1
+    assert [item["client"] for item in missing["items"]] == ["Cliente Senza RG"]
+    assert "duplicatePracticeRows" in duplicates["summary"]
+
+
+def test_fascicoli_parcelle_card_filtra_solo_lavoro_reale():
+    base_item = {
+        "title": "Fascicolo",
+        "client": "Cliente",
+        "ref": "RG 1/2026",
+        "rg": "RG 1/2026",
+        "type": "civile",
+        "status": "in_corso",
+        "court": "Tribunale",
+        "alerts": 0,
+        "unreadCommunications": 0,
+        "rgMissing": False,
+        "duplicateCount": 0,
+    }
+
+    generic_da_emettere = {
+        **base_item,
+        "paymentSummary": {
+            "parcelleDaEmettere": 0,
+            "proformaPresidio": {"existingDraftCount": 0},
+            "items": {"parcella": {"status": "da_emettere"}},
+        },
+    }
+    amount_to_issue = {
+        **base_item,
+        "paymentSummary": {
+            "parcelleDaEmettere": 1,
+            "proformaPresidio": {"existingDraftCount": 0},
+            "items": {"parcella": {"status": "da_emettere"}},
+        },
+    }
+    draft_to_review = {
+        **base_item,
+        "paymentSummary": {
+            "parcelleDaEmettere": 0,
+            "proformaPresidio": {"existingDraftCount": 1},
+            "items": {"parcella": {"status": "da_emettere"}},
+        },
+    }
+
+    filters = {"parcella": "da_emettere"}
+    assert not react_fascicoli_bridge._matches_list_filters(generic_da_emettere, payment_filters=filters)
+    assert react_fascicoli_bridge._matches_list_filters(amount_to_issue, payment_filters=filters)
+    assert react_fascicoli_bridge._matches_list_filters(draft_to_review, payment_filters=filters)
 
 
 def test_fascicoli_api_sort_rg_decrescente_per_anno_e_numero(tmp_path):
@@ -109,6 +604,8 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "query.set('client', params.client.trim())" in data_source
     assert "query.set('rg', params.rg.trim())" in data_source
     assert "query.set('alerts_only', '1')" in data_source
+    assert "query.set('missing_rg_only', '1')" in data_source
+    assert "query.set('duplicates_only', '1')" in data_source
     assert "Contesto filtri" not in page_source
     assert "client={clientFilter}" not in page_source
     assert "rg={rgFilter}" not in page_source
@@ -132,6 +629,16 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "pageRequestsRef" in page_source
     assert "onPagePrefetch" in page_source
     assert "Caricamento pagina {pendingPage}..." in page_source
+    assert "warmEconomicFirstPages" in page_source
+    assert "[2, 3].forEach" in page_source
+    assert "applyStatContext({ missingRgOnly: true })" in page_source
+    assert "applyStatContext({ duplicatesOnly: true })" in page_source
+    assert "syncListContextInUrl(next)" in page_source
+    assert "economicPresidioRunRef.current === presidioKey" in page_source
+    assert "data.summary.economicAnalysisDue" in page_source
+    assert "const presidioDue = Number(data.summary.economicAnalysisDue || 0)" in page_source
+    assert "data.summary.invoicesToIssue || 0) + Number(data.summary.economicAnalysisDue" not in page_source
+    assert "data.generatedAt, data.summary.economicAnalysisDue" not in page_source
     assert ".iu-fas-page-loading" in css_source
 
 

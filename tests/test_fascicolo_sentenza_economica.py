@@ -254,6 +254,24 @@ def test_pdf_contributo_unificato_legge_campo_rt_pagopa_senza_simbolo_euro():
     assert evidence["document_id"] == "DOC-CU-RT"
 
 
+def test_pdf_contributo_unificato_legge_modello_f23_senza_simbolo_euro():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        AGENZIA DELLE ENTRATE
+        MODELLO DI PAGAMENTO
+        TASSE IMPOSTE SANZIONI ED ALTRE ENTRATE
+        codice tributo 941T
+        CONTRIBUTO UNIFICATO 21,50
+        PER UN IMPORTO COMPLESSIVO DI EURO | 21,50
+        """,
+        {"filename": "Contributo unificato Moscato.PDF"},
+    )
+
+    assert evidence["importo"] == 21.50
+    assert evidence["natura"] == "modello_f23_f24_contributo_unificato"
+    assert evidence["status"] == "pagato"
+
+
 def test_pdf_contributo_classificato_senza_importo_non_diventa_pagato():
     marker = (
         "Presidio creato automaticamente dall'import pratiche; verificare ricevuta "

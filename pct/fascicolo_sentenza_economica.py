@@ -256,6 +256,20 @@ _CONTRIBUTO_RT_RFB_AMOUNT_RE = re.compile(
     r"(?P<causale>[^<]{0,240})",
     re.IGNORECASE | re.DOTALL,
 )
+_CONTRIBUTO_F23_ANCHOR_RE = re.compile(
+    r"\b(?:modello\s+di\s+pagamento|agenzia\s+delle\s+entrate|codice\s+tributo|"
+    r"versamento\s+diretto\s+al\s+concessionario|f23|f24|f28|tasse\s+imposte\s+sanzioni)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_F23_DIRECT_AMOUNT_RE = re.compile(
+    r"\bcontributo\s+unificat[oi]\b.{0,120}?\b(?P<amount>\d{1,6}(?:[.,]\d{2}))\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_CONTRIBUTO_F23_TOTAL_AMOUNT_RE = re.compile(
+    r"\bimporto\s+complessivo\s+di\s+(?:" + _MONEY_PREFIX_PATTERN + r")?"
+    r"[\s|:;.,_-]{0,24}(?P<amount>\d{1,6}(?:[.,]\d{2}))\b",
+    re.IGNORECASE | re.DOTALL,
+)
 _CU_BACKWARD_ACCEPT_RE = re.compile(
     r"\b(?:c\.?\s*u\.?|contribut[oi]\s+unificat[oi]|spese\s+vive|spese|sommatoria|versat[eiio]?|anticipat[ei])\b",
     re.IGNORECASE,
@@ -1201,6 +1215,34 @@ def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, An
     return {}
 
 
+def _extract_contributo_f23_payment_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    """Legge i modelli F23/F24/F28 usati storicamente per il contributo unificato."""
+
+    if not _CONTRIBUTO_F23_ANCHOR_RE.search(compact):
+        return {}
+    if not re.search(r"\bcontributo\s+unificat[oi]\b", compact, re.IGNORECASE):
+        return {}
+    for pattern in (_CONTRIBUTO_F23_DIRECT_AMOUNT_RE, _CONTRIBUTO_F23_TOTAL_AMOUNT_RE):
+        match = pattern.search(compact)
+        if not match:
+            continue
+        amount = _parse_money(match.group("amount"))
+        if amount is None or amount <= 0:
+            continue
+        return {
+            "importo": amount,
+            "titolo": _snippet(compact, match.start(), match.end(), window=90),
+            "natura": "modello_f23_f24_contributo_unificato",
+            "label": "Contributo unificato da modello F23/F24",
+            "status": "pagato",
+            "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+            "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+            "sha256": _text(metadata.get("sha256")),
+            "origine": "modello_f23_f24_contributo_unificato",
+        }
+    return {}
+
+
 def extract_contributo_unificato_document_evidence(
     text: str,
     metadata: dict[str, Any] | None = None,
@@ -1225,6 +1267,9 @@ def extract_contributo_unificato_document_evidence(
     rt_payment = _extract_contributo_rt_payment_evidence(compact, meta)
     if rt_payment:
         return rt_payment
+    f23_payment = _extract_contributo_f23_payment_evidence(compact, meta)
+    if f23_payment:
+        return f23_payment
     if not label_has_hint and not has_payment_anchor and not has_due_anchor:
         return {}
     if non_payment_source and not has_payment_anchor and not has_due_anchor:

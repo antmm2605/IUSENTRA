@@ -117,6 +117,52 @@ Durante la verifica successiva il browser reale mostrava il fallback, ma il dett
 
 Stato: implementazione tecnica, test mirati e prova reale locale completati; resta la prova server Hetzner sul tenant produzione prima del report finale positivo.
 
+## Aggiornamento presidio idempotente 2.254.14 dell'08/07/2026
+
+Problema reale emerso in produzione: la vista economica era stata velocizzata, ma alcuni contributi unificati erano ancora solo evidenze lette al volo dai documenti. Quando la lista ha smesso correttamente di rileggere i documenti a ogni cambio pagina, quei valori non comparivano più. La regola corretta è quindi:
+
+1. il presidio legge, classifica ed estrae;
+2. il presidio salva il dato economico nel fascicolo;
+3. la lista economica legge solo il dato salvato in SQL/DB;
+4. se un documento nuovo o modificato entra nel fascicolo, il marker `_presidio_documentale` diventa `stale` e il presidio può ripartire;
+5. se l'impronta documentale non cambia, il presidio non rilegge OCR/PDF/XML e la pagina resta veloce.
+
+Correzioni applicate:
+
+- nuovo helper puro `pct/presidio_documentale_state.py`, senza accesso a file o DB, per stato `aggiornato / da_analizzare / da_rianalizzare` e classificazioni salvate nel marker;
+- `run_react_fascicoli_economic_presidio` ora consolida nel fascicolo le evidenze economiche lette dai documenti, compreso il contributo unificato e le correzioni da autocertificazione CU finita sotto spese/esborsi;
+- la vista economica usa `payment_summary_for_fascicolo_fast`, quindi non avvia letture massive durante caricamento, cambio pagina o prefetch;
+- il presidio automatico chiamato dalla UI usa solo candidati documentali/classificazioni già indiziati (`allow_full_document_scan=False`), così non rilegge fisicamente tutto il fascicolo durante il cambio pagina; la scansione profonda resta una procedura di manutenzione esplicita, non un costo di navigazione;
+- il trigger React automatico non è più "una volta per sessione", ma "una volta per firma dati": se entrano nuovi documenti e cambia il payload, il presidio può ripartire; se l'impronta è invariata, non rilegge;
+- la cache payload e la cache base fascicoli sono isolate anche per path dati quando manca uno slug tenant esplicito, così test e ambienti paralleli non condividono liste;
+- il payload summary espone `economicAnalysisDue` per far partire il presidio solo quando il DB segnala analisi mancante o stale.
+
+Fonti ufficiali riconsultate l'08/07/2026:
+
+- PST Giustizia, pagamento telematico contributo unificato, diritti e spese: https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC433&modelId=12
+- PST Giustizia, vademecum pagamenti: la ricevuta di pagamento in formato `RT.xml` è il documento da usare nei servizi telematici.
+- Normattiva, D.P.R. 115/2002 art. 248: invito al pagamento e regolarizzazione contributo.
+- AgID, regole tecniche PEC: ricevute di accettazione/consegna, busta di trasporto, busta di anomalia e dati di certificazione.
+
+Test mirati aggiornati:
+
+- `tests/test_fascicoli_pagination.py::test_presidio_economico_consolida_cu_poi_lista_legge_solo_db`: primo presidio salva `€ 49,00`, secondo presidio non rilegge, la lista economica mostra il valore dal DB senza richiamare il parser, un nuovo documento rimette il fascicolo in analisi;
+- `tests/test_fascicoli_pagination.py::test_presidio_economico_automatico_non_scansiona_tutti_i_documenti`: il presidio automatico fallisce il test se prova a usare `fallback_all=True` durante il flusso veloce;
+- `tests/test_react_shell.py::test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr`: autocertificazione CU consolida `non_previsto`;
+- `tests/test_react_shell.py::test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu`: autocertificazione importata sotto spese viene spostata sul CU e le spese tornano `non_previsto`;
+- `frontend/scripts/check-react-contracts.mjs`: presidia prefetch leggero e trigger automatico legato a `economicAnalysisDue`.
+
+Verifiche eseguite prima della prova server:
+
+- `python -m py_compile pct/presidio_documentale_state.py web/services/react_fascicoli_bridge.py web/blueprints/api_v1_react.py web/bootstrap/fascicoli_document_routes.py web/bootstrap/fascicoli_management_routes.py`
+- `python -m pytest tests/test_fascicoli_pagination.py -q --tb=short`
+- `python -m pytest tests/test_react_shell.py -k "fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr or fascicoli_economia_sposta_autocertificazione_importata_sul_cu or react_fascicoli_presidio_economico" -q --tb=short`
+- `node frontend/scripts/check-react-contracts.mjs`
+- `python -m pytest tests/test_utf8_integrity.py -q --tb=short`
+- scansione UTF-8 mirata sui file modificati con esito `UTF8 changed files OK`
+
+Stato: codice e test mirati locali pronti; restano consolidamento dati sul server reale, test visivo produzione, rebuild locale reale, commit/push branch gemelli e deploy Hetzner allineato.
+
 ## Aggiornamento bootstrap React del 07/07/2026
 
 Durante il test visivo richiesto su `https://app.iusentra.it/fascicoli?vista=economica` è emerso che il fallback `Interfaccia non avviata` poteva comparire mentre il modulo React principale era ancora in caricamento. La causa operativa non era il presidio economico, ma il root vuoto durante il download del chunk applicativo: il controllo di sicurezza della shell lo interpretava come mancato avvio.
@@ -327,3 +373,34 @@ Prova visiva reale locale:
 - l'hash password temporaneo dell'utente locale di test è stato ripristinato dopo la prova.
 
 Obiettivo della correzione: la vista economica deve restare percepita come pronta e governata. Se i dati sono già stati letti o preletti, il cambio pagina deve essere immediato; se una pagina non è pronta, l'avvocato deve vedere subito quale pagina il software sta caricando.
+
+## Aggiornamento card operative e contesto economico del 08/07/2026
+
+Difetto verificato in produzione: le card riepilogative in `/fascicoli` erano percepite come decorative. In particolare, cliccando `RG da acquisire` la UI poteva mostrare un contesto vuoto anche se il contatore indicava 33 fascicoli; cliccando `Parcelle` il contesto era troppo largo e tornava 300 righe invece del lavoro reale indicato dalla card.
+
+Correzioni applicate:
+
+- ogni card della testata fascicoli è ora un ingresso operativo con filtro React e URL sincronizzati;
+- `RG da acquisire` apre il perimetro `missing_rg_only=1`, azzera filtri concorrenti e mostra i fascicoli senza ruolo da completare;
+- `Parcelle` apre la vista economica con `parcella=da_emettere`, ma il backend include solo fascicoli con parcella effettivamente da emettere o bozza proforma da visionare;
+- `Doppioni`, `Economico`, `Registrato`, `Documenti`, `Comunicazioni`, `In corso` e `Da archiviare` applicano contesti coerenti, non semplici link ornamentali;
+- il presidio economico salva progressivamente le modifiche di contributo/stato durante il batch, evitando di perdere cambi già calcolati se una scansione lunga viene interrotta;
+- la regola economica `liquidazione pagata + parcella da emettere => fascicolo definito` risulta consolidata: sul server non restano fascicoli `Aperto/In corso` in quella condizione.
+
+Prove server reali eseguite su `https://app.iusentra.it/fascicoli` nello studio `studio-legale-giuseppe-montagnese`:
+
+- pagina base vista economica: `300` fascicoli, `12` pagine, nessun errore console;
+- click card `RG da acquisire`: URL `?missing_rg_only=1`, `33 fascicoli filtrati`, prime righe reali `Contarese Cristina`, `Alfano Giuseppe`, `Siclari Graziano`;
+- click card `Parcelle`: URL `?vista=economica&parcella=da_emettere`, `165 fascicoli filtrati`, coerenti con `101 da emettere` e `64 bozze da visionare`;
+- paginazione economica completa da pagina 2 a pagina 12: pagina 2 circa `1,25s`, pagine 3-12 tra circa `0,4s` e `0,84s`, footer sempre coerente con `Pagina X di 12 - 300 fascicoli`.
+- nuova prova materiale del 08/07/2026 sul server già aggiornato: la card `Parcelle` ha mostrato `165 fascicoli filtrati` con righe reali `Betti Alice`, `Vinci Rosa Maria`, `Nasso Francesco Rocco`, importi contributo/liquidazione/parcella e fonte documentale; la card `RG da acquisire` ha mostrato `33 fascicoli filtrati` con righe reali `Contarese Cristina`, `Alfano Giuseppe`, `Siclari Graziano`;
+- tempi server a cache calda dopo il primo calcolo: `Parcelle` circa `43 ms`, `RG da acquisire` circa `44 ms`, nessun errore console. Il primo calcolo del filtro dopo deploy può richiedere alcuni secondi, ma i contesti già letti non vengono ricalcolati a ogni click.
+
+Prova locale reale su `http://127.0.0.1:8080/fascicoli?vista=economica`, tenant `studio-montagnese`, container `iusentra-app` healthy e versione `2.254.14`:
+
+- accesso con utente locale tecnico `codex_pec_ui_test`, password temporanea impostata solo per la prova e ripristinata subito dopo in `data/auth/utenti.json`, `data/tenants/tenant-8bf98719c459/auth/utenti.json` e `studio.db`;
+- click card `RG da acquisire`: URL `?missing_rg_only=1`, `1 fascicolo filtrato`, riga reale `Moscato Marco - Appello civile`;
+- click card `Parcelle`: URL `?vista=economica&parcella=da_emettere`, `2 fascicoli filtrati`, righe reali `Alessi Robertino` e `Montagnese Elisabetta`;
+- screenshot locale acquisiti: focus sulla card `Parcelle` e lista economica filtrata con `Contributo € 98,00`, `Liquidazione € 1.500,00`, `Parcella € 2.028,20`, bozza proforma da visionare e stato `Definito`.
+
+Dato residuo non chiuso: dopo il presidio restano `120` contributi unificati `da verificare` nei dati server. Questi casi non devono essere risolti nel caricamento della lista: vanno trattati dal presidio documentale incrementale quando entrano nuovi documenti o quando un job governato analizza un sottoinsieme mirato, salvando nel DB esito, fonte e motivo.

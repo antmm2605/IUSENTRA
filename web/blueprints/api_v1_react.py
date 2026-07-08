@@ -114,6 +114,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicoli_payload,
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
+    clear_react_fascicoli_base_cache,
     run_react_fascicoli_economic_presidio,
     update_react_fascicolo_payment,
     update_react_fascicolo_status,
@@ -5540,6 +5541,7 @@ def studio_telematico_import_run():
         return jsonify({"ok": False, "errore": "Import non completato. Nessun passaggio successivo è stato avviato automaticamente."}), 400
 
     clear_dashboard_payload_cache()
+    _clear_fascicoli_list_payload_cache()
     summary = result.get("summary", {}) if isinstance(result.get("summary"), dict) else {}
     _audit_event(
         "studio_telematico.import_esegui",
@@ -5560,10 +5562,75 @@ def studio_telematico_import_run():
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START
+_FASCICOLI_LIST_PAYLOAD_CACHE = ReactPayloadTTLCache(
+    ttl_seconds=float(os.getenv("IUSENTRA_REACT_FASCICOLI_LIST_TTL_SECONDS") or 90),
+    max_entries=int(os.getenv("IUSENTRA_REACT_FASCICOLI_LIST_MAX_ENTRIES") or 256),
+)
+
+
+def _clear_fascicoli_list_payload_cache() -> None:
+    _FASCICOLI_LIST_PAYLOAD_CACHE.clear()
+    clear_react_fascicoli_base_cache()
+
+
+def clear_react_fascicoli_list_payload_cache() -> None:
+    """Svuota la cache della lista fascicoli dopo modifiche a fascicoli o documenti."""
+
+    _clear_fascicoli_list_payload_cache()
+
+
+def _fascicoli_list_cache_key() -> tuple | None:
+    if not _FASCICOLI_LIST_PAYLOAD_CACHE.enabled:
+        return None
+    tenant = getattr(g, "tenant", None)
+    tenant_slug = str(
+        getattr(tenant, "slug", "") or getattr(g, "tenant_context_slug", "") or ""
+    ).strip().lower()
+    if not tenant_slug:
+        for config_key in ("DATA_ROOT", "FASCICOLI_DB", "CLIENTI_DB"):
+            value = current_app.config.get(config_key)
+            if value:
+                tenant_slug = str(value).strip().lower()
+                break
+    user = getattr(g, "user", None) or getattr(g, "utente_corrente", None)
+    user_key = str(
+        getattr(user, "id", "")
+        or getattr(user, "username", "")
+        or getattr(user, "email", "")
+        or "api"
+    ).strip().lower()
+    args = (
+        ("page", str(_request_int("page", default=1))),
+        ("page_size", str(_request_int("page_size", "pageSize", default=5))),
+        ("q", request.args.get("q", "").strip()),
+        ("client", request.args.get("client", "").strip()),
+        ("rg", request.args.get("rg", "").strip()),
+        ("type", request.args.get("type", "").strip()),
+        ("status", request.args.get("status", "").strip()),
+        ("court", request.args.get("court", "").strip()),
+        ("sort", request.args.get("sort", "rg").strip() or "rg"),
+        ("view", (request.args.get("view", "") or request.args.get("vista", "")).strip()),
+        ("alerts_only", "1" if (_request_bool("alerts_only") or _request_bool("alertsOnly")) else "0"),
+        ("payments_only", "1" if (_request_bool("payments_only") or _request_bool("paymentsOnly")) else "0"),
+        ("missing_rg_only", "1" if (_request_bool("missing_rg_only") or _request_bool("missingRgOnly")) else "0"),
+        ("duplicates_only", "1" if (_request_bool("duplicates_only") or _request_bool("duplicatesOnly")) else "0"),
+        ("cu", (request.args.get("cu", "") or request.args.get("contributo_unificato", "")).strip()),
+        ("fondo_spese", (request.args.get("fondo_spese", "") or request.args.get("fondoSpese", "")).strip()),
+        ("liquidazione", (request.args.get("liquidazione", "") or request.args.get("liquidazione_giudice", "")).strip()),
+        ("parcella", request.args.get("parcella", "").strip()),
+    )
+    return ("fascicoli-list", tenant_slug, user_key, args)
+
+
 @api_v1_react.get("/fascicoli")
 @_richiedi_auth
 def fascicoli_react_list():
-    return jsonify(build_react_fascicoli_payload(
+    cache_key = _fascicoli_list_cache_key()
+    if cache_key is not None:
+        cached = _FASCICOLI_LIST_PAYLOAD_CACHE.get(cache_key)
+        if cached is not None:
+            return current_app.response_class(cached, mimetype="application/json")
+    response = jsonify(build_react_fascicoli_payload(
         get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
         get_fatturazione=get_fatturazione,
@@ -5579,6 +5646,8 @@ def fascicoli_react_list():
         view=request.args.get("view", "") or request.args.get("vista", ""),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
+        missing_rg_only=_request_bool("missing_rg_only") or _request_bool("missingRgOnly"),
+        duplicates_only=_request_bool("duplicates_only") or _request_bool("duplicatesOnly"),
         payment_filters={
             "contributo_unificato": request.args.get("cu", "") or request.args.get("contributo_unificato", ""),
             "fondo_spese": request.args.get("fondo_spese", "") or request.args.get("fondoSpese", ""),
@@ -5586,6 +5655,9 @@ def fascicoli_react_list():
             "parcella": request.args.get("parcella", ""),
         },
     ))
+    if cache_key is not None and response.status_code == 200:
+        _FASCICOLI_LIST_PAYLOAD_CACHE.set(cache_key, response.get_data())
+    return response
 
 
 @api_v1_react.post("/fascicoli/presidio-economico/proforme")
@@ -5607,8 +5679,13 @@ def fascicoli_react_presidio_economico_proforme():
         actor=actor,
         limit=max(1, min(1000, limit)),
     )
-    if int(result.get("createdCount") or 0):
+    if (
+        int(result.get("createdCount") or 0)
+        or int(result.get("contributiUpdatedCount") or 0)
+        or int(result.get("documentAnalysisUpdatedCount") or 0)
+    ):
         clear_dashboard_payload_cache()
+        _clear_fascicoli_list_payload_cache()
         _audit_event(
             "fascicoli.presidio_economico.proforme",
             "fascicoli",
@@ -5649,6 +5726,7 @@ def fascicolo_react_stato(id_fasc: str):
         actor=_actor_label(),
     )
     if result.get("ok"):
+        _clear_fascicoli_list_payload_cache()
         _audit_event(
             "fascicoli.stato_aggiornato",
             "fascicolo",
@@ -5672,6 +5750,7 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
         actor=_actor_label(),
     )
     if result.get("ok"):
+        _clear_fascicoli_list_payload_cache()
         _audit_event(
             "fascicoli.pagamento_aggiornato",
             "fascicolo",

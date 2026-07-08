@@ -322,7 +322,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Tenant isolation | tests/test_editor_ai_repository.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_lex_editor_ai_tools.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_template_atti_editor.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Fascicoli | API contract | tests/test_fascicoli_pagination.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Fascicoli | API contract | tests/test_fascicoli_pagination.py | feature flag, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_signature_options.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_stato_e_filtri_economici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Tenant isolation | tests/test_fascicoli.py | tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |

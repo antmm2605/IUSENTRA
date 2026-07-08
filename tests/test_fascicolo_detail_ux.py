@@ -104,13 +104,16 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
         response = client.get(f"/fascicoli/{fascicolo.id}")
         legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
         react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
+        react_documents_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti")
 
     body = response.data.decode("utf-8")
     legacy_body = legacy_response.data.decode("utf-8")
     react_payload = react_response.get_json()
+    react_documents_payload = react_documents_response.get_json()
     assert response.status_code == 200
     assert legacy_response.status_code == 200
     assert react_response.status_code == 200
+    assert react_documents_response.status_code == 200
     assert '<div id="root"></div>' in body
     assert 'id="docBulkDeleteForm"' in legacy_body
     assert 'id="modalConfermaAzioneFascicolo"' in legacy_body
@@ -121,8 +124,9 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
     assert "elimina_attivita_fascicolo" not in legacy_body
     assert "/attivita/" in legacy_body and "/elimina" in legacy_body
     assert react_payload["fascicolo"]["title"] == "RG 1025/2024"
-    assert react_payload["documents"][0]["name"] == "atto.pdf"
-    assert react_payload["activities"][0]["title"] == "Udienza di trattazione"
+    assert react_payload["documents"] == []
+    assert react_documents_payload["documents"][0]["name"] == "atto.pdf"
+    assert react_payload["activities"] == []
 
 
 def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):

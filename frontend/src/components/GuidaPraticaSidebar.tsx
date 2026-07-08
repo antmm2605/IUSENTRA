@@ -600,13 +600,25 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<TabKey>('checklist')
   const [expanded, setExpanded] = useState(() => typeof window !== 'undefined' && window.location.hash === '#guida-pratica')
+  const [loadedKey, setLoadedKey] = useState('')
   const effectiveCode = useMemo(() => codiceFromResponse(response) || codice, [response, codice])
   const load = () => {
+    const nextKey = fascicoloId ? `fascicolo:${fascicoloId}` : codice ? `codice:${codice}` : ''
+    if (!nextKey || loading || loadedKey === nextKey) return
     setLoading(true)
     const loader = fascicoloId ? getFascicoloGuidaPratica(fascicoloId) : getCodiceGuidaPratica(codice)
-    loader.then(setResponse).finally(() => setLoading(false))
+    loader.then((payload) => {
+      setResponse(payload)
+      setLoadedKey(nextKey)
+    }).finally(() => setLoading(false))
   }
-  useEffect(load, [fascicoloId, codice])
+  useEffect(() => {
+    setResponse(emptyGuidaPraticaResponse())
+    setLoadedKey('')
+  }, [fascicoloId, codice])
+  useEffect(() => {
+    if (expanded) load()
+  }, [expanded, fascicoloId, codice, loadedKey, loading])
   useEffect(() => {
     const openFromHash = () => {
       if (window.location.hash === '#guida-pratica') setExpanded(true)

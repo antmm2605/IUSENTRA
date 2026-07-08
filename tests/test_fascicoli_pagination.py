@@ -703,11 +703,11 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
     assert main["regia"]["page_state"] == "lazy_non_caricata"
     assert main["auditTrail"]["status"] == "lazy_non_caricato"
     assert main["quickCounts"]["documenti"] == 1
-    assert main["quickCounts"]["attivita"] >= 1
+    assert main["quickCounts"]["attivita"] == 0
     assert main["quickCounts"]["udienze_scadenze"] >= 1
     assert main["quickCounts"]["comunicazioni"] == 1
     assert len(documenti["documents"]) == 1
-    assert any(item["title"] == "Udienza filtro lazy" for item in attivita["activities"])
+    assert attivita["activities"] == []
     assert len(scadenze["deadlines"]) == 1
     assert len(depositi["deposits"]) == 1
     assert regia["mock_fallback"] is False

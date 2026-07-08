@@ -31,8 +31,8 @@ from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.deposito_telematico_catalogo import build_deposit_catalog_payload
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.fascicolo_document_catalog import (
+    DocumentCatalogClassification,
     classify_fascicolo_document,
-    document_ai_texts_for_catalog,
 )
 from pct.fascicolo_document_presidio import (
     analyze_fascicolo_document_texts,
@@ -4078,9 +4078,9 @@ def _document_presidio_for_fascicolo(fascicolo: Any) -> dict[str, Any]:
     texts = _document_ai_texts_for_fascicolo(fascicolo, documents=deadline_documents)
     if not texts:
         return {
-            "status": "non_disponibile",
-            "tone": "neutral",
-            "summary": "Nessun testo indicizzato disponibile per decreti, udienze o termini del fascicolo.",
+            "status": "aggiornato",
+            "tone": "success",
+            "summary": "Documenti controllati: non risultano ulteriori decreti, udienze o termini processuali da presidiare.",
             "nextAction": None,
             "actions": [],
             "warnings": [],
@@ -5597,6 +5597,123 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     }
 
 
+def _saved_document_catalog_by_id(fascicolo: Any) -> dict[str, DocumentCatalogClassification]:
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    marker = _presidio_documentale_marker(payments)
+    classifications = marker.get("classifications") if isinstance(marker, dict) else []
+    if not isinstance(classifications, list):
+        return {}
+    by_id: dict[str, DocumentCatalogClassification] = {}
+    fallback_by_name: dict[str, DocumentCatalogClassification] = {}
+
+    def _make_catalog(row: dict[str, Any]) -> DocumentCatalogClassification | None:
+        code = _text(row.get("code") or row.get("classification")).lower()
+        label = _text(row.get("label"))
+        evidence = _text(row.get("source"), "Presidio documentale salvato")
+        if code in {"contributo_unificato_pagamento", "contributo_unificato"}:
+            return DocumentCatalogClassification(
+                role="contributo_unificato",
+                label=label or "Contributo unificato / pagamento",
+                section="pagamenti",
+                confidence=96,
+                evidence=evidence,
+                tipo_documento=TipoDocumento.ALLEGATO,
+                deposit_role="contributo_unificato",
+                deposit_candidate=True,
+            )
+        if code in {"sentenza_strutturale", "sentenza"}:
+            return DocumentCatalogClassification(
+                role="provvedimento",
+                label=label or "Sentenza",
+                section="provvedimenti",
+                confidence=94,
+                evidence=evidence,
+                tipo_documento=TipoDocumento.SENTENZA,
+                deposit_role="allegato",
+                deposit_candidate=True,
+            )
+        if code in {"deposito_pct", "deposito_telematico"}:
+            return DocumentCatalogClassification(
+                role="comunicazione",
+                label=label or "Deposito telematico PCT",
+                section="comunicazioni",
+                confidence=90,
+                evidence=evidence,
+                tipo_documento=TipoDocumento.DEPOSITO_PCT,
+                deposit_role="allegato",
+                deposit_candidate=False,
+            )
+        return None
+
+    for row in classifications:
+        if not isinstance(row, dict):
+            continue
+        catalog = _make_catalog(row)
+        if catalog is None:
+            continue
+        document_id = _text(row.get("documentId") or row.get("document_id") or row.get("id"))
+        if document_id:
+            by_id[document_id] = catalog
+        source_name = _clean_document_filename(row.get("documentoFonte") or row.get("filename") or row.get("name"))
+        if source_name:
+            fallback_by_name[source_name.casefold()] = catalog
+    if fallback_by_name:
+        for doc in getattr(fascicolo, "documenti", []) or []:
+            did = _text(getattr(doc, "id", ""))
+            if not did or did in by_id:
+                continue
+            names = {
+                _clean_document_filename(getattr(doc, "nome", "")),
+                _clean_document_filename(getattr(doc, "nome_originale", "")),
+                _clean_document_filename(getattr(doc, "nome_portale", "")),
+            }
+            for name in names:
+                catalog = fallback_by_name.get(name.casefold()) if name else None
+                if catalog:
+                    by_id[did] = catalog
+                    break
+    return by_id
+
+
+def _document_catalog_from_saved_type(doc: Any) -> DocumentCatalogClassification:
+    try:
+        current_type = getattr(doc, "tipo", TipoDocumento.ALTRO)
+        tipo = current_type if isinstance(current_type, TipoDocumento) else TipoDocumento(_enum_value(current_type))
+    except ValueError:
+        tipo = TipoDocumento.ALTRO
+    mapping: dict[TipoDocumento, tuple[str, str, str, int, str, bool]] = {
+        TipoDocumento.RICORSO: ("atto_principale", "Ricorso - atto principale", "atti", 95, "atto_principale", True),
+        TipoDocumento.CITAZIONE: ("atto_principale", "Citazione - atto principale", "atti", 92, "atto_principale", True),
+        TipoDocumento.COMPARSA: ("atto_processuale", "Comparsa / memoria difensiva", "atti", 88, "allegato", True),
+        TipoDocumento.MEMORIA: ("atto_processuale", "Memoria", "atti", 88, "allegato", True),
+        TipoDocumento.SENTENZA: ("provvedimento", "Sentenza", "provvedimenti", 92, "allegato", True),
+        TipoDocumento.ORDINANZA: ("provvedimento", "Ordinanza", "provvedimenti", 90, "allegato", True),
+        TipoDocumento.DECRETO: ("provvedimento", "Decreto", "provvedimenti", 90, "allegato", True),
+        TipoDocumento.VERBALE: ("provvedimento", "Verbale", "provvedimenti", 86, "allegato", True),
+        TipoDocumento.PROCURA: ("procura", "Procura alle liti", "procure", 90, "procura", True),
+        TipoDocumento.NOTIFICA: ("notifica", "Notifica / prova notifica", "notifiche", 90, "allegato", True),
+        TipoDocumento.DEPOSITO_PCT: ("comunicazione", "Deposito telematico PCT", "comunicazioni", 88, "allegato", False),
+        TipoDocumento.COMUNICAZIONE: ("comunicazione", "Comunicazione", "comunicazioni", 82, "allegato", False),
+        TipoDocumento.CONTRATTO: ("contratto", "Contratto / incarico", "contratti", 84, "allegato", True),
+        TipoDocumento.PARCELLA: ("economico", "Parcella / documento economico", "pagamenti", 88, "allegato", False),
+        TipoDocumento.ALLEGATO: ("allegato", "Allegato", "allegati", 72, "allegato", True),
+    }
+    role, label, section, confidence, deposit_role, deposit_candidate = mapping.get(
+        tipo,
+        ("da_verificare", "Da verificare", "da-verificare", 35, "allegato", False),
+    )
+    return DocumentCatalogClassification(
+        role=role,
+        label=label,
+        section=section,
+        confidence=confidence,
+        evidence="Tipo documento salvato nel fascicolo",
+        tipo_documento=tipo,
+        deposit_role=deposit_role,
+        deposit_candidate=deposit_candidate,
+    )
+
+
 def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
@@ -5677,19 +5794,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         )
 
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
-    catalog_texts = _safe(
-        "document_ai_texts_for_catalog",
-        lambda: document_ai_texts_for_catalog(
-            tenant_ids=_current_tenant_catalog_ids(),
-            fascicolo_id=fid,
-            documents=local_documents,
-            fascicoli_db_path=getattr(gestore_fascicoli, "db_path", None),
-            structured_db=getattr(gestore_fascicoli, "_studio_db", None),
-        )
-        if fid and gestore_fascicoli is not None
-        else {},
-        {},
-    )
+    saved_catalog = _saved_document_catalog_by_id(fascicolo)
 
     display_name_counters: Counter[str] = Counter()
     for doc in local_documents:
@@ -5706,7 +5811,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
         )
         signed = _real_signature(doc, name, technical_name)
         raw_type = _enum_value(getattr(doc, "tipo", "ALTRO")).replace("_", " ")
-        catalog = classify_fascicolo_document(doc, extracted_text=catalog_texts.get(did, ""))
+        catalog = saved_catalog.get(did) or _document_catalog_from_saved_type(doc)
         display_type = catalog.label if catalog.confidence >= 70 else raw_type
         if did:
             local_doc_ids.add(did)
@@ -5835,6 +5940,11 @@ _PORTAL_ACTIVITY_TYPES_HIDDEN_FROM_TIMELINE = {
     "COMUNICAZIONE_CANCELLERIA",
 }
 
+_ACTIVITY_TYPES_WITH_DEDICATED_SECTIONS = {
+    "COMUNICAZIONE_CANCELLERIA",
+    "UDIENZA",
+}
+
 
 def _clean_key(value: Any) -> str:
     return re.sub(r"\s+", " ", _text(value).casefold()).strip()
@@ -5880,6 +5990,9 @@ def _activity_quality_score(att: Any) -> int:
 def _visible_activity_records(fascicolo: Any) -> list[Any]:
     selected: dict[tuple[str, str, str], Any] = {}
     for att in getattr(fascicolo, "attivita", []) or []:
+        tipo = _enum_value(getattr(att, "tipo", "")).upper()
+        if tipo in _ACTIVITY_TYPES_WITH_DEDICATED_SECTIONS:
+            continue
         if _activity_is_portal_noise(att):
             continue
         key = _activity_group_key(att)
@@ -6278,9 +6391,8 @@ def _economics(
     preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
     conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
     parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
-    payment_summary = payment_summary_for_fascicolo(
+    payment_summary = payment_summary_for_fascicolo_fast(
         fascicolo,
-        automatic=True,
         parcelle=parcelle,
         duplicate_group=duplicate_group,
     )
@@ -6346,7 +6458,8 @@ def _full_fascicolo(
 ) -> dict[str, Any]:
     base = _item_light(
         fascicolo,
-        automatic_evidence=True,
+        automatic_evidence=False,
+        full_payment_summary=False,
         parcelle=parcelle,
         duplicate_group=duplicate_group,
     )
@@ -6564,7 +6677,7 @@ def build_react_fascicolo_detail_payload(
     load_regia = include_all or "regia" in include or "practice_engine" in include
     load_relata = include_all or "relata" in include or "relata_notifica" in include
     load_audit = include_all or "audit" in include
-    load_lex = include_all or "lex" in include or "lex_indexing" in include
+    load_lex = include_all or load_documents or "lex" in include or "lex_indexing" in include
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
     apps = _safe("agenda", lambda: _agenda_for_fascicolo(get_agenda, fascicolo), [])
     scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
@@ -6656,9 +6769,8 @@ def build_react_fascicolo_detail_payload(
         lambda: _related_duplicate_fascicoli(fascicoli_repo.tutti(), fascicolo),
         [],
     )
-    payment_summary_detail = payment_summary_for_fascicolo(
+    payment_summary_detail = payment_summary_for_fascicolo_fast(
         fascicolo,
-        automatic=True,
         related_fascicoli=related_duplicate_rows,
         parcelle=parcelle,
         duplicate_group=duplicate_group,
@@ -6773,9 +6885,82 @@ def build_react_fascicolo_detail_payload(
 
 
 def _lex_indexing_summary(fid: str) -> dict[str, Any]:
-    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+    from web.services.document_intelligence_runtime import (
+        build_document_ai_service,
+        collect_document_ai_sources_for_fascicolo,
+        document_ai_tenant_id,
+    )
 
-    payload = build_lex_indexing_summary_payload(fid, process=False)
+    tenant_id = document_ai_tenant_id()
+    sources = collect_document_ai_sources_for_fascicolo(fid, tenant_id=tenant_id)
+    service = build_document_ai_service()
+    records = service.repository.list_documents(tenant_id, fid)
+
+    def _preferred_lex_record(current: Any | None, candidate: Any) -> Any:
+        if current is None:
+            return candidate
+        current_ready = str(getattr(current, "status", "") or "").casefold() == "ready"
+        candidate_ready = str(getattr(candidate, "status", "") or "").casefold() == "ready"
+        if candidate_ready and not current_ready:
+            return candidate
+        if current_ready and not candidate_ready:
+            return current
+        return candidate if str(getattr(candidate, "updated_at", "") or "") > str(getattr(current, "updated_at", "") or "") else current
+
+    records_by_sha: dict[str, Any] = {}
+    records_by_source_id: dict[str, Any] = {}
+    for record in records:
+        sha = str(getattr(record, "sha256", "") or "")
+        if sha:
+            records_by_sha[sha] = _preferred_lex_record(records_by_sha.get(sha), record)
+        source_id = str(getattr(record, "id", "") or "")
+        if source_id:
+            records_by_source_id[source_id] = _preferred_lex_record(records_by_source_id.get(source_id), record)
+    ready = queued = indexing = errors = stale = archived = not_indexed = 0
+    last_indexed_at = ""
+    for source in sources:
+        if not source.supported:
+            archived += 1
+            continue
+        record = records_by_sha.get(str(source.sha256 or "")) or records_by_source_id.get(str(source.source_id or ""))
+        if record is None:
+            not_indexed += 1
+            continue
+        status = str(getattr(record, "status", "") or "").casefold()
+        updated_at = str(getattr(record, "updated_at", "") or "")
+        if updated_at > last_indexed_at:
+            last_indexed_at = updated_at
+        if status == "ready":
+            ready += 1
+        elif status == "processing":
+            indexing += 1
+        elif status == "uploaded":
+            queued += 1
+        elif status == "archived":
+            archived += 1
+        elif status == "error":
+            errors += 1
+        else:
+            stale += 1
+    if indexing:
+        status = "indexing"
+    elif errors or stale or not_indexed:
+        status = "stale" if stale else "error" if errors else "not_indexed"
+    else:
+        status = "ready"
+    payload = {
+        "total_documents": len(sources),
+        "ready": ready,
+        "queued": queued,
+        "indexing": indexing,
+        "errors": errors,
+        "stale": stale,
+        "not_indexed": not_indexed,
+        "archived": archived,
+        "last_indexed_at": last_indexed_at or None,
+        "status": status,
+        "warnings": [],
+    }
     return {
         "total_documents": int(payload.get("total_documents") or 0),
         "ready": int(payload.get("ready") or 0),

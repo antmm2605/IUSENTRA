@@ -440,6 +440,12 @@ def test_presidio_economico_non_rilegge_marker_corrente_con_unresolved(tmp_path,
 
     assert result["contributiUpdatedCount"] == 0
     assert result["documentAnalysisUpdatedCount"] == 0
+    with app.app_context():
+        summary = react_fascicoli_bridge.payment_summary_for_fascicolo_fast(get_fascicoli().get(fascicolo.id))
+    assert summary["analysis"]["status"] == "aggiornato_con_rilievi"
+    assert summary["analysis"]["unresolvedKinds"] == ["contributo_unificato"]
+    assert summary["items"]["contributo_unificato"]["importoLabel"] == "Non trovato"
+    assert "ricevuta" in summary["items"]["contributo_unificato"]["note"]
 
 
 def test_presidio_economico_definisce_fascicolo_con_liquidazione_pagata_e_parcella_da_emettere(tmp_path, monkeypatch):

@@ -404,3 +404,18 @@ Prova locale reale su `http://127.0.0.1:8080/fascicoli?vista=economica`, tenant 
 - screenshot locale acquisiti: focus sulla card `Parcelle` e lista economica filtrata con `Contributo € 98,00`, `Liquidazione € 1.500,00`, `Parcella € 2.028,20`, bozza proforma da visionare e stato `Definito`.
 
 Dato residuo non chiuso: dopo il presidio restano `120` contributi unificati `da verificare` nei dati server. Questi casi non devono essere risolti nel caricamento della lista: vanno trattati dal presidio documentale incrementale quando entrano nuovi documenti o quando un job governato analizza un sottoinsieme mirato, salvando nel DB esito, fonte e motivo.
+
+## Aggiornamento automatico presidi del 08/07/2026
+
+È stato aggiunto il job built-in `fascicoli_document_economic_presidio`, schedulato ogni 15 minuti (`13-58/15`), per chiudere il punto operativo indicato dall'utente: la vista economica non deve lanciare ogni volta la lettura pesante dei fascicoli. Il job lavora fuori UI, per tenant, e salva nel DB gli esiti del presidio documentale/economico.
+
+Catena governata:
+
+- il presidio PEC resta nel job `pec_audit_pipeline_workers` ogni 5 minuti: acquisisce PEC, legge MIME/allegati/OCR/XML, classifica eventi legali V2, materializza udienze/scadenze/pagamenti nelle tabelle dedicate e attiva anche il recupero documentale collegato;
+- il nuovo presidio fascicoli/economico legge solo documenti nuovi o modificati tramite impronta documentale, classifica contributo unificato, esenzioni, inviti di pagamento, sentenze, liquidazioni, spese/esborsi e parcella/proforma;
+- quando trova dati certi li consolida in `pagamenti` del fascicolo e invalida cache lista/dashboard solo se scrive davvero;
+- quando non trova ricevuta, autocertificazione o invito leggibile, salva comunque il marker `_presidio_documentale` con `unresolvedKinds=["contributo_unificato"]`;
+- la UI usa il marker salvato: mostra `Documenti controllati` e `Non trovato` per il contributo solo se il presidio ha già verificato i documenti correnti; `Da verificare` resta riservato a documenti non ancora governati o nuovi da rianalizzare;
+- la regola `liquidazione pagata + parcella da emettere => Definito` resta automatica e viene scritta nel DB dal presidio economico.
+
+Prova tecnica locale eseguita prima del deploy: `8` fascicoli controllati sul tenant `studio-montagnese`, `8` marker documentali salvati, `1` caso già coperto e `7` contributi unificati segnati come mancanti perché nei documenti correnti non risultava una ricevuta, un'autocertificazione o un invito leggibile. Questo è il comportamento corretto: il sistema non inventa importi, ma registra l'esito del controllo e lo rende leggibile all'avvocato.

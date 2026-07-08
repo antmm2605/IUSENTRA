@@ -1666,6 +1666,18 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _document_analysis_unresolved_reason(marker: dict[str, Any], unresolved_kinds: list[str]) -> str:
+    if "contributo_unificato" in unresolved_kinds:
+        return (
+            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
+            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+        )
+    return _text(
+        marker.get("reason"),
+        "Presidio documentale eseguito: alcuni dati non risultano dai documenti correnti.",
+    )
+
+
 def _document_analysis_state(
     fascicolo: Any,
     related_fascicoli: Iterable[Any] | None = None,
@@ -1678,14 +1690,19 @@ def _document_analysis_state(
     cached_fingerprint = _text(marker.get("fingerprint") or marker.get("documentFingerprint"))
     marker_status = _text(marker.get("status") or marker.get("stato")).casefold()
     related_count = len(_analysis_fascicoli_scope(fascicolo, related_fascicoli)) - 1
+    unresolved_kinds = sorted(_presidio_documentale_unresolved_kinds(marker))
     if marker_status == "stale":
         status = "da_rianalizzare"
         label = "Da rianalizzare"
         reason = _text(marker.get("reason"), "Sono entrati nuovi documenti o è cambiato il fascicolo.")
+    elif cached_fingerprint and cached_fingerprint == fingerprint and unresolved_kinds:
+        status = "aggiornato_con_rilievi"
+        label = "Documenti controllati"
+        reason = _document_analysis_unresolved_reason(marker, unresolved_kinds)
     elif cached_fingerprint and cached_fingerprint == fingerprint:
         status = "aggiornato"
         label = "Aggiornato"
-        reason = "Analisi allineata ai documenti presenti."
+        reason = _text(marker.get("reason"), "Analisi allineata ai documenti presenti.")
     elif automatic:
         status = "aggiornato_provvisorio"
         label = "Aggiornato in lettura"
@@ -1697,11 +1714,12 @@ def _document_analysis_state(
     return {
         "status": status,
         "statusLabel": label,
-        "tone": "warning" if status in {"da_rianalizzare", "da_analizzare"} else "success",
+        "tone": "warning" if status in {"da_rianalizzare", "da_analizzare", "aggiornato_con_rilievi"} else "success",
         "reason": reason,
         "fingerprint": fingerprint,
         "lastAnalyzedAt": _text(marker.get("updated_at") or marker.get("updatedAt") or marker.get("lastAnalyzedAt")),
         "relatedDuplicateFascicoli": related_count,
+        "unresolvedKinds": unresolved_kinds,
     }
 
 
@@ -2720,6 +2738,23 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     }
 
 
+def _apply_document_analysis_to_payment_items(items: dict[str, dict[str, Any]], analysis: dict[str, Any]) -> None:
+    unresolved = set(analysis.get("unresolvedKinds") or [])
+    if "contributo_unificato" not in unresolved:
+        return
+    contributo = items.get("contributo_unificato")
+    if not isinstance(contributo, dict):
+        return
+    if contributo.get("importo") is not None or contributo.get("status") != "da_registrare":
+        return
+    contributo["importoLabel"] = "Non trovato"
+    if not _text(contributo.get("note")):
+        contributo["note"] = _text(
+            analysis.get("reason"),
+            "Presidio documentale eseguito: ricevuta, autocertificazione o invito al pagamento non risultano leggibili nei documenti correnti.",
+        )
+
+
 def payment_summary_for_fascicolo(
     fascicolo: Any,
     *,
@@ -2739,6 +2774,12 @@ def payment_summary_for_fascicolo(
         kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
         for kind in PAYMENT_KINDS
     }
+    analysis = _document_analysis_state(
+        fascicolo,
+        related_fascicoli,
+        automatic=automatic,
+    )
+    _apply_document_analysis_to_payment_items(items, analysis)
     expected = [item for item in items.values() if item["previsto"]]
     missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
     paid = [item for item in expected if item["status"] == "pagato"]
@@ -2798,11 +2839,7 @@ def payment_summary_for_fascicolo(
         "updatedBy": updated_by,
         "items": items,
         "proformaPresidio": proforma_presidio,
-        "analysis": _document_analysis_state(
-            fascicolo,
-            related_fascicoli,
-            automatic=automatic,
-        ),
+        "analysis": analysis,
     }
 
 
@@ -2820,6 +2857,11 @@ def payment_summary_for_fascicolo_fast(
         kind: _payment_item(kind, _payment_source_for_kind(payments, kind), fid)
         for kind in PAYMENT_KINDS
     }
+    analysis = _document_analysis_marker_state(
+        fascicolo,
+        related_fascicoli,
+    )
+    _apply_document_analysis_to_payment_items(items, analysis)
     expected = [item for item in items.values() if item["previsto"]]
     missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
     paid = [item for item in expected if item["status"] == "pagato"]
@@ -2879,10 +2921,7 @@ def payment_summary_for_fascicolo_fast(
         "updatedBy": updated_by,
         "items": items,
         "proformaPresidio": proforma_presidio,
-        "analysis": _document_analysis_marker_state(
-            fascicolo,
-            related_fascicoli,
-        ),
+        "analysis": analysis,
     }
 
 

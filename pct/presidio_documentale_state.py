@@ -54,14 +54,19 @@ def marker_state(
     marker = marker if isinstance(marker, Mapping) else {}
     cached = _text(marker.get("fingerprint") or marker.get("documentFingerprint"))
     status_raw = _text(marker.get("status") or marker.get("stato")).casefold()
+    unresolved_kinds = _normalise_unresolved_kinds(marker.get("unresolvedKinds") or marker.get("unresolved_kinds") or marker.get("da_verificare"))
     if status_raw == "stale":
         status = "da_rianalizzare"
         label = "Da rianalizzare"
         reason = _text(marker.get("reason"), "Sono entrati nuovi documenti o è cambiato il fascicolo.")
+    elif cached and cached == _text(fingerprint) and unresolved_kinds:
+        status = "aggiornato_con_rilievi"
+        label = "Documenti controllati"
+        reason = _unresolved_reason(marker, unresolved_kinds)
     elif cached and cached == _text(fingerprint):
         status = "aggiornato"
         label = "Aggiornato"
-        reason = "Analisi allineata ai documenti presenti."
+        reason = _text(marker.get("reason"), "Analisi allineata ai documenti presenti.")
     elif cached:
         status = "da_rianalizzare"
         label = "Da rianalizzare"
@@ -73,12 +78,35 @@ def marker_state(
     return {
         "status": status,
         "statusLabel": label,
-        "tone": "warning" if status in {"da_rianalizzare", "da_analizzare"} else "success",
+        "tone": "warning" if status in {"da_rianalizzare", "da_analizzare", "aggiornato_con_rilievi"} else "success",
         "reason": reason,
         "fingerprint": _text(fingerprint),
         "lastAnalyzedAt": _text(marker.get("updated_at") or marker.get("updatedAt") or marker.get("lastAnalyzedAt")),
         "relatedDuplicateFascicoli": max(0, int(related_count or 0)),
+        "unresolvedKinds": unresolved_kinds,
     }
+
+
+def _normalise_unresolved_kinds(value: Any) -> list[str]:
+    if isinstance(value, str):
+        values = [item.strip() for item in value.replace(";", ",").split(",") if item.strip()]
+    elif isinstance(value, (list, tuple, set)):
+        values = [str(item or "").strip() for item in value if str(item or "").strip()]
+    else:
+        values = []
+    return sorted(dict.fromkeys(values))
+
+
+def _unresolved_reason(marker: Mapping[str, Any], unresolved_kinds: list[str]) -> str:
+    if "contributo_unificato" in unresolved_kinds:
+        return (
+            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
+            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+        )
+    return _text(
+        marker.get("reason"),
+        "Presidio documentale eseguito: alcuni dati non risultano dai documenti correnti.",
+    )
 
 
 def metadata_rule_hits(

@@ -1142,6 +1142,39 @@ def start_scheduler(app):
                 logger.error("[scheduler] Pipeline PEC fallita: %s", e)
                 return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
 
+    @scheduler.scheduled_job(CronTrigger(minute="13-58/15"), id="fascicoli_document_economic_presidio")
+    def _fascicoli_document_economic_presidio():
+        with app.app_context():
+            try:
+                from web.services.fascicoli_presidi_runtime import (
+                    run_fascicoli_document_economic_presidio_for_all_tenants,
+                )
+
+                limit = _parse_positive_int(
+                    app.config.get("IUSENTRA_FASCICOLI_PRESIDIO_LIMIT")
+                    or os.getenv("IUSENTRA_FASCICOLI_PRESIDIO_LIMIT"),
+                    500,
+                )
+                report = run_fascicoli_document_economic_presidio_for_all_tenants(
+                    app,
+                    limit_per_tenant=limit,
+                    actor="IUSENTRA scheduler",
+                )
+                totals = report.get("totals") or {}
+                logger.info(
+                    "[scheduler] Presidio fascicoli/economia: %d contributi controllati, "
+                    "%d contributi consolidati, %d analisi documentali, %d stati definiti, %d proforme create",
+                    int(totals.get("contributiCheckedCount") or 0),
+                    int(totals.get("contributiUpdatedCount") or 0),
+                    int(totals.get("documentAnalysisUpdatedCount") or 0),
+                    int(totals.get("statusDefinedUpdatedCount") or 0),
+                    int(totals.get("createdCount") or 0),
+                )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] Presidio fascicoli/economia fallito: %s", e)
+                return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
+
     @scheduler.scheduled_job(CronTrigger(hour=8, minute=0, timezone="Europe/Rome"), id="pec_audit_digest_daily")
     def _pec_audit_digest_daily():
         with app.app_context():

@@ -432,6 +432,71 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
+def test_fascicoli_document_economic_presidio_job_salva_fuori_ui(monkeypatch, tmp_path):
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+    import web.services.fascicoli_presidi_runtime as presidi_runtime
+
+    calls: list[dict[str, object]] = []
+
+    def fake_presidio(app, *, limit_per_tenant: int, actor: str):
+        calls.append({"limit": limit_per_tenant, "actor": actor})
+        return {
+            "ok": True,
+            "job": "fascicoli_document_economic_presidio",
+            "source_of_truth": "sqlite/postgresql tenant-aware",
+            "scan_mode": "incrementale_su_impronta_documentale",
+            "totals": {
+                "createdCount": 1,
+                "existingCount": 2,
+                "missingBasisCount": 0,
+                "processedDefined": 3,
+                "contributiCheckedCount": 25,
+                "contributiUpdatedCount": 4,
+                "contributiMissingCount": 0,
+                "documentAnalysisUpdatedCount": 6,
+                "statusDefinedUpdatedCount": 1,
+                "skippedCount": 0,
+            },
+            "tenants": [],
+        }
+
+    monkeypatch.setattr(
+        presidi_runtime,
+        "run_fascicoli_document_economic_presidio_for_all_tenants",
+        fake_presidio,
+    )
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True,
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+        IUSENTRA_FASCICOLI_PRESIDIO_LIMIT=250,
+    )
+
+    scheduler = start_scheduler(app)
+    try:
+        job = scheduler.get_job("fascicoli_document_economic_presidio")
+        assert job is not None
+
+        result = job.func()
+
+        assert result["ok"] is True
+        assert result["job"] == "fascicoli_document_economic_presidio"
+        assert result["source_of_truth"] == "sqlite/postgresql tenant-aware"
+        assert result["scan_mode"] == "incrementale_su_impronta_documentale"
+        assert result["totals"]["contributiUpdatedCount"] == 4
+        assert result["totals"]["documentAnalysisUpdatedCount"] == 6
+        assert calls == [{"limit": 250, "actor": "IUSENTRA scheduler"}]
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
 def test_pst_certificati_scheduler_non_forza_refresh_remoto_di_default(monkeypatch, tmp_path):
     monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
     monkeypatch.delenv("PCT_PST_CERTIFICATI_CIFRATURA_FORCE_REFRESH", raising=False)

@@ -54,7 +54,7 @@ def _ingest_127ter(tmp_path):
     msg["Subject"] = "Comunicazione di cancelleria - trattazione scritta ex art. 127-ter c.p.c. - RG 4321/2026"
     msg["From"] = "Cancelleria <tribunale.milano@giustiziapec.it>"
     msg["To"] = "studio@example.test"
-    msg["Date"] = "Wed, 01 Jul 2026 09:00:00 +0200"
+    msg["Date"] = "Tue, 01 Sep 2026 09:00:00 +0200"
     msg["Message-ID"] = "<127ter-comunicazione@example.test>"
     msg.set_content(
         "Il giudice dispone la trattazione scritta con note scritte in sostituzione "
@@ -160,14 +160,14 @@ def test_schedule_deadline_creates_legal_scadenza(tmp_path):
 
     scheduled = repo.schedule_deadline(message_id, actor="pytest")
     assert scheduled["ok"] is True
-    assert scheduled["due_date"] == "2026-07-06"  # data LEGALE, non presidio operativo
+    assert scheduled["due_date"] == "2026-09-07"  # data LEGALE, non presidio operativo
 
     scadenze = GestioneScadenziario(str(scad_db)).tutte(solo_aperte=False)
     assert len(scadenze) == 1
     s = scadenze[0]
     assert s.perentorio is True
-    assert s.data_scadenza == "2026-07-06"
-    assert s.legal_due_at == "2026-07-06"
+    assert s.data_scadenza == "2026-09-07"
+    assert s.legal_due_at == "2026-09-07"
     assert s.deadline_profile_code == "CIV_OPPOSIZIONE_127_TER"
     assert s.trace_json and s.trace_json != "[]"
     assert s.ha_calcolo_avanzato is True

@@ -1559,6 +1559,7 @@ function economicEvidenceLabel(kind: FascicoloPaymentKind, payment: FascicoloPay
 function economicAnalysisLabel(analysis: FascicoloPaymentSummary['analysis']): string {
   if (analysis.status === 'da_rianalizzare') return 'Nuovi documenti'
   if (analysis.status === 'da_analizzare') return 'Da controllare'
+  if (analysis.status === 'aggiornato_con_rilievi') return 'Documenti controllati'
   if (analysis.status === 'aggiornato_provvisorio') return 'Documenti letti'
   return analysis.statusLabel || 'Controllo documenti'
 }
@@ -1572,6 +1573,9 @@ function economicAnalysisMessage(analysis: FascicoloPaymentSummary['analysis']):
   }
   if (analysis.status === 'aggiornato_provvisorio') {
     return 'Il sistema ha letto i documenti disponibili e segnala solo le informazioni utili.'
+  }
+  if (analysis.status === 'aggiornato_con_rilievi') {
+    return analysis.reason || 'Presidio eseguito: alcuni dati non risultano dai documenti correnti.'
   }
   if (analysis.relatedDuplicateFascicoli) {
     const suffix = analysis.relatedDuplicateFascicoli === 1 ? 'pratica collegata' : 'pratiche collegate'

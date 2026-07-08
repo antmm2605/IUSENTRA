@@ -86,6 +86,7 @@ export type FascicoloPaymentSummary = {
     fingerprint: string
     lastAnalyzedAt: string
     relatedDuplicateFascicoli: number
+    unresolvedKinds: string[]
   }
 }
 
@@ -1019,6 +1020,7 @@ function createEmptyPaymentSummary(id = ''): FascicoloPaymentSummary {
       fingerprint: '',
       lastAnalyzedAt: '',
       relatedDuplicateFascicoli: 0,
+      unresolvedKinds: [],
     },
   }
 }
@@ -1385,6 +1387,7 @@ export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPayme
       fingerprint: text(analysis.fingerprint ?? analysis.impronta),
       lastAnalyzedAt: text(analysis.lastAnalyzedAt ?? analysis.last_analyzed_at),
       relatedDuplicateFascicoli: number(analysis.relatedDuplicateFascicoli ?? analysis.related_duplicate_fascicoli),
+      unresolvedKinds: asArray(analysis.unresolvedKinds ?? analysis.unresolved_kinds ?? analysis.da_verificare).map((item) => text(item)).filter(Boolean),
     },
   }
 }
@@ -1494,7 +1497,7 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
   const invoiceDraftsToReview = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingDraftCount, 0)
   const invoicesPresent = items.reduce((total, item) => total + item.paymentSummary.proformaPresidio.existingCount, 0)
   const economicAnalysisDue = items.reduce(
-    (total, item) => total + (['da_analizzare', 'da_rianalizzare'].includes(item.paymentSummary.analysis.status) ? 1 : 0),
+    (total, item) => total + (['da_analizzare', 'da_rianalizzare', 'aggiornato_con_rilievi'].includes(item.paymentSummary.analysis.status) ? 1 : 0),
     0,
   )
   return {

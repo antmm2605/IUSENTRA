@@ -33,6 +33,7 @@ from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, r
 from pct.fascicolo_document_catalog import (
     DocumentCatalogClassification,
     classify_fascicolo_document,
+    document_ai_texts_for_catalog,
 )
 from pct.fascicolo_document_presidio import (
     analyze_fascicolo_document_texts,

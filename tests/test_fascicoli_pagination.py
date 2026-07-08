@@ -166,6 +166,7 @@ def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monke
     def fake_auto(fascicolo_arg, payments, **kwargs):
         calls["count"] += 1
         assert kwargs.get("allow_full_document_scan") is False
+        assert kwargs.get("allow_document_extraction") is False
         return {
             "contributo_unificato": {
                 "kind": "contributo_unificato",
@@ -306,6 +307,12 @@ def test_presidio_economico_automatico_non_scansiona_tutti_i_documenti(tmp_path,
         return []
 
     monkeypatch.setattr(react_fascicoli_bridge, "_document_candidates_for_hints", guarded_candidates)
+
+    def fail_ocr_extraction(*args, **kwargs):
+        raise AssertionError("Il presidio economico schedulato non deve avviare OCR o lettura fisica pesante.")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_ensure_economic_document_ai_texts_for_fascicolo", fail_ocr_extraction)
+    monkeypatch.setattr(react_fascicoli_bridge, "_extract_presidio_text_from_physical_document", fail_ocr_extraction)
 
     with app.app_context():
         repo = get_fascicoli()

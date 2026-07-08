@@ -411,6 +411,8 @@ Dato residuo non chiuso: dopo il presidio restano `120` contributi unificati `da
 
 Correzione prestazionale successiva: il job lavora con lotto ordinario piccolo (`25` fascicoli per tenant, configurabile con `IUSENTRA_FASCICOLI_PRESIDIO_LIMIT`) e `max_instances=1`. In questo modo evita sovrapposizioni, riduce i lock SQLite/PostgreSQL durante la navigazione dell'avvocato e lascia eventuali bonifiche massive a comandi manuali espliciti con limite dichiarato.
 
+Ulteriore guardrail anti-lentezza: il tick economico ricorrente non avvia OCR o lettura fisica pesante dei documenti. Consuma testo, XML, metadata e classificazioni già indicizzati dai presidi documentali/OCR e salva in DB esiti certi o marker `Documenti controllati`; l'estrazione pesante resta nel presidio OCR/documentale dedicato, così cambio pagina e vista economica restano performanti.
+
 Catena governata:
 
 - il presidio PEC resta nel job `pec_audit_pipeline_workers` ogni 5 minuti: acquisisce PEC, legge MIME/allegati/OCR/XML, classifica eventi legali V2, materializza udienze/scadenze/pagamenti nelle tabelle dedicate e attiva anche il recupero documentale collegato;

@@ -2331,6 +2331,7 @@ def _automatic_payment_sources_for_fascicolo(
     *,
     related_fascicoli: Iterable[Any] | None = None,
     allow_full_document_scan: bool = True,
+    allow_document_extraction: bool = True,
 ) -> dict[str, dict[str, Any]]:
     need_contributo = _payment_source_needs_automatic_value(payments, "contributo_unificato")
     need_sentenza = any(
@@ -2406,7 +2407,7 @@ def _automatic_payment_sources_for_fascicolo(
                 or (need_sentenza and _document_metadata_may_contain_sentenza_economica(metadata))
             ):
                 missing_ocr_documents.append(doc)
-        if missing_ocr_documents:
+        if missing_ocr_documents and allow_document_extraction:
             refreshed_texts = _ensure_economic_document_ai_texts_for_fascicolo(
                 source_fascicolo,
                 missing_ocr_documents,
@@ -2414,13 +2415,14 @@ def _automatic_payment_sources_for_fascicolo(
             if refreshed_texts:
                 texts = {**texts, **refreshed_texts}
         physical_texts: dict[str, str] = {}
-        for doc in payment_documents:
-            document_id = _document_id(doc)
-            if not document_id or _text(texts.get(document_id)):
-                continue
-            extracted_text = _extract_presidio_text_from_physical_document(source_fascicolo, doc)
-            if extracted_text:
-                physical_texts[document_id] = extracted_text
+        if allow_document_extraction:
+            for doc in payment_documents:
+                document_id = _document_id(doc)
+                if not document_id or _text(texts.get(document_id)):
+                    continue
+                extracted_text = _extract_presidio_text_from_physical_document(source_fascicolo, doc)
+                if extracted_text:
+                    physical_texts[document_id] = extracted_text
         if physical_texts:
             texts = {**texts, **physical_texts}
             _cache_document_ai_texts_for_fascicolo(source_fascicolo, payment_documents, texts)
@@ -3473,6 +3475,7 @@ def _ensure_contributo_unificato_for_fascicolo(
         fascicolo,
         scan_payments,
         allow_full_document_scan=False,
+        allow_document_extraction=False,
     )
     automatic = automatic_sources.get("contributo_unificato") if isinstance(automatic_sources, dict) else None
     unresolved_kinds: list[str] = []

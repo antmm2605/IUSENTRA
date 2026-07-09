@@ -15,7 +15,7 @@ from web.services.server_maintenance_surface import (
     _safe_tenant_storage_key,
     _tenant_context_from_record,
 )
-from scripts.audit_quickorganizer_import import _public_output
+from scripts.audit_quickorganizer_import import _console_output, _public_output
 
 
 def test_tenant_context_rifiuta_storage_key_con_traversal(tmp_path: Path) -> None:
@@ -127,3 +127,27 @@ def test_audit_quickorganizer_output_pubblico_redige_dati_privati() -> None:
     assert "QuickOrganizer-Studio-Montagnese.zip" not in rendered
     assert "tenant-riservato" not in rendered
     assert "Rossi Mario" not in rendered
+
+
+def test_audit_quickorganizer_console_output_non_riceve_payload_privato() -> None:
+    public_result = _console_output(
+        ok=True,
+        stage_summary_fields=3,
+        studio_db_exists=True,
+        storage_tables={"fascicoli": 12, "clienti": 4},
+        before={"fascicoli": 10, "clienti": 4},
+        after={"fascicoli": 12, "clienti": 4},
+        import_present=True,
+        audit_errors_count=0,
+        audit_warnings_count=2,
+    )
+
+    rendered = json.dumps(public_result, ensure_ascii=False)
+    assert public_result["ok"] is True
+    assert public_result["tenantRoot"] == "[redatto]"
+    assert public_result["storage"]["studioDbPath"] == "[redatto]"
+    assert public_result["storage"]["tables"]["fascicoli"] == 12
+    assert public_result["import"] == {"present": True}
+    assert public_result["audit"]["warnings"] == {"count": 2}
+    assert "QuickOrganizer" not in rendered
+    assert "studio.db" not in rendered

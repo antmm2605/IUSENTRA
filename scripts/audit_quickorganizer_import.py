@@ -60,6 +60,40 @@ def _public_output(output: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _console_output(
+    *,
+    ok: bool,
+    stage_summary_fields: int,
+    studio_db_exists: bool,
+    storage_tables: dict[str, Any],
+    before: dict[str, int],
+    after: dict[str, int],
+    import_present: bool,
+    audit_errors_count: int,
+    audit_warnings_count: int,
+) -> dict[str, Any]:
+    return {
+        "ok": bool(ok),
+        "tenantRoot": _REDACTED,
+        "importId": _REDACTED,
+        "sourceName": _REDACTED,
+        "stageSummary": {"fields": int(stage_summary_fields)},
+        "storage": {
+            "studioDbExists": bool(studio_db_exists),
+            "studioDbPath": _REDACTED,
+            "tables": _public_summary(storage_tables),
+        },
+        "before": before,
+        "after": after,
+        "import": {"present": bool(import_present)},
+        "audit": {
+            "ok": bool(ok),
+            "errors": {"count": int(audit_errors_count)},
+            "warnings": {"count": int(audit_warnings_count)},
+        },
+    }
+
+
 def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, GestioneClienti, GestioneSoggetti, Agenda]:
     studio_db_path = tenant_root / "studio.db"
     studio_db = StudioDB.get(str(studio_db_path)) if studio_db_path.exists() else None
@@ -134,19 +168,13 @@ def main(argv: list[str] | None = None) -> int:
     tenant_root = Path(args.tenant_root).resolve()
     stage_root = Path(args.stage_root).resolve()
     package, stage = load_staged_package(stage_root, args.import_id)
-    output: dict[str, Any] = {
-        "ok": False,
-        "tenantRoot": str(tenant_root),
-        "importId": args.import_id,
-        "sourceName": stage.get("sourceName", ""),
-        "stageSummary": (stage.get("analysis") or {}).get("summary", {}),
-        "storage": _storage_counts(tenant_root),
-        "before": _counts(tenant_root),
-    }
+    stage_summary = (stage.get("analysis") or {}).get("summary", {})
+    before_counts = _counts(tenant_root)
+    import_report: dict[str, Any] | None = None
 
     if args.execute:
         fascicoli, clienti, soggetti, agenda = _tenant_repositories(tenant_root)
-        output["import"] = import_quickorganizer_package(
+        import_report = import_quickorganizer_package(
             package,
             fascicoli=fascicoli,
             clienti=clienti,
@@ -164,12 +192,25 @@ def main(argv: list[str] | None = None) -> int:
         soggetti=soggetti,
         agenda_repo=agenda,
     )
-    output["after"] = _counts(tenant_root)
-    output["storage"] = _storage_counts(tenant_root)
-    output["audit"] = audit
-    output["ok"] = bool(audit.get("ok"))
-    print(json.dumps(_public_output(output), ensure_ascii=False, indent=2))
-    return 0 if output["ok"] else 1
+    ok = bool(audit.get("ok"))
+    storage_counts = _storage_counts(tenant_root)
+    after_counts = _counts(tenant_root)
+    stage_summary_fields = len(stage_summary) if isinstance(stage_summary, dict) else 0
+    audit_errors_count = len(audit.get("errors") or []) if isinstance(audit, dict) else 0
+    audit_warnings_count = len(audit.get("warnings") or []) if isinstance(audit, dict) else 0
+    public_output = _console_output(
+        ok=ok,
+        stage_summary_fields=stage_summary_fields,
+        studio_db_exists=bool(storage_counts.get("studioDbExists")),
+        storage_tables=dict(storage_counts.get("tables") or {}),
+        before=before_counts,
+        after=after_counts,
+        import_present=import_report is not None,
+        audit_errors_count=audit_errors_count,
+        audit_warnings_count=audit_warnings_count,
+    )
+    print(json.dumps(public_output, ensure_ascii=False, indent=2))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

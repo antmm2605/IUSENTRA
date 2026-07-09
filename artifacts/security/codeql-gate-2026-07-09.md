@@ -44,7 +44,7 @@ Il check GitHub `CodeQL` successivo ha ridotto il blocco a un solo alert:
 Correzione applicata:
 
 - lo script continua a calcolare internamente `storage`, conteggi prima/dopo, esito import e audit completo;
-- l'output console passa però da `_public_output()`, che espone solo booleani, numeri e conteggi;
+- l'output console viene costruito da `_console_output()`, che riceve solo booleani, numeri e conteggi e non il payload completo;
 - `tenantRoot`, `studioDbPath`, `importId`, `sourceName`, path, nomi clienti e liste di dettaglio vengono redatti o riassunti per conteggio.
 
 Verifica locale eseguita:

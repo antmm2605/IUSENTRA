@@ -84,6 +84,43 @@ class TipoDocumento(str, Enum):
     ALTRO               = "ALTRO"
 
 
+_DOCUMENTO_SEMANTIC_DEDUPE_TIPI = {
+    TipoDocumento.ATTO_GIUDIZIARIO,
+    TipoDocumento.MEMORIA,
+    TipoDocumento.RICORSO,
+    TipoDocumento.CITAZIONE,
+    TipoDocumento.COMPARSA,
+    TipoDocumento.SENTENZA,
+    TipoDocumento.ORDINANZA,
+    TipoDocumento.DECRETO,
+    TipoDocumento.CONTRATTO,
+    TipoDocumento.PROCURA,
+    TipoDocumento.NOTIFICA,
+    TipoDocumento.VERBALE,
+}
+
+
+def _normalizza_nome_documento_dedupe(nome: str) -> str:
+    value = Path(str(nome or "")).name.strip().casefold()
+    value = re.sub(r"\s+", " ", value)
+    return value
+
+
+def _documento_semantic_identity_key(doc: "Documento") -> str:
+    tipo = getattr(doc, "tipo", TipoDocumento.ALTRO)
+    if not isinstance(tipo, TipoDocumento):
+        try:
+            tipo = TipoDocumento(str(tipo))
+        except ValueError:
+            return ""
+    if tipo not in _DOCUMENTO_SEMANTIC_DEDUPE_TIPI:
+        return ""
+    name = _normalizza_nome_documento_dedupe(getattr(doc, "nome", "") or getattr(doc, "nome_originale", ""))
+    if not name.endswith(".pdf"):
+        return ""
+    return f"pdfname:{tipo.value}:{name}"
+
+
 class TipoAttivita(str, Enum):
     UDIENZA                  = "UDIENZA"
     DEPOSITO_ATTI            = "DEPOSITO_ATTI"
@@ -1154,6 +1191,9 @@ class GestioneFascicoli:
     @staticmethod
     def _documento_identity_keys(doc: "Documento") -> set[str]:
         keys: set[str] = set()
+        semantic_key = _documento_semantic_identity_key(doc)
+        if semantic_key:
+            keys.add(semantic_key)
         raw_sha = str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().lower()
         if raw_sha:
             keys.add(f"rawsha:{raw_sha}")
@@ -1177,7 +1217,12 @@ class GestioneFascicoli:
         return keys
 
     @staticmethod
-    def _assorbi_metadati_documento(primary: "Documento", duplicate: "Documento") -> bool:
+    def _assorbi_metadati_documento(
+        primary: "Documento",
+        duplicate: "Documento",
+        *,
+        conserva_file_come_versione: bool = False,
+    ) -> bool:
         """Conserva il documento principale arricchendolo con metadati mancanti."""
         changed = False
         if primary.tipo == TipoDocumento.ALTRO and duplicate.tipo != TipoDocumento.ALTRO:
@@ -1224,14 +1269,35 @@ class GestioneFascicoli:
         if not primary.signature_metadata and duplicate.signature_metadata:
             primary.signature_metadata = copy.deepcopy(duplicate.signature_metadata)
             changed = True
-        if duplicate.versioni:
-            known_versions = {
-                (
-                    str(getattr(version, "hash_sha256", "") or ""),
-                    str(getattr(version, "percorso", "") or ""),
+        known_versions = {
+            (
+                str(getattr(version, "hash_sha256", "") or ""),
+                str(getattr(version, "percorso", "") or ""),
+            )
+            for version in primary.versioni or []
+        }
+        if conserva_file_come_versione and str(getattr(duplicate, "percorso", "") or "").strip():
+            key = (
+                str(getattr(duplicate, "hash_sha256", "") or ""),
+                str(getattr(duplicate, "percorso", "") or ""),
+            )
+            if key not in known_versions:
+                primary.versioni.append(
+                    DocumentoVersione(
+                        hash_sha256=str(getattr(duplicate, "hash_sha256", "") or ""),
+                        percorso=str(getattr(duplicate, "percorso", "") or ""),
+                        dimensione_bytes=int(getattr(duplicate, "dimensione_bytes", 0) or 0),
+                        sostituito_il=str(getattr(duplicate, "data_caricamento", "") or datetime.now().isoformat()),
+                        sostituito_da=str(
+                            getattr(duplicate, "caricato_da", "")
+                            or getattr(duplicate, "fonte_documento", "")
+                            or "IUSENTRA"
+                        ),
+                    )
                 )
-                for version in primary.versioni or []
-            }
+                known_versions.add(key)
+                changed = True
+        if duplicate.versioni:
             for version in duplicate.versioni:
                 key = (
                     str(getattr(version, "hash_sha256", "") or ""),
@@ -1362,7 +1428,20 @@ class GestioneFascicoli:
             for duplicate in duplicates:
                 doc_id_map[duplicate.id] = primary.id
                 removed_ids.add(duplicate.id)
-                changed = self._assorbi_metadati_documento(primary, duplicate) or changed
+                conserva_file = (
+                    bool(_documento_semantic_identity_key(primary))
+                    and _documento_semantic_identity_key(primary) == _documento_semantic_identity_key(duplicate)
+                    and str(getattr(primary, "hash_sha256", "") or "").strip().casefold()
+                    != str(getattr(duplicate, "hash_sha256", "") or "").strip().casefold()
+                )
+                changed = (
+                    self._assorbi_metadati_documento(
+                        primary,
+                        duplicate,
+                        conserva_file_come_versione=conserva_file,
+                    )
+                    or changed
+                )
 
         if dry_run or not removed_ids:
             return report, False
@@ -1829,6 +1908,16 @@ class GestioneFascicoli:
         fasc_dir.mkdir(parents=True, exist_ok=True)
         sha256 = hashlib.sha256(contenuto).hexdigest()
         raw_sha256 = str(hash_contenuto_sha256 or "").strip().lower()
+        incoming_probe = Documento(
+            id="",
+            nome=nome_file,
+            tipo=tipo,
+            percorso="",
+            dimensione_bytes=len(contenuto),
+            hash_sha256=sha256,
+            hash_contenuto_sha256=raw_sha256 or sha256,
+        )
+        incoming_semantic_key = _documento_semantic_identity_key(incoming_probe)
         existing_doc = next(
             (
                 doc
@@ -1839,18 +1928,40 @@ class GestioneFascicoli:
                     and str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().casefold()
                     == raw_sha256.casefold()
                 )
+                or (
+                    incoming_semantic_key
+                    and incoming_semantic_key == _documento_semantic_identity_key(doc)
+                )
             ),
             None,
         )
         if existing_doc is not None:
+            semantic_match = bool(incoming_semantic_key) and incoming_semantic_key == _documento_semantic_identity_key(
+                existing_doc
+            )
+            conserva_file = (
+                semantic_match
+                and str(getattr(existing_doc, "hash_sha256", "") or "").strip().casefold() != sha256.casefold()
+            )
+            percorso_incoming = existing_doc.percorso
+            if conserva_file:
+                nome_safe = Path(nome_archivio or nome_file).name
+                dest = fasc_dir / nome_safe
+                if dest.exists():
+                    stem = Path(nome_safe).stem
+                    suffix = Path(nome_safe).suffix
+                    nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+                    dest = fasc_dir / nome_safe
+                dest.write_bytes(contenuto)
+                percorso_incoming = str(dest.relative_to(self.documents_dir))
             incoming_doc = Documento(
                 id=existing_doc.id,
                 nome=nome_file,
                 tipo=tipo,
-                percorso=existing_doc.percorso,
+                percorso=percorso_incoming,
                 dimensione_bytes=len(contenuto),
                 hash_sha256=sha256,
-                hash_contenuto_sha256=raw_sha256,
+                hash_contenuto_sha256=raw_sha256 or sha256,
                 firmato_digitalmente=firmato,
                 note=note,
                 tags=list(tags or []),
@@ -1870,7 +1981,11 @@ class GestioneFascicoli:
                 id_repeatto_portale=str(id_repeatto_portale or "").strip(),
                 msg_id_portale=str(msg_id_portale or "").strip(),
             )
-            if self._assorbi_metadati_documento(existing_doc, incoming_doc):
+            if self._assorbi_metadati_documento(
+                existing_doc,
+                incoming_doc,
+                conserva_file_come_versione=conserva_file,
+            ):
                 f.modificato_il = datetime.now().isoformat()
                 self._salva()
             return existing_doc

@@ -30,6 +30,10 @@ Audit preliminare:
   - aggiorna riferimenti interni di depositi PCT e attività processuali;
   - registra un avanzamento pratica `Riconciliazione automatica documenti duplicati`;
   - non cancella i file fisici.
+- Aggiunta chiave semantica per PDF processuali con stesso nome e stesso tipo:
+  - vale solo per PDF di atti/provvedimenti processuali;
+  - non vale per PEC/EML, XML, P7M, ricevute o allegati tecnici;
+  - se il contenuto non è byte-identico, la copia assorbita viene conservata nello storico versioni del documento principale.
 - Aggiunto script operativo tenant-aware: `scripts/repair_fascicolo_document_duplicates.py`.
 
 ## Verifiche automatiche locali
@@ -38,8 +42,8 @@ Comandi eseguiti:
 
 ```powershell
 python -m py_compile pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py
-python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py
-python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
+python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py tests\test_fascicoli.py
+python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
 ```
 
 Esito: pass.

@@ -1,5 +1,6 @@
 """Test per la gestione fascicoli e archivio."""
 
+import hashlib
 import pytest
 from datetime import date, timedelta
 from pathlib import Path
@@ -216,6 +217,34 @@ def test_aggiungi_documento_non_duplica_stesso_contenuto(gf, fascicolo_base):
     assert "Portale Servizi" in aggiornato.documenti[0].tags
 
 
+def test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione(gf, fascicolo_base):
+    primo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"%PDF-1.4 sentenza importata",
+        fonte_documento="IMPORT_ESTERNO",
+    )
+    secondo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"%PDF-1.4 sentenza portale",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_portale="Sentenza.pdf",
+    )
+
+    aggiornato = gf.get(fascicolo_base.id)
+    doc = aggiornato.documenti[0]
+
+    assert secondo.id == primo.id
+    assert len(aggiornato.documenti) == 1
+    assert doc.fonte_documento == "IMPORT_ESTERNO"
+    assert len(doc.versioni) == 1
+    assert doc.versioni[0].hash_sha256 == hashlib.sha256(b"%PDF-1.4 sentenza portale").hexdigest()
+    assert (gf.documents_dir / doc.versioni[0].percorso).exists()
+
+
 def test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti(gf, fascicolo_base):
     originale = gf.aggiungi_documento(
         fascicolo_base.id,
@@ -264,6 +293,35 @@ def test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti(gf, fascico
     assert aggiornato.depositi_pct[0].documenti_ids == [remaining_id]
     assert aggiornato.attivita[0].id_documento == remaining_id
     assert any("documenti duplicati" in item.descrizione for item in aggiornato.avanzamento)
+
+
+def test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione(gf, fascicolo_base):
+    originale = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"%PDF-1.4 sentenza importata",
+    )
+    fascicolo = gf.get(fascicolo_base.id)
+    duplicato = Documento(
+        id="DUPDOC02",
+        nome="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        percorso=f"{fascicolo_base.id}/Sentenza-portale.pdf",
+        dimensione_bytes=len(b"%PDF-1.4 sentenza portale"),
+        hash_sha256=hashlib.sha256(b"%PDF-1.4 sentenza portale").hexdigest(),
+        fonte_documento="PORTALE_TELEMATICO",
+    )
+    fascicolo.documenti.append(duplicato)
+
+    report = gf.riconcilia_documenti_duplicati(fascicolo_base.id)
+    aggiornato = gf.get(fascicolo_base.id)
+
+    assert report["documentiDuplicatiAssorbiti"] == 1
+    assert len(aggiornato.documenti) == 1
+    assert aggiornato.documenti[0].id == duplicato.id
+    assert len(aggiornato.documenti[0].versioni) == 1
+    assert aggiornato.documenti[0].versioni[0].percorso == originale.percorso
 
 
 def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):

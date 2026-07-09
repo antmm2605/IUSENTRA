@@ -8047,9 +8047,13 @@ def test_react_fascicolo_documenti_non_duplica_chiamata_lex_lazy():
     page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 
     assert "function initialDetailIncludesFromHash()" in page_source
-    assert "if (sectionId === 'documenti') return ['documenti']" in page_source
+    assert "lazySectionForDetailHash(currentDetailHashSectionId())" in page_source
+    assert "case 'documenti':" in page_source
+    assert "return 'documenti'" in page_source
     assert "getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined)" in page_source
     assert "onOpen={() => { loadLazySection('documenti') }}" in page_source
+    assert "defaultOpen={activeHashSection === 'documenti'}" in page_source
+    assert "window.addEventListener('hashchange', openHashSection)" in page_source
     assert "loadLazySection('documenti'); loadLazySection('lex')" not in page_source
     assert "lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing" in page_source
     assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source

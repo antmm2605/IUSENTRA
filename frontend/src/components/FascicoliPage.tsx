@@ -3264,6 +3264,9 @@ function DetailSection({
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const actualOpen = isControlled ? Boolean(open) : internalOpen
   useEffect(() => {
+    if (!isControlled && defaultOpen) setInternalOpen(true)
+  }, [defaultOpen, isControlled])
+  useEffect(() => {
     if (detailsRef.current && detailsRef.current.open !== actualOpen) {
       detailsRef.current.open = actualOpen
     }
@@ -3528,9 +3531,34 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
 
 function initialDetailIncludesFromHash(): FascicoloDetailSection[] {
   if (typeof window === 'undefined') return []
-  const sectionId = decodeURIComponent(window.location.hash.replace(/^#/, ''))
-  if (sectionId === 'documenti') return ['documenti']
-  return []
+  const section = lazySectionForDetailHash(currentDetailHashSectionId())
+  return section ? [section] : []
+}
+
+function currentDetailHashSectionId(): string {
+  if (typeof window === 'undefined') return ''
+  return decodeURIComponent(window.location.hash.replace(/^#/, ''))
+}
+
+function lazySectionForDetailHash(sectionId: string): FascicoloDetailSection | undefined {
+  switch (sectionId) {
+    case 'documenti':
+      return 'documenti'
+    case 'attivita':
+      return 'attivita'
+    case 'udienze':
+      return 'scadenze'
+    case 'cancelleria':
+      return 'depositi'
+    case 'regia-operativa':
+      return 'regia'
+    case 'relata-notifica':
+      return 'relata'
+    case 'audit':
+      return 'audit'
+    default:
+      return undefined
+  }
 }
 
 function mobilePreviewUrl(url: string): string {
@@ -5836,14 +5864,16 @@ function SentenzeEconomicheSection({
   data,
   onOpenDocuments,
   onOpenEconomia,
+  defaultOpen = false,
 }:{
   data: FascicoloSentenzeEconomiche | null
   onOpenDocuments: (event: MouseEvent<HTMLAnchorElement>) => void
   onOpenEconomia: (event: MouseEvent<HTMLAnchorElement>) => void
+  defaultOpen?: boolean
 }) {
   const count = sentenzeEconomicheCount(data)
   return (
-    <DetailSection id="sentenze-economiche" title="Sentenze: controllo economico" icon={<WalletCards size={17}/>} count={count}>
+    <DetailSection id="sentenze-economiche" title="Sentenze: controllo economico" icon={<WalletCards size={17}/>} count={count} defaultOpen={defaultOpen}>
       {data && data.worklist.length ? (
         <div className="iu-fas-side-cards iu-fas-sentenze-economiche">
           <article>
@@ -5874,11 +5904,11 @@ function SentenzeEconomicheSection({
   )
 }
 
-function AuditTrailSection({ audit, bundleHref, onOpen, loading = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; loading?:boolean}) {
+function AuditTrailSection({ audit, bundleHref, onOpen, loading = false, defaultOpen = false }:{audit:FascicoloAuditTrail; bundleHref:string; onOpen?:()=>void; loading?:boolean; defaultOpen?:boolean}) {
   const effectiveBundleHref = audit.enabled ? (audit.actions.bundle || bundleHref) : ''
   const hasEvents = audit.events.length > 0
   return (
-    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} onOpen={onOpen}>
+    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen={defaultOpen} onOpen={onOpen}>
       {loading ? <p className="iu-empty">Caricamento audit...</p> : null}
       {hasEvents ? (
         <>
@@ -5938,9 +5968,11 @@ function DetailPage({ id }:{id:string}) {
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
+  const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
+    setActiveHashSection(currentDetailHashSectionId())
     setLoading(true)
     setLazyStatus(() => {
       const next = { ...emptyLazySections }
@@ -5963,12 +5995,6 @@ function DetailPage({ id }:{id:string}) {
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [id])
-  useEffect(() => {
-    if (loading) return
-    const sectionId = decodeURIComponent(window.location.hash.replace(/^#/, ''))
-    if (!sectionId) return
-    window.setTimeout(() => openDetailSectionById(sectionId), 80)
-  }, [loading, data.fascicolo.id])
   const f = data.fascicolo
   const encodedId = encodeURIComponent(f.id || id)
   const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
@@ -6031,6 +6057,20 @@ function DetailPage({ id }:{id:string}) {
         setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Caricamento sezione non riuscito.' })
       })
   }
+  useEffect(() => {
+    if (loading) return undefined
+    const openHashSection = () => {
+      const sectionId = currentDetailHashSectionId()
+      if (!sectionId) return
+      setActiveHashSection(sectionId)
+      const lazySection = lazySectionForDetailHash(sectionId)
+      if (lazySection) loadLazySection(lazySection)
+      window.setTimeout(() => openDetailSectionById(sectionId), 80)
+    }
+    openHashSection()
+    window.addEventListener('hashchange', openHashSection)
+    return () => window.removeEventListener('hashchange', openHashSection)
+  }, [loading, data.fascicolo.id])
   const refreshDetail = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
     getFascicoloDetail(id, { include: 'all' }).then((payload) => {
@@ -6093,10 +6133,10 @@ function DetailPage({ id }:{id:string}) {
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} loading={lazyStatus.regia === 'loading'}/>
-          <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'} onOpen={() => loadLazySection('relata')}>
+          <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={activeHashSection === 'relata-notifica' || notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'} onOpen={() => loadLazySection('relata')}>
             <NotificationRelataMonitor data={data}/>
           </DetailSection>
-          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => { loadLazySection('documenti') }}>
+          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-section-list">
@@ -6119,17 +6159,17 @@ function DetailPage({ id }:{id:string}) {
               {lazyStatus.documenti === 'idle' ? <p className="iu-empty">Apri la sezione per caricare, classificare o modificare i documenti del fascicolo.</p> : null}
             </div>
           </DetailSection>
-          <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} onOpen={() => loadLazySection('attivita')}>
+          <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} defaultOpen={activeHashSection === 'attivita'} onOpen={() => loadLazySection('attivita')}>
             <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
           </DetailSection>
-          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} onOpen={() => loadLazySection('scadenze')}>
+          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => loadLazySection('scadenze')}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
             {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
             <DocumentPresidioPanel data={data}/>
             <div className="iu-fas-two-cols"><div><h3>Scadenze</h3>{data.deadlines.map((deadline) => <DeadlineRow deadline={deadline} key={deadline.id}/>)}{lazyStatus.scadenze === 'loaded' && !data.deadlines.length ? <p className="iu-empty">Nessuna scadenza collegata.</p> : null}<a className="iu-fas-inline-link" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuova scadenza</a></div><div><h3>Agenda</h3>{data.appointments.map((app) => <a className="iu-fas-deadline-row" href={app.href} key={app.id}><Badge tone={app.tone}>{app.type || 'agenda'}</Badge><strong>{app.title}</strong><span>{app.date} {app.time} {app.place}</span></a>)}{lazyStatus.scadenze === 'loaded' && !data.appointments.length ? <p className="iu-empty">Nessun appuntamento trovato.</p> : null}<a className="iu-fas-inline-link" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo appuntamento</a></div></div>
           </DetailSection>
-          <DetailSection id="cancelleria" title="Comunicazioni / Cancelleria" icon={<Mail size={17}/>} count={displayedCommunicationTotal} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti') }}>
+          <DetailSection id="cancelleria" title="Comunicazioni / Cancelleria" icon={<Mail size={17}/>} count={displayedCommunicationTotal} defaultOpen={activeHashSection === 'cancelleria'} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti') }}>
             <div className="iu-fas-comm-dep-grid">
               <div className="iu-fas-comm-column">
                 <Panel title="Comunicazioni" icon={<Mail size={17}/>} count={notificationCommunicationDocuments.length + comunicazioniRows.length}>
@@ -6187,20 +6227,20 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <p className="iu-empty">Nessun avanzamento registrato.</p> : null}</div></DetailSection>
-          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} loading={lazyStatus.audit === 'loading'}/>
+          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} loading={lazyStatus.audit === 'loading'} defaultOpen={activeHashSection === 'audit'}/>
         </div>
         <aside className="iu-fas-detail-side">
-          <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>
+          <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
-          <DetailSection id="economia" title="Contesto economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} onClick={item.href.startsWith('#') ? openSection(item.href.slice(1)) : undefined} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
-          <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')}/>
+          <DetailSection id="economia" title="Contesto economico" icon={<WalletCards size={17}/>} count={data.economics.length} defaultOpen={activeHashSection === 'economia'}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} onClick={item.href.startsWith('#') ? openSection(item.href.slice(1)) : undefined} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
+          <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')} defaultOpen={activeHashSection === 'sentenze-economiche'}/>
           <DetailSection id="workflow" title="Percorso cliente-incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
-          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
+          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length} defaultOpen={activeHashSection === 'conformita'}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
-          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
+          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
         </div>
       </section>

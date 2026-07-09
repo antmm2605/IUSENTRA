@@ -6069,6 +6069,16 @@ def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
     ) in source
 
 
+def test_react_fascicolo_lex_indexing_non_mostra_status_tecnici_o_date_brevi():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "rawStatus === 'stale' || rawStatus === 'not_indexed'" in source
+    assert "statusLabel[effectiveStatus]" in source
+    assert "statusLabel[summary.status] || summary.status" not in source
+    assert "formatDateTimeIt(summary.last_indexed_at, 'mai')" in source
+    assert "dateStyle: 'short', timeStyle: 'short'" not in source
+
+
 def test_react_fascicoli_fonti_documentali_visibili_senza_id_tecnici():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 

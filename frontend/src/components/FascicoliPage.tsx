@@ -1378,7 +1378,17 @@ function CollapsibleFormPanel({
 function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError }:{summary:LexIndexingSummary; refreshAction:string; retryAction:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const working = summary.queued + summary.indexing
   const warnings = summary.warnings.slice(0, 4)
-  const tone = summary.status === 'ready' ? 'success' : summary.status === 'error' ? 'danger' : summary.status === 'stale' ? 'warning' : 'info'
+  const rawStatus = String(summary.status || '').toLowerCase()
+  const effectiveStatus: LexIndexingSummary['status'] = rawStatus === 'ready'
+    ? 'ready'
+    : rawStatus === 'error'
+      ? 'error'
+      : rawStatus === 'stale' || rawStatus === 'not_indexed'
+        ? (summary.ready > 0 ? 'partial' : 'stale')
+        : rawStatus === 'working'
+          ? 'working'
+          : 'partial'
+  const tone = effectiveStatus === 'ready' ? 'success' : effectiveStatus === 'error' ? 'danger' : effectiveStatus === 'stale' ? 'warning' : 'info'
   const statusLabel: Record<LexIndexingSummary['status'], string> = { ready: 'Pronto', partial: 'Parziale', working: 'In corso', error: 'Errore', stale: 'Da aggiornare' }
   const message = summary.errors > 0
     ? 'Alcuni documenti non sono stati indicizzati. Qui sotto trovi quali file richiedono attenzione.'
@@ -1394,7 +1404,7 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
           <span><BrainCircuit size={16}/> Indicizzazione Lex</span>
           <strong>{message}</strong>
         </div>
-        <Badge tone={tone}>{statusLabel[summary.status] || summary.status}</Badge>
+        <Badge tone={tone}>{statusLabel[effectiveStatus]}</Badge>
       </header>
       <dl>
         <div><dt>Totali</dt><dd>{summary.total_documents}</dd></div>
@@ -1413,7 +1423,7 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
         </div>
       ) : null}
       <footer>
-        <span>Ultimo indice: {summary.last_indexed_at ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(new Date(summary.last_indexed_at)) : 'mai'}</span>
+        <span>Ultimo indice: {summary.last_indexed_at ? formatDateTimeIt(summary.last_indexed_at, 'mai') : 'mai'}</span>
         <div>
           {refreshAction ? <PostAction action={refreshAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Aggiorna indice</PostAction> : null}
           {retryAction && summary.errors > 0 ? <PostAction action={retryAction} tone="secondary" onDone={onDone} onError={onError}><RotateCcw size={15}/> Riprova errori</PostAction> : null}

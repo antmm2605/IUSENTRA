@@ -59,6 +59,8 @@ Durante la prova di applicazione sul server è emerso anche un bug nella fusione
 
 Aggiornamento prestazionale 09/07/2026: la riconciliazione dei fascicoli doppi in modalità SQL non deve usare il salvataggio globale `_salva()`, perché riscrive tutta la tabella `fascicoli` e il mirror JSON anche quando viene assorbito un solo duplicato. Il metodo ora aggiorna solo il fascicolo principale, cancella solo gli ID assorbiti e rigenera il mirror una volta. Il test `test_riconcilia_doppioni_cliente_rg_sql_salva_solo_record_coinvolti` fallisce se il flusso torna al full replace e verifica che nel DB resti una sola riga per il caso `Grosso Eugenio / RG 795/2026`.
 
+Aggiornamento UI 09/07/2026 emerso da prova visiva server: nel dettaglio fascicolo il pannello `Indicizzazione Lex` non deve mostrare codici macchina come `NOT_INDEXED` né date abbreviate con virgola (`20/06/26, 18:49`). La UI ora normalizza lo stato tecnico in etichette italiane (`Parziale`, `Da aggiornare`, `Pronto`) e usa `formatDateTimeIt`, quindi l'avvocato vede date complete come `20/06/2026 18:49`. Il test `test_react_fascicolo_lex_indexing_non_mostra_status_tecnici_o_date_brevi` presidia questa regola.
+
 Comandi locali già eseguiti sul perimetro:
 
 ```powershell
@@ -68,6 +70,8 @@ python -m pytest -q tests/test_codeql_public_surface_regressions.py tests/test_p
 python -m pytest -q tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
 python -m pytest -q tests/test_fascicoli.py::test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
 python -m pytest -q tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_sql_salva_solo_record_coinvolti tests/test_fascicoli.py::test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente tests/test_fascicoli.py::test_nuovo_blocca_doppione_cliente_rg tests/test_fascicoli.py::test_aggiorna_non_lascia_doppioni_cliente_rg --tb=short
+python -m pytest -q tests/test_react_shell.py::test_react_fascicolo_lex_indexing_non_mostra_status_tecnici_o_date_brevi tests/test_fascicoli_pagination.py::test_fascicoli_api_filtra_rg_mancanti_da_card --tb=short
+cd frontend; npm run typecheck
 python -m ruff check --output-format=github --select E9,F63,F7,F82 scripts/audit_quickorganizer_import.py web/bootstrap/polisweb_routes.py tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py
 python -m ruff check pct/fascicoli.py tests/test_fascicoli.py scripts/reconcile_duplicate_fascicoli.py web/bootstrap/polisweb_routes.py scripts/audit_quickorganizer_import.py scripts/repair_fascicolo_document_duplicates.py
 git diff --check

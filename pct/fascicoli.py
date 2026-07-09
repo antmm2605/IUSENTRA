@@ -1051,7 +1051,12 @@ class GestioneFascicoli:
         except Exception:
             pass
 
-    def _salva_fascicoli_parziale(self, fascicoli: Iterable["Fascicolo"]) -> None:
+    def _salva_fascicoli_parziale(
+        self,
+        fascicoli: Iterable["Fascicolo"],
+        *,
+        rigenera_mirror: bool = True,
+    ) -> None:
         if self._studio_db is None:
             self._salva()
             return
@@ -1125,7 +1130,32 @@ class GestioneFascicoli:
         except Exception:
             conn.execute("ROLLBACK")
             raise
-        self._rigenera_mirror_fascicoli_json()
+        if rigenera_mirror:
+            self._rigenera_mirror_fascicoli_json()
+
+    def _rimuovi_fascicoli_parziale(
+        self,
+        fascicoli_ids: Iterable[str],
+        *,
+        rigenera_mirror: bool = True,
+    ) -> None:
+        ids = [str(item or "").strip() for item in fascicoli_ids if str(item or "").strip()]
+        if not ids:
+            return
+        if self._studio_db is None:
+            self._salva()
+            return
+        conn = self._studio_db.conn
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.executemany("DELETE FROM fascicoli WHERE id=?", [(item,) for item in ids])
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        if rigenera_mirror:
+            self._rigenera_mirror_fascicoli_json()
 
     def segna_ocr_estratto(self, id_fasc: str, id_doc: str) -> None:
         """Segna un documento come indicizzato via OCR e persiste."""
@@ -1702,16 +1732,20 @@ class GestioneFascicoli:
         report: dict[str, Any] = {
             "ok": True,
             "dryRun": bool(dry_run),
+            "source_of_truth": "sqlite" if self._studio_db is not None else "json",
             "groups": [],
             "merged": 0,
             "removedDuplicates": 0,
         }
         touched = False
+        touched_fascicoli: dict[str, Fascicolo] = {}
+        removed_ids: list[str] = []
         for key, rows in sorted(groups.items()):
             if len(rows) < 2:
                 continue
             ordered = sorted(rows, key=self._score_fascicolo_principale, reverse=True)
             primary = ordered[0]
+            group_touched = False
             entry = {
                 "key": key,
                 "primaryId": primary.id,
@@ -1737,6 +1771,7 @@ class GestioneFascicoli:
             )
             for duplicate in ordered[1:]:
                 if self._assorbi_campi_base(primary, duplicate):
+                    group_touched = True
                     touched = True
                 doc_id_map: dict[str, str] = {}
                 for doc in list(duplicate.documenti or []):
@@ -1755,6 +1790,7 @@ class GestioneFascicoli:
                     doc_id_map[doc.id] = cloned.id
                     existing_doc_keys.update(self._documento_identity_keys(cloned))
                     entry["documentsAdded"] += 1
+                    group_touched = True
                     touched = True
                 for dep in list(duplicate.depositi_pct or []):
                     dep_key = tuple(
@@ -1776,6 +1812,7 @@ class GestioneFascicoli:
                     primary.depositi_pct.append(cloned_dep)
                     existing_deposits.add(dep_key)
                     entry["depositsAdded"] += 1
+                    group_touched = True
                     touched = True
                 for att in list(duplicate.attivita or []):
                     att_key = tuple(
@@ -1792,6 +1829,7 @@ class GestioneFascicoli:
                     primary.attivita.append(cloned_att)
                     existing_activities.add(att_key)
                     entry["activitiesAdded"] += 1
+                    group_touched = True
                     touched = True
                 primary.avanzamento.append(
                     AvanzamentoPratica(
@@ -1807,15 +1845,23 @@ class GestioneFascicoli:
                     primary,
                     reason="riconciliazione_doppione_cliente_rg",
                 )
+                group_touched = True
                 del self._fascicoli[duplicate.id]
+                removed_ids.append(duplicate.id)
                 report["removedDuplicates"] += 1
                 touched = True
-            if touched:
+            if group_touched:
                 primary.modificato_il = datetime.now().isoformat()
+                touched_fascicoli[primary.id] = primary
             report["groups"].append(entry)
             report["merged"] += 1
         if touched:
-            self._salva()
+            if self._studio_db is not None:
+                self._salva_fascicoli_parziale(touched_fascicoli.values(), rigenera_mirror=False)
+                self._rimuovi_fascicoli_parziale(removed_ids, rigenera_mirror=False)
+                self._rigenera_mirror_fascicoli_json()
+            else:
+                self._salva()
         return report
 
     # ---------------------------------------------------------------- CRUD fascicolo
@@ -1922,7 +1968,7 @@ class GestioneFascicoli:
         return f
 
     def elimina(self, id_fasc: str) -> None:
-        f = self._get_o_errore(id_fasc)
+        self._get_o_errore(id_fasc)
         # elimina documenti fisici
         fasc_dir = self.documents_dir / id_fasc
         if fasc_dir.exists():

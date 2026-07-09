@@ -425,6 +425,49 @@ def test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella(tmp_path)
     assert len(mirror[primo.id]["documenti"]) == 1
 
 
+def test_riconcilia_doppioni_cliente_rg_sql_salva_solo_record_coinvolti(tmp_path, monkeypatch):
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    gf_sql = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+        studio_db=studio_db,
+    )
+    principale = gf_sql.nuovo(
+        titolo="Grosso Eugenio c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Grosso Eugenio",
+        numero_rg="795",
+        anno_rg=2026,
+    )
+    duplicato = Fascicolo(
+        id="DUP795RG",
+        numero="2026/999",
+        titolo="Eugenio Grosso c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Eugenio Grosso c. MIM",
+        numero_rg="795",
+        anno_rg=2026,
+        stato=StatoFascicolo.ARCHIVIATO,
+    )
+    gf_sql._fascicoli[duplicato.id] = duplicato
+    gf_sql._salva()
+
+    def _full_replace_vietato():
+        raise AssertionError("La riconciliazione SQL deve usare salvataggio parziale")
+
+    monkeypatch.setattr(gf_sql, "_salva", _full_replace_vietato)
+    report = gf_sql.riconcilia_doppioni_cliente_rg()
+    mirror = json.loads((tmp_path / "fascicoli.json").read_text(encoding="utf-8"))
+
+    assert report["source_of_truth"] == "sqlite"
+    assert report["removedDuplicates"] == 1
+    assert studio_db.conn.execute("select count(*) from fascicoli").fetchone()[0] == 1
+    assert studio_db.conn.execute("select count(*) from fascicoli where id=?", (principale.id,)).fetchone()[0] == 1
+    assert studio_db.conn.execute("select count(*) from fascicoli where id=?", (duplicato.id,)).fetchone()[0] == 0
+    assert set(mirror) == {principale.id}
+
+
 def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):
     primo = gf.nuovo(
         titolo="Cliente c. MIM",

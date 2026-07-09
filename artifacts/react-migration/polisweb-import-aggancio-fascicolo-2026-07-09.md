@@ -57,6 +57,8 @@ Scenario coperto:
 
 Durante la prova di applicazione sul server è emerso anche un bug nella fusione dei metadati economici: un campo pagamento con lista vuota non deve generare `TypeError`. Il test `test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti` ora copre il caso `fonti_documentali=[]` e verifica che la fonte del duplicato venga conservata.
 
+Aggiornamento prestazionale 09/07/2026: la riconciliazione dei fascicoli doppi in modalità SQL non deve usare il salvataggio globale `_salva()`, perché riscrive tutta la tabella `fascicoli` e il mirror JSON anche quando viene assorbito un solo duplicato. Il metodo ora aggiorna solo il fascicolo principale, cancella solo gli ID assorbiti e rigenera il mirror una volta. Il test `test_riconcilia_doppioni_cliente_rg_sql_salva_solo_record_coinvolti` fallisce se il flusso torna al full replace e verifica che nel DB resti una sola riga per il caso `Grosso Eugenio / RG 795/2026`.
+
 Comandi locali già eseguiti sul perimetro:
 
 ```powershell
@@ -65,7 +67,9 @@ python -m pytest -q tests/test_codeql_public_surface_regressions.py::test_audit_
 python -m pytest -q tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_route_importa_polisweb_sincronizza_fascicolo_esistente tests/test_polisweb.py::test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server tests/test_polisweb.py::test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico --tb=short
 python -m pytest -q tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
 python -m pytest -q tests/test_fascicoli.py::test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
+python -m pytest -q tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_sql_salva_solo_record_coinvolti tests/test_fascicoli.py::test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente tests/test_fascicoli.py::test_nuovo_blocca_doppione_cliente_rg tests/test_fascicoli.py::test_aggiorna_non_lascia_doppioni_cliente_rg --tb=short
 python -m ruff check --output-format=github --select E9,F63,F7,F82 scripts/audit_quickorganizer_import.py web/bootstrap/polisweb_routes.py tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py
+python -m ruff check pct/fascicoli.py tests/test_fascicoli.py scripts/reconcile_duplicate_fascicoli.py web/bootstrap/polisweb_routes.py scripts/audit_quickorganizer_import.py scripts/repair_fascicolo_document_duplicates.py
 git diff --check
 ```
 

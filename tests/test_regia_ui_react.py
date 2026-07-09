@@ -1,4 +1,39 @@
 from pathlib import Path
+from types import SimpleNamespace
+
+from web.services.react_fascicoli_bridge import _deposit_office_payload
+
+
+def test_deposito_resolver_ufficio_completa_pec_e_codice_da_catalogo():
+    payload = _deposit_office_payload(SimpleNamespace(tribunale="Tribunale di Milano"))
+
+    assert payload["name"] == "Tribunale di Milano"
+    assert payload["pec"] == "tribunale.milano@civile.ptel.giustiziacert.it"
+    assert payload["code"] == "0580010"
+    assert payload["ministerialCode"] == "0151460094"
+    assert payload["verified"] is True
+    assert "risolti automaticamente dal catalogo uffici" in payload["message"]
+
+
+def test_deposito_resolver_non_si_ferma_a_pec_profilo_senza_codice():
+    fascicolo = SimpleNamespace(
+        tribunale="Tribunale di Palmi",
+        profilo_deposito={
+            "ufficio": {
+                "nome": "Tribunale di Palmi",
+                "pec": "tribunale.palmi@civile.ptel.giustiziacert.it",
+            }
+        },
+    )
+
+    payload = _deposit_office_payload(fascicolo)
+
+    assert payload["name"] == "Tribunale di Palmi"
+    assert payload["pec"] == "tribunale.palmi@civile.ptel.giustiziacert.it"
+    assert payload["code"] == "0910011"
+    assert payload["ministerialCode"] == "0800570094"
+    assert payload["verified"] is True
+    assert "codice ufficio" in payload["message"]
 
 
 def test_ui_react_espone_regia_operativa_e_payload_reale():
@@ -32,12 +67,14 @@ def test_ui_mostra_dati_regia_senza_placeholder_operativi():
 
 
 def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
-    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    shell_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
     data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     local_signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
-    assert "include: 'all'" in source
+    assert "FascicoloDepositoPage" in shell_source
+    assert "include: 'all'" in shell_source
     assert "Inventario fascicolo" in source
     assert "La preparazione legge tutti i documenti presenti nel fascicolo" in source
     assert "Documenti candidati alla busta" in source
@@ -66,11 +103,17 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Indice documenti" in source
     assert "Indice generato dal software" in source
     assert 'type="checkbox"' in source
-    assert "Ripristina proposta" in source
-    assert "Invia tutto" in source
+    assert "Ripristina documenti collegati" in source
+    assert "Invia tutto" not in source
     assert "Deseleziona tutto" in source
     assert "Salva classificazione" in source
     assert "deselectAllDepositDocuments" in source
+    assert "const selectAllDepositDocuments" not in source
+    assert "onClick={selectAllDepositDocuments}" not in source
+    assert "Il software segnala i candidati; l'avvocato sceglie cosa entra nella busta" in source
+    assert "const linkedDefaultDocuments = uniqueFascicoloDocuments(usableLinkedSlotDocuments.map((row) => row.document))" in source
+    assert "const defaultDepositSelectionIds = linkedDefaultDocuments.map((doc) => doc.id)" in source
+    assert "depositCandidateDocuments]).map((doc) => doc.id)" not in source
     assert "buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)" in source
     assert 'count={sortedSlots.length}' in source
     assert 'catalogOnly' in source
@@ -131,7 +174,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Prova senza invio reale" in source
     assert "Simula invio PEC" in source
     assert "Invia deposito reale" in source
-    assert "IUSENTRA firma solo quelli obbligatori o scelti" in source
+    assert "IUSENTRA firma solo quelli scelti" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']" in source
     assert "LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000" in source
@@ -152,30 +195,75 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "canRequestLocalSignerProtocol" in source
     assert "if (signableDocuments.length) void checkLocalSigner(false)" in source
     assert "if (signableDocuments.length) void checkLocalSigner(true)" not in source
-    assert "refreshInfo()\n    checkLocalSigner(false)" in source
+    assert "window.setTimeout(() => { void checkLocalSigner(false) }, delay)" in source
     assert "canRequestProtocolStart" in local_signer
     assert "activation?.isActive !== false" in local_signer
     assert "Riavvia Local Signer e premi Riverifica" not in source
     assert "Prima riavvia e riverifica Local Signer." not in source
-    assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function relataStatusDisplayLabel")]
+    assert 'role="alert"' in source[source.index("function DepositBatchSignaturePanel"):source.index("function documentHasSignedContainerExtension")]
     assert "Versione firmata tramite firma multipla deposito" in source
     assert "Firma e prepara prova" in source
     assert "Il software non seleziona se la classificazione non è certa." in source
-    assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]
+    assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
+
+
+def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
+    slot_logic = source[source.index("function depositSelectionSatisfiesSlot"):source.index("type MissingDepositSlotsInput")]
+    deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
+
+    assert "const actionBlocked = !mainActDocument || !officeRecipientReady" in deposit_page
+    assert "Boolean(missingRequiredSlots.length) || !officeRecipientReady" not in deposit_page
+    assert "requiredChoicesNotice" in deposit_page
+    assert "La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente" in deposit_page
+    assert "Avviso non bloccante" in deposit_page
+    assert "Avviso da verificare" in deposit_page
+    assert "scelte obbligatorie richiedono la selezione dell’avvocato" not in source
+    assert "scelte obbligatorie richiedono la conferma dell’avvocato" not in source
+    assert slot_logic.index("if (/atto principale") < slot_logic.index("const linkedDocumentId")
+    assert "documenti_selezionati_ids: packageDocuments.map((doc) => doc.id)" in deposit_page
+    assert "const defaultDepositSelectionIds = uniqueFascicoloDocuments([...softwareProposedDocuments, ...depositCandidateDocuments]).map((doc) => doc.id)" not in source
+    assert "depositCandidateDocuments]).map((doc) => doc.id)" not in source
+    assert "Invia tutto" not in source
+
+
+def test_ui_deposito_tipo_deposito_non_prende_la_prima_voce_e_suggerisce_sigp_note():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
+    panel = source[source.index("function DepositTypePreviewPanel"):source.index("function DepositActionButton")]
+    suggester = source[source.index("function suggestDepositTypeKey"):source.index("function depositAttachmentDisplayName")]
+
+    assert "if (selectedKey !== selectedType.key) onSelect(selectedType.key)" not in panel
+    assert "suggestDepositTypeKey(" in source
+    assert "autoSelectedDepositTypeKeyRef" in source
+    assert "CorsoCausa_SIGP::DepositoNoteScritteSostUdie" in suggester
+    assert "sigp|giudice di pace" in suggester
+    assert "current && current !== autoSelectedDepositTypeKeyRef.current" in source
+    assert "autoSelectedDepositTypeKeyRef.current = ''" in source
 
 
 def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
-    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 
-    deposit_page = source[source.index("function DepositPreparePage"):source.index("function NotificationRelataMonitor")]
+    deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
     action_button = source[source.index("function DepositActionButton"):source.index("function DepositPdfPreviewButton")]
     preview_button = source[source.index("function DepositPdfPreviewButton"):source.index("function JsonPostForm")]
 
     assert "const officeRecipientReady" in deposit_page
-    assert "PEC dell’ufficio non verificata" in deposit_page
-    assert "const pecWorkflowAvailable = Boolean(data.depositOffice.verified && data.depositOffice.pec)" in deposit_page
-    assert "directPecReady || guidedCompletion || pecWorkflowAvailable" in deposit_page
+    assert "const depositOfficePecAvailable = Boolean(data.depositOffice.pec)" in deposit_page
+    assert "const depositOfficeCodeAvailable = Boolean(data.depositOffice.code || data.depositOffice.ministerialCode)" in deposit_page
+    assert "const depositOfficeVerified = Boolean(data.depositOffice.verified && depositOfficePecAvailable)" in deposit_page
+    assert "const pecWorkflowAvailable = depositOfficePecAvailable" in deposit_page
+    assert "directPecAllowed || guidedCompletion || pctJsonPackageChannel" in deposit_page
+    assert "IUSENTRA non ha risolto automaticamente la PEC dell’ufficio" in deposit_page
+    assert "IUSENTRA non ha risolto automaticamente il codice dell’ufficio" in deposit_page
+    assert "Manca la PEC dell’ufficio" not in deposit_page
+    assert "Manca il codice dell’ufficio" not in deposit_page
+    assert "PEC ufficio da indicare" not in deposit_page
+    assert "Codice ufficio da indicare" not in deposit_page
+    assert "Codice ufficio presente: il certificato viene controllato nella prova." in deposit_page
+    assert "const pecWorkflowAvailable = Boolean(data.depositOffice.verified && data.depositOffice.pec)" not in deposit_page
+    assert "PEC dell’ufficio non verificata" not in deposit_page
     assert "tribunale_pec: data.depositOffice.pec" in deposit_page
     assert "prova_senza_invio: '1'" in deposit_page
     assert "simula_invio_pec: '1'" in deposit_page
@@ -235,7 +323,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "Local Signer non raggiungibile dal browser per firmare i dati del deposito" in deposit_page
     assert "async function parseLocalSignerResponse" in source
     assert "const signaturePayload = await parseLocalSignerResponse(signatureResponse)" in deposit_page
-    assert "const payload = await parseLocalSignerResponse(signResponse)" in deposit_page
+    assert "const payload = await parseLocalSignerResponse(signResponse)" in source
     assert "certificato_windows_firma_selezionato" in source
     assert "status?.certificato_windows_firma_selezionato || status?.certificato_windows_selezionato" in source
     assert "result.requires_local_pec && completeLocalPec" in action_button
@@ -267,6 +355,13 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "completeLocalPec={completeDepositLocalPec}" in deposit_page
     assert "bustaAudit: payload.busta_audit" in deposit_page
     assert "const proofBlocksDirectSend = Boolean(" in deposit_page
+    proof_start = deposit_page.index("const proofBlocksDirectSend = Boolean(")
+    proof_end = deposit_page.index("  const compatibilityReport", proof_start)
+    proof_block = deposit_page[proof_start:proof_end]
+    assert "packagePreview?.requiresGuidedCompletion" not in proof_block
+    assert "packagePreview?.pecSenderReady === false" in proof_block
+    assert "recordBool(packagePreview?.bustaAudit, 'blocks_direct_send')" in proof_block
+    assert "recordBool(packagePreview?.bustaAudit, 'guided_completion_required')" in proof_block
     assert "function depositHasPersistedDryRunProof" in source
     assert "const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)" in deposit_page
     assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)" in deposit_page

@@ -43,6 +43,7 @@ from web.services.deposito_anagrafica_ministeriale import (
 from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_apply as _deposito_catalogo_apply,
     deposito_catalogo_blocker as _deposito_catalogo_blocker,
+    deposito_catalogo_datiatto_extra as _deposito_catalogo_datiatto_extra,
     deposito_catalogo_datiatto_hint as _deposito_catalogo_datiatto_hint,
     deposito_catalogo_entry as _deposito_catalogo_entry,
 )
@@ -213,6 +214,13 @@ def register_deposito_routes(
             flash(catalog_blocker, "danger")
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
         datiatto_hint = _deposito_catalogo_datiatto_hint(catalog_entry)
+        try:
+            datiatto_extra = _deposito_catalogo_datiatto_extra(form)
+        except ValueError as exc:
+            if _wants_json_response(request.headers):
+                return jsonify({"ok": False, "package_ready": False, "errore": str(exc)}), 400
+            flash(str(exc), "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -294,6 +302,7 @@ def register_deposito_routes(
             datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
             datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
             datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
+            datiatto_extra=datiatto_extra,
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         try:
@@ -433,6 +442,20 @@ def register_deposito_routes(
                 }
             ), 400
         datiatto_hint = _deposito_catalogo_datiatto_hint(catalog_entry)
+        try:
+            datiatto_extra = _deposito_catalogo_datiatto_extra(form)
+        except ValueError as exc:
+            return jsonify(
+                {
+                    "ok": False,
+                    "package_ready": False,
+                    "errore": str(exc),
+                    "next_actions": [
+                        "Correggi il dato indicato nel pannello deposito.",
+                        "Ripeti la prova senza invio dopo il salvataggio.",
+                    ],
+                }
+            ), 400
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()
@@ -713,6 +736,7 @@ def register_deposito_routes(
             datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
             datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
             datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
+            datiatto_extra=datiatto_extra,
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())

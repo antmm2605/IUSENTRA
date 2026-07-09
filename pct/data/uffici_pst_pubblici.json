@@ -3,7 +3,7 @@
     "civili": "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=giudiziari&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca",
     "penali": "https://servizipst.giustizia.it/PST/it/pst_2_4.wp?ufficioSelect=penali&distretto=&localita=&tipoUfficio=&action%3Asearch=ricerca"
   },
-  "generato_il": "2026-06-02T12:42:13",
+  "generato_il": "2026-07-09T15:40:06",
   "criterio": "Catalogo pubblico PST estratto dagli URL Uffici giudiziari civili e penali.",
   "conteggi": {
     "civili": 1781,

@@ -1,0 +1,93 @@
+{
+  "ok": true,
+  "source_of_truth": "catalogo_tecnico_condiviso_confronto_funzionale_interno_specifiche_pst",
+  "total": 270,
+  "channels": {
+    "pct": 252,
+    "unep": 18,
+    "other": 0
+  },
+  "pct_generated_datiatto": 252,
+  "pct_real_send_suspended_until_dedicated_generator": 0,
+  "pct_expected_datiatto": 252,
+  "office_catalog": {
+    "ok": true,
+    "source": {
+      "source": "C:\\QuickOrganizer\\ListaUfficiGiudiziari.xml",
+      "qc_uffici_found": true
+    },
+    "iusentra_offices": 1365,
+    "pct_target_codes": 593,
+    "pct_target_missing_in_iusentra": 0,
+    "pct_target_without_pec_or_code": 0,
+    "react_resolver_errors": 0,
+    "external_operational_pct_rows": 593,
+    "external_operational_missing_in_iusentra": 0,
+    "external_operational_without_pec": 0,
+    "external_operational_pec_mismatch": 0
+  },
+  "blocked_keys": [],
+  "sample_generated": [
+    {
+      "key": "Introduttivi_SICID::CitazioneAppello",
+      "root": "CitazioneAppello",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::Citazione",
+      "root": "Citazione",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneSfratto",
+      "root": "CitazioneSfratto",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzioneAppello",
+      "root": "CitazioneInRiassunzione",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::CitazioneInRiassunzione",
+      "root": "CitazioneInRiassunzione",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniDivorzio",
+      "root": "ModificaCondizioniDivorzio",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneCongiunto",
+      "root": "ModificaCondizioniSeparazione",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::ModificaCondizioniSeparazioneGiudiziale",
+      "root": "ModificaCondizioniSeparazione",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneDecretoIngiuntivo",
+      "root": "OpposizioneDecretoIngiuntivo",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoOpposizioneDecretoIngiuntivo",
+      "root": "RicorsoOpposizioneDecretoIngiuntivo",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::OpposizioneLeggeFornero",
+      "root": "Ricorso",
+      "generator": "IntroduttiviSicid"
+    },
+    {
+      "key": "Introduttivi_SICID::RicorsoReclamoSospensiva",
+      "root": "RicorsoReclamoSospensiva",
+      "generator": "IntroduttiviSicid"
+    }
+  ],
+  "errors": []
+}

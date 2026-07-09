@@ -147,6 +147,190 @@ def _norm_code(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", _text(value).casefold())
 
 
+def _root(type_name: str, variable: str) -> dict[str, str]:
+    return {"type": type_name, "variable": variable}
+
+
+_CATALOG_OVERRIDES_BY_KEY: dict[str, dict[str, Any]] = {
+    _norm_code("Parte_SICID::MemorieCartabia"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::Memoria171ter1"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::Repliche171ter2"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::Controrepliche171ter3"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::IstanzaAccoglimentoDomanda183ter"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::IstanzaRigettoDomanda183quater"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_MemorieCartabia"],
+        "datiatto_roots": [_root("Parte.MemorieCartabia", "memorieCartabia")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Istanze"],
+    },
+    _norm_code("Parte_SICID::AttoRichiestaVisibilit\u00e0"): {
+        "datiatto_methods": ["Create_DatiAtto_Parte_AttoRichiestaVisibilit\u00e0"],
+        "datiatto_roots": [_root("Parte.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "RiferimentoProcedimento",
+            "Parte",
+            "Avvocato",
+            "Urgenza",
+        ],
+    },
+    _norm_code("Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilit\u00e0"): {
+        "datiatto_methods": ["Create_DatiAtto_ParteSiecicEsecuzioni_AttoRichiestaVisibilit\u00e0"],
+        "datiatto_roots": [_root("ParteSiecicEsecuzioni.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "RiferimentoProcedimento",
+            "Parte",
+            "Avvocato",
+            "Urgenza",
+        ],
+    },
+    _norm_code("Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilit\u00e0"): {
+        "datiatto_methods": ["Create_DatiAtto_ParteSiecicConcorsuali_AttoRichiestaVisibilit\u00e0"],
+        "datiatto_roots": [_root("ParteSiecicConcorsuali.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "RiferimentoProcedimento",
+            "Parte",
+            "Avvocato",
+            "Rito",
+            "Urgenza",
+        ],
+    },
+    _norm_code("CorsoCausa_SIGP::AttoRichiestaVisibilit\u00e0"): {
+        "datiatto_methods": ["Create_DatiAtto_CorsoCausa_SIGP_AttoRichiestaVisibilit\u00e0"],
+        "datiatto_roots": [_root("CorsoCausa_SIGP.AttoRichiestaVisibilita", "attoRichiestaVisibilita")],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "RiferimentoProcedimento",
+            "Parte",
+            "Avvocato",
+            "Ruolo",
+            "Urgenza",
+        ],
+    },
+    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare"): {
+        "datiatto_roots": [
+            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
+        ],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "ContributoUnificato",
+            "CodiceOggetto",
+            "Titolo",
+            "Beni pignorati",
+            "Dati procedente",
+        ],
+    },
+    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore"): {
+        "datiatto_roots": [
+            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
+        ],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "ContributoUnificato",
+            "CodiceOggetto",
+            "Titolo",
+            "Beni pignorati",
+            "Dati procedente",
+            "Custode",
+        ],
+    },
+    _norm_code("Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"): {
+        "datiatto_roots": [
+            _root("IntroduttiviSiecicEsecuzioni.IscrizioneRuoloPignoramento", "iscrizioneRuoloPignoramento")
+        ],
+        "datiatto_required_data": [
+            "AnagraficaProcedimento",
+            "ContributoUnificato",
+            "CodiceOggetto",
+            "Titolo",
+            "Beni pignorati",
+            "Dati procedente",
+            "Dati terzo",
+        ],
+    },
+    _norm_code("Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione"): {
+        "key": "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+        "aliases": ["Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione"],
+        "datiatto_methods": ["Create_DatiAtto_ProfSiecicEsecuzioni_ProgettoDistribuzione"],
+        "datiatto_roots": [_root("ProfSiecicEsecuzioni.ProgettoDistribuzione", "progettoDistribuzione")],
+        "datiatto_required_data": ["RiferimentoProcedimento", "Deposito progetto", "Urgenza"],
+    },
+}
+
+_CURATORE_PLACEHOLDER_OVERRIDE = {
+    "key": "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
+    "text": "Deposito relazione iniziale del curatore",
+    "aliases": ["studio-telematico::procedimenti-concorsuali-atti-del-curatore::186"],
+    "datiatto_methods": ["Create_DatiAtto_CurSiecicConcorsuali_DepositoRelazioneIniziale"],
+    "datiatto_roots": [_root("CurSiecicConcorsuali.DepositoRelazioneIniziale", "depositoRelazioneIniziale")],
+    "datiatto_required_data": ["RiferimentoProcedimento", "Rito", "Urgenza"],
+}
+
+
+def _catalog_override_for(entry: dict[str, Any], *, key: str, label: str, category: str) -> dict[str, Any]:
+    override = _CATALOG_OVERRIDES_BY_KEY.get(_norm_code(key))
+    if override:
+        return override
+    if (
+        not _text(entry.get("key"))
+        and _norm_code(label) == _norm_code("Atti del Curatore")
+        and _norm_code(category) == _norm_code("Atti del Curatore")
+    ):
+        return _CURATORE_PLACEHOLDER_OVERRIDE
+    return {}
+
+
+def _merge_catalog_override(entry: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    if not override:
+        return entry
+    merged = dict(entry)
+    for field in ("key", "text", "macro", "categoria", "channel"):
+        if field in override:
+            merged[field] = override[field]
+    for field in ("aliases", "datiatto_methods", "datiatto_roots", "datiatto_required_data"):
+        values = []
+        if field in override:
+            values.extend(override.get(field) or [])
+        values.extend(merged.get(field) or [])
+        if field == "datiatto_roots":
+            seen_roots: set[str] = set()
+            unique_roots: list[Any] = []
+            for item in values:
+                marker = json.dumps(item, sort_keys=True, ensure_ascii=False) if isinstance(item, dict) else str(item)
+                if marker not in seen_roots:
+                    seen_roots.add(marker)
+                    unique_roots.append(item)
+            merged[field] = unique_roots
+        else:
+            merged[field] = _unique_texts([_text(item) for item in values])
+    if override.get("requires_dedicated_iusentra_generator"):
+        merged["requires_dedicated_iusentra_generator"] = True
+    if override:
+        merged["catalog_override_source"] = "quickorganizer_decompiled_generator_case"
+    return merged
+
+
 DATIATTO_GENERATOR_CLASSES = frozenset(
     {
         "IntroduttiviSicid",
@@ -206,6 +390,8 @@ def _method_generator_class(entry: dict[str, Any]) -> str:
             if "CONCORSUALI" in key:
                 return "IntroduttiviSiecicConcorsuali"
             return "IntroduttiviSiecicEsecuzioni"
+        if name.startswith("Introduttivi_"):
+            return "IntroduttiviSicid"
         if name.startswith("ParteCassazione"):
             return "ParteCassazione"
         if name.startswith("Parte_ESECUZIONI_SIECIC") or name.startswith("ParteSiecicEsecuzioni"):
@@ -504,13 +690,27 @@ def _schema_status(entry: dict[str, Any], rules: dict[str, Any], tipo_atto: str)
             "evidenceRoots": roots[:12],
             **hint,
         }
+    if entry.get("requires_dedicated_iusentra_generator"):
+        return {
+            "status": "mappato_generatore_dedicato_da_completare",
+            "label": "Tipo riconosciuto; richiede campi specifici prima dell'invio reale",
+            "supported": False,
+            "requiresSpecificGenerator": True,
+            "supportedMinisterialRoot": hint["ministerialRoot"],
+            "evidenceMethodsCount": len(methods),
+            "evidenceRootsCount": len(roots),
+            "evidenceMethods": methods[:12],
+            "evidenceRoots": roots[:12],
+            **hint,
+        }
     if tipo_atto == "RICORSO":
+        supported_root = hint["ministerialRoot"] or "Ricorso"
         return {
             "status": "supportato_ricorso_base",
-            "label": "DatiAtto ministeriale Ricorso governato dal generatore attuale",
+            "label": f"DatiAtto ministeriale {supported_root} governato dal generatore attuale",
             "supported": True,
             "requiresSpecificGenerator": False,
-            "supportedMinisterialRoot": "Ricorso",
+            "supportedMinisterialRoot": supported_root,
             "evidenceMethodsCount": len(methods),
             "evidenceRootsCount": len(roots),
             "evidenceMethods": methods[:12],
@@ -674,6 +874,15 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
     category = _text(entry.get("categoria"), "Senza categoria")
     path = _text(entry.get("path"), " > ".join(part for part in (macro, category, label) if part))
     key = _text(entry.get("key")) or f"studio-telematico::{_slug(path)}::{index + 1}"
+    entry = _merge_catalog_override(
+        {**entry, "key": key, "text": label, "macro": macro, "categoria": category, "path": path},
+        _catalog_override_for(entry, key=key, label=label, category=category),
+    )
+    label = _text(entry.get("text"), label)
+    macro = _text(entry.get("macro"), macro)
+    category = _text(entry.get("categoria"), category)
+    path = _text(entry.get("path"), path)
+    key = _text(entry.get("key")) or key
     prefix = _text(entry.get("prefix"), key.split("::")[0] + "::" if "::" in key else "")
     registry = _registry_for({**entry, "key": key, "text": label, "macro": macro, "categoria": category, "path": path})
     rules = _rules_for({**entry, "key": key, "text": label}, registry)
@@ -684,8 +893,8 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
             **rules,
             "real_send_allowed_from_pct_panel": False,
             "real_send_blocker": (
-                "Il catalogo depositi è stato riconosciuto, ma questo canale non è abilitato "
-                "nel pannello PCT corrente."
+                "Questo tipo di deposito è riconosciuto, ma l'invio reale resta sospeso: "
+                "mancano ancora campi specifici obbligatori per questo caso."
             ),
         }
     return {
@@ -699,9 +908,11 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
         "registry": registry,
         "quickOrganizer": {
             "rawKey": _text(entry.get("key")),
+            "aliases": _unique_texts([_text(item) for item in (entry.get("aliases") or [])]),
             "prefix": prefix,
             "datiattoMethodsCount": schema["evidenceMethodsCount"],
             "datiattoRootsCount": schema["evidenceRootsCount"],
+            "mappingSource": _text(entry.get("catalog_override_source"), "catalogo_decompilato"),
         },
         "payload": {
             "tipo_atto": tipo_atto,

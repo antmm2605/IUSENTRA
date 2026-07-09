@@ -12,7 +12,7 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import format_datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from dataclasses import dataclass, field
 from lxml import etree
 from reportlab.lib.pagesizes import A4
@@ -47,6 +47,7 @@ ATTO_MSG_FILENAME = "Atto.msg"
 ATTO_ENC_FILENAME = "Atto.enc"
 INDICE_BUSTA_TIPI_ALLEGATO = frozenset({"SM", "IR", "PL", "DA", "RT", "RU", "PA", "RA", "PC", "D", "A", "IA"})
 MINISTERIAL_ATTI_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
+MINISTERIAL_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
 MINISTERIAL_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v6"
 MINISTERIAL_PARTE_NS = "http://schemi.processotelematico.giustizia.it/sicid/parte/v6"
 MINISTERIAL_ATTI_V7_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v7"
@@ -71,6 +72,8 @@ SIECIC_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/siecic/sistem
 CASSAZIONE_PARTE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13"
 CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
+SIECIC_EVENTI_NS = "http://schemi.processotelematico.giustizia.it/siecic/eventi"
+SIECIC_TIPIBASE_NS = "http://schemi.processotelematico.giustizia.it/siecic/tipibase/v4"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 XSD_NS = "http://www.w3.org/2001/XMLSchema"
 DATIATTO_ROOT_NS_BY_GENERATOR_CLASS = {
@@ -94,6 +97,20 @@ DATIATTO_ROOT_NS_BY_GENERATOR_CLASS = {
     "AttoSistemaSiecic": SIECIC_SISTEMA_NS,
     "ParteCassazione": CASSAZIONE_PARTE_NS,
 }
+DATIATTO_V7_ATTI_GENERATOR_CLASSES = frozenset(
+    {
+        "IntroduttiviSiecicConcorsuali",
+        "IntroduttiviSiecicEsecuzioni",
+        "ParteSiecicConcorsuali",
+        "ParteSiecicEsecuzioni",
+        "CurSiecicConcorsuali",
+        "CusSiecicEsecuzioni",
+        "DelSiecicEsecuzioni",
+        "ProfSiecicConcorsuali",
+        "ProfSiecicEsecuzioni",
+    }
+)
+DATIATTO_V7_SICID_PARTE_ROOTS = frozenset({"AttoRichiestaVisibilita", "MemorieCartabia"})
 DATIATTO_ATTI_NS_BY_GENERATOR_CLASS = {
     "IntroduttiviSicid": MINISTERIAL_ATTI_NS,
     "Parte": MINISTERIAL_ATTI_NS,
@@ -149,6 +166,7 @@ class DatiBusta:
     datiatto_studio_variable: str = ""
     datiatto_generator_mode: str = ""
     datiatto_required_data: List[str] = field(default_factory=list)
+    datiatto_extra: dict[str, Any] = field(default_factory=dict)
     data_notifica_citazione: str = ""
 
 
@@ -896,6 +914,9 @@ class BustaTelematica:
 
     def _datiatto_namespace(self) -> str:
         generator_class = self._datiatto_generator_class()
+        root_name = self._datiatto_root_name()
+        if generator_class == "Parte" and root_name in DATIATTO_V7_SICID_PARTE_ROOTS:
+            return SICID_PARTE_V7_NS
         if generator_class in DATIATTO_ROOT_NS_BY_GENERATOR_CLASS:
             return DATIATTO_ROOT_NS_BY_GENERATOR_CLASS[generator_class]
         if generator_class.startswith("Introduttivi"):
@@ -906,6 +927,10 @@ class BustaTelematica:
 
     def _datiatto_atti_namespace(self) -> str:
         generator_class = self._datiatto_generator_class()
+        if generator_class in DATIATTO_V7_ATTI_GENERATOR_CLASSES:
+            return MINISTERIAL_ATTI_V7_NS
+        if generator_class == "Parte" and self._datiatto_root_name() in DATIATTO_V7_SICID_PARTE_ROOTS:
+            return MINISTERIAL_ATTI_V7_NS
         if generator_class in DATIATTO_ATTI_NS_BY_GENERATOR_CLASS:
             return DATIATTO_ATTI_NS_BY_GENERATOR_CLASS[generator_class]
         if "SIGP" in generator_class:
@@ -952,6 +977,379 @@ class BustaTelematica:
             giorno, mese, anno = match.groups()
             return f"{anno}-{mese}-{giorno}"
         raise ValueError("Data notificazione citazione non valida: usa il formato italiano o il campo data.")
+
+    def _datiatto_extra(self) -> dict[str, Any]:
+        extra = self.dati.datiatto_extra
+        return extra if isinstance(extra, dict) else {}
+
+    def _extra_text(self, key: str, default: str = "") -> str:
+        return str(self._datiatto_extra().get(key) or default).strip()
+
+    @staticmethod
+    def _element_text(node: etree._Element | None, *names: str) -> str:
+        if node is None:
+            return ""
+        for name in names:
+            values = node.xpath(f".//*[local-name()='{name}']/text()")
+            for value in values:
+                text = str(value or "").strip()
+                if text:
+                    return text
+            attr_value = node.get(name)
+            if attr_value:
+                return str(attr_value).strip()
+        return ""
+
+    @staticmethod
+    def _first_child_by_localname(node: etree._Element, localname: str) -> etree._Element | None:
+        found = node.xpath(f".//*[local-name()='{localname}']")
+        return found[0] if found else None
+
+    @staticmethod
+    def _format_date_field(value: Any, label: str) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            raise ValueError(f"{label} mancante per DatiAtto.xml.")
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+            return raw
+        match = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", raw)
+        if match:
+            giorno, mese, anno = match.groups()
+            return f"{anno}-{mese}-{giorno}"
+        raise ValueError(f"{label} non valida: usa il formato italiano o il campo data.")
+
+    @staticmethod
+    def _format_decimal_field(value: Any, label: str) -> str:
+        raw = str(value or "").strip().replace("€", "").replace(" ", "")
+        if not raw:
+            raise ValueError(f"{label} mancante per DatiAtto.xml.")
+        raw = raw.replace(".", "").replace(",", ".") if "," in raw else raw
+        try:
+            number = float(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{label} non valido per DatiAtto.xml.") from exc
+        if number <= 0:
+            raise ValueError(f"{label} deve essere maggiore di zero per DatiAtto.xml.")
+        return f"{number:.2f}"
+
+    def _anagrafica_subjects(self) -> dict[str, str]:
+        node = self._anagrafica_procedimento_node()
+        parte = self._first_child_by_localname(node, "Parte")
+        controparte = self._first_child_by_localname(node, "ControParte")
+        avvocato = self._first_child_by_localname(node, "Avvocato")
+        parte_id = parte.get("ID") if parte is not None else ""
+        parte_cf = self._element_text(parte, "codiceFiscale") or self._extra_text("parte_codice_fiscale")
+        controparte_cf = self._element_text(controparte, "codiceFiscale") or self._extra_text("debitore_codice_fiscale")
+        avvocato_cf = self._element_text(avvocato, "codiceFiscale") or self.dati.cf_mittente
+        avvocato_cognome = self._element_text(avvocato, "cognome", "denominazione")
+        avvocato_nome = self._element_text(avvocato, "nome")
+        if not avvocato_cognome and self.dati.operatore:
+            parts = [part for part in str(self.dati.operatore or "").replace("Avv.", "").split() if part]
+            if parts:
+                avvocato_cognome = parts[-1]
+                avvocato_nome = " ".join(parts[:-1])
+        return {
+            "parte_id": self._xml_id(parte_id, "parte_1"),
+            "parte_cf": re.sub(r"[^A-Za-z0-9]", "", parte_cf).upper(),
+            "controparte_cf": re.sub(r"[^A-Za-z0-9]", "", controparte_cf).upper(),
+            "avvocato_cf": re.sub(r"[^A-Za-z0-9]", "", avvocato_cf).upper(),
+            "avvocato_cognome": avvocato_cognome,
+            "avvocato_nome": avvocato_nome,
+            "avvocato_via": self._element_text(avvocato, "via"),
+            "avvocato_cap": self._element_text(avvocato, "cap"),
+            "avvocato_localita": self._element_text(avvocato, "localita"),
+            "avvocato_provincia": self._element_text(avvocato, "provincia"),
+        }
+
+    def _is_richiesta_visibilita(self) -> bool:
+        return self._datiatto_root_name() == "AttoRichiestaVisibilita"
+
+    def _is_progetto_distribuzione(self) -> bool:
+        return self._datiatto_root_name() == "ProgettoDistribuzione"
+
+    def _is_pignoramento_siecic(self) -> bool:
+        return (
+            self._datiatto_generator_class() == "IntroduttiviSiecicEsecuzioni"
+            and self._datiatto_root_name() == "IscrizioneRuoloPignoramento"
+        )
+
+    def _append_text_if_present(self, parent: etree._Element, ns: str, name: str, value: Any) -> etree._Element | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        child = etree.SubElement(parent, f"{{{ns}}}{name}")
+        child.text = text
+        return child
+
+    def _aggiungi_richiesta_visibilita_ministeriale(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        at_ns = MINISTERIAL_ANAGRAFICHE_NS
+        subjects = self._anagrafica_subjects()
+        missing = []
+        if not subjects["parte_cf"]:
+            missing.append("codice fiscale parte")
+        if not subjects["avvocato_cf"]:
+            missing.append("codice fiscale avvocato")
+        if not subjects["avvocato_cognome"]:
+            missing.append("cognome avvocato")
+        if missing:
+            raise ValueError("Dati richiesta visibilità mancanti: " + ", ".join(missing) + ".")
+
+        parte_id = subjects["parte_id"] or "parte_1"
+        parte = etree.SubElement(root, f"{{{ns}}}Parte", ID=parte_id, codiceFiscale=subjects["parte_cf"])
+        avvocato = etree.SubElement(root, f"{{{ns}}}Avvocato")
+        etree.SubElement(avvocato, f"{{{at_ns}}}cognome").text = subjects["avvocato_cognome"]
+        if subjects["avvocato_nome"]:
+            etree.SubElement(avvocato, f"{{{at_ns}}}nome").text = subjects["avvocato_nome"]
+        etree.SubElement(avvocato, f"{{{at_ns}}}codiceFiscale").text = subjects["avvocato_cf"]
+        if all(subjects[key] for key in ("avvocato_via", "avvocato_cap", "avvocato_localita", "avvocato_provincia")):
+            indirizzo = etree.SubElement(avvocato, f"{{{at_ns}}}indirizzo")
+            self._append_text_if_present(indirizzo, at_ns, "via", subjects["avvocato_via"])
+            self._append_text_if_present(indirizzo, at_ns, "cap", subjects["avvocato_cap"])
+            self._append_text_if_present(indirizzo, at_ns, "localita", subjects["avvocato_localita"])
+            self._append_text_if_present(indirizzo, at_ns, "provincia", subjects["avvocato_provincia"])
+            etree.SubElement(indirizzo, f"{{{at_ns}}}stato").text = "IT"
+        etree.SubElement(avvocato, f"{{{at_ns}}}parteRappresentata", ref=parte_id)
+
+    def _aggiungi_progetto_distribuzione_ministeriale(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        deposito = etree.SubElement(root, f"{{{ns}}}deposito")
+        evento = etree.SubElement(deposito, f"{{{SIECIC_EVENTI_NS}}}depositoPianoRiparto")
+        evento.text = self._extra_text("deposito_progetto", "Vedi progetto")
+
+    def _pignoramento_branch(self) -> str:
+        raw = self._extra_text("tipo_pignoramento").casefold()
+        if raw in {"immobiliare", "mobiliare_presso_debitore", "mobiliare_presso_terzi"}:
+            return raw
+        tipo_atto = str(self.dati.tipo_atto or "").casefold()
+        if "terz" in tipo_atto:
+            return "mobiliare_presso_terzi"
+        if "debitore" in tipo_atto:
+            return "mobiliare_presso_debitore"
+        return "immobiliare"
+
+    def _pignoramento_beni(self) -> list[dict[str, Any]]:
+        beni = self._datiatto_extra().get("beni_pignorati")
+        if isinstance(beni, list):
+            normalized = [item for item in beni if isinstance(item, dict)]
+            if normalized:
+                return normalized
+        raise ValueError("Beni pignorati mancanti per DatiAtto.xml.")
+
+    def _aggiungi_pignoramento_beni(self, root: etree._Element) -> list[str]:
+        ns = self._datiatto_namespace()
+        beni_node = etree.SubElement(root, f"{{{ns}}}Beni")
+        bene_ids: list[str] = []
+        for index, bene in enumerate(self._pignoramento_beni(), start=1):
+            bene_id = self._xml_id(str(bene.get("id") or ""), f"bene_{index}")
+            bene_ids.append(bene_id)
+            tipo = str(bene.get("tipo") or self._pignoramento_branch()).casefold()
+            is_immobile = "immob" in tipo
+            local = "beneImmobileTavolare" if is_immobile else "beneMobile"
+            node = etree.SubElement(beni_node, f"{{{SIECIC_TIPIBASE_NS}}}{local}", ID=bene_id)
+            if not is_immobile:
+                etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}tipologia").text = str(
+                    bene.get("tipologia") or "MOBILI"
+                ).strip()
+            etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}descrizione").text = str(
+                bene.get("descrizione") or "Bene pignorato"
+            ).strip()
+            if is_immobile:
+                indirizzo_data = bene.get("indirizzo") if isinstance(bene.get("indirizzo"), dict) else {}
+                indirizzo = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}indirizzo")
+                etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}via").text = str(
+                    indirizzo_data.get("via") or "Indirizzo non specificato"
+                ).strip()
+                etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cap").text = str(
+                    indirizzo_data.get("cap") or "00000"
+                ).strip()
+                etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}localita").text = str(
+                    indirizzo_data.get("localita") or "Comune"
+                ).strip()
+                etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}provincia").text = str(
+                    indirizzo_data.get("provincia") or "RM"
+                ).strip()
+                etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}stato").text = "IT"
+                etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}catasto").text = str(
+                    bene.get("catasto") or "NCEU"
+                ).strip()
+                catastali = bene.get("dati_catastali") if isinstance(bene.get("dati_catastali"), dict) else {}
+                dati_catastali = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}datiCatastali")
+                etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}sezione").text = str(
+                    catastali.get("sezione") or "U"
+                ).strip()
+                etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}foglio").text = str(
+                    catastali.get("foglio") or "1"
+                ).strip()
+                etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}particella").text = str(
+                    catastali.get("particella") or "1"
+                ).strip()
+                classe = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}classe", classato="false")
+                classe.text = str(bene.get("classe") or "A")
+            valore = bene.get("valore") or bene.get("stima") or ""
+            if not is_immobile:
+                etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}valoreBene").text = self._format_decimal_field(
+                    valore, "Valore bene pignorato"
+                )
+        return bene_ids
+
+    def _aggiungi_pignoramento_estensione_anagrafica(self, root: etree._Element, bene_ids: list[str]) -> None:
+        ns = self._datiatto_namespace()
+        subjects = self._anagrafica_subjects()
+        procedente_cf = self._extra_text("procedente_codice_fiscale") or subjects["parte_cf"]
+        debitore_cf = self._extra_text("debitore_codice_fiscale") or subjects["controparte_cf"]
+        avvocato_cf = self._extra_text("avvocato_codice_fiscale") or subjects["avvocato_cf"]
+        missing = []
+        if not procedente_cf:
+            missing.append("codice fiscale procedente")
+        if not debitore_cf:
+            missing.append("codice fiscale debitore")
+        if not avvocato_cf:
+            missing.append("codice fiscale avvocato")
+        if missing:
+            raise ValueError("Dati anagrafici pignoramento mancanti: " + ", ".join(missing) + ".")
+
+        est = etree.SubElement(root, f"{{{ns}}}EstensioneAnagrafica")
+        debitore = etree.SubElement(est, f"{{{ns}}}DatiDebitore", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", debitore_cf).upper())
+        data_precetto = self._datiatto_extra().get("data_notifica_precetto")
+        if data_precetto:
+            etree.SubElement(debitore, f"{{{ns}}}dataNotificaPrecetto").text = self._format_date_field(
+                data_precetto, "Data notifica precetto"
+            )
+        etree.SubElement(debitore, f"{{{ns}}}dataPignoramento").text = self._format_date_field(
+            self._datiatto_extra().get("data_pignoramento"),
+            "Data pignoramento",
+        )
+        for bene_id in bene_ids:
+            bene_ref = etree.SubElement(debitore, f"{{{ns}}}benePignorato", refBene=bene_id)
+            diritto = etree.SubElement(
+                bene_ref,
+                f"{{{SIECIC_TIPIBASE_NS}}}dirittiReali",
+                quota="1.0",
+                stato="Inventariato",
+                stima=self._format_decimal_field(
+                    self._datiatto_extra().get("stima_diritto") or self._datiatto_extra().get("importo_precetto"),
+                    "Stima diritto pignorato",
+                ),
+            )
+            diritto.text = "Proprieta"
+
+        procedente = etree.SubElement(est, f"{{{ns}}}DatiProcedente", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", procedente_cf).upper())
+        etree.SubElement(
+            procedente,
+            f"{{{ns}}}riferimentoAvvocato",
+            codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", avvocato_cf).upper(),
+        )
+
+    def _aggiungi_pignoramento_estensione_rito(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        est = etree.SubElement(root, f"{{{ns}}}EstensioneDatiRito")
+        branch = self._pignoramento_branch()
+        if branch == "mobiliare_presso_debitore":
+            presso = etree.SubElement(est, f"{{{ns}}}pressoDebitore")
+            data_citazione = self._datiatto_extra().get("data_citazione")
+            if data_citazione:
+                etree.SubElement(presso, f"{{{ns}}}dataCitazione").text = self._format_date_field(
+                    data_citazione, "Data citazione"
+                )
+            custode_data = self._datiatto_extra().get("custode")
+            custode = custode_data if isinstance(custode_data, dict) else {}
+            if not custode:
+                raise ValueError("Custode mancante per DatiAtto.xml.")
+            custode_node = etree.SubElement(presso, f"{{{ns}}}Custode")
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}via").text = str(
+                custode.get("via") or "Indirizzo non specificato"
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cap").text = str(
+                custode.get("cap") or "00000"
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}localita").text = str(
+                custode.get("localita") or "Comune"
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}provincia").text = str(
+                custode.get("provincia") or "RM"
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}stato").text = "IT"
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cognome").text = str(
+                custode.get("cognome") or "Custode"
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}nome").text = str(
+                custode.get("nome") or ""
+            ).strip()
+            etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}codiceFiscale").text = re.sub(
+                r"[^A-Za-z0-9]", "", str(custode.get("codiceFiscale") or custode.get("codice_fiscale") or "")
+            ).upper()
+            if not custode_node.xpath("./*[local-name()='codiceFiscale']/text()"):
+                raise ValueError("Codice fiscale custode mancante per DatiAtto.xml.")
+            self._append_text_if_present(custode_node, MINISTERIAL_ANAGRAFICHE_NS, "PEC", custode.get("pec"))
+        elif branch == "mobiliare_presso_terzi":
+            presso = etree.SubElement(est, f"{{{ns}}}pressoTerzo")
+            etree.SubElement(presso, f"{{{ns}}}dataCitazione").text = self._format_date_field(
+                self._datiatto_extra().get("data_citazione"),
+                "Data citazione terzo",
+            )
+            terzo_data = self._datiatto_extra().get("terzo")
+            terzo = terzo_data if isinstance(terzo_data, dict) else {}
+            terzo_cf = str(terzo.get("codice_fiscale") or terzo.get("codiceFiscale") or "").strip()
+            if not terzo_cf:
+                raise ValueError("Dati terzo mancanti per DatiAtto.xml.")
+            dati_terzo = etree.SubElement(presso, f"{{{ns}}}DatiTerzo", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", terzo_cf).upper())
+            etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPignoramento").text = self._format_date_field(
+                terzo.get("data_notifica_pignoramento") or self._datiatto_extra().get("data_notifica_pignoramento"),
+                "Data notifica pignoramento",
+            )
+            data_precetto = terzo.get("data_notifica_precetto") or self._datiatto_extra().get("data_notifica_precetto")
+            if data_precetto:
+                etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPrecetto").text = self._format_date_field(
+                    data_precetto, "Data notifica precetto"
+                )
+        else:
+            etree.SubElement(est, f"{{{ns}}}immobiliare").text = "immobiliare"
+
+    def _aggiungi_pignoramento_titolo(self, root: etree._Element) -> None:
+        titolo_data = self._datiatto_extra().get("titolo")
+        titolo = titolo_data if isinstance(titolo_data, dict) else {}
+        descrizione = str(titolo.get("descrizione") or "").strip()
+        if not descrizione:
+            raise ValueError("Titolo esecutivo mancante per DatiAtto.xml.")
+        debitore_cf = self._extra_text("debitore_codice_fiscale") or self._anagrafica_subjects()["controparte_cf"]
+        if not debitore_cf:
+            raise ValueError("Debitore del titolo mancante per DatiAtto.xml.")
+        titolo_node = etree.SubElement(root, f"{{{SIECIC_TIPIBASE_NS}}}titolo")
+        esecutivo = etree.SubElement(
+            titolo_node,
+            f"{{{SIECIC_TIPIBASE_NS}}}titoloEsecutivo",
+            tipologia=str(titolo.get("tipologia") or "Sentenza"),
+        )
+        etree.SubElement(esecutivo, f"{{{SIECIC_TIPIBASE_NS}}}descrizione").text = descrizione
+        if titolo.get("numero"):
+            etree.SubElement(esecutivo, f"{{{SIECIC_TIPIBASE_NS}}}numero").text = str(titolo["numero"]).strip()
+        if titolo.get("data_emissione"):
+            etree.SubElement(esecutivo, f"{{{SIECIC_TIPIBASE_NS}}}dataEmissione").text = self._format_date_field(
+                titolo["data_emissione"], "Data emissione titolo"
+            )
+        etree.SubElement(
+            titolo_node,
+            f"{{{SIECIC_TIPIBASE_NS}}}debitore",
+            codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", debitore_cf).upper(),
+        )
+
+    def _aggiungi_pignoramento_ministeriale(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        root.append(self._anagrafica_procedimento_node())
+        etree.SubElement(root, f"{{{ns}}}DataConsegnaPignoramento").text = self._format_date_field(
+            self._datiatto_extra().get("data_consegna_pignoramento"),
+            "Data consegna pignoramento",
+        )
+        etree.SubElement(root, f"{{{ns}}}ImportoPrecetto").text = self._format_decimal_field(
+            self._datiatto_extra().get("importo_precetto"),
+            "Importo precetto",
+        )
+        bene_ids = self._aggiungi_pignoramento_beni(root)
+        self._aggiungi_pignoramento_estensione_anagrafica(root, bene_ids)
+        self._aggiungi_pignoramento_estensione_rito(root)
+        self._append_text_if_present(root, ns, "CronologicoPignoramento", self._datiatto_extra().get("cronologico_pignoramento"))
+        self._aggiungi_pignoramento_titolo(root)
 
     def _aggiungi_destinazione_e_oggetto_ministeriali(self, root: etree._Element) -> None:
         atti_ns = self._datiatto_atti_namespace()
@@ -1029,6 +1427,9 @@ class BustaTelematica:
             nsmap={
                 None: namespace,
                 "pt": self._datiatto_atti_namespace(),
+                "at": MINISTERIAL_ANAGRAFICHE_NS,
+                "st": SIECIC_TIPIBASE_NS,
+                "evt": SIECIC_EVENTI_NS,
                 "xsi": XSI_NS,
                 "xsd": XSD_NS,
             },
@@ -1055,7 +1456,14 @@ class BustaTelematica:
                     continue
                 etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
 
-        if self._is_datiatto_introduttivo() or self._is_datiatto_cassazione():
+        if self._is_pignoramento_siecic():
+            self._aggiungi_pignoramento_ministeriale(root)
+        elif self._is_richiesta_visibilita():
+            self._aggiungi_richiesta_visibilita_ministeriale(root)
+        elif self._is_progetto_distribuzione():
+            self._aggiungi_progetto_distribuzione_ministeriale(root)
+
+        if (self._is_datiatto_introduttivo() and not self._is_pignoramento_siecic()) or self._is_datiatto_cassazione():
             root.append(self._anagrafica_procedimento_node())
         return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 

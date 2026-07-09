@@ -4913,10 +4913,14 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
         "pec": "",
         "kind": "",
         "verified": False,
-        "message": "Ufficio destinatario da verificare prima del deposito.",
+        "message": "IUSENTRA deve risolvere automaticamente PEC e codice ufficio prima del deposito.",
     }
     if not office_name:
-        return base
+        return {
+            **base,
+            "message": "Ufficio giudiziario non impostato nella pratica: IUSENTRA non può risolvere automaticamente PEC e codice ufficio.",
+        }
+
     profile = getattr(fascicolo, "profilo_deposito", None)
     if not isinstance(profile, dict):
         raw_profile = _text(getattr(fascicolo, "profilo_deposito_json", ""))
@@ -4928,7 +4932,15 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
                 profile = {}
         else:
             profile = {}
+
     profile_office = profile.get("ufficio") if isinstance(profile, dict) else {}
+    profile_name = office_name
+    profile_pec = ""
+    profile_code = ""
+    profile_ministerial_code = ""
+    profile_district = ""
+    profile_kind = ""
+    profile_verified = False
     if isinstance(profile_office, dict):
         profile_name = _text(profile_office.get("nome"), office_name)
         profile_pec = _text(profile_office.get("pec") or profile.get("pec"))
@@ -4942,68 +4954,121 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
             or profile_office.get("codice_pst")
             or profile_office.get("codice_ministeriale")
         )
-        profile_verified = bool(profile_pec and (profile_office.get("pec_verificata") is True or profile.get("pec_verificata") is True))
-        if profile_pec:
-            return {
-                "name": profile_name,
-                "code": profile_code,
-                "ministerialCode": profile_ministerial_code,
-                "district": _text(profile_office.get("distretto")),
-                "pec": profile_pec,
-                "kind": _text(profile_office.get("tipo")),
-                "verified": profile_verified,
-                "message": (
-                    f"PEC verificata dal profilo deposito SQL per {profile_name}."
-                    if profile_verified
-                    else f"PEC presente nel profilo deposito per {profile_name}: verifica manuale prima dell'invio reale."
-                ),
-            }
+        profile_district = _text(profile_office.get("distretto"))
+        profile_kind = _text(profile_office.get("tipo"))
+        profile_verified = bool(
+            profile_pec
+            and (profile_code or profile_ministerial_code)
+            and (profile_office.get("pec_verificata") is True or profile.get("pec_verificata") is True)
+        )
+    profile_complete = bool(profile_pec and (profile_code or profile_ministerial_code))
+
     try:
         from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore
 
         offices = get_gestore(_uffici_cache_path()).carica()
     except Exception:
+        if profile_complete:
+            return {
+                "name": profile_name,
+                "code": profile_code,
+                "ministerialCode": profile_ministerial_code,
+                "district": profile_district,
+                "pec": profile_pec,
+                "kind": profile_kind,
+                "verified": profile_verified,
+                "message": (
+                    f"PEC e codice ufficio presenti nel profilo deposito per {profile_name}."
+                    if profile_verified
+                    else f"PEC e codice ufficio presenti nel profilo deposito per {profile_name}: la prova controlla il certificato dell'ufficio."
+                ),
+            }
         return {
             **base,
-            "message": "Catalogo uffici non disponibile: verifica manuale obbligatoria prima dell'invio reale.",
+            "message": "Catalogo uffici non disponibile: IUSENTRA non ha potuto risolvere automaticamente PEC e codice ufficio.",
         }
 
-    wanted = office_name.casefold()
+    wanted_terms = [
+        profile_name,
+        office_name,
+        profile_code,
+        profile_ministerial_code,
+        profile_pec,
+    ]
+    wanted_terms = [_text(term).casefold() for term in wanted_terms if _text(term)]
+
+    def _office_field_values(row: dict[str, Any]) -> tuple[str, ...]:
+        return (
+            _text(row.get("nome")).casefold(),
+            _text(row.get("codice")).casefold(),
+            _text(row.get("codice_ministero")).casefold(),
+            _text(row.get("pec")).casefold(),
+            _text(row.get("pec_ministero")).casefold(),
+        )
+
     office = next(
-        (
-            row
-            for row in offices
-            if _text(row.get("nome")).casefold() == wanted
-            or _text(row.get("codice")).casefold() == wanted
-            or _text(row.get("codice_ministero")).casefold() == wanted
-        ),
+        (row for row in offices if any(term in _office_field_values(row) for term in wanted_terms)),
         None,
     )
     if office is None:
-        office = next((row for row in offices if wanted and wanted in _text(row.get("nome")).casefold()), None)
-    if office is None:
+        name_terms = [term for term in wanted_terms[:2] if term]
+        office = next(
+            (
+                row
+                for row in offices
+                if any(term in _text(row.get("nome")).casefold() for term in name_terms)
+            ),
+            None,
+        )
+    if office is None and not profile_complete:
         return {
             **base,
-            "message": f"Ufficio '{office_name}' non trovato nel catalogo: verifica PEC destinataria prima dell'invio reale.",
+            "message": f"IUSENTRA non ha trovato '{office_name}' nel catalogo uffici: aggiorna il catalogo o correggi l'ufficio della pratica.",
         }
+    if office is None and profile_complete:
+        return {
+            "name": profile_name,
+            "code": profile_code,
+            "ministerialCode": profile_ministerial_code,
+            "district": profile_district,
+            "pec": profile_pec,
+            "kind": profile_kind,
+            "verified": profile_verified,
+            "message": (
+                f"PEC e codice ufficio presenti nel profilo deposito per {profile_name}."
+                if profile_verified
+                else f"PEC e codice ufficio presenti nel profilo deposito per {profile_name}: la prova controlla il certificato dell'ufficio."
+            ),
+        }
+
     office_type = _text(office.get("tipo"))
     kind = _text((TIPI_UFFICIO.get(office_type) or ("", office_type))[1], office_type)
-    pec = _text(office.get("pec") or office.get("pec_ministero"))
-    name = _text(office.get("nome"), office_name)
-    code = _text(office.get("codice"))
-    ministerial_code = _text(office.get("codice_ministero"))
+    pec = _text(profile_pec or office.get("pec") or office.get("pec_ministero"))
+    catalog_name = _text(office.get("nome"), office_name)
+    name = profile_name if profile_name and profile_name.casefold() != office_name.casefold() else catalog_name
+    code = _text(profile_code or office.get("codice"))
+    ministerial_code = _text(profile_ministerial_code or office.get("codice_ministero"))
+    resolved = bool(pec and (code or ministerial_code))
+    completed_from_catalog = bool(
+        office
+        and (
+            (not profile_pec and pec)
+            or (not profile_code and code)
+            or (not profile_ministerial_code and ministerial_code)
+        )
+    )
     return {
         "name": name,
         "code": code,
         "ministerialCode": ministerial_code,
-        "district": _text(office.get("distretto")),
+        "district": profile_district or _text(office.get("distretto")),
         "pec": pec,
-        "kind": kind,
-        "verified": bool(name and code and pec),
+        "kind": profile_kind or kind,
+        "verified": resolved,
         "message": (
-            f"PEC verificata dal catalogo uffici per {name}."
-            if pec
-            else f"PEC non disponibile nel catalogo per {name}: non procedere all'invio reale senza verifica."
+            f"PEC e codice ufficio risolti automaticamente dal catalogo uffici per {name}."
+            if completed_from_catalog or resolved
+            else f"IUSENTRA non ha risolto automaticamente PEC e codice ufficio per {name}: aggiorna il catalogo uffici o correggi l'ufficio della pratica."
         ),
     }
 

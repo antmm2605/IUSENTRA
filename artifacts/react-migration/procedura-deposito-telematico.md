@@ -1,5 +1,142 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-09 - Selezione documenti deposito e avvisi non bloccanti
+
+Ambito: flusso React `Prepara deposito`, fase `Documenti da inviare` e fase `Pacchetto deposito`, con caso guida produzione `FB586324`.
+
+Confronto operativo effettuato:
+
+- fonte ministeriale corrente verificata: PST Giustizia, `Specifiche Tecniche ex art. 34 DM 44/2011 - Provvedimento 7 agosto 2024`, efficaci dal 30/09/2024, con avvisi di rettifica pubblicati sulla stessa scheda PST;
+- nel materiale decompilato QuickOrganizer/Studio Legale Telematico il deposito lavora con atto principale distinto e lista allegati dedicata, poi costruisce `IndiceBusta.AttoPrincipale` e `IndiceBusta.Any` dai documenti presenti nella lista del deposito;
+- il passaggio completo osservato nel decompilato conferma la sequenza: selezione atto principale, griglia allegati del deposito, generazione `DatiAtto.xml`, firma del metadato, busta con indice e allegati, cifratura in `Atto.enc`, preparazione PEC con allegato unico di deposito e invio tramite account PEC configurato;
+- il comportamento coerente per IUSENTRA è quindi: il software legge tutto il fascicolo e segnala candidati, ma la busta usa solo i documenti collegati o selezionati/salvati dall'avvocato;
+- gli slot documentali obbligatori non devono spegnere prova e simulazione se l'atto principale è già selezionato e il destinatario PEC dell'ufficio è verificato. Devono restare avvisi puntuali, non blocchi generici.
+
+Modifiche applicate:
+
+- rimossa l'autoselezione di tutti i documenti candidati nella fase `Documenti da inviare`;
+- rimosso il comando `Invia tutto`, sostituito da `Ripristina documenti collegati`;
+- `Firma e prepara prova` e `Simula invio PEC` restano disabilitati solo se manca l'atto principale o la PEC ufficio verificata;
+- le scelte richieste ancora da verificare vengono mostrate come avviso con nome documento/slot, senza testo generico che non spiega quale scelta manca;
+- il payload operativo continua a usare `documenti_selezionati_ids` derivato da `packageDocuments`, quindi solo dai documenti scelti nella UI.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale tests/test_regia_ui_react.py::test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q`;
+- `npm --prefix frontend run typecheck`;
+- `npm --prefix frontend run build`;
+- `python -m pytest tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_collega_slot_e_metadati tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_non_richiede_firma_su_contenitore_p7m tests/test_regia_api_payloads.py::test_api_deposito_classifica_documenti_non_cade_se_profilo_da_confermare tests/test_deposito_server_dry_run_audit.py::test_runner_server_dry_run_usa_proposta_react_e_prove_notifica -q`;
+- `python -m py_compile web/services/deposito_route_helpers.py web/blueprints/api_v1_react.py`;
+- `python -m pct.cli utf8-integrity --check-only --root frontend/src/components/FascicoloDepositoPage.tsx --root tests/test_regia_ui_react.py --root CHANGELOG.md --root artifacts/react-migration/procedura-deposito-telematico.md --json`.
+
+Riscontro dai log reali già registrati:
+
+- simulazione produzione `123E2EB2`: `IndiceBusta.xml` prima parte MIME, `DatiAtto.xml.p7m` presente, atto principale unico, allegati allineati, `Atto.enc` CMS `EnvelopedData` valido con algoritmo `aes256_cbc`, `OVERALL_OK=True` nella busta reale post-click;
+- deposito PCT reale `795C50AC`: esito ministeriale `IDBUSTA 152649431`, `CodiceEsito=2`, `Accettazione manuale avvenuta con successo`, `NumeroRuolo=1084/2026`; il deposito risulta registrato nel fascicolo come `ACCETTATO_CANCELLERIA`;
+- questa tranche non modifica le regole già validate su `IndiceBusta.xml`, `DatiAtto.xml.p7m`, `Atto.enc`, oggetto/corpo PEC, canale Local Signer o presidio ricevute.
+
+Verifica produzione eseguita il 09/07/2026 su `https://app.iusentra.it/fascicoli/FB586324/deposito/prepara#generazione-busta`:
+
+- pagina React caricata con `#root`, versione `/api/pronto` `2.254.18`, container `iusentra-app` unico e healthy;
+- vecchio messaggio `1 scelte obbligatorie richiedono la selezione dell'avvocato` assente;
+- comando `Invia tutto` assente; presenti `Ripristina documenti collegati`, `Deseleziona tutto`, `Salva classificazione`;
+- `Firma e prepara prova` abilitato e con click reale apre la conferma di firma/preparazione prova;
+- `Simula invio PEC` abilitato, con click reale apre conferma e, dopo conferma, avvia la simulazione senza spedizione esterna;
+- la simulazione si ferma sul requisito reale `Local Signer non rilevato / non raggiungibile su questo PC`, senza `Message-ID` e senza conferma di invio PEC reale;
+- `Invia deposito reale` resta disabilitato solo con motivo puntuale `Esegui prima la prova senza invio reale`;
+- l'avviso residuo `Ricevuta contributo unificato` è mostrato come avviso non bloccante e dichiara che la scelta salvata dall'avvocato resta prevalente;
+- controlli responsive desktop, tablet e mobile: nessun overflow orizzontale, nessun ritorno dei riferimenti tecnici vietati nella UI, pulsanti principali coerenti.
+
+Stato: prova produzione reale eseguita con click sicuri e senza invio PEC esterno. Restano obbligatorie verifica locale reale su `127.0.0.1:8080`, commit, push branch gemelli, deploy Hetzner dal commit finale e controlli container/CI prima della chiusura.
+
+### Audit catalogo depositi end-to-end - 09/07/2026
+
+Richiesta utente: non limitare il confronto al caso reale già accettato, ma verificare ogni tipo deposito del catalogo contro la logica ricostruita dal decompilato e contro le regole ministeriali, senza falso verde.
+
+Intervento:
+
+- aggiunto `scripts/audit_deposito_catalogo_end_to_end.py`;
+- il catalogo backend `pct/deposito_telematico_catalogo.py` ora recupera rami che il JSON menu non esponeva correttamente: `Ricorso702Bis`, memorie/istanze Cartabia, richiesta visibilità, pignoramenti SIECIC, progetto distribuzione CTU e deposito relazione iniziale del curatore;
+- `Ricorso702Bis` non ricade più su un generatore senza classe: viene associato a `IntroduttiviSicid` e radice `Ricorso702Bis`;
+- le memorie/istanze Cartabia vengono ricondotte al generatore comune `MemorieCartabia`;
+- il refuso storico `Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione` viene normalizzato in `Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione`;
+- la voce storica senza chiave `Atti del Curatore` viene normalizzata in `Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale`, conservando l'alias tecnico interno per tracciabilità;
+- i rami che richiedono campi strutturati non ancora modellati nel nostro generatore non possono abilitare l'invio reale.
+
+Esito audit:
+
+- tipi totali controllati: `270`;
+- PCT: `252`;
+- UNEP/notifiche: `18`;
+- PCT con `DatiAtto.xml` sintetico generato e radice verificata: `243`;
+- PCT riconosciuti ma con invio reale sospeso fino a generatore/maschera dedicata: `9`;
+- errori audit: `0`;
+- comando: `python scripts/audit_deposito_catalogo_end_to_end.py`;
+- test guardrail: `python -m pytest tests/test_deposito_telematico_catalogo.py -q`.
+
+I 9 casi sospesi non sono scartati e non sono generici: sono mappati con chiave, radice, classe generatore e metodo di origine, ma restano bloccati per l'invio reale perché richiedono dati specifici che non devono essere inventati:
+
+- `Parte_SICID::AttoRichiestaVisibilità`;
+- `Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità`;
+- `Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità`;
+- `CorsoCausa_SIGP::AttoRichiestaVisibilità`;
+- `Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare`;
+- `Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore`;
+- `Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi`;
+- `Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione`;
+- `Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale`.
+
+Stato corretto: copertura anti-falso-verde su `270/270`; invio reale automatizzato verificabile su `243/252` tipi PCT nel perimetro attuale; `9/252` tipi PCT richiedono tranche dedicata con campi UI/API e generatore nostro prima di poter essere dichiarati inviabili. Non va dichiarata accettazione ministeriale al 100% per quei 9 finché non sono prodotti XML e busta reali con dati completi.
+
+### Aggiornamento audit severo catalogo depositi - 09/07/2026
+
+Lo stato precedente `243/252` con `9/252` sospesi è superato da questa tranche. Non va più usato come stato operativo corrente.
+
+Intervento correttivo:
+
+- completata la generazione IUSENTRA dei rami critici: richieste visibilità SICID/SIECIC/SIGP, pignoramenti SIECIC, progetto distribuzione, deposito relazione iniziale curatore;
+- `pct/deposito_telematico_catalogo.py` non marca più quei rami come `generatore dedicato da completare`;
+- `web/services/deposito_catalogo_runtime.py` porta i dati specialistici in `datiatto_extra`;
+- `web/bootstrap/deposito_routes.py` passa `datiatto_extra` a `DatiBusta` nelle azioni di generazione busta e prova/invio PEC;
+- `frontend/src/components/FascicoloDepositoPage.tsx` non blocca la prova solo perché il flag storico `verified` non è già vero: profilo deposito e catalogo uffici vengono fusi automaticamente; se PEC e codice ufficio sono presenti, la prova può tentare il recupero del certificato dell'ufficio; se un dato non viene risolto, la UI lo indica come mancata risoluzione automatica di IUSENTRA/catalogo, non come dato manuale lasciato all'avvocato;
+- `scripts/audit_deposito_catalogo_end_to_end.py` ora è severo: se torna un solo ramo PCT sospeso, se manca una radice, se manca un campo XML essenziale, se manca indice documenti/indice busta o se manca il contratto Local Signer/PEC locale, lo script fallisce.
+
+Campi XML controllati in modo esplicito dallo script:
+
+- richiesta visibilità: `Parte`, `Avvocato`, `codiceFiscale`, `parteRappresentata`, `procedimento`;
+- pignoramento SIECIC: `AnagraficaProcedimento`, `DataConsegnaPignoramento`, `ImportoPrecetto`, `Beni`, `EstensioneAnagrafica`, `DatiDebitore`, `DatiProcedente`, `EstensioneDatiRito`, `titolo`, `titoloEsecutivo`, `benePignorato`, più `Custode` o `DatiTerzo` quando richiesti;
+- progetto distribuzione: `procedimento`, `deposito`, `depositoPianoRiparto`;
+- relazione iniziale curatore: `procedimento`, `numero`, `anno`;
+- rami introduttivi PCT: `destinazione`, `Oggetto`, `AnagraficaProcedimento`;
+- rami in corso causa/professionista/curatore: `procedimento`, `numero`, `anno`.
+
+Esito nuovo:
+
+- comando: `python scripts/audit_deposito_catalogo_end_to_end.py --output artifacts/react-migration/audit-deposito-catalogo-end-to-end-2026-07-09.json`;
+- generatori PCT: `252/252`;
+- rami sospesi: `0`;
+- confronto uffici PCT operativi contro `C:\QuickOrganizer\ListaUfficiGiudiziari.xml`, `C:\QuickOrganizer\QC_Uffici.xml` e fonti PST/ministeriali importate: `593/593`;
+- differenze PEC/codice ufficio sul perimetro operativo: `0`;
+- errori resolver React PEC/codice: `0`.
+- `ok=true`;
+- tipi totali controllati: `270`;
+- PCT: `252`;
+- UNEP/notifiche: `18`;
+- PCT con `DatiAtto.xml` generato e controllato: `252/252`;
+- rami PCT sospesi: `0`;
+- errori: `0`;
+- report salvato: `artifacts/react-migration/audit-deposito-catalogo-end-to-end-2026-07-09.json`.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_deposito_telematico_catalogo.py -q` -> `9 passed`;
+- `python -m pytest tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice tests/test_regia_ui_react.py::test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto -q` -> `2 passed`;
+- `python -m pytest tests/test_busta.py tests/test_canali_telematici_deposito.py tests/test_local_signer.py::test_catalogo_servizi_get_certificato_parser_estrae_base64 tests/test_local_signer.py::test_local_signer_espone_endpoint_certificato_ufficio_pst -q` -> `50 passed`;
+- `python -m py_compile scripts/audit_deposito_catalogo_end_to_end.py pct/busta.py pct/deposito_telematico_catalogo.py web/services/deposito_catalogo_runtime.py web/bootstrap/deposito_routes.py`;
+- `npm --prefix frontend run typecheck`.
+
+Limite operativo corretto: `252/252` dimostra che i generatori e il pacchetto preparatorio sono coperti sul perimetro testato. La conferma del singolo deposito reale richiede comunque firma effettiva, `Atto.enc` generato con certificato dell'ufficio, PEC locale dal PC dell'avvocato, ricevute ed esito dell'ufficio.
+
 ## Aggiornamento 2026-07-07 - Ruleset presidio processuale e CU da RT XML
 
 Ambito: presidio fascicoli/documenti, PEC, controllo economico e classificazione preventiva dei documenti.
@@ -4535,6 +4672,43 @@ Misure e prova reale locale:
 - root locale `http=302`, `time_starttransfer=0.004492`, `time_total=0.004592`;
 - browser integrato su `127.0.0.1:8080`: login tenant locale controllato, pagina `/fascicoli` con `8` fascicoli e `75` documenti visibili, stato `Dati aggiornati`, nessun chunk `FascicoloDepositoPage` caricato nell'elenco;
 - click reale su fascicolo `DC5BF1DB`, pulsante `Deposito telematico`: apertura `/fascicoli/DC5BF1DB/deposito/prepara`, testo `Prepara deposito` visibile, stato non bloccato, e link al chunk `FascicoloDepositoPage-CSjEWB3t.js` presente solo dopo il click.
+
+## Deposito Giudice di Pace / SIGP - prova reale locale 2026-07-09
+
+Problema reale risolto sul fascicolo locale `DC5BF1DB`: dopo le modifiche precedenti, il pannello deposito poteva ripartire dalla prima voce del catalogo (`SICID`) invece dal ramo coerente `SIGP`, generando il blocco `Registro non compatibile con il procedimento` durante `Simula invio PEC`.
+
+Regola corretta:
+
+- il pannello tipo deposito non seleziona più la prima voce disponibile;
+- quando il fascicolo è Giudice di Pace e l'atto principale è una nota/trattazione scritta, il software suggerisce `Deposito note scritte sostitutive udienza (Giudice di Pace)`;
+- la scelta manuale dell'avvocato resta prevalente e non viene sovrascritta dal suggerimento automatico;
+- il validatore backend accetta `SIGP` come canale coerente per ufficio Giudice di Pace e profili `RG/RGL/VG`;
+- `SICID` resta bloccato se l'ufficio è Giudice di Pace, perché sarebbe il ramo sbagliato.
+
+Guardrail eseguiti:
+
+- `python -m py_compile pct/deposito_guidato.py scripts/audit_deposito_catalogo_end_to_end.py web/services/react_fascicoli_bridge.py`;
+- `python scripts/audit_deposito_catalogo_end_to_end.py --output artifacts/react-migration/audit-deposito-catalogo-end-to-end-2026-07-09.json`;
+- `python -m pytest tests/test_deposito_telematico_catalogo.py tests/test_busta.py tests/test_canali_telematici_deposito.py tests/test_deposito_guidato.py::test_orchestratore_accetta_sigp_su_giudice_di_pace tests/test_deposito_guidato.py::test_orchestratore_blocca_sicid_su_giudice_di_pace tests/test_deposito_guidato.py::test_orchestratore_accetta_sicid_su_tribunale_ordinario -q`;
+- `python -m pytest tests/test_regia_ui_react.py::test_deposito_resolver_ufficio_completa_pec_e_codice_da_catalogo tests/test_regia_ui_react.py::test_deposito_resolver_non_si_ferma_a_pec_profilo_senza_codice tests/test_regia_ui_react.py::test_ui_deposito_tipo_deposito_non_prende_la_prima_voce_e_suggerisce_sigp_note tests/test_regia_ui_react.py::test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto tests/test_regia_ui_react.py::test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice -q`;
+- `npm --prefix frontend run typecheck`;
+- `npm --prefix frontend run build`;
+- `docker compose build --no-cache`;
+- `docker compose up -d`;
+- `http://127.0.0.1:8080/api/pronto` -> `ok=true`, versione `2.254.19`.
+
+Prova reale browser integrato su `127.0.0.1:8080`:
+
+- pagina `/fascicoli/DC5BF1DB/deposito/prepara#generazione-busta` caricata dopo rebuild Docker;
+- tipo deposito visibile: `Giudice di Pace (28)` / `Atti endo-processuali (11)` / `Deposito note scritte sostitutive udienza (Giudice di Pace)`;
+- ufficio: `Ufficio del Giudice di Pace di Palmi`, PEC `gdp.palmi@civile.ptel.giustiziacert.it`, codice ufficio risolto automaticamente;
+- atto principale: `Note trattazione scritta Alessi Robertino c Zurich Ass.ni-signed.pdf.p7m`;
+- `Prova senza invio reale` e `Simula invio PEC` abilitati e cliccati materialmente;
+- il blocco `Registro non compatibile con il procedimento` non compare più;
+- entrambi i click si fermano sul requisito reale `Dispositivo non pronto per firmare i dati del deposito: Nessun dispositivo di firma rilevato`;
+- `Invia deposito reale` resta disabilitato perché la prova senza invio non può superare la firma dei dati deposito senza dispositivo fisico disponibile.
+
+Stato residuo da non dichiarare verde: per abilitare `Invia deposito reale` sul caso concreto serve ripetere la prova con smart card/token e middleware Local Signer realmente pronti, firmare i dati deposito, generare/verificare `Atto.enc` e solo dopo controllare l'abilitazione del bottone.
 
 ## React shell - entry Vite senza query string 2026-07-06
 

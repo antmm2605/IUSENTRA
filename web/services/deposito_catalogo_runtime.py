@@ -1,6 +1,7 @@
 """Runtime helpers for deposit catalog selections."""
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
@@ -44,6 +45,70 @@ def deposito_catalogo_datiatto_hint(entry: dict[str, Any] | None) -> dict[str, A
         ).strip(),
         "datiatto_required_data": list(schema.get("requiredData") or []),
     }
+
+
+def _field_text(form_like: Any, key: str) -> str:
+    try:
+        value = form_like.get(key, "")
+    except Exception:
+        value = ""
+    return str(value or "").strip()
+
+
+def _json_field(form_like: Any, *keys: str) -> Any:
+    for key in keys:
+        raw = _field_text(form_like, key)
+        if not raw:
+            continue
+        try:
+            return json.loads(raw)
+        except Exception as exc:
+            raise ValueError(f"Campo {key} non leggibile: deve essere JSON valido.") from exc
+    return None
+
+
+def deposito_catalogo_datiatto_extra(form_like: Any) -> dict[str, Any]:
+    """Estrae i dati specialistici usati dai generatori ministeriali dedicati."""
+
+    extra: dict[str, Any] = {}
+    parsed = _json_field(form_like, "datiatto_extra", "dati_atto_extra", "dati_deposito_specifici")
+    if isinstance(parsed, dict):
+        extra.update(parsed)
+    elif parsed is not None:
+        raise ValueError("I dati specifici deposito devono essere un oggetto JSON.")
+
+    scalar_fields = (
+        "parte_codice_fiscale",
+        "avvocato_codice_fiscale",
+        "procedente_codice_fiscale",
+        "debitore_codice_fiscale",
+        "tipo_pignoramento",
+        "data_consegna_pignoramento",
+        "importo_precetto",
+        "data_pignoramento",
+        "data_notifica_precetto",
+        "stima_diritto",
+        "data_citazione",
+        "data_notifica_pignoramento",
+        "cronologico_pignoramento",
+        "deposito_progetto",
+    )
+    for field in scalar_fields:
+        value = _field_text(form_like, field)
+        if value:
+            extra[field] = value
+
+    json_fields = {
+        "beni_pignorati": ("beni_pignorati", "beni_pignorati_json"),
+        "titolo": ("titolo", "titolo_json"),
+        "custode": ("custode", "custode_json"),
+        "terzo": ("terzo", "terzo_json"),
+    }
+    for target, aliases in json_fields.items():
+        value = _json_field(form_like, *aliases)
+        if value is not None:
+            extra[target] = value
+    return extra
 
 
 def deposito_catalogo_blocker(entry: dict[str, Any] | None, *, require_real_package: bool) -> str:

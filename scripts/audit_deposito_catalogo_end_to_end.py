@@ -1,0 +1,627 @@
+"""Audit end-to-end del catalogo deposito PCT/UNEP.
+
+Lo script controlla tutti i tipi del catalogo tecnico condiviso:
+- ogni tipo deve avere regole coerenti con il canale;
+- il server non deve mai risultare canale SMTP per depositi/notifiche;
+- tutti i tipi PCT devono generare un DatiAtto.xml sintetico;
+- nessun tipo PCT puo' restare sospeso per "generatore dedicato da completare";
+- il contratto busta/PEC deve conservare Local Signer, get certificato ufficio,
+  Atto.msg, Atto.enc e invio PEC dal PC locale.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+
+from lxml import etree
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from pct.busta import BustaTelematica, DatiBusta
+from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
+
+
+QUICKORGANIZER_LISTA_UFFICI = Path(r"C:\QuickOrganizer\ListaUfficiGiudiziari.xml")
+QUICKORGANIZER_QC_UFFICI = Path(r"C:\QuickOrganizer\QC_Uffici.xml")
+NON_OPERATIVE_OFFICE_MARKERS = (
+    "EX GIUD",
+    "NON ATTIVO",
+    "EX SD",
+    "SEZIONE DISTACCATA",
+    "MODEL OFFICE",
+    "FORMAZIONE",
+)
+PCT_OFFICE_TYPES_REQUIRING_DEPOSIT_RESOLUTION = {"CA", "OR", "SC", "TM", "GP", "CC"}
+
+
+ANAGRAFICA_PROCEDIMENTO_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<AnagraficaProcedimento xmlns="http://schemi.processotelematico.giustizia.it/sicid/tipi/anagrafiche/v6">
+  <Parte ID="parte_1">
+    <codiceFiscale>RSSMRA80A01H501Z</codiceFiscale>
+  </Parte>
+  <ControParte ID="debitore_1">
+    <codiceFiscale>BNCLGU70A01H501Y</codiceFiscale>
+  </ControParte>
+  <Avvocato ID="avv_1">
+    <cognome>Rossi</cognome>
+    <nome>Mario</nome>
+    <codiceFiscale>RSSMRA80A01H501Z</codiceFiscale>
+    <via>Via Roma 1</via>
+    <cap>00100</cap>
+    <localita>Roma</localita>
+    <provincia>RM</provincia>
+  </Avvocato>
+</AnagraficaProcedimento>
+"""
+
+DATIATTO_EXTRA_BASE: dict[str, Any] = {
+    "parte_codice_fiscale": "RSSMRA80A01H501Z",
+    "avvocato_codice_fiscale": "RSSMRA80A01H501Z",
+    "procedente_codice_fiscale": "RSSMRA80A01H501Z",
+    "debitore_codice_fiscale": "BNCLGU70A01H501Y",
+    "data_consegna_pignoramento": "01/07/2026",
+    "importo_precetto": "1234,56",
+    "data_pignoramento": "02/07/2026",
+    "data_notifica_precetto": "03/07/2026",
+    "stima_diritto": "1234,56",
+    "data_citazione": "05/07/2026",
+    "data_notifica_pignoramento": "04/07/2026",
+    "deposito_progetto": "Progetto di distribuzione sintetico per audit",
+    "beni_pignorati": [
+        {
+            "tipo": "immobiliare",
+            "descrizione": "Immobile sintetico per audit",
+            "valore": "1234,56",
+            "indirizzo": {"via": "Via Roma 1", "cap": "00100", "localita": "Roma", "provincia": "RM"},
+            "dati_catastali": {"sezione": "U", "foglio": "1", "particella": "1"},
+            "catasto": "NCEU",
+            "classe": "A",
+        }
+    ],
+    "titolo": {
+        "descrizione": "Titolo esecutivo sintetico per audit",
+        "tipologia": "Sentenza",
+        "numero": "1",
+        "data_emissione": "01/06/2026",
+    },
+    "custode": {
+        "codice_fiscale": "CSTGNN80A01H501A",
+        "cognome": "Custode",
+        "nome": "Gianni",
+        "via": "Via Roma 2",
+        "cap": "00100",
+        "localita": "Roma",
+        "provincia": "RM",
+    },
+    "terzo": {
+        "codice_fiscale": "TRZPLA80A01H501B",
+        "data_notifica_pignoramento": "04/07/2026",
+        "data_notifica_precetto": "03/07/2026",
+    },
+}
+
+
+def _sample_pdf(path: Path) -> Path:
+    path.write_bytes(
+        b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+        b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\n"
+        b"xref\n0 4\n0000000000 65535 f\n"
+        b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n9\n%%EOF"
+    )
+    return path
+
+
+def _payload(entry: dict[str, Any]) -> dict[str, Any]:
+    payload = entry.get("payload")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _schema(entry: dict[str, Any]) -> dict[str, Any]:
+    schema = entry.get("schema")
+    return schema if isinstance(schema, dict) else {}
+
+
+def _rules(entry: dict[str, Any]) -> dict[str, Any]:
+    rules = entry.get("rules")
+    return rules if isinstance(rules, dict) else {}
+
+
+def _fixed_object_code(entry: dict[str, Any]) -> str:
+    schema = _schema(entry)
+    fixed = schema.get("quickFixedObjectCodes") if isinstance(schema.get("quickFixedObjectCodes"), list) else []
+    for item in fixed:
+        if isinstance(item, dict) and str(item.get("code") or "").strip():
+            return str(item["code"]).strip()
+    return "110001"
+
+
+def _needs_anagrafica(entry: dict[str, Any]) -> bool:
+    schema = _schema(entry)
+    generator_class = str(schema.get("generatorClass") or "")
+    mode = str(schema.get("generatorMode") or "")
+    return bool(
+        generator_class.startswith("Introduttivi")
+        or generator_class.startswith("Parte")
+        or generator_class.startswith("CorsoCausa")
+        or mode == "cassazione_parte"
+    )
+
+
+def _extra_for(entry: dict[str, Any]) -> dict[str, Any]:
+    key = str(entry.get("key") or "")
+    extra = dict(DATIATTO_EXTRA_BASE)
+    if "MobiliarePressoDebitore" in key:
+        extra["tipo_pignoramento"] = "mobiliare_presso_debitore"
+        extra["beni_pignorati"] = [
+            {"tipo": "mobile", "descrizione": "Bene mobile sintetico per audit", "tipologia": "ARREDI", "valore": "1200,00"}
+        ]
+    elif "MobiliarePressoTerzi" in key:
+        extra["tipo_pignoramento"] = "mobiliare_presso_terzi"
+        extra["beni_pignorati"] = [
+            {"tipo": "mobile", "descrizione": "Credito sintetico presso terzi", "tipologia": "CREDITO", "valore": "1200,00"}
+        ]
+    elif "PignoramentoImmobiliare" in key:
+        extra["tipo_pignoramento"] = "immobiliare"
+    return extra
+
+
+def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
+    payload = _payload(entry)
+    schema = _schema(entry)
+    registry = entry.get("registry") if isinstance(entry.get("registry"), dict) else {}
+    codice_registro = str(payload.get("codice_registro") or registry.get("code") or "SICID").strip()
+    codice_ufficio = "80417740588" if codice_registro == "CASSCI" else "0580010"
+    root_name = str(schema.get("ministerialRoot") or payload.get("datiatto_root_name") or "").strip()
+    return DatiBusta(
+        codice_ufficio=codice_ufficio,
+        codice_registro=codice_registro,
+        oggetto=_fixed_object_code(entry),
+        tipo_atto=str(payload.get("tipo_atto") or "ATTO_GENERICO").strip(),
+        atto_principale=str(atto_principale),
+        numero_rg="1234",
+        anno_rg=2026,
+        operatore="Audit IUSENTRA",
+        cf_mittente="RSSMRA80A01H501Z",
+        valore_causa=1000.0,
+        anagrafica_procedimento_xml=ANAGRAFICA_PROCEDIMENTO_XML if _needs_anagrafica(entry) else None,
+        datiatto_generator_class=str(schema.get("generatorClass") or "").strip(),
+        datiatto_root_name=root_name,
+        datiatto_studio_variable=str(schema.get("studioVariable") or "").strip(),
+        datiatto_generator_mode=str(schema.get("generatorMode") or "").strip(),
+        datiatto_required_data=list(schema.get("requiredData") or []),
+        datiatto_extra=_extra_for(entry),
+        data_notifica_citazione="30/06/2026" if "citazione" in root_name.casefold() else "",
+    )
+
+
+def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
+    key = str(entry.get("key") or "")
+    rules = _rules(entry)
+    schema = _schema(entry)
+    ui = entry.get("ui") if isinstance(entry.get("ui"), dict) else {}
+    if rules.get("server_smtp_allowed") is not False:
+        errors.append(f"{key}: server_smtp_allowed deve essere False")
+    if not ui.get("documents"):
+        errors.append(f"{key}: documenti attesi mancanti")
+    if not ui.get("controls"):
+        errors.append(f"{key}: controlli operativi mancanti")
+    if rules.get("channel_kind") == "pct_civile_dm44":
+        for field in ("requires_datiatto", "requires_indice_busta", "requires_atto_enc", "requires_pst_cer"):
+            if rules.get(field) is not True:
+                errors.append(f"{key}: regola PCT {field} non attiva")
+        if not schema.get("generatorClass"):
+            errors.append(f"{key}: classe generatore mancante")
+        if not schema.get("ministerialRoot"):
+            errors.append(f"{key}: radice ministeriale mancante")
+        if not schema.get("evidenceMethods"):
+            errors.append(f"{key}: metodo generatore di origine mancante")
+    elif rules.get("channel_kind") == "unep_notifiche":
+        if rules.get("can_prepare_in_pct_panel") is not False:
+            errors.append(f"{key}: UNEP non deve prepararsi nel pannello PCT")
+        if rules.get("requires_atto_enc") is not False:
+            errors.append(f"{key}: UNEP non deve richiedere Atto.enc PCT")
+        if rules.get("requires_relata") is not True:
+            errors.append(f"{key}: UNEP deve richiedere relata/destinatari")
+
+
+def _check_source_contracts(errors: list[str]) -> None:
+    checks = [
+        (
+            ROOT / "tools" / "local_signer.py",
+            [
+                "/pst/certificato-ufficio",
+                "<ser:getCertificato>",
+                "certificato_b64",
+                "_PST_CATALOGO_SERVIZI_URLS",
+            ],
+        ),
+        (
+            ROOT / "web" / "bootstrap" / "deposito_routes.py",
+            [
+                "deposito_catalogo_datiatto_extra",
+                "datiatto_extra=datiatto_extra",
+                "certificato-cifratura",
+                "local_pec_required_response",
+                "prova_senza_invio",
+                "simula_invio_pec",
+            ],
+        ),
+        (
+            ROOT / "web" / "services" / "local_pec_runtime.py",
+            [
+                "build_local_pec_payload",
+                "Allegato Atto.enc non conforme",
+                "LOCAL_SIGNER_BASE_URL",
+                "attachment_name=\"Atto.enc\"",
+            ],
+        ),
+        (
+            ROOT / "frontend" / "src" / "components" / "FascicoloDepositoPage.tsx",
+            [
+                "recoverPstOfficeCertificateBeforePackage",
+                "localSignerEndpointForStatus('/pst/certificato-ufficio'",
+                "assertLocalPecAttoEncBase64(localPayload)",
+                "const pecWorkflowAvailable = depositOfficePecAvailable",
+                "IUSENTRA non ha risolto automaticamente la PEC dell’ufficio",
+            ],
+        ),
+    ]
+    for path, needles in checks:
+        try:
+            source = path.read_text(encoding="utf-8")
+        except Exception as exc:
+            errors.append(f"{path.relative_to(ROOT)}: sorgente non leggibile: {exc}")
+            continue
+        for needle in needles:
+            if needle not in source:
+                errors.append(f"{path.relative_to(ROOT)}: contratto mancante `{needle}`")
+
+
+def _child_text(element: etree._Element, localname: str) -> str:
+    found = element.find(f".//{{*}}{localname}")
+    return str(found.text or "").strip() if found is not None and found.text else ""
+
+
+def _office_services_from_xml(element: etree._Element) -> list[str]:
+    services: list[str] = []
+    for service in element.findall(".//{*}servizi"):
+        code = _child_text(service, "codice").upper()
+        if code:
+            services.append(code)
+    return services
+
+
+def _quickorganizer_office_rows() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if QUICKORGANIZER_LISTA_UFFICI.exists():
+        root = etree.parse(str(QUICKORGANIZER_LISTA_UFFICI)).getroot()
+        rows: list[dict[str, Any]] = []
+        for item in root.iter():
+            if etree.QName(item).localname != "return":
+                continue
+            services = _office_services_from_xml(item)
+            rows.append(
+                {
+                    "codice": _child_text(item, "codiceUfficio"),
+                    "descrizione": _child_text(item, "descrizione"),
+                    "pec": _child_text(item, "indirizzoPec").lower(),
+                    "tipo": _child_text(item, "tipoUfficio").upper(),
+                    "codice_gl": _child_text(item, "codiceGL"),
+                    "servizi": services,
+                    "source": str(QUICKORGANIZER_LISTA_UFFICI),
+                }
+            )
+        return rows, {
+            "source": str(QUICKORGANIZER_LISTA_UFFICI),
+            "qc_uffici_found": QUICKORGANIZER_QC_UFFICI.exists(),
+        }
+
+    fallback = ROOT / "pct" / "data" / "uffici_ministero.json"
+    data = json.loads(fallback.read_text(encoding="utf-8"))
+    rows = []
+    for item in data.get("uffici", []):
+        rows.append(
+            {
+                "codice": str(item.get("codice_ministero") or "").strip(),
+                "descrizione": str(item.get("descrizione_ministero") or item.get("nome") or "").strip(),
+                "pec": str(item.get("pec_ministero") or item.get("pec") or "").strip().lower(),
+                "tipo": str(item.get("tipo_ministero") or item.get("tipo") or "").strip().upper(),
+                "codice_gl": str(item.get("codice_gl") or "").strip(),
+                "servizi": [str(service or "").strip().upper() for service in item.get("servizi_ministero", [])],
+                "source": str(fallback),
+            }
+        )
+    return rows, {"source": str(fallback), "qc_uffici_found": False}
+
+
+def _external_office_is_operational_pct(row: dict[str, Any]) -> bool:
+    description = str(row.get("descrizione") or "").upper()
+    if any(marker in description for marker in NON_OPERATIVE_OFFICE_MARKERS):
+        return False
+    if str(row.get("tipo") or "").upper() not in PCT_OFFICE_TYPES_REQUIRING_DEPOSIT_RESOLUTION:
+        return False
+    services = {str(service or "").strip().upper() for service in row.get("servizi", []) if str(service or "").strip()}
+    return any(service.startswith("JPW_") for service in services)
+
+
+def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
+    try:
+        from pct.pst_cifratura import _iter_certificati_cifratura_target_rows
+        from pct.uffici_giudiziari import get_gestore
+        from web.services.react_fascicoli_bridge import _deposit_office_payload, _uffici_cache_path
+    except Exception as exc:
+        errors.append(f"catalogo uffici: import resolver non riuscito: {exc}")
+        return {"ok": False, "error": str(exc)}
+
+    offices = get_gestore(_uffici_cache_path()).carica()
+    offices_by_ministerial = {
+        str(office.get("codice_ministero") or office.get("codice") or "").strip(): office
+        for office in offices
+        if str(office.get("codice_ministero") or office.get("codice") or "").strip()
+    }
+    target_rows = list(_iter_certificati_cifratura_target_rows())
+    target_codes = sorted({str(row.get("codice_ufficio") or "").strip() for row in target_rows if str(row.get("codice_ufficio") or "").strip()})
+
+    missing_target: list[dict[str, str]] = []
+    empty_target: list[dict[str, str]] = []
+    resolver_errors: list[dict[str, str]] = []
+    for row in target_rows:
+        code = str(row.get("codice_ufficio") or "").strip()
+        if not code:
+            continue
+        office = offices_by_ministerial.get(code)
+        if office is None:
+            missing_target.append({"codice": code, "descrizione": str(row.get("descrizione") or "")})
+            continue
+        pec = str(office.get("pec") or office.get("pec_ministero") or "").strip()
+        name = str(office.get("nome") or row.get("descrizione") or "").strip()
+        internal_code = str(office.get("codice") or "").strip()
+        if not pec or not internal_code:
+            empty_target.append({"codice": code, "nome": name, "pec": pec, "codice_iusentra": internal_code})
+            continue
+        resolved = _deposit_office_payload(
+            SimpleNamespace(
+                tribunale=name,
+                profilo_deposito={"ufficio": {"nome": name, "pec": pec}},
+            )
+        )
+        if not (resolved.get("pec") and (resolved.get("code") or resolved.get("ministerialCode")) and resolved.get("verified")):
+            resolver_errors.append(
+                {
+                    "codice": code,
+                    "nome": name,
+                    "pec": pec,
+                    "resolver_message": str(resolved.get("message") or ""),
+                }
+            )
+
+    external_rows, external_source = _quickorganizer_office_rows()
+    external_operational = [row for row in external_rows if _external_office_is_operational_pct(row)]
+    external_missing: list[dict[str, str]] = []
+    external_mismatch: list[dict[str, str]] = []
+    external_no_pec: list[dict[str, str]] = []
+    for row in external_operational:
+        code = str(row.get("codice") or "").strip()
+        expected_pec = str(row.get("pec") or "").strip().lower()
+        office = offices_by_ministerial.get(code)
+        if office is None:
+            external_missing.append({"codice": code, "descrizione": str(row.get("descrizione") or "")})
+            continue
+        actual_pec = str(office.get("pec") or office.get("pec_ministero") or "").strip().lower()
+        if not expected_pec:
+            external_no_pec.append({"codice": code, "descrizione": str(row.get("descrizione") or "")})
+        elif actual_pec != expected_pec:
+            external_mismatch.append(
+                {
+                    "codice": code,
+                    "descrizione": str(row.get("descrizione") or ""),
+                    "pec_fonte": expected_pec,
+                    "pec_iusentra": actual_pec,
+                }
+            )
+
+    for label, rows in (
+        ("target PCT senza catalogo interno", missing_target),
+        ("target PCT senza PEC/codice interno", empty_target),
+        ("resolver React non risolve PEC/codice", resolver_errors),
+        ("fonte Studio/PST operativa mancante in IUSENTRA", external_missing),
+        ("fonte Studio/PST operativa senza PEC", external_no_pec),
+        ("PEC diversa da fonte Studio/PST", external_mismatch),
+    ):
+        if rows:
+            sample = "; ".join(
+                f"{row.get('codice')} {row.get('nome') or row.get('descrizione') or row.get('resolver_message') or ''}".strip()
+                for row in rows[:8]
+            )
+            errors.append(f"catalogo uffici: {label}: {len(rows)} ({sample})")
+
+    return {
+        "ok": not (missing_target or empty_target or resolver_errors or external_missing or external_no_pec or external_mismatch),
+        "source": external_source,
+        "iusentra_offices": len(offices),
+        "pct_target_codes": len(target_codes),
+        "pct_target_missing_in_iusentra": len(missing_target),
+        "pct_target_without_pec_or_code": len(empty_target),
+        "react_resolver_errors": len(resolver_errors),
+        "external_operational_pct_rows": len(external_operational),
+        "external_operational_missing_in_iusentra": len(external_missing),
+        "external_operational_without_pec": len(external_no_pec),
+        "external_operational_pec_mismatch": len(external_mismatch),
+    }
+
+
+def _xml_localnames(root: etree._Element) -> set[str]:
+    return {etree.QName(element).localname for element in root.iter()}
+
+
+def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
+    key = str(entry.get("key") or "")
+    schema = _schema(entry)
+    root = str(schema.get("ministerialRoot") or "")
+    generator = str(schema.get("generatorClass") or "")
+    required = ["AttoRichiestaVisibilita", "Parte", "Avvocato", "codiceFiscale", "parteRappresentata"] if root == "AttoRichiestaVisibilita" else []
+    if root == "IscrizioneRuoloPignoramento":
+        required = [
+            "AnagraficaProcedimento",
+            "DataConsegnaPignoramento",
+            "ImportoPrecetto",
+            "Beni",
+            "EstensioneAnagrafica",
+            "DatiDebitore",
+            "DatiProcedente",
+            "EstensioneDatiRito",
+            "titolo",
+            "titoloEsecutivo",
+            "benePignorato",
+        ]
+        if "MobiliarePressoDebitore" in key:
+            required.extend(["pressoDebitore", "Custode"])
+        elif "MobiliarePressoTerzi" in key:
+            required.extend(["pressoTerzo", "DatiTerzo", "dataNotificaPignoramento"])
+        else:
+            required.append("immobiliare")
+    elif root == "ProgettoDistribuzione":
+        required = ["procedimento", "deposito", "depositoPianoRiparto"]
+    elif root == "DepositoRelazioneIniziale":
+        required = ["procedimento", "numero", "anno"]
+    elif generator.startswith("Introduttivi"):
+        required = ["destinazione", "Oggetto", "AnagraficaProcedimento"]
+    elif generator.startswith(("Parte", "CorsoCausa", "Professionista", "ProfSiecic", "CurSiecic", "CusSiecic", "DelSiecic")):
+        required = ["procedimento", "numero", "anno"]
+    return required
+
+
+def _check_xml_fields(entry: dict[str, Any], root: etree._Element) -> list[str]:
+    names = _xml_localnames(root)
+    missing = [field for field in _required_xml_fields(entry) if field not in names]
+    if missing:
+        return [f"campo XML mancante `{field}`" for field in missing]
+    return []
+
+
+def audit_deposit_catalog() -> dict[str, Any]:
+    entries = list(list_deposit_catalog_entries())
+    errors: list[str] = []
+    generated: list[dict[str, str]] = []
+    blocked: list[dict[str, str]] = []
+    channels = {"pct": 0, "unep": 0, "other": 0}
+
+    with tempfile.TemporaryDirectory(prefix="iusentra-deposito-audit-") as tmp_dir:
+        atto = _sample_pdf(Path(tmp_dir) / "atto.pdf")
+        for entry in entries:
+            key = str(entry.get("key") or "")
+            rules = _rules(entry)
+            schema = _schema(entry)
+            _check_common_contract(entry, errors)
+
+            channel_kind = str(rules.get("channel_kind") or "")
+            if channel_kind == "pct_civile_dm44":
+                channels["pct"] += 1
+            elif channel_kind == "unep_notifiche":
+                channels["unep"] += 1
+            else:
+                channels["other"] += 1
+
+            real_allowed = bool(rules.get("real_send_allowed_from_pct_panel"))
+            supported = bool(schema.get("supported"))
+            requires_specific = bool(schema.get("requiresSpecificGenerator"))
+
+            if channel_kind == "pct_civile_dm44" and requires_specific:
+                errors.append(f"{key}: ramo PCT ancora sospeso, completare generatore e campi prima del verde")
+                blocked.append(
+                    {
+                        "key": key,
+                        "root": str(schema.get("ministerialRoot") or ""),
+                        "generator": str(schema.get("generatorClass") or ""),
+                        "status": str(schema.get("status") or ""),
+                    }
+                )
+                continue
+
+            if channel_kind == "pct_civile_dm44" and not real_allowed:
+                errors.append(f"{key}: invio reale PCT non abilitato dal catalogo")
+                blocked.append(
+                    {
+                        "key": key,
+                        "root": str(schema.get("ministerialRoot") or ""),
+                        "generator": str(schema.get("generatorClass") or ""),
+                        "status": str(schema.get("status") or ""),
+                    }
+                )
+                continue
+
+            if channel_kind == "pct_civile_dm44" and supported and real_allowed:
+                entry_errors: list[str] = []
+                try:
+                    dati = _dati_busta_for(entry, atto)
+                    busta = BustaTelematica(dati)
+                    xml_payload = busta.crea_dati_atto_xml_per_firma()
+                    root = etree.fromstring(xml_payload)
+                    busta_audit = busta.audit_conformita_pst()
+                except Exception as exc:  # pragma: no cover - diagnostic detail matters.
+                    errors.append(f"{key}: generazione DatiAtto.xml fallita: {exc}")
+                    continue
+                expected_root = str(schema.get("ministerialRoot") or "")
+                actual_root = etree.QName(root).localname
+                if actual_root != expected_root:
+                    entry_errors.append(f"radice generata {actual_root}, attesa {expected_root}")
+                entry_errors.extend(_check_xml_fields(entry, root))
+                if busta_audit.get("indice_documenti_generated") is not True:
+                    entry_errors.append("IndiceDocumentiDepositati.PDF non generato")
+                if busta_audit.get("indice_busta_generated") is not True:
+                    entry_errors.append("IndiceBusta ministeriale non generato")
+                if busta_audit.get("indice_busta_mime_contract_ok") is not True:
+                    entry_errors.append("IndiceBusta non coerente con i file fisici della busta")
+                if entry_errors:
+                    errors.extend(f"{key}: {message}" for message in entry_errors)
+                else:
+                    generated.append(
+                        {
+                            "key": key,
+                            "root": actual_root,
+                            "generator": str(schema.get("generatorClass") or ""),
+                        }
+                    )
+            elif channel_kind == "pct_civile_dm44":
+                errors.append(f"{key}: schema PCT non supportato dal generatore")
+
+    office_catalog = _check_office_catalog_contracts(errors)
+    _check_source_contracts(errors)
+
+    return {
+        "ok": not errors,
+        "source_of_truth": "catalogo_tecnico_condiviso_confronto_funzionale_interno_specifiche_pst",
+        "total": len(entries),
+        "channels": channels,
+        "pct_generated_datiatto": len(generated),
+        "pct_real_send_suspended_until_dedicated_generator": len(blocked),
+        "pct_expected_datiatto": channels["pct"],
+        "office_catalog": office_catalog,
+        "blocked_keys": blocked,
+        "sample_generated": generated[:12],
+        "errors": errors,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", help="Percorso JSON report opzionale.")
+    args = parser.parse_args()
+    report = audit_deposit_catalog()
+    payload = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output:
+        Path(args.output).write_text(payload + "\n", encoding="utf-8")
+    print(payload)
+    return 0 if report["ok"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

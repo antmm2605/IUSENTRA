@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.254.19 - 2026-07-09
+
+- **Deposito telematico - audit completo catalogo**: aggiunto audit end-to-end sui 270 tipi deposito. I 252 tipi PCT generano `DatiAtto.xml` con radice verificata e l'audit severo non segnala rami sospesi.
+- **Deposito telematico - mapping generatori completato**: recuperati rami mancanti o incompleti per `Ricorso702Bis`, memorie/istanze Cartabia, richiesta visibilità, pignoramenti SIECIC, progetto distribuzione e deposito relazione iniziale del curatore, evitando fallback generici.
+- **Deposito telematico - Giudice di Pace/SIGP**: la scelta tipo deposito non prende più la prima voce del catalogo. Per fascicoli Giudice di Pace con note/trattazione scritta propone `Deposito note scritte sostitutive udienza (Giudice di Pace)` e il validatore accetta `SIGP` come canale coerente, bloccando invece `SICID` su ufficio Giudice di Pace.
+- **Deposito telematico - ufficio/PEC/codice**: il resolver React completa PEC, codice interno e codice ministeriale dal catalogo uffici anche quando il profilo pratica contiene solo la PEC. L'audit confronta 593 uffici PCT operativi e non segnala PEC o codici mancanti.
+
+## 2.254.18 - 2026-07-09
+
+- **Deposito telematico - selezione documenti**: la busta non autoseleziona più tutti i documenti candidati del fascicolo. I documenti disponibili restano visibili, ma entrano nella busta solo quelli collegati o scelti e salvati dall'avvocato.
+- **Deposito telematico - avvisi non bloccanti**: le scelte documentali obbligatorie ancora da verificare non spengono più `Firma e prepara prova` e `Simula invio PEC` quando l'atto principale e la PEC dell'ufficio sono presenti. La UI indica il documento da verificare come avviso e conserva i blocchi solo per requisiti realmente obbligatori.
+
 ## 2.253.192 - 2026-07-06
 
 - **PEC - messaggio completo**: la lettura dell'EML originale non duplica più la busta PEC quando il messaggio contiene testo e HTML equivalenti e non attraversa due volte il messaggio allegato `postacert.eml`.

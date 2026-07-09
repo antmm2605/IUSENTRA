@@ -559,6 +559,83 @@ def test_orchestratore_pct_contributo_mancante_usa_policy_pagopa_pst(tmp_path):
     assert "promemoria PDF non sostituisce la RT" in issue["suggested_action"]
 
 
+def _validation_run_for_registry(tmp_path: Path, *, tribunale: str, codice_registro: str):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / f"fascicoli_{codice_registro}_{abs(hash(tribunale))}.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Note scritte sostitutive udienza",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale=tribunale,
+        numero_rg="3571",
+        anno_rg=2025,
+        controparte="Alfa S.r.l.",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "note_scritte_sostitutive_udienza.pdf.p7m",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        _cades_signed_payload(_pdf_base()),
+        firmato=True,
+    )
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / f"validation_{codice_registro}.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    return orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "ATTO_GENERICO",
+            "codice_registro": codice_registro,
+            "oggetto": "Note scritte sostitutive udienza",
+            "codice_oggetto_pst": "011001",
+            "numero_rg": "3571",
+            "anno_rg": 2025,
+            "atto_principale_id": atto.id,
+            "allegati_ids": [],
+            "operatore": "avv.rossi",
+        },
+        selected_documents=[_doc_payload(gf, fasc.id, atto)],
+        all_documents=[_doc_payload(gf, fasc.id, atto)],
+    )
+
+
+def test_orchestratore_accetta_sigp_su_giudice_di_pace(tmp_path):
+    run = _validation_run_for_registry(
+        tmp_path,
+        tribunale="Ufficio del Giudice di Pace di Palmi",
+        codice_registro="SIGP",
+    )
+
+    assert run.context["codice_registro"] == "SIGP"
+    assert "giudice di pace" in (run.resolver["effective_office_name"] or "").lower()
+    assert not any(issue["code"] == "registro_errato" for issue in run.issues)
+
+
+def test_orchestratore_blocca_sicid_su_giudice_di_pace(tmp_path):
+    run = _validation_run_for_registry(
+        tmp_path,
+        tribunale="Ufficio del Giudice di Pace di Palmi",
+        codice_registro="SICID",
+    )
+
+    assert any(issue["code"] == "registro_errato" for issue in run.issues)
+
+
+def test_orchestratore_accetta_sicid_su_tribunale_ordinario(tmp_path):
+    run = _validation_run_for_registry(
+        tmp_path,
+        tribunale="Tribunale di Palmi",
+        codice_registro="SICID",
+    )
+
+    assert not any(issue["code"] == "registro_errato" for issue in run.issues)
+
+
 def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_path):
     cfg = _cfg_web(tmp_path)
     gu = GestioneUtenti(

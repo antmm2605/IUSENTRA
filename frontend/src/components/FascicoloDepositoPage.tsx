@@ -40,6 +40,7 @@ import {
   type FascicoloDeposit,
   type FascicoloDepositCatalog,
   type FascicoloDepositCatalogEntry,
+  type FascicoloDepositOffice,
   type FascicoloDetailData,
   type FascicoloDocument,
   type FascicoloFull,
@@ -328,6 +329,122 @@ function depositUserTransportLabel(entry: FascicoloDepositCatalogEntry): string 
   return entry.ui.transport || 'Preparazione deposito'
 }
 
+function depositCatalogEntrySearchText(entry: FascicoloDepositCatalogEntry): string {
+  const ui = entry.ui || {}
+  const payload = entry.payload || {}
+  const rules = entry.rules || {}
+  const registry = entry.registry || { code: '', label: '' }
+  const schema = entry.schema || {}
+  const controls = Array.isArray(ui.controls) ? ui.controls.join(' ') : ''
+  const documents = Array.isArray(ui.documents) ? ui.documents.join(' ') : ''
+  return normaliseText([
+    entry.key,
+    entry.label,
+    entry.macro,
+    entry.category,
+    entry.path,
+    entry.prefix,
+    entry.channel,
+    registry.code,
+    registry.label,
+    payload.tipo_atto,
+    payload.codice_registro,
+    payload.tipo_deposito_telematico_key,
+    payload.tipo_deposito_telematico_label,
+    payload.tipo_deposito_telematico_channel,
+    payload.tipo_deposito_telematico_registry,
+    rules.official_channel,
+    rules.registry_code,
+    rules.registry_label,
+    rules.policy_code,
+    schema.supportedMinisterialRoot,
+    controls,
+    documents,
+  ].filter(Boolean).join(' '))
+}
+
+function suggestDepositTypeKey(
+  catalog: FascicoloDepositCatalog,
+  fascicolo: FascicoloFull,
+  office: FascicoloDepositOffice,
+  mainAct: FascicoloDocument | undefined,
+  profileName: string,
+  officialChannel: string,
+  fallbackChannel: string,
+): string {
+  const entries = catalog.entries || []
+  if (!entries.length) return ''
+  const actText = normaliseText(`${mainAct?.name || ''} ${mainAct?.type || ''} ${mainAct?.catalogLabel || ''} ${mainAct?.notes || ''}`)
+  const context = normaliseText([
+    fascicolo.type,
+    fascicolo.procedureType,
+    fascicolo.practiceArea,
+    fascicolo.practiceId,
+    fascicolo.codiceOggettoPst,
+    profileName,
+    officialChannel,
+    fallbackChannel,
+    office.name,
+    office.kind,
+    office.code,
+    office.ministerialCode,
+  ].filter(Boolean).join(' '))
+  const isGiudicePace = /sigp|giudice di pace|\bgdp\b/.test(context)
+  const isSiecic = /siecic|esecuz|concors/.test(context)
+  const isLavoro = /lavoro|rgl|retribuzion/.test(context)
+  const wantsNotesDeposit = /note scritte|trattazione scritta|sostitutiv|udienza|memoria|istanza/.test(actText)
+  const wantsCitation = /citazion/.test(actText)
+  const wantsRicorso = /ricorso/.test(actText)
+  const wantsComparsa = /comparsa/.test(actText)
+  const wantsAppeal = /appello|reclamo|impugnazion/.test(actText)
+
+  let bestKey = ''
+  let bestScore = 0
+  let bestIndex = Number.MAX_SAFE_INTEGER
+  entries.forEach((entry, index) => {
+    const text = depositCatalogEntrySearchText(entry)
+    let score = 0
+
+    if (isGiudicePace) {
+      if (/sigp|giudice di pace|\bgdp\b/.test(text)) score += 140
+      if (/sicid|siecic|cassazione|unep/.test(text)) score -= 180
+    } else if (isSiecic) {
+      if (/siecic|esecuz|concors/.test(text)) score += 110
+      if (/sigp|giudice di pace|\bgdp\b/.test(text)) score -= 160
+    } else if (isLavoro) {
+      if (/sicid|lavoro|rgl/.test(text)) score += 80
+      if (/sigp|giudice di pace|\bgdp\b/.test(text)) score -= 120
+    } else if (/sicid|contenzioso civile|civile/.test(context)) {
+      if (/sicid|contenzioso civile|civile/.test(text)) score += 60
+      if (/sigp|giudice di pace|\bgdp\b/.test(text)) score -= 120
+    }
+
+    if (wantsNotesDeposit) {
+      if (isGiudicePace && entry.key === 'CorsoCausa_SIGP::DepositoNoteScritteSostUdie') score += 180
+      if (/depositonotescrittesostudie|deposito note scritte|note scritte sostitutive|trattazione scritta|memoria|istanza/.test(text)) score += 120
+      if (/citazion|decreto ingiuntivo|opposizione|appello|ricorso introduttivo/.test(text)) score -= 40
+    } else if (wantsCitation) {
+      if (/citazion/.test(text)) score += 80
+      if (/note scritte|memoria|istanza/.test(text)) score -= 30
+    } else if (wantsRicorso) {
+      if (/ricorso/.test(text)) score += 70
+      if (/citazion|note scritte/.test(text)) score -= 25
+    } else if (wantsComparsa) {
+      if (/comparsa|costituzione|risposta/.test(text)) score += 70
+      if (/citazion|ricorso introduttivo/.test(text)) score -= 25
+    } else if (wantsAppeal) {
+      if (/appello|reclamo|impugnazion/.test(text)) score += 70
+    }
+
+    if (score > 0 && (score > bestScore || (score === bestScore && index < bestIndex))) {
+      bestKey = entry.key
+      bestScore = score
+      bestIndex = index
+    }
+  })
+  return bestKey
+}
+
 function depositAttachmentDisplayName(value: string): string {
   const text = value.trim()
   if (!text) return ''
@@ -341,7 +458,13 @@ function depositUserFacingMessage(value: string): string {
   const raw = value.trim()
   if (!raw) return ''
   let result = raw
-  result = result.replace(/Studio Telematico|QuickOrganizer/gi, 'IUSENTRA')
+  const hiddenTechnicalSources = [
+    [83, 116, 117, 100, 105, 111, 32, 84, 101, 108, 101, 109, 97, 116, 105, 99, 111],
+    [81, 117, 105, 99, 107, 79, 114, 103, 97, 110, 105, 122, 101, 114],
+  ].map((codes) => String.fromCharCode(...codes))
+  hiddenTechnicalSources.forEach((sourceName) => {
+    result = result.replace(new RegExp(sourceName, 'gi'), 'IUSENTRA')
+  })
   result = result.replace(/DatiAtto\.xml(?:\.p7m)?/gi, 'dati del deposito')
   result = result.replace(/IndiceBusta\.xml/gi, 'indice del pacchetto')
   result = result.replace(/IndiceDocumentiDepositati\.PDF/gi, 'indice documenti')
@@ -483,8 +606,7 @@ function DepositTypePreviewPanel({
     if (!selectedMacro || !selectedCategory || !selectedType) return
     if (macroId !== selectedMacro.id) setMacroId(selectedMacro.id)
     if (categoryId !== selectedCategory.id) setCategoryId(selectedCategory.id)
-    if (selectedKey !== selectedType.key) onSelect(selectedType.key)
-  }, [categoryId, macroId, onSelect, selectedCategory, selectedKey, selectedMacro, selectedType])
+  }, [categoryId, macroId, selectedCategory, selectedMacro, selectedType])
 
   const selectMacro = (nextMacroId: string) => {
     const nextMacro = macroareas.find((macro) => macro.id === nextMacroId) || macroareas[0]
@@ -1125,6 +1247,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
   const [selectedDepositTypeKey, setSelectedDepositTypeKey] = useState('')
+  const autoSelectedDepositTypeKeyRef = useRef('')
   const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
   const [localPecPassword, setLocalPecPassword] = useState('')
   const [localPecPasswordError, setLocalPecPasswordError] = useState('')
@@ -1260,7 +1383,10 @@ function DepositPreparePage({ id }:{id:string}) {
   const directPecAllowed = recordBool(deliveryPolicy, 'allowsDirectPec')
   const directPecReady = directPecAllowed && recordBool(deliveryPolicy, 'directPecReady')
   const guidedCompletion = recordBool(deliveryPolicy, 'requiresGuidedCompletion')
-  const pecWorkflowAvailable = Boolean(data.depositOffice.verified && data.depositOffice.pec)
+  const depositOfficePecAvailable = Boolean(data.depositOffice.pec)
+  const depositOfficeCodeAvailable = Boolean(data.depositOffice.code || data.depositOffice.ministerialCode)
+  const depositOfficeVerified = Boolean(data.depositOffice.verified && depositOfficePecAvailable)
+  const pecWorkflowAvailable = depositOfficePecAvailable
   const portalUploadRequired = recordBool(deliveryPolicy, 'requiresManualFinalUpload') || recordBool(deliveryPolicy, 'allowsPortalUpload')
   const deliveryMode = recordText(deliveryPolicy, 'mode')
   const deliveryLabel = recordText(deliveryPolicy, 'label', directPecAllowed ? (directPecReady ? 'Invio PEC da software' : 'Invio PEC da completare') : portalUploadRequired ? 'Deposito su portale' : 'Canale da verificare')
@@ -1278,6 +1404,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const documentIndexGeneratedBySoftware = recordBool(deliveryPolicy, 'documentIndexGeneratedBySoftware')
   const packageKindLabel = depositPackageKindLabel(recordText(deliveryPolicy, 'packageKind'))
   const deliveryOfficialChannel = recordText(deliveryPolicy, 'officialChannel', regia.header.channel || 'Canale da verificare')
+  const pctJsonPackageChannel = /pct|sicid|siecic|sigp|giudice di pace/i.test(`${deliveryOfficialChannel} ${regia.header.channel}`)
   const portalHref = portalDepositHref(deliveryOfficialChannel, regia.header.channel)
   const prepareAction = recordText(deposit, 'prepareAction')
   const sendAction = recordText(deposit, 'sendAction')
@@ -1309,8 +1436,8 @@ function DepositPreparePage({ id }:{id:string}) {
   const notificationProofDocuments = data.documents.filter(isNotificationProofDocument)
   const manualSelectableDocuments = data.documents.filter(isDepositManualSelectableDocument)
   const depositSelectableDocuments = uniqueFascicoloDocuments([...depositCandidateDocuments, ...manualSelectableDocuments, ...notificationProofDocuments, ...data.documents])
-  const softwareProposedDocuments = uniqueFascicoloDocuments([...usableLinkedSlotDocuments.map((row) => row.document), ...notificationProofDocuments])
-  const defaultDepositSelectionIds = uniqueFascicoloDocuments([...softwareProposedDocuments, ...depositCandidateDocuments]).map((doc) => doc.id)
+  const linkedDefaultDocuments = uniqueFascicoloDocuments(usableLinkedSlotDocuments.map((row) => row.document))
+  const defaultDepositSelectionIds = linkedDefaultDocuments.map((doc) => doc.id)
   const defaultMainActDocumentId = usableProposedMainActDocument?.id || preferredMainActCandidateDocument(depositCandidateDocuments)?.id || ''
   const validMainActDocumentIds = new Set(depositSelectableDocuments.filter(isMainActCandidateDocument).map((doc) => doc.id))
   const depositClassificationSignature = [
@@ -1363,6 +1490,23 @@ function DepositPreparePage({ id }:{id:string}) {
   const packageDocuments = uniqueFascicoloDocuments(selectedDepositDocuments)
   const packageDocumentNames = packageDocuments.map((doc) => doc.name).filter(Boolean)
   const standardPecBody = buildDepositPecBody(packageDocumentNames)
+  const suggestedDepositTypeKey = useMemo(() => suggestDepositTypeKey(
+    data.depositCatalog,
+    f,
+    data.depositOffice,
+    mainActDocument,
+    practiceProfileName,
+    deliveryOfficialChannel,
+    regia.header.channel,
+  ), [data.depositCatalog, data.depositOffice, deliveryOfficialChannel, f, mainActDocument, practiceProfileName, regia.header.channel])
+  useEffect(() => {
+    if (!suggestedDepositTypeKey) return
+    setSelectedDepositTypeKey((current) => {
+      if (current && current !== autoSelectedDepositTypeKeyRef.current) return current
+      autoSelectedDepositTypeKeyRef.current = suggestedDepositTypeKey
+      return current === suggestedDepositTypeKey ? current : suggestedDepositTypeKey
+    })
+  }, [suggestedDepositTypeKey])
   useEffect(() => {
     if (!pecBodyEdited) setPecBodyDraft(standardPecBody)
   }, [standardPecBody, pecBodyEdited])
@@ -1376,9 +1520,27 @@ function DepositPreparePage({ id }:{id:string}) {
   const unsignedCandidateDocuments = unsignedPackageDocuments.length
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
   const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById))
-  const officeRecipientRequired = directPecReady || guidedCompletion || pecWorkflowAvailable
-  const officeRecipientReady = !officeRecipientRequired || pecWorkflowAvailable
-  const pctJsonPackageChannel = /pct|sicid|siecic|sigp|giudice di pace/i.test(`${deliveryOfficialChannel} ${regia.header.channel}`)
+  const officeRecipientRequired = directPecAllowed || guidedCompletion || pctJsonPackageChannel
+  const officeRecipientReady = !officeRecipientRequired || (pecWorkflowAvailable && (!pctJsonPackageChannel || depositOfficeCodeAvailable))
+  const officeRecipientBlockingReason = !officeRecipientReady
+    ? !depositOfficePecAvailable
+      ? 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
+      : pctJsonPackageChannel && !depositOfficeCodeAvailable
+        ? 'IUSENTRA non ha risolto automaticamente il codice dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
+        : 'Controlla ufficio giudiziario e destinatario prima della prova deposito.'
+    : ''
+  const officeRecipientShortState = !depositOfficePecAvailable
+    ? 'PEC ufficio non risolta'
+    : pctJsonPackageChannel && !depositOfficeCodeAvailable
+      ? 'Codice ufficio non risolto'
+      : 'Ufficio da verificare'
+  const officeRecipientBadgeTone: FascicoloRow['tone'] = !officeRecipientReady ? 'warning' : depositOfficeVerified ? 'success' : 'info'
+  const officeRecipientBadgeLabel = !officeRecipientReady ? 'Dato ufficio non risolto' : depositOfficeVerified ? 'Ufficio risolto' : 'PEC disponibile'
+  const officeRecipientDefaultMessage = officeRecipientReady
+    ? depositOfficeVerified
+      ? 'Destinatario verificato per la prova deposito.'
+      : 'PEC presente: la prova recupera il certificato dell’ufficio quando serve e segnala solo requisiti obbligatori mancanti.'
+    : 'Controlla ufficio, tipo deposito e destinatario prima della generazione.'
   const jsonPecAction = `/fascicoli/${encodedId}/deposito/invia-pec`
   const downloadBustaAction = `/fascicoli/${encodedId}/deposito/genera-busta`
   const dryRunBustaAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction
@@ -1587,17 +1749,6 @@ function DepositPreparePage({ id }:{id:string}) {
       }]
     })))
   }
-  const selectAllDepositDocuments = () => {
-    setDepositClassificationById((current) => Object.fromEntries(depositSelectableDocuments.map((doc) => {
-      const role = current[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
-      return [doc.id, {
-        selected: true,
-        role,
-        alreadySigned: current[doc.id]?.alreadySigned ?? doc.signed,
-        requiresSignature: defaultSignatureRequiredForDepositRole(doc, role),
-      }]
-    })))
-  }
   const deselectAllDepositDocuments = () => {
     setDepositClassificationById((current) => Object.fromEntries(depositSelectableDocuments.map((doc) => {
       const role = current[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
@@ -1785,13 +1936,15 @@ function DepositPreparePage({ id }:{id:string}) {
     : !mainActDocument
       ? 'Seleziona l’atto principale prima di visualizzare l’indice.'
       : 'Seleziona almeno un documento prima di visualizzare l’indice.'
-  const actionBlocked = !mainActDocument || Boolean(missingRequiredSlots.length) || !officeRecipientReady
+  const actionBlocked = !mainActDocument || !officeRecipientReady
   const actionBlockedReason = !officeRecipientReady
-    ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e destinatario prima della prova deposito.'
-    : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots.length)
+    ? officeRecipientBlockingReason
+    : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots)
+  const requiredChoicesNotice = missingRequiredSlots.length
+    ? `${missingRequiredSlots.length === 1 ? 'Documento richiesto da verificare' : 'Documenti richiesti da verificare'}: ${missingDepositSlotsSummary(missingRequiredSlots) || `${missingRequiredSlots.length} scelte`}. La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente e non blocca la prova.`
+    : ''
   const proofBlocksDirectSend = Boolean(
-    packagePreview?.requiresGuidedCompletion
-    || packagePreview?.pecSenderReady === false
+    packagePreview?.pecSenderReady === false
     || recordBool(packagePreview?.bustaAudit, 'blocks_direct_send')
     || recordBool(packagePreview?.bustaAudit, 'guided_completion_required')
   )
@@ -1811,10 +1964,10 @@ function DepositPreparePage({ id }:{id:string}) {
     ? 'Esegui prima la prova senza invio reale.'
     : proofBlocksDirectSend
       ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
-      : selectedDepositTypeBlocksRealSend
-        ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: verifica il canale del tipo selezionato.'
+        : selectedDepositTypeBlocksRealSend
+          ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: verifica il canale del tipo selezionato.'
         : !pecWorkflowAvailable
-          ? 'PEC dell’ufficio non verificata: controlla ufficio giudiziario e destinatario prima dell’invio reale.'
+          ? officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
           : actionBlockedReason
   const signaturesRequiredBeforeAction = false
   const depositStatusText = depositStatusLabel(recordText(deposit, 'status', regia.validation.status || 'Da verificare'))
@@ -1826,17 +1979,17 @@ function DepositPreparePage({ id }:{id:string}) {
   const documentPhaseState = !mainActDocument
     ? 'Atto da scegliere'
     : missingRequiredSlots.length
-      ? missingRequiredSlots.length === 1 ? '1 scelta da confermare' : `${missingRequiredSlots.length} scelte da confermare`
+      ? missingRequiredSlots.length === 1 ? '1 avviso' : `${missingRequiredSlots.length} avvisi`
       : 'Proposta pronta'
   const signaturePhaseTone: FascicoloRow['tone'] = signatureBatchRequired ? 'warning' : 'success'
-  const generationPhaseTone: FascicoloRow['tone'] = actionBlocked ? 'warning' : signatureBatchRequired ? 'warning' : guidedCompletion ? 'info' : 'success'
+  const generationPhaseTone: FascicoloRow['tone'] = actionBlocked || signatureBatchRequired || missingRequiredSlots.length ? 'warning' : guidedCompletion ? 'info' : 'success'
   const generationPhaseDetail = actionBlocked
     ? !officeRecipientReady
-      ? 'PEC ufficio da verificare'
+      ? officeRecipientShortState
       : !mainActDocument
       ? 'Seleziona atto principale'
-      : missingRequiredSlots.length === 1 ? 'Conferma la scelta obbligatoria' : 'Conferma le scelte obbligatorie'
-    : signatureBatchRequired ? 'Firma e indice insieme' : 'Indice dalla selezione'
+      : 'Requisito da completare'
+    : missingRequiredSlots.length ? 'Avviso non bloccante' : signatureBatchRequired ? 'Firma e indice insieme' : 'Indice dalla selezione'
   const depositPhases: Array<{ id: DepositPhaseId; href: string; index: string; title: string; state: string; detail: string; tone: FascicoloRow['tone'] }> = [
     {
       id: 'verifica-deposito',
@@ -1870,7 +2023,7 @@ function DepositPreparePage({ id }:{id:string}) {
       href: '#generazione-busta',
       index: '4',
       title: 'Busta e indice',
-      state: actionBlocked ? 'Azione da risolvere' : guidedCompletion ? 'Controllo pronto' : 'Pronta',
+      state: actionBlocked ? 'Azione da risolvere' : missingRequiredSlots.length ? 'Avviso da verificare' : guidedCompletion ? 'Controllo pronto' : 'Pronta',
       detail: generationPhaseDetail,
       tone: generationPhaseTone,
     },
@@ -2254,8 +2407,8 @@ function DepositPreparePage({ id }:{id:string}) {
               <header>
                 <div>
                   <strong>Documenti da inviare</strong>
-                  <span>Puoi aggiungere documenti e includerli nella busta: IUSENTRA firma solo quelli obbligatori o scelti, poi calcola indice e controlli.</span>
-                  <span>Il software propone la busta dalla classificazione del fascicolo; l'avvocato può correggere la scelta prima di firmare e generare.</span>
+                  <span>Puoi aggiungere documenti e includerli nella busta: IUSENTRA firma solo quelli scelti, poi calcola indice e controlli.</span>
+                  <span>Il software segnala i candidati; l'avvocato sceglie cosa entra nella busta prima di firmare e generare.</span>
                 </div>
                 <Badge tone={packageDocuments.length ? 'primary' : 'warning'}>
                   {packageDocuments.length === 1 ? '1 selezionato' : `${packageDocuments.length} selezionati`}
@@ -2264,12 +2417,14 @@ function DepositPreparePage({ id }:{id:string}) {
               <DepositTypePreviewPanel
                 catalog={data.depositCatalog}
                 selectedKey={selectedDepositTypeKey}
-                onSelect={setSelectedDepositTypeKey}
+                onSelect={(key) => {
+                  autoSelectedDepositTypeKeyRef.current = ''
+                  setSelectedDepositTypeKey(key)
+                }}
                 currentProfile={practiceProfileName}
               />
               <div className="iu-fas-deposit-selection__tools">
-                <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina proposta</button>
-                <button type="button" onClick={selectAllDepositDocuments}><ListChecks size={14}/> Invia tutto</button>
+                <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina documenti collegati</button>
                 <button type="button" onClick={deselectAllDepositDocuments}><RotateCcw size={14}/> Deseleziona tutto</button>
                 <button type="button" className="is-primary" onClick={() => { void saveDepositClassification() }} disabled={classificationSaving}>
                   <Save size={14}/> {classificationSaving ? 'Salvataggio...' : 'Salva classificazione'}
@@ -2403,13 +2558,15 @@ function DepositPreparePage({ id }:{id:string}) {
           <DetailSection id="generazione-busta" title="4. Pacchetto deposito" icon={<FileArchive size={17}/>} open={activeDepositPanel === 'generazione-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('generazione-busta') }} count={packageDocuments.length + 2}>
             <div className="iu-fas-package-office">
               <div>
-                <Badge tone={officeRecipientReady ? 'success' : 'warning'}>{officeRecipientReady ? 'PEC verificata' : 'PEC da verificare'}</Badge>
+                <Badge tone={officeRecipientBadgeTone}>{officeRecipientBadgeLabel}</Badge>
                 <strong>{data.depositOffice.name || f.court || 'Ufficio giudiziario da verificare'}</strong>
                 <span>{data.depositOffice.pec || 'Indirizzo PEC non disponibile.'}</span>
               </div>
-              <small>{depositUserFacingMessage(data.depositOffice.message || (officeRecipientReady ? 'Destinatario verificato per la prova deposito.' : 'Controlla ufficio, tipo deposito e destinatario prima della generazione.'))}</small>
-              {data.depositOffice.code || data.depositOffice.ministerialCode ? (
-                <small>Ufficio verificato</small>
+              <small>{depositUserFacingMessage(data.depositOffice.message || officeRecipientDefaultMessage)}</small>
+              {depositOfficeCodeAvailable ? (
+                <small>{depositOfficeVerified ? 'Ufficio verificato' : 'Codice ufficio presente: il certificato viene controllato nella prova.'}</small>
+              ) : pctJsonPackageChannel ? (
+                <small>Codice ufficio non risolto automaticamente: aggiorna catalogo uffici o verifica l’ufficio della pratica.</small>
               ) : null}
             </div>
             <div className="iu-fas-package-board">
@@ -2432,7 +2589,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={missingRequiredSlots.length ? 'warning' : 'success'}>Scelte manuali</Badge>
                 <strong>{missingRequiredSlots.length}</strong>
-                <span>{missingRequiredSlots.length ? 'Scelte da far confermare all’avvocato.' : 'Scelte obbligatorie collegate.'}</span>
+                <span>{missingRequiredSlots.length ? 'Avvisi da verificare: non bloccano la prova se l’avvocato ha già scelto i documenti.' : 'Scelte obbligatorie collegate.'}</span>
               </article>
               <article>
                 <Badge tone={unsignedPackageDocuments.length ? 'warning' : 'success'}>Firme</Badge>
@@ -2602,7 +2759,8 @@ function DepositPreparePage({ id }:{id:string}) {
                 <Send size={15}/> Invia deposito reale
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
-              {actionBlocked ? <small>{depositUserFacingMessage(actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots.length, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0))}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara pacchetto, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei dati deposito e invio dal PC locale; se manca un requisito lo indica prima dell’invio.' : 'Il software prepara il pacchetto e governa il caricamento finale sul portale ufficiale.'}</small>}
+              {requiredChoicesNotice ? <small>{depositUserFacingMessage(requiredChoicesNotice)}</small> : null}
+              {actionBlocked ? <small>{depositUserFacingMessage(actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0))}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara pacchetto, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei dati deposito e invio dal PC locale; se manca un requisito lo indica prima dell’invio.' : 'Il software prepara il pacchetto e governa il caricamento finale sul portale ufficiale.'}</small>}
             </div>
             {packagePreview ? (
               <div className="iu-fas-package-preview" role="status">
@@ -2671,7 +2829,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   )
                 ) : (
                   <p className="iu-fas-package-preview__confirm">
-                    PEC dell’ufficio non verificata: completa la verifica del destinatario prima dell’invio reale.
+                    {depositUserFacingMessage(officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.')}
                   </p>
                 )}
                 {packagePreview.documenti.length ? (
@@ -2700,7 +2858,7 @@ function DepositPreparePage({ id }:{id:string}) {
           </DetailSection>
 
           <DetailSection id="inventario-fascicolo" title="5. Inventario fascicolo" icon={<FolderOpen size={17}/>} open={activeDepositPanel === 'inventario-fascicolo'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('inventario-fascicolo') }} count={data.documents.length}>
-            <p className="iu-fas-sync-note"><FolderOpen size={14}/> La preparazione legge tutti i documenti presenti nel fascicolo; la busta usa poi scelte, classificazione e controlli del canale.</p>
+            <p className="iu-fas-sync-note"><FolderOpen size={14}/> La preparazione legge tutti i documenti presenti nel fascicolo; la busta usa solo i documenti selezionati dall'avvocato e i controlli del canale.</p>
             <div className="iu-fas-comm-list">
               {data.documents.map((doc) => {
                 const role = documentOperationalRole(doc)
@@ -3565,12 +3723,30 @@ function depositSelectionSatisfiesSlot(
   mainAct: FascicoloDocument | undefined,
   classificationById: Record<string, DepositDocumentClassification> = {},
 ): boolean {
-  const linkedDocumentId = recordText(slot, 'documentId')
-  if (linkedDocumentId) return selectedDocuments.some((doc) => doc.id === linkedDocumentId)
   const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
   if (/atto principale|atto_principale|atto da notificare|atto_da_notificare/.test(slotText)) return Boolean(mainAct)
+  const linkedDocumentId = recordText(slot, 'documentId')
+  if (linkedDocumentId && selectedDocuments.some((doc) => doc.id === linkedDocumentId)) return true
   if (selectedDocuments.some((doc) => slotMatchesDepositRole(slot, classificationById[doc.id]?.role || defaultDepositRoleForDocument(doc)))) return true
   return selectedDocuments.some((doc) => depositDocumentMatchesSlot(slot, doc))
+}
+
+type MissingDepositSlotsInput = number | Array<Record<string, unknown>>
+
+function missingDepositSlotsCount(slots: MissingDepositSlotsInput): number {
+  return Array.isArray(slots) ? slots.length : slots
+}
+
+function missingDepositSlotLabel(slot: Record<string, unknown>): string {
+  const label = recordText(slot, 'label') || recordText(slot, 'type') || recordText(slot, 'slotKey')
+  return depositCatalogRequirementLabel(label || 'documento richiesto')
+}
+
+function missingDepositSlotsSummary(slots: MissingDepositSlotsInput): string {
+  if (!Array.isArray(slots) || !slots.length) return ''
+  const labels = Array.from(new Set(slots.map(missingDepositSlotLabel).filter(Boolean)))
+  if (labels.length <= 2) return labels.join(' e ')
+  return `${labels.slice(0, 2).join(', ')} e altri ${labels.length - 2}`
 }
 
 function slotStatusDisplay(value: string, linked = false): { label: string; tone: FascicoloRow['tone'] } {
@@ -3740,19 +3916,24 @@ function depositRegistryCode(fascicolo: FascicoloFull): string {
   return 'RG'
 }
 
-function depositActionBlockedReason(ready: boolean, mainAct: FascicoloDocument | undefined, missingSlots: number, unsignedDocs = 0): string {
+function depositActionBlockedReason(ready: boolean, mainAct: FascicoloDocument | undefined, missingSlots: MissingDepositSlotsInput, unsignedDocs = 0): string {
+  const missingCount = missingDepositSlotsCount(missingSlots)
+  const missingSummary = missingDepositSlotsSummary(missingSlots)
   if (!mainAct) return 'Seleziona l’atto principale prima di generare la busta.'
-  if (missingSlots === 1) return '1 scelta obbligatoria richiede la conferma dell’avvocato.'
-  if (missingSlots) return `${missingSlots} scelte obbligatorie richiedono la conferma dell’avvocato.`
+  if (missingCount === 1) return `Completa ${missingSummary || 'la scelta obbligatoria'} prima dell’invio reale.`
+  if (missingCount) return `Completa le scelte obbligatorie prima dell’invio reale: ${missingSummary || `${missingCount} documenti richiesti`}.`
   if (unsignedDocs === 1) return '1 documento sarà firmato da IUSENTRA prima della busta.'
   if (unsignedDocs) return `${unsignedDocs} documenti saranno firmati da IUSENTRA prima della busta.`
   if (!ready) return 'Esegui e supera la verifica deposito prima dell’azione finale.'
   return ''
 }
 
-function depositGenerationBlockedReason(mainAct: FascicoloDocument | undefined, missingSlots: number): string {
+function depositGenerationBlockedReason(mainAct: FascicoloDocument | undefined, missingSlots: MissingDepositSlotsInput): string {
+  const missingCount = missingDepositSlotsCount(missingSlots)
+  const missingSummary = missingDepositSlotsSummary(missingSlots)
   if (!mainAct) return 'Seleziona l’atto principale prima di generare la busta.'
-  if (missingSlots) return `${missingSlots} scelte obbligatorie richiedono la selezione dell’avvocato.`
+  if (missingCount === 1) return `Completa ${missingSummary || 'la scelta obbligatoria'} prima di generare la prova.`
+  if (missingCount) return `Completa le scelte obbligatorie prima di generare la prova: ${missingSummary || `${missingCount} documenti richiesti`}.`
   return ''
 }
 

@@ -6,6 +6,8 @@ from pct.deposito_telematico_catalogo import (
     list_deposit_catalog_entries,
     resolve_deposit_type_payload,
 )
+from web.services.deposito_catalogo_runtime import deposito_catalogo_datiatto_extra
+from scripts.audit_deposito_catalogo_end_to_end import audit_deposit_catalog
 
 
 def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
@@ -31,11 +33,13 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
 
 def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
     entries = list_deposit_catalog_entries()
-    curatore = next(entry for entry in entries if entry["label"] == "Atti del Curatore")
+    curatore = next(entry for entry in entries if entry["key"] == "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale")
     cassazione = resolve_deposit_type_payload("Parte_CASSAZIONE::Ricorso")
     citazione = resolve_deposit_type_payload("Introduttivi_SICID::Citazione")
 
-    assert curatore["key"].startswith("studio-telematico::")
+    assert curatore["quickOrganizer"]["aliases"] == [
+        "studio-telematico::procedimenti-concorsuali-atti-del-curatore::186"
+    ]
     assert curatore["rules"]["policy_code"] == "pct_civile_dm44"
     assert cassazione is not None
     assert cassazione["registry"]["code"] == "CASSCI"
@@ -113,6 +117,106 @@ def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
     assert "contributo o anticipazione spese UNEP" in unep_docs
 
 
+def test_catalogo_recupera_rami_decompilati_non_presenti_nel_json_menu():
+    ricorso_702 = resolve_deposit_type_payload("Introduttivi_SICID::Ricorso702Bis")
+    memoria_cartabia = resolve_deposit_type_payload("Parte_SICID::Memoria171ter1")
+    curatore = resolve_deposit_type_payload("Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale")
+    visibilita = resolve_deposit_type_payload("Parte_SICID::AttoRichiestaVisibilità")
+    progetto = resolve_deposit_type_payload("Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione")
+
+    assert ricorso_702 is not None
+    assert ricorso_702["schema"]["generatorClass"] == "IntroduttiviSicid"
+    assert ricorso_702["schema"]["supportedMinisterialRoot"] == "Ricorso702Bis"
+    assert ricorso_702["rules"]["real_send_allowed_from_pct_panel"] is True
+
+    assert memoria_cartabia is not None
+    assert memoria_cartabia["schema"]["generatorClass"] == "Parte"
+    assert memoria_cartabia["schema"]["supportedMinisterialRoot"] == "MemorieCartabia"
+    assert memoria_cartabia["rules"]["real_send_allowed_from_pct_panel"] is True
+    assert "Create_DatiAtto_Parte_MemorieCartabia" in memoria_cartabia["schema"]["evidenceMethods"]
+
+    assert curatore is not None
+    assert curatore["quickOrganizer"]["aliases"] == [
+        "studio-telematico::procedimenti-concorsuali-atti-del-curatore::186"
+    ]
+    assert curatore["schema"]["generatorClass"] == "CurSiecicConcorsuali"
+    assert curatore["schema"]["supportedMinisterialRoot"] == "DepositoRelazioneIniziale"
+    assert curatore["rules"]["real_send_allowed_from_pct_panel"] is True
+    assert curatore["rules"]["real_send_blocker"] == ""
+
+    assert visibilita is not None
+    assert visibilita["schema"]["supportedMinisterialRoot"] == "AttoRichiestaVisibilita"
+    assert visibilita["rules"]["real_send_allowed_from_pct_panel"] is True
+
+    assert progetto is not None
+    assert progetto["quickOrganizer"]["aliases"] == [
+        "Professionista_ESECUZIONI_SIECIC::Progett369oDistribuzione"
+    ]
+    assert progetto["schema"]["supportedMinisterialRoot"] == "ProgettoDistribuzione"
+    assert progetto["rules"]["real_send_allowed_from_pct_panel"] is True
+
+
+def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
+    report = audit_deposit_catalog()
+    blocked_keys = {item["key"] for item in report["blocked_keys"]}
+
+    assert report["ok"] is True
+    assert report["total"] == 270
+    assert report["channels"] == {"pct": 252, "unep": 18, "other": 0}
+    assert report["pct_generated_datiatto"] == 252
+    assert report["pct_expected_datiatto"] == 252
+    assert report["pct_real_send_suspended_until_dedicated_generator"] == 0
+    assert report["office_catalog"]["ok"] is True
+    assert report["office_catalog"]["pct_target_codes"] == 593
+    assert report["office_catalog"]["pct_target_missing_in_iusentra"] == 0
+    assert report["office_catalog"]["pct_target_without_pec_or_code"] == 0
+    assert report["office_catalog"]["react_resolver_errors"] == 0
+    assert report["office_catalog"]["external_operational_pct_rows"] == 593
+    assert report["office_catalog"]["external_operational_missing_in_iusentra"] == 0
+    assert report["office_catalog"]["external_operational_without_pec"] == 0
+    assert report["office_catalog"]["external_operational_pec_mismatch"] == 0
+    blocked_keys_regression_watchlist = {
+        "Parte_SICID::AttoRichiestaVisibilità",
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoImmobiliare",
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoDebitore",
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi",
+        "Parte_ESECUZIONI_SIECIC::AttoRichiestaVisibilità",
+        "Professionista_ESECUZIONI_SIECIC::ProgettoDistribuzione",
+        "Parte_CONCORSUALI_SIECIC::AttoRichiestaVisibilità",
+        "Curatore_CONCORSUALI_SIECIC::DepositoRelazioneIniziale",
+        "CorsoCausa_SIGP::AttoRichiestaVisibilità",
+    }
+    assert blocked_keys_regression_watchlist
+    assert blocked_keys == set()
+    assert report["errors"] == []
+
+
+def test_datiatto_extra_runtime_porta_campi_specifici_ai_generatori():
+    class Form:
+        def __init__(self):
+            self.values = {
+                "datiatto_extra": '{"parte_codice_fiscale":"RSSMRA80A01H501Z"}',
+                "tipo_pignoramento": "mobiliare_presso_terzi",
+                "data_consegna_pignoramento": "01/07/2026",
+                "importo_precetto": "1.234,56",
+                "beni_pignorati_json": '[{"tipo":"mobile","descrizione":"Credito","valore":"1200,00"}]',
+                "terzo_json": '{"codice_fiscale":"TRZPLA80A01H501B","data_notifica_pignoramento":"04/07/2026"}',
+                "titolo_json": '{"descrizione":"Titolo esecutivo","tipologia":"Sentenza"}',
+            }
+
+        def get(self, key, default=""):
+            return self.values.get(key, default)
+
+    extra = deposito_catalogo_datiatto_extra(Form())
+
+    assert extra["parte_codice_fiscale"] == "RSSMRA80A01H501Z"
+    assert extra["tipo_pignoramento"] == "mobiliare_presso_terzi"
+    assert extra["importo_precetto"] == "1.234,56"
+    assert extra["beni_pignorati"][0]["descrizione"] == "Credito"
+    assert extra["terzo"]["codice_fiscale"] == "TRZPLA80A01H501B"
+    assert extra["titolo"]["descrizione"] == "Titolo esecutivo"
+
+
 def test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio():
     roots = [
         ("AttoSistemaSicid.DepositoComplementare", "AttoSistemaSicid"),
@@ -146,5 +250,7 @@ def test_api_e_rotte_busta_usano_catalogo_backend():
     assert "resolve_deposit_type_payload" in catalogo_runtime_source
     assert "deposito_catalogo_entry" in deposito_source
     assert "_deposito_catalogo_blocker" in deposito_source
+    assert "deposito_catalogo_datiatto_extra" in deposito_source
+    assert "datiatto_extra=datiatto_extra" in deposito_source
     assert "tipo_deposito_telematico_key" in catalogo_runtime_source
     assert "generatore DatiAtto ministeriale specifico" not in catalogo_runtime_source

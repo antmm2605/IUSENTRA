@@ -652,6 +652,56 @@ def _safe_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def _resolver_office_is_gdp(resolver: Dict[str, Any]) -> bool:
+    office_type = str(
+        resolver.get("effective_office_type")
+        or resolver.get("official_office_type")
+        or resolver.get("office_type")
+        or ""
+    ).strip().upper()
+    if office_type == "GDP":
+        return True
+    office_text = " ".join(
+        str(resolver.get(key) or "")
+        for key in (
+            "effective_office_name",
+            "official_office_name",
+            "office_name",
+            "effective_office_code",
+            "official_office_code",
+            "office_code",
+        )
+    )
+    return "giudice di pace" in _slug(office_text)
+
+
+def _registry_is_compatible_with_profile(
+    requested_registry: str,
+    allowed_registries: Iterable[str],
+    resolver: Dict[str, Any],
+) -> bool:
+    requested = str(requested_registry or "").strip().upper()
+    allowed = {str(item or "").strip().upper() for item in allowed_registries if str(item or "").strip()}
+    if not requested or not allowed or requested in allowed:
+        return True
+
+    is_gdp = _resolver_office_is_gdp(resolver)
+    service_aliases = {
+        "SIGP": {"RG", "RGL", "VG"},
+        "SICID": {"RG", "RGL", "VG"},
+        "SIECIC": {"RGE", "RG", "VG"},
+        "SIVG": {"VG"},
+        "SIL": {"RGL"},
+        "SILP": {"RGL"},
+        "CASSCI": {"RG", "RGL"},
+    }
+    if requested == "SICID" and is_gdp:
+        return False
+    if requested == "SIGP":
+        return is_gdp and bool(allowed & service_aliases["SIGP"])
+    return bool(allowed & service_aliases.get(requested, set()))
+
+
 def _doc_matches(doc: Dict[str, Any], *, types: Iterable[str] = (), names: Iterable[str] = ()) -> bool:
     doc_type = _slug(str(doc.get("tipo", "")))
     doc_name = _slug(str(doc.get("nome", "")))
@@ -1029,7 +1079,7 @@ class ValidatorNormativoRedazionale:
             resolver.get("effective_allowed_registries")
             or profile.allowed_registries
         )
-        if effective_registries and registro and registro not in effective_registries:
+        if effective_registries and registro and not _registry_is_compatible_with_profile(registro, effective_registries, resolver):
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,

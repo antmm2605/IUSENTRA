@@ -49,7 +49,6 @@ from web.services.deposito_catalogo_runtime import (
 )
 from web.services.security_redaction import redacted_json_response
 
-
 def register_deposito_routes(
     app: Flask,
     *,
@@ -189,8 +188,7 @@ def register_deposito_routes(
     def deposito_genera_busta(id_fasc):
         """Genera la busta telematica reale e la restituisce come download."""
         import tempfile as _tmp
-        from pct.busta import Allegato as AllegatoBusta
-        from pct.busta import BustaTelematica, DatiBusta
+        from pct.busta import Allegato as AllegatoBusta, BustaTelematica, DatiBusta
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         form = request.form
@@ -412,8 +410,7 @@ def register_deposito_routes(
         import tempfile as _tmp
         import uuid as _uuid
         from datetime import datetime as _dt
-        from pct.busta import Allegato as AllegatoBusta
-        from pct.busta import BustaTelematica, DatiBusta
+        from pct.busta import Allegato as AllegatoBusta, BustaTelematica, DatiBusta
         from pct.fascicoli import EsitoDepositoPCT
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
@@ -429,33 +426,21 @@ def register_deposito_routes(
         tipo_atto, codice_registro = _deposito_catalogo_apply(catalog_entry, tipo_atto, codice_registro)
         catalog_blocker = _deposito_catalogo_blocker(catalog_entry, require_real_package=True)
         if catalog_blocker:
-            return jsonify(
-                {
-                    "ok": False,
-                    "package_ready": False,
-                    "requires_guided_completion": True,
-                    "errore": catalog_blocker,
-                    "next_actions": [
-                        "Mantieni la scelta nel catalogo depositi.",
-                        "Completa i dati obbligatori richiesti dal canale selezionato.",
-                    ],
-                }
-            ), 400
+            return jsonify({
+                "ok": False, "package_ready": False, "requires_guided_completion": True,
+                "errore": catalog_blocker,
+                "next_actions": ["Mantieni la scelta nel catalogo depositi.",
+                                 "Completa i dati obbligatori richiesti dal canale selezionato."],
+            }), 400
         datiatto_hint = _deposito_catalogo_datiatto_hint(catalog_entry)
         try:
             datiatto_extra = _deposito_catalogo_datiatto_extra(form)
         except ValueError as exc:
-            return jsonify(
-                {
-                    "ok": False,
-                    "package_ready": False,
-                    "errore": str(exc),
-                    "next_actions": [
-                        "Correggi il dato indicato nel pannello deposito.",
-                        "Ripeti la prova senza invio dopo il salvataggio.",
-                    ],
-                }
-            ), 400
+            return jsonify({
+                "ok": False, "package_ready": False, "errore": str(exc),
+                "next_actions": ["Correggi il dato indicato nel pannello deposito.",
+                                 "Ripeti la prova senza invio dopo il salvataggio."],
+            }), 400
         oggetto = _deposito_oggetto(form, fascicolo)
         numero_rg = form.get("numero_rg", "").strip() or (fascicolo.numero_rg or None)
         anno_rg_raw = form.get("anno_rg", "").strip()

@@ -21,6 +21,7 @@ from pct.fascicoli import (
     stato_fascicolo_da_descrizione_portale,
     _normalizza_esito_controlli,
 )
+from pct.fascicolo_document_presidio import duplicate_practice_groups, normalise_practice_duplicate_key
 from pct.storage import StudioDB
 
 
@@ -54,6 +55,26 @@ def test_gestione_fascicoli_deriva_documenti_e_archivio_dal_db_path_quando_non_s
 
     assert gf.documents_dir == db_path.parent / "documenti"
     assert gf.archive_dir == db_path.parent / "archivio"
+
+
+def test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente() -> None:
+    first = {
+        "id": "CB1360DD",
+        "numero_rg": "795",
+        "anno_rg": "2026",
+        "nome_cliente": "Eugenio Grosso c. MIM",
+    }
+    second = {
+        "id": "FE336495",
+        "numero_rg": "795",
+        "anno_rg": "2026",
+        "nome_cliente": "Grosso Eugenio",
+    }
+
+    assert normalise_practice_duplicate_key(first) == normalise_practice_duplicate_key(second)
+    groups = duplicate_practice_groups([first, second])
+    assert len(groups) == 1
+    assert groups[0]["count"] == 2
 
 
 def test_percorso_documento_lettura_normalizza_separatori_windows(gf, fascicolo_base):

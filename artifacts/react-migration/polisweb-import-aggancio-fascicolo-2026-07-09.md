@@ -46,6 +46,15 @@ Scenario coperto:
 - arriva un import PST senza `id_fasc` esplicito ma con i dati tecnici B;
 - IUSENTRA aggiorna il fascicolo B, lascia invariato A e non crea un terzo fascicolo.
 
+È stato aggiunto anche il controllo `test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente`.
+
+Scenario coperto:
+
+- un fascicolo storico ha nel campo cliente un valore sporco come `Eugenio Grosso c. MIM`;
+- un altro fascicolo ha lo stesso RG e il cliente pulito/invertito come `Grosso Eugenio`;
+- la chiave di presidio elimina la parte di controparte dopo `c.` e riconosce il gruppo come possibile doppione;
+- la UI può quindi mostrare il gruppo nella card `Doppioni` invece di dichiarare falsamente `0`.
+
 Comandi locali già eseguiti sul perimetro:
 
 ```powershell
@@ -53,6 +62,7 @@ python -m py_compile scripts/audit_quickorganizer_import.py web/bootstrap/polisw
 python -m pytest -q tests/test_codeql_public_surface_regressions.py::test_audit_quickorganizer_output_pubblico_redige_dati_privati tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa --tb=short
 python -m pytest -q tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_route_importa_polisweb_sincronizza_fascicolo_esistente tests/test_polisweb.py::test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server tests/test_polisweb.py::test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico --tb=short
 python -m pytest -q tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
+python -m pytest -q tests/test_fascicoli.py::test_doppioni_fascicolo_ignora_controparte_nel_nome_cliente tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione --tb=short
 python -m ruff check --output-format=github --select E9,F63,F7,F82 scripts/audit_quickorganizer_import.py web/bootstrap/polisweb_routes.py tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py
 git diff --check
 ```

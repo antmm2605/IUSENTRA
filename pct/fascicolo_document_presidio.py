@@ -43,6 +43,10 @@ def _compact_key(value: Any) -> str:
 def _client_duplicate_key(value: Any) -> str:
     folded = _fold(value)
     tokens = [token for token in folded.split() if token]
+    for index, token in enumerate(tokens):
+        if token in {"c", "contro", "vs", "versus", "avverso"} and index >= 2:
+            tokens = tokens[:index]
+            break
     if 2 <= len(tokens) <= 6:
         return "".join(sorted(tokens))
     return _compact_key(folded)

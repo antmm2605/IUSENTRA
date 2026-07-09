@@ -142,3 +142,25 @@ Nota UI osservata: il pulsante testuale `... 12` richiede un assestamento prima 
 ## Code scanning
 
 Il gate `Code scanning results / CodeQL` del PR GitHub va ricontrollato dopo ogni push. La correzione dei documenti è stata mantenuta stretta per non aggiungere nuovi sorgenti di path traversal o bypass tenant.
+
+## Rettifica anti-regressione Lex e documenti distinti
+
+Durante il controllo CI sul commit successivo è emersa una regressione importante: il criterio di deduplica basato sul solo hash contenuto stava comprimendo documenti distinti con nome diverso, facendo vedere a Lex 1 documento al posto di 2 o 10.
+
+Regola corretta:
+
+- gli identificativi forti del portale (`id_documento`, `id_cat`, `id_repeatto`, `msg_id`) restano chiavi autonome;
+- la chiave semantica `tipo + nome PDF` resta valida solo per copie processuali omonime;
+- `hash_sha256` e `hash_contenuto_sha256` deduplicano solo insieme al nome documento normalizzato;
+- due documenti con stesso contenuto tecnico ma nome diverso, per esempio `allegato-01.pdf` e `allegato-02.pdf`, restano distinti e vengono esposti a Lex e alla UI.
+
+Verifiche aggiunte/eseguite:
+
+```powershell
+python -m pytest -q tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_lex_module.py::test_lex_document_context_non_taglia_fascicolo_con_piu_di_otto_documenti tests/test_lex_module.py::test_lex_fascicolo_sections_context_censisce_tutte_le_sezioni_del_workspace tests/test_lex_module.py::test_lex_retrieval_fascicolo_esporta_sommari_sezioni_e_tutti_i_documenti --tb=short
+python scripts/run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 1 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5
+python scripts/run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 2 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5
+python scripts/run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5
+```
+
+Esito locale: tutti passati. Questa rettifica preserva la bonifica dei duplicati veri senza tagliare documenti legittimi del fascicolo.

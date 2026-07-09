@@ -219,6 +219,25 @@ def test_aggiungi_documento_non_duplica_stesso_contenuto(gf, fascicolo_base):
     assert "Portale Servizi" in aggiornato.documenti[0].tags
 
 
+def test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti(gf, fascicolo_base):
+    gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="allegato-01.pdf",
+        tipo=TipoDocumento.ALLEGATO,
+        contenuto=b"%PDF-1.4\n%%EOF",
+    )
+    gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="allegato-02.pdf",
+        tipo=TipoDocumento.ALLEGATO,
+        contenuto=b"%PDF-1.4\n%%EOF",
+    )
+
+    aggiornato = gf.get(fascicolo_base.id)
+
+    assert [doc.nome for doc in aggiornato.documenti] == ["allegato-01.pdf", "allegato-02.pdf"]
+
+
 def test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione(gf, fascicolo_base):
     primo = gf.aggiungi_documento(
         fascicolo_base.id,

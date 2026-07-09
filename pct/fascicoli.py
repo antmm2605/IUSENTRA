@@ -121,6 +121,12 @@ def _documento_semantic_identity_key(doc: "Documento") -> str:
     return f"pdfname:{tipo.value}:{name}"
 
 
+def _documento_identity_name_key(doc: "Documento") -> str:
+    return _normalizza_nome_documento_match(
+        getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "") or getattr(doc, "nome", "")
+    )
+
+
 class TipoAttivita(str, Enum):
     UDIENZA                  = "UDIENZA"
     DEPOSITO_ATTI            = "DEPOSITO_ATTI"
@@ -1295,12 +1301,13 @@ class GestioneFascicoli:
         semantic_key = _documento_semantic_identity_key(doc)
         if semantic_key:
             keys.add(semantic_key)
+        name = _documento_identity_name_key(doc)
         raw_sha = str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().lower()
-        if raw_sha:
-            keys.add(f"rawsha:{raw_sha}")
+        if raw_sha and name:
+            keys.add(f"rawsha:{name}:{raw_sha}")
         sha = str(getattr(doc, "hash_sha256", "") or "").strip().lower()
-        if sha:
-            keys.add(f"sha:{sha}")
+        if sha and name:
+            keys.add(f"sha:{name}:{sha}")
         for value in (
             getattr(doc, "id_documento_portale", ""),
             getattr(doc, "id_cat_portale", ""),
@@ -1310,9 +1317,6 @@ class GestioneFascicoli:
             text = str(value or "").strip().lower()
             if text:
                 keys.add(f"portal:{text}")
-        name = _normalizza_nome_documento_match(
-            getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "") or getattr(doc, "nome", "")
-        )
         if name:
             keys.add(f"name:{name}:{int(getattr(doc, 'dimensione_bytes', 0) or 0)}")
         return keys
@@ -2028,13 +2032,20 @@ class GestioneFascicoli:
             hash_contenuto_sha256=raw_sha256 or sha256,
         )
         incoming_semantic_key = _documento_semantic_identity_key(incoming_probe)
+        incoming_name_key = _documento_identity_name_key(incoming_probe)
         existing_doc = next(
             (
                 doc
                 for doc in f.documenti
-                if str(getattr(doc, "hash_sha256", "") or "").strip().casefold() == sha256.casefold()
+                if (
+                    incoming_name_key
+                    and incoming_name_key == _documento_identity_name_key(doc)
+                    and str(getattr(doc, "hash_sha256", "") or "").strip().casefold() == sha256.casefold()
+                )
                 or (
-                    raw_sha256
+                    incoming_name_key
+                    and incoming_name_key == _documento_identity_name_key(doc)
+                    and raw_sha256
                     and str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().casefold()
                     == raw_sha256.casefold()
                 )

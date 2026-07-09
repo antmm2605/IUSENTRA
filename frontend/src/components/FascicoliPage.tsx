@@ -5997,9 +5997,13 @@ function DetailPage({ id }:{id:string}) {
           regia: section === 'regia' ? payload.regia : current.regia,
           notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
           auditTrail: section === 'audit' ? payload.auditTrail : current.auditTrail,
-          lexIndexing: section === 'lex' ? payload.lexIndexing : current.lexIndexing,
+          lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing,
         }))
-        setLazyStatus((current) => ({ ...current, [section]: 'loaded' }))
+        setLazyStatus((current) => ({
+          ...current,
+          [section]: 'loaded',
+          ...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {}),
+        }))
       })
       .catch((err) => {
         setLazyStatus((current) => ({ ...current, [section]: 'error' }))
@@ -6071,7 +6075,7 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'} onOpen={() => loadLazySection('relata')}>
             <NotificationRelataMonitor data={data}/>
           </DetailSection>
-          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => { loadLazySection('documenti'); loadLazySection('lex') }}>
+          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => { loadLazySection('documenti') }}>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-section-list">

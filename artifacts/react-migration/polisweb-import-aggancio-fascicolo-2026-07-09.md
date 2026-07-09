@@ -105,6 +105,8 @@ python -m pytest -q tests/test_fascicoli.py::test_riconcilia_documenti_duplicati
 
 Esito: tutti i test mirati sono passati. La prova reale non ha eseguito un nuovo scarico live dal PST ministeriale perché richiede sessione e certificato attivi dell'avvocato; la parte controllabile dal software è però presidiata: l'import riceve i metadati PST, li confronta con il fascicolo esistente e aggiorna il fascicolo compatibile invece di crearne uno nuovo.
 
+Aggiornamento prestazionale 09/07/2026: aprendo direttamente `#documenti`, la UI non deve più chiamare due volte i dati Lex. L'endpoint documenti include già il riepilogo `Indicizzazione Lex`, quindi la sezione documenti aggiorna anche `lexIndexing` e marca `lex` come caricata. Il test `test_react_fascicolo_documenti_non_duplica_chiamata_lex_lazy` presidia il comportamento.
+
 La verifica finale non può fermarsi ai test. Dopo commit, push e deploy, vanno controllati sul server:
 
 - `/api/pronto` sul commit distribuito;

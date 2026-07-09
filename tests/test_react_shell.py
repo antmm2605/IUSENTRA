@@ -8041,3 +8041,12 @@ def test_react_fascicolo_relata_notifica_monitorata_in_ui_e_payload():
     assert '"notificationRelata": notification_relata' in bridge_source
     assert '"relataStatusLabel": "Provvedimento da scaricare dal portale"' in bridge_source
     assert '"relata_notifica": relata_count' in bridge_source
+
+
+def test_react_fascicolo_documenti_non_duplica_chiamata_lex_lazy():
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    assert "onOpen={() => { loadLazySection('documenti') }}" in page_source
+    assert "loadLazySection('documenti'); loadLazySection('lex')" not in page_source
+    assert "lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing" in page_source
+    assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source

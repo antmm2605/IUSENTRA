@@ -36,6 +36,8 @@ Audit preliminare:
   - se il contenuto non è byte-identico, la copia assorbita viene conservata nello storico versioni del documento principale.
 - Aggiunto script operativo tenant-aware: `scripts/repair_fascicolo_document_duplicates.py`.
 - Dopo prova reale su server è stato aggiunto un guardrail di persistenza: la riconciliazione documentale salva solo i fascicoli modificati e non esegue più un full-replace della tabella `fascicoli`.
+- Dopo ulteriore controllo è stato aggiunto anche il riallineamento del mirror `fascicoli/fascicoli.json` dopo ogni salvataggio parziale SQL: SQLite resta la fonte di verità, il JSON viene rigenerato solo come mirror, così audit e ripartenze non leggono più un conteggio vecchio.
+- Il report della riconciliazione ora espone `source_of_truth=sqlite` quando opera su `studio.db`, così è visibile se una procedura sta lavorando sul database reale o su un mirror storico.
 
 ## Verifiche automatiche locali
 
@@ -48,6 +50,7 @@ python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli
 python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py pct\polisWeb.py web\services\telematico_runtime.py tests\test_fascicoli.py tests\test_polisweb.py
 python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
 python -m pytest tests/test_fascicoli.py::test_fascicolo_serializza_metadati_sync_portale tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico tests/test_polisweb.py::test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer -q
+python -m pytest tests/test_fascicoli.py::test_fascicolo_serializza_metadati_sync_portale tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico tests/test_polisweb.py::test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer -q
 pnpm --filter @iusentra/studio typecheck
 ```
 
@@ -80,10 +83,18 @@ Durante la seconda bonifica server è emerso che il salvataggio full-replace pot
 Verifica dopo ripristino:
 
 - `fascicoli` in SQLite: 333;
+- mirror `fascicoli/fascicoli.json`: 333 record;
 - fascicolo `9B9DF2A1` presente;
 - `https://app.iusentra.it/api/pronto`: 200.
 
-La correzione successiva elimina il rischio alla radice: il salvataggio della riconciliazione è ora parziale sui soli fascicoli toccati.
+La correzione successiva elimina il rischio alla radice: il salvataggio della riconciliazione è ora parziale sui soli fascicoli toccati e rigenera il mirror dopo il commit SQL.
+
+Dry-run server dopo il ripristino, prima della bonifica definitiva:
+
+- fascicoli analizzati: 333;
+- fascicoli con duplicati: 230;
+- record documento duplicati da assorbire: 869;
+- la bonifica definitiva deve essere eseguita dopo il deploy del guardrail mirror, non con la versione precedente.
 
 ## Verifiche server e UI
 

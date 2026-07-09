@@ -1,6 +1,7 @@
 """Test per la gestione fascicoli e archivio."""
 
 import hashlib
+import json
 import pytest
 from datetime import date, timedelta
 from pathlib import Path
@@ -366,10 +367,14 @@ def test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella(tmp_path)
     )
 
     report = gf_sql.riconcilia_documenti_duplicati(primo.id)
+    mirror = json.loads((tmp_path / "fascicoli.json").read_text(encoding="utf-8"))
 
+    assert report["source_of_truth"] == "sqlite"
     assert report["documentiDuplicatiAssorbiti"] == 1
     assert studio_db.conn.execute("select count(*) from fascicoli").fetchone()[0] == 2
     assert studio_db.conn.execute("select id from fascicoli where id=?", (secondo.id,)).fetchone()[0] == secondo.id
+    assert set(mirror) == {primo.id, secondo.id}
+    assert len(mirror[primo.id]["documenti"]) == 1
 
 
 def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):

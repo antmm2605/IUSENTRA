@@ -1036,6 +1036,15 @@ class GestioneFascicoli:
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
 
+    def _rigenera_mirror_fascicoli_json(self) -> None:
+        if self._studio_db is None:
+            return
+        try:
+            from pct import cache as _cache
+            _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
+        except Exception:
+            pass
+
     def _salva_fascicoli_parziale(self, fascicoli: Iterable["Fascicolo"]) -> None:
         if self._studio_db is None:
             self._salva()
@@ -1110,6 +1119,7 @@ class GestioneFascicoli:
         except Exception:
             conn.execute("ROLLBACK")
             raise
+        self._rigenera_mirror_fascicoli_json()
 
     def segna_ocr_estratto(self, id_fasc: str, id_doc: str) -> None:
         """Segna un documento come indicizzato via OCR e persiste."""
@@ -1574,9 +1584,15 @@ class GestioneFascicoli:
     ) -> dict[str, Any]:
         """Assorbe record documento duplicati nello stesso fascicolo senza perdere riferimenti."""
         fascicoli = [self._get_o_errore(id_fasc)] if id_fasc else list(self._fascicoli.values())
+        source_of_truth = (
+            str(getattr(self._studio_db, "backend_kind", "") or "sqlite")
+            if self._studio_db is not None
+            else "json_mirror"
+        )
         report: dict[str, Any] = {
             "ok": True,
             "dryRun": bool(dry_run),
+            "source_of_truth": source_of_truth,
             "fascicoliAnalizzati": len(fascicoli),
             "fascicoliConDuplicati": 0,
             "documentiDuplicatiAssorbiti": 0,

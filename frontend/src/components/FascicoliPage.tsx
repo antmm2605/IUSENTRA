@@ -3526,6 +3526,13 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   lex: 'idle',
 }
 
+function initialDetailIncludesFromHash(): FascicoloDetailSection[] {
+  if (typeof window === 'undefined') return []
+  const sectionId = decodeURIComponent(window.location.hash.replace(/^#/, ''))
+  if (sectionId === 'documenti') return ['documenti']
+  return []
+}
+
 function mobilePreviewUrl(url: string): string {
   if (!url || !url.includes('/documenti/') || !url.includes('/visualizza')) return ''
   try {
@@ -5933,11 +5940,25 @@ function DetailPage({ id }:{id:string}) {
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   useEffect(() => {
     let active = true
+    const initialIncludes = initialDetailIncludesFromHash()
     setLoading(true)
-    setLazyStatus(emptyLazySections)
-    getFascicoloDetail(id).then((payload) => {
+    setLazyStatus(() => {
+      const next = { ...emptyLazySections }
+      for (const section of initialIncludes) next[section] = 'loading'
+      if (initialIncludes.includes('documenti')) next.lex = 'loading'
+      return next
+    })
+    getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined).then((payload) => {
       if (active) {
         setData(payload)
+        if (initialIncludes.length) {
+          setLazyStatus((current) => {
+            const next = { ...current }
+            for (const section of initialIncludes) next[section] = 'loaded'
+            if (initialIncludes.includes('documenti')) next.lex = 'loaded'
+            return next
+          })
+        }
       }
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }

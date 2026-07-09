@@ -98,15 +98,47 @@ Dry-run server dopo il ripristino, prima della bonifica definitiva:
 
 ## Verifiche server e UI
 
-Da completare prima della chiusura:
+Eseguite sul server Hetzner `https://app.iusentra.it`, tenant `studio-legale-giuseppe-montagnese`, commit `ffe1f50e`.
 
-- deploy Hetzner sul commit della correzione;
-- dry-run dello script sul tenant `studio-legale-giuseppe-montagnese`;
-- esecuzione reale della riconciliazione sul tenant;
-- controllo DB dopo bonifica;
-- apertura reale su `https://app.iusentra.it/fascicoli/9B9DF2A1#documenti` e verifica visiva della sezione documenti;
-- controllo che nuovi upload/import non generino duplicati dello stesso contenuto.
+Deploy:
+
+- branch server: `Codex/legal-electronic-filing-kIxcV`;
+- commit server: `ffe1f50e81deaf076ad3ddbbfa8e625a3f268eaf`;
+- container applicativo unico: `iusentra-app`;
+- app, scheduler e OCR: healthy;
+- `/api/pronto`: `ok=true`, versione `2.254.17`.
+
+Bonifica reale documenti:
+
+- dry-run prima dell'applicazione: `source_of_truth=sqlite`, 333 fascicoli analizzati, 230 fascicoli con duplicati, 869 record documento da assorbire;
+- applicazione reale: `source_of_truth=sqlite`, 869 record assorbiti;
+- dry-run dopo applicazione: 333 fascicoli analizzati, 0 fascicoli con duplicati, 0 record documento da assorbire;
+- controllo SQLite dopo bonifica: 333 fascicoli;
+- controllo mirror `fascicoli/fascicoli.json` dopo bonifica: 333 record.
+
+Verifica fascicolo reale `9B9DF2A1`:
+
+- apertura autenticata su `https://app.iusentra.it/fascicoli/9B9DF2A1#documenti`;
+- tempo reload autenticato fino alla sezione fascicolo/documenti: circa 3,65 secondi;
+- `Documenti e atti`: 44;
+- `Indicizzazione Lex`: totali 44, pronti 44, in coda 0, in corso 0, errori 0, da aggiornare 0, ultimo indice presente;
+- sezione `Provvedimenti`: `Sentenza Cassazione.PDF` una sola volta, `Sentenza_Tribunale_Vicenza_20-04-2023.PDF` una sola volta;
+- i due nomi ancora ripetuti nel controllo grezzo sono comunicazioni/prove distinte, con hash e identificativi diversi (`DatiAtto.xml.p7m` da due documenti portale diversi e due consegne PEC QuickOrganizer diverse), quindi non vanno assorbiti come duplicati.
+
+Verifica vista economica reale:
+
+- apertura autenticata su `https://app.iusentra.it/fascicoli?vista=economica`;
+- tempo caricamento stabile dopo attesa del payload: circa 1,7 secondi;
+- totale visibile: 300 fascicoli;
+- card `DOPPIONI`: 0, `nessun gruppo rilevato`;
+- Betti Alice / `RG 3685/2026`: contributo `€ 49,00`, pagato, liquidazione `€ 1.100,00`, parcella `€ 1.654,03`;
+- Alfano Giuseppe / `RG 1100/2026`: contributo `€ 49,00`, pagato;
+- Romeo Maria / `RG 1428/2026` e Tescione Ada Giulia / `RG 1477/2026`: contributo valorizzato secondo ricevuta o autocertificazione, non più `Da verificare` generico;
+- cambio pagina 1 -> 2: circa 0,88 secondi, payload economico presente;
+- pagina finale: `Pagina 12 di 12 - 300 fascicoli`, `DOPPIONI 0`, righe `RG da acquisire` visibili e motivate.
+
+Nota UI osservata: il pulsante testuale `... 12` richiede un assestamento prima che la riga `Pagina 12 di 12` venga letta; il comando finale ha comunque portato alla pagina 12. Se si vuole rifinire ulteriormente la UX, conviene separare graficamente ellissi e numero pagina finale.
 
 ## Code scanning
 
-Il gate `Code scanning results / CodeQL` del PR GitHub va ricontrollato dopo il push. La correzione dei documenti è stata mantenuta stretta per non aggiungere nuovi sorgenti di path traversal o bypass tenant.
+Il gate `Code scanning results / CodeQL` del PR GitHub va ricontrollato dopo ogni push. La correzione dei documenti è stata mantenuta stretta per non aggiungere nuovi sorgenti di path traversal o bypass tenant.

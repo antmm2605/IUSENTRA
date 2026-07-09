@@ -79,6 +79,32 @@ git diff --check
 
 ## Verifica reale
 
+Stato aggiornato produzione: verifiche post-deploy registrate sotto.
+
+## Verifica produzione post-deploy 09/07/2026
+
+Commit verificato su Hetzner: `c495bab0237c66e98bcda5de1162f2e603e9eabd`.
+
+Controlli eseguiti sul server `studio-legale-giuseppe-montagnese`:
+
+- container applicativo unico: `iusentra-app`, stato `healthy`;
+- `/api/pronto` positivo con timezone `Europe/Rome` e versione `2.254.17`;
+- riconciliazione fascicoli doppi in dry-run: `groups=[]`, `removedDuplicates=0`, `source_of_truth=sqlite`;
+- riconciliazione documenti doppi in dry-run: `fascicoliConDuplicati=0`, `documentiDuplicatiAssorbiti=0`, `source_of_truth=sqlite`;
+- dettaglio fascicolo `FE336495` aperto su `https://app.iusentra.it/fascicoli/FE336495#documenti`: sezione `Documenti e atti` visibile con `33` documenti, primo documento visibile `Ricorso Grosso.PDF`;
+- pannello `Indicizzazione Lex` visibile con stato `Parziale`, `Totali 33`, `Pronti 18`, `In coda 0`, `In corso 0`, `Errori 0`, `Da aggiornare 0`, `Ultimo indice: 20/06/2026 18:49`;
+- assenza in UI dei codici tecnici `NOT_INDEXED` e della data breve `20/06/26, 18:49`;
+- lista economica produzione verificata fino a pagina 12: cambio pagina tra circa 0,9 e 1,7 secondi dopo stabilizzazione; card `Doppioni` con conteggio `0` e filtro dedicato senza righe residue dopo caricamento.
+
+Controlli locali mirati rilanciati dopo la richiesta sul flusso di import:
+
+```powershell
+python -m pytest -q tests/test_polisweb.py::test_route_importa_polisweb_sincronizza_fascicolo_esistente tests/test_polisweb.py::test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico tests/test_polisweb.py::test_api_portale_acquisizione_analyze_usa_alias_fascicolo_locale_per_update --tb=short
+python -m pytest -q tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_stesso_contenuto_nome_diverso_restano_distinti --tb=short
+```
+
+Esito: tutti i test mirati sono passati. La prova reale non ha eseguito un nuovo scarico live dal PST ministeriale perché richiede sessione e certificato attivi dell'avvocato; la parte controllabile dal software è però presidiata: l'import riceve i metadati PST, li confronta con il fascicolo esistente e aggiorna il fascicolo compatibile invece di crearne uno nuovo.
+
 La verifica finale non può fermarsi ai test. Dopo commit, push e deploy, vanno controllati sul server:
 
 - `/api/pronto` sul commit distribuito;

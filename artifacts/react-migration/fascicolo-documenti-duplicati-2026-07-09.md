@@ -35,6 +35,7 @@ Audit preliminare:
   - non vale per PEC/EML, XML, P7M, ricevute o allegati tecnici;
   - se il contenuto non è byte-identico, la copia assorbita viene conservata nello storico versioni del documento principale.
 - Aggiunto script operativo tenant-aware: `scripts/repair_fascicolo_document_duplicates.py`.
+- Dopo prova reale su server è stato aggiunto un guardrail di persistenza: la riconciliazione documentale salva solo i fascicoli modificati e non esegue più un full-replace della tabella `fascicoli`.
 
 ## Verifiche automatiche locali
 
@@ -43,10 +44,22 @@ Comandi eseguiti:
 ```powershell
 python -m py_compile pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py
 python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py tests\test_fascicoli.py
-python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
+python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
 ```
 
 Esito: pass.
+
+## Ripristino controllato durante verifica server
+
+Durante la seconda bonifica server è emerso che il salvataggio full-replace poteva riscrivere `studio.db` partendo da un mirror JSON ridotto. È stato ripristinato subito lo snapshot temporaneo integro `/tmp/iusentra-dedupe-semantic-pre-20260709084200.db`.
+
+Verifica dopo ripristino:
+
+- `fascicoli` in SQLite: 333;
+- fascicolo `9B9DF2A1` presente;
+- `https://app.iusentra.it/api/pronto`: 200.
+
+La correzione successiva elimina il rischio alla radice: il salvataggio della riconciliazione è ora parziale sui soli fascicoli toccati.
 
 ## Verifiche server e UI
 

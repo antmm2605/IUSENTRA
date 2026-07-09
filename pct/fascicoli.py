@@ -1028,6 +1028,81 @@ class GestioneFascicoli:
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
 
+    def _salva_fascicoli_parziale(self, fascicoli: Iterable["Fascicolo"]) -> None:
+        if self._studio_db is None:
+            self._salva()
+            return
+        import json as _json
+
+        rows = list(fascicoli)
+        if not rows:
+            return
+        conn = self._studio_db.conn
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            for f in rows:
+                d = f.to_dict()
+                values = (
+                    f.numero,
+                    f.titolo,
+                    f.tipo.value,
+                    f.stato.value,
+                    f.id_cliente or None,
+                    f.nome_cliente,
+                    f.tribunale,
+                    f.sezione,
+                    f.giudice,
+                    f.numero_rg,
+                    str(f.anno_rg) if f.anno_rg else "",
+                    f.controparte,
+                    f.avvocato_referente,
+                    f.avvocato_dominus,
+                    f.data_apertura,
+                    f.data_chiusura,
+                    f.oggetto,
+                    f.note,
+                    f.creato_il,
+                    _json.dumps(d.get("attivita", []), ensure_ascii=False),
+                    _json.dumps(d.get("documenti", []), ensure_ascii=False),
+                    _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
+                    _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
+                    _json.dumps(d, ensure_ascii=False),
+                    f.id,
+                )
+                cur = conn.execute(
+                    """
+                    UPDATE fascicoli
+                    SET numero=?, titolo=?, tipo=?, stato=?, id_cliente=?, nome_cliente=?,
+                        tribunale=?, sezione=?, giudice=?, numero_rg=?, anno_rg=?,
+                        controparte=?, avvocato_referente=?, avvocato_dominus=?,
+                        data_apertura=?, data_chiusura=?, oggetto=?, note=?, creato_il=?,
+                        attivita_json=?, documenti_json=?, scadenze_json=?,
+                        profilo_deposito_json=?, dati_json=?
+                    WHERE id=?
+                    """,
+                    values,
+                )
+                if cur.rowcount:
+                    continue
+                conn.execute(
+                    """
+                    INSERT INTO fascicoli
+                    (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
+                     tribunale, sezione, giudice, numero_rg, anno_rg,
+                     controparte, avvocato_referente, avvocato_dominus,
+                     data_apertura, data_chiusura, oggetto, note, creato_il,
+                     attivita_json, documenti_json, scadenze_json,
+                     profilo_deposito_json, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (f.id, *values[:-1]),
+                )
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+
     def segna_ocr_estratto(self, id_fasc: str, id_doc: str) -> None:
         """Segna un documento come indicizzato via OCR e persiste."""
         f = self._fascicoli.get(id_fasc)
@@ -1492,15 +1567,18 @@ class GestioneFascicoli:
             "groups": [],
         }
         touched = False
+        touched_fascicoli: list[Fascicolo] = []
         for fascicolo in fascicoli:
             entry, changed = self._riconcilia_documenti_duplicati_fascicolo(fascicolo, dry_run=dry_run)
             if entry.get("removed"):
                 report["fascicoliConDuplicati"] += 1
                 report["documentiDuplicatiAssorbiti"] += int(entry.get("removed") or 0)
                 report["groups"].append(entry)
+            if changed:
+                touched_fascicoli.append(fascicolo)
             touched = touched or changed
         if touched:
-            self._salva()
+            self._salva_fascicoli_parziale(touched_fascicoli)
         return report
 
     def _copia_documento_su_fascicolo_principale(

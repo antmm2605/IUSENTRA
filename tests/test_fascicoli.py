@@ -20,6 +20,7 @@ from pct.fascicoli import (
     stato_fascicolo_da_descrizione_portale,
     _normalizza_esito_controlli,
 )
+from pct.storage import StudioDB
 
 
 @pytest.fixture
@@ -322,6 +323,53 @@ def test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione(gf, fa
     assert aggiornato.documenti[0].id == duplicato.id
     assert len(aggiornato.documenti[0].versioni) == 1
     assert aggiornato.documenti[0].versioni[0].percorso == originale.percorso
+
+
+def test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella(tmp_path):
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    gf_sql = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+        studio_db=studio_db,
+    )
+    primo = gf_sql.nuovo(
+        titolo="Primo c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Primo Cliente",
+        numero_rg="101",
+        anno_rg=2026,
+    )
+    secondo = gf_sql.nuovo(
+        titolo="Secondo c. MIM",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Secondo Cliente",
+        numero_rg="102",
+        anno_rg=2026,
+    )
+    originale = gf_sql.aggiungi_documento(
+        primo.id,
+        nome_file="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"%PDF-1.4 sentenza",
+    )
+    fascicolo = gf_sql.get(primo.id)
+    fascicolo.documenti.append(
+        Documento(
+            id="DUPSQL01",
+            nome="Sentenza.pdf",
+            tipo=TipoDocumento.SENTENZA,
+            percorso=originale.percorso,
+            dimensione_bytes=originale.dimensione_bytes,
+            hash_sha256=originale.hash_sha256,
+        )
+    )
+
+    report = gf_sql.riconcilia_documenti_duplicati(primo.id)
+
+    assert report["documentiDuplicatiAssorbiti"] == 1
+    assert studio_db.conn.execute("select count(*) from fascicoli").fetchone()[0] == 2
+    assert studio_db.conn.execute("select id from fascicoli where id=?", (secondo.id,)).fetchone()[0] == secondo.id
 
 
 def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):

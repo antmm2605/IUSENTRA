@@ -32,3 +32,25 @@ Da eseguire dopo la modifica:
 ## Limite residuo
 
 Questa non e' una bonifica completa del backlog CodeQL storico. Le famiglie filtrate devono restare tracciate come debito security separato se si decide di riportarle nel blocco PR; il gate corrente deve invece misurare le regressioni operative introdotte dalla tranche fascicoli/import.
+
+## Aggiornamento 2026-07-09 - clear-text logging audit import
+
+Il check GitHub `CodeQL` successivo ha ridotto il blocco a un solo alert:
+
+- file: `scripts/audit_quickorganizer_import.py`;
+- categoria: `Clear-text logging of sensitive information`;
+- punto: stampa JSON del payload completo di audit import QuickOrganizer/Studio Telematico.
+
+Correzione applicata:
+
+- lo script continua a calcolare internamente `storage`, conteggi prima/dopo, esito import e audit completo;
+- l'output console passa però da `_public_output()`, che espone solo booleani, numeri e conteggi;
+- `tenantRoot`, `studioDbPath`, `importId`, `sourceName`, path, nomi clienti e liste di dettaglio vengono redatti o riassunti per conteggio.
+
+Verifica locale eseguita:
+
+- `python -m py_compile scripts/audit_quickorganizer_import.py web/bootstrap/polisweb_routes.py`;
+- `python -m pytest -q tests/test_codeql_public_surface_regressions.py::test_audit_quickorganizer_output_pubblico_redige_dati_privati tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa --tb=short`;
+- `python -m pytest -q tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_route_importa_polisweb_sincronizza_fascicolo_esistente tests/test_polisweb.py::test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server tests/test_polisweb.py::test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito tests/test_polisweb.py::test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico --tb=short`;
+- `python -m ruff check --output-format=github --select E9,F63,F7,F82 scripts/audit_quickorganizer_import.py web/bootstrap/polisweb_routes.py tests/test_codeql_public_surface_regressions.py tests/test_polisweb.py`;
+- `git diff --check`.

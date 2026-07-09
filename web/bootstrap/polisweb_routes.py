@@ -201,6 +201,7 @@ def register_polisweb_routes(
             ClientPolisWebImportOnly,
             DocumentoPolisWeb,
             FascicoloPolisWeb,
+            chiave_esterna_fascicolo_polisweb,
             _parse_data,
             crea_client,
         )
@@ -242,6 +243,24 @@ def register_polisweb_routes(
                 if isinstance(ufficio, dict):
                     nome_ufficio_imp = str(ufficio.get("nome") or "").strip()
 
+            def _form_first(*names: str) -> str:
+                for name in names:
+                    value = str(form_data.get(name) or "").strip()
+                    if value:
+                        return value
+                return ""
+
+            sub_procedimento_imp = _form_first("sub_procedimento", "subprocedimento", "subpro")
+            tipo_registro_imp = _form_first("tipo_registro", "registro", "schema")
+            registro_portale_imp = _form_first("registro_portale", "registro")
+            servizio_pst_imp = _form_first("servizio_pst", "servizio_pst_preferito")
+            id_dfa_imp = _form_first("id_dfa", "idDfa", "IDDFA")
+            id_fascicolo_portale_imp = _form_first(
+                "id_fascicolo_portale",
+                "id_fascicolo_pst",
+                "id_fascicolo",
+            )
+
             fascicolo_pw = FascicoloPolisWeb(
                 numero_rg=numero_rg_imp,
                 anno_rg=anno_rg_imp,
@@ -256,6 +275,15 @@ def register_polisweb_routes(
                 parti_dettaglio=_json.loads(form_data.get("parti_dettaglio_json", "[]") or "[]"),
                 codice_ufficio=codice_ufficio_imp,
                 nome_ufficio=nome_ufficio_imp,
+                sub_procedimento=sub_procedimento_imp,
+                tipo_registro=tipo_registro_imp,
+                registro_portale=registro_portale_imp,
+                servizio_pst=servizio_pst_imp,
+                urn=_form_first("urn"),
+                target_path=_form_first("target_path"),
+                id_dfa=id_dfa_imp,
+                id_fascicolo=id_fascicolo_portale_imp,
+                ruolo_polisweb=_form_first("ruolo_polisweb"),
             )
             documenti_pw = None
             if documenti_json_raw:
@@ -297,29 +325,111 @@ def register_polisweb_routes(
             # sono gia' un import assistito dall'utente e vanno sempre censiti.
             # mantieni_albero_originale governa solo la navigazione/acquisizione
             # successiva della UI, non la perdita dei metadati ufficiali.
+            expected_external_id = chiave_esterna_fascicolo_polisweb(fascicolo_pw)
+
+            def _match_text(value: Any) -> str:
+                return " ".join(str(value or "").strip().casefold().split())
+
+            def _match_rg(value: Any) -> str:
+                text = str(value or "").strip()
+                digits = "".join(ch for ch in text if ch.isdigit())
+                return str(int(digits)) if digits else text
+
+            def _fasc_portale_value(fascicolo: Any, field_name: str) -> str:
+                value = str(getattr(fascicolo, field_name, "") or "").strip()
+                if value:
+                    return value
+                snapshot = getattr(fascicolo, "source_snapshot", {}) or {}
+                if isinstance(snapshot, dict):
+                    if field_name == "id_fascicolo_portale":
+                        return str(snapshot.get("id_fascicolo") or snapshot.get("id_fascicolo_portale") or "").strip()
+                    return str(snapshot.get(field_name) or "").strip()
+                return ""
+
+            incoming_discriminators = {
+                "id_fascicolo_portale": id_fascicolo_portale_imp,
+                "id_dfa": id_dfa_imp,
+                "sub_procedimento": sub_procedimento_imp,
+                "registro_portale": registro_portale_imp or tipo_registro_imp,
+                "servizio_pst": servizio_pst_imp,
+            }
+
+            def _has_portale_discriminator(fascicolo: Any) -> bool:
+                return any(
+                    _fasc_portale_value(fascicolo, key)
+                    for key in ("id_fascicolo_portale", "id_dfa", "sub_procedimento", "registro_portale")
+                )
+
+            def _matches_portale_discriminators(fascicolo: Any) -> bool:
+                for key, expected in incoming_discriminators.items():
+                    if not expected:
+                        continue
+                    current = _fasc_portale_value(fascicolo, key)
+                    if current and _match_text(current) != _match_text(expected):
+                        return False
+                return True
+
+            def _matches_rg_office(fascicolo: Any, *, strict: bool) -> bool:
+                fasc_numero = _match_rg(getattr(fascicolo, "numero_rg", ""))
+                incoming_numero = _match_rg(numero_rg_imp)
+                try:
+                    fasc_anno = int(getattr(fascicolo, "anno_rg", 0) or 0)
+                except (TypeError, ValueError):
+                    fasc_anno = 0
+                incoming_anno = int(anno_rg_imp or 0)
+                fasc_tribunale = _match_text(getattr(fascicolo, "tribunale", ""))
+                incoming_tribunale = _match_text(nome_ufficio_imp)
+                if strict:
+                    return bool(
+                        incoming_numero
+                        and incoming_anno
+                        and incoming_tribunale
+                        and fasc_numero == incoming_numero
+                        and fasc_anno == incoming_anno
+                        and fasc_tribunale == incoming_tribunale
+                    )
+                if fasc_numero and incoming_numero and fasc_numero != incoming_numero:
+                    return False
+                if fasc_anno and incoming_anno and fasc_anno != incoming_anno:
+                    return False
+                if fasc_tribunale and incoming_tribunale and fasc_tribunale != incoming_tribunale:
+                    return False
+                return True
+
+            def _find_fascicolo_esistente_pst():
+                fascicoli = list(gestione_fascicoli.tutti())
+                if expected_external_id:
+                    for item in fascicoli:
+                        if (
+                            str(getattr(item, "source_external_id", "") or "").strip() == expected_external_id
+                            and _matches_rg_office(item, strict=False)
+                        ):
+                            return item
+                strict_matches = [item for item in fascicoli if _matches_rg_office(item, strict=True)]
+                if not strict_matches:
+                    return None
+                has_incoming_discriminator = any(incoming_discriminators.values())
+                if has_incoming_discriminator:
+                    marked_matches = [
+                        item
+                        for item in strict_matches
+                        if _has_portale_discriminator(item) and _matches_portale_discriminators(item)
+                    ]
+                    if marked_matches:
+                        return marked_matches[0]
+                    unmarked_matches = [item for item in strict_matches if not _has_portale_discriminator(item)]
+                    if len(strict_matches) == 1 and unmarked_matches:
+                        return unmarked_matches[0]
+                    return None
+                return strict_matches[0]
 
             if id_fasc_target:
                 fascicolo_target = gestione_fascicoli.get(id_fasc_target)
-                if (
-                    fascicolo_target
-                    and (not (fascicolo_target.numero_rg or "").strip() or fascicolo_target.numero_rg == numero_rg_imp)
-                    and (
-                        not int(getattr(fascicolo_target, "anno_rg", 0) or 0)
-                        or fascicolo_target.anno_rg == anno_rg_imp
-                    )
-                    and (not fascicolo_target.tribunale or fascicolo_target.tribunale == nome_ufficio_imp)
-                ):
+                if fascicolo_target and _matches_rg_office(fascicolo_target, strict=False) and _matches_portale_discriminators(fascicolo_target):
                     fascicolo_esistente = fascicolo_target
 
             if fascicolo_esistente is None:
-                for item in gestione_fascicoli.tutti():
-                    if (
-                        item.numero_rg == numero_rg_imp
-                        and item.anno_rg == anno_rg_imp
-                        and item.tribunale == nome_ufficio_imp
-                    ):
-                        fascicolo_esistente = item
-                        break
+                fascicolo_esistente = _find_fascicolo_esistente_pst()
 
             if fascicolo_esistente:
                 risultato = client.sincronizza_fascicolo_esistente(

@@ -15,6 +15,7 @@ from web.services.server_maintenance_surface import (
     _safe_tenant_storage_key,
     _tenant_context_from_record,
 )
+from scripts.audit_quickorganizer_import import _public_output
 
 
 def test_tenant_context_rifiuta_storage_key_con_traversal(tmp_path: Path) -> None:
@@ -95,3 +96,34 @@ def test_import_pdf_non_rimanda_eccezione_come_messaggio_pubblico() -> None:
     assert public_result["message"] == "Importazione PDF non completata."
     assert "Traceback" not in rendered
     assert "/opt/iusentra" not in rendered
+
+
+def test_audit_quickorganizer_output_pubblico_redige_dati_privati() -> None:
+    public_result = _public_output(
+        {
+            "ok": True,
+            "tenantRoot": "C:\\Users\\studio\\tenant-riservato",
+            "importId": "import-segreto",
+            "sourceName": "QuickOrganizer-Studio-Montagnese.zip",
+            "stageSummary": {"sourceName": "QuickOrganizer-Studio-Montagnese.zip", "records": 12},
+            "storage": {
+                "studioDbExists": True,
+                "studioDbPath": "C:\\Users\\studio\\tenant-riservato\\studio.db",
+                "tables": {"fascicoli": 2, "clienti": 1},
+            },
+            "before": {"fascicoli": 1},
+            "after": {"fascicoli": 2},
+            "audit": {
+                "ok": True,
+                "errors": [{"cliente": "Rossi Mario", "path": "C:\\riservato\\fascicolo.pdf"}],
+            },
+        }
+    )
+
+    rendered = json.dumps(public_result, ensure_ascii=False)
+    assert public_result["ok"] is True
+    assert public_result["storage"]["tables"]["fascicoli"] == 2
+    assert public_result["audit"]["errors"] == {"count": 1}
+    assert "QuickOrganizer-Studio-Montagnese.zip" not in rendered
+    assert "tenant-riservato" not in rendered
+    assert "Rossi Mario" not in rendered

@@ -17,6 +17,48 @@ from web.services.quickorganizer_import import (
     load_staged_package,
 )
 
+_REDACTED = "[redatto]"
+
+
+def _public_scalar(value: Any) -> Any:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return value
+    if value is None:
+        return None
+    return _REDACTED
+
+
+def _public_summary(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _public_summary(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return {"count": len(value)}
+    return _public_scalar(value)
+
+
+def _public_output(output: dict[str, Any]) -> dict[str, Any]:
+    storage = dict(output.get("storage") or {})
+    return {
+        "ok": bool(output.get("ok")),
+        "tenantRoot": _REDACTED,
+        "importId": _REDACTED,
+        "sourceName": _REDACTED,
+        "stageSummary": _public_summary(output.get("stageSummary") or {}),
+        "storage": {
+            "studioDbExists": bool(storage.get("studioDbExists")),
+            "studioDbPath": _REDACTED,
+            "tables": _public_summary(storage.get("tables") or {}),
+        },
+        "before": _public_summary(output.get("before") or {}),
+        "after": _public_summary(output.get("after") or {}),
+        "import": _public_summary(output.get("import") or {}),
+        "audit": _public_summary(output.get("audit") or {}),
+    }
+
 
 def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, GestioneClienti, GestioneSoggetti, Agenda]:
     studio_db_path = tenant_root / "studio.db"
@@ -126,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     output["storage"] = _storage_counts(tenant_root)
     output["audit"] = audit
     output["ok"] = bool(audit.get("ok"))
-    print(json.dumps(output, ensure_ascii=False, indent=2))
+    print(json.dumps(_public_output(output), ensure_ascii=False, indent=2))
     return 0 if output["ok"] else 1
 
 

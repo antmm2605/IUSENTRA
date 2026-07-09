@@ -2592,6 +2592,103 @@ def test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito(tmp_path):
     assert fascicolo_reload.depositi_pct[0].documenti_portale
 
 
+def test_route_importa_polisweb_sceglie_fascicolo_esistente_da_iddfa(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_a = gestione_fascicoli.nuovo(
+        titolo="Esecuzione A",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="3441",
+        anno_rg=2025,
+        source="PST",
+        source_external_id="0800570094:3441:2025:ESIM:dfa=DFA-ESIM-A:id=SIECIC-A",
+        codice_ufficio_portale="0800570094",
+        id_fascicolo_portale="SIECIC-A",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        id_dfa="DFA-ESIM-A",
+    )
+    fascicolo_b = gestione_fascicoli.nuovo(
+        titolo="Esecuzione B",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="3441",
+        anno_rg=2025,
+        source="PST",
+        source_external_id="0800570094:3441:2025:ESIM:dfa=DFA-ESIM-B:id=SIECIC-B",
+        codice_ufficio_portale="0800570094",
+        id_fascicolo_portale="SIECIC-B",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        id_dfa="DFA-ESIM-B",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "demo_mode": "1",
+                "numero_rg": "3441",
+                "anno_rg": "2025",
+                "ruolo": "ESECUZIONE_IMMOBILIARE",
+                "stato": "PENDENTE",
+                "oggetto": "Pignoramento immobiliare",
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "",
+                "tipo_registro": "ESIM",
+                "registro_portale": "ESIM",
+                "servizio_pst": "JPW_SIECIC",
+                "id_dfa": "DFA-ESIM-B",
+                "id_fascicolo_portale": "SIECIC-B",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(f"/fascicoli/{fascicolo_b.id}")
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicoli = gestione_fascicoli_reload.tutti()
+    assert len(fascicoli) == 2
+    assert gestione_fascicoli_reload.get(fascicolo_a.id).titolo == "Esecuzione A"
+    fascicolo_b_reload = gestione_fascicoli_reload.get(fascicolo_b.id)
+    assert fascicolo_b_reload is not None
+    assert fascicolo_b_reload.source_external_id == "0800570094:3441:2025:ESIM:dfa=DFA-ESIM-B:id=SIECIC-B"
+    assert fascicolo_b_reload.oggetto == "Pignoramento immobiliare"
+
+
 def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

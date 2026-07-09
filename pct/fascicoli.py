@@ -238,6 +238,7 @@ class Documento:
     percorso: str                  # path relativo a documents_dir
     dimensione_bytes: int = 0
     hash_sha256: str = ""
+    hash_contenuto_sha256: str = ""
     firmato_digitalmente: bool = False
     signature_metadata: dict[str, Any] = field(default_factory=dict)
     data_caricamento: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -284,6 +285,7 @@ class Documento:
         d.setdefault("ocr_estratto", False)
         d.setdefault("tags", [])
         d.setdefault("signature_metadata", {})
+        d.setdefault("hash_contenuto_sha256", "")
         d.setdefault("fonte_documento", "")
         d.setdefault("nome_originale", "")
         d.setdefault("nome_portale", "")
@@ -1152,6 +1154,9 @@ class GestioneFascicoli:
     @staticmethod
     def _documento_identity_keys(doc: "Documento") -> set[str]:
         keys: set[str] = set()
+        raw_sha = str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().lower()
+        if raw_sha:
+            keys.add(f"rawsha:{raw_sha}")
         sha = str(getattr(doc, "hash_sha256", "") or "").strip().lower()
         if sha:
             keys.add(f"sha:{sha}")
@@ -1170,6 +1175,254 @@ class GestioneFascicoli:
         if name:
             keys.add(f"name:{name}:{int(getattr(doc, 'dimensione_bytes', 0) or 0)}")
         return keys
+
+    @staticmethod
+    def _assorbi_metadati_documento(primary: "Documento", duplicate: "Documento") -> bool:
+        """Conserva il documento principale arricchendolo con metadati mancanti."""
+        changed = False
+        if primary.tipo == TipoDocumento.ALTRO and duplicate.tipo != TipoDocumento.ALTRO:
+            primary.tipo = duplicate.tipo
+            changed = True
+        for field_name in (
+            "note",
+            "data_documento",
+            "hash_contenuto_sha256",
+            "id_deposito_pct",
+            "caricato_da",
+            "fonte_documento",
+            "nome_originale",
+            "nome_portale",
+            "classificazione_portale",
+            "tipo_atto_portale",
+            "servizio_portale",
+            "mittente_portale",
+            "data_deposito_portale",
+            "id_documento_portale",
+            "id_cat_portale",
+            "id_repeatto_portale",
+            "msg_id_portale",
+        ):
+            current = str(getattr(primary, field_name, "") or "").strip()
+            incoming = str(getattr(duplicate, field_name, "") or "").strip()
+            if not current and incoming:
+                setattr(primary, field_name, incoming)
+                changed = True
+        existing_tags = {str(tag or "").strip().casefold() for tag in primary.tags or [] if str(tag or "").strip()}
+        tags = list(primary.tags or [])
+        for tag in duplicate.tags or []:
+            value = str(tag or "").strip()
+            key = value.casefold()
+            if value and key not in existing_tags:
+                tags.append(value)
+                existing_tags.add(key)
+                changed = True
+        if tags != (primary.tags or []):
+            primary.tags = tags
+        if duplicate.firmato_digitalmente and not primary.firmato_digitalmente:
+            primary.firmato_digitalmente = True
+            changed = True
+        if not primary.signature_metadata and duplicate.signature_metadata:
+            primary.signature_metadata = copy.deepcopy(duplicate.signature_metadata)
+            changed = True
+        if duplicate.versioni:
+            known_versions = {
+                (
+                    str(getattr(version, "hash_sha256", "") or ""),
+                    str(getattr(version, "percorso", "") or ""),
+                )
+                for version in primary.versioni or []
+            }
+            for version in duplicate.versioni:
+                key = (
+                    str(getattr(version, "hash_sha256", "") or ""),
+                    str(getattr(version, "percorso", "") or ""),
+                )
+                if key in known_versions:
+                    continue
+                primary.versioni.append(copy.deepcopy(version))
+                known_versions.add(key)
+                changed = True
+        return changed
+
+    @staticmethod
+    def _documento_group_score(
+        doc: "Documento",
+        *,
+        referenced_doc_ids: set[str],
+        original_index: int,
+    ) -> tuple[int, int, int, int, int]:
+        source = str(getattr(doc, "fonte_documento", "") or "").strip().upper()
+        source_score = 3 if source == "PORTALE_TELEMATICO" else 2 if source == "IMPORT_ESTERNO" else 1
+        metadata_score = sum(
+            1
+            for field_name in (
+                "id_documento_portale",
+                "id_cat_portale",
+                "id_repeatto_portale",
+                "msg_id_portale",
+                "nome_portale",
+                "classificazione_portale",
+                "tipo_atto_portale",
+                "servizio_portale",
+            )
+            if str(getattr(doc, field_name, "") or "").strip()
+        )
+        return (
+            1 if doc.id in referenced_doc_ids else 0,
+            source_score,
+            metadata_score,
+            1 if bool(getattr(doc, "firmato_digitalmente", False)) else 0,
+            -original_index,
+        )
+
+    def _riconcilia_documenti_duplicati_fascicolo(
+        self,
+        fascicolo: "Fascicolo",
+        *,
+        dry_run: bool,
+    ) -> tuple[dict[str, Any], bool]:
+        docs = list(fascicolo.documenti or [])
+        report: dict[str, Any] = {
+            "fascicoloId": fascicolo.id,
+            "numero": fascicolo.numero,
+            "titolo": fascicolo.titolo,
+            "documenti": len(docs),
+            "groups": [],
+            "removed": 0,
+        }
+        if len(docs) < 2:
+            return report, False
+
+        parent = list(range(len(docs)))
+
+        def find(index: int) -> int:
+            while parent[index] != index:
+                parent[index] = parent[parent[index]]
+                index = parent[index]
+            return index
+
+        def union(left: int, right: int) -> None:
+            root_left = find(left)
+            root_right = find(right)
+            if root_left != root_right:
+                parent[root_right] = root_left
+
+        seen_by_key: dict[str, int] = {}
+        for index, doc in enumerate(docs):
+            for key in self._documento_identity_keys(doc):
+                previous = seen_by_key.get(key)
+                if previous is None:
+                    seen_by_key[key] = index
+                else:
+                    union(previous, index)
+
+        groups_by_root: dict[int, list[int]] = {}
+        for index in range(len(docs)):
+            groups_by_root.setdefault(find(index), []).append(index)
+        duplicate_groups = [indexes for indexes in groups_by_root.values() if len(indexes) > 1]
+        if not duplicate_groups:
+            return report, False
+
+        referenced_doc_ids = {
+            str(doc_id or "").strip()
+            for dep in fascicolo.depositi_pct or []
+            for doc_id in getattr(dep, "documenti_ids", []) or []
+            if str(doc_id or "").strip()
+        }
+        referenced_doc_ids.update(
+            str(getattr(att, "id_documento", "") or "").strip()
+            for att in fascicolo.attivita or []
+            if str(getattr(att, "id_documento", "") or "").strip()
+        )
+
+        removed_ids: set[str] = set()
+        doc_id_map: dict[str, str] = {}
+        changed = False
+        for indexes in duplicate_groups:
+            ordered = sorted(
+                indexes,
+                key=lambda idx: self._documento_group_score(
+                    docs[idx],
+                    referenced_doc_ids=referenced_doc_ids,
+                    original_index=idx,
+                ),
+                reverse=True,
+            )
+            primary = docs[ordered[0]]
+            duplicates = [docs[idx] for idx in ordered[1:]]
+            report_group = {
+                "primaryId": primary.id,
+                "primaryName": primary.nome,
+                "duplicates": [{"id": doc.id, "name": doc.nome} for doc in duplicates],
+            }
+            report["groups"].append(report_group)
+            report["removed"] += len(duplicates)
+            if dry_run:
+                continue
+            for duplicate in duplicates:
+                doc_id_map[duplicate.id] = primary.id
+                removed_ids.add(duplicate.id)
+                changed = self._assorbi_metadati_documento(primary, duplicate) or changed
+
+        if dry_run or not removed_ids:
+            return report, False
+
+        for dep in fascicolo.depositi_pct or []:
+            updated_ids = _deduplica_documenti_ids(
+                doc_id_map.get(str(doc_id or "").strip(), str(doc_id or "").strip())
+                for doc_id in getattr(dep, "documenti_ids", []) or []
+            )
+            if updated_ids != (dep.documenti_ids or []):
+                dep.documenti_ids = updated_ids
+                changed = True
+        for att in fascicolo.attivita or []:
+            current = str(getattr(att, "id_documento", "") or "").strip()
+            replacement = doc_id_map.get(current)
+            if replacement and replacement != current:
+                att.id_documento = replacement
+                changed = True
+
+        fascicolo.documenti = [doc for doc in docs if doc.id not in removed_ids]
+        fascicolo.avanzamento.append(
+            AvanzamentoPratica(
+                data=datetime.now().isoformat(),
+                descrizione="Riconciliazione automatica documenti duplicati",
+                stato_precedente=fascicolo.stato.value,
+                stato_nuovo=fascicolo.stato.value,
+                note=f"Assorbiti {len(removed_ids)} record documento duplicati mantenendo il documento principale.",
+                avvocato="IUSENTRA",
+            )
+        )
+        fascicolo.modificato_il = datetime.now().isoformat()
+        return report, True
+
+    def riconcilia_documenti_duplicati(
+        self,
+        id_fasc: str | None = None,
+        *,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Assorbe record documento duplicati nello stesso fascicolo senza perdere riferimenti."""
+        fascicoli = [self._get_o_errore(id_fasc)] if id_fasc else list(self._fascicoli.values())
+        report: dict[str, Any] = {
+            "ok": True,
+            "dryRun": bool(dry_run),
+            "fascicoliAnalizzati": len(fascicoli),
+            "fascicoliConDuplicati": 0,
+            "documentiDuplicatiAssorbiti": 0,
+            "groups": [],
+        }
+        touched = False
+        for fascicolo in fascicoli:
+            entry, changed = self._riconcilia_documenti_duplicati_fascicolo(fascicolo, dry_run=dry_run)
+            if entry.get("removed"):
+                report["fascicoliConDuplicati"] += 1
+                report["documentiDuplicatiAssorbiti"] += int(entry.get("removed") or 0)
+                report["groups"].append(entry)
+            touched = touched or changed
+        if touched:
+            self._salva()
+        return report
 
     def _copia_documento_su_fascicolo_principale(
         self,
@@ -1563,6 +1816,7 @@ class GestioneFascicoli:
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
         nome_archivio: str = "",
+        hash_contenuto_sha256: str = "",
     ) -> Documento:
         """
         Aggiunge un documento al fascicolo salvandolo su disco.
@@ -1573,6 +1827,53 @@ class GestioneFascicoli:
         f = self._get_o_errore(id_fasc)
         fasc_dir = self.documents_dir / id_fasc
         fasc_dir.mkdir(parents=True, exist_ok=True)
+        sha256 = hashlib.sha256(contenuto).hexdigest()
+        raw_sha256 = str(hash_contenuto_sha256 or "").strip().lower()
+        existing_doc = next(
+            (
+                doc
+                for doc in f.documenti
+                if str(getattr(doc, "hash_sha256", "") or "").strip().casefold() == sha256.casefold()
+                or (
+                    raw_sha256
+                    and str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().casefold()
+                    == raw_sha256.casefold()
+                )
+            ),
+            None,
+        )
+        if existing_doc is not None:
+            incoming_doc = Documento(
+                id=existing_doc.id,
+                nome=nome_file,
+                tipo=tipo,
+                percorso=existing_doc.percorso,
+                dimensione_bytes=len(contenuto),
+                hash_sha256=sha256,
+                hash_contenuto_sha256=raw_sha256,
+                firmato_digitalmente=firmato,
+                note=note,
+                tags=list(tags or []),
+                data_documento=data_documento or date.today().isoformat(),
+                caricato_da=caricato_da,
+                id_deposito_pct=id_deposito_pct,
+                fonte_documento=str(fonte_documento or "").strip(),
+                nome_originale=str(nome_originale or nome_file or "").strip(),
+                nome_portale=str(nome_portale or "").strip(),
+                classificazione_portale=str(classificazione_portale or "").strip(),
+                tipo_atto_portale=str(tipo_atto_portale or "").strip(),
+                servizio_portale=str(servizio_portale or "").strip(),
+                mittente_portale=str(mittente_portale or "").strip(),
+                data_deposito_portale=str(data_deposito_portale or "").strip(),
+                id_documento_portale=str(id_documento_portale or "").strip(),
+                id_cat_portale=str(id_cat_portale or "").strip(),
+                id_repeatto_portale=str(id_repeatto_portale or "").strip(),
+                msg_id_portale=str(msg_id_portale or "").strip(),
+            )
+            if self._assorbi_metadati_documento(existing_doc, incoming_doc):
+                f.modificato_il = datetime.now().isoformat()
+                self._salva()
+            return existing_doc
 
         # evita collisioni di nome
         nome_safe = Path(nome_archivio or nome_file).name
@@ -1584,7 +1885,6 @@ class GestioneFascicoli:
             dest = fasc_dir / nome_safe
 
         dest.write_bytes(contenuto)
-        sha256 = hashlib.sha256(contenuto).hexdigest()
         signature_metadata: dict[str, Any] = {}
         if firmato:
             try:
@@ -1612,6 +1912,7 @@ class GestioneFascicoli:
             percorso=str(dest.relative_to(self.documents_dir)),
             dimensione_bytes=len(contenuto),
             hash_sha256=sha256,
+            hash_contenuto_sha256=raw_sha256 or sha256,
             firmato_digitalmente=firmato,
             signature_metadata=signature_metadata,
             note=note,

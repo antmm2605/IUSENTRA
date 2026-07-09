@@ -191,6 +191,81 @@ def test_aggiungi_documento_marca_presidio_da_rianalizzare(gf, fascicolo_base):
     assert aggiornato.pagamenti["_presidio_documentale"]["document_id"] == doc.id
 
 
+def test_aggiungi_documento_non_duplica_stesso_contenuto(gf, fascicolo_base):
+    primo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Ricorso.pdf",
+        tipo=TipoDocumento.RICORSO,
+        contenuto=b"%PDF-1.4 stesso contenuto",
+    )
+    secondo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Ricorso.pdf",
+        tipo=TipoDocumento.RICORSO,
+        contenuto=b"%PDF-1.4 stesso contenuto",
+        tags=["Portale Servizi"],
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_portale="Ricorso.pdf",
+    )
+
+    aggiornato = gf.get(fascicolo_base.id)
+
+    assert secondo.id == primo.id
+    assert len(aggiornato.documenti) == 1
+    assert aggiornato.documenti[0].fonte_documento == "PORTALE_TELEMATICO"
+    assert "Portale Servizi" in aggiornato.documenti[0].tags
+
+
+def test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti(gf, fascicolo_base):
+    originale = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"%PDF-1.4 sentenza identica",
+    )
+    fascicolo = gf.get(fascicolo_base.id)
+    duplicato = Documento(
+        id="DUPDOC01",
+        nome="Sentenza.pdf",
+        tipo=TipoDocumento.SENTENZA,
+        percorso=originale.percorso,
+        dimensione_bytes=originale.dimensione_bytes,
+        hash_sha256=originale.hash_sha256,
+        fonte_documento="IMPORT_ESTERNO",
+    )
+    fascicolo.documenti.append(duplicato)
+    fascicolo.depositi_pct.append(
+        EsitoDepositoPCT(
+            id="DEP1",
+            timestamp="2026-07-09T09:00:00",
+            stato="IMPORTATO_DA_PORTALE",
+            tipo_atto="SENTENZA",
+            pec_destinatario="tribunale@example.test",
+            documenti_ids=[duplicato.id],
+        )
+    )
+    fascicolo.attivita.append(
+        AttivitaProcessuale(
+            id="ATT1",
+            tipo=TipoAttivita.PROVVEDIMENTO,
+            data="2026-07-09",
+            titolo="Deposito sentenza",
+            id_documento=duplicato.id,
+        )
+    )
+    gf._salva()
+
+    report = gf.riconcilia_documenti_duplicati(fascicolo_base.id)
+    aggiornato = gf.get(fascicolo_base.id)
+    remaining_id = aggiornato.documenti[0].id
+
+    assert report["documentiDuplicatiAssorbiti"] == 1
+    assert len(aggiornato.documenti) == 1
+    assert aggiornato.depositi_pct[0].documenti_ids == [remaining_id]
+    assert aggiornato.attivita[0].id_documento == remaining_id
+    assert any("documenti duplicati" in item.descrizione for item in aggiornato.avanzamento)
+
+
 def test_aggiorna_non_lascia_doppioni_cliente_rg(gf):
     primo = gf.nuovo(
         titolo="Cliente c. MIM",

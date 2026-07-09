@@ -1256,6 +1256,7 @@ def build_fascicoli_runtime(
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
     ) -> Documento:
+        raw_hash = hashlib.sha256(raw).hexdigest()
         contenuto = _encrypt_doc(raw)
         doc = gf.aggiungi_documento(
             id_fasc,
@@ -1279,6 +1280,7 @@ def build_fascicoli_runtime(
             id_cat_portale=id_cat_portale,
             id_repeatto_portale=id_repeatto_portale,
             msg_id_portale=msg_id_portale,
+            hash_contenuto_sha256=raw_hash,
         )
         # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
         # Se il file è un PDF non firmato, lo converte in PDF/A tramite

@@ -748,6 +748,62 @@ def build_telematico_runtime(
             group["documenti"].append(doc)
         return list(gruppi.values())
 
+    def _portale_external_id(
+        ufficio: Any,
+        numero: Any,
+        anno: Any,
+        procedimento: Any,
+        *,
+        registro_portale: Any = "",
+        sub_procedimento: Any = "",
+        id_dfa: Any = "",
+        id_fascicolo: Any = "",
+    ) -> str:
+        parts = [
+            str(ufficio or "").strip(),
+            str(numero or "").strip(),
+            str(anno or "").strip(),
+            str(registro_portale or procedimento or "").strip(),
+        ]
+        extras = (
+            ("sub", sub_procedimento),
+            ("dfa", id_dfa),
+            ("id", id_fascicolo),
+        )
+        parts.extend(f"{label}={str(value).strip()}" for label, value in extras if str(value or "").strip())
+        return ":".join(part for part in parts if part)
+
+    def _selection_value(selection: dict[str, Any], *keys: str) -> str:
+        payload = dict(selection.get("payload") or {}) if isinstance(selection.get("payload"), dict) else {}
+        snapshot = dict(selection.get("snapshot") or {}) if isinstance(selection.get("snapshot"), dict) else {}
+        snapshot_identity = dict(
+            snapshot.get("fascicolo")
+            or snapshot.get("identity")
+            or snapshot.get("procedimento")
+            or {}
+        )
+        for key in keys:
+            for source in (selection, payload, snapshot_identity):
+                value = source.get(key)
+                if str(value or "").strip():
+                    return str(value).strip()
+        return ""
+
+    def _selection_external_id(selection: dict[str, Any]) -> str:
+        external_id = str(selection.get("external_id") or "").strip()
+        if external_id:
+            return external_id
+        return _portale_external_id(
+            _selection_value(selection, "ufficio_codice", "codice_ufficio"),
+            _selection_value(selection, "numero", "numero_rg"),
+            _selection_value(selection, "anno", "anno_rg"),
+            _selection_value(selection, "procedimento", "ruolo", "tipo_registro", "tipo"),
+            registro_portale=_selection_value(selection, "registro_portale", "tipo_registro"),
+            sub_procedimento=_selection_value(selection, "sub_procedimento"),
+            id_dfa=_selection_value(selection, "id_dfa", "IDDFA"),
+            id_fascicolo=_selection_value(selection, "id_fascicolo"),
+        )
+
     def _serialize_portale_search_item(portale: str, fascicolo: Any) -> dict[str, Any]:
         portale = (portale or "").lower()
         if portale == "pst":
@@ -878,7 +934,16 @@ def build_telematico_runtime(
             stato = fascicolo.stato
 
         return {
-            "external_id": f"{uff_cod}:{numero}:{anno}:{procedimento}",
+            "external_id": _portale_external_id(
+                uff_cod,
+                numero,
+                anno,
+                procedimento,
+                registro_portale=payload.get("registro_portale") or payload.get("tipo_registro"),
+                sub_procedimento=payload.get("sub_procedimento"),
+                id_dfa=payload.get("id_dfa"),
+                id_fascicolo=payload.get("id_fascicolo"),
+            ),
             "id_fascicolo": str(payload.get("id_fascicolo") or "").strip(),
             "numero": str(numero or "").strip(),
             "anno": int(anno or 0),
@@ -1692,13 +1757,51 @@ def build_telematico_runtime(
             selection.get("ufficio_nome")
             or _resolve_ufficio_nome(str(selection.get("ufficio_codice") or ""))
         ).strip()
-        external_id = str(selection.get("external_id") or "").strip()
+        external_id = _selection_external_id(selection)
         return {
             "numero": numero,
             "anno": anno,
             "ufficio_nome": ufficio_nome,
             "external_id": external_id,
         }
+
+    def _normalizza_valore_portale_match(value: Any) -> str:
+        return re.sub(r"\s+", " ", str(value or "").strip()).casefold()
+
+    def _selection_portale_discriminators(selection: dict[str, Any]) -> dict[str, str]:
+        return {
+            "id_fascicolo_portale": _selection_value(selection, "id_fascicolo"),
+            "id_dfa": _selection_value(selection, "id_dfa", "IDDFA"),
+            "sub_procedimento": _selection_value(selection, "sub_procedimento"),
+            "registro_portale": _selection_value(selection, "registro_portale", "tipo_registro"),
+            "servizio_pst": _selection_value(selection, "servizio_pst", "servizio_pst_preferito"),
+        }
+
+    def _fascicolo_portale_value(fasc: Fascicolo, key: str) -> str:
+        value = str(getattr(fasc, key, "") or "").strip()
+        if value:
+            return value
+        snapshot = getattr(fasc, "source_snapshot", {}) or {}
+        if isinstance(snapshot, dict):
+            if key == "id_fascicolo_portale":
+                return str(snapshot.get("id_fascicolo") or snapshot.get("id_fascicolo_portale") or "").strip()
+            return str(snapshot.get(key) or "").strip()
+        return ""
+
+    def _fascicolo_has_portale_discriminator(fasc: Fascicolo) -> bool:
+        return any(
+            _fascicolo_portale_value(fasc, key)
+            for key in ("id_fascicolo_portale", "id_dfa", "sub_procedimento", "registro_portale")
+        )
+
+    def _fascicolo_matches_portale_discriminators(fasc: Fascicolo, selection: dict[str, Any]) -> bool:
+        for key, expected in _selection_portale_discriminators(selection).items():
+            if not expected:
+                continue
+            current = _fascicolo_portale_value(fasc, key)
+            if current and _normalizza_valore_portale_match(current) != _normalizza_valore_portale_match(expected):
+                return False
+        return True
 
     def _fascicolo_matches_selection(
         fasc: Fascicolo,
@@ -1758,9 +1861,32 @@ def build_telematico_runtime(
                     continue
                 if str(getattr(fasc, "source_external_id", "") or "").strip() == expected_external_id:
                     return fasc
-        for fasc in fascicoli:
-            if _fascicolo_matches_selection(fasc, portale, selection, strict=True):
-                return fasc
+        strict_matches = [
+            fasc
+            for fasc in fascicoli
+            if _fascicolo_matches_selection(fasc, portale, selection, strict=True)
+        ]
+        if not strict_matches:
+            return None
+        has_selection_discriminator = any(_selection_portale_discriminators(selection).values())
+        if has_selection_discriminator:
+            marked_matches = [
+                fasc
+                for fasc in strict_matches
+                if _fascicolo_has_portale_discriminator(fasc)
+                and _fascicolo_matches_portale_discriminators(fasc, selection)
+            ]
+            if marked_matches:
+                return marked_matches[0]
+            unmarked_matches = [
+                fasc
+                for fasc in strict_matches
+                if not _fascicolo_has_portale_discriminator(fasc)
+            ]
+            if len(strict_matches) == 1 and unmarked_matches:
+                return unmarked_matches[0]
+            return None
+        return strict_matches[0]
         return None
 
     def _fascicolo_locale_portale_payload(fasc: Fascicolo) -> dict[str, Any]:
@@ -2130,6 +2256,13 @@ def build_telematico_runtime(
                 note=str(payload.get("note") or "").strip(),
                 codice_ufficio=str(payload.get("codice_ufficio") or selection.get("ufficio_codice") or "").strip(),
                 nome_ufficio=str(payload.get("nome_ufficio") or selection.get("ufficio_nome") or "").strip(),
+                sub_procedimento=str(selection.get("sub_procedimento") or payload.get("sub_procedimento") or "").strip(),
+                tipo_registro=str(selection.get("tipo_registro") or payload.get("tipo_registro") or "").strip(),
+                registro_portale=str(selection.get("registro_portale") or payload.get("registro_portale") or payload.get("tipo_registro") or "").strip(),
+                servizio_pst=str(selection.get("servizio_pst") or selection.get("servizio_pst_preferito") or payload.get("servizio_pst") or payload.get("servizio_pst_preferito") or "").strip(),
+                id_dfa=str(selection.get("id_dfa") or payload.get("id_dfa") or payload.get("IDDFA") or "").strip(),
+                id_fascicolo=str(selection.get("id_fascicolo") or payload.get("id_fascicolo") or "").strip(),
+                ruolo_polisweb=str(selection.get("ruolo_polisweb") or payload.get("ruolo_polisweb") or "").strip(),
             )
         if portale == "pdp":
             from pct.pdp import FascicoloPDP
@@ -2210,6 +2343,10 @@ def build_telematico_runtime(
                 disponibile=row["disponibile"],
                 id_deposito=row["id_deposito"],
                 tipo_atto=row["tipo_atto"],
+                id_cat=str(row.get("id_cat") or "").strip(),
+                sub_procedimento=str(row.get("sub_procedimento") or "").strip(),
+                registro_portale=str(row.get("registro_portale") or row.get("tipo_registro") or "").strip(),
+                servizio_pst=str(row.get("servizio_pst") or row.get("servizio_portale") or "").strip(),
             )
             for row in docs
         ]
@@ -2534,12 +2671,19 @@ def build_telematico_runtime(
             "import_log_id": import_log_id,
             "acquisito_il": datetime.now().isoformat(),
             "external_id": _clean(selection.get("external_id")),
+            "id_fascicolo": _clean(identity.get("id_fascicolo") or selection.get("id_fascicolo")),
+            "id_fascicolo_portale": _clean(identity.get("id_fascicolo") or selection.get("id_fascicolo")),
             "numero": _clean(identity.get("numero") or selection.get("numero")),
             "anno": int(identity.get("anno") or selection.get("anno") or 0),
             "ufficio_nome": _clean(identity.get("ufficio_nome") or selection.get("ufficio_nome")),
             "ufficio_codice": _clean(identity.get("ufficio_codice") or selection.get("ufficio_codice")),
             "procedimento": _clean(identity.get("procedimento") or selection.get("procedimento")),
+            "tipo_registro": _clean(selection.get("tipo_registro") or selection.get("registro_portale")),
+            "registro_portale": _clean(selection.get("registro_portale") or selection.get("tipo_registro")),
+            "servizio_pst": _clean(selection.get("servizio_pst") or selection.get("servizio_pst_preferito")),
             "sub_procedimento": _clean(identity.get("sub_procedimento") or selection.get("sub_procedimento")),
+            "id_dfa": _clean(selection.get("id_dfa") or selection.get("IDDFA")),
+            "ruolo_polisweb": _clean(selection.get("ruolo_polisweb")),
             "sezione": _clean(identity.get("sezione") or selection.get("sezione")),
             "stato": _clean(identity.get("stato") or selection.get("stato")),
             "oggetto": _clean(identity.get("oggetto") or selection.get("oggetto")),
@@ -2573,10 +2717,69 @@ def build_telematico_runtime(
         events_sync_enabled: bool,
         sync_status: str,
     ) -> Fascicolo:
+        payload = dict(selection.get("payload") or {}) if isinstance(selection.get("payload"), dict) else {}
+        identity = dict((preview or {}).get("identity") or {}) if isinstance(preview, dict) else {}
+        external_id = _selection_external_id(selection)
+        current_fasc = get_fascicoli().get(id_fasc)
+
+        def _preserve(field_name: str, value: Any) -> str:
+            cleaned = str(value or "").strip()
+            if cleaned:
+                return cleaned
+            return str(getattr(current_fasc, field_name, "") or "").strip() if current_fasc else ""
+
         return get_fascicoli().aggiorna(
             id_fasc,
             source=_portale_source_name(portale),
-            source_external_id=str(selection.get("external_id") or "").strip(),
+            source_external_id=_preserve("source_external_id", external_id),
+            codice_ufficio_portale=_preserve("codice_ufficio_portale",
+                identity.get("ufficio_codice")
+                or selection.get("ufficio_codice")
+                or payload.get("codice_ufficio")
+                or ""
+            ),
+            id_fascicolo_portale=_preserve("id_fascicolo_portale",
+                identity.get("id_fascicolo")
+                or selection.get("id_fascicolo")
+                or payload.get("id_fascicolo")
+                or ""
+            ),
+            tipo_registro=_preserve("tipo_registro",
+                selection.get("tipo_registro")
+                or payload.get("tipo_registro")
+                or ""
+            ),
+            registro_portale=_preserve("registro_portale",
+                selection.get("registro_portale")
+                or payload.get("registro_portale")
+                or payload.get("tipo_registro")
+                or ""
+            ),
+            servizio_pst=_preserve("servizio_pst",
+                selection.get("servizio_pst")
+                or selection.get("servizio_pst_preferito")
+                or payload.get("servizio_pst")
+                or payload.get("servizio_pst_preferito")
+                or ""
+            ),
+            sub_procedimento=_preserve("sub_procedimento",
+                identity.get("sub_procedimento")
+                or selection.get("sub_procedimento")
+                or payload.get("sub_procedimento")
+                or ""
+            ),
+            id_dfa=_preserve("id_dfa",
+                selection.get("id_dfa")
+                or selection.get("IDDFA")
+                or payload.get("id_dfa")
+                or payload.get("IDDFA")
+                or ""
+            ),
+            ruolo_polisweb=_preserve("ruolo_polisweb",
+                selection.get("ruolo_polisweb")
+                or payload.get("ruolo_polisweb")
+                or ""
+            ),
             last_sync_at=datetime.now().isoformat(),
             sync_status=sync_status,
             import_log_id=import_log_id,
@@ -2620,11 +2823,18 @@ def build_telematico_runtime(
         selection = {
             "external_id": str(getattr(fasc, "source_external_id", "") or "").strip()
             or f"{fasc.tribunale}:{fasc.numero_rg}:{fasc.anno_rg}:{fasc.tipo_procedimento or getattr(getattr(fasc, 'tipo', None), 'value', '')}",
+            "id_fascicolo": str(getattr(fasc, "id_fascicolo_portale", "") or "").strip(),
             "numero": str(getattr(fasc, "numero_rg", "") or "").strip(),
             "anno": int(getattr(fasc, "anno_rg", 0) or 0),
-            "ufficio_codice": "",
+            "ufficio_codice": str(getattr(fasc, "codice_ufficio_portale", "") or "").strip(),
             "ufficio_nome": str(getattr(fasc, "tribunale", "") or "").strip(),
             "procedimento": str(getattr(fasc, "tipo_procedimento", "") or getattr(getattr(fasc, "tipo", None), "value", "")).strip(),
+            "tipo_registro": str(getattr(fasc, "tipo_registro", "") or "").strip(),
+            "registro_portale": str(getattr(fasc, "registro_portale", "") or "").strip(),
+            "servizio_pst": str(getattr(fasc, "servizio_pst", "") or "").strip(),
+            "sub_procedimento": str(getattr(fasc, "sub_procedimento", "") or "").strip(),
+            "id_dfa": str(getattr(fasc, "id_dfa", "") or "").strip(),
+            "ruolo_polisweb": str(getattr(fasc, "ruolo_polisweb", "") or "").strip(),
             "sezione": str(getattr(fasc, "sezione", "") or "").strip(),
             "stato": str(getattr(fasc, "sync_status", "") or getattr(getattr(fasc, "stato", None), "value", "")).strip(),
             "oggetto": str(getattr(fasc, "oggetto", "") or "").strip(),
@@ -2657,13 +2867,22 @@ def build_telematico_runtime(
         identity = dict((preview or {}).get("identity") or {})
         native_status = str(identity.get("stato") or selection.get("stato") or "").strip().upper()
         has_documents = int((preview.get("counts") or {}).get("documenti", 0) or 0) > 0
-        portal_case_ref = str(selection.get("external_id") or getattr(fasc, "source_external_id", "") or "").strip()
+        portal_case_ref = _selection_external_id(selection) or str(getattr(fasc, "source_external_id", "") or "").strip()
+        register_type = str(
+            selection.get("registro_portale")
+            or selection.get("tipo_registro")
+            or selection.get("procedimento")
+            or getattr(fasc, "registro_portale", "")
+            or getattr(fasc, "tipo_registro", "")
+            or getattr(fasc, "tipo_procedimento", "")
+            or ""
+        ).strip()
         existing_case = repo.find_case(
             practice_id=id_fasc,
             service_code=_telematico_service_code(portale),
             portal_case_ref=portal_case_ref or None,
             office_name=str(selection.get("ufficio_nome") or getattr(fasc, "tribunale", "") or "").strip() or None,
-            register_type=str(selection.get("procedimento") or getattr(fasc, "tipo_procedimento", "") or "").strip() or None,
+            register_type=register_type or None,
             register_number=str(selection.get("numero") or getattr(fasc, "numero_rg", "") or "").strip() or None,
             register_year=int(selection.get("anno") or getattr(fasc, "anno_rg", 0) or 0) or None,
         )
@@ -2685,7 +2904,7 @@ def build_telematico_runtime(
             office_name=str(selection.get("ufficio_nome") or getattr(fasc, "tribunale", "") or "").strip() or "Ufficio da completare",
             office_type="",
             district="",
-            register_type=str(selection.get("procedimento") or getattr(fasc, "tipo_procedimento", "") or "").strip(),
+            register_type=register_type,
             register_number=str(selection.get("numero") or getattr(fasc, "numero_rg", "") or "").strip(),
             register_year=int(selection.get("anno") or getattr(fasc, "anno_rg", 0) or 0),
             subject_name=str((selection.get("parti") or [getattr(fasc, "nome_cliente", "")])[0] or getattr(fasc, "nome_cliente", "")).strip() or "Parte non definita",

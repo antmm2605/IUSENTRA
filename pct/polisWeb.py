@@ -643,6 +643,27 @@ class RisultatoImportazione:
     avvisi: List[str] = field(default_factory=list)
 
 
+def chiave_esterna_fascicolo_polisweb(fascicolo: FascicoloPolisWeb) -> str:
+    """Chiave stabile usata per riagganciare import successivi allo stesso fascicolo PST."""
+    ufficio = (fascicolo.codice_ufficio or fascicolo.nome_ufficio or "").strip()
+    numero = str(fascicolo.numero_rg or "").strip()
+    anno = str(fascicolo.anno_rg or "").strip()
+    registro = (
+        fascicolo.registro_portale
+        or fascicolo.tipo_registro
+        or fascicolo.ruolo
+        or ""
+    ).strip()
+    parts = [ufficio, numero, anno, registro]
+    extra = [
+        ("sub", fascicolo.sub_procedimento),
+        ("dfa", fascicolo.id_dfa),
+        ("id", fascicolo.id_fascicolo),
+    ]
+    parts.extend(f"{label}={str(value).strip()}" for label, value in extra if str(value or "").strip())
+    return ":".join(part for part in parts if part)
+
+
 def _chiave_deposito_polisweb(documento: DocumentoPolisWeb) -> str:
     data = _parse_data(documento.data_deposito)
     mittente = (documento.mittente or "").strip()
@@ -1567,6 +1588,23 @@ def _sincronizza_metadati_fascicolo_polisweb(
         campi_update["sezione"] = fascicolo_pw.sezione
     if fascicolo_pw.giudice and not fascicolo_locale.giudice:
         campi_update["giudice"] = fascicolo_pw.giudice
+    metadati_portale = {
+        "source": "PST",
+        "source_external_id": chiave_esterna_fascicolo_polisweb(fascicolo_pw),
+        "codice_ufficio_portale": fascicolo_pw.codice_ufficio,
+        "id_fascicolo_portale": fascicolo_pw.id_fascicolo,
+        "tipo_registro": fascicolo_pw.tipo_registro,
+        "registro_portale": fascicolo_pw.registro_portale,
+        "servizio_pst": fascicolo_pw.servizio_pst,
+        "sub_procedimento": fascicolo_pw.sub_procedimento,
+        "id_dfa": fascicolo_pw.id_dfa,
+        "ruolo_polisweb": fascicolo_pw.ruolo_polisweb,
+    }
+    for field_name, field_value in metadati_portale.items():
+        value = str(field_value or "").strip()
+        current = str(getattr(fascicolo_locale, field_name, "") or "").strip()
+        if value and current != value:
+            campi_update[field_name] = value
     if data_iscrizione and (
         not _parse_data(fascicolo_locale.data_apertura)
         or _data_apertura_generica_polisweb(fascicolo_locale)
@@ -2025,6 +2063,16 @@ class ClientPolisWeb:
                 data_prima_udienza=data_udienza or "",
                 data_prossima_udienza=data_prossima_udienza,
                 note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
+                source="PST",
+                source_external_id=chiave_esterna_fascicolo_polisweb(fascicolo_pw),
+                codice_ufficio_portale=fascicolo_pw.codice_ufficio,
+                id_fascicolo_portale=fascicolo_pw.id_fascicolo,
+                tipo_registro=fascicolo_pw.tipo_registro,
+                registro_portale=fascicolo_pw.registro_portale,
+                servizio_pst=fascicolo_pw.servizio_pst,
+                sub_procedimento=fascicolo_pw.sub_procedimento,
+                id_dfa=fascicolo_pw.id_dfa,
+                ruolo_polisweb=fascicolo_pw.ruolo_polisweb,
             )
 
             # 4. Aggiungi prossima udienza come attività

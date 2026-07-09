@@ -775,6 +775,14 @@ class Fascicolo:
     # --- Sorgente / sincronizzazione portali
     source: str = ""                    # PST | PDP | PAT | PTT
     source_external_id: str = ""        # chiave esterna stabile del fascicolo sul portale
+    codice_ufficio_portale: str = ""    # codice ufficio ministeriale/portale usato per l'aggancio
+    id_fascicolo_portale: str = ""      # id pratica/fascicolo esposto dal portale, se disponibile
+    tipo_registro: str = ""             # registro nativo del portale (SICID/SIECIC/SIGP/PDP/PAT/PTT)
+    registro_portale: str = ""          # registro normalizzato usato dal servizio portale
+    servizio_pst: str = ""              # servizio PST/QBuilder effettivamente usato
+    sub_procedimento: str = ""          # subprocedimento ministeriale quando necessario
+    id_dfa: str = ""                    # identificativo DFA per SIECIC/SIGP quando disponibile
+    ruolo_polisweb: str = ""            # ruolo usato nella consultazione PolisWeb
     last_sync_at: str = ""              # ISO datetime ultimo allineamento
     sync_status: str = ""               # IMPORTATO | SINCRONIZZATO | DA_VERIFICARE
     import_log_id: str = ""             # id log acquisizione guidata
@@ -1228,6 +1236,14 @@ class GestioneFascicoli:
             "ctp",
             "source",
             "source_external_id",
+            "codice_ufficio_portale",
+            "id_fascicolo_portale",
+            "tipo_registro",
+            "registro_portale",
+            "servizio_pst",
+            "sub_procedimento",
+            "id_dfa",
+            "ruolo_polisweb",
             "sync_status",
             "import_log_id",
         )

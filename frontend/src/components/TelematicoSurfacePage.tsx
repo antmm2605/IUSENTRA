@@ -2845,12 +2845,21 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
   const numero = asText(row.numero_rg || row.numero)
   const anno = asNumber(row.anno_rg || row.anno)
   const procedimento = asText(row.ruolo || row.procedimento || row.tipo)
+  const registroPortale = asText(row.registro_portale || row.tipo_registro || procedimento)
   const codiceUfficio = asText(row.codice_ufficio || row.ufficio_codice || tribunale)
   const nomeUfficio = asText(row.nome_ufficio || row.ufficio_nome || query.ufficioNome || query.ufficio)
   const parti = asList(row.parti).map((item) => asText(item)).filter(Boolean)
   const controparti = asList(row.controparti).map((item) => asText(item)).filter(Boolean)
   const raw = {
-    external_id: `${codiceUfficio}:${numero}:${anno || ''}:${procedimento}`,
+    external_id: [
+      codiceUfficio,
+      numero,
+      anno || '',
+      registroPortale,
+      asText(row.sub_procedimento) ? `sub=${asText(row.sub_procedimento)}` : '',
+      asText(row.id_dfa) ? `dfa=${asText(row.id_dfa)}` : '',
+      asText(row.id_fascicolo) ? `id=${asText(row.id_fascicolo)}` : '',
+    ].filter(Boolean).join(':'),
     id_fascicolo: asText(row.id_fascicolo),
     numero,
     anno,
@@ -2867,7 +2876,7 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     data_udienza: asText(row.data_udienza),
     ultima_attivita: asText(row.data_udienza || row.data_iscrizione || row.ultima_attivita),
     servizio_pst: asText(row.servizio_pst),
-    registro_portale: asText(row.registro_portale || row.tipo_registro),
+    registro_portale: registroPortale,
     tabella_ministeriale: asText(row.tabella_ministeriale),
     payload: row,
   }

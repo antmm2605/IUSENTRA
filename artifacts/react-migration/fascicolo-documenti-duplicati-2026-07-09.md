@@ -43,11 +43,35 @@ Comandi eseguiti:
 
 ```powershell
 python -m py_compile pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py
+python -m py_compile pct\fascicoli.py pct\polisWeb.py web\services\telematico_runtime.py
 python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py web\services\fascicoli_runtime.py scripts\repair_fascicolo_document_duplicates.py tests\test_fascicoli.py
+python -m ruff check --output-format=github --select E9,F63,F7,F82 pct\fascicoli.py pct\polisWeb.py web\services\telematico_runtime.py tests\test_fascicoli.py tests\test_polisweb.py
 python -m pytest tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_stesso_contenuto tests/test_fascicoli.py::test_aggiungi_documento_non_duplica_pdf_stesso_nome_tipo_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_assorbe_record_e_riferimenti tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_pdf_stesso_nome_conserva_versione tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_fascicoli.py::test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti -q
+python -m pytest tests/test_fascicoli.py::test_fascicolo_serializza_metadati_sync_portale tests/test_fascicoli.py::test_riconcilia_documenti_duplicati_sql_non_riscrive_tutta_tabella tests/test_polisweb.py::test_importa_fascicolo_popola_cliente_parti_e_attivita tests/test_polisweb.py::test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita tests/test_polisweb.py::test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico tests/test_polisweb.py::test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer -q
+pnpm --filter @iusentra/studio typecheck
 ```
 
 Esito: pass.
+
+## Import fascicolo da Studio Telematico / PST
+
+Controllo richiesto: quando si importa o si aggiorna un fascicolo dal portale, IUSENTRA deve collegare il download al fascicolo già presente e non creare una nuova pratica se esiste già la stessa posizione.
+
+Correzione applicata:
+
+- il fascicolo conserva in persistenza i metadati ufficiali di aggancio: `codice_ufficio_portale`, `id_fascicolo_portale`, `tipo_registro`, `registro_portale`, `servizio_pst`, `sub_procedimento`, `id_dfa`, `ruolo_polisweb`;
+- la chiave esterna PST non è più solo `ufficio/numero/anno/procedimento` quando il portale espone dati più forti: include anche `sub`, `dfa` e `id` del fascicolo portale;
+- l'import guidato React e il percorso Local Signer/browser producono la stessa chiave forte;
+- `ClientPolisWeb.importa_fascicolo` e `sincronizza_fascicolo_esistente` scrivono gli stessi metadati anche fuori dal runtime React;
+- il matching automatico ora usa prima `source_external_id`, poi RG/anno/ufficio; se la selezione ha discriminanti portale, l'aggancio è automatico solo se coincidono o se c'è un unico fascicolo locale ancora non marcato dal portale;
+- se più fascicoli locali condividono RG/ufficio e il portale dà `idDfa/subprocedimento`, il sistema non sceglie a caso.
+
+Test aggiunti:
+
+- serializzazione/persistenza dei metadati portale sul fascicolo;
+- import nuovo da PolisWeb con metadati portale salvati;
+- sincronizzazione di fascicolo esistente senza creare duplicati;
+- match tra due fascicoli con stesso RG/ufficio ma `idDfa` diverso, verificando che venga scelto quello corretto.
 
 ## Ripristino controllato durante verifica server
 

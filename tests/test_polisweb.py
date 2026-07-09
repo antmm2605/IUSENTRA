@@ -32,6 +32,7 @@ from pct.polisWeb import (
     FascicoloPolisWeb,
     _matches_parte_filters,
     _pst_namespace_qbuilder,
+    chiave_esterna_fascicolo_polisweb,
 )
 from pct.soggetti import GestioneSoggetti
 from pct.telematico_workflow import TelematicoWorkflowRepository
@@ -682,6 +683,13 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
         ],
         codice_ufficio="0800570094",
         nome_ufficio="Tribunale di Palmi",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        sub_procedimento="CONTENZIOSO",
+        id_dfa="DFA-ESIM-3441",
+        id_fascicolo="SIECIC-172944",
+        ruolo_polisweb="CUS",
     )
 
     client = ClientPolisWebDemo()
@@ -701,6 +709,16 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert fascicolo.controparte == "BANCA ALFA S.P.A."
     assert fascicolo.cf_controparte == "12345678901"
     assert fascicolo.stato == StatoFascicolo.IN_CORSO
+    assert fascicolo.source == "PST"
+    assert fascicolo.source_external_id == chiave_esterna_fascicolo_polisweb(fascicolo_pw)
+    assert fascicolo.codice_ufficio_portale == "0800570094"
+    assert fascicolo.id_fascicolo_portale == "SIECIC-172944"
+    assert fascicolo.tipo_registro == "ESIM"
+    assert fascicolo.registro_portale == "ESIM"
+    assert fascicolo.servizio_pst == "JPW_SIECIC"
+    assert fascicolo.sub_procedimento == "CONTENZIOSO"
+    assert fascicolo.id_dfa == "DFA-ESIM-3441"
+    assert fascicolo.ruolo_polisweb == "CUS"
     assert fascicolo.data_prima_udienza == "2099-05-10"
     assert fascicolo.data_prossima_udienza == "2099-05-10"
     assert len(fascicolo.attivita) >= 2
@@ -771,6 +789,13 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
         ],
         codice_ufficio="0800570094",
         nome_ufficio="Tribunale di Palmi",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        sub_procedimento="CONTENZIOSO",
+        id_dfa="DFA-ESIM-3441",
+        id_fascicolo="SIECIC-172944",
+        ruolo_polisweb="CUS",
     )
 
     client = ClientPolisWebDemo()
@@ -789,6 +814,17 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
     assert fascicolo.id_cliente
     assert fascicolo.nome_cliente == "Stillitano Francesco"
     assert fascicolo.tribunale == "Tribunale di Palmi"
+    assert len(gestione_fascicoli.tutti()) == 1
+    assert fascicolo.source == "PST"
+    assert fascicolo.source_external_id == chiave_esterna_fascicolo_polisweb(fascicolo_pw)
+    assert fascicolo.codice_ufficio_portale == "0800570094"
+    assert fascicolo.id_fascicolo_portale == "SIECIC-172944"
+    assert fascicolo.tipo_registro == "ESIM"
+    assert fascicolo.registro_portale == "ESIM"
+    assert fascicolo.servizio_pst == "JPW_SIECIC"
+    assert fascicolo.sub_procedimento == "CONTENZIOSO"
+    assert fascicolo.id_dfa == "DFA-ESIM-3441"
+    assert fascicolo.ruolo_polisweb == "CUS"
     assert fascicolo.data_apertura == "2024-09-05"
     assert fascicolo.data_prima_udienza == "2024-12-12"
     assert fascicolo.data_prossima_udienza == ""
@@ -4665,6 +4701,89 @@ def test_api_acquisizione_local_matches_pst_arricchisce_risultati_local_signer(t
     assert row["already_present"] is True
     assert row["mapping_mode"] == "update_existing"
     assert row["local_match"]["titolo"] == "Ricerca locale già acquisita"
+
+
+def test_acquisizione_pst_collega_fascicolo_esistente_con_iddfa_specifico(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_esim = gestione_fascicoli.nuovo(
+        titolo="Esecuzione immobiliare A",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="3441",
+        anno_rg=2025,
+        source="PST",
+        source_external_id="0800570094:3441:2025:ESIM:dfa=DFA-ESIM-A:id=SIECIC-A",
+        codice_ufficio_portale="0800570094",
+        id_fascicolo_portale="SIECIC-A",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        id_dfa="DFA-ESIM-A",
+    )
+    fascicolo_altro = gestione_fascicoli.nuovo(
+        titolo="Esecuzione immobiliare B",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="3441",
+        anno_rg=2025,
+        source="PST",
+        source_external_id="0800570094:3441:2025:ESIM:dfa=DFA-ESIM-B:id=SIECIC-B",
+        codice_ufficio_portale="0800570094",
+        id_fascicolo_portale="SIECIC-B",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        id_dfa="DFA-ESIM-B",
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    runtime = app.extensions["application_runtime_bundle"].telematico
+    selection = runtime["serialize_portale_search_item"](
+        "pst",
+        FascicoloPolisWeb(
+            numero_rg="3441",
+            anno_rg=2025,
+            ruolo="ESECUZIONE_IMMOBILIARE",
+            stato="PENDENTE",
+            oggetto="Pignoramento immobiliare",
+            codice_ufficio="0800570094",
+            nome_ufficio="Tribunale di Palmi",
+            tipo_registro="ESIM",
+            registro_portale="ESIM",
+            servizio_pst="JPW_SIECIC",
+            id_dfa="DFA-ESIM-B",
+            id_fascicolo="SIECIC-B",
+            ruolo_polisweb="CUS",
+        ),
+    )
+
+    assert selection["external_id"] == "0800570094:3441:2025:ESIM:dfa=DFA-ESIM-B:id=SIECIC-B"
+    with app.app_context():
+        match = runtime["find_exact_fascicolo_locale_portale"]("pst", selection)
+
+    assert match is not None
+    assert match.id == fascicolo_altro.id
+    assert match.id != fascicolo_esim.id
 
 
 def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):

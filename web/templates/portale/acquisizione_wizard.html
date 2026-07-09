@@ -1314,6 +1314,16 @@ function awCanUsePstSearchSnapshot(query) {
 function awMapPstLocalSignerSearchRows(rows, query, tribunale) {
   return (rows || []).map(row => {
     const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
+    const registroPortale = row.registro_portale || row.tipo_registro || row.ruolo || '';
+    const externalIdParts = [
+      row.codice_ufficio || tribunale,
+      row.numero_rg,
+      row.anno_rg,
+      registroPortale,
+      row.sub_procedimento ? `sub=${row.sub_procedimento}` : '',
+      row.id_dfa ? `dfa=${row.id_dfa}` : '',
+      row.id_fascicolo ? `id=${row.id_fascicolo}` : '',
+    ].filter(Boolean);
     const partiDettaglio = Array.isArray(row.parti_dettaglio) ? row.parti_dettaglio : [];
     const contropartiDaRuolo = partiDettaglio
       .filter(item => /convenuto|resistente|controparte/i.test(String(item.tipo || '')))
@@ -1324,7 +1334,7 @@ function awMapPstLocalSignerSearchRows(rows, query, tribunale) {
       .map(item => String(item.nome || '').trim())
       .filter(Boolean);
     const mapped = {
-      external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+      external_id: externalIdParts.join(':'),
       id_fascicolo: row.id_fascicolo || '',
       numero: row.numero_rg || '',
       anno: Number(row.anno_rg || 0),

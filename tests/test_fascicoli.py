@@ -1448,6 +1448,14 @@ def test_fascicolo_serializza_metadati_sync_portale(gf, fascicolo_base):
         fascicolo_base.id,
         source="PST",
         source_external_id="0800570094:1025:2024:CIVILE",
+        codice_ufficio_portale="0800570094",
+        id_fascicolo_portale="SIECIC-172944",
+        tipo_registro="ESIM",
+        registro_portale="ESIM",
+        servizio_pst="JPW_SIECIC",
+        sub_procedimento="CONTENZIOSO",
+        id_dfa="DFA-ESIM-3441",
+        ruolo_polisweb="CUS",
         last_sync_at="2026-04-06T10:45:00",
         sync_status="SINCRONIZZATO",
         import_log_id="PST-20260406104500-ABC123",
@@ -1461,6 +1469,14 @@ def test_fascicolo_serializza_metadati_sync_portale(gf, fascicolo_base):
 
     assert ripristinato.source == "PST"
     assert ripristinato.source_external_id == "0800570094:1025:2024:CIVILE"
+    assert ripristinato.codice_ufficio_portale == "0800570094"
+    assert ripristinato.id_fascicolo_portale == "SIECIC-172944"
+    assert ripristinato.tipo_registro == "ESIM"
+    assert ripristinato.registro_portale == "ESIM"
+    assert ripristinato.servizio_pst == "JPW_SIECIC"
+    assert ripristinato.sub_procedimento == "CONTENZIOSO"
+    assert ripristinato.id_dfa == "DFA-ESIM-3441"
+    assert ripristinato.ruolo_polisweb == "CUS"
     assert ripristinato.last_sync_at == "2026-04-06T10:45:00"
     assert ripristinato.sync_status == "SINCRONIZZATO"
     assert ripristinato.import_log_id == "PST-20260406104500-ABC123"

@@ -55,6 +55,8 @@ Scenario coperto:
 - la chiave di presidio elimina la parte di controparte dopo `c.` e riconosce il gruppo come possibile doppione;
 - la UI può quindi mostrare il gruppo nella card `Doppioni` invece di dichiarare falsamente `0`.
 
+Durante la prova di applicazione sul server è emerso anche un bug nella fusione dei metadati economici: un campo pagamento con lista vuota non deve generare `TypeError`. Il test `test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti` ora copre il caso `fonti_documentali=[]` e verifica che la fonte del duplicato venga conservata.
+
 Comandi locali già eseguiti sul perimetro:
 
 ```powershell

@@ -1189,6 +1189,10 @@ class GestioneFascicoli:
             return False
         return status in {"", "non_previsto", "da_registrare", "da_emettere"}
 
+    @staticmethod
+    def _campo_pagamento_vuoto(value: Any) -> bool:
+        return value is None or value == "" or value == [] or value == {}
+
     @classmethod
     def _merge_pagamenti_preservando_manualita(
         cls,
@@ -1203,7 +1207,7 @@ class GestioneFascicoli:
             if isinstance(merged.get(key), dict) and isinstance(value, dict):
                 current = dict(merged[key])
                 for field_name, field_value in value.items():
-                    if field_name not in current or current.get(field_name) in {None, "", []}:
+                    if field_name not in current or cls._campo_pagamento_vuoto(current.get(field_name)):
                         current[field_name] = copy.deepcopy(field_value)
                 merged[key] = current
         return merged

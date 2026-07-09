@@ -153,6 +153,12 @@ def test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti(gf):
         numero_rg="1733",
         anno_rg=2026,
         data_prossima_udienza="",
+        pagamenti={
+            "liquidazione_giudice": {
+                "status": "da_registrare",
+                "fonti_documentali": [],
+            }
+        },
     )
     duplicato = Fascicolo(
         id="DUP1733A",
@@ -168,6 +174,7 @@ def test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti(gf):
                 "status": "da_registrare",
                 "importo": 1100,
                 "documento_fonte": "Sentenza.pdf",
+                "fonti_documentali": ["Sentenza.pdf"],
             }
         },
     )
@@ -199,6 +206,7 @@ def test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti(gf):
     assert any(doc.nome == "Sentenza.pdf" for doc in aggiornato.documenti)
     assert gf.percorso_documento_lettura(aggiornato.id, "DOCSENT1").exists()
     assert aggiornato.pagamenti["liquidazione_giudice"]["importo"] == 1100
+    assert aggiornato.pagamenti["liquidazione_giudice"]["fonti_documentali"] == ["Sentenza.pdf"]
     assert aggiornato.pagamenti["_presidio_documentale"]["status"] == "stale"
 
 

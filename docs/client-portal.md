@@ -1,6 +1,6 @@
 # Portale Cliente
 
-Aggiornato: 2026-06-08.
+Aggiornato: 2026-07-10.
 
 Il Portale Cliente espone una console studio in React su `/app/portale-clienti` e una vista cliente pubblica in React su `/portale-cliente`. Le API sono sotto `/api/v1/ui/client-portal/*` e usano dati reali di clienti e fascicoli, senza dati dimostrativi.
 
@@ -58,8 +58,24 @@ Ogni tabella include `tenant_id`. I file caricati sono salvati sotto storage ten
 - `routes.appV2.clientPortal.enabled`: abilita console studio e vista cliente, default `on`;
 - `routes.appV2.clientPortal.notifications`: notifiche in-app, default `on`;
 - `routes.appV2.clientPortal.signatures`: firma semplice con evidenza, default `on`;
+- `routes.appV2.clientPortal.signingWorkflow`: workflow professionale preventivo/conferimento/identità/firma su PDF con evidenze, **default `off`** e fail-closed (vedi `docs/portale-cliente-firma.md`);
 - `routes.appV2.clientPortal.webPush`: Web Push cliente, default `off`;
 - `routes.appV2.clientPortal.videoCalls`: link videocall governati, default `on`.
+
+## Workflow incarico e firma (flag `signingWorkflow`)
+
+Con il flag attivo il cliente trova nel portale il percorso guidato «Incarico e
+firma»: accettazione/rifiuto preventivo con evidenze (hash PDF, dichiarazione,
+IP hash, riferimento token), acquisizione documento d'identità (upload,
+fotocamera mobile, webcam con consenso esplicito) con revisione studio,
+conferimento incarico disponibile solo dopo l'accettazione del preventivo,
+firma elettronica/grafica applicata realmente sul PDF (nuova versione
+immutabile + evidence pack), fallback download/upload firmato, OTP step-up
+opzionale (`signatures.otpStepUp`), ricevuta finale. Endpoint pubblici sotto
+`/api/v1/ui/client-portal/public/signing/*`; revisione studio su
+`POST /api/v1/ui/client-portal/studio/documents/<id>/review`. Il dettaglio
+completo, incluse le garanzie GDPR e i limiti (mai firma qualificata), è in
+`docs/portale-cliente-firma.md`.
 
 ## Contratti e UI
 

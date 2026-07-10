@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 262.
+- Route Flask GET candidate rilevate fuori manifest: 264.
 
 ### Distribuzione rischio
 
@@ -518,6 +518,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.clientPortal.webPush | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_WEBPUSH | Notifiche Web Push del Portale Cliente. | off |
 | routes.appV2.clientPortal.videoCalls | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_VIDEOCALLS | Link videocall governati nel Portale Cliente. | on |
 | routes.appV2.clientPortal.signatures | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_SIGNATURES | Firma semplice con evidenza nel Portale Cliente. | on |
+| routes.appV2.clientPortal.signingWorkflow | IUSENTRA_FF_ROUTES_APPV2_CLIENTPORTAL_SIGNINGWORKFLOW | Workflow professionale preventivo, conferimento incarico, documento identità e firma elettronica con evidenze nel Portale Cliente. Default-off. | off |
 | features.sentenzaEconomicControl | IUSENTRA_FF_FEATURES_SENTENZAECONOMICCONTROL | Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off. | off |
 | lex.economicContextTools | IUSENTRA_FF_LEX_ECONOMICCONTEXTTOOLS | Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off. | off |
 | routes.appV2.docsPanel | IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL | Alias compatibilita fase 1 per routes.appV2.documents.list. | off |

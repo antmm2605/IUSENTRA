@@ -404,6 +404,31 @@ def _shape_dashboard(snapshot: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _preventivo_options() -> list[dict[str, str]]:
+    """Opzioni preventivo per il form invito (solo con workflow firma attivo)."""
+
+    if not is_feature_enabled("routes.appV2.clientPortal.signingWorkflow", current_app.config):
+        return []
+    getter = _core_runtime_func("get_preventivi")
+    manager = getter() if callable(getter) else None
+    if manager is None:
+        return []
+    options = []
+    for preventivo in manager.tutti_preventivi():
+        stato = getattr(getattr(preventivo, "stato", ""), "value", getattr(preventivo, "stato", ""))
+        if _text(stato) not in {"INVIATO", "APERTO"}:
+            continue
+        options.append(
+            {
+                "id": _text(getattr(preventivo, "id", "")),
+                "label": f"{_text(getattr(preventivo, 'numero', ''))} — {_text(getattr(preventivo, 'oggetto', ''))}"[:90],
+                "clientId": _text(getattr(preventivo, "id_cliente", "")),
+                "status": _text(stato),
+            }
+        )
+    return options
+
+
 def build_studio_dashboard_payload() -> dict[str, Any]:
     repo = repository_for_current_request()
     tenant_id = _current_tenant_id()
@@ -416,6 +441,7 @@ def build_studio_dashboard_payload() -> dict[str, Any]:
         "canWrite": _can("clienti.scrivi"),
         "clientOptions": _cliente_options(),
         "matterOptions": _fascicolo_options(),
+        "preventivoOptions": _preventivo_options(),
         "actions": {
             "createInvite": "/api/v1/ui/client-portal/studio/invites",
             "sendMessage": "/api/v1/ui/client-portal/studio/messages",

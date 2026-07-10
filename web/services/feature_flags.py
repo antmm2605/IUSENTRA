@@ -33,6 +33,7 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "routes.appV2.telematico.surface",
         "routes.appV2.notifications.mobilePush",
         "routes.appV2.clientPortal.webPush",
+        "routes.appV2.clientPortal.signingWorkflow",
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
         "lex.legalSkills.scheduledAgents",
@@ -219,6 +220,7 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.clientPortal.webPush", "Notifiche Web Push del Portale Cliente."),
     _flag("routes.appV2.clientPortal.videoCalls", "Link videocall governati nel Portale Cliente."),
     _flag("routes.appV2.clientPortal.signatures", "Firma semplice con evidenza nel Portale Cliente."),
+    _flag("routes.appV2.clientPortal.signingWorkflow", "Workflow professionale preventivo, conferimento incarico, documento identità e firma elettronica con evidenze nel Portale Cliente. Default-off."),
     _flag("features.sentenzaEconomicControl", "Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off."),
     _flag("lex.economicContextTools", "Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off."),
     FeatureFlagDefinition(

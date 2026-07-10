@@ -374,6 +374,7 @@ def _features_payload() -> dict[str, bool]:
         "routes.appV2.clientPortal.webPush",
         "routes.appV2.clientPortal.videoCalls",
         "routes.appV2.clientPortal.signatures",
+        "routes.appV2.clientPortal.signingWorkflow",
     )
     return {key: is_feature_enabled(key, current_app.config) for key in keys}
 

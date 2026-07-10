@@ -84,6 +84,7 @@ export type FeatureFlagKey =
   | 'routes.appV2.clientPortal.webPush'
   | 'routes.appV2.clientPortal.videoCalls'
   | 'routes.appV2.clientPortal.signatures'
+  | 'routes.appV2.clientPortal.signingWorkflow'
   | 'routes.appV2.docsPanel'
   | 'routes.appV2.commsDeposits'
   | 'routes.appV2.uploadClassification'

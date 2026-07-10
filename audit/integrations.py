@@ -289,6 +289,41 @@ def emit_incident(
     )
 
 
+def emit_client_signature_acquired(
+    *,
+    fascicolo_id: str,
+    signature_id: str,
+    conferimento_id: str,
+    original_sha256: str,
+    signed_sha256: str,
+    evidence_sha256: str,
+    tenant_id: str = "",
+    idempotency_key: str = "",
+) -> Any | None:
+    """Firma elettronica semplice acquisita dal Portale Cliente (evidence hash).
+
+    Nel WORM finiscono solo gli hash: mai il tratto firma, l'IP o il token.
+    """
+
+    if not str(fascicolo_id or "").strip():
+        return None
+    return _emit(
+        kind=AuditKind.CLIENT_SIGNATURE_ACQUIRED,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        payload={
+            "signature_id": signature_id,
+            "conferimento_id": conferimento_id,
+            "original_sha256": original_sha256,
+            "signed_sha256": signed_sha256,
+            "evidence_sha256": evidence_sha256,
+        },
+        files=[],
+        module="client_portal.firma",
+        idempotency_key=idempotency_key or f"CLIENT_SIGNATURE_ACQUIRED:{fascicolo_id}:{signature_id}",
+    )
+
+
 def emit_receipt_issued(
     *,
     fascicolo_id: str,

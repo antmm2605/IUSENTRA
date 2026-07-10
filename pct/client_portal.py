@@ -125,6 +125,22 @@ class ClientPortalError(ValueError):
     """Errore controllato del Portale Cliente."""
 
 
+# Stati ammessi per client_portal_documents.status. "firmato_definitivo" è
+# terminale: la versione firmata di un documento non è mai modificabile.
+CLIENT_PORTAL_DOCUMENT_STATUSES = frozenset(
+    {
+        "caricato",
+        "generato",
+        "in_revisione",
+        "approvato",
+        "respinto",
+        "sostituito",
+        "firmato_definitivo",
+    }
+)
+CLIENT_PORTAL_DOCUMENT_FINAL_STATUS = "firmato_definitivo"
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -530,7 +546,10 @@ class ClientPortalRepository:
         }
         return self._insert("client_portal_document_requests", record)
 
-    def add_document(self, tenant_id: str, *, matter_id: str, request_id: str, client_id: str, filename: str, stored_name: str, content_type: str, size_bytes: int, sha256: str) -> dict[str, Any]:
+    def add_document(self, tenant_id: str, *, matter_id: str, request_id: str, client_id: str, filename: str, stored_name: str, content_type: str, size_bytes: int, sha256: str, status: str = "caricato") -> dict[str, Any]:
+        document_status = str(status or "caricato")
+        if document_status not in CLIENT_PORTAL_DOCUMENT_STATUSES:
+            raise ClientPortalError("Stato documento non valido.")
         record = {
             "id": new_id("cpd"),
             "tenant_id": tenant_id,
@@ -542,7 +561,7 @@ class ClientPortalRepository:
             "content_type": content_type,
             "size_bytes": int(size_bytes or 0),
             "sha256": sha256,
-            "status": "caricato",
+            "status": document_status,
             "uploaded_at": utc_now(),
             "reviewed_at": "",
             "review_note": "",
@@ -553,6 +572,38 @@ class ClientPortalRepository:
         self._update_progress_from_activity(tenant_id, matter_id)
         self.record_audit(tenant_id, "cliente", client_id, "client_portal.document.upload", "document", record["id"], {"matterId": matter_id, "sha256": sha256})
         return record
+
+    def get_document(self, tenant_id: str, document_id: str) -> dict[str, Any] | None:
+        row = self._fetchone(
+            "SELECT * FROM client_portal_documents WHERE tenant_id = ? AND id = ?",
+            (tenant_id, document_id),
+        )
+        return row or None
+
+    def find_documents_by_request(self, tenant_id: str, *, matter_id: str, request_id: str) -> list[dict[str, Any]]:
+        return self._fetchall(
+            "SELECT * FROM client_portal_documents WHERE tenant_id = ? AND matter_id = ? AND request_id = ? "
+            "ORDER BY uploaded_at DESC LIMIT 50",
+            (tenant_id, matter_id, request_id),
+        )
+
+    def update_document_status(self, tenant_id: str, document_id: str, *, status: str, reviewed_at: str = "", review_note: str = "", actor_id: str = "", actor_type: str = "studio") -> dict[str, Any]:
+        new_status = str(status or "")
+        if new_status not in CLIENT_PORTAL_DOCUMENT_STATUSES:
+            raise ClientPortalError("Stato documento non valido.")
+        row = self.get_document(tenant_id, document_id)
+        if not row:
+            raise ClientPortalError("Documento non trovato.")
+        if str(row.get("status") or "") == CLIENT_PORTAL_DOCUMENT_FINAL_STATUS:
+            raise ClientPortalError("Il documento firmato è definitivo e non può essere modificato.")
+        values: dict[str, Any] = {"status": new_status}
+        if reviewed_at:
+            values["reviewed_at"] = reviewed_at
+        if review_note:
+            values["review_note"] = str(review_note)[:1000]
+        self._update("client_portal_documents", values, "id = ? AND tenant_id = ?", (document_id, tenant_id))
+        self.record_audit(tenant_id, actor_type, actor_id, "client_portal.document.status", "document", document_id, {"status": new_status})
+        return self.get_document(tenant_id, document_id) or {**row, **values}
 
     def add_signature_request(self, tenant_id: str, *, matter_id: str, title: str, description: str = "", document_id: str = "", due_at: str = "") -> dict[str, Any]:
         record = {

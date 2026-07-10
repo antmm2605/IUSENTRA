@@ -454,11 +454,23 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "code": "validation_error", "message": "Il fascicolo selezionato non è disponibile nel Portale Cliente."}
     if _text(getattr(fascicolo, "id_cliente", "")) and _text(getattr(fascicolo, "id_cliente", "")) != client_id:
         return {"ok": False, "code": "validation_error", "message": "Il fascicolo selezionato non è collegato al cliente."}
+    preventivo_id = _text(payload.get("preventivoId"))
+    if preventivo_id:
+        # L'invito può referenziare un preventivo del cliente: usato dal workflow
+        # di firma per evidenziarlo. Validazione di appartenenza qui, lato studio.
+        getter = _core_runtime_func("get_preventivi")
+        gestione_preventivi = getter() if callable(getter) else None
+        preventivo = gestione_preventivi.get_preventivo(preventivo_id) if gestione_preventivi else None
+        if preventivo is None or _text(getattr(preventivo, "id_cliente", "")) != client_id:
+            return {"ok": False, "code": "validation_error", "message": "Il preventivo selezionato non è collegato al cliente."}
     profile = repo.ensure_profile(tenant_id, **_profile_from_cliente(cliente))
     matter_payload = _matter_from_fascicolo(fascicolo)
     matter_payload["client_id"] = client_id
     matter = repo.ensure_matter(tenant_id, **matter_payload)
     token = make_invite_token(_tenant_locator())
+    metadata = {"matterTitle": matter.get("title"), "clientName": profile.get("display_name")}
+    if preventivo_id:
+        metadata["preventivoId"] = preventivo_id
     created = repo.create_invite(
         tenant_id,
         client_id=client_id,
@@ -467,7 +479,7 @@ def create_invite_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         channel=_text(payload.get("channel")) or "email",
         notes=_text(payload.get("message")),
         actor_id=_actor_id(),
-        metadata={"matterTitle": matter.get("title"), "clientName": profile.get("display_name")},
+        metadata=metadata,
         token_value=token,
     )
     invite_url = _public_url(f"/portale-cliente/invito/{created['token']}")
@@ -1109,6 +1121,57 @@ def _resolved_upload_child(root: Path, *parts: str) -> Path:
     return target
 
 
+def _persist_client_upload(
+    repo: ClientPortalRepository,
+    invite: dict[str, Any],
+    *,
+    data: bytes,
+    original_name: str,
+    content_type: str,
+    request_id: str,
+    status: str = "caricato",
+    filename_prefix: str = "",
+) -> dict[str, Any]:
+    """Scrive i byte nello storage tenant-aware del portale e registra la riga documento.
+
+    Le validazioni MIME/dimensione restano a carico del chiamante: qui vivono
+    solo path-safety, hash e persistenza (riusato da upload cliente, PDF
+    materializzati e documenti firmati).
+    """
+
+    tenant_id = _text(invite.get("tenant_id"))
+    matter_id = _text(invite.get("matter_id"))
+    digest = hashlib.sha256(data).hexdigest()
+    matter_dir = _safe_upload_name(matter_id)
+    doc_id = hashlib.sha256(f"{digest}:{utc_now()}".encode("utf-8")).hexdigest()[:20]
+    upload_root = repo.db_path.parent / "uploads"
+    root = _resolved_upload_child(upload_root, matter_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    prefix = _safe_upload_name(filename_prefix) + "_" if filename_prefix else ""
+    stored_name = f"{prefix}{doc_id}_{original_name}"
+    target = _resolved_upload_child(root, stored_name)
+    target.write_bytes(data)
+    return repo.add_document(
+        tenant_id,
+        matter_id=matter_id,
+        request_id=_text(request_id),
+        client_id=_text(invite.get("client_id")),
+        filename=original_name,
+        stored_name=f"{matter_dir}/{stored_name}",
+        content_type=content_type,
+        size_bytes=len(data),
+        sha256=digest,
+        status=status,
+    )
+
+
+def _document_bytes(repo: ClientPortalRepository, row: dict[str, Any]) -> bytes:
+    """Rilegge i byte di un documento del portale dal suo storage (path-safe)."""
+
+    path, _filename, _content_type = _document_download_tuple(repo, row)
+    return path.read_bytes()
+
+
 def client_upload_document(file: FileStorage, *, request_id: str = "") -> dict[str, Any]:
     try:
         token = _current_client_token()
@@ -1137,27 +1200,13 @@ def client_upload_document(file: FileStorage, *, request_id: str = "") -> dict[s
                     "Riduci la dimensione (es. scansiona a risoluzione più bassa o dividi il PDF) e riprova."
                 ),
             }
-        digest = hashlib.sha256(data).hexdigest()
-        matter_id = _text(invite.get("matter_id"))
-        matter_dir = _safe_upload_name(matter_id)
-        doc_id = hashlib.sha256(f"{digest}:{utc_now()}".encode("utf-8")).hexdigest()[:20]
-        repo_for_path = repository_for_token(token)
-        upload_root = repo_for_path.db_path.parent / "uploads"
-        root = _resolved_upload_child(upload_root, matter_dir)
-        root.mkdir(parents=True, exist_ok=True)
-        stored_name = f"{doc_id}_{original_name}"
-        target = _resolved_upload_child(root, stored_name)
-        target.write_bytes(data)
-        item = repo.add_document(
-            tenant_id,
-            matter_id=matter_id,
-            request_id=_text(request_id),
-            client_id=_text(invite.get("client_id")),
-            filename=original_name,
-            stored_name=f"{matter_dir}/{stored_name}",
+        item = _persist_client_upload(
+            repo,
+            invite,
+            data=data,
+            original_name=original_name,
             content_type=content_type,
-            size_bytes=len(data),
-            sha256=digest,
+            request_id=_text(request_id),
         )
         return {"ok": True, "message": "Documento caricato.", "item": _public_row(item), "dashboard": client_dashboard_payload(token=token)}
     except ClientPortalError:

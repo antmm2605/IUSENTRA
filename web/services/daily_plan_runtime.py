@@ -339,6 +339,101 @@ def repository_for_current_request() -> DailyPlanRepository:
     return repository_from_paths(_current_paths(), tenant_label=current_tenant_label())
 
 
+def run_daily_plan_for_all_tenants(
+    app,
+    *,
+    mode: str = "incremental",
+    actor: str = "IUSENTRA scheduler",
+) -> dict[str, Any]:
+    """Esegue il piano del giorno per tutti gli studi attivi.
+
+    ``mode="full"``: riconciliazione completa (giornaliera, 07:30 Europe/Rome).
+    ``mode="incremental"``: smaltisce dirty entities e job accodati; se un
+    tenant non ha nulla da rielaborare viene saltato (no-op economico).
+    Nessuna scrittura applicativa automatica: il piano è una proiezione.
+    """
+    from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
+
+    tenants: list[dict[str, Any]] = []
+    totals = {"tenants": 0, "skipped": 0, "errors": 0, "items_written": 0}
+
+    def _run_for_current(tenant_label: str) -> dict[str, Any] | None:
+        service = service_from_paths(_current_paths(), tenant_label=tenant_label)
+        repo = service.repository
+        job = repo.claim_next_job("full_rebuild")
+        effective_mode = mode
+        if job is not None:
+            effective_mode = "full"
+        elif mode != "full":
+            job = repo.claim_next_job("incremental_refresh")
+            if job is None and repo.pending_dirty_count() == 0:
+                return None  # niente da fare: no-op economico
+        try:
+            if effective_mode == "full":
+                report = service.rebuild_full(actor=actor)
+            else:
+                report = service.refresh_incremental(actor=actor)
+            if job is not None:
+                repo.finish_job(job["id"], status="done", report=report)
+            return report
+        except Exception as exc:
+            if job is not None:
+                repo.finish_job(job["id"], status="failed", report={"error": str(exc)[:200]})
+            raise
+
+    active = _active_tenants(app)
+    if active:
+        from pct.tenant import GestioneTenant
+
+        manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        for studio in active:
+            slug = str(getattr(studio, "slug", "") or "").strip().lower()
+            try:
+                with app.test_request_context(f"/__scheduler/daily-plan/{slug}"):
+                    _attach_tenant_context(manager, studio)
+                    report = _run_for_current(slug)
+            except Exception as exc:
+                totals["errors"] += 1
+                tenants.append({"tenant": slug, "ok": False, "error": str(exc)[:180]})
+                continue
+            if report is None:
+                totals["skipped"] += 1
+                tenants.append({"tenant": slug, "skipped": True})
+            else:
+                totals["tenants"] += 1
+                totals["items_written"] += int(report.get("items_written") or 0)
+                tenants.append({"tenant": slug, **{k: report[k] for k in (
+                    "mode", "items_written", "users_planned", "signals_upserted",
+                ) if k in report}})
+    else:
+        try:
+            with app.test_request_context("/__scheduler/daily-plan/default"):
+                g.multi_tenant_enabled = False
+                g.tenant_context_missing = False
+                g.tenant_context_slug = ""
+                report = _run_for_current("default")
+        except Exception as exc:
+            totals["errors"] += 1
+            tenants.append({"tenant": "default", "ok": False, "error": str(exc)[:180]})
+            report = None
+        if report is None and not totals["errors"]:
+            totals["skipped"] += 1
+            tenants.append({"tenant": "default", "skipped": True})
+        elif report is not None:
+            totals["tenants"] += 1
+            totals["items_written"] += int(report.get("items_written") or 0)
+            tenants.append({"tenant": "default", "mode": report.get("mode"),
+                            "items_written": report.get("items_written")})
+
+    return {
+        "ok": totals["errors"] == 0,
+        "job": "studio_daily_operational_plan" if mode == "full" else "daily_plan_incremental_refresh",
+        "mode": mode,
+        "tenants": tenants,
+        "totals": totals,
+    }
+
+
 def mark_dirty_for_paths(
     paths: Mapping[str, Any],
     *,

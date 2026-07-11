@@ -1181,6 +1181,78 @@ def start_scheduler(app):
                 logger.error("[scheduler] Presidio fascicoli/economia fallito: %s", e)
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
+    def _daily_plan_flags_enabled() -> bool:
+        try:
+            from web.services.feature_flags import is_feature_enabled
+
+            return bool(
+                is_feature_enabled("lex.dailyPlan.enabled", app.config)
+                and is_feature_enabled("lex.dailyPlan.scheduledRuns", app.config)
+            )
+        except Exception:
+            return False
+
+    @scheduler.scheduled_job(
+        CronTrigger(hour=7, minute=30, timezone="Europe/Rome"),
+        id="studio_daily_operational_plan",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=300,
+    )
+    def _studio_daily_operational_plan():
+        """Piano del giorno (Lex Oggi): riconciliazione completa mattutina.
+
+        Un piano per ogni utente attivo di ogni studio. Nessuna scrittura
+        applicativa automatica: produce solo la proiezione materializzata.
+        """
+        with app.app_context():
+            if not _daily_plan_flags_enabled():
+                return {"ok": True, "job": "studio_daily_operational_plan", "skipped": "feature_flag_disattivo"}
+            try:
+                from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
+
+                report = run_daily_plan_for_all_tenants(app, mode="full")
+                totals = report.get("totals") or {}
+                logger.info(
+                    "[scheduler] Piano del giorno completo: %d studi elaborati, %d attività, %d errori",
+                    int(totals.get("tenants") or 0),
+                    int(totals.get("items_written") or 0),
+                    int(totals.get("errors") or 0),
+                )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] Piano del giorno completo fallito: %s", e)
+                return {"ok": False, "job": "studio_daily_operational_plan", "error": str(e)}
+
+    @scheduler.scheduled_job(
+        CronTrigger(minute="7-59/15"),
+        id="daily_plan_incremental_refresh",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
+    def _daily_plan_incremental_refresh():
+        """Aggiornamento incrementale del piano: solo entità cambiate e job in coda."""
+        with app.app_context():
+            if not _daily_plan_flags_enabled():
+                return {"ok": True, "job": "daily_plan_incremental_refresh", "skipped": "feature_flag_disattivo"}
+            try:
+                from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
+
+                report = run_daily_plan_for_all_tenants(app, mode="incremental")
+                totals = report.get("totals") or {}
+                if int(totals.get("tenants") or 0) or int(totals.get("errors") or 0):
+                    logger.info(
+                        "[scheduler] Piano del giorno incrementale: %d studi, %d saltati, %d errori",
+                        int(totals.get("tenants") or 0),
+                        int(totals.get("skipped") or 0),
+                        int(totals.get("errors") or 0),
+                    )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] Piano del giorno incrementale fallito: %s", e)
+                return {"ok": False, "job": "daily_plan_incremental_refresh", "error": str(e)}
+
     @scheduler.scheduled_job(CronTrigger(hour=8, minute=0, timezone="Europe/Rome"), id="pec_audit_digest_daily")
     def _pec_audit_digest_daily():
         with app.app_context():

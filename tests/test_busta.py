@@ -3,6 +3,7 @@
 import os
 import tempfile
 import pytest
+from dataclasses import replace
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -129,11 +130,13 @@ def _cades_signed_payload(payload: bytes) -> bytes:
     )
 
 
-def _anagrafica_ministeriale_test() -> bytes:
+def _anagrafica_ministeriale_test(
+    atti: str = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6",
+    ana: str = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4",
+) -> bytes:
     from lxml import etree
 
-    atti = "http://schemi.processotelematico.giustizia.it/tipi/atti/v6"
-    ana = "http://schemi.processotelematico.giustizia.it/tipi/anagrafiche/v4"
+    country_field = "nazione" if "cassazione" in ana else "stato"
     root = etree.Element(f"{{{atti}}}AnagraficaProcedimento", nsmap={None: atti, "at": ana})
     partecipanti = etree.SubElement(root, f"{{{atti}}}Partecipanti")
     parte = etree.SubElement(partecipanti, f"{{{atti}}}Parte", naturaGiuridica="PFI", ID="parte_ricorrente_1")
@@ -145,7 +148,7 @@ def _anagrafica_ministeriale_test() -> bytes:
     etree.SubElement(indirizzo, f"{{{ana}}}cap").text = "00100"
     etree.SubElement(indirizzo, f"{{{ana}}}localita").text = "Roma"
     etree.SubElement(indirizzo, f"{{{ana}}}provincia").text = "RM"
-    etree.SubElement(indirizzo, f"{{{ana}}}stato").text = "IT"
+    etree.SubElement(indirizzo, f"{{{ana}}}{country_field}").text = "IT"
     controparte = etree.SubElement(partecipanti, f"{{{atti}}}ControParte", naturaGiuridica="ENP", ID="controparte_1")
     etree.SubElement(controparte, f"{{{ana}}}denominazione").text = "Ministero dell'Istruzione e del Merito"
     etree.SubElement(controparte, f"{{{ana}}}codiceFiscale").text = "80185250588"
@@ -154,7 +157,7 @@ def _anagrafica_ministeriale_test() -> bytes:
     etree.SubElement(indirizzo, f"{{{ana}}}cap").text = "00153"
     etree.SubElement(indirizzo, f"{{{ana}}}localita").text = "Roma"
     etree.SubElement(indirizzo, f"{{{ana}}}provincia").text = "RM"
-    etree.SubElement(indirizzo, f"{{{ana}}}stato").text = "IT"
+    etree.SubElement(indirizzo, f"{{{ana}}}{country_field}").text = "IT"
     soggetti = etree.SubElement(root, f"{{{atti}}}Soggetti")
     avvocato = etree.SubElement(soggetti, f"{{{atti}}}Avvocato")
     etree.SubElement(avvocato, f"{{{ana}}}cognome").text = "Rossi"
@@ -165,7 +168,7 @@ def _anagrafica_ministeriale_test() -> bytes:
     etree.SubElement(domicilio, f"{{{ana}}}cap").text = "00100"
     etree.SubElement(domicilio, f"{{{ana}}}localita").text = "Roma"
     etree.SubElement(domicilio, f"{{{ana}}}provincia").text = "RM"
-    etree.SubElement(domicilio, f"{{{ana}}}stato").text = "IT"
+    etree.SubElement(domicilio, f"{{{ana}}}{country_field}").text = "IT"
     etree.SubElement(avvocato, f"{{{ana}}}parteRappresentata", ref="parte_ricorrente_1")
     return etree.tostring(root, encoding="UTF-8")
 
@@ -197,6 +200,53 @@ def test_dati_atto_ministeriale_catalogo_citazione_usa_root_e_data(tmp_pdf):
     assert root.xpath("//*[local-name()='AnagraficaProcedimento']")
 
 
+def test_dati_atto_introduttivo_gestisce_contributo_pagato_esente_e_prenotato_a_debito(tmp_pdf):
+    from lxml import etree
+
+    base = DatiBusta(
+        codice_ufficio="0580010",
+        codice_registro="CIVILE",
+        oggetto="110001",
+        tipo_atto="RICORSO",
+        atto_principale=tmp_pdf,
+        valore_causa=1000.0,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        datiatto_generator_class="IntroduttiviSicid",
+        datiatto_root_name="Ricorso",
+        datiatto_required_data=["ContributoUnificato", "valore causa quando presente"],
+        contributo_unificato_richiesto=True,
+        contributo_unificato_xml_mode="atto_introduttivo",
+    )
+
+    with pytest.raises(ValueError, match="Contributo unificato non definito"):
+        BustaTelematica(base).crea_dati_atto_xml_per_firma()
+
+    paid = etree.fromstring(BustaTelematica(replace(
+        base,
+        contributo_unificato={"resolved": True, "mode": "pagato", "importo": 259.0},
+    )).crea_dati_atto_xml_per_firma())
+    paid_amount = paid.find(".//{*}ContributoUnificato/{*}Importo")
+    assert paid_amount is not None
+    assert paid_amount.text == "259.00"
+    assert paid_amount.get("debito") == "false"
+
+    exempt = etree.fromstring(BustaTelematica(replace(
+        base,
+        valore_causa=None,
+        contributo_unificato={"resolved": True, "mode": "esente", "importo": None},
+    )).crea_dati_atto_xml_per_firma())
+    assert exempt.find(".//{*}ContributoUnificato") is None
+    assert exempt.find(".//{*}ValoreCausa").text == "0.00"
+
+    debt = etree.fromstring(BustaTelematica(replace(
+        base,
+        contributo_unificato={"resolved": True, "mode": "prenotato_a_debito", "importo": 259.0},
+    )).crea_dati_atto_xml_per_firma())
+    debt_amount = debt.find(".//{*}ContributoUnificato/{*}Importo")
+    assert debt_amount is not None
+    assert debt_amount.get("debito") == "true"
+
+
 def test_dati_atto_ministeriale_catalogo_citazione_appello_usa_root_specifica(tmp_pdf):
     from lxml import etree
 
@@ -211,6 +261,10 @@ def test_dati_atto_ministeriale_catalogo_citazione_appello_usa_root_specifica(tm
         datiatto_root_name="CitazioneAppello",
         datiatto_studio_variable="citazioneAppello",
         datiatto_generator_mode="introduttivo_citazione",
+        datiatto_extra={
+            "precedente_provvedimento_numero": "321",
+            "precedente_provvedimento_anno": "2025",
+        },
         data_notifica_citazione="30/06/2026",
     )
 
@@ -259,10 +313,17 @@ def test_dati_atto_ministeriale_catalogo_siecic_esecuzioni_usa_procedimento(tmp_
         atto_principale=tmp_pdf,
         numero_rg="55",
         anno_rg=2026,
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(
+            "http://schemi.processotelematico.giustizia.it/tipi/atti/v7"
+        ),
         datiatto_generator_class="ParteSiecicEsecuzioni",
         datiatto_root_name="AttoIntervento",
         datiatto_studio_variable="attoIntervento",
         datiatto_generator_mode="procedimento_base",
+        datiatto_extra={
+            "credito_capitale": "1.000,00",
+            "credito_data_decorrenza": "01/07/2026",
+        },
     )
 
     root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
@@ -294,7 +355,8 @@ def test_dati_atto_ministeriale_atto_sistema_usa_destinazione_senza_rg(tmp_pdf):
     assert etree.QName(root).localname == "DepositoComplementare"
     assert etree.QName(root).namespace == SICID_SISTEMA_NS
     assert root.xpath("//*[local-name()='destinazione']")
-    assert root.xpath("//*[local-name()='Oggetto']/text()") == ["Deposito complementare"]
+    assert not root.xpath("//*[local-name()='Oggetto']")
+    assert root.xpath("/*[local-name()='DepositoComplementare']/*[local-name()='RefId']/text()")
     assert not root.xpath("//*[local-name()='procedimento']")
 
 
@@ -307,11 +369,33 @@ def test_dati_atto_ministeriale_catalogo_cassazione_usa_root_e_anagrafica(tmp_pd
         oggetto="Ricorso per cassazione",
         tipo_atto="RICORSO",
         atto_principale=tmp_pdf,
-        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(),
+        valore_causa=1000.0,
+        contributo_unificato={"resolved": True, "mode": "pagato", "importo": 259.0, "debito": False},
+        contributo_unificato_richiesto=True,
+        contributo_unificato_xml_mode="cassazione_spese_giustizia",
+        anagrafica_procedimento_xml=_anagrafica_ministeriale_test(
+            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13",
+            "http://schemi.processotelematico.giustizia.it/cassazione/tipi/anagrafiche/v13",
+        ),
         datiatto_generator_class="ParteCassazione",
         datiatto_root_name="Ricorso",
         datiatto_studio_variable="ricorso",
         datiatto_generator_mode="cassazione_parte",
+        datiatto_extra={
+            "tipo_ricorso_cassazione": "RicorsoOrdinario",
+            "data_richiesta_notifica_cassazione": "30/06/2026",
+            "data_effettiva_notifica_cassazione": "01/07/2026",
+            "provvedimento_impugnato": {
+                "ufficio": "0580010",
+                "ruolo": "Contenzioso",
+                "numero_fascicolo": "123",
+                "anno_fascicolo": "2025",
+            },
+            "inizio_primo_grado_anno": "2024",
+            "inizio_primo_grado_ufficio": "0580010",
+            "materia_ricorso_cassazione": "001",
+            "motivi_cassazione": [{"numero": "1", "numero_art_360": "3", "pagina": "1"}],
+        },
     )
 
     root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())

@@ -293,6 +293,10 @@
          class="nav-link sb-link {% if request.path == '/editor-professionale' %}active{% endif %}">
         <i class="bi bi-pencil-square"></i><span class="sb-txt">Editor professionale</span>
       </a>
+      <a href="/template-atti/editor"
+         class="nav-link sb-link {% if request.path == '/template-atti/editor' %}active{% endif %}">
+        <i class="bi bi-file-earmark-plus"></i><span class="sb-txt">Editor libero</span>
+      </a>
       <a href="{{ url_for('template_atti.lista') }}"
          class="nav-link sb-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
         <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Redazione Atti</span>

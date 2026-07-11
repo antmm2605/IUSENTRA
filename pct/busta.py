@@ -3,6 +3,7 @@
 import hashlib
 import mimetypes
 import re
+from copy import deepcopy
 from io import BytesIO
 import tempfile
 import uuid
@@ -53,11 +54,16 @@ MINISTERIAL_PARTE_NS = "http://schemi.processotelematico.giustizia.it/sicid/part
 MINISTERIAL_ATTI_V7_NS = "http://schemi.processotelematico.giustizia.it/tipi/atti/v7"
 SICID_INTRO_V7_NS = "http://schemi.processotelematico.giustizia.it/sicid/introduttivi/v7"
 SICID_PARTE_V7_NS = "http://schemi.processotelematico.giustizia.it/sicid/parte/v7"
+SICID_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sicid/professionista/v2"
 SIGP_ATTI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/atti/v3"
+SIGP_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/allegati/v3"
+SIGP_TIPI_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/v2"
+SIGP_EVENTI_PARTE_NS = "http://schemi.processotelematico.giustizia.it/sigp/eventi/parte/v2"
 SIGP_INTRO_NS = "http://schemi.processotelematico.giustizia.it/sigp/cartabia/introduttivi/v3"
 SIGP_CORSO_CAUSA_NS = "http://schemi.processotelematico.giustizia.it/sigp/cartabia/corsocausa/v3"
 SIGP_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/professionista/v3"
 SIGP_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sigp/sistema/pubblico/v3"
+SIGP_ANAGRAFICHE_NS = "http://schemi.processotelematico.giustizia.it/sigp/tipi/anagrafiche/v2"
 SIECIC_INTRO_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/introduttivi/v7"
 SIECIC_INTRO_ESECUZIONI_NS = "http://schemi.processotelematico.giustizia.it/siecic/esecuzioni/introduttivi/v8"
 SIECIC_PARTE_CONCORSUALI_NS = "http://schemi.processotelematico.giustizia.it/siecic/concorsuali/parte/v8"
@@ -71,8 +77,14 @@ SICID_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/sicid/sistema/
 SIECIC_SISTEMA_NS = "http://schemi.processotelematico.giustizia.it/siecic/sistema/pubblico/v3"
 CASSAZIONE_PARTE_NS = "http://schemi.processotelematico.giustizia.it/cassazione/Parte/v13"
 CASSAZIONE_ATTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v13"
+CASSAZIONE_TIPI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/tipi/v13"
+CASSAZIONE_EVENTI_NS = "http://schemi.processotelematico.giustizia.it/cassazione/eventi/v13"
 MINISTERIAL_ALLEGATI_NS = "http://schemi.processotelematico.giustizia.it/tipi/allegati/v1"
+MINISTERIAL_EVENTI_PARTE_NS = "http://schemi.processotelematico.giustizia.it/eventi/parte"
+MINISTERIAL_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/eventi/professionista"
+SIGP_EVENTI_PROFESSIONISTA_NS = "http://schemi.processotelematico.giustizia.it/sigp/eventi/professionista"
 SIECIC_EVENTI_NS = "http://schemi.processotelematico.giustizia.it/siecic/eventi"
+SIECIC_EVENTI_CRISI_NS = "http://schemi.processotelematico.giustizia.it/eventi/crisiimpresa"
 SIECIC_TIPIBASE_NS = "http://schemi.processotelematico.giustizia.it/siecic/tipibase/v4"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 XSD_NS = "http://www.w3.org/2001/XMLSchema"
@@ -92,7 +104,7 @@ DATIATTO_ROOT_NS_BY_GENERATOR_CLASS = {
     "DelSiecicEsecuzioni": SIECIC_DEL_ESECUZIONI_NS,
     "ProfSiecicConcorsuali": SIECIC_PROF_CONCORSUALI_NS,
     "ProfSiecicEsecuzioni": SIECIC_PROF_ESECUZIONI_NS,
-    "Professionista": SICID_PARTE_V7_NS,
+    "Professionista": SICID_PROFESSIONISTA_NS,
     "AttoSistemaSicid": SICID_SISTEMA_NS,
     "AttoSistemaSiecic": SIECIC_SISTEMA_NS,
     "ParteCassazione": CASSAZIONE_PARTE_NS,
@@ -108,19 +120,23 @@ DATIATTO_V7_ATTI_GENERATOR_CLASSES = frozenset(
         "DelSiecicEsecuzioni",
         "ProfSiecicConcorsuali",
         "ProfSiecicEsecuzioni",
+        "Professionista",
     }
 )
 DATIATTO_V7_SICID_PARTE_ROOTS = frozenset({"AttoRichiestaVisibilita", "MemorieCartabia"})
+DATIATTO_V7_SICID_INTRO_ROOTS = frozenset(
+    {"RicorsoImmigrazioneConvalida", "RicorsoReclamoSospensiva"}
+)
 DATIATTO_ATTI_NS_BY_GENERATOR_CLASS = {
     "IntroduttiviSicid": MINISTERIAL_ATTI_NS,
     "Parte": MINISTERIAL_ATTI_NS,
     "Introduttivi_SIGP": SIGP_ATTI_NS,
     "CorsoCausa_SIGP": SIGP_ATTI_NS,
     "Professionista_SIGP": SIGP_ATTI_NS,
-    "AttoSistema_SIGP": SIGP_SISTEMA_NS,
+    "AttoSistema_SIGP": SIGP_ATTI_NS,
     "ParteCassazione": CASSAZIONE_ATTI_NS,
-    "AttoSistemaSicid": SICID_SISTEMA_NS,
-    "AttoSistemaSiecic": SIECIC_SISTEMA_NS,
+    "AttoSistemaSicid": MINISTERIAL_ATTI_V7_NS,
+    "AttoSistemaSiecic": MINISTERIAL_ATTI_V7_NS,
 }
 MINISTERIAL_PROCEDIMENTO_BASE_ROOTS = frozenset(
     {
@@ -134,6 +150,139 @@ MINISTERIAL_PROCEDIMENTO_BASE_ROOTS = frozenset(
         "ScrittiDifensivi",
     }
 )
+
+SICID_PARTE_MODIFICHE_ANAGRAFICA_REQUIRED_ROOTS = frozenset(
+    {
+        "AttoCostituzioneNuovoAvvocato",
+        "ComparsaCostituzioneAppello",
+        "ComparsaCostituzioneAppelloIncidentale",
+        "CostituzioneConRiconvenzionale",
+        "CostituzioneSemplice",
+        "Reclamo",
+        "RicorsoCautelareCorsoCausa",
+        "RicorsoSequestroConservativoCorsoCausa",
+        "RicorsoSequestroGiudiziarioCorsoCausa",
+    }
+)
+
+SICID_PARTE_ISTANZA_EVENT_BY_KEY = {
+    "depositoNotaSpese": "depositoNotaSpese",
+    "DepositoProveExArt210Cpc": "DepositoProveExArt210Cpc",
+    "IstanzaCongiuntaFissazioneUdienza": "IstanzaCongiuntaFissazioneUdienza",
+    "IstanzaAnticipazioneUdienza": "IstanzaAnticipazioneDifferimentoUdienza",
+    "IstanzaDifferimentoUdienza": "IstanzaAnticipazioneDifferimentoUdienza",
+    "IstanzaCorrezioneErroreMateriale": "IstanzaCorrezioneErroreMateriale",
+    "IstanzaDeferimentoGiuramento": "IstanzaDeferimentoGiuramento",
+    "IstanzaEstromissione": "IstanzaEstromissione",
+    "IstanzaFissazioneUdienza": "IstanzaFissazioneUdienza",
+    "IstanzaFissazioneUdienzaCollegamentiAudioVisivi": "IstanzaFissazioneUdienzaCollegamentiAudioVisivi",
+    "IstanzaInterruzione": "IstanzaInterruzione",
+    "IstanzaRevocaUdienzaCollegamentiAudioVisivi": "IstanzaRevocaUdienzaCollegamentiAudioVisivi",
+    "IstanzaRicusazioneGiudice": "IstanzaRicusazioneGiudice",
+    "IstanzaRimessioneInIstruttoria": "IstanzaRimessioneInIstruttoria",
+    "IstanzaRimessioneTermini": "IstanzaRimessioneTermini",
+    "IstanzaRinuncia": "IstanzaRinuncia",
+    "IstanzaRinvioXDiscussioneOrale": "IstanzaRinvioXDiscussioneOrale",
+    "IstanzaSospensioneProvvisoriaEsecuzione": "IstanzaSospensioneProvvisoriaEsecuzione",
+    "IstanzaTrasformazioneInConsensuale": "IstanzaTrasformazioneInConsensuale",
+    "IstanzaExArt186Bis": "IstanzaExArt186Bis",
+    "IstanzaExArt186Quater": "IstanzaExArt186Quater",
+    "IstanzaExArt186Ter": "IstanzaExArt186Ter",
+    "MemoriaReplica183UC": "MemoriaReplica183UC",
+    "DepositoMemoria2409": "DepositoMemoria2409",
+    "MemoriaIstruttoria183UC": "MemoriaIstruttoria183UC",
+    "NoteConclusionali350Bis": "NoteConclusionali",
+    "NoteScrittePC": "NoteScrittePC",
+    "NoteScrittePC_DiscussioneOrale": "NoteScrittePC",
+    "IstanzaRichiestaEsecutorietaExArt647": "IstanzaRichiestaEsecutorietaExArt647",
+    "RichiestaFormulaEsecutiva": "IstanzaRichiestaEsecutorietaExArt647",
+    "RichiestaInefficaciaMisuraCautelare": "RichiestaInefficaciaMisuraCautelare",
+    "IstanzaRichiestaInefficaciaExArt188": "IstanzaRichiestaInefficaciaExArt188",
+}
+
+SICID_PARTE_RICORSO_EVENT_BY_KEY = {
+    "DepositoRicorsoDiRiassunzione": "DepositoRicorsoDiRiassunzione",
+    "DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento": (
+        "DepositoRicorsoFissazioneUdienzaDiProsecuzioneProcedimento"
+    ),
+    "OpposizioneTardivaExArt668": "OpposizioneTardivaExArt668",
+    "RichiestaFissazioneModalitaProvvedimento": "RichiestaFissazioneModalitaProvvedimento",
+}
+
+SICID_PARTE_DOCUMENT_EVENT_BY_KEY = {
+    "DocumentazioneIntegrativaAUSL": "DocumentazioneIntegrativaAUSL",
+    "DocumentazioneIntegrativaPM": "DocumentazioneIntegrativaPM",
+    "InventarioEreditaGiacente": "InventarioEreditaGiacente",
+    "RelazioneAmministrazioneSostegno": "RelazioneAmministrazioneSostegno",
+    "RelazioneFinaleArt2409cc": "RelazioneFinaleArt2409cc",
+    "RelazioneIspettoreArt2409cc": "RelazioneIspettoreArt2409cc",
+    "RendicontoAmministrazioneSostegno": "RendicontoAmministrazioneSostegno",
+    "RendicontoEreditaGiacente": "RendicontoEreditaGiacente",
+}
+
+DEPOSITO_SEMPLICE_EVENT_BY_GENERATOR_AND_KEY = {
+    "Professionista": {
+        "DepositoGiuramentoTelematico": "DepositoGiuramentoTelematico",
+        "DepositoIntegrazionePerizia": "integrazionePerizia",
+        "DepositoPerizia": "depositoPerizia",
+        "DepositoRichiestaProrogaTerminiPerizia": "richiestaProrogaTerminiPerizia",
+        "DepositoIstanzaGenerica": "AttoNonCodificato",
+        "DepositoIstanzaLiquidazioneCTU": "istanzaLiquidazioneCTU",
+        "NotaDepositoProfessionista": "AttoNonCodificato",
+    },
+    "Professionista_SIGP": {
+        "DepositoPerizia": "depositoPerizia",
+        "DepositoRichiestaProrogaTerminiPerizia": "richiestaProrogaTerminiPerizia",
+        "DepositoIstanzaGenerica": "AttoNonCodificato",
+        "DepositoIstanzaLiquidazioneCTU": "istanzaLiquidazioneCTU",
+        "NotaDepositoProfessionista": "AttoNonCodificato",
+    },
+    "ProfSiecicEsecuzioni": {
+        "AttoNonCodificato": "attoNonCodificato",
+        "DepositoIntegrazioneCTU": "depositoIntegrazioneCTU",
+        "DepositoRelazioneCTU": "depositoRelazioneCTU",
+        "NotaDeposito": "attoNonCodificato",
+    },
+    "ProfSiecicConcorsuali": {
+        "AttoNonCodificato": "attoNonCodificato",
+        "DepositoIntegrazioneCTU": "depositoIntegrazioneCTU",
+        "DepositoRelazioneCTU": "depositoRelazioneCTU",
+        "NotaDeposito": "attoNonCodificato",
+    },
+    "CusSiecicEsecuzioni": {
+        "AttoNonCodificatoCustode": "attoNonCodificato",
+        "IstanzaGenericaCustode": "istanzaGenericaCustode",
+        "IstanzaLiquidazioneCustode": "istanzaLiquidazioneCustode",
+        "NotaDepositoCustode": "attoNonCodificato",
+        "RendicontoCustode": "rendicontoCustode",
+    },
+    "DelSiecicEsecuzioni": {
+        "attoNonCodificato": "attoNonCodificato",
+        "avvisoVendita": "avvisoVendita",
+        "depositoPrezzo": "depositoPrezzo",
+        "istanzaRevocaDecadenzaAggiudicatario": "istanzaRevocaDecadenzaAggiudicatario",
+        "NotaDeposito": "attoNonCodificato",
+        "relazionePeriodicaDelegato": "relazionePeriodicaDelegato",
+        "verbaleAggiudicazione": "verbaleAggiudicazione",
+    },
+}
+
+SIECIC_PARTE_ATTO_GENERICO_EVENT_BY_GENERATOR_AND_KEY = {
+    "ParteSiecicEsecuzioni": {
+        "DepositoRinunciaMandato": "depositoRinunciaMandato",
+        "DepositoRinunciaEsecuzione": "depositoRinunciaEsecuzione",
+        "AttoGenerico": "attoNonCodificato",
+        "DepositoIstanza41TUB": "depositoIstanza41TUB",
+        "NotaDeposito": "attoNonCodificato",
+        "NoteTrattazione": "attoNonCodificato",
+        "RichiestaFormulaEsecutiva": "attoNonCodificato",
+    },
+    "ParteSiecicConcorsuali": {
+        "AttoGenerico": "attoNonCodificato",
+        "DepositoMemorie": "depositoMemorie",
+        "NoteTrattazione": "attoNonCodificato",
+    },
+}
 
 
 @dataclass
@@ -160,10 +309,14 @@ class DatiBusta:
     operatore: str = ""
     cf_mittente: str = ""
     valore_causa: Optional[float] = None
+    contributo_unificato: dict[str, Any] | None = None
+    contributo_unificato_richiesto: bool = False
+    contributo_unificato_xml_mode: str = ""
     anagrafica_procedimento_xml: bytes | str | None = None
     datiatto_generator_class: str = ""
     datiatto_root_name: str = ""
     datiatto_studio_variable: str = ""
+    datiatto_catalog_key: str = ""
     datiatto_generator_mode: str = ""
     datiatto_required_data: List[str] = field(default_factory=list)
     datiatto_extra: dict[str, Any] = field(default_factory=dict)
@@ -298,6 +451,10 @@ class BustaTelematica:
     @staticmethod
     def _ruolo_ministeriale_registro(codice_registro: str, tipo_atto: str = "") -> str:
         text = f"{codice_registro} {tipo_atto}".upper()
+        if "SIGP" in text or "GIUDICE DI PACE" in text:
+            return "GiudiceDiPace"
+        if "CASS" in text:
+            return "CassazioneCivile"
         if "RGL" in text or "LAVOR" in text:
             return "Lavoro"
         if "VG" in text or "VOLONTARIA" in text:
@@ -308,9 +465,14 @@ class BustaTelematica:
         return bool(self.dati.anagrafica_procedimento_xml or str(self.dati.datiatto_root_name or "").strip())
 
     def _usa_indice_busta_interno(self) -> bool:
-        # Il PST reale rifiuta la busta se l'indice resta solo nel DatiAtto:
-        # Atto.msg deve trasportare IndiceBusta.xml come parte MIME nominata.
-        return False
+        # Gli schemi SIGP v3 rendono l'indice interno obbligatorio. Per SICID,
+        # SIECIC e Cassazione resta il trasporto esterno gia' accettato dal PST.
+        return self._datiatto_generator_class() in {
+            "Introduttivi_SIGP",
+            "CorsoCausa_SIGP",
+            "Professionista_SIGP",
+            "AttoSistema_SIGP",
+        }
 
     def usa_indice_busta_esterno(self) -> bool:
         return not self._usa_indice_busta_interno()
@@ -915,6 +1077,8 @@ class BustaTelematica:
     def _datiatto_namespace(self) -> str:
         generator_class = self._datiatto_generator_class()
         root_name = self._datiatto_root_name()
+        if generator_class == "IntroduttiviSicid" and root_name in DATIATTO_V7_SICID_INTRO_ROOTS:
+            return SICID_INTRO_V7_NS
         if generator_class == "Parte" and root_name in DATIATTO_V7_SICID_PARTE_ROOTS:
             return SICID_PARTE_V7_NS
         if generator_class in DATIATTO_ROOT_NS_BY_GENERATOR_CLASS:
@@ -927,6 +1091,8 @@ class BustaTelematica:
 
     def _datiatto_atti_namespace(self) -> str:
         generator_class = self._datiatto_generator_class()
+        if generator_class == "IntroduttiviSicid" and self._datiatto_root_name() in DATIATTO_V7_SICID_INTRO_ROOTS:
+            return MINISTERIAL_ATTI_V7_NS
         if generator_class in DATIATTO_V7_ATTI_GENERATOR_CLASSES:
             return MINISTERIAL_ATTI_V7_NS
         if generator_class == "Parte" and self._datiatto_root_name() in DATIATTO_V7_SICID_PARTE_ROOTS:
@@ -938,6 +1104,11 @@ class BustaTelematica:
         if generator_class.startswith("ParteCassazione"):
             return CASSAZIONE_ATTI_NS
         return MINISTERIAL_ATTI_NS
+
+    def _datiatto_allegati_namespace(self) -> str:
+        if "SIGP" in self._datiatto_generator_class():
+            return SIGP_ALLEGATI_NS
+        return MINISTERIAL_ALLEGATI_NS
 
     def _is_datiatto_introduttivo(self) -> bool:
         return self._datiatto_generator_class().startswith("Introduttivi")
@@ -984,6 +1155,711 @@ class BustaTelematica:
 
     def _extra_text(self, key: str, default: str = "") -> str:
         return str(self._datiatto_extra().get(key) or default).strip()
+
+    def _catalog_key(self) -> str:
+        return str(
+            self.dati.datiatto_catalog_key
+            or self._datiatto_extra().get("tipo_deposito_telematico_key")
+            or ""
+        ).strip()
+
+    def _required_extra_text(self, key: str, label: str) -> str:
+        value = self._extra_text(key)
+        if not value:
+            raise ValueError(f"{label} mancante: completa il dato prima di generare la busta.")
+        return value
+
+    def _extra_bool(self, key: str, *, default: bool | None = None) -> bool:
+        raw = self._datiatto_extra().get(key)
+        return self._extra_bool_from_value(raw, default=default)
+
+    @staticmethod
+    def _extra_bool_from_value(raw: Any, *, default: bool | None = None) -> bool:
+        if isinstance(raw, bool):
+            return raw
+        text = str(raw or "").strip().casefold()
+        if text in {"1", "true", "si", "sì", "yes"}:
+            return True
+        if text in {"0", "false", "no"}:
+            return False
+        if default is not None:
+            return default
+        raise ValueError("Valore vero/falso mancante: completa il dato prima di generare la busta.")
+
+    def _append_riferimento_fascicolo(
+        self,
+        parent: etree._Element,
+        *,
+        namespace: str,
+        name: str,
+        numero_key: str,
+        anno_key: str,
+        label: str,
+        required: bool = True,
+        children_namespace: str | None = None,
+    ) -> etree._Element | None:
+        numero = self._extra_text(numero_key)
+        anno = self._extra_text(anno_key)
+        if not numero and not anno and not required:
+            return None
+        if not numero or not re.sub(r"\D+", "", numero):
+            raise ValueError(f"Numero {label} mancante: completa il dato prima di generare la busta.")
+        if not anno.isdigit():
+            raise ValueError(f"Anno {label} mancante: completa il dato prima di generare la busta.")
+        node = etree.SubElement(parent, f"{{{namespace}}}{name}")
+        child_ns = children_namespace or namespace
+        etree.SubElement(node, f"{{{child_ns}}}numero").text = re.sub(r"\D+", "", numero)
+        etree.SubElement(node, f"{{{child_ns}}}anno").text = anno
+        return node
+
+    def _append_riferimento_provvedimento(
+        self,
+        parent: etree._Element,
+        *,
+        namespace: str,
+        name: str,
+        numero_key: str,
+        anno_key: str,
+        label: str,
+        children_namespace: str | None = None,
+    ) -> etree._Element:
+        return self._append_riferimento_fascicolo(
+            parent,
+            namespace=namespace,
+            name=name,
+            numero_key=numero_key,
+            anno_key=anno_key,
+            label=label,
+            required=True,
+            children_namespace=children_namespace,
+        )  # type: ignore[return-value]
+
+    def _aggiungi_dati_appello(self, root: etree._Element, *, name: str = "DatiAppello") -> None:
+        ns = self._datiatto_namespace()
+        atti_ns = self._datiatto_atti_namespace()
+        dati = etree.SubElement(root, f"{{{ns}}}{name}")
+        self._append_riferimento_fascicolo(
+            dati,
+            namespace=atti_ns,
+            name="Fascicolo",
+            numero_key="precedente_fascicolo_numero",
+            anno_key="precedente_fascicolo_anno",
+            label="del fascicolo precedente",
+            required=False,
+        )
+        self._append_riferimento_provvedimento(
+            dati,
+            namespace=atti_ns,
+            name="Provvedimento",
+            numero_key="precedente_provvedimento_numero",
+            anno_key="precedente_provvedimento_anno",
+            label="del provvedimento impugnato",
+        )
+
+    def _aggiungi_dati_riassunzione(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        atti_ns = self._datiatto_atti_namespace()
+        dati = etree.SubElement(root, f"{{{ns}}}DatiProcedimento")
+        self._append_riferimento_fascicolo(
+            dati,
+            namespace=atti_ns,
+            name="numeroRicorso",
+            numero_key="precedente_fascicolo_numero",
+            anno_key="precedente_fascicolo_anno",
+            label="del procedimento da riassumere",
+        )
+        etree.SubElement(dati, f"{{{atti_ns}}}dataProvvedimento").text = self._format_date_field(
+            self._required_extra_text("data_precedente_provvedimento", "Data del provvedimento precedente"),
+            "Data del provvedimento precedente",
+        )
+        if "Appello" in self._catalog_key():
+            self._aggiungi_dati_appello(root)
+
+    def _aggiungi_dati_decreto_opposto(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        dati = etree.SubElement(root, f"{{{ns}}}DatiDecreto")
+        self._append_riferimento_fascicolo(
+            dati,
+            namespace=ns,
+            name="causa",
+            numero_key="decreto_causa_numero",
+            anno_key="decreto_causa_anno",
+            label="della causa del decreto",
+            required=False,
+            children_namespace=self._datiatto_atti_namespace(),
+        )
+        self._append_riferimento_provvedimento(
+            dati,
+            namespace=ns,
+            name="decreto",
+            numero_key="decreto_numero",
+            anno_key="decreto_anno",
+            label="del decreto ingiuntivo",
+            children_namespace=self._datiatto_atti_namespace(),
+        )
+        etree.SubElement(dati, f"{{{ns}}}data").text = self._format_date_field(
+            self._required_extra_text("decreto_data", "Data del decreto ingiuntivo"),
+            "Data del decreto ingiuntivo",
+        )
+
+    def _aggiungi_tipo_decreto(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        key = self._catalog_key().casefold()
+        if "sommaandconsegnabeni" in key:
+            choice = "somma-beni"
+        elif "onericondomin" in key:
+            choice = "oneri-condominiali"
+        elif "consegnabeni" in key:
+            choice = "consegna-beni"
+        else:
+            choice = "somma"
+        tipo = etree.SubElement(
+            root,
+            f"{{{ns}}}TipoDecreto",
+            esecutivo="true" if self._extra_bool("decreto_esecutivo", default=False) else "false",
+        )
+        amount = float(self.dati.valore_causa or 0.0)
+        etree.SubElement(tipo, f"{{{ns}}}{choice}").text = f"{amount:.2f}"
+
+    def _aggiungi_dati_matrimonio(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        dati = etree.SubElement(root, f"{{{ns}}}DatiMatrimonio")
+        fields = (
+            ("ParteCivile", "matrimonio_parte_civile"),
+            ("ParteReligiosa", "matrimonio_parte_religiosa"),
+            ("NumeroMatrimonio", "matrimonio_numero"),
+            ("RegistroMatrimonio", "matrimonio_registro"),
+            ("SerieMatrimonio", "matrimonio_serie"),
+            ("CittaMatrimonio", "matrimonio_citta"),
+            ("ProvinciaMatrimonio", "matrimonio_provincia"),
+            ("DataCelebrazioneMatrimonio", "matrimonio_data_celebrazione"),
+            ("DataOmologazioneMatrimonio", "matrimonio_data_omologazione"),
+            ("LuogoTrascrizioneMatrmonio", "matrimonio_luogo_trascrizione"),
+            ("AnnoRegistrazione", "matrimonio_anno_registrazione"),
+        )
+        for xml_name, field_name in fields:
+            value = self._extra_text(field_name)
+            if not value:
+                continue
+            if xml_name.startswith("Data"):
+                value = self._format_date_field(value, xml_name)
+            etree.SubElement(dati, f"{{{ns}}}{xml_name}").text = value
+
+    def _aggiungi_dati_divorzio(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        key = self._catalog_key().casefold()
+        wrapper_name = "Congiunto" if "congiunt" in key else "Giudiziale"
+        separation_name = (
+            "SeparazioneConsensuale"
+            if self._required_extra_text("separazione_tipo", "Tipo di separazione").casefold() == "consensuale"
+            else "SeparazioneGiudiziale"
+        )
+        dati = etree.SubElement(root, f"{{{ns}}}DatiDivorzio")
+        wrapper = etree.SubElement(dati, f"{{{ns}}}{wrapper_name}")
+        separation = etree.SubElement(wrapper, f"{{{ns}}}{separation_name}")
+        if separation_name == "SeparazioneGiudiziale":
+            self._append_riferimento_fascicolo(
+                separation,
+                namespace=ns,
+                name="Causa",
+                numero_key="separazione_causa_numero",
+                anno_key="separazione_causa_anno",
+                label="della separazione",
+                required=False,
+                children_namespace=self._datiatto_atti_namespace(),
+            )
+            self._append_riferimento_provvedimento(
+                separation,
+                namespace=ns,
+                name="Sentenza",
+                numero_key="separazione_sentenza_numero",
+                anno_key="separazione_sentenza_anno",
+                label="della sentenza di separazione",
+                children_namespace=self._datiatto_atti_namespace(),
+            )
+
+    def _aggiungi_modifica_condizioni_divorzio(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        dati = etree.SubElement(root, f"{{{ns}}}DatiDivorzioVG")
+        sentenza = etree.SubElement(dati, f"{{{ns}}}Sentenza")
+        atti_ns = self._datiatto_atti_namespace()
+        etree.SubElement(sentenza, f"{{{atti_ns}}}numero").text = self._required_extra_text(
+            "divorzio_sentenza_numero", "Numero della sentenza di divorzio"
+        )
+        etree.SubElement(sentenza, f"{{{atti_ns}}}anno").text = self._required_extra_text(
+            "divorzio_sentenza_anno", "Anno della sentenza di divorzio"
+        )
+        etree.SubElement(root, f"{{{ns}}}DatiSeparazioneConsensuale")
+
+    def _aggiungi_dati_successione(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        defunto = etree.SubElement(root, f"{{{ns}}}DatiDefunto")
+        etree.SubElement(defunto, f"{{{ns}}}TipoAttoIntroduttivo").text = self._extra_text(
+            "successione_tipo_atto", "Istanza"
+        )
+        etree.SubElement(defunto, f"{{{ns}}}Cognome").text = self._required_extra_text(
+            "defunto_cognome", "Cognome del defunto"
+        )
+        etree.SubElement(defunto, f"{{{ns}}}Nome").text = self._required_extra_text(
+            "defunto_nome", "Nome del defunto"
+        )
+        testamento = etree.SubElement(root, f"{{{ns}}}DatiTestamento")
+        etree.SubElement(testamento, f"{{{ns}}}Tipo").text = self._extra_text(
+            "testamento_tipo", "NonSpecificato"
+        )
+        istante = etree.SubElement(
+            root,
+            f"{{{ns}}}TipoIstante",
+            parte=self._extra_text("successione_parte_istante", "Proprio"),
+        )
+        istante.text = self._extra_text("successione_istante", "Ricorrente")
+
+    def _aggiungi_anagrafica_minorenni(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        etree.SubElement(root, f"{{{ns}}}AnagraficaMinorenni")
+
+    def _aggiungi_soggetto_interessato(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        cognome = self._extra_text("soggetto_interessato_cognome")
+        nome = self._extra_text("soggetto_interessato_nome")
+        if not cognome or not nome:
+            raise ValueError("Nome e cognome del soggetto interessato mancanti: completa i dati prima della busta.")
+        subject = etree.SubElement(root, f"{{{ns}}}SoggettoInteressato")
+        etree.SubElement(subject, f"{{{ns}}}Cognome").text = cognome
+        etree.SubElement(subject, f"{{{ns}}}Nome").text = nome
+
+    def _aggiungi_dati_immigrazione_v7(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        self._append_text_if_present(root, ns, "codVestanet", self._extra_text("codice_vestanet"))
+        self._append_text_if_present(root, ns, "nazioneProvenienza", self._extra_text("nazione_provenienza"))
+        etree.SubElement(root, f"{{{ns}}}CUI").text = self._required_extra_text("cui", "CUI")
+        data_decreto = self._extra_text("data_decreto_immigrazione")
+        if data_decreto:
+            etree.SubElement(root, f"{{{ns}}}dataDecreto").text = self._format_date_field(
+                data_decreto, "Data del decreto"
+            )
+        if self._datiatto_root_name() == "RicorsoReclamoSospensiva":
+            self._aggiungi_dati_appello(root, name="DatiReclamo")
+
+    def _aggiungi_dati_specifici_introduttivo_sicid(self, root: etree._Element) -> None:
+        root_name = self._datiatto_root_name()
+        if root_name in {"CitazioneAppello", "RicorsoAppello"}:
+            self._aggiungi_dati_appello(root)
+        elif root_name == "CitazioneInRiassunzione":
+            self._aggiungi_dati_riassunzione(root)
+        elif root_name in {"OpposizioneDecretoIngiuntivo", "RicorsoOpposizioneDecretoIngiuntivo"}:
+            self._aggiungi_dati_decreto_opposto(root)
+        elif root_name == "RicorsoDecretoIngiuntivo":
+            self._aggiungi_tipo_decreto(root)
+        elif root_name in {"RicorsoSeparazione", "RicorsoDivorzio", "ModificaCondizioniSeparazione", "ModificaCondizioniDivorzio"}:
+            self._aggiungi_dati_matrimonio(root)
+            if root_name == "RicorsoDivorzio":
+                self._aggiungi_dati_divorzio(root)
+            elif root_name == "ModificaCondizioniSeparazione":
+                self._aggiungi_dati_divorzio(root)
+            elif root_name == "ModificaCondizioniDivorzio":
+                self._aggiungi_modifica_condizioni_divorzio(root)
+        elif root_name == "Successioni":
+            self._aggiungi_dati_successione(root)
+        elif root_name == "RicorsoMinorenni":
+            self._aggiungi_anagrafica_minorenni(root)
+        elif root_name == "RicorsoMinorenniSoggettoInteressato":
+            self._aggiungi_soggetto_interessato(root)
+        elif root_name in DATIATTO_V7_SICID_INTRO_ROOTS:
+            self._aggiungi_dati_immigrazione_v7(root)
+
+    def _aggiungi_altri_dati_sigp(self, root: etree._Element) -> None:
+        etree.SubElement(root, f"{{{self._datiatto_namespace()}}}AltriDati")
+
+    def _aggiungi_sanzione_opposta_sigp(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        key_suffix = self._catalog_key_suffix()
+        numero = self._required_extra_text("osa_numero_verbale", "Numero del verbale o della sanzione")
+        data = self._format_date_field(
+            self._required_extra_text("osa_data_verbale", "Data del verbale o della sanzione"),
+            "Data del verbale o della sanzione",
+        )
+        motivazione = self._extra_text("osa_motivazione", "Altro")
+        sanzione = etree.SubElement(root, f"{{{ns}}}SanzioneOpposta")
+        if key_suffix == "OSA_CartellaEsattoriale":
+            riferimento = self._required_extra_text("osa_riferimento_cartella", "Riferimento della cartella")
+            if len(riferimento) != 17:
+                raise ValueError("Riferimento della cartella non valido: deve contenere 17 caratteri.")
+            verbale = etree.SubElement(sanzione, f"{{{ns}}}Cartella", RiferimentoCartella=riferimento)
+        elif key_suffix == "OSA_IngiunzionePagamento":
+            riferimento = self._required_extra_text("osa_riferimento_ordinanza", "Riferimento dell'ordinanza")
+            verbale = etree.SubElement(sanzione, f"{{{ns}}}OrdinanzaDiIngiunzione", RiferimentoOrdinanza=riferimento)
+        else:
+            verbale = etree.SubElement(sanzione, f"{{{ns}}}Verbale")
+        etree.SubElement(verbale, f"{{{SIGP_TIPI_NS}}}NumeroVerbale").text = numero
+        etree.SubElement(verbale, f"{{{SIGP_TIPI_NS}}}DataVerbale").text = data
+        etree.SubElement(verbale, f"{{{SIGP_TIPI_NS}}}Motivazione").text = motivazione
+
+    def _aggiungi_dati_specifici_introduttivo_sigp(self, root: etree._Element) -> None:
+        root_name = self._datiatto_root_name()
+        if root_name == "Citazione":
+            self._aggiungi_altri_dati_sigp(root)
+        elif root_name == "CitazioneInRiassunzione":
+            self._aggiungi_dati_riassunzione(root)
+            self._aggiungi_altri_dati_sigp(root)
+        elif root_name == "OpposizioneDecretoIngiuntivo":
+            self._aggiungi_dati_decreto_opposto(root)
+            self._aggiungi_altri_dati_sigp(root)
+        elif root_name in {"Ricorso", "OSA"}:
+            self._aggiungi_altri_dati_sigp(root)
+            if root_name == "OSA":
+                self._aggiungi_sanzione_opposta_sigp(root)
+        elif root_name == "RicorsoDecretoIngiuntivo":
+            self._aggiungi_tipo_decreto(root)
+
+    def _aggiungi_dati_specifici_corso_causa_sigp(self, root: etree._Element) -> None:
+        root_name = self._datiatto_root_name()
+        if root_name == "CostituzioneSemplice":
+            self._aggiungi_modifiche_anagrafica_base(root)
+        elif root_name == "IstanzaGenerica":
+            key_suffix = self._catalog_key_suffix()
+            event_name = {
+                "IstanzaExArt186Bis": "IstanzaExArt186Bis",
+                "IstanzaExArt186Ter": "IstanzaExArt186Ter",
+                "IstanzaExArt186Quater": "IstanzaExArt186Quater",
+                "RichiestaEsecutorietaExArt647": "IstanzaRichiestaEsecutorietaExArt647",
+                "IstanzaGenerica": "IstanzaGenerica",
+            }.get(key_suffix)
+            if not event_name:
+                raise ValueError("Tipo di istanza non riconosciuto: seleziona nuovamente il deposito.")
+            deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+            etree.SubElement(deposito, f"{{{SIGP_EVENTI_PARTE_NS}}}{event_name}")
+
+    def _catalog_key_suffix(self) -> str:
+        key = self._catalog_key()
+        return key.rsplit("::", 1)[-1] if "::" in key else key
+
+    def _aggiungi_modifiche_anagrafica_sicid(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        source = self._anagrafica_procedimento_node()
+        partecipanti = source.xpath("./*[local-name()='Partecipanti']")
+        soggetti = source.xpath("./*[local-name()='Soggetti']")
+        if not partecipanti or not soggetti:
+            raise ValueError(
+                "Dati di cliente, controparte e avvocato incompleti: completa il fascicolo prima di generare la busta."
+            )
+        modifiche = etree.SubElement(root, f"{{{ns}}}ModificheAnagrafica")
+        costituzione = etree.SubElement(modifiche, f"{{{ns}}}CostituzioneParti")
+        partecipanti_costituzione = deepcopy(partecipanti[0])
+        for participant in list(partecipanti_costituzione):
+            if etree.QName(participant).localname not in {"Parte", "Chiamato"}:
+                partecipanti_costituzione.remove(participant)
+        if not list(partecipanti_costituzione):
+            raise ValueError("Cliente da costituire mancante: completa il fascicolo prima di generare la busta.")
+        costituzione.append(partecipanti_costituzione)
+        costituzione.append(deepcopy(soggetti[0]))
+
+    def _aggiungi_nomina_ctp_sicid(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        source = self._anagrafica_procedimento_node()
+        participants = source.xpath("./*[local-name()='Partecipanti']/*[local-name()='Parte']")
+        if not participants:
+            raise ValueError("Cliente da rappresentare mancante per la nomina del consulente tecnico di parte.")
+        parte = deepcopy(participants[0])
+        parte.tag = f"{{{ns}}}Parte"
+        parte_id = self._xml_id(str(parte.get("ID") or ""), "parte_ctp_1")
+        parte.set("ID", parte_id)
+        root.append(parte)
+        nomina = etree.SubElement(root, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}NominaConsulenteParte")
+        etree.SubElement(nomina, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}parte", ref=parte_id)
+        etree.SubElement(nomina, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}consulente").text = self._extra_text(
+            "consulente_tecnico", "Vedi atto"
+        )
+
+    def _aggiungi_evento_istanza_sicid(
+        self,
+        parent: etree._Element,
+        *,
+        event_name: str,
+        key_suffix: str,
+    ) -> None:
+        event = etree.SubElement(parent, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}{event_name}")
+        if event_name == "IstanzaFissazioneUdienzaCollegamentiAudioVisivi":
+            etree.SubElement(event, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}note").text = (
+                "Istanza di fissazione udienza con collegamenti audiovisivi"
+            )
+        elif event_name == "IstanzaRevocaUdienzaCollegamentiAudioVisivi":
+            etree.SubElement(event, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}note").text = (
+                "Istanza di revoca della fissazione udienza con collegamenti audiovisivi"
+            )
+        elif event_name == "NoteScrittePC":
+            etree.SubElement(event, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}discussioneOrale").text = (
+                "true" if key_suffix == "NoteScrittePC_DiscussioneOrale" else "false"
+            )
+
+    def _aggiungi_istanza_generica_sicid(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        key_suffix = self._catalog_key_suffix()
+        if key_suffix == "RichiestaFormulaEsecutiva":
+            etree.SubElement(root, f"{{{ns}}}note").text = "Richiesta di formula esecutiva: vedi istanza"
+        deposito = etree.SubElement(root, f"{{{ns}}}deposito")
+        event_name = SICID_PARTE_ISTANZA_EVENT_BY_KEY.get(key_suffix)
+        if event_name:
+            self._aggiungi_evento_istanza_sicid(
+                deposito,
+                event_name=event_name,
+                key_suffix=key_suffix,
+            )
+
+    def _aggiungi_ricorso_generico_sicid(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        key_suffix = self._catalog_key_suffix()
+        deposito = etree.SubElement(root, f"{{{ns}}}deposito")
+        event_name = SICID_PARTE_RICORSO_EVENT_BY_KEY.get(key_suffix)
+        if event_name:
+            etree.SubElement(deposito, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}{event_name}")
+
+    def _aggiungi_documenti_richiesti_sicid(self, root: etree._Element) -> None:
+        event_name = SICID_PARTE_DOCUMENT_EVENT_BY_KEY.get(self._catalog_key_suffix())
+        if not event_name:
+            return
+        documenti = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}documenti")
+        etree.SubElement(documenti, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}{event_name}")
+
+    def _aggiungi_memorie_cartabia_sicid(self, root: etree._Element) -> None:
+        key_suffix = self._catalog_key_suffix()
+        event_names = {
+            "Memoria171ter1": "Memoria171ter1",
+            "Repliche171ter2": "Repliche171ter2",
+            "Controrepliche171ter3": "Controrepliche171ter3",
+            "IstanzaAccoglimentoDomanda183ter": "IstanzaAccoglimentoDomanda183ter",
+            "IstanzaRigettoDomanda183quater": "IstanzaRigettoDomanda183quater",
+        }
+        event_name = event_names.get(key_suffix)
+        if not event_name:
+            return
+        istanze = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}istanze")
+        etree.SubElement(istanze, f"{{{MINISTERIAL_EVENTI_PARTE_NS}}}{event_name}")
+
+    def _aggiungi_dati_specifici_parte_sicid(self, root: etree._Element) -> None:
+        root_name = self._datiatto_root_name()
+        if root_name in SICID_PARTE_MODIFICHE_ANAGRAFICA_REQUIRED_ROOTS:
+            self._aggiungi_modifiche_anagrafica_sicid(root)
+        if root_name == "AttoCostituzioneNuovoAvvocato":
+            etree.SubElement(root, f"{{{self._datiatto_atti_namespace()}}}domanda")
+        if root_name == "Reclamo":
+            key_suffix = self._catalog_key_suffix()
+            tipo_parte = {
+                "ReclamoRicorrente": "Ricorrente",
+                "ReclamoResistente": "Resistente",
+                "ReclamoIntervenuto": "Intervenuto",
+            }.get(key_suffix)
+            if not tipo_parte:
+                raise ValueError("Ruolo nel reclamo mancante: scegli ricorrente, resistente o intervenuto.")
+            etree.SubElement(root, f"{{{self._datiatto_namespace()}}}TipoParte").text = tipo_parte
+        elif root_name == "IstanzaGenerica":
+            self._aggiungi_istanza_generica_sicid(root)
+        elif root_name == "Ricorso":
+            self._aggiungi_ricorso_generico_sicid(root)
+        elif root_name == "MemoriaGenerica":
+            etree.SubElement(root, f"{{{self._datiatto_namespace()}}}istanze")
+        elif root_name == "Preverbale":
+            etree.SubElement(
+                root,
+                f"{{{self._datiatto_namespace()}}}accesso",
+                altraParte="true" if self._extra_bool("preverbale_visibile_controparte", default=True) else "false",
+            )
+        elif root_name == "NominaCTPexart87":
+            self._aggiungi_nomina_ctp_sicid(root)
+        elif root_name == "ProduzioneDocumentiRichiesti":
+            self._aggiungi_documenti_richiesti_sicid(root)
+        elif root_name == "MemorieCartabia":
+            self._aggiungi_memorie_cartabia_sicid(root)
+
+    def _aggiungi_deposito_semplice_ministeriale(self, root: etree._Element) -> None:
+        generator_class = self._datiatto_generator_class()
+        key_suffix = self._catalog_key_suffix()
+        event_name = DEPOSITO_SEMPLICE_EVENT_BY_GENERATOR_AND_KEY.get(generator_class, {}).get(key_suffix)
+        if not event_name:
+            raise ValueError(
+                "Tipo di deposito non riconosciuto per il professionista incaricato: seleziona nuovamente il tipo di atto."
+            )
+        if generator_class == "Professionista":
+            event_namespace = MINISTERIAL_EVENTI_PROFESSIONISTA_NS
+        elif generator_class == "Professionista_SIGP":
+            event_namespace = SIGP_EVENTI_PROFESSIONISTA_NS
+        else:
+            event_namespace = SIECIC_EVENTI_NS
+        deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+        attributes = {}
+        if event_name == "attoNonCodificato":
+            attributes["descrizione"] = str(self.dati.tipo_atto or key_suffix).strip()
+        if generator_class == "DelSiecicEsecuzioni" and event_name in {
+            "avvisoVendita",
+            "depositoPrezzo",
+            "istanzaRevocaDecadenzaAggiudicatario",
+            "verbaleAggiudicazione",
+        }:
+            attributes["lotto"] = self._lotto_delegato()
+        etree.SubElement(deposito, f"{{{event_namespace}}}{event_name}", **attributes)
+
+    def _lotto_delegato(self) -> str:
+        lotto = self._required_extra_text("lotto_numero", "Numero del lotto")
+        if not lotto.isdigit() or int(lotto) <= 0:
+            raise ValueError("Numero del lotto non valido: inserisci un numero maggiore di zero.")
+        return str(int(lotto))
+
+    def _aggiungi_dati_specifici_delegato_siecic(self, root: etree._Element) -> None:
+        ns = self._datiatto_namespace()
+        root_name = self._datiatto_root_name()
+        if root_name == "MinutaDecreto":
+            etree.SubElement(root, f"{{{ns}}}lotto").text = self._lotto_delegato()
+        elif root_name == "ProgettoDistribuzione":
+            dispositivo = etree.SubElement(root, f"{{{ns}}}dispositivo")
+            etree.SubElement(dispositivo, f"{{{SIECIC_EVENTI_NS}}}accoglimentoPianoRiparto")
+        elif root_name == "AggiudicazioneLotto":
+            offerente_cf = re.sub(
+                r"[^A-Za-z0-9]",
+                "",
+                self._required_extra_text("aggiudicatario_codice_fiscale", "Codice fiscale dell'aggiudicatario"),
+            ).upper()
+            etree.SubElement(root, f"{{{ns}}}Lotto").text = self._lotto_delegato()
+            senza_incanto = etree.SubElement(root, f"{{{ns}}}SenzaIncanto")
+            etree.SubElement(senza_incanto, f"{{{ns}}}ImportoAumento").text = self._format_decimal_field(
+                self._required_extra_text("aggiudicazione_importo_aumento", "Importo minimo in aumento"),
+                "Importo minimo in aumento",
+            )
+            offerta = etree.SubElement(senza_incanto, f"{{{ns}}}Offerte")
+            etree.SubElement(offerta, f"{{{SIECIC_TIPIBASE_NS}}}importo").text = self._format_decimal_field(
+                self._required_extra_text("aggiudicazione_importo_offerta", "Importo dell'offerta"),
+                "Importo dell'offerta",
+            )
+            etree.SubElement(offerta, f"{{{ns}}}Cauzione").text = self._format_decimal_field(
+                self._required_extra_text("aggiudicazione_cauzione", "Cauzione dell'offerta"),
+                "Cauzione dell'offerta",
+            )
+            etree.SubElement(offerta, f"{{{ns}}}Spese", **{f"{{{XSI_NS}}}nil": "true"})
+            offerente = etree.SubElement(offerta, f"{{{ns}}}Offerente")
+            etree.SubElement(offerente, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cognome").text = self._required_extra_text(
+                "aggiudicatario_cognome", "Cognome o denominazione dell'aggiudicatario"
+            )
+            nome = self._extra_text("aggiudicatario_nome")
+            if nome:
+                etree.SubElement(offerente, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}nome").text = nome
+            etree.SubElement(offerente, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}codiceFiscale").text = offerente_cf
+            etree.SubElement(senza_incanto, f"{{{ns}}}Aggiudicatario", codiceFiscale=offerente_cf)
+            etree.SubElement(root, f"{{{ns}}}TermineConguaglio").text = self._format_date_field(
+                self._required_extra_text("aggiudicazione_termine_conguaglio", "Termine per il conguaglio"),
+                "Termine per il conguaglio",
+            )
+
+    def _partecipanti_e_soggetti_costituzione(self) -> tuple[etree._Element, etree._Element]:
+        source = self._anagrafica_procedimento_node()
+        partecipanti = source.xpath("./*[local-name()='Partecipanti']")
+        soggetti = source.xpath("./*[local-name()='Soggetti']")
+        if not partecipanti or not soggetti:
+            raise ValueError(
+                "Dati di cliente e avvocato incompleti: completa il fascicolo prima di generare la busta."
+            )
+        partecipanti_costituzione = deepcopy(partecipanti[0])
+        for participant in list(partecipanti_costituzione):
+            if etree.QName(participant).localname not in {"Parte", "Chiamato"}:
+                partecipanti_costituzione.remove(participant)
+        if not list(partecipanti_costituzione):
+            raise ValueError("Cliente da costituire mancante: completa il fascicolo prima di generare la busta.")
+        return partecipanti_costituzione, deepcopy(soggetti[0])
+
+    def _aggiungi_modifiche_anagrafica_base(self, root: etree._Element) -> None:
+        partecipanti, soggetti = self._partecipanti_e_soggetti_costituzione()
+        modifiche = etree.SubElement(root, f"{{{self._datiatto_atti_namespace()}}}ModificheAnagrafica")
+        modifiche.append(partecipanti)
+        modifiche.append(soggetti)
+
+    def _aggiungi_riferimento_soggetto_siecic(
+        self,
+        parent: etree._Element,
+        name: str,
+        codice_fiscale: str,
+    ) -> etree._Element:
+        clean = re.sub(r"[^A-Za-z0-9]", "", str(codice_fiscale or "")).upper()
+        if not clean:
+            raise ValueError(f"Codice fiscale {name} mancante: completa il dato prima di generare la busta.")
+        return etree.SubElement(parent, f"{{{SIECIC_TIPIBASE_NS}}}{name}", codiceFiscale=clean)
+
+    def _aggiungi_precisazione_credito_siecic(self, root: etree._Element) -> None:
+        capitale = self._required_extra_text("credito_capitale", "Capitale del credito")
+        importo = self._extra_text("credito_importo", capitale)
+        data_decorrenza = self._format_date_field(
+            self._required_extra_text("credito_data_decorrenza", "Data di decorrenza del credito"),
+            "Data di decorrenza del credito",
+        )
+        data_aggiornamento = self._extra_text("credito_data_aggiornamento")
+        credito = etree.SubElement(root, f"{{{SIECIC_TIPIBASE_NS}}}precisazioneCredito")
+        etree.SubElement(credito, f"{{{SIECIC_TIPIBASE_NS}}}capitale").text = self._format_decimal_field(
+            capitale, "Capitale del credito"
+        )
+        etree.SubElement(
+            credito,
+            f"{{{SIECIC_TIPIBASE_NS}}}naturaPrivilegio",
+            **{f"{{{XSI_NS}}}nil": "true"},
+        )
+        etree.SubElement(credito, f"{{{SIECIC_TIPIBASE_NS}}}importo").text = self._format_decimal_field(
+            importo, "Importo del credito"
+        )
+        aggiornamento = etree.SubElement(credito, f"{{{SIECIC_TIPIBASE_NS}}}dataAggiornamento")
+        if data_aggiornamento:
+            aggiornamento.text = self._format_date_field(data_aggiornamento, "Data aggiornamento del credito")
+        else:
+            aggiornamento.set(f"{{{XSI_NS}}}nil", "true")
+        etree.SubElement(credito, f"{{{SIECIC_TIPIBASE_NS}}}dataDecorrenza").text = data_decorrenza
+
+    def _aggiungi_atto_generico_siecic(self, root: etree._Element) -> None:
+        generator_class = self._datiatto_generator_class()
+        key_suffix = self._catalog_key_suffix()
+        event_name = SIECIC_PARTE_ATTO_GENERICO_EVENT_BY_GENERATOR_AND_KEY.get(generator_class, {}).get(key_suffix)
+        if not event_name:
+            raise ValueError("Tipo di atto in corso causa non riconosciuto: seleziona nuovamente il deposito.")
+        deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+        attributes = {"descrizione": str(self.dati.tipo_atto or key_suffix).strip()} if event_name == "attoNonCodificato" else {}
+        event = etree.SubElement(deposito, f"{{{SIECIC_EVENTI_NS}}}{event_name}", **attributes)
+        if event_name in {"depositoIstanza41TUB", "depositoRinunciaEsecuzione", "depositoRinunciaMandato", "depositoMemorie"}:
+            subjects = self._anagrafica_subjects()
+            etree.SubElement(
+                event,
+                f"{{{SIECIC_EVENTI_NS}}}parte",
+                codiceFiscale=subjects["parte_cf"],
+            )
+
+    def _aggiungi_dati_specifici_parte_siecic(self, root: etree._Element) -> None:
+        generator_class = self._datiatto_generator_class()
+        root_name = self._datiatto_root_name()
+        key_suffix = self._catalog_key_suffix()
+        subjects = self._anagrafica_subjects()
+        if root_name == "AttoCostituzioneAvvocato":
+            self._aggiungi_modifiche_anagrafica_base(root)
+            deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+            etree.SubElement(deposito, f"{{{SIECIC_EVENTI_NS}}}costituzioneAvvocato")
+        elif root_name == "AttoGenerico":
+            self._aggiungi_atto_generico_siecic(root)
+        elif root_name == "AttoGenericoCCIPU":
+            deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+            etree.SubElement(deposito, f"{{{SIECIC_EVENTI_NS}}}costituzioneCreditore")
+        elif root_name == "NotaDepositoCCI":
+            dispositivo = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}dispositivo")
+            etree.SubElement(dispositivo, f"{{{SIECIC_EVENTI_CRISI_NS}}}AttoNonCodificato")
+        elif root_name == "AttoIntervento":
+            self._aggiungi_modifiche_anagrafica_base(root)
+            self._aggiungi_precisazione_credito_siecic(root)
+        elif root_name in {"IstanzaAssegnazione", "IstanzaDistribuzione"}:
+            self._aggiungi_riferimento_soggetto_siecic(root, "creditore", subjects["parte_cf"])
+        elif root_name == "NotaPrecisazioneCredito":
+            self._aggiungi_riferimento_soggetto_siecic(root, "creditore", subjects["parte_cf"])
+            self._aggiungi_precisazione_credito_siecic(root)
+        elif root_name == "RinunciaDebitori":
+            self._aggiungi_riferimento_soggetto_siecic(root, "creditore", subjects["parte_cf"])
+            self._aggiungi_riferimento_soggetto_siecic(root, "debitore", subjects["controparte_cf"])
+        elif root_name == "Opposizione":
+            self._aggiungi_modifiche_anagrafica_base(root)
+            deposito = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}deposito")
+            etree.SubElement(deposito, f"{{{SIECIC_EVENTI_NS}}}{key_suffix}")
+            etree.SubElement(root, f"{{{self._datiatto_namespace()}}}IstanzaSospensione").text = (
+                "true" if self._extra_bool("opposizione_istanza_sospensione", default=False) else "false"
+            )
 
     @staticmethod
     def _element_text(node: etree._Element | None, *names: str) -> str:
@@ -1065,7 +1941,10 @@ class BustaTelematica:
         return self._datiatto_root_name() == "AttoRichiestaVisibilita"
 
     def _is_progetto_distribuzione(self) -> bool:
-        return self._datiatto_root_name() == "ProgettoDistribuzione"
+        return (
+            self._datiatto_root_name() == "ProgettoDistribuzione"
+            and self._datiatto_generator_class() != "DelSiecicEsecuzioni"
+        )
 
     def _is_pignoramento_siecic(self) -> bool:
         return (
@@ -1081,9 +1960,118 @@ class BustaTelematica:
         child.text = text
         return child
 
+    def _contributo_unificato_dati(self) -> tuple[str, float]:
+        contribution = self.dati.contributo_unificato if isinstance(self.dati.contributo_unificato, dict) else {}
+        mode = str(contribution.get("mode") or "").strip().casefold()
+        if not self.dati.contributo_unificato_richiesto and not mode:
+            return "", 0.0
+        if self.dati.contributo_unificato_richiesto and not bool(contribution.get("resolved")):
+            raise ValueError(
+                "Contributo unificato non definito: indica se il deposito è esente, pagato o prenotato a debito."
+            )
+        if mode not in {"esente", "pagato", "prenotato_a_debito"}:
+            if self.dati.contributo_unificato_richiesto:
+                raise ValueError(
+                    "Contributo unificato non definito: indica se il deposito è esente, pagato o prenotato a debito."
+                )
+            return "", 0.0
+        amount = 0.0
+        if mode in {"pagato", "prenotato_a_debito"}:
+            try:
+                amount = float(contribution.get("importo"))
+            except (TypeError, ValueError):
+                amount = 0.0
+            if amount <= 0:
+                raise ValueError(
+                    "Importo del contributo unificato mancante: inserisci l’importo prima di generare la busta."
+                )
+        if self.dati.contributo_unificato_xml_mode == "cassazione_integrazione_spese" and mode == "esente":
+            raise ValueError(
+                "Questo deposito integra spese già dovute: indica l’importo pagato o prenotato a debito."
+            )
+        return mode, amount
+
+    @staticmethod
+    def _append_importo_contributo(
+        parent: etree._Element,
+        *,
+        namespace: str,
+        amount: float,
+        debt: bool,
+        cassazione: bool = False,
+    ) -> etree._Element:
+        attributes = {"debito": "true" if debt else "false"}
+        if cassazione:
+            attributes["tipoContributoUnificato"] = "Determinato" if amount > 0 else "Indeterminato"
+        node = etree.SubElement(parent, f"{{{namespace}}}Importo", **attributes)
+        node.text = f"{amount:.2f}"
+        return node
+
+    def _aggiungi_istanza_vendita_ministeriale(self, root: etree._Element) -> None:
+        subjects = self._anagrafica_subjects()
+        creditore_cf = self._extra_text("procedente_codice_fiscale") or subjects["parte_cf"]
+        if not creditore_cf:
+            raise ValueError("Codice fiscale del creditore mancante per l’istanza di vendita.")
+        etree.SubElement(
+            root,
+            f"{{{SIECIC_TIPIBASE_NS}}}creditore",
+            codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", creditore_cf).upper(),
+        )
+        mode, amount = self._contributo_unificato_dati()
+        if mode in {"pagato", "prenotato_a_debito"}:
+            contribution = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}contributoUnificato")
+            self._append_importo_contributo(
+                contribution,
+                namespace=self._datiatto_atti_namespace(),
+                amount=amount,
+                debt=mode == "prenotato_a_debito",
+            )
+
+    @staticmethod
+    def _append_cassazione_esenzione(parent: etree._Element, name: str) -> None:
+        expense = etree.SubElement(parent, f"{{{CASSAZIONE_ATTI_NS}}}{name}")
+        etree.SubElement(expense, f"{{{CASSAZIONE_ATTI_NS}}}Esente").text = "true"
+
+    def _aggiungi_spese_giustizia_cassazione(self, root: etree._Element, *, integration: bool) -> None:
+        mode, amount = self._contributo_unificato_dati()
+        if not mode:
+            return
+        spese = etree.SubElement(root, f"{{{self._datiatto_namespace()}}}speseGiustizia")
+        contribution = etree.SubElement(spese, f"{{{CASSAZIONE_ATTI_NS}}}ContributoUnificato")
+        if mode == "esente" and not integration:
+            etree.SubElement(contribution, f"{{{CASSAZIONE_ATTI_NS}}}Esente").text = "true"
+        else:
+            self._append_importo_contributo(
+                contribution,
+                namespace=CASSAZIONE_ATTI_NS,
+                amount=amount,
+                debt=mode == "prenotato_a_debito",
+                cassazione=True,
+            )
+        if integration:
+            for name in (
+                "integrazione_69_2009_art_13_co_2_bis_tu",
+                "diritti_registrazione_ruolo_tu_art_30",
+                "notifica_avvocati_art_34_tu",
+            ):
+                expense = etree.SubElement(spese, f"{{{CASSAZIONE_ATTI_NS}}}{name}")
+                self._append_importo_contributo(
+                    expense,
+                    namespace=CASSAZIONE_ATTI_NS,
+                    amount=0.0,
+                    debt=False,
+                )
+        else:
+            for name in (
+                "integrazione_69_2009_art_13_co_2_bis_tu",
+                "diritti_registrazione_ruolo_tu_art_30",
+                "notifica_avvocati_art_34_tu",
+            ):
+                self._append_cassazione_esenzione(spese, name)
+
     def _aggiungi_richiesta_visibilita_ministeriale(self, root: etree._Element) -> None:
         ns = self._datiatto_namespace()
-        at_ns = MINISTERIAL_ANAGRAFICHE_NS
+        at_ns = SIGP_ANAGRAFICHE_NS if "SIGP" in self._datiatto_generator_class() else MINISTERIAL_ANAGRAFICHE_NS
         subjects = self._anagrafica_subjects()
         missing = []
         if not subjects["parte_cf"]:
@@ -1136,6 +2124,25 @@ class BustaTelematica:
                 return normalized
         raise ValueError("Beni pignorati mancanti per DatiAtto.xml.")
 
+    def _pignoramento_terzi(self) -> list[dict[str, Any]]:
+        raw = self._datiatto_extra().get("terzi")
+        terzi = [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+        if not terzi:
+            legacy = self._datiatto_extra().get("terzo")
+            if isinstance(legacy, dict) and legacy:
+                terzi = [legacy]
+        if not terzi:
+            raise ValueError("Terzi pignorati mancanti: inserisci almeno un terzo prima di generare la busta.")
+        codici = [
+            re.sub(r"[^A-Za-z0-9]", "", str(item.get("codice_fiscale") or item.get("codiceFiscale") or "")).upper()
+            for item in terzi
+        ]
+        if any(not codice for codice in codici):
+            raise ValueError("Codice fiscale di un terzo pignorato mancante.")
+        if len(codici) != len(set(codici)):
+            raise ValueError("Lo stesso terzo pignorato è stato inserito più volte.")
+        return terzi
+
     def _aggiungi_pignoramento_beni(self, root: etree._Element) -> list[str]:
         ns = self._datiatto_namespace()
         beni_node = etree.SubElement(root, f"{{{ns}}}Beni")
@@ -1152,40 +2159,63 @@ class BustaTelematica:
                     bene.get("tipologia") or "MOBILI"
                 ).strip()
             etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}descrizione").text = str(
-                bene.get("descrizione") or "Bene pignorato"
+                bene.get("descrizione") or ""
             ).strip()
+            if not node.xpath("./*[local-name()='descrizione']/text()[normalize-space()]"):
+                raise ValueError(f"Descrizione del bene pignorato {index} mancante.")
             if is_immobile:
                 indirizzo_data = bene.get("indirizzo") if isinstance(bene.get("indirizzo"), dict) else {}
+                catastali = bene.get("dati_catastali") if isinstance(bene.get("dati_catastali"), dict) else {}
+                required = {
+                    "indirizzo": indirizzo_data.get("via"),
+                    "CAP": indirizzo_data.get("cap"),
+                    "comune": indirizzo_data.get("localita"),
+                    "provincia": indirizzo_data.get("provincia"),
+                    "catasto": bene.get("catasto"),
+                    "sezione catastale": catastali.get("sezione"),
+                    "foglio": catastali.get("foglio"),
+                    "particella": catastali.get("particella"),
+                    "classe": bene.get("classe"),
+                }
+                missing = [label for label, value in required.items() if not str(value or "").strip()]
+                if missing:
+                    raise ValueError(f"Dati del bene immobile {index} mancanti: {', '.join(missing)}.")
+                catasto = str(bene.get("catasto") or "").strip().upper()
+                if catasto not in {"NCEU", "NCT"}:
+                    raise ValueError(f"Catasto del bene immobile {index} non valido: seleziona NCEU o NCT.")
                 indirizzo = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}indirizzo")
                 etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}via").text = str(
-                    indirizzo_data.get("via") or "Indirizzo non specificato"
+                    indirizzo_data.get("via")
                 ).strip()
                 etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cap").text = str(
-                    indirizzo_data.get("cap") or "00000"
+                    indirizzo_data.get("cap")
                 ).strip()
                 etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}localita").text = str(
-                    indirizzo_data.get("localita") or "Comune"
+                    indirizzo_data.get("localita")
                 ).strip()
                 etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}provincia").text = str(
-                    indirizzo_data.get("provincia") or "RM"
+                    indirizzo_data.get("provincia")
                 ).strip()
                 etree.SubElement(indirizzo, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}stato").text = "IT"
                 etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}catasto").text = str(
-                    bene.get("catasto") or "NCEU"
+                    catasto
                 ).strip()
-                catastali = bene.get("dati_catastali") if isinstance(bene.get("dati_catastali"), dict) else {}
                 dati_catastali = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}datiCatastali")
                 etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}sezione").text = str(
-                    catastali.get("sezione") or "U"
+                    catastali.get("sezione")
                 ).strip()
                 etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}foglio").text = str(
-                    catastali.get("foglio") or "1"
+                    catastali.get("foglio")
                 ).strip()
                 etree.SubElement(dati_catastali, f"{{{SIECIC_TIPIBASE_NS}}}particella").text = str(
-                    catastali.get("particella") or "1"
+                    catastali.get("particella")
                 ).strip()
-                classe = etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}classe", classato="false")
-                classe.text = str(bene.get("classe") or "A")
+                classe = etree.SubElement(
+                    node,
+                    f"{{{SIECIC_TIPIBASE_NS}}}classe",
+                    classato="true" if self._extra_bool_from_value(bene.get("classato"), default=True) else "false",
+                )
+                classe.text = str(bene.get("classe")).strip().upper()
             valore = bene.get("valore") or bene.get("stima") or ""
             if not is_immobile:
                 etree.SubElement(node, f"{{{SIECIC_TIPIBASE_NS}}}valoreBene").text = self._format_decimal_field(
@@ -1196,9 +2226,11 @@ class BustaTelematica:
     def _aggiungi_pignoramento_estensione_anagrafica(self, root: etree._Element, bene_ids: list[str]) -> None:
         ns = self._datiatto_namespace()
         subjects = self._anagrafica_subjects()
-        procedente_cf = self._extra_text("procedente_codice_fiscale") or subjects["parte_cf"]
-        debitore_cf = self._extra_text("debitore_codice_fiscale") or subjects["controparte_cf"]
-        avvocato_cf = self._extra_text("avvocato_codice_fiscale") or subjects["avvocato_cf"]
+        # I riferimenti devono usare gli stessi codici fiscali presenti
+        # nell'AnagraficaProcedimento, altrimenti i vincoli XSD key/keyref falliscono.
+        procedente_cf = subjects["parte_cf"] or self._extra_text("procedente_codice_fiscale")
+        debitore_cf = subjects["controparte_cf"] or self._extra_text("debitore_codice_fiscale")
+        avvocato_cf = subjects["avvocato_cf"] or self._extra_text("avvocato_codice_fiscale")
         missing = []
         if not procedente_cf:
             missing.append("codice fiscale procedente")
@@ -1224,15 +2256,15 @@ class BustaTelematica:
             bene_ref = etree.SubElement(debitore, f"{{{ns}}}benePignorato", refBene=bene_id)
             diritto = etree.SubElement(
                 bene_ref,
-                f"{{{SIECIC_TIPIBASE_NS}}}dirittiReali",
+                f"{{{ns}}}dirittiReali",
                 quota="1.0",
                 stato="Inventariato",
                 stima=self._format_decimal_field(
-                    self._datiatto_extra().get("stima_diritto") or self._datiatto_extra().get("importo_precetto"),
+                    self._datiatto_extra().get("stima_diritto"),
                     "Stima diritto pignorato",
                 ),
             )
-            diritto.text = "Proprieta"
+            diritto.text = "1"
 
         procedente = etree.SubElement(est, f"{{{ns}}}DatiProcedente", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", procedente_cf).upper())
         etree.SubElement(
@@ -1254,24 +2286,33 @@ class BustaTelematica:
                 )
             custode_data = self._datiatto_extra().get("custode")
             custode = custode_data if isinstance(custode_data, dict) else {}
-            if not custode:
-                raise ValueError("Custode mancante per DatiAtto.xml.")
+            required = {
+                "cognome o denominazione": custode.get("cognome"),
+                "codice fiscale": custode.get("codiceFiscale") or custode.get("codice_fiscale"),
+                "indirizzo": custode.get("via"),
+                "CAP": custode.get("cap"),
+                "comune": custode.get("localita"),
+                "provincia": custode.get("provincia"),
+            }
+            missing = [label for label, value in required.items() if not str(value or "").strip()]
+            if missing:
+                raise ValueError("Dati del custode mancanti: " + ", ".join(missing) + ".")
             custode_node = etree.SubElement(presso, f"{{{ns}}}Custode")
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}via").text = str(
-                custode.get("via") or "Indirizzo non specificato"
+                custode.get("via")
             ).strip()
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cap").text = str(
-                custode.get("cap") or "00000"
+                custode.get("cap")
             ).strip()
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}localita").text = str(
-                custode.get("localita") or "Comune"
+                custode.get("localita")
             ).strip()
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}provincia").text = str(
-                custode.get("provincia") or "RM"
+                custode.get("provincia")
             ).strip()
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}stato").text = "IT"
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cognome").text = str(
-                custode.get("cognome") or "Custode"
+                custode.get("cognome")
             ).strip()
             etree.SubElement(custode_node, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}nome").text = str(
                 custode.get("nome") or ""
@@ -1288,20 +2329,17 @@ class BustaTelematica:
                 self._datiatto_extra().get("data_citazione"),
                 "Data citazione terzo",
             )
-            terzo_data = self._datiatto_extra().get("terzo")
-            terzo = terzo_data if isinstance(terzo_data, dict) else {}
-            terzo_cf = str(terzo.get("codice_fiscale") or terzo.get("codiceFiscale") or "").strip()
-            if not terzo_cf:
-                raise ValueError("Dati terzo mancanti per DatiAtto.xml.")
-            dati_terzo = etree.SubElement(presso, f"{{{ns}}}DatiTerzo", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", terzo_cf).upper())
-            etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPignoramento").text = self._format_date_field(
-                terzo.get("data_notifica_pignoramento") or self._datiatto_extra().get("data_notifica_pignoramento"),
-                "Data notifica pignoramento",
-            )
-            data_precetto = terzo.get("data_notifica_precetto") or self._datiatto_extra().get("data_notifica_precetto")
-            if data_precetto:
-                etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPrecetto").text = self._format_date_field(
-                    data_precetto, "Data notifica precetto"
+            for index, terzo in enumerate(self._pignoramento_terzi(), start=1):
+                terzo_cf = str(terzo.get("codice_fiscale") or terzo.get("codiceFiscale") or "").strip()
+                dati_terzo = etree.SubElement(presso, f"{{{ns}}}DatiTerzo", codiceFiscale=re.sub(r"[^A-Za-z0-9]", "", terzo_cf).upper())
+                data_precetto = terzo.get("data_notifica_precetto") or self._datiatto_extra().get("data_notifica_precetto")
+                if data_precetto:
+                    etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPrecetto").text = self._format_date_field(
+                        data_precetto, f"Data notifica precetto del terzo {index}"
+                    )
+                etree.SubElement(dati_terzo, f"{{{ns}}}dataNotificaPignoramento").text = self._format_date_field(
+                    terzo.get("data_notifica_pignoramento") or self._datiatto_extra().get("data_notifica_pignoramento"),
+                    f"Data notifica pignoramento del terzo {index}",
                 )
         else:
             etree.SubElement(est, f"{{{ns}}}immobiliare").text = "immobiliare"
@@ -1316,10 +2354,42 @@ class BustaTelematica:
         if not debitore_cf:
             raise ValueError("Debitore del titolo mancante per DatiAtto.xml.")
         titolo_node = etree.SubElement(root, f"{{{SIECIC_TIPIBASE_NS}}}titolo")
+        tipologia_raw = str(titolo.get("tipologia") or "").strip()
+        tipologie = {
+            "sentenza": "1",
+            "sentenza di condanna i grado": "1",
+            "sentenza di condanna ii grado": "2",
+            "decreto ingiuntivo": "3",
+            "cambiale": "4",
+            "ordinanza": "5",
+            "ordinanza in corso di causa (art.186 quater cpc)": "6",
+            "ingiunzione in corso di causa (art. 183 ter cpc)": "7",
+            "omologa separazione consensuale": "8",
+            "verbale di conciliazione": "9",
+            "cartella esattoriale": "10",
+            "assegno": "11",
+            "contratto di finanziamento": "12",
+            "contratto di vendita": "13",
+            "contratto di sovvenzione": "14",
+            "polizza di pegno": "15",
+            "fattura": "16",
+            "mutuo fondiario": "17",
+            "mutuo ipotecario": "18",
+            "atto notarile": "19",
+            "lodo arbitrale": "20",
+            "lodo arbritrale": "20",
+            "scrittura contabile autenticata": "21",
+            "atto da specificare": "99",
+        }
+        tipologia = tipologie.get(tipologia_raw.casefold(), tipologia_raw)
+        if tipologia not in {*(str(index) for index in range(1, 22)), "99"}:
+            raise ValueError(
+                "Tipologia del titolo esecutivo non valida: seleziona una voce prevista dalla tabella ministeriale."
+            )
         esecutivo = etree.SubElement(
             titolo_node,
             f"{{{SIECIC_TIPIBASE_NS}}}titoloEsecutivo",
-            tipologia=str(titolo.get("tipologia") or "Sentenza"),
+            tipologia=tipologia,
         )
         etree.SubElement(esecutivo, f"{{{SIECIC_TIPIBASE_NS}}}descrizione").text = descrizione
         if titolo.get("numero"):
@@ -1336,7 +2406,49 @@ class BustaTelematica:
 
     def _aggiungi_pignoramento_ministeriale(self, root: etree._Element) -> None:
         ns = self._datiatto_namespace()
-        root.append(self._anagrafica_procedimento_node())
+        anagrafica = self._anagrafica_procedimento_node()
+        if self._pignoramento_branch() == "mobiliare_presso_terzi":
+            participants = anagrafica.xpath("./*[local-name()='Partecipanti']")
+            if not participants:
+                raise ValueError("Partecipanti mancanti nell'anagrafica del pignoramento.")
+            for index, terzo in enumerate(self._pignoramento_terzi(), start=1):
+                cf = re.sub(r"[^A-Za-z0-9]", "", str(terzo.get("codice_fiscale") or terzo.get("codiceFiscale") or "")).upper()
+                denominazione = str(terzo.get("denominazione") or terzo.get("cognome") or "").strip()
+                nome = str(terzo.get("nome") or "").strip()
+                via = str(terzo.get("via") or "").strip()
+                cap = str(terzo.get("cap") or "").strip()
+                localita = str(terzo.get("localita") or "").strip()
+                provincia = str(terzo.get("provincia") or "").strip().upper()
+                missing = [
+                    label
+                    for label, value in (
+                        ("denominazione o cognome", denominazione),
+                        ("indirizzo", via),
+                        ("CAP", cap),
+                        ("località", localita),
+                        ("provincia", provincia),
+                    )
+                    if not value
+                ]
+                if missing:
+                    raise ValueError(f"Dati del terzo pignorato {index} mancanti: " + ", ".join(missing) + ".")
+                altro = etree.SubElement(
+                    participants[0],
+                    f"{{{MINISTERIAL_ATTI_V7_NS}}}Altro",
+                    naturaGiuridica="PFI" if len(cf) == 16 else "ENP",
+                    ID=f"terzo_{index}",
+                )
+                etree.SubElement(altro, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}denominazione").text = denominazione
+                if nome:
+                    etree.SubElement(altro, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}nome").text = nome
+                etree.SubElement(altro, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}codiceFiscale").text = cf
+                address = etree.SubElement(altro, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}indirizzo")
+                etree.SubElement(address, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}via").text = via
+                etree.SubElement(address, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}cap").text = cap
+                etree.SubElement(address, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}localita").text = localita
+                etree.SubElement(address, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}provincia").text = provincia
+                etree.SubElement(address, f"{{{MINISTERIAL_ANAGRAFICHE_NS}}}stato").text = str(terzo.get("stato") or "IT").strip()
+        root.append(anagrafica)
         etree.SubElement(root, f"{{{ns}}}DataConsegnaPignoramento").text = self._format_date_field(
             self._datiatto_extra().get("data_consegna_pignoramento"),
             "Data consegna pignoramento",
@@ -1351,6 +2463,343 @@ class BustaTelematica:
         self._append_text_if_present(root, ns, "CronologicoPignoramento", self._datiatto_extra().get("cronologico_pignoramento"))
         self._aggiungi_pignoramento_titolo(root)
 
+    @staticmethod
+    def _retagged_clone(node: etree._Element, namespace: str, name: str) -> etree._Element:
+        clone = deepcopy(node)
+        clone.tag = f"{{{namespace}}}{name}"
+        return clone
+
+    def _anagrafica_procedimento_pu_node(
+        self,
+    ) -> tuple[etree._Element, etree._Element, list[etree._Element], list[etree._Element]]:
+        source = self._anagrafica_procedimento_node()
+        key = self._catalog_key()
+        debtor_request = "IstanzaDebitore" in key
+        debtors = source.xpath("./*[local-name()='Partecipanti']/*[local-name()='Parte']") if debtor_request else source.xpath(
+            "./*[local-name()='Partecipanti']/*[local-name()='ControParte']"
+        )
+        creditors = source.xpath("./*[local-name()='Partecipanti']/*[local-name()='Parte']")
+        if not debtors:
+            role = "debitore" if debtor_request else "controparte debitrice"
+            raise ValueError(f"Anagrafica {role} mancante: completa le parti prima di generare la busta.")
+
+        pu = etree.Element(
+            f"{{{MINISTERIAL_ATTI_V7_NS}}}AnagraficaProcedimentoPU",
+            nsmap={"pt": MINISTERIAL_ATTI_V7_NS, "at": MINISTERIAL_ANAGRAFICHE_NS},
+        )
+        participants = etree.SubElement(pu, f"{{{MINISTERIAL_ATTI_V7_NS}}}Partecipanti")
+        for debtor in debtors:
+            participants.append(self._retagged_clone(debtor, MINISTERIAL_ATTI_V7_NS, "Parte"))
+        # Nella struttura PU i difensori del creditore sono riportati nella
+        # sezione TipoParteIstante, non nell'anagrafica dei debitori.
+        etree.SubElement(pu, f"{{{MINISTERIAL_ATTI_V7_NS}}}Soggetti")
+        return pu, source, debtors, creditors
+
+    def _aggiungi_tipo_parte_creditore_ccipu(
+        self,
+        root: etree._Element,
+        source: etree._Element,
+        creditors: list[etree._Element],
+    ) -> None:
+        if not creditors:
+            raise ValueError("Creditore istante mancante: completa le parti prima di generare la busta.")
+        ns = self._datiatto_namespace()
+        tipo = etree.SubElement(root, f"{{{ns}}}TipoParteIstante")
+        attorneys = source.xpath("./*[local-name()='Soggetti']/*[local-name()='Avvocato']")
+        for creditor in creditors:
+            creditor_id = str(creditor.get("ID") or "").strip()
+            item = etree.SubElement(tipo, f"{{{ns}}}Creditore")
+            item.append(self._retagged_clone(creditor, ns, "creditore"))
+            for attorney in attorneys:
+                represented_ids = {
+                    str(ref.get("ref") or "").strip()
+                    for ref in attorney.xpath("./*[local-name()='parteRappresentata']")
+                }
+                if creditor_id and creditor_id not in represented_ids:
+                    continue
+                item.append(self._retagged_clone(attorney, ns, "avvocato"))
+
+    def _aggiungi_dati_specifici_introduttivo_siecic_concorsuali(self, root: etree._Element) -> bool:
+        root_name = self._datiatto_root_name()
+        pu_roots = {
+            "RicorsoAmmissConcordatoPreventivoCCIPU",
+            "RicorsoDichiarazioneInsolvenzaCCIPU",
+            "RicorsoLiquidazioneControllataCCIPU",
+            "RicorsoLiquidazioneGiudizialeCCIPU",
+            "RicorsoOmologaAccordiRistrutturazCCIPU",
+        }
+        if root_name not in pu_roots:
+            return False
+
+        ns = self._datiatto_namespace()
+        pu, source, debtors, creditors = self._anagrafica_procedimento_pu_node()
+        root.append(pu)
+
+        if root_name in {
+            "RicorsoAmmissConcordatoPreventivoCCIPU",
+            "RicorsoOmologaAccordiRistrutturazCCIPU",
+        }:
+            extension = etree.SubElement(root, f"{{{ns}}}EstensioneAnagrafica")
+            for debtor in debtors:
+                debtor_id = str(debtor.get("ID") or "").strip()
+                if not debtor_id:
+                    raise ValueError("Identificativo del debitore mancante nell'anagrafica ministeriale.")
+                item = etree.SubElement(extension, f"{{{ns}}}DatiDebitore", ref=debtor_id)
+                etree.SubElement(item, f"{{{ns}}}formaSocietaria").text = "N/A"
+
+        etree.SubElement(root, f"{{{ns}}}misureCautelari").text = str(
+            self._extra_bool("misure_cautelari", default=False)
+        ).lower()
+        etree.SubElement(root, f"{{{ns}}}misureProtettive").text = str(
+            self._extra_bool("misure_protettive", default=False)
+        ).lower()
+        group = self._extra_text("gruppo_debitori").upper()
+        if group:
+            if group not in {"GI", "CF"}:
+                raise ValueError("Gruppo debitori non valido: seleziona gruppo di imprese o crisi familiare.")
+            etree.SubElement(root, f"{{{ns}}}gruppoDebitori").text = group
+
+        if root_name in {
+            "RicorsoLiquidazioneControllataCCIPU",
+            "RicorsoLiquidazioneGiudizialeCCIPU",
+            "RicorsoDichiarazioneInsolvenzaCCIPU",
+        }:
+            self._aggiungi_tipo_parte_creditore_ccipu(root, source, creditors)
+        else:
+            concordato = (
+                "Ordinario"
+                if root_name == "RicorsoOmologaAccordiRistrutturazCCIPU"
+                else self._required_extra_text("tipo_concordato_ccipu", "Tipo di concordato")
+            )
+            concordato_map = {
+                "ordinario": "Ordinario",
+                "bianco": "Bianco",
+                "in bianco": "Bianco",
+                "inbianco": "Bianco",
+            }
+            concordato_value = concordato_map.get(concordato.casefold())
+            if not concordato_value:
+                raise ValueError("Tipo di concordato non valido: seleziona ordinario o in bianco.")
+            etree.SubElement(root, f"{{{ns}}}tipoConcordato").text = concordato_value
+        return True
+
+    def _aggiungi_base_cassazione(self, root: etree._Element) -> None:
+        key = self._catalog_key()
+        destination = self._datiatto_root_name() == "Ricorso" or "IscrittoDalControricorrente" in key
+        if destination:
+            etree.SubElement(
+                root,
+                f"{{{CASSAZIONE_ATTI_NS}}}destinazione",
+                ufficio=str(self.dati.codice_ufficio or "").strip(),
+                ruolo="CassazioneCivile",
+            )
+            return
+        self._aggiungi_riferimento_procedimento_ministeriale(root)
+
+    def _cassazione_tipo_ricorso(self) -> str:
+        value = self._required_extra_text("tipo_ricorso_cassazione", "Tipo di ricorso")
+        mapping = {
+            "ricorso ordinario": "RicorsoOrdinario",
+            "ricorsoordinario": "RicorsoOrdinario",
+            "regolamento di competenza": "RegolamentoDiCompetenza",
+            "regolamentodicompetenza": "RegolamentoDiCompetenza",
+            "regolamento di giurisdizione": "RegolamentoPreventivoDiGiurisdizione",
+            "regolamentopreventivodigiurisdizione": "RegolamentoPreventivoDiGiurisdizione",
+            "ricorso per revocazione": "RicorsoPerRevocazione",
+            "ricorsoperrevocazione": "RicorsoPerRevocazione",
+            "ricorso ex art. 348 ter": "Ricorso_ex_art_348_TER",
+            "ricorso ex art.348 ter": "Ricorso_ex_art_348_TER",
+            "ricorso_ex_art_348_ter": "Ricorso_ex_art_348_TER",
+        }
+        normalized = mapping.get(value.casefold(), value)
+        allowed = {
+            "RegolamentoPreventivoDiGiurisdizione",
+            "RicorsoOrdinario",
+            "RegolamentoDiCompetenza",
+            "RicorsoPerRevocazione",
+            "Ricorso_ex_art_348_TER",
+        }
+        if normalized not in allowed:
+            raise ValueError("Tipo di ricorso non valido: seleziona una voce prevista dalla tabella ministeriale.")
+        return normalized
+
+    def _aggiungi_provvedimento_impugnato_cassazione(self, root: etree._Element) -> None:
+        raw = self._datiatto_extra().get("provvedimento_impugnato")
+        data = raw if isinstance(raw, dict) else {}
+        ufficio = str(data.get("ufficio") or self._extra_text("provvedimento_ufficio")).strip()
+        ruolo = str(data.get("ruolo") or self._extra_text("provvedimento_ruolo")).strip()
+        numero = str(data.get("numero_fascicolo") or self._extra_text("provvedimento_fascicolo_numero")).strip()
+        anno = str(data.get("anno_fascicolo") or self._extra_text("provvedimento_fascicolo_anno")).strip()
+        missing = []
+        if not ufficio:
+            missing.append("ufficio del provvedimento impugnato")
+        if not ruolo:
+            missing.append("ruolo del fascicolo impugnato")
+        if not numero:
+            missing.append("numero del fascicolo impugnato")
+        if not anno:
+            missing.append("anno del fascicolo impugnato")
+        if missing:
+            raise ValueError("Dati del provvedimento impugnato mancanti: " + ", ".join(missing) + ".")
+        allowed_roles = {
+            "Speciale",
+            "Contenzioso",
+            "Lavoro",
+            "Agraria",
+            "VolontariaGiurisdizione",
+            "EsecuzioniCivili",
+            "EspropriazioniImmobiliari",
+            "Notifiche",
+            "AffariCivili",
+        }
+        if ruolo not in allowed_roles:
+            raise ValueError("Ruolo del fascicolo impugnato non valido: seleziona una voce ministeriale.")
+        if not re.sub(r"\D+", "", numero) or not anno.isdigit():
+            raise ValueError("Numero o anno del fascicolo impugnato non validi.")
+
+        provvedimento = etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}Provvedimento")
+        fascicolo = etree.SubElement(provvedimento, f"{{{CASSAZIONE_ATTI_NS}}}DatiFascicolo")
+        etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Ufficio").text = ufficio
+        etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Ruolo").text = ruolo
+        rito = str(data.get("rito") or self._extra_text("provvedimento_rito")).strip()
+        if rito:
+            etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Rito").text = rito
+        etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Numero").text = re.sub(r"\D+", "", numero)
+        sub = str(data.get("sub") or self._extra_text("provvedimento_fascicolo_sub")).strip()
+        if sub:
+            etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Sub").text = sub
+        etree.SubElement(fascicolo, f"{{{CASSAZIONE_ATTI_NS}}}Anno").text = anno
+
+    def _aggiungi_inizio_primo_grado_cassazione(self, root: etree._Element, *, required: bool) -> None:
+        anno = self._extra_text("inizio_primo_grado_anno")
+        ufficio = self._extra_text("inizio_primo_grado_ufficio")
+        if not anno and not ufficio and not required:
+            return
+        if not anno.isdigit() or len(anno) != 4:
+            raise ValueError("Anno di inizio del giudizio di primo grado mancante o non valido.")
+        if not ufficio:
+            raise ValueError("Ufficio del giudizio di primo grado mancante.")
+        node = etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}InizioGiudizioPrimoGrado")
+        etree.SubElement(node, f"{{{CASSAZIONE_TIPI_NS}}}anno").text = anno
+        etree.SubElement(node, f"{{{CASSAZIONE_TIPI_NS}}}Ufficio").text = ufficio
+
+    def _aggiungi_materia_cassazione(self, root: etree._Element) -> None:
+        materia = self._required_extra_text("materia_ricorso_cassazione", "Materia del ricorso")
+        if not re.fullmatch(r"\d{3}", materia):
+            raise ValueError("Materia del ricorso non valida: seleziona il codice previsto dalla tabella ministeriale.")
+        node = etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}Materia")
+        etree.SubElement(node, f"{{{CASSAZIONE_TIPI_NS}}}materia").text = materia
+        self._append_text_if_present(
+            node,
+            CASSAZIONE_TIPI_NS,
+            "paroleChiave",
+            self._datiatto_extra().get("parole_chiave_cassazione"),
+        )
+
+    def _aggiungi_motivi_cassazione(self, root: etree._Element, *, counter: bool) -> None:
+        key = "contromotivi_cassazione" if counter else "motivi_cassazione"
+        raw = self._datiatto_extra().get(key)
+        items = raw if isinstance(raw, list) else []
+        label = "Contromotivi" if counter else "Motivi"
+        if not items:
+            raise ValueError(f"{label} mancanti: inserisci almeno una voce prima di generare la busta.")
+        container_name = "ControMotivi" if counter else "Motivi"
+        item_name = "ControMotivo" if counter else "Motivo"
+        container = etree.SubElement(root, f"{{{CASSAZIONE_TIPI_NS}}}{container_name}")
+        for index, item_raw in enumerate(items, start=1):
+            item = item_raw if isinstance(item_raw, dict) else {}
+            if counter:
+                number = str(item.get("numero_riferimento_motivo") or item.get("numero") or index).strip()
+                page = str(item.get("pagina") or item.get("riferimento_pagina") or "").strip()
+                if not number.isdigit() or not page.isdigit() or int(page) <= 0:
+                    raise ValueError("Numero del motivo o pagina del contromotivo non validi.")
+                node = etree.SubElement(
+                    container,
+                    f"{{{CASSAZIONE_TIPI_NS}}}{item_name}",
+                    numeroRiferimentoMotivo=number,
+                    riferimentoPagina=page,
+                )
+            else:
+                number = str(item.get("numero") or index).strip()
+                article = str(item.get("numero_art_360") or "").strip()
+                if not number or article not in {"1", "2", "3", "4", "5"}:
+                    raise ValueError("Numero del motivo o riferimento all'art. 360 non validi.")
+                attrs = {"numeroMotivo": number, "numeroArt360": article}
+                page = str(item.get("pagina") or item.get("riferimento_pagina") or "").strip()
+                if page:
+                    if not page.isdigit() or int(page) <= 0:
+                        raise ValueError("Pagina del motivo non valida.")
+                    attrs["riferimentoPagina"] = page
+                node = etree.SubElement(container, f"{{{CASSAZIONE_TIPI_NS}}}{item_name}", **attrs)
+            self._append_text_if_present(node, CASSAZIONE_TIPI_NS, "descrizione", item.get("descrizione"))
+
+    def _modifiche_anagrafica_cassazione_node(self) -> etree._Element:
+        node = self._anagrafica_procedimento_node()
+        node.tag = f"{{{CASSAZIONE_ATTI_NS}}}ModificheAnagrafica"
+        participants = node.xpath("./*[local-name()='Partecipanti']")
+        if not participants:
+            raise ValueError("Parti da integrare mancanti nell'anagrafica.")
+        for participant in list(participants[0]):
+            if etree.QName(participant).localname != "Parte":
+                participants[0].remove(participant)
+        if not list(participants[0]):
+            raise ValueError("Parte da integrare mancante nell'anagrafica.")
+        return node
+
+    def _aggiungi_dati_specifici_cassazione(self, root: etree._Element) -> bool:
+        root_name = self._datiatto_root_name()
+        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
+            ns = CASSAZIONE_PARTE_NS
+            etree.SubElement(root, f"{{{ns}}}TipoRicorso").text = self._cassazione_tipo_ricorso()
+            request_date = self._required_extra_text("data_richiesta_notifica_cassazione", "Data della prima notifica")
+            effective_date = self._extra_text("data_effettiva_notifica_cassazione") or request_date
+            etree.SubElement(root, f"{{{ns}}}dataRichiestaNotifica").text = self._format_date_field(
+                request_date, "Data della prima notifica"
+            )
+            etree.SubElement(root, f"{{{ns}}}dataEffettivaNotifica").text = self._format_date_field(
+                effective_date, "Data di perfezionamento della notifica"
+            )
+            self._aggiungi_provvedimento_impugnato_cassazione(root)
+            self._aggiungi_inizio_primo_grado_cassazione(root, required=root_name == "Ricorso")
+            self._aggiungi_materia_cassazione(root)
+            if self.dati.valore_causa is not None:
+                etree.SubElement(root, f"{{{ns}}}valoreCausa").text = f"{float(self.dati.valore_causa):.2f}"
+            elif root_name == "ControRicorsoIncidentale":
+                contribution_mode, _ = self._contributo_unificato_dati()
+                if contribution_mode != "esente":
+                    raise ValueError("Valore della causa mancante: inseriscilo prima di generare la busta.")
+                etree.SubElement(root, f"{{{ns}}}valoreCausa").text = "0.00"
+            self._aggiungi_spese_giustizia_cassazione(root, integration=False)
+            if root_name in {"Ricorso", "ControRicorsoIncidentale"} and not root.xpath(
+                "./*[local-name()='speseGiustizia']"
+            ):
+                raise ValueError("Spese di giustizia non definite: indica pagamento, debito o esenzione.")
+            root.append(self._anagrafica_procedimento_node())
+            if root_name in {"Ricorso", "ControRicorsoIncidentale"}:
+                self._aggiungi_motivi_cassazione(root, counter=False)
+            if root_name in {"ControRicorso", "ControRicorsoIncidentale"}:
+                self._aggiungi_motivi_cassazione(root, counter=True)
+            etree.SubElement(root, f"{{{CASSAZIONE_ATTI_NS}}}DocumentiECLI")
+            return True
+        if root_name == "AttoGenerico":
+            etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}deposito")
+            return True
+        if root_name == "IntegrazioneAnagrafica":
+            root.append(self._modifiche_anagrafica_cassazione_node())
+            deposito = etree.SubElement(root, f"{{{CASSAZIONE_PARTE_NS}}}deposito")
+            event_name = self._catalog_key().split("::", 1)[-1]
+            allowed = {
+                "IntegrazioneContradittorio",
+                "ProcuraSpecialeCostituzione",
+                "ProcuraSpecialeSostituzioneRevoca",
+                "VariazioneDomicilio",
+            }
+            if event_name not in allowed:
+                raise ValueError("Tipo di integrazione anagrafica non riconosciuto.")
+            etree.SubElement(deposito, f"{{{CASSAZIONE_EVENTI_NS}}}{event_name}")
+            return True
+        return False
+
     def _aggiungi_destinazione_e_oggetto_ministeriali(self, root: etree._Element) -> None:
         atti_ns = self._datiatto_atti_namespace()
         etree.SubElement(
@@ -1359,7 +2808,14 @@ class BustaTelematica:
             ufficio=str(self.dati.codice_ufficio or "").strip(),
             ruolo=self._ruolo_ministeriale_registro(self.dati.codice_registro, self.dati.tipo_atto),
         )
+        if self._is_datiatto_sistema():
+            return
         etree.SubElement(root, f"{{{atti_ns}}}Oggetto").text = str(self.dati.oggetto or "").strip()
+        if not self._is_datiatto_introduttivo():
+            return
+        contribution_mode, amount = self._contributo_unificato_dati()
+
+        valore = 0.0
         if self.dati.valore_causa is not None:
             try:
                 valore = float(self.dati.valore_causa)
@@ -1367,6 +2823,21 @@ class BustaTelematica:
                 valore = 0.0
             if valore > 0:
                 etree.SubElement(root, f"{{{atti_ns}}}ValoreCausa").text = f"{valore:.2f}"
+        xml_mode = str(self.dati.contributo_unificato_xml_mode or "").strip()
+        writes_intro_contribution = xml_mode == "atto_introduttivo" or (
+            not xml_mode and self._is_datiatto_introduttivo()
+        )
+        if writes_intro_contribution and contribution_mode == "esente" and valore <= 0:
+            etree.SubElement(root, f"{{{atti_ns}}}ValoreCausa").text = "0.00"
+
+        if writes_intro_contribution and contribution_mode in {"pagato", "prenotato_a_debito"}:
+            node = etree.SubElement(root, f"{{{atti_ns}}}ContributoUnificato")
+            self._append_importo_contributo(
+                node,
+                namespace=atti_ns,
+                amount=amount,
+                debt=contribution_mode == "prenotato_a_debito",
+            )
 
     def _aggiungi_riferimento_procedimento_ministeriale(self, root: etree._Element) -> None:
         atti_ns = self._datiatto_atti_namespace()
@@ -1408,6 +2879,7 @@ class BustaTelematica:
         if not root_name:
             root_name = "Ricorso"
             generator_class = generator_class or "IntroduttiviSicid"
+        self._contributo_unificato_dati()
         namespace = self._datiatto_namespace()
         if namespace and (
             self._is_datiatto_introduttivo()
@@ -1429,12 +2901,22 @@ class BustaTelematica:
                 "pt": self._datiatto_atti_namespace(),
                 "at": MINISTERIAL_ANAGRAFICHE_NS,
                 "st": SIECIC_TIPIBASE_NS,
-                "evt": SIECIC_EVENTI_NS,
+                "evt": (
+                    CASSAZIONE_EVENTI_NS
+                    if generator_class.startswith("ParteCassazione")
+                    else (
+                        MINISTERIAL_EVENTI_PARTE_NS
+                        if generator_class == "Parte"
+                        else SIECIC_EVENTI_NS
+                    )
+                ),
                 "xsi": XSI_NS,
                 "xsd": XSD_NS,
             },
         )
-        if self._is_datiatto_introduttivo() and "citazione" in root_name.casefold():
+        if self._is_datiatto_introduttivo() and (
+            "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo"
+        ):
             root.set("Datacitazione", self._normalizza_data_notifica_citazione())
         if self._is_datiatto_introduttivo():
             self._aggiungi_destinazione_e_oggetto_ministeriali(root)
@@ -1443,29 +2925,78 @@ class BustaTelematica:
         elif self._is_datiatto_procedimento_base():
             self._aggiungi_riferimento_procedimento_ministeriale(root)
         elif self._is_datiatto_cassazione():
-            if self.dati.numero_rg and self.dati.anno_rg:
-                self._aggiungi_riferimento_procedimento_ministeriale(root)
-            else:
-                self._aggiungi_destinazione_e_oggetto_ministeriali(root)
+            self._aggiungi_base_cassazione(root)
 
         if self._usa_indice_busta_interno():
-            indice = etree.SubElement(root, f"{{{MINISTERIAL_ATTI_NS}}}IndiceBusta")
-            etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}AttoPrincipale", id=main_part.content_id)
+            indice = etree.SubElement(root, f"{{{self._datiatto_atti_namespace()}}}IndiceBusta")
+            allegati_ns = self._datiatto_allegati_namespace()
+            etree.SubElement(indice, f"{{{allegati_ns}}}AttoPrincipale", id=main_part.content_id)
             for part in document_parts:
                 if part.is_main:
                     continue
-                etree.SubElement(indice, f"{{{MINISTERIAL_ALLEGATI_NS}}}{part.ruolo_indice}", id=part.content_id)
+                etree.SubElement(indice, f"{{{allegati_ns}}}{part.ruolo_indice}", id=part.content_id)
+        if self._is_datiatto_sistema():
+            etree.SubElement(root, f"{{{namespace}}}RefId").text = self._xml_id(self.id_busta, "deposito")
+
+        if generator_class == "Parte":
+            self._aggiungi_dati_specifici_parte_sicid(root)
+        elif generator_class in {"ParteSiecicEsecuzioni", "ParteSiecicConcorsuali"}:
+            self._aggiungi_dati_specifici_parte_siecic(root)
+        elif generator_class == "CorsoCausa_SIGP":
+            self._aggiungi_dati_specifici_corso_causa_sigp(root)
+        elif generator_class == "DelSiecicEsecuzioni":
+            if root_name == "DepositoSemplice":
+                self._aggiungi_deposito_semplice_ministeriale(root)
+            self._aggiungi_dati_specifici_delegato_siecic(root)
+        elif root_name == "DepositoSemplice" and generator_class in DEPOSITO_SEMPLICE_EVENT_BY_GENERATOR_AND_KEY:
+            self._aggiungi_deposito_semplice_ministeriale(root)
+
+        cassazione_specifica = False
+        if self._is_datiatto_cassazione():
+            cassazione_specifica = self._aggiungi_dati_specifici_cassazione(root)
 
         if self._is_pignoramento_siecic():
             self._aggiungi_pignoramento_ministeriale(root)
+        elif self.dati.contributo_unificato_xml_mode == "siecic_istanza_vendita":
+            self._aggiungi_istanza_vendita_ministeriale(root)
         elif self._is_richiesta_visibilita():
             self._aggiungi_richiesta_visibilita_ministeriale(root)
         elif self._is_progetto_distribuzione():
             self._aggiungi_progetto_distribuzione_ministeriale(root)
 
-        if (self._is_datiatto_introduttivo() and not self._is_pignoramento_siecic()) or self._is_datiatto_cassazione():
+        if self.dati.contributo_unificato_xml_mode == "cassazione_spese_giustizia" and not cassazione_specifica:
+            if self.dati.valore_causa is not None:
+                etree.SubElement(root, f"{{{self._datiatto_namespace()}}}valoreCausa").text = f"{float(self.dati.valore_causa):.2f}"
+            self._aggiungi_spese_giustizia_cassazione(root, integration=False)
+        elif self.dati.contributo_unificato_xml_mode == "cassazione_integrazione_spese" and not cassazione_specifica:
+            self._aggiungi_spese_giustizia_cassazione(root, integration=True)
+
+        cassazione_anagrafica_roots = {"Ricorso", "ControRicorso", "ControRicorsoIncidentale", "IntegrazioneAnagrafica"}
+        if self._is_datiatto_introduttivo() and not self._is_pignoramento_siecic():
+            concorsuale_pu = (
+                generator_class == "IntroduttiviSiecicConcorsuali"
+                and self._aggiungi_dati_specifici_introduttivo_siecic_concorsuali(root)
+            )
+            if not concorsuale_pu:
+                root.append(self._anagrafica_procedimento_node())
+                if generator_class == "IntroduttiviSicid":
+                    self._aggiungi_dati_specifici_introduttivo_sicid(root)
+                elif generator_class == "Introduttivi_SIGP":
+                    self._aggiungi_dati_specifici_introduttivo_sigp(root)
+        elif (
+            self._is_datiatto_cassazione()
+            and root_name in cassazione_anagrafica_roots
+            and not cassazione_specifica
+        ):
             root.append(self._anagrafica_procedimento_node())
-        return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        payload = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+        from pct.datiatto_xsd import validate_datiatto_xml
+
+        validation = validate_datiatto_xml(payload)
+        if not validation.ok:
+            detail = "; ".join(validation.errors[:3]) or "controllo ufficiale non superato"
+            raise ValueError(f"Dati del deposito non conformi: {detail}")
+        return payload
 
     def _crea_xml_dati_atto(
         self,

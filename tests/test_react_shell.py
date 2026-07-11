@@ -345,6 +345,9 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "web/bootstrap/auth_management_routes.py": [
             'render_react_shell_response("profilo")',
         ],
+        "web/blueprints/template_atti.py": [
+            'render_react_shell_response(request.path.lstrip("/"))',
+        ],
     }
 
     for path in (
@@ -542,7 +545,7 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "http://localhost:27272" in source
     assert "localSignerCandidateBaseUrls" in source
     assert "localSignerEndpoint('/ping')" in source
-    assert "localSignerEndpoint('/firma')" in source
+    assert "localSignerEndpointForStatus('/firma', localSigner)" in source
     assert "token_probe_fresh" in source
     assert "riavvio_signer_consigliato" in source
     assert "Dispositivo di firma rilevato, riallineamento automatico" in source

@@ -40,7 +40,10 @@ import {
   type FascicoloDeposit,
   type FascicoloDepositCatalog,
   type FascicoloDepositCatalogEntry,
+  type FascicoloDepositInputField,
+  type FascicoloDepositInputOption,
   type FascicoloDepositOffice,
+  type FascicoloDepositReadiness,
   type FascicoloDetailData,
   type FascicoloDocument,
   type FascicoloFull,
@@ -570,6 +573,434 @@ function normaliseDepositRoleForUi(role: DepositDocumentRole | undefined): Depos
   return role || 'allegato'
 }
 
+function savedDepositDocumentRole(value: string | undefined, fallback: DepositDocumentRole): DepositDocumentRole {
+  const role = String(value || '').trim() as DepositDocumentRole
+  return ['atto_principale', 'procura', 'allegato_prova', 'allegato', 'prova_notifica', 'fuori_busta'].includes(role)
+    ? role
+    : fallback
+}
+
+type DepositSpecificData = Record<string, unknown>
+
+function depositObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function depositObjectList(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    : []
+}
+
+function depositValueText(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+}
+
+function depositPositiveNumber(value: unknown): boolean {
+  const raw = depositValueText(value).trim().replace(/\s|€/g, '')
+  if (!raw) return false
+  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw
+  const amount = Number(normalized)
+  return Number.isFinite(amount) && amount > 0
+}
+
+function depositRequiredValuesPresent(value: Record<string, unknown>, keys: string[]): boolean {
+  return keys.every((key) => depositValueText(value[key]).trim())
+}
+
+function depositSpecificFieldComplete(field: FascicoloDepositInputField, value: unknown): boolean {
+  if (!field.required) return true
+  if (field.type === 'boolean') return typeof value === 'boolean'
+  if (field.type === 'currency' || field.type === 'integer') return depositPositiveNumber(value)
+  if (field.type === 'year') return /^\d{4}$/.test(depositValueText(value).trim())
+  if (field.type === 'cassazione-materia') return /^\d{3}$/.test(depositValueText(value).trim())
+  if (field.type === 'beni-pignorati') {
+    const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => {
+      if (!depositRequiredValuesPresent(item, ['tipo', 'descrizione'])) return false
+      if (!normaliseText(depositValueText(item.tipo)).includes('immob')) return depositPositiveNumber(item.valore)
+      return depositRequiredValuesPresent(depositObject(item.indirizzo), ['via', 'cap', 'localita', 'provincia'])
+        && depositRequiredValuesPresent(depositObject(item.dati_catastali), ['sezione', 'foglio', 'particella'])
+        && depositRequiredValuesPresent(item, ['catasto', 'classe'])
+    })
+  }
+  if (field.type === 'titolo-esecutivo') {
+    return depositRequiredValuesPresent(depositObject(value), ['tipologia', 'descrizione'])
+  }
+  if (field.type === 'persona-indirizzo') {
+    return depositRequiredValuesPresent(depositObject(value), ['cognome', 'codice_fiscale', 'via', 'cap', 'localita', 'provincia'])
+  }
+  if (field.type === 'terzi-pignorati') {
+    const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => depositRequiredValuesPresent(
+      item,
+      ['codice_fiscale', 'denominazione', 'via', 'cap', 'localita', 'provincia', 'data_notifica_pignoramento'],
+    ))
+  }
+  if (field.type === 'provvedimento-cassazione') {
+    return depositRequiredValuesPresent(depositObject(value), ['ufficio', 'ruolo', 'numero_fascicolo', 'anno_fascicolo'])
+  }
+  if (field.type === 'motivi-cassazione') {
+    const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => ['1', '2', '3', '4', '5'].includes(depositValueText(item.numero_art_360)))
+  }
+  if (field.type === 'contromotivi-cassazione') {
+    const items = depositObjectList(value)
+    return items.length > 0 && items.every((item) => (
+      /^\d+$/.test(depositValueText(item.numero_riferimento_motivo))
+      && depositPositiveNumber(item.pagina)
+    ))
+  }
+  return depositValueText(value).trim().length > 0
+}
+
+function missingDepositSpecificFields(fields: FascicoloDepositInputField[], values: DepositSpecificData): FascicoloDepositInputField[] {
+  return fields.filter((field) => !depositSpecificFieldComplete(field, values[field.id]))
+}
+
+function DepositRequiredMark({ required }: { required: boolean }) {
+  return required ? <span className="iu-fas-deposit-specific__required" aria-label="obbligatorio">Obbligatorio</span> : null
+}
+
+function DepositTextInput({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  required = false,
+  placeholder = '',
+  inputMode,
+}: {
+  label: string
+  value: unknown
+  onChange: (value: string) => void
+  type?: 'text' | 'date' | 'number'
+  required?: boolean
+  placeholder?: string
+  inputMode?: 'decimal' | 'numeric' | 'text'
+}) {
+  return (
+    <label className="iu-fas-deposit-specific__field">
+      <span>{label}{required ? <b aria-hidden="true"> *</b> : null}</span>
+      <input
+        type={type}
+        value={depositValueText(value)}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        required={required}
+        aria-required={required}
+        placeholder={placeholder}
+        inputMode={inputMode}
+      />
+    </label>
+  )
+}
+
+function DepositSelectInput({
+  label,
+  value,
+  options,
+  onChange,
+  required = false,
+}: {
+  label: string
+  value: unknown
+  options: FascicoloDepositInputOption[]
+  onChange: (value: string) => void
+  required?: boolean
+}) {
+  return (
+    <label className="iu-fas-deposit-specific__field">
+      <span>{label}{required ? <b aria-hidden="true"> *</b> : null}</span>
+      <select value={depositValueText(value)} onChange={(event) => onChange(event.currentTarget.value)} required={required} aria-required={required}>
+        <option value="">Seleziona</option>
+        {options.map((option) => <option value={option.value} key={`${label}-${option.value}`}>{option.label}</option>)}
+      </select>
+    </label>
+  )
+}
+
+function DepositRepeatingHeader({ label, onAdd }: { label: string; onAdd: () => void }) {
+  return (
+    <div className="iu-fas-deposit-specific__repeat-head">
+      <span>{label}</span>
+      <button type="button" onClick={onAdd}><UploadCloud size={14} aria-hidden="true" /> Aggiungi</button>
+    </div>
+  )
+}
+
+function DepositSpecificComplexField({
+  field,
+  value,
+  onChange,
+  catalogKey,
+  titleOptions,
+  roleOptions,
+  matterOptions,
+  propertyClassOptions,
+}: {
+  field: FascicoloDepositInputField
+  value: unknown
+  onChange: (value: unknown) => void
+  catalogKey: string
+  titleOptions: FascicoloDepositInputOption[]
+  roleOptions: FascicoloDepositInputOption[]
+  matterOptions: FascicoloDepositInputOption[]
+  propertyClassOptions: FascicoloDepositInputOption[]
+}) {
+  if (field.type === 'cassazione-materia') {
+    return <DepositSelectInput label={field.label} value={value} options={matterOptions} onChange={onChange} required={field.required} />
+  }
+
+  if (field.type === 'titolo-esecutivo') {
+    const item = depositObject(value)
+    const set = (key: string, nextValue: unknown) => onChange({ ...item, [key]: nextValue })
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <div className="iu-fas-deposit-specific__grid">
+          <DepositSelectInput label="Tipologia" value={item.tipologia} options={titleOptions} onChange={(next) => set('tipologia', next)} required />
+          <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} required />
+          <DepositTextInput label="Numero" value={item.numero} onChange={(next) => set('numero', next)} />
+          <DepositTextInput label="Data di emissione" value={item.data_emissione} onChange={(next) => set('data_emissione', next)} type="date" />
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'persona-indirizzo') {
+    const item = depositObject(value)
+    const set = (key: string, nextValue: unknown) => onChange({ ...item, [key]: nextValue })
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <div className="iu-fas-deposit-specific__grid">
+          <DepositTextInput label="Cognome o denominazione" value={item.cognome} onChange={(next) => set('cognome', next)} required />
+          <DepositTextInput label="Nome" value={item.nome} onChange={(next) => set('nome', next)} />
+          <DepositTextInput label="Codice fiscale" value={item.codice_fiscale} onChange={(next) => set('codice_fiscale', next.toUpperCase())} required />
+          <DepositTextInput label="Indirizzo" value={item.via} onChange={(next) => set('via', next)} required />
+          <DepositTextInput label="CAP" value={item.cap} onChange={(next) => set('cap', next)} required inputMode="numeric" />
+          <DepositTextInput label="Comune" value={item.localita} onChange={(next) => set('localita', next)} required />
+          <DepositTextInput label="Provincia" value={item.provincia} onChange={(next) => set('provincia', next.toUpperCase())} required />
+          <DepositTextInput label="PEC" value={item.pec} onChange={(next) => set('pec', next)} />
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'provvedimento-cassazione') {
+    const item = depositObject(value)
+    const set = (key: string, nextValue: unknown) => onChange({ ...item, [key]: nextValue })
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <div className="iu-fas-deposit-specific__grid">
+          <DepositTextInput label="Ufficio" value={item.ufficio} onChange={(next) => set('ufficio', next)} required />
+          <DepositSelectInput label="Ruolo" value={item.ruolo} options={roleOptions} onChange={(next) => set('ruolo', next)} required />
+          <DepositTextInput label="Numero fascicolo" value={item.numero_fascicolo} onChange={(next) => set('numero_fascicolo', next)} required inputMode="numeric" />
+          <DepositTextInput label="Anno fascicolo" value={item.anno_fascicolo} onChange={(next) => set('anno_fascicolo', next)} required inputMode="numeric" />
+          <DepositTextInput label="Rito" value={item.rito} onChange={(next) => set('rito', next)} />
+          <DepositTextInput label="Sub" value={item.sub} onChange={(next) => set('sub', next)} />
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'beni-pignorati') {
+    const items = depositObjectList(value)
+    const defaultType = /immobiliare/i.test(catalogKey) ? 'immobiliare' : 'mobiliare'
+    const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
+    const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index))
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <DepositRepeatingHeader label={items.length ? `${items.length} ${items.length === 1 ? 'bene inserito' : 'beni inseriti'}` : 'Nessun bene inserito'} onAdd={() => onChange([...items, { tipo: defaultType }])} />
+        <div className="iu-fas-deposit-specific__repeat-list">
+          {items.map((item, index) => {
+            const isImmobile = normaliseText(depositValueText(item.tipo)).includes('immob')
+            const address = depositObject(item.indirizzo)
+            const cadastral = depositObject(item.dati_catastali)
+            const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
+            const setAddress = (key: string, nextValue: unknown) => set('indirizzo', { ...address, [key]: nextValue })
+            const setCadastral = (key: string, nextValue: unknown) => set('dati_catastali', { ...cadastral, [key]: nextValue })
+            return (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`bene-${index}`}>
+                <header><strong>Bene {index + 1}</strong><button type="button" onClick={() => remove(index)} title={`Rimuovi bene ${index + 1}`} aria-label={`Rimuovi bene ${index + 1}`}><Trash2 size={15} /></button></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  <DepositSelectInput label="Tipo" value={item.tipo} options={[{ value: 'mobiliare', label: 'Bene mobile' }, { value: 'immobiliare', label: 'Bene immobile' }]} onChange={(next) => set('tipo', next)} required />
+                  <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} required />
+                  {!isImmobile ? <DepositTextInput label="Valore (€)" value={item.valore} onChange={(next) => set('valore', next)} required inputMode="decimal" placeholder="0,00" /> : null}
+                  {isImmobile ? <DepositTextInput label="Indirizzo" value={address.via} onChange={(next) => setAddress('via', next)} required /> : null}
+                  {isImmobile ? <DepositTextInput label="CAP" value={address.cap} onChange={(next) => setAddress('cap', next)} required inputMode="numeric" /> : null}
+                  {isImmobile ? <DepositTextInput label="Comune" value={address.localita} onChange={(next) => setAddress('localita', next)} required /> : null}
+                  {isImmobile ? <DepositTextInput label="Provincia" value={address.provincia} onChange={(next) => setAddress('provincia', next.toUpperCase())} required /> : null}
+                  {isImmobile ? <DepositSelectInput label="Catasto" value={item.catasto} options={[{ value: 'NCEU', label: 'Catasto edilizio urbano (NCEU)' }, { value: 'NCT', label: 'Catasto terreni (NCT)' }]} onChange={(next) => set('catasto', next)} required /> : null}
+                  {isImmobile ? <DepositTextInput label="Sezione" value={cadastral.sezione} onChange={(next) => setCadastral('sezione', next)} required /> : null}
+                  {isImmobile ? <DepositTextInput label="Foglio" value={cadastral.foglio} onChange={(next) => setCadastral('foglio', next)} required /> : null}
+                  {isImmobile ? <DepositTextInput label="Particella" value={cadastral.particella} onChange={(next) => setCadastral('particella', next)} required /> : null}
+                  {isImmobile ? <DepositSelectInput label="Classe" value={item.classe} options={propertyClassOptions} onChange={(next) => set('classe', next)} required /> : null}
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'terzi-pignorati') {
+    const items = depositObjectList(value)
+    const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <DepositRepeatingHeader label={items.length ? `${items.length} ${items.length === 1 ? 'terzo inserito' : 'terzi inseriti'}` : 'Nessun terzo inserito'} onAdd={() => onChange([...items, {}])} />
+        <div className="iu-fas-deposit-specific__repeat-list">
+          {items.map((item, index) => {
+            const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
+            return (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`terzo-${index}`}>
+                <header><strong>Terzo {index + 1}</strong><button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} title={`Rimuovi terzo ${index + 1}`} aria-label={`Rimuovi terzo ${index + 1}`}><Trash2 size={15} /></button></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  <DepositTextInput label="Denominazione o cognome" value={item.denominazione} onChange={(next) => set('denominazione', next)} required />
+                  <DepositTextInput label="Nome" value={item.nome} onChange={(next) => set('nome', next)} />
+                  <DepositTextInput label="Codice fiscale" value={item.codice_fiscale} onChange={(next) => set('codice_fiscale', next.toUpperCase())} required />
+                  <DepositTextInput label="Indirizzo" value={item.via} onChange={(next) => set('via', next)} required />
+                  <DepositTextInput label="CAP" value={item.cap} onChange={(next) => set('cap', next)} required inputMode="numeric" />
+                  <DepositTextInput label="Comune" value={item.localita} onChange={(next) => set('localita', next)} required />
+                  <DepositTextInput label="Provincia" value={item.provincia} onChange={(next) => set('provincia', next.toUpperCase())} required />
+                  <DepositTextInput label="Notifica del pignoramento" value={item.data_notifica_pignoramento} onChange={(next) => set('data_notifica_pignoramento', next)} type="date" required />
+                  <DepositTextInput label="Notifica del precetto" value={item.data_notifica_precetto} onChange={(next) => set('data_notifica_precetto', next)} type="date" />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </fieldset>
+    )
+  }
+
+  if (field.type === 'motivi-cassazione' || field.type === 'contromotivi-cassazione') {
+    const counter = field.type === 'contromotivi-cassazione'
+    const items = depositObjectList(value)
+    const update = (index: number, nextItem: Record<string, unknown>) => onChange(items.map((item, itemIndex) => itemIndex === index ? nextItem : item))
+    return (
+      <fieldset className="iu-fas-deposit-specific__complex">
+        <legend>{field.label} <DepositRequiredMark required={field.required} /></legend>
+        <DepositRepeatingHeader label={items.length ? `${items.length} ${items.length === 1 ? 'voce inserita' : 'voci inserite'}` : 'Nessuna voce inserita'} onAdd={() => onChange([...items, counter ? {} : { numero: String(items.length + 1) }])} />
+        <div className="iu-fas-deposit-specific__repeat-list">
+          {items.map((item, index) => {
+            const set = (key: string, nextValue: unknown) => update(index, { ...item, [key]: nextValue })
+            return (
+              <article className="iu-fas-deposit-specific__repeat-row" key={`${counter ? 'contromotivo' : 'motivo'}-${index}`}>
+                <header><strong>{counter ? 'Contromotivo' : 'Motivo'} {index + 1}</strong><button type="button" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} title={`Rimuovi voce ${index + 1}`} aria-label={`Rimuovi voce ${index + 1}`}><Trash2 size={15} /></button></header>
+                <div className="iu-fas-deposit-specific__grid">
+                  {counter ? <DepositTextInput label="Motivo richiamato" value={item.numero_riferimento_motivo} onChange={(next) => set('numero_riferimento_motivo', next)} required inputMode="numeric" /> : null}
+                  {!counter ? <DepositSelectInput label="Numero dell’art. 360" value={item.numero_art_360} options={[1, 2, 3, 4, 5].map((number) => ({ value: String(number), label: String(number) }))} onChange={(next) => set('numero_art_360', next)} required /> : null}
+                  <DepositTextInput label="Pagina" value={item.pagina} onChange={(next) => set('pagina', next)} required={counter} inputMode="numeric" />
+                  <DepositTextInput label="Descrizione" value={item.descrizione} onChange={(next) => set('descrizione', next)} />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </fieldset>
+    )
+  }
+
+  return null
+}
+
+function DepositSpecificDataForm({
+  entry,
+  catalog,
+  values,
+  onChange,
+}: {
+  entry: FascicoloDepositCatalogEntry | undefined
+  catalog: FascicoloDepositCatalog
+  values: DepositSpecificData
+  onChange: (fieldId: string, value: unknown) => void
+}) {
+  const fields = entry?.schema.inputFields || []
+  if (!fields.length) return null
+  const missing = missingDepositSpecificFields(fields, values)
+  const groups = fields.reduce<Array<{ label: string; fields: FascicoloDepositInputField[] }>>((result, field) => {
+    const label = field.group || 'Dati del deposito'
+    const group = result.find((item) => item.label === label)
+    if (group) group.fields.push(field)
+    else result.push({ label, fields: [field] })
+    return result
+  }, [])
+  const complexTypes = new Set([
+    'beni-pignorati',
+    'titolo-esecutivo',
+    'persona-indirizzo',
+    'terzi-pignorati',
+    'provvedimento-cassazione',
+    'motivi-cassazione',
+    'contromotivi-cassazione',
+    'cassazione-materia',
+  ])
+  return (
+    <section id="dati-specifici-deposito" className="iu-fas-deposit-specific" aria-label="Dati richiesti per il deposito selezionato">
+      <header>
+        <div>
+          <strong>Dati del deposito</strong>
+          <span>Mostriamo solo i dati necessari per il tipo selezionato. Il salvataggio li conserva nel fascicolo.</span>
+        </div>
+        <Badge tone={missing.length ? 'warning' : 'success'}>{missing.length ? `${missing.length} da completare` : 'Completi'}</Badge>
+      </header>
+      {missing.length ? <p className="iu-fas-deposit-specific__notice" role="status">Prima dell’invio reale completa: {missing.map((field) => field.label).join(', ')}. I comandi di prova restano disponibili e indicano subito il dato mancante.</p> : null}
+      {groups.map((group) => (
+        <div className="iu-fas-deposit-specific__group" key={`${entry?.key}-${group.label}`}>
+          <h4>{group.label}</h4>
+          <div className="iu-fas-deposit-specific__grid">
+            {group.fields.filter((field) => !complexTypes.has(field.type)).map((field) => {
+              const value = values[field.id]
+              if (field.type === 'select') {
+                return <DepositSelectInput key={field.id} label={field.label} value={value} options={field.options} onChange={(next) => onChange(field.id, next)} required={field.required} />
+              }
+              if (field.type === 'boolean') {
+                return (
+                  <label className="iu-fas-deposit-specific__toggle" key={field.id}>
+                    <input type="checkbox" checked={value === true || value === 'true' || value === '1'} onChange={(event) => onChange(field.id, event.currentTarget.checked)} />
+                    <span><strong>{field.label}</strong>{field.note ? <small>{field.note}</small> : null}</span>
+                  </label>
+                )
+              }
+              return (
+                <DepositTextInput
+                  key={field.id}
+                  label={field.type === 'currency' ? `${field.label} (€)` : field.label}
+                  value={value}
+                  onChange={(next) => onChange(field.id, next)}
+                  type={field.type === 'date' ? 'date' : field.type === 'integer' ? 'number' : 'text'}
+                  inputMode={field.type === 'currency' ? 'decimal' : field.type === 'year' || field.type === 'integer' ? 'numeric' : 'text'}
+                  placeholder={field.type === 'currency' ? '0,00' : ''}
+                  required={field.required}
+                />
+              )
+            })}
+          </div>
+          {group.fields.filter((field) => complexTypes.has(field.type)).map((field) => (
+            <DepositSpecificComplexField
+              key={field.id}
+              field={field}
+              value={values[field.id]}
+              onChange={(next) => onChange(field.id, next)}
+              catalogKey={entry?.key || ''}
+              titleOptions={catalog.referenceData.titoliEsecutivi}
+              roleOptions={catalog.referenceData.ruoliProvvedimentoCassazione}
+              matterOptions={catalog.referenceData.materieCassazione}
+              propertyClassOptions={catalog.referenceData.classiImmobiliari}
+            />
+          ))}
+        </div>
+      ))}
+    </section>
+  )
+}
+
 function DepositTypePreviewPanel({
   catalog,
   selectedKey,
@@ -600,34 +1031,32 @@ function DepositTypePreviewPanel({
 
   const selectedMacro = selectedByKey?.macro || macroareas.find((macro) => macro.id === macroId) || macroareas[0]
   const selectedCategory = selectedByKey?.category || selectedMacro?.categories.find((category) => category.id === categoryId) || selectedMacro?.categories[0]
-  const selectedType = selectedByKey?.type || selectedCategory?.options[0]
+  const selectedType = selectedByKey?.type
 
   useEffect(() => {
-    if (!selectedMacro || !selectedCategory || !selectedType) return
+    if (!selectedMacro || !selectedCategory) return
     if (macroId !== selectedMacro.id) setMacroId(selectedMacro.id)
     if (categoryId !== selectedCategory.id) setCategoryId(selectedCategory.id)
-  }, [categoryId, macroId, selectedCategory, selectedMacro, selectedType])
+  }, [categoryId, macroId, selectedCategory, selectedMacro])
 
   const selectMacro = (nextMacroId: string) => {
     const nextMacro = macroareas.find((macro) => macro.id === nextMacroId) || macroareas[0]
     const nextCategory = nextMacro?.categories[0]
-    const nextType = nextCategory?.options[0]
-    if (!nextMacro || !nextCategory || !nextType) return
+    if (!nextMacro || !nextCategory) return
     setMacroId(nextMacro.id)
     setCategoryId(nextCategory.id)
-    onSelect(nextType.key)
+    onSelect('')
   }
 
   const selectCategory = (nextCategoryId: string) => {
     if (!selectedMacro) return
     const nextCategory = selectedMacro.categories.find((category) => category.id === nextCategoryId) || selectedMacro.categories[0]
-    const nextType = nextCategory?.options[0]
-    if (!nextCategory || !nextType) return
+    if (!nextCategory) return
     setCategoryId(nextCategory.id)
-    onSelect(nextType.key)
+    onSelect('')
   }
 
-  if (!selectedMacro || !selectedCategory || !selectedType) {
+  if (!selectedMacro || !selectedCategory) {
     return (
       <section className="iu-fas-deposit-type-panel" aria-label="Tipo deposito telematico">
         <header>
@@ -641,9 +1070,9 @@ function DepositTypePreviewPanel({
     )
   }
 
-  const sendReady = selectedType.rules.real_send_allowed_from_pct_panel
-  const userControls = uniqueDepositUserList(selectedType.ui.controls)
-  const transportLabel = depositUserTransportLabel(selectedType)
+  const sendReady = Boolean(selectedType?.rules.real_send_allowed_from_pct_panel)
+  const userControls = selectedType ? uniqueDepositUserList(selectedType.ui.controls) : []
+  const transportLabel = selectedType ? depositUserTransportLabel(selectedType) : 'Da scegliere'
 
   return (
     <section className="iu-fas-deposit-type-panel" aria-label="Tipo deposito telematico">
@@ -652,7 +1081,7 @@ function DepositTypePreviewPanel({
           <strong>Tipo deposito</strong>
           <span>{catalogPreview.total} tipi disponibili in {macroareas.length} aree. La scelta governa controlli, documenti richiesti e preparazione della busta.</span>
         </div>
-        <Badge tone={sendReady ? 'success' : 'warning'}>{sendReady ? 'Operativo' : 'Da completare'}</Badge>
+        <Badge tone={sendReady ? 'success' : 'warning'}>{selectedType ? (sendReady ? 'Operativo' : 'Da completare') : 'Da scegliere'}</Badge>
       </header>
       <div className="iu-fas-deposit-type-panel__controls">
         <label>
@@ -673,7 +1102,8 @@ function DepositTypePreviewPanel({
         </label>
         <label>
           <span>Deposito</span>
-          <select value={selectedType.key} onChange={(event) => onSelect(event.currentTarget.value)}>
+          <select value={selectedType?.key || ''} onChange={(event) => onSelect(event.currentTarget.value)} required aria-required="true">
+            <option value="">Scegli il tipo di deposito</option>
             {selectedCategory.options.map((option) => (
               <option value={option.key} key={option.key}>{option.label}</option>
             ))}
@@ -688,8 +1118,8 @@ function DepositTypePreviewPanel({
         </article>
         <article>
           <span>Preparazione</span>
-          <strong>{sendReady ? 'Pronta per i controlli' : 'Da completare'}</strong>
-          <small>{selectedType.label}</small>
+          <strong>{selectedType ? (sendReady ? 'Pronta per i controlli' : 'Da completare') : 'Scelta dell’avvocato'}</strong>
+          <small>{selectedType?.label || 'Seleziona il deposito corretto per la pratica'}</small>
         </article>
         <article>
           <span>Invio</span>
@@ -700,25 +1130,25 @@ function DepositTypePreviewPanel({
       <div className="iu-fas-deposit-type-panel__behavior">
         <ShieldCheck size={16} aria-hidden="true" />
         <div>
-          <strong>Comportamento previsto</strong>
-          <span>{depositUserFacingMessage(selectedType.ui.behavior)}</span>
+          <strong>{selectedType ? 'Comportamento previsto' : 'Tipo da scegliere'}</strong>
+          <span>{selectedType ? depositUserFacingMessage(selectedType.ui.behavior) : 'L’avvocato sceglie il tipo di deposito; il software applica poi soltanto i controlli pertinenti.'}</span>
         </div>
       </div>
-      {!sendReady && selectedType.rules.real_send_blocker ? (
+      {selectedType && !sendReady && selectedType.rules.real_send_blocker ? (
         <div className="iu-fas-deposit-type-panel__blocker" role="status">
           <ShieldAlert size={16} aria-hidden="true" />
           <span>{depositUserFacingMessage(selectedType.rules.real_send_blocker)}</span>
         </div>
       ) : null}
       <div className="iu-fas-deposit-type-panel__actions">
-        <button type="button" onClick={() => setSchemaOpen((open) => !open)} aria-expanded={schemaOpen}>
+        <button type="button" onClick={() => setSchemaOpen((open) => !open)} aria-expanded={schemaOpen} disabled={!selectedType}>
           {schemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Dettagli
         </button>
         <button type="button" onClick={() => setTreeOpen((open) => !open)} aria-expanded={treeOpen}>
           {treeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {treeOpen ? 'Compatta' : 'Esplodi tutto'}
         </button>
       </div>
-      {schemaOpen ? (
+      {schemaOpen && selectedType ? (
         <div className="iu-fas-deposit-type-panel__schema">
           <section>
             <strong>Scelta attuale</strong>
@@ -753,7 +1183,7 @@ function DepositTypePreviewPanel({
                   <strong>{depositUserFacingLabel(category.label)} <span>{category.total}</span></strong>
                   <ul>
                     {category.options.map((option) => (
-                      <li key={`tree-${option.key}`} className={option.key === selectedType.key ? 'is-selected' : ''}>
+                      <li key={`tree-${option.key}`} className={option.key === selectedType?.key ? 'is-selected' : ''}>
                         <button
                           type="button"
                           onClick={() => {
@@ -944,7 +1374,7 @@ function DepositActionButton({
       const message = err instanceof Error ? err.message : 'Deposito non completato.'
       const signatureMessage = signatureInputRequiredMessage(message)
       const visibleMessage = depositUserFacingMessage(signatureMessage || message)
-      if (signatureMessage) {
+      if (signatureMessage || message.startsWith('Completa i dati obbligatori del deposito:')) {
         setConfirming(false)
         setError(visibleMessage)
       } else {
@@ -1247,7 +1677,10 @@ function DepositPreparePage({ id }:{id:string}) {
   const [pecBodyEdited, setPecBodyEdited] = useState(false)
   const [pecBodyEditorOpen, setPecBodyEditorOpen] = useState(false)
   const [selectedDepositTypeKey, setSelectedDepositTypeKey] = useState('')
-  const autoSelectedDepositTypeKeyRef = useRef('')
+  const [depositSpecificData, setDepositSpecificData] = useState<DepositSpecificData>({})
+  const [depositProofInvalidated, setDepositProofInvalidated] = useState(false)
+  const depositSpecificDataHydrationRef = useRef('')
+  const depositProofInputSignatureRef = useRef('')
   const [localPecPasswordRequest, setLocalPecPasswordRequest] = useState<LocalPecPasswordRequest | null>(null)
   const [localPecPassword, setLocalPecPassword] = useState('')
   const [localPecPasswordError, setLocalPecPasswordError] = useState('')
@@ -1345,6 +1778,7 @@ function DepositPreparePage({ id }:{id:string}) {
     }
     setToast({ tone: 'success', message })
     setDepositActionNotice({ tone: 'success', message })
+    setDepositProofInvalidated(false)
     goToDepositPhase('generazione-busta')
   }
   const registerBatchSignatureAction = (action: BatchSignatureAction | null) => {
@@ -1414,6 +1848,19 @@ function DepositPreparePage({ id }:{id:string}) {
   const practiceProfileReason = recordText(regia.profile, 'reason')
   const deliveryNote = depositDeliveryNote(recordText(deliveryPolicy, 'note'), deliveryOfficialChannel, practiceProfileName, regia.header.channel)
   const selectedDepositType = data.depositCatalog.entries.find((entry) => entry.key === selectedDepositTypeKey)
+  const selectedDepositInputFields = selectedDepositType?.schema.inputFields || []
+  const missingRequiredDepositSpecificFields = missingDepositSpecificFields(selectedDepositInputFields, depositSpecificData)
+  useEffect(() => {
+    const savedTypeKey = data.depositPreparation.typeKey
+    if (!savedTypeKey || !data.depositCatalog.entries.some((entry) => entry.key === savedTypeKey)) return
+    setSelectedDepositTypeKey((current) => current || savedTypeKey)
+  }, [data.depositCatalog.entries, data.depositPreparation.typeKey])
+  useEffect(() => {
+    const signature = `${f.id || id}:${data.depositPreparation.updatedAt}:${JSON.stringify(data.depositPreparation.datiattoExtra)}`
+    if (depositSpecificDataHydrationRef.current === signature) return
+    depositSpecificDataHydrationRef.current = signature
+    setDepositSpecificData(data.depositPreparation.datiattoExtra)
+  }, [data.depositPreparation.datiattoExtra, data.depositPreparation.updatedAt, f.id, id])
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
   const validationRows = [
     ...regia.validation.blockers.map((row) => ({ tone: 'danger' as const, label: recordText(row, 'title', recordText(row, 'code', 'Blocco')), message: recordText(row, 'message'), note: recordText(row, 'suggested_action', recordText(row, 'suggestedAction')) })),
@@ -1437,13 +1884,21 @@ function DepositPreparePage({ id }:{id:string}) {
   const manualSelectableDocuments = data.documents.filter(isDepositManualSelectableDocument)
   const depositSelectableDocuments = uniqueFascicoloDocuments([...depositCandidateDocuments, ...manualSelectableDocuments, ...notificationProofDocuments, ...data.documents])
   const linkedDefaultDocuments = uniqueFascicoloDocuments(usableLinkedSlotDocuments.map((row) => row.document))
-  const defaultDepositSelectionIds = linkedDefaultDocuments.map((doc) => doc.id)
+  const suggestedDepositSelectionIds = linkedDefaultDocuments.map((doc) => doc.id)
   const defaultMainActDocumentId = usableProposedMainActDocument?.id || preferredMainActCandidateDocument(depositCandidateDocuments)?.id || ''
+  const persistedDepositClassificationById = new Map(data.depositPreparation.documents.map((row) => [row.documentId, row]))
+  const persistedDepositSelectionIds = data.depositPreparation.saved
+    ? data.depositPreparation.documents.filter((row) => row.selected).map((row) => row.documentId)
+    : []
+  const defaultDepositSelectionIds = data.depositPreparation.saved
+    ? persistedDepositSelectionIds
+    : []
   const validMainActDocumentIds = new Set(depositSelectableDocuments.filter(isMainActCandidateDocument).map((doc) => doc.id))
   const depositClassificationSignature = [
     f.id || id,
     depositSelectableDocuments.map((doc) => doc.id).join('|'),
     defaultDepositSelectionIds.join('|'),
+    data.depositPreparation.documents.map((row) => `${row.documentId}:${row.selected}:${row.role}:${row.requiresSignature}`).join('|'),
     usableLinkedSlotDocuments.map((row) => `${recordText(row.slot, 'slotKey')}:${row.document.id}`).join('|'),
   ].join('::')
   useEffect(() => {
@@ -1454,14 +1909,21 @@ function DepositPreparePage({ id }:{id:string}) {
       const linkedSlotByDocumentId = new Map(usableLinkedSlotDocuments.map((row) => [row.document.id, recordText(row.slot, 'slotKey')]))
       depositSelectableDocuments.forEach((doc) => {
         const currentRow = current[doc.id]
+        const persistedRow = persistedDepositClassificationById.get(doc.id)
         const defaultSelected = proposed.has(doc.id)
         const defaultRole = defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id)
-        next[doc.id] = currentRow || {
+        const persistedRole = savedDepositDocumentRole(persistedRow?.role, defaultRole)
+        next[doc.id] = currentRow || (persistedRow ? {
+          selected: persistedRow.selected,
+          role: persistedRole,
+          alreadySigned: persistedRow.alreadySigned || doc.signed,
+          requiresSignature: persistedRow.requiresSignature,
+        } : {
           selected: knownSelection ? false : defaultSelected,
           role: defaultRole,
           alreadySigned: doc.signed,
           requiresSignature: defaultSelected && defaultSignatureRequiredForDepositRole(doc, defaultRole),
-        }
+        })
       })
       const currentKeys = Object.keys(current).sort()
       const nextKeys = Object.keys(next).sort()
@@ -1490,26 +1952,30 @@ function DepositPreparePage({ id }:{id:string}) {
   const packageDocuments = uniqueFascicoloDocuments(selectedDepositDocuments)
   const packageDocumentNames = packageDocuments.map((doc) => doc.name).filter(Boolean)
   const standardPecBody = buildDepositPecBody(packageDocumentNames)
-  const suggestedDepositTypeKey = useMemo(() => suggestDepositTypeKey(
-    data.depositCatalog,
-    f,
-    data.depositOffice,
-    mainActDocument,
-    practiceProfileName,
-    deliveryOfficialChannel,
-    regia.header.channel,
-  ), [data.depositCatalog, data.depositOffice, deliveryOfficialChannel, f, mainActDocument, practiceProfileName, regia.header.channel])
-  useEffect(() => {
-    if (!suggestedDepositTypeKey) return
-    setSelectedDepositTypeKey((current) => {
-      if (current && current !== autoSelectedDepositTypeKeyRef.current) return current
-      autoSelectedDepositTypeKeyRef.current = suggestedDepositTypeKey
-      return current === suggestedDepositTypeKey ? current : suggestedDepositTypeKey
-    })
-  }, [suggestedDepositTypeKey])
   useEffect(() => {
     if (!pecBodyEdited) setPecBodyDraft(standardPecBody)
   }, [standardPecBody, pecBodyEdited])
+  const depositProofInputSignature = JSON.stringify({
+    type: selectedDepositTypeKey,
+    documents: packageDocuments.map((doc) => ({
+      id: doc.id,
+      role: effectiveDepositClassificationById[doc.id]?.role || '',
+      signature: Boolean(effectiveDepositClassificationById[doc.id]?.requiresSignature),
+    })),
+    data: depositSpecificData,
+    pecBody: pecBodyDraft,
+  })
+  useEffect(() => {
+    if (loading || !f.id) return
+    if (!depositProofInputSignatureRef.current) {
+      depositProofInputSignatureRef.current = depositProofInputSignature
+      return
+    }
+    if (depositProofInputSignatureRef.current === depositProofInputSignature) return
+    depositProofInputSignatureRef.current = depositProofInputSignature
+    setPackagePreview(null)
+    setDepositProofInvalidated(true)
+  }, [depositProofInputSignature, f.id, loading])
   const selectedAttachmentIds = packageDocuments.filter((doc) => doc.id !== mainActDocument?.id).map((doc) => doc.id)
   const unsignedPackageDocuments = packageDocuments.filter((doc) => {
     const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
@@ -1519,7 +1985,13 @@ function DepositPreparePage({ id }:{id:string}) {
   })
   const unsignedCandidateDocuments = unsignedPackageDocuments.length
   const signatureBatchRequired = unsignedPackageDocuments.length > 0
-  const missingRequiredSlots = sortedSlots.filter((slot) => recordBool(slot, 'required') && !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById))
+  const missingRequiredSlots = sortedSlots.filter((slot) => {
+    if (!recordBool(slot, 'required')) return false
+    const readinessState = depositReadinessSatisfiesSlot(slot, data.depositReadiness)
+    return readinessState === null
+      ? !depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById)
+      : !readinessState
+  })
   const officeRecipientRequired = directPecAllowed || guidedCompletion || pctJsonPackageChannel
   const officeRecipientReady = !officeRecipientRequired || (pecWorkflowAvailable && (!pctJsonPackageChannel || depositOfficeCodeAvailable))
   const officeRecipientBlockingReason = !officeRecipientReady
@@ -1737,7 +2209,7 @@ function DepositPreparePage({ id }:{id:string}) {
     }
   }
   const resetDepositSelectionToProposal = () => {
-    const proposed = new Set(defaultDepositSelectionIds)
+    const proposed = new Set(suggestedDepositSelectionIds)
     const linkedSlotByDocumentId = new Map(usableLinkedSlotDocuments.map((row) => [row.document.id, recordText(row.slot, 'slotKey')]))
     setDepositClassificationById(Object.fromEntries(depositSelectableDocuments.map((doc) => {
       const role = defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id)
@@ -1794,6 +2266,7 @@ function DepositPreparePage({ id }:{id:string}) {
     tipo_deposito_telematico_key: selectedDepositType?.key || '',
     tipo_deposito_telematico_label: selectedDepositType?.label || '',
     tipo_deposito_telematico_policy: selectedDepositType?.rules.policy_code || '',
+    datiatto_extra: depositSpecificData,
     documents: depositSelectableDocuments.map((doc) => {
       const selected = Boolean(effectiveDepositClassificationById[doc.id]?.selected)
       const role = effectiveDepositClassificationById[doc.id]?.role || defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === doc.id)
@@ -1899,6 +2372,10 @@ function DepositPreparePage({ id }:{id:string}) {
   }
   const prepareDepositBeforeSubmit = async () => {
     await submitDepositClassification()
+    if (missingRequiredDepositSpecificFields.length) {
+      goToDepositPhase('proposta-busta', 'auto')
+      throw new Error(`Completa i dati obbligatori del deposito: ${missingRequiredDepositSpecificFields.map((field) => field.label).join(', ')}.`)
+    }
     await recoverPstOfficeCertificateBeforePackage()
     await runBatchSignatureBeforeDeposit()
   }
@@ -1927,6 +2404,8 @@ function DepositPreparePage({ id }:{id:string}) {
     firma_unica: signatureBatchRequired ? '1' : '0',
     documenti_da_firmare_ids: unsignedPackageDocuments.map((doc) => doc.id),
     corpo_pec: pecBodyDraft || standardPecBody,
+    datiatto_extra: JSON.stringify(depositSpecificData),
+    data_notifica_citazione: depositValueText(depositSpecificData.data_notifica_citazione),
   }
   const depositDryRunActionPayload: DepositActionPayload = { ...depositActionPayload, prova_senza_invio: '1' }
   const depositSimulationActionPayload: DepositActionPayload = { ...depositActionPayload, simula_invio_pec: '1' }
@@ -1936,12 +2415,18 @@ function DepositPreparePage({ id }:{id:string}) {
     : !mainActDocument
       ? 'Seleziona l’atto principale prima di visualizzare l’indice.'
       : 'Seleziona almeno un documento prima di visualizzare l’indice.'
-  const actionBlocked = !mainActDocument || !officeRecipientReady
-  const actionBlockedReason = !officeRecipientReady
+  const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady
+  const requiredDepositDataBlocked = missingRequiredSlots.length > 0 || missingRequiredDepositSpecificFields.length > 0
+  const actionBlockedReason = !selectedDepositType
+    ? 'Scegli il tipo di deposito prima di preparare la prova.'
+    : !officeRecipientReady
     ? officeRecipientBlockingReason
     : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots)
   const requiredChoicesNotice = missingRequiredSlots.length
     ? `${missingRequiredSlots.length === 1 ? 'Documento richiesto da verificare' : 'Documenti richiesti da verificare'}: ${missingDepositSlotsSummary(missingRequiredSlots) || `${missingRequiredSlots.length} scelte`}. La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente e non blocca la prova.`
+    : ''
+  const requiredSpecificDataNotice = missingRequiredDepositSpecificFields.length
+    ? `Dati obbligatori da completare: ${missingRequiredDepositSpecificFields.map((field) => field.label).join(', ')}.`
     : ''
   const proofBlocksDirectSend = Boolean(
     packagePreview?.pecSenderReady === false
@@ -1956,12 +2441,18 @@ function DepositPreparePage({ id }:{id:string}) {
   const compatibilityReceipts = Array.isArray(compatibilityReport.ricevute_attese)
     ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : []
-  const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)
+  const persistedDryRunProofReady = !depositProofInvalidated && recentDeposits.some(depositHasPersistedDryRunProof)
   const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)
   const selectedDepositTypeBlocksRealSend = Boolean(selectedDepositType && !selectedDepositType.rules.real_send_allowed_from_pct_panel)
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend && !selectedDepositTypeBlocksRealSend
-  const realSendDisabledReason = !packageReadyForRealSend
+  const realSendDisabledReason = !selectedDepositType
+    ? 'Scegli il tipo di deposito prima di preparare la prova.'
+    : !packageReadyForRealSend
     ? 'Esegui prima la prova senza invio reale.'
+    : missingRequiredDepositSpecificFields.length
+      ? requiredSpecificDataNotice
+    : requiredDepositDataBlocked
+      ? depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots)
     : proofBlocksDirectSend
       ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
         : selectedDepositTypeBlocksRealSend
@@ -1975,8 +2466,10 @@ function DepositPreparePage({ id }:{id:string}) {
   const depositMessage = ready
     ? 'Il fascicolo è pronto per la preparazione del deposito.'
     : 'Lavora sulla proposta documentale: il controllo decisivo avviene quando generi la busta.'
-  const documentPhaseTone: FascicoloRow['tone'] = !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
-  const documentPhaseState = !mainActDocument
+  const documentPhaseTone: FascicoloRow['tone'] = !selectedDepositType ? 'warning' : !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
+  const documentPhaseState = !selectedDepositType
+    ? 'Tipo da scegliere'
+    : !mainActDocument
     ? 'Atto da scegliere'
     : missingRequiredSlots.length
       ? missingRequiredSlots.length === 1 ? '1 avviso' : `${missingRequiredSlots.length} avvisi`
@@ -1984,7 +2477,9 @@ function DepositPreparePage({ id }:{id:string}) {
   const signaturePhaseTone: FascicoloRow['tone'] = signatureBatchRequired ? 'warning' : 'success'
   const generationPhaseTone: FascicoloRow['tone'] = actionBlocked || signatureBatchRequired || missingRequiredSlots.length ? 'warning' : guidedCompletion ? 'info' : 'success'
   const generationPhaseDetail = actionBlocked
-    ? !officeRecipientReady
+    ? !selectedDepositType
+      ? 'Scegli tipo deposito'
+      : !officeRecipientReady
       ? officeRecipientShortState
       : !mainActDocument
       ? 'Seleziona atto principale'
@@ -2014,7 +2509,7 @@ function DepositPreparePage({ id }:{id:string}) {
       href: '#firma-busta',
       index: '3',
       title: 'Firma',
-      state: signatureBatchRequired ? 'Firma software' : 'Firme coerenti',
+      state: signatureBatchRequired ? 'Firma software' : 'Documenti pronti',
       detail: unsignedPackageDocuments.length === 1 ? '1 documento da firmare' : `${unsignedPackageDocuments.length} documenti da firmare`,
       tone: signaturePhaseTone,
     },
@@ -2418,10 +2913,15 @@ function DepositPreparePage({ id }:{id:string}) {
                 catalog={data.depositCatalog}
                 selectedKey={selectedDepositTypeKey}
                 onSelect={(key) => {
-                  autoSelectedDepositTypeKeyRef.current = ''
                   setSelectedDepositTypeKey(key)
                 }}
                 currentProfile={practiceProfileName}
+              />
+              <DepositSpecificDataForm
+                entry={selectedDepositType}
+                catalog={data.depositCatalog}
+                values={depositSpecificData}
+                onChange={(fieldId, value) => setDepositSpecificData((current) => ({ ...current, [fieldId]: value }))}
               />
               <div className="iu-fas-deposit-selection__tools">
                 <button type="button" onClick={resetDepositSelectionToProposal}><PackageCheck size={14}/> Ripristina documenti collegati</button>
@@ -2538,9 +3038,9 @@ function DepositPreparePage({ id }:{id:string}) {
 
           <DetailSection id="firma-busta" title="3. Firma documenti" icon={<FileCheck2 size={17}/>} open={activeDepositPanel === 'firma-busta'} onToggle={(nextOpen) => { if (nextOpen) setActiveDepositPanel('firma-busta') }} count={unsignedPackageDocuments.length}>
             <div className="iu-fas-deposit-phase-note">
-              <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma software' : 'Firme coerenti'}</Badge>
-              <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima del pacchetto' : 'La proposta non richiede firme ulteriori prima del pacchetto'}</strong>
-              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'Puoi passare alla generazione: indice e pacchetto vengono costruiti dalla selezione corrente.'}</span>
+              <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma software' : 'Documenti pronti'}</Badge>
+              <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima del pacchetto' : 'I documenti selezionati non richiedono altre firme'}</strong>
+              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'Durante la prova il dispositivo firma i dati del deposito, poi il software genera indice e pacchetto.'}</span>
             </div>
             {signatureBatchRequired ? (
               <DepositBatchSignaturePanel
@@ -2594,7 +3094,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <article>
                 <Badge tone={unsignedPackageDocuments.length ? 'warning' : 'success'}>Firme</Badge>
                 <strong>{unsignedPackageDocuments.length}</strong>
-                <span>{unsignedPackageDocuments.length ? 'Documenti che IUSENTRA firmerà con un solo PIN.' : 'Documenti selezionati già firmati o non bloccanti.'}</span>
+                <span>{unsignedPackageDocuments.length ? 'Documenti che IUSENTRA firmerà con un solo PIN.' : 'Documenti selezionati già firmati o senza firma richiesta.'}</span>
               </article>
             </div>
             <div className="iu-fas-package-docs">
@@ -2658,7 +3158,7 @@ function DepositPreparePage({ id }:{id:string}) {
             ) : (
               <div className="iu-fas-package-signing iu-fas-package-signing--ready">
                 <CheckCircle2 size={16}/>
-                <span>Firme già coerenti: puoi generare indice, pacchetto e controllo PEC della prova.</span>
+                <span>Documenti pronti. Durante la prova il dispositivo firma i dati del deposito e il software genera indice, pacchetto e controllo PEC.</span>
               </div>
             )}
             <div className="iu-fas-package-pec-draft">
@@ -2742,7 +3242,7 @@ function DepositPreparePage({ id }:{id:string}) {
               <DepositActionButton
                 action={realSendAction}
                 payload={depositActionPayload}
-                disabled={actionBlocked || !packageReadyForRealSend || !realSendAvailable}
+                disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}
                 disabledReason={realSendDisabledReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
@@ -2759,7 +3259,9 @@ function DepositPreparePage({ id }:{id:string}) {
                 <Send size={15}/> Invia deposito reale
               </DepositActionButton>
               {portalUploadRequired ? <a className="iu-fas-side-link" href={portalHref} target="_blank" rel="noreferrer"><UploadCloud size={15}/> Apri portale ufficiale</a> : null}
+              {requiredSpecificDataNotice ? <a className="iu-fas-side-link" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}><Edit3 size={15}/> Completa dati deposito</a> : null}
               {requiredChoicesNotice ? <small>{depositUserFacingMessage(requiredChoicesNotice)}</small> : null}
+              {requiredSpecificDataNotice ? <small>{requiredSpecificDataNotice}</small> : null}
               {actionBlocked ? <small>{depositUserFacingMessage(actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0))}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara pacchetto, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei dati deposito e invio dal PC locale; se manca un requisito lo indica prima dell’invio.' : 'Il software prepara il pacchetto e governa il caricamento finale sul portale ufficiale.'}</small>}
             </div>
             {packagePreview ? (
@@ -2951,16 +3453,58 @@ function DepositPreparePage({ id }:{id:string}) {
               {sortedSlots.map((slot) => {
                 const slotKey = recordText(slot, 'slotKey')
                 const linkedDocument = documentsById.get(recordText(slot, 'documentId'))
-                const slotStatus = slotStatusDisplay(recordText(slot, 'status'), Boolean(linkedDocument))
+                const slotText = normaliseText(`${slotKey} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
+                const isContribution = /contributo/.test(slotText)
+                const isAnagrafica = /anagrafica/.test(slotText)
+                const isCaseValue = /valore causa/.test(slotText)
+                const isAttachments = /allegati/.test(slotText)
+                const selectionSatisfied = depositSelectionSatisfiesSlot(slot, packageDocuments, mainActDocument, effectiveDepositClassificationById)
+                let slotStatus = slotStatusDisplay(recordText(slot, 'status'), selectionSatisfied)
+                let slotMessage = linkedDocument
+                  ? `Documento collegato: ${linkedDocument.name}`
+                  : depositUserFacingMessage(recordText(slot, 'message', recordText(slot, 'catalogRequirementKind') === 'data' ? 'Dato deposito da verificare.' : 'Documento da collegare'))
+                let slotNote = depositUserFacingMessage(recordText(slot, 'suggestedAction') || (linkedDocument ? 'La scelta salvata dall’avvocato determina se entra nella busta.' : 'Seleziona il documento corretto dal fascicolo.'))
+                if (isContribution) {
+                  const state = data.depositReadiness.contributoUnificato
+                  slotStatus = { label: state.ready ? state.label : 'Da definire', tone: state.ready ? 'success' : 'warning' }
+                  slotMessage = [state.message, state.amountLabel].filter(Boolean).join(' ')
+                  slotNote = state.source ? `Documento di riferimento: ${state.source}` : state.ready ? 'Nessuna azione richiesta.' : 'Completa qui il solo dato necessario.'
+                } else if (isAnagrafica) {
+                  const state = data.depositReadiness.anagraficaProcedimento
+                  slotStatus = { label: state.ready ? 'Pronta' : 'Da completare', tone: state.ready ? 'success' : 'warning' }
+                  slotMessage = state.message
+                  slotNote = state.missing.length ? `Mancano: ${state.missing.join(', ')}.` : 'Nessuna azione richiesta.'
+                } else if (isCaseValue) {
+                  const state = data.depositReadiness.valoreCausa
+                  slotStatus = { label: state.ready ? 'Pronto' : 'Da inserire', tone: state.ready ? 'success' : 'warning' }
+                  slotMessage = state.ready ? `Valore della causa: ${state.valueLabel}` : state.message
+                  slotNote = state.ready ? 'Dato già acquisito dal fascicolo.' : 'Inserisci il valore senza uscire dal deposito.'
+                } else if (isAttachments) {
+                  slotStatus = { label: selectedAttachmentIds.length ? `${selectedAttachmentIds.length} scelti` : 'Facoltativi', tone: selectedAttachmentIds.length ? 'success' : 'neutral' }
+                  slotMessage = selectedAttachmentIds.length ? 'Gli allegati scelti dall’avvocato saranno inclusi nella busta.' : 'Nessun allegato aggiuntivo scelto.'
+                  slotNote = 'Gli allegati entrano nella busta solo quando l’avvocato li seleziona.'
+                }
                 const catalogOnly = recordBool(slot, 'catalogOnly')
-                const catalogRequirementKind = recordText(slot, 'catalogRequirementKind')
-                const canLinkSlot = Boolean(slotKey && !catalogOnly)
+                const canLinkSlot = Boolean(slotKey && !catalogOnly && !isContribution && !isAnagrafica && !isCaseValue && !isAttachments)
                 return (
                   <article className="iu-fas-slot-row" key={`${selectedDepositType?.key || 'regia'}-${slotKey || recordText(slot, 'label')}`}>
                     <Badge tone={slotStatus.tone}>{slotStatus.label}</Badge>
                     <strong>{recordText(slot, 'label')}</strong>
-                    <span>{linkedDocument ? `Documento: ${linkedDocument.name}` : depositUserFacingMessage(recordText(slot, 'message', catalogRequirementKind === 'data' ? 'Dato deposito da verificare.' : 'Documento da collegare'))}</span>
-                    <small>{depositUserFacingMessage(recordText(slot, 'suggestedAction') || (linkedDocument ? 'Puoi sostituire la scelta se non è corretta.' : 'Seleziona il documento corretto dal fascicolo.'))}</small>
+                    <span>{slotMessage}</span>
+                    <small>{slotNote}</small>
+                    {isContribution && !data.depositReadiness.contributoUnificato.ready ? (
+                      <ContributionRequirementForm action={f.paymentSummary.items.contributo_unificato.updateAction} onDone={refreshDetail} onError={failDetail}/>
+                    ) : null}
+                    {isAnagrafica && !data.depositReadiness.anagraficaProcedimento.ready ? (
+                      <div className="iu-fas-slot-actions">
+                        <a className="iu-fas-side-link" href={f.operationalEditHref || detailHref}><Edit3 size={14}/> Completa dati fascicolo</a>
+                        {data.depositReadiness.anagraficaProcedimento.missing.some((item) => normaliseText(item).includes('avvocato')) ? <a className="iu-fas-side-link" href="/impostazioni?tab=studio"><Edit3 size={14}/> Completa dati avvocato</a> : null}
+                      </div>
+                    ) : null}
+                    {isCaseValue && !data.depositReadiness.valoreCausa.ready ? (
+                      <CaseValueRequirementForm action={`/api/v1/ui/fascicoli/${encodedId}/deposito/valore-causa`} defaultValue={f.valueRaw} onDone={refreshDetail} onError={failDetail}/>
+                    ) : null}
+                    {isAttachments ? <a className="iu-fas-side-link iu-fas-slot-choice-link" href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}><PackageCheck size={14}/> Scegli documenti</a> : null}
                     {canLinkSlot ? (
                       <JsonPostForm className="iu-fas-slot-link-form" action={`/api/v1/ui/fascicoli/${encodedId}/document-slots/${encodeURIComponent(slotKey)}/link`} onDone={refreshDetail} onError={failDetail}>
                         <select name="document_id" defaultValue={linkedDocument?.id || ''} required>
@@ -3731,6 +4275,14 @@ function depositSelectionSatisfiesSlot(
   return selectedDocuments.some((doc) => depositDocumentMatchesSlot(slot, doc))
 }
 
+function depositReadinessSatisfiesSlot(slot: Record<string, unknown>, readiness: FascicoloDepositReadiness): boolean | null {
+  const slotText = normaliseText(`${recordText(slot, 'slotKey')} ${recordText(slot, 'label')} ${recordText(slot, 'type')}`)
+  if (/contributo/.test(slotText)) return readiness.contributoUnificato.ready
+  if (/anagrafica/.test(slotText)) return readiness.anagraficaProcedimento.ready
+  if (/valore causa/.test(slotText)) return readiness.valoreCausa.ready
+  return null
+}
+
 type MissingDepositSlotsInput = number | Array<Record<string, unknown>>
 
 function missingDepositSlotsCount(slots: MissingDepositSlotsInput): number {
@@ -3751,6 +4303,7 @@ function missingDepositSlotsSummary(slots: MissingDepositSlotsInput): string {
 
 function slotStatusDisplay(value: string, linked = false): { label: string; tone: FascicoloRow['tone'] } {
   const key = String(value || '').trim().toUpperCase()
+  if (linked && key !== 'NON_VALIDO') return { label: 'Scelto', tone: 'success' }
   if (key === 'VALIDO') return { label: 'Collegato', tone: 'success' }
   if (key === 'WARNING') return { label: 'Da verificare', tone: 'warning' }
   if (key === 'NON_APPLICABILE') return { label: 'Non richiesto', tone: 'neutral' }
@@ -3766,7 +4319,7 @@ function depositCatalogRequirementLabel(value: string): string {
 
 function depositCatalogRequirementKind(label: string): 'file' | 'data' {
   const text = normaliseText(label)
-  if (/(anagrafica|valore causa|data citazione|istanze|riferimento procedimento|dati procedura|dati terzi|modifiche anagrafica)/.test(text)) return 'data'
+  if (/(contributo|anagrafica|valore causa|data citazione|istanze|riferimento procedimento|dati procedura|dati terzi|modifiche anagrafica)/.test(text)) return 'data'
   return 'file'
 }
 
@@ -3799,6 +4352,7 @@ function depositCatalogSlotType(label: string): string {
 
 function depositCatalogSlotRequired(label: string): boolean {
   const text = normaliseText(label)
+  if (/contributo/.test(text)) return true
   if (depositCatalogRequirementKind(label) === 'data') return false
   if (/allegati|ricevute|destinatari/.test(text)) return false
   return true
@@ -3857,12 +4411,14 @@ function buildDepositCatalogSlots(
     }
   })
   const catalogUsesNotifiableAct = catalogSlots.some((slot) => recordText(slot, 'slotKey').toUpperCase() === 'ATTO_DA_NOTIFICARE')
-  const linkedExtraSlots = baseSlots.filter((slot) => {
-    const key = recordText(slot, 'slotKey').toUpperCase()
-    const text = normaliseText([key, recordText(slot, 'label'), recordText(slot, 'type')].join(' '))
-    if (catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)) return false
-    return key && !used.has(key) && recordText(slot, 'documentId')
-  })
+  const linkedExtraSlots = baseSlots
+    .filter((slot) => {
+      const key = recordText(slot, 'slotKey').toUpperCase()
+      const text = normaliseText([key, recordText(slot, 'label'), recordText(slot, 'type')].join(' '))
+      if (catalogUsesNotifiableAct && /atto principale|atto_principale/.test(text)) return false
+      return key && !used.has(key) && recordText(slot, 'documentId')
+    })
+    .map((slot) => ({ ...slot, required: false, catalogAdvisory: true }))
   return [...catalogSlots, ...linkedExtraSlots]
 }
 
@@ -4613,6 +5169,34 @@ function loadVisibleSignatureDatetimeMode(defaultMode: string): VisibleSignature
   } catch {
     return normalizeVisibleSignatureDatetimeMode(defaultMode)
   }
+}
+
+function ContributionRequirementForm({ action, onDone, onError }:{action:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const [mode, setMode] = useState('')
+  const requiresAmount = mode === 'pagamento_contributo_unificato' || mode === 'prenotazione_a_debito'
+  const status = mode === 'esenzione_contributo_unificato' ? 'non_previsto' : requiresAmount ? 'pagato' : ''
+  return (
+    <JsonPostForm className="iu-fas-slot-link-form iu-fas-slot-resolution-form" action={action} onDone={onDone} onError={onError}>
+      <select name="natura" value={mode} onChange={(event) => setMode(event.currentTarget.value)} required aria-label="Stato del contributo unificato">
+        <option value="">Scegli lo stato</option>
+        <option value="esenzione_contributo_unificato">Esente o non dovuto</option>
+        <option value="pagamento_contributo_unificato">Pagato</option>
+        <option value="prenotazione_a_debito">Prenotato a debito</option>
+      </select>
+      <input type="hidden" name="status" value={status}/>
+      {requiresAmount ? <input name="importo" type="text" inputMode="decimal" placeholder="Importo, es. 259,00" required aria-label="Importo contributo unificato"/> : null}
+      <button type="submit" disabled={!mode}><Save size={14}/> Salva</button>
+    </JsonPostForm>
+  )
+}
+
+function CaseValueRequirementForm({ action, defaultValue, onDone, onError }:{action:string; defaultValue:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  return (
+    <JsonPostForm className="iu-fas-slot-link-form iu-fas-slot-resolution-form" action={action} onDone={onDone} onError={onError}>
+      <input name="valore_causa" type="text" inputMode="decimal" defaultValue={defaultValue} placeholder="Valore, es. 500,00" required aria-label="Valore della causa"/>
+      <button type="submit"><Save size={14}/> Salva</button>
+    </JsonPostForm>
+  )
 }
 
 function JsonPostForm({

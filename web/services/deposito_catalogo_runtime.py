@@ -33,6 +33,7 @@ def deposito_catalogo_datiatto_hint(entry: dict[str, Any] | None) -> dict[str, A
     payload = entry.get("payload") if isinstance(entry.get("payload"), dict) else {}
     schema = entry.get("schema") if isinstance(entry.get("schema"), dict) else {}
     return {
+        "datiatto_catalog_key": str(entry.get("key") or "").strip(),
         "datiatto_generator_class": str(
             payload.get("datiatto_generator_class") or schema.get("generatorClass") or ""
         ).strip(),
@@ -44,6 +45,25 @@ def deposito_catalogo_datiatto_hint(entry: dict[str, Any] | None) -> dict[str, A
             payload.get("datiatto_generator_mode") or schema.get("generatorMode") or ""
         ).strip(),
         "datiatto_required_data": list(schema.get("requiredData") or []),
+        "contributo_unificato_richiesto": bool(schema.get("contributionRequired")),
+        "contributo_unificato_xml_mode": str(schema.get("contributionXmlMode") or "").strip(),
+    }
+
+
+def deposito_catalogo_busta_metadata(
+    hint: dict[str, Any],
+    extra: dict[str, Any],
+) -> dict[str, Any]:
+    """Return the catalog fields consumed directly by ``DatiBusta``."""
+
+    return {
+        "datiatto_generator_class": hint.get("datiatto_generator_class", ""),
+        "datiatto_root_name": hint.get("datiatto_root_name", ""),
+        "datiatto_studio_variable": hint.get("datiatto_studio_variable", ""),
+        "datiatto_catalog_key": hint.get("datiatto_catalog_key", ""),
+        "datiatto_generator_mode": hint.get("datiatto_generator_mode", ""),
+        "datiatto_required_data": hint.get("datiatto_required_data", []),
+        "datiatto_extra": extra,
     }
 
 
@@ -92,6 +112,29 @@ def deposito_catalogo_datiatto_extra(form_like: Any) -> dict[str, Any]:
         "data_notifica_pignoramento",
         "cronologico_pignoramento",
         "deposito_progetto",
+        "data_notifica_citazione",
+        "precedente_provvedimento_numero",
+        "precedente_provvedimento_anno",
+        "precedente_fascicolo_numero",
+        "precedente_fascicolo_anno",
+        "data_precedente_provvedimento",
+        "decreto_numero",
+        "decreto_anno",
+        "decreto_data",
+        "decreto_causa_numero",
+        "decreto_causa_anno",
+        "credito_capitale",
+        "credito_importo",
+        "credito_data_decorrenza",
+        "credito_data_aggiornamento",
+        "lotto_numero",
+        "tipo_ricorso_cassazione",
+        "data_richiesta_notifica_cassazione",
+        "data_effettiva_notifica_cassazione",
+        "materia_ricorso_cassazione",
+        "parole_chiave_cassazione",
+        "inizio_primo_grado_anno",
+        "inizio_primo_grado_ufficio",
     )
     for field in scalar_fields:
         value = _field_text(form_like, field)
@@ -103,6 +146,10 @@ def deposito_catalogo_datiatto_extra(form_like: Any) -> dict[str, Any]:
         "titolo": ("titolo", "titolo_json"),
         "custode": ("custode", "custode_json"),
         "terzo": ("terzo", "terzo_json"),
+        "terzi": ("terzi", "terzi_json"),
+        "provvedimento_impugnato": ("provvedimento_impugnato", "provvedimento_impugnato_json"),
+        "motivi_cassazione": ("motivi_cassazione", "motivi_cassazione_json"),
+        "contromotivi_cassazione": ("contromotivi_cassazione", "contromotivi_cassazione_json"),
     }
     for target, aliases in json_fields.items():
         value = _json_field(form_like, *aliases)

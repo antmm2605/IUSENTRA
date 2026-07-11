@@ -96,6 +96,9 @@ export type FascicoloPaymentUpdatePayload = {
   dataPagamento?: string
   metodo?: string
   note?: string
+  natura?: string
+  documento_fonte?: string
+  documento_id?: string
 }
 
 export type FascicoloPaymentUpdateResult = {
@@ -498,6 +501,7 @@ export type FascicoloFull = FascicoloRow & {
   leadLawyer: string
   dominus: string
   value: string
+  valueRaw: string
   quotedValue: string
   agreedFee: string
   procedureType: string
@@ -667,6 +671,21 @@ export type FascicoloDepositOffice = {
   message: string
 }
 
+export type FascicoloDepositInputOption = {
+  value: string
+  label: string
+}
+
+export type FascicoloDepositInputField = {
+  id: string
+  label: string
+  type: string
+  required: boolean
+  group: string
+  options: FascicoloDepositInputOption[]
+  note: string
+}
+
 export type FascicoloDepositCatalogEntry = {
   key: string
   label: string
@@ -717,6 +736,9 @@ export type FascicoloDepositCatalogEntry = {
     evidenceRootsCount: number
     evidenceMethods: string[]
     evidenceRoots: string[]
+    generatorClass: string
+    ministerialRoot: string
+    inputFields: FascicoloDepositInputField[]
   }
   ui: {
     service: string
@@ -744,8 +766,56 @@ export type FascicoloDepositCatalog = {
   generatedAt: string
   counts: { totalDepositTypes: number; macroareas: Record<string, number>; categories: Record<string, number> }
   officialSources: Array<{ id: string; label: string; url: string; note: string }>
+  referenceData: {
+    titoliEsecutivi: FascicoloDepositInputOption[]
+    ruoliProvvedimentoCassazione: FascicoloDepositInputOption[]
+    materieCassazione: FascicoloDepositInputOption[]
+    classiImmobiliari: FascicoloDepositInputOption[]
+  }
   macroareas: FascicoloDepositCatalogMacroarea[]
   entries: FascicoloDepositCatalogEntry[]
+}
+
+export type FascicoloDepositReadiness = {
+  contributoUnificato: {
+    ready: boolean
+    mode: 'esente' | 'pagato' | 'prenotato_a_debito' | 'da_definire'
+    label: string
+    amount: number | null
+    amountLabel: string
+    source: string
+    message: string
+  }
+  anagraficaProcedimento: {
+    ready: boolean
+    label: string
+    missing: string[]
+    message: string
+  }
+  valoreCausa: {
+    ready: boolean
+    value: number | null
+    valueLabel: string
+    derivedFromExemption: boolean
+    message: string
+  }
+}
+
+export type FascicoloDepositPreparation = {
+  saved: boolean
+  typeKey: string
+  typeLabel: string
+  policy: string
+  updatedAt: string
+  updatedBy: string
+  datiattoExtra: Record<string, unknown>
+  documents: Array<{
+    documentId: string
+    selected: boolean
+    role: string
+    alreadySigned: boolean
+    requiresSignature: boolean
+  }>
 }
 
 export type FascicoloDetailData = {
@@ -778,6 +848,8 @@ export type FascicoloDetailData = {
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
   depositOffice: FascicoloDepositOffice
   depositCatalog: FascicoloDepositCatalog
+  depositReadiness: FascicoloDepositReadiness
+  depositPreparation: FascicoloDepositPreparation
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
   auditTrail: FascicoloAuditTrail
   actions: {
@@ -1110,8 +1182,26 @@ export const emptyDepositCatalog: FascicoloDepositCatalog = {
   generatedAt: '',
   counts: { totalDepositTypes: 0, macroareas: {}, categories: {} },
   officialSources: [],
+  referenceData: { titoliEsecutivi: [], ruoliProvvedimentoCassazione: [], materieCassazione: [], classiImmobiliari: [] },
   macroareas: [],
   entries: [],
+}
+
+export const emptyDepositReadiness: FascicoloDepositReadiness = {
+  contributoUnificato: { ready: false, mode: 'da_definire', label: 'Da definire', amount: null, amountLabel: '', source: '', message: 'Definisci il contributo unificato.' },
+  anagraficaProcedimento: { ready: false, label: 'Da completare', missing: [], message: 'Controlla i dati del procedimento.' },
+  valoreCausa: { ready: false, value: null, valueLabel: '', derivedFromExemption: false, message: 'Inserisci il valore della causa.' },
+}
+
+export const emptyDepositPreparation: FascicoloDepositPreparation = {
+  saved: false,
+  typeKey: '',
+  typeLabel: '',
+  policy: '',
+  updatedAt: '',
+  updatedBy: '',
+  datiattoExtra: {},
+  documents: [],
 }
 
 export const emptyDocumentPresidio: FascicoloDocumentPresidio = {
@@ -1149,7 +1239,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     duplicateCount: 0, duplicateIds: [], duplicateKey: '', duplicateLabel: '', duplicateHref: '',
     paymentSummary: emptyPaymentSummary,
-    clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
+    clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', valueRaw: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
@@ -1163,6 +1253,8 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
+  depositReadiness: emptyDepositReadiness,
+  depositPreparation: emptyDepositPreparation,
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
@@ -1890,6 +1982,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     leadLawyer: text(fullPayload.leadLawyer ?? fullPayload.avvocato_referente),
     dominus: text(fullPayload.dominus ?? fullPayload.avvocato_dominus),
     value: text(fullPayload.value ?? fullPayload.valore_causa),
+    valueRaw: text(fullPayload.valueRaw ?? fullPayload.value_raw ?? fullPayload.valore_causa),
     quotedValue: text(fullPayload.quotedValue ?? fullPayload.valore_preventivato),
     agreedFee: text(fullPayload.agreedFee ?? fullPayload.compenso_pattuito),
     procedureType: text(fullPayload.procedureType ?? fullPayload.tipo_procedimento),
@@ -2061,6 +2154,8 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
     depositOffice: normalizeDepositOffice(payload.depositOffice ?? payload.deposit_office),
     depositCatalog: normalizeDepositCatalog(payload.depositCatalog ?? payload.deposit_catalog),
+    depositReadiness: normalizeDepositReadiness(payload.depositReadiness ?? payload.deposit_readiness),
+    depositPreparation: normalizeDepositPreparation(payload.depositPreparation ?? payload.deposit_preparation),
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
@@ -2071,6 +2166,63 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), auditBundle: text(payload.actions.auditBundle), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
     } : emptyFascicoloDetail.actions,
     options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
+  }
+}
+
+function normalizeDepositReadiness(value: unknown): FascicoloDepositReadiness {
+  const row = isRecord(value) ? value : {}
+  const contribution = isRecord(row.contributoUnificato ?? row.contributo_unificato) ? (row.contributoUnificato ?? row.contributo_unificato) as Record<string, unknown> : {}
+  const anagrafica = isRecord(row.anagraficaProcedimento ?? row.anagrafica_procedimento) ? (row.anagraficaProcedimento ?? row.anagrafica_procedimento) as Record<string, unknown> : {}
+  const caseValue = isRecord(row.valoreCausa ?? row.valore_causa) ? (row.valoreCausa ?? row.valore_causa) as Record<string, unknown> : {}
+  const mode = text(contribution.mode, 'da_definire') as FascicoloDepositReadiness['contributoUnificato']['mode']
+  return {
+    contributoUnificato: {
+      ready: bool(contribution.ready),
+      mode: ['esente', 'pagato', 'prenotato_a_debito'].includes(mode) ? mode : 'da_definire',
+      label: text(contribution.label, emptyDepositReadiness.contributoUnificato.label),
+      amount: contribution.amount === null || contribution.amount === undefined ? null : number(contribution.amount),
+      amountLabel: text(contribution.amountLabel ?? contribution.amount_label),
+      source: text(contribution.source),
+      message: text(contribution.message, emptyDepositReadiness.contributoUnificato.message),
+    },
+    anagraficaProcedimento: {
+      ready: bool(anagrafica.ready),
+      label: text(anagrafica.label, emptyDepositReadiness.anagraficaProcedimento.label),
+      missing: asArray(anagrafica.missing).map((item) => text(item)).filter(Boolean),
+      message: text(anagrafica.message, emptyDepositReadiness.anagraficaProcedimento.message),
+    },
+    valoreCausa: {
+      ready: bool(caseValue.ready),
+      value: caseValue.value === null || caseValue.value === undefined ? null : number(caseValue.value),
+      valueLabel: text(caseValue.valueLabel ?? caseValue.value_label),
+      derivedFromExemption: bool(caseValue.derivedFromExemption ?? caseValue.derived_from_exemption),
+      message: text(caseValue.message, emptyDepositReadiness.valoreCausa.message),
+    },
+  }
+}
+
+function normalizeDepositPreparation(value: unknown): FascicoloDepositPreparation {
+  const row = isRecord(value) ? value : {}
+  return {
+    saved: bool(row.saved),
+    typeKey: text(row.typeKey ?? row.type_key),
+    typeLabel: text(row.typeLabel ?? row.type_label),
+    policy: text(row.policy),
+    updatedAt: text(row.updatedAt ?? row.updated_at),
+    updatedBy: text(row.updatedBy ?? row.updated_by),
+    datiattoExtra: isRecord(row.datiattoExtra ?? row.datiatto_extra)
+      ? (row.datiattoExtra ?? row.datiatto_extra) as Record<string, unknown>
+      : {},
+    documents: asArray(row.documents).map((entry) => {
+      const document = isRecord(entry) ? entry : {}
+      return {
+        documentId: text(document.documentId ?? document.document_id),
+        selected: bool(document.selected),
+        role: text(document.role, 'allegato'),
+        alreadySigned: bool(document.alreadySigned ?? document.already_signed),
+        requiresSignature: bool(document.requiresSignature ?? document.requires_signature),
+      }
+    }).filter((document) => document.documentId),
   }
 }
 
@@ -2143,6 +2295,23 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
         evidenceRootsCount: number(schema.evidenceRootsCount ?? schema.evidence_roots_count),
         evidenceMethods: asArray(schema.evidenceMethods ?? schema.evidence_methods).map((item) => text(item)).filter(Boolean),
         evidenceRoots: asArray(schema.evidenceRoots ?? schema.evidence_roots).map((item) => text(item)).filter(Boolean),
+        generatorClass: text(schema.generatorClass ?? schema.generator_class),
+        ministerialRoot: text(schema.ministerialRoot ?? schema.ministerial_root),
+        inputFields: asArray(schema.inputFields ?? schema.input_fields).map((field) => {
+          const input = isRecord(field) ? field : {}
+          return {
+            id: text(input.id),
+            label: text(input.label),
+            type: text(input.type, 'text'),
+            required: bool(input.required),
+            group: text(input.group, 'Dati del deposito'),
+            options: asArray(input.options).map((option) => {
+              const item = isRecord(option) ? option : {}
+              return { value: text(item.value), label: text(item.label) }
+            }).filter((option) => option.value || option.label),
+            note: text(input.note),
+          }
+        }).filter((field) => field.id && field.label),
       },
       ui: {
         service: text(ui.service),
@@ -2187,6 +2356,19 @@ function normalizeDepositCatalog(value: unknown): FascicoloDepositCatalog {
       const item = isRecord(source) ? source : {}
       return { id: text(item.id), label: text(item.label ?? item.name), url: text(item.url), note: text(item.note) }
     }),
+    referenceData: (() => {
+      const referenceData = isRecord(row.referenceData ?? row.reference_data) ? (row.referenceData ?? row.reference_data) as Record<string, unknown> : {}
+      const normalizeOptions = (value: unknown): FascicoloDepositInputOption[] => asArray(value).map((option) => {
+        const item = isRecord(option) ? option : {}
+        return { value: text(item.value), label: text(item.label) }
+      }).filter((option) => option.value || option.label)
+      return {
+        titoliEsecutivi: normalizeOptions(referenceData.titoliEsecutivi ?? referenceData.titoli_esecutivi),
+        ruoliProvvedimentoCassazione: normalizeOptions(referenceData.ruoliProvvedimentoCassazione ?? referenceData.ruoli_provvedimento_cassazione),
+        materieCassazione: normalizeOptions(referenceData.materieCassazione ?? referenceData.materie_cassazione),
+        classiImmobiliari: normalizeOptions(referenceData.classiImmobiliari ?? referenceData.classi_immobiliari),
+      }
+    })(),
     macroareas,
     entries,
   }

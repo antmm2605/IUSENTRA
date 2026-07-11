@@ -15,6 +15,7 @@ import argparse
 import json
 import sys
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -26,7 +27,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from pct.busta import BustaTelematica, DatiBusta
+from pct.datiatto_xsd import validate_datiatto_xml
 from pct.deposito_telematico_catalogo import list_deposit_catalog_entries
+from web.services.deposito_anagrafica_ministeriale import (
+    _anagrafica_procedimento_deposito_xml,
+    _namespace_anagrafica_per_generatore,
+)
 
 
 QUICKORGANIZER_LISTA_UFFICI = Path(r"C:\QuickOrganizer\ListaUfficiGiudiziari.xml")
@@ -62,6 +68,54 @@ ANAGRAFICA_PROCEDIMENTO_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 </AnagraficaProcedimento>
 """
 
+
+def _sample_anagrafica(entry: dict[str, Any]) -> bytes | None:
+    if not _needs_anagrafica(entry):
+        return None
+    generator_class = str(_schema(entry).get("generatorClass") or "")
+    root_name = str(_schema(entry).get("ministerialRoot") or "")
+    atti_ns, anagrafiche_ns = _namespace_anagrafica_per_generatore(generator_class, root_name)
+    cliente = SimpleNamespace(
+        tipo="PERSONA_FISICA",
+        nome="Mario",
+        cognome="Rossi",
+        ragione_sociale="",
+        codice_fiscale="RSSMRA80A01H501Z",
+        partita_iva="",
+        indirizzo_residenza=SimpleNamespace(
+            via="Via Roma",
+            civico="1",
+            cap="00100",
+            comune="Roma",
+            provincia="RM",
+        ),
+        indirizzo_domicilio=None,
+        indirizzo_sede_legale=None,
+    )
+    fascicolo = SimpleNamespace(
+        nome_cliente="Mario Rossi",
+        controparte="Luigi Bianchi",
+        cf_controparte="BNCLGU70A01H501Y",
+    )
+    config = SimpleNamespace(
+        studio=SimpleNamespace(
+            codice_fiscale_avvocato="VRDLGI80A01H501X",
+            avvocato="Luigi Verdi",
+            indirizzo="Via Milano 2",
+            city="Roma",
+            province="RM",
+        ),
+        firma=SimpleNamespace(cf_avvocato="", certificato_codice_fiscale=""),
+    )
+    return _anagrafica_procedimento_deposito_xml(
+        fascicolo=fascicolo,
+        cliente=cliente,
+        cfg_studio=config,
+        operatore="Luigi Verdi",
+        atti_ns=atti_ns,
+        anagrafiche_ns=anagrafiche_ns,
+    )
+
 DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "parte_codice_fiscale": "RSSMRA80A01H501Z",
     "avvocato_codice_fiscale": "RSSMRA80A01H501Z",
@@ -74,6 +128,80 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
     "stima_diritto": "1234,56",
     "data_citazione": "05/07/2026",
     "data_notifica_pignoramento": "04/07/2026",
+    "precedente_fascicolo_numero": "321",
+    "precedente_fascicolo_anno": "2025",
+    "precedente_provvedimento_numero": "45",
+    "precedente_provvedimento_anno": "2025",
+    "data_precedente_provvedimento": "15/05/2025",
+    "decreto_causa_numero": "789",
+    "decreto_causa_anno": "2025",
+    "decreto_numero": "123",
+    "decreto_anno": "2025",
+    "decreto_data": "20/05/2025",
+    "decreto_esecutivo": False,
+    "divorzio_sentenza_numero": "77",
+    "divorzio_sentenza_anno": "2024",
+    "separazione_tipo": "consensuale",
+    "defunto_cognome": "Verdi",
+    "defunto_nome": "Anna",
+    "soggetto_interessato_cognome": "Bianchi",
+    "soggetto_interessato_nome": "Luca",
+    "successione_tipo_atto": "Istanza",
+    "testamento_tipo": "NonSpecificato",
+    "successione_parte_istante": "Proprio",
+    "cui": "CUI123456789",
+    "codice_vestanet": "VEST12345",
+    "nazione_provenienza": "Albania",
+    "data_decreto_immigrazione": "10/05/2026",
+    "credito_capitale": "1000,00",
+    "credito_importo": "1000,00",
+    "credito_data_decorrenza": "01/01/2026",
+    "credito_data_aggiornamento": "10/07/2026",
+    "opposizione_istanza_sospensione": False,
+    "osa_numero_verbale": "OSA-2026-001",
+    "osa_data_verbale": "01/07/2026",
+    "osa_motivazione": "Altro",
+    "osa_riferimento_cartella": "12345678901234567",
+    "osa_riferimento_ordinanza": "ORD-2026-001",
+    "tipo_concordato_ccipu": "Ordinario",
+    "misure_cautelari": False,
+    "misure_protettive": False,
+    "tipo_ricorso_cassazione": "Ricorso ordinario",
+    "data_richiesta_notifica_cassazione": "01/07/2026",
+    "data_effettiva_notifica_cassazione": "02/07/2026",
+    "provvedimento_impugnato": {
+        "ufficio": "0580910098",
+        "ruolo": "Contenzioso",
+        "numero_fascicolo": "321",
+        "anno_fascicolo": "2025",
+    },
+    "inizio_primo_grado_anno": "2024",
+    "inizio_primo_grado_ufficio": "0580910098",
+    "materia_ricorso_cassazione": "001",
+    "parole_chiave_cassazione": "controversia agraria",
+    "motivi_cassazione": [
+        {
+            "numero": "1",
+            "numero_art_360": "1",
+            "pagina": "1",
+            "descrizione": "Motivo sintetico per audit",
+        }
+    ],
+    "contromotivi_cassazione": [
+        {
+            "numero_riferimento_motivo": "1",
+            "pagina": "1",
+            "descrizione": "Contromotivo sintetico per audit",
+        }
+    ],
+    "lotto_numero": "1",
+    "aggiudicazione_importo_aumento": "1000,00",
+    "aggiudicazione_importo_offerta": "50000,00",
+    "aggiudicazione_cauzione": "5000,00",
+    "aggiudicatario_cognome": "Rossi",
+    "aggiudicatario_nome": "Mario",
+    "aggiudicatario_codice_fiscale": "RSSMRA80A01H501Z",
+    "aggiudicazione_termine_conguaglio": "31/07/2026",
     "deposito_progetto": "Progetto di distribuzione sintetico per audit",
     "beni_pignorati": [
         {
@@ -103,9 +231,38 @@ DATIATTO_EXTRA_BASE: dict[str, Any] = {
     },
     "terzo": {
         "codice_fiscale": "TRZPLA80A01H501B",
+        "cognome": "Terzo",
+        "nome": "Paola",
+        "via": "Via Napoli 3",
+        "cap": "00100",
+        "localita": "Roma",
+        "provincia": "RM",
         "data_notifica_pignoramento": "04/07/2026",
         "data_notifica_precetto": "03/07/2026",
     },
+    "terzi": [
+        {
+            "codice_fiscale": "TRZPLA80A01H501B",
+            "cognome": "Terzo",
+            "nome": "Paola",
+            "via": "Via Napoli 3",
+            "cap": "00100",
+            "localita": "Roma",
+            "provincia": "RM",
+            "data_notifica_pignoramento": "04/07/2026",
+            "data_notifica_precetto": "03/07/2026",
+        },
+        {
+            "codice_fiscale": "TRZLNZ80A01H501C",
+            "cognome": "Terzo",
+            "nome": "Lorenzo",
+            "via": "Via Milano 4",
+            "cap": "00100",
+            "localita": "Roma",
+            "provincia": "RM",
+            "data_notifica_pignoramento": "05/07/2026",
+        },
+    ],
 }
 
 
@@ -141,6 +298,8 @@ def _fixed_object_code(entry: dict[str, Any]) -> str:
     for item in fixed:
         if isinstance(item, dict) and str(item.get("code") or "").strip():
             return str(item["code"]).strip()
+    if "SIGP" in str(schema.get("generatorClass") or ""):
+        return "010001"
     return "110001"
 
 
@@ -181,6 +340,8 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
     codice_registro = str(payload.get("codice_registro") or registry.get("code") or "SICID").strip()
     codice_ufficio = "80417740588" if codice_registro == "CASSCI" else "0580010"
     root_name = str(schema.get("ministerialRoot") or payload.get("datiatto_root_name") or "").strip()
+    required_data = list(schema.get("requiredData") or [])
+    contribution_required = bool(schema.get("contributionRequired"))
     return DatiBusta(
         codice_ufficio=codice_ufficio,
         codice_registro=codice_registro,
@@ -192,14 +353,24 @@ def _dati_busta_for(entry: dict[str, Any], atto_principale: Path) -> DatiBusta:
         operatore="Audit IUSENTRA",
         cf_mittente="RSSMRA80A01H501Z",
         valore_causa=1000.0,
-        anagrafica_procedimento_xml=ANAGRAFICA_PROCEDIMENTO_XML if _needs_anagrafica(entry) else None,
+        contributo_unificato={"resolved": True, "mode": "pagato", "importo": 259.0, "debito": False}
+        if contribution_required
+        else None,
+        contributo_unificato_richiesto=contribution_required,
+        contributo_unificato_xml_mode=str(schema.get("contributionXmlMode") or ""),
+        anagrafica_procedimento_xml=_sample_anagrafica(entry),
         datiatto_generator_class=str(schema.get("generatorClass") or "").strip(),
         datiatto_root_name=root_name,
         datiatto_studio_variable=str(schema.get("studioVariable") or "").strip(),
+        datiatto_catalog_key=str(entry.get("key") or "").strip(),
         datiatto_generator_mode=str(schema.get("generatorMode") or "").strip(),
-        datiatto_required_data=list(schema.get("requiredData") or []),
+        datiatto_required_data=required_data,
         datiatto_extra=_extra_for(entry),
-        data_notifica_citazione="30/06/2026" if "citazione" in root_name.casefold() else "",
+        data_notifica_citazione=(
+            "30/06/2026"
+            if "citazione" in root_name.casefold() or root_name == "OpposizioneDecretoIngiuntivo"
+            else ""
+        ),
     )
 
 
@@ -224,6 +395,13 @@ def _check_common_contract(entry: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"{key}: radice ministeriale mancante")
         if not schema.get("evidenceMethods"):
             errors.append(f"{key}: metodo generatore di origine mancante")
+        input_fields = schema.get("inputFields") if isinstance(schema.get("inputFields"), list) else []
+        input_ids = [str(field.get("id") or "").strip() for field in input_fields if isinstance(field, dict)]
+        if len(input_ids) != len(set(input_ids)):
+            errors.append(f"{key}: campi UI deposito duplicati")
+        for field in input_fields:
+            if not isinstance(field, dict) or not str(field.get("id") or "").strip() or not str(field.get("label") or "").strip():
+                errors.append(f"{key}: descrittore campo UI deposito incompleto")
     elif rules.get("channel_kind") == "unep_notifiche":
         if rules.get("can_prepare_in_pct_panel") is not False:
             errors.append(f"{key}: UNEP non deve prepararsi nel pannello PCT")
@@ -248,11 +426,18 @@ def _check_source_contracts(errors: list[str]) -> None:
             ROOT / "web" / "bootstrap" / "deposito_routes.py",
             [
                 "deposito_catalogo_datiatto_extra",
-                "datiatto_extra=datiatto_extra",
+                "deposito_catalogo_busta_metadata",
                 "certificato-cifratura",
                 "local_pec_required_response",
                 "prova_senza_invio",
                 "simula_invio_pec",
+            ],
+        ),
+        (
+            ROOT / "web" / "services" / "deposito_catalogo_runtime.py",
+            [
+                "def deposito_catalogo_busta_metadata",
+                '"datiatto_extra": extra',
             ],
         ),
         (
@@ -467,6 +652,11 @@ def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
     schema = _schema(entry)
     root = str(schema.get("ministerialRoot") or "")
     generator = str(schema.get("generatorClass") or "")
+    source_required = {
+        "".join(character for character in str(item or "").casefold() if character.isalnum())
+        for item in (schema.get("requiredData") or [])
+    }
+    contribution_xml_mode = str(schema.get("contributionXmlMode") or "")
     required = ["AttoRichiestaVisibilita", "Parte", "Avvocato", "codiceFiscale", "parteRappresentata"] if root == "AttoRichiestaVisibilita" else []
     if root == "IscrizioneRuoloPignoramento":
         required = [
@@ -489,14 +679,54 @@ def _required_xml_fields(entry: dict[str, Any]) -> list[str]:
         else:
             required.append("immobiliare")
     elif root == "ProgettoDistribuzione":
-        required = ["procedimento", "deposito", "depositoPianoRiparto"]
+        required = (
+            ["procedimento", "dispositivo", "accoglimentoPianoRiparto"]
+            if generator == "DelSiecicEsecuzioni"
+            else ["procedimento", "deposito", "depositoPianoRiparto"]
+        )
     elif root == "DepositoRelazioneIniziale":
         required = ["procedimento", "numero", "anno"]
+    elif generator == "IntroduttiviSiecicConcorsuali" and root.startswith("Ricorso") and root.endswith("CCIPU"):
+        required = ["destinazione", "Oggetto", "AnagraficaProcedimentoPU", "misureCautelari", "misureProtettive"]
+        if root in {"RicorsoAmmissConcordatoPreventivoCCIPU", "RicorsoOmologaAccordiRistrutturazCCIPU"}:
+            required.extend(["EstensioneAnagrafica", "DatiDebitore", "formaSocietaria", "tipoConcordato"])
+        else:
+            required.extend(["TipoParteIstante", "Creditore", "creditore"])
+    elif generator.startswith("ParteCassazione") and root in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
+        required = [
+            "TipoRicorso",
+            "dataRichiestaNotifica",
+            "dataEffettivaNotifica",
+            "Provvedimento",
+            "DatiFascicolo",
+            "Materia",
+            "AnagraficaProcedimento",
+            "DocumentiECLI",
+        ]
+        if root in {"Ricorso", "ControRicorsoIncidentale"}:
+            required.extend(["Motivi", "Motivo"])
+        if root in {"ControRicorso", "ControRicorsoIncidentale"}:
+            required.extend(["ControMotivi", "ControMotivo"])
+    elif generator.startswith("ParteCassazione") and root == "AttoGenerico":
+        required = ["procedimento", "numero", "anno", "deposito"]
+    elif generator.startswith("ParteCassazione") and root == "IntegrazioneAnagrafica":
+        required = ["procedimento", "numero", "anno", "ModificheAnagrafica", "deposito"]
     elif generator.startswith("Introduttivi"):
         required = ["destinazione", "Oggetto", "AnagraficaProcedimento"]
     elif generator.startswith(("Parte", "CorsoCausa", "Professionista", "ProfSiecic", "CurSiecic", "CusSiecic", "DelSiecic")):
         required = ["procedimento", "numero", "anno"]
+    if "valorecausa" in source_required:
+        required.append("ValoreCausa")
+    if contribution_xml_mode in {"atto_introduttivo", "cassazione_spese_giustizia", "cassazione_integrazione_spese"}:
+        required.extend(["ContributoUnificato", "Importo"])
+    elif contribution_xml_mode == "siecic_istanza_vendita":
+        required.extend(["creditore", "contributoUnificato", "Importo"])
     return required
+
+
+def _contribution_amount_node(root: etree._Element, xml_mode: str) -> etree._Element | None:
+    wrapper = "contributoUnificato" if xml_mode == "siecic_istanza_vendita" else "ContributoUnificato"
+    return root.find(f".//{{*}}{wrapper}/{{*}}Importo")
 
 
 def _check_xml_fields(entry: dict[str, Any], root: etree._Element) -> list[str]:
@@ -507,11 +737,70 @@ def _check_xml_fields(entry: dict[str, Any], root: etree._Element) -> list[str]:
     return []
 
 
+def _check_declared_input_contract(entry: dict[str, Any], dati: DatiBusta) -> tuple[list[str], int]:
+    """Verifica che la UI esponga ogni dato senza cui il generatore non puo' lavorare."""
+
+    schema = _schema(entry)
+    fields = [field for field in (schema.get("inputFields") or []) if isinstance(field, dict)]
+    field_ids = {str(field.get("id") or "").strip() for field in fields if str(field.get("id") or "").strip()}
+    source_extra = dict(dati.datiatto_extra or {})
+    derived_keys = {"tipo_pignoramento"}
+    declared_extra = {
+        key: value
+        for key, value in source_extra.items()
+        if key in field_ids or key in derived_keys
+    }
+    declared_data = replace(
+        dati,
+        datiatto_extra=declared_extra,
+        data_notifica_citazione=(
+            dati.data_notifica_citazione if "data_notifica_citazione" in field_ids else ""
+        ),
+    )
+    errors: list[str] = []
+    try:
+        payload = BustaTelematica(declared_data).crea_dati_atto_xml_per_firma()
+        validation = validate_datiatto_xml(payload)
+        if not validation.ok:
+            errors.append("i soli campi esposti in UI producono XML non valido: " + "; ".join(validation.errors[:2]))
+    except Exception as exc:
+        errors.append(f"campo richiesto dal generatore non esposto in UI: {exc}")
+        return errors, 0
+
+    guards_checked = 0
+    for field in fields:
+        if not bool(field.get("required")):
+            continue
+        field_id = str(field.get("id") or "").strip()
+        if not field_id:
+            continue
+        without_field = dict(declared_extra)
+        without_field.pop(field_id, None)
+        missing_data = replace(
+            declared_data,
+            datiatto_extra=without_field,
+            data_notifica_citazione=(
+                "" if field_id == "data_notifica_citazione" else declared_data.data_notifica_citazione
+            ),
+        )
+        try:
+            BustaTelematica(missing_data).crea_dati_atto_xml_per_firma()
+        except Exception:
+            guards_checked += 1
+        else:
+            errors.append(
+                f"campo UI marcato obbligatorio ma non presidiato dal generatore: {field.get('label') or field_id}"
+            )
+    return errors, guards_checked
+
+
 def audit_deposit_catalog() -> dict[str, Any]:
     entries = list(list_deposit_catalog_entries())
     errors: list[str] = []
     generated: list[dict[str, str]] = []
     blocked: list[dict[str, str]] = []
+    contribution_exemption_checked = 0
+    required_input_guards_checked = 0
     channels = {"pct": 0, "unep": 0, "other": 0}
 
     with tempfile.TemporaryDirectory(prefix="iusentra-deposito-audit-") as tmp_dir:
@@ -574,6 +863,82 @@ def audit_deposit_catalog() -> dict[str, Any]:
                 if actual_root != expected_root:
                     entry_errors.append(f"radice generata {actual_root}, attesa {expected_root}")
                 entry_errors.extend(_check_xml_fields(entry, root))
+                xsd_validation = validate_datiatto_xml(xml_payload)
+                if not xsd_validation.ok:
+                    schema_label = xsd_validation.schema_path or "schema non individuato"
+                    details = "; ".join(xsd_validation.errors[:3])
+                    entry_errors.append(f"XSD {schema_label}: {details}")
+                input_errors, input_guards = _check_declared_input_contract(entry, dati)
+                entry_errors.extend(input_errors)
+                required_input_guards_checked += input_guards
+                contribution_required = bool(schema.get("contributionRequired"))
+                contribution_xml_mode = str(schema.get("contributionXmlMode") or "")
+                if contribution_required:
+                    amount_node = _contribution_amount_node(root, contribution_xml_mode)
+                    if contribution_xml_mode == "controllo_documentale":
+                        if root.find(".//{*}ContributoUnificato") is not None or root.find(".//{*}contributoUnificato") is not None:
+                            entry_errors.append("il controllo documentale non deve aggiungere il contributo a una radice che non lo prevede")
+                        try:
+                            unresolved_data = replace(dati, contributo_unificato={"resolved": False, "mode": "da_definire"})
+                            BustaTelematica(unresolved_data).crea_dati_atto_xml_per_firma()
+                        except ValueError:
+                            contribution_exemption_checked += 1
+                        else:
+                            entry_errors.append("il contributo obbligatorio non definito non blocca la generazione")
+                        amount_node = None
+                    elif amount_node is None or str(amount_node.text or "").strip() != "259.00":
+                        entry_errors.append("ContributoUnificato pagato senza Importo ministeriale coerente")
+                    elif amount_node.get("debito") != "false":
+                        entry_errors.append("ContributoUnificato pagato senza attributo debito=false")
+                    if contribution_xml_mode == "controllo_documentale":
+                        pass
+                    elif contribution_xml_mode == "cassazione_integrazione_spese":
+                        try:
+                            exempt_data = replace(
+                                dati,
+                                valore_causa=None,
+                                contributo_unificato={"resolved": True, "mode": "esente", "importo": None, "debito": False},
+                            )
+                            BustaTelematica(exempt_data).crea_dati_atto_xml_per_firma()
+                        except ValueError:
+                            contribution_exemption_checked += 1
+                        else:
+                            entry_errors.append("l’integrazione spese non deve accettare il contributo come esente")
+                    else:
+                        try:
+                            exempt_data = replace(
+                                dati,
+                                valore_causa=None,
+                                contributo_unificato={"resolved": True, "mode": "esente", "importo": None, "debito": False},
+                            )
+                            exempt_root = etree.fromstring(BustaTelematica(exempt_data).crea_dati_atto_xml_per_firma())
+                        except Exception as exc:
+                            entry_errors.append(f"ramo esenzione non generabile: {exc}")
+                        else:
+                            if contribution_xml_mode == "cassazione_spese_giustizia":
+                                exempt_node = exempt_root.find(".//{*}ContributoUnificato/{*}Esente")
+                                if exempt_node is None or str(exempt_node.text or "").strip().casefold() != "true":
+                                    entry_errors.append("l’esenzione Cassazione deve generare Esente=true")
+                            else:
+                                wrapper = "contributoUnificato" if contribution_xml_mode == "siecic_istanza_vendita" else "ContributoUnificato"
+                                if exempt_root.find(f".//{{*}}{wrapper}") is not None:
+                                    entry_errors.append("l'esenzione non deve generare ContributoUnificato")
+                            if contribution_xml_mode == "atto_introduttivo" and _child_text(exempt_root, "ValoreCausa") != "0.00":
+                                entry_errors.append("l'esenzione senza valore deve generare ValoreCausa=0.00")
+                            contribution_exemption_checked += 1
+                    if contribution_xml_mode != "controllo_documentale":
+                        try:
+                            debt_data = replace(
+                                dati,
+                                contributo_unificato={"resolved": True, "mode": "prenotato_a_debito", "importo": 259.0, "debito": True},
+                            )
+                            debt_root = etree.fromstring(BustaTelematica(debt_data).crea_dati_atto_xml_per_firma())
+                            debt_amount = _contribution_amount_node(debt_root, contribution_xml_mode)
+                        except Exception as exc:
+                            entry_errors.append(f"ramo prenotazione a debito non generabile: {exc}")
+                        else:
+                            if debt_amount is None or debt_amount.get("debito") != "true":
+                                entry_errors.append("la prenotazione a debito deve generare Importo con debito=true")
                 if busta_audit.get("indice_documenti_generated") is not True:
                     entry_errors.append("IndiceDocumentiDepositati.PDF non generato")
                 if busta_audit.get("indice_busta_generated") is not True:
@@ -604,6 +969,8 @@ def audit_deposit_catalog() -> dict[str, Any]:
         "pct_generated_datiatto": len(generated),
         "pct_real_send_suspended_until_dedicated_generator": len(blocked),
         "pct_expected_datiatto": channels["pct"],
+        "pct_contribution_exemption_branches_checked": contribution_exemption_checked,
+        "pct_required_input_guards_checked": required_input_guards_checked,
         "office_catalog": office_catalog,
         "blocked_keys": blocked,
         "sample_generated": generated[:12],

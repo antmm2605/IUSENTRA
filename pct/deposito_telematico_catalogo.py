@@ -12,6 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from pct.deposito_datiatto_fields import datiatto_input_fields, datiatto_reference_data
 from pct.pst_cifratura import canali_telematici_cifratura_policy
 from pct.pst_catalog import (
     PST_CASSAZIONE_XSD_20260611_PACKAGE_URL,
@@ -512,6 +513,31 @@ def _operational_required_data(
     return _unique_texts(required)
 
 
+def _contribution_required(entry: dict[str, Any]) -> bool:
+    """Use the explicit deposit-menu flag before broader decompiler hints."""
+
+    flags = _deposit_menu_flags(entry)
+    if "needContributoUnificato" in flags:
+        return _flag_enabled(flags, "needContributoUnificato")
+    return "contributounificato" in _required_data_codes(entry)
+
+
+def _contribution_xml_mode(*, generator_class: str, root_name: str, required: bool) -> str:
+    if not required:
+        return "none"
+    if generator_class.startswith("Introduttivi"):
+        return "atto_introduttivo"
+    if generator_class == "ParteSiecicEsecuzioni" and root_name == "IstanzaVendita":
+        return "siecic_istanza_vendita"
+    if generator_class.startswith("ParteCassazione"):
+        if root_name == "IntegrazioneSpeseGiustizia":
+            return "cassazione_integrazione_spese"
+        if root_name in {"Ricorso", "ControRicorso", "ControRicorsoIncidentale"}:
+            return "cassazione_spese_giustizia"
+    # The payment state still has to be resolved, but this root does not carry it.
+    return "controllo_documentale"
+
+
 def _is_procedimento_generator_class(generator_class: str) -> bool:
     return bool(
         generator_class
@@ -596,12 +622,22 @@ def _datiatto_root_hint(entry: dict[str, Any], rules: dict[str, Any], tipo_atto:
     else:
         mode = "datiatto_generico_iusentra"
         required_data = []
+    contribution_required = _contribution_required(entry)
+    if contribution_required:
+        required_data = _unique_texts([*required_data, "ContributoUnificato"])
+    contribution_xml_mode = _contribution_xml_mode(
+        generator_class=generator_class,
+        root_name=root_name,
+        required=contribution_required,
+    )
     return {
         "generatorClass": generator_class,
         "ministerialRoot": root_name,
         "studioVariable": studio_variable,
         "generatorMode": mode,
         "requiredData": required_data,
+        "contributionRequired": contribution_required,
+        "contributionXmlMode": contribution_xml_mode,
         "quickRequiredData": quick_required,
         "quickDepositFlags": entry.get("deposit_menu_flags") if isinstance(entry.get("deposit_menu_flags"), dict) else {},
         "quickFixedObjectCodes": entry.get("deposit_fixed_object_codes")
@@ -758,8 +794,7 @@ def _rules_for(entry: dict[str, Any], registry: dict[str, str]) -> dict[str, Any
             "can_prepare_in_pct_panel": False,
             "real_send_allowed_from_pct_panel": False,
             "real_send_blocker": (
-                "Questo tipo Studio Telematico appartiene al canale UNEP/notifiche: "
-                "va gestito dal flusso notifiche/UNEP e non come deposito PCT civile con Atto.enc."
+                "Questo tipo appartiene al canale notifiche/UNEP e va gestito nel relativo flusso."
             ),
         }
     return {
@@ -810,7 +845,7 @@ def _documents_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
         for key in ("key", "text", "channel", "macro", "categoria", "path")
     ).casefold()
     need_procura = _flag_enabled(flags, "needProcura")
-    need_contributo = _flag_enabled(flags, "needContributoUnificato") or "contributounificato" in required
+    need_contributo = _contribution_required(entry)
     need_nota_ruolo = _flag_enabled(flags, "needNotaIscrizioneRuolo")
     if rules.get("channel_kind") == "unep_notifiche":
         documents = ["atto da notificare", "relata o richiesta", "destinatari"]
@@ -823,7 +858,7 @@ def _documents_for(entry: dict[str, Any], rules: dict[str, Any]) -> list[str]:
     if need_procura:
         documents.append("procura alle liti")
     if need_contributo:
-        documents.append("ricevuta contributo unificato")
+        documents.append("contributo unificato o esenzione")
     if need_nota_ruolo:
         documents.append("nota iscrizione a ruolo")
     if "cassazione" in haystack:
@@ -888,6 +923,14 @@ def _normalise_entry(entry: dict[str, Any], index: int) -> dict[str, Any]:
     rules = _rules_for({**entry, "key": key, "text": label}, registry)
     tipo_atto = _iusentra_act_code({**entry, "key": key, "text": label})
     schema = _schema_status(entry, rules, tipo_atto)
+    schema = {
+        **schema,
+        "inputFields": datiatto_input_fields(
+            key,
+            str(schema.get("generatorClass") or ""),
+            str(schema.get("ministerialRoot") or ""),
+        ),
+    }
     if rules["real_send_allowed_from_pct_panel"] and schema["requiresSpecificGenerator"]:
         rules = {
             **rules,
@@ -1022,7 +1065,7 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
     entries = list_deposit_catalog_entries()
     policy = canali_telematici_cifratura_policy()
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "source": "studio_telematico_quickorganizer",
         "sourceOfTruth": str(CATALOG_PATH.as_posix()),
         "jsonAuthoritative": False,
@@ -1035,6 +1078,7 @@ def build_deposit_catalog_payload(*, include_entries: bool = True) -> dict[str, 
         },
         "sourceMeta": raw.get("source") if isinstance(raw.get("source"), dict) else {},
         "officialSources": list(OFFICIAL_SOURCES),
+        "referenceData": datiatto_reference_data(),
         "ministerialXsdChannels": [channel.to_dict() for channel in get_xsd_channels()],
         "ministerialSchemaEvidence": {
             "siciPreview20260611": {

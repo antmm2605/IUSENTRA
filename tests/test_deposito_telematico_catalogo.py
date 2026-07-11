@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from lxml import etree
+
+from pct.busta import BustaTelematica
 from pct.deposito_telematico_catalogo import (
     _datiatto_root_hint,
     build_deposit_catalog_payload,
@@ -7,7 +10,11 @@ from pct.deposito_telematico_catalogo import (
     resolve_deposit_type_payload,
 )
 from web.services.deposito_catalogo_runtime import deposito_catalogo_datiatto_extra
-from scripts.audit_deposito_catalogo_end_to_end import audit_deposit_catalog
+from scripts.audit_deposito_catalogo_end_to_end import (
+    _dati_busta_for,
+    _sample_pdf,
+    audit_deposit_catalog,
+)
 
 
 def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
@@ -29,6 +36,11 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     assert payload["ministerialSchemaEvidence"]["siciPreview20260611"]["productionReady"] is False
     assert payload["ministerialSchemaEvidence"]["cassazionePreview20260615"]["xsdCount"] == 116
     assert payload["ministerialSchemaEvidence"]["cassazionePreview20260615"]["productionReady"] is False
+    assert payload["schemaVersion"] == 3
+    assert len(payload["referenceData"]["titoliEsecutivi"]) == 22
+    assert len(payload["referenceData"]["ruoliProvvedimentoCassazione"]) == 9
+    assert len(payload["referenceData"]["materieCassazione"]) >= 170
+    assert len(payload["referenceData"]["classiImmobiliari"]) >= 50
 
 
 def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
@@ -62,9 +74,37 @@ def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
         "Datacitazione",
         "codice oggetto",
         "valore causa quando presente",
+        "ContributoUnificato",
     ]
+    assert citazione["schema"]["contributionRequired"] is True
+    assert citazione["schema"]["contributionXmlMode"] == "atto_introduttivo"
     assert "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione" in citazione["schema"]["evidenceMethods"]
     assert citazione["payload"]["datiatto_root_name"] == "Citazione"
+    assert [field["id"] for field in citazione["schema"]["inputFields"]] == ["data_notifica_citazione"]
+
+
+def test_catalogo_espone_i_campi_specifici_solo_sui_rami_pertinenti():
+    reclamo = resolve_deposit_type_payload("Introduttivi_SICID::RicorsoReclamoSospensiva")
+    pignoramento = resolve_deposit_type_payload(
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
+    )
+    cassazione = resolve_deposit_type_payload("Parte_CASSAZIONE::Ricorso")
+    memoria = resolve_deposit_type_payload("Parte_SICID::Memoria183")
+
+    assert reclamo is not None
+    reclamo_ids = {field["id"] for field in reclamo["schema"]["inputFields"]}
+    assert {"cui", "precedente_provvedimento_numero", "precedente_provvedimento_anno"} <= reclamo_ids
+
+    assert pignoramento is not None
+    pignoramento_ids = {field["id"] for field in pignoramento["schema"]["inputFields"]}
+    assert {"beni_pignorati", "titolo", "terzi", "data_citazione", "stima_diritto"} <= pignoramento_ids
+
+    assert cassazione is not None
+    cassazione_ids = {field["id"] for field in cassazione["schema"]["inputFields"]}
+    assert {"tipo_ricorso_cassazione", "provvedimento_impugnato", "materia_ricorso_cassazione", "motivi_cassazione"} <= cassazione_ids
+
+    assert memoria is not None
+    assert memoria["schema"]["inputFields"] == []
 
 
 def test_catalogo_unep_non_attiva_busta_pct_civile():
@@ -89,7 +129,7 @@ def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
     citazione_docs = citazione["ui"]["documents"]
     assert "atto principale" in citazione_docs
     assert "procura alle liti" in citazione_docs
-    assert "ricevuta contributo unificato" in citazione_docs
+    assert "contributo unificato o esenzione" in citazione_docs
     assert "nota iscrizione a ruolo" not in citazione_docs
     assert "anagrafica procedimento" in citazione_docs
     assert "data citazione" in citazione_docs
@@ -99,17 +139,24 @@ def test_catalogo_documenti_attesi_segue_flag_studio_telematico():
     memoria_docs = memoria["ui"]["documents"]
     assert "atto principale" in memoria_docs
     assert "procura alle liti" not in memoria_docs
-    assert "ricevuta contributo unificato" not in memoria_docs
+    assert "contributo unificato o esenzione" not in memoria_docs
     assert "riferimento procedimento" in memoria_docs
     assert "istanze o richieste" in memoria_docs
 
     assert cassazione is not None
     cassazione_docs = cassazione["ui"]["documents"]
     assert "procura alle liti" in cassazione_docs
-    assert "ricevuta contributo unificato" in cassazione_docs
+    assert "contributo unificato o esenzione" in cassazione_docs
     assert "nota iscrizione a ruolo" in cassazione_docs
     assert "provvedimento impugnato" in cassazione_docs
     assert "prova notifica" in cassazione_docs
+
+    visibilita = resolve_deposit_type_payload("Parte_SICID::AttoRichiestaVisibilità")
+    assert visibilita is not None
+    assert visibilita["schema"]["contributionRequired"] is False
+    assert visibilita["schema"]["contributionXmlMode"] == "none"
+    assert "ContributoUnificato" not in visibilita["schema"]["requiredData"]
+    assert "contributo unificato o esenzione" not in visibilita["ui"]["documents"]
 
     assert unep is not None
     unep_docs = unep["ui"]["documents"]
@@ -165,6 +212,8 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["channels"] == {"pct": 252, "unep": 18, "other": 0}
     assert report["pct_generated_datiatto"] == 252
     assert report["pct_expected_datiatto"] == 252
+    assert report["pct_contribution_exemption_branches_checked"] > 0
+    assert report["pct_required_input_guards_checked"] >= 120
     assert report["pct_real_send_suspended_until_dedicated_generator"] == 0
     assert report["office_catalog"]["ok"] is True
     assert report["office_catalog"]["pct_target_codes"] == 593
@@ -201,6 +250,7 @@ def test_datiatto_extra_runtime_porta_campi_specifici_ai_generatori():
                 "importo_precetto": "1.234,56",
                 "beni_pignorati_json": '[{"tipo":"mobile","descrizione":"Credito","valore":"1200,00"}]',
                 "terzo_json": '{"codice_fiscale":"TRZPLA80A01H501B","data_notifica_pignoramento":"04/07/2026"}',
+                "terzi_json": '[{"codice_fiscale":"TRZPLA80A01H501B"},{"codice_fiscale":"TRZLNZ80A01H501C"}]',
                 "titolo_json": '{"descrizione":"Titolo esecutivo","tipologia":"Sentenza"}',
             }
 
@@ -214,7 +264,21 @@ def test_datiatto_extra_runtime_porta_campi_specifici_ai_generatori():
     assert extra["importo_precetto"] == "1.234,56"
     assert extra["beni_pignorati"][0]["descrizione"] == "Credito"
     assert extra["terzo"]["codice_fiscale"] == "TRZPLA80A01H501B"
+    assert len(extra["terzi"]) == 2
     assert extra["titolo"]["descrizione"] == "Titolo esecutivo"
+
+
+def test_generatore_pignoramento_presso_terzi_gestisce_la_griglia_completa(tmp_path):
+    entry = resolve_deposit_type_payload(
+        "Introduttivi_ESECUZIONI_SIECIC::IscrizioneRuoloPignoramentoMobiliarePressoTerzi"
+    )
+    assert entry is not None
+    dati = _dati_busta_for(entry, _sample_pdf(tmp_path / "atto.pdf"))
+
+    root = etree.fromstring(BustaTelematica(dati).crea_dati_atto_xml_per_firma())
+
+    assert len(root.xpath(".//*[local-name()='DatiTerzo']")) == 2
+    assert len(root.xpath(".//*[local-name()='Altro']")) == 2
 
 
 def test_catalogo_atto_sistema_e_operativo_senza_numero_rg_obbligatorio():
@@ -251,6 +315,7 @@ def test_api_e_rotte_busta_usano_catalogo_backend():
     assert "deposito_catalogo_entry" in deposito_source
     assert "_deposito_catalogo_blocker" in deposito_source
     assert "deposito_catalogo_datiatto_extra" in deposito_source
-    assert "datiatto_extra=datiatto_extra" in deposito_source
+    assert "deposito_catalogo_busta_metadata" in deposito_source
+    assert '"datiatto_extra": extra' in catalogo_runtime_source
     assert "tipo_deposito_telematico_key" in catalogo_runtime_source
     assert "generatore DatiAtto ministeriale specifico" not in catalogo_runtime_source

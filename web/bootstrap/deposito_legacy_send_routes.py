@@ -14,6 +14,10 @@ from flask import Flask, flash, g, jsonify, redirect, request, url_for
 from pct.deposito_simulazione import simulated_deposit_note
 from pct.fascicoli import EsitoDepositoPCT
 from pct.pst_cifratura import PSTCifraturaError
+from web.services.deposito_anagrafica_ministeriale import (
+    contributo_unificato_fascicolo as _contributo_unificato_fascicolo,
+    valore_causa_fascicolo as _valore_causa_fascicolo,
+)
 from web.services.deposito_route_helpers import (
     allegati_busta as _allegati_busta,
     deposito_oggetto as _deposito_oggetto,
@@ -161,6 +165,8 @@ def register_deposito_legacy_send_route(
                     anno_rg=anno_rg or None,
                     operatore=utente.username if utente else "",
                     cf_mittente="",
+                    valore_causa=_valore_causa_fascicolo(fascicolo),
+                    contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
                 )
 
                 cfg_studio = get_config_studio().config

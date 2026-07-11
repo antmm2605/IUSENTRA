@@ -1,7 +1,19 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+from web.blueprints.api_v1_react import _deposit_datiatto_extra
 from web.services.react_fascicoli_bridge import _deposit_office_payload
+
+
+def test_deposito_dati_specifici_persistibili_sono_json_limitato():
+    payload = {"terzi": [{"codice_fiscale": "TRZPLA80A01H501B"}], "esente": False}
+
+    assert _deposit_datiatto_extra(payload) == payload
+
+    with pytest.raises(ValueError, match="dimensione consentita"):
+        _deposit_datiatto_extra({"testo": "x" * (64 * 1024)})
 
 
 def test_deposito_resolver_ufficio_completa_pec_e_codice_da_catalogo():
@@ -72,6 +84,8 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     local_signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
+    api = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
     assert "function DepositPreparePage" in source
     assert "FascicoloDepositoPage" in shell_source
     assert "include: 'all'" in shell_source
@@ -107,15 +121,29 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Invia tutto" not in source
     assert "Deseleziona tutto" in source
     assert "Salva classificazione" in source
+    assert "function DepositSpecificDataForm" in source
+    assert "Mostriamo solo i dati necessari per il tipo selezionato" in source
+    assert "missingRequiredDepositSpecificFields" in source
+    assert "datiatto_extra: JSON.stringify(depositSpecificData)" in source
+    assert "datiatto_extra: depositSpecificData" in source
+    assert "requiredSpecificDataNotice" in source
+    assert ".iu-fas-deposit-specific__field input:focus-visible" in css
+    assert ".iu-fas-deposit-specific__repeat-row" in css
+    assert "datiattoExtra" in data
+    assert '"datiatto_extra": datiatto_extra' in api
+    assert '"datiattoExtra": preparation_datiatto_extra' in bridge
     assert "deselectAllDepositDocuments" in source
     assert "const selectAllDepositDocuments" not in source
     assert "onClick={selectAllDepositDocuments}" not in source
     assert "Il software segnala i candidati; l'avvocato sceglie cosa entra nella busta" in source
     assert "const linkedDefaultDocuments = uniqueFascicoloDocuments(usableLinkedSlotDocuments.map((row) => row.document))" in source
-    assert "const defaultDepositSelectionIds = linkedDefaultDocuments.map((doc) => doc.id)" in source
+    assert "const defaultDepositSelectionIds = data.depositPreparation.saved" in source
+    assert ": []" in source
+    assert ": defaultMainActDocumentId ? [defaultMainActDocumentId] : []" not in source
     assert "depositCandidateDocuments]).map((doc) => doc.id)" not in source
     assert "buildDepositCatalogSlots(selectedDepositType, regia.documentSlots)" in source
     assert 'count={sortedSlots.length}' in source
+    assert ".map((slot) => ({ ...slot, required: false, catalogAdvisory: true }))" in source
     assert 'catalogOnly' in source
     assert 'catalogRequirementKind' in source
     assert 'canLinkSlot' in source
@@ -212,7 +240,10 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     slot_logic = source[source.index("function depositSelectionSatisfiesSlot"):source.index("type MissingDepositSlotsInput")]
     deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
 
-    assert "const actionBlocked = !mainActDocument || !officeRecipientReady" in deposit_page
+    assert "const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady" in deposit_page
+    assert "const requiredDepositDataBlocked = missingRequiredSlots.length > 0" in deposit_page
+    assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "Durante la prova il dispositivo firma i dati del deposito" in deposit_page
     assert "Boolean(missingRequiredSlots.length) || !officeRecipientReady" not in deposit_page
     assert "requiredChoicesNotice" in deposit_page
     assert "La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente" in deposit_page
@@ -227,18 +258,18 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     assert "Invia tutto" not in source
 
 
-def test_ui_deposito_tipo_deposito_non_prende_la_prima_voce_e_suggerisce_sigp_note():
+def test_ui_deposito_tipo_e_documenti_richiedono_la_scelta_dell_avvocato():
     source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
     panel = source[source.index("function DepositTypePreviewPanel"):source.index("function DepositActionButton")]
-    suggester = source[source.index("function suggestDepositTypeKey"):source.index("function depositAttachmentDisplayName")]
 
     assert "if (selectedKey !== selectedType.key) onSelect(selectedType.key)" not in panel
-    assert "suggestDepositTypeKey(" in source
-    assert "autoSelectedDepositTypeKeyRef" in source
-    assert "CorsoCausa_SIGP::DepositoNoteScritteSostUdie" in suggester
-    assert "sigp|giudice di pace" in suggester
-    assert "current && current !== autoSelectedDepositTypeKeyRef.current" in source
-    assert "autoSelectedDepositTypeKeyRef.current = ''" in source
+    assert "const selectedType = selectedByKey?.type" in panel
+    assert '<option value="">Scegli il tipo di deposito</option>' in panel
+    assert "onSelect('')" in panel
+    assert "suggestedDepositTypeKey" not in source
+    assert "autoSelectedDepositTypeKeyRef" not in source
+    assert "const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady" in source
+    assert "Scegli il tipo di deposito prima di preparare la prova." in source
 
 
 def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
@@ -313,6 +344,10 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "progressItems={['DatiAtto.xml'" not in deposit_page
     assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
     assert "iu-fas-package-progress__ticker" in action_button
+    assert 'id="dati-specifici-deposito"' in source
+    assert "goToDepositPhase('proposta-busta', 'auto')" in deposit_page
+    assert "message.startsWith('Completa i dati obbligatori del deposito:')" in action_button
+    assert "Completa dati deposito" in deposit_page
     assert "const pctJsonPackageChannel" in deposit_page
     assert "const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction" in deposit_page
     assert "result.requires_local_signature && completeLocalSignature" in action_button
@@ -363,9 +398,10 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "recordBool(packagePreview?.bustaAudit, 'blocks_direct_send')" in proof_block
     assert "recordBool(packagePreview?.bustaAudit, 'guided_completion_required')" in proof_block
     assert "function depositHasPersistedDryRunProof" in source
-    assert "const persistedDryRunProofReady = recentDeposits.some(depositHasPersistedDryRunProof)" in deposit_page
+    assert "const persistedDryRunProofReady = !depositProofInvalidated && recentDeposits.some(depositHasPersistedDryRunProof)" in deposit_page
+    assert "setDepositProofInvalidated(true)" in deposit_page
     assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)" in deposit_page
-    assert "disabled={actionBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
     assert "directPecReady && !guidedCompletion" not in deposit_page
     assert "Invio reale non attivo: manca ancora il trasporto ministeriale conforme." not in deposit_page

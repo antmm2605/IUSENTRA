@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -111,3 +112,71 @@ def ministerial_valore_causa_for_context(fascicolo: Any) -> float | None:
     if is_carta_docente_pubblico_impiego(fascicolo):
         return CARTA_DOCENTE_DEFAULT_VALUE
     return None
+
+
+def _normalise_payment_token(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", _text(value).casefold()).strip("_")
+
+
+def _payment_amount(value: Any) -> float | None:
+    raw = _text(value).replace("EUR", "").replace("eur", "").replace("€", "").replace(" ", "")
+    if not raw:
+        return None
+    if "," in raw:
+        raw = raw.replace(".", "").replace(",", ".")
+    try:
+        amount = round(float(raw), 2)
+    except (TypeError, ValueError):
+        return None
+    return amount if amount > 0 else None
+
+
+def ministerial_contributo_unificato_for_context(fascicolo: Any) -> dict[str, Any]:
+    """Resolve the ministerial contribution state from the fascicolo source of truth."""
+    payments = _dict_or_empty(getattr(fascicolo, "pagamenti", {}))
+    raw: dict[str, Any] = {}
+    for key, value in payments.items():
+        if _normalise_payment_token(key) in {"contributo", "contributo_unificato", "cu"}:
+            raw = _dict_or_empty(value)
+            break
+
+    status = _normalise_payment_token(raw.get("status") or raw.get("stato"))
+    nature = _normalise_payment_token(raw.get("natura") or raw.get("nature"))
+    evidence = " ".join(
+        _text(raw.get(key))
+        for key in ("label", "etichetta", "note", "natura", "nature")
+    ).casefold()
+    amount = _payment_amount(raw.get("importo") if "importo" in raw else raw.get("amount"))
+    source = _text(raw.get("documento_fonte") or raw.get("documentSource") or raw.get("documentoFonte"))
+
+    exempt = (
+        raw.get("previsto") is False
+        or status in {"non_previsto", "non_prevista", "esente", "non_dovuto", "non_dovuta"}
+        or any(marker in nature for marker in ("esenzione", "non_dovuto", "non_debenza"))
+        or any(marker in evidence for marker in ("esente", "esenzione", "non dovuto", "non debenza"))
+    )
+    debt = "debito" in nature or "prenot" in nature or "prenot" in evidence and "debito" in evidence
+    paid = raw.get("pagato") is True or status in {"pagato", "pagata", "saldato", "saldata"}
+
+    if exempt:
+        mode = "esente"
+        resolved = True
+    elif debt:
+        mode = "prenotato_a_debito"
+        resolved = amount is not None
+    elif paid:
+        mode = "pagato"
+        resolved = amount is not None
+    else:
+        mode = "da_definire"
+        resolved = False
+
+    return {
+        "resolved": resolved,
+        "mode": mode,
+        "importo": amount,
+        "debito": mode == "prenotato_a_debito",
+        "source": source,
+        "status": status,
+        "natura": nature,
+    }

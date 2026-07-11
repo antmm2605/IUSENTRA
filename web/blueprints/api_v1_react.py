@@ -116,6 +116,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
     clear_react_fascicoli_base_cache,
     run_react_fascicoli_economic_presidio,
+    update_react_fascicolo_deposit_value,
     update_react_fascicolo_payment,
     update_react_fascicolo_status,
 )
@@ -5760,6 +5761,28 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+@api_v1_react.post("/fascicoli/<id_fasc>/deposito/valore-causa")
+@_richiedi_auth
+def fascicolo_react_deposito_valore_causa(id_fasc: str):
+    if not (_api_key_valida() or _session_user_can("fascicoli.scrivi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    result, status = update_react_fascicolo_deposit_value(
+        get_fascicoli=_fascicoli_loader(),
+        id_fasc=id_fasc,
+        payload=_request_payload(),
+        actor=_actor_label(),
+    )
+    if result.get("ok"):
+        _clear_fascicoli_list_payload_cache()
+        _audit_event(
+            "fascicoli.deposito.valore_causa_aggiornato",
+            "fascicolo",
+            id_fasc,
+            str(result.get("message") or "Valore della causa aggiornato."),
+        )
+    return redacted_json_response(result, status)
+
+
 @api_v1_react.get("/fascicoli/nuovo")
 @_richiedi_auth
 def fascicolo_react_nuovo():
@@ -6092,6 +6115,20 @@ def _documento_contenitore_firma(doc: Any) -> bool:
     return False
 
 
+def _deposit_datiatto_extra(value: Any) -> dict[str, Any]:
+    if value in (None, ""):
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("I dati specifici del deposito non sono validi.")
+    try:
+        encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise ValueError("I dati specifici del deposito non sono leggibili.") from exc
+    if len(encoded.encode("utf-8")) > 64 * 1024:
+        raise ValueError("I dati specifici del deposito superano la dimensione consentita.")
+    return json.loads(encoded)
+
+
 def _deposit_slot_key_for_role(role: str, slots: Iterable[Any], used: set[str]) -> str:
     role = _deposit_document_role(role)
     if role == "atto_principale":
@@ -6156,6 +6193,10 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
     rows = payload.get("documents") if isinstance(payload.get("documents"), list) else []
     if not rows:
         return jsonify({"errore": "Nessun documento indicato.", "mock_fallback": False}), 400
+    try:
+        datiatto_extra = _deposit_datiatto_extra(payload.get("datiatto_extra"))
+    except ValueError as exc:
+        return jsonify({"errore": str(exc), "mock_fallback": False}), 400
 
     documents_by_id = {str(getattr(doc, "id", "") or ""): doc for doc in getattr(ctx["fascicolo"], "documenti", []) or []}
     slots = ctx["repo"].ensure_slots(id_fasc, ctx["profile"]) if ctx["profile"] is not None else []
@@ -6212,6 +6253,18 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
 
     if document_deposit_updates:
         ctx["gf"].aggiorna_documenti_deposito(id_fasc, document_deposit_updates)
+
+    deposit_profile = dict(getattr(ctx["fascicolo"], "profilo_deposito", {}) or {})
+    deposit_profile["preparazione_busta"] = {
+        "tipo_deposito_telematico_key": str(payload.get("tipo_deposito_telematico_key") or "").strip(),
+        "tipo_deposito_telematico_label": str(payload.get("tipo_deposito_telematico_label") or "").strip(),
+        "tipo_deposito_telematico_policy": str(payload.get("tipo_deposito_telematico_policy") or "").strip(),
+        "datiatto_extra": datiatto_extra,
+        "documents": updated_documents,
+        "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "updated_by": _actor_label(),
+    }
+    ctx["fascicolo"] = ctx["gf"].aggiorna(id_fasc, profilo_deposito=deposit_profile)
 
     if ctx["profile"] is not None:
         run_predeposit_check(

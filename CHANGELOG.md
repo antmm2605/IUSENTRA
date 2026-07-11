@@ -2,6 +2,11 @@
 
 ## 2.256.0 - 2026-07-11
 
+- Completa e valida contro gli XSD ministeriali tutti i 252 generatori PCT del catalogo deposito.
+- Mostra e conserva i dati specifici richiesti dal tipo scelto, con messaggi puntuali e accesso diretto ai campi mancanti.
+- Lascia all'avvocato la scelta del tipo di deposito e dei documenti, senza preselezioni nei casi nuovi.
+- Trasforma i dati ministeriali mancanti in risposte controllate e impedisce errori HTTP generici durante la prova.
+- Estende l'audit a contributo, uffici, PEC, codici, campi obbligatori e copertura UI-generatore.
 - **Lex Oggi - piano per data**: la pagina diventa `Piano del giorno` e offre il selettore rapido `Oggi`, `Domani`, `Dopodomani` più un campo data. La selezione resta nell'URL, separa correttamente cache ed ETag per giorno/utente e usa date italiane visibili.
 - **Lex Oggi - generazione data-aware**: il refresh trasporta la data scelta fino al job tenant-aware; priorità, agenda, conflitti, scadenze ed economia vengono calcolati rispetto a quel giorno, mentre il timestamp di generazione resta nell'ora reale `Europe/Rome`.
 - **Lex Oggi - aggiornamento manuale reale**: ogni click su `Aggiorna` usa una chiave idempotente distinta e un job nuovo ottiene sempre una propria run del worker, anche se quella precedente sta terminando. Le richieste manuali vengono consumate anche quando le generazioni pianificate sono disattivate; le entità cambiate restano invece governate dal flag `lex.dailyPlan.scheduledRuns`.

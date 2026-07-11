@@ -4710,6 +4710,50 @@ Prova reale browser integrato su `127.0.0.1:8080`:
 
 Stato residuo da non dichiarare verde: per abilitare `Invia deposito reale` sul caso concreto serve ripetere la prova con smart card/token e middleware Local Signer realmente pronti, firmare i dati deposito, generare/verificare `Atto.enc` e solo dopo controllare l'abilitazione del bottone.
 
+## Deposito - copertura generatori, scelta dell'avvocato e campi ministeriali 2026-07-12
+
+Rapporto completo: `artifacts/react-migration/deposito-confronto-fonti-2026-07-12.md`.
+
+La verifica combina il catalogo ricostruito dal materiale decompilato con gli XSD ministeriali attivi. Gli XSD restano la fonte decisiva per struttura, sequenza, cardinalità e validità del `DatiAtto.xml`.
+
+Esito audit:
+
+- 270 tipi complessivi;
+- 252/252 generatori PCT eseguiti e validati;
+- 0 rami PCT sospesi;
+- 67 rami contributo/esenzione e 122 guardie sui campi obbligatori;
+- 593 uffici PCT operativi confrontati, senza codici o PEC mancanti e senza difformità del resolver.
+
+Regola UX aggiornata, che sostituisce il suggerimento automatico documentato nella tranche SIGP del 9 luglio 2026:
+
+- nei casi nuovi l'avvocato sceglie il tipo di deposito;
+- nei casi nuovi nessun documento viene incluso automaticamente;
+- il software propone candidati, applica controlli e conserva le scelte già salvate;
+- un tipo o un atto principale non scelti bloccano con un messaggio specifico;
+- documenti non indispensabili restano avvisi e non spengono le prove;
+- i dati ministeriali mancanti aprono direttamente il pannello nel quale inserirli.
+
+Nel click reale sul fascicolo produzione `795C50AC`, il tipo salvato `Opposizione a decreto ingiuntivo (mediante ricorso)` ha richiesto numero, anno e data del decreto. Il primo tentativo ha scoperto un errore generico `HTTP 500`, poi corretto sia nel frontend sia nella rotta backend: il flusso ora mostra i campi, apre il pannello corretto e restituisce sempre una risposta controllata. Nessuna PEC è stata inviata.
+
+Prova reale locale eseguita il 12/07/2026 sulla copia Docker obbligatoria `http://127.0.0.1:8080`, versione applicativa corrente `2.256.0`, container `iusentra-app` healthy e `/api/pronto` con fuso `Europe/Rome`:
+
+- fascicolo controllato `A1FB22FE`, senza copiare dati dal tenant di produzione e senza salvare le scelte temporanee;
+- ingresso nella fase `Documenti` con `0 selezionati`, tipo sul placeholder `Scegli il tipo di deposito` e nessun documento incluso automaticamente;
+- cambio reale della macroarea in `Corte di Cassazione (civile)`: il tipo è rimasto vuoto, quindi il software non ha sostituito la scelta dell'avvocato;
+- selezione temporanea di `Opposizione a decreto ingiuntivo (mediante ricorso)`: comparsi esattamente i tre campi obbligatori `Numero del decreto ingiuntivo`, `Anno del decreto ingiuntivo`, `Data del decreto ingiuntivo` e i due riferimenti facoltativi alla causa collegata;
+- click reale su `Completa dati deposito`: apertura immediata del pannello e campi visibili, senza cambiare pagina e senza inviare PEC;
+- fase pacchetto con blocco nominativo su atto principale e dati mancanti; i tre pulsanti restano correttamente disabilitati nel fascicolo locale privo di documenti, senza falso esito positivo;
+- click reale finale sulla fase `Busta e indice`: Tribunale di Vicenza, PEC e codice ufficio risultano risolti automaticamente; la UI separa l'atto principale da scegliere dai tre dati obbligatori del decreto e mantiene procura/allegati come avvisi non bloccanti quando l'avvocato ha già salvato la propria scelta;
+- secondo click reale su `Completa dati deposito`: ritorno immediato alla fase Documenti con i tre campi obbligatori e i due riferimenti facoltativi visibili; ricaricamento finale con tipo non selezionato e `0 selezionati`, senza salvataggi e senza invii;
+- focus reale sul primo campo con bordo visibile e controllo dello stato hover del comando di salvataggio;
+- scroll completo e prova responsive a `1440x900`, `1024x768` e `390x844`; durante la prima prova tablet il pulsante flottante dell'assistente copriva parzialmente `Firma`, quindi la navigazione ha ricevuto una riserva laterale solo nel relativo intervallo e i comandi mobile sono stati estesi alla larghezza disponibile; la seconda prova non ha mostrato sovrapposizioni né testo tagliato nei comandi.
+
+Guardrail finali sul sorgente locale: 64 test deposito mirati e 152 test completi della shell React superati; typecheck e build frontend superati; gate qualità Codex, contratti API/OpenAPI, smoke, baseline Python, Ruff, Flake8, `compileall` e sincronizzazione pacchetto superati. La copia Docker reale risponde su `/api/pronto` con versione `2.256.0`, fuso `Europe/Rome` e container `iusentra-app` healthy.
+
+Il gate governance ha bloccato una prima preparazione del commit per dimensione della rotta e due stringhe non integre nel generatore. I metadati `DatiBusta` e la trasformazione dell'errore ministeriale in risposta JSON controllata sono stati delegati ai servizi dedicati; le stringhe sono state corrette, i test statici sono stati riallineati alla delega e l'intera sequenza audit/test/governance è stata ripetuta con esito positivo. La prova browser è stata quindi ripetuta sulla nuova immagine Docker, non riutilizzata dalla build precedente.
+
+Il commit/push dei branch gemelli, i check GitHub e il deploy finale sul commit restano obbligatori prima della chiusura formale. La prova completa del pacchetto sul caso concreto resta inoltre subordinata a dispositivo di firma fisico e Local Signer pronti.
+
 ## React shell - entry Vite senza query string 2026-07-06
 
 Aggiornamento operativo `2.253.194`.

@@ -14,6 +14,7 @@ from pct.busta import (
     INDICE_DOCUMENTI_FILENAME,
 )
 from pct.firma import busta_cades_valida, estrai_contenuto_cades
+from web.services.deposito_route_helpers import validation_summary
 from web.services.local_pec_runtime import LOCAL_SIGNER_BASE_URL
 
 
@@ -46,9 +47,24 @@ def dati_atto_signature_gate(
     oggetto_pec: str,
     corpo_pec: str,
     documenti_busta: list[str],
+    validation: object | None = None,
 ) -> tuple[bytes | None, Any | None]:
     """Validate signed DatiAtto.xml or return a JSON payload and HTTP status."""
-    dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+    try:
+        dati_atto_xml = busta.crea_dati_atto_xml_per_firma()
+    except ValueError as exc:
+        return None, {
+            "ok": False,
+            "package_ready": False,
+            "requires_guided_completion": True,
+            "errore": str(exc),
+            "next_actions": [
+                "Completa il dato indicato nel pannello Documenti.",
+                "Ripeti la prova senza invio dopo il salvataggio.",
+            ],
+            "validation": validation_summary(validation) if validation is not None else {},
+            "_status": 400,
+        }
     dati_atto_sha256 = hashlib.sha256(dati_atto_xml).hexdigest().upper()
     dati_atto_firmato_b64 = str(form.get("dati_atto_firmato_b64", "") or "").strip()
     if dati_atto_firmato_b64:

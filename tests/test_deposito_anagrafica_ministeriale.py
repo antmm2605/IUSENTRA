@@ -2,7 +2,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from web.services.deposito_anagrafica_ministeriale import anagrafica_xml_se_ricorso, valore_causa_fascicolo
+from web.services.deposito_anagrafica_ministeriale import (
+    _split_nome_cognome,
+    anagrafica_xml_se_ricorso,
+    contributo_unificato_fascicolo,
+    deposito_ministerial_readiness,
+    valore_causa_fascicolo,
+)
 
 
 def _cliente(
@@ -158,3 +164,62 @@ def test_valore_causa_carta_docente_mim_non_resta_zero():
     )
 
     assert valore_causa_fascicolo(fascicolo) == 500.0
+
+
+def test_readiness_deposito_riconosce_esenzione_anagrafica_e_valore_gia_presenti():
+    fascicolo = _fascicolo()
+    fascicolo.valore_causa = 500.0
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "non_previsto",
+            "previsto": False,
+            "natura": "esenzione_contributo_unificato",
+            "documento_fonte": "Autocertificazione situazione reddituale.PDF",
+        }
+    }
+
+    contribution = contributo_unificato_fascicolo(fascicolo)
+    readiness = deposito_ministerial_readiness(
+        fascicolo=fascicolo,
+        get_clienti=lambda: _clienti(_cliente()),
+        get_config_studio=_config_studio,
+        operatore="Giuseppe Montagnese",
+    )
+
+    assert contribution["resolved"] is True
+    assert contribution["mode"] == "esente"
+    assert readiness["contributoUnificato"]["label"] == "Esente"
+    assert readiness["anagraficaProcedimento"]["ready"] is True
+    assert readiness["valoreCausa"]["ready"] is True
+    assert readiness["valoreCausa"]["valueLabel"] == "€ 500,00"
+
+
+def test_readiness_deposito_pagato_senza_importo_indica_il_dato_mancante():
+    fascicolo = _fascicolo()
+    fascicolo.valore_causa = 500.0
+    fascicolo.pagamenti = {
+        "contributo_unificato": {
+            "status": "pagato",
+            "natura": "pagamento_contributo_unificato",
+            "importo": None,
+        }
+    }
+
+    readiness = deposito_ministerial_readiness(
+        fascicolo=fascicolo,
+        get_clienti=lambda: _clienti(_cliente()),
+        get_config_studio=_config_studio,
+        operatore="Giuseppe Montagnese",
+    )
+
+    contribution = readiness["contributoUnificato"]
+    assert contribution["ready"] is False
+    assert contribution["mode"] == "pagato"
+    assert contribution["amount"] is None
+    assert contribution["message"] == "Inserisci l'importo del contributo unificato pagato per proseguire."
+
+
+def test_split_nome_cognome_preserva_ordine_e_cognome_composto():
+    assert _split_nome_cognome("Avv. Giuseppe Rossi") == ("Giuseppe", "Rossi")
+    assert _split_nome_cognome("Giuseppe De Luca") == ("Giuseppe", "De Luca")
+    assert _split_nome_cognome("Rossi, Giuseppe") == ("Giuseppe", "Rossi")

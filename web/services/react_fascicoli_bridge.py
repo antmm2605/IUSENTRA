@@ -54,6 +54,7 @@ from pct.document_signature_state import (
     document_has_real_digital_signature,
     document_has_signed_container,
 )
+from web.services.deposito_anagrafica_ministeriale import deposito_ministerial_readiness
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -3135,6 +3136,20 @@ def update_react_fascicolo_payment(
     amount = _payment_amount_value(payload.get("importo") if "importo" in payload else payload.get("amount"))
     if amount is not None and amount < 0:
         return {"ok": False, "message": "L'importo non può essere negativo.", "errors": {"importo": "L'importo non può essere negativo."}}, 400
+    payment_nature = _short(payload.get("natura") or payload.get("nature"), 80)
+    payment_nature_key = re.sub(r"[^a-z0-9]+", "_", payment_nature.casefold()).strip("_")
+    if normalized_kind == "contributo_unificato":
+        if any(marker in payment_nature_key for marker in ("esenzione", "non_dovuto", "non_debenza")):
+            status = "non_previsto"
+            amount = None
+            payment_nature = payment_nature or "esenzione_contributo_unificato"
+        elif "debito" in payment_nature_key or "prenot" in payment_nature_key:
+            status = "pagato"
+            payment_nature = payment_nature or "prenotazione_a_debito"
+        elif status == "pagato":
+            payment_nature = payment_nature or "pagamento_contributo_unificato"
+        elif status == "non_previsto":
+            payment_nature = payment_nature or "esenzione_contributo_unificato"
     date_iso, date_error = _payment_date_iso(payload.get("dataPagamento") or payload.get("data_pagamento") or payload.get("date"))
     if date_error:
         return {"ok": False, "message": date_error, "errors": {"dataPagamento": date_error}}, 400
@@ -3174,6 +3189,15 @@ def update_react_fascicolo_payment(
             "history": history[-25:],
         }
     )
+    if payment_nature:
+        next_payment["natura"] = payment_nature
+    if "documento_fonte" in payload or "documentoFonte" in payload or "documentSource" in payload:
+        next_payment["documento_fonte"] = _short(
+            payload.get("documento_fonte") or payload.get("documentoFonte") or payload.get("documentSource"),
+            240,
+        )
+    if "documento_id" in payload or "documentoId" in payload:
+        next_payment["documento_id"] = _short(payload.get("documento_id") or payload.get("documentoId"), 80)
     for existing_key in list(payments.keys()):
         if existing_key != normalized_kind and _normalise_payment_kind(existing_key) == normalized_kind:
             payments.pop(existing_key, None)
@@ -3200,6 +3224,38 @@ def update_react_fascicolo_payment(
         "paymentSummary": summary,
         "fascicolo": {"id": fid},
         "linkedProforma": linked_proforma,
+    }, 200
+
+
+def update_react_fascicolo_deposit_value(
+    *,
+    get_fascicoli: Callable[[], Any],
+    id_fasc: str,
+    payload: dict[str, Any],
+    actor: str = "",
+) -> tuple[dict[str, Any], int]:
+    repo = get_fascicoli()
+    fascicolo = _resolve_fascicolo(repo, id_fasc)
+    if not fascicolo:
+        return {"ok": False, "message": "Fascicolo non trovato.", "errors": {"fascicolo": "Fascicolo non trovato."}}, 404
+    raw_value = payload.get("valore_causa") if "valore_causa" in payload else payload.get("value")
+    value = _payment_amount_value(raw_value)
+    raw_clean = _text(raw_value)
+    if value is None and raw_clean not in {"0", "0,00", "0.00"}:
+        return {
+            "ok": False,
+            "message": "Inserisci un valore della causa valido.",
+            "errors": {"valore_causa": "Valore della causa non valido."},
+        }, 400
+    value = 0.0 if value is None else value
+    fid = _text(getattr(fascicolo, "id", id_fasc))
+    if not hasattr(repo, "aggiorna"):
+        return {"ok": False, "message": "Aggiornamento del fascicolo non disponibile."}, 409
+    repo.aggiorna(fid, valore_causa=value)
+    return {
+        "ok": True,
+        "message": f"Valore della causa aggiornato a {format_euro_it(value)}.",
+        "fascicolo": {"id": fid, "valoreCausa": value, "updatedBy": _text(actor, "Operatore")},
     }, 200
 
 
@@ -3469,6 +3525,7 @@ def _ensure_contributo_unificato_for_fascicolo(
             return {"status": "existing", "analysisUpdated": False}
         if _presidio_documentale_has_unresolved_kind(marker, "contributo_unificato"):
             return {"status": "missing_current", "analysisUpdated": False}
+        return {"status": "existing", "analysisUpdated": False}
     scan_payments = dict(payments)
     for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
         scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
@@ -4678,6 +4735,15 @@ def build_react_fascicoli_payload(
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    payment_filters_active = bool(
+        payment_filters
+        and any(_text(value).strip().lower() not in {"", "tutti"} for value in payment_filters.values())
+    )
+    sort_key = _text(sort, "rg")
+    view_key = _text(view).casefold()
+    enrich_visible = view_key in {"economica", "economico", "economic"}
+    automatic_for_all = bool(payments_only or payment_filters_active or sort_key == "scadenza")
+    enrich_visible = enrich_visible or automatic_for_all
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
         client_filter=client_filter,
@@ -4701,19 +4767,21 @@ def build_react_fascicoli_payload(
         scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
         resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
         archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-        sort_key = _text(sort, "rg")
-        automatic_deadline_evidence = sort_key == "scadenza"
         duplicate_groups = duplicate_practice_groups(fascicoli)
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+
+        def _related_for_list_row(fascicolo: Any) -> list[Any]:
+            return _related_duplicate_fascicoli(fascicoli, fascicolo)
 
         light_items = _annotate_duplicate_items(
             [
                 _item_light(
                     fascicolo,
                     scadenze_by_fasc=scadenze_by_fasc,
-                    automatic_evidence=automatic_deadline_evidence,
-                    full_payment_summary=False,
+                    automatic_evidence=automatic_for_all,
+                    full_payment_summary=automatic_for_all,
+                    related_fascicoli=_related_for_list_row(fascicolo) if automatic_for_all else None,
                     parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
                     duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
                 )
@@ -4767,6 +4835,41 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
+    if items and not automatic_for_all and enrich_visible:
+        gf = get_fascicoli()
+        fascicoli = _safe("fascicoli_visible_enrichment", lambda: gf.tutti(archiviati=False), [])
+        fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+        scadenze_by_fasc = _group_scadenze_by_fasc(_open_scadenze(get_scadenziario), fascicoli)
+        duplicate_groups = duplicate_practice_groups(fascicoli)
+        duplicate_groups_by_key = {
+            _text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))
+        }
+        parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+
+        def _related_for_visible_row(fascicolo: Any) -> list[Any]:
+            return _related_duplicate_fascicoli(fascicoli, fascicolo)
+
+        enriched_visible = {
+            item_id: _annotate_duplicate_items(
+                [
+                    _item_light(
+                        fascicoli_by_id[item_id],
+                        scadenze_by_fasc=scadenze_by_fasc,
+                        automatic_evidence=True,
+                        full_payment_summary=True,
+                        related_fascicoli=_related_for_visible_row(fascicoli_by_id[item_id]),
+                        parcelle=parcelle_by_fasc.get(item_id, []),
+                        duplicate_group=duplicate_groups_by_key.get(
+                            normalise_practice_duplicate_key(fascicoli_by_id[item_id])
+                        ),
+                    )
+                ],
+                duplicate_groups_by_key,
+            )[0]
+            for item_id in (_text(item.get("id")) for item in items)
+            if item_id in fascicoli_by_id
+        }
+        items = [enriched_visible.get(_text(item.get("id")), item) for item in items]
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -5768,6 +5871,9 @@ def _document_catalog_from_saved_type(doc: Any) -> DocumentCatalogClassification
         tipo,
         ("da_verificare", "Da verificare", "da-verificare", 35, "allegato", False),
     )
+    document_tags = {_text(tag).casefold() for tag in (getattr(doc, "tags", []) or [])}
+    if tipo == TipoDocumento.COMUNICAZIONE and "email-iniziali" in document_tags:
+        label = "Comunicazione / ricevuta"
     return DocumentCatalogClassification(
         role=role,
         label=label,
@@ -6008,7 +6114,6 @@ _PORTAL_ACTIVITY_TYPES_HIDDEN_FROM_TIMELINE = {
 
 _ACTIVITY_TYPES_WITH_DEDICATED_SECTIONS = {
     "COMUNICAZIONE_CANCELLERIA",
-    "UDIENZA",
 }
 
 
@@ -6841,6 +6946,48 @@ def build_react_fascicolo_detail_payload(
         parcelle=parcelle,
         duplicate_group=duplicate_group,
     )
+    deposit_readiness = _safe(
+        "deposit_readiness",
+        lambda: deposito_ministerial_readiness(
+            fascicolo=fascicolo,
+            get_clienti=get_clienti,
+            get_config_studio=get_config_studio if callable(get_config_studio) else (lambda: None),
+            operatore=studio_avvocato_titolare,
+        ),
+        {
+            "contributoUnificato": {"ready": False, "mode": "da_definire", "label": "Da definire", "amount": None, "amountLabel": "", "source": "", "message": "Definisci il contributo unificato."},
+            "anagraficaProcedimento": {"ready": False, "label": "Da completare", "missing": [], "message": "Controlla i dati del procedimento."},
+            "valoreCausa": {"ready": False, "value": None, "valueLabel": "", "derivedFromExemption": False, "message": "Inserisci il valore della causa."},
+        },
+    )
+    profile_payload = getattr(fascicolo, "profilo_deposito", {}) or {}
+    preparation_raw = profile_payload.get("preparazione_busta") if isinstance(profile_payload, dict) else {}
+    preparation_raw = preparation_raw if isinstance(preparation_raw, dict) else {}
+    preparation_documents = preparation_raw.get("documents") if isinstance(preparation_raw.get("documents"), list) else []
+    preparation_datiatto_extra = preparation_raw.get("datiatto_extra")
+    preparation_datiatto_extra = preparation_datiatto_extra if isinstance(preparation_datiatto_extra, dict) else {}
+    if not isinstance(preparation_datiatto_extra.get("terzi"), list) and isinstance(preparation_datiatto_extra.get("terzo"), dict):
+        preparation_datiatto_extra = {**preparation_datiatto_extra, "terzi": [preparation_datiatto_extra["terzo"]]}
+    deposit_preparation = {
+        "saved": bool(preparation_documents or preparation_datiatto_extra or preparation_raw.get("updated_at")),
+        "typeKey": _text(preparation_raw.get("tipo_deposito_telematico_key")),
+        "typeLabel": _text(preparation_raw.get("tipo_deposito_telematico_label")),
+        "policy": _text(preparation_raw.get("tipo_deposito_telematico_policy")),
+        "updatedAt": _text(preparation_raw.get("updated_at")),
+        "updatedBy": _text(preparation_raw.get("updated_by")),
+        "datiattoExtra": preparation_datiatto_extra,
+        "documents": [
+            {
+                "documentId": _text(row.get("documentId") or row.get("document_id")),
+                "selected": bool(row.get("selected")),
+                "role": _text(row.get("role")),
+                "alreadySigned": bool(row.get("alreadySigned") or row.get("already_signed")),
+                "requiresSignature": bool(row.get("requiresSignature") or row.get("requires_signature")),
+            }
+            for row in preparation_documents
+            if isinstance(row, dict) and _text(row.get("documentId") or row.get("document_id"))
+        ],
+    }
     sentenze_economiche = _sentenze_economiche(fid, payment_summary=payment_summary_detail)
     operational_presidio = build_fascicolo_operational_presidio(
         fascicolo=fascicolo,
@@ -6927,6 +7074,8 @@ def build_react_fascicolo_detail_payload(
         "quality": _quality(fascicolo, cliente, scadenze, parties),
         "depositOffice": _deposit_office_payload(fascicolo),
         "depositCatalog": deposit_catalog,
+        "depositReadiness": deposit_readiness,
+        "depositPreparation": deposit_preparation,
         "signature": _signature_settings(get_config_studio),
         "auditTrail": audit_trail,
         "actions": {

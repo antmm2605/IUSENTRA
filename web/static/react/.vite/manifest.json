@@ -12,7 +12,7 @@
     "src": "../node_modules/.pnpm/@fontsource-variable+geist@5.2.8/node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2"
   },
   "index.html": {
-    "file": "assets/index-wKxfvqDn.js",
+    "file": "assets/index-C0EvOI8M.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -23,7 +23,7 @@
     ]
   },
   "style.css": {
-    "file": "assets/style-CcRYf20j.css",
+    "file": "assets/style-D2Wf2p-K.css",
     "src": "style.css"
   }
 }

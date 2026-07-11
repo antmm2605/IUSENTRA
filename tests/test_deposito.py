@@ -1874,6 +1874,89 @@ def test_deposito_invia_pec_rifiuta_dati_atto_firmato_su_busta_diversa(tmp_path,
     assert "non contiene il DatiAtto.xml generato" in payload["errore"]
 
 
+def test_deposito_invia_pec_dato_ministeriale_mancante_restituisce_json_controllato(tmp_path, monkeypatch):
+    monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
+    monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)
+    monkeypatch.setattr(
+        "web.bootstrap.deposito_routes._ufficio_deposito_destinatario",
+        lambda fascicolo: {
+            "codice_ufficio": "TEST001",
+            "pec_dest": "tribunale.test@civile.ptel.giustiziacert.it",
+            "nome": "Tribunale di Test",
+        },
+    )
+
+    def dati_atto_incompleto(*args, **kwargs):
+        raise ValueError("Numero del decreto ingiuntivo mancante: completa il dato prima di generare la busta.")
+
+    monkeypatch.setattr("pct.busta.BustaTelematica.crea_dati_atto_xml_per_firma", dati_atto_incompleto)
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pec-dato-mancante-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Memoria civile",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Test",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "Memoria.pdf.p7m",
+        TipoDocumento.MEMORIA,
+        _cades_signed_pdf(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pec-dato-mancante-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "tipo_atto": "MEMORIA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Memoria civile",
+                "numero_rg": "123",
+                "anno_rg": "2026",
+                "atto_principale_id": atto.id,
+                "prova_senza_invio": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["package_ready"] is False
+    assert payload["requires_guided_completion"] is True
+    assert "Numero del decreto ingiuntivo mancante" in payload["errore"]
+    assert payload["next_actions"][0] == "Completa il dato indicato nel pannello Documenti."
+
+
 def test_deposito_invia_pec_simulazione_guidata_non_restituisce_conflitto_http(tmp_path, monkeypatch):
     monkeypatch.delenv("PEC_SEND_ENABLED", raising=False)
     monkeypatch.delenv("PCT_PEC_SERVER_SEND_ENABLED", raising=False)

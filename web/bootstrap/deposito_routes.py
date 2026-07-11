@@ -38,11 +38,13 @@ from web.services.deposito_signature_runtime import (
 )
 from web.services.deposito_anagrafica_ministeriale import (
     anagrafica_xml_se_ricorso as _anagrafica_xml_se_ricorso,
+    contributo_unificato_fascicolo as _contributo_unificato_fascicolo,
     valore_causa_fascicolo as _valore_causa_fascicolo,
 )
 from web.services.deposito_catalogo_runtime import (
     deposito_catalogo_apply as _deposito_catalogo_apply,
     deposito_catalogo_blocker as _deposito_catalogo_blocker,
+    deposito_catalogo_busta_metadata as _deposito_catalogo_busta_metadata,
     deposito_catalogo_datiatto_extra as _deposito_catalogo_datiatto_extra,
     deposito_catalogo_datiatto_hint as _deposito_catalogo_datiatto_hint,
     deposito_catalogo_entry as _deposito_catalogo_entry,
@@ -294,13 +296,11 @@ def register_deposito_routes(
             operatore=utente.username if utente else "",
             cf_mittente="",
             valore_causa=_valore_causa_fascicolo(fascicolo),
+            contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+            contributo_unificato_richiesto=datiatto_hint.get("contributo_unificato_richiesto", False),
+            contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
-            datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
-            datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
-            datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
-            datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
-            datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
-            datiatto_extra=datiatto_extra,
+            **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         try:
@@ -391,6 +391,7 @@ def register_deposito_routes(
                     operatore=utente.username if utente else "",
                     cf_mittente="",
                     valore_causa=_valore_causa_fascicolo(fascicolo),
+                    contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
                 )
             )
             pdf_bytes = busta.crea_indice_documenti_pdf()
@@ -715,13 +716,11 @@ def register_deposito_routes(
             operatore=utente.username if utente else "",
             cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
             valore_causa=_valore_causa_fascicolo(fascicolo),
+            contributo_unificato=_contributo_unificato_fascicolo(fascicolo),
+            contributo_unificato_richiesto=datiatto_hint.get("contributo_unificato_richiesto", False),
+            contributo_unificato_xml_mode=datiatto_hint.get("contributo_unificato_xml_mode", ""),
             anagrafica_procedimento_xml=anagrafica_xml,
-            datiatto_generator_class=datiatto_hint.get("datiatto_generator_class", ""),
-            datiatto_root_name=datiatto_hint.get("datiatto_root_name", ""),
-            datiatto_studio_variable=datiatto_hint.get("datiatto_studio_variable", ""),
-            datiatto_generator_mode=datiatto_hint.get("datiatto_generator_mode", ""),
-            datiatto_required_data=datiatto_hint.get("datiatto_required_data", []),
-            datiatto_extra=datiatto_extra,
+            **_deposito_catalogo_busta_metadata(datiatto_hint, datiatto_extra),
             data_notifica_citazione=form.get("data_notifica_citazione", "").strip(),
         )
         output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
@@ -752,6 +751,7 @@ def register_deposito_routes(
             oggetto_pec=oggetto_pec,
             corpo_pec=corpo_pec,
             documenti_busta=documenti_busta,
+            validation=validation,
         )
         if signature_payload is not None:
             signature_status = int(signature_payload.pop("_status", 200))

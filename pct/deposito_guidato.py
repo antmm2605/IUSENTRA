@@ -43,6 +43,10 @@ from .pst_catalog import (
 from .pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_codice_oggetto_pst
 from .pst_services import PSTOfficialCatalogAdapter
 from .validazione import MAX_BYTES_ALLEGATO, verifica_dimensione, verifica_pdfa
+from web.services.deposito_semantic_helpers import (
+    ministerial_contributo_unificato_for_context,
+    ministerial_valore_causa_for_context,
+)
 
 
 PROCEDURAL_KB_VERSION = "2026.04.02.1"
@@ -1647,6 +1651,8 @@ class ValidatorSchemiPST:
                 anno_rg=_safe_int(context.get("anno_rg") or fascicolo.anno_rg) or None,
                 operatore=str(context.get("operatore") or ""),
                 cf_mittente=str(context.get("cf_mittente") or ""),
+                valore_causa=ministerial_valore_causa_for_context(fascicolo),
+                contributo_unificato=ministerial_contributo_unificato_for_context(fascicolo),
             )
             busta = BustaTelematica(dati)
             xml_bytes = busta._crea_xml_dati_atto()

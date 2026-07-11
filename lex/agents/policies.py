@@ -40,6 +40,7 @@ READ_PERMISSION_MAP = {
     "find_in_fascicolo_document": ("fascicoli.leggi",),
     "agenda": ("agenda.leggi",),
     "scadenziario": ("scadenziario.leggi",),
+    "daily_plan": ("agenda.leggi", "scadenziario.leggi"),
     "telematico": ("telematico.leggi",),
     "giurisprudenza": ("ai.usa",),
     "legal_intelligence": ("ai.usa",),

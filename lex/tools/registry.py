@@ -7,6 +7,7 @@ from typing import Any, Iterable
 
 from .agenda_tool import AgendaTool
 from .compliance_tool import ComplianceTool
+from .daily_plan_tool import DailyPlanTool
 from .document_tool import DocumentTool
 from .editor_ai import (
     CollectFascicoloContextTool,
@@ -185,6 +186,12 @@ def _build_descriptors() -> dict[str, LexToolDescriptor]:
             category="studio",
             permissions=("studio:scadenze:read",),
             description="Consulta scadenze e termini dello studio.",
+        ),
+        _descriptor(
+            "daily_plan",
+            category="studio",
+            permissions=("studio:agenda:read", "studio:scadenze:read"),
+            description="Legge il piano operativo del giorno materializzato (Lex Oggi), in sola lettura.",
         ),
         _descriptor(
             "giurisprudenza",
@@ -389,6 +396,7 @@ class LexToolRegistry:
             "telematico": TelematicoTool(),
             "agenda": AgendaTool(),
             "scadenziario": ScadenziarioTool(),
+            "daily_plan": DailyPlanTool(),
             "giurisprudenza": GiurisprudenzaTool(),
             "legal_intelligence": LegalIntelligenceTool(),
             "operational_knowledge": OperationalKnowledgeTool(),

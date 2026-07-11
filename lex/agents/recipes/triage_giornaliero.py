@@ -14,9 +14,16 @@ def build(payload: dict[str, Any], *, clock: Clock | None = None):
     fascicolo_id = str(payload.get("fascicolo_id") or "").strip()
     domani = (clock.today() + timedelta(days=1)).isoformat()
     steps = [
-        readonly_step("fascicoli_aperti", "Legge fascicoli aperti e priorità", "fascicolo", {"query": "", "include_archiviati": False}, minutes=18),
-        readonly_step("scadenze_14_giorni", "Legge scadenze dei prossimi quattordici giorni", "scadenziario", {"giorni": 14, "solo_aperte": True}, minutes=16),
-        readonly_step("agenda_14_giorni", "Legge agenda dei prossimi quattordici giorni", "agenda", {"giorni": 14}, minutes=12),
+        readonly_step(
+            "piano_del_giorno",
+            "Legge il piano operativo del giorno (priorità, scadenze, copertura)",
+            "daily_plan",
+            {"limit": 25},
+            minutes=16,
+        ),
+        readonly_step("fascicoli_aperti", "Legge fascicoli aperti e priorità", "fascicolo", {"query": "", "include_archiviati": False}, minutes=10),
+        readonly_step("scadenze_14_giorni", "Verifica scadenze dei prossimi quattordici giorni (arretrati inclusi)", "scadenziario", {"giorni": 14, "solo_aperte": True}, minutes=8),
+        readonly_step("agenda_14_giorni", "Verifica agenda dei prossimi quattordici giorni", "agenda", {"giorni": 14}, minutes=12),
         readonly_step(
             "comunicazioni_recenti",
             "Legge segnali operativi recenti",

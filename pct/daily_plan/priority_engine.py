@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 from .deduplication import MergedSignalGroup, SOURCE_RELIABILITY, normalize_due_date
 

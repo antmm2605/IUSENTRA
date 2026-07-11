@@ -6,6 +6,7 @@ from flask import Flask
 
 from pct.scheduler import start_scheduler
 from pct.scheduler_registry import default_scheduler_templates
+from web.services import daily_plan_runtime
 
 
 def _app(**config):
@@ -49,7 +50,22 @@ def test_job_registrati_con_max_instances_e_coalesce(monkeypatch):
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
-def test_job_salta_se_flag_scheduled_runs_spento(monkeypatch):
+def test_job_mattutino_salta_ma_incrementale_consuma_solo_coda_manual(monkeypatch):
+    calls = []
+
+    def fake_run(_app, *, mode, include_dirty=True, **_kwargs):
+        calls.append({"mode": mode, "include_dirty": include_dirty})
+        return {
+            "ok": True,
+            "job": "daily_plan_incremental_refresh",
+            "mode": mode,
+            "tenants": [],
+            "totals": {"tenants": 0, "skipped": 1, "errors": 0, "items_written": 0},
+        }
+
+    monkeypatch.setattr(
+        "web.services.daily_plan_runtime.run_daily_plan_for_all_tenants", fake_run
+    )
     app = _app(FEATURE_FLAGS={
         "lex.dailyPlan.enabled": True,
         "lex.dailyPlan.scheduledRuns": False,
@@ -63,7 +79,8 @@ def test_job_salta_se_flag_scheduled_runs_spento(monkeypatch):
 
         incrementale = scheduler.get_job("daily_plan_incremental_refresh")
         esito = incrementale.func()
-        assert esito["skipped"] == "feature_flag_disattivo"
+        assert esito["ok"] is True
+        assert calls == [{"mode": "incremental", "include_dirty": False}]
     finally:
         scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
@@ -129,3 +146,58 @@ def test_template_console_pianificazioni_presenti():
     assert completo.hour == "7"
     assert completo.minute == "30"
     assert "nessuna scrittura applicativa" in completo.description.lower()
+
+
+def test_consumer_passa_al_servizio_la_data_del_job(monkeypatch):
+    calls = []
+
+    class FakeRepository:
+        claimed = False
+
+        def claim_next_job(self, job_type):
+            if job_type == "full_rebuild" or self.claimed:
+                return None
+            self.claimed = True
+            return {
+                "id": "job-futuro",
+                "payload": {"target_date": "2026-07-13"},
+            }
+
+        def pending_dirty_count(self):
+            return 0
+
+        def finish_job(self, job_id, *, status, report):
+            calls.append({"finished": job_id, "status": status, "report": report})
+
+    class FakeService:
+        def __init__(self):
+            self.repository = FakeRepository()
+
+        def refresh_incremental(self, *, target_date, actor):
+            calls.append({"target_date": target_date, "actor": actor})
+            return {
+                "ok": True,
+                "mode": "incremental",
+                "target_date": target_date,
+                "items_written": 0,
+                "users_planned": 1,
+                "signals_upserted": 0,
+            }
+
+    service = FakeService()
+    monkeypatch.setattr(daily_plan_runtime, "service_from_paths", lambda *_a, **_k: service)
+    monkeypatch.setattr(
+        "web.services.fascicoli_presidi_runtime._active_tenants",
+        lambda _app: [],
+    )
+    app = _app()
+
+    result = daily_plan_runtime.run_daily_plan_for_all_tenants(
+        app,
+        mode="incremental",
+        include_dirty=False,
+    )
+
+    assert result["ok"] is True
+    assert calls[0]["target_date"] == "2026-07-13"
+    assert calls[1]["finished"] == "job-futuro"

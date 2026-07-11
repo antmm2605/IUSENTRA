@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pct.daily_plan.clock import Clock
 from pct.daily_plan.models import DailyWorkItem, SignalEvidence
+from pct.scheduler_registry import scheduler_registry_repository
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.services.daily_plan_runtime import repository_from_paths
@@ -19,10 +20,12 @@ def _app(tmp_path: Path, *, enabled: bool = True, write_proposals: bool = False)
     cfg = _cfg_web(tmp_path)
     cfg["FEATURE_FLAGS"] = {
         "lex.dailyPlan.enabled": enabled,
+        "lex.dailyPlan.scheduledRuns": False,
         "lex.dailyPlan.writeProposals": write_proposals,
         "lex.workflowAgents.enabled": True,
         "routes.appV2.dailyPlan.home": True,
     }
+    cfg["SCHEDULER_REGISTRY_DB"] = str(tmp_path / "intelligence" / "scheduler_registry.sqlite3")
     app = create_app(cfg)
     app.config["API_KEY"] = "daily-plan-test-key"
     return app
@@ -156,7 +159,7 @@ def test_backlog_paginato_con_metadata(tmp_path):
     assert payload["next_cursor"]
 
 
-def test_refresh_accoda_202_idempotente(tmp_path):
+def test_refresh_accoda_202_idempotente_senza_perdere_un_job_distinto(tmp_path):
     app = _app(tmp_path)
     with app.test_client() as client:
         primo = client.post(
@@ -166,6 +169,11 @@ def test_refresh_accoda_202_idempotente(tmp_path):
         )
         assert primo.status_code == 202
         assert primo.get_json()["accettato"] is True
+        assert primo.get_json()["avvio_immediato_richiesto"] is True
+
+        with app.app_context():
+            runs = scheduler_registry_repository(app.config).list_requested_runs()
+        assert [run["job_id"] for run in runs] == ["daily_plan_incremental_refresh"]
 
         replay = client.post(
             "/api/v1/ui/daily-plan/refresh",
@@ -175,6 +183,59 @@ def test_refresh_accoda_202_idempotente(tmp_path):
         assert replay.status_code == 202
         assert replay.get_json()["gia_in_coda"] is True
         assert replay.get_json()["job_id"] == primo.get_json()["job_id"]
+        with app.app_context():
+            replay_runs = scheduler_registry_repository(app.config).list_requested_runs()
+        assert len(replay_runs) == 1
+
+        # Il consumer può avere concluso il job dati mentre la run scheduler
+        # risulta ancora aperta: un nuovo click deve ottenere una nuova run.
+        with app.app_context():
+            repo = repository_from_paths(app.config, tenant_label="default", clock=CLOCK)
+            repo.finish_job(primo.get_json()["job_id"], status="done")
+        distinto = client.post(
+            "/api/v1/ui/daily-plan/refresh",
+            json={"mode": "incremental"},
+            headers={**HEADERS, "Idempotency-Key": "r2"},
+        )
+        assert distinto.status_code == 202
+        assert distinto.get_json()["gia_in_coda"] is False
+        assert distinto.get_json()["job_id"] != primo.get_json()["job_id"]
+        with app.app_context():
+            distinct_runs = scheduler_registry_repository(app.config).list_requested_runs()
+        assert len(distinct_runs) == 2
+
+
+def test_refresh_trasporta_la_data_scelta_e_rifiuta_date_passate(tmp_path):
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        futuro = client.post(
+            "/api/v1/ui/daily-plan/refresh",
+            json={"mode": "incremental", "date": "2099-01-02"},
+            headers={**HEADERS, "Idempotency-Key": "future-date"},
+        )
+        assert futuro.status_code == 202
+        assert futuro.get_json()["data"] == "2099-01-02"
+
+        with app.app_context():
+            repo = repository_from_paths(app.config, tenant_label="default", clock=CLOCK)
+            job = repo.claim_next_job("incremental_refresh")
+        assert job is not None
+        assert job["payload"]["target_date"] == "2099-01-02"
+
+        passata = client.post(
+            "/api/v1/ui/daily-plan/refresh",
+            json={"mode": "incremental", "date": "2000-01-01"},
+            headers={**HEADERS, "Idempotency-Key": "past-date"},
+        )
+        assert passata.status_code == 400
+        assert "precedente a oggi" in passata.get_json()["detail"]
+
+        non_valida = client.post(
+            "/api/v1/ui/daily-plan/refresh",
+            json={"mode": "incremental", "date": "02/01/2099"},
+            headers={**HEADERS, "Idempotency-Key": "invalid-date"},
+        )
+        assert non_valida.status_code == 400
 
 
 def test_azione_stato_accept_e_replay_idempotente(tmp_path):

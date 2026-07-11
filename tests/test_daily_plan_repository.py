@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pytest
 
+import pct.daily_plan.repository as daily_plan_repository
 from pct.daily_plan.clock import Clock
 from pct.daily_plan.models import DailyWorkItem, OperationalSignal, SignalEvidence
 from pct.daily_plan.repository import (
@@ -62,6 +63,22 @@ def test_derive_db_path():
     path = derive_daily_plan_db_path("/data/tenants/x/intelligence/quadro.json")
     assert path.endswith("daily_plan.db")
     assert "intelligence" in path
+
+
+def test_riapertura_schema_pronto_non_riesegue_ddl(tmp_path, monkeypatch):
+    db = str(tmp_path / "daily_plan.db")
+    primo = DailyPlanRepository(db, tenant_id="studio-a", clock=CLOCK)
+    primo.replace_items_for_date(DATE, [_item("stabile")], plan_version="v1")
+
+    class SchemaNonLeggibile:
+        @staticmethod
+        def read_text(*_args, **_kwargs):
+            raise AssertionError("lo schema completo non deve rieseguire DDL")
+
+    monkeypatch.setattr(daily_plan_repository, "SCHEMA_DAILY_PLAN", SchemaNonLeggibile())
+    riaperto = DailyPlanRepository(db, tenant_id="studio-a", clock=CLOCK)
+
+    assert [item.dedupe_key for item in riaperto.list_items(DATE)] == ["stabile"]
 
 
 def test_upsert_signals_idempotente_per_dedupe_key(repo):
@@ -217,6 +234,36 @@ def test_job_queue_idempotente(repo):
 
     repo.finish_job(primo["job_id"], status="done", report={"items": 3})
     assert repo.claim_next_job("incremental_refresh") is None
+
+
+def test_job_queue_distingue_le_date_del_piano(repo):
+    oggi = repo.enqueue_job(
+        "incremental_refresh",
+        payload={"target_date": "2026-07-11"},
+    )
+    dopodomani = repo.enqueue_job(
+        "incremental_refresh",
+        payload={"target_date": "2026-07-13"},
+    )
+    replay = repo.enqueue_job(
+        "incremental_refresh",
+        payload={"target_date": "2026-07-13"},
+    )
+
+    assert oggi["replayed"] is False
+    assert dopodomani["replayed"] is False
+    assert dopodomani["job_id"] != oggi["job_id"]
+    assert replay["replayed"] is True
+    assert replay["job_id"] == dopodomani["job_id"]
+
+    claimed = [
+        repo.claim_next_job("incremental_refresh"),
+        repo.claim_next_job("incremental_refresh"),
+    ]
+    assert {job["payload"]["target_date"] for job in claimed if job} == {
+        "2026-07-11",
+        "2026-07-13",
+    }
 
 
 def test_dirty_entities_marcatura_e_consumo(repo):

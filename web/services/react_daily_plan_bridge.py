@@ -108,7 +108,7 @@ def daily_plan_backlog_payload(
 
 
 def enqueue_daily_plan_refresh(
-    *, mode: str, actor: str, idempotency_key: str = ""
+    *, mode: str, actor: str, target_date: str = "", idempotency_key: str = ""
 ) -> dict[str, Any]:
     repo = repository_for_current_request()
     job_type = "full_rebuild" if mode == "full" else "incremental_refresh"
@@ -116,6 +116,7 @@ def enqueue_daily_plan_refresh(
         job_type,
         requested_by=actor,
         idempotency_key=idempotency_key,
+        payload={"target_date": target_date} if target_date else {},
         budget={"max_entities": 200, "max_seconds": 60},
     )
     return {
@@ -123,6 +124,7 @@ def enqueue_daily_plan_refresh(
         "accettato": True,
         "job_id": outcome["job_id"],
         "stato": outcome["status"],
+        "data": target_date,
         "gia_in_coda": bool(outcome.get("replayed")),
     }
 

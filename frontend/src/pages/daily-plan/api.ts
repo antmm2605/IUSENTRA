@@ -23,8 +23,7 @@ const pianoVuoto: PianoGiornoPayload = {
   sintesi_da_lex: false,
 }
 
-let ultimoEtag = ''
-let ultimoPiano: PianoGiornoPayload | null = null
+const pianoCache = new Map<string, { etag: string; piano: PianoGiornoPayload }>()
 
 export async function fetchPianoGiorno(
   signal?: AbortSignal,
@@ -35,24 +34,25 @@ export async function fetchPianoGiorno(
   if (opts.date) params.set('date', opts.date)
   const query = params.toString()
   const url = `/api/v1/ui/daily-plan${query ? `?${query}` : ''}`
+  const cacheKey = `${opts.user || ''}|${opts.date || ''}`
+  const cached = pianoCache.get(cacheKey)
   try {
     const response = await fetch(url, {
       credentials: 'same-origin',
       signal,
       headers: {
         Accept: 'application/json',
-        ...(ultimoEtag ? { 'If-None-Match': ultimoEtag } : {}),
+        ...(cached?.etag ? { 'If-None-Match': cached.etag } : {}),
       },
     })
-    if (response.status === 304 && ultimoPiano) {
-      return ultimoPiano
+    if (response.status === 304 && cached) {
+      return cached.piano
     }
     if (!response.ok) return pianoVuoto
     const payload = (await response.json()) as PianoGiornoPayload
     const etag = response.headers.get('ETag')
     if (etag) {
-      ultimoEtag = etag
-      ultimoPiano = payload
+      pianoCache.set(cacheKey, { etag, piano: payload })
     }
     return payload
   } catch (error) {
@@ -85,10 +85,21 @@ export function fetchBacklog(
   )
 }
 
-export function richiediAggiornamento() {
-  return apiPostJson<{ ok: boolean; accettato?: boolean; detail?: string }>(
+export function richiediAggiornamento(targetDate: string) {
+  return apiPostJson<{
+    ok: boolean
+    accettato?: boolean
+    gia_in_coda?: boolean
+    avvio_immediato_richiesto?: boolean
+    messaggio?: string
+    detail?: string
+  }>(
     '/api/v1/ui/daily-plan/refresh',
-    { mode: 'incremental', idempotency_key: `ui-${new Date().toISOString().slice(0, 16)}` },
+    {
+      mode: 'incremental',
+      date: targetDate,
+      idempotency_key: `ui-${crypto.randomUUID()}`,
+    },
     { ok: false },
   )
 }

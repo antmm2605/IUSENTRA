@@ -24,6 +24,12 @@ import { isFeatureFlagEnabledSync } from '@/lib/featureFlags'
 import { ItemCard } from './ItemCard'
 import { ItemDetailPanel } from './ItemDetailPanel'
 import {
+  DailyPlanDateControls,
+  initialDailyPlanDate,
+  syncDailyPlanDateUrl,
+} from './DailyPlanDateControls'
+import { ActivitySection, CoverageChips } from './DailyPlanPageParts'
+import {
   eseguiAzione,
   fetchBacklog,
   fetchPianoGiorno,
@@ -31,83 +37,8 @@ import {
 } from './api'
 import type { AttivitaPiano, PianoGiornoPayload } from './types'
 
-const fonteLabel: Record<string, string> = {
-  pec: 'PEC',
-  scadenziario: 'Scadenze',
-  agenda: 'Agenda',
-  case_presidio: 'Fascicoli',
-  economic: 'Economia',
-}
-
-function CoperturaChips({ piano }: { piano: PianoGiornoPayload }) {
-  if (!piano.copertura.length) return null
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {piano.copertura.map((fonte) => (
-        <Badge
-          key={fonte.source_type}
-          variant={
-            fonte.status === 'complete'
-              ? 'secondary'
-              : fonte.status === 'stale'
-                ? 'outline'
-                : 'destructive'
-          }
-        >
-          {fonteLabel[fonte.source_type] || fonte.source_type}:{' '}
-          {fonte.status === 'complete'
-            ? 'aggiornata'
-            : fonte.status === 'stale'
-              ? 'da aggiornare'
-              : 'non disponibile'}
-        </Badge>
-      ))}
-    </div>
-  )
-}
-
-function SezioneAttivita({
-  titolo,
-  icona,
-  items,
-  vuoto,
-  onOpenDetail,
-  onAzione,
-  busyId,
-}: {
-  titolo: string
-  icona: typeof ListTodo
-  items: AttivitaPiano[]
-  vuoto: string
-  onOpenDetail: (item: AttivitaPiano) => void
-  onAzione: (item: AttivitaPiano, action: string) => void
-  busyId: string
-}) {
-  return (
-    <section className="grid gap-2">
-      <IusSectionHeader title={titolo} icon={icona} />
-      {items.length ? (
-        <div className="grid gap-2">
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onOpenDetail={onOpenDetail}
-              onAzione={onAzione}
-              busy={busyId === item.id}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-          {vuoto}
-        </p>
-      )}
-    </section>
-  )
-}
-
 export function OggiPage() {
+  const [dataSelezionata, setDataSelezionata] = useState(initialDailyPlanDate)
   const [piano, setPiano] = useState<PianoGiornoPayload | null>(null)
   const [codaStudio, setCodaStudio] = useState<AttivitaPiano[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,6 +47,9 @@ export function OggiPage() {
   const [busyId, setBusyId] = useState('')
   const [esitoAzione, setEsitoAzione] = useState('')
   const [aggiornamentoRichiesto, setAggiornamentoRichiesto] = useState(false)
+  const [aggiornamentoMessaggio, setAggiornamentoMessaggio] = useState('')
+  const [versioneInAttesa, setVersioneInAttesa] = useState('')
+  const [generatoInAttesa, setGeneratoInAttesa] = useState('')
   const [backlog, setBacklog] = useState<AttivitaPiano[]>([])
   const [backlogCursor, setBacklogCursor] = useState('')
   const [backlogTotale, setBacklogTotale] = useState(0)
@@ -124,7 +58,7 @@ export function OggiPage() {
   const writeProposalsEnabled = isFeatureFlagEnabledSync('lex.dailyPlan.writeProposals')
 
   const carica = useCallback((signal?: AbortSignal) => {
-    return fetchPianoGiorno(signal)
+    return fetchPianoGiorno(signal, { date: dataSelezionata })
       .then((data) => {
         setPiano(data)
         if (!data.ok && data.stato !== 'non_generato') {
@@ -133,36 +67,86 @@ export function OggiPage() {
           setErrore('')
         }
         // coda studio "Da assegnare": visibile a chi può leggerla
-        return fetchPianoGiorno(signal, { user: 'studio' }).then((studio) => {
+        return fetchPianoGiorno(signal, { user: 'studio', date: dataSelezionata }).then((studio) => {
           if (studio.ok && studio.stato === 'pronto') {
             setCodaStudio(studio.sezioni.da_assegnare)
+          } else {
+            setCodaStudio([])
           }
+          return data
         })
       })
       .catch(() => undefined)
-  }, [])
+  }, [dataSelezionata])
+
+  const cambiaData = useCallback((value: string) => {
+    if (value === dataSelezionata) return
+    syncDailyPlanDateUrl(value)
+    setDataSelezionata(value)
+    setPiano(null)
+    setCodaStudio([])
+    setBacklog([])
+    setBacklogCursor('')
+    setBacklogTotale(0)
+    setBacklogAperto(false)
+    setDettaglio(null)
+    setErrore('')
+    setAggiornamentoMessaggio('')
+    setAggiornamentoRichiesto(false)
+    setLoading(true)
+  }, [dataSelezionata])
 
   useEffect(() => {
     const controller = new AbortController()
     carica(controller.signal).finally(() => setLoading(false))
     return () => controller.abort()
   }, [carica])
-
+  useEffect(() => {
+    if (!aggiornamentoRichiesto) return
+    let annullato = false
+    let tentativi = 0
+    let timer = window.setTimeout(async function poll() {
+      const aggiornato = await carica()
+      if (annullato) return
+      if (
+        aggiornato?.stato === 'pronto' &&
+        (!versioneInAttesa ||
+          aggiornato.versione_piano !== versioneInAttesa ||
+          aggiornato.generato_il !== generatoInAttesa)
+      ) {
+        setAggiornamentoMessaggio('Piano aggiornato con le attività disponibili.')
+        setAggiornamentoRichiesto(false)
+        return
+      }
+      tentativi += 1
+      if (tentativi >= 12) {
+        setAggiornamentoMessaggio(
+          'Richiesta acquisita. Non ci sono ancora variazioni visibili: puoi continuare a lavorare.',
+        )
+        setAggiornamentoRichiesto(false)
+        return
+      }
+      timer = window.setTimeout(poll, 5000)
+    }, 3000)
+    return () => {
+      annullato = true
+      window.clearTimeout(timer)
+    }
+  }, [aggiornamentoRichiesto, carica, generatoInAttesa, versioneInAttesa])
   const apriBacklog = useCallback(() => {
     setBacklogAperto(true)
-    fetchBacklog({ limit: 25 }).then((data) => {
+    fetchBacklog({ date: dataSelezionata, limit: 25 }).then((data) => {
       setBacklog(data.items)
       setBacklogCursor(data.next_cursor)
       setBacklogTotale(data.total_matching)
     })
-  }, [])
-
+  }, [dataSelezionata])
   const backlogAltri = useCallback(() => {
-    fetchBacklog({ cursor: backlogCursor, limit: 25 }).then((data) => {
+    fetchBacklog({ date: dataSelezionata, cursor: backlogCursor, limit: 25 }).then((data) => {
       setBacklog((prev) => [...prev, ...data.items])
       setBacklogCursor(data.next_cursor)
     })
-  }, [backlogCursor])
+  }, [backlogCursor, dataSelezionata])
 
   async function azione(item: AttivitaPiano, action: string, params: Record<string, unknown> = {}) {
     setBusyId(item.id)
@@ -183,10 +167,23 @@ export function OggiPage() {
   }
 
   async function aggiorna() {
+    setVersioneInAttesa(piano?.versione_piano || '')
+    setGeneratoInAttesa(piano?.generato_il || '')
+    setAggiornamentoMessaggio('Invio la richiesta di aggiornamento...')
     setAggiornamentoRichiesto(true)
-    await richiediAggiornamento()
-    await carica()
-    setAggiornamentoRichiesto(false)
+    const esito = await richiediAggiornamento(dataSelezionata)
+    if (!esito.ok) {
+      setAggiornamentoMessaggio('')
+      setErrore(esito.detail || 'Aggiornamento non avviato. Riprova tra poco.')
+      setAggiornamentoRichiesto(false)
+      return
+    }
+    setAggiornamentoMessaggio(
+      esito.messaggio ||
+        (esito.gia_in_coda
+          ? 'Aggiornamento già in coda: la pagina si riallinea automaticamente.'
+          : 'Richiesta acquisita: la pagina si riallinea automaticamente.'),
+    )
   }
 
   const conteggi = useMemo(() => {
@@ -197,7 +194,7 @@ export function OggiPage() {
   if (loading) {
     return (
       <IusLoadingState
-        title="Preparo la tua giornata"
+        title="Preparo il piano"
         message="Leggo il piano operativo già elaborato: nessuna attesa di analisi."
       />
     )
@@ -210,7 +207,7 @@ export function OggiPage() {
 
   return (
     <IusPageShell
-      title="Oggi"
+      title="Piano del giorno"
       description={
         piano.data_label
           ? `Piano operativo del ${piano.data_label}${piano.generato_il_label ? ` · aggiornato alle ${piano.generato_il_label.slice(11)}` : ''}`
@@ -225,14 +222,24 @@ export function OggiPage() {
         </Button>
       }
     >
+      <DailyPlanDateControls value={dataSelezionata} onChange={cambiaData} />
       {errore ? <IusErrorState title="Avviso" message={errore} /> : null}
+      {aggiornamentoMessaggio ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-md border bg-muted/40 px-3 py-2 text-sm"
+        >
+          {aggiornamentoMessaggio}
+        </p>
+      ) : null}
 
       <section className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={conteggi.p0 ? 'destructive' : 'secondary'}>
             {conteggi.p0} immediate
           </Badge>
-          <Badge variant={conteggi.p1 ? 'default' : 'secondary'}>{conteggi.p1} entro oggi</Badge>
+          <Badge variant={conteggi.p1 ? 'default' : 'secondary'}>{conteggi.p1} entro il giorno</Badge>
           {piano.riepilogo.da_assegnare_studio ? (
             <Badge variant="outline">{piano.riepilogo.da_assegnare_studio} da assegnare</Badge>
           ) : null}
@@ -245,7 +252,7 @@ export function OggiPage() {
             </Badge>
           ) : null}
         </div>
-        <CoperturaChips piano={piano} />
+        <CoverageChips piano={piano} />
         {piano.avvisi.length ? (
           <div className="grid gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
             {piano.avvisi.map((avviso) => (
@@ -268,18 +275,18 @@ export function OggiPage() {
         />
       ) : (
         <>
-          <SezioneAttivita
-            titolo="Da fare ora"
-            icona={ListTodo}
+          <ActivitySection
+            title="Priorità del giorno"
+            icon={ListTodo}
             items={piano.sezioni.da_fare_ora}
-            vuoto="Nessuna urgenza: nessuna attività immediata o entro fine giornata."
+            emptyText="Nessuna urgenza per la data selezionata."
             onOpenDetail={setDettaglio}
-            onAzione={azione}
+            onAction={azione}
             busyId={busyId}
           />
 
           <section className="grid gap-2">
-            <IusSectionHeader title="Agenda di oggi" icon={CalendarDays} />
+            <IusSectionHeader title="Agenda del giorno" icon={CalendarDays} sequence={false} />
             {piano.agenda_oggi.length ? (
               <div className="grid gap-1.5">
                 {piano.agenda_oggi.map((evento) => (
@@ -298,53 +305,53 @@ export function OggiPage() {
               </div>
             ) : (
               <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-                Nessun impegno fisso in agenda per oggi.
+                Nessun impegno fisso in agenda per questa data.
               </p>
             )}
           </section>
 
-          <SezioneAttivita
-            titolo="PEC da presidiare"
-            icona={Mail}
+          <ActivitySection
+            title="PEC da presidiare"
+            icon={Mail}
             items={piano.sezioni.pec}
-            vuoto="Nessuna comunicazione in attesa di presidio."
+            emptyText="Nessuna comunicazione in attesa di presidio."
             onOpenDetail={setDettaglio}
-            onAzione={azione}
+            onAction={azione}
             busyId={busyId}
           />
-          <SezioneAttivita
-            titolo="Fascicoli da presidiare"
-            icona={FolderKanban}
+          <ActivitySection
+            title="Fascicoli da presidiare"
+            icon={FolderKanban}
             items={piano.sezioni.fascicoli}
-            vuoto="Nessun fascicolo richiede interventi questa settimana."
+            emptyText="Nessun fascicolo richiede interventi questa settimana."
             onOpenDetail={setDettaglio}
-            onAzione={azione}
+            onAction={azione}
             busyId={busyId}
           />
-          <SezioneAttivita
-            titolo="Presidio economico"
-            icona={Euro}
+          <ActivitySection
+            title="Presidio economico"
+            icon={Euro}
             items={piano.sezioni.economico}
-            vuoto="Preventivi, parcelle e incassi sono sotto controllo."
+            emptyText="Preventivi, parcelle e incassi sono sotto controllo."
             onOpenDetail={setDettaglio}
-            onAzione={azione}
+            onAction={azione}
             busyId={busyId}
           />
 
           {codaStudio.length ? (
-            <SezioneAttivita
-              titolo="Da assegnare (studio)"
-              icona={Users}
+            <ActivitySection
+              title="Da assegnare (studio)"
+              icon={Users}
               items={codaStudio}
-              vuoto=""
+              emptyText=""
               onOpenDetail={setDettaglio}
-              onAzione={azione}
+              onAction={azione}
               busyId={busyId}
             />
           ) : null}
 
           <section className="grid gap-2">
-            <IusSectionHeader title="Backlog" icon={Inbox} />
+            <IusSectionHeader title="Backlog" icon={Inbox} sequence={false} />
             {backlogAperto ? (
               <>
                 {backlog.length ? (
@@ -361,7 +368,7 @@ export function OggiPage() {
                   </div>
                 ) : (
                   <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-                    Il backlog è vuoto: tutto ciò che conta è già in giornata.
+                    Il backlog è vuoto: tutto ciò che conta è già nel piano del giorno.
                   </p>
                 )}
                 {backlogCursor ? (

@@ -4,9 +4,9 @@ Aggiornato: 11/07/2026 — versione applicativa: vedere `pct/__init__.py`.
 
 ## Obiettivo
 
-Rispondere ogni giorno, per ogni avvocato dello studio, alla domanda: **"quali
-attività devo svolgere oggi, in quest'ordine, con quale motivo, fonte,
-fascicolo, scadenza e azione disponibile"**. Non è una chat che interroga i
+Rispondere, per ogni avvocato dello studio e per la data scelta, alla domanda:
+**"quali attività devo svolgere in quel giorno, in quest'ordine, con quale
+motivo, fonte, fascicolo, scadenza e azione disponibile"**. Non è una chat che interroga i
 database: è una pipeline deterministica che aggrega segnali operativi già
 governati e li materializza in un piano leggibile. Lex spiega e sintetizza;
 non decide priorità, termini o associazioni.
@@ -29,7 +29,9 @@ Bounded context: `pct/daily_plan/` (clock, models, collectors/, correlation,
 deduplication, priority_engine, assignment, scheduling, repository, service,
 serializers). Wiring web: `web/services/daily_plan_runtime.py`,
 `web/services/react_daily_plan_bridge.py`, `web/blueprints/api_v1_daily_plan.py`.
-UI: `frontend/src/pages/daily-plan/` su route `/oggi`.
+UI: `frontend/src/pages/daily-plan/` su route `/oggi`, con scelte rapide
+`Oggi`, `Domani`, `Dopodomani` e campo data. Le date future restano nel query
+param `date=AAAA-MM-GG`; il refresh genera realmente il giorno selezionato.
 
 ## Modello dati (pct/sql/20260711_daily_plan*.sql)
 
@@ -52,7 +54,7 @@ UI: `frontend/src/pages/daily-plan/` su route `/oggi`.
 |---|---|---|
 | PEC | `PecAuditRepository` (termini candidati, udienze, pagamenti, messaggi da presidiare, esiti) | inviare PEC, leggere corpo grezzo, eseguire istruzioni contenute nei messaggi |
 | Presidio fascicoli | azioni P0–P3 di `build_fascicolo_operational_presidio` da testi già estratti + pagamenti fast | OCR/estrazioni nuove |
-| Agenda | impegni di oggi (blocchi fissi), udienze entro 48h, conflitti | modifiche agenda |
+| Agenda | impegni del giorno selezionato (blocchi fissi), udienze entro 48h, conflitti | modifiche agenda |
 | Scadenziario | scadenze aperte INCLUSE le arretrate, entro 14 giorni | calcolo termini |
 | Economico | preventivi senza riscontro, parcelle in bozza, insoluti | fatture definitive |
 | Salute fonti | copertura complete/stale/unavailable → avvisi | nascondere i gap |
@@ -62,8 +64,8 @@ Un piano vuoto con fonti non aggiornate viene dichiarato incompleto, mai
 
 ## Priorità (deterministiche, spiegabili)
 
-R1 perentoria scaduta/oggi → P0 · R2 rifiuto/errore telematico → P0 ·
-R3 udienza oggi o bloccante in scadenza → P0 · R4 perentoria ≤3g → P1 ·
+R1 perentoria scaduta/in scadenza nel giorno → P0 · R2 rifiuto/errore telematico → P0 ·
+R3 udienza nel giorno o bloccante in scadenza → P0 · R4 perentoria ≤3g → P1 ·
 R5 scadenza odierna/arretrata → P1 · R6 udienza ≤48h o bloccante ≤7g → P1 ·
 R8 hint del presidio (P0/P1) · R7 ≤14g → P2 · R9 organizzativa → P3.
 La regola scattata e il motivo in italiano restano sull'attività
@@ -92,22 +94,24 @@ ambigui restano in coda con l'etichetta visibile.
 | Job | Cron | Note |
 |---|---|---|
 | `studio_daily_operational_plan` | 07:30 | riconciliazione completa, un piano per utente attivo per tenant |
-| `daily_plan_incremental_refresh` | */15 | dirty entities + job in coda, no-op se non c'è nulla |
+| `daily_plan_incremental_refresh` | */15 | consuma sempre le richieste manuali; dirty entities solo con esecuzioni programmate attive; no-op se non c'è nulla |
 
-Entrambi `max_instances=1`, `coalesce=True`, gate su
-`lex.dailyPlan.enabled` + `lex.dailyPlan.scheduledRuns` (default spento),
-visibili nella console Pianificazioni. Nessuna scrittura applicativa.
+Entrambi usano `max_instances=1` e `coalesce=True`. La generazione mattutina e
+le dirty entities richiedono `lex.dailyPlan.enabled` +
+`lex.dailyPlan.scheduledRuns` (default spento); il consumer incrementale resta
+disponibile con il solo flag principale per smaltire le richieste manuali.
+Nessuna scrittura applicativa.
 Hook best-effort: il presidio PEC marca dirty i fascicoli/messaggi toccati.
 
 ## API (`/api/v1/ui/daily-plan*`)
 
 | Endpoint | Note |
 |---|---|
-| `GET /daily-plan?date=&user=` | snapshot con ETag `W/"dp-…-{plan_version}"` → 304; `user` altrui solo admin |
+| `GET /daily-plan?date=&user=` | snapshot con ETag per tenant, utente, data, versione e timestamp → 304; `user` altrui solo admin |
 | `GET /daily-plan/coverage` | watermark e stato fonti |
 | `GET /daily-plan/items/<id>` | dettaglio lazy: evidenze + spiegazione priorità |
 | `GET /daily-plan/backlog?cursor=&limit=` | keyset, `total_matching`/`truncated` sempre presenti |
-| `POST /daily-plan/refresh` | 202, accoda job; `mode=full` solo admin; `Idempotency-Key` |
+| `POST /daily-plan/refresh` | 202, riceve `date=AAAA-MM-GG`, accoda job con chiave univoca per click e assegna a ogni job nuovo una run immediata del worker; la UI osserva versione e timestamp dello snapshot; date passate rifiutate; `mode=full` solo admin; `Idempotency-Key` |
 | `POST /daily-plan/items/<id>/action` | stato (accept/complete/delegate/snooze/reject, replay idempotente) o proposta approvabile (create_task/create_deadline/create_calendar_proposal/create_pec_draft) |
 
 RBAC: lettura `agenda.leggi` + `scadenziario.leggi`; tenant sempre lato
@@ -132,13 +136,13 @@ con invio bloccato per costruzione.
   specifiche; scadenze/agenda restano come verifica.
 - La sintesi (`lex/agents/synthesis.py`) usa i dati reali delle attività,
   non i conteggi. La sintesi in pagina è cache per `plan_version` con
-  fallback deterministico: la pagina Oggi funziona completamente senza LLM.
+  fallback deterministico: il Piano del giorno funziona completamente senza LLM.
 
 ## Feature flag e rollback
 
 | Flag | Default | Effetto |
 |---|---|---|
-| `lex.dailyPlan.enabled` | ON | API e pagina Oggi |
+| `lex.dailyPlan.enabled` | ON | API e pagina Piano del giorno |
 | `lex.dailyPlan.scheduledRuns` | OFF | job scheduler |
 | `lex.dailyPlan.writeProposals` | OFF | proposte applicative dalla pagina |
 | `routes.appV2.dailyPlan.home` | ON | route `/oggi` nella shell |
@@ -149,13 +153,19 @@ ecc.). Le tabelle nuove sono proiezioni rigenerabili: nessun dato di dominio
 dipende da esse.
 
 **Rollout consigliato**: 1) enabled ON, scheduledRuns OFF → genera manualmente
-con `POST /refresh` e verifica; 2) scheduledRuns ON dopo il collaudo;
+con `POST /refresh`, che attiva il consumer della coda, e verifica anche
+Domani/Dopodomani; 2)
+scheduledRuns ON dopo il collaudo;
 3) writeProposals ON per gli studi che usano la coda approvazioni.
 
 ## Prestazioni (garanzie strutturali)
 
 - GET = 2 query indicizzate su snapshot; ETag/304 sui refetch; payload
-  iniziale minimo (conteggio evidenze, dettaglio lazy); backlog keyset.
+  iniziale minimo (conteggio evidenze, dettaglio lazy); backlog keyset. La
+  riapertura SQLite verifica in sola lettura gli oggetti dello schema già
+  presenti e non riesegue DDL né modifica il journal durante le GET.
+- La cache frontend è separata per utente e data; un nuovo timestamp di
+  generazione cambia l'ETag anche quando le attività restano identiche.
 - Benchmark riproducibili in `tests/test_daily_plan_perf.py` (misurati in
   questo repo: lettura ~3,5 ms/2 query su 300 attività, dedup 1500 segnali
   ~34 ms, refresh incrementale ~21 ms, zero chiamate LLM verificate con
@@ -182,3 +192,5 @@ scheduling,collectors,service,api,security,scheduler,perf}.py` +
 (fix Fase 1). Coprono i 20 casi obbligatori del capitolato (perentoria
 scaduta→P0, PEC rifiutata→P0, 3 fonti→1 attività, cross-tenant, PII nei log,
 idempotenza, mezzanotte Europe/Rome, troncamenti dichiarati, ecc.).
+Comprendono inoltre agenda/scadenze su data futura, trasporto della data nel
+job scheduler e validazione API delle date passate o non valide.

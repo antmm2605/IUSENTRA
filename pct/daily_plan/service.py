@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from datetime import date
+from typing import Any
 
 from .assignment import (
     AssignmentCandidates,
@@ -70,6 +72,16 @@ _DOMAIN_ACTIONS_BY_KIND = {
 _STATUS_ACTIONS = ("accept", "complete", "delegate", "snooze", "reject")
 
 
+def _planning_day(value: str, fallback: date) -> date:
+    raw = str(value or "").strip()
+    if not raw:
+        return fallback
+    try:
+        return date.fromisoformat(raw)
+    except ValueError as exc:
+        raise ValueError("Data del piano non valida: usare il formato AAAA-MM-GG.") from exc
+
+
 @dataclass
 class RunReport:
     mode: str
@@ -117,7 +129,7 @@ class DailyPlanService:
 
     def read_plan(self, *, user_id: str, target_date: str = "") -> DailyPlan | None:
         """Lettura pura dello snapshot: nessun collettore, nessun ricalcolo."""
-        target = target_date or self.clock.today().isoformat()
+        target = _planning_day(target_date, self.clock.today()).isoformat()
         snapshot = self.repository.get_snapshot(target, user_id)
         if snapshot is None:
             return None
@@ -157,6 +169,7 @@ class DailyPlanService:
         return self._run(mode="full", target_date=target_date, dirty=None, actor=actor)
 
     def refresh_incremental(self, *, target_date: str = "", actor: str = "scheduler") -> dict[str, Any]:
+        target = _planning_day(target_date, self.clock.today()).isoformat()
         dirty_rows = self.repository.consume_dirty(limit=200)
         dirty_fascicoli = {
             str(row.get("entity_id") or "")
@@ -165,7 +178,7 @@ class DailyPlanService:
         }
         report = self._run(
             mode="incremental",
-            target_date=target_date,
+            target_date=target,
             dirty=dirty_fascicoli,
             actor=actor,
         )
@@ -188,11 +201,12 @@ class DailyPlanService:
         dirty: set[str] | None,
         actor: str,
     ) -> dict[str, Any]:
-        target = target_date or self.clock.today().isoformat()
-        today = self.clock.today()
+        planning_day = _planning_day(target_date, self.clock.today())
+        target = planning_day.isoformat()
         report = RunReport(mode=mode, target_date=target)
 
         ctx = self.context_factory(dirty)
+        ctx.planning_date = planning_day
         ctx.watermarks = self.repository.get_watermarks()
 
         collectors = [
@@ -246,14 +260,16 @@ class DailyPlanService:
 
         drafts: list[tuple[MergedSignalGroup, DailyWorkItem]] = []
         for group in groups:
-            item = self._item_from_group(group, resolver, fascicoli_lookup, target, today)
+            item = self._item_from_group(
+                group, resolver, fascicoli_lookup, target, planning_day
+            )
             drafts.append((group, item))
 
         # ordinamento secondario deterministico → rank totale
         decorated = sorted(
             drafts,
             key=lambda pair: rank_sort_key(
-                pair[0], _DecisionShim(pair[1].priority), today=today
+                pair[0], _DecisionShim(pair[1].priority), today=planning_day
             ),
         )
         for rank, (_, item) in enumerate(decorated):
@@ -295,7 +311,7 @@ class DailyPlanService:
                     if (block := fixed_block_from_agenda(entry)) is not None
                     and resolver.resolve_label(str(entry.get("avvocato") or "")) in ("", user_id)
                 ]
-                outcome = plan_day(user_items, user_blocks, target_date=today)
+                outcome = plan_day(user_items, user_blocks, target_date=planning_day)
                 schedule_warnings[user_id] = outcome.warnings
             else:
                 # la coda studio non viene pianificata: resta da assegnare
@@ -351,10 +367,10 @@ class DailyPlanService:
         resolver: LawyerResolver,
         fascicoli_lookup: dict[str, dict[str, Any]],
         target_date: str,
-        today,
+        planning_day: date,
     ) -> DailyWorkItem:
         primary = group.primary
-        decision = decide_priority(group, today=today)
+        decision = decide_priority(group, today=planning_day)
         fascicolo_meta = fascicoli_lookup.get(primary.fascicolo_id, {})
 
         referente = str(fascicolo_meta.get("avvocato_referente") or "")

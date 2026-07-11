@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from .deduplication import MergedSignalGroup, SOURCE_RELIABILITY, normalize_due_date
+from .deduplication import SOURCE_RELIABILITY, MergedSignalGroup, normalize_due_date
 
 LEGAL_RISK_RANK = {"high": 0, "medium": 1, "low": 2, "": 3, "none": 3}
 
@@ -88,7 +88,9 @@ def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecisio
             return PriorityDecision(
                 "P0", "R1", "Termine perentorio scaduto e ancora aperto: intervento immediato."
             )
-        return PriorityDecision("P0", "R1", "Termine perentorio in scadenza oggi.")
+        return PriorityDecision(
+            "P0", "R1", "Termine perentorio in scadenza nel giorno del piano."
+        )
 
     if _is_rejection(group):
         return PriorityDecision(
@@ -98,26 +100,26 @@ def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecisio
         )
 
     if _is_hearing(group) and due is not None and due <= today:
-        return PriorityDecision("P0", "R3", "Udienza fissata oggi.")
+        return PriorityDecision("P0", "R3", "Udienza fissata nel giorno del piano.")
 
     if blocking and due is not None and due <= today:
         return PriorityDecision(
-            "P0", "R3", "Attività bloccante con scadenza odierna o già superata."
+            "P0", "R3", "Attività bloccante in scadenza nel giorno del piano o già superata."
         )
 
     if peremptory and due is not None and (due - today).days <= 3:
         return PriorityDecision(
-            "P1", "R4", "Termine perentorio entro tre giorni: da completare oggi."
+            "P1", "R4", "Termine perentorio entro tre giorni: da completare nel giorno del piano."
         )
 
     if due is not None and due <= today:
         return PriorityDecision(
-            "P1", "R5", "Scadenza odierna o arretrata ancora aperta."
+            "P1", "R5", "Scadenza del giorno o arretrata ancora aperta."
         )
 
     if _is_hearing(group) and due is not None and (due - today).days <= 2:
         return PriorityDecision(
-            "P1", "R6", "Udienza entro quarantotto ore: preparare oggi."
+            "P1", "R6", "Udienza entro quarantotto ore: preparare nel giorno del piano."
         )
 
     if blocking and due is not None and (due - today).days <= 7:

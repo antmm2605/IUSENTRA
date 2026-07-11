@@ -76,6 +76,18 @@ def test_scadenziario_collector_store_assente():
     assert result.signals == []
 
 
+def test_scadenziario_collector_usa_orizzonte_della_data_selezionata():
+    planning_day = TODAY + timedelta(days=2)
+    ctx = _ctx(
+        planning_date=planning_day,
+        scadenziario_store=_ScadStore([_scadenza("entro-orizzonte", 16)]),
+    )
+
+    result = ScadenzarioCollector().collect(ctx)
+
+    assert [signal.source_id for signal in result.signals] == ["entro-orizzonte"]
+
+
 # ──────────────────────────────────────────────
 # Agenda
 # ──────────────────────────────────────────────
@@ -133,6 +145,29 @@ def test_agenda_collector_conflitti():
     conflitti = [s for s in result.signals if s.kind == "calendar_conflict"]
     assert len(conflitti) == 1
     assert conflitti[0].priority_hint == "P1"
+
+
+def test_agenda_collector_usa_la_data_selezionata():
+    planning_day = TODAY + timedelta(days=2)
+    ctx = _ctx(
+        planning_date=planning_day,
+        agenda_store=_AgendaStore([
+            _appuntamento("oggi", 0),
+            _appuntamento("dopodomani", 2),
+            _appuntamento("successiva", 3),
+        ]),
+    )
+
+    result = AgendaCollector().collect(ctx)
+
+    assert {entry["id"] for entry in result.fixed_agenda} == {"dopodomani"}
+    assert {signal.source_id for signal in result.signals} == {
+        "dopodomani",
+        "successiva",
+    }
+    selected = next(signal for signal in result.signals if signal.source_id == "dopodomani")
+    assert selected.blocking is True
+    assert "giorno selezionato" in selected.reason
 
 
 # ──────────────────────────────────────────────

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import re
 import sqlite3
 import time
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -19,7 +19,6 @@ from pct.legal_update_autofetch import (
     is_legal_update_progressive_step1_source,
     legal_update_progressive_exclusion_reason,
 )
-
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 DEFAULT_DB_NAME = "scheduler_registry.sqlite"
@@ -35,7 +34,7 @@ EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS = frozenset(
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _iso(value: datetime | None = None) -> str:
@@ -48,12 +47,12 @@ def _parse_dt(value: Any) -> datetime | None:
         return None
     for fmt in (ISO_FMT, "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+            return datetime.strptime(raw, fmt).replace(tzinfo=UTC)
         except ValueError:
             continue
     try:
         parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     except ValueError:
         return None
 
@@ -511,11 +510,12 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "daily_plan_incremental_refresh",
             "Piano del giorno: aggiornamento",
             "Lex AI",
-            "Aggiorna il piano del giorno solo per le fonti e i fascicoli cambiati (dirty) e per le richieste in coda. No-op se non c'è nulla da rielaborare.",
+            "Consuma sempre le richieste manuali in coda; con le esecuzioni programmate attive aggiorna anche fonti e fascicoli cambiati. No-op se non c'e nulla da rielaborare.",
             "cron",
             "",
             "7-59/15",
             built_in=True,
+            editable=False,
         ),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
         SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica automaticamente la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo.", "cron", "", "7-57/10", built_in=True),
@@ -900,7 +900,13 @@ class SchedulerRegistryRepository:
                 (signature, signature, _iso(), job_id),
             )
 
-    def request_manual_run(self, job_id: str, *, requested_by: str = "") -> dict[str, Any]:
+    def request_manual_run(
+        self,
+        job_id: str,
+        *,
+        requested_by: str = "",
+        dedupe_open: bool = False,
+    ) -> dict[str, Any]:
         job = self.get_job(job_id)
         if not job:
             raise ValueError("Pianificazione non trovata.")
@@ -938,6 +944,27 @@ class SchedulerRegistryRepository:
                     ),
                 )
             return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
+        if dedupe_open:
+            with self.connect() as conn:
+                open_row = conn.execute(
+                    """
+                    SELECT run_id, status
+                    FROM scheduled_job_runs
+                    WHERE job_id = ?
+                      AND origin = 'manuale'
+                      AND status IN ('requested', 'running')
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (job_id,),
+                ).fetchone()
+            if open_row:
+                return {
+                    "run_id": str(open_row["run_id"] or ""),
+                    "job_id": job_id,
+                    "status": str(open_row["status"] or "requested"),
+                    "replayed": True,
+                }
         if job_id == "operational_backup_nightly":
             with self.connect() as conn:
                 open_row = conn.execute(

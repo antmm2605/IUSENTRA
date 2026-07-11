@@ -12,7 +12,7 @@ const prioritaVariant: Record<string, 'destructive' | 'default' | 'secondary' | 
 
 const prioritaLabel: Record<string, string> = {
   P0: 'Immediata',
-  P1: 'Entro oggi',
+  P1: 'Entro il giorno',
   P2: 'Questa settimana',
   P3: 'Organizzativa',
 }

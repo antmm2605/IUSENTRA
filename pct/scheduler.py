@@ -11,12 +11,12 @@ Avviato da un worker dedicato tramite pct.scheduler_worker.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import logging
 import os
-from pathlib import Path
 import subprocess
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
 from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS,
@@ -179,10 +179,9 @@ def start_scheduler(app):
     def _wa_reminder():
         with app.app_context():
             try:
-                from pct.notifiche_wa import (ConfigWA,
-                                               promemoria_appuntamenti_di_domani)
                 from pct.agenda import Agenda
                 from pct.clienti import GestioneClienti
+                from pct.notifiche_wa import ConfigWA, promemoria_appuntamenti_di_domani
                 cfg = ConfigWA(
                     twilio_sid=app.config.get("TWILIO_SID", ""),
                     twilio_token=app.config.get("TWILIO_TOKEN", ""),
@@ -406,7 +405,7 @@ def start_scheduler(app):
                     label,
                     int(plan.get("selected_count") or 0),
                     len(report.get("enqueued_jobs") or []),
-                    int(((execution.get("autopublished") or {}).get("count") or 0)),
+                    int((execution.get("autopublished") or {}).get("count") or 0),
                     int(execution.get("timeouts") or 0),
                 )
                 return report
@@ -1181,14 +1180,19 @@ def start_scheduler(app):
                 logger.error("[scheduler] Presidio fascicoli/economia fallito: %s", e)
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
-    def _daily_plan_flags_enabled() -> bool:
+    def _daily_plan_enabled() -> bool:
         try:
             from web.services.feature_flags import is_feature_enabled
 
-            return bool(
-                is_feature_enabled("lex.dailyPlan.enabled", app.config)
-                and is_feature_enabled("lex.dailyPlan.scheduledRuns", app.config)
-            )
+            return bool(is_feature_enabled("lex.dailyPlan.enabled", app.config))
+        except Exception:
+            return False
+
+    def _daily_plan_scheduled_runs_enabled() -> bool:
+        try:
+            from web.services.feature_flags import is_feature_enabled
+
+            return bool(is_feature_enabled("lex.dailyPlan.scheduledRuns", app.config))
         except Exception:
             return False
 
@@ -1206,7 +1210,7 @@ def start_scheduler(app):
         applicativa automatica: produce solo la proiezione materializzata.
         """
         with app.app_context():
-            if not _daily_plan_flags_enabled():
+            if not (_daily_plan_enabled() and _daily_plan_scheduled_runs_enabled()):
                 return {"ok": True, "job": "studio_daily_operational_plan", "skipped": "feature_flag_disattivo"}
             try:
                 from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
@@ -1232,14 +1236,18 @@ def start_scheduler(app):
         misfire_grace_time=60,
     )
     def _daily_plan_incremental_refresh():
-        """Aggiornamento incrementale del piano: solo entità cambiate e job in coda."""
+        """Consuma le richieste manuali e, se abilitato, le entita' cambiate."""
         with app.app_context():
-            if not _daily_plan_flags_enabled():
+            if not _daily_plan_enabled():
                 return {"ok": True, "job": "daily_plan_incremental_refresh", "skipped": "feature_flag_disattivo"}
             try:
                 from web.services.daily_plan_runtime import run_daily_plan_for_all_tenants
 
-                report = run_daily_plan_for_all_tenants(app, mode="incremental")
+                report = run_daily_plan_for_all_tenants(
+                    app,
+                    mode="incremental",
+                    include_dirty=_daily_plan_scheduled_runs_enabled(),
+                )
                 totals = report.get("totals") or {}
                 if int(totals.get("tenants") or 0) or int(totals.get("errors") or 0):
                     logger.info(
@@ -1280,12 +1288,12 @@ def start_scheduler(app):
             try:
                 from pct.agenda import Agenda
                 from pct.calendar_sync import GestioneCalendarSync
+                from pct.config_studio import GestioneConfigStudio
                 from pct.fascicoli import GestioneFascicoli
                 from pct.giurisprudenza import GestioneGiurisprudenza
-                from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
                 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
+                from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
                 from pct.workspace_intelligente import WorkspaceIntelligenteService
-                from pct.config_studio import GestioneConfigStudio
 
                 processed_targets = 0
                 for target in _workspace_intelligence_targets():
@@ -1436,8 +1444,8 @@ def start_scheduler(app):
                 ):
                     return {"ok": True, "status": "disabled", "job": "lex_sentenza_economia_auto"}
 
-                from scripts.backfill_sentenza_lex_economics import run_backfill
                 from pct.scheduler_registry import scheduler_registry_repository
+                from scripts.backfill_sentenza_lex_economics import run_backfill
 
                 registry = Path(
                     app.config.get("TENANTS_REGISTRY")
@@ -1637,8 +1645,8 @@ def start_scheduler(app):
                         schedule_code,
                         label,
                         "OK" if report.get("overall_ok") else "CRITICO",
-                        int(((report.get("summary") or {}).get("passed_phases") or 0)),
-                        int(((report.get("summary") or {}).get("phase_total") or 0)),
+                        int((report.get("summary") or {}).get("passed_phases") or 0),
+                        int((report.get("summary") or {}).get("phase_total") or 0),
                     )
             except Exception as exc:
                 logger.error("[scheduler] Crash test operativo %s fallito: %s", schedule_code, exc)
@@ -1686,8 +1694,8 @@ def start_scheduler(app):
     def _polling_esiti_deposito():
         with app.app_context():
             try:
-                from pct.fascicoli import GestioneFascicoli
                 from pct.config_studio import GestioneConfigStudio
+                from pct.fascicoli import GestioneFascicoli
                 from pct.polling_depositi import esegui_polling
 
                 fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
@@ -1756,8 +1764,8 @@ def start_scheduler(app):
     def _poll_pec_cancelleria():
         with app.app_context():
             try:
-                from pct.fascicoli import GestioneFascicoli
                 from pct.config_studio import GestioneConfigStudio
+                from pct.fascicoli import GestioneFascicoli
                 from pct.polling_depositi import poll_cancelleria_pec
 
                 fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
@@ -1826,6 +1834,7 @@ def start_scheduler(app):
             EVENT_JOB_MISSED,
             EVENT_JOB_SUBMITTED,
         )
+
         from pct.scheduler_registry import (
             apply_scheduler_registry,
             dispatch_requested_manual_runs,
@@ -1834,7 +1843,7 @@ def start_scheduler(app):
 
         registry_repo = scheduler_registry_repository(app.config)
         registry_repo.upsert_default_jobs(app.config)
-        startup_cutoff = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        startup_cutoff = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         recovered = registry_repo.cancel_manual_runs_started_before(
             startup_cutoff,
             reason="Esecuzione interrotta dal riavvio del worker; rilanciare dalla console.",

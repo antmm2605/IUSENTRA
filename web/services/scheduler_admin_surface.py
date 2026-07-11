@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from flask import current_app
@@ -48,14 +48,14 @@ def _parse_datetime(value: Any) -> datetime | None:
         return None
     for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+            return datetime.strptime(raw, fmt).replace(tzinfo=UTC)
         except ValueError:
             continue
     try:
         parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
 
 
 def _int_value(value: Any) -> int:
@@ -131,7 +131,7 @@ def _is_stale_running(run: dict[str, Any]) -> bool:
     started = _parse_datetime(run.get("started_at") or run.get("created_at"))
     if started is None:
         return True
-    return datetime.now(timezone.utc) - started > timedelta(hours=2)
+    return datetime.now(UTC) - started > timedelta(hours=2)
 
 
 def _legal_update_message(run: dict[str, Any]) -> str:
@@ -395,10 +395,14 @@ def create_scheduler_job_from_payload(payload: dict[str, Any], *, username: str 
     return created
 
 
-def request_scheduler_run(job_id: str, *, username: str = "") -> dict[str, Any]:
+def request_scheduler_run(
+    job_id: str, *, username: str = "", dedupe_open: bool = False
+) -> dict[str, Any]:
     repo = _repository()
     repo.upsert_default_jobs(current_app.config)
-    request = repo.request_manual_run(job_id, requested_by=username)
+    request = repo.request_manual_run(
+        job_id, requested_by=username, dedupe_open=dedupe_open
+    )
     _apply_now(repo)
     return request
 

@@ -7,11 +7,15 @@ creano proposte approvabili; il tenant è sempre risolto lato server.
 
 from __future__ import annotations
 
+import hashlib
+from collections.abc import Callable
+from datetime import date
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from flask import Blueprint, current_app, g, jsonify, request
 
+from pct.daily_plan.clock import system_clock
 from web.services.feature_flags import feature_disabled_response, is_feature_enabled
 from web.services.react_daily_plan_bridge import (
     DOMAIN_ACTIONS,
@@ -128,7 +132,7 @@ def _json_body() -> tuple[dict[str, Any] | None, Any]:
     return body, None
 
 
-def _etag_for(user_id: str, target_date: str, version: str) -> str:
+def _etag_for(user_id: str, target_date: str, version: str, generated_at: str) -> str:
     tenant = "t"
     try:
         from web.services.daily_plan_runtime import current_tenant_label
@@ -136,7 +140,8 @@ def _etag_for(user_id: str, target_date: str, version: str) -> str:
         tenant = current_tenant_label()
     except Exception:
         pass
-    return f'W/"dp-{tenant}-{user_id or "studio"}-{target_date}-{version}"'
+    stamp = hashlib.sha256(str(generated_at or "").encode("utf-8")).hexdigest()[:10]
+    return f'W/"dp-{tenant}-{user_id or "studio"}-{target_date}-{version}-{stamp}"'
 
 
 # ------------------------------------------------------------------ letture
@@ -161,7 +166,12 @@ def daily_plan_home():
         return jsonify(body), status
     version = str(payload.get("versione_piano") or "")
     if version:
-        etag = _etag_for(user_id, str(payload.get("data") or ""), version)
+        etag = _etag_for(
+            user_id,
+            str(payload.get("data") or ""),
+            version,
+            str(payload.get("generato_il") or ""),
+        )
         if request.headers.get("If-None-Match") == etag:
             response = current_app.response_class(status=304)
             response.headers["ETag"] = etag
@@ -199,6 +209,7 @@ def daily_plan_item_detail(item_id: str):
     try:
         return jsonify(daily_plan_item_detail_payload(item_id))
     except Exception as exc:
+        current_app.logger.exception("Errore dettaglio piano del giorno: %s", exc)
         body, status = daily_plan_error_payload(exc)
         return jsonify(body), status
 
@@ -254,13 +265,44 @@ def daily_plan_refresh():
     idempotency_key = str(
         request.headers.get("Idempotency-Key") or body.get("idempotency_key") or ""
     ).strip()[:120]
+    target_raw = str(body.get("date") or "").strip()
     try:
+        today = system_clock().today()
+        target = date.fromisoformat(target_raw) if target_raw else today
+        if target < today:
+            raise ValueError("La data del piano non può essere precedente a oggi.")
+        target_date = target.isoformat()
         outcome = enqueue_daily_plan_refresh(
-            mode=mode, actor=_actor_label(), idempotency_key=idempotency_key
+            mode=mode,
+            actor=_actor_label(),
+            target_date=target_date,
+            idempotency_key=idempotency_key,
         )
     except Exception as exc:
         payload, status = daily_plan_error_payload(exc)
         return jsonify(payload), status
+    outcome["avvio_immediato_richiesto"] = False
+    try:
+        from web.services.scheduler_admin_surface import request_scheduler_run
+
+        dispatch = request_scheduler_run(
+            "daily_plan_incremental_refresh",
+            username=_actor_label(),
+            dedupe_open=bool(outcome.get("gia_in_coda")),
+        )
+        outcome["avvio_immediato_richiesto"] = dispatch.get("status") in {
+            "requested",
+            "running",
+        }
+    except Exception as exc:
+        current_app.logger.exception(
+            "Richiesta immediata piano del giorno non inoltrata: %s", exc
+        )
+    outcome["messaggio"] = (
+        "Aggiornamento richiesto: il piano si riallinea automaticamente."
+        if outcome["avvio_immediato_richiesto"]
+        else "Aggiornamento accodato: il piano si riallinea al prossimo controllo."
+    )
     _audit("daily_plan.refresh_richiesto", outcome.get("job_id", ""), f"modalita={mode}")
     return jsonify(outcome), 202
 

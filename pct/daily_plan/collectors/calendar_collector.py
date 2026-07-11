@@ -62,8 +62,8 @@ class ScadenzarioCollector:
         except Exception:
             return unavailable_result(self.source_type, "Errore in lettura scadenziario.")
 
-        today = ctx.clock.today()
-        horizon = today + timedelta(days=FUTURE_WINDOW_DAYS)
+        planning_day = ctx.planning_date or ctx.clock.today()
+        horizon = planning_day + timedelta(days=FUTURE_WINDOW_DAYS)
         signals: list[OperationalSignal] = []
         truncated = False
         max_watermark = ""
@@ -75,7 +75,7 @@ class ScadenzarioCollector:
                 getattr(sc, "operational_due_at", "") or getattr(sc, "data_scadenza", "")
             )
             # gli arretrati aperti restano SEMPRE nel piano; il futuro oltre
-            # l'orizzonte dei 14 giorni non entra nel piano di oggi
+            # l'orizzonte dei 14 giorni non entra nel giorno selezionato
             if due is not None and due > horizon:
                 continue
             if len(signals) >= ctx.budget.max_items_per_source:
@@ -149,8 +149,8 @@ class AgendaCollector:
         except Exception:
             return unavailable_result(self.source_type, "Errore in lettura agenda.")
 
-        today = ctx.clock.today()
-        prep_horizon = today + timedelta(days=HEARING_PREP_WINDOW_DAYS)
+        planning_day = ctx.planning_date or ctx.clock.today()
+        prep_horizon = planning_day + timedelta(days=HEARING_PREP_WINDOW_DAYS)
         signals: list[OperationalSignal] = []
         fixed_agenda: list[dict[str, Any]] = []
         day_slots: list[tuple[datetime, datetime, str]] = []
@@ -171,7 +171,7 @@ class AgendaCollector:
             avvocato = str(getattr(ap, "avvocato", "") or "")
             durata = int(getattr(ap, "durata_minuti", 0) or 0) or 60
 
-            if start_date == today:
+            if start_date == planning_day:
                 entry = {
                     "id": app_id,
                     "titolo": titolo,
@@ -193,7 +193,7 @@ class AgendaCollector:
                 except Exception:
                     pass
 
-            if is_hearing and today <= start_date <= prep_horizon:
+            if is_hearing and planning_day <= start_date <= prep_horizon:
                 if len(signals) >= ctx.budget.max_items_per_source:
                     truncated = True
                     break
@@ -208,13 +208,13 @@ class AgendaCollector:
                         dedupe_key="",
                         lawyer_hint=avvocato,
                         reason=(
-                            "Udienza fissata oggi in agenda."
-                            if start_date == today
+                            "Udienza fissata nel giorno selezionato in agenda."
+                            if start_date == planning_day
                             else "Udienza imminente da preparare."
                         ),
                         due_at=raw_start or start_date.isoformat(),
-                        blocking=start_date == today,
-                        legal_risk="high" if start_date == today else "medium",
+                        blocking=start_date == planning_day,
+                        legal_risk="high" if start_date == planning_day else "medium",
                         confidence=0.9,
                         href=f"/agenda?appuntamento={app_id}" if app_id else "/agenda",
                         metadata={
@@ -234,9 +234,9 @@ class AgendaCollector:
                     )
                 )
 
-        # conflitti di calendario: sovrapposizioni tra impegni di oggi
+        # conflitti di calendario: sovrapposizioni tra impegni del giorno
         day_slots.sort()
-        for prev, cur in zip(day_slots, day_slots[1:]):
+        for prev, cur in zip(day_slots, day_slots[1:], strict=False):
             if cur[0] < prev[1]:
                 signals.append(
                     OperationalSignal(
@@ -247,8 +247,11 @@ class AgendaCollector:
                         kind="calendar_conflict",
                         title="Sovrapposizione di impegni in agenda",
                         dedupe_key="",
-                        reason="Due impegni di oggi si sovrappongono: verificare orari o delegare.",
-                        due_at=ctx.clock.today().isoformat(),
+                        reason=(
+                            "Due impegni del giorno selezionato si sovrappongono: "
+                            "verificare orari o delegare."
+                        ),
+                        due_at=planning_day.isoformat(),
                         priority_hint="P1",
                         confidence=0.9,
                         href="/agenda",

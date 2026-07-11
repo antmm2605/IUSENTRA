@@ -6251,3 +6251,17 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | `python -m py_compile web/services/react_email_bridge.py` | OK | Sintassi confermata dopo la ricostruzione EML senza attraversare due volte i `message/rfc822`. |
 | `python -m pytest tests/test_email_client.py::test_email_dettaglio_recupera_allegati_da_eml_originale tests/test_email_client.py::test_email_dettaglio_pec_non_duplica_busta_e_postacert -q` | OK | `2/2` passati: corpo EML originale, allegato `postacert.eml` e allegati testuali restano disponibili; la busta PEC plain/HTML equivalente viene mostrata una sola volta. |
 | Prova visiva locale `/email/` | OK osservato | Browser integrato su `127.0.0.1:8080`, messaggio TARI selezionato: `Messaggio completo` visibile, `4 allegati`, una sola occorrenza di `MESSAGGIO DI POSTA CERTIFICATA`, una sola di `CERTIFIED EMAIL MESSAGE`, una sola sezione `Messaggio allegato: postacert.eml`, zero errori console. |
+
+## Lex Oggi per dopodomani e data selezionata - 2026-07-11
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_daily_plan_models.py tests/test_daily_plan_repository.py tests/test_daily_plan_deduplication.py tests/test_daily_plan_priority.py tests/test_daily_plan_assignment.py tests/test_daily_plan_scheduling.py tests/test_daily_plan_collectors.py tests/test_daily_plan_service.py tests/test_daily_plan_api.py tests/test_daily_plan_security.py tests/test_daily_plan_scheduler.py tests/test_daily_plan_perf.py tests/test_scheduler_registry.py` | OK | `150/150` passati dopo il lint finale: modelli, repository, deduplicazione per data, priorità, collettori, API, sicurezza, scheduler e performance. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend test`; `npm --prefix frontend run build` | OK | TypeScript senza errori; contratti React, governance UI e coverage verdi; bundle finale `index-wKxfvqDn.js` e `style-CcRYf20j.css`. |
+| Ruff sui file Python modificati; `python -m compileall -q pct web`; `git diff --check` | OK | Lint, sintassi e whitespace puliti. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_utf8_integrity.py`; `python scripts/validate_openapi.py docs/openapi.yaml` | OK | `13/13` passati; versione `2.256.0`, UTF-8 e OpenAPI allineati. |
+| `python scripts/react-migration/generate_backend_security_map.py --check`; `node scripts/react-migration/check-route-gate.mjs` | OK | Security map e route full React allineate. |
+| `docker compose build --no-cache`; `docker compose up -d`; `http://127.0.0.1:8080/api/pronto` | OK | App, scheduler e OCR healthy; `versione=2.256.0`, timezone `Europe/Rome`; nessun `ERROR`, traceback o HTTP 500 nei log applicativi finali. |
+| Prova reale desktop `/oggi` | OK osservato | `Oggi`, `Domani`, `Dopodomani` e selettore data visibili; `Dopodomani` apre `/oggi?date=2026-07-13`; data libera `15/07/2026` generata e distinta dal piano odierno; refresh, dettaglio fonti e priorità P0 verificati. Focus tastiera visibile con anello blu da `3px`; pagina scorsa fino al Backlog senza overflow. |
+| Prova reale tablet e mobile `/oggi` | OK osservato | Tablet `900x1000` e mobile `390x844`: controlli rapidi e comando data con target da `44px`, nessun testo tagliato, nessun overflow orizzontale, selezione Dopodomani operativa e scroll completo fino al Backlog. |
+| Console browser e ripristino finale | OK osservato | Zero errori o warning; viewport temporanei rimossi e scheda lasciata su `http://127.0.0.1:8080/oggi`. |

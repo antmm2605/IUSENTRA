@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
-import { CalendarPlus, CheckCircle2, ClipboardList, Clock3, Mail, UserRound, XCircle } from 'lucide-react'
+import {
+  CalendarPlus,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  Mail,
+  RefreshCw,
+  UserRound,
+  XCircle,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -33,18 +42,28 @@ type Props = {
 
 export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione, busy, esitoMessaggio }: Props) {
   const [dettaglio, setDettaglio] = useState<AttivitaDettaglio | null>(null)
+  const [erroreDettaglio, setErroreDettaglio] = useState('')
+  const [tentativoDettaglio, setTentativoDettaglio] = useState(0)
   const [motivoRifiuto, setMotivoRifiuto] = useState('')
 
   useEffect(() => {
     setDettaglio(null)
+    setErroreDettaglio('')
     setMotivoRifiuto('')
     if (!item) return
     const controller = new AbortController()
     fetchDettaglioAttivita(item.id, controller.signal).then((data) => {
-      if (data.ok && data.attivita) setDettaglio(data.attivita)
+      if (data.ok && data.attivita) {
+        setDettaglio(data.attivita)
+        return
+      }
+      setErroreDettaglio('Le fonti non sono disponibili in questo momento. Riprova tra poco.')
+    }).catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setErroreDettaglio('Le fonti non sono disponibili in questo momento. Riprova tra poco.')
     })
     return () => controller.abort()
-  }, [item])
+  }, [item, tentativoDettaglio])
 
   if (!item) return null
   const chiusa = item.stato === 'completed' || item.stato === 'rejected'
@@ -99,6 +118,21 @@ export function ItemDetailPanel({ item, writeProposalsEnabled, onClose, onAzione
             ) : (
               <p className="text-muted-foreground">Nessuna evidenza registrata.</p>
             )
+          ) : erroreDettaglio ? (
+            <div
+              role="alert"
+              className="grid justify-items-start gap-2 rounded-md border border-destructive/40 px-3 py-2 text-destructive"
+            >
+              <p>{erroreDettaglio}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setTentativoDettaglio((value) => value + 1)}
+              >
+                <RefreshCw aria-hidden="true" /> Riprova
+              </Button>
+            </div>
           ) : (
             <p className="text-muted-foreground">Caricamento evidenze…</p>
           )}

@@ -11,14 +11,15 @@ nessun OCR e nessuna estrazione vengono eseguiti in questo percorso.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any
 
 from flask import current_app, g, has_app_context, has_request_context
 
+from pct.daily_plan.assignment import LawyerResolver, build_resolver_from_users
 from pct.daily_plan.clock import Clock, system_clock
 from pct.daily_plan.collectors import Budget, CollectorContext
-from pct.daily_plan.assignment import LawyerResolver, build_resolver_from_users
 from pct.daily_plan.repository import DailyPlanRepository, derive_daily_plan_db_path
 from pct.daily_plan.service import DailyPlanService
 
@@ -344,12 +345,14 @@ def run_daily_plan_for_all_tenants(
     *,
     mode: str = "incremental",
     actor: str = "IUSENTRA scheduler",
+    include_dirty: bool = True,
 ) -> dict[str, Any]:
     """Esegue il piano del giorno per tutti gli studi attivi.
 
     ``mode="full"``: riconciliazione completa (giornaliera, 07:30 Europe/Rome).
-    ``mode="incremental"``: smaltisce dirty entities e job accodati; se un
-    tenant non ha nulla da rielaborare viene saltato (no-op economico).
+    ``mode="incremental"``: smaltisce sempre i job accodati; le dirty
+    entities vengono considerate solo quando ``include_dirty`` e' attivo.
+    Se un tenant non ha nulla da rielaborare viene saltato (no-op economico).
     Nessuna scrittura applicativa automatica: il piano è una proiezione.
     """
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
@@ -366,13 +369,14 @@ def run_daily_plan_for_all_tenants(
             effective_mode = "full"
         elif mode != "full":
             job = repo.claim_next_job("incremental_refresh")
-            if job is None and repo.pending_dirty_count() == 0:
+            if job is None and (not include_dirty or repo.pending_dirty_count() == 0):
                 return None  # niente da fare: no-op economico
+        target_date = str(((job or {}).get("payload") or {}).get("target_date") or "")
         try:
             if effective_mode == "full":
-                report = service.rebuild_full(actor=actor)
+                report = service.rebuild_full(target_date=target_date, actor=actor)
             else:
-                report = service.refresh_incremental(actor=actor)
+                report = service.refresh_incremental(target_date=target_date, actor=actor)
             if job is not None:
                 repo.finish_job(job["id"], status="done", report=report)
             return report

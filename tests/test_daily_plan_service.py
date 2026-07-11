@@ -287,6 +287,25 @@ def test_udienza_oggi_blocchi_fissi_nel_piano(world):
     assert piano.work_items[0].priority == "P0"
 
 
+def test_rebuild_data_futura_usa_agenda_e_priorita_del_giorno(world):
+    target = (TODAY + timedelta(days=2)).isoformat()
+    world.scadenze = [_scadenza("termine-dopodomani", 2, perentorio=True)]
+    world.appuntamenti = [_udienza("udienza-dopodomani", 2)]
+    service = world.service()
+
+    report = service.rebuild_full(target_date=target)
+    piano = service.read_plan(user_id="u1", target_date=target)
+
+    assert report["target_date"] == target
+    assert piano is not None
+    assert piano.target_date == target
+    assert {entry["id"] for entry in piano.fixed_agenda_items} == {
+        "udienza-dopodomani"
+    }
+    assert any(item.priority == "P0" for item in piano.work_items)
+    assert service.read_plan(user_id="u1", target_date=DATE) is None
+
+
 def test_sintesi_lex_cache_su_plan_version(world):
     world.scadenze = [_scadenza("s1", 0)]
     service = world.service()

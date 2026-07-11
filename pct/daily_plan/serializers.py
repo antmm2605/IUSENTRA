@@ -143,10 +143,9 @@ def plan_missing_payload(target_date: str, user_id: str) -> dict[str, Any]:
         "sezioni": {"da_fare_ora": [], "pec": [], "fascicoli": [], "economico": [], "da_assegnare": []},
         "agenda_oggi": [],
         "avvisi": [
-            "Il piano di oggi non è ancora stato generato: usa Aggiorna oppure "
-            "attendi l'elaborazione automatica del mattino."
+            "Il piano della data selezionata non è ancora stato generato: usa Aggiorna."
         ],
-        "sintesi": "Il piano operativo di oggi non è ancora disponibile.",
+        "sintesi": "Il piano operativo della data selezionata non è ancora disponibile.",
         "sintesi_da_lex": False,
     }
 
@@ -164,11 +163,11 @@ def deterministic_summary(plan: DailyPlan) -> str:
                 "Nessuna attività elencata, ma alcune fonti non sono aggiornate: "
                 "verifica la copertura prima di considerare libera la giornata."
             )
-        return "Per oggi non risultano attività urgenti: agenda e scadenze sono sotto controllo."
+        return "Per la data selezionata non risultano attività urgenti: agenda e scadenze sono sotto controllo."
 
     frasi: list[str] = []
     frasi.append(
-        f"Per oggi hai {p0} attività immediate e {p1} da completare entro fine giornata"
+        f"Nel giorno selezionato hai {p0} attività immediate e {p1} da completare entro la giornata"
         + (f", con {da_assegnare} elementi da assegnare." if da_assegnare else ".")
     )
     for idx, item in enumerate(plan.work_items[:3], start=1):

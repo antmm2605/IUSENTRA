@@ -69,7 +69,7 @@ class EconomicSignalCollector:
         store = ctx.preventivi_store
         if store is None:
             return []
-        today = ctx.clock.today()
+        today = ctx.planning_date or ctx.clock.today()
         out: list[OperationalSignal] = []
         for p in store.tutti_preventivi():
             stato = _enum_val(getattr(p, "stato", "")).upper()
@@ -117,7 +117,7 @@ class EconomicSignalCollector:
         store = ctx.fatturazione_store
         if store is None:
             return []
-        today = ctx.clock.today()
+        today = ctx.planning_date or ctx.clock.today()
         out: list[OperationalSignal] = []
         for parcella in store.tutte():
             stato = _enum_val(getattr(parcella, "stato", "")).upper()

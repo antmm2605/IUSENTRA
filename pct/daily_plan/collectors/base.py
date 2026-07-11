@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from datetime import date
+from typing import Any
 
 from ..clock import Clock, system_clock
 from ..models import OperationalSignal, SourceCoverage
@@ -28,6 +30,7 @@ class CollectorContext:
 
     tenant_id: str
     clock: Clock = field(default_factory=system_clock)
+    planning_date: date | None = None
     budget: Budget = field(default_factory=Budget)
     agenda_store: Any = None
     scadenziario_store: Any = None
@@ -37,7 +40,7 @@ class CollectorContext:
     fatturazione_store: Any = None
     # provider che restituisce, per ogni fascicolo, le azioni di presidio già
     # calcolate: iterable di dict {"fascicolo": {...}, "actions": [...]}
-    presidio_provider: Callable[["CollectorContext"], Iterable[dict[str, Any]]] | None = None
+    presidio_provider: Callable[[CollectorContext], Iterable[dict[str, Any]]] | None = None
     watermarks: dict[str, dict[str, Any]] = field(default_factory=dict)
     # None = scansione completa; set di fascicolo_id = refresh incrementale
     dirty_fascicoli: set[str] | None = None

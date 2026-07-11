@@ -12,8 +12,9 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
@@ -39,6 +40,32 @@ _ITEM_COLUMNS = (
     "blocking, peremptory, confidence, review_required, scheduled_start, estimated_minutes, "
     "in_backlog, source_signal_ids_json, evidence_json, available_actions_json, href, "
     "snoozed_until, status_actor, status_note, status_updated_at, dedupe_key, created_at, updated_at"
+)
+
+_SQLITE_REQUIRED_SCHEMA_OBJECTS = frozenset(
+    {
+        "operational_signals",
+        "daily_plan_items",
+        "daily_plan_snapshots",
+        "daily_plan_source_watermarks",
+        "daily_plan_jobs",
+        "dirty_entities",
+        "daily_plan_action_log",
+        "idx_dp_signals_tenant_dedupe",
+        "idx_dp_signals_tenant_status_due",
+        "idx_dp_signals_tenant_fascicolo",
+        "idx_dp_signals_tenant_source",
+        "idx_dp_items_tenant_date_dedupe",
+        "idx_dp_items_tenant_user_date_prio",
+        "idx_dp_items_tenant_status_due",
+        "idx_dp_items_tenant_fascicolo",
+        "idx_dp_snapshots_tenant_date_user",
+        "idx_dp_jobs_tenant_status",
+        "idx_dp_jobs_tenant_idem",
+        "idx_dp_dirty_pending",
+        "idx_dp_action_idem",
+        "idx_dp_action_item",
+    }
 )
 
 
@@ -96,20 +123,32 @@ class DailyPlanRepository:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA busy_timeout = 5000")
-        try:
-            conn.execute("PRAGMA journal_mode = WAL")
-        except Exception:
-            pass
         return conn
 
+    @staticmethod
+    def _sqlite_schema_ready(conn: sqlite3.Connection) -> bool:
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type IN ('table', 'index')"
+        ).fetchall()
+        present = {str(row[0]) for row in rows}
+        return _SQLITE_REQUIRED_SCHEMA_OBJECTS.issubset(present)
+
     def _ensure_schema(self) -> None:
-        schema = (
-            self.postgres_schema_path.read_text(encoding="utf-8")
-            if self._postgres_backend is not None
-            else SCHEMA_DAILY_PLAN.read_text(encoding="utf-8")
-        )
+        if self._postgres_backend is not None:
+            schema = self.postgres_schema_path.read_text(encoding="utf-8")
+            with self._connect() as conn:
+                conn.executescript(schema)
+                conn.commit()
+            return
+
         with self._connect() as conn:
-            conn.executescript(schema)
+            if self._sqlite_schema_ready(conn):
+                return
+            try:
+                conn.execute("PRAGMA journal_mode = WAL")
+            except sqlite3.OperationalError:
+                pass
+            conn.executescript(SCHEMA_DAILY_PLAN.read_text(encoding="utf-8"))
             conn.commit()
 
     def _now_iso(self) -> str:
@@ -734,14 +773,29 @@ class DailyPlanRepository:
                 ).fetchone()
                 if row:
                     return {"job_id": row["id"], "status": row["status"], "replayed": True}
-            open_row = conn.execute(
-                "SELECT id, status FROM daily_plan_jobs "
+            open_rows = conn.execute(
+                "SELECT id, status, payload_json FROM daily_plan_jobs "
                 "WHERE tenant_id = ? AND job_type = ? AND status IN ('queued', 'running') "
-                "ORDER BY created_at LIMIT 1",
+                "ORDER BY created_at",
                 (self.tenant_id, job_type),
-            ).fetchone()
-            if open_row:
-                return {"job_id": open_row["id"], "status": open_row["status"], "replayed": True}
+            ).fetchall()
+            requested_payload = payload or {}
+            for open_row in open_rows:
+                try:
+                    raw_payload = open_row["payload_json"] or "{}"
+                    existing_payload = (
+                        raw_payload
+                        if isinstance(raw_payload, dict)
+                        else json.loads(raw_payload)
+                    )
+                except Exception:
+                    existing_payload = {}
+                if existing_payload == requested_payload:
+                    return {
+                        "job_id": open_row["id"],
+                        "status": open_row["status"],
+                        "replayed": True,
+                    }
             job_id = new_id("dpj")
             conn.execute(
                 "INSERT INTO daily_plan_jobs (id, tenant_id, job_type, status, requested_by, "
@@ -753,7 +807,7 @@ class DailyPlanRepository:
                     job_type,
                     requested_by,
                     idempotency_key,
-                    json.dumps(payload or {}, ensure_ascii=False),
+                    json.dumps(requested_payload, ensure_ascii=False),
                     json.dumps(budget or {}, ensure_ascii=False),
                     now,
                 ),

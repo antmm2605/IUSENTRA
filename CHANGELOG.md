@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.256.0 - 2026-07-11
+
+- **Lex Oggi - piano per data**: la pagina diventa `Piano del giorno` e offre il selettore rapido `Oggi`, `Domani`, `Dopodomani` più un campo data. La selezione resta nell'URL, separa correttamente cache ed ETag per giorno/utente e usa date italiane visibili.
+- **Lex Oggi - generazione data-aware**: il refresh trasporta la data scelta fino al job tenant-aware; priorità, agenda, conflitti, scadenze ed economia vengono calcolati rispetto a quel giorno, mentre il timestamp di generazione resta nell'ora reale `Europe/Rome`.
+- **Lex Oggi - aggiornamento manuale reale**: ogni click su `Aggiorna` usa una chiave idempotente distinta e un job nuovo ottiene sempre una propria run del worker, anche se quella precedente sta terminando. Le richieste manuali vengono consumate anche quando le generazioni pianificate sono disattivate; le entità cambiate restano invece governate dal flag `lex.dailyPlan.scheduledRuns`.
+- **Lex Oggi - feedback visibile**: la pagina conferma che la richiesta è stata acquisita, controlla in modo leggero lo snapshot materializzato e riconosce la rigenerazione anche quando le attività restano invariate, senza lasciare il pulsante apparentemente inerte.
+- **Lex Oggi - dettaglio affidabile**: le letture riusano lo schema SQLite già pronto senza rieseguire DDL o cambiare journal; il pannello delle evidenze segnala un errore transitorio e offre `Riprova` invece di restare in caricamento indefinito.
+
 ## 2.255.0 - 2026-07-11
 
 - **Lex Oggi - regia giornaliera dello studio**: nuova pagina `Oggi` (`/oggi`) con il piano operativo per avvocato: attività ordinate P0–P3 con motivo, fonte, fascicolo, scadenza, affidabilità e fascia proposta; sezioni per urgenze, agenda, PEC, fascicoli, economia, coda "Da assegnare" e backlog paginato. La pagina legge solo lo snapshot già elaborato (apertura immediata, ETag/304, nessuna analisi in lettura).

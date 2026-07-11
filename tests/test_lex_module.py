@@ -45,19 +45,25 @@ def test_lex_scadenziario_tool_legge_data_scadenza(monkeypatch):
 
 
 def test_lex_agenda_tool_legge_data_inizio(monkeypatch):
+    from datetime import date, timedelta
+
     from lex.tools import agenda_tool
     from lex.tools.agenda_tool import AgendaTool
 
+    # Data dinamica: con una data fissa il test smetteva di valere appena
+    # superata (il filtro "futuri" scarta correttamente il passato).
+    inizio = f"{(date.today() + timedelta(days=1)).isoformat()}T09:00:00"
+
     class Store:
         def tutti(self):
-            return [SimpleNamespace(id="app-pec", titolo="Presidio PEC", data_inizio="2026-07-09T09:00:00")]
+            return [SimpleNamespace(id="app-pec", titolo="Presidio PEC", data_inizio=inizio)]
 
     monkeypatch.setattr(agenda_tool, "_get_agenda_store", lambda: Store())
 
     result = AgendaTool().run(futuri=True)
 
     assert result["total"] == 1
-    assert result["items"][0]["data_inizio"] == "2026-07-09T09:00:00"
+    assert result["items"][0]["data_inizio"] == inizio
 
 
 def test_lex_agenda_tool_filtra_giorni_senza_ripescare_vecchi_eventi(monkeypatch):

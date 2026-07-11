@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any
+
+from pct.daily_plan.clock import Clock, system_clock
 
 from ..registry import WorkflowRecipe
 from ._common import plan, readonly_step, write_step
 
 
-def build(payload: dict[str, Any]):
+def build(payload: dict[str, Any], *, clock: Clock | None = None):
+    clock = clock or system_clock()
     fascicolo_id = str(payload.get("fascicolo_id") or "").strip()
-    domani = (date.today() + timedelta(days=1)).isoformat()
+    domani = (clock.today() + timedelta(days=1)).isoformat()
     steps = [
         readonly_step("fascicoli_aperti", "Legge fascicoli aperti e priorità", "fascicolo", {"query": "", "include_archiviati": False}, minutes=18),
         readonly_step("scadenze_14_giorni", "Legge scadenze dei prossimi quattordici giorni", "scadenziario", {"giorni": 14, "solo_aperte": True}, minutes=16),

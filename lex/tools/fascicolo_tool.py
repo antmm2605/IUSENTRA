@@ -6,7 +6,6 @@ di cancelleria, provvedimenti, istanze), documenti, depositi telematici.
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from .base import BaseLexTool
@@ -46,6 +45,7 @@ def _meta_fascicolo(f: Any) -> dict[str, Any]:
         "giudice": getattr(f, "giudice", ""),
         "sezione": getattr(f, "sezione", ""),
         "avvocato_referente": getattr(f, "avvocato_referente", ""),
+        "avvocato_dominus": getattr(f, "avvocato_dominus", ""),
         "valore_causa": getattr(f, "valore_causa", ""),
         "stato": _enum_val(getattr(f, "stato", None)),
         "tipo": _enum_val(getattr(f, "tipo", None)),
@@ -147,7 +147,11 @@ class FascicoloTool(BaseLexTool):
         Parametri:
         - fascicolo_id / pratica_id: ID fascicolo (obbligatorio salvo q)
         - q / query: ricerca testuale nella lista fascicoli
-        - limit: max fascicoli in lista (default 10)
+        - limit: max fascicoli in lista (default 10); il risultato lista
+          riporta returned_count/total_matching/truncated/coverage_complete
+        - include_archiviati: includi fascicoli archiviati (default False)
+        - stato: filtra per stato fascicolo (es. "APERTO")
+        - avvocato: filtra per referente o dominus (match parziale)
         - sezione: quale sezione restituire:
             "meta"        → solo metadati
             "attivita"    → tutte le attività processuali
@@ -176,15 +180,32 @@ class FascicoloTool(BaseLexTool):
         if not fascicolo_id:
             query = _clean(kwargs.get("q") or kwargs.get("query")).lower()
             limit = max(int(kwargs.get("limit") or 10), 1)
+            include_archiviati = bool(kwargs.get("include_archiviati"))
+            stato_filtro = _clean(kwargs.get("stato")).upper()
+            avvocato_filtro = _clean(kwargs.get("avvocato")).lower()
             try:
-                tutti = list(store.tutti())
+                tutti = list(store.tutti(archiviati=include_archiviati))
+            except TypeError:
+                try:
+                    tutti = list(store.tutti())
+                except Exception:
+                    tutti = []
             except Exception:
                 try:
                     tutti = list(store.lista())
                 except Exception:
                     tutti = []
-            items: list[dict[str, Any]] = []
+            matching: list[dict[str, Any]] = []
             for f in tutti:
+                if stato_filtro and _enum_val(getattr(f, "stato", None)).upper() != stato_filtro:
+                    continue
+                if avvocato_filtro:
+                    referenti = " ".join(
+                        str(getattr(f, attr, "") or "")
+                        for attr in ("avvocato_referente", "avvocato_dominus")
+                    ).lower()
+                    if avvocato_filtro not in referenti:
+                        continue
                 if query:
                     hay = " ".join(
                         str(getattr(f, attr, "") or "")
@@ -192,10 +213,18 @@ class FascicoloTool(BaseLexTool):
                     ).lower()
                     if query not in hay:
                         continue
-                items.append(_meta_fascicolo(f))
-                if len(items) >= limit:
-                    break
-            return {"items": items, "total": len(items), "query": query}
+                matching.append(_meta_fascicolo(f))
+            items = matching[:limit]
+            truncated = len(matching) > len(items)
+            return {
+                "items": items,
+                "total": len(items),
+                "returned_count": len(items),
+                "total_matching": len(matching),
+                "truncated": truncated,
+                "coverage_complete": not truncated,
+                "query": query,
+            }
 
         # ── Fascicolo specifico ──
         try:

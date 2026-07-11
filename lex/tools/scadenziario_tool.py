@@ -64,6 +64,8 @@ def _serialize(scadenza: Any) -> dict[str, Any]:
         "stato": getattr(stato, "value", "") if stato is not None else "",
         "priorita": getattr(priorita, "value", "") if priorita is not None else "",
         "id_fascicolo": getattr(scadenza, "id_fascicolo", ""),
+        "perentorio": bool(getattr(scadenza, "perentorio", False)),
+        "id_utente_responsabile": getattr(scadenza, "id_utente_responsabile", ""),
         "note": getattr(scadenza, "note", ""),
     }
 
@@ -72,13 +74,34 @@ class ScadenziarioTool(BaseLexTool):
     tool_name = "scadenziario"
 
     def run(self, **kwargs) -> dict[str, Any]:
+        """Interroga lo scadenziario.
+
+        Parametri:
+        - fascicolo_id / pratica_id: filtra per fascicolo
+        - giorni: finestra futura in giorni (le scadenze già scadute ma ancora
+          aperte restano incluse, salvo ``include_scadute=False``)
+        - solo_aperte: esclude completate/chiuse/annullate
+        - include_scadute: default True — non eliminare i termini arretrati
+        - limit: max elementi restituiti (default 15); il risultato riporta
+          sempre returned_count/total_matching/truncated/coverage_complete
+        """
         store = _get_scadenziario_store()
         if store is None:
-            return {"error": "store_unavailable", "items": []}
+            return {
+                "error": "store_unavailable",
+                "items": [],
+                "total": 0,
+                "returned_count": 0,
+                "total_matching": 0,
+                "truncated": False,
+                "coverage_complete": False,
+            }
 
         target_fasc = _clean(kwargs.get("fascicolo_id") or kwargs.get("pratica_id"))
         giorni_entro = kwargs.get("giorni")
         only_aperte = bool(kwargs.get("solo_aperte"))
+        include_scadute = kwargs.get("include_scadute")
+        include_scadute = True if include_scadute is None else bool(include_scadute)
         limit = max(int(kwargs.get("limit") or 15), 1)
         today = date.today()
 
@@ -90,7 +113,7 @@ class ScadenziarioTool(BaseLexTool):
             except Exception:
                 tutte = []
 
-        items: list[dict[str, Any]] = []
+        matching: list[dict[str, Any]] = []
         for sc in tutte:
             if target_fasc and _clean(getattr(sc, "id_fascicolo", "")) != target_fasc:
                 continue
@@ -104,13 +127,22 @@ class ScadenziarioTool(BaseLexTool):
                     continue
                 try:
                     delta = (data_val - today).days
-                    if delta < 0 or delta > int(giorni_entro):
+                    if delta > int(giorni_entro):
+                        continue
+                    if delta < 0 and not include_scadute:
                         continue
                 except Exception:
                     continue
-            items.append(_serialize(sc))
-            if len(items) >= limit:
-                break
+            matching.append(_serialize(sc))
 
-        items.sort(key=lambda x: (x.get("giorni_al_termine") is None, x.get("giorni_al_termine") or 0))
-        return {"items": items, "total": len(items)}
+        matching.sort(key=lambda x: (x.get("giorni_al_termine") is None, x.get("giorni_al_termine") or 0))
+        items = matching[:limit]
+        truncated = len(matching) > len(items)
+        return {
+            "items": items,
+            "total": len(items),
+            "returned_count": len(items),
+            "total_matching": len(matching),
+            "truncated": truncated,
+            "coverage_complete": not truncated,
+        }

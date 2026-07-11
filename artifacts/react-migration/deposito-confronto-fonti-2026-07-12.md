@@ -107,6 +107,8 @@ Correzione applicata:
 
 Il gate di governo finale ha inizialmente fermato il rilascio perché la rotta deposito aveva superato il limite di 1.000 righe e due messaggi del generatore contenevano caratteri corrotti. La costruzione dei metadati busta e la risposta controllata ai dati mancanti sono state spostate nei servizi dedicati, i messaggi sono stati corretti in UTF-8 e i guardrail sono stati aggiornati per verificare la delega reale. Dopo la modifica: rotta a 1.000 righe, governance superata, 64 test deposito superati, 152 test shell React superati e audit 252/252 nuovamente superato.
 
+Il primo push dello SHA `80c0b1ad` è stato bloccato da `Lint + syntax`: la mappa di sicurezza generata non includeva ancora il nuovo endpoint di salvataggio dei dati deposito. La mappa è stata rigenerata con lo script ufficiale e ora censisce 270/270 endpoint React autenticati e 141 endpoint di scrittura/cancellazione; il test specifico di allineamento è stato ripetuto con esito positivo. Gli shard saltati a causa del lint devono essere rieseguiti sul commit correttivo prima del deploy finale.
+
 ## Limite residuo che impedisce una garanzia assoluta
 
 La conformità strutturale dei generatori e dei campi è coperta dall'audit, ma non è professionalmente corretto garantire l'accettazione di ogni deposito futuro al 100% senza il caso concreto. L'accettazione dipende anche da correttezza della scelta dell'avvocato, contenuto degli atti, firma fisica valida, certificato dell'ufficio, cifratura, PEC locale, ricevute e controlli della cancelleria.

@@ -4752,6 +4752,8 @@ Guardrail finali sul sorgente locale: 64 test deposito mirati e 152 test complet
 
 Il gate governance ha bloccato una prima preparazione del commit per dimensione della rotta e due stringhe non integre nel generatore. I metadati `DatiBusta` e la trasformazione dell'errore ministeriale in risposta JSON controllata sono stati delegati ai servizi dedicati; le stringhe sono state corrette, i test statici sono stati riallineati alla delega e l'intera sequenza audit/test/governance è stata ripetuta con esito positivo. La prova browser è stata quindi ripetuta sulla nuova immagine Docker, non riutilizzata dalla build precedente.
 
+Il primo push `80c0b1ad` ha inoltre evidenziato una mappa sicurezza backend generata non aggiornata per il nuovo endpoint di salvataggio. La CI ha correttamente fermato lint e shard dipendenti; la mappa è stata rigenerata a 270/270 endpoint autenticati, il test di allineamento è passato localmente e il rilascio resta aperto fino alla ripetizione completa dei check sul commit correttivo.
+
 Il commit/push dei branch gemelli, i check GitHub e il deploy finale sul commit restano obbligatori prima della chiusura formale. La prova completa del pacchetto sul caso concreto resta inoltre subordinata a dispositivo di firma fisico e Local Signer pronti.
 
 ## React shell - entry Vite senza query string 2026-07-06

@@ -56,6 +56,7 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Policy sorgenti Lex | [LEX_SOURCE_POLICY_SYSTEM](LEX_SOURCE_POLICY_SYSTEM.md) | Ranking sorgenti, modalita' strict/balanced/broad e grounding. |
 | Legal Skills Engine | [LEGAL_SKILLS_ENGINE](LEGAL_SKILLS_ENGINE.md) | Skill pack legali read-only, profilo studio, guardrail, API e UI React. |
 | Lex Workflow Agents | [LEX_WORKFLOW_AGENTS](LEX_WORKFLOW_AGENTS.md) | Regia agentica governata, approval queue, metriche 80%, API e UI React. |
+| Lex Oggi (piano del giorno) | [LEX_DAILY_PLAN](LEX_DAILY_PLAN.md) | Regia giornaliera dello studio: collettori deterministici, priorità P0–P3, snapshot materializzato, pagina Oggi, scheduler e proposte approvabili. |
 | Apprendimento autonomo | [lex_autonomous_learning](lex_autonomous_learning.md) | Ciclo autonomo governato: lacune, ricerca fonti ufficiali, memoria JSONL, proposte in revisione umana, CLI offline/web. |
 | Policy fonti apprendimento | [lex_source_policy](lex_source_policy.md) | Gerarchia tier, decisione di ammissione fail-closed, robots.txt/rate-limit e regole non negoziabili del ciclo autonomo. |
 

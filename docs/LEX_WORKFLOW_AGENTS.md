@@ -22,7 +22,8 @@ Il planner non inventa piani liberi: carica solo ricette registrate. L'executor 
 
 | Codice | Obiettivo operativo | Scritture possibili solo dopo approvazione |
 | --- | --- | --- |
-| `triage_giornaliero` | Fascicoli, agenda, scadenze e segnali recenti in ordine di priorità. | Attività operative, promemoria/scadenze. |
+| `triage_giornaliero` | Legge il piano del giorno materializzato (tool `daily_plan`, vedi [LEX_DAILY_PLAN](LEX_DAILY_PLAN.md)) e verifica fascicoli, agenda e scadenze (arretrati inclusi). | Attività operative, promemoria/scadenze. |
+| `daily_plan_action` | Run monoproposta creata dalla pagina Oggi (`POST /api/v1/ui/daily-plan/items/<id>/action`): non è una ricetta del registro, entra direttamente nella coda approvazioni. | Attività, scadenza, proposta agenda (come task), bozza PEC senza invio. |
 | `redazione_atto` | Template, contesto fascicolo, campi mancanti e bozza documento. | Bozza editor/documento. |
 | `billing_monthly` | Consuntivo mese, timesheet, voci economiche e parcella in bozza. | Voce timesheet, parcella bozza. |
 | `nuovo_incarico` | Apertura pratica, controllo conflitto, cliente potenziale e checklist. | Cliente potenziale, fascicolo iniziale, checklist. |

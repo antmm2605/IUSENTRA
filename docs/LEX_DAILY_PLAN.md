@@ -1,0 +1,184 @@
+# Lex Oggi — Piano del giorno (Daily Plan)
+
+Aggiornato: 11/07/2026 — versione applicativa: vedere `pct/__init__.py`.
+
+## Obiettivo
+
+Rispondere ogni giorno, per ogni avvocato dello studio, alla domanda: **"quali
+attività devo svolgere oggi, in quest'ordine, con quale motivo, fonte,
+fascicolo, scadenza e azione disponibile"**. Non è una chat che interroga i
+database: è una pipeline deterministica che aggrega segnali operativi già
+governati e li materializza in un piano leggibile. Lex spiega e sintetizza;
+non decide priorità, termini o associazioni.
+
+## Architettura
+
+```
+Collettori (PEC audit, presidio fascicoli, agenda, scadenziario, economico)
+   → OperationalSignal (normalizzazione + redazione PII)
+   → correlazione (link forti scadenziario_id/agenda_id; link deboli → revisione)
+   → deduplicazione (sha256 tenant|fascicolo|azione|evento|data — evidenze conservate)
+   → priority engine deterministico P0–P3 (regole R1–R9, spiegabili)
+   → assegnazione (referente → agenda → responsabile → PEC → dominus → coda studio)
+   → pianificazione giornata (blocchi agenda, prep udienze, budget 75%)
+   → repository materializzato (SQLite/PostgreSQL tenant-aware)
+   → GET = sola lettura snapshot (zero scan, zero OCR, zero LLM)
+```
+
+Bounded context: `pct/daily_plan/` (clock, models, collectors/, correlation,
+deduplication, priority_engine, assignment, scheduling, repository, service,
+serializers). Wiring web: `web/services/daily_plan_runtime.py`,
+`web/services/react_daily_plan_bridge.py`, `web/blueprints/api_v1_daily_plan.py`.
+UI: `frontend/src/pages/daily-plan/` su route `/oggi`.
+
+## Modello dati (pct/sql/20260711_daily_plan*.sql)
+
+| Tabella | Ruolo | Chiavi |
+|---|---|---|
+| `operational_signals` | proiezione tenant-wide dei segnali | unique `(tenant_id, dedupe_key)`; idx status+due, fascicolo, source |
+| `daily_plan_items` | attività per giorno/utente | unique `(tenant_id, target_date, dedupe_key)`; idx utente+data+priorità+rank |
+| `daily_plan_snapshots` | header piano per utente (versione, copertura, sintesi Lex cache) | unique `(tenant_id, target_date, user_id)` |
+| `daily_plan_source_watermarks` | cursore/stato per fonte | PK `(tenant_id, source_type)` |
+| `daily_plan_jobs` | coda refresh (202 dalla POST) | idempotency unique parziale |
+| `dirty_entities` | entità cambiate per il refresh incrementale | PK `(tenant_id, entity_type, entity_id)` |
+| `daily_plan_action_log` | azioni utente idempotenti | idempotency unique parziale |
+
+`tenant_id` è in tabella E nel file per-tenant (parità PostgreSQL, pattern
+`PecAuditRepository`). Ogni query applicativa filtra per tenant (fail-closed).
+
+## Fonti (solo dati già materializzati)
+
+| Collettore | Legge | Non fa mai |
+|---|---|---|
+| PEC | `PecAuditRepository` (termini candidati, udienze, pagamenti, messaggi da presidiare, esiti) | inviare PEC, leggere corpo grezzo, eseguire istruzioni contenute nei messaggi |
+| Presidio fascicoli | azioni P0–P3 di `build_fascicolo_operational_presidio` da testi già estratti + pagamenti fast | OCR/estrazioni nuove |
+| Agenda | impegni di oggi (blocchi fissi), udienze entro 48h, conflitti | modifiche agenda |
+| Scadenziario | scadenze aperte INCLUSE le arretrate, entro 14 giorni | calcolo termini |
+| Economico | preventivi senza riscontro, parcelle in bozza, insoluti | fatture definitive |
+| Salute fonti | copertura complete/stale/unavailable → avvisi | nascondere i gap |
+
+Un piano vuoto con fonti non aggiornate viene dichiarato incompleto, mai
+"nessuna attività".
+
+## Priorità (deterministiche, spiegabili)
+
+R1 perentoria scaduta/oggi → P0 · R2 rifiuto/errore telematico → P0 ·
+R3 udienza oggi o bloccante in scadenza → P0 · R4 perentoria ≤3g → P1 ·
+R5 scadenza odierna/arretrata → P1 · R6 udienza ≤48h o bloccante ≤7g → P1 ·
+R8 hint del presidio (P0/P1) · R7 ≤14g → P2 · R9 organizzativa → P3.
+La regola scattata e il motivo in italiano restano sull'attività
+(`priority_rule`, `priority_reason`). Rank secondario totale e stabile →
+rigenerazione idempotente (stessa `plan_version`).
+
+## Deduplicazione
+
+`sha256(tenant | fascicolo | tipo_azione | evento_canonico | data_Rome)`.
+Un termine presente in PEC, documento e scadenziario collassa sull'evento
+`scadenziario:<id>` → UNA attività con tutte le evidenze (cap 10). Mai fusi
+fascicoli diversi o date diverse. La confidence cresce solo tra fonti
+indipendenti; i conflitti (perentorietà, responsabili, orari) marcano
+`needs_review` invece di sparire. Le associazioni PEC-fascicolo deboli
+(score < 0.75) perdono il fascicolo dalla chiave, confidence ≤ 0.6, revisione.
+
+## Assegnazione
+
+Referente fascicolo → avvocato agenda → responsabile scadenza (id verificato)
+→ presa in carico PEC → dominus → coda "Da assegnare" (mai scomparsa).
+Le etichette testuali si risolvono in utenti reali senza indovinare: gli
+ambigui restano in coda con l'etichetta visibile.
+
+## Scheduler
+
+| Job | Cron | Note |
+|---|---|---|
+| `studio_daily_operational_plan` | 07:30 | riconciliazione completa, un piano per utente attivo per tenant |
+| `daily_plan_incremental_refresh` | */15 | dirty entities + job in coda, no-op se non c'è nulla |
+
+Entrambi `max_instances=1`, `coalesce=True`, gate su
+`lex.dailyPlan.enabled` + `lex.dailyPlan.scheduledRuns` (default spento),
+visibili nella console Pianificazioni. Nessuna scrittura applicativa.
+Hook best-effort: il presidio PEC marca dirty i fascicoli/messaggi toccati.
+
+## API (`/api/v1/ui/daily-plan*`)
+
+| Endpoint | Note |
+|---|---|
+| `GET /daily-plan?date=&user=` | snapshot con ETag `W/"dp-…-{plan_version}"` → 304; `user` altrui solo admin |
+| `GET /daily-plan/coverage` | watermark e stato fonti |
+| `GET /daily-plan/items/<id>` | dettaglio lazy: evidenze + spiegazione priorità |
+| `GET /daily-plan/backlog?cursor=&limit=` | keyset, `total_matching`/`truncated` sempre presenti |
+| `POST /daily-plan/refresh` | 202, accoda job; `mode=full` solo admin; `Idempotency-Key` |
+| `POST /daily-plan/items/<id>/action` | stato (accept/complete/delegate/snooze/reject, replay idempotente) o proposta approvabile (create_task/create_deadline/create_calendar_proposal/create_pec_draft) |
+
+RBAC: lettura `agenda.leggi` + `scadenziario.leggi`; tenant sempre lato
+server; parametri riservati (tenant_id, path, token…) rifiutati; audit su
+refresh e azioni. Il GET non esegue MAI collettori, OCR o LLM.
+
+## Approvazioni (Fase 12)
+
+Le azioni applicative creano una proposta monopasso nella coda approvazioni
+Workflow Agents (`workflow_code=daily_plan_action`): esecuzione solo dopo
+approvazione umana con `legal_skills.approva` e flag di scrittura. Whitelist
+chiusa: invio PEC, firma, deposito, cancellazioni, fatture definitive e
+modifiche a utenti/permessi NON sono raggiungibili. `create_pec_draft` resta
+con invio bloccato per costruzione.
+
+## Lex
+
+- Tool read-only `daily_plan` (`lex/tools/daily_plan_tool.py`): item con
+  priorità/scadenza/bloccante/perentorio/affidabilità + copertura e metadata
+  di troncamento. Permessi `agenda.leggi`+`scadenziario.leggi`.
+- `triage_giornaliero` legge il piano come primo passo e propone attività
+  specifiche; scadenze/agenda restano come verifica.
+- La sintesi (`lex/agents/synthesis.py`) usa i dati reali delle attività,
+  non i conteggi. La sintesi in pagina è cache per `plan_version` con
+  fallback deterministico: la pagina Oggi funziona completamente senza LLM.
+
+## Feature flag e rollback
+
+| Flag | Default | Effetto |
+|---|---|---|
+| `lex.dailyPlan.enabled` | ON | API e pagina Oggi |
+| `lex.dailyPlan.scheduledRuns` | OFF | job scheduler |
+| `lex.dailyPlan.writeProposals` | OFF | proposte applicative dalla pagina |
+| `routes.appV2.dailyPlan.home` | ON | route `/oggi` nella shell |
+| `routes.appV2.dailyPlan.reviewQueue` | ON | riservato alla coda revisione |
+
+**Rollback**: spegnere i flag (env `IUSENTRA_FF_LEX_DAILYPLAN_ENABLED=false`
+ecc.). Le tabelle nuove sono proiezioni rigenerabili: nessun dato di dominio
+dipende da esse.
+
+**Rollout consigliato**: 1) enabled ON, scheduledRuns OFF → genera manualmente
+con `POST /refresh` e verifica; 2) scheduledRuns ON dopo il collaudo;
+3) writeProposals ON per gli studi che usano la coda approvazioni.
+
+## Prestazioni (garanzie strutturali)
+
+- GET = 2 query indicizzate su snapshot; ETag/304 sui refetch; payload
+  iniziale minimo (conteggio evidenze, dettaglio lazy); backlog keyset.
+- Benchmark riproducibili in `tests/test_daily_plan_perf.py` (misurati in
+  questo repo: lettura ~3,5 ms/2 query su 300 attività, dedup 1500 segnali
+  ~34 ms, refresh incrementale ~21 ms, zero chiamate LLM verificate con
+  monkeypatch che fallisce se il gateway viene invocato).
+- Proiezione condivisa: i piani personali derivano dai segnali tenant-wide,
+  nessuna rianalisi per avvocato; una nuova PEC rielabora solo le entità
+  toccate.
+
+## Limiti noti
+
+- Il presidio fascicoli nel piano usa input rapidi (testi già estratti +
+  pagamenti fast, senza depositi/relata completi): il quadro integrale resta
+  nel dettaglio fascicolo; gli esiti dei depositi arrivano dalla fonte PEC.
+- La presa in carico PEC per utente non è ancora tracciata a livello di
+  messaggio: il gancio d'assegnazione esiste ma è inattivo.
+- Il reload del registro pianificazioni ricostruisce i trigger cron nel fuso
+  di runtime (comportamento comune a tutti i job built-in preesistenti).
+
+## Test
+
+`tests/test_daily_plan_{models,repository,deduplication,priority,assignment,
+scheduling,collectors,service,api,security,scheduler,perf}.py` +
+`tests/test_lex_daily_plan_tool.py` + `tests/test_lex_tools_copertura.py`
+(fix Fase 1). Coprono i 20 casi obbligatori del capitolato (perentoria
+scaduta→P0, PEC rifiutata→P0, 3 fonti→1 attività, cross-tenant, PII nei log,
+idempotenza, mezzanotte Europe/Rome, troncamenti dichiarati, ecc.).

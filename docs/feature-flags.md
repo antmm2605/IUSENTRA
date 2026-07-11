@@ -29,6 +29,8 @@ completo pagina/flag/default/fallback e' generato in
 | Servizi telematici non parificati | `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` | off | workflow ministeriali fail-closed |
 | Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | off | frontend evita Web Push, backend rifiuta subscribe/test |
 | Legal Skills | `lex.legalSkills.enabled`, `routes.appV2.legalSkills.*` | on | catalogo, profilo, esecuzione e revisione sono attivi; trust layer, custom skill e agenti schedulati restano fail-closed |
+| Lex Oggi (piano del giorno) | `lex.dailyPlan.enabled`, `routes.appV2.dailyPlan.home`, `routes.appV2.dailyPlan.reviewQueue` | on | pagina `/oggi` e API leggono solo lo snapshot materializzato; rollback = flag a `0` (le tabelle del piano sono proiezioni rigenerabili) |
+| Lex Oggi capability protette | `lex.dailyPlan.scheduledRuns`, `lex.dailyPlan.writeProposals` | off | generazione automatica dallo scheduler e proposte applicative approvabili restano fail-closed fino al collaudo dello studio (vedi `docs/LEX_DAILY_PLAN.md`) |
 
 ## Alias compatibilita fasi 1-2
 

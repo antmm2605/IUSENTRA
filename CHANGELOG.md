@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.255.0 - 2026-07-11
+
+- **Lex Oggi - regia giornaliera dello studio**: nuova pagina `Oggi` (`/oggi`) con il piano operativo per avvocato: attività ordinate P0–P3 con motivo, fonte, fascicolo, scadenza, affidabilità e fascia proposta; sezioni per urgenze, agenda, PEC, fascicoli, economia, coda "Da assegnare" e backlog paginato. La pagina legge solo lo snapshot già elaborato (apertura immediata, ETag/304, nessuna analisi in lettura).
+- **Lex Oggi - motore deterministico**: nuovo bounded context `pct/daily_plan/` con collettori su presidio PEC, presidi fascicolo, agenda, scadenziario ed economia; correlazione e deduplicazione degli stessi eventi tra fonti (una sola attività con tutte le evidenze), priorità con regole spiegabili e override per termini perentori, assegnazione al referente senza mai indovinare (ambigui in coda studio), pianificazione della giornata intorno agli impegni fissi (mai scritture in agenda).
+- **Lex Oggi - persistenza e scheduler**: repository materializzato SQLite/PostgreSQL tenant-aware con snapshot per utente, watermark fonti, dirty entities e job idempotenti; job `studio_daily_operational_plan` (07:30) e `daily_plan_incremental_refresh` (ogni 15 minuti, no-op se non c'è nulla), entrambi dietro flag e visibili nella console Pianificazioni.
+- **Lex Oggi - approvazioni e Lex**: le azioni applicative dalla pagina creano proposte nella coda approvazioni della Regia Agentica (mai esecuzioni dirette; invio PEC, firme, depositi e fatture definitive irraggiungibili); nuovo tool read-only `daily_plan`, triage giornaliero che legge il piano e sintesi basata su priorità reali (perentorio, bloccante, scadenza, affidabilità) invece dei conteggi.
+- **Strumenti Lex - copertura dati**: lo scadenziario non scarta più i termini arretrati ancora aperti e ordina prima di applicare il limite; agenda espone avvocato, durata, inizio/fine, promemoria, cliente e tribunale; i filtri fascicoli (archiviati, stato, avvocato) sono realmente applicati; il tool preventivi legge i dati reali di preventivi e conferimenti; tutti gli elenchi dichiarano `total_matching` e troncamenti.
+
 ## 2.254.19 - 2026-07-09
 
 - **Deposito telematico - audit completo catalogo**: aggiunto audit end-to-end sui 270 tipi deposito. I 252 tipi PCT generano `DatiAtto.xml` con radice verificata e l'audit severo non segnala rami sospesi.

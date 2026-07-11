@@ -108,6 +108,41 @@ def run_workers_for_paths(
         # Best-effort: il controllo economico è un'anteprima aggiuntiva; un suo
         # errore non deve fermare il presidio PEC (parse/classify/link restano validi).
         pass
+    try:
+        # Segnala al piano del giorno le entità toccate dal presidio PEC:
+        # il refresh incrementale rielabora solo queste, mai tutto lo studio.
+        from web.services.daily_plan_runtime import mark_dirty_for_paths
+
+        touched_fascicoli: set[str] = set()
+        touched_messages: set[str] = set()
+        for job in list(report.get("jobs") or []):
+            message_id = str(job.get("message_id") or "").strip()
+            if message_id:
+                touched_messages.add(message_id)
+            result = job.get("result") if isinstance(job.get("result"), dict) else {}
+            fascicolo_id = str(result.get("fascicolo_id") or "").strip()
+            if fascicolo_id:
+                touched_fascicoli.add(fascicolo_id)
+        if touched_fascicoli:
+            mark_dirty_for_paths(
+                paths,
+                tenant_label=tenant_label,
+                entity_type="fascicolo",
+                entity_ids=touched_fascicoli,
+                reason="presidio_pec",
+            )
+        if touched_messages:
+            mark_dirty_for_paths(
+                paths,
+                tenant_label=tenant_label,
+                entity_type="pec_message",
+                entity_ids=touched_messages,
+                reason="presidio_pec",
+            )
+    except Exception:
+        # Il piano del giorno è una proiezione derivata: un errore qui non deve
+        # mai fermare il presidio PEC.
+        pass
     return report
 
 

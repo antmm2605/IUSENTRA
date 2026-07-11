@@ -7458,6 +7458,117 @@ class PecAuditRepository:
                     result[header] = summary
         return result
 
+    # ------------------------------------------------------------------
+    # Letture per il piano del giorno (Lex Oggi) — sola lettura, nessun
+    # contenuto grezzo PEC: solo campi classificati già materializzati.
+    # ------------------------------------------------------------------
+
+    def list_legal_deadlines_since(self, since: str = "", *, limit: int = 500) -> list[dict[str, Any]]:
+        """Termini candidati estratti dalle PEC, con collegamento fascicolo."""
+        query = """
+            SELECT d.id, d.legal_event_id, d.deadline_type, d.norm_ref,
+                   d.dies_a_quo_type, d.dies_a_quo_date, d.duration_value,
+                   d.duration_unit, d.peremptory, d.deterministic_status,
+                   d.scadenziario_id, d.human_review_required, d.created_at,
+                   e.family, e.primary_event, e.priority AS event_priority,
+                   e.confidence AS event_confidence, e.message_id,
+                   m.received_at, m.linked_fascicolo_id, m.linked_fascicolo_score
+            FROM pec_legal_deadlines d
+            JOIN pec_legal_events e ON e.id = d.legal_event_id AND e.tenant_id = d.tenant_id
+            JOIN pec_messages m ON m.id = e.message_id AND m.tenant_id = e.tenant_id
+            WHERE d.tenant_id=?
+        """
+        params: list[Any] = [self.tenant_id]
+        if since:
+            query += " AND d.created_at > ?"
+            params.append(since)
+        query += " ORDER BY d.created_at LIMIT ?"
+        params.append(max(int(limit or 500), 1))
+        with self.connect() as conn:
+            return [_row_to_dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
+
+    def list_legal_hearings_since(self, since: str = "", *, limit: int = 500) -> list[dict[str, Any]]:
+        """Udienze estratte dalle PEC (data, modalità, link, aggancio agenda)."""
+        query = """
+            SELECT h.id, h.legal_event_id, h.hearing_date, h.hearing_time, h.mode,
+                   h.platform, h.link, h.link_verified, h.aula, h.indirizzo,
+                   h.agenda_id, h.human_review_required, h.created_at,
+                   e.family, e.primary_event, e.confidence AS event_confidence,
+                   e.message_id, m.received_at, m.linked_fascicolo_id,
+                   m.linked_fascicolo_score
+            FROM pec_legal_hearings h
+            JOIN pec_legal_events e ON e.id = h.legal_event_id AND e.tenant_id = h.tenant_id
+            JOIN pec_messages m ON m.id = e.message_id AND m.tenant_id = e.tenant_id
+            WHERE h.tenant_id=?
+        """
+        params: list[Any] = [self.tenant_id]
+        if since:
+            query += " AND h.created_at > ?"
+            params.append(since)
+        query += " ORDER BY h.created_at LIMIT ?"
+        params.append(max(int(limit or 500), 1))
+        with self.connect() as conn:
+            return [_row_to_dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
+
+    def list_legal_payments_since(self, since: str = "", *, limit: int = 500) -> list[dict[str, Any]]:
+        """Eventi economici estratti dalle PEC ancora da revisionare."""
+        query = """
+            SELECT p.id, p.legal_event_id, p.payment_event_type, p.beneficiary_type,
+                   p.workflow_status, p.human_review_required, p.created_at,
+                   e.family, e.primary_event, e.confidence AS event_confidence,
+                   e.message_id, m.received_at, m.linked_fascicolo_id,
+                   m.linked_fascicolo_score
+            FROM pec_legal_payments p
+            JOIN pec_legal_events e ON e.id = p.legal_event_id AND e.tenant_id = p.tenant_id
+            JOIN pec_messages m ON m.id = e.message_id AND m.tenant_id = e.tenant_id
+            WHERE p.tenant_id=?
+        """
+        params: list[Any] = [self.tenant_id]
+        if since:
+            query += " AND p.created_at > ?"
+            params.append(since)
+        query += " ORDER BY p.created_at LIMIT ?"
+        params.append(max(int(limit or 500), 1))
+        with self.connect() as conn:
+            return [_row_to_dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
+
+    def list_messages_to_presidiate(self, since: str = "", *, limit: int = 300) -> list[dict[str, Any]]:
+        """Messaggi che richiedono presidio: qualità rossa/gialla, firma con
+        anomalie, oppure senza fascicolo collegato. Nessun contenuto grezzo."""
+        query = """
+            SELECT m.id, m.received_at, m.ingested_at, m.status, m.quality_status,
+                   m.signature_status, m.linked_fascicolo_id, m.linked_fascicolo_score,
+                   e.family, e.primary_event, e.priority AS event_priority,
+                   e.confidence AS event_confidence,
+                   e.human_review_required AS event_review_required
+            FROM pec_messages m
+            LEFT JOIN pec_legal_events e ON e.message_id = m.id AND e.tenant_id = m.tenant_id
+            WHERE m.tenant_id=?
+              AND (
+                  m.quality_status IN ('rosso', 'giallo', 'da_controllare')
+                  OR m.signature_status IN ('non_valida', 'invalida', 'errore')
+                  OR m.linked_fascicolo_id = ''
+                  OR e.human_review_required = 1
+              )
+        """
+        params: list[Any] = [self.tenant_id]
+        if since:
+            query += " AND m.ingested_at > ?"
+            params.append(since)
+        query += " ORDER BY m.received_at DESC LIMIT ?"
+        params.append(max(int(limit or 300), 1))
+        with self.connect() as conn:
+            return [_row_to_dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
+
+    def daily_plan_watermark(self) -> str:
+        """Cursore massimo utile per il refresh incrementale del piano."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT MAX(ingested_at) AS wm FROM pec_messages WHERE tenant_id=?",
+                (self.tenant_id,),
+            ).fetchone()
+        return str(row["wm"] or "") if row else ""
+
     def ids_by_header_message_ids(self, headers: Iterable[str]) -> dict[str, str]:
         seen_values: set[str] = set()
         values: list[str] = []

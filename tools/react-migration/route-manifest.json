@@ -2309,6 +2309,25 @@
       ]
     },
     {
+      "workspaceTarget": "/app/oggi",
+      "route": "/oggi",
+      "family": "regia",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/pages/daily-plan/OggiPage.tsx",
+      "targetData": "frontend/src/pages/daily-plan/api.ts",
+      "targetBridge": "web/blueprints/api_v1_daily_plan.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/oggi.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "piano del giorno da snapshot materializzato",
+        "API /api/v1/ui/daily-plan reale con ETag",
+        "priorita deterministiche P0-P3 con motivo e fonte",
+        "scritture solo come proposte approvabili",
+        "coda Da assegnare e copertura fonti visibili"
+      ]
+    },
+    {
       "workspaceTarget": "/app/workflow-agents",
       "route": "/workflow-agents",
       "family": "studio",

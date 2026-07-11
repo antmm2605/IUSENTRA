@@ -69,6 +69,9 @@ export type FeatureFlagKey =
   | 'lex.workflowAgents.enabled'
   | 'lex.workflowAgents.writeActions'
   | 'lex.workflowAgents.scheduledRuns'
+  | 'lex.dailyPlan.enabled'
+  | 'lex.dailyPlan.scheduledRuns'
+  | 'lex.dailyPlan.writeProposals'
   | 'lex.procedureCompletion.enabled'
   | 'lex.procedureCompletion.voiceRead.enabled'
   | 'lex.procedureCompletion.voiceRead.localOnly'
@@ -79,6 +82,8 @@ export type FeatureFlagKey =
   | 'routes.appV2.legalSkills.reviewQueue'
   | 'routes.appV2.workflowAgents.home'
   | 'routes.appV2.workflowAgents.reviewQueue'
+  | 'routes.appV2.dailyPlan.home'
+  | 'routes.appV2.dailyPlan.reviewQueue'
   | 'routes.appV2.clientPortal.enabled'
   | 'routes.appV2.clientPortal.notifications'
   | 'routes.appV2.clientPortal.webPush'
@@ -180,6 +185,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/procedure-completion(?:\/|$)/, 'routes.appV2.procedureCompletion.home'],
   [/^\/workflow-agents\/(?:runs|approvals)(?:\/|$)/, 'routes.appV2.workflowAgents.reviewQueue'],
   [/^\/(?:workflow-agents|regia-agentica)(?:\/|$)/, 'routes.appV2.workflowAgents.home'],
+  [/^\/oggi(?:\/|$)/, 'routes.appV2.dailyPlan.home'],
   [/^\/app\/portale-clienti(?:\/|$)/, 'routes.appV2.clientPortal.enabled'],
   [/^\/portale-cliente(?:\/|$)/, 'routes.appV2.clientPortal.enabled'],
   [/^\/(?:workspace-intelligente|regia-operativa|app\/regia)(?:\/|$)/, 'routes.appV2.dashboard.regia'],

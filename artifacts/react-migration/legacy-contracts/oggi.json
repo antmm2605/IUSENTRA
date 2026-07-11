@@ -1,0 +1,18 @@
+{
+  "route": "/oggi",
+  "capturedAt": "2026-07-11",
+  "status": "react_operational_full",
+  "source": "feature nativa App V2: nessuna superficie legacy preesistente",
+  "preserve": [
+    "lettura sempre dallo snapshot materializzato (nessuna analisi in GET)",
+    "priorita P0-P3 decise dal motore deterministico, mai dal modello linguistico",
+    "ogni attivita con motivo, fonte, fascicolo, scadenza e affidabilita",
+    "scritture applicative solo come proposte nella coda approvazioni",
+    "coda Da assegnare sempre visibile, mai scomparsa",
+    "copertura fonti dichiarata: piano vuoto con fonti stanche non e' 'nessuna attivita'",
+    "nessun dato demo in UI operativa",
+    "nessun tenant_id dal client"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, errori sanificati, RBAC e feature flag fail-closed, ETag/304 sul payload"
+}

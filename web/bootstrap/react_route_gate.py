@@ -105,6 +105,7 @@ _REACT_EXACT = {
     "/notifiche",
     "/notifiche-legali",
     "/notifiche-whatsapp",
+    "/oggi",
     "/privacy/registro",
     "/privacy/registro/nuovo",
     "/preventivi",

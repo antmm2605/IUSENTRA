@@ -6265,3 +6265,14 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Prova reale desktop `/oggi` | OK osservato | `Oggi`, `Domani`, `Dopodomani` e selettore data visibili; `Dopodomani` apre `/oggi?date=2026-07-13`; data libera `15/07/2026` generata e distinta dal piano odierno; refresh, dettaglio fonti e priorità P0 verificati. Focus tastiera visibile con anello blu da `3px`; pagina scorsa fino al Backlog senza overflow. |
 | Prova reale tablet e mobile `/oggi` | OK osservato | Tablet `900x1000` e mobile `390x844`: controlli rapidi e comando data con target da `44px`, nessun testo tagliato, nessun overflow orizzontale, selezione Dopodomani operativa e scroll completo fino al Backlog. |
 | Console browser e ripristino finale | OK osservato | Zero errori o warning; viewport temporanei rimossi e scheda lasciata su `http://127.0.0.1:8080/oggi`. |
+
+## Deposito telematico completo - 2026-07-12
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Audit `scripts/audit_deposito_catalogo_end_to_end.py` | OK | 270 tipi totali; generatori PCT 252/252; 0 rami sospesi; 122 guardie campi; 593 uffici senza PEC/codici mancanti o difformi. |
+| Test deposito mirati | OK | `64/64` passati su catalogo, busta, anagrafica, API React e risposta controllata ai dati mancanti. |
+| `tests/test_react_shell.py` | OK | `152/152` passati. |
+| CI GitHub commit `6429973c` | OK | Lint, governance, smoke, frontend, CodeQL, coverage 12/12, tutti gli shard Pytest e Local Signer/PKCS#11 macOS/Ubuntu/Windows completati con successo. |
+| Deploy Hetzner | OK | Commit server allineato; unico `iusentra-app`; app/scheduler/OCR healthy; health interno ed esterno `2.256.0`; impronte runtime coincidenti; prune Docker completato. |
+| Browser produzione `795C50AC` | OK osservato | Prova senza invio e simulazione PEC cliccate e confermate; apertura dei tre campi mancanti, nessun HTTP 500, nessun invio esterno, ricevute rimaste 4, invio reale correttamente disabilitato. |

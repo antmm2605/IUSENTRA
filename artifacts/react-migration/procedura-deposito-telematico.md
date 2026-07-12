@@ -4752,9 +4752,13 @@ Guardrail finali sul sorgente locale: 64 test deposito mirati e 152 test complet
 
 Il gate governance ha bloccato una prima preparazione del commit per dimensione della rotta e due stringhe non integre nel generatore. I metadati `DatiBusta` e la trasformazione dell'errore ministeriale in risposta JSON controllata sono stati delegati ai servizi dedicati; le stringhe sono state corrette, i test statici sono stati riallineati alla delega e l'intera sequenza audit/test/governance è stata ripetuta con esito positivo. La prova browser è stata quindi ripetuta sulla nuova immagine Docker, non riutilizzata dalla build precedente.
 
-Il primo push `80c0b1ad` ha inoltre evidenziato una mappa sicurezza backend generata non aggiornata per il nuovo endpoint di salvataggio. La CI ha correttamente fermato lint e shard dipendenti; la mappa è stata rigenerata a 270/270 endpoint autenticati, il test di allineamento è passato localmente e il rilascio resta aperto fino alla ripetizione completa dei check sul commit correttivo.
+Il primo push `80c0b1ad` ha inoltre evidenziato una mappa sicurezza backend generata non aggiornata per il nuovo endpoint di salvataggio. La CI ha correttamente fermato lint e shard dipendenti; la mappa è stata rigenerata a 270/270 endpoint autenticati e il commit correttivo `6429973c` ha poi superato lint, governance, smoke, frontend, CodeQL, coverage 12/12, tutti gli shard Pytest e Local Signer/PKCS#11 su macOS, Ubuntu e Windows.
 
-Il commit/push dei branch gemelli, i check GitHub e il deploy finale sul commit restano obbligatori prima della chiusura formale. La prova completa del pacchetto sul caso concreto resta inoltre subordinata a dispositivo di firma fisico e Local Signer pronti.
+Deploy Hetzner verificato sullo stesso commit: repository server allineato, un solo `iusentra-app`, servizi healthy, `/api/pronto` interno ed esterno `2.256.0` in `Europe/Rome`, impronte dei sorgenti e del bundle coincidenti, cache Docker vuota e nessuno snapshot temporaneo.
+
+Prova server con click reali su `795C50AC`: scelta salvata invariata con il solo `Ricorso.pdf.p7m` come atto principale; ufficio, PEC e codice risolti; Procura non bloccante; prova senza invio e simulazione PEC cliccate e confermate. Entrambe hanno aperto i tre campi mancanti senza `HTTP 500`, senza PEC esterna e senza incrementare le `4` ricevute di prova già presenti. `Invia deposito reale` è rimasto disabilitato, correttamente, perché numero, anno e data del decreto non sono stati inseriti e non era disponibile una nuova prova completa con dispositivo di firma fisico.
+
+Il codice runtime è chiuso sui branch gemelli al commit `6429973c`; il commit documentale finale deve superare a sua volta gli stessi gate e il deploy, senza modificare il runtime già provato. La prova completa del pacchetto sul caso concreto resta subordinata a inserimento dei tre dati da parte dell'avvocato, dispositivo di firma fisico e Local Signer pronti.
 
 ## React shell - entry Vite senza query string 2026-07-06
 

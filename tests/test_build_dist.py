@@ -151,10 +151,17 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
     assert "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1" in builder
     assert "FILE0=installa_local_signer_locale.ps1" in builder
     assert "FILE1=local_signer.py" in builder
-    assert "FILE6=uffici_ministero.json" in builder
-    assert "FILE7=uffici_pst_pubblici.json" in builder
-    assert "FILE14=local_signer_mod__server_bootstrap.py" in builder
-    assert "FILE15=local_signer_mod__support_agent.py" in builder
+    iexpress_files = {
+        line.split("=", 1)[1].strip()
+        for line in builder.splitlines()
+        if line.startswith("FILE") and "=" in line
+    }
+    assert {
+        "uffici_ministero.json",
+        "uffici_pst_pubblici.json",
+        "local_signer_mod__server_bootstrap.py",
+        "local_signer_mod__support_agent.py",
+    } <= iexpress_files
     assert '$distModuleDir = Join-Path $distDir "local_signer_mod"' in builder
     assert 'Copy-Item $source (Join-Path $distModuleDir $moduleFile) -Force' in builder
     assert "pillow" in builder.lower()

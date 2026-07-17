@@ -9,12 +9,13 @@ from __future__ import annotations
 import io
 import json
 import hashlib
+import html
 from datetime import date, datetime, timedelta, timezone
 
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
-from web.helpers import get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_preventivi as _shared_get_preventivi
+from web.helpers import get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_pagamenti, get_preventivi as _shared_get_preventivi
 from pct.economico_context import (
     carica_log_calcolo,
     dump_log_calcolo,
@@ -34,6 +35,20 @@ def _get_gf():
 
 def _get_gp():
     return _shared_get_preventivi()
+
+
+def _tenant_fatturazione_config() -> dict:
+    """Restituisce identità e coordinate del solo studio autenticato."""
+
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    config_getter = core_runtime.get("get_config_studio")
+    if not callable(config_getter):
+        raise RuntimeError("Configurazione dello studio non disponibile.")
+    studio_config = config_getter().config
+    pagamenti_config = get_pagamenti().config
+    from web.services.react_fatturazione_bridge import build_fatturazione_runtime_config
+
+    return build_fatturazione_runtime_config(studio_config, pagamenti_config)
 
 
 def _richiedi_login(f):
@@ -209,7 +224,7 @@ def nuova(id_cliente: str = ""):
             return redirect(nuova_url)
 
         # Dati studio da config
-        cfg = current_app.config
+        cfg = _tenant_fatturazione_config()
         scade_il = f.get("data_scadenza", "").strip() or None
         note = f.get("note", "").strip()
         origine = f.get("origine", "").strip()
@@ -435,9 +450,15 @@ def pdf(id_parcella: str):
         abort(404)
     cliente = get_clienti().get(p.id_cliente)
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
-    buf = _genera_pdf(p, cliente, fascicolo, current_app.config)
+    tenant_config = _tenant_fatturazione_config()
+    buf = _genera_pdf(p, cliente, fascicolo, tenant_config)
     audit_proof = None
+    personalized = p.dati_personalizzati if isinstance(getattr(p, "dati_personalizzati", None), dict) else {}
+    document_snapshot = personalized.get("document") if isinstance(personalized.get("document"), dict) else {}
+    is_proforma = str(document_snapshot.get("documento_operativo") or "").strip().upper() == "PROFORMA"
     try:
+        if is_proforma:
+            raise LookupError("La proforma non produce una ricevuta emessa.")
         from audit.integrations import emit_receipt_issued
 
         base_pdf = buf.getvalue()
@@ -462,13 +483,16 @@ def pdf(id_parcella: str):
                 "snapshot_status": "Inclusione snapshot in attesa",
                 "proof_href": f"/audit/proof/{result.event_id}",
             }
+    except LookupError:
+        pass
     except Exception as exc:
         if current_app.config.get("AUDIT_ENABLED"):
             raise
         current_app.logger.debug("Audit probatorio ricevuta non emesso: %s", exc)
     if audit_proof:
-        buf = _genera_pdf(p, cliente, fascicolo, current_app.config, audit_proof=audit_proof)
-    nome_file = f"parcella_{p.numero.replace('/', '-')}.pdf"
+        buf = _genera_pdf(p, cliente, fascicolo, tenant_config, audit_proof=audit_proof)
+    file_prefix = "proforma" if is_proforma else "parcella"
+    nome_file = f"{file_prefix}_{p.numero.replace('/', '-')}.pdf"
     download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=download, download_name=nome_file)
@@ -486,7 +510,7 @@ def xml_fattura_pa(id_parcella: str):
     if not p:
         abort(404)
     cliente = get_clienti().get(p.id_cliente)
-    cfg = current_app.config
+    cfg = _tenant_fatturazione_config()
     studio_nome = cfg.get("STUDIO_NOME", "Studio Legale")
     studio_piva = p.studio_piva or cfg.get("STUDIO_PIVA", "")
     studio_cf   = p.studio_cf   or cfg.get("STUDIO_CF", "")
@@ -567,11 +591,25 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
     style_right = ParagraphStyle("right", parent=style_body, alignment=TA_RIGHT)
     style_bold  = ParagraphStyle("bold", parent=style_body, fontName="Helvetica-Bold")
 
-    studio_nome = config.get("STUDIO_NOME", "IUSENTRA")
-    studio_piva = p.studio_piva or config.get("STUDIO_PIVA", "")
-    studio_cf   = p.studio_cf   or config.get("STUDIO_CF", "")
-    studio_ind  = p.studio_indirizzo or config.get("STUDIO_INDIRIZZO", "")
-    studio_iban = p.studio_iban or config.get("STUDIO_IBAN", "")
+    personalized = p.dati_personalizzati if isinstance(getattr(p, "dati_personalizzati", None), dict) else {}
+    studio_snapshot = personalized.get("studio") if isinstance(personalized.get("studio"), dict) else {}
+    payment_snapshot = personalized.get("payment") if isinstance(personalized.get("payment"), dict) else {}
+    document_snapshot = personalized.get("document") if isinstance(personalized.get("document"), dict) else {}
+    studio_nome = studio_snapshot.get("nome_denominazione") or config.get("STUDIO_NOME", "Studio legale")
+    studio_piva = studio_snapshot.get("partita_iva") or p.studio_piva or config.get("STUDIO_PIVA", "")
+    studio_cf = studio_snapshot.get("codice_fiscale") or p.studio_cf or config.get("STUDIO_CF", "")
+    studio_ind = studio_snapshot.get("indirizzo_completo") or studio_snapshot.get("indirizzo") or p.studio_indirizzo or config.get("STUDIO_INDIRIZZO", "")
+    studio_iban = payment_snapshot.get("iban") or p.studio_iban or config.get("STUDIO_IBAN", "")
+    studio_banca = payment_snapshot.get("istituto_finanziario") or config.get("STUDIO_BANCA", "")
+    beneficiario = payment_snapshot.get("beneficiario") or studio_nome
+    operation = str(document_snapshot.get("documento_operativo") or "FATTURA").strip().upper()
+    document_title = {
+        "PROFORMA": "PROFORMA",
+        "NOTA_CREDITO": "NOTA DI CREDITO",
+    }.get(operation, "PARCELLA PROFESSIONALE")
+
+    def safe(value: object) -> str:
+        return html.escape(str(value or ""), quote=True)
 
     nome_cliente = cliente.nome_completo if cliente else "Cliente sconosciuto"
     cf_piva_cliente = ""
@@ -586,8 +624,8 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
 
     # ---- Header: studio a sinistra, "PARCELLA" a destra
     header_data = [[
-        Paragraph(f"<b>{studio_nome}</b>", style_h2),
-        Paragraph("PARCELLA PROFESSIONALE", ParagraphStyle(
+        Paragraph(f"<b>{safe(studio_nome)}</b>", style_h2),
+        Paragraph(document_title, ParagraphStyle(
             "parctit", parent=style_h1, alignment=TA_RIGHT, fontSize=18)),
     ]]
     header_tbl = Table(header_data, colWidths=["60%", "40%"])
@@ -790,7 +828,11 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
         story.append(Spacer(1, 3*mm))
         if studio_iban:
             story.append(Paragraph(
-                f"<b>Coordinate bancarie:</b> {studio_iban}", style_body))
+                f"<b>IBAN:</b> {safe(studio_iban)}", style_body))
+            if beneficiario:
+                story.append(Paragraph(f"<b>Intestatario:</b> {safe(beneficiario)}", style_body))
+            if studio_banca:
+                story.append(Paragraph(f"<b>Banca:</b> {safe(studio_banca)}", style_body))
         if p.data_scadenza:
             story.append(Paragraph(
                 f"Si prega di effettuare il pagamento entro il <b>{data_scadenza_label}</b>.",

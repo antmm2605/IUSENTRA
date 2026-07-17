@@ -1,0 +1,547 @@
+{
+  "ok": true,
+  "completed": true,
+  "tenant": "studio-legale-giuseppe-montagnese",
+  "source_of_truth": "sqlite",
+  "scan_mode": "incremental_new_or_changed_only",
+  "limit": 25,
+  "until_idle": false,
+  "idle": false,
+  "mirror_regenerated": false,
+  "totals": {
+    "cycles": 1,
+    "processed_new_documents": 25,
+    "indexed_documents": 0,
+    "indexing_skipped": 0,
+    "candidate_dates": 0,
+    "scheduled": 0,
+    "already_presided": 0,
+    "past_remote_hearings_recorded": 0,
+    "skipped_non_blocking_documents": 25,
+    "skipped": 0,
+    "persisted_activity_fascicoli": 0,
+    "errors": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "elapsed_seconds": 8.553,
+      "processed_new_documents": 25,
+      "indexed_documents": 0,
+      "indexing_skipped": 0,
+      "candidate_dates": 0,
+      "scheduled": 0,
+      "already_presided": 0,
+      "past_remote_hearings_recorded": 0,
+      "skipped_non_blocking_documents": 25,
+      "skipped": 0,
+      "persisted_activity_fascicoli": 0,
+      "pending_fascicoli": 123,
+      "pending_documents": 0,
+      "errors": [],
+      "outcomes": [
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "922CC3E3",
+          "document": "DEPOSITO TELEMATICO: contratto IC San sperato cardeto RG: 00002759 - 2023 [JQ51-L01] [RefID_001_fMkeTzPgqy].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "09E615E6",
+          "document": "DEPOSITO TELEMATICO: Contratto lavoro 2024-25 prova interesse ad agire RG: 00001165 - 2023 [JQ55-L01] [RefID_001_Gw154nrSzY].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "09E615E6",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Contratto lavoro 2024-25 prova interesse ad agire RG: 00001165 - 2023 [JQ55-L01] [RefID_001_Gw154nrSzY].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "FF6E8CC0",
+          "document": "DEPOSITO TELEMATICO: Ricorso Balsamà [JQ73-L01] [RefID_001_3fvl1KVhWr].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "FF6E8CC0",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Balsamà [JQ73-L01] [RefID_001_3fvl1KVhWr].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "48FC45CB",
+          "document": "DEPOSITO TELEMATICO: Ricorso Nicolò [JQ86-L01] [RefID_001_TakqzRys4c].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "48FC45CB",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Nicolò [JQ86-L01] [RefID_001_TakqzRys4c].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "47BEABD0",
+          "document": "DEPOSITO TELEMATICO: Ricorso Saccà [JQ92-L01] [RefID_001_a2fGUzyGCa].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "0500DB50",
+          "document": "DEPOSITO TELEMATICO: Ricorso Mainente [JQ94-L01] [RefID_001_Jpq9ETWuTr].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "0500DB50",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Mainente [JQ94-L01] [RefID_001_Jpq9ETWuTr].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "4A91806A",
+          "document": "DEPOSITO TELEMATICO: Ricorso Arcuri [JQ95-L01] [RefID_001_ncHA4UgcXM].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "4A91806A",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Arcuri [JQ95-L01] [RefID_001_ncHA4UgcXM].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "4A91806A",
+          "document": "DEPOSITO TELEMATICO: Ricorso Arcuri [JQ95-L01] [RefID_001_sqBsm9Uu1m].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "4A91806A",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Arcuri [JQ95-L01] [RefID_001_sqBsm9Uu1m].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "D63EA09D",
+          "document": "DEPOSITO TELEMATICO: Ricorso Plataroti [JQ100-L01] [RefID_001_jD3ze4bZx9].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "D63EA09D",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Plataroti [JQ100-L01] [RefID_001_jD3ze4bZx9].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "D63EA09D",
+          "document": "DEPOSITO TELEMATICO: Ricorso Plataroti [JQ100-L01] [RefID_001_G1nScjwiCq].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "D63EA09D",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Plataroti [JQ100-L01] [RefID_001_G1nScjwiCq].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "89616FD9",
+          "document": "DEPOSITO TELEMATICO: Ricorso Gaetano [JQ101-L01] [RefID_001_MHFiyQiqad].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "89616FD9",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Gaetano [JQ101-L01] [RefID_001_MHFiyQiqad].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "28FA4EE1",
+          "document": "DEPOSITO TELEMATICO: Ricorso laface [JQ105-L01] [RefID_001_Z1gdtbO2fI].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "28FA4EE1",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso laface [JQ105-L01] [RefID_001_Z1gdtbO2fI].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "7EDBF3E7",
+          "document": "DEPOSITO TELEMATICO: Ricorso Restuccia [JQ109-L01] [RefID_001_qeXsGLCBCO].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "7EDBF3E7",
+          "document": "DEPOSITO TELEMATICO: Ricorso Restuccia [JQ109-L01] [RefID_001_fiBIjhJ75y].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "362A8B8B",
+          "document": "DEPOSITO TELEMATICO: Ricorso Schiava [JQ111-L01] [RefID_001_lCvRsb9sc3].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        }
+      ]
+    }
+  ],
+  "applied": true
+}

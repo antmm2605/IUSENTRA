@@ -110,6 +110,25 @@ export type FascicoloPaymentUpdateResult = {
   errors?: Record<string, string>
 }
 
+export type FascicoloProformaGenerationResult = {
+  ok: boolean
+  existing: boolean
+  message: string
+  proformaId: string
+  proformaNumber: string
+  redirectHref: string
+  paymentSummary: FascicoloPaymentSummary
+}
+
+export type FascicoloProformaBasis = {
+  sourceKind: 'parcella' | 'liquidazione_giudice'
+  status: FascicoloPaymentStatus
+  importo: number
+  dataPagamento?: string
+  metodo?: string
+  note?: string
+}
+
 export type FascicoloRow = {
   id: string
   ref: string
@@ -288,6 +307,16 @@ export type FascicoloActivity = {
   lawyer: string
   documentId: string
   depositId: string
+  hearingTime?: string
+  remoteHearingDetected?: boolean
+  remoteHearingMode?: string
+  remoteHearingUrl?: string
+  remoteHearingVerified?: boolean
+  remoteHearingPlatform?: string
+  remoteHearingMeetingId?: string
+  remoteHearingPasscode?: string
+  remoteHearingAccessInfo?: string
+  remoteHearingSource?: string
   updateAction: string
   deleteAction: string
   tone: Tone
@@ -2398,7 +2427,32 @@ function normalizeDepositOffice(value: unknown): FascicoloDepositOffice {
 
 function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
   const row = isRecord(entry) ? entry : {}
-  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'Attivit?'), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
+  return {
+    id: text(row.id, `att-${index}`),
+    type: text(row.type ?? row.tipo),
+    title: text(row.title ?? row.titolo, 'Attività'),
+    date: text(row.date ?? row.data),
+    description: text(row.description ?? row.descrizione),
+    result: text(row.result ?? row.esito),
+    place: text(row.place ?? row.luogo),
+    notes: text(row.notes ?? row.note),
+    lawyer: text(row.lawyer ?? row.avvocato),
+    documentId: text(row.documentId ?? row.id_documento),
+    depositId: text(row.depositId ?? row.id_deposito_pct),
+    hearingTime: text(row.hearingTime ?? row.hearing_time),
+    remoteHearingDetected: bool(row.remoteHearingDetected ?? row.remote_hearing_detected),
+    remoteHearingMode: text(row.remoteHearingMode ?? row.remote_hearing_mode),
+    remoteHearingUrl: text(row.remoteHearingUrl ?? row.remote_hearing_url),
+    remoteHearingVerified: bool(row.remoteHearingVerified ?? row.remote_hearing_verified),
+    remoteHearingPlatform: text(row.remoteHearingPlatform ?? row.remote_hearing_platform),
+    remoteHearingMeetingId: text(row.remoteHearingMeetingId ?? row.remote_hearing_meeting_id),
+    remoteHearingPasscode: text(row.remoteHearingPasscode ?? row.remote_hearing_passcode),
+    remoteHearingAccessInfo: text(row.remoteHearingAccessInfo ?? row.remote_hearing_access_info),
+    remoteHearingSource: text(row.remoteHearingSource ?? row.remote_hearing_source),
+    updateAction: text(row.updateAction ?? row.update_action),
+    deleteAction: text(row.deleteAction ?? row.delete_action),
+    tone: text(row.tone, 'neutral') as Tone,
+  }
 }
 
 function normalizeFormPayload(payload: unknown): FascicoloFormData {
@@ -2705,5 +2759,47 @@ export async function updateFascicoloPayment(id: string, kind: FascicoloPaymentK
     paymentSummary,
     fascicolo: isRecord(raw.fascicolo) ? { id: text(raw.fascicolo.id, id) } : { id },
     errors: {},
+  }
+}
+
+export async function generateFascicoloProforma(
+  id: string,
+  basis?: FascicoloProformaBasis,
+): Promise<FascicoloProformaGenerationResult> {
+  const token = csrfToken()
+  const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/proforma/genera`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify(basis ? { basis } : {}),
+  })
+  const contentType = response.headers.get('content-type') || ''
+  const rawPayload = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {}
+  const raw = isRecord(rawPayload) ? rawPayload : {}
+  const message = text(
+    raw.message ?? raw.messaggio ?? raw.errore ?? raw.error,
+    response.ok ? 'Proforma generata.' : 'Non ho potuto generare la proforma.',
+  )
+  if (!response.ok || raw.ok === false) {
+    const errors = isRecord(raw.errors)
+      ? Object.values(raw.errors).map((value) => text(value)).filter(Boolean)
+      : []
+    const details = Array.from(new Set(errors))
+    throw new Error(details.length ? `${message} ${details.join(' ')}` : message)
+  }
+  const item = isRecord(raw.item) ? raw.item : {}
+  return {
+    ok: true,
+    existing: Boolean(raw.existing),
+    message,
+    proformaId: text(raw.proformaId ?? raw.proforma_id ?? item.id),
+    proformaNumber: text(raw.proformaNumber ?? raw.proforma_number ?? item.number),
+    redirectHref: text(raw.redirectHref ?? raw.redirect_href),
+    paymentSummary: normalizePaymentSummary(raw.paymentSummary ?? raw.payment_summary, id),
   }
 }

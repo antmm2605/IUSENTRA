@@ -1,0 +1,167 @@
+{
+  "ok": true,
+  "completed": true,
+  "tenant": "studio-legale-giuseppe-montagnese",
+  "source_of_truth": "sqlite",
+  "scan_mode": "incremental_new_or_changed_only",
+  "limit": 25,
+  "until_idle": false,
+  "idle": false,
+  "mirror_regenerated": false,
+  "totals": {
+    "cycles": 1,
+    "processed_new_documents": 25,
+    "indexed_documents": 13,
+    "indexing_skipped": 6,
+    "candidate_dates": 0,
+    "scheduled": 0,
+    "already_presided": 0,
+    "past_remote_hearings_recorded": 0,
+    "skipped_non_blocking_documents": 6,
+    "skipped": 0,
+    "persisted_activity_fascicoli": 0,
+    "errors": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "elapsed_seconds": 5.753,
+      "processed_new_documents": 25,
+      "indexed_documents": 13,
+      "indexing_skipped": 6,
+      "candidate_dates": 0,
+      "scheduled": 0,
+      "already_presided": 0,
+      "past_remote_hearings_recorded": 0,
+      "skipped_non_blocking_documents": 6,
+      "skipped": 0,
+      "persisted_activity_fascicoli": 0,
+      "pending_fascicoli": 120,
+      "pending_documents": 7,
+      "errors": [],
+      "outcomes": [
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "35AB986D",
+          "document": "DEPOSITO TELEMATICO: Ricorso Marasco [JQ116-L01] [RefID_001_CLAFfLrkMF].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "FB2BEE24",
+          "document": "DEPOSITO TELEMATICO: Ricorso Compagnone [JQ128-L01] [RefID_001_AQccCCvkrf].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "FB2BEE24",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Compagnone [JQ128-L01] [RefID_001_AQccCCvkrf].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "721ED2F7",
+          "document": "DEPOSITO TELEMATICO: Ricorso Praino [JQ142-L01] [RefID_001_2c37LUUuTe].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "A11B6F64",
+          "document": "DEPOSITO TELEMATICO: Ricorso Chiappalone [JQ64-L01] [RefID_001_eE5J8LdwGQ].eml",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        },
+        {
+          "status": "skipped_non_blocking_document",
+          "fascicolo_id": "A11B6F64",
+          "document": "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Ricorso Chiappalone [JQ64-L01] [RefID_001_eE5J8LdwGQ].EML",
+          "due_date": "",
+          "kind": "",
+          "reason": "file_superiore_limite_documenti_ai",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": false,
+            "created": false,
+            "activity_id": "",
+            "message": ""
+          }
+        }
+      ]
+    }
+  ],
+  "applied": true
+}

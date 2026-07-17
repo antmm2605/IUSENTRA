@@ -96,8 +96,20 @@ export function NotificationsSettingsPanel({
   }, [clientId, clients])
 
   async function refreshPushStatus() {
-    const status = await getPushDeviceStatus()
-    setPushStatus(status)
+    const status = await new Promise<PushDeviceStatus | null>((resolve) => {
+      let completed = false
+      const finish = (value: PushDeviceStatus | null) => {
+        if (completed) return
+        completed = true
+        window.clearTimeout(timeoutId)
+        resolve(value)
+      }
+      const timeoutId = window.setTimeout(() => finish(null), 6_000)
+      void getPushDeviceStatus()
+        .then((value) => finish(value))
+        .catch(() => finish(null))
+    })
+    if (status) setPushStatus(status)
   }
 
   useEffect(() => {
@@ -130,14 +142,29 @@ export function NotificationsSettingsPanel({
   async function runPush(action: 'activate' | 'deactivate' | 'test') {
     setPushBusy(action)
     setPushResult(null)
-    const response = action === 'activate'
-      ? await activatePushNotifications()
-      : action === 'deactivate'
-        ? await deactivatePushNotifications()
-        : await sendPushTest()
-    setPushBusy('')
-    setPushResult(response)
-    await refreshPushStatus()
+    try {
+      const response = action === 'activate'
+        ? await activatePushNotifications()
+        : action === 'deactivate'
+          ? await deactivatePushNotifications()
+          : await sendPushTest()
+      setPushResult(response)
+      if (typeof response.active === 'boolean') {
+        setPushStatus((current) => ({
+          ...current,
+          supported: true,
+          configured: true,
+          active: response.active === true,
+          permission: response.active ? 'granted' : current.permission,
+          message: response.message,
+        }))
+      }
+      await refreshPushStatus()
+    } catch {
+      setPushResult({ ok: false, message: 'Operazione notifiche non completata. Riprova dal dispositivo in uso.' })
+    } finally {
+      setPushBusy('')
+    }
   }
 
   return (

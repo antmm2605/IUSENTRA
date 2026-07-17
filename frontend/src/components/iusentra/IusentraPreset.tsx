@@ -63,7 +63,6 @@ const PRESET_ROUTE_LAYOUT_SELECTORS = [
   '.iu-appt-layout',
   '.iu-deadline-layout',
   '.iu-sm-layout',
-  '.iu-studio-module .iu-sm-layout',
   '.iu-tar-layout',
   '.iu-pwiz-layout',
   '.iu-docai-layout',

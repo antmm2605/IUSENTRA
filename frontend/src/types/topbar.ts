@@ -71,6 +71,8 @@ export type TopbarNotification = {
   read: boolean
   href: string | null
   actionLabel: string | null
+  secondaryHref: string | null
+  secondaryLabel: string | null
 }
 
 export type TopbarNotificationsPayload = {

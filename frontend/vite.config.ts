@@ -24,8 +24,30 @@ function sanitizeGeneratedText(): Plugin {
   }
 }
 
+function enforceBundleBudget(maxBytes = 500_000): Plugin {
+  return {
+    name: 'iusentra-enforce-bundle-budget',
+    generateBundle(_options, bundle) {
+      const oversized = Object.values(bundle).flatMap((item) => {
+        if (item.type === 'chunk') {
+          const bytes = new TextEncoder().encode(item.code).byteLength
+          return bytes > maxBytes ? [`${item.fileName}: ${bytes} byte`] : []
+        }
+        if (item.fileName.endsWith('.css') && typeof item.source === 'string') {
+          const bytes = new TextEncoder().encode(item.source).byteLength
+          return bytes > maxBytes ? [`${item.fileName}: ${bytes} byte`] : []
+        }
+        return []
+      })
+      if (oversized.length) {
+        this.error(`Budget asset IUSENTRA superato (massimo ${maxBytes} byte): ${oversized.join(', ')}`)
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), sanitizeGeneratedText()],
+  plugins: [react(), sanitizeGeneratedText(), enforceBundleBudget()],
   base: '/static/react/',
   resolve: {
     alias: {
@@ -37,7 +59,7 @@ export default defineConfig({
     outDir: '../web/static/react',
     target: 'es2022',
     modulePreload: false,
-    cssCodeSplit: false,
+    cssCodeSplit: true,
     // I chunk Vite hanno nomi hashati e possono restare in cache nei browser
     // autenticati durante un deploy. Non svuotare la directory evita 404 sui
     // bundle ancora referenziati da una shell caricata prima dell'aggiornamento.
@@ -46,9 +68,18 @@ export default defineConfig({
     rollupOptions: {
       input: './index.html',
       output: {
-        // La shell React viene caricata inline in produzione: l'entry deve
-        // essere autosufficiente, senza import ESM secondari prima del mount.
-        inlineDynamicImports: true,
+        manualChunks(id) {
+          const normalizedId = id.replace(/\\/g, '/')
+          if (normalizedId.includes('/node_modules/react/')
+            || normalizedId.includes('/node_modules/react-dom/')
+            || normalizedId.includes('/node_modules/scheduler/')) {
+            return 'vendor-react'
+          }
+          if (normalizedId.includes('/node_modules/lucide-react/')) {
+            return 'vendor-icons'
+          }
+          return undefined
+        },
       },
     }
   },

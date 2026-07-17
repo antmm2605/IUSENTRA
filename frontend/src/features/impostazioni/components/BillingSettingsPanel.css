@@ -1,0 +1,45 @@
+.iu-billing-defaults-sync {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ius-border);
+}
+
+.iu-billing-defaults-sync__summary,
+.iu-billing-defaults-sync__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-billing-defaults-sync__summary > div {
+  display: grid;
+  gap: 4px;
+}
+
+.iu-billing-defaults-sync__summary strong {
+  color: var(--ius-text);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.iu-billing-defaults-sync__summary span {
+  color: var(--ius-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.iu-billing-defaults-sync__actions {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .iu-billing-defaults-sync__summary,
+  .iu-billing-defaults-sync__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -126,6 +126,21 @@ def register_telematico_local_signer_routes(
         except Exception as exc:
             return _download_error("local-ai-bridge", exc)
 
+    @app.route("/polisWeb/local-signer/download/windows-http")
+    def polis_local_signer_windows_http_download():
+        try:
+            helper_path = Path(__file__).resolve().parents[2] / "tools" / "local_signer_windows_http.ps1"
+            if not helper_path.exists():
+                return "File non trovato", 404
+            return send_file(
+                helper_path,
+                as_attachment=True,
+                download_name="local_signer_windows_http.ps1",
+                mimetype="text/plain; charset=utf-8",
+            )
+        except Exception as exc:
+            return _download_error("windows-http", exc)
+
     @app.route("/polisWeb/local-signer/download/lex-document-context")
     def polis_local_ai_lex_context_download():
         try:

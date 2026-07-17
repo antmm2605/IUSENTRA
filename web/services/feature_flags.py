@@ -2,8 +2,8 @@
 
 Le superfici App V2 gia' promosse come operative sono attive di default e
 restano spegnibili via config/env per rollback controllato. Le capability non
-parificate, come i workflow telematici ancora protetti e Web Push, restano
-default-off e fail-closed.
+parificate, come i workflow telematici ancora protetti, restano default-off e
+fail-closed.
 """
 
 from __future__ import annotations
@@ -31,7 +31,6 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
     {
         "routes.appV2.telematico.center",
         "routes.appV2.telematico.surface",
-        "routes.appV2.notifications.mobilePush",
         "routes.appV2.clientPortal.webPush",
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
@@ -108,6 +107,7 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.settings.backup",
         "routes.appV2.settings.calendarSync",
         "routes.appV2.settings.sdi",
+        "routes.appV2.notifications.mobilePush",
         "routes.appV2.billing.invoices",
         "routes.appV2.billing.payments",
         "routes.appV2.billing.quotes",

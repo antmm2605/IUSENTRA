@@ -19,6 +19,7 @@ from pct.fascicolo_sentenza_economica import (
     extract_contributo_unificato_document_evidence,
     sentenza_vector_relevant_excerpt,
 )
+from pct.fascicolo_registry_document import apply_fascicolo_registry_automation
 from web.helpers import get_fascicoli, get_fatturazione
 from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
 from web.services.tenant_paths import tenant_data_path
@@ -142,13 +143,13 @@ def build_lex_indexing_summary_payload(
             retry_errors=retry_errors,
         )
         payload = result.summary.to_dict()
-        payload["sentenza_automation"] = _apply_sentenza_automations_for_ready_documents(
+        payload.update(_apply_ready_document_automations(
             service=service,
             tenant_id=tenant_id,
             fascicolo_id=fascicolo_id,
             sources=sources,
             user_context=context,
-        )
+        ))
         return payload
     summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
     if _lex_summary_needs_automatic_processing(summary, sources):
@@ -160,22 +161,22 @@ def build_lex_indexing_summary_payload(
             retry_errors=True,
         )
         payload = result.summary.to_dict()
-        payload["sentenza_automation"] = _apply_sentenza_automations_for_ready_documents(
+        payload.update(_apply_ready_document_automations(
             service=service,
             tenant_id=tenant_id,
             fascicolo_id=fascicolo_id,
             sources=sources,
             user_context=context,
-        )
+        ))
         return payload
     payload = summary.to_dict()
-    payload["sentenza_automation"] = _apply_sentenza_automations_for_ready_documents(
+    payload.update(_apply_ready_document_automations(
         service=service,
         tenant_id=tenant_id,
         fascicolo_id=fascicolo_id,
         sources=sources,
         user_context=context,
-    )
+    ))
     return payload
 
 
@@ -257,6 +258,7 @@ def _apply_sentenza_automations_for_ready_documents(
     fascicolo_id: str,
     sources: list[DocumentAISource],
     user_context: object,
+    registry_results: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     applied: list[dict[str, Any]] = []
     try:
@@ -279,6 +281,15 @@ def _apply_sentenza_automations_for_ready_documents(
         try:
             text_record = service.get_fascicolo_document_text(tenant_id, fascicolo_id, record.id, user_context)
             metadata = _metadata_for_record(record, source_index)
+            registry_outcome = apply_fascicolo_registry_automation(
+                fascicoli_repository=get_fascicoli(),
+                fascicolo_id=fascicolo_id,
+                text=text_record.text,
+                document_metadata=metadata,
+                actor=_actor_from_context(user_context),
+            )
+            if registry_results is not None and registry_outcome.found:
+                registry_results.append(registry_outcome.to_dict())
             if contributo_pdf_evidence:
                 metadata["contributo_unificato_pdf"] = dict(contributo_pdf_evidence)
             result = apply_sentenza_automation_for_document_text(
@@ -302,6 +313,48 @@ def _apply_sentenza_automations_for_ready_documents(
                 }
             )
     return applied
+
+
+def _apply_ready_document_automations(
+    *,
+    service: DocumentAIService,
+    tenant_id: str,
+    fascicolo_id: str,
+    sources: list[DocumentAISource],
+    user_context: object,
+) -> dict[str, Any]:
+    registry_results: list[dict[str, Any]] = []
+    sentenza_results = _apply_sentenza_automations_for_ready_documents(
+        service=service,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        sources=sources,
+        user_context=user_context,
+        registry_results=registry_results,
+    )
+    economic_result: dict[str, Any] = {}
+    if any(result.get("applied") for result in registry_results):
+        try:
+            from web.services.react_fascicoli_bridge import _ensure_contributo_unificato_for_fascicolo
+
+            fascicoli = get_fascicoli()
+            fascicolo = fascicoli.get(fascicolo_id)
+            if fascicolo is not None:
+                economic_result = _ensure_contributo_unificato_for_fascicolo(
+                    fascicoli_repository=fascicoli,
+                    fascicolo=fascicolo,
+                    actor=_actor_from_context(user_context),
+                    persist=True,
+                    force_revalidate=True,
+                )
+        except Exception as exc:
+            current_app.logger.exception("Riallineamento economico post-indicizzazione non riuscito")
+            economic_result = {"status": "error", "reason": str(exc)}
+    return {
+        "sentenza_automation": sentenza_results,
+        "fascicolo_automation": registry_results,
+        "economic_automation": economic_result,
+    }
 
 
 def _contributo_evidence_score(evidence: dict[str, Any]) -> int:

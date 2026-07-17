@@ -38,6 +38,210 @@ def _load_local_ai_host_bridge():
     return module
 
 
+def test_reginde_costruisce_richiesta_e_legge_soggetto_verificato():
+    module = _load_local_signer()
+    codice_fiscale = "RSSMRA80A01H501U"
+    pec = "studio@example.pec.it"
+
+    request_xml = module._reginde_soap_body(codice_fiscale)
+    assert "ricercaSoggettoEx" in request_xml
+    assert f"<codiceFiscale>{codice_fiscale}</codiceFiscale>" in request_xml
+    address_xml = module._reginde_soap_body_for_address(pec)
+    assert "dettagliSoggettoPerIndirizzo" in address_xml
+    assert f"<indirizzo>{pec}</indirizzo>" in address_xml
+
+    response_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <soap:Body><return><soggetto>
+        <codiceFiscale>{codice_fiscale}</codiceFiscale>
+        <nome>Mario</nome><cognome>Rossi</cognome>
+        <postaElettronicaCertificata>{pec}</postaElettronicaCertificata>
+        <ruolo>AVVOCATO</ruolo><stato>ATTIVO</stato>
+      </soggetto></return></soap:Body>
+    </soap:Envelope>""".encode("utf-8")
+
+    parsed = module._reginde_parse_subject(response_xml, codice_fiscale, pec)
+
+    assert parsed["found"] is True
+    assert parsed["pec_matches"] is True
+    assert parsed["codice_fiscale"] == codice_fiscale
+    assert parsed["nome"] == "Mario Rossi"
+
+
+def test_reginde_legge_tutti_gli_indirizzi_abilitati_di_un_ente():
+    module = _load_local_signer()
+    codice_fiscale = "94026160278"
+    pec_attesa = "ads.ve@mailcert.avvocaturastato.it"
+    response_xml = f"""<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <soap:Body><ricercaSoggettoExResponse><return>
+        <ruoliente>
+          <codiceFiscale>{codice_fiscale}</codiceFiscale>
+          <descrizione>Avvocatura Distrettuale dello Stato di Venezia</descrizione>
+          <pec>protocollo.ve@pec.avvocaturastato.it</pec>
+          <indirizziAbilitati><email>altro.ve@mailcert.avvocaturastato.it</email></indirizziAbilitati>
+          <indirizziAbilitati><email>{pec_attesa}</email></indirizziAbilitati>
+          <ruolo>AVVOCATURA</ruolo><stato>ATTIVO</stato>
+        </ruoliente>
+        <soggetto>
+          <codFisc>{codice_fiscale}</codFisc>
+          <NomeCompagnia>Avvocatura Distrettuale dello Stato di Venezia</NomeCompagnia>
+          <pec>protocollo.ve@pec.avvocaturastato.it</pec>
+        </soggetto>
+      </return></ricercaSoggettoExResponse></soap:Body>
+    </soap:Envelope>""".encode("utf-8")
+
+    parsed = module._reginde_parse_subject(response_xml, codice_fiscale, pec_attesa)
+
+    assert parsed["found"] is True
+    assert parsed["pec_matches"] is True
+    assert parsed["pec"] == pec_attesa
+    assert pec_attesa in parsed["pec_candidates"]
+    assert parsed["codice_fiscale"] == codice_fiscale
+    assert parsed["stato"] == "ATTIVO"
+
+
+def test_reginde_allinea_codice_fiscale_destinatario_da_ricerca_pec(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    codice_storico = "94026160278"
+    codice_registro = "80224030587"
+    pec = "ads.ve@mailcert.avvocaturastato.it"
+    response_xml = f"""<Envelope><Body><dettagliSoggettoPerIndirizzoResponse><return>
+      <ruoliente><codiceFiscale>{codice_registro}</codiceFiscale><pec>{pec}</pec><stato>ATTIVO</stato></ruoliente>
+      <soggetto><codFisc>{codice_registro}</codFisc><NomeCompagnia>Avvocatura dello Stato</NomeCompagnia><pec>{pec}</pec></soggetto>
+    </return></dettagliSoggettoPerIndirizzoResponse></Body></Envelope>""".encode("utf-8")
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
+    monkeypatch.setattr(
+        module,
+        "_soap_call_curl_batch_raw_best_effort",
+        lambda requests_batch, cert_thumbprint: [{"body_bytes": response_xml, "error": ""}],
+    )
+
+    result = module._reginde_verify_subjects([{
+        "key": "destinatario",
+        "codice_fiscale": codice_storico,
+        "pec_attesa": pec,
+        "allow_tax_code_correction": True,
+    }])
+
+    row = result["results"][0]
+    assert result["ok"] is True
+    assert row["verified"] is True
+    assert row["pec_matches"] is True
+    assert row["cf_matches"] is False
+    assert row["codice_fiscale"] == codice_registro
+    assert "allineato al registro" in row["message"]
+
+
+def test_reginde_verifica_batch_e_blocca_soggetto_non_attivo(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    codice_fiscale = "RSSMRA80A01H501U"
+    pec = "studio@example.pec.it"
+    response_xml = f"""<Envelope><Body><return><soggetto>
+      <codiceFiscale>{codice_fiscale}</codiceFiscale>
+      <postaElettronicaCertificata>{pec}</postaElettronicaCertificata>
+      <stato>CANCELLATO</stato>
+    </soggetto></return></Body></Envelope>""".encode("utf-8")
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
+    monkeypatch.setattr(
+        module,
+        "_soap_call_curl_batch_raw_best_effort",
+        lambda requests_batch, cert_thumbprint: [{"body_bytes": response_xml, "error": ""}],
+    )
+
+    result = module._reginde_verify_subjects([{
+        "key": "notificante",
+        "codice_fiscale": codice_fiscale,
+        "pec_attesa": pec,
+    }])
+
+    assert result["ok"] is False
+    assert result["results"][0]["found"] is True
+    assert result["results"][0]["verified"] is False
+    assert len(result["results"][0]["evidence_sha256"]) == 64
+
+
+def test_reginde_windows_usa_client_certificati_nativo_con_pin_solo_su_stdin(monkeypatch):
+    module = _load_local_signer()
+    response_xml = b"<Envelope><Body><return/></Body></Envelope>"
+    encoded_body = base64.b64encode(response_xml).decode("ascii")
+    captured = {}
+
+    class Completed:
+        returncode = 0
+        stderr = ""
+        stdout = json.dumps([{
+            "status_code": 200,
+            "headers_text": "HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n\r\n",
+            "body_b64": encoded_body,
+            "error": "",
+        }])
+
+    monkeypatch.setattr(module.shutil, "which", lambda name: "powershell.exe")
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["payload"] = json.loads(kwargs["input"])
+        return Completed()
+
+    monkeypatch.setattr(module, "_run_process_with_pin_foreground", fake_run)
+    result = module._reginde_windows_native_batch([{
+        "url": module._REGINDE_INTERROGAZIONE_URL,
+        "soap_body": "<Envelope/>",
+        "soap_action": module._REGINDE_INTERROGAZIONE_NS,
+        "max_time": 35,
+    }], cert_thumbprint="AABBCC11", pin="12345678")
+
+    assert captured["payload"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["payload"]["pin"] == "12345678"
+    assert "12345678" not in " ".join(captured["command"])
+    assert captured["command"][-2:] == ["-File", str(Path(module.__file__).with_name("local_signer_windows_http.ps1"))]
+    assert result[0]["status_code"] == 200
+    assert result[0]["body_bytes"] == response_xml
+    assert result[0]["error"] == ""
+
+
+def test_reginde_windows_richiede_pin_prima_di_aprire_il_middleware(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "win32")
+
+    with pytest.raises(ValueError, match="Inserisci il PIN"):
+        module._reginde_verify_subjects([{
+            "key": "notificante",
+            "codice_fiscale": "RSSMRA80A01H501U",
+            "pec_attesa": "studio@example.pec.it",
+        }])
+
+
+def test_ipa_verifica_pec_attiva_e_codice_fiscale(monkeypatch):
+    module = _load_local_signer()
+    calls = []
+
+    def fake_request(path, payload=None):
+        calls.append((path, payload))
+        if path == "mail":
+            return ({"risposta": {"listaResponse": [{"idEnte": 7, "denominazione": "Comune di Prova"}]}}, b"search")
+        return ({"risposta": {
+            "codiceFiscalePg": "01234567890",
+            "denominazione": "Comune di Prova",
+            "mail": {"mail": "protocollo@pec.comune.test", "idTipoEmail": "P", "idTipoStatoMail": "OK"},
+            "mailList": [],
+        }}, b"detail")
+
+    monkeypatch.setattr(module, "_ipa_json_request", fake_request)
+
+    result = module._ipa_verify_pec("protocollo@pec.comune.test", "01234567890")
+
+    assert result["ok"] is True
+    assert result["verified"] is True
+    assert result["source"] == "registro_ppaa"
+    assert result["codice_fiscale"] == "01234567890"
+    assert len(result["evidence_sha256"]) == 64
+    assert calls[0][0] == "mail"
+    assert calls[1][0] == "ente/eager/7"
+
+
 def test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee(monkeypatch):
     module = _load_local_signer()
     monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
@@ -90,8 +294,9 @@ def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
     assert 'include_full_snapshot = bool(data.get("include_full_snapshot"))' in ricerca_block
     full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
     assert "allow_cert_retry=True" in full_branch
-    assert '"full_snapshot": include_full_snapshot' in ricerca_block
-    assert '"master_detail": include_full_snapshot' in ricerca_block
+    assert '"full_snapshot": snapshot_completo' in ricerca_block
+    assert '"master_detail": snapshot_completo' in ricerca_block
+    assert "not _pst_servizio_cassazione_civile(base_url)" in ricerca_block
 
 
 def test_pst_infofascicolo_web_documenti_estrae_allegati_e_paginazione_sicid_lav():
@@ -384,6 +589,7 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "AttachThreadInput" in source
     assert "SetWindowPos" in source
     assert "FlashWindow" in source
+    assert "FlashWindowEx" in source
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
     assert "result = _run_process_with_pin_foreground(command, **run_kwargs)" in source
@@ -1036,7 +1242,7 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path)
         assert versioned_exe.read_bytes() == (dist / "SetupLocalSigner.exe").read_bytes()
     exe_path = dist / "SetupLocalSigner.exe"
     assert exe_path.read_bytes().startswith(b"MZ")
-    assert exe_path.stat().st_size < 400_000
+    assert exe_path.stat().st_size < 450_000
     if os.name == "nt":
         target = tmp_path / "iexpress-probe"
         target.mkdir()
@@ -2051,7 +2257,8 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "ping?light=1" in launcher
     assert "pyvenv.cfg" in installer
     assert "ProcessId -ne [int]$owner" not in launcher
-    assert "Stop-LocalSignerDuplicateProcesses" not in installer[installer.index("Write-Step \"Attendo che il servizio risponda"):]
+    assert "Stop-LocalSignerDuplicateProcesses" in installer[installer.index("Write-Step \"Attendo che il servizio risponda"):]
+    assert "Test-LocalSignerSingleInstance" in installer
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in installer
     assert "Register-LocalSignerScheduledTask" in installer
     scheduled_task_start = installer.index("function Register-LocalSignerScheduledTask")
@@ -2062,6 +2269,8 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert '$starterVbs' in scheduled_task
     assert 'cmd.exe' not in scheduled_task
     assert "Register-LocalSignerStartupShortcut" in installer
+    assert "Remove-LocalSignerStartupShortcut" in installer
+    assert "if (-not $autostartOk)" in installer
     assert "IUSENTRA Local Signer.lnk" in installer
     assert "iusentra-local-signer://restart" in installer
     assert "iusentra-local-signer://update" in installer
@@ -2073,6 +2282,8 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert 'echo %~1 | find /I "iusentra-local-signer://restart"' not in installer
     assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in installer
     assert "/polisWeb/local-signer/setup/windows" in installer
+    assert "-PassThru -Wait" in installer
+    assert "Remove-Item -LiteralPath $target" in installer
     assert "Invoke-Pip" in installer
     assert "PIP_NO_CACHE_DIR" in installer
     assert "pillow>=10.0.0" in installer
@@ -2084,7 +2295,7 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "renderInstallRequired(cfg, installer)" in monitor
     assert "openInstallerDownload(cfg);" not in monitor
     assert "autoOpenInstallerOnce(cfg, 'missing')" in monitor
-    assert "autoOpenInstallerOnce(cfg, 'outdated-auto')" in monitor
+    assert "autoOpenInstallerOnce(cfg, 'outdated-auto')" not in monitor
 
 
 def test_local_signer_update_endpoint_preferisce_hot_update_sorgenti(monkeypatch):
@@ -2118,6 +2329,112 @@ def test_local_signer_hot_update_blocca_versione_server_piu_vecchia(monkeypatch,
         module._aggiorna_sorgenti_local_signer()
 
 
+def test_local_signer_hot_update_installa_atomicamente_senza_backup_permanenti(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    install_dir = tmp_path / "LocalSigner"
+    mod_dir = install_dir / "local_signer_mod"
+    mod_dir.mkdir(parents=True)
+    restarted = []
+
+    for name, _path in module._LOCAL_SIGNER_SOURCE_FILES:
+        (install_dir / name).write_text("OLD = True\n", encoding="utf-8")
+    for name in module._LOCAL_SIGNER_SOURCE_MOD_FILES:
+        (mod_dir / name).write_text("OLD = True\n", encoding="utf-8")
+
+    def _download(url):
+        if url.rstrip("/").endswith("/download"):
+            return f'VERSION = "{module.VERSION}"\n'.encode("ascii")
+        if url.rstrip("/").endswith("/windows-http"):
+            return b"HttpClientHandler\nCurrentUser\\My\n"
+        return b"UPDATED = True\n"
+
+    monkeypatch.setattr(module, "_local_signer_install_dir", lambda: install_dir)
+    monkeypatch.setattr(module, "_scarica_sorgente", _download)
+    monkeypatch.setattr(module, "_programma_riavvio_local_signer", lambda: restarted.append(True))
+
+    result = module._aggiorna_sorgenti_local_signer("http://127.0.0.1:8080")
+
+    assert result["ok"] is True
+    assert result["versione_destinazione"] == module.VERSION
+    assert restarted == [True]
+    assert f'VERSION = "{module.VERSION}"' in (install_dir / "local_signer.py").read_text(encoding="utf-8")
+    assert "UPDATED = True" in (mod_dir / "security.py").read_text(encoding="utf-8")
+    assert list(install_dir.rglob("*.bak")) == []
+    assert list(install_dir.rglob("*.iusentra-update-*")) == []
+    assert list(install_dir.rglob("*.iusentra-rollback-*")) == []
+
+
+def test_local_signer_hot_update_ripristina_tutto_se_uno_swap_fallisce(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    install_dir = tmp_path / "LocalSigner"
+    mod_dir = install_dir / "local_signer_mod"
+    mod_dir.mkdir(parents=True)
+
+    destinations = []
+    for name, _path in module._LOCAL_SIGNER_SOURCE_FILES:
+        destination = install_dir / name
+        destination.write_text(f"OLD_{name.replace('.', '_')} = True\n", encoding="utf-8")
+        destinations.append(destination)
+    for name in module._LOCAL_SIGNER_SOURCE_MOD_FILES:
+        destination = mod_dir / name
+        destination.write_text(f"OLD_{name.replace('.', '_')} = True\n", encoding="utf-8")
+        destinations.append(destination)
+    originals = {path: path.read_bytes() for path in destinations}
+
+    def _download(url):
+        if url.rstrip("/").endswith("/download"):
+            return f'VERSION = "{module.VERSION}"\n'.encode("ascii")
+        if url.rstrip("/").endswith("/windows-http"):
+            return b"HttpClientHandler\nCurrentUser\\My\n"
+        return b"UPDATED = True\n"
+
+    original_replace = module.os.replace
+    update_swaps = 0
+
+    def _replace(source, destination):
+        nonlocal update_swaps
+        if ".iusentra-update-" in str(source):
+            update_swaps += 1
+            if update_swaps == 2:
+                raise OSError("swap interrotto")
+        return original_replace(source, destination)
+
+    monkeypatch.setattr(module, "_local_signer_install_dir", lambda: install_dir)
+    monkeypatch.setattr(module, "_scarica_sorgente", _download)
+    monkeypatch.setattr(module.os, "replace", _replace)
+    monkeypatch.setattr(module, "_programma_riavvio_local_signer", lambda: None)
+
+    with pytest.raises(OSError, match="swap interrotto"):
+        module._aggiorna_sorgenti_local_signer("http://127.0.0.1:8080")
+
+    assert {path: path.read_bytes() for path in destinations} == originals
+    assert list(install_dir.rglob("*.bak")) == []
+
+
+def test_local_signer_windows_rimuove_startup_solo_con_task_valido(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    startup = tmp_path / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+    startup.mkdir(parents=True)
+    shortcut = startup / "IUSENTRA Local Signer.lnk"
+    shortcut.write_bytes(b"shortcut")
+    task_xml = (
+        "<?xml version='1.0' encoding='UTF-16'?>"
+        "<Task><Actions><Exec><Command>wscript.exe</Command>"
+        "<Arguments>start_local_signer.vbs</Arguments></Exec></Actions></Task>"
+    ).encode("utf-16")
+
+    class _Result:
+        returncode = 0
+        stdout = task_xml
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs: _Result())
+
+    assert module._windows_presidia_avvio_automatico_unico() is True
+    assert shortcut.exists() is False
+
+
 def test_local_signer_update_endpoint_usa_installer_ufficiale_se_hot_update_fallisce(monkeypatch, tmp_path):
     module = _load_local_signer()
     calls = {}
@@ -2142,7 +2459,12 @@ def test_local_signer_update_endpoint_usa_installer_ufficiale_se_hot_update_fall
     joined = " ".join(calls["args"])
     assert "Invoke-WebRequest" in joined
     assert "Start-Process" in joined
+    assert "-PassThru -Wait" in joined
+    assert "Invoke-RestMethod" in joined
+    assert "Remove-Item -LiteralPath" in joined
     assert "/Q" in joined
+    assert result["metodo"] == "installer"
+    assert result["fase"] == "download_installazione"
 
 
 def test_local_signer_hot_update_chiude_istanze_duplicate_prima_del_riavvio(monkeypatch, tmp_path):
@@ -2227,16 +2549,20 @@ def test_ping_windows_espone_certificati_store_anche_senza_token_pkcs11():
             {
                 "thumbprint": "AD98A31AFF1D88DE24C62969F26102D827C24E21",
                 "soggetto": "ROBERTO MONTAGNESE",
+                "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+                "codice_fiscale": "MNTRRT64L01L063H",
                 "emittente": "ArubaPEC EU Authentica Certificates CA G1",
                 "scadenza": "2029-02-23",
             }
         ]
         module._ultimo_certificato_windows = {
-            "thumbprint": "AD98A31AFF1D88DE24C62969F26102D827C24E21",
-            "soggetto": "ROBERTO MONTAGNESE",
-            "emittente": "ArubaPEC EU Authentica Certificates CA G1",
-            "scadenza": "2029-02-23",
-        }
+        "thumbprint": "AD98A31AFF1D88DE24C62969F26102D827C24E21",
+        "soggetto": "ROBERTO MONTAGNESE",
+        "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+        "codice_fiscale": "MNTRRT64L01L063H",
+        "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+        "scadenza": "2029-02-23",
+    }
 
         module._Handler._ping(_FakeHandler())
     finally:
@@ -2923,7 +3249,7 @@ def test_pick_preferred_windows_cert_filtra_per_codice_fiscale_e_prefere_authent
             "soggetto": "ROBERTO MONTAGNESE",
             "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
             "codice_fiscale": "MNTRRT64L01L063H",
-            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "emittente": "ArubaPEC EU Authentication Certificates CA G1",
         },
     ]
 
@@ -2948,7 +3274,7 @@ def test_pick_preferred_windows_cert_usa_certificato_unico_filtrato_per_cf():
             "soggetto": "ROBERTO MONTAGNESE",
             "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
             "codice_fiscale": "MNTRRT64L01L063H",
-            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "emittente": "ArubaPEC EU Authentication Certificates CA G1",
         },
         {
             "thumbprint": "QUAL-OTHER",
@@ -3265,13 +3591,13 @@ def test_qbuilder_siecic_registro_specifico_usa_campi_ministeriali_completi():
     assert "<name>RicercaInformazioniFascicoloPerNumero</name>" in ricerca_xml
     assert '<value name="registro" type="string">ESIM</value>' in ricerca_xml
     assert '<value name="idRuoloJPW" type="string">CUS</value>' in ricerca_xml
-    assert "<name>DocumentiFascicolo</name>" in documenti_xml
-    assert '<value name="idDfa" type="string">DFA-ESIM-3441</value>' in documenti_xml
-    assert '<value name="registro" type="string">ESIM</value>' in documenti_xml
+    assert "<name>ElencoDocumenti</name>" in documenti_xml
+    assert '<value name="numeroRuolo" type="string">3441</value>' in documenti_xml
+    assert '<value name="annoRuolo" type="integer">2025</value>' in documenti_xml
+    assert '<value name="idRuoloJPW" type="string">CUS</value>' in documenti_xml
     assert "<name>ProfiloFascicolo</name>" in profilo_xml
     assert '<value name="idDfa" type="string">DFA-ESIM-3441</value>' in profilo_xml
     assert '<value name="registro" type="string">ESIM</value>' in profilo_xml
-    assert "name=\"numeroRuolo\"" not in documenti_xml
     assert "name=\"annoRuolo\"" not in profilo_xml
 
 
@@ -5130,6 +5456,8 @@ def test_pick_preferred_windows_cert_privilegia_aruba_auth():
         {
             "thumbprint": "AUTH-1",
             "soggetto": "ROSSI MARIO - AUTENTICAZIONE WEB",
+            "soggetto_completo": "CN=ROSSI MARIO,SERIALNUMBER=CF:RSSMRA80A01H501Z",
+            "codice_fiscale": "RSSMRA80A01H501Z",
             "emittente": "ArubaPEC EU Authentica Certificates CA G1",
             "scadenza": "2029-02-23",
         },

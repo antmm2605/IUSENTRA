@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 270.
-- Endpoint con `_richiedi_auth`: 270/270.
-- Endpoint con metodo di scrittura o cancellazione: 141.
+- Endpoint React API censiti: 276.
+- Endpoint con `_richiedi_auth`: 276/276.
+- Endpoint con metodo di scrittura o cancellazione: 146.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 118; critical: 18; high/P1: 76.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -107,6 +107,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/fascicoli/<id_fasc>/modifica` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/pagamenti/<kind>` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/predeposito/check` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fascicoli/<id_fasc>/proforma/genera` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fascicoli/<id_fasc>/regia` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/regia/applica-profilo` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/regia/ricalcola` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -165,6 +166,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/impostazioni/calendari/profili/<profile_id>/sincronizza` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/calendari/profili/<profile_id>/stato` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/calendari/rigenera-link` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/impostazioni/fatturazione/applica-proforme` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/firma/certificato` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/notifiche/invia` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/notifiche/link` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -185,13 +187,17 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/notifiche-legali` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/anteprima-relata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/area-web-pst` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/notifiche-legali/attestazione-conformita` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/bozze-relata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/comunicazione-cliente` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/modelli-relata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/non-pec` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/notifica` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/notifiche-legali/pratiche/<id_fascicolo>` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/notifiche-legali/pratiche/<id_fascicolo>/documenti` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/prova-deposito` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/notifiche-legali/relata-firmata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/notifiche-legali/relata-pdf` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/unep` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/pat/moduli/compila` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/pat/moduli/prefill` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

@@ -6,6 +6,7 @@ from datetime import date
 
 from pct.agenda import TipoAppuntamento
 from pct.fascicoli import StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.pec_pipeline import PecAuditRepository
 from pct.scadenziario import TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
@@ -165,7 +166,7 @@ def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monke
 
     def fake_auto(fascicolo_arg, payments, **kwargs):
         calls["count"] += 1
-        assert kwargs.get("allow_full_document_scan") is False
+        assert kwargs.get("allow_full_document_scan") is True
         assert kwargs.get("allow_document_extraction") is False
         return {
             "contributo_unificato": {
@@ -214,6 +215,7 @@ def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monke
     assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
     assert marker["status"] == "aggiornato"
     assert marker["fingerprint"] == react_fascicoli_bridge._document_analysis_fingerprint(saved)
+    assert marker["analysisVersion"] == react_fascicoli_bridge.ECONOMIC_DOCUMENT_ANALYSIS_VERSION
 
     with app.app_context():
         repeat = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
@@ -267,7 +269,69 @@ def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monke
     assert calls["count"] == 2
 
 
-def test_presidio_economico_automatico_non_scansiona_tutti_i_documenti(tmp_path, monkeypatch):
+def test_nuova_versione_parser_corregge_solo_contributo_automatico():
+    automatic = {
+        "status": "pagato",
+        "pagato": True,
+        "previsto": True,
+        "importo": 21.5,
+        "documento_fonte": "Ricevuta PagoPA.pdf",
+        "origine": "Document AI / fascicolo",
+        "updated_by": "IUSENTRA automatico",
+        "note": "Importo verificato dalla ricevuta.",
+    }
+    old_automatic = {
+        "status": "da_registrare",
+        "pagato": False,
+        "previsto": True,
+        "importo": 6.0,
+        "documento_fonte": "Import pratiche",
+        "origine": "Document AI / fascicolo",
+        "updated_by": "IUSENTRA scheduler",
+        "history": [
+            {
+                "by": "IUSENTRA scheduler",
+                "note": "Dato economico consolidato automaticamente dai documenti del fascicolo.",
+            }
+        ],
+    }
+    manual = {
+        **old_automatic,
+        "updated_by": "Avv. Rossi",
+        "origine": "Inserimento manuale",
+        "history": [{"by": "Avv. Rossi", "note": "Importo verificato dal professionista."}],
+    }
+
+    repaired = react_fascicoli_bridge._merge_auto_payment_source(
+        old_automatic,
+        automatic,
+        kind="contributo_unificato",
+        replace_automatic=True,
+    )
+    preserved = react_fascicoli_bridge._merge_auto_payment_source(
+        manual,
+        automatic,
+        kind="contributo_unificato",
+        replace_automatic=True,
+    )
+
+    assert repaired["status"] == "pagato"
+    assert repaired["importo"] == 21.5
+    assert repaired["documento_fonte"] == "Ricevuta PagoPA.pdf"
+    assert preserved == manual
+
+
+def test_filtro_economico_riconosce_pagamento_cu_cbill_senza_testo_esteso():
+    metadata = {"filename": "Pagamento cu.PDF", "tipo_documento": "ALLEGATO"}
+    text = (
+        "Pagamento CBILL numero 5197808442. "
+        "CAUSALE PAGAMENTO: EQUITALIA GIUSTIZIA S.P.A. IMPORTO: 49,00 €"
+    )
+
+    assert react_fascicoli_bridge._document_may_contain_contributo_unificato(text, metadata) is True
+
+
+def test_presidio_economico_automatico_scansiona_tutti_i_testi_senza_rileggere_i_file(tmp_path, monkeypatch):
     app = _app(tmp_path)
     api_v1_react._clear_fascicoli_list_payload_cache()
     with app.app_context():
@@ -299,14 +363,17 @@ def test_presidio_economico_automatico_non_scansiona_tutti_i_documenti(tmp_path,
             },
         )
 
-    fallback_flags: list[bool] = []
+    indexed_document_counts: list[int] = []
 
-    def guarded_candidates(*args, **kwargs):
-        fallback_flags.append(bool(kwargs.get("fallback_all")))
-        assert kwargs.get("fallback_all") is False
-        return []
+    def fail_candidates(*args, **kwargs):
+        raise AssertionError("Il presidio completo deve passare tutti i documenti senza filtro sul nome.")
 
-    monkeypatch.setattr(react_fascicoli_bridge, "_document_candidates_for_hints", guarded_candidates)
+    def guarded_indexed_texts(_fascicolo, documents=None):
+        indexed_document_counts.append(len(list(documents or [])))
+        return {}
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_document_candidates_for_hints", fail_candidates)
+    monkeypatch.setattr(react_fascicoli_bridge, "_document_ai_texts_for_fascicolo", guarded_indexed_texts)
 
     def fail_ocr_extraction(*args, **kwargs):
         raise AssertionError("Il presidio economico schedulato non deve avviare OCR o lettura fisica pesante.")
@@ -337,9 +404,183 @@ def test_presidio_economico_automatico_non_scansiona_tutti_i_documenti(tmp_path,
 
     assert result["contributiCheckedCount"] == 1
     assert result["documentAnalysisUpdatedCount"] == 1
-    assert fallback_flags
-    assert set(fallback_flags) == {False}
+    assert indexed_document_counts == [8]
     assert save_calls["count"] == 1
+
+
+def test_presidio_economico_con_batch_piccolo_prioritizza_documenti_nuovi(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        gia_controllato = fascicoli.nuovo(
+            "Fascicolo già controllato",
+            TipoFascicolo.CIVILE,
+            numero_rg="1500",
+            anno_rg=2026,
+        )
+        nuovo = fascicoli.nuovo(
+            "Fascicolo con documento nuovo",
+            TipoFascicolo.CIVILE,
+            numero_rg="1501",
+            anno_rg=2026,
+        )
+        current = fascicoli.get(gia_controllato.id)
+        marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+            current,
+            actor="Ciclo precedente",
+            automatic_sources={},
+        )
+        fascicoli.aggiorna(
+            gia_controllato.id,
+            pagamenti={
+                "contributo_unificato": {"status": "non_previsto", "previsto": False},
+                "_presidio_documentale": marker,
+            },
+        )
+        fascicoli.aggiungi_documento(
+            nuovo.id,
+            "Ricevuta contributo unificato.txt",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            b"Ricevuta pagamento PagoPA contributo unificato, importo versato euro 49,00.",
+        )
+
+    analyzed_ids: list[str] = []
+
+    def fake_auto(fascicolo, _payments, **kwargs):
+        analyzed_ids.append(fascicolo.id)
+        assert kwargs["allow_full_document_scan"] is True
+        assert kwargs["allow_document_extraction"] is False
+        return {
+            "contributo_unificato": {
+                "kind": "contributo_unificato",
+                "status": "pagato",
+                "previsto": True,
+                "pagato": True,
+                "importo": 49.0,
+                "documento_fonte": "Ricevuta contributo unificato.txt",
+            }
+        }
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fake_auto)
+    with app.app_context():
+        first = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=1,
+        )
+        saved = get_fascicoli().get(nuovo.id)
+
+    assert analyzed_ids == [nuovo.id]
+    assert first["documentAnalysisCandidateCount"] == 1
+    assert first["documentAnalysisUpdatedCount"] == 1
+    assert first["documentAnalysisPendingCount"] == 0
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
+
+    with app.app_context():
+        second = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=1,
+        )
+
+    assert analyzed_ids == [nuovo.id]
+    assert second["documentAnalysisCandidateCount"] == 0
+    assert second["documentAnalysisUpdatedCount"] == 0
+    assert second["documentAnalysisPendingCount"] == 0
+
+
+def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Mario Rossi c. Ministero",
+            TipoFascicolo.LAVORO,
+            nome_cliente="Mario Rossi",
+            tribunale="Tribunale di Palmi",
+            numero_rg="1548",
+            anno_rg=2026,
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "Ricevuta contributo unificato.txt",
+            TipoDocumento.ATTO_GIUDIZIARIO,
+            (
+                "RICEVUTA TELEMATICA DI PAGAMENTO\n"
+                "Importo totale versato: 49.00\n"
+                "Identificativo versamento: 30003628285360064\n"
+                "Data: 17/03/2026\n"
+                "Causale: Contributo unificato RG 1548/2026\n"
+                "Tipo pagamento: Contributo unificato\n"
+                "Esito: 0"
+            ).encode("utf-8"),
+        )
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "Sentenza 230-2026.txt",
+            TipoDocumento.SENTENZA,
+            (
+                "TRIBUNALE DI PALMI\n"
+                "Sentenza n. 230/2026 pubbl. il 07/05/2026\n"
+                "R.G. n. 1548/2026\n"
+                "Mario Rossi contro Ministero. Il Giudice, definitivamente pronunciando, "
+                "condanna il Ministero alla rifusione delle spese di lite, liquidate in "
+                "complessivi euro 1.100,00 oltre spese generali 15% e accessori di legge."
+            ).encode("utf-8"),
+        )
+
+    document_repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=app.config["FASCICOLI_DB"],
+        fascicoli_docs_path=app.config["FASCICOLI_DOCS"],
+        scadenziario_db_path=app.config["SCADENZIARIO_DB"],
+        agenda_db_path=app.config["AGENDA_DB"],
+    )
+    indexed = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
+
+    assert indexed["processed_new_documents"] == 2
+    assert indexed["indexed_documents"] == 2
+    assert indexed["errors"] == []
+
+    with app.app_context():
+        economic = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=10,
+        )
+        saved = get_fascicoli().get(fascicolo.id)
+
+    assert economic["documentAnalysisUpdatedCount"] == 1
+    assert saved.pagamenti["contributo_unificato"]["status"] == "pagato"
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
+    assert saved.pagamenti["liquidazione_giudice"]["status"] == "da_registrare"
+    assert saved.pagamenti["liquidazione_giudice"]["importo"] == 1100.0
+    assert saved.pagamenti["parcella"]["status"] == "da_emettere"
+
+    second_index = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
+    assert second_index["processed_new_documents"] == 0
+    assert second_index["indexed_documents"] == 0
+    assert second_index["skipped_unchanged_fascicoli"] == 1
+    assert second_index["skipped_unchanged_documents"] == 2
+
+    def fail_reanalysis(*_args, **_kwargs):
+        raise AssertionError("I documenti economici invariati non devono essere riletti")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_reanalysis)
+    with app.app_context():
+        second_economic = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="IUSENTRA scheduler",
+            limit=10,
+        )
+
+    assert second_economic["documentAnalysisUpdatedCount"] == 0
+    assert second_economic["documentAnalysisPendingCount"] == 0
 
 
 def test_presidio_economico_rianalizza_marker_corrente_incompleto_senza_unresolved(tmp_path, monkeypatch):
@@ -453,6 +694,64 @@ def test_presidio_economico_non_rilegge_marker_corrente_con_unresolved(tmp_path,
     assert summary["analysis"]["unresolvedKinds"] == ["contributo_unificato"]
     assert summary["items"]["contributo_unificato"]["importoLabel"] == "Non trovato"
     assert "ricevuta" in summary["items"]["contributo_unificato"]["note"]
+
+
+def test_presidio_economico_rianalizza_unresolved_quando_cambia_versione_parser(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicoli = get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Riepilogo ruolo c. MIM",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente riepilogo",
+            tribunale="Tribunale di Palmi",
+            numero_rg="139",
+            anno_rg=2026,
+        )
+        saved = fascicoli.get(fascicolo.id)
+        marker = react_fascicoli_bridge._build_presidio_documentale_marker(
+            saved,
+            actor="Vecchio parser",
+            automatic_sources={},
+        )
+        marker["analysisVersion"] = "versione-precedente"
+        marker["unresolvedKinds"] = ["contributo_unificato"]
+        fascicoli.aggiorna(
+            fascicolo.id,
+            pagamenti={
+                "contributo_unificato": {"status": "da_registrare", "importo": 0},
+                "_presidio_documentale": marker,
+            },
+        )
+
+    calls = {"count": 0}
+
+    def fake_auto(*args, **kwargs):
+        calls["count"] += 1
+        assert kwargs["force_revalidate_auto"] is True
+        return {
+            "contributo_unificato": {
+                "kind": "contributo_unificato",
+                "status": "da_registrare",
+                "importo": 237.0,
+                "documento_fonte": "Riepilogo ruolo.pdf",
+            }
+        }
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fake_auto)
+    with app.app_context():
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli,
+            get_fatturazione=get_fatturazione,
+            actor="Test automatico",
+            limit=1000,
+        )
+        saved = get_fascicoli().get(fascicolo.id)
+
+    assert calls["count"] == 1
+    assert result["contributiUpdatedCount"] == 1
+    assert saved.pagamenti["contributo_unificato"]["status"] == "da_registrare"
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 237.0
 
 
 def test_presidio_economico_definisce_fascicolo_con_liquidazione_pagata_e_parcella_da_emettere(tmp_path, monkeypatch):
@@ -634,8 +933,10 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "loadLazySection('regia')" in page_source
     assert "loadLazySection('relata')" in page_source
     assert "loadLazySection('audit')" in page_source
-    assert "loadLazySection('lex')" in page_source
-    assert "getFascicoloDetail(id).then" in page_source
+    assert "if (initialIncludes.includes('documenti')) next.lex = 'loading'" in page_source
+    assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source
+    assert "lexIndexing: section === 'lex' || section === 'documenti'" in page_source
+    assert "getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined).then" in page_source
     assert "getFascicoloDetail(id, { include: 'all' })" in page_source
     assert "fascicoliListCacheKey" in page_source
     assert "pageCacheRef" in page_source
@@ -671,11 +972,40 @@ def test_fascicoli_route_archivio_e_dettaglio_restano_raggiungibili(tmp_path):
 
 def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_path):
     app = _app(tmp_path)
+    remote_hearing_url = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_timeline"
     with app.app_context():
         fascicoli = get_fascicoli()
         fascicolo = fascicoli.nuovo("Dettaglio lazy", TipoFascicolo.CIVILE, numero_rg="42", anno_rg=2026)
         fascicoli.aggiungi_documento(fascicolo.id, "atto.txt", TipoDocumento.ATTO_GIUDIZIARIO, b"atto")
-        fascicoli.aggiungi_attivita(fascicolo.id, TipoAttivita.UDIENZA, date.today().isoformat(), "Udienza filtro lazy")
+        fascicoli.aggiungi_attivita(
+            fascicolo.id,
+            TipoAttivita.UDIENZA,
+            date.today().isoformat(),
+            "Udienza filtro lazy",
+            id_appuntamento="AGENDA-09",
+            descrizione="Udienza da remoto con collegamento verificato.",
+            note="Istruzioni di collegamento lette dal decreto.",
+            hearing_time="09:30",
+            remote_hearing_detected=True,
+            remote_hearing_mode="REMOTO",
+            remote_hearing_url=remote_hearing_url,
+            remote_hearing_source="decreto_fissazione_udienza.pdf",
+            remote_hearing_verified=True,
+            remote_hearing_platform="Microsoft Teams",
+            remote_hearing_meeting_id="riunione-42",
+            remote_hearing_passcode="codice-42",
+            remote_hearing_access_info="Collegarsi dieci minuti prima.",
+        )
+        fascicoli.aggiungi_attivita(
+            fascicolo.id,
+            TipoAttivita.UDIENZA,
+            date.today().isoformat(),
+            "Seconda udienza nello stesso giorno",
+            id_appuntamento="AGENDA-12",
+            remote_hearing_detected=True,
+            remote_hearing_url="https://example.com/riunione-non-verificata",
+            remote_hearing_verified=True,
+        )
         fascicoli.aggiungi_esito_deposito(fascicolo.id, "Comparsa", "tribunale@example.pec.it", stato="ACCETTATO_PEC")
         get_scadenziario().nuova(
             "Termine lazy",
@@ -703,11 +1033,32 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
     assert main["regia"]["page_state"] == "lazy_non_caricata"
     assert main["auditTrail"]["status"] == "lazy_non_caricato"
     assert main["quickCounts"]["documenti"] == 1
-    assert main["quickCounts"]["attivita"] == 0
+    assert main["quickCounts"]["attivita"] == 2
     assert main["quickCounts"]["udienze_scadenze"] >= 1
     assert main["quickCounts"]["comunicazioni"] == 1
     assert len(documenti["documents"]) == 1
-    assert attivita["activities"] == []
+    assert len(attivita["activities"]) == 2
+    assert attivita["activities"][0]["type"] == "UDIENZA"
+    assert {item["title"] for item in attivita["activities"]} == {
+        "Udienza filtro lazy",
+        "Seconda udienza nello stesso giorno",
+    }
+    remote_activity = next(item for item in attivita["activities"] if item["title"] == "Udienza filtro lazy")
+    assert remote_activity["description"] == "Udienza da remoto con collegamento verificato."
+    assert remote_activity["notes"] == "Istruzioni di collegamento lette dal decreto."
+    assert remote_activity["hearingTime"] == "09:30"
+    assert remote_activity["remoteHearingDetected"] is True
+    assert remote_activity["remoteHearingMode"] == "REMOTO"
+    assert remote_activity["remoteHearingUrl"] == remote_hearing_url
+    assert remote_activity["remoteHearingVerified"] is True
+    assert remote_activity["remoteHearingPlatform"] == "Microsoft Teams"
+    assert remote_activity["remoteHearingMeetingId"] == "riunione-42"
+    assert remote_activity["remoteHearingPasscode"] == "codice-42"
+    assert remote_activity["remoteHearingAccessInfo"] == "Collegarsi dieci minuti prima."
+    unsafe_activity = next(item for item in attivita["activities"] if item["title"] == "Seconda udienza nello stesso giorno")
+    assert unsafe_activity["remoteHearingDetected"] is True
+    assert unsafe_activity["remoteHearingUrl"] == ""
+    assert unsafe_activity["remoteHearingVerified"] is False
     assert len(scadenze["deadlines"]) == 1
     assert len(depositi["deposits"]) == 1
     assert regia["mock_fallback"] is False

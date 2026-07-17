@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 from collections.abc import Callable
@@ -202,6 +203,7 @@ def register_fascicoli_signature_routes(
                 id_doc=id_doc,
                 nome_file=nome_firmato,
                 contenuto=encrypt_doc(contenuto_firmato),
+                hash_contenuto_sha256=hashlib.sha256(contenuto_firmato).hexdigest(),
                 caricato_da=utente.username if utente else "",
                 note=nota_con_firma_visibile(
                     "Versione firmata per deposito",
@@ -394,6 +396,7 @@ def register_fascicoli_signature_routes(
                         id_doc=id_doc,
                         nome_file=nome_firmato,
                         contenuto=encrypt_doc(contenuto_firmato),
+                        hash_contenuto_sha256=hashlib.sha256(contenuto_firmato).hexdigest(),
                         caricato_da=utente.username if utente else "",
                         note=nota_con_firma_visibile(
                             "Versione firmata per deposito",
@@ -556,6 +559,7 @@ def register_fascicoli_signature_routes(
                     id_doc=id_doc,
                     nome_file=file.filename,
                     contenuto=encrypt_doc(payload_firmato),
+                    hash_contenuto_sha256=hashlib.sha256(payload_firmato).hexdigest(),
                     caricato_da=utente.username if utente else "",
                     note=note,
                 )

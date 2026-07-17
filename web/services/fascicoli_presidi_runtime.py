@@ -108,6 +108,8 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
         "contributiUpdatedCount": 0,
         "contributiMissingCount": 0,
         "documentAnalysisUpdatedCount": 0,
+        "documentAnalysisCandidateCount": 0,
+        "documentAnalysisPendingCount": 0,
         "statusDefinedUpdatedCount": 0,
         "skippedCount": 0,
     }

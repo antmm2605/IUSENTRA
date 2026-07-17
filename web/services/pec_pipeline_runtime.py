@@ -8,8 +8,10 @@ from typing import Any, Mapping
 
 from flask import current_app, g, has_app_context
 
+from pct.formatting import format_date_it
 from pct.incremental_jobs import cursor_tuple, is_after_cursor
-from pct.pec_pipeline import PecAuditRepository
+from pct.notifications.web_push import safe_remote_hearing_url
+from pct.pec_pipeline import PecAuditRepository, _remote_hearing_deadline_extra
 
 
 def _path_from_mapping(paths: Mapping[str, Any], key: str, default: str) -> str:
@@ -48,7 +50,16 @@ def run_workers_for_paths(
     document_presidio_limit: int | None = None,
 ) -> dict[str, Any]:
     repo = repository_from_paths(paths, tenant_label=tenant_label)
+    try:
+        maintenance = repo.enqueue_stale_attachment_repairs(
+            limit=max(1, min(int(limit or 200), 20)),
+            actor="scheduler",
+        )
+    except Exception as exc:
+        maintenance = {"ok": False, "queued": 0, "unresolved": 1, "error": str(exc)[:180]}
     report = repo.run_pending_jobs(limit=limit, actor="scheduler")
+    if maintenance.get("queued") or maintenance.get("unresolved") or maintenance.get("error"):
+        report["attachment_maintenance"] = maintenance
     try:
         cleanup = repo.cleanup_legacy_pec_operational_items(actor="scheduler")
         if cleanup.get("scadenziario_removed") or cleanup.get("agenda_removed") or cleanup.get("errors"):
@@ -181,21 +192,13 @@ def _tenant_notification_id(tenant_label: str) -> str:
 def _notification_recipients(paths: Mapping[str, Any]) -> list[str]:
     """Utenti attivi dello studio con lettura scadenziario: destinatari del presidio."""
 
-    from pct.auth import GestioneUtenti
+    from web.services.notifications_runtime import notification_recipients_for_paths
 
-    auth_db = _path_from_mapping(paths, "AUTH_DB", "./auth/utenti.json")
-    if not Path(auth_db).exists():
-        return []
-    audit_db = _path_from_mapping(paths, "AUDIT_DB", "./auth/audit.json")
-    secret = str(current_app.config.get("SECRET_KEY", "") or "scheduler") if has_app_context() else "scheduler"
-    gestore = GestioneUtenti(
-        db_path=auth_db,
-        audit_path=audit_db,
-        secret_key=secret,
-        crea_admin_se_vuoto=False,
-    )
     recipients: list[str] = []
-    for user in gestore.tutti(solo_attivi=True):
+    for user in notification_recipients_for_paths(
+        paths,
+        database=paths.get("_TENANT_DATABASE_CONFIG"),
+    ):
         try:
             if hasattr(user, "ha_permesso") and not user.ha_permesso("scadenziario.leggi"):
                 continue
@@ -205,6 +208,107 @@ def _notification_recipients(paths: Mapping[str, Any]) -> list[str]:
         if user_id:
             recipients.append(user_id)
     return recipients
+
+
+def build_pec_deadline_notification(
+    deadline: Mapping[str, Any],
+    *,
+    source_id: str,
+    automatic: bool,
+) -> dict[str, Any]:
+    """Costruisce la stessa notifica per schedulazione manuale e automatica."""
+
+    agenda = deadline.get("agenda") if isinstance(deadline.get("agenda"), dict) else {}
+    proposal = deadline.get("proposal") if isinstance(deadline.get("proposal"), dict) else {}
+    remote = (
+        dict(deadline.get("remote_hearing"))
+        if isinstance(deadline.get("remote_hearing"), Mapping)
+        else _remote_hearing_deadline_extra({}, proposal)
+    )
+    deadline_id = str(deadline.get("deadline_id") or "").strip()
+    agenda_id = str(agenda.get("agenda_id") or "").strip()
+    due_date = str(deadline.get("due_date") or "").strip()
+    due_date_label = format_date_it(due_date) or due_date
+    remote_detected = bool(
+        remote.get("remote_hearing_detected")
+        or remote.get("remote_hearing_url")
+        or remote.get("remote_hearing_pdf_required")
+    )
+    remote_candidate = str(remote.get("remote_hearing_url") or "").strip()
+    remote_url = safe_remote_hearing_url(
+        {
+            "remoteHearingUrl": remote_candidate,
+            "remoteHearingSource": str(remote.get("remote_hearing_source") or "").strip(),
+            "remoteHearingVerified": bool(remote.get("remote_hearing_verified")),
+        },
+        require_verified=True,
+    )
+    remote_verified = bool(remote_url)
+    origin = "Presidio documentale Lex" if source_id.startswith("docpresidio:") else (
+        "Presidio PEC automatico" if automatic else "Presidio PEC"
+    )
+    if agenda_id:
+        href = str(agenda.get("agenda_href") or f"/agenda/{agenda_id}")
+    elif deadline_id:
+        href = f"/scadenziario/{deadline_id}?vista=tutte"
+    else:
+        href = "/scadenziario?vista=pec"
+
+    if remote_detected:
+        title = "Udienza audiovisiva registrata"
+        if remote_url:
+            remote_status = (
+                "Collegamento audiovisivo verificato e disponibile."
+                if remote_verified
+                else "Collegamento audiovisivo disponibile e da controllare sulla fonte."
+            )
+        else:
+            remote_status = "Collegamento audiovisivo da acquisire dal documento dell'udienza."
+        body = (
+            f"{origin}: udienza collegata ad Agenda e Scadenziario"
+            f"{f' per il {due_date_label}' if due_date_label else ''}. {remote_status}"
+        )
+        action_label = "Collegati all'udienza" if remote_url else "Apri udienza"
+    else:
+        title = "Scadenza operativa registrata" if source_id.startswith("docpresidio:") else "Scadenza PEC registrata"
+        agenda_text = " e all'Agenda" if agenda_id else ""
+        body = (
+            f"{origin}: scadenza collegata allo Scadenziario{agenda_text}"
+            f"{f' per il {due_date_label}' if due_date_label else ''}."
+        )
+        action_label = "Apri scadenza"
+
+    return {
+        "title": title,
+        "body": body,
+        "href": href,
+        "payload_json": {
+            "deadlineId": deadline_id,
+            "agendaId": agenda_id,
+            "dueDate": due_date,
+            "dueDateLabel": due_date_label,
+            "alreadyExists": bool(deadline.get("already_exists")),
+            "origin": "auto" if automatic else "manual",
+            "actionLabel": action_label,
+            "remoteHearingDetected": remote_detected,
+            "remoteHearingMode": str(remote.get("remote_hearing_mode") or "").strip(),
+            "remoteHearingUrl": remote_url,
+            "remoteHearingSource": str(remote.get("remote_hearing_source") or "").strip(),
+            "remoteHearingVerified": remote_verified,
+            "remoteHearingTime": str(remote.get("remote_hearing_time") or "").strip(),
+            "remoteHearingPlatform": str(remote.get("remote_hearing_platform") or "").strip(),
+            "remoteHearingMeetingId": str(remote.get("remote_hearing_meeting_id") or "").strip(),
+            "remoteHearingAccessInfo": str(remote.get("remote_hearing_access_info") or "").strip(),
+            "remoteHearingPdfRequired": bool(remote.get("remote_hearing_pdf_required")),
+        },
+    }
+
+
+def should_send_pec_deadline_web_push(notification: Mapping[str, Any]) -> bool:
+    payload = notification.get("payload_json") if isinstance(notification.get("payload_json"), Mapping) else {}
+    if not bool(payload.get("remoteHearingDetected")):
+        return True
+    return bool(payload.get("remoteHearingUrl") and payload.get("remoteHearingVerified"))
 
 
 def notify_auto_deadlines_for_paths(
@@ -228,35 +332,49 @@ def notify_auto_deadlines_for_paths(
             continue
         result = job.get("result") if isinstance(job.get("result"), dict) else {}
         deadline = result.get("auto_deadline") if isinstance(result.get("auto_deadline"), dict) else {}
-        if deadline.get("ok") and str(deadline.get("deadline_id") or "").strip():
-            deadlines.append((str(job.get("message_id") or ""), deadline))
+        deadline_results = (
+            [item for item in list(deadline.get("hearing_results") or []) if isinstance(item, dict)]
+            if isinstance(deadline.get("hearing_results"), list)
+            else []
+        ) or [deadline]
+        for deadline_result in deadline_results:
+            if not deadline_result.get("ok") or not str(deadline_result.get("deadline_id") or "").strip():
+                continue
+            source_id = str(
+                deadline_result.get("scheduled_message_id")
+                or job.get("message_id")
+                or deadline_result.get("deadline_id")
+                or ""
+            )
+            deadlines.append((source_id, deadline_result))
     if not deadlines:
         return report
 
-    from pct.notifications import NotificationRepository, NotificationService
+    from pct.notifications import NotificationService
     from pct.notifications.web_push import load_web_push_config
+    from web.services.notifications_runtime import build_notification_repository_for_paths
 
     recipients = _notification_recipients(paths)
     report["recipients"] = len(recipients)
     if not recipients:
         return report
-    db_path = _path_from_mapping(paths, "NOTIFICATIONS_DB", "./notifications/notifications.db")
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     config = current_app.config if has_app_context() else {}
     service = NotificationService(
-        NotificationRepository(db_path),
+        build_notification_repository_for_paths(
+            paths,
+            database=paths.get("_TENANT_DATABASE_CONFIG"),
+            config=config,
+        ),
         web_push_config=load_web_push_config(config),
     )
-    tenant_id = _tenant_notification_id(tenant_label)
+    tenant_id = str(paths.get("_TENANT_NOTIFICATION_ID") or _tenant_notification_id(tenant_label))
     for message_id, deadline in deadlines:
-        agenda = deadline.get("agenda") if isinstance(deadline.get("agenda"), dict) else {}
-        agenda_id = str(agenda.get("agenda_id") or "")
-        due_date = str(deadline.get("due_date") or "")
         source_id = message_id or str(deadline.get("deadline_id") or "")
-        agenda_text = " e all'agenda" if agenda_id else ""
-        due_text = f" per il {due_date}" if due_date else ""
-        origin = "Presidio documentale Lex" if source_id.startswith("docpresidio:") else "Presidio PEC automatico"
-        body = f"{origin}: scadenza collegata allo scadenziario{agenda_text}{due_text}."
+        notification = build_pec_deadline_notification(
+            deadline,
+            source_id=source_id,
+            automatic=True,
+        )
         for user_id in recipients:
             try:
                 _record, created, _summary = service.create_notification(
@@ -264,20 +382,15 @@ def notify_auto_deadlines_for_paths(
                     user_id=user_id,
                     type="pec_deadline",
                     priority="important",
-                    title="Scadenza operativa registrata" if source_id.startswith("docpresidio:") else "Scadenza PEC registrata",
-                    body=body,
-                    href="/scadenziario?vista=pec",
+                    title=notification["title"],
+                    body=notification["body"],
+                    href=notification["href"],
                     source_type="pec_deadline",
                     source_id=source_id,
                     dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
-                    payload_json={
-                        "deadlineId": str(deadline.get("deadline_id") or ""),
-                        "agendaId": agenda_id,
-                        "dueDate": due_date,
-                        "alreadyExists": bool(deadline.get("already_exists")),
-                        "origin": "auto",
-                    },
-                    send_push=True,
+                    payload_json=notification["payload_json"],
+                    send_push=should_send_pec_deadline_web_push(notification),
+                    redispatch_on_remote_hearing_enrichment=True,
                 )
                 report["created" if created else "duplicates"] += 1
             except Exception:

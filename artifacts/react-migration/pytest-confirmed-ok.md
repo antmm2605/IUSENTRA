@@ -6276,3 +6276,29 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | CI GitHub commit `6429973c` | OK | Lint, governance, smoke, frontend, CodeQL, coverage 12/12, tutti gli shard Pytest e Local Signer/PKCS#11 macOS/Ubuntu/Windows completati con successo. |
 | Deploy Hetzner | OK | Commit server allineato; unico `iusentra-app`; app/scheduler/OCR healthy; health interno ed esterno `2.256.0`; impronte runtime coincidenti; prune Docker completato. |
 | Browser produzione `795C50AC` | OK osservato | Prova senza invio e simulazione PEC cliccate e confermate; apertura dei tre campi mancanti, nessun HTTP 500, nessun invio esterno, ricevute rimaste 4, invio reale correttamente disabilitato. |
+
+## Deposito atomico e presidio documentale incrementale - 2026-07-12
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Suite PEC, documenti, API deposito e UI | OK | `110/110` test passati, inclusi lock, lotti parziali, prima lettura, secondo job senza sorgenti/testi, modifica di un solo documento e rinvio persistente fino alla data di riesame. |
+| Audit deposito end-to-end | OK | `270` tipi, generatori PCT `252/252`, `0` rami sospesi, `122` guardie campi e `593/593` uffici operativi coperti. |
+| Frontend React | OK | Typecheck, contratti, governance UI, test e build Vite superati; bundle principale leggermente più piccolo del precedente. |
+| Qualità e contratti | OK | Codex quality gate, Ruff, compileall, OpenAPI, security map, route gate, packaging, release readiness, UTF-8 e asset retention superati. |
+| Parità storage | OK | Test migrazione PostgreSQL `11/11`; audit dati `source_of_truth=sqlite`, `json_authoritative=false`, `errors=0`; audit tenant a freddo con `warnings=0` e `operational_untracked=0`. |
+| Docker reale locale | OK | App, scheduler e OCR ricostruiti; `127.0.0.1:8080/api/pronto` `2.256.0`, `Europe/Rome`, container healthy. |
+| Browser reale locale | OK osservato | Click, focus e scroll sul deposito `A1FB22FE`; nessuna preselezione, campi decreto puntuali, ufficio/PEC/codice risolti; desktop, tablet e mobile senza overflow; nessun salvataggio o invio. |
+| Worker reale Hetzner | OK osservato | `30` nuove risorse distinte, `0` duplicati, `14` fascicoli consolidati, letture automatiche ferme a `2.641.950`, cicli senza errori e nessuna PEC inviata. |
+
+## UDIENZA in timeline, Agenda, Scadenziario e Web Push - 2026-07-17
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py` | OK | `11/11` passati; il Web Push è attivo per impostazione predefinita e resta chiuso se VAPID o sottoscrizione browser non sono disponibili. |
+| `python -m pytest -q tests/test_push_notifications.py` | OK | `21/21` passati; deduplicazione, aggiornamento incrementale, reinvio sul solo arricchimento audiovisivo, URL verificati e azioni service worker. |
+| Test timeline e Scadenziario React mirati | OK | `19/19` passati; le attività `UDIENZA` restano nella timeline e conservano link, note, fonte e dati strutturati. |
+| `python -m pytest -q tests/test_utf8_integrity.py` | OK | `4/4` passati; testi italiani e asset verificati. |
+| Build e test frontend React | OK | Build Vite e suite frontend passate; chunk massimo circa `369` kB, nessun asset JavaScript o CSS oltre `500.000` byte. |
+| Docker reale locale e `/api/pronto` | OK | Un solo `iusentra-app`, healthy; versione `2.256.2`, fuso `Europe/Rome`. |
+| Browser reale `127.0.0.1:8080` | OK osservato | Agenda desktop/notebook e Scadenziario desktop/mobile: evento alle `16:45`, tooltip completo, link Teams verificato, fonte PDF aperta nel modal interno, nessun duplicato, overflow o errore console. |
+| Runtime Web Push | OK applicativo | Endpoint configurazione `200`, feature attiva, service worker `200`, azioni `Apri Agenda` e `Collegati` presenti. La consegna OS richiede una sottoscrizione browser reale e non viene dichiarata provata in sua assenza. |

@@ -71,7 +71,7 @@
   }
 
   async function ensurePushRegistration() {
-    return navigator.serviceWorker.register("/sw.js?iusentra_sw=20260607_mobile_push_v3", {
+    return navigator.serviceWorker.register("/sw.js?iusentra_sw=20260716_remote_hearing_v4", {
       scope: "/",
       updateViaCache: "none",
     }).then(function (registration) {

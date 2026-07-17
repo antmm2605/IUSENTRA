@@ -95,7 +95,7 @@
     return 0;
   }
 
-  async function fetchJsonWithTimeout(url, timeoutMs) {
+  async function fetchJsonWithTimeout(url, timeoutMs, requestOptions) {
     const controller = new AbortController();
     const timer = window.setTimeout(function () {
       controller.abort();
@@ -105,6 +105,7 @@
         method: 'GET',
         cache: 'no-store',
         mode: 'cors',
+        ...(requestOptions || {}),
         signal: controller.signal,
       });
       return await response.json();
@@ -329,15 +330,20 @@
     }
     updatePromise = (async function () {
     try {
-      const updatePayload = await fetchJsonWithTimeout(cfg.baseUrl + '/update', 8000);
+      const updatePayload = await fetchJsonWithTimeout(cfg.baseUrl + '/update', 60000, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_url: window.location.origin }),
+      });
       if (!updatePayload || updatePayload.ok !== true) {
         throw new Error('Aggiornamento locale non avviato');
       }
     } catch (error) {
       requestUpdate(cfg);
     }
-    for (let attempt = 0; attempt < 70; attempt += 1) {
-      await sleep(1200);
+    const updateDeadline = Date.now() + 360000;
+    for (let attempt = 0; attempt < 240 && Date.now() < updateDeadline; attempt += 1) {
+      await sleep(1500);
       const payload = await ping(cfg);
       if (payload && compareVersions(payload.versione || payload.version || '', cfg.latestVersion) >= 0) {
         return payload;
@@ -401,14 +407,6 @@
       if (updated) {
         hideBanner();
         return { ok: true, version: updated.versione || updated.version || '', payload: updated };
-      }
-      if (cfg.autoInstallerPrompt && !installerPromptAlreadyShown(cfg, 'outdated-auto')) {
-        autoOpenInstallerOnce(cfg, 'outdated-auto');
-        const promptedUpdate = await verifyAfterUpdate(cfg);
-        if (promptedUpdate) {
-          hideBanner();
-          return { ok: true, version: promptedUpdate.versione || promptedUpdate.version || '', payload: promptedUpdate };
-        }
       }
       renderBanner(
         'warning',

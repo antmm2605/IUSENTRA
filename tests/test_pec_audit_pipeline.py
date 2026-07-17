@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import zipfile
 from datetime import date, timedelta
@@ -10,6 +11,7 @@ from email import policy
 from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from urllib.parse import urlsplit
 
 from flask import Flask, g
@@ -21,12 +23,21 @@ from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_REDUCED
 from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.pec_pipeline import (
     AttachmentPayload,
+    DOCUMENT_PRESIDIO_PARSER_VERSION,
     PecAuditRepository,
+    _document_presidio_activity_label,
     _extract_remote_hearing_links,
     _document_presidio_checked_resource_id,
+    _document_presidio_candidate_discriminator,
+    _document_presidio_message_id,
+    _document_presidio_legacy_checked_needs_retry,
+    _document_presidio_priority_rank_for_text,
+    _document_presidio_warning_source,
     _remote_hearing_deadline_extra,
+    _remote_hearing_for_procedural_candidate,
     _remote_hearing_note_lines,
     _remote_hearing_updates_for_existing,
+    build_remote_hearing_profile,
     build_pec_procedural_profile,
     build_deadline_proposal,
     build_pct_deposit_correlation,
@@ -37,10 +48,23 @@ from pct.pec_pipeline import (
     extract_procedural_dates,
     extract_text_with_coverage,
     ingest_synthetic_dataset,
+    parse_italian_date,
     parse_pec_message,
     synthetic_pec_messages,
     verify_signature,
 )
+
+
+def test_presidio_warning_source_preserva_i_due_punti_del_nome_documento():
+    source = SimpleNamespace(filename="DEPOSITO TELEMATICO: Ricorso principale.eml")
+    sources = {source.filename.casefold(): source}
+
+    matched = _document_presidio_warning_source(
+        "DEPOSITO TELEMATICO: Ricorso principale.eml: File superiore al limite configurato per i documenti AI.",
+        sources,
+    )
+
+    assert matched is source
 
 
 class _User:
@@ -198,6 +222,12 @@ def test_pec_operational_matrix_rebuild_cleans_stale_queued_jobs(tmp_path):
 
     second_run = repo.run_pending_jobs(limit=10, actor="pytest")
     assert second_run["failed"] == 0
+    with repo.connect() as conn:
+        legal_event_versions = conn.execute(
+            "SELECT COUNT(*), COUNT(DISTINCT id) FROM pec_legal_events WHERE message_id=?",
+            (first["id"],),
+        ).fetchone()
+    assert tuple(legal_event_versions) == (2, 2)
     assert [item["job_type"] for item in second_run["jobs"]] == ["parse", "classify", "ocr", "signcheck", "validate", "link"]
 
 
@@ -710,6 +740,76 @@ def test_extract_procedural_dates_reads_fissa_udienza_in_data_formula():
     assert [(item["label"].lower(), item["date"]) for item in candidates] == [("udienza", "2026-05-20")]
 
 
+def test_extract_procedural_dates_reads_real_deposito_note_nel_giorno_formula():
+    text = (
+        "Causa n. 901/2026 RG Lav.\n"
+        "visto l'art. 127 ter c.p.c.;\n"
+        "FISSA il termine per il deposito delle note in sostituzione dell'udienza "
+        "nel giorno 06/10/2026, alle ore 14.00."
+    )
+
+    candidates = extract_procedural_dates({"Decreto fissazione udienza.PDF": text})
+    matching = [item for item in candidates if item["date"] == "2026-10-06"]
+
+    assert matching
+    assert any(item["label"].lower() == "termine" for item in matching)
+    assert _document_presidio_activity_label(matching[0], kind="termine") == (
+        "Deposito note scritte ex art. 127-ter c.p.c."
+    )
+
+
+def test_extract_procedural_dates_reads_dot_separators_and_del_giorno_formula():
+    text = (
+        "Il Giudice del Lavoro letto il ricorso FISSA l'udienza di discussione "
+        "per il giorno 9.9.2026, ore di rito."
+    )
+
+    candidates = extract_procedural_dates({"Decreto fissazione udienza.PDF": text})
+
+    assert any(item["date"] == "2026-09-09" and item["label"].lower() == "udienza" for item in candidates)
+    assert parse_italian_date("9.9.2026") == "2026-09-09"
+
+
+def test_extract_procedural_dates_reads_alli_and_remote_hearing_formula():
+    text = (
+        "Fissa udienza di discussione davanti a sé alli 13/01/2027 ore 11:00, "
+        "disponendo che l'udienza si terrà mediante collegamento alla stanza virtuale."
+    )
+
+    candidates = extract_procedural_dates({"Decreto fissazione udienza.PDF": text})
+
+    assert any(item["date"] == "2027-01-13" and item["label"].lower() == "udienza" for item in candidates)
+
+
+def test_extract_procedural_dates_reads_italian_month_and_weekday_formula():
+    text = (
+        "Il Giudice fissa l'udienza di mercoledì 15 maggio 2024, ore 9:30, "
+        "per la comparizione personale delle parti."
+    )
+
+    candidates = extract_procedural_dates({"Decreto fissazione udienza.PDF": text})
+
+    assert any(item["date"] == "2024-05-15" and item["label"].lower() == "udienza" for item in candidates)
+    assert parse_italian_date("15 maggio 2024") == "2024-05-15"
+
+
+def test_extract_procedural_dates_reads_anticipazione_al_giorno_formula():
+    text = (
+        "DECRETO ANTICIPAZIONE UDIENZA. ANTICIPA la data dell'udienza già fissata "
+        "al giorno 15/12/2026, ore 09:30, stessi adempimenti."
+    )
+
+    candidates = extract_procedural_dates({"Decreto anticipazione udienza.PDF": text})
+
+    assert any(item["date"] == "2026-12-15" and item["label"].lower() == "udienza" for item in candidates)
+
+
+def test_extract_procedural_dates_usa_data_completa_nel_nome_documento():
+    candidates = extract_procedural_dates({"Decreto nuova udienza 03.03.26.pdf": "PDF cifrato senza testo"})
+
+    assert [(item["label"].lower(), item["date"]) for item in candidates] == [("udienza", "2026-03-03")]
+
+
 def test_remote_hearing_rebuilds_teams_url_split_by_pdf_ocr_spaces():
     expected_link = (
         "https://teams.microsoft.com/l/meetup-join/"
@@ -858,6 +958,46 @@ def test_remote_hearing_report_warns_when_pdf_link_is_not_yet_ocr_read():
     assert "13744017s.pdf.zip" in remote["pdf_pending"]
     assert any(issue["code"] == "remote_hearing_pdf_link_required" for issue in report["issues"])
     assert any("OCR" in item or "PDF" in item for item in report["recommended_actions"])
+
+
+def test_sentenza_corrente_non_diventa_udienza_per_un_allegato_storico():
+    parsed = {
+        "headers": {"subject": "Tribunale di Locri Notificazione ai sensi del D.L. 179/2012"},
+        "body": {"text": "Notificazione di cancelleria relativa al provvedimento corrente."},
+        "fields": {},
+        "semantic_context": {
+            "event_hint": "comunicazione_cancelleria",
+            "agent_questions": [],
+            "recommended_actions": [],
+        },
+        "procedural_profile": {
+            "numero_rg": "3571/2025",
+            "ufficio": "Tribunale di Locri",
+            "tipo_evento": "EVENTI FASE DECISORIA",
+            "oggetto_evento": "SENTENZA A VERBALE",
+            "descrizione_evento": "SENTENZA A VERBALE CON NUMERO 873/2026 (Accoglimento totale)",
+        },
+    }
+    attachments = [
+        {
+            "filename": "21295227s.pdf.zip",
+            "content_type": "application/zip",
+            "classification": "atto",
+            "ocr_text": (
+                "Istruzioni relative a una precedente udienza in trattazione scritta. "
+                "Collegamento https://teams.microsoft.com/l/meetup-join/19%3ameeting_storico/0"
+            ),
+            "ocr_coverage": 0.95,
+            "signature_status": "non_applicabile",
+        }
+    ]
+
+    report = build_validation_report(parsed, attachments)
+
+    assert report["event_type"] == "comunicazione_cancelleria"
+    assert report["remote_hearing"] == {}
+    assert "remote_hearing" not in report["procedural_profile"]
+    assert not any(issue["code"].startswith("remote_hearing") for issue in report["issues"])
 
 
 def test_extract_text_with_coverage_reads_pdf_inside_zip():
@@ -1072,6 +1212,54 @@ def test_refresh_validation_reports_repairs_stale_binary_zip_ocr_for_remote_hear
     assert exact_link in zip_row["ocr_text"]
 
 
+def test_scheduler_repairs_stale_zip_once_per_extraction_version(tmp_path):
+    exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-automatic-repair"
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    msg = EmailMessage()
+    msg["Subject"] = "FISSAZIONE UDIENZA DA REMOTO"
+    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
+    msg["Message-ID"] = "<udienza-scheduler-stale-zip@example.test>"
+    msg.set_content("Udienza con strumenti audiovisivi. Il collegamento è nel PDF allegato.")
+    msg.add_attachment(
+        _zip_pdf_with_link(exact_link),
+        maintype="application",
+        subtype="zip",
+        filename="21866865s.pdf.zip",
+    )
+    ingest = repo.ingest_mime(
+        msg.as_bytes(policy=policy.SMTP),
+        account_email="studio@example.test",
+        folder="INBOX",
+        imap_uid="uid-scheduler-stale-zip",
+    )
+    repo.run_pending_jobs(limit=30, actor="pytest")
+
+    with repo.connect() as conn:
+        conn.execute(
+            """
+            UPDATE pec_attachments
+            SET ocr_text=?, ocr_coverage=?
+            WHERE message_id=? AND filename=?
+            """,
+            ("PK\x03\x04 contenuto ZIP non decodificato " * 20, 0.9, ingest["id"], "21866865s.pdf.zip"),
+        )
+
+    first = repo.enqueue_stale_attachment_repairs(limit=20, actor="scheduler")
+    worker = repo.run_pending_jobs(limit=10, actor="scheduler")
+    second = repo.enqueue_stale_attachment_repairs(limit=20, actor="scheduler")
+    detail = repo.get_message_detail(ingest["id"])
+    zip_row = next(item for item in detail["attachments"] if item["filename"] == "21866865s.pdf.zip")
+
+    assert first["queued"] == 1
+    assert worker["failed"] == 0
+    assert second["queued"] == 0
+    assert not zip_row["ocr_text"].startswith("PK")
+    assert exact_link in zip_row["ocr_text"]
+    assert detail["validation_report"]["procedural_profile"]["remote_hearing"]["links"][0]["url"] == exact_link
+
+
 def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
@@ -1125,6 +1313,271 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
+
+
+def test_stessa_pec_materializza_tutte_le_udienze_in_scadenziario_e_agenda(tmp_path):
+    from pct.scadenziario import GestioneScadenziario
+
+    first_day = date.today() + timedelta(days=40)
+    second_day = date.today() + timedelta(days=41)
+    first_it = first_day.strftime("%d/%m/%Y")
+    second_it = second_day.strftime("%d/%m/%Y")
+    first_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_mattina/0"
+    second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_pomeriggio/0"
+    first_context = f"Udienza del {first_it} ore 09:15 da remoto. Collegamento {first_link}"
+    second_context = f"Udienza del {second_it} ore 14:30 da remoto. Collegamento {second_link}"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    parsed = {
+        "headers": {"subject": "Decreto di fissazione di due udienze"},
+        "body": {"text": f"{first_context}\n{second_context}", "href_urls": []},
+        "procedural_profile": {"numero_rg": "1394/2026", "ufficio": "Tribunale"},
+        "procedural_dates": [
+            {
+                "date": first_day.isoformat(),
+                "time": "09:15",
+                "label": "Udienza",
+                "source": "decreto.pdf",
+                "context": first_context,
+            },
+            {
+                "date": second_day.isoformat(),
+                "time": "14:30",
+                "label": "Udienza",
+                "source": "decreto.pdf",
+                "context": second_context,
+            },
+        ],
+    }
+    report = {
+        "event_type": "fissazione_udienza",
+        "deadline_proposal": {
+            "auto_create": True,
+            "due_date": first_day.isoformat(),
+            "deadline_kind": "udienza",
+            "title": "Fissazione udienza",
+            "source_event_type": "fissazione_udienza",
+        },
+    }
+
+    result = repo.schedule_deadline_from_payload(
+        "pec-due-udienze",
+        parsed=parsed,
+        report=report,
+        message={"linked_fascicolo_id": "FASCICOLO-1"},
+        actor="pytest",
+    )
+
+    assert result["ok"] is True
+    assert result["hearing_count"] == 2
+    assert result["hearing_scheduled"] == 2
+    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert {(row.data_scadenza, row.hearing_time) for row in scadenze} == {
+        (first_day.isoformat(), "09:15"),
+        (second_day.isoformat(), "14:30"),
+    }
+    assert {row.remote_hearing_url for row in scadenze} == {first_link, second_link}
+    agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 2
+    assert {row.remote_hearing_url for row in agenda_items} == {first_link, second_link}
+
+
+def test_schedule_deadline_persistito_materializza_tutte_le_udienze(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario
+
+    first_day = date.today() + timedelta(days=45)
+    second_day = date.today() + timedelta(days=55)
+    first_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_persistita_mattina/0"
+    second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_persistita_pomeriggio/0"
+    msg = EmailMessage()
+    msg["Subject"] = "Comunicazione di cancelleria: due udienze"
+    msg["From"] = "cancelleria@pec.example.test"
+    msg["To"] = "studio@example.test"
+    msg["Message-ID"] = "<due-udienze-persistite@iusentra.test>"
+    msg.set_content(
+        f"Udienza del {first_day.strftime('%d/%m/%Y')} ore 09:15 da remoto. Collegamento {first_link}\n"
+        f"Udienza del {second_day.strftime('%d/%m/%Y')} ore 14:30 da remoto. Collegamento {second_link}"
+    )
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    ingest = repo.ingest_mime(
+        msg.as_bytes(policy=policy.SMTP),
+        account_email="studio@example.test",
+        folder="INBOX",
+        imap_uid="uid-due-udienze-persistite",
+    )
+    repo.run_pending_jobs(limit=30, actor="pytest")
+
+    result = repo.schedule_deadline(ingest["id"], actor="pytest")
+
+    assert result["ok"] is True
+    assert result["hearing_count"] == 2
+    assert len(GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)) == 2
+    assert len(Agenda(str(agenda_db)).tutti()) == 2
+
+
+def test_multi_udienza_riordinata_e_arricchita_aggiorna_senza_duplicare(tmp_path):
+    from pct.agenda import Agenda
+    from pct.scadenziario import GestioneScadenziario
+
+    first_day = date.today() + timedelta(days=65)
+    second_day = date.today() + timedelta(days=75)
+    first_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_stabile_mattina/0"
+    second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_stabile_pomeriggio/0"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    def parsed(with_links: bool, *, reverse: bool) -> dict[str, Any]:
+        rows = [
+            {
+                "date": first_day.isoformat(),
+                "raw_date": first_day.strftime("%d/%m/%Y"),
+                "time": "09:15",
+                "label": "Udienza",
+                "source": "decreto.pdf",
+                "context": (
+                    f"Udienza del {first_day.strftime('%d/%m/%Y')} ore 09:15 da remoto"
+                    f". Collegamento {first_link}" if with_links else
+                    f"Udienza del {first_day.strftime('%d/%m/%Y')} ore 09:15 da remoto"
+                ),
+            },
+            {
+                "date": second_day.isoformat(),
+                "raw_date": second_day.strftime("%d/%m/%Y"),
+                "time": "14:30",
+                "label": "Udienza",
+                "source": "decreto.pdf",
+                "context": (
+                    f"Udienza del {second_day.strftime('%d/%m/%Y')} ore 14:30 da remoto"
+                    f". Collegamento {second_link}" if with_links else
+                    f"Udienza del {second_day.strftime('%d/%m/%Y')} ore 14:30 da remoto"
+                ),
+            },
+        ]
+        if reverse:
+            rows.reverse()
+        body = "\n".join(str(item["context"]) for item in rows)
+        return {
+            "headers": {"subject": "Due udienze da remoto"},
+            "body": {"text": body},
+            "procedural_dates": rows,
+            "procedural_profile": {"numero_rg": "100/2026", "ufficio": "Tribunale"},
+        }
+
+    report = {
+        "event_type": "fissazione_udienza",
+        "deadline_proposal": {
+            "auto_create": True,
+            "due_date": first_day.isoformat(),
+            "deadline_kind": "udienza",
+            "title": "Fissazione udienza",
+            "source_event_type": "fissazione_udienza",
+        },
+    }
+    first = repo.schedule_deadline_from_payload(
+        "pec-identita-stabile",
+        parsed=parsed(False, reverse=False),
+        report=report,
+        message={"linked_fascicolo_id": "FASC-1"},
+        actor="pytest",
+    )
+    first_ids = {item["deadline_id"] for item in first["hearing_results"]}
+
+    second = repo.schedule_deadline_from_payload(
+        "pec-identita-stabile",
+        parsed=parsed(True, reverse=True),
+        report=report,
+        message={"linked_fascicolo_id": "FASC-1"},
+        actor="pytest",
+    )
+
+    rows = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(rows) == 2
+    assert {item.id for item in rows} == first_ids
+    assert {item.remote_hearing_url for item in rows} == {first_link, second_link}
+    agenda_rows = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_rows) == 2
+    assert {item.remote_hearing_url for item in agenda_rows} == {first_link, second_link}
+    assert all(item.get("already_exists") for item in second["hearing_results"])
+
+
+def test_ricalcolo_senza_link_non_degrada_collegamento_agenda_verificato(tmp_path):
+    from pct.agenda import Agenda
+
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        agenda_db_path=agenda_db,
+    )
+    hearing_day = date.today() + timedelta(days=85)
+    link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_agenda_verificata/0"
+    base_proposal = {
+        "due_date": hearing_day.isoformat(),
+        "event_time": "10:30",
+        "deadline_kind": "udienza",
+        "title": "Fissazione udienza",
+        "source_event_type": "fissazione_udienza",
+    }
+    verified_remote = {
+        "detected": True,
+        "mode": "da remoto",
+        "mode_unified": "remoto",
+        "links": [{"url": link, "source": "decreto.pdf", "exact_match": True}],
+        "times": ["10:30"],
+    }
+    first = repo._sync_pec_deadline_to_agenda(
+        message_id="pec-agenda-preserva-link",
+        title="Fissazione udienza",
+        target_date=hearing_day.isoformat(),
+        proposal={**base_proposal, "remote_hearing": verified_remote},
+        report={"remote_hearing": verified_remote},
+        deadline_id="SCAD-1",
+        actor="pytest",
+    )
+    assert first["ok"] is True
+
+    missing_remote = {
+        "detected": True,
+        "mode": "da remoto",
+        "mode_unified": "remoto",
+        "pdf_required": True,
+        "times": ["10:30"],
+    }
+    second = repo._sync_pec_deadline_to_agenda(
+        message_id="pec-agenda-preserva-link",
+        title="Fissazione udienza",
+        target_date=hearing_day.isoformat(),
+        proposal={**base_proposal, "remote_hearing": missing_remote},
+        report={"remote_hearing": missing_remote},
+        deadline_id="SCAD-1",
+        actor="pytest",
+    )
+
+    assert second["agenda_id"] == first["agenda_id"]
+    item = Agenda(str(agenda_db)).get(first["agenda_id"])
+    assert item is not None
+    assert item.remote_hearing_url == link
+    assert item.remote_hearing_verified is True
 
 
 def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agenda(tmp_path):
@@ -1245,6 +1698,490 @@ def test_remote_hearing_existing_deadline_note_replaces_pdf_pending_marker():
     assert exact_link in updates["note"]
     assert "da acquisire" not in updates["note"].lower()
     assert updates["note"].count("Link udienza audiovisiva:") == 1
+
+
+def test_udienza_in_presenza_persistita_senza_campi_remoti_fittizi():
+    report = {
+        "remote_hearing": {
+            "detected": False,
+            "hearing_detected": True,
+            "mode": "in presenza",
+            "mode_unified": "presenza",
+            "times": ["20/10/2026 ore 09:30"],
+            "hearing_sources": ["Decreto fissazione udienza.pdf"],
+        }
+    }
+    proposal = {"event_time": "09:30"}
+
+    extra = _remote_hearing_deadline_extra(report, proposal)
+    note_lines = _remote_hearing_note_lines(report, proposal)
+
+    assert extra["hearing_mode"] == "presenza"
+    assert extra["hearing_mode_source"] == "Decreto fissazione udienza.pdf"
+    assert extra["hearing_time"] == "09:30"
+    assert extra["remote_hearing_detected"] is False
+    assert "Modalità udienza: In presenza" in note_lines
+    assert "Orario udienza: 09:30" in note_lines
+    assert not any(line.startswith("Udienza da remoto:") for line in note_lines)
+
+    existing = SimpleNamespace(
+        note="PEC_AUDIT:presenza",
+        tipo="ADEMPIMENTO",
+        hearing_mode="",
+        hearing_mode_source="",
+        hearing_time="",
+        remote_hearing_detected=False,
+        remote_hearing_mode="",
+        remote_hearing_url="",
+        remote_hearing_source="",
+        remote_hearing_verified=False,
+        remote_hearing_integrity="",
+        remote_hearing_time="",
+        remote_hearing_access_info="",
+        remote_hearing_pdf_required=False,
+    )
+    updates = _remote_hearing_updates_for_existing(existing, extra, note_lines)
+
+    assert updates["hearing_mode"] == "presenza"
+    assert updates["hearing_mode_source"] == "Decreto fissazione udienza.pdf"
+    assert updates["hearing_time"] == "09:30"
+    assert updates["tipo"] == "UDIENZA"
+    assert "Modalità udienza: In presenza" in updates["note"]
+
+
+def test_presidio_arricchisce_scadenza_esistente_con_modalita_in_presenza(tmp_path):
+    from pct.agenda import Agenda
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+    from pct.storage import StudioDB
+
+    hearing_day = date.today() + timedelta(days=35)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Udienza in presenza",
+        TipoFascicolo.CIVILE,
+        numero_rg="1777",
+        anno_rg=2026,
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Decreto fissazione udienza.txt",
+        TipoDocumento.DECRETO,
+        f"Il giudice fissa l'udienza in presenza per il {hearing_it} alle ore 09:30 in aula 3.".encode("utf-8"),
+    )
+    existing = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).nuova(
+        "Udienza già registrata",
+        TipoTermine.UDIENZA,
+        hearing_day.isoformat(),
+        id_fascicolo=fascicolo.id,
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=5, actor="scheduler")
+
+    assert report["already_presided"] == 1
+    assert report["scheduled"] == 0
+    enriched = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).get(existing.id)
+    assert enriched.hearing_mode == "presenza"
+    assert enriched.hearing_time == "09:30"
+    assert "Modalità udienza: In presenza" in enriched.note
+    agenda_items = Agenda(str(agenda_db), studio_db=studio_db).tutti()
+    assert len(agenda_items) == 1
+    assert agenda_items[0].luogo == "Udienza in presenza"
+
+
+def test_arricchimento_udienza_non_cancella_modalita_e_non_alterna_la_fonte():
+    from types import SimpleNamespace
+
+    existing = SimpleNamespace(
+        tipo="UDIENZA",
+        hearing_mode="note_scritte",
+        hearing_mode_source="Decreto A.pdf",
+        hearing_time="09:30",
+        note="Modalità udienza: Trattazione scritta\nFonte modalità udienza: Decreto A.pdf\nOrario udienza: 09:30",
+        remote_hearing_detected=False,
+        remote_hearing_mode="",
+        remote_hearing_url="",
+        remote_hearing_source="",
+        remote_hearing_verified=False,
+        remote_hearing_integrity="",
+        remote_hearing_time="",
+        remote_hearing_access_info="",
+        remote_hearing_pdf_required=False,
+    )
+    no_hearing_evidence = {
+        "hearing_mode": "",
+        "hearing_mode_source": "",
+        "hearing_time": "",
+        "remote_hearing_detected": False,
+    }
+
+    assert _remote_hearing_updates_for_existing(existing, no_hearing_evidence, []) == {}
+
+    same_hearing_from_duplicate = {
+        **no_hearing_evidence,
+        "hearing_mode": "note_scritte",
+        "hearing_mode_source": "Decreto B.pdf",
+        "hearing_time": "",
+    }
+    duplicate_note_lines = [
+        "Modalità udienza: Trattazione scritta",
+        "Fonte modalità udienza: Decreto B.pdf",
+    ]
+
+    assert _remote_hearing_updates_for_existing(existing, same_hearing_from_duplicate, duplicate_note_lines) == {}
+
+    remote_url = "https://teams.microsoft.com/meet/123456789"
+    remote_existing = SimpleNamespace(
+        tipo="UDIENZA",
+        hearing_mode="mista",
+        hearing_mode_source="Oggetto PEC",
+        hearing_time="10:15",
+        note=(
+            "Modalità udienza: Mista: in presenza e da remoto\n"
+            "Fonte modalità udienza: Oggetto PEC\n"
+            "Udienza da remoto: audiovisiva\n"
+            "Orario collegamento: 10:15\n"
+            f"Link udienza audiovisiva: {remote_url}\n"
+            "Fonte link udienza: Decreto originale.pdf\n"
+            "Verifica link udienza: identico alla fonte letta."
+        ),
+        remote_hearing_detected=True,
+        remote_hearing_mode="audiovisiva",
+        remote_hearing_url=remote_url,
+        remote_hearing_source="Decreto originale.pdf",
+        remote_hearing_verified=True,
+        remote_hearing_integrity="exact",
+        remote_hearing_time="17/06/2027 ore 10:15",
+        remote_hearing_access_info="",
+        remote_hearing_pdf_required=False,
+    )
+    duplicate_remote = {
+        "hearing_mode": "mista",
+        "hearing_mode_source": "Oggetto PEC",
+        "hearing_time": "10:15",
+        "remote_hearing_detected": True,
+        "remote_hearing_mode": "audiovisiva",
+        "remote_hearing_url": remote_url,
+        "remote_hearing_source": "Decreto duplicato.pdf",
+        "remote_hearing_verified": True,
+        "remote_hearing_integrity": "exact",
+        "remote_hearing_time": "17/06/2027 ore 10:15",
+        "remote_hearing_access_info": "",
+        "remote_hearing_pdf_required": False,
+    }
+    duplicate_remote_lines = [
+        "Modalità udienza: Mista: in presenza e da remoto",
+        "Fonte modalità udienza: Oggetto PEC",
+        "Udienza da remoto: audiovisiva",
+        "Orario collegamento: 10:15",
+        f"Link udienza audiovisiva: {remote_url}",
+        "Fonte link udienza: Decreto duplicato.pdf",
+        "Verifica link udienza: identico alla fonte letta.",
+    ]
+
+    assert _remote_hearing_updates_for_existing(remote_existing, duplicate_remote, duplicate_remote_lines) == {}
+
+
+def test_arricchimento_udienza_sostituisce_atomicamente_un_link_verificato_piu_recente():
+    old_url = "https://teams.microsoft.com/meet/old-room"
+    new_url = "https://teams.microsoft.com/meet/new-room"
+    existing = SimpleNamespace(
+        tipo="UDIENZA",
+        hearing_mode="remoto",
+        hearing_mode_source="Decreto precedente.pdf",
+        hearing_time="09:00",
+        note=(
+            "Modalità udienza: Da remoto\n"
+            f"Link udienza audiovisiva: {old_url}\n"
+            "Fonte link udienza: Decreto precedente.pdf\n"
+            "Verifica link udienza: identico alla fonte letta."
+        ),
+        remote_hearing_detected=True,
+        remote_hearing_mode="audiovisiva",
+        remote_hearing_url=old_url,
+        remote_hearing_source="Decreto precedente.pdf",
+        remote_hearing_verified=True,
+        remote_hearing_integrity="exact",
+        remote_hearing_time="09:00",
+        remote_hearing_platform="Microsoft Teams",
+        remote_hearing_meeting_id="old-id",
+        remote_hearing_passcode="old-code",
+        remote_hearing_access_info="Vecchie istruzioni",
+        remote_hearing_evidence_json="[]",
+        remote_hearing_pdf_required=False,
+    )
+    extra = {
+        "hearing_mode": "remoto",
+        "hearing_mode_source": "Decreto aggiornato.pdf",
+        "hearing_time": "10:30",
+        "remote_hearing_detected": True,
+        "remote_hearing_mode": "audiovisiva",
+        "remote_hearing_url": new_url,
+        "remote_hearing_source": "Decreto aggiornato.pdf",
+        "remote_hearing_verified": True,
+        "remote_hearing_integrity": "exact",
+        "remote_hearing_time": "10:30",
+        "remote_hearing_platform": "Microsoft Teams",
+        "remote_hearing_meeting_id": "new-id",
+        "remote_hearing_passcode": "new-code",
+        "remote_hearing_access_info": "Collegarsi dieci minuti prima.",
+        "remote_hearing_evidence_json": '[{"source":"Decreto aggiornato.pdf"}]',
+        "remote_hearing_pdf_required": False,
+    }
+    note_lines = [
+        "Modalità udienza: Da remoto",
+        "Orario collegamento: 10:30",
+        f"Link udienza audiovisiva: {new_url}",
+        "Fonte link udienza: Decreto aggiornato.pdf",
+        "Verifica link udienza: identico alla fonte letta.",
+        "Istruzioni accesso udienza: Collegarsi dieci minuti prima.",
+    ]
+
+    updates = _remote_hearing_updates_for_existing(existing, extra, note_lines)
+
+    assert updates["remote_hearing_url"] == new_url
+    assert updates["remote_hearing_source"] == "Decreto aggiornato.pdf"
+    assert updates["remote_hearing_meeting_id"] == "new-id"
+    assert updates["remote_hearing_passcode"] == "new-code"
+    assert old_url not in updates["note"]
+    assert new_url in updates["note"]
+
+
+def test_identita_presidio_documentale_distingue_due_udienze_nello_stesso_giorno():
+    first = {
+        "date": "2027-02-10",
+        "label": "udienza",
+        "source": "decreto.pdf",
+        "context": "Udienza del 10/02/2027 alle ore 09:00.",
+        "time": "09:00",
+    }
+    second = {
+        **first,
+        "context": "Udienza del 10/02/2027 alle ore 11:30.",
+        "time": "11:30",
+    }
+    first_discriminator = _document_presidio_candidate_discriminator(first)
+    second_discriminator = _document_presidio_candidate_discriminator(second)
+
+    assert first_discriminator != second_discriminator
+    assert _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-1",
+        kind="udienza",
+        date_value="2027-02-10",
+        discriminator=first_discriminator,
+    ) != _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-1",
+        kind="udienza",
+        date_value="2027-02-10",
+        discriminator=second_discriminator,
+    )
+
+
+def test_identita_presidio_documentale_non_cambia_con_ocr_contesto_o_confidenza():
+    first = {
+        "date": "2027-02-10",
+        "label": "udienza",
+        "source": "decreto.pdf",
+        "context": "Udienza del 10/02/2027 alle ore 09:00.",
+        "time": "09:00",
+        "confidence": 0.74,
+    }
+    enriched = {
+        **first,
+        "source": "OCR migliorato: decreto.pdf",
+        "context": "Il Giudice fissa l'udienza del 10/02/2027 alle ore 09:00 in presenza.",
+        "confidence": 0.98,
+    }
+
+    assert _document_presidio_candidate_discriminator(first) == _document_presidio_candidate_discriminator(enriched)
+
+
+def test_estrazione_preserva_due_udienze_nello_stesso_giorno_con_orari_diversi():
+    candidates = extract_procedural_dates(
+        {
+            "decreto.pdf": (
+                "Udienza fissata per il 10/02/2027 alle ore 09:00.\n"
+                "Udienza di discussione fissata per il 10/02/2027 alle ore 11:30."
+            )
+        }
+    )
+    hearings = [
+        item
+        for item in candidates
+        if str(item.get("label") or "").casefold() == "udienza"
+        and item.get("date") == "2027-02-10"
+    ]
+
+    assert {item["time"] for item in hearings} == {"09:00", "11:30"}
+
+
+def test_nome_documento_non_duplica_la_stessa_udienza_letta_nel_testo():
+    candidates = extract_procedural_dates(
+        {
+            "Decreto udienza 10.02.2027.pdf": (
+                "Il giudice fissa l'udienza per il 10/02/2027 alle ore 09:00."
+            )
+        }
+    )
+
+    hearings = [
+        item
+        for item in candidates
+        if item.get("date") == "2027-02-10"
+        and str(item.get("label") or "").casefold() == "udienza"
+    ]
+
+    assert len(hearings) == 1
+    assert hearings[0]["time"] == "09:00"
+
+
+def test_due_udienze_nello_stesso_documento_non_si_scambiano_i_link():
+    first_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_mattina/0"
+    second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_pomeriggio/0"
+    text = (
+        f"Udienza del 10/02/2027 ore 09:00. Collegamento {first_link}\n"
+        f"Udienza del 10/02/2027 ore 11:30. Collegamento {second_link}"
+    )
+    remote = build_remote_hearing_profile(
+        {
+            "headers": {"subject": "Due udienze da remoto"},
+            "body": {"text": text},
+            "procedural_profile": {},
+        },
+        [],
+    )
+    first = _remote_hearing_for_procedural_candidate(
+        remote,
+        {
+            "date": "2027-02-10",
+            "raw_date": "10/02/2027",
+            "time": "09:00",
+            "source": "decreto.pdf",
+        },
+        kind="udienza",
+        document_text=text,
+        group_size=2,
+    )
+    second = _remote_hearing_for_procedural_candidate(
+        remote,
+        {
+            "date": "2027-02-10",
+            "raw_date": "10/02/2027",
+            "time": "11:30",
+            "source": "decreto.pdf",
+        },
+        kind="udienza",
+        document_text=text,
+        group_size=2,
+    )
+
+    assert [item["url"] for item in first["links"]] == [first_link]
+    assert [item["url"] for item in second["links"]] == [second_link]
+
+
+def test_due_udienze_con_date_diverse_nello_stesso_documento_non_si_scambiano_i_link():
+    first_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_prima_data/0"
+    second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_seconda_data/0"
+    text = (
+        f"Udienza del 10/02/2027 ore 09:00. Collegamento {first_link}\n"
+        f"Udienza del 18/03/2027 ore 11:30. Collegamento {second_link}"
+    )
+    remote = build_remote_hearing_profile(
+        {"headers": {"subject": "Due udienze"}, "body": {"text": text}, "procedural_profile": {}},
+        [],
+    )
+    first = _remote_hearing_for_procedural_candidate(
+        remote,
+        {"date": "2027-02-10", "raw_date": "10/02/2027", "time": "09:00", "source": "decreto.pdf"},
+        kind="udienza",
+        document_text=text,
+        group_size=2,
+    )
+    second = _remote_hearing_for_procedural_candidate(
+        remote,
+        {"date": "2027-03-18", "raw_date": "18/03/2027", "time": "11:30", "source": "decreto.pdf"},
+        kind="udienza",
+        document_text=text,
+        group_size=2,
+    )
+
+    assert [item["url"] for item in first["links"]] == [first_link]
+    assert [item["url"] for item in second["links"]] == [second_link]
+
+
+def test_presidio_documentale_migra_identita_legacy_senza_creare_duplicati(tmp_path):
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    manager = GestioneScadenziario(str(scadenziario_db))
+    legacy_id = _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-1",
+        kind="udienza",
+        date_value="2027-02-10",
+    )
+    current_id = _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="DOC-1",
+        kind="udienza",
+        date_value="2027-02-10",
+        discriminator="1234567890abcdef",
+    )
+    manager.nuova(
+        titolo="Fissazione udienza",
+        tipo=TipoTermine.UDIENZA,
+        data_scadenza="2027-02-10",
+        id_fascicolo="FASC-1",
+        note=f"PEC_AUDIT:{legacy_id}",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+
+    existing = repo._document_presidio_existing_deadline(
+        fascicolo_id="FASC-1",
+        target_date="2027-02-10",
+        kind="udienza",
+        message_id=current_id,
+        legacy_message_id=legacy_id,
+        allow_date_fallback=False,
+    )
+    repo._document_presidio_enrich_existing_deadline(
+        existing_deadline=existing,
+        message_id=current_id,
+        fascicolo_id="FASC-1",
+        proposal={
+            "due_date": "2027-02-10",
+            "event_time": "09:00",
+            "deadline_kind": "udienza",
+            "title": "Fissazione udienza",
+        },
+        report_payload={},
+        actor="pytest",
+    )
+
+    rows = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    assert len(rows) == 1
+    assert f"PEC_AUDIT:{legacy_id}" in rows[0].note.splitlines()
+    assert f"PEC_AUDIT:{current_id}" in rows[0].note.splitlines()
 
 
 def test_refresh_validation_reports_repairs_clickable_pdf_link_for_existing_remote_hearing(tmp_path):
@@ -1581,6 +2518,29 @@ def test_giudice_di_pace_notice_generates_non_blocking_validation_and_agent_ques
     assert report["deadline_proposal"]["status"] == "review_required"
     assert report["deadline_proposal"]["due_date"] == ""
     assert report["deadline_proposal"]["source_event_type"] == "notifica_giudice_pace"
+
+
+def test_tribunale_locri_non_viene_classificato_come_giudice_di_pace():
+    msg = EmailMessage()
+    msg["From"] = "Tribunale di Locri <tribunale.locri@civile.ptel.giustiziacert.it>"
+    msg["To"] = "studio@example.test"
+    msg["Subject"] = "POSTA CERTIFICATA: Tribunale di Locri Notificazione ai sensi del D.L. 179/2012"
+    msg["Date"] = "Mon, 13 Jul 2026 09:47:31 +0200"
+    msg["Message-ID"] = "<tribunale-locri-notifica@iusentra.test>"
+    msg.set_content("Messaggio di posta certificata del Ministero della giustizia.")
+    msg.add_attachment(
+        b"<Comunicazione><Ufficio>Tribunale di Locri</Ufficio><NumeroRuolo>3571/2025</NumeroRuolo></Comunicazione>",
+        maintype="application",
+        subtype="xml",
+        filename="Comunicazione.xml",
+    )
+
+    parsed = parse_pec_message(msg.as_bytes(policy=policy.SMTP))
+    report = build_validation_report(parsed, [{"classification": "comunicazione", "filename": "Comunicazione.xml"}])
+
+    assert parsed["procedural_profile"]["ufficio"] == "Tribunale di Locri"
+    assert parsed["semantic_context"].get("event_hint") != "notifica_giudice_pace"
+    assert report["event_type"] == "comunicazione_cancelleria"
 
 
 def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
@@ -1970,9 +2930,387 @@ def test_presidio_documentale_lex_recupera_udienza_termine_e_metadati_rag(tmp_pa
     assert second["already_presided"] == 0
     assert second["already_checked"] == 0
     assert second["new_or_changed_documents"] == 0
-    assert second["skipped_prefixed_deadline"] == 1
+    assert second["skipped_prefixed_deadline"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+    assert second["skipped_unchanged_documents"] == 1
     assert len(GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)) == 2
     assert len(Agenda(str(agenda_db), studio_db=studio_db).tutti()) == 2
+
+
+def test_presidio_documentale_memorizza_in_db_e_non_rilegge_fascicolo_invariato(tmp_path, monkeypatch):
+    from pct.document_intelligence.service import DocumentAIService
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Pratica incrementale",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Mario Rossi",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Memoria iniziale.txt",
+        TipoDocumento.MEMORIA,
+        b"Documento acquisito una sola volta dal presidio automatico.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    first = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+
+    assert first["processed_new_documents"] == 1
+    assert first["persisted_fascicolo_states"] == 1
+    with repo.connect() as conn:
+        state = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo'
+              AND resource_id=?
+            ORDER BY occurred_at DESC, rowid DESC
+            LIMIT 1
+            """,
+            (f"docpresidio-fascicolo:{fascicolo.id}",),
+        ).fetchone()
+    assert state is not None
+    state_payload = json.loads(state["payload_json"])
+    assert state_payload["status"] == "complete"
+    assert state_payload["document_count"] == 1
+    assert len(state_payload["fascicolo_fingerprint"]) == 64
+
+    import pct.document_intelligence.sources as source_module
+    import pct.pec_pipeline as pec_pipeline_module
+
+    with monkeypatch.context() as context:
+        context.setattr(
+            pec_pipeline_module,
+            "_document_presidio_ai_priority_by_fascicolo",
+            lambda **kwargs: (_ for _ in ()).throw(AssertionError("I testi invariati non devono essere riletti")),
+        )
+        context.setattr(
+            source_module,
+            "collect_fascicolo_document_sources",
+            lambda **kwargs: (_ for _ in ()).throw(AssertionError("Il fascicolo invariato non deve essere riletto")),
+        )
+        second = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+
+    assert second["checked_fascicoli"] == 0
+    assert second["checked_documents"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+    assert second["skipped_unchanged_documents"] == 1
+    assert second["processed_new_documents"] == 0
+    assert second["errors"] == []
+
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Nuovo allegato.txt",
+        TipoDocumento.ALLEGATO,
+        b"Solo questo nuovo documento deve essere acquisito dal job successivo.",
+    )
+    original_get_text = DocumentAIService.get_fascicolo_document_text
+    read_document_ids: list[str] = []
+
+    def counted_get_text(self, tenant_id, fascicolo_id, document_id, user_context):
+        read_document_ids.append(document_id)
+        return original_get_text(self, tenant_id, fascicolo_id, document_id, user_context)
+
+    with monkeypatch.context() as context:
+        context.setattr(DocumentAIService, "get_fascicolo_document_text", counted_get_text)
+        changed = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+
+    assert changed["checked_fascicoli"] == 1
+    assert changed["already_checked"] == 1
+    assert changed["new_or_changed_documents"] == 1
+    assert changed["processed_new_documents"] == 1
+    assert changed["persisted_fascicolo_states"] == 1
+    assert len(read_document_ids) == 1
+
+    with monkeypatch.context() as context:
+        context.setattr(
+            source_module,
+            "collect_fascicolo_document_sources",
+            lambda **kwargs: (_ for _ in ()).throw(AssertionError("Il nuovo stato completo deve essere riusato")),
+        )
+        final = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+
+    assert final["skipped_unchanged_fascicoli"] == 1
+    assert final["skipped_unchanged_documents"] == 2
+    assert final["processed_new_documents"] == 0
+
+
+def test_presidio_documentale_riconosce_scheda_post_deposito_e_la_processa_una_sola_volta(tmp_path, monkeypatch):
+    from pct.document_intelligence.service import DocumentAIService
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo(
+        "Mandaglio c. MIM",
+        TipoFascicolo.LAVORO,
+        numero_rg="771",
+        anno_rg=2025,
+    )
+    document = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Documento_30446614.txt",
+        TipoDocumento.ALLEGATO,
+        (
+            "TRIBUNALE ORDINARIO DI PALMI\n"
+            "771/2025\n"
+            "Ruolo Generale N. Iscritto il : 07/03/2025\n"
+            "Ruolo Sezionale N. 00000772\n"
+            "OGGETTO\n"
+            "CONTROVERSIE IN MATERIA DI LAVORO, PREV., ASSIST. OBBLIG.\n"
+            "Pubblico impiego\n"
+            "retribuzione\n"
+            "Num. R.G. : del Sezione : Giudice :771/202507/03/2025 01 GABUTTI CARLO\n"
+            "Attori/Ricorrenti/Appellanti :\n"
+            "MANDAGLIO DANIELA\n"
+            "Avv.MONTAGNESE GIUSEPPE\n"
+            "Resistenti/Ingiunti/Appellati :\n"
+            "AVVOCATURA DISTRETTUALE DI STATO DI REGGIO CALABRIA\n"
+            "MINISTERO DELL'ISTRUZIONE E DEL MERITO\n"
+            "Contributo Unificato:Esente\n"
+            "Udienze : Prima discussione : ALLEGATI14/07/2026\n"
+        ).encode("utf-8"),
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=tmp_path / "scadenziario" / "scadenze.json",
+        agenda_db_path=tmp_path / "agenda" / "appuntamenti.json",
+    )
+
+    first = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+    saved = GestioneFascicoli(
+        str(fascicoli_db),
+        documents_dir=str(fascicoli_docs),
+        studio_db=studio_db,
+    ).get(fascicolo.id)
+
+    assert first["registry_documents"] == 1
+    assert first["registry_updates"] == 1
+    assert first["processed_new_documents"] == 1
+    assert saved.nome_cliente == "Mandaglio Daniela"
+    assert saved.giudice == "Gabutti Carlo"
+    assert saved.tribunale == "Tribunale di Palmi"
+    assert saved.pagamenti["contributo_unificato"]["natura"] == "esenzione_contributo_unificato"
+    assert "scheda_iscrizione_ruolo" in next(item for item in saved.documenti if item.id == document.id).tags
+
+    with monkeypatch.context() as context:
+        context.setattr(
+            DocumentAIService,
+            "get_fascicolo_document_text",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("La scheda invariata non deve essere riletta")
+            ),
+        )
+        second = repo.recover_missing_hearings_from_fascicolo_documents(actor="scheduler")
+
+    assert second["registry_documents"] == 0
+    assert second["registry_updates"] == 0
+    assert second["processed_new_documents"] == 0
+    assert second["skipped_unchanged_documents"] == 1
+
+
+def test_presidio_arretrato_generico_legge_una_volta_classifica_e_non_rilegge(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo("Arretrato storico", TipoFascicolo.CIVILE)
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Contratto storico generico.txt",
+        TipoDocumento.CONTRATTO,
+        b"Documento storico privo di segnali processuali o economici.",
+    )
+    saved = fascicoli.get(fascicolo.id)
+    saved.pagamenti = {}
+    fascicoli._salva()
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=tmp_path / "scadenziario" / "scadenze.json",
+        agenda_db_path=tmp_path / "agenda" / "appuntamenti.json",
+    )
+
+    first = repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
+    second = repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
+
+    assert first["inventory_classified_documents"] == 1
+    assert first["processed_new_documents"] == 1
+    assert first["indexed_documents"] == 1
+    assert first["errors"] == []
+    assert second["inventory_classified_documents"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+    assert second["skipped_unchanged_documents"] == 1
+
+
+def test_vecchio_inventario_senza_testo_viene_rimesso_in_coda_una_sola_volta():
+    assert _document_presidio_legacy_checked_needs_retry(
+        {
+            "status": "inventory_only",
+            "parser_version": "2026-07-12-date-punti-mesi-incrementale",
+        }
+    ) is True
+    assert _document_presidio_legacy_checked_needs_retry(
+        {
+            "status": "inventory_only",
+            "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
+        }
+    ) is False
+    assert _document_presidio_legacy_checked_needs_retry(
+        {
+            "status": "checked",
+            "candidates": 1,
+            "parser_version": "2026-07-12-date-punti-mesi-incrementale",
+        }
+    ) is True
+    assert _document_presidio_legacy_checked_needs_retry(
+        {
+            "status": "checked",
+            "candidates": 1,
+            "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
+        }
+    ) is False
+
+
+def test_presidio_documentale_legge_decreto_in_zip_pec_e_non_rilegge(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.scadenziario import GestioneScadenziario
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    hearing_day = date.today() + timedelta(days=40)
+    hearing_it = hearing_day.strftime("%d/%m/%Y")
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w") as payload:
+        payload.writestr(
+            "Decreto fissazione udienza.txt",
+            f"Il giudice fissa l'udienza per il giorno {hearing_it} alle ore 10:00.",
+        )
+
+    fascicoli = GestioneFascicoli(
+        str(fascicoli_db),
+        documents_dir=str(fascicoli_docs),
+        studio_db=studio_db,
+    )
+    fascicolo = fascicoli.nuovo(
+        "Fascicolo ZIP da PEC",
+        TipoFascicolo.LAVORO,
+        numero_rg="1900",
+        anno_rg=2026,
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Comunicazione udienza PEC.zip",
+        TipoDocumento.ALLEGATO,
+        archive.getvalue(),
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    first = repo.recover_missing_hearings_from_fascicolo_documents(limit=5, actor="codex-test")
+    second = repo.recover_missing_hearings_from_fascicolo_documents(limit=5, actor="codex-test")
+
+    assert first["indexed_documents"] == 1
+    assert first["scheduled"] == 1
+    assert any(
+        item.data_scadenza == hearing_day.isoformat()
+        for item in GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)
+    )
+    assert second["processed_new_documents"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+
+
+def test_presidio_documentale_riprende_inventario_parziale_fino_a_completamento(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    fascicolo = fascicoli.nuovo("Inventario progressivo", TipoFascicolo.CIVILE)
+    for index in range(2):
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            f"Allegato progressivo {index + 1}.txt",
+            TipoDocumento.ALLEGATO,
+            f"Documento numero {index + 1} senza date processuali.".encode("utf-8"),
+        )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+
+    first = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+    second = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+    third = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert first["processed_new_documents"] == 1
+    assert first["partial_fascicoli"] == 1
+    assert second["processed_new_documents"] == 1
+    assert second["resumed_partial_fascicoli"] == 1
+    assert second["partial_fascicoli"] == 0
+    assert third["processed_new_documents"] == 0
+    assert third["skipped_unchanged_fascicoli"] == 1
+    with repo.connect() as conn:
+        state = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo'
+              AND resource_id=?
+            ORDER BY occurred_at DESC, rowid DESC
+            LIMIT 1
+            """,
+            (f"docpresidio-fascicolo:{fascicolo.id}",),
+        ).fetchone()
+    assert state is not None
+    assert json.loads(state["payload_json"])["status"] == "complete"
 
 
 def test_presidio_documentale_registra_udienza_remota_passata_senza_scadenza_futura(tmp_path):
@@ -2155,7 +3493,7 @@ def test_presidio_documentale_rilegge_checked_senza_candidati_con_parser_vecchio
         ]
     assert len(payloads) == 2
     assert any(
-        '"candidates":1' in payload and '"parser_version":"2026-07-03-udienza-in-data-teams-wrap"' in payload
+        '"candidates":1' in payload and f'"parser_version":"{DOCUMENT_PRESIDIO_PARSER_VERSION}"' in payload
         for payload in payloads
     )
     assert repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")["new_or_changed_documents"] == 0
@@ -2207,7 +3545,7 @@ def test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash(tmp_p
             ]
 
         def get_fascicolo_document_text(self, tenant_id, fascicolo_id, document_id, user_context):
-            return SimpleNamespace(text=text)
+            return SimpleNamespace(text="" if document_id == "docai-1" else text)
 
     repo = PecAuditRepository(
         tmp_path / "pec_audit.sqlite",
@@ -2223,6 +3561,7 @@ def test_presidio_documentale_non_duplica_report_con_record_ai_stesso_hash(tmp_p
 
     assert report["candidate_dates"] == 1
     assert report["past_remote_hearings_recorded"] == 1
+    assert report["errors"] == []
     assert len([item for item in report["items"] if item["fascicolo_id"] == fascicolo.id]) == 1
     saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(fascicolo.id)
     assert saved is not None
@@ -2278,6 +3617,30 @@ def test_presidio_documentale_limita_fascicoli_visitati_per_tick(tmp_path, monke
     assert report["fascicolo_budget"] == 1
     assert report["checked_fascicoli"] == 1
     assert report["pending_fascicoli"] >= 1
+
+
+def test_priorita_documentale_esclude_buste_tecniche_anche_se_contengono_udienza():
+    assert _document_presidio_priority_rank_for_text(
+        "CONSEGNA: Notificazione ai sensi della legge n. 53 - 1994"
+    ) == 2
+    assert _document_presidio_priority_rank_for_text(
+        "CONSEGNA: decreto di fissazione udienza del 20/10/2026"
+    ) == 2
+    assert _document_presidio_priority_rank_for_text(
+        "DEPOSITO TELEMATICO: Note scritte in sostituzione udienza RG 100/2026"
+    ) == 2
+    assert _document_presidio_priority_rank_for_text(
+        "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO: Sentenza RG 100/2026"
+    ) == 2
+    assert _document_presidio_priority_rank_for_text("Sentenza Tribunale n. 230/2026") == 0
+    assert _document_presidio_priority_rank_for_text("Ricevuta PagoPA contributo unificato") == 0
+    assert _document_presidio_priority_rank_for_text("rt_64E000GLRC2KBLVE.xml") == 1
+    assert _document_presidio_priority_rank_for_text("Contratto.pdf IMPORT_ESTERNO") == 2
+    assert _document_presidio_priority_rank_for_text("Relata di notifica.pdf") == 2
+    assert _document_presidio_priority_rank_for_text("Ricevuta generica.pdf") == 2
+    assert _document_presidio_priority_rank_for_text("Pagamento CU.pdf") == 0
+    assert _document_presidio_priority_rank_for_text("Decreto.pdf IMPORT_ESTERNO") == 1
+    assert _document_presidio_priority_rank_for_text("Lettera diffida.pdf IMPORT_ESTERNO") == 2
 
 
 def test_presidio_documentale_prioritizza_fascicoli_con_decreto_udienza_anche_con_lotto_piccolo(tmp_path):
@@ -2702,6 +4065,68 @@ def test_presidio_documentale_ruota_dopo_fascicolo_gia_toccato(tmp_path, monkeyp
     assert grande.id in service.calls_order
 
 
+def test_presidio_documentale_nuovo_decreto_precede_ripresa_parziale_generica(tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from pct.pec_pipeline import _document_presidio_fascicolo_fingerprint
+    from pct.storage import StudioDB
+
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    fascicoli_docs = tmp_path / "fascicoli" / "documenti"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    agenda_db = tmp_path / "agenda" / "appuntamenti.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db)
+    parziale = fascicoli.nuovo("Inventario parziale", TipoFascicolo.CIVILE)
+    fascicoli.aggiungi_documento(
+        parziale.id,
+        "Allegato generico ancora da leggere.txt",
+        TipoDocumento.ALLEGATO,
+        b"Allegato senza data processuale.",
+    )
+    nuovo = fascicoli.nuovo("Nuovo decreto", TipoFascicolo.CIVILE)
+    fascicoli.aggiungi_documento(
+        nuovo.id,
+        "Decreto fissazione udienza appena acquisito.txt",
+        TipoDocumento.DECRETO,
+        b"Fissa il termine per il deposito delle note nel giorno 06/10/2099.",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    repo._append_document_presidio_fascicolo_visited(
+        fascicolo_id=parziale.id,
+        fascicolo_fingerprint=_document_presidio_fascicolo_fingerprint(parziale),
+        document_count=1,
+        actor="old-scheduler",
+        status="partial",
+        reason="documenti_incrementali_da_completare",
+    )
+
+    class CountingDocumentService:
+        def __init__(self):
+            self.calls_order = []
+
+        def process_lex_indexing_sources(self, tenant_id, fascicolo_id, sources, user_context, *, retry_errors):
+            self.calls_order.append(fascicolo_id)
+            return SimpleNamespace(indexed=len(sources), skipped=0, errors=[])
+
+        def list_fascicolo_documents(self, tenant_id, fascicolo_id, user_context):
+            return []
+
+    service = CountingDocumentService()
+    monkeypatch.setattr(repo, "_document_ai_service_for_fascicoli", lambda manager: service)
+
+    report = repo.recover_missing_hearings_from_fascicolo_documents(limit=1, actor="codex-test")
+
+    assert report["processed_new_documents"] == 1
+    assert service.calls_order == [nuovo.id]
+
+
 def test_presidio_documentale_riprende_vecchio_checked_senza_status_su_decreto_udienza(tmp_path):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.storage import StudioDB
@@ -2815,7 +4240,7 @@ def test_presidio_documentale_file_non_indicizzabile_non_fallisce_job_e_viene_ma
     )
     fascicoli.aggiungi_documento(
         fascicolo.id,
-        "Deposito telematico grande.eml",
+        "DEPOSITO TELEMATICO: Ricorso principale grande.eml",
         TipoDocumento.ALTRO,
         b"Messaggio PEC con allegati oltre limite.",
     )
@@ -2999,17 +4424,34 @@ def test_presidio_documentale_lock_sqlite_rinvia_senza_marcare_letto(tmp_path, m
     assert report["transient_errors"]
     assert report["errors"] == []
     with repo.connect() as conn:
-        checked = conn.execute(
-            "SELECT COUNT(*) FROM pec_audit_log WHERE action='pec.document_presidio.checked'"
+        checked_documents = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo_documento'
+            """
         ).fetchone()[0]
-    assert checked == 0
+        pending_state = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo'
+            ORDER BY occurred_at DESC, rowid DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    assert checked_documents == 0
+    assert pending_state is not None
+    assert json.loads(pending_state["payload_json"])["status"] == "partial"
 
     second = repo.recover_missing_hearings_from_fascicolo_documents(actor="codex-test")
     assert second["new_or_changed_documents"] == 1
     assert locked_service.calls == 2
 
 
-def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successivo(tmp_path):
+def test_presidio_documentale_legge_documenti_nuovi_anche_con_scadenza_gia_presente(tmp_path, monkeypatch):
     from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
     from pct.scadenziario import GestioneScadenziario, TipoTermine
     from pct.storage import StudioDB
@@ -3085,12 +4527,49 @@ def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successi
     report = repo.recover_missing_hearings_from_fascicolo_documents(limit=2, actor="codex-test")
 
     assert report["checked_fascicoli"] == 2
-    assert report["skipped_prefixed_deadline"] == 1
-    assert report["new_or_changed_documents"] == 1
-    assert report["processed_new_documents"] == 1
+    assert report["skipped_prefixed_deadline"] == 0
+    assert report["new_or_changed_documents"] == 2
+    assert report["processed_new_documents"] == 2
     assert report["pending_new_or_changed_documents"] == 0
-    assert report["scheduled"] == 1
-    assert any(item["status"] == "skipped_prefixed_deadline" and item["fascicolo_id"] == prefixed.id for item in report["items"])
+    assert report["scheduled"] == 2
+    assert report["partial_fascicoli"] == 0
+    with repo.connect() as conn:
+        prefixed_state = conn.execute(
+            """
+            SELECT payload_json
+            FROM pec_audit_log
+            WHERE action='pec.document_presidio.checked'
+              AND resource_type='fascicolo'
+              AND resource_id=?
+            ORDER BY occurred_at DESC, rowid DESC
+            LIMIT 1
+            """,
+            (f"docpresidio-fascicolo:{prefixed.id}",),
+        ).fetchone()
+    assert prefixed_state is not None
+    prefixed_payload = json.loads(prefixed_state["payload_json"])
+    assert prefixed_payload["status"] == "complete"
+    assert prefixed_payload["resume_after"] == ""
+
+    import pct.document_intelligence.sources as source_module
+    import pct.pec_pipeline as pec_pipeline_module
+
+    with monkeypatch.context() as context:
+        context.setattr(
+            pec_pipeline_module,
+            "_document_presidio_ai_priority_by_fascicolo",
+            lambda **kwargs: (_ for _ in ()).throw(AssertionError("Nessun testo invariato deve essere riletto")),
+        )
+        context.setattr(
+            source_module,
+            "collect_fascicolo_document_sources",
+            lambda **kwargs: (_ for _ in ()).throw(AssertionError("Nessun fascicolo invariato deve essere riletto")),
+        )
+        second = repo.recover_missing_hearings_from_fascicolo_documents(limit=2, actor="codex-test")
+
+    assert second["checked_fascicoli"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 2
+    assert second["skipped_deferred_fascicoli"] == 0
 
     scadenze = GestioneScadenziario(str(scadenziario_db), studio_db=studio_db).tutte(solo_aperte=False)
     created = [item for item in scadenze if item.id_fascicolo == target.id]
@@ -3100,12 +4579,18 @@ def test_presidio_documentale_salta_fascicolo_gia_presidiato_e_processa_successi
     assert scadenza.tipo == TipoTermine.UDIENZA
     assert scadenza.remote_hearing_url == link
     assert scadenza.source_event_type == "fascicolo_documenti_audit"
+    prefixed_created = [
+        item
+        for item in scadenze
+        if item.id_fascicolo == prefixed.id and item.data_scadenza == hearing_day.isoformat()
+    ]
+    assert len(prefixed_created) == 1
 
     agenda_items = Agenda(str(agenda_db), studio_db=studio_db).tutti()
-    assert len(agenda_items) == 1
-    assert agenda_items[0].id == scadenza.id_appuntamento
-    assert agenda_items[0].cliente == "Cliente Da Presidiare"
-    assert agenda_items[0].procedimento == "RG 101/2026"
+    assert len(agenda_items) == 2
+    target_agenda = next(item for item in agenda_items if item.id == scadenza.id_appuntamento)
+    assert target_agenda.cliente == "Cliente Da Presidiare"
+    assert target_agenda.procedimento == "RG 101/2026"
 
     saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs), studio_db=studio_db).get(target.id)
     assert saved is not None
@@ -3205,6 +4690,21 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert len(rows) == 5
     notice_id = next(row["id"] for row in rows if row["validation_report"]["event_type"] == "notifica_giudice_pace")
 
+    refreshed = client.post(f"/api/pec/messages/{notice_id}/riesegui-controllo")
+    assert refreshed.status_code == 200
+    refreshed_payload = refreshed.get_json()
+    assert refreshed_payload["ok"] is True
+    assert refreshed_payload["message_id"] == notice_id
+    assert [step["step"] for step in refreshed_payload["steps"]] == [
+        "parse",
+        "classify",
+        "ocr",
+        "signcheck",
+        "validate",
+        "link",
+    ]
+    assert refreshed_payload["message"] == "Controllo PEC aggiornato sul messaggio e sugli allegati originali."
+
     mime = client.get(f"/api/pec/messages/{notice_id}/mime")
     assert mime.status_code == 200
     assert mime.headers["X-IUSENTRA-MIME-SHA256"]
@@ -3253,7 +4753,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
         ).fetchone()
     assert row is not None
     assert row[0] == "Scadenza PEC registrata"
-    assert row[1] == "/scadenziario?vista=pec"
+    assert row[1] == f"/agenda/{schedule_payload['agenda']['agenda_id']}"
     assert row[2] == "pec_deadline"
     assert row[3] == notice_id
 
@@ -3765,14 +5265,15 @@ def test_pec_deadline_without_time_pushes_to_calendar_engine_as_all_day(tmp_path
             "privacy_level": PRIVACY_REDUCED,
         }
     )
+    due_day = date.today() + timedelta(days=30)
     proposal = {
         "auto_create": True,
         "deadline_kind": "adempimento",
-        "due_date": "2026-07-10",
+        "due_date": due_day.isoformat(),
         "title": "Valuta termini da notifica PEC",
         "reason": "Adempimento: valutare opposizione entro il termine.",
         "source_event_type": "notifica_pec",
-        "source_event_at": "2026-06-10",
+        "source_event_at": date.today().isoformat(),
     }
 
     result = repo.schedule_deadline_from_payload(
@@ -3794,8 +5295,8 @@ def test_pec_deadline_without_time_pushes_to_calendar_engine_as_all_day(tmp_path
     assert len(remote_events) == 1
     remote = remote_events[0]
     assert remote["all_day"] is True
-    assert remote["start"] == "2026-07-10"
-    assert remote["end"] == "2026-07-11"
+    assert remote["start"] == due_day.isoformat()
+    assert remote["end"] == (due_day + timedelta(days=1)).isoformat()
     visible = f"{remote['title']} {remote['description']}"
     assert "Scadenza: Valuta termini da notifica PEC" in visible
     assert "Dettagli riservati in IUSENTRA." in visible
@@ -3949,8 +5450,46 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     notice = next(item for item in payload["items"] if item["pecAudit"]["eventType"] == "notifica_giudice_pace")
     assert notice["detailHref"].startswith("/api/pec/messages/")
     assert notice["pecAudit"]["quickActions"]["openMime"].endswith("/mime")
+    assert notice["pecAudit"]["quickActions"]["runAudit"].endswith("/riesegui-controllo")
     deposit = next(item for item in payload["items"] if item["pecAudit"]["eventType"] == "pct_deposito")
     assert deposit["pecAudit"]["depositLifecycle"]["current_stage"]["id"] in {"accettazione_pec", "consegna_pec"}
+
+
+def test_react_email_bridge_normalizza_evento_storico_del_tribunale():
+    from web.services.react_email_bridge import _pec_audit_payload
+
+    payload = _pec_audit_payload(
+        {
+            "id": "pec-storica-locri",
+            "validation_report": {
+                "event_type": "notifica_giudice_pace",
+                "procedural_profile": {
+                    "ufficio": "Tribunale di Locri",
+                    "numero_rg": "3571/2025",
+                },
+            },
+        }
+    )
+
+    assert payload is not None
+    assert payload["eventType"] == "comunicazione_cancelleria"
+
+
+def test_react_email_bridge_preserva_evento_reale_del_giudice_di_pace():
+    from web.services.react_email_bridge import _pec_audit_payload
+
+    payload = _pec_audit_payload(
+        {
+            "id": "pec-gdp-palmi",
+            "validation_report": {
+                "event_type": "notifica_giudice_pace",
+                "procedural_profile": {"ufficio": "Giudice di Pace di Palmi"},
+            },
+        }
+    )
+
+    assert payload is not None
+    assert payload["eventType"] == "notifica_giudice_pace"
 
 
 def test_react_email_bridge_exposes_provisional_audit_for_legacy_pec(tmp_path):
@@ -4041,3 +5580,37 @@ def test_react_email_bridge_provisional_pec_usa_mime_locale_quando_presente(tmp_
     detail = build_react_email_detail_payload(db_path=str(email_db), id_email="MAIL-GDP-EML", tenant_id="default")
     assert detail is not None
     assert detail["pecAudit"]["quickActions"]["runAudit"] == "/api/pec/email/MAIL-GDP-EML/acquisisci"
+
+
+def test_sync_agenda_pec_non_elimina_appuntamento_omonimo_non_correlato(tmp_path):
+    from pct.agenda import Agenda, TipoAppuntamento
+
+    agenda = Agenda(str(tmp_path / "agenda.json"))
+    unrelated = agenda.aggiungi(
+        "Fissazione udienza",
+        TipoAppuntamento.UDIENZA,
+        "2026-10-29T09:15:00",
+        allow_overlap=True,
+        external_uid="CALENDAR:unrelated",
+        external_source_url="/api/pec/messages/other-message",
+        note="Appuntamento autonomo dello studio.",
+    )
+    repository = PecAuditRepository.__new__(PecAuditRepository)
+
+    removed = repository._sync_related_pec_agenda_entries(
+        agenda,
+        primary_id="agenda-primary",
+        message_id="msg-primary",
+        event_uid="PEC_AUDIT:msg-primary:deadline",
+        source_url="/api/pec/messages/msg-primary",
+        deadline_id="deadline-primary",
+        title="Fissazione udienza",
+        data_ora="2026-10-29T14:30:00",
+        durata_minuti=60,
+        luogo="Udienza da remoto",
+        note="PEC_AUDIT:msg-primary",
+        linked_fascicolo_id="FASCICOLO-1",
+    )
+
+    assert removed == 0
+    assert agenda.get(unrelated.id) is not None

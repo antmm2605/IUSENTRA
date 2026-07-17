@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from pct.fascicoli import TipoDocumento
+from pct.fascicolo_registry_document import is_fascicolo_registry_document
 from pct.presidio_processuale_ruleset import (
     has_presidio_rule,
     is_pagopa_rt_contributo_xml,
@@ -271,6 +272,18 @@ def classify_fascicolo_document(
 
     if _has_pagopa_rt_contributo_context(raw_extracted_text, full_text):
         return _contributo_result(confidence=98, evidence="XML RT pagoPA: ricevuta contributo unificato")
+
+    if is_fascicolo_registry_document(raw_extracted_text):
+        return _result(
+            role="scheda_iscrizione_ruolo",
+            label="Iscrizione a ruolo / dati fascicolo",
+            section="atti",
+            confidence=99,
+            evidence="testo ministeriale: ruolo generale, parti e dati del procedimento",
+            tipo_documento=TipoDocumento.DEPOSITO_PCT,
+            deposit_role="fuori_busta",
+            deposit_candidate=False,
+        )
 
     name_is_communication = _contains(
         name_text,

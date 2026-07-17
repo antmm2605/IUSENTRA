@@ -16,6 +16,12 @@ const EXTRA_DEPOSIT_PATH = process.env.IUSENTRA_PEC_AGENDA_EXTRA_DEPOSIT_PATH ||
 const DEPOSIT_PATHS = Array.from(new Set([DEPOSIT_PATH, EXTRA_DEPOSIT_PATH].map((item) => item.trim()).filter(Boolean)))
 const EXTRA_DEPOSIT_EXPECTED_MIN_DOCS = Number(process.env.IUSENTRA_PEC_AGENDA_EXTRA_DEPOSIT_EXPECTED_MIN_DOCS || '1')
 const AGENDA_SELECTED_EVENT_PATH = process.env.IUSENTRA_PEC_AGENDA_SELECTED_EVENT_PATH || ''
+const CONTROLLED_DEADLINE_ID = process.env.IUSENTRA_PEC_AGENDA_CONTROLLED_DEADLINE_ID || ''
+const CONTROLLED_AGENDA_DATE = process.env.IUSENTRA_PEC_AGENDA_CONTROLLED_DATE || ''
+const CONTROLLED_DEADLINE_TITLE = process.env.IUSENTRA_PEC_AGENDA_CONTROLLED_TITLE || ''
+const CONTROLLED_EXPECTED_TIME = process.env.IUSENTRA_PEC_AGENDA_CONTROLLED_TIME || ''
+const SKIP_DEPOSIT = process.env.IUSENTRA_PEC_AGENDA_SKIP_DEPOSIT === '1'
+const ONLY_AGENDA = process.env.IUSENTRA_PEC_AGENDA_ONLY_AGENDA === '1'
 const REPORT_DIR = path.join(ROOT, 'artifacts', 'react-migration')
 const SCREENSHOT_DIR = path.join(REPORT_DIR, 'pec-agenda-scadenziario-visual')
 const REPORT_PATH = path.join(REPORT_DIR, 'pec-agenda-scadenziario-visual-audit.json')
@@ -278,9 +284,17 @@ async function pageSnapshot(cdp, label) {
 }
 
 async function inspectAgenda(cdp) {
-  await navigate(cdp, `${BASE_URL}/agenda`)
+  const agendaQuery = CONTROLLED_AGENDA_DATE
+    ? `?vista=week&data=${encodeURIComponent(CONTROLLED_AGENDA_DATE)}`
+    : ''
+  await navigate(cdp, `${BASE_URL}/agenda${agendaQuery}`)
   await waitFor(() => pageEval(cdp, () => Boolean(document.querySelector('.iu-agenda-page'))), 'pagina Agenda React', 30000)
   await clickByText(cdp, 'Sett.', 'vista settimana').catch(() => null)
+  await waitFor(
+    () => pageEval(cdp, () => document.body.innerText.includes('Dati agenda aggiornati')),
+    'dati Agenda caricati',
+    45000,
+  )
   await scrollToPosition(cdp, 'top')
   const topScreenshot = await screenshot(cdp, 'agenda-desktop-top.png')
   const beforeHover = await pageSnapshot(cdp, 'agenda-desktop')
@@ -331,6 +345,110 @@ async function inspectAgenda(cdp) {
   }
   const hoverScreenshot = await screenshot(cdp, 'agenda-desktop-hover.png')
   screenshots.push(hoverScreenshot)
+  let controlled = null
+  if (CONTROLLED_DEADLINE_ID) {
+    const controlledFound = await pageEval(cdp, (deadlineId) => {
+      const targetHref = `/scadenziario/${deadlineId}`
+      const target = Array.from(document.querySelectorAll('.iu-ag-event'))
+        .find((element) => element.querySelector(`a[href="${targetHref}"]`))
+      if (!target) return null
+      target.scrollIntoView({ block: 'center', inline: 'center' })
+      return true
+    }, [CONTROLLED_DEADLINE_ID])
+    if (controlledFound) await sleep(900)
+    const controlledCard = controlledFound ? await pageEval(cdp, (deadlineId) => {
+      const targetHref = `/scadenziario/${deadlineId}`
+      const target = Array.from(document.querySelectorAll('.iu-ag-event'))
+        .find((element) => element.querySelector(`a[href="${targetHref}"]`))
+      if (!target) return null
+      const box = target.getBoundingClientRect()
+      const day = target.closest('.iu-ag-day')
+      const body = target.closest('.iu-ag-day__body')
+      const slot = body?.querySelector('.iu-ag-slot')
+      const slotBox = slot?.getBoundingClientRect()
+      const bodyBox = body?.getBoundingClientRect()
+      return {
+        x: box.left + box.width / 2,
+        y: box.top + Math.min(box.height / 2, 28),
+        width: box.width,
+        height: box.height,
+        text: target.innerText.replace(/\s+/g, ' ').trim(),
+        inlineTop: target.style.top,
+        computedTop: window.getComputedStyle(target).top,
+        dayLabel: day?.querySelector('header')?.innerText?.replace(/\s+/g, ' ').trim() || '',
+        bodyTop: bodyBox?.top || 0,
+        bodyHeight: bodyBox?.height || 0,
+        bodyScrollHeight: body?.scrollHeight || 0,
+        slotHeight: slotBox?.height || 0,
+        slotMinHeight: slot ? window.getComputedStyle(slot).minHeight : '',
+      }
+    }, [CONTROLLED_DEADLINE_ID]) : null
+    if (controlledCard?.width > 0 && controlledCard?.height > 0) {
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1, button: 'none', pointerType: 'mouse' })
+      await sleep(100)
+      await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: controlledCard.x, y: controlledCard.y, button: 'none', pointerType: 'mouse' })
+      await sleep(800)
+      const tooltip = await pageEval(cdp, (expectedTime) => {
+        const visible = Array.from(document.querySelectorAll('.iu-ag-event__tooltip')).find((element) => {
+          const style = window.getComputedStyle(element)
+          const box = element.getBoundingClientRect()
+          return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity || '1') > 0.5 && box.width > 0 && box.height > 0
+        })
+        if (!visible) return null
+        const remoteLink = visible.querySelector('.iu-ag-event__remote-link:not(.iu-ag-event__source-link)')
+        const sourceButton = visible.querySelector('.iu-ag-event__source-link')
+        const sourceBox = sourceButton?.getBoundingClientRect()
+        const text = visible.innerText.replace(/\s+/g, ' ').trim()
+        return {
+          text,
+          hasExpectedTime: expectedTime ? text.includes(expectedTime) : true,
+          remoteHref: remoteLink?.getAttribute('href') || '',
+          hasSourceAction: Boolean(sourceButton),
+          sourceButton: sourceBox ? {
+            x: sourceBox.left + sourceBox.width / 2,
+            y: sourceBox.top + sourceBox.height / 2,
+            width: sourceBox.width,
+            height: sourceBox.height,
+          } : null,
+        }
+      }, [CONTROLLED_EXPECTED_TIME])
+      const hoverState = await pageEval(cdp, (deadlineId) => {
+        const target = Array.from(document.querySelectorAll('.iu-ag-event'))
+          .find((element) => element.querySelector(`a[href="/scadenziario/${deadlineId}"]`))
+        const box = target?.getBoundingClientRect()
+        const hit = box ? document.elementFromPoint(box.left + box.width / 2, box.top + Math.min(box.height / 2, 28)) : null
+        return {
+          matchesHover: Boolean(target?.matches(':hover')),
+          hitTag: hit?.tagName || '',
+          hitClass: hit?.className || '',
+          hitInsideTarget: Boolean(target && hit && target.contains(hit)),
+        }
+      }, [CONTROLLED_DEADLINE_ID])
+      screenshots.push(await screenshot(cdp, 'agenda-controlled-hover.png'))
+      let sourceModal = null
+      if (tooltip?.sourceButton?.width > 0 && tooltip?.sourceButton?.height > 0) {
+        const sourceButton = tooltip.sourceButton
+        await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: sourceButton.x, y: sourceButton.y, button: 'none' })
+        await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: sourceButton.x, y: sourceButton.y, button: 'left', clickCount: 1 })
+        await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: sourceButton.x, y: sourceButton.y, button: 'left', clickCount: 1 })
+        await waitFor(() => pageEval(cdp, () => Boolean(document.querySelector('.iu-ag-source-modal[role="dialog"]'))), 'visualizzatore fonte Agenda', 15000)
+        sourceModal = await pageEval(cdp, () => {
+          const modal = document.querySelector('.iu-ag-source-modal[role="dialog"]')
+          const iframe = modal?.querySelector('iframe')
+          return {
+            visible: Boolean(modal),
+            text: modal?.innerText?.replace(/\s+/g, ' ').trim() || '',
+            iframeSrc: iframe?.getAttribute('src') || '',
+          }
+        })
+        screenshots.push(await screenshot(cdp, 'agenda-controlled-source-modal.png'))
+        await clickByText(cdp, 'Chiudi', 'chiusura fonte Agenda')
+      }
+      controlled = { card: controlledCard, tooltip, sourceModal, hoverState }
+    } else {
+      controlled = { card: controlledCard, tooltip: null, sourceModal: null }
+    }
+  }
   await scrollToPosition(cdp, 'bottom')
   const bottomScreenshot = await screenshot(cdp, 'agenda-desktop-bottom.png')
   screenshots.push(bottomScreenshot)
@@ -361,13 +479,16 @@ async function inspectAgenda(cdp) {
       }
     })
   }
-  return { ...beforeHover, snapshots, screenshots, events: eventState, hover, selected }
+  return { ...beforeHover, snapshots, screenshots, events: eventState, hover, selected, controlled }
 }
 
 async function inspectScadenziario(cdp) {
   const snapshots = []
   const screenshots = []
-  await navigate(cdp, `${BASE_URL}/scadenziario?vista=tutte`)
+  const controlledQuery = CONTROLLED_DEADLINE_TITLE
+    ? `&q=${encodeURIComponent(CONTROLLED_DEADLINE_TITLE)}`
+    : ''
+  await navigate(cdp, `${BASE_URL}/scadenziario?vista=tutte${controlledQuery}`)
   await waitFor(() => pageEval(cdp, () => Boolean(document.querySelector('.iu-scadenziario-page, .iu-scad-table, .iu-scad-card-list'))), 'pagina Scadenziario React', 30000)
   for (const position of ['top', 'middle', 'bottom']) {
     await scrollToPosition(cdp, position)
@@ -419,8 +540,27 @@ async function inspectScadenziario(cdp) {
       actions: summarize(readCards('.iu-scad-action-card')),
     }
   })
+  const controlled = CONTROLLED_DEADLINE_TITLE
+    ? await pageEval(cdp, (title) => {
+        const normalized = (value) => String(value || '').replace(/\s+/g, ' ').trim()
+        const target = Array.from(document.querySelectorAll('.iu-scad-table tbody tr, .iu-scad-mobile-card'))
+          .find((element) => normalized(element.innerText).includes(title))
+        if (!target) return null
+        const remoteLink = target.querySelector('.iu-scad-remote-link')
+        const sourceLink = target.querySelector('.iu-scad-source-link')
+        const text = normalized(target.innerText)
+        return {
+          text,
+          remoteHref: remoteLink?.getAttribute('href') || '',
+          sourceHref: sourceLink?.getAttribute('href') || '',
+          hasVerifiedState: /Link verificato/i.test(text),
+          hasSourceAction: /Visualizza fonte/i.test(text),
+        }
+      }, [CONTROLLED_DEADLINE_TITLE])
+    : null
+  if (controlled) screenshots.push(await screenshot(cdp, 'scadenziario-controlled-desktop.png'))
   await setViewport(cdp, 390, 844)
-  await navigate(cdp, `${BASE_URL}/scadenziario?vista=tutte`)
+  await navigate(cdp, `${BASE_URL}/scadenziario?vista=tutte${controlledQuery}`)
   await waitFor(() => pageEval(cdp, () => Boolean(document.querySelector('.iu-scadenziario-page, .iu-scad-table, .iu-scad-card-list'))), 'Scadenziario mobile', 30000)
   for (const position of ['top', 'middle', 'bottom']) {
     await scrollToPosition(cdp, position)
@@ -455,6 +595,7 @@ async function inspectScadenziario(cdp) {
     screenshots,
     cards,
     layout,
+    controlled,
   }
 }
 
@@ -640,6 +781,32 @@ async function login(cdp) {
   }, 'login effettuato', 90000)
 }
 
+async function inspectPushRuntime(cdp) {
+  return pageEval(cdp, async () => {
+    const [configResponse, workerResponse] = await Promise.all([
+      fetch('/api/push/public-key', { credentials: 'same-origin', cache: 'no-store' }),
+      fetch('/sw.js', { credentials: 'same-origin', cache: 'no-store' }),
+    ])
+    let config = {}
+    try {
+      config = await configResponse.json()
+    } catch {
+      config = {}
+    }
+    const worker = await workerResponse.text()
+    return {
+      configStatus: configResponse.status,
+      configured: config?.configured === true,
+      enabled: config?.enabled === true,
+      featureEnabled: config?.diagnostics?.enabled === true,
+      workerStatus: workerResponse.status,
+      hasAgendaAction: /action:\s*['"]open-app['"][\s\S]{0,80}Apri Agenda/.test(worker),
+      hasRemoteAction: /action:\s*['"]join-hearing['"][\s\S]{0,80}Collegati/.test(worker),
+      readsRemoteUrl: worker.includes('remoteHearingUrl'),
+    }
+  })
+}
+
 function collectFailures(report) {
   const failures = []
   for (const page of report.pages) {
@@ -655,6 +822,15 @@ function collectFailures(report) {
   if (agenda?.hover && !agenda.hover.skipped && agenda.hover.visibleCount !== 1) failures.push({ type: 'tooltip-agenda-non-unico', hover: agenda.hover })
   if (agenda?.events?.duplicates?.length) failures.push({ type: 'duplicati-agenda-visibili', duplicates: agenda.events.duplicates.slice(0, 5) })
   if (agenda?.events?.scadenzeAlleNove?.length) failures.push({ type: 'scadenze-agenda-ore-0900', items: agenda.events.scadenzeAlleNove.slice(0, 5) })
+  if (CONTROLLED_DEADLINE_ID) {
+    if (!agenda?.controlled?.card) failures.push({ type: 'agenda-udienza-controllata-non-visibile' })
+    if (!agenda?.controlled?.tooltip?.hasExpectedTime) failures.push({ type: 'agenda-udienza-controllata-orario-assente', controlled: agenda?.controlled })
+    if (!agenda?.controlled?.tooltip?.remoteHref) failures.push({ type: 'agenda-udienza-controllata-link-assente', controlled: agenda?.controlled })
+    if (!agenda?.controlled?.tooltip?.hasSourceAction) failures.push({ type: 'agenda-udienza-controllata-fonte-assente', controlled: agenda?.controlled })
+    if (!agenda?.controlled?.sourceModal?.visible || !agenda?.controlled?.sourceModal?.iframeSrc) {
+      failures.push({ type: 'agenda-udienza-controllata-visualizzatore-fonte-non-aperto', controlled: agenda?.controlled })
+    }
+  }
   if (agenda?.selected) {
     if (!agenda.selected.found) failures.push({ type: 'agenda-evento-selezionato-non-visibile', href: agenda.selected.href })
     if (!agenda.selected.hasRg274) failures.push({ type: 'agenda-evento-selezionato-senza-rg-274', selected: agenda.selected })
@@ -666,6 +842,14 @@ function collectFailures(report) {
 
   const scadenziario = report.pages.find((page) => page.label === 'scadenziario')
   if (scadenziario?.cards?.duplicates?.length) failures.push({ type: 'duplicati-scadenziario-visibili', duplicates: scadenziario.cards.duplicates.slice(0, 5) })
+  if (CONTROLLED_DEADLINE_TITLE) {
+    if (!scadenziario?.controlled) failures.push({ type: 'scadenziario-udienza-controllata-non-visibile' })
+    if (!scadenziario?.controlled?.remoteHref) failures.push({ type: 'scadenziario-udienza-controllata-link-assente', controlled: scadenziario?.controlled })
+    if (!scadenziario?.controlled?.sourceHref || !scadenziario?.controlled?.hasSourceAction) {
+      failures.push({ type: 'scadenziario-udienza-controllata-fonte-assente', controlled: scadenziario?.controlled })
+    }
+    if (!scadenziario?.controlled?.hasVerifiedState) failures.push({ type: 'scadenziario-udienza-controllata-link-non-verificato', controlled: scadenziario?.controlled })
+  }
   if (scadenziario?.cards?.minHeight && scadenziario.cards.maxHeight / Math.max(1, scadenziario.cards.minHeight) > 3.5) {
     failures.push({ type: 'dimensioni-card-scadenziario-da-verificare', minHeight: scadenziario.cards.minHeight, maxHeight: scadenziario.cards.maxHeight })
   }
@@ -687,6 +871,20 @@ function collectFailures(report) {
   if (settings && !settings.checks.directSyncCopy) failures.push({ type: 'impostazioni-calendario-manca-sync-diretta' })
   if (settings && !settings.checks.googlePrimary) failures.push({ type: 'impostazioni-calendario-google-non-primario' })
   if (settings?.checks.oldWebCalPrimary) failures.push({ type: 'impostazioni-calendario-webcal-ancora-primario' })
+
+  const pushRuntime = report.pushRuntime || {}
+  if (pushRuntime.configStatus !== 200) failures.push({ type: 'web-push-config-non-raggiungibile', pushRuntime })
+  if (!pushRuntime.configured || !pushRuntime.enabled || !pushRuntime.featureEnabled) {
+    failures.push({ type: 'web-push-non-configurato-o-disattivato', pushRuntime })
+  }
+  if (
+    pushRuntime.workerStatus !== 200
+    || !pushRuntime.hasAgendaAction
+    || !pushRuntime.hasRemoteAction
+    || !pushRuntime.readsRemoteUrl
+  ) {
+    failures.push({ type: 'web-push-udienza-audiovisiva-non-cablato', pushRuntime })
+  }
 
   const depositi = report.pages.filter((page) => String(page.label || '').startsWith('deposito-prepara'))
   for (const deposito of depositi) {
@@ -791,12 +989,17 @@ async function main() {
     })
 
     await login(cdp)
+    report.pushRuntime = await inspectPushRuntime(cdp)
     report.pages.push(await inspectAgenda(cdp))
-    report.pages.push(await inspectScadenziario(cdp))
-    report.pages.push(await inspectCalendarSettings(cdp))
-    for (let index = 0; index < DEPOSIT_PATHS.length; index += 1) {
-      const label = index === 0 ? 'deposito-prepara-url-riferito' : 'deposito-prepara-fascicolo-reale'
-      report.pages.push(await inspectDeposito(cdp, DEPOSIT_PATHS[index], label))
+    if (!ONLY_AGENDA) {
+      report.pages.push(await inspectScadenziario(cdp))
+      report.pages.push(await inspectCalendarSettings(cdp))
+    }
+    if (!SKIP_DEPOSIT) {
+      for (let index = 0; index < DEPOSIT_PATHS.length; index += 1) {
+        const label = index === 0 ? 'deposito-prepara-url-riferito' : 'deposito-prepara-fascicolo-reale'
+        report.pages.push(await inspectDeposito(cdp, DEPOSIT_PATHS[index], label))
+      }
     }
     report.failures = collectFailures(report)
   } catch (error) {

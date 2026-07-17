@@ -88,6 +88,70 @@ def test_scadenziario_sqlite_importa_json_tenant_pec_quando_db_vuoto(tmp_path):
     assert reloaded.get("pec-1").deadline_profile_code == "PEC_AUTO_PRESIDIO"
 
 
+def test_scadenziario_non_fonde_due_udienze_pec_distinte_nello_stesso_giorno(tmp_path):
+    scadenze_path = tmp_path / "scadenze.json"
+    gestione = GestioneScadenziario(db_path=str(scadenze_path))
+    common = {
+        "titolo": "Fissazione udienza RG 1394/2026",
+        "tipo": TipoTermine.UDIENZA,
+        "data_scadenza": "2026-10-29",
+        "id_fascicolo": "FASCICOLO-1",
+        "deadline_profile_code": "PEC_AUTO_PRESIDIO",
+        "remote_hearing_source": "decreto-fissazione.pdf.zip",
+    }
+    first = gestione.nuova(
+        **common,
+        note="PEC_AUDIT:msg-udienza-mattina",
+        hearing_time="09:15",
+        remote_hearing_time="29/10/2026 alle 09:15",
+    )
+    second = gestione.nuova(
+        **common,
+        note="PEC_AUDIT:msg-udienza-pomeriggio",
+        hearing_time="14:30",
+        remote_hearing_time="29/10/2026 alle 14:30",
+    )
+
+    reloaded = GestioneScadenziario(db_path=str(scadenze_path))
+    rows = reloaded.tutte(solo_aperte=False)
+
+    assert {row.id for row in rows} == {first.id, second.id}
+    assert {row.remote_hearing_time for row in rows} == {
+        "29/10/2026 alle 09:15",
+        "29/10/2026 alle 14:30",
+    }
+
+
+def test_scadenziario_non_fonde_due_udienze_della_stessa_pec_con_orari_distinti(tmp_path):
+    scadenze_path = tmp_path / "scadenze.json"
+    gestione = GestioneScadenziario(db_path=str(scadenze_path))
+    common = {
+        "titolo": "Fissazione udienza RG 1394/2026",
+        "tipo": TipoTermine.UDIENZA,
+        "data_scadenza": "2026-10-29",
+        "id_fascicolo": "FASCICOLO-1",
+        "deadline_profile_code": "PEC_AUTO_PRESIDIO",
+        "note": "PEC_AUDIT:msg-stessa-pec",
+        "remote_hearing_source": "decreto-fissazione.pdf.zip",
+    }
+    first = gestione.nuova(
+        **common,
+        hearing_time="09:15",
+        remote_hearing_time="29/10/2026 alle 09:15",
+    )
+    second = gestione.nuova(
+        **common,
+        hearing_time="14:30",
+        remote_hearing_time="29/10/2026 alle 14:30",
+    )
+
+    reloaded = GestioneScadenziario(db_path=str(scadenze_path))
+    rows = reloaded.tutte(solo_aperte=False)
+
+    assert {row.id for row in rows} == {first.id, second.id}
+    assert {row.hearing_time for row in rows} == {"09:15", "14:30"}
+
+
 def test_scadenziario_sqlite_salva_anche_mirror_json_tenant(tmp_path):
     scadenze_path = tmp_path / "scadenziario" / "scadenze.json"
     studio_db = StudioDB.get(str(tmp_path / "studio.db"))
@@ -129,7 +193,7 @@ def test_scadenziario_deduplica_scadenze_pec_equivalenti_e_conserva_link(tmp_pat
                     "stato": StatoTermine.APERTO.value,
                     "data_scadenza": "2026-10-29",
                     "deadline_profile_code": "PEC_AUTO_PRESIDIO",
-                    "note": "PEC_AUDIT:msg-b\nLink udienza audiovisiva: https://teams.microsoft.com/l/meetup-join/abc",
+                    "note": "PEC_AUDIT:msg-a\nLink udienza audiovisiva: https://teams.microsoft.com/l/meetup-join/abc",
                     "remote_hearing_detected": True,
                     "remote_hearing_url": "https://teams.microsoft.com/l/meetup-join/abc",
                     "remote_hearing_source": "13744017s.pdf.zip",
@@ -148,7 +212,6 @@ def test_scadenziario_deduplica_scadenze_pec_equivalenti_e_conserva_link(tmp_pat
     assert scadenze[0].tipo == TipoTermine.UDIENZA
     assert scadenze[0].remote_hearing_url == "https://teams.microsoft.com/l/meetup-join/abc"
     assert "PEC_AUDIT:msg-a" in scadenze[0].note
-    assert "PEC_AUDIT:msg-b" in scadenze[0].note
 
 
 def test_import_portale_scarta_scadenze_gia_passate_dallo_scadenziario():
@@ -708,19 +771,21 @@ def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
         bootstrap_admin_password="admin",
     )
     gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    legal_due = date.today() + timedelta(days=10)
+    operational_due = legal_due - timedelta(days=2)
     gs.nuova(
         titolo="Termine avanzato",
         tipo=TipoTermine.ALTRO,
-        data_scadenza="2026-07-16",
+        data_scadenza=legal_due.isoformat(),
         deadline_profile_code="TERM_30_DAYS",
-        legal_due_at="2026-07-16T10:00:00",
-        operational_due_at="2026-07-14T10:00:00",
+        legal_due_at=f"{legal_due.isoformat()}T10:00:00",
+        operational_due_at=f"{operational_due.isoformat()}T10:00:00",
         trace_json=json.dumps(["Proroga finale"], ensure_ascii=False),
     )
     gs.nuova(
         titolo="Termine manuale",
         tipo=TipoTermine.ALTRO,
-        data_scadenza="2026-08-20",
+        data_scadenza=(legal_due + timedelta(days=20)).isoformat(),
     )
     app = create_app(cfg)
     client = app.test_client()

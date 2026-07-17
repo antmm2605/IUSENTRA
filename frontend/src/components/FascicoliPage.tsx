@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
   AlertTriangle,
@@ -51,6 +51,7 @@ import {
   UploadCloud,
   UserRound,
   UsersRound,
+  Video,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
@@ -80,6 +81,7 @@ import {
   getFascicoloDetail,
   getFascicoloDetailSection,
   getFascicoloForm,
+  generateFascicoloProforma,
   runFascicoliEconomicPresidio,
   updateFascicoloPayment,
   updateFascicoloStatus,
@@ -104,6 +106,8 @@ import {
   type FascicoloSentenzeEconomiche,
   type FascicoloPaymentKind,
   type FascicoloPaymentItem,
+  type FascicoloProformaBasis,
+  type FascicoloPaymentUpdatePayload,
   type FascicoloPaymentSummary,
   type FascicoloPaymentStatus,
   type FascicoloStato,
@@ -119,7 +123,7 @@ import {
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
-import { formatDateTimeIt, formatEuroIt } from '../formatting'
+import { formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
@@ -1681,7 +1685,7 @@ function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
   )
 }
 
-function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; forceLabel?:boolean}) {
+function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; onDraftChange?:(kind:FascicoloPaymentKind, draft:FascicoloPaymentUpdatePayload | null)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
   const paymentNatureLabel = payment.natura ? payment.natura.replace(/_/g, ' ') : ''
@@ -1711,6 +1715,16 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }
     || method.trim() !== (payment.metodo || '')
     || note.trim() !== (payment.note || '')
 
+  useEffect(() => {
+    onDraftChange?.(kind, dirty ? {
+      status,
+      importo: amount.trim() === '' ? null : amount.trim(),
+      dataPagamento: date,
+      metodo: method.trim(),
+      note: note.trim(),
+    } : null)
+  }, [amount, date, dirty, kind, method, note, onDraftChange, status])
+
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setSaving(true)
@@ -1722,6 +1736,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }
         metodo: method.trim(),
         note: note.trim(),
       })
+      onDraftChange?.(kind, null)
       onSaved(row.id, result.paymentSummary, result.message)
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Aggiornamento economico non riuscito.')
@@ -1775,7 +1790,101 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, forceLabel = false }
   )
 }
 
-function DossierMobileCard({ item, checked, onToggle, archive = false, economic = false, onDeleted, onError }:{item:FascicoloRow; checked:boolean; onToggle:()=>void; archive?:boolean; economic?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
+type EconomicPaymentDrafts = Partial<Record<FascicoloPaymentKind, FascicoloPaymentUpdatePayload>>
+
+function economicProformaBasis(summary: FascicoloPaymentSummary): FascicoloProformaBasis | undefined {
+  for (const sourceKind of ['parcella', 'liquidazione_giudice'] as const) {
+    const payment = summary.items[sourceKind]
+    if (payment.importo === null || payment.importo <= 0) continue
+    return {
+      sourceKind,
+      status: payment.status,
+      importo: payment.importo,
+      dataPagamento: payment.dataPagamentoIso,
+      metodo: payment.metodo,
+      note: payment.note,
+    }
+  }
+  return undefined
+}
+
+function EconomicEditorPanel({ row, onSaved, onError }:{row:FascicoloRow; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
+  const [drafts, setDrafts] = useState<EconomicPaymentDrafts>({})
+  const [generating, setGenerating] = useState(false)
+  const [operationMessage, setOperationMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
+  const registerDraft = useCallback((kind: FascicoloPaymentKind, draft: FascicoloPaymentUpdatePayload | null) => {
+    setDrafts((current) => {
+      const next = { ...current }
+      if (draft) next[kind] = draft
+      else delete next[kind]
+      return next
+    })
+  }, [])
+  useEffect(() => {
+    setDrafts({})
+    setOperationMessage(null)
+  }, [row.id])
+
+  const dirtyCount = Object.keys(drafts).length
+  const hasProforma = row.paymentSummary.proformaPresidio.status === 'presente'
+  const generate = async () => {
+    setGenerating(true)
+    setOperationMessage(null)
+    try {
+      let latestSummary: FascicoloRow['paymentSummary'] | null = null
+      for (const kind of economicPaymentKinds) {
+        const draft = drafts[kind]
+        if (!draft) continue
+        const saved = await updateFascicoloPayment(row.id, kind, draft)
+        latestSummary = saved.paymentSummary
+      }
+      if (latestSummary) onSaved(row.id, latestSummary, 'Dati economici salvati.')
+      const generated = await generateFascicoloProforma(
+        row.id,
+        economicProformaBasis(latestSummary ?? row.paymentSummary),
+      )
+      setDrafts({})
+      onSaved(row.id, generated.paymentSummary, generated.message)
+      const destination = generated.redirectHref || (generated.proformaId
+        ? `/fatturazione?id_documento=${encodeURIComponent(generated.proformaId)}`
+        : '')
+      setOperationMessage({ tone: 'success', text: generated.message || 'Proforma pronta.' })
+      if (destination) window.location.assign(destination)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Generazione della proforma non riuscita.'
+      setOperationMessage({ tone: 'error', text: message })
+      onError(message)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <>
+      <EconomicEvidenceStrip row={row}/>
+      <div className="iu-fas-economic-edit-grid">
+        {economicPaymentKinds.map((kind) => (
+          <EconomicPaymentCell row={row} kind={kind} onSaved={onSaved} onError={onError} onDraftChange={registerDraft} forceLabel key={kind}/>
+        ))}
+      </div>
+      <div className="iu-fas-economic-editor__actions" aria-live="polite">
+        <span>{dirtyCount ? `${dirtyCount} ${dirtyCount === 1 ? 'modifica da salvare' : 'modifiche da salvare'}` : hasProforma ? 'Proforma già collegata' : 'Proforma da generare'}</span>
+        <button type="button" className="iu-fas-economic-generate" onClick={() => { void generate() }} disabled={generating}>
+          {generating ? <RefreshCw size={15} className="iu-spin"/> : <FileText size={15}/>}
+          <span>{generating ? 'Generazione…' : hasProforma ? 'Apri proforma' : 'Genera proforma'}</span>
+        </button>
+      </div>
+      {operationMessage ? (
+        <div className={`iu-fas-economic-editor__message iu-fas-economic-editor__message--${operationMessage.tone}`} role={operationMessage.tone === 'error' ? 'alert' : 'status'}>
+          {operationMessage.tone === 'error' ? <AlertTriangle size={15}/> : <CheckCircle2 size={15}/>}
+          <span>{operationMessage.text}</span>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function DossierMobileCard({ item, checked, onToggle, archive = false, economic = false, onDeleted, onError, onPaymentSaved }:{item:FascicoloRow; checked:boolean; onToggle:()=>void; archive?:boolean; economic?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void; onPaymentSaved?:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void}) {
   return (
     <article className="iu-fas-mobile-card">
       <header>
@@ -1817,6 +1926,12 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
               )
             })}
           </ul>
+          <details className="iu-fas-mobile-economic-editor">
+            <summary><Edit3 size={14}/> Modifica controllo economico</summary>
+            <div>
+              <EconomicEditorPanel row={item} onSaved={onPaymentSaved || (() => {})} onError={onError || (() => {})}/>
+            </div>
+          </details>
         </div>
       ) : null}
       <footer>
@@ -1999,12 +2114,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                               <span>Chiudi</span>
                             </button>
                           </header>
-                          <EconomicEvidenceStrip row={item}/>
-                          <div className="iu-fas-economic-edit-grid">
-                            {economicPaymentKinds.map((kind) => (
-                              <EconomicPaymentCell row={item} kind={kind} onSaved={onPaymentSaved || (() => {})} onError={handleError} forceLabel key={kind}/>
-                            ))}
-                          </div>
+                          <EconomicEditorPanel row={item} onSaved={onPaymentSaved || (() => {})} onError={handleError}/>
                         </section>
                       </td>
                     </tr>
@@ -2016,7 +2126,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
         </table>
       </SyncedTopScrollbar>
       <div className="iu-fas-mobile-list">
-        {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} key={item.id}/>) }
+        {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} onPaymentSaved={onPaymentSaved} key={item.id}/>) }
       </div>
     </IusentraDataSurface>
   )
@@ -2615,12 +2725,12 @@ type LocalSignaturePinRequest = {
   reject: (error: Error) => void
 }
 
-function Field({ label, name, defaultValue = '', type = 'text', required = false, readOnly = false, placeholder = '', children }:{label:string; name:string; defaultValue?:string|number|boolean; type?:string; required?:boolean; readOnly?:boolean; placeholder?:string; children?:ReactNode}) {
+function Field({ label, name, defaultValue = '', type = 'text', required = false, readOnly = false, placeholder = '', step, min, inputMode, children }:{label:string; name:string; defaultValue?:string|number|boolean; type?:string; required?:boolean; readOnly?:boolean; placeholder?:string; step?:string|number; min?:string|number; inputMode?:'decimal'|'numeric'; children?:ReactNode}) {
   const value = type === 'date' ? dateInputValue(defaultValue) : String(defaultValue ?? '')
   return (
     <label className="iu-fas-field">
       <span>{label}{required ? <b>*</b> : null}</span>
-      {children || <input type={type} name={name} defaultValue={value} required={required} readOnly={readOnly} placeholder={placeholder}/>}
+      {children || <input type={type} name={name} defaultValue={value} required={required} readOnly={readOnly} placeholder={placeholder} step={step} min={min} inputMode={inputMode}/>}
     </label>
   )
 }
@@ -3177,9 +3287,9 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.cancelliere} name="cancelliere" defaultValue={getValue(data, 'cancelliere')}/>
               <Field label={labels.fields.ctu} name="ctu" defaultValue={getValue(data, 'ctu')}/>
               <Field label={labels.fields.ctp} name="ctp" defaultValue={getValue(data, 'ctp')}/>
-              <Field label="Valore causa (€)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/>
-              <Field label="Compenso pattuito (€)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/>
-              <Field label="Valore preventivato (€)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/>
+              <Field label="Valore causa (€)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0,00" step="0.01" min="0" inputMode="decimal"/>
+              <Field label="Compenso pattuito (€)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))} step="0.01" min="0" inputMode="decimal"/>
+              <Field label="Valore preventivato (€)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))} step="0.01" min="0" inputMode="decimal"/>
               <input type="hidden" name="id_pratica" value={getValue(data, 'practiceId')}/>
               <input type="hidden" name="procedura_operativa_codice" value={getValue(data, 'proceduraOperativaCodice')}/>
               <Field label="Data prima udienza / comparizione" name="data_prima_udienza" type="date" defaultValue={getValue(data, 'firstHearingIso') || getValue(data, 'firstHearing')}/>
@@ -3914,7 +4024,7 @@ function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
               <FileDown size={16}/>
               <div>
                 <strong>{doc.nome || doc.tipo || 'Documento d\'ufficio'}</strong>
-                <span>{[doc.fontePortale || 'Portale Servizi', doc.ufficio, doc.numeroRg && doc.annoRg ? `R.G. ${doc.numeroRg}/${doc.annoRg}` : '', doc.dataDeposito].filter(Boolean).join(' · ')}</span>
+                <span>{[doc.fontePortale || 'Portale Servizi', doc.ufficio, doc.numeroRg && doc.annoRg ? `R.G. ${doc.numeroRg}/${doc.annoRg}` : '', doc.dataDeposito ? formatDateIt(doc.dataDeposito, doc.dataDeposito) : ''].filter(Boolean).join(' · ')}</span>
               </div>
               {doc.notificaRichiesta ? <Badge tone="warning">Relata richiesta</Badge> : null}
             </article>
@@ -5227,11 +5337,23 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
   }
 }
 
-async function pollLocalSignerStatus(attempts = 10, delayMs = 900): Promise<LocalSignerStatus | null> {
+async function pollLocalSignerStatus(
+  attempts = 10,
+  delayMs = 900,
+  minimumVersion = '',
+  maxDurationMs = 0,
+): Promise<LocalSignerStatus | null> {
+  const startedAt = Date.now()
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (maxDurationMs > 0 && Date.now() - startedAt >= maxDurationMs) break
     if (attempt > 0) await sleep(delayMs)
-    const payload = await fetchLocalSignerStatus()
-    if (payload && payload.ok !== false) return payload
+    const payload = await fetchLocalSignerStatus(minimumVersion ? 1500 : 3500)
+    const installedVersion = localSignerInstalledVersion(payload)
+    if (
+      payload
+      && payload.ok !== false
+      && (!minimumVersion || (installedVersion && compareLocalSignerVersions(installedVersion, minimumVersion) >= 0))
+    ) return payload
   }
   return null
 }
@@ -5245,13 +5367,18 @@ async function recoverLocalSignerAutomatically(
     const installed = localSignerInstalledVersion(status)
     options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
     try {
-      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), { method: 'POST', cache: 'no-store' })
+      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_url: window.location.origin }),
+      })
       const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
       if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
     } catch {
       requestLocalSignerUpdate()
     }
-    const updated = await pollLocalSignerStatus(14, 1000)
+    const updated = await pollLocalSignerStatus(240, 1500, latest, 360000)
     return updated || status
   }
   if (localSignerNeedsRestart(status)) {
@@ -5710,10 +5837,36 @@ function ActivityRow({ activity }:{activity:FascicoloActivity}) {
     ? (activity.type || 'Evento')
     : depositStatusLabel(activity.result)
   const metaLine = [activity.type, activity.place, activity.lawyer].filter(Boolean).join(' - ')
+  const remoteUrl = activity.remoteHearingVerified ? activity.remoteHearingUrl || '' : ''
+  const remoteMeta = [
+    activity.remoteHearingMode ? `Modalità: ${activity.remoteHearingMode.replaceAll('_', ' ')}` : '',
+    activity.hearingTime ? `Ora: ${activity.hearingTime}` : '',
+    activity.remoteHearingPlatform ? `Piattaforma: ${activity.remoteHearingPlatform}` : '',
+    activity.remoteHearingMeetingId ? `ID riunione: ${activity.remoteHearingMeetingId}` : '',
+    activity.remoteHearingPasscode ? `Codice di accesso: ${activity.remoteHearingPasscode}` : '',
+    activity.remoteHearingSource ? `Fonte: ${activity.remoteHearingSource}` : '',
+  ].filter(Boolean)
   return (
     <article className="iu-fas-activity-row">
       <div className="iu-fas-activity-date"><Badge tone={activity.tone}>{badgeText}</Badge><time>{activity.date || 'n.d.'}</time></div>
-      <div className="iu-fas-activity-main"><strong>{activity.title}</strong>{metaLine ? <span>{metaLine}</span> : null}{activity.description ? <p>{renderActivityText(activity.description)}</p> : null}{activity.notes ? <em>{renderActivityText(activity.notes)}</em> : null}</div>
+      <div className="iu-fas-activity-main">
+        <strong>{activity.title}</strong>
+        {metaLine ? <span>{metaLine}</span> : null}
+        {activity.description ? <p>{renderActivityText(activity.description)}</p> : null}
+        {activity.notes ? <em>{renderActivityText(activity.notes)}</em> : null}
+        {activity.remoteHearingDetected ? (
+          <div className="iu-fas-activity-remote">
+            {remoteMeta.map((item) => <small key={item}>{item}</small>)}
+            {activity.remoteHearingAccessInfo ? <small>{activity.remoteHearingAccessInfo}</small> : null}
+            {remoteUrl ? (
+              <a href={remoteUrl} target="_blank" rel="noopener noreferrer">
+                <Video size={14}/>
+                Collegati all'udienza
+              </a>
+            ) : <small>Collegamento audiovisivo da verificare.</small>}
+          </div>
+        ) : null}
+      </div>
       <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-activity-actions">
         {activity.updateAction ? <JsonPostForm action={activity.updateAction} className="iu-fas-mini-form iu-fas-mini-form--activity"><select name="esito" defaultValue={activity.result || 'IN_ATTESA'} aria-label="Esito attivita"><option value="IN_ATTESA">In attesa</option><option value="FAVOREVOLE">Favorevole</option><option value="PARZIALE">Parziale</option><option value="SFAVOREVOLE">Sfavorevole</option><option value="RINVIATO">Rinviato</option><option value="ANNULLATO">Annullato</option></select><button type="submit"><CheckCircle2 size={13}/> Salva</button></JsonPostForm> : null}
         {activity.deleteAction ? <PostAction action={activity.deleteAction} tone="danger" confirm="Eliminare questa attività?"><Trash2 size={14}/></PostAction> : null}
@@ -5999,6 +6152,7 @@ function DetailPage({ id }:{id:string}) {
   const encodedId = encodeURIComponent(f.id || id)
   const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
   const quadroHref = `/fascicoli/${encodedId}/quadro`
+  const notificationHref = `/notifiche-legali?id_fascicolo=${encodedId}&fase=notifica`
   const compilerHref = `/template-atti/catalogo?id_fascicolo=${encodedId}`
   const detailReturnHref = `/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   const exportPdfHref = data.actions.exportPdf || f.exportPdfHref
@@ -6084,12 +6238,13 @@ function DetailPage({ id }:{id:string}) {
     if (lazySection) loadLazySection(lazySection)
     openDetailSectionById(sectionId)
   }
+  if (loading && !data.fascicolo.id) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Caricamento fascicolo">Lettura dei dati e dei documenti in corso.</EmptyState></main>
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprirlo.'}</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={notificationHref} title="Prepara una notifica legale per questa pratica"><Bell size={15}/> Notifica</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}

@@ -284,7 +284,6 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-
         return render_template(
             "form_appuntamento.html",
             app=app_item,
@@ -295,10 +294,16 @@ def register_dashboard_routes(
         agenda = get_agenda()
         nuovo = request.form.get("stato")
         try:
-            agenda.cambia_stato(id_app, StatoAppuntamento(nuovo))
-            flash("Stato aggiornato.", "success")
+            aggiornato = agenda.cambia_stato(id_app, StatoAppuntamento(nuovo))
+            sync_pubblica("modifica", "agenda", id_app)
+            message = f"Stato aggiornato: {aggiornato.stato.value.lower()}."
+            flash(message, "success")
+            if richiede_json():
+                return jsonify({"ok": True, "id": id_app, "stato": aggiornato.stato.value, "message": message})
         except (KeyError, ValueError) as e:
             flash(str(e), "danger")
+            if richiede_json():
+                return jsonify({"ok": False, "message": str(e)}), 400
         return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
     @app.route("/agenda/<id_app>/elimina", methods=["POST"])
     def elimina_appuntamento(id_app):
@@ -315,10 +320,8 @@ def register_dashboard_routes(
         if request.method == "GET" and not richiede_vista_classica():
             return render_react_shell_response("agenda/importa")
         import json as _json
-
         from pct.agenda import TipoAppuntamento
         from pct.ical_import import dict_to_evento, evento_to_dict, parse_ics
-
         fase = request.form.get("fase", "")
         calendar_sync = get_calendar_sync()
         def _render_upload_form(**extra):
@@ -347,7 +350,6 @@ def register_dashboard_routes(
             return _render_upload_form()
         if request.method == "POST" and fase == "upload":
             import hashlib as _hashlib
-
             modalita_import = request.form.get("modalita_import", "file")
             sorgente = request.form.get("sorgente", "generico")
             default_tipo = request.form.get("default_tipo", TipoAppuntamento.ALTRO.value)
@@ -356,7 +358,6 @@ def register_dashboard_routes(
                 default_reminder_minuti = max(int(reminder_raw or 60), 0)
             except (TypeError, ValueError):
                 default_reminder_minuti = 60
-
             if modalita_import == "url":
                 source_url = request.form.get("source_url", "").strip()
                 save_profile = request.form.get("salva_profilo") == "1"
@@ -577,7 +578,6 @@ def register_dashboard_routes(
                 flash("Profilo sincronizzazione salvato nelle impostazioni calendario.", "success")
 
             return redirect(url_for("agenda_view"))
-
         return render_template(
             "importa_calendario.html",
             fase="upload_form",
@@ -619,6 +619,7 @@ def register_dashboard_routes(
         except Exception as e:
             app.logger.exception("Errore api_agenda: %s", e)
             return jsonify([])
+
     @app.route("/api/agenda/<id_app>")
     def api_appuntamento(id_app):
         try:

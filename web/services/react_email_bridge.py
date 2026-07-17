@@ -453,6 +453,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     deadline_proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
     semantic_context = report.get("semantic_context") if isinstance(report.get("semantic_context"), dict) else {}
     procedural_profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+    event_type = _canonical_pec_event_type(report, procedural_profile)
     link = summary.get("fascicolo_link") if isinstance(summary.get("fascicolo_link"), dict) else {}
     fields = summary.get("fields") if isinstance(summary.get("fields"), dict) else {}
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
@@ -464,7 +465,9 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         if provisional and mime_available and source_email_id
         else "/api/pec/fetch?limit=50"
         if provisional
-        else "/api/pec/workers/run"
+        else f"/api/pec/messages/{quote(pec_id, safe='')}/riesegui-controllo"
+        if pec_id
+        else ""
     )
     return {
         "id": pec_id,
@@ -479,7 +482,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "mimeHref": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
         "validationIssues": list(report.get("issues") or []),
         "validationSeverity": str(report.get("severity") or ""),
-        "eventType": str(report.get("event_type") or ""),
+        "eventType": event_type,
         "depositLifecycle": report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {},
         "semanticContext": semantic_context,
         "proceduralProfile": procedural_profile,
@@ -513,6 +516,28 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "storageTone": "warning" if provisional else "success",
         "sourceEmailId": source_email_id,
     }
+
+
+def _canonical_pec_event_type(report: dict[str, Any], procedural_profile: dict[str, Any]) -> str:
+    event_type = _safe_text(report.get("event_type"))
+    if event_type != "notifica_giudice_pace":
+        return event_type
+
+    office = _safe_text(procedural_profile.get("ufficio")).casefold()
+    if not office or "giudice di pace" in office:
+        return event_type
+
+    other_court_markers = (
+        "tribunale",
+        "corte d'appello",
+        "corte di cassazione",
+        "procura",
+        "tribunale amministrativo",
+        "consiglio di stato",
+    )
+    if any(marker in office for marker in other_court_markers):
+        return "comunicazione_cancelleria"
+    return event_type
 
 
 def _address_value(value: Any) -> dict[str, str]:

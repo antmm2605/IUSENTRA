@@ -1,4 +1,4 @@
-import { CheckCheck, Loader2 } from 'lucide-react'
+import { CheckCheck, ExternalLink, Loader2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
@@ -48,17 +48,24 @@ export function TopBarNotifications({
           <div className="iu-panel-list">
             {items.length ? items.map((item) => (
               <div className={`iu-notification is-${item.priority} ${item.read ? 'is-read' : ''}`} key={item.id}>
-                {item.href ? (
-                  <a href={item.href} onClick={onClose}>
-                    <strong>{item.title}</strong>
-                    <small>{item.message}</small>
-                  </a>
-                ) : (
-                  <div className="iu-notification__body">
-                    <strong>{item.title}</strong>
-                    <small>{item.message}</small>
-                  </div>
-                )}
+                <div className="iu-notification__content">
+                  {item.href ? (
+                    <a href={item.href} onClick={onClose}>
+                      <strong>{item.title}</strong>
+                      <small>{item.message}</small>
+                    </a>
+                  ) : (
+                    <div className="iu-notification__body">
+                      <strong>{item.title}</strong>
+                      <small>{item.message}</small>
+                    </div>
+                  )}
+                  {item.secondaryHref ? (
+                    <a className="iu-notification__secondary" href={item.secondaryHref} target="_blank" rel="noreferrer" onClick={onClose}>
+                      <ExternalLink size={13} /> {item.secondaryLabel || 'Apri collegamento'}
+                    </a>
+                  ) : null}
+                </div>
                 {!item.read ? (
                   <button type="button" onClick={() => void markRead(item.id)}>
                     Segna letta

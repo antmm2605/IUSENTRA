@@ -15,8 +15,24 @@ from pct.fatturazione import StatoParcella, VoceParcella
 from pct.formatting import format_euro_it
 from werkzeug.security import safe_join
 
-_ALLOWED_STATUS_FIELDS = {"stato", "data_pagamento", "metodo_pagamento", "note"}
-_ALLOWED_DETAIL_FIELDS = {"voci", "note"}
+_ALLOWED_STATUS_FIELDS = {
+    "stato",
+    "data_pagamento",
+    "metodo_pagamento",
+    "note",
+    "confermaProforma",
+    "conferma_proforma",
+}
+_ALLOWED_DETAIL_FIELDS = {"voci", "note", "data_emissione", "data_scadenza", "fiscal", "payment"}
+_ALLOWED_DETAIL_FISCAL_FIELDS = {
+    "applica_iva",
+    "applica_cassa",
+    "applica_ritenuta",
+    "applica_bollo",
+    "percentuale_spese_generali",
+    "regime_fiscale",
+}
+_ALLOWED_DETAIL_PAYMENT_FIELDS = {"metodo_pagamento"}
 _ALLOWED_SDI_OUTCOME_FIELDS = {"sdi_stato", "sdi_identificativo", "sdi_ricevuta", "sdi_note", "sdi_data_esito"}
 _ALLOWED_COMMERCIALISTA_CHANNELS = {"ordinaria", "pec"}
 _ALLOWED_COMMERCIALISTA_ATTACHMENTS = {"pdf", "pdf_xml_firmato"}
@@ -46,6 +62,19 @@ _SDI_STATUS_LABELS = {
 }
 _LOCAL_SIGNER_BASE_URL = "http://127.0.0.1:27272"
 _MAX_SIGNED_XML_BYTES = 25 * 1024 * 1024
+_REGIME_LABELS = {
+    "RF01": "Regime ordinario",
+    "RF19": "Regime forfettario",
+    "RF02": "Regime minimo",
+}
+_PAYMENT_CODES = {
+    "Non indicato": "",
+    "Bonifico": "MP05",
+    "Contanti": "MP01",
+    "Assegno": "MP02",
+    "Carta di credito": "MP08",
+    "PayPal": "MP08",
+}
 
 
 def _iso_now() -> str:
@@ -80,6 +109,21 @@ def _date_label(value: Any) -> str:
 
 
 def _sdi_status_payload(parcella: Any) -> dict[str, Any]:
+    if _is_proforma(parcella):
+        return {
+            "sdiState": "",
+            "sdiStateLabel": "",
+            "sdiStateTone": "neutral",
+            "sdiStatusMessage": "XML e invio SdI saranno disponibili dopo la conferma della proforma.",
+            "sdiIdentifier": "",
+            "sdiChannel": "",
+            "sdiSentAt": "",
+            "sdiSentLabel": "",
+            "sdiOutcomeAt": "",
+            "sdiOutcomeLabel": "",
+            "sdiReceipt": "",
+            "sdiNote": "",
+        }
     raw_status = _text(getattr(parcella, "sdi_stato", "")).upper()
     label, tone, message = _SDI_STATUS_LABELS.get(
         raw_status,
@@ -187,9 +231,9 @@ def _record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str, Any]) -
         "isProforma": _is_proforma(parcella),
         "documentKindLabel": _document_kind_label(parcella),
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
-        "detailHref": f"/fatturazione/{pid}" if pid else "",
+        "detailHref": f"/fatturazione?id_documento={pid}" if pid else "",
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
-        "xmlHref": f"/fatturazione/{pid}/xml" if pid else "",
+        "xmlHref": f"/fatturazione/{pid}/xml" if pid and not _is_proforma(parcella) else "",
     }
     payload.update(_sdi_status_payload(parcella))
     return payload
@@ -313,6 +357,42 @@ def _float_value(value: Any, field: str, errors: dict[str, str], *, minimum: flo
         errors[field] = f"Inserisci un valore maggiore o uguale a {minimum:g}."
         return default
     return parsed
+
+
+def _bool_value(value: Any, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return _text(value).casefold() in {"1", "true", "si", "sì", "yes", "on"}
+
+
+def _detail_date(value: Any, field: str, errors: dict[str, str], *, default: str = "", required: bool = False) -> str:
+    raw = _text(value) or _text(default)
+    if not raw:
+        if required:
+            errors[field] = "Inserisci la data."
+        return ""
+    try:
+        return date.fromisoformat(raw[:10]).isoformat()
+    except ValueError:
+        errors[field] = "Inserisci una data valida."
+        return ""
+
+
+def _normalise_iban(value: Any) -> str:
+    return "".join(character for character in _text(value).upper() if character.isalnum())[:34]
+
+
+def _iban_is_valid(value: Any) -> bool:
+    iban = _normalise_iban(value)
+    if len(iban) < 15 or len(iban) > 34 or not iban[:2].isalpha() or not iban[2:4].isdigit():
+        return False
+    numeric = "".join(str(ord(character) - 55) if character.isalpha() else character for character in iban[4:] + iban[:4])
+    remainder = 0
+    for character in numeric:
+        remainder = (remainder * 10 + int(character)) % 97
+    return remainder == 1
 
 
 def _validate_detail_voices(raw_voices: Any) -> tuple[list[VoceParcella], dict[str, str]]:
@@ -471,6 +551,24 @@ def build_react_fatturazione_detail_payload(
         for voce in list(getattr(parcella, "voci", []) or [])
     ]
     item["note"] = _text(getattr(parcella, "note", ""))
+    personalized = getattr(parcella, "dati_personalizzati", {}) or {}
+    if not isinstance(personalized, dict):
+        personalized = {}
+    document = personalized.get("document") if isinstance(personalized.get("document"), dict) else {}
+    payment = personalized.get("payment") if isinstance(personalized.get("payment"), dict) else {}
+    item["dataEmissione"] = _text(getattr(parcella, "data_emissione", ""))[:10]
+    item["dataScadenza"] = _text(getattr(parcella, "data_scadenza", ""))[:10]
+    item["fiscal"] = {
+        "applica_iva": bool(getattr(parcella, "applica_iva", False)),
+        "applica_cassa": bool(getattr(parcella, "applica_cassa", False)),
+        "applica_ritenuta": bool(getattr(parcella, "applica_ritenuta", False)),
+        "applica_bollo": bool(getattr(parcella, "applica_bollo", False)),
+        "percentuale_spese_generali": _text(getattr(parcella, "percentuale_spese_generali", 0)),
+        "regime_fiscale": _text(document.get("regime_fiscale")).upper() or "RF01",
+    }
+    item["payment"] = {
+        "metodo_pagamento": _text(getattr(parcella, "metodo_pagamento", "")) or _text(payment.get("modalita_pagamento_label")) or "Non indicato",
+    }
     item["workflow"] = _workflow_payload(parcella, sdi_cfg=sdi_cfg)
     return {
         "ok": True,
@@ -489,10 +587,33 @@ def update_react_fatturazione_detail(
     current_user: Any,
     id_documento: str,
     payload: dict[str, Any],
+    studio_config: dict[str, Any] | None = None,
     ip_address: str = "",
 ) -> tuple[dict[str, Any], int]:
     if not _can(current_user, "fatturazione.scrivi"):
         return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
+    try:
+        manager = get_fatturazione()
+        parcella = manager.get(id_documento)
+    except Exception:
+        parcella = None
+    if not parcella:
+        return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
+    if _enum(getattr(parcella, "stato", "")) != "BOZZA":
+        return {
+            "ok": False,
+            "message": "Solo una bozza può essere modificata.",
+            "errors": {"stato": "Per correggere un documento già emesso usa la procedura fiscale appropriata."},
+            "item": None,
+        }, 409
+    if _text(getattr(parcella, "sdi_data_invio", "")):
+        return {
+            "ok": False,
+            "message": "Documento già inviato a SdI: non può essere modificato da questa pagina.",
+            "errors": {"sdi": "Registra l’esito o predisponi una rettifica."},
+            "item": None,
+        }, 409
+
     errors: dict[str, str] = {}
     unknown = {key for key in payload if key not in _ALLOWED_DETAIL_FIELDS}
     if unknown:
@@ -501,25 +622,249 @@ def update_react_fatturazione_detail(
         errors[field] = "Importo calcolato non accettato dalla pagina."
     voices, voice_errors = _validate_detail_voices(payload.get("voci"))
     errors.update(voice_errors)
+    raw_fiscal = payload.get("fiscal") or {}
+    if not isinstance(raw_fiscal, dict):
+        errors["fiscal"] = "Impostazioni fiscali non valide."
+        raw_fiscal = {}
+    fiscal_unknown = {key for key in raw_fiscal if key not in _ALLOWED_DETAIL_FISCAL_FIELDS}
+    if fiscal_unknown:
+        errors["fiscal"] = "Campi non consentiti: " + ", ".join(sorted(fiscal_unknown))
+    raw_payment = payload.get("payment") or {}
+    if not isinstance(raw_payment, dict):
+        errors["payment"] = "Impostazioni di pagamento non valide."
+        raw_payment = {}
+    payment_unknown = {key for key in raw_payment if key not in _ALLOWED_DETAIL_PAYMENT_FIELDS}
+    if payment_unknown:
+        errors["payment"] = "Campi non consentiti: " + ", ".join(sorted(payment_unknown))
+
+    data_emissione = _detail_date(
+        payload.get("data_emissione"),
+        "data_emissione",
+        errors,
+        default=_text(getattr(parcella, "data_emissione", "")),
+        required=True,
+    )
+    data_scadenza = _detail_date(
+        payload.get("data_scadenza"),
+        "data_scadenza",
+        errors,
+        default=_text(getattr(parcella, "data_scadenza", "")),
+    )
+    if data_emissione and data_scadenza and data_scadenza < data_emissione:
+        errors["data_scadenza"] = "La scadenza non può precedere la data del documento."
+
+    personalized = getattr(parcella, "dati_personalizzati", {}) or {}
+    if not isinstance(personalized, dict):
+        personalized = {}
+    personalized = dict(personalized)
+    document = dict(personalized.get("document") or {})
+    payment = dict(personalized.get("payment") or {})
+    studio_values = dict(studio_config or {})
+    regime = _text(raw_fiscal.get("regime_fiscale") or document.get("regime_fiscale") or "RF01").upper()
+    if regime not in _REGIME_LABELS:
+        errors["fiscal.regime_fiscale"] = "Seleziona un regime fiscale valido."
+        regime = "RF01"
+    percentuale = _float_value(
+        raw_fiscal.get("percentuale_spese_generali"),
+        "fiscal.percentuale_spese_generali",
+        errors,
+        minimum=0.0,
+        default=float(getattr(parcella, "percentuale_spese_generali", 0) or 0),
+    )
+    if percentuale > 100:
+        errors["fiscal.percentuale_spese_generali"] = "Inserisci una percentuale compresa tra 0 e 100."
+    metodo_pagamento = _text(raw_payment.get("metodo_pagamento") or getattr(parcella, "metodo_pagamento", "") or payment.get("modalita_pagamento_label") or "Non indicato")
+    if metodo_pagamento not in _PAYMENT_CODES:
+        errors["payment.metodo_pagamento"] = "Seleziona una modalità di pagamento valida."
+        metodo_pagamento = "Non indicato"
+    configured_iban = _normalise_iban(studio_values.get("STUDIO_IBAN"))
+    stored_iban = _normalise_iban(payment.get("iban") or getattr(parcella, "studio_iban", ""))
+    effective_iban = configured_iban or stored_iban
+    if metodo_pagamento == "Bonifico" and not _iban_is_valid(effective_iban):
+        errors["payment.iban"] = "Inserisci un IBAN valido nelle coordinate dello studio prima di scegliere Bonifico."
+
+    applica_iva = _bool_value(raw_fiscal.get("applica_iva"), bool(getattr(parcella, "applica_iva", True)))
+    if regime in {"RF19", "RF02"}:
+        applica_iva = False
+    applica_cassa = _bool_value(raw_fiscal.get("applica_cassa"), bool(getattr(parcella, "applica_cassa", True)))
+    applica_ritenuta = _bool_value(raw_fiscal.get("applica_ritenuta"), bool(getattr(parcella, "applica_ritenuta", False)))
+    applica_bollo = _bool_value(raw_fiscal.get("applica_bollo"), bool(getattr(parcella, "applica_bollo", False)))
     if errors:
-        return {"ok": False, "message": "Controlla le voci della parcella.", "errors": errors, "item": None}, 400
+        return {"ok": False, "message": "Controlla i dati fiscali, il pagamento e le voci.", "errors": errors, "item": None}, 400
+
+    document.update({
+        "data_documento": data_emissione,
+        "regime_fiscale": regime,
+        "regime_fiscale_label": _REGIME_LABELS[regime],
+        "percentuale_spese_generali": _text(percentuale),
+    })
+    payment.update({
+        "modalita_pagamento": _PAYMENT_CODES[metodo_pagamento],
+        "modalita_pagamento_codice": _PAYMENT_CODES[metodo_pagamento],
+        "modalita_pagamento_label": metodo_pagamento,
+        "data_decorrenza": data_scadenza,
+    })
+    if metodo_pagamento == "Bonifico":
+        payment.update({
+            "beneficiario": _text(studio_values.get("STUDIO_BENEFICIARIO") or payment.get("beneficiario"), limit=160),
+            "istituto_finanziario": _text(studio_values.get("STUDIO_BANCA") or payment.get("istituto_finanziario"), limit=160),
+            "iban": effective_iban,
+            "bic_swift": _text(studio_values.get("STUDIO_BIC_SWIFT") or payment.get("bic_swift"), limit=11).upper(),
+        })
+    personalized["document"] = document
+    personalized["payment"] = payment
     try:
-        manager = get_fatturazione()
-        parcella = manager.get(id_documento)
-        if not parcella:
-            raise KeyError(id_documento)
-        if _text(getattr(parcella, "sdi_data_invio", "")):
-            return {
-                "ok": False,
-                "message": "Documento già inviato a SdI: le voci non possono essere modificate da questa pagina.",
-                "errors": {"sdi": "Per una fattura già inviata va registrato l'esito o predisposta una rettifica."},
-                "item": None,
-            }, 409
-        updated = manager.aggiorna(id_documento, voci=voices, note=_text(payload.get("note"), limit=2000))
+        updated = manager.aggiorna(
+            id_documento,
+            voci=voices,
+            note=_text(payload.get("note"), limit=2000),
+            data_emissione=data_emissione,
+            data_scadenza=data_scadenza or None,
+            applica_iva=applica_iva,
+            applica_cassa=applica_cassa,
+            applica_ritenuta=applica_ritenuta,
+            applica_bollo=applica_bollo,
+            percentuale_spese_generali=percentuale,
+            metodo_pagamento=metodo_pagamento,
+            studio_iban=effective_iban if metodo_pagamento == "Bonifico" else getattr(parcella, "studio_iban", ""),
+            dati_personalizzati=personalized,
+        )
     except KeyError:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "fatturazione.dettaglio", id_documento, ip_address)
-    return {"ok": True, "message": "Dettaglio parcella aggiornato.", "errors": {}, "item": _status_result(updated)}, 200
+    label = "Proforma aggiornata." if _is_proforma(updated) else "Documento aggiornato."
+    return {"ok": True, "message": label, "errors": {}, "item": _status_result(updated)}, 200
+
+
+def apply_react_fatturazione_defaults_to_proformas(
+    *,
+    get_fatturazione: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+    defaults: dict[str, Any],
+    studio_config: dict[str, Any],
+    confirm: bool,
+    ip_address: str = "",
+) -> tuple[dict[str, Any], int]:
+    """Riallinea solo le proforme operative, senza alterare fatture o invii SdI."""
+
+    if not (_can(current_user, "admin.configura") and _can(current_user, "fatturazione.scrivi")):
+        return {
+            "ok": False,
+            "message": "Permessi insufficienti per aggiornare le proforme.",
+            "errors": {"permission": "Sono richiesti i permessi di configurazione e fatturazione."},
+        }, 403
+    if confirm is not True:
+        return {
+            "ok": False,
+            "message": "Conferma esplicitamente il riallineamento delle proforme.",
+            "errors": {"confirm": "Conferma richiesta."},
+        }, 400
+
+    regime = _text(defaults.get("regime_fiscale")).upper() or "RF01"
+    metodo = _text(defaults.get("metodo_pagamento")) or "Bonifico"
+    if regime not in _REGIME_LABELS or metodo not in _PAYMENT_CODES:
+        return {
+            "ok": False,
+            "message": "Le impostazioni fiscali non sono valide.",
+            "errors": {"defaults": "Salva nuovamente le impostazioni di fatturazione."},
+        }, 400
+    iban = _normalise_iban(studio_config.get("STUDIO_IBAN"))
+    if metodo == "Bonifico" and not _iban_is_valid(iban):
+        return {
+            "ok": False,
+            "message": "IBAN dello studio mancante o non valido.",
+            "errors": {"studio.iban": "Correggi l’IBAN nei Dati Studio prima del riallineamento."},
+        }, 400
+
+    try:
+        manager = get_fatturazione()
+        records = list(manager.tutte())
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Archivio fatturazione non disponibile.",
+            "errors": {"archive": "Impossibile leggere le proforme dello studio."},
+        }, 500
+
+    updated_ids: list[str] = []
+    excluded = 0
+    failures: list[str] = []
+    for record in records:
+        if not _is_proforma(record):
+            continue
+        stato = _enum(getattr(record, "stato", "")).upper()
+        if stato == "ANNULLATA" or _text(getattr(record, "sdi_data_invio", "")):
+            excluded += 1
+            continue
+        personalized = getattr(record, "dati_personalizzati", {}) or {}
+        if not isinstance(personalized, dict):
+            personalized = {}
+        personalized = dict(personalized)
+        document = dict(personalized.get("document") or {})
+        payment = dict(personalized.get("payment") or {})
+        studio = dict(personalized.get("studio") or {})
+        document.update({
+            "regime_fiscale": regime,
+            "regime_fiscale_label": _REGIME_LABELS[regime],
+            "percentuale_spese_generali": _text(defaults.get("percentuale_spese_generali")),
+        })
+        payment.update({
+            "modalita_pagamento": _PAYMENT_CODES[metodo],
+            "modalita_pagamento_codice": _PAYMENT_CODES[metodo],
+            "modalita_pagamento_label": metodo,
+            "beneficiario": _text(studio_config.get("STUDIO_BENEFICIARIO")),
+            "istituto_finanziario": _text(studio_config.get("STUDIO_BANCA")),
+            "iban": iban if metodo == "Bonifico" else "",
+            "bic_swift": _text(studio_config.get("STUDIO_BIC_SWIFT"), limit=11).upper() if metodo == "Bonifico" else "",
+        })
+        studio.update({
+            "nome_denominazione": _text(studio_config.get("STUDIO_NOME")),
+            "partita_iva": _text(studio_config.get("STUDIO_PIVA")),
+            "codice_fiscale": _text(studio_config.get("STUDIO_CF")),
+            "indirizzo": _text(studio_config.get("STUDIO_INDIRIZZO")),
+            "citta": _text(studio_config.get("STUDIO_CITY")),
+            "provincia": _text(studio_config.get("STUDIO_PROVINCE")),
+        })
+        personalized.update({"document": document, "payment": payment, "studio": studio})
+        record_id = _text(getattr(record, "id", ""))
+        try:
+            manager.aggiorna(
+                record_id,
+                applica_iva=bool(defaults.get("applica_iva")) and regime not in {"RF02", "RF19"},
+                applica_cassa=bool(defaults.get("applica_cassa")),
+                applica_ritenuta=bool(defaults.get("applica_ritenuta")),
+                applica_bollo=bool(defaults.get("applica_bollo")),
+                percentuale_spese_generali=float(defaults.get("percentuale_spese_generali") or 0.0),
+                metodo_pagamento=metodo,
+                studio_piva=_text(studio_config.get("STUDIO_PIVA")),
+                studio_cf=_text(studio_config.get("STUDIO_CF")),
+                studio_indirizzo=_text(studio_config.get("STUDIO_INDIRIZZO")),
+                studio_iban=iban if metodo == "Bonifico" else "",
+                dati_personalizzati=personalized,
+            )
+            updated_ids.append(record_id)
+        except Exception:
+            failures.append(record_id)
+
+    if failures:
+        return {
+            "ok": False,
+            "message": "Riallineamento non completato per tutte le proforme.",
+            "errors": {"records": f"{len(failures)} proforme non aggiornate."},
+            "result": {"aggiornate": len(updated_ids), "escluse": excluded, "errori": len(failures)},
+        }, 500
+    _audit(get_utenti, current_user, "fatturazione.proforme.riallinea", "proforme", ip_address)
+    return {
+        "ok": True,
+        "message": (
+            f"Aggiornate {len(updated_ids)} proforme con le impostazioni dello studio."
+            if updated_ids
+            else "Nessuna proforma da aggiornare."
+        ),
+        "errors": {},
+        "result": {"aggiornate": len(updated_ids), "escluse": excluded, "errori": 0},
+    }, 200
 
 
 def prepare_react_fatturazione_xml_signature(
@@ -538,6 +883,12 @@ def prepare_react_fatturazione_xml_signature(
         parcella = None
     if not parcella:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}}, 404
+    if _is_proforma(parcella):
+        return {
+            "ok": False,
+            "message": "Conferma la proforma prima di preparare la fattura elettronica.",
+            "errors": {"proforma": "È richiesta la conferma finale dell’avvocato."},
+        }, 409
     cliente = get_clienti().get(getattr(parcella, "id_cliente", ""))
     xml, filename = _xml_bytes(parcella, cliente, config)
     return {
@@ -628,6 +979,12 @@ def prepare_react_fatturazione_sdi_pec(
         parcella = None
     if not parcella:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}}, 404
+    if _is_proforma(parcella):
+        return {
+            "ok": False,
+            "message": "Conferma la proforma prima dell’invio al Sistema di Interscambio.",
+            "errors": {"proforma": "La proforma non è una fattura emessa."},
+        }, 409
     destinatario = _text(getattr(sdi_cfg, "pec_notifiche", ""))
     if not destinatario:
         return {"ok": False, "message": "PEC per notifiche SdI non configurata.", "errors": {"pec_notifiche": "Compila la PEC per notifiche SdI in Impostazioni > Canali SdI."}}, 400
@@ -965,8 +1322,17 @@ def update_react_fatturazione_status(
         return {"ok": False, "message": "Controlla i campi evidenziati.", "errors": errors, "item": None}, 400
     try:
         manager = get_fatturazione()
-        if not manager.get(id_documento):
+        current = manager.get(id_documento)
+        if not current:
             raise KeyError(id_documento)
+        confirms_proforma = payload.get("confermaProforma") is True or payload.get("conferma_proforma") is True
+        if status == StatoParcella.EMESSA and _is_proforma(current) and not confirms_proforma:
+            return {
+                "ok": False,
+                "message": "Conferma la proforma prima di emettere la fattura.",
+                "errors": {"confermaProforma": "Conferma esplicita richiesta."},
+                "item": _status_result(current),
+            }, 409
         manager.cambia_stato(
             id_documento,
             status,

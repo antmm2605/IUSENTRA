@@ -1,7 +1,38 @@
 # Changelog
 
-## 2.256.0 - 2026-07-11
+## 2.256.2 - 2026-07-17
 
+- Conserva le attività `UDIENZA` nella timeline del fascicolo, comprese note, modalità di trattazione, fonte e collegamento audiovisivo.
+- Allinea Agenda, Scadenziario, centro notifiche e Web Push sullo stesso evento, senza creare duplicati.
+- Aggiorna una notifica già esistente quando un PDF o ZIP elaborato successivamente aggiunge un collegamento audiovisivo verificato.
+- Espone nel Web Push l'azione `Collegati` solo per URL verificati; negli altri casi apre IUSENTRA per il controllo.
+- Mostra il collegamento e la fonte sia nel passaggio del mouse in Agenda sia nella scheda dello Scadenziario, con apertura del documento dentro IUSENTRA.
+- Mantiene ogni chunk JavaScript e CSS della build React sotto il limite di 500.000 byte.
+
+## 2.256.1 - 2026-07-12
+
+- Aggiunge il flusso React `Nuova proforma`, le impostazioni fiscali predefinite dello studio e l'aggiornamento governato delle sole proforme non trasmesse.
+- Separa correttamente nome e cognome delle persone fisiche, riserva la denominazione a studi, società ed enti e impedisce duplicazioni anche nell'XML FatturaPA.
+- Compila il CAP dai dati territoriali disponibili e gestisce beneficiario, banca, IBAN e BIC/SWIFT dalle impostazioni tenant-aware, senza accettare dal browser l'identità dello studio.
+- Collega la generazione della proforma al controllo economico del fascicolo, verifica la persistenza e impedisce la creazione di documenti economici duplicati.
+- Migliora il planner Agenda con legenda semantica, evidenze leggibili, collegamento alle udienze audiovisive, stato completato e resa notebook/mobile.
+- Rende incrementale il presidio documentale: ogni file nuovo o modificato viene letto una volta, mentre impronte già elaborate non vengono rilette nei cicli successivi.
+- Estende il lettore documenti mobile con zoom, adattamento e scorrimento del documento senza perdere i comandi operativi.
+- Rafforza Local Signer con finestra PIN in primo piano, aggiornamento automatico governato e controllo contro servizi duplicati.
+- Aggiorna i fascicoli già presenti durante una nuova acquisizione PST invece di crearne una copia, mantenendo la fonte SQL tenant-aware.
+- Rende ricercabile la pratica nel flusso notifiche legali, collega l'azione dal fascicolo e genera un'unica attestazione di conformità per tutti i documenti selezionati.
+- Genera una sola attestazione di conformità per tutte le copie scelte dall'avvocato, usando esattamente il modello Word dello studio senza evidenziazioni e senza preselezionare documenti.
+- Preserva integralmente il pacchetto del modello dell'attestazione: cambia soltanto il contenuto dei campi automatici e mantiene anche le descrizioni che contengono virgole.
+
+- Legge in modo incrementale tutti i documenti nuovi o modificati del fascicolo senza rileggere quelli invariati, anche quando esiste già una scadenza.
+- Riconosce nei decreti le formule processuali `nel giorno`, `per il giorno`, `fissato per` e `alla data`, collegando correttamente il deposito delle note alla prossima scadenza.
+- Conserva i termini trascorsi nello storico senza mostrarli come prossima scadenza e impedisce duplicati durante il riesame documentale.
+- Mantiene rapido l'elenco fascicoli: nessun OCR parte dal caricamento della lista; la lettura mirata avviene solo aprendo documenti o scadenze.
+- Evita riletture automatiche dei documenti invariati: il presidio salva nel database l'impronta completa del fascicolo e riapre soltanto documenti nuovi o modificati.
+- Memorizza i fascicoli già coperti da una scadenza futura come rinviati fino alla data utile: i cicli intermedi non rileggono i documenti, mentre una modifica o la scadenza del rinvio riattiva automaticamente il controllo.
+- Riduce il lavoro del worker PEC ai soli fascicoli variati, mantenendo l'audit delle letture eseguite dagli utenti e senza duplicare gli eventi automatici.
+- Verifica i dati ministeriali obbligatori prima di salvare la classificazione o avviare prova e simulazione; una prova storica non abilita più un invio reale dopo modifiche al pacchetto.
+- Salva classificazione e profilo deposito in un'unica transazione sul fascicolo interessato, evitando lock e riscritture massive.
 - Completa e valida contro gli XSD ministeriali tutti i 252 generatori PCT del catalogo deposito.
 - Mostra e conserva i dati specifici richiesti dal tipo scelto, con messaggi puntuali e accesso diretto ai campi mancanti.
 - Lascia all'avvocato la scelta del tipo di deposito e dei documenti, senza preselezioni nei casi nuovi.

@@ -1513,6 +1513,31 @@
   gap: var(--iusentra-layout-gap);
 }
 
+.iusentra-preset-active .iu-ag-kpi span,
+.iusentra-preset-active .iu-ag-kpi small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.iusentra-preset-active .iu-ag-kpis {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 1480px) {
+  .iusentra-preset-active .iu-ag-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .iusentra-preset-active .iu-ag-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .iusentra-preset-active .iu-kpi-card {
   min-height: 108px;
   border-color: var(--iusentra-border-soft);
@@ -1930,8 +1955,18 @@
 }
 
 .iusentra-preset-active .iu-ag-slot {
-  min-height: 32px;
-  height: auto;
+  min-height: 44px;
+  height: 44px;
+}
+
+.iusentra-preset-active .iu-ag-day__body {
+  height: 1056px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 87px,
+    rgba(15, 23, 42, 0.055) 88px
+  );
 }
 
 .iusentra-preset-active main .iu-li-acquisition__source,

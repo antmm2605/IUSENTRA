@@ -118,6 +118,73 @@ def test_telematico_repository_recent_events(tmp_path: Path):
         repo.close()
 
 
+def test_telematico_repository_filtra_pratiche_esistenti_e_cancella_collegamento(tmp_path: Path):
+    repo = TelematicoWorkflowRepository(str(tmp_path / "workflow.db"))
+    try:
+        valid = repo.upsert_case(
+            practice_id="FASC-VALIDO",
+            channel_family="ministero",
+            service_code="polisweb_consultazione",
+            office_name="Tribunale di Torino",
+            register_type="CC",
+            register_number="3950",
+            register_year=2026,
+            subject_name="Parte valida",
+            counsel_name="Avv. Demo",
+            counsel_cf="DMEAVV00A00H501Z",
+        )
+        orphan = repo.upsert_case(
+            practice_id="FASC-ELIMINATO",
+            channel_family="ministero",
+            service_code="polisweb_consultazione",
+            office_name="Tribunale di Torino",
+            register_type="CC",
+            register_number="3951",
+            register_year=2026,
+            subject_name="Parte eliminata",
+            counsel_name="Avv. Demo",
+            counsel_cf="DMEAVV00A00H501Z",
+        )
+        repo.add_event(str(valid["id"]), event_type="sync", title="Evento valido")
+        repo.add_event(str(orphan["id"]), event_type="sync", title="Evento orfano")
+        repo.upsert_document(
+            str(orphan["id"]),
+            document_role="other",
+            title="Catalogo senza file",
+            source_type="portal",
+            portal_document_ref="DOC-ORFANO",
+        )
+        repo.conn.execute(
+            """
+            INSERT INTO telematic_pec_messages
+                (id, telematic_case_id, mailbox, subject)
+            VALUES (?, ?, ?, ?)
+            """,
+            ("pec-preservata", orphan["id"], "studio@pec.example", "Comunicazione conservata"),
+        )
+        repo.conn.commit()
+
+        assert [row["practice_id"] for row in repo.list_cases(practice_ids={"FASC-VALIDO"})] == ["FASC-VALIDO"]
+        assert repo.case_stats(practice_ids={"FASC-VALIDO"})["totale"] == 1
+        assert [row["title"] for row in repo.list_recent_events(practice_ids={"FASC-VALIDO"})] == ["Evento valido"]
+
+        assert repo.delete_cases_for_practice("FASC-ELIMINATO") == 1
+        assert repo.delete_cases_for_practice("FASC-ELIMINATO") == 0
+        assert repo.get_case(str(orphan["id"])) is None
+        assert repo.conn.execute(
+            "SELECT COUNT(*) FROM telematic_documents WHERE telematic_case_id = ?",
+            (orphan["id"],),
+        ).fetchone()[0] == 0
+        pec_row = repo.conn.execute(
+            "SELECT telematic_case_id FROM telematic_pec_messages WHERE id = ?",
+            ("pec-preservata",),
+        ).fetchone()
+        assert pec_row is not None
+        assert pec_row[0] is None
+    finally:
+        repo.close()
+
+
 def test_telematico_repository_recupera_errore_sqlite_spazio_temporaneo(tmp_path: Path, monkeypatch):
     repo = TelematicoWorkflowRepository(str(tmp_path / "workflow.db"))
     try:

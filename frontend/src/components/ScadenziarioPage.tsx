@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -95,7 +95,6 @@ function initialView(): ScadenziarioView {
   const focusId = routeDeadlineId()
   const raw = params.get('vista') || (focusId ? 'tutte' : 'aperte')
   const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
-  if (!focusId && raw === 'tutte') return 'aperte'
   return allowed.includes(raw as ScadenziarioView) ? raw as ScadenziarioView : 'aperte'
 }
 
@@ -220,6 +219,7 @@ function DeadlineFlags({ item }:{item:ScadenziarioRow}) {
       {item.peremptory ? <Badge tone="danger">Perentorio</Badge> : null}
       {item.advanced ? <Badge tone="purple">Calcolo</Badge> : null}
       {item.operative ? <Badge tone="info">Operativa</Badge> : null}
+      {item.hearingMode ? <Badge tone="info">{item.hearingMode}{item.hearingTime ? `, ore ${item.hearingTime}` : ''}</Badge> : null}
       {item.traceCount ? <em>{item.traceCount} step</em> : null}
     </span>
   )
@@ -250,12 +250,35 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
       {item.remoteHearingSource ? (
         <span className="iu-scad-remote-source"><FileSearch size={13}/> Allegato udienza: {item.remoteHearingSource}</span>
       ) : null}
+      {item.remoteHearingPlatform ? <span>Piattaforma: {item.remoteHearingPlatform}</span> : null}
+      {item.remoteHearingMeetingId ? <span>ID riunione: {item.remoteHearingMeetingId}</span> : null}
+      {item.remoteHearingPasscode ? <span>Codice di accesso: {item.remoteHearingPasscode}</span> : null}
       {item.remoteHearingUrl ? (
         <span className={`iu-scad-remote-check ${item.remoteHearingVerified ? 'is-verified' : 'is-review'}`}>
           <CheckCircle2 size={13}/> {item.remoteHearingVerified ? 'Link verificato sull’allegato' : 'Link da controllare sull’allegato'}
         </span>
       ) : null}
     </div>
+  )
+}
+
+function SourceEvidenceLink({ item }: { item: ScadenziarioRow }) {
+  if (!item.sourceHref) return null
+  const sourceLabel = item.sourceLabel || 'Fonte originaria'
+  return (
+    <a
+      className="iu-scad-source-link"
+      href={item.sourceHref}
+      target="_blank"
+      rel="noreferrer"
+      title={`Visualizza fonte: ${sourceLabel}`}
+      aria-label={`Visualizza fonte: ${sourceLabel}`}
+    >
+      <FileSearch size={13}/>
+      <span>Visualizza fonte</span>
+      <small>{sourceLabel}</small>
+      {item.sourceVerified ? <CheckCircle2 size={12} aria-label="Fonte verificata"/> : null}
+    </a>
   )
 }
 
@@ -307,6 +330,7 @@ function DeadlineTable({
                   </span>
                 ) : null}
                 <RemoteHearingNotice item={item}/>
+                <SourceEvidenceLink item={item}/>
                 <DeadlineFlags item={item}/>
               </td>
               <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
@@ -357,6 +381,7 @@ function DeadlineCardList({
             </span>
           ) : null}
           <RemoteHearingNotice item={item}/>
+          <SourceEvidenceLink item={item}/>
           <div className="iu-scad-mobile-meta">
             <span><CalendarDays size={14}/>{item.daysLabel}</span>
             <span><Gavel size={14}/>{item.typeLabel}</span>
@@ -761,6 +786,8 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
 export function ScadenziarioPage() {
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
+  const [backgroundLoading, setBackgroundLoading] = useState(false)
+  const compactLoadedRef = useRef(false)
   const [calculatorForm, setCalculatorForm] = useState<CalculatorForm>(() => defaultCalculatorForm(emptyScadenziarioPage.calculator.templates))
   const [calculatorResult, setCalculatorResult] = useState<DeadlineCalculatorResult | null>(null)
   const [calculatorBusy, setCalculatorBusy] = useState(false)
@@ -786,7 +813,21 @@ export function ScadenziarioPage() {
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
 
-  const buildQuery = (): ScadenziarioQuery => ({ view, q: query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId })
+  const buildQuery = (compact = false): ScadenziarioQuery => ({
+    view,
+    q: query,
+    type,
+    priority,
+    from,
+    to,
+    peremptory,
+    advanced,
+    operative,
+    guidaPratica,
+    fascicoloId,
+    focusId: compact ? routeDeadlineId() : undefined,
+    compact,
+  })
 
   const syncCalculatorDefaults = (payload: ScadenziarioPageData) => {
     setCalculatorForm((current) => {
@@ -797,7 +838,8 @@ export function ScadenziarioPage() {
 
   const load = () => {
     setLoading(true)
-    getScadenziarioPage(buildQuery()).then((payload) => {
+    setBackgroundLoading(false)
+    getScadenziarioPage(buildQuery(false)).then((payload) => {
       setData(payload)
       syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
@@ -807,16 +849,51 @@ export function ScadenziarioPage() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    getScadenziarioPage(buildQuery()).then((payload) => {
+    setBackgroundLoading(false)
+
+    const applyPayload = (payload: ScadenziarioPageData) => {
       if (!active) return
       setData(payload)
       syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
-    }).finally(() => {
-      if (active) setLoading(false)
-    })
-    return () => { active = false }
-  }, [view, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
+    }
+
+    const focusedId = routeDeadlineId()
+    const loadPage = async () => {
+      if (focusedId && !compactLoadedRef.current) {
+        compactLoadedRef.current = true
+        const compactPayload = await getScadenziarioPage(buildQuery(true))
+        if (!active) return
+        applyPayload(compactPayload)
+        setLoading(false)
+        setBackgroundLoading(true)
+
+        const completePayload = await getScadenziarioPage(buildQuery(false))
+        if (!active) return
+        applyPayload(completePayload)
+        setBackgroundLoading(false)
+        return
+      }
+
+      const payload = await getScadenziarioPage(buildQuery(false))
+      if (!active) return
+      applyPayload(payload)
+      setLoading(false)
+    }
+
+    const timer = window.setTimeout(() => {
+      void loadPage().finally(() => {
+        if (active) {
+          setLoading(false)
+          setBackgroundLoading(false)
+        }
+      })
+    }, query.trim() ? 250 : 0)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [view, query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
 
   const visibleRows = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
 
@@ -998,7 +1075,7 @@ export function ScadenziarioPage() {
 
   return (
     <main className="iu-content iu-scad-page iusentra-route-sequence">
-      <section className="iu-scad-hero">
+      <section className="iu-scad-hero" data-iusentra-sequence-slot="page-header">
         <div>
           <span className="iu-scad-eyebrow"><CalendarCheck size={16}/> Scadenziario Legale</span>
           <h1>Scadenziario Legale</h1>
@@ -1087,7 +1164,9 @@ export function ScadenziarioPage() {
       />
 
       <section className="iu-scad-status-line">
-        <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione scadenziario...' : 'Dati scadenziario aggiornati'}</span>
+        <span className={loading ? '' : 'is-ok'}>
+          {loading ? 'Sincronizzazione scadenziario...' : backgroundLoading ? 'Dettaglio disponibile, aggiornamento elenco in corso...' : 'Dati scadenziario aggiornati'}
+        </span>
         <small><ShieldCheck size={14}/> Scritture e calcoli restano tracciati con controlli operativi.</small>
         {statusLine ? <small className="iu-scad-operation-status">{statusLine}</small> : null}
       </section>
@@ -1101,7 +1180,7 @@ export function ScadenziarioPage() {
       ) : null}
 
       {focusedRow ? (
-        <section className="iu-scad-focus-card">
+        <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
           <div>
             <Badge tone={focusedRow.tone}>{focusedRow.statusLabel}</Badge>
             <h2>{focusedRow.title}</h2>
@@ -1113,9 +1192,13 @@ export function ScadenziarioPage() {
               <div><dt>Responsabile</dt><dd>{focusedRow.ownerLabel || 'Non assegnato'}</dd></div>
               {focusedRow.sourceEventTypeLabel ? <div><dt>Evento</dt><dd>{focusedRow.sourceEventTypeLabel}</dd></div> : null}
               {focusedRow.officeLabel ? <div><dt>Ufficio</dt><dd>{focusedRow.officeLabel}</dd></div> : null}
-              {focusedRow.remoteHearingDetected ? <div><dt>Udienza da remoto</dt><dd>{focusedRow.remoteHearingMode || 'Da remoto'}</dd></div> : null}
-              {focusedRow.remoteHearingTime ? <div><dt>Orario collegamento</dt><dd>{focusedRow.remoteHearingTime}</dd></div> : null}
+              {focusedRow.hearingMode ? <div><dt>Modalità udienza</dt><dd>{focusedRow.hearingMode}</dd></div> : null}
+              {focusedRow.hearingTime ? <div><dt>Orario udienza</dt><dd>{focusedRow.hearingTime}</dd></div> : null}
+              {focusedRow.hearingModeSource ? <div><dt>Fonte modalità</dt><dd>{focusedRow.hearingModeSource}</dd></div> : null}
               {focusedRow.remoteHearingSource ? <div><dt>Allegato udienza</dt><dd>{focusedRow.remoteHearingSource}</dd></div> : null}
+              {focusedRow.remoteHearingPlatform ? <div><dt>Piattaforma</dt><dd>{focusedRow.remoteHearingPlatform}</dd></div> : null}
+              {focusedRow.remoteHearingMeetingId ? <div><dt>ID riunione</dt><dd>{focusedRow.remoteHearingMeetingId}</dd></div> : null}
+              {focusedRow.remoteHearingPasscode ? <div><dt>Codice di accesso</dt><dd>{focusedRow.remoteHearingPasscode}</dd></div> : null}
               {focusedRow.remoteHearingUrl ? <div><dt>Controllo link</dt><dd>{focusedRow.remoteHearingVerified ? 'Verificato sull’allegato' : 'Da controllare sull’allegato'}</dd></div> : null}
               {focusedRow.remoteHearingPdfRequired ? <div><dt>Link udienza</dt><dd>Da acquisire dal PDF allegato</dd></div> : null}
               {focusedRow.officeModeLabel ? <div><dt>Operatività ufficio</dt><dd>{focusedRow.officeModeLabel}</dd></div> : null}
@@ -1141,10 +1224,10 @@ export function ScadenziarioPage() {
       <section className="iu-scad-layout">
         <div className="iu-scad-table-card">
           <header>
-            <div><strong>{visibleRows.length} scadenze</strong><span>{data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente'} · {sourceLabel(data.source)}</span></div>
+            <div><strong>{visibleRows.length} scadenze</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
             <div>
-              <Badge tone={view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
-                {view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa'}
+              <Badge tone={query.trim() || view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
+                {query.trim() ? 'tutti gli stati' : (view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa')}
               </Badge>
               <a href={data.actions.exportCsv}><Download size={15}/> Esporta</a>
             </div>

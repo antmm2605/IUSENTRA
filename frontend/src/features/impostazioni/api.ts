@@ -1,5 +1,5 @@
 import { apiJson, apiPostJson } from '@/lib/apiClient'
-import type { AiRuntimePayload, CalendarActionPayload, NotificationActionPayload, SettingsPayload, SettingsSection, TestResult } from './types'
+import type { AiRuntimePayload, BillingDefaultsApplyResult, CalendarActionPayload, NotificationActionPayload, SettingsPayload, SettingsSection, TestResult } from './types'
 
 export const emptySettingsPayload: SettingsPayload = {
   ok: false,
@@ -36,6 +36,8 @@ export const emptySettingsPayload: SettingsPayload = {
     linux_filename: '',
   },
   studio: {},
+  fatturazione: {},
+  fatturazione_stats: { totali: 0, aggiornabili: 0, escluse: 0 },
   pec: {},
   firma: {},
   smtp: {},
@@ -98,6 +100,14 @@ export function runSettingsTest(testId: string, values: Record<string, unknown>)
   return apiPostJson<TestResult>(`/api/v1/ui/impostazioni/test/${testId}`, values, {
     ok: false,
     message: 'Test non completato.',
+  })
+}
+
+export function applyBillingDefaultsToProformas(): Promise<BillingDefaultsApplyResult> {
+  return apiPostJson<BillingDefaultsApplyResult>('/api/v1/ui/impostazioni/fatturazione/applica-proforme', { confirm: true }, {
+    ok: false,
+    message: 'Aggiornamento proforme non completato.',
+    errors: {},
   })
 }
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import json
+import hashlib
 import io
+import json
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -21,6 +22,7 @@ from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 from pct.storage import StudioDB
+from pct.telematico_workflow import TelematicoWorkflowRepository
 from tests.test_applicazioni import _crea_operatore, _login
 from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
@@ -34,6 +36,11 @@ def _app(tmp_path: Path):
     app.config["API_KEY"] = "react-test-key"
     app.config["PRIVACY_DB"] = str(tmp_path / "privacy" / "registro.json")
     return app
+
+
+def _fascicoli_repository(app) -> GestioneFascicoli:
+    with app.app_context():
+        return app.extensions["core_runtime"]["get_fascicoli"]()
 
 
 def _xfa_template_text(pdf_bytes: bytes) -> str:
@@ -518,11 +525,15 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "handleActivateCard" in page_source
     assert "isSameModuleHref" in page_source
     assert 'id="funzione-operativa"' in page_source
+    assert 'className="iu-content iu-tools-module"' in page_source
+    assert 'className="iu-content iu-studio-module"' not in page_source
     assert "window.history.pushState" in page_source
     assert "scrollIntoView({ behavior: 'smooth', block: 'center' })" in page_source
     assert "data-pct-ai-drag-handle" in Path("web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
     assert "iusentra:open-floating-lex" in Path("web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     assert ".iu-sm-cards" in page_css
+    assert ".iu-tools-module{" in page_css
+    assert ".iu-studio-module{" not in page_css
     assert ".iu-sm-card.is-selected" in page_css
     assert ".iu-sm-focus" in page_css
     assert ".iu-sm-hero aside{\n    display:none;" in page_css
@@ -807,6 +818,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     agenda_data = Path("frontend/src/agendaData.ts").read_text(encoding="utf-8")
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+    design_css = Path("frontend/src/styles/iusentra-design-system.css").read_text(encoding="utf-8")
 
     assert "/agenda" in app_source
     assert "isAgendaPage?<AgendaPage/>" in app_source
@@ -822,6 +834,37 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "onCreateSlot" in agenda_page
     assert "iu-ag-slot" in agenda_page
     assert "iu-ag-week--month" in agenda_page
+    assert "plannerRef.current.requestFullscreen()" in agenda_page
+    assert "document.exitFullscreen()" in agenda_page
+    assert "document.body.classList.toggle('iu-agenda-planner-expanded', plannerExpanded)" in agenda_page
+    assert "if (plannerExpanded)" in agenda_page
+    assert "Planner a tutto schermo" in agenda_page
+    assert "formatDateIt(event.date, event.date)" in agenda_page
+    assert "<span>{event.date} - {event.timeLabel}</span>" not in agenda_page
+    assert "iu-ag-event__context" in agenda_page
+    assert "iu-ag-event__place" in agenda_page
+    assert "const isLate = new Date(event.start).getHours() >= 16" in agenda_page
+    assert ".iu-ag-event.is-late .iu-ag-event__tooltip" in css
+    assert "function agendaSubjectLine(event: AgendaEvent)" in agenda_page
+    assert "const contextParts = [event.matter, event.client]" in agenda_page
+    assert "function initialAgendaView(): AgendaView" in agenda_page
+    assert "function initialAgendaKind(): AgendaKind" in agenda_page
+    assert "window.history.replaceState(window.history.state, '', nextHref)" in agenda_page
+    assert "params.set('vista', view)" in agenda_page
+    assert "params.set('data', toDateKey(anchorDate))" in agenda_page
+    assert 'className="iu-ag-event__content"' in agenda_page
+    assert "clusteredEvents.length" in agenda_page
+    assert "Visualizza fonte" in agenda_page
+    assert "sourceHref" in agenda_data
+    assert ".iu-ag-event__cluster-list" in css
+    email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
+    assert "currentPecAuditSelectionId" in email_page
+    assert "item.pecAudit?.id === auditId" in email_page
+    assert 'className="iu-ag-highlight"' in agenda_page
+    assert "filteredEvents.length === 1 ? 'elemento' : 'elementi'" in agenda_page
+    assert ".iu-ag-event__content{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row" in css
+    assert ".iu-ag-highlight{" in css
+    assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-kpis"')
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "messageReminderHref" in agenda_page
     assert "linkedDeadlineHref" in agenda_page
@@ -839,11 +882,34 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-agenda-page" in css
     assert ".iu-ag-slot" in css
     assert ".iu-ag-week--month" in css
+    assert ".iu-ag-planner:fullscreen" in css
+    assert ".iu-ag-planner.is-expanded:not(:fullscreen)" in css
+    assert ".iu-ag-planner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:100%;min-width:0}" in css
+    assert "body.iu-agenda-planner-expanded .iu-topbar" in css
+    assert "@media(max-height:850px) and (min-width:921px)" in css
+    assert ".iu-ag-layout{grid-template-columns:1fr}" in css
     assert ".iu-mobile__lex" in css
     assert ".iu-lex-float{display:none!important}" not in css
     assert "bottom:calc(84px + env(safe-area-inset-bottom,0px))!important" in css
+    assert ".iusentra-preset-active .iu-ag-kpis" in design_css
+    assert ".iusentra-preset-active .iu-ag-slot" in design_css
+    assert "height: 44px;" in design_css
+    assert ".iusentra-preset-active .iu-ag-day__body" in design_css
+    assert "height: 1056px;" in design_css
+    assert "max-width: 100%;" in design_css
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in design_css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
+
+
+def test_react_fascicolo_non_mostra_un_falso_not_found_durante_il_caricamento():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+
+    loading_guard = 'if (loading && !data.fascicolo.id) return'
+    not_found_guard = 'if (!loading && data.notFound) return'
+    assert loading_guard in source
+    assert 'title="Caricamento fascicolo"' in source
+    assert source.index(loading_guard) < source.index(not_found_guard)
 
 
 def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
@@ -2141,7 +2207,7 @@ def test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia():
     assert "LOCAL_SIGNER_DEFAULT_BASE_URLS" in source
     assert "http://127.0.0.1:27272" in source
     assert "http://localhost:27272" in source
-    assert "localSignerBrowserJson(endpoint, undefined, 3500)" in source[ping_start:set_status]
+    assert "localSignerBrowserJson(endpoint, undefined, options.timeoutMs || 3500)" in source[ping_start:set_status]
     assert "localSignerFetchJson" in source
     assert "localSignerXhrJson" in source
     assert "XMLHttpRequest bloccato dal browser" not in source
@@ -2227,6 +2293,11 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "Scarica tutti dal PST" not in source
     assert "selectedDocumentKeys" in source
     assert "downloadSelectedPstDocuments" in source
+    assert "coercePstSessionFromPayload(payload.pst_session, tribunale, cert)" in source
+    assert "full_snapshot: completeSearchSnapshot" in source
+    assert "await runImport(merged)" in source
+    download_handler = source.split("const downloadSelectedPstDocuments = async", 1)[1].split("async function runImport", 1)[0]
+    assert "invalidateImportCheck()" not in download_handler
     assert "filterPreviewForSelectedDocuments" in source
     assert "filterDownloadedFilesForSelectedPstDocuments" in source
     assert "missingPstDocumentsForDownload" in source
@@ -3357,8 +3428,8 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
     page_source = source
     assert "requirePstCertificateBeforeSearch" in source
-    assert "options: { silent?: boolean } = {}" in source
-    assert "checkLocalSigner(false, { silent: true })" in source
+    assert "options: { silent?: boolean; timeoutMs?: number } = {}" in source
+    assert "checkLocalSigner(false, { silent: true" in source
     assert "REACT_PST_MINISTERIAL_PROFILE_KEY" in source
     assert "LOCAL_SIGNER_PST_CERT_PREFLIGHT_TIMEOUT_MS = 3_500" in source
     assert "readCachedPstMinisterialProfile" in source
@@ -3384,6 +3455,11 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "/api/v1/ui/local-signer/diagnostics" in page_source
     assert "iusentra-local-signer://update" in page_source
     assert "Aggiorna automaticamente" in page_source
+    assert "updatePayload.versione_destinazione" in page_source
+    assert "const updateDeadline = Date.now() + 360000" in page_source
+    assert "requestLocalSignerInstallerDownload" not in page_source
+    assert "portalJson('pst', 'local-matches'" in page_source
+    assert "Già presente - verrà aggiornato" in page_source
     assert "auto_pst_test" in page_source
     assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
     assert "office.codiceMinistero || office.codice" not in page_source
@@ -3416,6 +3492,47 @@ def test_pst_acquisizione_badge_tabella_non_mostra_codici_tecnici():
     assert "servizio_pst_preferito" not in badge_block
     assert "query.servizioPstPreferito" not in badge_block
     assert "JPW_" not in badge_block
+    assert "officeSuggestionDetails(office)" in source
+    assert "officeTypeLabel(type)" in source
+    assert "office.codiceMinistero, office.servizioPst" not in source
+
+
+def test_pst_catalogo_acquisizione_non_apre_i_certificati_del_deposito(monkeypatch):
+    from pct import uffici_giudiziari
+    from web.services import react_telematico_bridge as bridge
+
+    class FakeGestore:
+        def carica(self):
+            return [
+                {
+                    "codice": "0530010",
+                    "codice_ministero": "0012720095",
+                    "nome": "Tribunale di Torino",
+                    "tipo": "TRIBUNALE",
+                    "distretto": "Torino",
+                    "servizi_ministero": ["JPW_SICID"],
+                    "servizio_pst_predefinito": "JPW_SICID",
+                    "nome_certificato_cifra": "0012720095.cer",
+                }
+            ]
+
+        def stato(self):
+            return {"sorgente": "test", "aggiornato_il": "2026-07-12", "cache_path": "", "scaduta": False}
+
+    monkeypatch.setattr(uffici_giudiziari, "get_gestore", lambda: FakeGestore())
+    monkeypatch.setattr(
+        bridge,
+        "_office_certificate_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("Il wizard PST non deve aprire certificati")),
+    )
+
+    offices, summary = bridge._portal_office_rows("pst")
+
+    assert len(offices) == 1
+    assert offices[0]["nome"] == "Tribunale di Torino"
+    assert offices[0]["servizioPst"] == "JPW_SICID"
+    assert "certificatoCifratura" not in offices[0]
+    assert "certificates" not in summary
 
 
 def test_pst_acquisizione_registri_e_cronologia_restano_visibili_professionali():
@@ -3442,6 +3559,9 @@ def test_pst_acquisizione_registri_e_cronologia_restano_visibili_professionali()
     assert "function acquisitionEventTimestampLabel" in source
     assert "formatDateTimeIt(value, value)" in source
     assert ".format(parsed).replace(/,\\s*/, ' ')" in formatting_source
+    generated_at_block = source[source.index("function formatGeneratedAt"):source.index("function linkKindLabel")]
+    assert "formatDateTimeIt(value, fallback)" in generated_at_block
+    assert "new Intl.DateTimeFormat" not in generated_at_block
     assert "return asText(profile.schema || query.schema)" in source
     assert "if (!schemaValue)" in source
     assert "servizioPstPreferito: ''," in source
@@ -4349,10 +4469,23 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     client = app.test_client()
     today = date.today()
 
-    GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
         TipoCliente.PERSONA_FISICA,
         nome="Mario",
         cognome="Rossi",
+    )
+    fascicolo = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).nuovo(
+        "Rossi c. Alfa",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="123",
+        anno_rg=today.year,
+        tribunale="Tribunale di Milano",
     )
     Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
         "Udienza civile",
@@ -4368,7 +4501,24 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
         "Deposito memoria",
         TipoTermine.DEPOSITO_MEMORIA,
         today.isoformat(),
-        id_fascicolo="fasc-test",
+        id_fascicolo=fascicolo.id,
+    )
+    remote_hearing_url = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_test"
+    scadenziario.nuova(
+        "Udienza audiovisiva",
+        TipoTermine.UDIENZA,
+        today.isoformat(),
+        id_fascicolo=fascicolo.id,
+        note=(
+            "Orario udienza: 16:45\n"
+            "Modalità udienza: Da remoto\n"
+            f"Link udienza audiovisiva: {remote_hearing_url}"
+        ),
+        hearing_time="16:45",
+        remote_hearing_mode="audiovisiva",
+        remote_hearing_url=remote_hearing_url,
+        remote_hearing_time="16/07/2026 ore 16:45",
+        remote_hearing_verified=True,
     )
     linked_deadline = scadenziario.nuova(
         "Classifica PEC e conferma adempimenti",
@@ -4405,6 +4555,16 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     assert {item["source"] for item in payload["events"]} == {"agenda", "scadenziario"}
     assert any(item["title"] == "Udienza civile" for item in payload["events"])
     assert any(item["title"] == "Deposito memoria" for item in payload["events"])
+    deadline_event = next(item for item in payload["events"] if item["title"] == "Deposito memoria")
+    assert deadline_event["matter"] == f"RG 123/{today.year}"
+    assert deadline_event["client"] == cliente.nome_completo
+    hearing_event = next(item for item in payload["events"] if item["title"] == "Udienza audiovisiva")
+    assert hearing_event["start"].endswith("T16:45")
+    assert hearing_event["timeLabel"] == "16:45"
+    assert hearing_event["remoteHearingUrl"] == remote_hearing_url
+    assert hearing_event["remoteHearingMode"] == "audiovisiva"
+    assert deadline_event["displayTitle"] == f"{cliente.nome_completo} · RG 123/{today.year}"
+    assert fascicolo.id not in deadline_event["displayTitle"]
     pec_event = next(item for item in payload["events"] if str(item["title"]).startswith("Presidio PEC"))
     assert pec_event["legalLabel"] == "Fissazione udienza"
     assert pec_event["displayTitle"] == f"Mario Rossi · RG 3950/{today.year}"
@@ -4418,6 +4578,65 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     for token in ("Presidio PEC", "PEC_AUDIT", "pipeline", "audit-grade", "payload", "runtime", "backend", "frontend", "legacy", "json_api"):
         assert token.lower() not in visible.lower()
     assert not any(item["id"] == f"scadenza-{linked_deadline.id}" for item in payload["events"])
+
+
+def test_react_agenda_collega_contesto_univoco_e_mostra_la_vera_attivita_legale(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    hearing_day = date(2026, 7, 9)
+    due_day = date(2026, 7, 13)
+
+    Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Conferma udienza ex art. 171-bis c.p.c. - RG 274/2026",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(hearing_day, datetime.min.time()).replace(hour=9, minute=30).isoformat(timespec="minutes"),
+        durata_minuti=60,
+        cliente="LOPRETE DOMENICO",
+        procedimento="RG 274/2026",
+        tribunale="Tribunale di Palmi",
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    generic_hearing = scadenziario.nuova(
+        "Udienza da portale",
+        TipoTermine.UDIENZA,
+        hearing_day.isoformat(),
+        id_fascicolo="FASCICOLO-ORFANO",
+        descrizione="Scadenza generata da sincronizzazione portale",
+    )
+    opposition = scadenziario.nuova(
+        "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        TipoTermine.ADEMPIMENTO,
+        due_day.isoformat(),
+        descrizione=(
+            "Ufficio: Tribunale di Palmi RG: 274/2026 "
+            "Evento: POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO"
+        ),
+        note="PEC_AUDIT:verifica-tecnica",
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": hearing_day.isoformat(), "to": due_day.isoformat()},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    opposition_event = next(item for item in payload["events"] if item["id"] == f"scadenza-{opposition.id}")
+    visible = " ".join(
+        str(opposition_event.get(key) or "")
+        for key in ("displayTitle", "subtitle", "notes", "originTitle", "detailTitle")
+    )
+    visible = " ".join([visible, *opposition_event["detailLines"]])
+
+    assert response.status_code == 200
+    assert f"scadenza-{generic_hearing.id}" not in {item["id"] for item in payload["events"]}
+    assert opposition_event["legalLabel"] == "Opposizione alla trattazione scritta"
+    assert opposition_event["client"] == "LOPRETE DOMENICO"
+    assert opposition_event["matter"] == "RG 274/2026"
+    assert opposition_event["court"] == "Tribunale di Palmi"
+    assert "LOPRETE DOMENICO" in opposition_event["displayTitle"]
+    assert "RG 274/2026" in opposition_event["displayTitle"]
+    for token in ("POSTA CERTIFICATA", "PEC_AUDIT", "ESITO CONTROLLI AUTOMATICI"):
+        assert token.lower() not in visible.lower()
 
 
 def test_react_agenda_bridge_traduce_pec_udienza_in_linguaggio_professionale(tmp_path: Path):
@@ -4532,6 +4751,9 @@ def test_react_agenda_bridge_presidio_documentale_lex_non_confonde_deposito_note
     assert "RG 1754/2026" in event["displayTitle"]
     assert any("Parte/soggetto: INPS - Istituto Nazionale Previdenza Sociale" in line for line in event["detailLines"])
     assert "Fissazione udienza" not in event["legalLabel"]
+    assert event["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
+    assert event["sourceKind"] == "documento"
+    assert event["sourceVerified"] is True
 
 
 def test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_remoto(tmp_path: Path):
@@ -4580,6 +4802,9 @@ def test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_rem
     assert any(f"Link udienza audiovisiva: {link}" in line for line in event["detailLines"])
     assert any("Allegato udienza: Decreto fissazione udienza 8960334s.pdf.zip" in line for line in event["detailLines"])
     assert any("Link udienza verificato sull'allegato." in line for line in event["detailLines"])
+    assert event["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
+    assert event["sourceLabel"] == "Documento del fascicolo"
+    assert event["sourceVerified"] is True
 
 
 def test_react_agenda_bridge_presidio_documentale_lex_link_storico_da_controllare(tmp_path: Path):
@@ -5068,11 +5293,7 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Spagnolo Sara c. MIM",
         TipoFascicolo.CIVILE,
@@ -5135,11 +5356,7 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Tescione II c. MIM",
         TipoFascicolo.CIVILE,
@@ -5194,11 +5411,7 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(m
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Romeo Maria c. MIM",
         TipoFascicolo.CIVILE,
@@ -5310,11 +5523,7 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Betti C. MIM",
         TipoFascicolo.CIVILE,
@@ -5375,11 +5584,7 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Alfano Giuseppe c. MIM",
         TipoFascicolo.CIVILE,
@@ -5441,11 +5646,7 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Alfano Giuseppe c. MIM",
         TipoFascicolo.CIVILE,
@@ -5519,11 +5720,7 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Betti C. MIM",
         TipoFascicolo.CIVILE,
@@ -5630,11 +5827,7 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Autocertificazione reddito c. MIM",
         TipoFascicolo.CIVILE,
@@ -5691,11 +5884,7 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_sentenza(monkeypa
     app = _app(tmp_path)
     _crea_operatore(app)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Romeo Maria c. MIM",
         TipoFascicolo.CIVILE,
@@ -6153,6 +6342,89 @@ def test_react_fascicoli_economia_usa_candidati_documentali_senza_fallback_total
     assert {doc.id for doc in deadline_candidates} == {decreto.id}
 
 
+def test_presidio_scadenze_non_avvia_lettura_sincrona_fuori_dalla_sezione_documenti(monkeypatch):
+    from web.services import react_fascicoli_bridge as bridge
+
+    document = SimpleNamespace(
+        id="DOC-DECRETO",
+        nome="Decreto fissazione udienza.pdf",
+        nome_originale="Decreto fissazione udienza.pdf",
+        nome_portale="Decreto fissazione udienza.pdf",
+        tipo=SimpleNamespace(value="DECRETO"),
+        percorso="FASCICOLO/decreto.pdf",
+        hash_sha256="a" * 64,
+        hash_contenuto_sha256="",
+        data_caricamento="2026-07-12T10:00:00",
+        data_documento="2026-07-12",
+        note="",
+        tags=[],
+    )
+    fascicolo = SimpleNamespace(id="FASCICOLO", documenti=[document])
+    ensure_calls: list[list[str]] = []
+
+    monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
+
+    def fake_ensure(item, documents):
+        ensure_calls.append([doc.id for doc in documents])
+        return {}
+
+    monkeypatch.setattr(bridge, "_ensure_deadline_document_ai_texts_for_fascicolo", fake_ensure)
+
+    base = bridge._document_presidio_for_fascicolo(fascicolo)
+    automatic = bridge._automatic_next_deadline_from_documents(fascicolo)
+    detailed = bridge._document_presidio_for_fascicolo(fascicolo, ensure_missing=True)
+
+    assert base["actions"] == []
+    assert automatic is None
+    assert detailed["actions"] == []
+    assert ensure_calls == [["DOC-DECRETO"]]
+
+
+def test_prossima_scadenza_documentale_non_espone_un_termine_gia_trascorso(monkeypatch):
+    from web.services import react_fascicoli_bridge as bridge
+
+    document = SimpleNamespace(
+        id="DOC-MONEA",
+        nome="Decreto fissazione udienza (originale notificato).pdf",
+        nome_originale="Decreto fissazione udienza (originale notificato).pdf",
+        nome_portale="Decreto fissazione udienza (originale notificato).pdf",
+        tipo=SimpleNamespace(value="DECRETO"),
+        percorso="MONEA/decreto.pdf",
+        hash_sha256="b" * 64,
+        hash_contenuto_sha256="",
+        data_caricamento="2026-07-04T10:00:00",
+        data_documento="2026-07-02",
+        note="",
+        tags=[],
+    )
+    fascicolo = SimpleNamespace(id="MONEA", numero_rg="1394", anno_rg=2026, documenti=[document])
+    text = "FISSA il termine del 02/07/2026 per il deposito di note scritte."
+    monkeypatch.setattr(
+        bridge,
+        "_document_ai_texts_for_fascicolo",
+        lambda item, documents=None: {"DOC-MONEA": text},
+    )
+    monkeypatch.setattr(
+        bridge,
+        "analyze_fascicolo_document_texts",
+        lambda item, texts, metadata: {"actions": []},
+    )
+    monkeypatch.setattr(bridge, "_document_text_matches_fascicolo", lambda item, value: True)
+
+    assert bridge._automatic_next_deadline_from_documents(fascicolo) is None
+
+
+def test_fascicolo_e_notifiche_mostrano_data_rilascio_portale_in_formato_italiano():
+    fascicoli_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    notifiche_source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    expected = "formatDateIt(doc.dataDeposito, doc.dataDeposito)"
+    assert expected in fascicoli_source
+    assert "formatDateIt(release.dataDeposito, release.dataDeposito)" in notifiche_source
+    assert "doc.dataDeposito].filter(Boolean)" not in fascicoli_source
+    assert "release.dataDeposito].filter(Boolean)" not in notifiche_source
+
+
 def test_react_fascicoli_non_collega_rg_ambiguo_senza_cliente_o_parte(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -6600,7 +6872,22 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
         TipoDocumento.ATTO_GIUDIZIARIO,
         b"bozza documento",
     )
-
+    telematico = TelematicoWorkflowRepository(app.config["TELEMATICO_DB"])
+    try:
+        telematico.upsert_case(
+            practice_id=fascicolo.id,
+            channel_family="ministero",
+            service_code="polisweb_consultazione",
+            office_name="Tribunale di Torino",
+            register_type="CC",
+            register_number="3950",
+            register_year=2026,
+            subject_name="Parte",
+            counsel_name="Avv. Demo",
+            counsel_cf="DMEAVV00A00H501Z",
+        )
+    finally:
+        telematico.close()
     headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
     with app.test_client() as client:
         _login(client)
@@ -6614,6 +6901,14 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
             content_type="multipart/form-data",
             headers=headers,
         )
+        reloaded_after_upload = GestioneFascicoli(
+            db_path=app.config["FASCICOLI_DB"],
+            documents_dir=app.config["FASCICOLI_DOCS"],
+            archive_dir=app.config["FASCICOLI_ARCH"],
+        ).get(fascicolo.id)
+        upload_marker = reloaded_after_upload.pagamenti["_presidio_documentale"]
+        assert upload_marker["status"] == "stale"
+        assert upload_marker["reason"] == "nuovo_documento_fascicolo"
         multi_auto = client.post(
             f"/fascicoli/{fascicolo.id}/documenti/carica",
             data={
@@ -6680,6 +6975,80 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
     assert delete_fascicolo.is_json
     assert delete_fascicolo.get_json()["ok"] is True
     assert delete_fascicolo.get_json()["redirect_url"] == "/fascicoli"
+    telematico = TelematicoWorkflowRepository(app.config["TELEMATICO_DB"])
+    try:
+        assert telematico.list_cases(practice_id=fascicolo.id) == []
+    finally:
+        telematico.close()
+
+
+def test_conversione_pdfa_preserva_documenti_portale_e_riallinea_metadati(tmp_path: Path, monkeypatch):
+    from pct import validazione
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Conversione controllata", TipoFascicolo.CIVILE)
+    portal_bytes = b"%PDF-1.4 documento portale"
+    editable_bytes = b"%PDF-1.4 documento studio"
+    converted_bytes = b"%PDF-1.7 documento PDF/A-2B"
+    portal_doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "provvedimento.pdf",
+        TipoDocumento.SENTENZA,
+        portal_bytes,
+        fonte_documento="PORTALE_TELEMATICO",
+    )
+    editable_doc = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf",
+        TipoDocumento.MEMORIA,
+        editable_bytes,
+        fonte_documento="CARICAMENTO_STUDIO",
+    )
+    calls = {"count": 0}
+
+    def fake_convert(path: str):
+        calls["count"] += 1
+        Path(path).write_bytes(converted_bytes)
+        return {"ok": True, "percorso": path, "messaggio": "Conversione completata."}
+
+    monkeypatch.setattr(validazione, "converti_pdfa", fake_convert)
+    headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+    with app.test_client() as client:
+        _login(client)
+        blocked = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{portal_doc.id}/converti-pdfa",
+            headers=headers,
+        )
+        converted = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{editable_doc.id}/converti-pdfa",
+            headers=headers,
+        )
+
+    assert blocked.status_code == 400
+    assert "conservato nella forma ricevuta" in blocked.get_json()["messaggio"]
+    assert converted.status_code == 200
+    assert calls["count"] == 1
+    reloaded = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    current = reloaded.get(fascicolo.id)
+    portal_after = next(doc for doc in current.documenti if doc.id == portal_doc.id)
+    editable_after = next(doc for doc in current.documenti if doc.id == editable_doc.id)
+    assert reloaded.percorso_documento(fascicolo.id, portal_after.id).read_bytes() == portal_bytes
+    assert reloaded.percorso_documento(fascicolo.id, editable_after.id).read_bytes() == converted_bytes
+    assert editable_after.hash_sha256 == hashlib.sha256(converted_bytes).hexdigest()
+    assert editable_after.hash_contenuto_sha256 == hashlib.sha256(converted_bytes).hexdigest()
+    assert editable_after.dimensione_bytes == len(converted_bytes)
+    assert editable_after.versioni[-1].hash_sha256 == hashlib.sha256(editable_bytes).hexdigest()
+    assert (reloaded.documents_dir / editable_after.versioni[-1].percorso).read_bytes() == editable_bytes
 
 
 def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
@@ -7037,11 +7406,7 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
 def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
-    fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
-    )
+    fascicoli = _fascicoli_repository(app)
     fascicolo = fascicoli.nuovo(
         "Spagnolo Sara c. MIM",
         TipoFascicolo.LAVORO,
@@ -7096,13 +7461,13 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
     assert payload["regia"]["profile"]["code"] == "PROC_LAV_RETRIB_001"
     assert payload["regia"]["profile"]["needsManualConfirmation"] is False
     assert payload["regia"]["deposit"]["deliveryPolicy"]["officialChannel"] == "PCT lavoro / SICID"
-    assert [doc["name"] for doc in documents[:2]] == ["Atto giudiziario", "Provvedimento - sentenza"]
+    assert [doc["name"] for doc in documents[:2]] == ["Provvedimento - sentenza", "Atto giudiziario"]
     imported_documents = [doc for doc in documents if doc["id"] in {documents[0]["id"], documents[1]["id"]}]
     assert all(not doc["name"].startswith("202603") for doc in imported_documents)
     assert all(doc["source"] == "Importazione fascicolo" for doc in imported_documents)
-    assert documents[0]["portalClass"] == "Atto giudiziario"
-    assert documents[1]["portalClass"] == "Provvedimento - sentenza"
-    assert any("Nome file originale: 20260328104059747.PDF" in tag for tag in documents[0]["tags"])
+    assert documents[0]["portalClass"] == "Provvedimento - sentenza"
+    assert documents[1]["portalClass"] == "Atto giudiziario"
+    assert any("Nome file originale: 20260328104059747.PDF" in tag for tag in documents[1]["tags"])
 
 
 def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_path: Path):
@@ -7206,9 +7571,12 @@ def test_react_fascicolo_dettaglio_pulisce_righe_portale_duplicate(tmp_path: Pat
     activities_text = json.dumps(payload["activities"], ensure_ascii=False)
 
     assert response.status_code == 200
-    assert payload["quickCounts"]["attivita"] == 1
-    assert len(payload["activities"]) == 1
-    assert payload["activities"][0]["title"] == "Udienza importata da PolisWeb"
+    assert payload["quickCounts"]["attivita"] == 2
+    assert len(payload["activities"]) == 2
+    assert {item["title"] for item in payload["activities"]} == {
+        "Udienza importata da PolisWeb",
+        "Udienza rilevata",
+    }
     assert "Deposito da portale" not in activities_text
     assert payload["quickCounts"]["comunicazioni"] == 1
     assert len(payload["deposits"]) == 1

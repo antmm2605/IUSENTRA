@@ -269,39 +269,174 @@ def _build_hearings(parsed: dict[str, Any], report: dict[str, Any], text: str) -
     remote = _dict(report.get("remote_hearing")) or _dict(_dict(report.get("procedural_profile")).get("remote_hearing"))
     if not remote and isinstance(_dict(report.get("deadline_proposal")).get("remote_hearing"), dict):
         remote = _dict(_dict(report.get("deadline_proposal")).get("remote_hearing"))
-    links = _extract_links(text, remote)
-    mode = _hearing_mode(text, remote, links)
-    if not mode:
-        return []
     profile = _dict(parsed.get("procedural_profile")) or _dict(report.get("procedural_profile"))
-    meeting_id = (_MEETING_ID_RE.search(text or "") or [None, ""])[1] if _MEETING_ID_RE.search(text or "") else None
-    passcode = (_PASSCODE_RE.search(text or "") or [None, ""])[1] if _PASSCODE_RE.search(text or "") else None
-    aula = (_AULA_RE.search(text or "") or [None, ""])[1] if _AULA_RE.search(text or "") else None
-    piano = (_PIANO_RE.search(text or "") or [None, ""])[1] if _PIANO_RE.search(text or "") else None
-    date_value = _extract_hearing_date(parsed, profile)
-    time_value = _extract_time(text, remote, profile)
-    first_link = links[0] if links else {}
-    review = mode in {"remoto", "mista"} and not links
-    return [
-        {
+    all_links = _extract_links(text, remote)
+    candidates: list[dict[str, Any]] = []
+
+    def _candidate_links(context: str, candidate: dict[str, Any]) -> list[dict[str, Any]]:
+        links = _extract_links(context, {})
+        if len(links) <= 1:
+            return links
+        probes = [str(candidate.get("raw_date") or "").strip()]
+        date_value = str(candidate.get("date") or "")[:10]
+        match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_value)
+        if match:
+            year, month, day = match.groups()
+            probes.extend((f"{day}/{month}/{year}", f"{day}.{month}.{year}", f"{day}-{month}-{year}"))
+        pivot_positions = [
+            context.casefold().find(probe.casefold())
+            for probe in probes
+            if probe and context.casefold().find(probe.casefold()) >= 0
+        ]
+        target_time = str(candidate.get("time") or "").replace(".", ":")
+        timed_positions = [
+            position
+            for position in pivot_positions
+            if target_time and target_time in context[position : position + 140].replace(".", ":")
+        ]
+        pivot = min(timed_positions or pivot_positions) if pivot_positions else 0
+        ranked: list[tuple[tuple[int, int], dict[str, Any]]] = []
+        for link in links:
+            position = context.find(str(link.get("url") or ""))
+            ranked.append(((0 if position >= pivot else 1, abs(position - pivot)), link))
+        ranked.sort(key=lambda item: item[0])
+        return [ranked[0][1]]
+
+    def _candidate_rank(candidate: dict[str, Any]) -> tuple[int, int]:
+        source = _norm(candidate.get("source"))
+        source_rank = 0 if not source else 1 if source in {"corpo pec", "pec", "body"} else 2
+        return source_rank, len(str(candidate.get("context") or ""))
+
+    for item in _list(parsed.get("procedural_dates")):
+        if not isinstance(item, dict):
+            continue
+        kind = _norm(item.get("deadline_kind") or item.get("kind") or item.get("label"))
+        if not any(token in kind for token in ("udienza", "comparizione", "rinvio", "discussione", "camera di consiglio")):
+            continue
+        date_value = _message_date(item.get("date"))[:10]
+        if not re.match(r"\d{4}-\d{2}-\d{2}", date_value):
+            continue
+        context = _clean(item.get("context"), 1200)
+        time_value = _clean(item.get("time"), 10).replace(".", ":") or _extract_time(context, {}, {})
+        source = _clean(item.get("source"), 180)
+        candidate = {
             "date": date_value,
+            "raw_date": _clean(item.get("raw_date"), 40),
             "time": time_value,
-            "mode": mode,
-            "platform": first_link.get("platform") or ("Microsoft Teams" if "teams" in _norm(text) else None),
-            "link": first_link.get("url") or None,
-            "link_verified": bool(first_link.get("verified")),
-            "meeting_id": _clean(meeting_id) or None,
-            "passcode": _clean(passcode) or None,
-            "aula": _clean(aula).strip(".,;:") or None,
-            "piano": _clean(piano).strip(".,;:") or None,
-            "indirizzo": _clean(profile.get("indirizzo") or profile.get("ufficio"), 180) or None,
-            "judge": _clean(profile.get("giudice"), 120) or None,
-            "agenda_action": "create" if date_value else "verify",
-            "web_push_safe_title": "P0 - Udienza da remoto senza link trovato" if review else "Udienza da presidiare",
-            "human_review_required": review or not date_value,
-            "evidence": [_evidence(first_link.get("source") or "PEC", first_link.get("url") or mode, confidence=0.85 if links else 0.65)],
+            "context": context,
+            "source": source,
         }
-    ]
+        candidate_urls = {str(link.get("url") or "") for link in _candidate_links(context, candidate) if link.get("url")}
+        duplicate_index: int | None = None
+        for index, existing in enumerate(candidates):
+            if existing.get("date") != date_value or (existing.get("time") or "") != (time_value or ""):
+                continue
+            existing_urls = {
+                str(link.get("url") or "")
+                for link in _candidate_links(str(existing.get("context") or ""), existing)
+                if link.get("url")
+            }
+            if not existing_urls or not candidate_urls or existing_urls.intersection(candidate_urls):
+                duplicate_index = index
+                break
+        if duplicate_index is None:
+            candidates.append(candidate)
+            continue
+        existing = candidates[duplicate_index]
+        preferred, secondary = (
+            (candidate, existing)
+            if _candidate_rank(candidate) > _candidate_rank(existing)
+            else (existing, candidate)
+        )
+        merged_context = "\n".join(
+            value
+            for value in dict.fromkeys(
+                (str(preferred.get("context") or "").strip(), str(secondary.get("context") or "").strip())
+            )
+            if value
+        )
+        candidates[duplicate_index] = {**preferred, "context": merged_context}
+    if not candidates:
+        candidates.append(
+            {
+                "date": _extract_hearing_date(parsed, profile),
+                "time": _extract_time(text, remote, profile),
+                "context": text,
+                "source": "",
+            }
+        )
+    candidates.sort(key=lambda item: (str(item.get("date") or ""), str(item.get("time") or ""), str(item.get("source") or "")))
+    source_counts: dict[str, int] = {}
+    for candidate in candidates:
+        source_key = str(candidate.get("source") or "").casefold()
+        source_counts[source_key] = source_counts.get(source_key, 0) + 1
+
+    hearings: list[dict[str, Any]] = []
+    for candidate in candidates:
+        context = str(candidate.get("context") or "")
+        source = str(candidate.get("source") or "")
+        local_links = _candidate_links(context, candidate)
+        source_links = [item for item in all_links if source and _norm(item.get("source")) == _norm(source)]
+        if local_links:
+            links = []
+            for local_link in local_links:
+                local_url = str(local_link.get("url") or "")
+                authoritative_matches = [
+                    item
+                    for item in all_links
+                    if str(item.get("url") or "") == local_url
+                    or (
+                        len(local_url) >= 32
+                        and str(item.get("url") or "").startswith(local_url)
+                    )
+                ]
+                authoritative = authoritative_matches[0] if len(authoritative_matches) == 1 else {}
+                links.append({**local_link, **authoritative})
+        elif source_links and source_counts.get(source.casefold(), 0) == 1:
+            links = source_links
+        elif len(candidates) == 1:
+            links = all_links
+        else:
+            links = []
+        mode = _hearing_mode(context or text, remote, links)
+        if not mode:
+            continue
+        first_link = links[0] if links else {}
+        local_text = context or text
+        meeting_match = _MEETING_ID_RE.search(local_text)
+        passcode_match = _PASSCODE_RE.search(local_text)
+        aula_match = _AULA_RE.search(local_text)
+        piano_match = _PIANO_RE.search(local_text)
+        review = mode in {"remoto", "mista"} and not links
+        date_value = candidate.get("date")
+        hearings.append(
+            {
+                "date": date_value,
+                "time": candidate.get("time") or (_extract_time(local_text, {}, {}) if len(candidates) > 1 else _extract_time(text, remote, profile)),
+                "source": source or None,
+                "mode": mode,
+                "platform": first_link.get("platform") or ("Microsoft Teams" if "teams" in _norm(local_text) else None),
+                "link": first_link.get("url") or None,
+                "link_verified": bool(first_link.get("verified")),
+                "meeting_id": _clean(meeting_match.group(1)) if meeting_match else None,
+                "passcode": _clean(passcode_match.group(1)) if passcode_match else None,
+                "aula": _clean(aula_match.group(1)).strip(".,;:") if aula_match else None,
+                "piano": _clean(piano_match.group(1)).strip(".,;:") if piano_match else None,
+                "indirizzo": _clean(profile.get("indirizzo") or profile.get("ufficio"), 180) or None,
+                "judge": _clean(profile.get("giudice"), 120) or None,
+                "agenda_action": "create" if date_value else "verify",
+                "web_push_safe_title": "P0 - Udienza da remoto senza link trovato" if review else "Udienza da presidiare",
+                "human_review_required": review or not date_value,
+                "evidence": [
+                    _evidence(
+                        first_link.get("source") or source or "PEC",
+                        first_link.get("url") or mode,
+                        confidence=0.85 if links else 0.65,
+                    )
+                ],
+            }
+        )
+    return hearings
 
 
 def _deadline_from_legal_proposal(proposal: dict[str, Any]) -> dict[str, Any] | None:

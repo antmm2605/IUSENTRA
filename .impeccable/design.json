@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-13T22:30:00+02:00",
+  "title": "Design System: IUSENTRA",
+  "extensions": {
+    "colorMeta": {
+      "legal-night": { "role": "primary", "displayName": "Notte Legale", "canonical": "#071329", "tonalRamp": ["#020711", "#071329", "#102a4c", "#1b416f", "#375f8d", "#6484a8", "#a5b7ca", "#edf2f7"] },
+      "institutional-blue": { "role": "primary", "displayName": "Blu Istituzionale", "canonical": "#123d72", "tonalRamp": ["#071a32", "#0b294e", "#123d72", "#18559c", "#2f72bb", "#6a9bd0", "#adcbe5", "#edf6fc"] },
+      "action-blue": { "role": "primary", "displayName": "Blu Azione", "canonical": "#2563eb", "tonalRamp": ["#0c1e4a", "#173a88", "#1d4ed8", "#2563eb", "#4f83f1", "#8eb2f7", "#c8dafb", "#eff6ff"] },
+      "judicial-gold": { "role": "secondary", "displayName": "Oro Giudiziario", "canonical": "#b8860b", "tonalRamp": ["#332300", "#5c4102", "#856006", "#b8860b", "#d5a934", "#e6c66f", "#f3e1ad", "#fff9e8"] },
+      "page-background": { "role": "neutral", "displayName": "Carta di Fondo", "canonical": "#f5f7fb", "tonalRamp": ["#111827", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f5f7fb"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Intestazione pagina", "purpose": "Titolo della superficie operativa corrente." },
+      "headline": { "displayName": "Titolo sezione", "purpose": "Gerarchia primaria dentro una pagina." },
+      "title": { "displayName": "Titolo operativo", "purpose": "Card, righe, modali e pannelli." },
+      "body": { "displayName": "Testo operativo", "purpose": "Dati, descrizioni e istruzioni essenziali." },
+      "label": { "displayName": "Etichetta", "purpose": "Comandi, stati e metadati compatti." }
+    },
+    "shadows": [
+      { "name": "card-ambient", "value": "0 12px 34px rgba(15, 23, 42, 0.07)", "purpose": "Superfici dati autonome." },
+      { "name": "raised-surface", "value": "0 22px 54px rgba(15, 23, 42, 0.10)", "purpose": "Modali e strumenti sopra il flusso." },
+      { "name": "interactive", "value": "0 14px 26px rgba(37, 99, 235, 0.10)", "purpose": "Feedback hover su elementi cliccabili." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "160ms ease", "purpose": "Hover, focus e selezione." },
+      { "name": "surface", "value": "180ms ease", "purpose": "Apertura di pannelli e cambi di elevazione." },
+      { "name": "reduced", "value": "0ms", "purpose": "Sostituzione quando prefers-reduced-motion è attivo." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "620px" },
+      { "name": "tablet", "value": "920px" },
+      { "name": "rail-stack", "value": "1180px" },
+      { "name": "notebook", "value": "1380px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Azione principale univoca del contesto.",
+      "html": "<button class=\"ds-btn-primary\">Conferma</button>",
+      "css": ".ds-btn-primary{min-height:44px;border:0;border-radius:10px;background:#123d72;color:#fff;padding:8px 14px;font:800 12px/1.25 Inter,system-ui,sans-serif;cursor:pointer;transition:background .16s ease,box-shadow .16s ease}.ds-btn-primary:hover{background:#1d4ed8}.ds-btn-primary:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Comando secondario o annullamento non distruttivo.",
+      "html": "<button class=\"ds-btn-secondary\">Annulla</button>",
+      "css": ".ds-btn-secondary{min-height:44px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#111827;padding:8px 14px;font:800 12px/1.25 Inter,system-ui,sans-serif;cursor:pointer;transition:border-color .16s ease,background .16s ease}.ds-btn-secondary:hover{border-color:#94a3b8;background:#f8fbff}.ds-btn-secondary:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo operativo con etichetta sempre visibile.",
+      "html": "<label class=\"ds-field\"><span>Numero RG</span><input value=\"1084/2026\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;color:#111827;font:800 12px/1.25 Inter,system-ui,sans-serif}.ds-field input{min-height:44px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#111827;padding:9px 11px;font:650 14px/1.45 Inter,system-ui,sans-serif}.ds-field input:focus{border-color:#2563eb;outline:3px solid rgba(37,99,235,.18)}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Stato breve con semantica testuale e cromatica.",
+      "html": "<span class=\"ds-status\">In lavorazione</span>",
+      "css": ".ds-status{display:inline-flex;align-items:center;min-height:24px;border:1px solid rgba(180,83,9,.22);border-radius:8px;background:#fffbeb;color:#92400e;padding:4px 8px;font:800 12px/1.25 Inter,system-ui,sans-serif}"
+    },
+    {
+      "name": "Operational Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Superficie autonoma per dati e azioni correlate.",
+      "html": "<section class=\"ds-panel\"><header>Prossime attività</header><p>Udienza · 6 ottobre 2026</p></section>",
+      "css": ".ds-panel{border:1px solid rgba(15,23,42,.08);border-radius:12px;background:#fff;color:#111827;padding:16px;box-shadow:0 12px 34px rgba(15,23,42,.07);font-family:Inter,system-ui,sans-serif}.ds-panel header{font-size:15px;font-weight:850}.ds-panel p{margin:8px 0 0;color:#64748b;font-size:14px;font-weight:650;line-height:1.45}"
+    },
+    {
+      "name": "Filter Toolbar",
+      "kind": "custom",
+      "description": "Filtri compatti allineati alla superficie dati.",
+      "html": "<form class=\"ds-filters\"><input aria-label=\"Cerca\" placeholder=\"Cerca fascicolo\"><button>Cerca</button></form>",
+      "css": ".ds-filters{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;padding:12px;border:1px solid rgba(15,23,42,.08);border-radius:12px;background:#fff;box-shadow:0 12px 34px rgba(15,23,42,.06)}.ds-filters input,.ds-filters button{min-height:44px;border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;font:650 14px/1.25 Inter,system-ui,sans-serif}.ds-filters button{background:#123d72;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.ds-filters input:focus-visible,.ds-filters button:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px}"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "description": "Voce della navigazione primaria con stato attivo stabile.",
+      "html": "<a class=\"ds-nav\" href=\"#\">Fascicoli</a>",
+      "css": ".ds-nav{min-height:44px;display:flex;align-items:center;border:1px solid rgba(184,134,11,.34);border-radius:10px;background:#102a4c;color:#fff;padding:8px 12px;text-decoration:none;font:800 13px/1.25 Inter,system-ui,sans-serif}.ds-nav:hover{background:#123d72}.ds-nav:focus-visible{outline:3px solid rgba(201,154,46,.38);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Il Registro Operativo",
+    "overview": "IUSENTRA deve ricordare un registro professionale contemporaneo: autorevole, ordinato e immediatamente leggibile, con la densità necessaria per lavorare su fascicoli reali senza trasformare ogni dato in una card. La gerarchia nasce da titoli compatti, superfici bianche, bordi discreti e stati semantici inequivocabili. L'interfaccia privilegia continuità e controllo. Desktop, notebook, tablet e mobile conservano la stessa logica, cambiando disposizione e non significato.",
+    "keyCharacteristics": ["Denso ma scansionabile, con priorità visive stabili.", "Sobrio, istituzionale e specifico per il lavoro legale italiano.", "Azioni reali, stati espliciti e nessun controllo ornamentale.", "Superfici responsive con target touch minimi di 44px.", "Italiano corretto, date italiane e importi nel formato € 1.234,56."],
+    "rules": [
+      { "name": "The Semantic Color Rule", "body": "Verde, ambra e rosso non decorano: devono corrispondere a uno stato reale e leggibile anche nel testo.", "section": "colors" },
+      { "name": "The Judicial Gold Rule", "body": "L'oro è un accento raro; non deve superare visivamente le azioni blu o i contenuti legali.", "section": "colors" },
+      { "name": "The Legal Scan Rule", "body": "Prima vengono numero, data, tipo e parte; il testo descrittivo non deve oscurare gli identificativi che l'avvocato usa per decidere.", "section": "typography" },
+      { "name": "The Zero Tracking Rule", "body": "La spaziatura tra lettere resta 0; è ammessa solo una lieve apertura nelle etichette brevi già previste dal sistema.", "section": "typography" },
+      { "name": "The Structural Depth Rule", "body": "Una sezione non diventa una card per ottenere separazione; usare prima spazio, bordo e gerarchia tipografica.", "section": "elevation" }
+    ],
+    "dos": ["Do usare la scala di spazio 4, 8, 12, 16 e 20px e un gap di layout di 14px.", "Do mantenere azioni, filtri e stato nello stesso contesto operativo.", "Do usare icone Lucide, tooltip per comandi non familiari e target touch di almeno 44px.", "Do rendere visibili hover, focus, selected, disabled, loading, errore e successo.", "Do mostrare date, orari e importi nel formato italiano previsto dal prodotto.", "Do verificare ogni superficie a 1366x768, tablet e mobile prima della consegna."],
+    "donts": ["Don't creare una dashboard SaaS generica o una vetrina marketing.", "Don't usare glassmorphism gratuito, gradient text o una dark mode scelta solo per estetica tech.", "Don't mostrare dati hardcoded, link placeholder o scorciatoie _legacy=1 visibili.", "Don't mescolare italiano e inglese nei testi operativi.", "Don't inserire card dentro card o trasformare intere sezioni in contenitori flottanti.", "Don't usare pillole testuali quando esiste un simbolo familiare o una vera azione di comando.", "Don't introdurre riferimenti visibili a prodotti terzi o dettagli tecnici interni nei flussi dell'avvocato.", "Don't nascondere un requisito bloccante dietro un pulsante disabilitato senza spiegazione e azione correttiva."]
+  }
+}

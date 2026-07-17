@@ -555,8 +555,17 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     # Dati studio per PDF parcelle e template atti
     app.config["STUDIO_PIVA"]      = os.getenv("PCT_STUDIO_PIVA", "")
     app.config["STUDIO_CF"]        = os.getenv("PCT_STUDIO_CF", "")
+    app.config["STUDIO_INDIRIZZO_VIA"] = os.getenv("PCT_STUDIO_INDIRIZZO", "")
     app.config["STUDIO_INDIRIZZO"] = os.getenv("PCT_STUDIO_INDIRIZZO", "")
+    app.config["STUDIO_CAP"]       = os.getenv("PCT_STUDIO_CAP", "")
+    app.config["STUDIO_CITY"]      = os.getenv("PCT_STUDIO_CITY", "")
+    app.config["STUDIO_PROVINCE"]  = os.getenv("PCT_STUDIO_PROVINCE", "")
     app.config["STUDIO_IBAN"]      = os.getenv("PCT_STUDIO_IBAN", "")
+    app.config["STUDIO_BANCA"]     = os.getenv("PCT_STUDIO_BANCA", "")
+    app.config["STUDIO_BIC_SWIFT"] = (
+        os.getenv("PCT_STUDIO_BIC_SWIFT", "")
+        or os.getenv("PCT_FATTURAZIONE_BIC_SWIFT", "")
+    )
     app.config["STUDIO_AVVOCATO"]  = os.getenv("PCT_STUDIO_AVVOCATO", "")
     app.config["STUDIO_NUMERO_ISCRIZIONE_ALBO"] = os.getenv(
         "PCT_STUDIO_NUMERO_ISCRIZIONE_ALBO", ""
@@ -1217,6 +1226,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         id_doc: str,
         nome_file: str,
         contenuto: bytes,
+        hash_contenuto_sha256: str,
         caricato_da: str,
         note: str,
     ) -> list[str]:
@@ -1226,6 +1236,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 id_doc=id_doc,
                 nome_file=nome_file,
                 contenuto=contenuto,
+                hash_contenuto_sha256=hash_contenuto_sha256,
                 caricato_da=caricato_da,
                 note=note,
             )
@@ -1244,6 +1255,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 id_doc=id_doc,
                 nome_file=nome_file,
                 contenuto=contenuto,
+                hash_contenuto_sha256=hash_contenuto_sha256,
                 caricato_da=caricato_da,
                 note=note,
                 preserve_version_snapshot=False,

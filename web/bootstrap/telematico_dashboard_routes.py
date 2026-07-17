@@ -23,6 +23,12 @@ def register_telematico_dashboard_routes(
     @app.route("/api/telematico/connection-status", methods=["GET"])
     def api_telematico_connection_status():
         try:
+            portal_labels = {
+                "pst": "PST / PolisWeb",
+                "pdp": "PDP Penale",
+                "pat": "PAT / SIGA",
+                "ptt": "PTT / SIGIT",
+            }
             cards = []
             for portale in ("pst", "pdp", "pat", "ptt"):
                 payload = _build_access_status_payload(portale)
@@ -30,7 +36,7 @@ def register_telematico_dashboard_routes(
                 cards.append(
                     {
                         "portale": portale,
-                        "label": spec.get("label"),
+                        "label": portal_labels[portale],
                         "color": spec.get("color"),
                         "status_text": payload.get("status_text"),
                         "environment_label": payload.get("environment_label"),

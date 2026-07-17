@@ -254,6 +254,90 @@ def test_pdf_contributo_unificato_legge_campo_rt_pagopa_senza_simbolo_euro():
     assert evidence["document_id"] == "DOC-CU-RT"
 
 
+def test_ricevuta_pagopa_esclude_le_commissioni_dal_contributo():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        RICEVUTA DI PAGAMENTO AVVISO PAGOPA
+        Ente Creditore: MINISTERO DELLA GIUSTIZIA
+        Importo: € 21,50
+        Commissioni: € 1,50
+        Totale: € 23,00
+        ID Operazione: 7485018265
+        """,
+        {"filename": "Ricevuta_PagoPA.pdf", "document_id": "DOC-CU-PAGOPA"},
+    )
+
+    assert evidence["importo"] == 21.50
+    assert evidence["status"] == "pagato"
+    assert evidence["origine"] == "ricevuta_pagamento_contributo_unificato"
+
+
+def test_avviso_pagopa_legge_importo_e_non_giorno_o_mese_della_scadenza():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        AVVISO DI PAGAMENTO
+        Contributo unificato
+        QUANTO E QUANDO PAGARE?
+        49,00 Euro 09/01/2025 PAGA SUL SITO O CON LE APP entro il
+        BANCHE E ALTRI CANALI RATA entro il 09/01/2025
+        Destinatario Associazione Ricorrente Euro 49,00
+        Ente Creditore Ministero della Giustizia
+        """,
+        {"filename": "Contributo unificato.PDF", "document_id": "DOC-CU-AVVISO"},
+    )
+
+    assert evidence["importo"] == 49.00
+    assert evidence["status"] == "da_registrare"
+    assert evidence["origine"] == "avviso_pagamento_contributo_unificato"
+
+
+def test_avviso_seguito_da_ricevuta_cbill_preferisce_il_pagamento_concluso():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        AVVISO DI PAGAMENTO Contributo unificato
+        QUANTO E QUANDO PAGARE? 21,50 Euro 09/06/2024
+        Pagamento CBILL numero 29461243, inserito in data 10/05/2024 alle ore 11:15.
+        CAUSALE PAGAMENTO: MINISTERO DELLA GIUSTIZIA
+        IMPORTO: 21,50 €
+        COMMISSIONI: 1,50 €
+        TOTALE ADDEBITATO: 23,00 €
+        """,
+        {"filename": "Pagamento cu.PDF", "document_id": "DOC-CU-CBILL"},
+    )
+
+    assert evidence["importo"] == 21.50
+    assert evidence["status"] == "pagato"
+    assert evidence["origine"] == "ricevuta_pagamento_contributo_unificato"
+
+
+def test_copia_deposito_con_contributo_e_diritti_prende_la_prima_ricevuta_pertinente():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        Oggetto: DEPOSITO TELEMATICO: Contributo unificato
+        [Allegato: Contributo unificato.PDF]
+        Pagamento bolletta PagoPA
+        Codice azienda 80184430587 MINISTERO DELLA GIUSTIZIA
+        Importo 49,00
+        Commissioni banca 2,50
+        Importo totale 51,50
+        Stato Pagata
+        Esito Pagamento bolletta PagoPA eseguito.
+        Informazioni aggiuntive /RFB/30007606087363218/49.00/TXT/Contributo unificato
+        [Allegato: Diritti forfettizzati.PDF]
+        Pagamento bolletta PagoPA
+        Importo 27,00
+        Importo totale 29,50
+        AVVISO DI PAGAMENTO Diritti di copia
+        QUANTO E QUANDO PAGARE? 27,00 Euro 12/02/2025
+        """,
+        {"filename": "COPIA DEPOSITO: Contributo unificato.EML", "document_id": "DOC-CU-EML"},
+    )
+
+    assert evidence["importo"] == 49.00
+    assert evidence["status"] == "pagato"
+    assert evidence["origine"] == "ricevuta_pagamento_contributo_unificato"
+
+
 def test_pdf_contributo_unificato_legge_modello_f23_senza_simbolo_euro():
     evidence = extract_contributo_unificato_document_evidence(
         """
@@ -433,6 +517,37 @@ def test_pdf_contributo_rifiuta_scaglione_e_riporta_esenzione_cu():
     assert esente["label"] == "Contributo unificato esente"
     assert patrocinio["esente"] is True
     assert patrocinio["importo"] is None
+
+
+def test_riepilogo_ruolo_con_importo_non_diventa_esente_per_una_etichetta_vuota():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        OGGETTO solo danni a cose Num. R.G. 139/2023.
+        Contributo Unificato: 237,00
+        Attori e convenuti - Esente Contributo Unificato
+        Data di citazione: 08/06/2023.
+        """,
+        {"filename": "Documento_69428925.pdf", "document_id": "934AFA20"},
+    )
+
+    assert evidence.get("esente") is not True
+    assert evidence["importo"] == 237.00
+    assert evidence["status"] == "da_registrare"
+    assert evidence["origine"] == "riepilogo_ruolo_contributo_unificato"
+
+
+def test_esenzione_esplicita_prevale_anche_se_il_riepilogo_riporta_un_importo():
+    evidence = extract_contributo_unificato_document_evidence(
+        """
+        Contributo Unificato: 237,00.
+        La parte è esente dal pagamento del contributo unificato per ammissione
+        al patrocinio a spese dello Stato.
+        """,
+        {"filename": "provvedimento-esenzione.pdf", "document_id": "DOC-ESENTE"},
+    )
+
+    assert evidence["esente"] is True
+    assert evidence["importo"] is None
 
 
 def test_esenzione_cu_da_pdf_viene_salvata_senza_importo_e_senza_voce_proforma(tmp_path: Path):

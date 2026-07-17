@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import os
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -34,6 +36,8 @@ from pct.polisWeb import (
     _pst_namespace_qbuilder,
     chiave_esterna_fascicolo_polisweb,
 )
+from pct.pec_pipeline import PecAuditRepository
+from pct.scadenziario import GestioneScadenziario
 from pct.soggetti import GestioneSoggetti
 from pct.telematico_workflow import TelematicoWorkflowRepository
 
@@ -1161,9 +1165,20 @@ def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
     assert any(path.name.startswith(fascicolo.id + "_") for path in archivio_inbox.iterdir())
 
 
-def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_path):
+def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_path, monkeypatch):
     from pct.auth import GestioneUtenti, RuoloUtente
+    from pct import validazione
     from web.app import create_app
+    from web.services.document_crypto import decrypt_doc
+
+    conversion_calls = {"count": 0}
+
+    def conversion_not_allowed(*_args, **_kwargs):
+        conversion_calls["count"] += 1
+        raise AssertionError("Il documento ricevuto dal portale non deve essere riconvertito")
+
+    monkeypatch.setattr(validazione, "verifica_pdfa", conversion_not_allowed)
+    monkeypatch.setattr(validazione, "converti_pdfa", conversion_not_allowed)
 
     cfg = _cfg_web(tmp_path)
     gu = GestioneUtenti(
@@ -1216,6 +1231,7 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
         servizio_portale="DocumentiFascicolo",
     )
 
+    portal_bytes = b"sentenza definitiva"
     app = create_app(cfg)
     with app.test_client() as client:
         client.post(
@@ -1230,7 +1246,7 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
                 "files": [
                     {
                         "nome": "Sentenza definitiva.pdf",
-                        "contenuto_b64": base64.b64encode(b"sentenza definitiva").decode("ascii"),
+                        "contenuto_b64": base64.b64encode(portal_bytes).decode("ascii"),
                         "origine": "C:/Users/test/Downloads/Sentenza definitiva.pdf",
                         "data_documento": "2026-03-29",
                         "id_deposito_esterno": "BUSTA-PST-002",
@@ -1267,6 +1283,11 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
     assert len(fascicolo_reload.attivita) == 0
     assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["id_repeatto"] == "ATTO-SIGP-900"
     assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["msg_id"] == "PEC-MSG-900"
+    imported_doc = fascicolo_reload.documenti[0]
+    stored_path = gestione_fascicoli_reload.percorso_documento(fascicolo.id, imported_doc.id)
+    assert decrypt_doc(stored_path.read_bytes()) == portal_bytes
+    assert imported_doc.hash_contenuto_sha256 == hashlib.sha256(portal_bytes).hexdigest()
+    assert conversion_calls["count"] == 0
 
 
 def test_api_importa_documenti_portale_puo_archiviare_albero_tecnico_originale(tmp_path):
@@ -3270,11 +3291,31 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     assert 'loading="eager"' in html
     assert 'fetchpriority="high"' in html
     assert "aspect-ratio:1/1.414" in html
-    assert "overflow-x:hidden" in html
+    assert "maximum-scale=5,user-scalable=yes" in html
+    assert 'data-zoom-out' in html
+    assert 'data-zoom-reset' in html
+    assert 'data-zoom-in' in html
+    assert 'data-document-pages' in html
+    assert "touch-action:pan-x pan-y" in html
+    assert "overflow:auto" in html
+    assert 'src="/static/js/mobile-pdf-viewer.js"' in html
     assert "Ricorso.PDF" in html
     assert page_response.status_code == 200
     assert page_response.mimetype == "image/png"
     assert page_response.data.startswith(b"\x89PNG")
+
+
+def test_lettore_mobile_pdf_presidia_zoom_pinch_e_limiti():
+    script = Path("web/static/js/mobile-pdf-viewer.js").read_text(encoding="utf-8")
+
+    assert "const MIN_ZOOM = 0.75" in script
+    assert "const MAX_ZOOM = 3" in script
+    assert "const STEP = 0.25" in script
+    assert "touchstart" in script
+    assert "touchmove" in script
+    assert "event.preventDefault()" in script
+    assert "pages.scrollLeft" in script
+    assert "pages.scrollTop" in script
 
 
 def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):
@@ -6097,6 +6138,21 @@ def test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente
         anno_rg=2026,
         oggetto="Usucapione",
     )
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    hearing_day = date.today() + timedelta(days=40)
+    pdf_buffer = io.BytesIO()
+    pdf = canvas.Canvas(pdf_buffer, pagesize=A4)
+    pdf.drawString(72, 790, "Tribunale di Palmi")
+    pdf.drawString(72, 770, "Decreto di fissazione udienza")
+    pdf.drawString(
+        72,
+        750,
+        f"Il giudice fissa l'udienza in presenza per il {hearing_day.strftime('%d/%m/%Y')} alle ore 10:15.",
+    )
+    pdf.save()
+    decreto_pdf = pdf_buffer.getvalue()
 
     preview_documenti = [
         {
@@ -6218,7 +6274,7 @@ def test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente
                 "downloaded_files": [
                     {
                         "nome": "Decreto_35052610.pdf",
-                        "contenuto_b64": base64.b64encode(b"%PDF-1.4 decreto").decode("ascii"),
+                        "contenuto_b64": base64.b64encode(decreto_pdf).decode("ascii"),
                         "content_type": "application/pdf",
                         "origine": "pst:JPW_SICID:35052610",
                         "data_documento": "2026-05-07",
@@ -6257,6 +6313,36 @@ def test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente
     assert len(deposito.documenti_ids) == 1
     assert any(row["id_cat"] == "34341272" for row in deposito.documenti_portale)
     assert fascicolo_reload.documenti[0].id_cat_portale == "35052610"
+    marker = fascicolo_reload.pagamenti["_presidio_documentale"]
+    assert marker["status"] == "stale"
+    assert marker["reason"] == "nuovo_documento_fascicolo"
+    assert marker["document_id"] == fascicolo_reload.documenti[0].id
+
+    document_repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        fascicoli_db_path=cfg["FASCICOLI_DB"],
+        fascicoli_docs_path=cfg["FASCICOLI_DOCS"],
+        scadenziario_db_path=cfg["SCADENZIARIO_DB"],
+        agenda_db_path=cfg["AGENDA_DB"],
+    )
+    first = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=5, actor="scheduler")
+    second = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=5, actor="scheduler")
+
+    assert first["processed_new_documents"] == 1
+    assert first["indexed_documents"] == 1
+    assert first["scheduled"] == 1
+    assert first["errors"] == []
+    assert second["processed_new_documents"] == 0
+    assert second["indexed_documents"] == 0
+    assert second["skipped_unchanged_fascicoli"] == 1
+    assert second["skipped_unchanged_documents"] == 1
+
+    scadenze = GestioneScadenziario(cfg["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
+    created = next(item for item in scadenze if item.id_fascicolo == fascicolo.id)
+    assert created.data_scadenza == hearing_day.isoformat()
+    assert created.hearing_mode == "presenza"
+    assert created.hearing_time == "10:15"
 
 
 def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview(tmp_path):

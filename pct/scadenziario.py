@@ -598,6 +598,9 @@ class Scadenza:
     trace_json: str = "[]"
     operational_lead_business_days: int = 0
     october_observance_blocks: bool = False
+    hearing_mode: str = ""
+    hearing_mode_source: str = ""
+    hearing_time: str = ""
     remote_hearing_detected: bool = False
     remote_hearing_mode: str = ""
     remote_hearing_url: str = ""
@@ -605,7 +608,11 @@ class Scadenza:
     remote_hearing_verified: bool = False
     remote_hearing_integrity: str = ""
     remote_hearing_time: str = ""
+    remote_hearing_platform: str = ""
+    remote_hearing_meeting_id: str = ""
+    remote_hearing_passcode: str = ""
     remote_hearing_access_info: str = ""
+    remote_hearing_evidence_json: str = "[]"
     remote_hearing_pdf_required: bool = False
 
     @property
@@ -785,7 +792,7 @@ class GestioneScadenziario:
         if self._studio_db is not None:
             json_scadenze = self._carica_json_file()
             try:
-                rows = self._studio_db.conn.execute("SELECT * FROM scadenze").fetchall()
+                rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
                 self._scadenze = {}
                 for row in rows:
                     payload = dict(row)
@@ -828,6 +835,32 @@ class GestioneScadenziario:
     def _pec_canonical_key(scadenza: Scadenza) -> str:
         if not GestioneScadenziario._is_pec_automatica(scadenza):
             return ""
+        date_key = str(getattr(scadenza, "data_scadenza", "") or "")[:10]
+        time_source = next(
+            (
+                str(value).strip()
+                for value in (
+                    getattr(scadenza, "remote_hearing_time", ""),
+                    getattr(scadenza, "hearing_time", ""),
+                    getattr(scadenza, "operational_due_at", ""),
+                    getattr(scadenza, "source_event_at", ""),
+                    getattr(scadenza, "data_scadenza", ""),
+                )
+                if str(value or "").strip()
+            ),
+            "",
+        )
+        time_match = re.search(r"(?:T|\b)([01]\d|2[0-3])[:.]([0-5]\d)\b", time_source)
+        time_key = f"{time_match.group(1)}:{time_match.group(2)}" if time_match else ""
+        marker_match = re.search(
+            r"(?:^|\s)(PEC_AUDIT:[^\s]+)",
+            str(getattr(scadenza, "note", "") or ""),
+            flags=re.IGNORECASE,
+        )
+        if marker_match:
+            marker = marker_match.group(1).rstrip(".,;:)]}")
+            event_key = "|".join(value for value in (date_key, time_key) if value)
+            return f"{marker.lower()}|{event_key}" if event_key else marker.lower()
         source = " ".join(
             str(getattr(scadenza, name, "") or "")
             for name in ("titolo", "descrizione", "note", "id_fascicolo")
@@ -836,11 +869,22 @@ class GestioneScadenziario:
         rg = rg_match.group(0).upper() if rg_match else ""
         title = re.sub(r"\s+", " ", str(getattr(scadenza, "titolo", "") or "").strip().lower())
         title = re.sub(r"^posta certificata:\s*", "", title)
-        date_key = str(getattr(scadenza, "data_scadenza", "") or "")[:10]
         fascicolo_key = str(getattr(scadenza, "id_fascicolo", "") or "").strip()
+        event_type = str(
+            getattr(scadenza, "source_event_type", "")
+            or getattr(getattr(scadenza, "tipo", ""), "value", getattr(scadenza, "tipo", ""))
+            or ""
+        ).strip().lower()
+        source_key = re.sub(
+            r"\s+",
+            " ",
+            str(getattr(scadenza, "remote_hearing_source", "") or "").strip().lower(),
+        )
         if not date_key or not (rg or title):
             return ""
-        return "|".join([date_key, fascicolo_key, rg or title])
+        return "|".join(
+            [date_key, time_key, fascicolo_key, rg, event_type, title, source_key]
+        )
 
     @staticmethod
     def _severity_rank(priority: PrioritaTermine) -> int:
@@ -881,12 +925,19 @@ class GestioneScadenziario:
             "source_event_type",
             "source_event_at",
             "operational_due_at",
+            "hearing_mode",
+            "hearing_mode_source",
+            "hearing_time",
             "remote_hearing_mode",
             "remote_hearing_url",
             "remote_hearing_source",
             "remote_hearing_integrity",
             "remote_hearing_time",
+            "remote_hearing_platform",
+            "remote_hearing_meeting_id",
+            "remote_hearing_passcode",
             "remote_hearing_access_info",
+            "remote_hearing_evidence_json",
         ):
             if not str(getattr(primary, key, "") or "").strip() and str(getattr(duplicate, key, "") or "").strip():
                 setattr(primary, key, getattr(duplicate, key))

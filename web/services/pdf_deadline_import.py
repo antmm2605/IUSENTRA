@@ -518,7 +518,10 @@ def _is_actionable_hearing_context(context: str, event_time: str = "") -> bool:
         return False
     return bool(
         re.search(
-            r"\b(?:fissa|fissata|rinvia|conferma)\b.{0,120}\budienza\b|\budienza\b.{0,120}\b(?:in data|il giorno|alle ore|ore)",
+            r"\b(?:fissa|fissata|fissato|rinvia|rinviata|rinviato|differisce|differita|differito|conferma|confermata|confermato)\b"
+            r".{0,120}\budienza\b"
+            r"|\budienza\b.{0,120}\b(?:fissata|fissato|rinviata|rinviato|differita|differito|confermata|confermato)\b"
+            r"|\budienza\b.{0,120}\b(?:in data|il giorno|alle ore|ore)\b",
             normalized,
             flags=re.IGNORECASE,
         )
@@ -655,7 +658,7 @@ def _create_deadline_from_candidate(gestione_scadenziario: Any, candidate: PdfDe
     source_marker = f"{SOURCE_MARKER_PREFIX}{candidate.id}"
     semantic_marker = f"pdf-semantic:{candidate.semantic_key}" if candidate.semantic_key else ""
     remote_lines = _remote_hearing_note_lines_from_candidate(candidate)
-    links_text = "\n".join(f"Link documento: {url}" for url in candidate.urls if url != candidate.remote_hearing_url)
+    links_text = "\n".join(f"Link PDF: {url}" for url in candidate.urls if url != candidate.remote_hearing_url)
     trace = [
         f"Scadenza estratta da documento notificato: {candidate.document_name}, pagina {candidate.page}.",
         f"Fascicolo: {candidate.fascicolo_label}.",

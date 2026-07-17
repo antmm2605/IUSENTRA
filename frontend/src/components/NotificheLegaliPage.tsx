@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Save,
   Scale,
+  Search,
   Send,
   ShieldCheck,
   Paperclip,
@@ -25,12 +26,15 @@ import {
   UploadCloud,
   UserRound,
   WandSparkles,
+  X,
 } from 'lucide-react'
 import { Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyNotificheLegaliData,
+  downloadLegalAttestation,
   getNotificheLegaliData,
+  getNotificheLegaliPractice,
   getNotificheLegaliPracticeDocuments,
   postLegalWorkflow,
   previewLegalRelata,
@@ -40,6 +44,7 @@ import {
   type LegalDocumentSuggestion,
   type LegalNotificationDirective,
   type LegalRelataPreviewResult,
+  type LegalPracticeIndexItem,
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
   type LegalTemplateFieldToken,
@@ -117,6 +122,15 @@ function todayLocalDate() {
   return now.toISOString().slice(0, 10)
 }
 
+function currentLocalTime() {
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date())
+}
+
 function localDateTime() {
   const now = new Date()
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
@@ -136,6 +150,18 @@ function localClockLabel(value: string) {
     minute: '2-digit',
     second: '2-digit',
   }).format(parsed)
+}
+
+function templateVersionDate(value: string) {
+  const match = String(value || '').trim().match(/^(\d{4})[.-](\d{2})[.-](\d{2})(?:\b|[-_])/)
+  if (!match) return ''
+  const [, year, month, day] = match
+  return formatDateIt(`${year}-${month}-${day}`)
+}
+
+function templateVersionLabel(value: string) {
+  const date = templateVersionDate(value)
+  return date ? ` · aggiornato il ${date}` : ''
 }
 
 function userFacingNotice(value: string) {
@@ -171,6 +197,164 @@ function Field({
   )
 }
 
+function practiceSearchText(value: string) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('it-IT')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function PracticePicker({
+  practices,
+  value,
+  loading,
+  message,
+  hint,
+  onSelect,
+}: {
+  practices: LegalPracticeIndexItem[]
+  value: string
+  loading: boolean
+  message: string
+  hint: string
+  onSelect: (practiceId: string) => void
+}) {
+  const inputId = useId()
+  const listId = `${inputId}-risultati`
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const selected = useMemo(() => practices.find((item) => item.id === value), [practices, value])
+  const indexedPractices = useMemo(() => practices.map((item) => ({
+    item,
+    search: practiceSearchText([
+      item.label,
+      item.numero,
+      item.titolo,
+      item.assistitoNome,
+      item.controparte,
+      item.ufficio,
+      item.numeroRg,
+      item.annoRg,
+      item.oggetto,
+    ].join(' ')),
+  })), [practices])
+  const matches = useMemo(() => {
+    const tokens = practiceSearchText(query).split(' ').filter(Boolean)
+    if (!tokens.length) return indexedPractices.map(({ item }) => item)
+    return indexedPractices
+      .filter(({ search }) => tokens.every((token) => search.includes(token)))
+      .map(({ item }) => item)
+  }, [indexedPractices, query])
+  const visibleMatches = matches.slice(0, 50)
+
+  const choose = (practice: LegalPracticeIndexItem) => {
+    onSelect(practice.id)
+    setQuery('')
+    setOpen(false)
+    setActiveIndex(0)
+  }
+
+  return (
+    <div className="iu-legal-field iu-legal-field--wide iu-legal-practice-picker">
+      <label htmlFor={inputId}>Pratica IUSENTRA</label>
+      {selected ? (
+        <div className="iu-legal-practice-picker__selected">
+          <CheckCircle2 size={17} />
+          <span>
+            <strong>{selected.label}</strong>
+            <small>{[
+              selected.numeroRg ? `RG ${selected.numeroRg}${selected.annoRg ? `/${selected.annoRg}` : ''}` : '',
+              selected.assistitoNome,
+              selected.ufficio,
+              selected.archiviata ? 'Archiviata' : '',
+            ].filter(Boolean).join(' - ')}</small>
+          </span>
+          <button type="button" aria-label="Rimuovi pratica selezionata" title="Rimuovi pratica selezionata" onClick={() => onSelect('')}>
+            <X size={16} />
+          </button>
+        </div>
+      ) : null}
+      <div className="iu-legal-practice-picker__input">
+        {loading ? <RefreshCw className="is-spinning" size={17} /> : <Search size={17} />}
+        <input
+          id={inputId}
+          type="search"
+          value={query}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-activedescendant={open && visibleMatches[activeIndex] ? `${listId}-${visibleMatches[activeIndex].id}` : undefined}
+          placeholder={selected ? 'Cerca un’altra pratica' : 'Cerca per numero, RG, cliente o oggetto'}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value)
+            setActiveIndex(0)
+            setOpen(true)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              setOpen(true)
+              setActiveIndex((current) => Math.min(current + 1, Math.max(visibleMatches.length - 1, 0)))
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              setActiveIndex((current) => Math.max(current - 1, 0))
+            } else if (event.key === 'Enter' && open && visibleMatches[activeIndex]) {
+              event.preventDefault()
+              choose(visibleMatches[activeIndex])
+            } else if (event.key === 'Escape') {
+              setOpen(false)
+            }
+          }}
+        />
+        {query ? (
+          <button type="button" aria-label="Cancella ricerca" title="Cancella ricerca" onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(''); setActiveIndex(0) }}>
+            <X size={16} />
+          </button>
+        ) : null}
+      </div>
+      {open ? (
+        <div className="iu-legal-practice-picker__results" id={listId} role="listbox" aria-label="Pratiche trovate">
+          <div className="iu-legal-practice-picker__status">
+            <span>{query ? `${matches.length} risultati` : `${practices.length} pratiche disponibili`}</span>
+            {matches.length > visibleMatches.length ? <small>Affina la ricerca per vedere altri risultati.</small> : null}
+          </div>
+          {visibleMatches.map((item, index) => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={item.id === value}
+              id={`${listId}-${item.id}`}
+              className={`${index === activeIndex ? 'is-active' : ''} ${item.id === value ? 'is-selected' : ''}`}
+              key={item.id}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => choose(item)}
+            >
+              <strong>{item.label}</strong>
+              <span>{[
+                item.numeroRg ? `RG ${item.numeroRg}${item.annoRg ? `/${item.annoRg}` : ''}` : '',
+                item.assistitoNome,
+                item.controparte,
+                item.ufficio,
+              ].filter(Boolean).join(' - ') || 'Dati pratica disponibili nel fascicolo'}</span>
+              {item.archiviata ? <small>Archiviata</small> : null}
+            </button>
+          ))}
+          {!visibleMatches.length ? <p>Nessuna pratica corrisponde alla ricerca.</p> : null}
+        </div>
+      ) : null}
+      <small>{message || hint}</small>
+    </div>
+  )
+}
+
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i
 
 function normalizeSha256Input(value: string) {
@@ -187,6 +371,192 @@ async function calculateSha256(file: File): Promise<string> {
 }
 
 const RELATA_LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
+const RELATA_LOCAL_SIGNER_TIMEOUT_MS = 45000
+
+type RelataSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string; model?: string }
+type RelataSignerCertificate = { thumbprint?: string; soggetto?: string; scadenza?: string; codice_fiscale?: string }
+type RelataSignerStatus = {
+  ok?: boolean
+  token?: RelataSignerToken[]
+  token_probe_fresh?: RelataSignerToken[]
+  certificato_windows_firma_selezionato?: RelataSignerCertificate
+  certificato_windows_selezionato?: RelataSignerCertificate
+  riavvio_signer_consigliato?: boolean
+  nota_riavvio_signer?: string
+  errore_token?: string
+  messaggio?: string
+  versione?: string
+}
+
+type SignedRelataRecord = {
+  documentId: string
+  fileName: string
+  sha256: string
+  sourceSha256: string
+  previewUrl: string
+  downloadUrl: string
+  payloadKey: string
+}
+
+type PecVerificationEvidence = {
+  key: string
+  source: string
+  verified: boolean
+  found: boolean
+  address: string
+  taxCode: string
+  checkedAt: string
+  evidenceSha256: string
+  evidenceBodyBase64: string
+  name: string
+  status: string
+  message: string
+}
+
+type PecVerificationSubject = {
+  key: string
+  kind: 'sender' | 'recipient'
+  source: string
+  address: string
+  taxCode: string
+  label: string
+}
+
+function normalizePecSource(value: unknown): string {
+  const raw = String(value || '').trim().toLowerCase().replace(/[-.\s]+/g, '_')
+  const aliases: Record<string, string> = {
+    reginde: 'reginde',
+    re_g_ind_e: 'reginde',
+    registro_generale_indirizzi_elettronici: 'reginde',
+    inipec: 'ini_pec',
+    ini_pec: 'ini_pec',
+    registroimprese: 'registro_imprese',
+    registro_imprese: 'registro_imprese',
+    imprese: 'registro_imprese',
+    registro_ppaa: 'registro_ppaa',
+    registro_pst: 'registro_ppaa',
+    pst: 'registro_ppaa',
+    ipa: 'registro_ppaa',
+    inad: 'inad',
+    anpr: 'anpr',
+    altro: 'altro_pubblico_elenco',
+    altro_pubblico_elenco: 'altro_pubblico_elenco',
+  }
+  return aliases[raw] || raw
+}
+
+function normalizePecIdentity(value: unknown): string {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+
+function normalizePecAddress(value: unknown): string {
+  return String(value || '').trim().toLowerCase()
+}
+
+function pecVerificationKey(source: unknown, taxCode: unknown, address: unknown): string {
+  return `${normalizePecSource(source)}|${normalizePecIdentity(taxCode)}|${normalizePecAddress(address)}`
+}
+
+function pecBoolean(value: unknown): boolean {
+  return value === true || ['1', 'true', 'yes', 'si', 'sì'].includes(String(value || '').trim().toLowerCase())
+}
+
+function pecVerificationMessage(raw: Record<string, unknown>): string {
+  const message = String(raw.message || '').trim()
+  const detail = String(raw.error || raw.errore || '').trim()
+  const combined = `${message} ${detail}`
+  if (/certificato client|certificato del dispositivo|private key|chiave privata/i.test(combined)) {
+    return 'Il certificato di autenticazione del dispositivo non è disponibile. Inserisci il dispositivo di firma, attendi il rilevamento e riprova.'
+  }
+  if (/smart card|token|dispositivo di firma|lettore/i.test(combined)) {
+    return 'Il dispositivo di firma non è stato rilevato. Inseriscilo, attendi il rilevamento e riprova.'
+  }
+  return detail || message
+}
+
+function pecEvidenceFromResponse(raw: Record<string, unknown>, subject: PecVerificationSubject): PecVerificationEvidence {
+  const source = normalizePecSource(raw.source || subject.source)
+  const address = normalizePecAddress(raw.pec_attesa || raw.address || raw.pec || subject.address)
+  const taxCode = normalizePecIdentity(raw.codice_fiscale || raw.taxCode || raw.codiceFiscale || subject.taxCode)
+  const checkedAt = String(raw.verified_at || raw.verifiedAt || raw.checked_at || raw.checkedAt || '').trim()
+  const evidenceSha256 = String(raw.evidence_sha256 || raw.evidenceSha256 || '').trim().toLowerCase()
+  const evidenceBodyBase64 = String(raw.evidence_body_b64 || raw.evidenceBodyBase64 || '').trim()
+  const status = String(raw.stato || raw.status || '').trim()
+  const inactive = /radiat|cancellat|sospes|cessat|revocat/i.test(status)
+  const exactMatch = source === subject.source
+    && address === subject.address
+    && (!subject.taxCode || taxCode === subject.taxCode)
+  const verified = pecBoolean(raw.verified)
+    && exactMatch
+    && Boolean(checkedAt)
+    && SHA256_HEX_PATTERN.test(evidenceSha256)
+    && Boolean(evidenceBodyBase64)
+    && !inactive
+  return {
+    key: subject.key,
+    source,
+    verified,
+    found: pecBoolean(raw.found),
+    address,
+    taxCode,
+    checkedAt,
+    evidenceSha256,
+    evidenceBodyBase64,
+    name: String(raw.nome || raw.name || subject.label || '').trim(),
+    status,
+    message: pecVerificationMessage(raw),
+  }
+}
+
+function pecEvidenceMatches(evidence: PecVerificationEvidence | null | undefined, subject: PecVerificationSubject): boolean {
+  return Boolean(
+    evidence?.verified
+    && evidence.key === subject.key
+    && evidence.source === subject.source
+    && evidence.address === subject.address
+    && (!subject.taxCode || evidence.taxCode === subject.taxCode)
+    && evidence.checkedAt
+    && SHA256_HEX_PATTERN.test(evidence.evidenceSha256)
+    && evidence.evidenceBodyBase64,
+  )
+}
+
+function pecEvidenceTargets(evidence: PecVerificationEvidence | null | undefined, subject: PecVerificationSubject): boolean {
+  return Boolean(
+    evidence
+    && evidence.key === subject.key
+    && evidence.source === subject.source
+    && evidence.address === subject.address
+    && (!subject.taxCode || evidence.taxCode === subject.taxCode),
+  )
+}
+
+function pecEvidencePayload(evidence: PecVerificationEvidence | null | undefined): Record<string, unknown> {
+  if (!evidence) return {}
+  return {
+    source: evidence.source,
+    verified: evidence.verified,
+    found: evidence.found,
+    pec_attesa: evidence.address,
+    codice_fiscale: evidence.taxCode,
+    checked_at: evidence.checkedAt,
+    verified_at: evidence.checkedAt,
+    evidence_sha256: evidence.evidenceSha256,
+    evidence_body_b64: evidence.evidenceBodyBase64,
+    nome: evidence.name,
+    stato: evidence.status,
+  }
+}
+
+function notificationControlPayloadKey(payload: Record<string, unknown>): string {
+  const controlled = { ...payload }
+  delete controlled.relata_firmata
+  delete controlled.approvazione_avvocato
+  delete controlled.data_ora_invio_pec
+  delete controlled.invio_finale
+  delete controlled.conferma_invio_pec
+  return JSON.stringify(controlled)
+}
 
 function relataLocalSignerBaseUrl(): string {
   const configured = typeof window !== 'undefined' ? window.__IUSENTRA_LOCAL_SIGNER_URL__ : ''
@@ -210,7 +580,7 @@ function requestRelataLocalSignerStart(): boolean {
   return true
 }
 
-async function fetchRelataLocalSignerStatus(timeoutMs = 3000): Promise<Record<string, unknown> | null> {
+async function fetchRelataLocalSignerStatus(timeoutMs = 3500): Promise<RelataSignerStatus | null> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -218,12 +588,67 @@ async function fetchRelataLocalSignerStatus(timeoutMs = 3000): Promise<Record<st
       cache: 'no-store',
       signal: controller.signal,
     })
-    return await response.json().catch(() => ({} as Record<string, unknown>))
+    const payload = await response.json().catch(() => ({} as RelataSignerStatus))
+    return { ...payload, ok: response.ok ? payload.ok : false }
   } catch {
     return null
   } finally {
     window.clearTimeout(timeout)
   }
+}
+
+function relataSignerCertificate(status?: RelataSignerStatus | null): RelataSignerCertificate | null {
+  const certificate = status?.certificato_windows_firma_selezionato || status?.certificato_windows_selezionato
+  return certificate?.thumbprint ? certificate : null
+}
+
+function relataSignerNeedsRestart(status?: RelataSignerStatus | null): boolean {
+  return Boolean(status?.riavvio_signer_consigliato && status?.token_probe_fresh?.length && !status?.token?.length)
+}
+
+function relataSignerCanSign(status?: RelataSignerStatus | null): boolean {
+  return Boolean(status?.ok !== false && !relataSignerNeedsRestart(status) && (status?.token?.[0] || relataSignerCertificate(status)))
+}
+
+function waitForRelataSigner(delayMs: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, delayMs))
+}
+
+async function ensureRelataSignerReady(): Promise<RelataSignerStatus | null> {
+  let status = await fetchRelataLocalSignerStatus()
+  if (status && relataSignerCanSign(status)) return status
+  if (!status || relataSignerNeedsRestart(status)) requestRelataLocalSignerStart()
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (attempt > 0) await waitForRelataSigner(900)
+    status = await fetchRelataLocalSignerStatus()
+    if (status && relataSignerCanSign(status)) return status
+  }
+  return status
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
+  }
+  return btoa(binary)
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
+async function parseRelataSignerResponse(response: Response): Promise<Record<string, unknown>> {
+  const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+  if (!response.ok || payload.ok === false) {
+    throw new Error(String(payload.errore || payload.messaggio || `Firma non completata (HTTP ${response.status}).`))
+  }
+  return payload
 }
 
 async function pdfContainsPadesSignature(file: File): Promise<boolean> {
@@ -554,7 +979,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           {result.warnings.map((item) => <span key={item}><ShieldCheck size={15} /> {userFacingNotice(item)}</span>)}
         </div>
       ) : null}
-      {result.templateLabel ? <div className="iu-legal-output"><span>Modello scelto</span><strong>{result.templateLabel}{result.templateVersion ? ` - ${result.templateVersion}` : ''}</strong></div> : null}
+      {result.templateLabel ? <div className="iu-legal-output"><span>Modello scelto</span><strong>{result.templateLabel}{templateVersionLabel(result.templateVersion)}</strong></div> : null}
       {result.subject ? <div className="iu-legal-output"><span>Oggetto</span><strong>{result.subject}</strong></div> : null}
       {planFiles(result.outputPlan).length ? (
         <div className="iu-legal-output">
@@ -738,9 +1163,20 @@ export function NotificheLegaliPage() {
   const [working, setWorking] = useState(false)
   const resultPanelRef = useRef<HTMLDivElement | null>(null)
   const [lastControlLabel, setLastControlLabel] = useState('')
+  const [lastControlPayloadKey, setLastControlPayloadKey] = useState('')
   const [attestationPreviewOpen, setAttestationPreviewOpen] = useState(false)
   const [signatureMessage, setSignatureMessage] = useState('')
   const [signatureChecking, setSignatureChecking] = useState(false)
+  const [signaturePin, setSignaturePin] = useState('')
+  const [signatureStatus, setSignatureStatus] = useState<RelataSignerStatus | null>(null)
+  const [signedRelata, setSignedRelata] = useState<SignedRelataRecord | null>(null)
+  const signaturePinRef = useRef<HTMLInputElement | null>(null)
+  const [senderPecVerification, setSenderPecVerification] = useState<PecVerificationEvidence | null>(null)
+  const senderPecVerificationRef = useRef<PecVerificationEvidence | null>(null)
+  const [recipientPecVerifications, setRecipientPecVerifications] = useState<Record<string, PecVerificationEvidence>>({})
+  const recipientPecVerificationsRef = useRef<Record<string, PecVerificationEvidence>>({})
+  const [pecVerificationWorking, setPecVerificationWorking] = useState(false)
+  const [pecVerificationMessage, setPecVerificationMessage] = useState('')
 
   const [notifica, setNotifica] = useState({
     template_id: 'relata_pec_base_l53',
@@ -750,13 +1186,15 @@ export function NotificheLegaliPage() {
     avvocato_cf: '',
     avvocato_foro: '',
     studio_indirizzo: '',
+    studio_cap: '',
     studio_citta: '',
+    studio_provincia: '',
     luogo: '',
     data_relata: todayLocalDate(),
+    ora_relata: currentLocalTime(),
     mittente_pec: '',
     fonte_pec_mittente: 'ReGIndE',
     mittente_pec_pubblico_elenco: true,
-    mittente_avvocato_abilitato: false,
     mittente_pec_validata: false,
     assistito_nome: '',
     assistito_cf: '',
@@ -788,13 +1226,15 @@ export function NotificheLegaliPage() {
   })
   const [modelFields, setModelFields] = useState<Record<string, string>>({})
   const [selectedPracticeId, setSelectedPracticeId] = useState('')
+  const [practiceDetailsById, setPracticeDetailsById] = useState<Record<string, LegalPracticeSuggestion>>({})
+  const [practiceSelectionWorking, setPracticeSelectionWorking] = useState(false)
+  const [practiceSelectionMessage, setPracticeSelectionMessage] = useState('')
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
   const [manualNotificationDocuments, setManualNotificationDocuments] = useState<ManualNotificationDocument[]>([])
   const [notificationFilesMessage, setNotificationFilesMessage] = useState('')
-  const [attestazioniAutomatiche, setAttestazioniAutomatiche] = useState(true)
   const [selectedDepositDocumentIds, setSelectedDepositDocumentIds] = useState<string[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
@@ -814,8 +1254,8 @@ export function NotificheLegaliPage() {
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
   const [relataDraftMessage, setRelataDraftMessage] = useState('')
-  const [pecClockAuto, setPecClockAuto] = useState(true)
-  const [pecClockLabel, setPecClockLabel] = useState(localClockLabel(localDateTime()))
+  const [attestationDownloading, setAttestationDownloading] = useState(false)
+  const [attestationDownloadMessage, setAttestationDownloadMessage] = useState('')
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})
   const [documentHydrationMessage, setDocumentHydrationMessage] = useState('')
 
@@ -907,8 +1347,10 @@ export function NotificheLegaliPage() {
           avvocato_cf: payload.defaults.avvocatoCf,
           avvocato_foro: payload.defaults.avvocatoForo,
           studio_indirizzo: payload.defaults.studioIndirizzo,
+          studio_cap: payload.defaults.studioCap,
           studio_citta: payload.defaults.studioCitta,
-          luogo: payload.defaults.studioCitta,
+          studio_provincia: payload.defaults.studioProvincia,
+          luogo: [payload.defaults.studioCitta, payload.defaults.studioProvincia ? `(${payload.defaults.studioProvincia})` : ''].filter(Boolean).join(' '),
           mittente_pec: payload.defaults.mittentePec,
           fonte_pec_mittente: payload.defaults.fontePecMittente || 'ReGIndE',
         }))
@@ -920,19 +1362,6 @@ export function NotificheLegaliPage() {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
-
-  useEffect(() => {
-    const tick = () => {
-      const value = localDateTime()
-      setPecClockLabel(localClockLabel(value))
-      if (pecClockAuto) {
-        setNotifica((current) => current.data_verifica_pec === value ? current : { ...current, data_verifica_pec: value })
-      }
-    }
-    tick()
-    const handle = window.setInterval(tick, 1000)
-    return () => window.clearInterval(handle)
-  }, [pecClockAuto])
 
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
   const selectedClientTemplate = useMemo(() => data.modelliComunicazioneCliente.find((item) => item.value === cliente.template_id), [data.modelliComunicazioneCliente, cliente.template_id])
@@ -953,8 +1382,8 @@ export function NotificheLegaliPage() {
     return Array.from(groups.entries()).slice(0, 7)
   }, [data.campiDisponibili])
   const selectedPractice = useMemo(
-    () => data.precompilazione.pratiche.find((item) => item.id === selectedPracticeId),
-    [data.precompilazione.pratiche, selectedPracticeId],
+    () => practiceDetailsById[selectedPracticeId] || data.precompilazione.pratiche.find((item) => item.id === selectedPracticeId),
+    [data.precompilazione.pratiche, practiceDetailsById, selectedPracticeId],
   )
   const recipientSuggestions = selectedPractice?.destinatari.length ? selectedPractice.destinatari : data.precompilazione.destinatari
   const documentSuggestions = (selectedPracticeId && hydratedDocumentsByPractice[selectedPracticeId]?.length)
@@ -1053,7 +1482,7 @@ export function NotificheLegaliPage() {
         '',
         '{{ attestazioni_testo }}',
         '',
-        '{{ notifica.luogo }}, {{ notifica.data }}',
+        '{{ notifica.luogo }}, {{ notifica.data }} alle ore {{ notifica.ora }}',
         '',
         'Avv. {{ avvocato.full_name }}',
         'Documento informatico separato sottoscritto con firma digitale.',
@@ -1225,13 +1654,6 @@ export function NotificheLegaliPage() {
     hasSendableNotificationAttachmentExtension(documento.nome_file)
     || hasSendableNotificationAttachmentExtension(documento.file_originale || '')
   )
-  const safeFileSegment = (value: string) => (
-    (value || 'notifica')
-      .replace(/[^A-Za-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 64)
-    || 'notifica'
-  )
   const deriveProceedingRg = (...values: string[]) => {
     for (const value of values) {
       const exact = String(value || '').trim().match(/^0*(\d{1,8})\s*\/\s*(20\d{2})$/)
@@ -1241,32 +1663,6 @@ export function NotificheLegaliPage() {
     }
     return { numero: '', anno: '' }
   }
-  const automaticAttestationDocument = (rows: NotificaDocumentPayload[]): NotificaDocumentPayload | null => {
-    const documentsRequiringAttestation = rows.filter((documento) => (
-      originNeedsAttestazione(documento.origine)
-      || Boolean(documento.attestazione_conformita_presente)
-    ))
-    if (!attestazioniAutomatiche || !documentsRequiringAttestation.length) return null
-    const reference = notifica.pratica_codice || selectedPractice?.numero || selectedPracticeId || 'notifica'
-    const fileName = `Attestazione_conformita_${safeFileSegment(reference)}.pdf`
-    return {
-      nome_file: fileName,
-      descrizione: 'Attestazione di conformità generata da IUSENTRA per gli atti scaricati dal portale o presenti nel fascicolo informatico.',
-      origine: 'originale_informatico',
-      hash_sha256: '',
-      data_comunicazione_cancelleria: '',
-      fonte_documento: 'IUSENTRA_ATTESTAZIONE_CONFORMITA',
-      riferimento_portale: documentsRequiringAttestation.map((documento) => documento.riferimento_portale || documento.nome_file).filter(Boolean).join('; '),
-      file_originale: fileName,
-      servizio_portale: '',
-      documento_ufficio: false,
-      acquisito_da_portale: false,
-      notifica_richiesta: false,
-      attestazione_conformita: '',
-      attestazione_conformita_presente: false,
-    }
-  }
-
   useEffect(() => {
     if (!selectedPracticeId || hydratedDocumentsByPractice[selectedPracticeId]?.length) return
     let active = true
@@ -1279,24 +1675,6 @@ export function NotificheLegaliPage() {
           return
         }
         setHydratedDocumentsByPractice((current) => ({ ...current, [selectedPracticeId]: documents }))
-        const autoSelectableDocuments = documents.filter(isNotifiableNotificationDocument)
-        const selectedIds = selectedNotificationDocumentIds.length
-          ? new Set(selectedNotificationDocumentIds)
-          : new Set(autoSelectableDocuments.map((documento) => documento.id))
-        const selectedDocuments = documents.filter((documento) => selectedIds.has(documento.id))
-        const firstDocument = selectedDocuments[0] || autoSelectableDocuments[0]
-        if (firstDocument) {
-          setNotifica((current) => ({
-            ...current,
-            nome_file: documentPrimaryName(firstDocument) || current.nome_file,
-            descrizione_documento: firstDocument.descrizione || current.descrizione_documento,
-            origine_documento: firstDocument.origine || current.origine_documento,
-            hash_sha256: firstDocument.hashSha256 || current.hash_sha256,
-          }))
-          setDeposito((current) => ({
-            ...syncDepositDraftFromRows(selectedDocuments, current),
-          }))
-        }
         const enriched = documents.filter((documento) => (
           isTimestampDocumentName(documento.nomeFile) && documento.label && documento.label !== documento.nomeFile
         )).length
@@ -1356,7 +1734,6 @@ export function NotificheLegaliPage() {
   }
 
   const documentSuggestionPayload = (documento: LegalDocumentSuggestion): NotificaDocumentPayload => {
-    const requiresAttestation = documento.necessitaAttestazione || originNeedsAttestazione(documento.origine)
     return {
       nome_file: documentPrimaryName(documento),
       descrizione: documento.descrizione || documento.label,
@@ -1371,19 +1748,22 @@ export function NotificheLegaliPage() {
       acquisito_da_portale: documento.acquisitoDaPortale,
       notifica_richiesta: documento.notificaRichiesta,
       data_rilascio_portale: documento.dataRilascioPortale,
-      attestazione_conformita: notifica.attestazione_conformita,
-      attestazione_conformita_presente: Boolean(notifica.attestazione_conformita.trim()) || (attestazioniAutomatiche && requiresAttestation),
+      attestazione_conformita: '',
+      attestazione_conformita_presente: false,
     }
   }
 
-  const recipientPayload = (recipient: LegalRecipientSuggestion) => ({
-    nome: recipient.nome,
-    pec: recipient.pec,
-    ruolo: recipient.ruolo || notifica.ruolo_destinatario,
-    fonte_pec: recipient.fontePecSuggerita || notifica.fonte_pec_destinatario,
-    parte_rappresentata: recipient.parteRappresentata,
-    codice_fiscale_piva: recipient.codiceFiscalePiva,
-  })
+  const recipientPayload = (recipient: LegalRecipientSuggestion) => {
+    const isActive = recipient.id === selectedRecipientId
+    return {
+      nome: isActive ? notifica.destinatario_nome || recipient.nome : recipient.nome,
+      pec: isActive ? notifica.destinatario_pec || recipient.pec : recipient.pec,
+      ruolo: isActive ? notifica.ruolo_destinatario || recipient.ruolo : recipient.ruolo || notifica.ruolo_destinatario,
+      fonte_pec: isActive ? notifica.fonte_pec_destinatario || recipient.fontePecSuggerita : recipient.fontePecSuggerita,
+      parte_rappresentata: isActive ? notifica.destinatario_parte_rappresentata || recipient.parteRappresentata : recipient.parteRappresentata,
+      codice_fiscale_piva: isActive ? notifica.destinatario_cf || recipient.codiceFiscalePiva : recipient.codiceFiscalePiva,
+    }
+  }
 
   const notificationRecipientPayloads = () => {
     if (selectedRecipients.length) return selectedRecipients.map(recipientPayload)
@@ -1398,9 +1778,189 @@ export function NotificheLegaliPage() {
     }]
   }
 
+  const currentPecVerificationSubjects = () => {
+    const sender: PecVerificationSubject = {
+      key: pecVerificationKey(notifica.fonte_pec_mittente, notifica.avvocato_cf, notifica.mittente_pec),
+      kind: 'sender',
+      source: normalizePecSource(notifica.fonte_pec_mittente),
+      address: normalizePecAddress(notifica.mittente_pec),
+      taxCode: normalizePecIdentity(notifica.avvocato_cf),
+      label: notifica.avvocato_nome || 'Avvocato notificante',
+    }
+    const recipients = notificationRecipientPayloads().map((recipient, index): PecVerificationSubject => ({
+      key: pecVerificationKey(recipient.fonte_pec, recipient.codice_fiscale_piva, recipient.pec),
+      kind: 'recipient',
+      source: normalizePecSource(recipient.fonte_pec),
+      address: normalizePecAddress(recipient.pec),
+      taxCode: normalizePecIdentity(recipient.codice_fiscale_piva),
+      label: recipient.nome || `Destinatario ${index + 1}`,
+    }))
+    return { sender, recipients }
+  }
+
+  const ensureAutomaticPecVerification = async (force = false) => {
+    const { sender, recipients } = currentPecVerificationSubjects()
+    const subjects = [sender, ...recipients]
+    const nextByKey: Record<string, PecVerificationEvidence> = { ...recipientPecVerificationsRef.current }
+    if (senderPecVerificationRef.current) nextByKey[senderPecVerificationRef.current.key] = senderPecVerificationRef.current
+
+    const pending: PecVerificationSubject[] = []
+    subjects.forEach((subject) => {
+      const cached = nextByKey[subject.key]
+      if (!force && pecEvidenceMatches(cached, subject)) return
+      if (!subject.address || !subject.address.includes('@')) {
+        nextByKey[subject.key] = pecEvidenceFromResponse({
+          verified: false,
+          message: `${subject.kind === 'sender' ? 'PEC del notificante' : 'PEC del destinatario'} mancante o non valida.`,
+        }, subject)
+        return
+      }
+      if (!subject.source) {
+        nextByKey[subject.key] = pecEvidenceFromResponse({
+          verified: false,
+          message: `Indica l’elenco pubblico della ${subject.kind === 'sender' ? 'PEC notificante' : 'PEC destinataria'}.`,
+        }, subject)
+        return
+      }
+      if (subject.source === 'reginde' && !subject.taxCode) {
+        nextByKey[subject.key] = pecEvidenceFromResponse({
+          verified: false,
+          message: `Codice fiscale ${subject.kind === 'sender' ? 'del notificante' : 'del destinatario'} mancante: serve per verificare la PEC.`,
+        }, subject)
+        return
+      }
+      pending.push(subject)
+    })
+
+    setPecVerificationWorking(true)
+    setPecVerificationMessage(pending.length ? 'Verifica delle PEC in corso...' : '')
+
+    const markFailed = (subject: PecVerificationSubject, message: string) => {
+      nextByKey[subject.key] = pecEvidenceFromResponse({ verified: false, message }, subject)
+    }
+
+    const regindeSubjects = pending.filter((subject) => subject.source === 'reginde')
+    if (regindeSubjects.length) {
+      const verificationPin = signaturePin.trim()
+      if (!verificationPin) {
+        regindeSubjects.forEach((subject) => markFailed(
+          subject,
+          'Inserisci il PIN nel riquadro Firma relata: lo stesso comando verificherà le PEC e firmerà il documento.',
+        ))
+      } else {
+        const controller = new AbortController()
+        const timeout = window.setTimeout(() => controller.abort(), 80000)
+        try {
+          const response = await fetch(relataLocalSignerEndpoint('/pst/reginde'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              pin: verificationPin,
+              soggetti: regindeSubjects.map((subject) => ({
+                key: subject.key,
+                codice_fiscale: subject.taxCode,
+                pec_attesa: subject.address,
+                allow_tax_code_correction: subject.kind === 'recipient',
+              })),
+            }),
+          })
+          const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+          const rows = Array.isArray(payload.results) ? payload.results.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : []
+          regindeSubjects.forEach((subject) => {
+            const row = rows.find((item) => String(item.key || '') === subject.key)
+            if (response.ok && row) {
+              const registryTaxCode = normalizePecIdentity(row.codice_fiscale)
+              const correctedSubject = subject.kind === 'recipient' && pecBoolean(row.verified) && registryTaxCode
+                ? { ...subject, taxCode: registryTaxCode, key: pecVerificationKey(subject.source, registryTaxCode, subject.address) }
+                : subject
+              if (correctedSubject.key !== subject.key) {
+                delete nextByKey[subject.key]
+                subject.key = correctedSubject.key
+                subject.taxCode = correctedSubject.taxCode
+                setNotifica((current) => ({ ...current, destinatario_cf: registryTaxCode }))
+              }
+              nextByKey[correctedSubject.key] = pecEvidenceFromResponse({ ...row, key: correctedSubject.key, source: 'reginde' }, correctedSubject)
+            }
+            else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'))
+          })
+        } catch (error) {
+          const message = error instanceof DOMException && error.name === 'AbortError'
+            ? 'Verifica della PEC non completata entro il tempo previsto. Controlla il dispositivo e riprova.'
+            : 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'
+          regindeSubjects.forEach((subject) => markFailed(subject, message))
+        } finally {
+          window.clearTimeout(timeout)
+        }
+      }
+    }
+
+    const publicAdministrationSubjects = pending.filter((subject) => subject.source === 'registro_ppaa')
+    await Promise.all(publicAdministrationSubjects.map(async (subject) => {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 30000)
+      try {
+        const response = await fetch(relataLocalSignerEndpoint('/pec/ipa'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({ codice_fiscale: subject.taxCode, pec_attesa: subject.address }),
+        })
+        const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+        if (response.ok) nextByKey[subject.key] = pecEvidenceFromResponse(payload, subject)
+        else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Riprova tra poco.'))
+      } catch {
+        markFailed(subject, 'Verifica della PEC non completata. Avvia Local Signer e riprova.')
+      } finally {
+        window.clearTimeout(timeout)
+      }
+    }))
+
+    pending
+      .filter((subject) => !['reginde', 'registro_ppaa'].includes(subject.source))
+      .forEach((subject) => markFailed(
+        subject,
+        'La verifica automatica non è disponibile per l’elenco selezionato. Controlla l’elenco e riprova.',
+      ))
+
+    const senderEvidence = nextByKey[sender.key] || null
+    const recipientEvidence: Record<string, PecVerificationEvidence> = {}
+    recipients.forEach((subject) => {
+      const evidence = nextByKey[subject.key]
+      if (evidence) recipientEvidence[subject.key] = evidence
+    })
+    const senderVerified = pecEvidenceMatches(senderEvidence, sender)
+    const recipientsVerified = recipients.length > 0 && recipients.every((subject) => pecEvidenceMatches(recipientEvidence[subject.key], subject))
+    const checkedAt = [senderEvidence, ...Object.values(recipientEvidence)]
+      .map((item) => item?.checkedAt || '')
+      .filter(Boolean)
+      .sort()
+      .at(-1) || ''
+
+    senderPecVerificationRef.current = senderEvidence
+    recipientPecVerificationsRef.current = recipientEvidence
+    setSenderPecVerification(senderEvidence)
+    setRecipientPecVerifications(recipientEvidence)
+    setNotifica((current) => ({
+      ...current,
+      mittente_pec_pubblico_elenco: senderVerified,
+      mittente_pec_validata: senderVerified,
+      destinatario_pec_pubblico_elenco: recipientsVerified,
+      data_verifica_pec: checkedAt,
+    }))
+    const firstFailure = [senderEvidence, ...recipients.map((subject) => recipientEvidence[subject.key])]
+      .find((item) => item && !item.verified)
+    const ok = senderVerified && recipientsVerified
+    setPecVerificationMessage(ok
+      ? `PEC verificate automaticamente${checkedAt ? ` il ${localClockLabel(checkedAt)}` : ''}.`
+      : firstFailure?.message || 'Completa i dati indicati per verificare le PEC.'
+    )
+    setPecVerificationWorking(false)
+    return { ok, sender: senderEvidence, recipients: recipientEvidence }
+  }
+
   const manualNotificationDocument = (): NotificaDocumentPayload | null => {
     if (!notifica.nome_file && !notifica.descrizione_documento) return null
-    const requiresAttestation = originNeedsAttestazione(notifica.origine_documento)
     return {
       nome_file: notifica.nome_file,
       descrizione: notifica.descrizione_documento,
@@ -1411,8 +1971,8 @@ export function NotificheLegaliPage() {
       documento_ufficio: false,
       acquisito_da_portale: false,
       notifica_richiesta: false,
-      attestazione_conformita: notifica.attestazione_conformita,
-      attestazione_conformita_presente: Boolean(notifica.attestazione_conformita.trim()) || (attestazioniAutomatiche && requiresAttestation),
+      attestazione_conformita: '',
+      attestazione_conformita_presente: false,
     }
   }
 
@@ -1420,15 +1980,10 @@ export function NotificheLegaliPage() {
     const selectedRows = selectedNotificationDocuments.map(documentSuggestionPayload)
     const uploadedRows = manualNotificationDocuments.map((documento) => ({
       ...documento,
-      attestazione_conformita: documento.attestazione_conformita || notifica.attestazione_conformita,
-      attestazione_conformita_presente: Boolean(documento.attestazione_conformita_presente)
-        || Boolean(notifica.attestazione_conformita.trim())
-        || (attestazioniAutomatiche && originNeedsAttestazione(documento.origine)),
+      attestazione_conformita: '',
+      attestazione_conformita_presente: false,
     }))
-    const manual = manualNotificationDocument()
-    const baseRows = manual ? [...selectedRows, ...uploadedRows, manual] : [...selectedRows, ...uploadedRows]
-    const generatedAttestation = automaticAttestationDocument(baseRows)
-    const rows = generatedAttestation ? [...baseRows, generatedAttestation] : baseRows
+    const rows = [...selectedRows, ...uploadedRows]
     const seen = new Set<string>()
     return rows.filter((item) => {
       const key = `${item.nome_file.trim().toLowerCase()}|${item.descrizione.trim().toLowerCase()}`
@@ -1486,8 +2041,8 @@ export function NotificheLegaliPage() {
         documento_ufficio: false,
         acquisito_da_portale: false,
         notifica_richiesta: false,
-        attestazione_conformita: notifica.attestazione_conformita,
-        attestazione_conformita_presente: Boolean(notifica.attestazione_conformita.trim()) || (attestazioniAutomatiche && originNeedsAttestazione(origin)),
+        attestazione_conformita: '',
+        attestazione_conformita_presente: false,
       })
     }
     setManualNotificationDocuments((current) => [...current, ...calculated])
@@ -1502,21 +2057,6 @@ export function NotificheLegaliPage() {
         : current.filter((id) => id !== documento.id)
       return next
     })
-    if (checked && !notifica.nome_file) {
-      setNotifica((current) => ({
-        ...current,
-        nome_file: documentPrimaryName(documento) || current.nome_file,
-        descrizione_documento: documento.descrizione || current.descrizione_documento,
-        origine_documento: documento.origine || current.origine_documento,
-        hash_sha256: documento.hashSha256 || current.hash_sha256,
-        template_id: documento.origine === 'copia_fascicolo_informatico'
-          ? 'relata_pec_con_attestazione_fascicolo'
-          : documento.origine === 'scansione_analogico'
-            ? 'relata_pec_con_attestazione_scansione_analogica'
-            : current.template_id,
-        procedimento_pendente: documento.origine === 'copia_fascicolo_informatico' ? true : current.procedimento_pendente,
-      }))
-    }
   }
 
   const toggleDepositDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
@@ -1531,47 +2071,37 @@ export function NotificheLegaliPage() {
   }
 
   const applyPractice = (practice: LegalPracticeSuggestion) => {
+    setSignaturePin('')
+    setSignatureMessage('')
+    setSignatureStatus(null)
+    setSignedRelata(null)
+    setResult(emptyResult)
+    setLastControlLabel('')
+    setLastControlPayloadKey('')
+    setPecVerificationMessage('')
+    setPracticeDetailsById((current) => ({ ...current, [practice.id]: practice }))
+    setPracticeSelectionMessage('Pratica selezionata e dati compilati.')
     setSelectedPracticeId(practice.id)
     const primoDestinatario = practice.destinatari[0] || null
-    const notifiableDocuments = practice.documenti.filter(isNotifiableNotificationDocument)
-    const officeNotificationDocumentIds = notifiableDocuments
-      .filter((documento) => documento.notificaRichiesta || documento.documentoUfficio)
-      .map((documento) => documento.id)
-      .filter(Boolean)
-    const notificationDocumentIds = officeNotificationDocumentIds.length
-      ? officeNotificationDocumentIds
-      : notifiableDocuments.map((documento) => documento.id).filter(Boolean)
-    const proofDocumentIds = practice.documenti
-      .filter(isDepositProofDocument)
-      .map((documento) => documento.id)
-      .filter(Boolean)
-    const depositDocumentIds = proofDocumentIds.length
-      ? proofDocumentIds
-      : notificationDocumentIds
-    const primoDocumento = notificationDocumentIds.length
-      ? notifiableDocuments.find((documento) => documento.id === notificationDocumentIds[0]) || notifiableDocuments[0] || null
-      : notifiableDocuments[0] || null
-    const hasFascicoloDocument = practice.documenti.some((documento) => ['copia_fascicolo_informatico', 'comunicazione_cancelleria'].includes(documento.origine))
-    const hasScansioneDocument = practice.documenti.some((documento) => documento.origine === 'scansione_analogico')
     setSelectedRecipientId(primoDestinatario?.id || '')
     setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])
-    setSelectedDocumentId(primoDocumento?.id || '')
-    setSelectedNotificationDocumentIds(notificationDocumentIds)
-    setSelectedDepositDocumentIds(depositDocumentIds)
+    setSelectedDocumentId('')
+    setSelectedNotificationDocumentIds([])
+    setSelectedDepositDocumentIds([])
     setSelectedClientId(practice.clienteId || '')
     const derivedRg = deriveProceedingRg(practice.procedimento.numeroRg && practice.procedimento.annoRg ? `${practice.procedimento.numeroRg}/${practice.procedimento.annoRg}` : '', practice.numero, practice.titolo, practice.label)
     const resolvedNumeroRg = practice.procedimento.numeroRg || derivedRg.numero
     const resolvedAnnoRg = practice.procedimento.numeroRg
       ? (practice.procedimento.annoRg || derivedRg.anno)
       : (derivedRg.anno || practice.procedimento.annoRg)
+    const suggestedCase = data.matriceNotifica.cases.find(
+      (item) => item.templateId === practice.modelloSuggerito,
+    )
     setNotifica((current) => ({
       ...current,
       pratica_codice: practice.numero || current.pratica_codice,
-      template_id: hasFascicoloDocument
-        ? 'relata_pec_con_attestazione_fascicolo'
-        : hasScansioneDocument
-          ? 'relata_pec_con_attestazione_scansione_analogica'
-          : practice.modelloSuggerito || current.template_id,
+      caso_notifica: suggestedCase?.value || current.caso_notifica,
+      template_id: practice.modelloSuggerito || current.template_id,
       assistito_nome: practice.assistitoNome || current.assistito_nome,
       assistito_cf: practice.assistitoCf || current.assistito_cf,
       procedimento_pendente: practice.procedimento.presente || current.procedimento_pendente,
@@ -1585,10 +2115,10 @@ export function NotificheLegaliPage() {
       destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || current.destinatario_parte_rappresentata || practice.controparte,
       ruolo_destinatario: primoDestinatario?.ruolo || current.ruolo_destinatario,
       fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
-      nome_file: primoDocumento ? documentPrimaryName(primoDocumento) || current.nome_file : current.nome_file,
-      descrizione_documento: primoDocumento?.descrizione || current.descrizione_documento,
-      origine_documento: primoDocumento?.origine || current.origine_documento,
-      hash_sha256: primoDocumento?.hashSha256 || current.hash_sha256,
+      nome_file: '',
+      descrizione_documento: '',
+      origine_documento: 'originale_informatico',
+      hash_sha256: '',
     }))
     setModelFields((current) => ({
       ...current,
@@ -1602,13 +2132,22 @@ export function NotificheLegaliPage() {
       ufficio_giudiziario: practice.procedimento.ufficio || current.ufficio_giudiziario,
       numero_rg: resolvedNumeroRg || current.numero_rg,
       anno_rg: resolvedAnnoRg || current.anno_rg,
-      provvedimento_descrizione: primoDocumento?.descrizione || current.provvedimento_descrizione,
+      provvedimento_descrizione: '',
     }))
-    const selectedDepositRows = depositDocumentIds
-      .map((documentId) => practice.documenti.find((documento) => documento.id === documentId))
-      .filter((documento): documento is LegalDocumentSuggestion => Boolean(documento))
     setDeposito((current) => ({
-      ...syncDepositDraftFromRows(selectedDepositRows, current),
+      ...current,
+      atto_notificato: '',
+      atto_sha256: '',
+      relata_firmata: '',
+      relata_sha256: '',
+      pec_inviata: '',
+      pec_inviata_sha256: '',
+      rac_file: '',
+      rac_sha256: '',
+      rdac_file: '',
+      rdac_sha256: '',
+      ricevuta_completa: false,
+      dati_atto_ricevute: '',
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome,
       destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf,
       destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
@@ -1617,8 +2156,8 @@ export function NotificheLegaliPage() {
     setUnep((current) => ({
       ...current,
       ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
-      atto_notificare: primoDocumento ? documentEvidenceName(primoDocumento) || current.atto_notificare : current.atto_notificare,
-      atto_sha256: primoDocumento?.hashSha256 || current.atto_sha256,
+      atto_notificare: '',
+      atto_sha256: '',
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
       destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
       destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
@@ -1627,8 +2166,8 @@ export function NotificheLegaliPage() {
     setNonPec((current) => ({
       ...current,
       notifica_id: current.notifica_id || practice.numero || practice.id,
-      atto_notificato: primoDocumento ? documentEvidenceName(primoDocumento) || current.atto_notificato : current.atto_notificato,
-      atto_sha256: primoDocumento?.hashSha256 || current.atto_sha256,
+      atto_notificato: '',
+      atto_sha256: '',
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
       destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
       ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
@@ -1636,7 +2175,7 @@ export function NotificheLegaliPage() {
   }
 
   useEffect(() => {
-    if (!data.precompilazione.pratiche.length || selectedPracticeId) return
+    if (!data.precompilazione.indicePratiche.length || selectedPracticeId) return
     const params = new URLSearchParams(window.location.search)
     const practiceId = params.get('id_fascicolo') || params.get('id_fasc') || params.get('fascicolo')
     const phase = params.get('fase')
@@ -1645,24 +2184,47 @@ export function NotificheLegaliPage() {
     if (phase === 'unep') setTab('unep')
     if (phase === 'nonpec' || phase === 'non-pec') setTab('nonpec')
     if (!practiceId) return
-    const practice = data.precompilazione.pratiche.find((item) => item.id === practiceId)
-    if (practice) applyPractice(practice)
-  }, [data.precompilazione.pratiche, selectedPracticeId])
+    if (data.precompilazione.indicePratiche.some((item) => item.id === practiceId)) {
+      void selectPracticeById(practiceId)
+    }
+  }, [data.precompilazione.indicePratiche, selectedPracticeId])
 
-  const buildNotificaPayload = (includeDraft: boolean, verificationTimestamp = ''): Record<string, unknown> => {
+  const buildNotificaPayload = (
+    includeDraft: boolean,
+    overrides: Partial<typeof notifica> = {},
+  ): Record<string, unknown> => {
+    const effectiveNotifica = { ...notifica, ...overrides }
     const selectedOfficeAcquired = selectedNotificationDocuments.some((documento) => documento.documentoUfficio || documento.notificaRichiesta)
     const documentOfficeAcquired = selectedOfficeAcquired || officeAcquisitionCompleted
-    const verificaPec = verificationTimestamp || notifica.data_verifica_pec || localDateTime()
+    const { sender, recipients } = currentPecVerificationSubjects()
+    const senderEvidence = senderPecVerificationRef.current
+    const recipientEvidence = recipientPecVerificationsRef.current
+    const senderVerified = pecEvidenceMatches(senderEvidence, sender)
+    const recipientsVerified = recipients.length > 0 && recipients.every((subject) => pecEvidenceMatches(recipientEvidence[subject.key], subject))
+    const verificaPec = [senderEvidence, ...recipients.map((subject) => recipientEvidence[subject.key])]
+      .map((item) => item?.checkedAt || '')
+      .filter(Boolean)
+      .sort()
+      .at(-1) || ''
     const payload: Record<string, unknown> = {
-      ...notifica,
+      ...effectiveNotifica,
+      practice_id: selectedPracticeId,
+      fascicolo_id: selectedPracticeId,
       data_verifica_pec: verificaPec,
-      data_ora_invio_pec: notifica.data_ora_invio_pec || verificaPec,
+      data_ora_invio_pec: effectiveNotifica.data_ora_invio_pec,
       operazione: 'notifica_pec_l53',
+      mittente_pec_pubblico_elenco: senderVerified,
+      mittente_pec_validata: senderVerified,
+      destinatario_pec_pubblico_elenco: recipientsVerified,
+      relata_documento_separato: true,
+      ricevuta_completa: true,
+      verifica_pec_mittente: pecEvidencePayload(senderEvidence),
+      verifiche_pec_destinatari: recipients.map((subject) => pecEvidencePayload(recipientEvidence[subject.key])),
       template_fields: modelFields,
       oggetto_pec: data.mandatorySubject,
       documenti: notificationDocumentPayloads(),
       destinatari: notificationRecipientPayloads(),
-      attestazione_multipla: attestazioniAutomatiche && notificationNeedsAttestazione,
+      attestazione_multipla: notificationNeedsAttestazione,
       documento_ufficio_rilasciato: Boolean(officeDocuments.length || officeAcquisitionRequired || pendingOfficeReleases.length),
       acquisizione_portale_richiesta: officeAcquisitionRequired,
       documento_ufficio_acquisito: documentOfficeAcquired,
@@ -1678,6 +2240,22 @@ export function NotificheLegaliPage() {
       payload.relata_override_text = relataDraftText.trim()
     }
     return payload
+  }
+
+  const downloadAttestation = async () => {
+    setAttestationDownloading(true)
+    setAttestationDownloadMessage('Preparo l’attestazione unica...')
+    try {
+      const result = await downloadLegalAttestation(
+        data.azioni.attestazioneConformita,
+        buildNotificaPayload(false),
+      )
+      setAttestationDownloadMessage(result.message)
+    } catch {
+      setAttestationDownloadMessage('Attestazione non generata. Riprova dopo aver controllato i dati indicati.')
+    } finally {
+      setAttestationDownloading(false)
+    }
   }
 
   const refreshRelataPreview = async (silent = false) => {
@@ -1721,8 +2299,44 @@ export function NotificheLegaliPage() {
     modelFields,
     selectedNotificationDocumentIds,
     manualNotificationDocuments,
-    attestazioniAutomatiche,
   })
+  const buildSignedRelataPayloadKey = (overrides: Partial<typeof notifica> = {}) => {
+    const effectiveNotifica = { ...notifica, ...overrides }
+    return JSON.stringify({
+      practiceId: selectedPracticeId,
+      templateId: effectiveNotifica.template_id,
+      luogo: effectiveNotifica.luogo,
+      dataRelata: effectiveNotifica.data_relata,
+      oraRelata: effectiveNotifica.ora_relata,
+      relataText: relataDraftDirty ? relataDraftText.trim() : relataPreview.previewText,
+      documents: notificationDocumentPayloads().map((item) => ({
+        name: item.nome_file,
+        description: item.descrizione,
+        origin: item.origine,
+        sha256: item.hash_sha256,
+      })),
+      recipients: notificationRecipientPayloads(),
+      modelFields,
+    })
+  }
+  const signedRelataPayloadKey = buildSignedRelataPayloadKey()
+
+  useEffect(() => {
+    if (!signedRelata || signedRelata.payloadKey === signedRelataPayloadKey) return
+    setSignedRelata(null)
+    setNotifica((current) => ({ ...current, relata_firmata: false }))
+    setDeposito((current) => refreshDepositReference(current, {
+      ...current,
+      relata_firmata: '',
+      relata_sha256: '',
+    }))
+    setSignatureMessage('La relata è cambiata: firma nuovamente il documento aggiornato.')
+  }, [signedRelataPayloadKey, signedRelata])
+
+  useEffect(() => {
+    if (tab === 'notifica' && selectedPracticeId) return
+    setSignaturePin('')
+  }, [tab, selectedPracticeId])
 
   useEffect(() => {
     if (loading || tab !== 'notifica') return undefined
@@ -1783,7 +2397,7 @@ export function NotificheLegaliPage() {
     atto_notificato: nonPec.atto_notificato || notifica.nome_file,
   })
 
-  const run = async (key: TabKey) => {
+  const run = async (key: TabKey, notificaOverrides: Partial<typeof notifica> = {}) => {
     const scrollResultIntoView = () => window.setTimeout(
       () => resultPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
       0,
@@ -1799,12 +2413,11 @@ export function NotificheLegaliPage() {
           : key === 'nonpec'
             ? data.azioni.nonPec
             : data.azioni.comunicazioneCliente
-    const verificaPec = key === 'notifica' ? localDateTime() : ''
     if (key === 'notifica') {
-      setNotifica((current) => ({ ...current, data_verifica_pec: verificaPec }))
+      await ensureAutomaticPecVerification()
     }
     const payload = key === 'notifica'
-      ? buildNotificaPayload(true, verificaPec)
+      ? buildNotificaPayload(true, notificaOverrides)
       : key === 'deposito'
         ? buildDepositoPayload()
         : key === 'unep'
@@ -1847,6 +2460,7 @@ export function NotificheLegaliPage() {
         setRelataDraftText(response.relataText)
         setRelataDraftDirty(false)
       }
+      setLastControlPayloadKey(notificationControlPayloadKey(payload))
     }
     setResult(response)
     scrollResultIntoView()
@@ -1857,15 +2471,16 @@ export function NotificheLegaliPage() {
     const invioPec = localDateTime()
     setWorking(true)
     setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
+    await ensureAutomaticPecVerification()
     setNotifica((current) => ({
       ...current,
-      data_verifica_pec: invioPec,
       data_ora_invio_pec: invioPec,
     }))
     const payload = {
-      ...buildNotificaPayload(true, invioPec),
+      ...buildNotificaPayload(true),
       operazione: 'invio_pec_l53',
       conferma_invio_pec: true,
+      invio_finale: true,
       data_ora_invio_pec: invioPec,
     }
     const response = await postLegalWorkflow(data.azioni.notifica, payload).catch(() => ({ ...emptyResult, blockers: ['Preparazione invio PEC non completata. Riprova tra poco.'] }))
@@ -1876,8 +2491,14 @@ export function NotificheLegaliPage() {
     setWorking(false)
   }
 
+  const verifyNotificationPec = async () => {
+    await ensureAutomaticPecVerification(true)
+    await run('notifica')
+  }
+
   const clearPracticeSelection = () => {
     setSelectedPracticeId('')
+    setPracticeSelectionMessage('')
     setSelectedRecipientId('')
     setSelectedRecipientIds([])
     setSelectedDocumentId('')
@@ -1886,7 +2507,35 @@ export function NotificheLegaliPage() {
     setSelectedClientId('')
   }
 
-  const changeNotifica = (key: keyof typeof notifica, value: string | boolean) => setNotifica((current) => ({ ...current, [key]: value }))
+  async function selectPracticeById(practiceId: string) {
+    if (!practiceId) {
+      clearPracticeSelection()
+      return
+    }
+    const cached = practiceDetailsById[practiceId]
+      || data.precompilazione.pratiche.find((item) => item.id === practiceId)
+    if (cached) {
+      applyPractice(cached)
+      return
+    }
+    setPracticeSelectionWorking(true)
+    setPracticeSelectionMessage('Caricamento dati pratica...')
+    const practice = await getNotificheLegaliPractice(practiceId).catch(() => null)
+    if (practice) {
+      applyPractice(practice)
+    } else {
+      setPracticeSelectionMessage('Pratica non caricata. Riprova la selezione.')
+    }
+    setPracticeSelectionWorking(false)
+  }
+
+  const changeNotifica = (key: keyof typeof notifica, value: string | boolean) => {
+    setNotifica((current) => ({ ...current, [key]: value }))
+    if (key !== 'approvazione_avvocato') {
+      setLastControlPayloadKey('')
+      setLastControlLabel('')
+    }
+  }
   const changeNotificationCase = (value: string) => {
     const directive = data.matriceNotifica.cases.find((item) => item.value === value)
     setNotifica((current) => ({
@@ -1940,45 +2589,127 @@ export function NotificheLegaliPage() {
   const updateNonPecFile = (fileKey: keyof typeof nonPec, shaKey: keyof typeof nonPec, fileName: string, sha256: string) => {
     setNonPec((current) => ({ ...current, [fileKey]: fileName, [shaKey]: sha256 }))
   }
-  const handleSignedRelataFile = async (files: FileList | null) => {
-    const file = Array.from(files || [])[0]
-    if (!file) return
-    setSignatureMessage('Calcolo impronta della relata firmata...')
-    let sha256 = ''
-    try {
-      sha256 = await calculateSha256(file)
-    } catch {
-      sha256 = ''
+  const saveSignedRelata = async (
+    file: File,
+    payloadKey: string,
+    notificaOverrides: Partial<typeof notifica> = {},
+  ) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('payload', JSON.stringify(buildNotificaPayload(true, notificaOverrides)))
+    const response = await fetch(data.azioni.relataFirmata, {
+      method: 'POST',
+      body: form,
+      credentials: 'same-origin',
+    })
+    const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+    if (!response.ok || payload.ok === false) {
+      const blockers = Array.isArray(payload.blockers)
+        ? payload.blockers.map((item: unknown) => String(item).replace(/^[A-Z0-9_]+:\s*/, '')).filter(Boolean)
+        : []
+      throw new Error(String(blockers.join(' ') || payload.message || 'Relata firmata non verificabile.'))
     }
-    const isCadesContainer = isRelataSignedContainerName(file.name)
-    const isCades = isCadesContainer ? await fileContainsCadesSignedData(file).catch(() => false) : false
-    const isPades = isCades ? false : await pdfContainsPadesSignature(file).catch(() => false)
-    if (!isCades && !isPades) {
-      setNotifica((current) => ({ ...current, relata_firmata: false }))
-      setSignatureMessage(`Relata non marcata come firmata: ${file.name} non contiene una firma digitale riconoscibile.`)
-      return
+    const record: SignedRelataRecord = {
+      documentId: String(payload.documentId || ''),
+      fileName: String(payload.fileName || file.name),
+      sha256: String(payload.sha256 || ''),
+      sourceSha256: String(payload.sourceSha256 || ''),
+      previewUrl: String(payload.previewUrl || ''),
+      downloadUrl: String(payload.downloadUrl || ''),
+      payloadKey,
     }
-    setNotifica((current) => ({ ...current, relata_firmata: true }))
+    setSignedRelata(record)
+    setNotifica((current) => ({ ...current, ...notificaOverrides, relata_firmata: true }))
     setDeposito((current) => refreshDepositReference(current, {
       ...current,
-      relata_firmata: file.name,
-      relata_sha256: sha256,
+      relata_firmata: record.fileName,
+      relata_sha256: record.sha256,
     }))
-    setSignatureMessage(sha256
-      ? `Relata firmata acquisita: ${file.name}. Firma digitale rilevata e impronta calcolata.`
-      : `Relata firmata acquisita: ${file.name}. Firma digitale rilevata; inserisci l'impronta se richiesta dal controllo.`
-    )
+    setSignatureMessage('Relata firmata e salvata nel fascicolo.')
+    await run('notifica', { ...notificaOverrides, relata_firmata: true })
   }
-  const verifyRelataSigner = async () => {
+
+  const signRelata = async () => {
+    if (!selectedPracticeId) {
+      setSignatureMessage('Seleziona prima la pratica della notifica.')
+      return
+    }
+    if (!signaturePin.trim()) {
+      setSignatureMessage('Inserisci il PIN del dispositivo di firma.')
+      signaturePinRef.current?.focus()
+      return
+    }
     setSignatureChecking(true)
-    setSignatureMessage('Avvio e verifico Local Signer sul PC per la firma della relata...')
-    requestRelataLocalSignerStart()
-    const status = await fetchRelataLocalSignerStatus(3500)
-    setSignatureChecking(false)
-    if (status && status.ok !== false) {
-      setSignatureMessage('Local Signer rilevato: firma la relata sul PC, poi carica qui il file firmato. Lo stato non viene aggiornato senza quel file.')
-    } else {
-      setSignatureMessage('Local Signer non ha risposto: avvialo sul PC, firma la relata e carica qui il file firmato. La guida non viene aperta da questo pulsante.')
+    setSignatureMessage('Firma e salvataggio della relata in corso...')
+    try {
+      const signatureOverrides = {
+        data_relata: todayLocalDate(),
+        ora_relata: currentLocalTime(),
+      }
+      setNotifica((current) => ({ ...current, ...signatureOverrides }))
+      const pecVerification = await ensureAutomaticPecVerification()
+      if (!pecVerification.ok) {
+        throw new Error(pecVerification.sender?.message || Object.values(pecVerification.recipients)[0]?.message || 'Verifica delle PEC non completata.')
+      }
+      const status = relataSignerCanSign(signatureStatus) ? signatureStatus : await ensureRelataSignerReady()
+      setSignatureStatus(status)
+      if (!relataSignerCanSign(status)) throw new Error('Dispositivo di firma non pronto.')
+
+      const sourceResponse = await fetch(data.azioni.relataPdf, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildNotificaPayload(true, signatureOverrides)),
+      })
+      if (!sourceResponse.ok) {
+        const sourceError = await sourceResponse.json().catch(() => ({})) as Record<string, unknown>
+        const blockers = Array.isArray(sourceError.blockers)
+          ? sourceError.blockers.map((item: unknown) => userFacingNotice(String(item))).filter(Boolean)
+          : []
+        throw new Error(String(blockers.join(' ') || sourceError.message || 'Completa i dati della relata prima della firma.'))
+      }
+      const sourceBuffer = await sourceResponse.arrayBuffer()
+      const token = status?.token?.[0]
+      const certificate = relataSignerCertificate(status)
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), RELATA_LOCAL_SIGNER_TIMEOUT_MS)
+      let signerResponse: Response
+      try {
+        signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            documento: arrayBufferToBase64(sourceBuffer),
+            pin: signaturePin.trim(),
+            slot_id: token?.slot_id,
+            cert_thumbprint: certificate?.thumbprint,
+          }),
+        })
+      } finally {
+        window.clearTimeout(timeout)
+      }
+      const signedPayload = await parseRelataSignerResponse(signerResponse)
+      const signedBase64 = String(signedPayload.firmato_b64 || '')
+      if (!signedBase64) throw new Error('Il dispositivo non ha restituito la relata firmata.')
+      const signedBytes = base64ToBytes(signedBase64)
+      const signedCopy = new Uint8Array(signedBytes.byteLength)
+      signedCopy.set(signedBytes)
+      const signedFile = new File([signedCopy.buffer], 'Relata_di_notificazione.pdf.p7m', { type: 'application/pkcs7-mime' })
+      await saveSignedRelata(
+        signedFile,
+        buildSignedRelataPayloadKey(signatureOverrides),
+        signatureOverrides,
+      )
+    } catch (error) {
+      const message = error instanceof DOMException && error.name === 'AbortError'
+        ? 'Il dispositivo non ha risposto entro 45 secondi. Riprova la firma.'
+        : error instanceof Error ? error.message : 'Firma della relata non completata.'
+      setNotifica((current) => ({ ...current, relata_firmata: false }))
+      setSignatureMessage(message)
+    } finally {
+      setSignaturePin('')
+      setSignatureChecking(false)
     }
   }
   const applyDepositFile = (current: typeof deposito, kind: DepositEvidenceKind, fileName: string, sha256: string): typeof deposito => {
@@ -2023,25 +2754,40 @@ export function NotificheLegaliPage() {
   const currentNotificationDocuments = notificationDocumentPayloads()
   const currentNotificationDocumentsReady = currentNotificationDocuments.length > 0
     && currentNotificationDocuments.every(isNotifiablePayloadDocument)
+  const currentNotificationControlPayloadKey = notificationControlPayloadKey(buildNotificaPayload(true))
   const hasPassingNotificationControl = result.ok === true
     && Array.isArray(result.blockers)
     && result.blockers.length === 0
     && lastControlLabel.toLowerCase().includes('superato')
+    && lastControlPayloadKey === currentNotificationControlPayloadKey
+  const controlBlockers = Array.isArray(result.blockers)
+    ? result.blockers.map((item) => userFacingNotice(item)).filter(Boolean)
+    : []
   const sendDisabledReasons = [
-    !hasPassingNotificationControl ? 'controllo relata non ancora superato' : '',
-    !notifica.mittente_avvocato_abilitato ? 'avvocato abilitato non confermato' : '',
-    !notifica.mittente_pec_validata ? 'PEC notificante non validata' : '',
-    !notifica.destinatario_pec_pubblico_elenco ? 'PEC destinatario non verificata su pubblico elenco' : '',
-    !notifica.relata_documento_separato ? 'relata non separata' : '',
+    !hasPassingNotificationControl ? (controlBlockers.join(' ') || 'esegui il controllo automatico della relata') : '',
     !notifica.relata_firmata ? 'relata firmata non acquisita' : '',
-    !notifica.ricevuta_completa ? 'ricevuta completa non richiesta' : '',
     !notifica.approvazione_avvocato ? 'approvazione finale avvocato mancante' : '',
-    !currentNotificationDocumentsReady ? 'allegati non nel formato richiesto' : '',
+    !currentNotificationDocumentsReady ? 'seleziona almeno un documento notificabile' : '',
   ].filter(Boolean)
   const canPrepareNotificationSend = !working && sendDisabledReasons.length === 0
   const sendNotificationTitle = canPrepareNotificationSend
     ? 'Prepara invio PEC dal PC locale dopo controllo positivo.'
     : `Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`
+  const currentPecSubjects = currentPecVerificationSubjects()
+  const currentSenderPecEvidence = pecEvidenceTargets(senderPecVerification, currentPecSubjects.sender)
+    ? senderPecVerification
+    : null
+  const currentRecipientPecEvidence = currentPecSubjects.recipients
+    .map((subject) => pecEvidenceTargets(recipientPecVerifications[subject.key], subject) ? recipientPecVerifications[subject.key] : null)
+  const verifiedRecipientPecCount = currentRecipientPecEvidence.filter((evidence) => evidence?.verified).length
+  const recipientPecStatusOk = currentPecSubjects.recipients.length > 0
+    && verifiedRecipientPecCount === currentPecSubjects.recipients.length
+  const recipientPecStatusMessage = currentPecSubjects.recipients.length === 0
+    ? 'Seleziona almeno un destinatario.'
+    : recipientPecStatusOk
+      ? `${verifiedRecipientPecCount} ${verifiedRecipientPecCount === 1 ? 'PEC verificata' : 'PEC verificate'}.`
+      : currentRecipientPecEvidence.find((evidence) => evidence && !evidence.verified)?.message
+        || 'La verifica parte automaticamente con il controllo.'
   const unepTelematica = unep.tipo_notifica_unep === 'telematica'
   const unepEstero = unep.tipo_notifica_unep === 'estero'
   const nonPecRaccomandata = nonPec.tipo_notifica_non_pec === 'raccomandata'
@@ -2076,20 +2822,51 @@ export function NotificheLegaliPage() {
           { icon: <Inbox size={15} />, text: 'Ricevuta completa e originali digitali conservati.' },
           { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
         ]
-  const attestationDocuments = currentNotificationDocuments.filter((documento) => (
-    documento.attestazione_conformita_presente || originNeedsAttestazione(documento.origine)
-  ))
-  const attestationPreviewText = notifica.attestazione_conformita.trim()
-    || [
-      'ATTESTAZIONE DI CONFORMITÀ',
-      '',
-      `Io sottoscritto ${notifica.avvocato_nome || 'Avvocato notificante'}, difensore di ${notifica.assistito_nome || 'parte assistita'},`,
-      'attesto la conformità dei documenti indicati nella relata rispetto alla loro origine processuale o documentale.',
-      '',
-      ...attestationDocuments.map((documento, index) => `${index + 1}. ${documento.nome_file || documento.descrizione || 'Documento'} - ${data.originiDocumento.find((item) => item.value === documento.origine)?.label || documento.origine}`),
-      '',
-      `${notifica.luogo || data.defaults.studioCitta || 'Luogo'}, ${formatDateIt(notifica.data_relata) || notifica.data_relata}`,
-    ].join('\n')
+  const attestationDocuments = currentNotificationDocuments.filter((documento) => originNeedsAttestazione(documento.origine))
+  const attestationLawyerName = /^(?:avv\.?|avvocato)\s+/i.test(notifica.avvocato_nome.trim())
+    ? notifica.avvocato_nome.trim()
+    : `Avv. ${notifica.avvocato_nome.trim() || 'Avvocato notificante'}`
+  const attestationRg = notifica.numero_rg && notifica.anno_rg
+    ? `R.G. n. ${notifica.numero_rg}/${notifica.anno_rg}`
+    : ''
+  const attestationPreviewRows = attestationDocuments.map((documento) => {
+    const description = (documento.descrizione || documento.nome_file || 'Documento')
+      .replace(/\.(?:pdf|p7m|docx?|eml|msg)$/i, '')
+      .trim()
+    const match = description.match(/^(Decreto fissazione udienza|Atto di citazione|Sentenza|Ordinanza|Provvedimento|Ricorso|Procura|Memoria|Verbale|Istanza)\b\s*,?\s*(.*)$/i)
+    if (!match) return `- ${description};`
+    const title = match[1].replace(/^./, (value) => value.toUpperCase())
+    let detail = match[2].trim().replace(/^[-,:;\s]+/, '')
+    if (title === 'Procura' && (!detail || detail.toLowerCase() === 'alle liti')) {
+      detail = 'mandato alle liti'
+    }
+    if (!detail && ['Sentenza', 'Ordinanza', 'Provvedimento', 'Decreto', 'Decreto fissazione udienza'].includes(title)) {
+      const participle = ['Sentenza', 'Ordinanza'].includes(title) ? 'emessa' : 'emesso'
+      detail = `${participle} dal ${notifica.ufficio_giudiziario || 'ufficio giudiziario indicato'}${notifica.sezione ? ` Sez. ${notifica.sezione}` : ''}`
+    }
+    return `- ${title}${detail ? `, ${detail}` : ''};`
+  })
+  const allAttestationsFromFile = attestationDocuments.every((documento) => documento.origine === 'copia_fascicolo_informatico')
+  const attestationConclusion = allAttestationsFromFile
+    ? `${attestationDocuments.length === 1 ? 'è conforme alla copia informatica presente' : 'sono conformi alle copie informatiche presenti'} nel fascicolo informatico${attestationRg ? ` del relativo procedimento ${attestationRg}` : ''} dal quale ${attestationDocuments.length === 1 ? 'è estratta' : 'sono estratte'}.`
+    : `${attestationDocuments.length === 1 ? 'è conforme alla rispettiva fonte indicata' : 'sono conformi alle rispettive fonti indicate'} nella relazione di notificazione.`
+  const attestationPreviewText = [
+    'ATTESTAZIONE DI CONFORMITÀ',
+    '',
+    `Il sottoscritto ${attestationLawyerName}${notifica.avvocato_cf ? ` C. F. ${notifica.avvocato_cf}` : ''}${notifica.avvocato_foro ? `, del Foro di ${notifica.avvocato_foro}` : ''},`,
+    '',
+    'Attesta',
+    '',
+    `ai sensi di legge, che ${attestationDocuments.length === 1 ? 'la copia informatica' : 'le copie informatiche'}:`,
+    ...attestationPreviewRows,
+    attestationConclusion,
+    ...(notifica.attestazione_conformita.trim()
+      ? ['', 'Precisazione dell’avvocato:', notifica.attestazione_conformita.trim()]
+      : []),
+    '',
+    attestationLawyerName,
+    'Firmato digitalmente',
+  ].join('\n')
   return (
     <main className="iu-content iu-legal-notice-page">
       <section className="iu-legal-hero">
@@ -2161,19 +2938,14 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-form-grid">
-                  <Field label="Pratica IUSENTRA" wide hint="Scegli una pratica per compilare assistito, procedimento, destinatari e documenti già presenti nel gestionale.">
-                    <select
-                      value={selectedPracticeId}
-                      onChange={(event) => {
-                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
-                        if (practice) applyPractice(practice)
-                        else clearPracticeSelection()
-                      }}
-                    >
-                      <option value="">Seleziona pratica</option>
-                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
-                    </select>
-                  </Field>
+                  <PracticePicker
+                    practices={data.precompilazione.indicePratiche}
+                    value={selectedPracticeId}
+                    loading={practiceSelectionWorking}
+                    message={practiceSelectionMessage}
+                    hint="Cerca e scegli una pratica per compilare assistito, procedimento, destinatari e documenti già presenti."
+                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
+                  />
                   <Field label="Aggiungi destinatario suggerito" hint={recipientSuggestions.length ? 'Puoi aggiungere più destinatari: IUSENTRA preparerà una PEC distinta per ciascuno.' : 'Aggiungi soggetti con PEC alla pratica per compilare anche questo campo.'}>
                     <select
                       value=""
@@ -2226,7 +2998,7 @@ export function NotificheLegaliPage() {
                     <div className="iu-legal-template-preview__header">
                       <div>
                         <strong>Documenti da notificare</strong>
-                        <span>{documentSuggestions.length ? "La pratica seleziona automaticamente solo i documenti da notificare; gli altri atti restano nel fascicolo e non entrano nella relata." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
+                        <span>{documentSuggestions.length ? "I documenti della pratica sono proposti, ma entrano nella relata solo dopo la scelta dell'avvocato." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
                       </div>
                       {documentSuggestions.length ? (
                         <div className="iu-legal-picker-actions">
@@ -2270,7 +3042,7 @@ export function NotificheLegaliPage() {
                               <strong>{documentPrimaryName(documento)}</strong>
                               {documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
                               {hasEmailEvidenceExtension(documentPrimaryName(documento)) ? <em>EML/MSG selezionabile manualmente</em> : null}
-                              {documento.necessitaAttestazione ? <em>Attestazione di conformità</em> : null}
+                              {documento.necessitaAttestazione ? <em>Incluso nell’attestazione unica in relata</em> : null}
                             </span>
                           </label>
                         ))}
@@ -2310,7 +3082,7 @@ export function NotificheLegaliPage() {
                           <span key={release.documentoId || release.riferimentoPortale || `${release.nome}-${index}`}>
                             <Inbox size={15}/>
                             <em>{release.nome || release.tipo || "Documento d'ufficio"}</em>
-                            <small>{[release.fontePortale || data.portaleServizi.label, release.ufficio, release.numeroRg && release.annoRg ? `R.G. ${release.numeroRg}/${release.annoRg}` : '', release.dataDeposito].filter(Boolean).join(' · ')}</small>
+                            <small>{[release.fontePortale || data.portaleServizi.label, release.ufficio, release.numeroRg && release.annoRg ? `R.G. ${release.numeroRg}/${release.annoRg}` : '', release.dataDeposito ? formatDateIt(release.dataDeposito, release.dataDeposito) : ''].filter(Boolean).join(' · ')}</small>
                           </span>
                         ))}
                       </div>
@@ -2329,7 +3101,7 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-auto-notes">
-                  <span><FolderOpen size={15} /> {data.precompilazione.pratiche.length} pratiche disponibili per la compilazione assistita.</span>
+                  <span><FolderOpen size={15} /> {data.precompilazione.totalePratiche || data.precompilazione.indicePratiche.length} pratiche ricercabili per la compilazione assistita.</span>
                   <span><UserRound size={15} /> {recipientSuggestions.length} destinatari con PEC suggeribili.</span>
                   <span><FileText size={15} /> {documentSuggestions.length} documenti selezionabili dalla pratica corrente.</span>
                 </div>
@@ -2488,10 +3260,13 @@ export function NotificheLegaliPage() {
                 <Field label="Codice fiscale avvocato"><input value={notifica.avvocato_cf} onChange={(event) => changeNotifica('avvocato_cf', event.currentTarget.value.toUpperCase())} /></Field>
                 <Field label="Ordine / foro"><input value={notifica.avvocato_foro} onChange={(event) => changeNotifica('avvocato_foro', event.currentTarget.value)} /></Field>
                 <Field label="PEC notificante"><input type="email" value={notifica.mittente_pec} onChange={(event) => changeNotifica('mittente_pec', event.currentTarget.value)} /></Field>
-                <label className="iu-legal-check"><input type="checkbox" checked={notifica.mittente_avvocato_abilitato} onChange={(event) => changeNotifica('mittente_avvocato_abilitato', event.currentTarget.checked)} /><span>Avvocato abilitato alla notifica in proprio</span></label>
-                <label className="iu-legal-check"><input type="checkbox" checked={notifica.mittente_pec_validata} onChange={(event) => changeNotifica('mittente_pec_validata', event.currentTarget.checked)} /><span>PEC notificante validata</span></label>
-                <Field label="Luogo relata"><input value={notifica.luogo} onChange={(event) => changeNotifica('luogo', event.currentTarget.value)} /></Field>
+                <Field label="Indirizzo studio"><input value={notifica.studio_indirizzo} onChange={(event) => changeNotifica('studio_indirizzo', event.currentTarget.value)} /></Field>
+                <Field label="CAP studio"><input inputMode="numeric" maxLength={5} value={notifica.studio_cap} onChange={(event) => changeNotifica('studio_cap', event.currentTarget.value.replace(/\D/g, '').slice(0, 5))} /></Field>
+                <Field label="Città studio"><input value={notifica.studio_citta} onChange={(event) => changeNotifica('studio_citta', event.currentTarget.value)} /></Field>
+                <Field label="Provincia studio"><input maxLength={2} value={notifica.studio_provincia} onChange={(event) => changeNotifica('studio_provincia', event.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2))} /></Field>
+                <Field label="Luogo relata" wide><input value={notifica.luogo} onChange={(event) => changeNotifica('luogo', event.currentTarget.value)} /></Field>
                 <Field label="Data relata"><input type="date" value={notifica.data_relata} onChange={(event) => changeNotifica('data_relata', event.currentTarget.value)} /></Field>
+                <Field label="Ora relata" hint="Ora italiana riportata nella relata."><input type="time" step="60" value={notifica.ora_relata} onChange={(event) => changeNotifica('ora_relata', event.currentTarget.value)} /></Field>
                 <Field label="Parte assistita"><input value={notifica.assistito_nome} onChange={(event) => changeNotifica('assistito_nome', event.currentTarget.value)} /></Field>
                 <Field label="C.F. / P. IVA assistito"><input value={notifica.assistito_cf} onChange={(event) => changeNotifica('assistito_cf', event.currentTarget.value.toUpperCase())} /></Field>
                 <Field label="Ruolo destinatario">
@@ -2508,23 +3283,36 @@ export function NotificheLegaliPage() {
                     {data.registriPec.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </Field>
-                <label className="iu-legal-check"><input type="checkbox" checked={notifica.destinatario_pec_pubblico_elenco} onChange={(event) => changeNotifica('destinatario_pec_pubblico_elenco', event.currentTarget.checked)} /><span>PEC destinatario verificata su pubblico elenco</span></label>
                 <Field label="Parte rappresentata"><input value={notifica.destinatario_parte_rappresentata} onChange={(event) => changeNotifica('destinatario_parte_rappresentata', event.currentTarget.value)} /></Field>
-                <Field label="Data e ora verifica PEC" hint="Aggiornata automaticamente con l'orologio del dispositivo; modifica manualmente solo se la verifica è già stata eseguita in un momento diverso.">
-                  <div className="iu-legal-inline-action">
-                    <input
-                      type="datetime-local"
-                      step={1}
-                      value={notifica.data_verifica_pec}
-                      onChange={(event) => {
-                        setPecClockAuto(false)
-                        changeNotifica('data_verifica_pec', event.currentTarget.value)
-                      }}
-                    />
-                    <button type="button" onClick={() => { setPecClockAuto(true); changeNotifica('data_verifica_pec', localDateTime()) }}>Ora</button>
+                <div className="iu-legal-pec-verification iu-legal-field--wide" aria-live="polite">
+                  <div className="iu-legal-pec-verification__header">
+                    <div>
+                      <strong>Verifica automatica delle PEC</strong>
+                      <span>Il sistema controlla indirizzo, soggetto ed elenco prima di preparare la relata.</span>
+                    </div>
+                    <button type="button" onClick={() => void verifyNotificationPec()} disabled={pecVerificationWorking || working}>
+                      <RefreshCw size={15} className={pecVerificationWorking ? 'is-spinning' : ''} />
+                      {pecVerificationWorking ? 'Verifica...' : 'Verifica di nuovo'}
+                    </button>
                   </div>
-                  <small className="iu-legal-clock-state">{pecClockAuto ? 'Orologio automatico' : 'Orario impostato manualmente'}: {pecClockLabel}</small>
-                </Field>
+                  <div className={`iu-legal-pec-verification__row ${currentSenderPecEvidence?.verified ? 'is-ok' : currentSenderPecEvidence ? 'is-error' : ''}`}>
+                    {currentSenderPecEvidence?.verified ? <CheckCircle2 size={17} /> : <ShieldCheck size={17} />}
+                    <div>
+                      <strong>Notificante</strong>
+                      <span>{currentSenderPecEvidence?.verified
+                        ? `PEC verificata${currentSenderPecEvidence.checkedAt ? ` il ${localClockLabel(currentSenderPecEvidence.checkedAt)}` : ''}.`
+                        : currentSenderPecEvidence?.message || 'La verifica parte automaticamente con il controllo.'}</span>
+                    </div>
+                  </div>
+                  <div className={`iu-legal-pec-verification__row ${recipientPecStatusOk ? 'is-ok' : currentRecipientPecEvidence.some(Boolean) ? 'is-error' : ''}`}>
+                    {recipientPecStatusOk ? <CheckCircle2 size={17} /> : <ShieldCheck size={17} />}
+                    <div>
+                      <strong>{currentPecSubjects.recipients.length === 1 ? 'Destinatario' : 'Destinatari'}</strong>
+                      <span>{recipientPecStatusMessage}</span>
+                    </div>
+                  </div>
+                  {pecVerificationMessage ? <small>{pecVerificationMessage}</small> : null}
+                </div>
                 <Field label={selectedNotificationDocuments.length ? 'Nome file aggiuntivo' : 'Nome file atto'}><input value={notifica.nome_file} onChange={(event) => changeNotifica('nome_file', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Descrizione aggiuntiva' : 'Descrizione documento'}><input value={notifica.descrizione_documento} onChange={(event) => changeNotifica('descrizione_documento', event.currentTarget.value)} /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Origine documento aggiuntivo' : 'Origine documento'}>
@@ -2544,29 +3332,29 @@ export function NotificheLegaliPage() {
                   </button>
                 </div>
                 {notificationNeedsAttestazione ? (
-                  <>
-                    <label className="iu-legal-check iu-legal-field--wide">
-                      <input type="checkbox" checked={attestazioniAutomatiche} onChange={(event) => setAttestazioniAutomatiche(event.currentTarget.checked)} />
-                      <span>Prepara automaticamente le attestazioni per tutti gli allegati che le richiedono</span>
-                    </label>
-                    <div className="iu-legal-action-panel iu-legal-field--wide">
-                      <div className="iu-legal-action-panel__head">
-                        <div>
-                          <strong>Attestazione di conformità</strong>
-                          <span>{attestationDocuments.length} documento/i richiedono presidio di conformità.</span>
-                        </div>
+                  <div className="iu-legal-action-panel iu-legal-field--wide">
+                    <div className="iu-legal-action-panel__head">
+                      <div>
+                        <strong>Attestazione unica nella relata</strong>
+                        <span>Una sola dichiarazione comprende {attestationDocuments.length} {attestationDocuments.length === 1 ? 'documento' : 'documenti'}.</span>
+                      </div>
+                      <div className="iu-legal-action-panel__actions">
                         <button type="button" onClick={() => setAttestationPreviewOpen((current) => !current)}>
-                          <ClipboardCheck size={15} /> {attestationPreviewOpen ? 'Nascondi attestazione' : 'Vedi attestazione'}
+                          <ClipboardCheck size={15} /> {attestationPreviewOpen ? 'Nascondi testo unico' : 'Vedi testo unico'}
+                        </button>
+                        <button type="button" disabled={attestationDownloading} onClick={downloadAttestation}>
+                          <FileDown size={15} /> {attestationDownloading ? 'Preparazione...' : 'Scarica attestazione unica'}
                         </button>
                       </div>
-                      {attestationPreviewOpen ? (
-                        <pre>{attestationPreviewText}</pre>
-                      ) : null}
-                      <Field label="Testo integrativo dell'avvocato" wide hint="Puoi integrare il testo; il sistema genera comunque il blocco per copie da fascicolo, comunicazioni di cancelleria e scansioni analogiche.">
-                        <textarea value={notifica.attestazione_conformita} rows={4} onChange={(event) => changeNotifica('attestazione_conformita', event.currentTarget.value)} />
-                      </Field>
                     </div>
-                  </>
+                    {attestationPreviewOpen ? (
+                      <pre>{attestationPreviewText}</pre>
+                    ) : null}
+                    {attestationDownloadMessage ? <p className="iu-legal-template-message" role="status">{attestationDownloadMessage}</p> : null}
+                    <Field label="Precisazione facoltativa dell'avvocato" wide hint="Il sistema inserisce già la dichiarazione cumulativa nella relata. Usa questo campo solo per una precisazione, senza ripetere l’attestazione.">
+                      <textarea value={notifica.attestazione_conformita} rows={4} onChange={(event) => changeNotifica('attestazione_conformita', event.currentTarget.value)} />
+                    </Field>
+                  </div>
                 ) : null}
                 <Field label="Integrazione libera dell'avvocato" wide hint="Facoltativa: il testo viene aggiunto alla relata generata senza sostituire i controlli automatici.">
                   <textarea value={notifica.note_integrative_relata} rows={3} onChange={(event) => changeNotifica('note_integrative_relata', event.currentTarget.value)} />
@@ -2595,30 +3383,49 @@ export function NotificheLegaliPage() {
                     </div>
                   </div>
                 ) : null}
-                <label className="iu-legal-check"><input type="checkbox" checked={notifica.ricevuta_completa} onChange={(event) => changeNotifica('ricevuta_completa', event.currentTarget.checked)} /><span>Ricevuta completa</span></label>
-                <div className="iu-legal-action-panel iu-legal-field--wide">
+                <div className="iu-legal-action-panel iu-legal-field--wide" aria-busy={signatureChecking}>
                   <div className="iu-legal-action-panel__head">
                     <div>
                       <strong>Relata firmata digitalmente</strong>
-                      <span>Verifica Local Signer sul PC, firma la relata e carica qui il file firmato: lo stato si aggiorna solo con una prova di firma digitale.</span>
+                      <span>IUSENTRA genera la relata corrente, la firma sul PC e la salva automaticamente nel fascicolo.</span>
                     </div>
                     <div className="iu-legal-signature-actions">
-                      <button type="button" className="iu-legal-signature-button" onClick={verifyRelataSigner} disabled={signatureChecking}>
-                        <FileSignature size={15} /> {signatureChecking ? 'Verifico...' : 'Verifica Local Signer'}
-                      </button>
-                      <label className="iu-legal-signature-upload">
-                        <UploadCloud size={15} /> Carica relata firmata
-                        <input type="file" accept=".pdf,.p7m" onChange={(event) => void handleSignedRelataFile(event.currentTarget.files)} />
+                      <label className="iu-legal-signature-pin">
+                        <span>PIN</span>
+                        <input
+                          ref={signaturePinRef}
+                          type="password"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          value={signaturePin}
+                          onChange={(event) => setSignaturePin(event.currentTarget.value)}
+                          disabled={signatureChecking || !selectedPracticeId}
+                          placeholder="PIN dispositivo"
+                          aria-label="PIN del dispositivo di firma"
+                          aria-describedby={signatureMessage ? 'relata-signature-privacy relata-signature-status' : 'relata-signature-privacy'}
+                        />
                       </label>
+                      <button type="button" className="iu-legal-signature-button iu-legal-signature-button--primary" onClick={() => void signRelata()} disabled={signatureChecking || !selectedPracticeId || !signaturePin.trim()}>
+                        <FileSignature size={15} /> {signatureChecking ? 'Firma in corso...' : signedRelata ? 'Firma nuovamente' : 'Firma relata'}
+                      </button>
                     </div>
                   </div>
-                  {signatureMessage ? <small>{signatureMessage}</small> : null}
+                  <small id="relata-signature-privacy" className="iu-legal-signature-privacy"><LockKeyhole size={13} /> Il PIN resta su questo PC e viene cancellato dopo la firma. Lo stesso PIN verifica le PEC e firma la relata.</small>
+                  {signatureMessage ? <small id="relata-signature-status" role="status" aria-live="polite">{signatureMessage}</small> : null}
+                  {signedRelata?.previewUrl ? (
+                    <a className="iu-legal-signature-evidence" href={signedRelata.previewUrl} target="_blank" rel="noreferrer">
+                      <FileText size={14} /> Visualizza relata firmata
+                    </a>
+                  ) : null}
                   <label className="iu-legal-check">
                     <input type="checkbox" checked={notifica.relata_firmata} readOnly disabled />
-                    <span>{notifica.relata_firmata ? 'Relata firmata acquisita con prova tecnica' : 'Relata non firmata: carica un file firmato verificabile'}</span>
+                    <span>{notifica.relata_firmata ? 'Relata firmata e salvata nel fascicolo' : 'Relata da firmare'}</span>
                   </label>
+                  <div className="iu-legal-automatic-rules">
+                    <span><CheckCircle2 size={14} /> Relata separata predisposta automaticamente</span>
+                    <span><CheckCircle2 size={14} /> Ricevuta completa prevista automaticamente</span>
+                  </div>
                 </div>
-                <label className="iu-legal-check"><input type="checkbox" checked={notifica.relata_documento_separato} onChange={(event) => changeNotifica('relata_documento_separato', event.currentTarget.checked)} /><span>Relata come documento separato</span></label>
                 <label className="iu-legal-check iu-legal-field--wide"><input type="checkbox" checked={notifica.approvazione_avvocato} onChange={(event) => changeNotifica('approvazione_avvocato', event.currentTarget.checked)} /><span>Approvazione finale dell'avvocato prima dell'invio</span></label>
               </div>
               <div className="iu-legal-submit-row">
@@ -2640,19 +3447,14 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-form-grid">
-                  <Field label="Pratica IUSENTRA" wide hint="Usa la stessa pratica della notifica o scegline una per preparare la prova.">
-                    <select
-                      value={selectedPracticeId}
-                      onChange={(event) => {
-                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
-                        if (practice) applyPractice(practice)
-                        else clearPracticeSelection()
-                      }}
-                    >
-                      <option value="">Seleziona pratica</option>
-                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`deposito-${item.id}`}>{item.label}</option>)}
-                    </select>
-                  </Field>
+                  <PracticePicker
+                    practices={data.precompilazione.indicePratiche}
+                    value={selectedPracticeId}
+                    loading={practiceSelectionWorking}
+                    message={practiceSelectionMessage}
+                    hint="Usa la stessa pratica della notifica o cercane una per preparare la prova."
+                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
+                  />
                   <Field label="Atto dal fascicolo" hint={documentSuggestions.length ? 'Il nome file viene riportato nella prova deposito.' : 'Nessun documento selezionabile per la pratica corrente.'}>
                     <select
                       value={selectedDocumentId}
@@ -2834,19 +3636,14 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-form-grid">
-                  <Field label="Pratica IUSENTRA" wide hint="Usa una pratica per proporre ufficio, atto e destinatario.">
-                    <select
-                      value={selectedPracticeId}
-                      onChange={(event) => {
-                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
-                        if (practice) applyPractice(practice)
-                        else clearPracticeSelection()
-                      }}
-                    >
-                      <option value="">Seleziona pratica</option>
-                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`unep-pratica-${item.id}`}>{item.label}</option>)}
-                    </select>
-                  </Field>
+                  <PracticePicker
+                    practices={data.precompilazione.indicePratiche}
+                    value={selectedPracticeId}
+                    loading={practiceSelectionWorking}
+                    message={practiceSelectionMessage}
+                    hint="Cerca una pratica per proporre ufficio, atto e destinatario."
+                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
+                  />
                   <Field label="Atto dal fascicolo" hint={documentSuggestions.length ? 'Il file viene riportato nella richiesta.' : 'Nessun documento selezionabile.'}>
                     <select
                       value={selectedDocumentId}
@@ -2981,19 +3778,14 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-form-grid">
-                  <Field label="Pratica IUSENTRA" wide hint="Compila identificativo, atto e destinatario dai dati già presenti.">
-                    <select
-                      value={selectedPracticeId}
-                      onChange={(event) => {
-                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
-                        if (practice) applyPractice(practice)
-                        else clearPracticeSelection()
-                      }}
-                    >
-                      <option value="">Seleziona pratica</option>
-                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`nonpec-pratica-${item.id}`}>{item.label}</option>)}
-                    </select>
-                  </Field>
+                  <PracticePicker
+                    practices={data.precompilazione.indicePratiche}
+                    value={selectedPracticeId}
+                    loading={practiceSelectionWorking}
+                    message={practiceSelectionMessage}
+                    hint="Cerca una pratica e compila identificativo, atto e destinatario dai dati già presenti."
+                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
+                  />
                   <Field label="Atto dal fascicolo">
                     <select
                       value={selectedDocumentId}
@@ -3112,19 +3904,14 @@ export function NotificheLegaliPage() {
                   </div>
                 </div>
                 <div className="iu-legal-form-grid">
-                  <Field label="Pratica IUSENTRA" wide hint="La pratica compila cliente, ufficio, RG e documento informativo.">
-                    <select
-                      value={selectedPracticeId}
-                      onChange={(event) => {
-                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
-                        if (practice) applyPractice(practice)
-                        else clearPracticeSelection()
-                      }}
-                    >
-                      <option value="">Seleziona pratica</option>
-                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`cliente-pratica-${item.id}`}>{item.label}</option>)}
-                    </select>
-                  </Field>
+                  <PracticePicker
+                    practices={data.precompilazione.indicePratiche}
+                    value={selectedPracticeId}
+                    loading={practiceSelectionWorking}
+                    message={practiceSelectionMessage}
+                    hint="Cerca una pratica per compilare cliente, ufficio, RG e documento informativo."
+                    onSelect={(practiceId) => { void selectPracticeById(practiceId) }}
+                  />
                   <Field label="Cliente IUSENTRA" hint={data.precompilazione.clienti.length ? 'Scegli un cliente se la comunicazione non parte da una pratica.' : 'Nessun cliente disponibile nella precompilazione.'}>
                     <select
                       value={selectedClientId}
@@ -3154,7 +3941,7 @@ export function NotificheLegaliPage() {
                   </Field>
                 </div>
                 <div className="iu-legal-auto-notes">
-                  <span><FolderOpen size={15} /> {data.precompilazione.pratiche.length} pratiche utilizzabili.</span>
+                  <span><FolderOpen size={15} /> {data.precompilazione.totalePratiche || data.precompilazione.indicePratiche.length} pratiche ricercabili.</span>
                   <span><UserRound size={15} /> {data.precompilazione.clienti.length} clienti disponibili.</span>
                   <span><Mail size={15} /> La comunicazione resta senza relata e senza oggetto L. 53.</span>
                 </div>
@@ -3249,7 +4036,7 @@ export function NotificheLegaliPage() {
               </div>
             </Panel>
           ) : (
-            <Panel title="Catalogo modelli relata" subtitle={data.templateCatalogVersion ? `Versione ${data.templateCatalogVersion}` : 'Modelli caricati'} icon={<FileSignature size={17} />}>
+            <Panel title="Catalogo modelli relata" subtitle={templateVersionDate(data.templateCatalogVersion) ? `Aggiornato il ${templateVersionDate(data.templateCatalogVersion)}` : 'Modelli caricati'} icon={<FileSignature size={17} />}>
               <div className="iu-legal-list">
                 <span><FileCheck2 size={15} /> {data.modelliRelata.length} modelli relata disponibili.</span>
                 <span><ShieldCheck size={15} /> Attestazioni scelte in base all'origine del documento.</span>

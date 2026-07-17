@@ -120,6 +120,21 @@ export type LegalRecipientSuggestion = {
   verificaRichiesta: boolean
 }
 
+export type LegalPracticeIndexItem = {
+  id: string
+  label: string
+  numero: string
+  titolo: string
+  assistitoNome: string
+  controparte: string
+  ufficio: string
+  numeroRg: string
+  annoRg: string
+  oggetto: string
+  stato: string
+  archiviata: boolean
+}
+
 export type LegalPracticeSuggestion = {
   id: string
   label: string
@@ -224,7 +239,9 @@ export type NotificheLegaliData = {
     avvocatoCf: string
     avvocatoForo: string
     studioIndirizzo: string
+    studioCap: string
     studioCitta: string
+    studioProvincia: string
     mittentePec: string
     fontePecMittente: string
   }
@@ -244,6 +261,8 @@ export type NotificheLegaliData = {
   campiDisponibili: LegalTemplateFieldToken[]
   precompilazione: {
     pratiche: LegalPracticeSuggestion[]
+    indicePratiche: LegalPracticeIndexItem[]
+    totalePratiche: number
     clienti: LegalClientSuggestion[]
     destinatari: LegalRecipientSuggestion[]
     note: string[]
@@ -267,6 +286,9 @@ export type NotificheLegaliData = {
   azioni: {
     notifica: string
     anteprimaRelata: string
+    attestazioneConformita: string
+    relataPdf: string
+    relataFirmata: string
     bozzaRelata: string
     comunicazioneCliente: string
     provaDeposito: string
@@ -319,7 +341,9 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     avvocatoCf: '',
     avvocatoForo: '',
     studioIndirizzo: '',
+    studioCap: '',
     studioCitta: '',
+    studioProvincia: '',
     mittentePec: '',
     fontePecMittente: 'ReGIndE',
   },
@@ -350,6 +374,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   campiDisponibili: [],
   precompilazione: {
     pratiche: [],
+    indicePratiche: [],
+    totalePratiche: 0,
     clienti: [],
     destinatari: [],
     note: [],
@@ -373,6 +399,9 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   azioni: {
     notifica: '/api/v1/ui/notifiche-legali/notifica',
     anteprimaRelata: '/api/v1/ui/notifiche-legali/anteprima-relata',
+    attestazioneConformita: '/api/v1/ui/notifiche-legali/attestazione-conformita',
+    relataPdf: '/api/v1/ui/notifiche-legali/relata-pdf',
+    relataFirmata: '/api/v1/ui/notifiche-legali/relata-firmata',
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
@@ -618,6 +647,27 @@ function practiceSuggestions(value: unknown): LegalPracticeSuggestion[] {
   }).filter((item) => item.id && item.label)
 }
 
+function practiceIndexSuggestions(value: unknown): LegalPracticeIndexItem[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      label: text(row.label, text(row.titolo)),
+      numero: text(row.numero),
+      titolo: text(row.titolo),
+      assistitoNome: text(row.assistitoNome),
+      controparte: text(row.controparte),
+      ufficio: text(row.ufficio),
+      numeroRg: text(row.numeroRg),
+      annoRg: text(row.annoRg),
+      oggetto: text(row.oggetto),
+      stato: text(row.stato),
+      archiviata: bool(row.archiviata),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
 function clientSuggestions(value: unknown): LegalClientSuggestion[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => {
@@ -708,7 +758,9 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       avvocatoCf: text(defaults.avvocatoCf),
       avvocatoForo: text(defaults.avvocatoForo),
       studioIndirizzo: text(defaults.studioIndirizzo),
+      studioCap: text(defaults.studioCap),
       studioCitta: text(defaults.studioCitta),
+      studioProvincia: text(defaults.studioProvincia),
       mittentePec: text(defaults.mittentePec),
       fontePecMittente: text(defaults.fontePecMittente, 'ReGIndE'),
     },
@@ -728,6 +780,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     campiDisponibili: fieldTokens(payload.campiDisponibili),
     precompilazione: {
       pratiche: practiceSuggestions(precompilazione.pratiche),
+      indicePratiche: practiceIndexSuggestions(precompilazione.indicePratiche),
+      totalePratiche: Number(precompilazione.totalePratiche || 0),
       clienti: clientSuggestions(precompilazione.clienti),
       destinatari: recipientSuggestions(precompilazione.destinatari),
       note: Array.isArray(precompilazione.note) ? precompilazione.note.map((item) => text(item)).filter(Boolean) : [],
@@ -751,6 +805,9 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     azioni: {
       notifica: text(azioni.notifica, emptyNotificheLegaliData.azioni.notifica),
       anteprimaRelata: text(azioni.anteprimaRelata, emptyNotificheLegaliData.azioni.anteprimaRelata),
+      attestazioneConformita: text(azioni.attestazioneConformita, emptyNotificheLegaliData.azioni.attestazioneConformita),
+      relataPdf: text(azioni.relataPdf, emptyNotificheLegaliData.azioni.relataPdf),
+      relataFirmata: text(azioni.relataFirmata, emptyNotificheLegaliData.azioni.relataFirmata),
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
@@ -774,6 +831,18 @@ export async function getNotificheLegaliData(): Promise<NotificheLegaliData> {
   })
   if (!response.ok) return emptyNotificheLegaliData
   return normalisePayload(await response.json())
+}
+
+export async function getNotificheLegaliPractice(practiceId: string): Promise<LegalPracticeSuggestion | null> {
+  if (!practiceId) return null
+  const response = await fetch(`/api/v1/ui/notifiche-legali/pratiche/${encodeURIComponent(practiceId)}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) return null
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body) || !bool(body.ok)) return null
+  return practiceSuggestions([body.pratica])[0] || null
 }
 
 export async function getNotificheLegaliPracticeDocuments(practiceId: string): Promise<LegalDocumentSuggestion[]> {
@@ -820,6 +889,50 @@ export async function previewLegalRelata(payload: Record<string, unknown>): Prom
     return { ...result, ok: false, blockers: ['Anteprima non disponibile.'] }
   }
   return result
+}
+
+export async function downloadLegalAttestation(
+  endpoint: string,
+  payload: Record<string, unknown>,
+): Promise<{ ok: boolean; message: string }> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    const missing = isRecord(body) && Array.isArray(body.missingFields)
+      ? body.missingFields.map((item) => text(item)).filter(Boolean)
+      : []
+    const detail = missing.length ? ` Dati da completare: ${missing.join(', ')}.` : ''
+    return {
+      ok: false,
+      message: `${isRecord(body) ? text(body.message, 'Attestazione non generata.') : 'Attestazione non generata.'}${detail}`,
+    }
+  }
+
+  const blob = await response.blob()
+  const disposition = response.headers.get('Content-Disposition') || ''
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+  const filename = encodedName
+    ? decodeURIComponent(encodedName)
+    : (plainName || 'Attestazione_di_conformita.docx')
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000)
+  return { ok: true, message: 'Attestazione unica scaricata.' }
 }
 
 export async function saveLegalRelataDraft(payload: {

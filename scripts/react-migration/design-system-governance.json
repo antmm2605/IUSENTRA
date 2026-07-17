@@ -68,6 +68,7 @@
     "frontend/src/components/layout/TopBar.css",
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
     "frontend/src/features/impostazioni/components/BackupSettingsPanel.css",
+    "frontend/src/features/impostazioni/components/BillingSettingsPanel.css",
     "frontend/src/features/impostazioni/components/CalendarSettingsPanel.css",
     "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
     "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -1018,6 +1018,11 @@ function currentEmailSelectionId(mode: MailboxMode): string {
   return new URLSearchParams(window.location.search).get('id') || ''
 }
 
+function currentPecAuditSelectionId(mode: MailboxMode): string {
+  if (mode !== 'pec') return ''
+  return new URLSearchParams(window.location.search).get('audit_id') || ''
+}
+
 function writeMailboxSelection(mode: MailboxMode, folder: EmailFolder, id: string): void {
   const params = new URLSearchParams(window.location.search)
   params.set('cartella', folder)
@@ -1448,6 +1453,9 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [presidioWorking, setPresidioWorking] = useState(false)
   const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
+  const markingReadRef = useRef(new Set<string>())
+  const directOpenReadRef = useRef(Boolean(currentEmailSelectionId(mode)))
+  const auditSelectionHandledRef = useRef('')
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
   const fetchParams = {
@@ -1469,6 +1477,35 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
     fetchPage(fetchParams)
       .then(setData)
       .finally(() => setLoading(false))
+  }
+
+  const markReadOnOpen = (item?: EmailPecRow | null) => {
+    if (!item?.id || !item.unread || item.auditOnly || markingReadRef.current.has(item.id)) return
+    markingReadRef.current.add(item.id)
+    setData((current) => {
+      const wasUnread = current.items.some((row) => row.id === item.id && row.unread)
+      return {
+        ...current,
+        summary: wasUnread
+          ? { ...current.summary, unread: Math.max(0, current.summary.unread - 1) }
+          : current.summary,
+        items: current.items.map((row) => row.id === item.id ? { ...row, unread: false } : row),
+      }
+    })
+    setDetail((current) => current?.item?.id === item.id
+      ? { ...current, item: { ...current.item, unread: false } }
+      : current)
+    postMailAction(item.markReadHref, 'Segna letta')
+      .then(() => {
+        load()
+        setDetailReloadKey((value) => value + 1)
+      })
+      .catch((error) => {
+        setStatusLine(error instanceof Error ? error.message : 'Lettura non registrata.')
+        load()
+        setDetailReloadKey((value) => value + 1)
+      })
+      .finally(() => markingReadRef.current.delete(item.id))
   }
 
   useEffect(() => {
@@ -1498,6 +1535,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
 
   const selectMessage = (id: string) => {
+    markReadOnOpen(data.items.find((item) => item.id === id) || detail?.item)
     setSelectedId(id)
     setMobileReaderOpen(true)
     writeMailboxSelection(mode, folder, id)
@@ -1523,6 +1561,19 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   }, [data.items])
 
   useEffect(() => {
+    const auditId = currentPecAuditSelectionId(mode)
+    if (!auditId || auditSelectionHandledRef.current === auditId) return
+    const matched = data.items.find((item) => item.pecAudit?.id === auditId)
+    if (!matched) return
+    auditSelectionHandledRef.current = auditId
+    directOpenReadRef.current = true
+    if (folder !== matched.folder) setFolder(matched.folder)
+    if (selectedId !== matched.id) setSelectedId(matched.id)
+    setMobileReaderOpen(true)
+    writeMailboxSelection(mode, matched.folder, matched.id)
+  }, [data.items, folder, mode, selectedId])
+
+  useEffect(() => {
     const routeId = currentEmailSelectionId(mode)
     if (routeId) {
       if (selectedId !== routeId) setSelectedId(routeId)
@@ -1546,7 +1597,12 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
     const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecDetail
     loader(id)
       .then((payload) => {
-        if (active) setDetail(payload.item ? payload : null)
+        if (!active) return
+        setDetail(payload.item ? payload : null)
+        if (directOpenReadRef.current && payload.item?.id === id) {
+          directOpenReadRef.current = false
+          markReadOnOpen(payload.item)
+        }
       })
       .finally(() => {
         if (active) setDetailLoading(false)

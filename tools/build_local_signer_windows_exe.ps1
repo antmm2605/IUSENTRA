@@ -78,6 +78,7 @@ $installHeader = @"
 Write-Utf8TextFile -Path $buildInstallPs1 -Content ($installHeader + $installScriptSource)
 Write-Utf8TextFile -Path $outputPs1Versioned -Content ($installHeader + $installScriptSource)
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
+Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") $buildDir -Force
 Copy-Item $visibleSignaturePy $buildDir -Force
@@ -158,24 +159,26 @@ SourceFiles0=$escapedSource
 %FILE12%=
 %FILE13%=
 %FILE14%=
-%FILE15%=
+  %FILE15%=
+  %FILE16%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
-FILE2=local_ai_host_bridge.py
-FILE3=lex_document_context.py
-FILE4=visible_signature.py
-FILE5=requirements_local_signer.txt
-FILE6=uffici_ministero.json
-FILE7=uffici_pst_pubblici.json
-FILE8=local_signer_release.txt
-FILE9=local_signer_mod____init__.py
-FILE10=local_signer_mod__ai_cache.py
-FILE11=local_signer_mod__ai_handlers.py
-FILE12=local_signer_mod__pec_bridge.py
-FILE13=local_signer_mod__security.py
-FILE14=local_signer_mod__server_bootstrap.py
-FILE15=local_signer_mod__support_agent.py
+FILE2=local_signer_windows_http.ps1
+FILE3=local_ai_host_bridge.py
+FILE4=lex_document_context.py
+FILE5=visible_signature.py
+FILE6=requirements_local_signer.txt
+FILE7=uffici_ministero.json
+FILE8=uffici_pst_pubblici.json
+FILE9=local_signer_release.txt
+FILE10=local_signer_mod____init__.py
+FILE11=local_signer_mod__ai_cache.py
+FILE12=local_signer_mod__ai_handlers.py
+FILE13=local_signer_mod__pec_bridge.py
+FILE14=local_signer_mod__security.py
+FILE15=local_signer_mod__server_bootstrap.py
+FILE16=local_signer_mod__support_agent.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -190,6 +193,7 @@ if (-not (Test-Path $outputExeVersioned)) {
 
 Copy-Item $outputExeVersioned $outputExeAlias -Force
 Copy-Item $localSignerPy (Join-Path $distDir "local_signer.py") -Force
+Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") (Join-Path $distDir "local_signer_windows_http.ps1") -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") (Join-Path $distDir "local_ai_host_bridge.py") -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") (Join-Path $distDir "lex_document_context.py") -Force
 Copy-Item $visibleSignaturePy (Join-Path $distDir "visible_signature.py") -Force

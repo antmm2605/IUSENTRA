@@ -8,6 +8,7 @@ import io
 import os
 import re
 import shutil
+import tempfile
 import unicodedata
 import zipfile as _zipfile
 from datetime import date, datetime
@@ -18,7 +19,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, g, request, url_for
 
-from pct.fascicoli import Documento, Fascicolo, GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.fascicoli import Documento, Fascicolo, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import (
     build_fascicolo_workspace as _shared_build_fascicolo_workspace,
     fascicolo_text as _shared_fascicolo_text,
@@ -988,7 +989,6 @@ def build_fascicoli_runtime(
             }
 
         sections = display_sections
-        process_section = dict(sections.get("processuale") or {})
         document_section = dict(sections.get("documentale") or {})
         tech_section = dict(sections.get("tecnico_pst") or {})
         redaction_section = dict(sections.get("redazionale") or {})
@@ -1256,8 +1256,35 @@ def build_fascicoli_runtime(
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
     ) -> Documento:
-        raw_hash = hashlib.sha256(raw).hexdigest()
-        contenuto = _encrypt_doc(raw)
+        contenuto_chiaro = raw
+        preserva_documento_portale = str(fonte_documento or "").strip().upper() == "PORTALE_TELEMATICO"
+        if nome_file.lower().endswith(".pdf") and not firmato and not preserva_documento_portale:
+            try:
+                from pct.validazione import converti_pdfa, verifica_pdfa
+
+                with tempfile.TemporaryDirectory(prefix="iusentra-pdfa-") as tmp_dir:
+                    tmp_path = Path(tmp_dir) / "documento.pdf"
+                    tmp_path.write_bytes(raw)
+                    esito_pdfa = verifica_pdfa(str(tmp_path))
+                    if esito_pdfa.get("conforme") is False:
+                        conv = converti_pdfa(str(tmp_path))
+                        if conv.get("ok"):
+                            contenuto_chiaro = tmp_path.read_bytes()
+                            app.logger.info(
+                                "PDF/A auto-conversione: %s -> PDF/A-2B (%s)",
+                                nome_file,
+                                conv.get("messaggio", ""),
+                            )
+                        else:
+                            app.logger.warning(
+                                "PDF/A auto-conversione fallita per %s: %s",
+                                nome_file,
+                                conv.get("messaggio", ""),
+                            )
+            except Exception as exc:
+                app.logger.warning("PDF/A auto-conversione errore per %s: %s", nome_file, exc)
+        raw_hash = hashlib.sha256(contenuto_chiaro).hexdigest()
+        contenuto = _encrypt_doc(contenuto_chiaro)
         doc = gf.aggiungi_documento(
             id_fasc,
             nome_file=nome_file,
@@ -1282,28 +1309,7 @@ def build_fascicoli_runtime(
             msg_id_portale=msg_id_portale,
             hash_contenuto_sha256=raw_hash,
         )
-        # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
-        # Se il file è un PDF non firmato, lo converte in PDF/A tramite
-        # Ghostscript per garantire conformità al deposito telematico.
         percorso_doc = str(gf.percorso_documento(id_fasc, doc.id))
-        if nome_file.lower().endswith(".pdf") and not firmato:
-            try:
-                from pct.validazione import verifica_pdfa, converti_pdfa
-                esito_pdfa = verifica_pdfa(percorso_doc)
-                if esito_pdfa.get("conforme") is False:
-                    conv = converti_pdfa(percorso_doc)
-                    if conv.get("ok"):
-                        app.logger.info(
-                            "PDF/A auto-conversione: %s → PDF/A-2B (%s)",
-                            nome_file, conv.get("messaggio", ""),
-                        )
-                    else:
-                        app.logger.warning(
-                            "PDF/A auto-conversione fallita per %s: %s",
-                            nome_file, conv.get("messaggio", ""),
-                        )
-            except Exception as exc:
-                app.logger.warning("PDF/A auto-conversione errore per %s: %s", nome_file, exc)
         _accoda_ocr(
             percorso=percorso_doc,
             hash_sha256=doc.hash_sha256,

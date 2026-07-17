@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Iterable
+from urllib.parse import quote
 
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 
@@ -22,11 +23,16 @@ PEC_HEARING_DATETIME_RE = re.compile(
     r"(?:ore\s*)?(\d{1,2})[:.](\d{2})\b",
     re.IGNORECASE,
 )
+PEC_HEARING_TIME_RE = re.compile(
+    r"(?<!\d)(?:ore\s*)?([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)",
+    re.IGNORECASE,
+)
 TECHNICAL_VISIBLE_RE = re.compile(
     r"\b(?:PEC_AUDIT|pdf-deadline|pdf-semantic|pipeline|audit-grade|source_event|profile_id|payload|runtime|backend|frontend|legacy|json_api|external_uid|external_provider|worker|job|provider)\b",
     re.IGNORECASE,
 )
 NON_PARTY_RE = re.compile(r"\b(?:UDIENZA|COMUNICAZIONE|FISSATA|FISSATO|PRIMA|COMPAR|TRATT|ART\.?|DESCRIZIONE|OGGETTO)\b", re.IGNORECASE)
+REMOTE_HEARING_URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 
 
 def _enum_value(value: Any) -> str:
@@ -66,6 +72,93 @@ def _safe_items(loader: Callable[[], Iterable[Any]]) -> list[Any]:
 def _clean_text(value: Any, *, limit: int = 360) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def _source_evidence(
+    notes: str,
+    *,
+    matter_id: str = "",
+    external_source_url: str = "",
+    source_name: str = "",
+) -> dict[str, Any]:
+    """Collega ogni dato automatico alla PEC o al documento che lo ha prodotto."""
+
+    document_match = re.search(
+        r"\b(?:PEC_DOCUMENT_PRESIDIO|PEC_AUDIT):docpresidio:([^:\s]+):([^:\s]+):([^:\s]+):([^\s]+)",
+        notes,
+        re.IGNORECASE,
+    )
+    if document_match:
+        source_fascicolo_id = document_match.group(1).strip()
+        document_id = document_match.group(2).strip()
+        label = _extract_labeled_line(notes, "Fonte documentale", limit=140) or _clean_text(source_name, limit=140)
+        return {
+            "sourceHref": (
+                f"/fascicoli/{quote(source_fascicolo_id, safe='')}/documenti/"
+                f"{quote(document_id, safe='')}/visualizza"
+            ),
+            "sourceLabel": label or "Documento del fascicolo",
+            "sourceKind": "documento",
+            "sourceVerified": True,
+        }
+
+    pec_match = re.search(r"\bPEC_AUDIT:([A-Za-z0-9][A-Za-z0-9_.:-]{1,179})", notes, re.IGNORECASE)
+    if pec_match:
+        message_id = pec_match.group(1).rstrip(".,;:")
+        return {
+            "sourceHref": f"/email/?audit_id={quote(message_id, safe='')}",
+            "sourceLabel": "PEC originale",
+            "sourceKind": "pec",
+            "sourceVerified": True,
+        }
+
+    external_href = str(external_source_url or "").strip()
+    external_match = re.fullmatch(r"/api/pec/messages/([^/]+)", external_href)
+    if external_match:
+        external_href = f"/email/?audit_id={quote(external_match.group(1), safe='')}"
+        return {
+            "sourceHref": external_href,
+            "sourceLabel": "PEC originale",
+            "sourceKind": "pec",
+            "sourceVerified": True,
+        }
+    if external_href.startswith(("https://", "http://", "/")):
+        return {
+            "sourceHref": external_href,
+            "sourceLabel": _clean_text(source_name, limit=140) or "Calendario collegato",
+            "sourceKind": "calendario",
+            "sourceVerified": False,
+        }
+    if matter_id and source_name:
+        return {
+            "sourceHref": f"/fascicoli/{quote(matter_id, safe='')}#documenti",
+            "sourceLabel": _clean_text(source_name, limit=140),
+            "sourceKind": "fascicolo",
+            "sourceVerified": False,
+        }
+    return {
+        "sourceHref": "",
+        "sourceLabel": "",
+        "sourceKind": "",
+        "sourceVerified": False,
+    }
+
+
+def _remote_hearing_url(*values: Any) -> str:
+    for value in values:
+        match = REMOTE_HEARING_URL_RE.search(str(value or ""))
+        if match:
+            return match.group(0).rstrip(".,;:)]}")[:900]
+    return ""
+
+
+def _is_remote_hearing_ui_url(url: str, context: str = "") -> bool:
+    try:
+        from pct.pec_pipeline import _is_remote_hearing_url
+
+        return _is_remote_hearing_url(str(url or ""), context=context)[0]
+    except Exception:
+        return False
 
 
 def _extract_labeled_segment(text: str, label: str, *, limit: int = 220) -> str:
@@ -198,6 +291,9 @@ def _extract_labeled_line(text: str, label: str, *, limit: int = 220) -> str:
     for raw_line in str(text or "").splitlines():
         line = raw_line.strip()
         if line.lower().startswith(prefix):
+            segmented = _extract_docpresidio_labeled(line, label, limit=limit)
+            if segmented:
+                return segmented
             return _clean_text(line.split(":", 1)[1], limit=limit).strip(" -:;.")
     return _extract_docpresidio_labeled(text, label, limit=limit)
 
@@ -212,10 +308,17 @@ def _has_structured_pec_profile(text: str) -> bool:
     )
 
 
+def _structured_detail_value(label: str, value: Any, *, limit: int = 220) -> str:
+    cleaned = _visible_legal_text(value, limit=limit)
+    if label.casefold() == "evento" and _is_pec_operational_text(cleaned):
+        return ""
+    return cleaned
+
+
 def _pec_agenda_visible_notes(raw_notes: str, *, client: str = "", matter: str = "", court: str = "") -> str:
     lines: list[str] = []
     for label in ("Cliente", "Parte/soggetto", "Ufficio", "Giudice", "Evento", "Udienza"):
-        value = _extract_labeled_line(raw_notes, label, limit=220)
+        value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=220), limit=220)
         if value:
             _append_detail_line(lines, f"{label}: {value}", limit=260)
     if matter and "RG" not in " ".join(lines):
@@ -268,27 +371,45 @@ def _extract_hearing_datetime(*values: Any) -> datetime | None:
     return None
 
 
+def _extract_hearing_time(*values: Any) -> time | None:
+    for value in values:
+        match = PEC_HEARING_TIME_RE.search(str(value or ""))
+        if match:
+            return time(hour=int(match.group(1)), minute=int(match.group(2)))
+    return None
+
+
 def _legal_label(title: str, kind: str, notes: str = "") -> str:
-    text = f"{title} {kind} {notes}".lower()
+    title_text = title.lower()
+    kind_text = kind.lower()
+    text = f"{title_text} {kind_text} {notes.lower()}"
     if _is_document_presidio_lex_text(title, notes):
         doc_kind = _docpresidio_kind(title, notes)
         if doc_kind in {"deposito_note", "termine"}:
             return "Deposito note scritte"
         if doc_kind == "udienza":
             return "Udienza"
+    if "opposizione" in title_text and ("trattazione scritta" in title_text or "127-ter" in title_text):
+        return "Opposizione alla trattazione scritta"
     if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
         return "Rinvio udienza"
     if "fissazione udienza" in text or "fissata udienza" in text or "fissata l'udienza" in text or ("fissazione" in text and "udienza" in text):
         return "Fissazione udienza"
-    if "udienza" in text:
+    if "udienza" in title_text or kind_text == "udienza":
         return "Udienza"
-    if "deposito" in text and any(token in text for token in ("accett", "consegn", "esito positivo")):
+    if (
+        "deposito" in title_text
+        and any(token in title_text for token in ("accett", "consegn", "esito positivo"))
+    ) or (
+        kind_text == "deposito"
+        and any(token in text for token in ("accett", "consegn", "esito positivo"))
+    ):
         return "Deposito accettato"
-    if "deposito" in text:
+    if "deposito" in title_text or kind_text == "deposito":
         return "Deposito"
     if "notifica" in text or "notificazione" in text:
         return "Notifica"
-    if "termine" in text or "scadenza" in text or "decorrenza" in text:
+    if "termine" in title_text or "scadenza" in title_text or "decorrenza" in title_text or kind_text == "scadenza":
         return "Termine giuridico"
     if "pec" in text or "cancelleria" in text:
         return "Comunicazione PEC"
@@ -336,7 +457,7 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
             lines.append(f"{label}: {value}")
     if is_pec_operational:
         for label in ("Parte/soggetto", "Giudice", "Evento", "Udienza"):
-            value = _extract_labeled_line(raw_notes, label, limit=220)
+            value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=220), limit=220)
             if value:
                 _append_detail_line(lines, f"{label}: {value}", limit=260)
         _append_detail_line(
@@ -348,6 +469,10 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         party_subject = _extract_docpresidio_labeled(raw_notes, "Parte/soggetto", limit=180)
         if party_subject and party_subject.lower() not in " ".join(lines).lower():
             lines.append(f"Parte/soggetto: {party_subject}")
+        for label in ("Modalità udienza", "Orario udienza"):
+            value = _extract_labeled_line(raw_notes, label, limit=180)
+            if value:
+                _append_detail_line(lines, f"{label}: {value}", limit=220)
         remote_link = (
             _extract_labeled_line(raw_notes, "Link udienza audiovisiva", limit=240)
             or _extract_labeled_line(raw_notes, "Collegamento remoto", limit=240)
@@ -417,6 +542,39 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     row["subtitle"] = subtitle
     row["detailTitle"] = label
     row["detailLines"] = _detail_lines(row, original_title=origin_title, legal_label=label)
+    remote_candidate = _remote_hearing_url(
+        row.get("remoteHearingUrl"),
+        _extract_labeled_line(raw_notes, "Link udienza audiovisiva", limit=900),
+        _extract_labeled_line(raw_notes, "Collegamento remoto", limit=900),
+    )
+    remote_verified = bool(row.get("remoteHearingVerified")) or (
+        "Verifica link udienza: identico alla fonte letta" in raw_notes
+    )
+    remote_url = (
+        remote_candidate
+        if remote_verified
+        and _is_remote_hearing_ui_url(
+            remote_candidate,
+            str(row.get("remoteHearingSource") or raw_notes),
+        )
+        else ""
+    )
+    remote_mode = _clean_text(
+        row.get("remoteHearingMode")
+        or _extract_labeled_line(raw_notes, "Modalità udienza", limit=120)
+        or ("Da remoto" if remote_candidate else ""),
+        limit=120,
+    )
+    status_value = _enum_value(row.get("status")).upper()
+    row["remoteHearingUrl"] = remote_url
+    row["remoteHearingVerified"] = bool(remote_url and remote_verified)
+    row["remoteHearingDetected"] = bool(
+        row.get("remoteHearingDetected")
+        or remote_candidate
+        or row.get("remoteHearingPdfRequired")
+    )
+    row["remoteHearingMode"] = remote_mode
+    row["completed"] = status_value in {"COMPLETATO", "COMPLETATA", "ESEGUITO", "ESEGUITA", "FATTO", "CHIUSO", "CHIUSA"}
     return row
 
 
@@ -498,6 +656,12 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
     end = start + timedelta(minutes=duration)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
+    matter_id = str(getattr(item, "id_fascicolo", "") or "")
+    source_payload = _source_evidence(
+        notes,
+        matter_id=matter_id,
+        external_source_url=str(getattr(item, "external_source_url", "") or ""),
+    )
     return _decorate_event({
         "id": item_id,
         "title": title,
@@ -511,13 +675,26 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         "location": str(getattr(item, "luogo", "") or ""),
         "court": str(getattr(item, "tribunale", "") or ""),
         "matter": str(getattr(item, "procedimento", "") or ""),
-        "matterId": str(getattr(item, "id_fascicolo", "") or ""),
+        "matterId": matter_id,
         "client": str(getattr(item, "cliente", "") or ""),
         "clientId": str(getattr(item, "id_cliente", "") or ""),
         "owner": str(getattr(item, "avvocato", "") or "Studio"),
         "source": "agenda",
         "syncStatus": _sync_status(item),
         "notes": notes,
+        **source_payload,
+        "hearingMode": str(getattr(item, "hearing_mode", "") or ""),
+        "hearingTime": str(getattr(item, "hearing_time", "") or ""),
+        "remoteHearingDetected": bool(getattr(item, "remote_hearing_detected", False)),
+        "remoteHearingUrl": str(getattr(item, "remote_hearing_url", "") or ""),
+        "remoteHearingMode": str(getattr(item, "remote_hearing_mode", "") or ""),
+        "remoteHearingSource": str(getattr(item, "remote_hearing_source", "") or ""),
+        "remoteHearingVerified": bool(getattr(item, "remote_hearing_verified", False)),
+        "remoteHearingPlatform": str(getattr(item, "remote_hearing_platform", "") or ""),
+        "remoteHearingMeetingId": str(getattr(item, "remote_hearing_meeting_id", "") or ""),
+        "remoteHearingPasscode": str(getattr(item, "remote_hearing_passcode", "") or ""),
+        "remoteHearingAccessInfo": str(getattr(item, "remote_hearing_access_info", "") or ""),
+        "remoteHearingPdfRequired": bool(getattr(item, "remote_hearing_pdf_required", False)),
         "href": f"/agenda/{item_id}" if item_id else "/agenda",
     })
 
@@ -532,7 +709,7 @@ def _appointment_in_range(item: Any, start: date, end: date) -> bool:
     return start <= parsed.date() <= end
 
 
-def _deadline_event(item: Any) -> dict[str, Any] | None:
+def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
     if is_legacy_pec_deadline(item):
         return None
     due = str(getattr(item, "data_scadenza", "") or getattr(item, "legal_due_at", "") or "").strip()
@@ -542,8 +719,6 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         due_date = date.fromisoformat(due[:10])
     except ValueError:
         return None
-    start = datetime.combine(due_date, time(hour=9))
-    end = start + timedelta(minutes=45)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
     if tipo == "UDIENZA":
@@ -552,8 +727,6 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         kind = "DEPOSITO"
     else:
         kind = "SCADENZA"
-    time_label = "09:00" if kind == "UDIENZA" else "Entro giornata"
-    duration_label = "45 min" if kind == "UDIENZA" else "Scadenza"
     notes = "\n".join(
         part
         for part in (
@@ -561,6 +734,37 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
             str(getattr(item, "note", "") or "").strip(),
         )
         if part
+    )
+    hearing_time = None
+    if kind == "UDIENZA":
+        hearing_time = _extract_hearing_time(
+            getattr(item, "hearing_time", ""),
+            getattr(item, "remote_hearing_time", ""),
+            _extract_labeled_line(notes, "Orario udienza", limit=80),
+            _extract_labeled_line(notes, "Orario collegamento", limit=80),
+        )
+    start = datetime.combine(due_date, hearing_time or time(hour=9))
+    end = start + timedelta(minutes=45)
+    time_label = start.strftime("%H:%M") if kind == "UDIENZA" else "Entro giornata"
+    duration_label = "45 min" if kind == "UDIENZA" else "Scadenza"
+    fascicolo_id = str(getattr(item, "id_fascicolo", "") or "")
+    matter = ""
+    client = ""
+    client_id = str(getattr(item, "id_cliente", "") or "")
+    court = ""
+    if fascicolo is not None:
+        matter = _clean_text(getattr(fascicolo, "rg_completo", ""), limit=120) or _clean_text(getattr(fascicolo, "numero", ""), limit=120)
+        client = _clean_text(getattr(fascicolo, "nome_cliente", ""), limit=120)
+        client_id = client_id or str(getattr(fascicolo, "id_cliente", "") or "")
+        court = _clean_text(getattr(fascicolo, "tribunale", ""), limit=120)
+    source_payload = _source_evidence(
+        notes,
+        matter_id=fascicolo_id,
+        source_name=str(
+            getattr(item, "remote_hearing_source", "")
+            or getattr(item, "hearing_mode_source", "")
+            or ""
+        ),
     )
     return _decorate_event({
         "id": f"scadenza-{item_id}" if item_id else f"scadenza-{due_date.isoformat()}",
@@ -573,22 +777,202 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         "timeLabel": time_label,
         "durationLabel": duration_label,
         "location": "",
-        "court": "",
-        "matter": str(getattr(item, "id_fascicolo", "") or ""),
-        "matterId": str(getattr(item, "id_fascicolo", "") or ""),
-        "client": "",
-        "clientId": str(getattr(item, "id_cliente", "") or ""),
+        "court": court,
+        "matter": matter,
+        "matterId": fascicolo_id,
+        "client": client,
+        "clientId": client_id,
         "owner": str(getattr(item, "id_utente_responsabile", "") or "Studio"),
         "source": "scadenziario",
         "syncStatus": "locale",
         "notes": notes,
+        **source_payload,
+        "remoteHearingUrl": str(getattr(item, "remote_hearing_url", "") or ""),
+        "remoteHearingMode": str(getattr(item, "remote_hearing_mode", "") or ""),
+        "remoteHearingDetected": bool(getattr(item, "remote_hearing_detected", False)),
+        "remoteHearingSource": str(getattr(item, "remote_hearing_source", "") or ""),
+        "remoteHearingVerified": bool(getattr(item, "remote_hearing_verified", False)),
+        "remoteHearingPlatform": str(getattr(item, "remote_hearing_platform", "") or ""),
+        "remoteHearingMeetingId": str(getattr(item, "remote_hearing_meeting_id", "") or ""),
+        "remoteHearingPasscode": str(getattr(item, "remote_hearing_passcode", "") or ""),
+        "remoteHearingAccessInfo": str(getattr(item, "remote_hearing_access_info", "") or ""),
+        "remoteHearingPdfRequired": bool(getattr(item, "remote_hearing_pdf_required", False)),
         "href": f"/scadenziario/{item_id}" if item_id else "/scadenziario",
     })
+
+
+def _normal_context_key(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _unique_agenda_context(candidates: Iterable[dict[str, Any]]) -> dict[str, Any] | None:
+    rows = [
+        row
+        for row in candidates
+        if any(_clean_text(row.get(key), limit=120) for key in ("matter", "client", "court"))
+    ]
+    if not rows:
+        return None
+    for key in ("matter", "client"):
+        values = {_normal_context_key(row.get(key)) for row in rows if _normal_context_key(row.get(key))}
+        if len(values) > 1:
+            return None
+    return max(
+        rows,
+        key=lambda row: sum(bool(_clean_text(row.get(key), limit=120)) for key in ("matter", "client", "court", "matterId", "clientId")),
+    )
+
+
+def _is_generic_portal_hearing(event: dict[str, Any]) -> bool:
+    if str(event.get("legalLabel") or "").casefold() != "udienza":
+        return False
+    text = " ".join(str(event.get(key) or "") for key in ("title", "originTitle", "technicalNotes", "notes")).lower()
+    return "udienza da portale" in text or "sincronizzazione portale" in text
+
+
+def _agenda_context_for_deadline(
+    event: dict[str, Any],
+    agenda_contexts: Iterable[dict[str, Any]],
+) -> dict[str, Any] | None:
+    rows = list(agenda_contexts)
+    matter_id = _clean_text(event.get("matterId"), limit=120)
+    if matter_id:
+        exact_id = _unique_agenda_context(
+            row for row in rows if _clean_text(row.get("matterId"), limit=120) == matter_id
+        )
+        if exact_id is not None:
+            return exact_id
+
+    rg_key = _normal_context_key(_extract_rg(event.get("matter"), event.get("title"), event.get("technicalNotes"), event.get("notes")))
+    if rg_key:
+        exact_rg = _unique_agenda_context(
+            row
+            for row in rows
+            if _normal_context_key(_extract_rg(row.get("matter"), row.get("title"), row.get("technicalNotes"), row.get("notes"))) == rg_key
+        )
+        if exact_rg is not None:
+            return exact_rg
+
+    if _is_generic_portal_hearing(event):
+        event_date = str(event.get("start") or "")[:10]
+        return _unique_agenda_context(
+            row
+            for row in rows
+            if str(row.get("start") or "")[:10] == event_date
+            and str(row.get("legalLabel") or "").casefold() in {"udienza", "fissazione udienza", "rinvio udienza"}
+        )
+    return None
+
+
+def _enrich_deadline_from_agenda(
+    event: dict[str, Any],
+    agenda_contexts: Iterable[dict[str, Any]],
+) -> dict[str, Any]:
+    context = _agenda_context_for_deadline(event, agenda_contexts)
+    if context is None:
+        return event
+    enriched = dict(event)
+    enriched["agendaContextMatched"] = True
+    for key in ("matter", "matterId", "client", "clientId", "court", "location", "remoteHearingUrl", "remoteHearingMode"):
+        if not _clean_text(enriched.get(key), limit=160) and _clean_text(context.get(key), limit=160):
+            enriched[key] = context.get(key)
+    if _is_generic_portal_hearing(event) and str(event.get("start") or "")[:10] == str(context.get("start") or "")[:10]:
+        for key in ("start", "end", "timeLabel", "durationLabel"):
+            enriched[key] = context.get(key) or enriched.get(key)
+    enriched["notes"] = str(event.get("technicalNotes") or event.get("notes") or "")
+    enriched["subtitle"] = ""
+    return _decorate_event(enriched)
+
+
+def build_agenda_display_contexts(items: Iterable[Any]) -> list[dict[str, Any]]:
+    """Normalizza una sola volta gli appuntamenti usati come contesto visibile."""
+
+    contexts: list[dict[str, Any]] = []
+    for item in items:
+        event = _agenda_event(item)
+        if event:
+            contexts.append(event)
+    return contexts
+
+
+def build_deadline_display_event(
+    item: Any,
+    *,
+    fascicolo: Any = None,
+    agenda_contexts: Iterable[dict[str, Any]] = (),
+) -> dict[str, Any] | None:
+    """Applica alla scadenza la stessa lettura legale usata dall'Agenda."""
+
+    event = _deadline_event(item, fascicolo)
+    if event is None:
+        return None
+    return _enrich_deadline_from_agenda(event, agenda_contexts)
+
+
+def _deadline_context_text(item: Any) -> str:
+    return "\n".join(
+        str(getattr(item, key, "") or "")
+        for key in ("titolo", "descrizione", "note", "id_fascicolo")
+    )
+
+
+def _appointment_date(item: Any) -> str:
+    parsed = getattr(item, "data_ora_dt", None)
+    if not isinstance(parsed, datetime):
+        try:
+            parsed = datetime.fromisoformat(str(getattr(item, "data_ora", "") or ""))
+        except ValueError:
+            return ""
+    return parsed.date().isoformat()
+
+
+def _find_fascicolo_by_rg(fascicoli_repo: Any, rg_label: str) -> Any:
+    rg_key = _normal_context_key(rg_label)
+    if not rg_key or not hasattr(fascicoli_repo, "cerca"):
+        return None
+    search_value = re.sub(r"\D.*$", "", str(rg_label).removeprefix("RG ").strip())
+    if not search_value:
+        return None
+    try:
+        candidates = list(fascicoli_repo.cerca(search_value, archiviati=True))
+    except Exception:
+        return None
+    exact = [
+        candidate
+        for candidate in candidates
+        if _normal_context_key(_extract_rg(getattr(candidate, "rg_completo", ""), getattr(candidate, "numero", ""))) == rg_key
+    ]
+    return exact[0] if len(exact) == 1 else None
+
+
+def _enrich_agenda_event_from_fascicolo(event: dict[str, Any], fascicolo: Any) -> dict[str, Any]:
+    if fascicolo is None:
+        return event
+    enriched = dict(event)
+    values = {
+        "matter": _clean_text(getattr(fascicolo, "rg_completo", ""), limit=120)
+        or _clean_text(getattr(fascicolo, "numero", ""), limit=120),
+        "matterId": str(getattr(fascicolo, "id", "") or ""),
+        "client": _clean_text(getattr(fascicolo, "nome_cliente", ""), limit=120),
+        "clientId": str(getattr(fascicolo, "id_cliente", "") or ""),
+        "court": _clean_text(getattr(fascicolo, "tribunale", ""), limit=120),
+    }
+    changed = False
+    for key, value in values.items():
+        if value and not _clean_text(enriched.get(key), limit=160):
+            enriched[key] = value
+            changed = True
+    if not changed:
+        return event
+    enriched["notes"] = str(event.get("technicalNotes") or event.get("notes") or "")
+    enriched["subtitle"] = ""
+    return _decorate_event(enriched)
 
 
 def build_react_agenda_payload(
     agenda_loader: Callable[[], Any],
     deadlines_loader: Callable[[], Any],
+    fascicoli_loader: Callable[[], Any] | None = None,
     from_value: Any = "",
     to_value: Any = "",
     selected_id: str = "",
@@ -598,18 +982,76 @@ def build_react_agenda_payload(
     start, end = _date_range(from_value, to_value)
     agenda_repo = agenda_loader()
     deadlines_repo = deadlines_loader()
+    fascicoli_repo = fascicoli_loader() if fascicoli_loader is not None else None
+    fascicoli_cache: dict[str, Any] = {}
+    all_appointments = _safe_items(lambda: agenda_repo.tutti())
     appointments = [
         item
-        for item in _safe_items(lambda: agenda_repo.tutti())
+        for item in all_appointments
         if _appointment_in_range(item, start, end)
     ]
-    deadlines = _safe_items(lambda: deadlines_repo.tutte(solo_aperte=True))
+    deadlines = _safe_items(lambda: deadlines_repo.tutte(solo_aperte=False))
 
     events: list[dict[str, Any]] = []
     for item in appointments:
         event = _agenda_event(item)
         if event:
+            if fascicoli_repo is not None:
+                matter_id = _clean_text(event.get("matterId"), limit=120)
+                rg_label = _extract_rg(
+                    event.get("matter"),
+                    event.get("title"),
+                    event.get("technicalNotes"),
+                    event.get("notes"),
+                )
+                cache_key = f"id:{matter_id}" if matter_id else f"rg:{_normal_context_key(rg_label)}"
+                fascicolo = None
+                if matter_id or rg_label:
+                    if cache_key not in fascicoli_cache:
+                        try:
+                            fascicolo = fascicoli_repo.get(matter_id) if matter_id else None
+                        except Exception:
+                            fascicolo = None
+                        if fascicolo is None and rg_label:
+                            fascicolo = _find_fascicolo_by_rg(fascicoli_repo, rg_label)
+                        fascicoli_cache[cache_key] = fascicolo
+                    else:
+                        fascicolo = fascicoli_cache[cache_key]
+                event = _enrich_agenda_event_from_fascicolo(event, fascicolo)
             events.append(event)
+    agenda_contexts = list(events)
+    deadline_rg_keys = {
+        _normal_context_key(rg)
+        for item in deadlines
+        if (rg := _extract_rg(_deadline_context_text(item)))
+    }
+    deadline_hearing_dates = {
+        str(getattr(item, "data_scadenza", "") or "")[:10]
+        for item in deadlines
+        if _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
+        and str(getattr(item, "data_scadenza", "") or "")[:10]
+    }
+    visible_appointment_ids = {str(getattr(item, "id", "") or "") for item in appointments}
+    for item in all_appointments:
+        if str(getattr(item, "id", "") or "") in visible_appointment_ids:
+            continue
+        rg_key = _normal_context_key(
+            _extract_rg(
+                getattr(item, "procedimento", ""),
+                getattr(item, "titolo", ""),
+                getattr(item, "descrizione", ""),
+                getattr(item, "note", ""),
+            )
+        )
+        same_hearing_day = (
+            _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
+            and _appointment_date(item) in deadline_hearing_dates
+        )
+        if rg_key not in deadline_rg_keys and not same_hearing_day:
+            continue
+        context_event = _agenda_event(item)
+        if context_event:
+            agenda_contexts.append(context_event)
     if selected_id:
         try:
             selected = agenda_repo.get(selected_id)
@@ -624,6 +1066,22 @@ def build_react_agenda_payload(
         if event:
             event_date = _parse_date(event["start"], start)
             if start <= event_date <= end:
+                fascicolo_id = str(getattr(item, "id_fascicolo", "") or "").strip()
+                rg_label = _extract_rg(_deadline_context_text(item))
+                fascicolo_cache_key = f"id:{fascicolo_id}" if fascicolo_id else f"rg:{_normal_context_key(rg_label)}"
+                if fascicoli_repo is not None and (fascicolo_id or rg_label):
+                    if fascicolo_cache_key not in fascicoli_cache:
+                        try:
+                            fascicolo = fascicoli_repo.get(fascicolo_id) if fascicolo_id else None
+                        except Exception:
+                            fascicolo = None
+                        if fascicolo is None and rg_label:
+                            fascicolo = _find_fascicolo_by_rg(fascicoli_repo, rg_label)
+                        fascicoli_cache[fascicolo_cache_key] = fascicolo
+                    fascicolo = fascicoli_cache[fascicolo_cache_key]
+                    if fascicolo is not None:
+                        event = _deadline_event(item, fascicolo) or event
+                event = _enrich_deadline_from_agenda(event, agenda_contexts)
                 events.append(event)
 
     events = _dedupe_events(events)
@@ -638,6 +1096,6 @@ def build_react_agenda_payload(
         "contracts": {
             "mock_fallback": False,
             "read_only": True,
-            "sources": ["agenda", "scadenziario"],
+            "sources": ["agenda", "scadenziario"] + (["fascicoli"] if fascicoli_loader is not None else []),
         },
     }

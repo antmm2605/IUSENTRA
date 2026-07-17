@@ -88,7 +88,7 @@
     },
     "udienza_da_remoto": {
       "priority": "P1",
-      "actions": ["agenda", "notifica_web_push", "lex_ingest"],
+      "actions": ["scadenziario", "agenda", "notifica_web_push", "lex_ingest"],
       "missing_link_priority": "P0"
     },
     "udienza_sostituita_da_note_scritte": {

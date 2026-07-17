@@ -31,9 +31,24 @@ export type AgendaEvent = {
   owner: string
   status: string
   source: string
+  sourceHref: string
+  sourceLabel: string
+  sourceKind: string
+  sourceVerified: boolean
   syncStatus: AgendaSyncStatus
   notes: string
   href: string
+  remoteHearingDetected: boolean
+  remoteHearingUrl: string
+  remoteHearingVerified: boolean
+  remoteHearingMode: string
+  remoteHearingSource: string
+  remoteHearingPlatform: string
+  remoteHearingMeetingId: string
+  remoteHearingPasscode: string
+  remoteHearingAccessInfo: string
+  remoteHearingPdfRequired: boolean
+  completed: boolean
 }
 
 export type AgendaDay = {
@@ -61,6 +76,7 @@ export type AgendaSummary = {
 export type AgendaPageData = {
   generatedAt: string
   source: string
+  diagnostic: string
   days: AgendaDay[]
   events: AgendaEvent[]
   summary: AgendaSummary
@@ -196,7 +212,8 @@ function syncFrom(value: unknown): AgendaSyncStatus {
   return 'da_sincronizzare'
 }
 
-function toneFor(kind: AgendaEvent['kind'], priority: AgendaPriority): Tone {
+function toneFor(kind: AgendaEvent['kind'], priority: AgendaPriority, completed = false): Tone {
+  if (completed) return 'success'
   if (priority === 'critica') return 'danger'
   if (priority === 'alta') return 'warning'
   if (kind === 'udienza') return 'orange'
@@ -204,6 +221,22 @@ function toneFor(kind: AgendaEvent['kind'], priority: AgendaPriority): Tone {
   if (kind === 'call') return 'success'
   if (kind === 'studio') return 'purple'
   return 'primary'
+}
+
+function remoteHearingUrlFrom(value: unknown, detailLines: string[]): string {
+  const candidates = [asString(value), ...detailLines]
+  for (const candidate of candidates) {
+    const match = candidate.match(/https?:\/\/[^\s<>"']+/i)
+    if (!match) continue
+    const url = match[0].replace(/[.,;:)\]}]+$/, '')
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return parsed.toString()
+    } catch {
+      // Il collegamento non viene reso interattivo se non è un URL valido.
+    }
+  }
+  return ''
 }
 
 function pickFirst(record: Record<string, unknown>, keys: string[]): unknown {
@@ -243,6 +276,12 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
   const backendSubtitle = asString(pickFirst(item, ['subtitle', 'sottotitolo']))
   const subtitle = backendSubtitle || [matter, court, location].filter(Boolean).join(' - ') || asString(pickFirst(item, ['descrizione', 'note']))
   const detailLines = asStringArray(pickFirst(item, ['detailLines', 'detail_lines', 'dettagli']))
+  const status = asString(pickFirst(item, ['status', 'stato']), 'programmato')
+  const completed = item.completed === true || ['completato', 'completata', 'eseguito', 'eseguita', 'fatto', 'chiuso', 'chiusa'].includes(status.toLowerCase())
+  const remoteHearingUrl = remoteHearingUrlFrom(
+    pickFirst(item, ['remoteHearingUrl', 'remote_hearing_url', 'videoUrl', 'meetingUrl', 'joinUrl']),
+    detailLines,
+  )
   return {
     id: asString(pickFirst(item, ['id', 'uuid', 'pk']), `agenda-${index}`),
     title,
@@ -259,7 +298,7 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     durationLabel: asString(pickFirst(item, ['durationLabel', 'duration_label', 'durataLabel', 'durata_label']), durationLabel(start, end)),
     kind,
     priority,
-    tone: toneFor(kind, priority),
+    tone: toneFor(kind, priority, completed),
     location,
     court,
     matter,
@@ -267,11 +306,26 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     client,
     clientId,
     owner: asString(pickFirst(item, ['owner', 'responsabile', 'avvocato']), 'Studio'),
-    status: asString(pickFirst(item, ['status', 'stato']), 'programmato'),
+    status,
     source: asString(pickFirst(item, ['source', 'fonte']), 'agenda studio'),
+    sourceHref: asString(pickFirst(item, ['sourceHref', 'source_href'])),
+    sourceLabel: asString(pickFirst(item, ['sourceLabel', 'source_label'])),
+    sourceKind: asString(pickFirst(item, ['sourceKind', 'source_kind'])),
+    sourceVerified: item.sourceVerified === true || item.source_verified === true,
     syncStatus: syncFrom(pickFirst(item, ['syncStatus', 'sync_status', 'sync', 'stato_sync'])),
     notes,
     href: asString(pickFirst(item, ['href', 'url']), '/agenda'),
+    remoteHearingDetected: item.remoteHearingDetected === true || item.remote_hearing_detected === true,
+    remoteHearingUrl,
+    remoteHearingVerified: item.remoteHearingVerified === true || item.remote_hearing_verified === true,
+    remoteHearingMode: asString(pickFirst(item, ['remoteHearingMode', 'remote_hearing_mode', 'hearingMode', 'modalita_udienza']), remoteHearingUrl ? 'Da remoto' : ''),
+    remoteHearingSource: asString(pickFirst(item, ['remoteHearingSource', 'remote_hearing_source'])),
+    remoteHearingPlatform: asString(pickFirst(item, ['remoteHearingPlatform', 'remote_hearing_platform'])),
+    remoteHearingMeetingId: asString(pickFirst(item, ['remoteHearingMeetingId', 'remote_hearing_meeting_id'])),
+    remoteHearingPasscode: asString(pickFirst(item, ['remoteHearingPasscode', 'remote_hearing_passcode'])),
+    remoteHearingAccessInfo: asString(pickFirst(item, ['remoteHearingAccessInfo', 'remote_hearing_access_info'])),
+    remoteHearingPdfRequired: item.remoteHearingPdfRequired === true || item.remote_hearing_pdf_required === true,
+    completed,
   }
 }
 
@@ -299,6 +353,7 @@ export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), 
   return {
     generatedAt: new Date().toISOString(),
     source,
+    diagnostic: '',
     days,
     events: ordered,
     summary: {
@@ -307,8 +362,8 @@ export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), 
       hearings: periodEvents.filter((event) => event.kind === 'udienza').length,
       deadlines: periodEvents.filter((event) => event.kind === 'scadenza' || event.kind === 'deposito').length,
       unsynced: periodEvents.filter((event) => event.syncStatus !== 'sincronizzato').length,
-      critical: periodEvents.filter((event) => event.priority === 'critica' || event.priority === 'alta').length,
-      nextEvent: ordered.find((event) => new Date(event.start).getTime() >= Date.now()),
+      critical: periodEvents.filter((event) => !event.completed && (event.priority === 'critica' || event.priority === 'alta')).length,
+      nextEvent: ordered.find((event) => !event.completed && new Date(event.start).getTime() >= Date.now()),
     },
   }
 }
@@ -374,10 +429,23 @@ export async function getAgendaPage(anchor = new Date(), view: AgendaView = 'wee
     const result = await fetchAgendaEndpoint('/api/v1/ui/agenda', from, to)
       ?? await fetchAgendaEndpoint('/api/v1/agenda', from, to)
       ?? { items: [], source: 'empty' }
-    const events = result.items.map((item, index) => normalizeAgendaEvent(item, index)).filter(Boolean) as AgendaEvent[]
-    return buildAgendaPageData(events, anchor, result.source, view)
-  } catch {
-    return buildAgendaPageData([], anchor, 'errore_controllato', view)
+    const failures: string[] = []
+    const events = result.items.flatMap((item, index) => {
+      try {
+        const event = normalizeAgendaEvent(item, index)
+        return event ? [event] : []
+      } catch (error) {
+        failures.push(error instanceof Error ? error.message : 'Evento non leggibile')
+        return []
+      }
+    })
+    const payload = buildAgendaPageData(events, anchor, result.source, view)
+    payload.diagnostic = failures.join(' | ')
+    return payload
+  } catch (error) {
+    const payload = buildAgendaPageData([], anchor, 'errore_controllato', view)
+    payload.diagnostic = error instanceof Error ? error.message : 'Caricamento non disponibile'
+    return payload
   }
 }
 

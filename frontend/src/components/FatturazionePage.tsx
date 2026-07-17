@@ -46,6 +46,7 @@ import {
   type CreateFatturaResult,
   type FatturazioneDraft,
   type FatturazioneDetail,
+  type FatturazioneDetailFiscal,
   type FatturazioneDetailUpdatePayload,
   type FatturazioneFiscalDefaults,
   type FatturazioneFormDefinition,
@@ -88,6 +89,7 @@ type FormState = {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'validation' | 'permission' | 'server'
+type BankDetailsStatus = 'idle' | 'saving' | 'saved' | 'error'
 type PaymentFilter = 'all' | 'bonifico' | 'senza_bonifico'
 type IssueFilter = 'all' | 'emessa' | 'da_emettere'
 type DetailTab = 'dettaglio' | 'pdf' | 'xml' | 'commercialista'
@@ -132,6 +134,12 @@ const defaultFiscalOptions: FatturazioneFiscalDefaults = {
   applica_cassa: true,
   applica_ritenuta: false,
   applica_bollo: false,
+}
+
+const defaultDetailFiscal: FatturazioneDetailFiscal = {
+  ...defaultFiscalOptions,
+  percentuale_spese_generali: '0',
+  regime_fiscale: 'RF01',
 }
 
 const noVatRegimes = new Set(['RF19', 'RF02'])
@@ -213,6 +221,7 @@ const fallbackFormState: FormState = {
     document: {
       tipo_documento: 'TD01',
       tipo_documento_label: 'Fattura',
+      documento_operativo: 'FATTURA',
       numero_documento: '',
       data_documento: '',
       causale_oggetto: '',
@@ -279,6 +288,10 @@ function settingsBoolValue(raw: unknown, fallback = false): boolean {
   return ['1', 'true', 'si', 'sì', 'yes', 'on'].includes(String(raw).trim().toLowerCase())
 }
 
+function normaliseBicSwift(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)
+}
+
 function rowFromDefault(item: FatturazioneVoiceDefault, index: number): VoiceRow {
   return {
     rowId: `voce-${index + 1}`,
@@ -335,6 +348,12 @@ function displayErrors(errors: Record<string, string>): string[] {
 }
 
 function buildPayload(formState: FormState): CreateFatturaPayload {
+  const datiPersonalizzati = {
+    transmission: formState.dati_personalizzati.transmission,
+    recipient: formState.dati_personalizzati.recipient,
+    document: formState.dati_personalizzati.document,
+    payment: formState.dati_personalizzati.payment,
+  }
   return {
     ...formState.hidden,
     id_cliente: formState.id_cliente,
@@ -345,7 +364,8 @@ function buildPayload(formState: FormState): CreateFatturaPayload {
     opzioni_fiscali: formState.opzioni_fiscali,
     percentuale_spese_generali: formState.percentuale_spese_generali,
     metodo_pagamento: formState.metodo_pagamento,
-    dati_personalizzati: formState.dati_personalizzati,
+    // L'identità dello studio arriva sempre dalla sessione tenant sul server.
+    dati_personalizzati: datiPersonalizzati,
     voci: formState.voci.map((row) => ({
       descrizione: row.descrizione,
       quantita: numericInputValue(row.quantita, 1),
@@ -374,6 +394,22 @@ function lineTotal(row: VoiceRow): number {
 function mergeParty(current: FatturazionePersonalizedParty, incoming?: FatturazionePersonalizedParty): FatturazionePersonalizedParty {
   if (!incoming) return current
   return { ...current, ...incoming }
+}
+
+function normaliseIban(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 34)
+}
+
+function isValidIban(value: string): boolean {
+  const iban = normaliseIban(value)
+  if (iban.length < 15 || iban.length > 34 || !/^[A-Z]{2}\d{2}/.test(iban)) return false
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`
+  let remainder = 0
+  for (const character of rearranged) {
+    const digits = /[A-Z]/.test(character) ? String(character.charCodeAt(0) - 55) : character
+    for (const digit of digits) remainder = (remainder * 10 + Number(digit)) % 97
+  }
+  return remainder === 1
 }
 
 function computePreview(formState: FormState) {
@@ -412,128 +448,6 @@ function computePreview(formState: FormState) {
     totaleDocumento,
     totale,
   }
-}
-
-function WarningPanel({ data }: { data: FatturazionePageData }) {
-  if (!data.warnings.length) return null
-  return (
-    <Panel title="Avvisi economici">
-      <div className="iu-fatt-warnings">
-        {data.warnings.map((warning) => (
-          <div className="iu-fatt-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">Avviso</Badge>
-            <span>{warning.message}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function SdiWorkflowPanel({ data }: { data: FatturazionePageData }) {
-  if (!data.sdiWorkflow.length && !data.officialSources.length) return null
-  return (
-    <Panel title="Invio e monitoraggio SdI" subtitle={data.sdiChannel.message || data.sdiChannel.label}>
-      <div className="iu-fatt-sdi-panel">
-        <div className="iu-fatt-sdi-channel">
-          <Badge tone={data.sdiChannel.configured ? 'success' : 'warning'}>{data.sdiChannel.label}</Badge>
-          <span>
-            {data.sdiChannel.configured
-              ? 'Invio automatico disponibile solo con la configurazione reale attiva.'
-              : 'Senza canale accreditato o intermediario IUSENTRA prepara XML e registra identificativo/esiti, ma non spedisce al Sistema di Interscambio.'}
-          </span>
-        </div>
-        <div className="iu-fatt-sdi-steps">
-          {data.sdiWorkflow.map((step) => (
-            <article key={step.id}>
-              <Badge tone={step.tone}>{step.label}</Badge>
-              <span>{step.message}</span>
-            </article>
-          ))}
-        </div>
-        {data.officialSources.length ? (
-          <div className="iu-fatt-sdi-sources">
-            {data.officialSources.map((source) => (
-              <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>
-                <FileText size={15}/>
-                <span>{source.label}</span>
-                <small>{source.authority}</small>
-              </a>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </Panel>
-  )
-}
-
-function ContractPanel({ data }: { data: FatturazionePageData }) {
-  return (
-    <Panel title="Presidio dati" subtitle="Lettura operativa con proprietà fiscale governata.">
-      <div className="iu-fatt-contract">
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Calcolo: governato</span>
-        <span>Consultazione: {data.contracts.operational ? 'attiva' : 'non disponibile'}</span>
-      </div>
-    </Panel>
-  )
-}
-
-function FiscalGuardrailsPanel({ data }: { data: FatturazionePageData }) {
-  const hasSdi = data.sdiWorkflow.length > 0 || data.officialSources.length > 0
-  const hasWarnings = data.warnings.length > 0
-  if (!hasSdi && !hasWarnings) return null
-
-  return (
-    <details className="iu-fatt-presidi">
-      <summary>
-        <span>
-          <FileText size={16} />
-          <strong>Presidi fiscali e SdI</strong>
-        </span>
-        <small>{data.sdiChannel.message || data.sdiChannel.label}</small>
-      </summary>
-      <div className="iu-fatt-presidi__body">
-        {hasWarnings ? (
-          <section className="iu-fatt-presidi__group" aria-label="Avvisi economici">
-            {data.warnings.map((warning) => (
-              <div className="iu-fatt-presidi__row" key={`${warning.code}-${warning.message}`}>
-                <Badge tone="warning">Avviso</Badge>
-                <span>{warning.message}</span>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        <section className="iu-fatt-presidi__group" aria-label="Canale SdI">
-          <div className="iu-fatt-presidi__row">
-            <Badge tone={data.sdiChannel.configured ? 'success' : 'warning'}>{data.sdiChannel.label}</Badge>
-            <span>
-              {data.sdiChannel.configured
-                ? 'Canale configurato. XML, identificativi ed esiti restano collegati ai documenti.'
-                : 'XML FatturaPA e identificativi restano disponibili; invio solo con canale o intermediario configurato.'}
-            </span>
-          </div>
-          {data.sdiWorkflow.map((step) => (
-            <div className="iu-fatt-presidi__row" key={step.id}>
-              <Badge tone={step.tone}>{step.label}</Badge>
-              <span>{step.message}</span>
-            </div>
-          ))}
-        </section>
-        {data.officialSources.length ? (
-          <nav className="iu-fatt-presidi__sources" aria-label="Fonti tecniche fatturazione">
-            {data.officialSources.map((source) => (
-              <a href={source.url} target="_blank" rel="noreferrer" key={source.id}>
-                <FileText size={15} />
-                <span>{source.label}</span>
-                <small>{source.authority}</small>
-              </a>
-            ))}
-          </nav>
-        ) : null}
-      </div>
-    </details>
-  )
 }
 
 function normalizeFilterValue(value: string | number | null | undefined) {
@@ -637,12 +551,12 @@ function CompactOperations({
           aria-pressed={issueFilter === 'emessa'}
         >
           <ReceiptText size={15} />
-          <span>Parcella emessa</span>
+          <span>Fattura emessa</span>
           <strong>{issuedCount}</strong>
         </button>
-        <a className="iu-fatt-chip" href="/fatturazione/nuova" data-tone="primary">
+        <a className="iu-fatt-chip" href="/fatturazione/nuova?documento_operativo=PROFORMA" data-tone="primary">
           <Plus size={15} />
-          <span>Nuova parcella</span>
+          <span>Nuova proforma</span>
         </a>
         {exportAction ? (
           <a className="iu-fatt-chip" href={exportAction.href} data-tone="warning">
@@ -697,15 +611,15 @@ function InvoiceRow({
         {record.caseTitle ? <small>{record.caseTitle}</small> : null}
       </div>
       <div className="iu-fatt-record__dates">
-        <span>Emissione {record.issuedAt || 'non indicata'}</span>
+        <span>{record.isProforma ? 'Data' : 'Emissione'} {record.issuedAt || 'non indicata'}</span>
         <span>Scadenza {record.dueAt || 'non indicata'}</span>
         {record.paidAt ? <span>Incasso {record.paidAt}</span> : null}
       </div>
       <div className="iu-fatt-record__amount">
         <strong>{record.amountDisplay || 'Importo non indicato'}</strong>
         <Badge tone={record.stateTone}>{record.stateLabel}</Badge>
-        <Badge tone={record.sdiStateTone}>{record.sdiStateLabel}</Badge>
-        {record.sdiIdentifier ? <small>SdI {record.sdiIdentifier}</small> : null}
+        {!record.isProforma && record.sdiStateLabel ? <Badge tone={record.sdiStateTone}>{record.sdiStateLabel}</Badge> : null}
+        {!record.isProforma && record.sdiIdentifier ? <small>SdI {record.sdiIdentifier}</small> : null}
         {record.sdiStatusMessage ? <small>{record.sdiStatusMessage}</small> : null}
         {record.paymentMethod ? <small>{record.paymentMethod}</small> : null}
       </div>
@@ -727,7 +641,7 @@ function InvoiceRow({
         {data.permissions.canUpdateStatus && record.isProforma && record.state === 'BOZZA' ? (
           <Button type="button" tone="primary" disabled={savingId === record.id} onClick={() => onStatus(record, 'EMESSA')}>
             <ReceiptText size={15} />
-            Emetti parcella
+            Conferma ed emetti
           </Button>
         ) : null}
         {data.permissions.canMarkPaid && record.state !== 'PAGATA' ? (
@@ -901,21 +815,6 @@ function StatusMessage({
   )
 }
 
-function TechnicalRollback({ href = '/fatturazione/nuova?_legacy=1' }: { href?: string }) {
-  return (
-    <section className="iu-fatt-rollback" aria-label="Percorso di recupero">
-      <div>
-        <strong>Percorso di recupero</strong>
-        <span>Disponibile solo per assistenza e confronto con il template storico, non come flusso principale.</span>
-      </div>
-      <ButtonLink href={href} tone="warning">
-        <ExternalLink size={15} />
-        Apri percorso di recupero
-      </ButtonLink>
-    </section>
-  )
-}
-
 function VoiceEditor({
   rows,
   onChange,
@@ -1003,10 +902,12 @@ function FiscalOptions({
   values,
   onChange,
   disableIva,
+  disabled,
 }: {
   values: FatturazioneFiscalDefaults
   onChange: (values: FatturazioneFiscalDefaults) => void
   disableIva?: boolean
+  disabled?: boolean
 }) {
   const options: Array<{ name: keyof FatturazioneFiscalDefaults; label: string }> = [
     { name: 'applica_cassa', label: 'Cassa Forense' },
@@ -1021,7 +922,7 @@ function FiscalOptions({
           <input
             type="checkbox"
             checked={values[option.name]}
-            disabled={option.name === 'applica_iva' && disableIva}
+            disabled={disabled || (option.name === 'applica_iva' && disableIva)}
             onChange={(event) => onChange({ ...values, [option.name]: event.currentTarget.checked })}
           />
           <span>{option.label}</span>
@@ -1042,12 +943,16 @@ function NewInvoiceForm({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [result, setResult] = useState<CreateFatturaResult | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [bankDetailsStatus, setBankDetailsStatus] = useState<BankDetailsStatus>('idle')
+  const [bankDetailsMessage, setBankDetailsMessage] = useState('')
 
   useEffect(() => {
     setFormState(stateFromForm(form))
     setSaveStatus('idle')
     setResult(null)
     setErrors({})
+    setBankDetailsStatus('idle')
+    setBankDetailsMessage('')
   }, [form])
 
   const filteredMatters = useMemo(
@@ -1059,7 +964,22 @@ function NewInvoiceForm({
   const noClients = data.clients.length === 0
   const clientProfile = data.clientProfiles[formState.id_cliente]
   const matterProfile = data.matterProfiles[formState.id_fascicolo]
+  const recipient = formState.dati_personalizzati.recipient
+  const recipientIsCompany = Boolean(recipient.denominazione.trim())
+    && !recipient.nome.trim()
+    && !recipient.cognome.trim()
   const ivaLocked = isVatExcludedRegime(formState.dati_personalizzati.document.regime_fiscale)
+  const isBankTransfer = formState.dati_personalizzati.payment.modalita_pagamento_codice === 'MP05'
+    || formState.dati_personalizzati.payment.modalita_pagamento_label.toLowerCase().includes('bonifico')
+  const documentKindLabel = formState.dati_personalizzati.document.documento_operativo === 'PROFORMA'
+    ? 'proforma'
+    : formState.dati_personalizzati.document.documento_operativo === 'NOTA_CREDITO'
+      ? 'nota di credito'
+      : 'fattura'
+  const bankDetailsDirty = normaliseIban(formState.dati_personalizzati.payment.iban) !== normaliseIban(data.studioProfile.iban || '')
+    || formState.dati_personalizzati.payment.istituto_finanziario.trim() !== (data.studioProfile.istituto_finanziario || '').trim()
+    || formState.dati_personalizzati.payment.beneficiario.trim() !== (data.studioProfile.nome_denominazione || '').trim()
+    || normaliseBicSwift(formState.dati_personalizzati.payment.bic_swift) !== normaliseBicSwift(data.studioProfile.bic_swift || '')
 
   function updatePersonalized<K extends keyof FatturazionePersonalizedData>(
     section: K,
@@ -1112,9 +1032,74 @@ function NewInvoiceForm({
           beneficiario: data.studioProfile.nome_denominazione || current.dati_personalizzati.payment.beneficiario,
           istituto_finanziario: data.studioProfile.istituto_finanziario || current.dati_personalizzati.payment.istituto_finanziario,
           iban: data.studioProfile.iban || current.dati_personalizzati.payment.iban,
+          bic_swift: data.studioProfile.bic_swift || current.dati_personalizzati.payment.bic_swift,
         },
       },
     }))
+  }
+
+  async function persistBankDetails(): Promise<boolean> {
+    const iban = normaliseIban(formState.dati_personalizzati.payment.iban)
+    const bicSwift = normaliseBicSwift(formState.dati_personalizzati.payment.bic_swift)
+    if (!iban) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('Inserisci l’IBAN dello studio.')
+      setErrors({ 'dati_personalizzati.payment.iban': 'Inserisci l’IBAN dello studio.' })
+      return false
+    }
+    if (!isValidIban(iban)) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('Controlla l’IBAN: il codice inserito non è valido.')
+      setErrors({ 'dati_personalizzati.payment.iban': 'IBAN non valido.' })
+      return false
+    }
+    if (bicSwift && ![8, 11].includes(bicSwift.length)) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('Controlla il BIC/SWIFT: deve contenere 8 o 11 caratteri.')
+      setErrors({ 'dati_personalizzati.payment.bic_swift': 'BIC/SWIFT non valido.' })
+      return false
+    }
+    setBankDetailsStatus('saving')
+    setBankDetailsMessage('Salvataggio coordinate in corso…')
+    const settings = await getSettings()
+    if (!settings.ok || !settings.permissions.can_update) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('Non è stato possibile aggiornare le coordinate dello studio.')
+      return false
+    }
+    const current = settingsPlainRecord(settings.pagamenti)
+    const currentBilling = settingsPlainRecord(settings.fatturazione)
+    const savedBilling = await saveSettingsSection('fatturazione', {
+      ...currentBilling,
+      bic_swift: bicSwift,
+    })
+    if (!savedBilling.ok) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('BIC/SWIFT non salvato. Controlla le impostazioni di fatturazione.')
+      return false
+    }
+    const saved = await saveSettingsSection('pagamenti', {
+      ...current,
+      bonifico_abilitato: true,
+      bonifico_iban: iban,
+      bonifico_intestazione: formState.dati_personalizzati.payment.beneficiario.trim() || data.studioProfile.nome_denominazione,
+      bonifico_banca: formState.dati_personalizzati.payment.istituto_finanziario.trim(),
+    })
+    if (!saved.ok) {
+      setBankDetailsStatus('error')
+      setBankDetailsMessage('Coordinate non salvate. Controlla i dati e riprova.')
+      return false
+    }
+    setFormState((currentState) => ({
+      ...currentState,
+      dati_personalizzati: {
+        ...currentState.dati_personalizzati,
+        payment: { ...currentState.dati_personalizzati.payment, iban, bic_swift: bicSwift },
+      },
+    }))
+    setBankDetailsStatus('saved')
+    setBankDetailsMessage('Coordinate dello studio salvate.')
+    return true
   }
 
   function onMatterChange(matterId: string) {
@@ -1140,6 +1125,13 @@ function NewInvoiceForm({
       setErrors({ permission: 'Permesso di scrittura mancante.' })
       return
     }
+    if (isBankTransfer && (bankDetailsDirty || !isValidIban(formState.dati_personalizzati.payment.iban))) {
+      const bankDetailsSaved = await persistBankDetails()
+      if (!bankDetailsSaved) {
+        setSaveStatus('validation')
+        return
+      }
+    }
     setSaveStatus('saving')
     setErrors({})
     setResult(null)
@@ -1148,6 +1140,10 @@ function NewInvoiceForm({
     setErrors(response.errors || {})
     if (response.ok) {
       setSaveStatus('success')
+      const redirectHref = response.redirect_href
+      if (redirectHref) {
+        window.setTimeout(() => window.location.assign(redirectHref), 450)
+      }
     } else if (response.status === 403 || response.errors?.permission) {
       setSaveStatus('permission')
     } else if (response.status && response.status >= 500) {
@@ -1159,19 +1155,18 @@ function NewInvoiceForm({
 
   if (noClients) {
     return (
-      <Panel title="Nuova parcella" subtitle="La creazione richiede almeno un cliente reale.">
+      <Panel title={form?.title || 'Nuova proforma'} subtitle="La creazione richiede almeno un cliente reale.">
         <EmptyState
           title="Nessun cliente disponibile"
-          message="Inserisci o sincronizza un cliente prima di creare una parcella."
+          message="Inserisci o sincronizza un cliente prima di creare il documento."
           action={<ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink>}
         />
-        <TechnicalRollback />
       </Panel>
     )
   }
 
   return (
-    <Panel title="Nuova parcella personalizzata" subtitle="Precompilazione da studio, cliente, fascicolo e impostazioni disponibili.">
+    <Panel title={form?.title || 'Nuova proforma'} subtitle="Dati dello studio, cliente, fascicolo e calcolo economico.">
       <form className="iu-fatt-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <section className="iu-fatt-rich-card">
@@ -1324,20 +1319,24 @@ function NewInvoiceForm({
               <h3>Dati dello studio</h3>
             </div>
             <Badge tone="success">Precompilati</Badge>
+            <ButtonLink href="/impostazioni?tab=studio" tone="neutral">
+              <PenLine size={15} />
+              Modifica dati studio
+            </ButtonLink>
           </div>
           <div className="iu-fatt-form-grid">
             <label className="iu-fatt-field">
-              <span>Nome o denominazione</span>
+              <span>{formState.dati_personalizzati.studio.denominazione ? 'Denominazione' : 'Nome'}</span>
               <input
                 value={formState.dati_personalizzati.studio.nome_denominazione}
-                onChange={(event) => updatePersonalized('studio', { nome_denominazione: event.currentTarget.value })}
+                readOnly
               />
             </label>
             <label className="iu-fatt-field">
               <span>Cognome</span>
               <input
                 value={formState.dati_personalizzati.studio.cognome}
-                onChange={(event) => updatePersonalized('studio', { cognome: event.currentTarget.value })}
+                readOnly
                 placeholder="Lascia vuoto per studio associato"
               />
             </label>
@@ -1345,28 +1344,28 @@ function NewInvoiceForm({
               <span>Indirizzo</span>
               <input
                 value={formState.dati_personalizzati.studio.indirizzo}
-                onChange={(event) => updatePersonalized('studio', { indirizzo: event.currentTarget.value, indirizzo_completo: event.currentTarget.value })}
+                readOnly
               />
             </label>
             <label className="iu-fatt-field">
               <span>CAP</span>
-              <input value={formState.dati_personalizzati.studio.cap} onChange={(event) => updatePersonalized('studio', { cap: event.currentTarget.value })} />
+              <input value={formState.dati_personalizzati.studio.cap} readOnly />
             </label>
             <label className="iu-fatt-field">
-              <span>Citta</span>
-              <input value={formState.dati_personalizzati.studio.citta} onChange={(event) => updatePersonalized('studio', { citta: event.currentTarget.value })} />
+              <span>Città</span>
+              <input value={formState.dati_personalizzati.studio.citta} readOnly />
             </label>
             <label className="iu-fatt-field">
               <span>Provincia</span>
-              <input value={formState.dati_personalizzati.studio.provincia} onChange={(event) => updatePersonalized('studio', { provincia: event.currentTarget.value.toUpperCase() })} />
+              <input value={formState.dati_personalizzati.studio.provincia} readOnly />
             </label>
             <label className="iu-fatt-field">
               <span>Partita IVA</span>
-              <input value={formState.dati_personalizzati.studio.partita_iva} onChange={(event) => updatePersonalized('studio', { partita_iva: event.currentTarget.value })} />
+              <input value={formState.dati_personalizzati.studio.partita_iva} readOnly />
             </label>
             <label className="iu-fatt-field">
               <span>Codice fiscale</span>
-              <input value={formState.dati_personalizzati.studio.codice_fiscale} onChange={(event) => updatePersonalized('studio', { codice_fiscale: event.currentTarget.value })} />
+              <input value={formState.dati_personalizzati.studio.codice_fiscale} readOnly />
             </label>
           </div>
         </section>
@@ -1392,8 +1391,16 @@ function NewInvoiceForm({
               <input value={formState.dati_personalizzati.recipient.codice_fiscale} onChange={(event) => updatePersonalized('recipient', { codice_fiscale: event.currentTarget.value })} />
             </label>
             <label className="iu-fatt-field">
-              <span>Nome o denominazione</span>
-              <input value={formState.dati_personalizzati.recipient.nome_denominazione} onChange={(event) => updatePersonalized('recipient', { nome_denominazione: event.currentTarget.value, denominazione: event.currentTarget.value })} />
+              <span>{recipientIsCompany ? 'Denominazione' : 'Nome'}</span>
+              <input
+                value={recipientIsCompany ? recipient.denominazione : recipient.nome}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  updatePersonalized('recipient', recipientIsCompany
+                    ? { nome_denominazione: value, denominazione: value }
+                    : { nome_denominazione: value, denominazione: '', nome: value })
+                }}
+              />
             </label>
             <label className="iu-fatt-field">
               <span>Cognome</span>
@@ -1441,9 +1448,21 @@ function NewInvoiceForm({
           <div className="iu-fatt-form-grid">
             <label className="iu-fatt-field">
               <span>Tipo documento</span>
-              <select value={formState.dati_personalizzati.document.tipo_documento} onChange={(event) => updatePersonalized('document', { tipo_documento: event.currentTarget.value })}>
-                <option value="TD01">Fattura</option>
-                <option value="TD04">Nota di credito</option>
+              <select
+                value={formState.dati_personalizzati.document.documento_operativo}
+                onChange={(event) => {
+                  const operation = event.currentTarget.value as FatturazionePersonalizedData['document']['documento_operativo']
+                  const isCreditNote = operation === 'NOTA_CREDITO'
+                  updatePersonalized('document', {
+                    documento_operativo: operation,
+                    tipo_documento: isCreditNote ? 'TD04' : 'TD01',
+                    tipo_documento_label: operation === 'PROFORMA' ? 'Proforma' : (isCreditNote ? 'Nota di credito' : 'Fattura'),
+                  })
+                }}
+              >
+                <option value="PROFORMA">Proforma</option>
+                <option value="FATTURA">Fattura</option>
+                <option value="NOTA_CREDITO">Nota di credito</option>
               </select>
             </label>
             <label className="iu-fatt-field">
@@ -1551,7 +1570,7 @@ function NewInvoiceForm({
         <section className="iu-fatt-rich-card">
           <div className="iu-fatt-section-head">
             <div>
-              <span className="iu-fatt-kicker">Fiscalita e pagamento</span>
+              <span className="iu-fatt-kicker">Fiscalità e pagamento</span>
               <h3>Dati integrativi e pagamento</h3>
             </div>
             <Badge tone="success">Calcolo guidato</Badge>
@@ -1569,7 +1588,7 @@ function NewInvoiceForm({
           ) : null}
           <div className="iu-fatt-form-grid">
             <label className="iu-fatt-field">
-              <span>Modalita di pagamento</span>
+              <span>Modalità di pagamento</span>
               <select
                 value={formState.dati_personalizzati.payment.modalita_pagamento_label}
                 onChange={(event) => {
@@ -1578,9 +1597,8 @@ function NewInvoiceForm({
                     Bonifico: 'MP05',
                     Contanti: 'MP01',
                     Assegno: 'MP02',
-                    PayPal: 'MP12',
+                    PayPal: 'MP08',
                     'Carta di credito': 'MP08',
-                    Altro: 'MP05',
                   }
                   setFormState((current) => ({
                     ...current,
@@ -1590,7 +1608,7 @@ function NewInvoiceForm({
                       payment: {
                         ...current.dati_personalizzati.payment,
                         modalita_pagamento_label: label,
-                        modalita_pagamento_codice: codeMap[label] || 'MP05',
+                        modalita_pagamento_codice: codeMap[label] || 'MP01',
                       },
                     },
                   }))
@@ -1601,7 +1619,6 @@ function NewInvoiceForm({
                 <option value="Assegno">Assegno</option>
                 <option value="Carta di credito">Carta di credito</option>
                 <option value="PayPal">PayPal</option>
-                <option value="Altro">Altro</option>
               </select>
             </label>
             <label className="iu-fatt-field">
@@ -1614,7 +1631,15 @@ function NewInvoiceForm({
             </label>
             <label className="iu-fatt-field">
               <span>IBAN</span>
-              <input value={formState.dati_personalizzati.payment.iban} onChange={(event) => updatePersonalized('payment', { iban: event.currentTarget.value })} />
+              <input
+                value={formState.dati_personalizzati.payment.iban}
+                onChange={(event) => {
+                  updatePersonalized('payment', { iban: event.currentTarget.value.toUpperCase() })
+                  setBankDetailsStatus('idle')
+                  setBankDetailsMessage('')
+                }}
+                autoComplete="off"
+              />
             </label>
             <label className="iu-fatt-field">
               <span>BIC o SWIFT</span>
@@ -1629,13 +1654,28 @@ function NewInvoiceForm({
               <input value={formState.dati_personalizzati.payment.importo_pagamento} onChange={(event) => updatePersonalized('payment', { importo_pagamento: event.currentTarget.value })} placeholder="Lascia vuoto per il totale" />
             </label>
           </div>
+          {isBankTransfer ? (
+            <div className="iu-fatt-form-note" aria-live="polite">
+              <strong>Coordinate dello studio</strong>
+              <span>{bankDetailsMessage || (bankDetailsDirty ? 'Le coordinate modificate saranno salvate nello studio prima del documento.' : 'IBAN e intestazione saranno riportati nel documento.')}</span>
+              <Button
+                type="button"
+                tone={bankDetailsStatus === 'error' ? 'neutral' : 'primary'}
+                disabled={bankDetailsStatus === 'saving' || (!bankDetailsDirty && isValidIban(formState.dati_personalizzati.payment.iban))}
+                onClick={() => { void persistBankDetails() }}
+              >
+                <Save size={15} />
+                {bankDetailsStatus === 'saving' ? 'Salvataggio…' : 'Salva coordinate'}
+              </Button>
+            </div>
+          ) : null}
         </section>
 
         <section className="iu-fatt-preview-card">
           <div className="iu-fatt-section-head">
             <div>
               <span className="iu-fatt-kicker">Anteprima</span>
-              <h3>Riepilogo economico della parcella</h3>
+              <h3>Riepilogo economico della {documentKindLabel}</h3>
             </div>
             <Badge tone="warning">Conferma finale al salvataggio</Badge>
           </div>
@@ -1657,13 +1697,19 @@ function NewInvoiceForm({
 
         <section className="iu-fatt-form-note" aria-label="Calcolo definitivo">
           <strong>Calcolo definitivo governato</strong>
-          <span>La pagina prepara i dati della parcella; numerazione, imposte e importi finali vengono verificati prima del salvataggio definitivo.</span>
+          <span>La pagina prepara i dati del documento; numerazione, imposte e importi finali vengono verificati prima del salvataggio definitivo.</span>
         </section>
 
         <div className="iu-fatt-action-row">
           <Button type="submit" tone="primary" disabled={saveStatus === 'saving' || !canSave}>
             {saveStatus === 'saving' ? <ReceiptText size={16} /> : <Save size={16} />}
-            {saveStatus === 'saving' ? 'Salvataggio in corso' : form?.submitLabel || 'Crea parcella'}
+            {saveStatus === 'saving'
+              ? 'Salvataggio in corso'
+              : formState.dati_personalizzati.document.documento_operativo === 'PROFORMA'
+                ? 'Crea proforma'
+                : formState.dati_personalizzati.document.documento_operativo === 'NOTA_CREDITO'
+                  ? 'Crea nota di credito'
+                  : form?.submitLabel || 'Crea parcella'}
           </Button>
           <ButtonLink href="/fatturazione" tone="neutral">
             <ReceiptText size={16} />
@@ -1686,7 +1732,6 @@ function NewInvoiceForm({
           </div>
         ) : null}
       </form>
-      <TechnicalRollback href="/fatturazione/nuova?_legacy=1" />
     </Panel>
   )
 }
@@ -1782,9 +1827,14 @@ function ArchiveDetailPanel({
   const [activeTab, setActiveTab] = useState<DetailTab>('dettaglio')
   const [voices, setVoices] = useState<EditableVoice[]>([])
   const [note, setNote] = useState('')
+  const [issuedAt, setIssuedAt] = useState('')
+  const [dueAt, setDueAt] = useState('')
+  const [detailFiscal, setDetailFiscal] = useState<FatturazioneDetailFiscal>(defaultDetailFiscal)
+  const [paymentMethod, setPaymentMethod] = useState('Non indicato')
   const [notice, setNotice] = useState<ActionNotice>(null)
   const [busy, setBusy] = useState('')
   const [pdfFullscreen, setPdfFullscreen] = useState(false)
+  const [pdfRevision, setPdfRevision] = useState(0)
   const [pin, setPin] = useState('')
   const [pecSecret, setPecSecret] = useState('')
   const [sdiDraft, setSdiDraft] = useState<FatturazioneDraft | null>(null)
@@ -1808,12 +1858,16 @@ function ArchiveDetailPanel({
   useEffect(() => {
     setVoices(editableVoices(detail))
     setNote(detail?.note || '')
+    setIssuedAt(detail?.dataEmissione || '')
+    setDueAt(detail?.dataScadenza || '')
+    setDetailFiscal(detail?.fiscal || defaultDetailFiscal)
+    setPaymentMethod(detail?.payment.metodo_pagamento || 'Non indicato')
     setNotice(null)
     setSdiDraft(null)
     setSdiLocalPec(undefined)
     setCommercialistaDraft(null)
     setCommercialistaLocalPec(undefined)
-    setActiveTab(initialTab)
+    setActiveTab(detail?.isProforma && initialTab === 'xml' ? 'dettaglio' : initialTab)
     setQuickSdiPecOpen(false)
     setQuickSdiPecLoaded(false)
     setQuickSdiPec({ ...defaultQuickSdiPecSettings, pec_notifiche: detail?.workflow.sdiPecAddress || '' })
@@ -1838,18 +1892,26 @@ function ArchiveDetailPanel({
   if (!detail) return null
   const currentDetail = detail
 
-  async function afterMutation(result: { ok: boolean; message: string }) {
-    setNotice({ tone: result.ok ? 'success' : 'warning', text: result.message })
+  async function afterMutation(result: { ok: boolean; message: string; errors?: Record<string, string> }) {
+    const specificError = result.ok ? '' : Object.values(result.errors || {}).find((message) => message.trim()) || ''
+    setNotice({
+      tone: result.ok ? 'success' : 'warning',
+      text: specificError ? `${result.message} ${specificError}` : result.message,
+    })
     if (result.ok) {
       await onReloadPage()
       await onReloadDetail()
     }
   }
 
-  async function saveDetail() {
+  async function saveDetail(generateProforma = false) {
     setBusy('detail')
     const payload: FatturazioneDetailUpdatePayload = {
       note,
+      data_emissione: issuedAt,
+      data_scadenza: dueAt,
+      fiscal: detailFiscal,
+      payment: { metodo_pagamento: paymentMethod },
       voci: voices.map((voice) => ({
         descrizione: voice.descrizione,
         quantita: voice.quantita,
@@ -1857,7 +1919,12 @@ function ArchiveDetailPanel({
         tipo: voice.tipo,
       })),
     }
-    await afterMutation(await updateFatturazioneDetail(currentDetail.id, payload))
+    const result = await updateFatturazioneDetail(currentDetail.id, payload)
+    await afterMutation(result)
+    if (result.ok && generateProforma) {
+      setPdfRevision(Date.now())
+      setActiveTab('pdf')
+    }
     setBusy('')
   }
 
@@ -2186,13 +2253,14 @@ function ArchiveDetailPanel({
   const commercialistaSentChannel = workflowText(detail.workflow.commercialista.channel)
   const commercialistaSentRecipient = workflowText(detail.workflow.commercialista.recipient)
   const modalClass = ['iu-fatt-modal', pdfFullscreen && activeTab === 'pdf' ? 'is-pdf-fullscreen' : ''].filter(Boolean).join(' ')
+  const editable = currentDetail.state === 'BOZZA' && !currentDetail.sdiSentAt
 
   return (
     <div className="iu-fatt-overlay" role="dialog" aria-modal="true" aria-label={`Dettaglio ${detail.number || detail.id}`}>
       <section className={modalClass}>
         <header className="iu-fatt-modal__header">
           <div>
-            <span>Parcelle e Fatture</span>
+            <span>Documenti economici</span>
             <h2>Dettaglio {detail.number || detail.id}</h2>
             <p>{detail.customerName}{detail.caseTitle ? ` - ${detail.caseTitle}` : ''}</p>
           </div>
@@ -2210,11 +2278,11 @@ function ArchiveDetailPanel({
           </div>
         </header>
 
-        <nav className="iu-fatt-modal__tabs" aria-label="Sezioni dettaglio fattura">
+        <nav className="iu-fatt-modal__tabs" aria-label={`Sezioni dettaglio ${detail.documentKindLabel.toLowerCase()}`}>
           {[
-            ['dettaglio', 'Dettaglio'],
+            ['dettaglio', editable ? `Modifica ${detail.documentKindLabel.toLowerCase()}` : 'Dettaglio'],
             ['pdf', 'Anteprima PDF'],
-            ['xml', 'XML e SdI'],
+            ...(detail.isProforma ? [] : [['xml', 'XML e SdI']]),
             ['commercialista', 'Commercialista'],
           ].map(([id, label]) => (
             <button type="button" className={activeTab === id ? 'is-active' : ''} onClick={() => setActiveTab(id as DetailTab)} key={id}>
@@ -2238,21 +2306,89 @@ function ArchiveDetailPanel({
                 <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
                 {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
               </div>
+              <section className="iu-fatt-detail-settings" aria-label="Dati fiscali e pagamento">
+                <header>
+                  <h3>Dati fiscali e pagamento</h3>
+                  <span>{editable ? 'Valori modificabili per questo documento' : 'Documento non modificabile'}</span>
+                </header>
+                <div className="iu-fatt-form-grid">
+                  <label className="iu-fatt-field">
+                    <span>Data documento</span>
+                    <input type="date" value={issuedAt} disabled={!editable} onChange={(event) => setIssuedAt(event.currentTarget.value)} />
+                  </label>
+                  <label className="iu-fatt-field">
+                    <span>Scadenza</span>
+                    <input type="date" value={dueAt} disabled={!editable} onChange={(event) => setDueAt(event.currentTarget.value)} />
+                  </label>
+                  <label className="iu-fatt-field">
+                    <span>Regime fiscale</span>
+                    <select
+                      value={detailFiscal.regime_fiscale}
+                      disabled={!editable}
+                      onChange={(event) => {
+                        const regime = event.currentTarget.value
+                        setDetailFiscal((current) => ({
+                          ...current,
+                          regime_fiscale: regime,
+                          applica_iva: noVatRegimes.has(regime) ? false : current.applica_iva,
+                        }))
+                      }}
+                    >
+                      <option value="RF01">Ordinario</option>
+                      <option value="RF19">Forfettario</option>
+                      <option value="RF02">Contribuenti minimi</option>
+                    </select>
+                  </label>
+                  <label className="iu-fatt-field">
+                    <span>Spese generali (%)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={detailFiscal.percentuale_spese_generali}
+                      disabled={!editable}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value
+                        setDetailFiscal((current) => ({ ...current, percentuale_spese_generali: value }))
+                      }}
+                    />
+                  </label>
+                  <label className="iu-fatt-field">
+                    <span>Metodo di pagamento</span>
+                    <select value={paymentMethod} disabled={!editable} onChange={(event) => setPaymentMethod(event.currentTarget.value)}>
+                      <option value="Non indicato">Non indicato</option>
+                      <option value="Bonifico">Bonifico</option>
+                      <option value="Contanti">Contanti</option>
+                      <option value="Assegno">Assegno</option>
+                      <option value="Carta di credito">Carta di credito</option>
+                      <option value="PayPal">PayPal</option>
+                    </select>
+                  </label>
+                </div>
+                <FiscalOptions
+                  values={detailFiscal}
+                  disabled={!editable}
+                  disableIva={noVatRegimes.has(detailFiscal.regime_fiscale)}
+                  onChange={(options) => setDetailFiscal((current) => ({ ...current, ...options }))}
+                />
+              </section>
               <div className="iu-fatt-edit-lines">
                 {voices.map((voice) => (
                   <div className="iu-fatt-edit-line" key={voice.rowId}>
                     <label>
                       <span>Descrizione</span>
-                      <input value={voice.descrizione} onChange={(event) => updateVoice(voice.rowId, { descrizione: event.currentTarget.value })} />
+                      <input value={voice.descrizione} disabled={!editable} onChange={(event) => updateVoice(voice.rowId, { descrizione: event.currentTarget.value })} />
                     </label>
                     <label>
                       <span>Quantità</span>
-                      <input value={voice.quantita} onChange={(event) => updateVoice(voice.rowId, { quantita: event.currentTarget.value })} inputMode="decimal" />
+                      <input value={voice.quantita} disabled={!editable} onChange={(event) => updateVoice(voice.rowId, { quantita: event.currentTarget.value })} inputMode="decimal" />
                     </label>
                     <label>
                       <span>Prezzo unitario</span>
                       <input
                         value={voice.prezzo_unitario}
+                        disabled={!editable}
                         onChange={(event) => updateVoice(voice.rowId, { prezzo_unitario: event.currentTarget.value })}
                         onBlur={(event) => updateVoice(voice.rowId, { prezzo_unitario: currencyInputValue(event.currentTarget.value) })}
                         inputMode="decimal"
@@ -2261,27 +2397,36 @@ function ArchiveDetailPanel({
                     </label>
                     <label>
                       <span>Tipo</span>
-                      <select value={voice.tipo} onChange={(event) => updateVoice(voice.rowId, { tipo: event.currentTarget.value })}>
+                      <select value={voice.tipo} disabled={!editable} onChange={(event) => updateVoice(voice.rowId, { tipo: event.currentTarget.value })}>
                         <option value="ONORARIO">Onorario</option>
                         <option value="SPESE">Spese</option>
                         <option value="ANTICIPO">Anticipazioni</option>
                         <option value="ALTRO">Altro</option>
                       </select>
                     </label>
-                    <Button type="button" tone="neutral" onClick={() => removeVoice(voice.rowId)}>
+                    <Button type="button" tone="neutral" disabled={!editable} onClick={() => removeVoice(voice.rowId)}>
                       <Trash2 size={14} />
                       Rimuovi
                     </Button>
                   </div>
                 ))}
               </div>
-              <div className="iu-fatt-action-row">
-                <Button type="button" tone="neutral" onClick={addVoice}><Plus size={15} /> Aggiungi voce</Button>
-                <Button type="button" tone="primary" disabled={busy === 'detail'} onClick={saveDetail}><Save size={15} /> {busy === 'detail' ? 'Salvataggio' : 'Salva dettaglio'}</Button>
-              </div>
+              {editable ? (
+                <div className="iu-fatt-action-row">
+                  <Button type="button" tone="neutral" onClick={addVoice}><Plus size={15} /> Aggiungi voce</Button>
+                  <Button type="button" tone="neutral" disabled={busy === 'detail'} onClick={() => void saveDetail(false)}>
+                    <Save size={15} /> {busy === 'detail' ? 'Salvataggio' : `Salva ${detail.documentKindLabel.toLowerCase()}`}
+                  </Button>
+                  {detail.isProforma ? (
+                    <Button type="button" tone="primary" disabled={busy === 'detail'} onClick={() => void saveDetail(true)}>
+                      <FileText size={15} /> {busy === 'detail' ? 'Generazione' : 'Genera proforma'}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <label className="iu-fatt-draft__body">
                 <span>Note operative</span>
-                <textarea value={note} onChange={(event) => setNote(event.currentTarget.value)} rows={4} />
+                <textarea value={note} disabled={!editable} onChange={(event) => setNote(event.currentTarget.value)} rows={4} />
               </label>
             </section>
           ) : null}
@@ -2295,7 +2440,7 @@ function ArchiveDetailPanel({
                   {pdfFullscreen ? 'Riduci anteprima' : 'Tutto schermo'}
                 </Button>
               </div>
-              <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={detail.pdfHref} />
+              <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={`${detail.pdfHref}${pdfRevision ? `?v=${pdfRevision}` : ''}`} />
             </section>
           ) : null}
 
@@ -2659,8 +2804,13 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   }, [autoOpenedId, data.records, requestedDetailId])
 
   async function updateStatus(record: FatturazioneRecord, stato: string) {
+    const confirmsProforma = record.isProforma && record.state === 'BOZZA' && stato === 'EMESSA'
+    if (confirmsProforma && !window.confirm('Confermi la proforma e procedi con l’emissione della fattura?')) return
     setSavingId(record.id)
-    await reloadAfter(await updateFatturazioneStatus(record.id, { stato }))
+    await reloadAfter(await updateFatturazioneStatus(record.id, {
+      stato,
+      confermaProforma: confirmsProforma,
+    }))
     setSavingId('')
   }
 
@@ -2792,7 +2942,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
           <EmptyState
             title={data.records.length ? 'Nessun risultato' : 'Nessuna parcella visualizzabile'}
             message={data.records.length ? "La ricerca locale non ha trovato documenti nell'elenco ricevuto." : "L'archivio economico non contiene documenti per la vista corrente."}
-            action={<ButtonLink href="/fatturazione/nuova" tone="primary">Nuova parcella</ButtonLink>}
+            action={<ButtonLink href="/fatturazione/nuova?documento_operativo=PROFORMA" tone="primary">Nuova proforma</ButtonLink>}
           />
         )}
       </Panel>
@@ -2808,7 +2958,6 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         onReloadDetail={reloadCurrentDetail}
         initialTab={detailInitialTab}
       />
-      <FiscalGuardrailsPanel data={data} />
     </>
   )
 }
@@ -2848,8 +2997,8 @@ export function FatturazionePage() {
 
   return (
     <Page
-      title={isNew ? 'Nuova parcella' : 'Fatturazione'}
-      subtitle={isNew ? 'Pagina operativa con salvataggio validato e calcolo fiscale governato.' : 'Proforme, parcelle e incassi collegati ai fascicoli.'}
+      title={isNew ? form?.title || 'Nuovo documento economico' : 'Fatturazione'}
+      subtitle={isNew ? 'Prepara una proforma, una fattura o una nota di credito.' : 'Proforme, parcelle e incassi collegati ai fascicoli.'}
       className={isNew ? undefined : 'iu-fatt-page'}
       actions={
         isNew ? (
@@ -2858,9 +3007,9 @@ export function FatturazionePage() {
             Archivio
           </ButtonLink>
         ) : (
-          <ButtonLink href="/fatturazione/nuova" tone="primary">
+          <ButtonLink href="/fatturazione/nuova?documento_operativo=PROFORMA" tone="primary">
             <Plus size={16} />
-            Nuova parcella
+            Nuova proforma
           </ButtonLink>
         )
       }
@@ -2879,21 +3028,12 @@ export function FatturazionePage() {
         <EmptyState
           title="Nessun dato economico disponibile"
           message="Non sono disponibili dati visualizzabili per questa superficie."
-          action={isNew ? <ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink> : <ButtonLink href="/fatturazione/nuova" tone="primary">Nuova parcella</ButtonLink>}
+          action={isNew ? <ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink> : <ButtonLink href="/fatturazione/nuova?documento_operativo=PROFORMA" tone="primary">Nuova proforma</ButtonLink>}
         />
       ) : null}
       {!loading && !loadError && hasData ? (
         isNew ? (
-          <>
-            <section className="iu-fatt-banner" aria-label="Form operativo">
-              <strong>Scrittura tracciata</strong>
-              <span>La pagina raccoglie i dati minimi; creazione, numerazione, validazione, controlli e importi definitivi restano nei servizi dello studio.</span>
-            </section>
-            <WarningPanel data={data} />
-            <SdiWorkflowPanel data={data} />
-            <NewInvoiceForm data={data} form={form} />
-            <ContractPanel data={data} />
-          </>
+          <NewInvoiceForm data={data} form={form} />
         ) : (
           <ArchiveView data={data} onReload={setData} />
         )

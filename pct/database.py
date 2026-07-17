@@ -126,7 +126,6 @@ class RisultatoMigrazione:
 # ================================================================ Schema SQLite unificato
 
 SCHEMA_SQL = """
-PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 PRAGMA synchronous = NORMAL;
 

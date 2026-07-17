@@ -119,7 +119,7 @@ _CONTRIBUTO_DOCUMENT_LABEL_HINT_RE = re.compile(
 )
 _CONTRIBUTO_DOCUMENT_PAYMENT_ANCHOR_RE = re.compile(
     r"\b(?:pagopa|pago\s*pa|iuv|codice\s+(?:avviso|iuv)|identificativo\s+univoco\s+versamento|"
-    r"ricevuta\s+(?:pagamento|telematica)|avviso\s+pagamento|esito\s+pagamento|"
+    r"ricevuta\s+(?:di\s+)?(?:pagamento|telematica)|avviso\s+pagamento|esito\s+pagamento|"
     r"pagamento\s+(?:eseguito|effettuato|avvenuto)|versamento\s+(?:eseguito|effettuato)|"
     r"importo\s+(?:versato|pagato)|totale\s+(?:versato|pagato|da\s+pagare)|"
     r"rt\s*xml|f23|f24|punto\s+di\s+accesso|portale\s+servizi\s+telematici)\b",
@@ -178,6 +178,7 @@ _CONTRIBUTO_DOCUMENT_DIRECT_NEAR_RE = re.compile(
 )
 _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
     r"\b(?:"
+    r"contributo\s+unificat[oi]\s*(?:[:\-]\s*)?esent[eo]|"
     r"contributo\s+unificat[oi]\s+non\s+dovut[oaie]|"
     r"non\s+dovut[oaie]\s+(?:il\s+)?contributo\s+unificat[oi]|"
     r"esente\s+dal\s+pagamento\s+(?:del\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
@@ -197,6 +198,24 @@ _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
 )
 _CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE = re.compile(
     r"\b(?:non\s+esente|nessuna\s+esenzione|esenzione\s+non\s+(?:riconosciuta|ammessa))\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_STRONG_EXEMPT_RE = re.compile(
+    r"\b(?:contributo\s+unificat[oi]\s*(?:[:\-]\s*)?esent[eo]|"
+    r"contributo\s+unificat[oi]\s+non\s+dovut[oaie]|"
+    r"non\s+dovut[oaie]\s+(?:il\s+)?contributo\s+unificat[oi]|"
+    r"esente\s+dal\s+pagamento|esenzione\s+(?:(?:dal|del)\s+pagamento\s+)?(?:dal|del)\s+"
+    r"(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
+    r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
+    r"prenotazione\s+a\s+debito)\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DOCUMENT_ROLE_AMOUNT_RE = re.compile(
+    r"\bcontributo\s+unificat[oi]\s*:\s*"
+    + _MONEY_PREFIX_PATTERN
+    + r"?\s*(?P<amount>"
+    + _MONEY_AMOUNT_PATTERN
+    + r")",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_AMOUNT_RE = re.compile(
@@ -222,7 +241,7 @@ _CONTRIBUTO_RT_PAYMENT_TYPE_RE = re.compile(
     re.IGNORECASE,
 )
 _CONTRIBUTO_RT_RECEIPT_RE = re.compile(
-    r"\b(?:ricevuta\s+telematica\s+di\s+pagamento|rt\s*xml|pagopa|pago\s*pa)\b",
+    r"\b(?:ricevuta\s+(?:telematica\s+)?(?:di\s+)?pagamento|rt\s*xml|pagopa|pago\s*pa)\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_RT_XML_RE = re.compile(
@@ -1215,6 +1234,128 @@ def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, An
     return {}
 
 
+def _extract_contributo_completed_payment_evidence(
+    compact: str,
+    metadata: dict[str, Any],
+    *,
+    label: str,
+) -> dict[str, Any]:
+    """Preferisce l'importo del tributo al totale addebitato comprensivo di commissioni."""
+
+    completed = re.search(
+        r"\b(?:ricevuta\s+(?:telematica\s+)?(?:di\s+)?pagamento|pagamento\s+CBILL(?:\s+numero)?|"
+        r"pagamento\s+bolletta\s+PagoPA|ID\s+operazione)\b",
+        compact,
+        re.IGNORECASE,
+    )
+    if not completed:
+        return {}
+    explicit_contribution = _contributo_document_has_hint(label) or bool(
+        re.search(r"\bcontributo\s+unificat[oi]\b", compact, re.IGNORECASE)
+    )
+    justice_payment = bool(
+        re.search(r"\bministero\s+della\s+giustizia\b", compact, re.IGNORECASE)
+        and re.search(r"\b(?:pagopa|pago\s*pa|CBILL)\b", compact, re.IGNORECASE)
+        and _contributo_document_label_has_hint(label)
+    )
+    if not explicit_contribution and not justice_payment:
+        return {}
+
+    payment_text = compact[completed.start() :]
+    patterns = (
+        re.compile(
+            r"\bimporto\s*(?:versato|pagato)?\s*:?\s*(?:"
+            + _MONEY_PREFIX_PATTERN
+            + r"\s*)?(?P<amount>"
+            + _MONEY_AMOUNT_PATTERN
+            + r")\s*(?:"
+            + _MONEY_PREFIX_PATTERN
+            + r")?",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(?:totale\s+versato|totale\s+pagato)\s*:\s*(?:"
+            + _MONEY_PREFIX_PATTERN
+            + r"\s*)?(?P<amount>"
+            + _MONEY_AMOUNT_PATTERN
+            + r")",
+            re.IGNORECASE,
+        ),
+    )
+    for pattern in patterns:
+        match = pattern.search(payment_text)
+        if not match:
+            continue
+        amount = _parse_money(match.group("amount"))
+        if amount is None or amount <= 0:
+            continue
+        start = completed.start() + match.start()
+        end = completed.start() + match.end()
+        return {
+            "importo": amount,
+            "titolo": _snippet(compact, start, end, window=90),
+            "natura": "pdf_contributo_unificato",
+            "label": "Contributo unificato da ricevuta di pagamento",
+            "status": "pagato",
+            "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+            "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+            "sha256": _text(metadata.get("sha256")),
+            "origine": "ricevuta_pagamento_contributo_unificato",
+        }
+    return {}
+
+
+def _extract_contributo_payment_notice_evidence(
+    compact: str,
+    metadata: dict[str, Any],
+    *,
+    label: str,
+) -> dict[str, Any]:
+    """Legge l'importo monetario dell'avviso senza scambiare giorno o mese per il totale."""
+
+    if not re.search(r"\bavviso\s+(?:di\s+)?pagamento\b", compact, re.IGNORECASE):
+        return {}
+    if not (
+        _contributo_document_has_hint(label)
+        or re.search(r"\bcontributo\s+unificat[oi]\b", compact, re.IGNORECASE)
+    ):
+        return {}
+    patterns = (
+        re.compile(
+            r"\bquanto\s+e\s+quando\s+pagare\??.{0,260}?"
+            r"(?P<amount>\d{1,6}[,.]\d{2})\s*(?:euro|\u20ac)",
+            re.IGNORECASE | re.DOTALL,
+        ),
+        re.compile(
+            r"\bRATA\b.{0,140}?\b(?:euro|\u20ac)\s*(?P<amount>\d{1,6}[,.]\d{2})",
+            re.IGNORECASE | re.DOTALL,
+        ),
+        re.compile(
+            r"\bdestinatario\b.{0,220}?\b(?:euro|\u20ac)\s*(?P<amount>\d{1,6}[,.]\d{2})",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    )
+    for pattern in patterns:
+        match = pattern.search(compact)
+        if not match:
+            continue
+        amount = _parse_money(match.group("amount"))
+        if amount is None or amount <= 0:
+            continue
+        return {
+            "importo": amount,
+            "titolo": _snippet(compact, match.start(), match.end(), window=90),
+            "natura": "richiesta_versamento_contributo_unificato",
+            "label": "Contributo unificato da pagare",
+            "status": "da_registrare",
+            "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+            "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+            "sha256": _text(metadata.get("sha256")),
+            "origine": "avviso_pagamento_contributo_unificato",
+        }
+    return {}
+
+
 def _extract_contributo_f23_payment_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
     """Legge i modelli F23/F24/F28 usati storicamente per il contributo unificato."""
 
@@ -1262,6 +1403,23 @@ def extract_contributo_unificato_document_evidence(
     has_payment_anchor = _contributo_document_has_payment_anchor(probe)
     has_due_anchor = _contributo_document_has_due_anchor(probe)
     non_payment_source = _contributo_document_is_non_payment_source(label, compact)
+    role_amount_match = _CONTRIBUTO_DOCUMENT_ROLE_AMOUNT_RE.search(compact)
+    if exemption and (not role_amount_match or _CONTRIBUTO_DOCUMENT_STRONG_EXEMPT_RE.search(compact)):
+        return exemption
+    if role_amount_match:
+        role_amount = _parse_money(role_amount_match.group("amount"))
+        if role_amount is not None and role_amount > 0:
+            return {
+                "importo": role_amount,
+                "titolo": _snippet(compact, role_amount_match.start(), role_amount_match.end(), window=70),
+                "natura": "richiesta_versamento_contributo_unificato",
+                "label": "Contributo unificato da verificare",
+                "status": "da_registrare",
+                "filename": _text(meta.get("filename") or meta.get("original_filename") or meta.get("safe_filename")),
+                "document_id": _text(meta.get("document_id") or meta.get("documento_id")),
+                "sha256": _text(meta.get("sha256")),
+                "origine": "riepilogo_ruolo_contributo_unificato",
+            }
     if exemption:
         return exemption
     rt_payment = _extract_contributo_rt_payment_evidence(compact, meta)
@@ -1270,6 +1428,12 @@ def extract_contributo_unificato_document_evidence(
     f23_payment = _extract_contributo_f23_payment_evidence(compact, meta)
     if f23_payment:
         return f23_payment
+    completed_payment = _extract_contributo_completed_payment_evidence(compact, meta, label=label)
+    if completed_payment:
+        return completed_payment
+    payment_notice = _extract_contributo_payment_notice_evidence(compact, meta, label=label)
+    if payment_notice:
+        return payment_notice
     if not label_has_hint and not has_payment_anchor and not has_due_anchor:
         return {}
     if non_payment_source and not has_payment_anchor and not has_due_anchor:
@@ -1301,7 +1465,7 @@ def extract_contributo_unificato_document_evidence(
     if amount is None:
         return {}
     due_evidence = has_due_anchor and not re.search(
-        r"\b(?:ricevuta\s+(?:pagamento|telematica)|pagamento\s+(?:eseguito|effettuato|avvenuto)|"
+        r"\b(?:ricevuta\s+(?:di\s+)?(?:pagamento|telematica)|pagamento\s+(?:eseguito|effettuato|avvenuto)|"
         r"versamento\s+(?:eseguito|effettuato)|importo\s+(?:versato|pagato)|"
         r"totale\s+(?:versato|pagato)|esito\s+pagamento)\b",
         compact,

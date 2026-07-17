@@ -125,12 +125,19 @@ def test_dashboard_telematico_renderizza_canali_e_backfill(tmp_path: Path):
 
         page = client.get("/telematico", follow_redirects=True)
         html = page.get_data(as_text=True)
+        api_response = client.get("/api/v1/ui/telematico")
+        payload = api_response.get_json()
 
     assert page.status_code == 200
     assert "Centro Servizi Telematici" in html
-    assert "PST / PolisWeb" in html
-    assert "PAT / SIGA" in html
-    assert "Acquisizione guidata" in html
+    assert 'id="root"' in html
+    assert api_response.status_code == 200
+    assert {row["label"] for row in payload["channels"]} == {
+        "PST / PolisWeb",
+        "PDP Penale",
+        "PAT / SIGA",
+        "PTT / SIGIT",
+    }
 
     repo = TelematicoWorkflowRepository(cfg["TELEMATICO_DB"])
     try:
@@ -162,7 +169,7 @@ def test_api_telematico_connection_status_restituisce_quattro_canali(tmp_path: P
     assert payload["ok"] is True
     assert len(payload["cards"]) == 4
     labels = {row["label"] for row in payload["cards"]}
-    assert {"PST / PolisWeb", "PDP Penale", "PAT Amministrativo", "PTT Tributario"} <= labels
+    assert {"PST / PolisWeb", "PDP Penale", "PAT / SIGA", "PTT / SIGIT"} == labels
 
 
 def test_api_portali_acquisizione_status_risponde_per_tutti_i_canali(tmp_path: Path):
@@ -188,6 +195,44 @@ def test_api_portali_acquisizione_status_risponde_per_tutti_i_canali(tmp_path: P
             assert payload["status"]["spec"]["id"] == portale
 
 
+def test_api_telematico_esclude_collegamenti_a_fascicoli_eliminati(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    fasc_id = _seed_pat_fascicolo(cfg)
+    repo = TelematicoWorkflowRepository(cfg["TELEMATICO_DB"])
+    try:
+        for practice_id, register_number in ((fasc_id, "876"), ("FASC-ORFANO", "877")):
+            repo.upsert_case(
+                practice_id=practice_id,
+                channel_family="amministrativo",
+                service_code="pat_siga",
+                office_name="TAR Lazio",
+                register_type="RICORSO",
+                register_number=register_number,
+                register_year=2026,
+                subject_name="Alfa S.r.l.",
+                counsel_name="Avv. Demo",
+                counsel_cf="DMEAVV00A00H501Z",
+                portal_case_ref=f"PAT:{register_number}:2026",
+                internal_status="import_completed",
+            )
+    finally:
+        repo.close()
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-telematico", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.get("/api/v1/ui/telematico")
+        payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["summary"]["total"] == 1
+    assert {row["practiceId"] for row in payload["recentCases"]} == {fasc_id}
+
+
 def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(tmp_path: Path, monkeypatch):
     cfg = _cfg_web(tmp_path)
     _seed_pat_fascicolo(cfg)
@@ -208,10 +253,19 @@ def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(t
 
         page = client.get("/telematico", follow_redirects=True)
         html = page.get_data(as_text=True)
+        api_response = client.get("/api/v1/ui/telematico")
+        payload = api_response.get_json()
 
     assert page.status_code == 200
     assert "Centro Servizi Telematici" in html
-    assert "Archivio telematico temporaneamente non disponibile" in html
+    assert 'id="root"' in html
+    assert api_response.status_code == 200
+    assert payload["contracts"]["route_owner"] == "react_shell"
+    assert payload["summary"]["total"] == 0
+    assert any(
+        notice["title"] == "Archivio telematico temporaneamente non disponibile"
+        for notice in payload["notices"]
+    )
 
 
 def test_dashboard_telematico_resta_disponibile_se_backfill_fallisce(tmp_path: Path, monkeypatch):
@@ -234,7 +288,12 @@ def test_dashboard_telematico_resta_disponibile_se_backfill_fallisce(tmp_path: P
 
         page = client.get("/telematico", follow_redirects=True)
         html = page.get_data(as_text=True)
+        api_response = client.get("/api/v1/ui/telematico")
+        payload = api_response.get_json()
 
     assert page.status_code == 200
     assert "Centro Servizi Telematici" in html
-    assert "Allineamento parziale" in html
+    assert 'id="root"' in html
+    assert api_response.status_code == 200
+    assert payload["contracts"]["route_owner"] == "react_shell"
+    assert any(notice["title"] == "Allineamento parziale" for notice in payload["notices"])

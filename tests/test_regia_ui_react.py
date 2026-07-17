@@ -397,10 +397,9 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "packagePreview?.pecSenderReady === false" in proof_block
     assert "recordBool(packagePreview?.bustaAudit, 'blocks_direct_send')" in proof_block
     assert "recordBool(packagePreview?.bustaAudit, 'guided_completion_required')" in proof_block
-    assert "function depositHasPersistedDryRunProof" in source
-    assert "const persistedDryRunProofReady = !depositProofInvalidated && recentDeposits.some(depositHasPersistedDryRunProof)" in deposit_page
+    assert "function depositHasPersistedDryRunProof" not in source
     assert "setDepositProofInvalidated(true)" in deposit_page
-    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)" in deposit_page
+    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in deposit_page
     assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
     assert "directPecReady && !guidedCompletion" not in deposit_page
@@ -413,6 +412,18 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert ".iu-fas-package-office" in css
     assert ".iu-fas-package-preview" in css
     assert ".iu-fas-package-progress" in css
+
+
+def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_invio_solo_dopo_prova_corrente():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
+    start = source.index("const prepareDepositBeforeSubmit = async () => {")
+    end = source.index("const selectedDepositPayload", start)
+    block = source[start:end]
+
+    assert block.index("if (missingRequiredDepositSpecificFields.length)") < block.index("await submitDepositClassification()")
+    assert "goToDepositPhase('proposta-busta', 'auto')" in block
+    assert "const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)" in source
+    assert "setDepositProofInvalidated(false)" in source
 
 
 def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
@@ -437,10 +448,26 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "hasNotifiableExtension" in source
     assert "hasSendableNotificationAttachmentExtension" in source
     assert "hasEmailEvidenceExtension" in source
-    assert "automaticAttestationDocument" in source
-    assert "Attestazione_conformita_" in source
+    assert "automaticAttestationDocument" not in source
+    assert "Attestazione_conformita_" not in source
+    assert "Attestazione unica nella relata" in source
+    assert "Una sola dichiarazione comprende" in source
+    assert "Scarica attestazione unica" in source
+    assert "downloadLegalAttestation" in source
+    assert "Attestazione_conformita_" not in source
+    assert "attestazione_multipla: notificationNeedsAttestazione" in source
     assert "deriveProceedingRg" in source
-    assert "const notifiableDocuments = practice.documenti.filter(isNotifiableNotificationDocument)" in source
+    apply_practice = source[source.index("const applyPractice"):source.index("const buildNotificaPayload")]
+    assert "setSelectedNotificationDocumentIds([])" in apply_practice
+    hydration = source[source.index("useEffect(() => {\n    if (!selectedPracticeId"):source.index("const depositDocumentPayload")]
+    assert "autoSelectableDocuments" not in hydration
+    assert "setNotifica" not in hydration
+    notification_payloads = source[source.index("const notificationDocumentPayloads"):source.index("const addManualNotificationDocument")]
+    assert "const rows = [...selectedRows, ...uploadedRows]" in notification_payloads
+    assert "manualNotificationDocument()" not in notification_payloads
+    toggle_notification = source[source.index("const toggleNotificationDocument"):source.index("const toggleDepositDocument")]
+    assert "setNotifica" not in toggle_notification
+    assert "entrano nella relata solo dopo la scelta dell'avvocato" in source
     assert "currentNotificationDocuments.every(isNotifiablePayloadDocument)" in source
     assert "hasPassingNotificationControl" in source
     assert "disabled={!canPrepareNotificationSend}" in source

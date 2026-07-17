@@ -722,7 +722,11 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = tm.percorsi_dati(studio.slug)
+                    paths = dict(tm.percorsi_dati(studio.slug))
+                    paths["_TENANT_DATABASE_CONFIG"] = studio.database
+                    paths["_TENANT_NOTIFICATION_ID"] = str(
+                        getattr(studio, "id", "") or studio.slug or "tenant"
+                    )
                     found = True
                     yield str(studio.slug or "tenant"), paths
                 if found:
@@ -743,6 +747,12 @@ def start_scheduler(app):
             "AUTH_DB": app.config.get("AUTH_DB", "./auth/utenti.json"),
             "AUDIT_DB": app.config.get("AUDIT_DB", "./audit/audit.json"),
             "MESSAGGI_DB": app.config.get("MESSAGGI_DB", "./messaggi/messaggi.json"),
+            "AGENDA_DB": app.config.get("AGENDA_DB", "./agenda/appuntamenti.json"),
+            "SCADENZIARIO_DB": app.config.get("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
+            "NOTIFICATIONS_DB": app.config.get("NOTIFICATIONS_DB", "./notifications/notifications.db"),
+            "STUDIO_DB": app.config.get("STUDIO_DB", "./studio.db"),
+            "_TENANT_DATABASE_CONFIG": app.config.get("TENANT_DATABASE_CONFIG"),
+            "_TENANT_NOTIFICATION_ID": "default",
         }
 
     @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
@@ -1140,6 +1150,51 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Pipeline PEC fallita: %s", e)
                 return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
+
+    @scheduler.scheduled_job(
+        CronTrigger(minute="2-57/5"),
+        id="agenda_scadenziario_notifications",
+        max_instances=1,
+        coalesce=True,
+    )
+    def _agenda_scadenziario_notifications():
+        with app.app_context():
+            try:
+                from web.services.notifications_runtime import (
+                    materialize_agenda_scadenziario_notifications_for_paths,
+                )
+
+                tenant_reports: list[dict[str, object]] = []
+                errors = 0
+                recipients = 0
+                items = 0
+                for label, paths in _mailbox_sync_targets():
+                    report = materialize_agenda_scadenziario_notifications_for_paths(
+                        paths,
+                        tenant_label=label,
+                        tenant_id=str(paths.get("_TENANT_NOTIFICATION_ID") or label),
+                        database=paths.get("_TENANT_DATABASE_CONFIG"),
+                    )
+                    tenant_reports.append(report)
+                    errors += _as_int(report.get("errors"))
+                    recipients += _as_int(report.get("recipients"))
+                    items += _as_int(report.get("items"))
+                return {
+                    "ok": errors == 0,
+                    "job": "agenda_scadenziario_notifications",
+                    "source_of_truth": "agenda/scadenziario e notification repository tenant-aware",
+                    "recipients": recipients,
+                    "items": items,
+                    "errors": errors,
+                    "tenants": tenant_reports,
+                }
+            except Exception as exc:
+                logger.error("[scheduler] Materializzazione notifiche Agenda/Scadenziario fallita: %s", exc)
+                return {
+                    "ok": False,
+                    "job": "agenda_scadenziario_notifications",
+                    "error": str(exc),
+                }
 
     @scheduler.scheduled_job(
         CronTrigger(minute="13-58/15"),

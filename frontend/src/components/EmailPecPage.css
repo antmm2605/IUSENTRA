@@ -371,6 +371,16 @@
 }
 .iu-mail-reader-pane{
   min-width:0;
+  min-height:var(--iu-mail-pane-height);
+  display:flex;
+  flex-direction:column;
+  align-self:stretch;
+}
+.iu-mail-reader-pane>.iu-mail-preview-card,
+.iu-mail-reader-pane>.iu-mail-preview-empty{
+  width:100%;
+  height:100%;
+  flex:1 1 auto;
 }
 .iu-mail-reader-pane__bar{
   display:none;
@@ -1939,7 +1949,7 @@
   .iu-mail-toolbar{grid-template-columns:1fr auto auto}
   .iu-mail-folders{grid-column:1 / -1;overflow:auto}
   .iu-mail-layout{grid-template-columns:1fr}
-  .iu-mail-reader-pane{display:none}
+  .iu-mail-reader-pane{display:none;min-height:0;height:auto}
   .iu-mail-reader-pane.is-open{
     position:fixed;
     inset:64px 14px 18px;

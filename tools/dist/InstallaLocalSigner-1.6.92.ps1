@@ -1,0 +1,943 @@
+# IUSENTRA Local Signer Setup v1.6.92
+# Pacchetto generato il 2026-07-16 20:56:18
+# Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma
+# IUSENTRA Local Signer - Installazione locale Windows
+# Usa i file gia' presenti nella cartella tools e configura l'avvio automatico.
+# Se Python non e' installato, scarica automaticamente Python portatile.
+
+param(
+    [switch]$Quiet
+)
+
+$ErrorActionPreference = "Stop"
+
+$taskName = "IUSENTRA Local Signer"
+$toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $toolsDir
+$targetDir = Join-Path $env:APPDATA "IUSENTRA\LocalSigner"
+$venvDir = Join-Path $targetDir ".venv"
+$embeddedPythonDir = Join-Path $targetDir "python"
+$pythonScript = Join-Path $targetDir "local_signer.py"
+$windowsHttpScript = Join-Path $targetDir "local_signer_windows_http.ps1"
+$aiBridgeScript = Join-Path $targetDir "local_ai_host_bridge.py"
+$lexContextScript = Join-Path $targetDir "lex_document_context.py"
+$visibleSignatureScript = Join-Path $targetDir "visible_signature.py"
+$moduleDir = Join-Path $targetDir "local_signer_mod"
+$dataDir = Join-Path $targetDir "data"
+$ufficiTarget = Join-Path $dataDir "uffici_ministero.json"
+$ufficiPstPubbliciTarget = Join-Path $dataDir "uffici_pst_pubblici.json"
+$starterCmd = Join-Path $targetDir "start_local_signer.cmd"
+$starterVbs = Join-Path $targetDir "start_local_signer.vbs"
+$requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
+$pythonExe = Join-Path $venvDir "Scripts\python.exe"
+$pythonwExe = Join-Path $venvDir "Scripts\pythonw.exe"
+$defaultBaseUrl = "https://app.iusentra.it"
+$defaultAllowedOrigins = "$defaultBaseUrl,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
+$installerLog = Join-Path $targetDir "installer.log"
+$runtimeStdoutLog = Join-Path $targetDir "local_signer.out.log"
+$runtimeStderrLog = Join-Path $targetDir "local_signer.err.log"
+$env:PIP_NO_CACHE_DIR = "1"
+$env:PIP_DISABLE_PIP_VERSION_CHECK = "1"
+
+# Python portatile: versione e URL di download
+$embeddedPythonVersion = "3.12.8"
+$embeddedPythonUrl = "https://www.python.org/ftp/python/$embeddedPythonVersion/python-$embeddedPythonVersion-embed-amd64.zip"
+$embeddedPythonUrlFallback = "$defaultBaseUrl/polisWeb/local-signer/download/python-embedded"
+$getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+
+New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+
+$installLockPath = Join-Path $targetDir "installer.lock"
+$installLockStream = $null
+
+function Write-InstallerLog([string]$Message) {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $installerLog -Value "[$timestamp] $Message" -Encoding UTF8
+}
+
+function Acquire-InstallerLock {
+    Write-InstallerLog "Acquisisco lock installazione Local Signer..."
+    $deadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $script:installLockStream = [System.IO.File]::Open(
+                $installLockPath,
+                [System.IO.FileMode]::OpenOrCreate,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None
+            )
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes("pid=$PID started=$(Get-Date -Format o)")
+            $script:installLockStream.SetLength(0)
+            $script:installLockStream.Write($bytes, 0, $bytes.Length)
+            $script:installLockStream.Flush()
+            Write-InstallerLog "Lock installazione acquisito."
+            return
+        } catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+    throw "Un'altra installazione Local Signer è ancora in corso. Attendere la chiusura e riprovare."
+}
+
+function Release-InstallerLock {
+    if ($script:installLockStream) {
+        try {
+            $script:installLockStream.Close()
+            $script:installLockStream.Dispose()
+        } catch {
+        }
+        $script:installLockStream = $null
+    }
+    Remove-Item -LiteralPath $installLockPath -Force -ErrorAction SilentlyContinue
+}
+
+function Wait-InstallerDebugExit {
+    if ($env:IUSENTRA_LOCAL_SIGNER_KEEP_INSTALLER_OPEN -eq "1") {
+        Read-Host "Premere Invio per chiudere"
+    }
+}
+
+trap {
+    $errText = $_.Exception.Message
+    Write-InstallerLog "ERRORE: $errText"
+    Release-InstallerLock
+    Write-Host "ERRORE: $errText" -ForegroundColor Red
+    Write-Host "Log installazione: $installerLog" -ForegroundColor Yellow
+    Wait-InstallerDebugExit
+    exit 1
+}
+
+function Write-Step([string]$Message) {
+    Write-Host "  $Message" -ForegroundColor Cyan
+    Write-InstallerLog $Message
+}
+
+Acquire-InstallerLock
+
+function Invoke-Pip {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+        [Parameter(Mandatory = $true)]
+        [string]$FailureMessage
+    )
+
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $output = & $pythonExe -m pip @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+
+    foreach ($line in $output) {
+        if ($line) {
+            Write-InstallerLog "pip: $line"
+        }
+    }
+
+    if ($exitCode -ne 0) {
+        Write-Host "  ERRORE: $FailureMessage" -ForegroundColor Red
+        return $false
+    }
+    return $true
+}
+
+function Test-PythonWorks([string]$Cmd) {
+    # Verifica che il candidato Python esegua davvero codice (non sia un alias Store)
+    try {
+        $out = & cmd /c "$Cmd -c `"print('ok')`" 2>&1"
+        if ($LASTEXITCODE -eq 0 -and $out -match "ok") {
+            return $true
+        }
+    } catch {
+    }
+    return $false
+}
+
+function Test-IsWindowsStoreAlias([string]$Path) {
+    $resolved = [System.Environment]::ExpandEnvironmentVariables($Path)
+    return ($resolved -like "*\Microsoft\WindowsApps\*" -or
+            $resolved -like "*\WindowsApps\*")
+}
+
+function Find-PythonCommand {
+    # 1. Prova il Python Launcher (py) e i comandi standard
+    foreach ($candidate in @("py -3", "py", "python3", "python")) {
+        try {
+            $out = & cmd /c "$candidate --version 2>&1"
+            if ($LASTEXITCODE -eq 0) {
+                if (Test-PythonWorks $candidate) {
+                    return $candidate
+                }
+            }
+        } catch {
+        }
+    }
+
+    # 2. Cerca nei percorsi comuni di installazione Windows
+    $commonPaths = @(
+        "C:\Python314\python.exe",
+        "C:\Python313\python.exe",
+        "C:\Python312\python.exe",
+        "C:\Python311\python.exe",
+        "C:\Python310\python.exe",
+        "C:\Python39\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe"
+    )
+    foreach ($path in $commonPaths) {
+        $expanded = [System.Environment]::ExpandEnvironmentVariables($path)
+        if (Test-Path $expanded) {
+            if (Test-PythonWorks "`"$expanded`"") {
+                return "`"$expanded`""
+            }
+        }
+    }
+
+    # 3. Cerca python.exe nel PATH (esclusi alias Microsoft Store)
+    try {
+        $allFound = & where.exe python 2>$null
+        foreach ($found in $allFound) {
+            if ($found -and (Test-Path $found) -and -not (Test-IsWindowsStoreAlias $found)) {
+                if (Test-PythonWorks "`"$found`"") {
+                    return "`"$found`""
+                }
+            }
+        }
+    } catch {
+    }
+
+    return $null
+}
+
+function Install-EmbeddedPython {
+    <#
+    .SYNOPSIS
+    Scarica e configura Python portatile (embeddable) nella cartella IUSENTRA.
+    Non modifica il sistema, non richiede permessi admin, non richiede
+    installazione manuale da parte dell'utente.
+    #>
+
+    $embedZip = Join-Path $targetDir "python-embed.zip"
+
+    Write-Step "Python non presente sul PC."
+    Write-Step "Scarico Python $embeddedPythonVersion portatile (circa 10 MB)..."
+    Write-InstallerLog "Download Python embeddable $embeddedPythonVersion"
+
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+    $downloaded = $false
+    foreach ($url in @($embeddedPythonUrl, $embeddedPythonUrlFallback)) {
+        try {
+            Write-Host "    Scarico da: $url" -ForegroundColor DarkGray
+            Invoke-WebRequest -Uri $url -OutFile $embedZip -UseBasicParsing
+            if ((Get-Item $embedZip).Length -gt 1000000) {
+                $downloaded = $true
+                break
+            }
+            Remove-Item $embedZip -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-InstallerLog "Download fallito da $url : $_"
+        }
+    }
+
+    if (-not $downloaded) {
+        Write-Host ""
+        Write-Host "  ERRORE: impossibile scaricare Python." -ForegroundColor Red
+        Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+        Write-Host "  In alternativa, installare Python da https://python.org/downloads" -ForegroundColor Yellow
+        return $false
+    }
+
+    Write-Step "Estraggo Python portatile..."
+    if (Test-Path $embeddedPythonDir) {
+        Remove-Item $embeddedPythonDir -Recurse -Force
+    }
+    Expand-Archive -Path $embedZip -DestinationPath $embeddedPythonDir -Force
+    Remove-Item $embedZip -Force
+
+    # Abilita "import site" nel file ._pth (necessario per pip e site-packages)
+    $pthFile = Get-ChildItem $embeddedPythonDir -Filter "python*._pth" | Select-Object -First 1
+    if ($pthFile) {
+        $content = Get-Content $pthFile.FullName -Raw
+        $content = $content -replace "#\s*import site", "import site"
+        Set-Content $pthFile.FullName $content -NoNewline
+        Write-InstallerLog "Abilitato import site in $($pthFile.Name)"
+    }
+
+    # Scarica e installa pip
+    Write-Step "Configuro pip (gestore pacchetti Python)..."
+    $getPipFile = Join-Path $embeddedPythonDir "get-pip.py"
+    $embedPython = Join-Path $embeddedPythonDir "python.exe"
+
+    try {
+        Invoke-WebRequest -Uri $getPipUrl -OutFile $getPipFile -UseBasicParsing
+    } catch {
+        Write-Host "  ERRORE: impossibile scaricare pip." -ForegroundColor Red
+        return $false
+    }
+
+    & $embedPython $getPipFile --quiet --no-warn-script-location 2>$null
+    Remove-Item $getPipFile -Force -ErrorAction SilentlyContinue
+
+    # Verifica che pip sia installato
+    $pipExe = Join-Path $embeddedPythonDir "Scripts\pip.exe"
+    if (-not (Test-Path $pipExe)) {
+        Write-Host "  ERRORE: configurazione pip fallita." -ForegroundColor Red
+        return $false
+    }
+
+    Write-Step "Python $embeddedPythonVersion portatile pronto."
+    Write-InstallerLog "Python embeddable installato in $embeddedPythonDir"
+    return $true
+}
+
+function Wait-LocalSigner([int]$Attempts = 45) {
+    for ($i = 0; $i -lt $Attempts; $i++) {
+        try {
+            $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping?light=1" -UseBasicParsing -TimeoutSec 2
+            if ($resp.ok) {
+                $version = ""
+                if ($resp.versione) {
+                    $version = " versione $($resp.versione)"
+                } elseif ($resp.version) {
+                    $version = " versione $($resp.version)"
+                }
+                Write-InstallerLog "Ping leggero Local Signer riuscito$version."
+                return $true
+            }
+            Write-InstallerLog "Ping leggero Local Signer ricevuto senza conferma ok."
+        } catch {
+            Write-InstallerLog "Ping leggero Local Signer non ancora riuscito: $($_.Exception.Message)"
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function Test-LocalSignerOnline {
+    try {
+        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping?light=1" -UseBasicParsing -TimeoutSec 2
+        return [bool]$resp.ok
+    } catch {
+        return $false
+    }
+}
+
+function Write-LocalSignerStartupDiagnostics {
+    param([string]$ServicePythonExe = "")
+
+    Write-InstallerLog "Diagnostica avvio Local Signer:"
+    Write-InstallerLog "  cartella installazione: $targetDir"
+    if ($ServicePythonExe) {
+        Write-InstallerLog "  python selezionato: $ServicePythonExe; presente=$(Test-Path -LiteralPath $ServicePythonExe)"
+    }
+    foreach ($path in @($pythonScript, $starterCmd, $starterVbs, (Join-Path $moduleDir "security.py"), $runtimeStdoutLog, $runtimeStderrLog)) {
+        $item = Get-Item -LiteralPath $path -ErrorAction SilentlyContinue
+        if ($item) {
+            Write-InstallerLog "  file: $path; presente=true; byte=$($item.Length); aggiornato=$($item.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))"
+        } else {
+            Write-InstallerLog "  file: $path; presente=false"
+        }
+    }
+    try {
+        $owners = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty OwningProcess -Unique
+        if ($owners) {
+            foreach ($owner in $owners) {
+                $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$owner" -ErrorAction SilentlyContinue
+                Write-InstallerLog "  porta 27272 occupata da PID ${owner}: $($proc.CommandLine)"
+            }
+        } else {
+            Write-InstallerLog "  porta 27272: nessun processo in ascolto"
+        }
+    } catch {
+        Write-InstallerLog "  controllo porta 27272 non riuscito: $($_.Exception.Message)"
+    }
+    foreach ($logFile in @($runtimeStderrLog, $runtimeStdoutLog)) {
+        if (Test-Path -LiteralPath $logFile) {
+            Write-InstallerLog "  ultime righe ${logFile}:"
+            Get-Content -LiteralPath $logFile -Tail 30 -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-InstallerLog "    $_" }
+        }
+    }
+}
+
+function Stop-LocalSignerProcesses {
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Name -in @("python.exe", "pythonw.exe") -and
+            $_.CommandLine -and
+            $_.CommandLine -like "*local_signer*"
+        } |
+        ForEach-Object {
+            try {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
+            } catch {
+            }
+        }
+    for ($i = 0; $i -lt 6; $i++) {
+        $conn = Get-NetTCPConnection -LocalPort 27272 -ErrorAction SilentlyContinue
+        if (-not $conn) { break }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+function Stop-LocalSignerDuplicateProcesses {
+    $owner = $null
+    try {
+        $owner = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty OwningProcess
+    } catch {
+        $owner = $null
+    }
+    if (-not $owner) {
+        return
+    }
+    $processes = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)
+    $processes |
+        Where-Object {
+            $_.Name -in @("python.exe", "pythonw.exe") -and
+            [int]$_.ProcessId -ne [int]$owner -and
+            $_.CommandLine -and
+            $_.CommandLine -like "*local_signer*"
+        } |
+        ForEach-Object {
+            try {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
+                Write-InstallerLog "Istanza Local Signer duplicata chiusa: PID $($_.ProcessId)"
+            } catch {
+            }
+        }
+}
+
+function Test-LocalSignerSingleInstance {
+    $owners = @(
+        Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty OwningProcess -Unique
+    )
+    $processes = @(
+        Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Name -in @("python.exe", "pythonw.exe") -and
+                $_.CommandLine -and
+                $_.CommandLine -like "*local_signer*"
+            }
+    )
+    if ($owners.Count -ne 1 -or $processes.Count -ne 1) {
+        Write-InstallerLog "Verifica istanza unica fallita: listener=$($owners.Count), processi=$($processes.Count)."
+        return $false
+    }
+    if ([int]$owners[0] -ne [int]$processes[0].ProcessId) {
+        Write-InstallerLog "Verifica istanza unica fallita: listener PID $($owners[0]), processo PID $($processes[0].ProcessId)."
+        return $false
+    }
+    Write-InstallerLog "Istanza unica verificata: PID $($owners[0])."
+    return $true
+}
+
+function Get-LocalSignerServicePython {
+    $embeddedPython = Join-Path $embeddedPythonDir "python.exe"
+    if (Test-Path $embeddedPython) {
+        return $embeddedPython
+    }
+    $venvConfig = Join-Path $venvDir "pyvenv.cfg"
+    if (Test-Path $venvConfig) {
+        try {
+            $line = Get-Content -LiteralPath $venvConfig -ErrorAction Stop |
+                Where-Object { $_ -match "^\s*executable\s*=" } |
+                Select-Object -First 1
+            if ($line) {
+                $resolved = ($line -replace "^\s*executable\s*=\s*", "").Trim()
+                if ($resolved -and (Test-Path $resolved)) {
+                    return $resolved
+                }
+            }
+        } catch {
+            Write-InstallerLog "Python reale da pyvenv.cfg non risolto: $($_.Exception.Message)"
+        }
+    }
+    if (Test-Path $pythonExe) {
+        return $pythonExe
+    }
+    if (Test-Path $pythonwExe) {
+        return $pythonwExe
+    }
+    return $null
+}
+
+function Set-LocalSignerRuntimeEnvironment {
+    $paths = @()
+    $venvSitePackages = Join-Path $venvDir "Lib\site-packages"
+    if (Test-Path $venvSitePackages) {
+        $paths += $venvSitePackages
+    }
+    $paths += $targetDir
+    if ($env:PYTHONPATH) {
+        $paths += $env:PYTHONPATH
+    }
+    $env:PYTHONPATH = ($paths -join ";")
+    $env:VIRTUAL_ENV = $venvDir
+}
+
+function Uninstall-ExistingLocalSigner {
+    Write-InstallerLog "Avvio disinstallazione controllata della vecchia installazione"
+
+    Stop-LocalSignerProcesses
+    try {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction Stop | Out-Null
+    } catch {
+        Write-InstallerLog "Attivita' pianificata non rimossa da PowerShell: $($_.Exception.Message)"
+    }
+    try {
+        & schtasks.exe /Delete /TN $taskName /F *> $null
+        if ($LASTEXITCODE -ne 0) {
+            Write-InstallerLog "Attivita' pianificata non rimossa da schtasks: codice $LASTEXITCODE"
+        }
+    } catch {
+        Write-InstallerLog "Attivita' pianificata non rimossa da schtasks: $($_.Exception.Message)"
+    }
+
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if ($startupDir) {
+        $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+        Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction SilentlyContinue
+    }
+
+    foreach ($protocolName in @("iusentra-local-signer", ("ha" + "cs-local-signer"))) {
+        Remove-Item -Path "HKCU:\Software\Classes\$protocolName" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $resolvedTarget = [System.IO.Path]::GetFullPath($targetDir)
+    $resolvedAppData = [System.IO.Path]::GetFullPath((Join-Path $env:APPDATA "IUSENTRA"))
+    if (-not $resolvedTarget.StartsWith($resolvedAppData, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Percorso Local Signer non sicuro per la disinstallazione: $resolvedTarget"
+    }
+
+    if (-not (Test-Path $targetDir)) {
+        return
+    }
+
+    $preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")
+    Get-ChildItem -LiteralPath $targetDir -Force -ErrorAction SilentlyContinue |
+        Where-Object { $preserve -notcontains $_.Name } |
+        ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+    Write-InstallerLog "Vecchia installazione rimossa; dati locali e log preservati"
+}
+
+function Copy-LocalSignerModule {
+    $moduleSourceDir = Join-Path $toolsDir "local_signer_mod"
+    New-Item -ItemType Directory -Force -Path $moduleDir | Out-Null
+
+    foreach ($moduleFile in @("__init__.py", "ai_cache.py", "ai_handlers.py", "pec_bridge.py", "security.py", "server_bootstrap.py", "support_agent.py")) {
+        $source = Join-Path $moduleSourceDir $moduleFile
+        if (-not (Test-Path $source)) {
+            $source = Join-Path $toolsDir ("local_signer_mod__" + $moduleFile)
+        }
+        if (-not (Test-Path $source)) {
+            $downloadUrl = "$defaultBaseUrl/polisWeb/local-signer/download/local-signer-mod/$moduleFile"
+            $target = Join-Path $moduleDir $moduleFile
+            try {
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $target -UseBasicParsing
+                continue
+            } catch {
+                throw "Modulo Local Signer mancante nel pacchetto e download non riuscito: local_signer_mod\$moduleFile"
+            }
+        }
+        Copy-Item $source (Join-Path $moduleDir $moduleFile) -Force
+    }
+}
+
+function Write-LocalSignerLaunchers {
+    $allowedOrigins = $defaultAllowedOrigins
+    $updateInstallerUrl = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
+    # Il launcher usa python.exe nascosto per scrivere log diagnostici; pythonw.exe resta fallback.
+    $cmd = @'
+@echo off
+setlocal
+set "DIR=%~dp0"
+set "PY=%DIR%local_signer.py"
+set "TARGET=%DIR%local_signer.py"
+set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
+set "IUSENTRA_LOCAL_SIGNER_UPDATE_URL=__UPDATE_INSTALLER_URL__"
+set "FORCE_RESTART=0"
+set "SILENT_MODE=0"
+set "UPDATE_MODE=0"
+set "ARGS=%*"
+
+if /I "%~1"=="--force" set "FORCE_RESTART=1"
+if /I "%~1"=="--silent" set "SILENT_MODE=1"
+if /I "%~1"=="--update" set "UPDATE_MODE=1"
+echo %ARGS% | find /I "--force" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %ARGS% | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %ARGS% | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_MODE=1"
+
+if "%UPDATE_MODE%"=="1" goto :update
+
+rem Cerca Python: prima python.exe per log diagnostici, poi pythonw.exe come fallback
+set "PYE=%DIR%python\python.exe"
+if not exist "%PYE%" for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "$cfg=Join-Path $env:DIR '.venv\pyvenv.cfg'; if (Test-Path $cfg) { $line=Get-Content -LiteralPath $cfg | Where-Object { $_ -match '^\s*executable\s*=' } | Select-Object -First 1; if ($line) { ($line -replace '^\s*executable\s*=\s*','').Trim() } }"`) do set "PYE=%%P"
+if not exist "%PYE%" set "PYE=%DIR%.venv\Scripts\python.exe"
+set "PYW=%DIR%python\pythonw.exe"
+if not exist "%PYW%" set "PYW=%DIR%.venv\Scripts\pythonw.exe"
+set "VENVSITE=%DIR%.venv\Lib\site-packages"
+if exist "%VENVSITE%" set "PYTHONPATH=%VENVSITE%;%DIR%;%PYTHONPATH%"
+set "OUTLOG=%DIR%local_signer.out.log"
+set "ERRLOG=%DIR%local_signer.err.log"
+
+if "%FORCE_RESTART%"=="0" (
+powershell -NoProfile -WindowStyle Hidden -Command "try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if ($r.ok) { exit 0 } } catch {}; exit 1" >nul 2>&1
+if not errorlevel 1 goto :online
+)
+
+powershell -NoProfile -WindowStyle Hidden -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }" >nul 2>&1
+powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }" >nul 2>&1
+
+if not exist "%PY%" exit /b 1
+if exist "%PYE%" (
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYE -ArgumentList @($env:PY) -RedirectStandardOutput $env:OUTLOG -RedirectStandardError $env:ERRLOG"
+) else if exist "%PYW%" (
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -WorkingDirectory $env:DIR -FilePath $env:PYW -ArgumentList @($env:PY)"
+) else (
+    exit /b 1
+)
+powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if (-not $r.ok) { exit 1 } } catch { exit 1 }"
+
+:online
+if /I "%~1"=="--background" exit /b 0
+if "%SILENT_MODE%"=="1" exit /b 0
+timeout /t 2 >nul
+start "" "http://127.0.0.1:27272/diagnosi"
+exit /b 0
+
+:update
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$ErrorActionPreference='Stop'; $url=$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL; if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; $target=Join-Path $env:TEMP ('SetupLocalSigner-' + [Guid]::NewGuid().ToString('N') + '.exe'); try { Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; $installer=Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q') -PassThru -Wait; if ($installer.ExitCode -ne 0) { exit $installer.ExitCode }; $ready=$false; for ($i=0; $i -lt 180; $i++) { try { $ping=Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if ($ping.ok) { $ready=$true; break } } catch {}; Start-Sleep -Seconds 1 }; if (-not $ready) { exit 3 } } finally { Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue }"
+exit /b %ERRORLEVEL%
+'@
+    $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
+    $cmd = $cmd.Replace('__UPDATE_INSTALLER_URL__', $updateInstallerUrl)
+    Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
+
+    $vbs = @'
+Set shell = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+Dim extra
+Dim here
+Dim starter
+here = fso.GetParentFolderName(WScript.ScriptFullName)
+starter = fso.BuildPath(here, "start_local_signer.cmd")
+extra = " --background"
+If WScript.Arguments.Count > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://update") > 0 Then
+    extra = " --update"
+  ElseIf InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
+    extra = extra & " --force"
+  End If
+End If
+shell.Run Chr(34) & starter & Chr(34) & extra, 0, False
+'@
+    Set-Content -Path $starterVbs -Value $vbs -Encoding ASCII
+}
+
+function Register-LocalSignerProtocol {
+    $legacyProtocolName = ("ha" + "cs-local-signer")
+    Remove-Item -Path "HKCU:\Software\Classes\$legacyProtocolName" -Recurse -Force -ErrorAction SilentlyContinue
+
+    $protocolRoot = "HKCU:\Software\Classes\iusentra-local-signer"
+    $commandKey = Join-Path $protocolRoot "shell\open\command"
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
+
+    New-Item -Path $commandKey -Force | Out-Null
+    Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
+    New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
+    Set-Item -Path $commandKey -Value $command
+}
+
+function Register-LocalSignerStartupShortcut {
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if (-not $startupDir) {
+        Write-InstallerLog "Startup folder non disponibile; uso solo attivita' pianificata."
+        return $false
+    }
+
+    New-Item -ItemType Directory -Force -Path $startupDir | Out-Null
+    $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $wscriptExe
+    $shortcut.Arguments = "`"$starterVbs`""
+    $shortcut.WorkingDirectory = $targetDir
+    $shortcut.WindowStyle = 7
+    $shortcut.Description = "IUSENTRA Local Signer - avvio automatico al login"
+    $shortcut.Save()
+    Write-InstallerLog "Collegamento Startup registrato: $shortcutPath"
+    return $true
+}
+
+function Remove-LocalSignerStartupShortcut {
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if (-not $startupDir) {
+        return
+    }
+    $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+    if (Test-Path -LiteralPath $shortcutPath) {
+        Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction Stop
+        Write-InstallerLog "Collegamento Startup duplicato rimosso: $shortcutPath"
+    }
+}
+
+function Register-LocalSignerScheduledTask {
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $action = New-ScheduledTaskAction -Execute $wscriptExe -Argument "`"$starterVbs`""
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
+    $settings = New-ScheduledTaskSettingsSet `
+        -ExecutionTimeLimit 0 `
+        -RestartCount 3 `
+        -StartWhenAvailable `
+        -AllowStartIfOnBatteries `
+        -DontStopIfGoingOnBatteries
+
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+    Register-ScheduledTask `
+        -TaskName $taskName `
+        -Action $action `
+        -Trigger $trigger `
+        -Settings $settings `
+        -Description "IUSENTRA Local Signer - avvio automatico al login" `
+        -Force | Out-Null
+    Write-InstallerLog "Attivita' pianificata registrata: $taskName"
+}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  INIZIO INSTALLAZIONE
+# ═══════════════════════════════════════════════════════════════════
+
+Write-Host ""
+Write-Host "IUSENTRA Local Signer - Installazione Windows" -ForegroundColor Green
+Write-Host ""
+Write-InstallerLog "Avvio installazione Local Signer"
+
+Write-Step "Disinstallo la vecchia versione locale prima di installare quella nuova..."
+Uninstall-ExistingLocalSigner
+
+# ── Rilevamento Python ────────────────────────────────────────────
+# Priorita': 1) Python di sistema  2) Python portatile gia' installato  3) Download automatico
+$useEmbeddedPython = $false
+$pythonCmd = Find-PythonCommand
+
+if ($pythonCmd) {
+    Write-Step "Python di sistema trovato: $pythonCmd"
+} else {
+    # Controlla se c'e' gia' il Python portatile da un'installazione precedente
+    $embPy = Join-Path $embeddedPythonDir "python.exe"
+    if ((Test-Path $embPy) -and (Test-PythonWorks "`"$embPy`"")) {
+        Write-Step "Python portatile gia' presente: $embPy"
+        $useEmbeddedPython = $true
+    } else {
+        # Scarica Python portatile automaticamente
+        $result = Install-EmbeddedPython
+        if (-not $result) {
+            Write-Host ""
+            Write-Host "  L'installazione automatica di Python non e' riuscita." -ForegroundColor Red
+            Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+            Write-Host ""
+            Wait-InstallerDebugExit
+            exit 1
+        }
+        $useEmbeddedPython = $true
+    }
+}
+
+# ── Preparazione directory e file ─────────────────────────────────
+New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+New-Item -ItemType Directory -Force -Path $moduleDir | Out-Null
+
+if (Test-Path $pythonScript) {
+    Write-Step "Aggiorno l'installazione locale gia' presente..."
+}
+
+Write-Step "Arresto eventuali istanze Local Signer prima dell'aggiornamento..."
+Stop-LocalSignerProcesses
+
+Write-Step "Copio i file del Local Signer..."
+Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force
+Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") $windowsHttpScript -Force
+Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force
+Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force
+$visibleSignatureSource = Join-Path $toolsDir "visible_signature.py"
+if (-not (Test-Path $visibleSignatureSource)) {
+    $visibleSignatureSource = Join-Path $repoRoot "visible_signature.py"
+}
+Copy-Item $visibleSignatureSource $visibleSignatureScript -Force
+Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $requirementsFile -Force
+Copy-LocalSignerModule
+$ufficiSource = Join-Path $toolsDir "uffici_ministero.json"
+if (-not (Test-Path $ufficiSource)) {
+    $ufficiSource = Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_ministero.json"
+}
+if (Test-Path $ufficiSource) {
+    Copy-Item $ufficiSource $ufficiTarget -Force
+    Write-Step "Registro uffici PST locale copiato."
+} else {
+    Write-Host "  AVVISO: registro uffici PST locale non trovato; il signer usera' solo la configurazione esplicita." -ForegroundColor Yellow
+}
+$ufficiPstPubbliciSource = Join-Path $toolsDir "uffici_pst_pubblici.json"
+if (-not (Test-Path $ufficiPstPubbliciSource)) {
+    $ufficiPstPubbliciSource = Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_pst_pubblici.json"
+}
+if (Test-Path $ufficiPstPubbliciSource) {
+    Copy-Item $ufficiPstPubbliciSource $ufficiPstPubbliciTarget -Force
+    Write-Step "Catalogo pubblico uffici PST civile/penale copiato."
+} else {
+    Write-Host "  AVVISO: catalogo pubblico uffici PST non trovato; il PDP usera' il registro compatibile." -ForegroundColor Yellow
+}
+
+# ── Configurazione ambiente Python ────────────────────────────────
+if ($useEmbeddedPython) {
+    # Python portatile: i pacchetti si installano direttamente (nessun venv)
+    $pythonExe = Join-Path $embeddedPythonDir "python.exe"
+    $pythonwExe = Join-Path $embeddedPythonDir "pythonw.exe"
+    Write-Step "Uso Python portatile (nessun virtualenv necessario)."
+} else {
+    # Python di sistema: crea venv isolato
+    Write-Step "Preparo l'ambiente Python (virtualenv)..."
+    $venvConfig = Join-Path $venvDir "pyvenv.cfg"
+    $venvCompleta = (Test-Path $pythonExe) -and (Test-Path $venvConfig)
+    if ((Test-Path $venvDir) -and -not $venvCompleta) {
+        Write-InstallerLog "Virtualenv incompleta rilevata: rimuovo $venvDir prima di ricrearla."
+        Remove-Item -LiteralPath $venvDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if (-not $venvCompleta) {
+        & cmd /c "$pythonCmd -m venv `"$venvDir`""
+        if (-not ((Test-Path $pythonExe) -and (Test-Path $venvConfig))) {
+            Write-Host "  ERRORE: impossibile creare il virtual environment Python." -ForegroundColor Red
+            Write-Host "  Verificare che Python sia installato correttamente." -ForegroundColor Yellow
+            Wait-InstallerDebugExit
+            exit 1
+        }
+    }
+}
+
+Write-Step "Aggiorno pip..."
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--upgrade", "pip") -FailureMessage "impossibile aggiornare pip.")) {
+    Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+    Wait-InstallerDebugExit
+    exit 1
+}
+
+Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab, pillow)..."
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0", "pillow>=10.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
+    Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+    Wait-InstallerDebugExit
+    exit 1
+}
+
+Write-Step "Installo python-pkcs11 (per firma con smart card/token CNS)..."
+if (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "python-pkcs11>=0.7.0") -FailureMessage "python-pkcs11 non installato.") {
+    Write-Step "python-pkcs11 installato correttamente."
+} else {
+    Write-Host "  AVVISO: python-pkcs11 non installato (potrebbe non avere wheel per questa versione di Python)." -ForegroundColor Yellow
+    Write-Host "  Il Local Signer funzionera' ma la firma con smart card richiede python-pkcs11." -ForegroundColor Yellow
+}
+
+# ── Launcher, protocollo e avvio automatico ───────────────────────
+Write-Step "Preparo l'avvio contestuale da IUSENTRA..."
+Write-LocalSignerLaunchers
+
+Write-Step "Registro il protocollo locale iusentra-local-signer://..."
+Register-LocalSignerProtocol
+
+Write-Step "Registro l'avvio automatico permanente al login..."
+$autostartOk = $false
+try {
+    Register-LocalSignerScheduledTask
+    Remove-LocalSignerStartupShortcut
+    $autostartOk = $true
+} catch {
+    Write-InstallerLog "Attivita' pianificata non registrata: $($_.Exception.Message)"
+    Write-Host "  AVVISO: attivita' pianificata non registrata, preparo fallback Startup." -ForegroundColor Yellow
+}
+if (-not $autostartOk) {
+    try {
+        if (Register-LocalSignerStartupShortcut) {
+            $autostartOk = $true
+        }
+    } catch {
+        Write-InstallerLog "Fallback Startup non registrato: $($_.Exception.Message)"
+    }
+}
+if (-not $autostartOk) {
+    throw "Impossibile registrare l'avvio automatico permanente del Local Signer."
+}
+
+Write-Step "Avvio subito il servizio in background..."
+Stop-LocalSignerProcesses
+Remove-Item $runtimeStdoutLog, $runtimeStderrLog -Force -ErrorAction SilentlyContinue
+$servicePythonExe = Get-LocalSignerServicePython
+if (Test-Path $servicePythonExe) {
+    $env:PCT_LOCAL_SIGNER_ALLOWED_ORIGINS = $defaultAllowedOrigins
+    $env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
+    Set-LocalSignerRuntimeEnvironment
+    if ((Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe") {
+        Start-Process `
+            -WindowStyle Hidden `
+            -WorkingDirectory $targetDir `
+            -FilePath $servicePythonExe `
+            -ArgumentList @($pythonScript)
+    } else {
+        Start-Process `
+            -WindowStyle Hidden `
+            -WorkingDirectory $targetDir `
+            -FilePath $servicePythonExe `
+            -ArgumentList @($pythonScript) `
+            -RedirectStandardOutput $runtimeStdoutLog `
+            -RedirectStandardError $runtimeStderrLog
+    }
+} else {
+    Start-Process -WindowStyle Hidden -FilePath $starterCmd -ArgumentList @("--background")
+}
+
+Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
+$online = Wait-LocalSigner
+if ($online) {
+    Write-Step "Verifico che sia attiva una sola istanza Local Signer..."
+    Stop-LocalSignerDuplicateProcesses
+    Start-Sleep -Milliseconds 500
+    $online = (Test-LocalSignerOnline) -and (Test-LocalSignerSingleInstance)
+}
+$exitCode = 0
+if (-not $online) {
+    $exitCode = 1
+}
+
+Write-Host ""
+if ($online) {
+    Write-InstallerLog "Installazione completata con servizio attivo"
+    Write-Host "Installazione completata." -ForegroundColor Green
+    Write-Host "Il Local Signer e' attivo e raggiungibile." -ForegroundColor Green
+    Write-Host "Da ora in poi IUSENTRA puo' avviarlo automaticamente quando clicchi Cerca." -ForegroundColor Cyan
+    Write-Host "Diagnostica locale: http://127.0.0.1:27272/diagnosi" -ForegroundColor Cyan
+} else {
+    Write-Host "Installazione completata con avviso." -ForegroundColor Yellow
+    Write-Host "Il servizio non ha ancora risposto su http://127.0.0.1:27272." -ForegroundColor Yellow
+    Write-Host "Apri IUSENTRA e usa 'Avvia Local Signer', oppure esegui di nuovo questo installer." -ForegroundColor Yellow
+    Write-LocalSignerStartupDiagnostics -ServicePythonExe $servicePythonExe
+    if (Test-Path $runtimeStderrLog) {
+        Write-Host "Dettagli errore: $runtimeStderrLog" -ForegroundColor Yellow
+        Write-InstallerLog "Avvio non riuscito. Consultare $runtimeStderrLog"
+    }
+}
+
+Release-InstallerLock
+Wait-InstallerDebugExit
+
+exit $exitCode

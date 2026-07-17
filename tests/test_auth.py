@@ -459,6 +459,38 @@ def test_migra_utenti_legacy_json_in_sqlite_quando_backend_auth_e_vuoto(tmp_path
     assert studio_db.conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] >= 1
 
 
+def test_vista_utenti_leggera_non_carica_il_registro_audit(tmp_path):
+    db = str(tmp_path / "auth" / "utenti.json")
+    audit = str(tmp_path / "auth" / "audit.json")
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    manager = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+    )
+    manager.crea(
+        "avvocato",
+        "Password123!",
+        RuoloUtente.AVVOCATO,
+        must_change_password=False,
+    )
+    manager.registra_evento("agenda.apri", username="avvocato")
+
+    lightweight = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+        load_audit=False,
+    )
+
+    assert lightweight.get_by_username("avvocato") is not None
+    assert lightweight.audit_log() == []
+
+
 def test_tenant_scoped_auth_riallinea_sqlite_da_json_quando_diverge(tmp_path):
     db = str(tmp_path / "auth" / "utenti.json")
     audit = str(tmp_path / "auth" / "audit.json")

@@ -155,7 +155,7 @@ def get_email_ordinaria() -> GestioneEmailRicevute:
     )
 
 
-def get_utenti() -> GestioneUtenti:
+def get_utenti(*, carica_audit: bool = True) -> GestioneUtenti:
     tenant_slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
     if not tenant_slug:
         tenant = getattr(g, "tenant", None)
@@ -170,6 +170,8 @@ def get_utenti() -> GestioneUtenti:
             "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""
         ),
         tenant_slug_context=tenant_slug,
+        crea_admin_se_vuoto=carica_audit,
+        load_audit=carica_audit,
     )
 
 

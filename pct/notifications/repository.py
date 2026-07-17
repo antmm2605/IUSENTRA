@@ -150,6 +150,27 @@ class NotificationRepository:
             )
             return record, True
 
+    def get_notification_by_dedupe_key(
+        self,
+        tenant_id: str,
+        user_id: str,
+        dedupe_key: str,
+    ) -> NotificationRecord | None:
+        safe_tenant_id = str(tenant_id or "").strip()
+        safe_user_id = str(user_id or "").strip()
+        safe_dedupe_key = str(dedupe_key or "").strip()
+        if not safe_tenant_id or not safe_user_id or not safe_dedupe_key:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM notifications
+                WHERE tenant_id = ? AND user_id = ? AND dedupe_key = ?
+                """,
+                (safe_tenant_id, safe_user_id, safe_dedupe_key),
+            ).fetchone()
+        return NotificationRecord.from_mapping(self._dict_row(row)) if row is not None else None
+
     def list_notifications(self, tenant_id: str, user_id: str, *, limit: int = 50) -> list[NotificationRecord]:
         safe_limit = max(1, min(int(limit or 50), 200))
         now = utc_now_iso()
@@ -216,6 +237,18 @@ class NotificationRepository:
                 WHERE tenant_id = ? AND user_id = ? AND id = ?
                 """,
                 (utc_now_iso(), str(tenant_id or ""), str(user_id or ""), str(notification_id or "")),
+            )
+            return bool(getattr(cur, "rowcount", 0))
+
+    def mark_unread(self, tenant_id: str, user_id: str, notification_id: str) -> bool:
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                UPDATE notifications
+                SET read_at = ''
+                WHERE tenant_id = ? AND user_id = ? AND id = ?
+                """,
+                (str(tenant_id or ""), str(user_id or ""), str(notification_id or "")),
             )
             return bool(getattr(cur, "rowcount", 0))
 

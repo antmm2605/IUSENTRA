@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from email.message import EmailMessage
 from io import BytesIO
 from pathlib import Path
 
-from pct.agenda import Agenda
+from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.pec_pipeline import PecAuditRepository
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
-from web.helpers import get_scadenziario
+from web.helpers import get_agenda, get_scadenziario
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
-from web.services.react_scadenziario_bridge import dedupe_calculator_templates
+from web.services.react_scadenziario_bridge import build_react_scadenziario_payload, dedupe_calculator_templates
 
 
 def _app(tmp_path: Path):
@@ -66,6 +68,9 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Apri link udienza audiovisiva" in page_source
     assert "Allegato udienza:" in page_source
     assert "Link verificato sull’allegato" in page_source
+    assert "SourceEvidenceLink" in page_source
+    assert "Visualizza fonte" in page_source
+    assert ".iu-scad-source-link" in css
     assert "Hash audit" not in page_source
     assert "Fonte link" not in page_source
     assert "Normalizzato da verificare" not in page_source
@@ -78,6 +83,10 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert 'context="scadenziario"' in page_source
     assert "postDeadlineAction" in page_source
     assert "getScadenziarioPage" in data_source
+    assert "focus_id" in data_source
+    assert "compatto" in data_source
+    assert "buildQuery(true)" in page_source
+    assert "Dettaglio disponibile, aggiornamento elenco in corso..." in page_source
     assert "DeadlineCalculatorTemplate" in data_source
     assert "DeadlineCalculatorResult" in data_source
     assert "/api/v1/ui/scadenziario" in data_source
@@ -133,6 +142,224 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
     assert payload["calculator"]["templates"]
     assert payload["calculator"]["endpoints"]["calculate"].endswith("/termini/calculate")
     assert payload["calculator"]["scheduler"]["channel"] == "PEC"
+
+
+def test_react_scadenziario_apertura_non_scrive_e_calcola_scaduto_in_memoria(tmp_path: Path, monkeypatch):
+    gestione = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gestione.nuova(
+        "Termine trascorso",
+        TipoTermine.ALTRO,
+        (date.today() - timedelta(days=1)).isoformat(),
+    )
+
+    def scrittura_vietata():
+        raise AssertionError("La lettura React non deve aggiornare in massa le scadenze")
+
+    monkeypatch.setattr(gestione, "scadute", scrittura_vietata)
+    payload = build_react_scadenziario_payload(
+        gestione_scadenziario=gestione,
+        gestione_fascicoli=None,
+        query_args={"vista": "scadute"},
+    )
+
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    assert row["status"] == "SCADUTO"
+    assert row["statusLabel"] == "Scaduta"
+    assert payload["summary"]["open"] == 0
+    assert payload["summary"]["overdue"] == 1
+
+
+def test_react_scadenziario_mantiene_contesto_legale_agenda_nel_dettaglio(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_date = (date.today() + timedelta(days=2)).isoformat()
+    with app.app_context():
+        get_agenda().aggiungi(
+            "Udienza RG 274/2026",
+            TipoAppuntamento.UDIENZA,
+            f"{due_date}T09:30:00",
+            cliente="LOPRETE DOMENICO",
+            procedimento="RG 274/2026",
+            tribunale="Tribunale di Palmi",
+            avvocato="Avv. Giuseppe Montagnese",
+        )
+        scadenza = get_scadenziario().nuova(
+            "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. - RG 274/2026",
+            TipoTermine.ADEMPIMENTO,
+            due_date,
+            id_fascicolo="B6A03AE6",
+            id_utente_responsabile="scheduler",
+            descrizione="Evento: esito deposito telematico. RG 274/2026.",
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            source_event_type="cancelleria_comunicazione",
+            note="PEC_AUDIT:contesto-agenda",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["title"] == "Opposizione alla trattazione scritta"
+    assert row["clientLabel"] == "LOPRETE DOMENICO"
+    assert row["fascicoloLabel"] == "RG 274/2026"
+    assert row["officeLabel"] == "Tribunale di Palmi"
+    assert row["ownerLabel"] == "Studio"
+    assert row["sourceEventTypeLabel"] == "Opposizione alla trattazione scritta"
+    assert "LOPRETE DOMENICO" in row["detailDescription"]
+    assert "RG 274/2026" in row["detailDescription"]
+    assert "Tribunale di Palmi" in row["detailDescription"]
+    assert "PEC_AUDIT" not in row["detailDescription"]
+
+
+def test_react_scadenziario_recupera_ufficio_dal_profilo_pec_salvato(tmp_path: Path):
+    pec_db = tmp_path / "email" / "pec_audit.sqlite"
+    repository = PecAuditRepository(pec_db, tenant_id="studio-test")
+    message = EmailMessage()
+    message["From"] = "tribunale.palmi@example.test"
+    message["To"] = "studio@example.test"
+    message["Date"] = "Tue, 14 Jul 2026 09:30:00 +0200"
+    message["Message-ID"] = "<rg771-ufficio@example.test>"
+    message["Subject"] = "Comunicazione RG 771/2025"
+    message.set_content("Revoca udienza e fissazione termine per note in sostituzione udienza.")
+    ingested = repository.ingest_mime(
+        message.as_bytes(),
+        account_email="studio@example.test",
+        enqueue=False,
+    )
+    parsed = repository.parse_and_store(ingested["id"])
+    with repository.connect() as connection:
+        repository._insert_validation_report(
+            connection,
+            message_id=ingested["id"],
+            parsed_version_id=parsed["parsed_version_id"],
+            report={
+                "event_type": "comunicazione_cancelleria",
+                "severity": "ok",
+                "procedural_profile": {
+                    "ufficio": "Tribunale di Palmi",
+                    "numero_ruolo": "771/2025",
+                },
+            },
+            actor="test",
+        )
+
+    gestione = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gestione.nuova(
+        "Revoca udienza e fissazione termine",
+        TipoTermine.UDIENZA,
+        "2026-07-14",
+        note=f"PEC_AUDIT:{ingested['id']}",
+    )
+    payload = build_react_scadenziario_payload(
+        gestione_scadenziario=gestione,
+        gestione_fascicoli=None,
+        query_args={"vista": "tutte"},
+        pec_audit_db=str(pec_db),
+        tenant_id="studio-test",
+    )
+
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    assert row["officeLabel"] == "Tribunale di Palmi"
+    assert row["sourceHref"] == f"/email/?audit_id={ingested['id']}"
+
+
+def test_react_scadenziario_ricerca_globale_trova_scaduta_per_ufficio_pec(tmp_path: Path):
+    pec_db = tmp_path / "email" / "pec_audit.sqlite"
+    repository = PecAuditRepository(pec_db, tenant_id="studio-test")
+    message = EmailMessage()
+    message["From"] = "tribunale.palmi@example.test"
+    message["To"] = "studio@example.test"
+    message["Date"] = "Tue, 14 Jul 2026 09:30:00 +0200"
+    message["Message-ID"] = "<rg771-search@example.test>"
+    message["Subject"] = "Comunicazione RG 771/2025"
+    message.set_content("Revoca udienza e fissazione termine per note in sostituzione udienza.")
+    ingested = repository.ingest_mime(
+        message.as_bytes(),
+        account_email="studio@example.test",
+        enqueue=False,
+    )
+    parsed = repository.parse_and_store(ingested["id"])
+    with repository.connect() as connection:
+        repository._insert_validation_report(
+            connection,
+            message_id=ingested["id"],
+            parsed_version_id=parsed["parsed_version_id"],
+            report={
+                "event_type": "comunicazione_cancelleria",
+                "severity": "ok",
+                "procedural_profile": {
+                    "ufficio": "Tribunale di Palmi",
+                    "numero_ruolo": "771/2025",
+                },
+            },
+            actor="test",
+        )
+
+    gestione = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gestione.nuova(
+        "Revoca udienza e fissazione termine - RG 771/2025",
+        TipoTermine.UDIENZA,
+        "2026-07-14",
+        note=f"PEC_AUDIT:{ingested['id']}",
+    )
+    payload = build_react_scadenziario_payload(
+        gestione_scadenziario=gestione,
+        gestione_fascicoli=None,
+        query_args={"vista": "aperte", "q": "Tribunale di Palmi"},
+        pec_audit_db=str(pec_db),
+        tenant_id="studio-test",
+    )
+
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["id"] == scadenza.id
+    assert payload["items"][0]["status"] == "SCADUTO"
+    assert payload["items"][0]["officeLabel"] == "Tribunale di Palmi"
+    assert payload["query"]["view"] == "aperte"
+    assert payload["query"]["searchAcrossAll"] is True
+
+
+def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_date = (date.today() + timedelta(days=2)).isoformat()
+    with app.app_context():
+        get_agenda().aggiungi(
+            "Udienza RG 274/2026",
+            TipoAppuntamento.UDIENZA,
+            f"{due_date}T09:30:00",
+            cliente="LOPRETE DOMENICO",
+            procedimento="RG 274/2026",
+            tribunale="Tribunale di Palmi",
+        )
+        selected = get_scadenziario().nuova(
+            "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. - RG 274/2026",
+            TipoTermine.ADEMPIMENTO,
+            due_date,
+            id_fascicolo="B6A03AE6",
+            descrizione="Evento collegato al fascicolo RG 274/2026.",
+        )
+        get_scadenziario().nuova(
+            "Deposito memoria non selezionato",
+            TipoTermine.DEPOSITO_MEMORIA,
+            due_date,
+        )
+
+    response = client.get(
+        f"/api/v1/ui/scadenziario?vista=tutte&focus_id={selected.id}&compatto=1",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["query"]["focusId"] == selected.id
+    assert payload["query"]["compact"] is True
+    assert [item["id"] for item in payload["items"]] == [selected.id]
+    assert payload["items"][0]["title"] == "Opposizione alla trattazione scritta"
+    assert payload["items"][0]["clientLabel"] == "LOPRETE DOMENICO"
+    assert payload["calculator"]["templates"] == []
+    assert payload["overduePreview"] == []
+    assert payload["nextItems"] == []
 
 
 def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: Path):
@@ -291,6 +518,36 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingSource"] == "13744017s.pdf.zip"
     assert row["remoteHearingVerified"] is True
     assert exact_link in row["remoteHearingUrl"]
+    assert row["sourceHref"] == "/email/?audit_id=msg-link"
+    assert row["sourceLabel"] == "PEC originale"
+    assert row["sourceKind"] == "pec"
+    assert row["sourceVerified"] is True
+
+
+def test_react_scadenziario_bridge_espone_modalita_udienza_in_presenza(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Udienza RG 1548/2026",
+            TipoTermine.UDIENZA,
+            (date.today() + timedelta(days=20)).isoformat(),
+            descrizione="Udienza fissata dal decreto presente nel fascicolo",
+            hearing_mode="presenza",
+            hearing_mode_source="Decreto fissazione udienza.pdf",
+            hearing_time="09:30",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert response.status_code == 200
+    assert row["hearingMode"] == "In presenza"
+    assert row["hearingModeSource"] == "Decreto fissazione udienza.pdf"
+    assert row["hearingTime"] == "09:30"
+    assert row["remoteHearingDetected"] is False
 
 
 def test_react_scadenziario_bridge_nasconde_testi_tecnici_da_pec(tmp_path: Path):
@@ -396,6 +653,9 @@ def test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_
     assert "Mario Rossi Codex" in row["description"]
     assert "Tribunale di Palmi" in row["description"]
     assert "INPS - Istituto Nazionale Previdenza Sociale" in row["detailDescription"]
+    assert row["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
+    assert row["sourceKind"] == "documento"
+    assert row["sourceVerified"] is True
 
 
 def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: Path):

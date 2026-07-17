@@ -479,7 +479,14 @@ class TelematicoWorkflowRepository:
             self._fetchone("SELECT * FROM telematic_cases WHERE id = ?", (case_id,))
         )
 
-    def list_cases(self, *, practice_id: str | None = None, service_code: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    def list_cases(
+        self,
+        *,
+        practice_id: str | None = None,
+        service_code: str | None = None,
+        practice_ids: set[str] | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
         clauses: list[str] = []
         params: list[Any] = []
         if practice_id:
@@ -488,6 +495,9 @@ class TelematicoWorkflowRepository:
         if service_code:
             clauses.append("service_code = ?")
             params.append(service_code)
+        if practice_ids is not None:
+            clauses.append("practice_id IN (SELECT value FROM json_each(?))")
+            params.append(json.dumps(sorted(str(value) for value in practice_ids if str(value))))
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         rows = self._fetchall(
             "SELECT * FROM v_telematic_case_overview "
@@ -536,16 +546,27 @@ class TelematicoWorkflowRepository:
         )
         return [_row_to_dict(row) or {} for row in rows]
 
-    def list_recent_events(self, *, limit: int = 25) -> list[dict[str, Any]]:
+    def list_recent_events(
+        self,
+        *,
+        practice_ids: set[str] | None = None,
+        limit: int = 25,
+    ) -> list[dict[str, Any]]:
+        where = ""
+        params: list[Any] = []
+        if practice_ids is not None:
+            where = "WHERE c.practice_id IN (SELECT value FROM json_each(?))"
+            params.append(json.dumps(sorted(str(value) for value in practice_ids if str(value))))
         rows = self._fetchall(
-            """
+            f"""
             SELECT e.*, c.practice_id, c.service_code, c.channel_family
             FROM telematic_events e
             JOIN telematic_cases c ON c.id = e.telematic_case_id
+            {where}
             ORDER BY e.created_at DESC
             LIMIT ?
             """,
-            (max(1, int(limit or 25)),),
+            (*params, max(1, int(limit or 25))),
         )
         return [_row_to_dict(row) or {} for row in rows]
 
@@ -607,6 +628,23 @@ class TelematicoWorkflowRepository:
         if existing:
             return self._update("telematic_cases", str(existing["id"]), payload)
         return self._insert("telematic_cases", {"id": str(fields.get("id") or _new_id("tm_case")), **payload})
+
+    def delete_cases_for_practice(self, practice_id: str) -> int:
+        """Elimina il collegamento telematico di un fascicolo rimosso.
+
+        Le righe figlie sono governate dalle foreign key; le PEC restano conservate
+        e vengono soltanto scollegate dal fascicolo eliminato.
+        """
+
+        normalized = str(practice_id or "").strip()
+        if not normalized:
+            return 0
+        cursor = self._run_sql(
+            "DELETE FROM telematic_cases WHERE practice_id = ?",
+            (normalized,),
+            commit=True,
+        )
+        return max(0, int(cursor.rowcount or 0))
 
     def add_event(self, telematic_case_id: str, *, event_type: str, title: str, event_source: str = "system", description: str = "", payload_json: Any = None, created_by_user_id: str = "") -> dict[str, Any]:
         return self._insert(
@@ -727,18 +765,24 @@ class TelematicoWorkflowRepository:
             commit=True,
         )
 
-    def case_stats(self) -> dict[str, Any]:
+    def case_stats(self, *, practice_ids: set[str] | None = None) -> dict[str, Any]:
+        where = "WHERE archived = 0"
+        params: list[Any] = []
+        if practice_ids is not None:
+            where += " AND practice_id IN (SELECT value FROM json_each(?))"
+            params.append(json.dumps(sorted(str(value) for value in practice_ids if str(value))))
         rows = self._fetchall(
-            """
+            f"""
             SELECT
                 service_code,
                 COUNT(*) AS totale,
                 SUM(CASE WHEN internal_status = 'import_completed' THEN 1 ELSE 0 END) AS import_completed,
                 SUM(CASE WHEN internal_status IN ('download_available', 'manual_review_required') THEN 1 ELSE 0 END) AS attention_needed
             FROM telematic_cases
-            WHERE archived = 0
+            {where}
             GROUP BY service_code
-            """
+            """,
+            params,
         )
         per_service = {_row["service_code"]: _row_to_dict(_row) for _row in rows}
         return {

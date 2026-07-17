@@ -15,6 +15,7 @@ $targetDir = Join-Path $env:APPDATA "IUSENTRA\LocalSigner"
 $venvDir = Join-Path $targetDir ".venv"
 $embeddedPythonDir = Join-Path $targetDir "python"
 $pythonScript = Join-Path $targetDir "local_signer.py"
+$windowsHttpScript = Join-Path $targetDir "local_signer_windows_http.ps1"
 $aiBridgeScript = Join-Path $targetDir "local_ai_host_bridge.py"
 $lexContextScript = Join-Path $targetDir "lex_document_context.py"
 $visibleSignatureScript = Join-Path $targetDir "visible_signature.py"
@@ -410,6 +411,31 @@ function Stop-LocalSignerDuplicateProcesses {
         }
 }
 
+function Test-LocalSignerSingleInstance {
+    $owners = @(
+        Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty OwningProcess -Unique
+    )
+    $processes = @(
+        Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Name -in @("python.exe", "pythonw.exe") -and
+                $_.CommandLine -and
+                $_.CommandLine -like "*local_signer*"
+            }
+    )
+    if ($owners.Count -ne 1 -or $processes.Count -ne 1) {
+        Write-InstallerLog "Verifica istanza unica fallita: listener=$($owners.Count), processi=$($processes.Count)."
+        return $false
+    }
+    if ([int]$owners[0] -ne [int]$processes[0].ProcessId) {
+        Write-InstallerLog "Verifica istanza unica fallita: listener PID $($owners[0]), processo PID $($processes[0].ProcessId)."
+        return $false
+    }
+    Write-InstallerLog "Istanza unica verificata: PID $($owners[0])."
+    return $true
+}
+
 function Get-LocalSignerServicePython {
     $embeddedPython = Join-Path $embeddedPythonDir "python.exe"
     if (Test-Path $embeddedPython) {
@@ -588,7 +614,7 @@ start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0
 
 :update
-powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$ErrorActionPreference='Stop'; $url=$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL; if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; $target=Join-Path $env:TEMP ('SetupLocalSigner-' + [Guid]::NewGuid().ToString('N') + '.exe'); Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q')"
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$ErrorActionPreference='Stop'; $url=$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL; if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; $target=Join-Path $env:TEMP ('SetupLocalSigner-' + [Guid]::NewGuid().ToString('N') + '.exe'); try { Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; $installer=Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q') -PassThru -Wait; if ($installer.ExitCode -ne 0) { exit $installer.ExitCode }; $ready=$false; for ($i=0; $i -lt 180; $i++) { try { $ping=Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; if ($ping.ok) { $ready=$true; break } } catch {}; Start-Sleep -Seconds 1 }; if (-not $ready) { exit 3 } } finally { Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue }"
 exit /b %ERRORLEVEL%
 '@
     $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
@@ -651,6 +677,18 @@ function Register-LocalSignerStartupShortcut {
     $shortcut.Save()
     Write-InstallerLog "Collegamento Startup registrato: $shortcutPath"
     return $true
+}
+
+function Remove-LocalSignerStartupShortcut {
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if (-not $startupDir) {
+        return
+    }
+    $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+    if (Test-Path -LiteralPath $shortcutPath) {
+        Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction Stop
+        Write-InstallerLog "Collegamento Startup duplicato rimosso: $shortcutPath"
+    }
 }
 
 function Register-LocalSignerScheduledTask {
@@ -729,6 +767,7 @@ Stop-LocalSignerProcesses
 
 Write-Step "Copio i file del Local Signer..."
 Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force
+Copy-Item (Join-Path $toolsDir "local_signer_windows_http.ps1") $windowsHttpScript -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force
 $visibleSignatureSource = Join-Path $toolsDir "visible_signature.py"
@@ -818,17 +857,20 @@ Write-Step "Registro l'avvio automatico permanente al login..."
 $autostartOk = $false
 try {
     Register-LocalSignerScheduledTask
+    Remove-LocalSignerStartupShortcut
     $autostartOk = $true
 } catch {
     Write-InstallerLog "Attivita' pianificata non registrata: $($_.Exception.Message)"
     Write-Host "  AVVISO: attivita' pianificata non registrata, preparo fallback Startup." -ForegroundColor Yellow
 }
-try {
-    if (Register-LocalSignerStartupShortcut) {
-        $autostartOk = $true
+if (-not $autostartOk) {
+    try {
+        if (Register-LocalSignerStartupShortcut) {
+            $autostartOk = $true
+        }
+    } catch {
+        Write-InstallerLog "Fallback Startup non registrato: $($_.Exception.Message)"
     }
-} catch {
-    Write-InstallerLog "Fallback Startup non registrato: $($_.Exception.Message)"
 }
 if (-not $autostartOk) {
     throw "Impossibile registrare l'avvio automatico permanente del Local Signer."
@@ -863,6 +905,12 @@ if (Test-Path $servicePythonExe) {
 
 Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = Wait-LocalSigner
+if ($online) {
+    Write-Step "Verifico che sia attiva una sola istanza Local Signer..."
+    Stop-LocalSignerDuplicateProcesses
+    Start-Sleep -Milliseconds 500
+    $online = (Test-LocalSignerOnline) -and (Test-LocalSignerSingleInstance)
+}
 $exitCode = 0
 if (-not $online) {
     $exitCode = 1

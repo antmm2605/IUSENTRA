@@ -189,6 +189,7 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
     """Overlay persisted studio settings on top of environment defaults."""
     try:
         from pct.config_studio import GestioneConfigStudio as _GCS
+        from pct.studio_address import compose_studio_address
 
         gestione = _GCS(app.config["STUDIO_CONFIG"])
         studio_cfg = gestione.config
@@ -204,8 +205,19 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
             )
             app.config["STUDIO_PIVA"] = studio_cfg.studio.piva
             app.config["STUDIO_CF"] = studio_cfg.studio.cf
-            app.config["STUDIO_INDIRIZZO"] = studio_cfg.studio.indirizzo
+            app.config["STUDIO_INDIRIZZO_VIA"] = studio_cfg.studio.indirizzo
+            app.config["STUDIO_CAP"] = getattr(studio_cfg.studio, "cap", "")
+            app.config["STUDIO_CITY"] = studio_cfg.studio.city
+            app.config["STUDIO_PROVINCE"] = studio_cfg.studio.province
+            app.config["STUDIO_INDIRIZZO"] = compose_studio_address(
+                indirizzo=studio_cfg.studio.indirizzo,
+                cap=getattr(studio_cfg.studio, "cap", ""),
+                city=studio_cfg.studio.city,
+                province=studio_cfg.studio.province,
+            )
             app.config["STUDIO_IBAN"] = studio_cfg.studio.iban
+            app.config["STUDIO_BANCA"] = studio_cfg.studio.banca
+            app.config["STUDIO_BIC_SWIFT"] = getattr(studio_cfg.studio, "bic_swift", "")
 
         if studio_cfg.whatsapp.twilio_sid:
             app.config["TWILIO_SID"] = studio_cfg.whatsapp.twilio_sid

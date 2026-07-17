@@ -264,6 +264,7 @@ def _salva_upload_firma(storage, prefix: str, allowed_exts: set[str]) -> str:
 def _applica_ad_app(cfg):
     """Sincronizza la configurazione salvata con app.config (nessun restart)."""
     from pct.local_ai import strip_api_suffix
+    from pct.studio_address import compose_studio_address
 
     app = current_app._get_current_object()
     s = cfg.studio
@@ -274,8 +275,19 @@ def _applica_ad_app(cfg):
     app.config["STUDIO_ORDINE_AVVOCATI"] = s.ordine_avvocati
     app.config["STUDIO_PIVA"]      = s.piva
     app.config["STUDIO_CF"]        = s.cf
-    app.config["STUDIO_INDIRIZZO"] = s.indirizzo
+    app.config["STUDIO_INDIRIZZO_VIA"] = s.indirizzo
+    app.config["STUDIO_CAP"]       = getattr(s, "cap", "")
+    app.config["STUDIO_CITY"]      = s.city
+    app.config["STUDIO_PROVINCE"]  = s.province
+    app.config["STUDIO_INDIRIZZO"] = compose_studio_address(
+        indirizzo=s.indirizzo,
+        cap=getattr(s, "cap", ""),
+        city=s.city,
+        province=s.province,
+    )
     app.config["STUDIO_IBAN"]      = s.iban
+    app.config["STUDIO_BANCA"]     = s.banca
+    app.config["STUDIO_BIC_SWIFT"] = getattr(s, "bic_swift", "")
     # SMTP
     app.config["SMTP_HOST"]      = cfg.smtp.host
     app.config["SMTP_PORT"]      = cfg.smtp.port

@@ -213,3 +213,69 @@ def test_xml_fattura_pa_allinea_cassa_forense_all_esempio_firmato_utente():
     assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:AliquotaIVA)", namespaces=ns) == "0.00"
     assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:Natura)", namespaces=ns) == "N2.2"
     assert root.xpath("string(.//f:DatiBeniServizi/f:DatiRiepilogo/f:ImponibileImporto)", namespaces=ns) == "308.57"
+
+
+def test_xml_fattura_pa_ripara_vecchia_denominazione_duplicata_della_persona_fisica():
+    cliente = Cliente(
+        id="CLI-ALESSI",
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Robertino",
+        cognome="Alessi",
+        codice_fiscale="LSSRRR80A01H501X",
+        indirizzo_residenza=Indirizzo(
+            via="Via Roma",
+            civico="9",
+            cap="89029",
+            comune="Taurianova",
+            provincia="RC",
+            nazione="Italia",
+        ),
+    )
+    parcella = Parcella(
+        id="PAR-ALESSI",
+        numero="2026/010",
+        id_cliente=cliente.id,
+        id_fascicolo=None,
+        data_emissione="2026-07-13",
+        data_scadenza="2026-08-12",
+        stato=StatoParcella.BOZZA,
+        voci=[VoceParcella(descrizione="Assistenza legale", prezzo_unitario=100.0)],
+        dati_personalizzati={
+            "studio": {
+                "denominazione": "Studio Legale Montagnese",
+                "nome_denominazione": "Studio Legale Montagnese",
+                "partita_iva": "01301790802",
+                "codice_fiscale": "MNTRRT64L01L063H",
+                "indirizzo_completo": "Via Nino Bixio 4, 89029 Taurianova (RC)",
+            },
+            "recipient": {
+                "denominazione": "Alessi Robertino",
+                "nome_denominazione": "Alessi Robertino",
+                "nome": "Robertino",
+                "cognome": "Alessi",
+                "codice_fiscale": "LSSRRR80A01H501X",
+                "indirizzo_completo": "Via Roma 9, 89029 Taurianova (RC)",
+            },
+            "payment": {
+                "modalita_pagamento_codice": "MP05",
+                "iban": "IT60X0542811101000000123456",
+                "bic_swift": "BCITITMMXXX",
+            },
+        },
+    )
+
+    root = etree.fromstring(genera_xml_fattura_pa(
+        parcella=parcella,
+        cliente=cliente,
+        studio_nome="Studio Legale Montagnese",
+        studio_piva="01301790802",
+        studio_cf="MNTRRT64L01L063H",
+        studio_indirizzo="Via Nino Bixio 4, 89029 Taurianova (RC)",
+    ))
+    ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
+
+    recipient_path = ".//f:CessionarioCommittente/f:DatiAnagrafici/f:Anagrafica"
+    assert root.xpath(f"string({recipient_path}/f:Nome)", namespaces=ns) == "Robertino"
+    assert root.xpath(f"string({recipient_path}/f:Cognome)", namespaces=ns) == "Alessi"
+    assert root.xpath(f"string({recipient_path}/f:Denominazione)", namespaces=ns) == ""
+    assert root.xpath("string(.//f:DatiPagamento/f:DettaglioPagamento/f:BIC)", namespaces=ns) == "BCITITMMXXX"

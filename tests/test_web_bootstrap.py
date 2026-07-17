@@ -487,6 +487,9 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
     assert "self.addEventListener('push'" in service_worker_js
     assert "registration.showNotification" in service_worker_js
     assert "notificationclick" in service_worker_js
+    assert "safeRemoteHearingUrl" in service_worker_js
+    assert "join-hearing" in service_worker_js
+    assert "Collegati" in service_worker_js
     assert manifest.status_code == 200
     assert "manifest+json" in manifest.content_type
     assert offline.status_code == 200
@@ -1216,9 +1219,9 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
     assert "Scarica installer ufficiale" in monitor_js
     assert "renderInstallRequired" in monitor_js
     assert "const updated = await verifyAfterUpdate(cfg)" in monitor_js
-    assert monitor_js.index("const updated = await verifyAfterUpdate(cfg)") < monitor_js.index(
-        "installerPromptAlreadyShown(cfg, 'outdated-auto')"
-    )
+    assert "installerPromptAlreadyShown(cfg, 'outdated-auto')" not in monitor_js
+    assert "const updateDeadline = Date.now() + 360000" in monitor_js
+    assert "JSON.stringify({ base_url: window.location.origin })" in monitor_js
     assert "Aggiorna automaticamente" in monitor_js
     assert "Ho tentato l’aggiornamento automatico" in monitor_js
     assert "Fase 4 completata" in monitor_js

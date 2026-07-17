@@ -215,7 +215,7 @@ def _strip_namespaces(root: ET.Element) -> ET.Element:
 
 
 def _parse_qbuilder_row(row_el: ET.Element) -> Dict[str, Any]:
-    row: Dict[str, Any] = {}
+    row: Dict[str, Any] = {"_class": (row_el.attrib.get("class") or "").strip()}
     sub_rows: Dict[str, List[Dict[str, Any]]] = {}
 
     for child in list(row_el):
@@ -261,13 +261,39 @@ def _parse_qbuilder_row_list(xml_text: str) -> List[Dict[str, Any]]:
     return righe
 
 
+def _qbuilder_row_value(row: Dict[str, Any], *names: str) -> str:
+    wanted = {str(name or "").strip().upper() for name in names if str(name or "").strip()}
+    for key, value in row.items():
+        if str(key or "").strip().upper() in wanted:
+            text = str(value or "").strip()
+            if text:
+                return text
+    return ""
+
+
+def _qbuilder_numero_anno_cassazione(row: Dict[str, Any]) -> tuple[str, int]:
+    for raw in (
+        _qbuilder_row_value(row, "NUMERORICORSO"),
+        _qbuilder_row_value(row, "NRGTEXT"),
+    ):
+        match = re.search(r"(\d{1,8})\s*/\s*(\d{4})", raw)
+        if match:
+            return str(int(match.group(1))), int(match.group(2))
+        digits = re.sub(r"\D+", "", raw)
+        if len(digits) >= 10:
+            anno = int(digits[:4])
+            if 1900 <= anno <= 2100:
+                return str(int(digits[4:10])), anno
+    return "", 0
+
+
 def _qbuilder_numero_rg(row: Dict[str, Any]) -> str:
-    valore = (
-        row.get("NUMERORUOLO")
-        or row.get("N_R_G")
-        or row.get("NUMERORG")
-        or row.get("NUMERORUOLOGENERALE")
-        or ""
+    valore = _qbuilder_row_value(
+        row,
+        "NUMERORUOLO",
+        "N_R_G",
+        "NUMERORG",
+        "NUMERORUOLOGENERALE",
     )
     valore = str(valore).strip()
     if not valore:
@@ -327,50 +353,56 @@ def _map_qbuilder_fascicolo(
     base_url: str = "",
 ) -> FascicoloPolisWeb:
     spec = spec or _polisweb_registro_spec(row.get("REGISTRO"), row.get("RUOLO"), base_url=base_url)
-    codice_ufficio = (
-        row.get("IDUFFICIO")
-        or row.get("CODICEUFFICIO")
-        or row.get("UFFICIO")
-        or ""
-    ).strip()
+    codice_ufficio = _qbuilder_row_value(row, "IDUFFICIO", "CODICEUFFICIO", "UFFICIO")
     ufficio = risolvi_ufficio(codice_ufficio) if codice_ufficio else None
     parti_dettaglio = _qbuilder_parti_dettaglio(row)
     parti = [p["nome"] for p in parti_dettaglio if p.get("nome")]
 
     if not parti:
-        for key in ("ATTOREPRINCIPALE", "CONVENUTOPRINCIPALE", "PARTEPRINCIPALE"):
-            valore = (row.get(key) or "").strip()
+        for key in (
+            "ATTOREPRINCIPALE",
+            "CONVENUTOPRINCIPALE",
+            "PARTEPRINCIPALE",
+            "RICORRENTE",
+            "PARTI",
+        ):
+            valore = _qbuilder_row_value(row, key)
             if valore:
                 parti.append(valore)
 
+    numero_cassazione, anno_cassazione = _qbuilder_numero_anno_cassazione(row)
+    numero_rg = _qbuilder_numero_rg(row) or numero_cassazione
+    anno_raw = _qbuilder_row_value(row, "ANNORUOLO", "ANNORG", "ANNO")
+    anno_rg = int(anno_raw or anno_cassazione or 0)
+
     return FascicoloPolisWeb(
-        numero_rg=_qbuilder_numero_rg(row),
-        anno_rg=int((row.get("ANNORUOLO") or row.get("ANNORG") or 0) or 0),
-        ruolo=(row.get("RUOLODESCRIZIONE") or row.get("RUOLO") or "").strip(),
-        stato=(row.get("STATOFASCICOLODESCRIZIONE") or row.get("STATOFASCICOLO") or "").strip(),
-        oggetto=(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or "").strip(),
-        sezione=(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or "").strip(),
-        giudice=(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
-        data_iscrizione=_parse_data((row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip()),
-        data_udienza=_parse_data((row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip()),
+        numero_rg=numero_rg,
+        anno_rg=anno_rg,
+        ruolo=_qbuilder_row_value(row, "RUOLODESCRIZIONE", "RUOLO", "TIPO", "DESCRRITO"),
+        stato=_qbuilder_row_value(row, "STATOFASCICOLODESCRIZIONE", "STATOFASCICOLO", "STATO"),
+        oggetto=_qbuilder_row_value(row, "OGGETTOFASCICOLO", "OGGETTO", "MATERIA", "AUTORITA"),
+        sezione=_qbuilder_row_value(row, "SEZIONE", "DESCRIZIONESEZIONE", "DESCSEZIONE"),
+        giudice=_qbuilder_row_value(row, "GIUDICE", "MAGISTRATO"),
+        data_iscrizione=_parse_data(_qbuilder_row_value(row, "DATAISCRIZIONERUOLO", "DATAISCRIZIONE", "DATADEPOSITO")),
+        data_udienza=_parse_data(_qbuilder_row_value(row, "DATAPROSSIMAUDIENZA", "DATAUDIENZA", "DATAPROSSUDIENZA")),
         parti=parti,
         parti_dettaglio=parti_dettaglio,
         codice_ufficio=codice_ufficio,
         nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
-        sub_procedimento=str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        sub_procedimento=_qbuilder_row_value(row, "SUBPROCEDIMENTO"),
         tipo_registro=spec.registro,
         registro_portale=spec.registro_portale or spec.registro,
         servizio_pst=spec.servizio_preferito,
         urn=_pst_namespace_qbuilder(base_url).replace("urn:", "") if base_url else "",
         target_path=_pst_servizio_proxy(base_url) if base_url else spec.servizio_preferito,
-        id_dfa=str(row.get("IDDFA") or row.get("ID_DFA") or "").strip(),
-        id_fascicolo=str(row.get("IDFASCICOLO") or row.get("ID_FASCICOLO") or "").strip(),
-        registro_decode=str(row.get("REGISTODECODE") or row.get("REGISTRODECODE") or "").strip(),
-        numero_estensione=str(row.get("NUMEROESTENSIONE") or "").strip(),
-        codice_rito=str(row.get("CODRITO") or "").strip(),
-        descrizione_rito=str(row.get("DESCRRITO") or row.get("RITO") or "").strip(),
-        materia=str(row.get("MATERIA") or row.get("DESCMATERIA") or "").strip(),
-        data_ultima_modifica=_parse_data(str(row.get("DATAULTIMAMODIFICA") or "").strip()),
+        id_dfa=_qbuilder_row_value(row, "IDDFA", "ID_DFA"),
+        id_fascicolo=_qbuilder_row_value(row, "IDFASCICOLO", "ID_FASCICOLO", "NRG"),
+        registro_decode=_qbuilder_row_value(row, "REGISTODECODE", "REGISTRODECODE"),
+        numero_estensione=_qbuilder_row_value(row, "NUMEROESTENSIONE"),
+        codice_rito=_qbuilder_row_value(row, "CODRITO"),
+        descrizione_rito=_qbuilder_row_value(row, "DESCRRITO", "RITO"),
+        materia=_qbuilder_row_value(row, "MATERIA", "DESCMATERIA"),
+        data_ultima_modifica=_parse_data(_qbuilder_row_value(row, "DATAULTIMAMODIFICA")),
         note="",
     )
 
@@ -379,39 +411,51 @@ def _map_qbuilder_documento(
     row: Dict[str, Any],
     *,
     spec: Optional[PolisWebRegistroSpec] = None,
+    parent_id: str = "",
+    is_allegato: bool = False,
 ) -> DocumentoPolisWeb:
-    spec = spec or _polisweb_registro_spec(row.get("REGISTRO"))
-    id_documento = (
-        row.get("IDDOCUMENTO")
-        or row.get("IDATTO")
-        or row.get("NUMERODOCUMENTO")
-        or row.get("IDDOCMITTENTE")
-        or ""
-    ).strip()
-    id_cat = str(row.get("IDCAT") or row.get("IdCat") or row.get("idCat") or "").strip()
-    tipo = _qbuilder_tipo_documento(row.get("TIPO") or row.get("TIPODOCUMENTO") or "")
-    nome = (row.get("NOMEFILE") or row.get("NOME") or "").strip()
+    spec = spec or _polisweb_registro_spec(_qbuilder_row_value(row, "REGISTRO"))
+    id_documento = _qbuilder_row_value(
+        row,
+        "IDDOCUMENTO",
+        "IDATTO",
+        "IDATTOPRINCIPALE",
+        "IDDOC",
+        "NUMERODOCUMENTO",
+        "IDDOCMITTENTE",
+        "IDCAT",
+    )
+    id_cat = _qbuilder_row_value(row, "IDCAT", "IDCATEGORIA")
+    tipo = _qbuilder_tipo_documento(_qbuilder_row_value(
+        row,
+        "TIPO",
+        "TIPODOCUMENTO",
+        "TIPOATTO",
+        "TIPODEPOSITO",
+        "TIPOALLEGATO",
+    ))
+    nome = _qbuilder_row_value(row, "NOMEFILE", "NOME", "NOMEFILEORIGINALE")
     if not nome:
         nome = f"Documento_{id_documento}.pdf" if id_documento else "Documento.pdf"
     return DocumentoPolisWeb(
         id_documento=id_documento,
         nome=nome,
-        tipo=tipo,
-        data_deposito=(row.get("DATADEPOSITO") or row.get("DATACREAZIONE") or "").strip(),
-        mittente=(row.get("AUTORE") or row.get("MITTENTE") or "").strip(),
-        dimensione_bytes=int((row.get("DIMENSIONE") or 0) or 0),
-        disponibile=(row.get("STATO") or "").strip().lower() != "non disponibile",
-        id_deposito=(row.get("IDBUSTA") or row.get("IDDEPOSITO") or "").strip(),
-        tipo_atto=tipo,
+        tipo="ALLEGATO" if is_allegato and tipo == "Documento" else tipo,
+        data_deposito=_qbuilder_row_value(row, "DATADEPOSITO", "DATACREAZIONE"),
+        mittente=_qbuilder_row_value(row, "AUTORE", "MITTENTE", "PROVENIENZA"),
+        dimensione_bytes=int(_qbuilder_row_value(row, "DIMENSIONE") or 0),
+        disponibile=_qbuilder_row_value(row, "STATO", "DECODEATTIVO").lower() not in {"non disponibile", "no", "false", "0"},
+        id_deposito=_qbuilder_row_value(row, "IDBUSTA", "IDDEPOSITO", "IDDOCMITTENTE"),
+        tipo_atto=_qbuilder_row_value(row, "TIPODEPOSITO", "TIPOATTO") or tipo,
         id_cat=id_cat,
-        id_sub_item=str(row.get("IDSUBITEM") or row.get("IdSubItem") or row.get("idSubItem") or id_documento).strip(),
-        id_doc_mittente=str(row.get("IDDOCMITTENTE") or "").strip(),
-        stato=str(row.get("STATO") or "").strip(),
-        anno_documento=str(row.get("ANNODOCUMENTO") or "").strip(),
-        numero_documento=str(row.get("NUMERODOCUMENTO") or "").strip(),
-        anno_fascicolo=str(row.get("ANNOFASCICOLO") or row.get("ANNORUOLO") or "").strip(),
-        numero_fascicolo=str(row.get("NUMEROFASCICOLO") or row.get("NUMERO") or "").strip(),
-        sub_procedimento=str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        id_sub_item=parent_id or _qbuilder_row_value(row, "IDSUBITEM") or id_documento,
+        id_doc_mittente=_qbuilder_row_value(row, "IDDOCMITTENTE"),
+        stato=_qbuilder_row_value(row, "STATO", "DECODEATTIVO"),
+        anno_documento=_qbuilder_row_value(row, "ANNODOCUMENTO"),
+        numero_documento=_qbuilder_row_value(row, "NUMERODOCUMENTO"),
+        anno_fascicolo=_qbuilder_row_value(row, "ANNOFASCICOLO", "ANNORUOLO"),
+        numero_fascicolo=_qbuilder_row_value(row, "NUMEROFASCICOLO", "NUMERO"),
+        sub_procedimento=_qbuilder_row_value(row, "SUBPROCEDIMENTO"),
         registro_portale=spec.registro_portale or spec.registro,
         servizio_pst=spec.servizio_preferito,
     )
@@ -1895,6 +1939,7 @@ class ClientPolisWeb:
         sub_procedimento: str = "",
         id_dfa: str = "",
         servizio_pst_preferito: str = "",
+        id_fascicolo: str = "",
     ) -> List[DocumentoPolisWeb]:
         """
         Recupera l'elenco dei documenti depositati nel fascicolo telematico.
@@ -1913,19 +1958,23 @@ class ClientPolisWeb:
         codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
 
         if _pst_usa_qbuilder(base_pst):
+            soap_documenti = self._soap_documenti_qbuilder(
+                base_pst=base_pst,
+                codice_ufficio=codice_pst,
+                numero_rg=numero_rg,
+                anno_rg=anno_rg,
+                registro=spec.registro,
+                ruolo_polisweb=ruolo_polisweb,
+                sub_procedimento=sub_procedimento,
+                id_dfa=id_dfa,
+                servizio_pst_preferito=preferito,
+                id_fascicolo=id_fascicolo,
+            )
+            if not soap_documenti:
+                return []
             xml = self._execute_qbuilder(
                 base_pst,
-                self._soap_documenti_qbuilder(
-                    base_pst=base_pst,
-                    codice_ufficio=codice_pst,
-                    numero_rg=numero_rg,
-                    anno_rg=anno_rg,
-                    registro=spec.registro,
-                    ruolo_polisweb=ruolo_polisweb,
-                    sub_procedimento=sub_procedimento,
-                    id_dfa=id_dfa,
-                    servizio_pst_preferito=preferito,
-                ),
+                soap_documenti,
             )
             return self._parse_documenti_qbuilder_xml(xml, spec=spec)
 
@@ -1964,6 +2013,7 @@ class ClientPolisWeb:
                 sub_procedimento=getattr(fascicolo_pw, "sub_procedimento", ""),
                 id_dfa=getattr(fascicolo_pw, "id_dfa", ""),
                 servizio_pst_preferito=getattr(fascicolo_pw, "servizio_pst", ""),
+                id_fascicolo=getattr(fascicolo_pw, "id_fascicolo", ""),
             )
             return list(documenti or []), []
         except Exception as e:
@@ -2315,11 +2365,24 @@ class ClientPolisWeb:
             raise ConnectionError(f"Errore chiamata PST: {fault}")
         return text_resp
 
-    def _soap_qbuilder_envelope(self, body_inner: str) -> str:
+    def _soap_qbuilder_envelope(
+        self,
+        body_inner: str,
+        *,
+        role: str = "AVV",
+        group: str = "",
+    ) -> str:
+        group_attr = f' group="{_xml_value(group)}"'
         return (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
-            '<SOAP-ENV:Header/>'
+            '<SOAP-ENV:Header>'
+            f'<ws:InvocationDomain name="JPW" role="{_xml_value(role)}"{group_attr} '
+            'xmlns:ws="http://www.netserv.it/anag/security" '
+            'SOAP-ENV:mustUnderstand="1" '
+            'SOAP-ENV:actor="http://schemas.xmlsoap.org/soap/actor/next" '
+            '/>'
+            '</SOAP-ENV:Header>'
             f'<SOAP-ENV:Body>{body_inner}</SOAP-ENV:Body>'
             '</SOAP-ENV:Envelope>'
         )
@@ -2346,13 +2409,12 @@ class ClientPolisWeb:
         group_value = codice_ufficio if group is None else group
         body = (
             f'<execute xmlns="{ns}">'
-            f'<domain><InvocationDomain name="JPW" role="{_xml_value(role)}" group="{_xml_value(group_value)}"/></domain>'
             f'<name>{name}</name>'
             f'<valueSet>{valori}</valueSet>'
             f'{order_xml}'
             '</execute>'
         )
-        return self._soap_qbuilder_envelope(body)
+        return self._soap_qbuilder_envelope(body, role=role, group=group_value)
 
     def _soap_ricerca_fascicoli_qbuilder(
         self,
@@ -2420,13 +2482,14 @@ class ClientPolisWeb:
         if anno_rg and not str(numero_rg or "").strip() and not (nome_parte or codice_fiscale_parte):
             if spec.cassazione:
                 method = "QP_Ricorsi" if spec.registro == "CASSPE" else "QC_Ricorsi"
+                data_field = "DATAISCR" if spec.registro == "CASSPE" else "DATADEP"
                 return self._soap_qbuilder_execute_body(
                     base_pst,
                     codice_ufficio,
                     method,
                     [
-                        ('DATADEP_DA', 'date', f'01/01/{int(anno_rg):04d}'),
-                        ('DATADEP_AL', 'date', f'31/12/{int(anno_rg):04d}'),
+                        (f'{data_field}_DA', 'date', f'01/01/{int(anno_rg):04d}'),
+                        (f'{data_field}_AL', 'date', f'31/12/{int(anno_rg):04d}'),
                     ],
                     ruolo_polisweb=role,
                     group="",
@@ -2444,17 +2507,13 @@ class ClientPolisWeb:
                 return self._soap_qbuilder_execute_body(
                     base_pst,
                     codice_ufficio,
-                    'RicercaInformazioniFascicoloPerNumero',
+                    'RicercaArchivioPC' if spec.registro == 'FALL' else 'RicercaArchivioEI',
                     [
                         ('idUfficio', 'string', codice_ufficio),
                         ('idRuoloJPW', 'string', role),
-                        ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
-                        ('tipo', 'string', 'RNG'),
-                        ('numero', 'integer', ''),
-                        ('anno', 'string', anno_rg),
-                        ('NUMEROUNITARIO', 'string', ''),
+                        ('annoRuolo', 'integer', anno_rg),
                     ],
-                    order_by='ANNORUOLO, NUMERORUOLO',
+                    order_by='annoRuolo, numeroRuolo',
                     ruolo_polisweb=role,
                 )
             return self._soap_qbuilder_execute_body(
@@ -2504,10 +2563,41 @@ class ClientPolisWeb:
         sub_procedimento: str = "",
         id_dfa: str = "",
         servizio_pst_preferito: str = "",
+        id_fascicolo: str = "",
     ) -> str:
         spec = _polisweb_registro_spec(registro, servizio_pst_preferito, base_url=base_pst)
         role = _normalizza_ruolo_polisweb(ruolo_polisweb)
         numero_value = _numero_ruolo_value(numero_rg)
+        if spec.registro == "CASSPE":
+            return ""
+        if spec.registro == "CASSCI":
+            nrg = str(id_fascicolo or "").strip()
+            if not nrg:
+                return ""
+            return self._soap_qbuilder_execute_body(
+                base_pst,
+                codice_ufficio,
+                'QC_FascicoloInformatico',
+                [('NRG', 'string', nrg)],
+                ruolo_polisweb=role,
+                group="",
+            )
+        if spec.siecic:
+            return self._soap_qbuilder_execute_body(
+                base_pst,
+                codice_ufficio,
+                'ElencoDocumenti',
+                [
+                    ('idUfficio', 'string', codice_ufficio),
+                    ('idRuoloJPW', 'string', role),
+                    ('registro', 'string', spec.registro if spec.registro != "SIECIC" else ""),
+                    ('numeroRuolo', 'string', numero_value),
+                    ('annoRuolo', 'integer', anno_rg),
+                    ('idDfa', 'string', id_dfa),
+                ],
+                order_by='dataDeposito',
+                ruolo_polisweb=role,
+            )
         return self._soap_qbuilder_execute_body(
             base_pst,
             codice_ufficio,
@@ -2545,6 +2635,8 @@ class ClientPolisWeb:
         )
         role = _normalizza_ruolo_polisweb(ruolo_polisweb)
         subpro = getattr(fascicolo, "sub_procedimento", "") or ""
+        if spec.cassazione:
+            return ""
         return self._soap_qbuilder_execute_body(
             base_pst,
             codice_ufficio,
@@ -2672,7 +2764,38 @@ class ClientPolisWeb:
         *,
         spec: Optional[PolisWebRegistroSpec] = None,
     ) -> List[DocumentoPolisWeb]:
-        return [_map_qbuilder_documento(row, spec=spec) for row in _parse_qbuilder_row_list(xml_text)]
+        documenti: List[DocumentoPolisWeb] = []
+
+        def visit(row: Dict[str, Any], parent_id: str = "", level: int = 0) -> None:
+            current_parent = parent_id
+            document_id = _qbuilder_row_value(
+                row,
+                "IDDOCUMENTO",
+                "IDATTO",
+                "IDATTOPRINCIPALE",
+                "IDDOC",
+                "IDCAT",
+            )
+            nome_file = _qbuilder_row_value(row, "NOMEFILE", "NOME", "NOMEFILEORIGINALE")
+            if document_id or nome_file.lower().endswith((".pdf", ".p7m", ".xml", ".eml", ".msg", ".zip")):
+                documento = _map_qbuilder_documento(
+                    row,
+                    spec=spec,
+                    parent_id=parent_id,
+                    is_allegato=bool(parent_id) or level > 0,
+                )
+                documenti.append(documento)
+                current_parent = documento.id_documento or documento.id_cat or parent_id
+            for rows in (row.get("_sub_rows") or {}).values():
+                if not isinstance(rows, list):
+                    continue
+                for child in rows:
+                    if isinstance(child, dict):
+                        visit(child, current_parent, level + 1)
+
+        for row in _parse_qbuilder_row_list(xml_text):
+            visit(row)
+        return documenti
 
     def _arricchisci_fascicoli_con_profilo(self, base_pst: str, fascicoli: List[FascicoloPolisWeb]) -> List[FascicoloPolisWeb]:
         arricchiti: List[FascicoloPolisWeb] = []
@@ -2682,17 +2805,21 @@ class ClientPolisWeb:
                 arricchiti.append(fascicolo)
                 continue
             try:
+                soap_profilo = self._soap_profilo_fascicolo_qbuilder(
+                    base_pst,
+                    codice_ufficio,
+                    fascicolo,
+                    registro=getattr(fascicolo, "tipo_registro", ""),
+                    ruolo_polisweb="AVV",
+                    id_dfa=getattr(fascicolo, "id_dfa", ""),
+                    servizio_pst_preferito=getattr(fascicolo, "servizio_pst", ""),
+                )
+                if not soap_profilo:
+                    arricchiti.append(fascicolo)
+                    continue
                 xml = self._execute_qbuilder(
                     base_pst,
-                    self._soap_profilo_fascicolo_qbuilder(
-                        base_pst,
-                        codice_ufficio,
-                        fascicolo,
-                        registro=getattr(fascicolo, "tipo_registro", ""),
-                        ruolo_polisweb="AVV",
-                        id_dfa=getattr(fascicolo, "id_dfa", ""),
-                        servizio_pst_preferito=getattr(fascicolo, "servizio_pst", ""),
-                    ),
+                    soap_profilo,
                 )
                 profili = self._parse_fascicoli_qbuilder_xml(
                     xml,
@@ -2795,6 +2922,7 @@ class ClientPolisWebDemo(ClientPolisWeb):
         sub_procedimento: str = "",
         id_dfa: str = "",
         servizio_pst_preferito: str = "",
+        id_fascicolo: str = "",
     ) -> List[DocumentoPolisWeb]:
         """
         Dati demo: simula un fascicolo telematico con 4 buste realistiche

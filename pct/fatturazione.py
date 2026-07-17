@@ -245,8 +245,19 @@ class Parcella:
         return self.applica_iva
 
     @property
+    def aliquota_iva(self) -> float:
+        raw = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
+        if not isinstance(raw, dict):
+            return 22.0
+        try:
+            aliquota = float(str(raw.get("aliquota_iva", "22") or "22").replace(",", "."))
+        except (TypeError, ValueError):
+            return 22.0
+        return aliquota if aliquota in {4.0, 5.0, 10.0, 22.0} else 22.0
+
+    @property
     def iva(self) -> float:
-        return round(self.base_iva * 0.22, 2) if self.iva_applicabile else 0.0
+        return round(self.base_iva * (self.aliquota_iva / 100.0), 2) if self.iva_applicabile else 0.0
 
     @property
     def ritenuta(self) -> float:

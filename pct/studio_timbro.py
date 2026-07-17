@@ -114,12 +114,31 @@ def default_timbro_payload(
     app_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Crea default dinamici dai dati studio gia configurati, senza dati personali hardcoded."""
+    from pct.studio_address import normalize_studio_location
+
     app_config = app_config or {}
     studio = _studio_section(config_studio)
     pec = _pec_section(config_studio)
-    citta = _clean(getattr(studio, "city", "") if studio else app_config.get("PCT_STUDIO_CITY", ""))
-    provincia = _clean(getattr(studio, "province", "") if studio else app_config.get("PCT_STUDIO_PROVINCE", ""))
-    cap_citta = " ".join(part for part in [citta, f"({provincia})" if provincia else ""] if part).strip()
+    indirizzo = _clean(
+        getattr(studio, "indirizzo", "")
+        if studio
+        else app_config.get("STUDIO_INDIRIZZO_VIA", "") or app_config.get("STUDIO_INDIRIZZO", "")
+    )
+    location = normalize_studio_location(
+        indirizzo=indirizzo,
+        cap=getattr(studio, "cap", "") if studio else app_config.get("STUDIO_CAP", "") or app_config.get("PCT_STUDIO_CAP", ""),
+        city=getattr(studio, "city", "") if studio else app_config.get("STUDIO_CITY", "") or app_config.get("PCT_STUDIO_CITY", ""),
+        province=getattr(studio, "province", "") if studio else app_config.get("STUDIO_PROVINCE", "") or app_config.get("PCT_STUDIO_PROVINCE", ""),
+    )
+    cap_citta = " ".join(
+        part
+        for part in (
+            location["cap"],
+            location["city"],
+            f"({location['province']})" if location["province"] else "",
+        )
+        if part
+    ).strip()
     ordine = _clean(getattr(studio, "ordine_avvocati", "") if studio else app_config.get("STUDIO_ORDINE_AVVOCATI", ""))
     qualifica_professionale = _clean(
         getattr(studio, "qualifica_professionale", "")
@@ -140,7 +159,7 @@ def default_timbro_payload(
         "studio_sottotitolo": "",
         "professionista_nome": _clean(getattr(studio, "avvocato", "") if studio else app_config.get("STUDIO_AVVOCATO", "")),
         "qualifiche_professionali": qualifiche,
-        "indirizzo_riga": _clean(getattr(studio, "indirizzo", "") if studio else app_config.get("STUDIO_INDIRIZZO", "")),
+        "indirizzo_riga": location["indirizzo"],
         "cap_citta_provincia": cap_citta,
         "telefono": _clean(getattr(studio, "telefono", "") if studio else app_config.get("PCT_STUDIO_TELEFONO", "")),
         "fax": "",

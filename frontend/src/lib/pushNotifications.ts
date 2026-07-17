@@ -52,7 +52,7 @@ const fallbackAction: PushActionResult = {
   message: 'Operazione non completata.',
 }
 
-const SERVICE_WORKER_URL = '/sw.js?iusentra_sw=20260607_mobile_push_v3'
+const SERVICE_WORKER_URL = '/sw.js?iusentra_sw=20260717_remote_hearing_v5'
 const SERVICE_WORKER_OPTIONS: RegistrationOptions = {
   scope: '/',
   updateViaCache: 'none',
@@ -264,7 +264,28 @@ export async function activatePushNotifications(): Promise<PushActionResult> {
   if (!key.ok || !key.publicKey) {
     return { ok: false, message: key.message || 'Notifiche su dispositivo non configurate nel sistema.' }
   }
-  const permission = await Notification.requestPermission()
+  const permission = await new Promise<NotificationPermission | 'timeout' | 'error'>((resolve) => {
+    let completed = false
+    const finish = (value: NotificationPermission | 'timeout' | 'error') => {
+      if (completed) return
+      completed = true
+      window.clearTimeout(timeoutId)
+      resolve(value)
+    }
+    const timeoutId = window.setTimeout(() => finish('timeout'), 15_000)
+    void Notification.requestPermission()
+      .then((value) => finish(value))
+      .catch(() => finish('error'))
+  })
+  if (permission === 'timeout') {
+    return {
+      ok: false,
+      message: 'Richiesta permesso non completata dal browser. Controlla il popup delle notifiche e riprova.',
+    }
+  }
+  if (permission === 'error') {
+    return { ok: false, message: 'Il browser non ha completato la richiesta del permesso notifiche.' }
+  }
   if (permission !== 'granted') {
     return { ok: false, message: 'Autorizzazione notifiche non concessa.' }
   }

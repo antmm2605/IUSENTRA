@@ -276,8 +276,9 @@ def test_pec_collector_udienza_remota_senza_link():
             "id": "h-1",
             "message_id": "msg-5",
             "hearing_date": "2026-07-12",
-            "mode": "remota",
+            "mode": "remoto",
             "link": "",
+            "link_verified": 0,
             "agenda_id": "app-7",
             "human_review_required": 0,
             "event_confidence": 0.85,
@@ -291,6 +292,61 @@ def test_pec_collector_udienza_remota_senza_link():
     assert "hearing_link_missing" in kinds
     udienza = next(s for s in result.signals if s.kind == "hearing_attend")
     assert udienza.metadata["agenda_id"] == "app-7"
+
+
+def test_pec_collector_udienza_mista_senza_link():
+    repo = _FakePecRepo()
+    repo.hearings = [
+        {
+            "id": "h-2",
+            "message_id": "msg-6",
+            "hearing_date": "2026-07-13",
+            "mode": "mista",
+            "link": "",
+            "link_verified": 0,
+            "event_confidence": 0.9,
+            "linked_fascicolo_id": "fasc-2",
+            "linked_fascicolo_score": 0.9,
+        }
+    ]
+
+    result = PecSignalCollector().collect(_ctx(pec_repository=repo))
+
+    assert any(signal.kind == "hearing_link_missing" for signal in result.signals)
+
+
+def test_pec_collector_link_presente_deve_essere_verificato():
+    repo = _FakePecRepo()
+    repo.hearings = [
+        {
+            "id": "h-3",
+            "message_id": "msg-7",
+            "hearing_date": "2026-07-14",
+            "mode": "remoto",
+            "link": "https://teams.microsoft.com/l/meetup-join/non-verificato",
+            "link_verified": 0,
+            "event_confidence": 0.9,
+        },
+        {
+            "id": "h-4",
+            "message_id": "msg-8",
+            "hearing_date": "2026-07-15",
+            "mode": "mista",
+            "link": "https://teams.microsoft.com/l/meetup-join/verificato",
+            "link_verified": 1,
+            "event_confidence": 0.9,
+        },
+    ]
+
+    result = PecSignalCollector().collect(_ctx(pec_repository=repo))
+    link_signals = {
+        signal.source_id: signal
+        for signal in result.signals
+        if signal.kind == "hearing_link_missing"
+    }
+
+    assert set(link_signals) == {"h-3:link"}
+    assert "non risulta verificato" in link_signals["h-3:link"].reason
 
 
 def test_pec_collector_repo_non_disponibile():

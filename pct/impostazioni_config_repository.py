@@ -44,6 +44,7 @@ CONFIG_STUDIO_SECTIONS: tuple[str, ...] = (
     "scheduler",
     "ai",
     "sdi",
+    "fatturazione",
     "support_remote",
 )
 
@@ -56,6 +57,7 @@ VISIBLE_SETTINGS_SECTIONS: tuple[str, ...] = (
     "scheduler",
     "ai",
     "sdi",
+    "fatturazione",
     "pagamenti",
     "notifiche",
     "backup",
@@ -176,6 +178,38 @@ def ensure_settings_config_schema(studio_db: Any) -> None:
         conn.commit()
     except Exception:
         pass
+
+
+def load_settings_config_section(studio_db: Any, section: str) -> dict[str, Any]:
+    """Legge una sezione dal backend SQL tenant, fonte operativa delle impostazioni."""
+
+    if studio_db is None:
+        return {}
+    normalized = str(section or "").strip().lower()
+    if not normalized:
+        return {}
+    ensure_settings_config_schema(studio_db)
+    conn = getattr(studio_db, "conn", None)
+    if conn is None:
+        return {}
+    try:
+        row = conn.execute(
+            "SELECT dati_json FROM settings_config WHERE section = ?",
+            (normalized,),
+        ).fetchone()
+    except Exception:
+        return {}
+    if not row:
+        return {}
+    try:
+        raw = row["dati_json"]
+    except (KeyError, TypeError):
+        raw = row[0]
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, dict) else {}
 
 
 def save_settings_config_snapshot(

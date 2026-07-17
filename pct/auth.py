@@ -410,6 +410,7 @@ class GestioneUtenti:
         bootstrap_admin_password: str = "",
         bootstrap_admin_credentials_path: str = "",
         tenant_slug_context: str = "",
+        load_audit: bool = True,
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
@@ -419,6 +420,7 @@ class GestioneUtenti:
         self._ruolo_default = ruolo_default
         self._bootstrap_admin_password = (bootstrap_admin_password or "").strip()
         self._tenant_slug_context = str(tenant_slug_context or "").strip().lower()
+        self._load_audit = bool(load_audit)
         self._bootstrap_admin_credentials_path = (
             Path(bootstrap_admin_credentials_path)
             if bootstrap_admin_credentials_path
@@ -512,28 +514,36 @@ class GestioneUtenti:
 
     # ---- persistenza
 
+    def _fetchall_structured(self, sql: str):
+        fetcher = getattr(self._studio_db, "fetchall_readonly", None)
+        if callable(fetcher):
+            return fetcher(sql)
+        return self._studio_db.conn.execute(sql).fetchall()
+
     def _ensure_studio_db_schema(self):
         if self._studio_db is None:
             return
         try:
             cols = {
                 row["name"]
-                for row in self._studio_db.conn.execute("PRAGMA table_info(utenti)").fetchall()
+                for row in self._fetchall_structured("PRAGMA table_info(utenti)")
             }
+            if {"must_change_password", "tenant_slug", "dati_json"}.issubset(cols):
+                return
+            conn = self._studio_db.conn
             if "must_change_password" not in cols:
-                self._studio_db.conn.execute(
+                conn.execute(
                     "ALTER TABLE utenti ADD COLUMN must_change_password INTEGER DEFAULT 0"
                 )
             if "tenant_slug" not in cols:
-                self._studio_db.conn.execute(
+                conn.execute(
                     "ALTER TABLE utenti ADD COLUMN tenant_slug TEXT DEFAULT ''"
                 )
-                self._studio_db.conn.commit()
             if "dati_json" not in cols:
-                self._studio_db.conn.execute(
+                conn.execute(
                     "ALTER TABLE utenti ADD COLUMN dati_json TEXT DEFAULT '{}'"
                 )
-                self._studio_db.conn.commit()
+            conn.commit()
         except Exception:
             # Best effort: in assenza di schema SQLite o migrazione non disponibile
             # il backend JSON continua a funzionare senza interrompere l'avvio.
@@ -542,7 +552,7 @@ class GestioneUtenti:
     def _carica(self):
         legacy_utenti = self._load_json_utenti()
         legacy_changed = self._apply_tenant_context_to_users(legacy_utenti)
-        legacy_audit = self._load_json_audit()
+        legacy_audit = self._load_json_audit() if self._load_audit else []
 
         if self._studio_db is not None:
             import json as _json
@@ -550,7 +560,7 @@ class GestioneUtenti:
             try:
                 user_cols = {
                     row["name"]
-                    for row in self._studio_db.conn.execute("PRAGMA table_info(utenti)").fetchall()
+                    for row in self._fetchall_structured("PRAGMA table_info(utenti)")
                 }
                 has_tenant_slug = "tenant_slug" in user_cols
                 select_fields = [
@@ -569,9 +579,9 @@ class GestioneUtenti:
                 ]
                 if has_tenant_slug:
                     select_fields.append("tenant_slug")
-                rows = self._studio_db.conn.execute(
+                rows = self._fetchall_structured(
                     f"SELECT {', '.join(select_fields)} FROM utenti"
-                ).fetchall()
+                )
                 self._utenti = {}
                 for row in rows:
                     d = dict(row)
@@ -603,18 +613,18 @@ class GestioneUtenti:
                 elif legacy_changed:
                     self._save_json_utenti()
 
-                rows = self._studio_db.conn.execute(
-                    "SELECT id, timestamp, id_utente, username, azione, "
-                    "risorsa_tipo, risorsa_id, dettagli, ip, esito FROM audit_log"
-                ).fetchall()
                 self._audit = []
-                for row in rows:
-                    try:
-                        self._audit.append(EventoAudit.from_dict(dict(row)))
-                    except Exception:
-                        pass
-                if not self._audit:
-                    if legacy_audit:
+                if self._load_audit:
+                    rows = self._fetchall_structured(
+                        "SELECT id, timestamp, id_utente, username, azione, "
+                        "risorsa_tipo, risorsa_id, dettagli, ip, esito FROM audit_log"
+                    )
+                    for row in rows:
+                        try:
+                            self._audit.append(EventoAudit.from_dict(dict(row)))
+                        except Exception:
+                            pass
+                    if not self._audit and legacy_audit:
                         self._audit = legacy_audit
                         self._salva_audit()
                 return

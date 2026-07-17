@@ -88,6 +88,15 @@ def _clean(value: object, limit: int = 0) -> str:
     return text
 
 
+def _matches_person_label(value: object, nome: str, cognome: str) -> bool:
+    normalized = " ".join(str(value or "").casefold().split())
+    if not normalized or not (nome or cognome):
+        return False
+    forward = " ".join(part for part in (nome, cognome) if part).casefold()
+    reverse = " ".join(part for part in (cognome, nome) if part).casefold()
+    return normalized in {forward, reverse}
+
+
 def _digits(value: object, limit: int = 0) -> str:
     digits = re.sub(r"\D+", "", _clean(value))
     if limit > 0:
@@ -149,21 +158,29 @@ def genera_xml_fattura_pa(
     studio_piva = _digits(studio_snapshot.get("partita_iva") or studio_piva, 11)
     studio_cf = _clean(studio_snapshot.get("codice_fiscale") or studio_cf, 16)
     studio_indirizzo = _clean(studio_snapshot.get("indirizzo_completo") or studio_indirizzo, 240)
-    studio_denominazione = _clean(studio_snapshot.get("nome_denominazione") or studio_nome, 80)
     studio_nome_pf = _clean(studio_snapshot.get("nome"), 60)
     studio_cognome_pf = _clean(studio_snapshot.get("cognome"), 60)
+    studio_denominazione = _clean(studio_snapshot.get("denominazione"), 80)
+    if _matches_person_label(studio_denominazione, studio_nome_pf, studio_cognome_pf):
+        studio_denominazione = ""
+    if not studio_denominazione and not (studio_nome_pf or studio_cognome_pf):
+        studio_denominazione = _clean(studio_snapshot.get("nome_denominazione") or studio_nome, 80)
     recipient_country = _country_code(recipient_snapshot.get("nazione"))
     recipient_piva = _digits(recipient_snapshot.get("partita_iva") or getattr(cliente, "partita_iva", ""), 16)
     recipient_cf = _clean(recipient_snapshot.get("codice_fiscale") or getattr(cliente, "codice_fiscale", ""), 16)
-    recipient_denominazione = _clean(
-        recipient_snapshot.get("denominazione")
-        or recipient_snapshot.get("nome_denominazione")
-        or getattr(cliente, "ragione_sociale", "")
-        or getattr(cliente, "nome_completo", ""),
-        80,
-    )
     recipient_nome = _clean(recipient_snapshot.get("nome") or getattr(cliente, "nome", ""), 60)
     recipient_cognome = _clean(recipient_snapshot.get("cognome") or getattr(cliente, "cognome", ""), 60)
+    recipient_denominazione = _clean(
+        recipient_snapshot.get("denominazione") or getattr(cliente, "ragione_sociale", ""),
+        80,
+    )
+    if _matches_person_label(recipient_denominazione, recipient_nome, recipient_cognome):
+        recipient_denominazione = ""
+    if not recipient_denominazione and not (recipient_nome or recipient_cognome):
+        recipient_denominazione = _clean(
+            recipient_snapshot.get("nome_denominazione") or getattr(cliente, "nome_completo", ""),
+            80,
+        )
     recipient_address = _clean(recipient_snapshot.get("indirizzo_completo"))
     if not recipient_address and cliente:
         indirizzo_cliente = getattr(cliente, "indirizzo_sede_legale", None) or getattr(cliente, "indirizzo_residenza", None)
@@ -262,6 +279,8 @@ def genera_xml_fattura_pa(
     _el(dgd, "Numero", parcella.numero)
 
     iva_applicabile = bool(getattr(parcella, "iva_applicabile", getattr(parcella, "applica_iva", False)))
+    aliquota_iva = float(getattr(parcella, "aliquota_iva", 22.0) or 22.0) if iva_applicabile else 0.0
+    aliquota_iva_xml = f"{aliquota_iva:.2f}"
 
     if parcella.applica_cassa and parcella.cassa_forense > 0:
         dcp = _el(dgd, "DatiCassaPrevidenziale")
@@ -269,7 +288,7 @@ def genera_xml_fattura_pa(
         _el(dcp, "AlCassa", "4.00")
         _el(dcp, "ImportoContributoCassa", f"{parcella.cassa_forense:.2f}")
         _el(dcp, "ImponibileCassa", f"{parcella.imponibile:.2f}")
-        _el(dcp, "AliquotaIVA", "22.00" if iva_applicabile else "0.00")
+        _el(dcp, "AliquotaIVA", aliquota_iva_xml)
         if not iva_applicabile:
             _el(dcp, "Natura", "N2.2")
         _el(dcp, "Ritenuta", "SI" if parcella.applica_ritenuta else "NO")
@@ -295,7 +314,7 @@ def genera_xml_fattura_pa(
         _el(dgd, "Causale", causale[:200])
 
     dbs = _el(body, "DatiBeniServizi")
-    aliquota = "22.00" if iva_applicabile else "0.00"
+    aliquota = aliquota_iva_xml
     natura = "" if iva_applicabile else "N2.2"
     line_number = 1
     for voce in parcella.voci:

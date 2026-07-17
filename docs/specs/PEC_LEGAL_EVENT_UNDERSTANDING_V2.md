@@ -1,6 +1,6 @@
 # PEC Legal Event Understanding V2
 
-Aggiornato: 03/07/2026.
+Aggiornato: 17/07/2026.
 
 ## Obiettivo
 
@@ -25,6 +25,8 @@ Flusso governato:
 5. Motore V2 produce JSON strutturato.
 6. Worker `validate` materializza il JSON nelle tabelle dedicate.
 7. Agenda, Scadenziario, notifiche/web push, fascicolo e Lex usano il dato strutturato, non testo libero non verificato.
+
+La materializzazione è unica e idempotente: un evento `UDIENZA` resta nella timeline del fascicolo e alimenta Agenda, Scadenziario, centro notifiche e Web Push con gli stessi campi. Un arricchimento successivo del PDF o dello ZIP aggiorna lo stesso evento e la stessa notifica senza creare duplicati.
 
 Il worker resta incrementale: usa i job pendenti e i marker già presenti, non rilegge l'archivio intero a ogni giro.
 Il presidio documenti collegato alla pipeline usa lo stesso budget anche come limite di fascicoli visitati per tick: un lotto `1` può attraversare al massimo un fascicolo e registra un marker di rotazione, così i giri successivi ripartono da casi non ancora toccati invece di rileggere sempre le stesse pratiche.
@@ -95,6 +97,10 @@ La modalità udienza viene estratta da testo, HTML `href`, allegati, ICS ed evid
 - Mista: mantiene sia aula sia link.
 - Note scritte 127-ter: crea presidio per opposizione e deposito note.
 - 127-bis: crea presidio per richiesta di udienza in presenza entro 5 giorni dalla comunicazione.
+- Timeline fascicolo: le attività `UDIENZA` non vengono escluse solo perché esistono Agenda e Scadenziario; note, fonte e collegamento restano consultabili.
+- Agenda e Scadenziario: espongono modalità, orario, piattaforma, ID riunione, codice di accesso, istruzioni e fonte.
+- Notifiche e Web Push: riutilizzano lo stesso evento; il link esterno è presente soltanto quando la fonte lo ha verificato e il dominio coincide con un host audiovisivo ammesso o un suo sottodominio.
+- Arricchimento incrementale: il nuovo link verificato aggiorna la notifica esistente e può generare un solo nuovo push; elaborazioni identiche restano deduplicate.
 
 ## Fail closed
 
@@ -168,3 +174,19 @@ python -m pytest tests\test_pec_audit_pipeline.py -k "pec_pipeline_ingests_synth
 python -m pytest tests\test_pec_auto_acquire.py::test_worker_pec_rispetta_budget_documentale_scheduler tests\test_scheduler.py::test_pec_audit_pipeline_job_restituisce_report_operativo -q
 python -m pytest tests\test_utf8_integrity.py -q
 ```
+
+## Presidio multi-udienza e canali di avviso - 17/07/2026
+
+- Ogni udienza individuata nella stessa PEC o nello stesso ZIP mantiene una propria identità deterministica: data, ora, titolo, fonte e collegamento non vengono più accorpati per il solo giorno.
+- Le attività `UDIENZA` restano nella timeline del fascicolo con descrizione, note operative, modalità, piattaforma, identificativo riunione, codice di accesso, fonte e collegamento audiovisivo.
+- Agenda, Scadenziario, centro notifiche e Web Push ricevono lo stesso payload strutturato. Il collegamento esterno è esposto soltanto quando è verificato e appartiene a un dominio audiovisivo ammesso.
+- Se una rilettura completa il collegamento di un evento già registrato, il record viene aggiornato senza duplicazione e produce un solo nuovo avviso.
+- L'attivazione Web Push è protetta da timeout: una richiesta permesso non conclusa dal browser non può lasciare il pannello bloccato su `Attivazione...`.
+
+Prova materiale sulla copia reale `http://127.0.0.1:8080`:
+
+- evento audiovisivo visibile e apribile in Agenda con data, ora e dati di collegamento;
+- stessa evidenza visibile e apribile nello Scadenziario;
+- attività `UDIENZA` visibile nella timeline del fascicolo con note e collegamento;
+- notifica operativa visibile nella topbar con azione `Collegati all'udienza`;
+- dispositivo Web Push attivato, notifica di prova inviata e mostrata, stato finale `Attivo` osservato nel pannello Notifiche.

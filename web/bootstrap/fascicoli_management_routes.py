@@ -66,6 +66,7 @@ def register_fascicoli_management_routes(
     get_agenda: Callable[[], Any],
     get_soggetti: Callable[[], Any],
     get_config_studio: Callable[[], Any],
+    get_telematico: Callable[[], Any],
     cliente_accessibile: Callable[..., bool],
     audit: Callable[..., None],
     sync_pubblica: Callable[..., None],
@@ -341,6 +342,14 @@ def register_fascicoli_management_routes(
     def elimina_fascicolo(id_fasc: str):
         try:
             get_fascicoli().elimina(id_fasc)
+            try:
+                get_telematico().delete_cases_for_practice(id_fasc)
+            except Exception as exc:
+                app.logger.exception(
+                    "Allineamento telematico non completato dopo eliminazione fascicolo %s: %s",
+                    id_fasc,
+                    exc,
+                )
             session["recenti"] = [
                 item
                 for item in session.get("recenti", [])

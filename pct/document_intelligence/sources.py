@@ -140,6 +140,20 @@ def collect_fascicolo_document_sources(
             decrypt=decrypt,
         )
         if source is not None:
+            document_type = getattr(document, "tipo", "")
+            document_type = getattr(document_type, "value", document_type)
+            source.metadata.update(
+                {
+                    "tipo_documento": str(document_type or "").strip(),
+                    "nome_originale": str(getattr(document, "nome_originale", "") or "").strip(),
+                    "nome_portale": str(getattr(document, "nome_portale", "") or "").strip(),
+                    "classificazione_portale": str(
+                        getattr(document, "classificazione_portale", "") or ""
+                    ).strip(),
+                    "tipo_atto_portale": str(getattr(document, "tipo_atto_portale", "") or "").strip(),
+                    "fonte_documento": str(getattr(document, "fonte_documento", "") or "").strip(),
+                }
+            )
             source.metadata.update(
                 _fascicolo_retrieval_metadata(
                     fascicolo,

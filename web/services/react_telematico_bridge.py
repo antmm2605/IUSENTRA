@@ -273,8 +273,8 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         tone = "warning"
     return {
         "id": portal,
-        "label": spec.get("label") or PORTAL_LABELS[portal],
-        "title": spec.get("title") or PORTAL_TITLES[portal],
+        "label": PORTAL_LABELS[portal],
+        "title": PORTAL_TITLES[portal],
         "description": spec.get("subtitle") or PORTAL_DESCRIPTIONS[portal],
         "tone": tone,
         "statusText": status_text,
@@ -954,7 +954,12 @@ def _office_text(row: dict[str, Any], *keys: str) -> str:
     return ""
 
 
-def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
+def _office_row_payload(
+    row: dict[str, Any],
+    index: int,
+    *,
+    include_certificate: bool = True,
+) -> dict[str, Any]:
     office = {
         "id": _office_text(row, "codice", "codice_ministero") or f"ufficio-{index}",
         "codice": _office_text(row, "codice"),
@@ -969,10 +974,11 @@ def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
         "comune": _office_text(row, "comune_ministero", "comune"),
         "servizioPst": _office_text(row, "servizio_pst_predefinito"),
         "servizi": list(row.get("servizi_ministero") or []),
-        "nomeCertificatoCifra": _office_text(row, "nome_certificato_cifra"),
-        "certificatoMimetype": _office_text(row, "certificato_mimetype"),
     }
-    office["certificatoCifratura"] = _office_certificate_payload(row, office)
+    if include_certificate:
+        office["nomeCertificatoCifra"] = _office_text(row, "nome_certificato_cifra")
+        office["certificatoMimetype"] = _office_text(row, "certificato_mimetype")
+        office["certificatoCifratura"] = _office_certificate_payload(row, office)
     return office
 
 
@@ -1088,7 +1094,12 @@ def _portal_office_rows(portal: str) -> tuple[list[dict[str, Any]], dict[str, An
 
     filtrati = [row for row in uffici if _supports_portal(row)]
     per_tipo = Counter(str(row.get("tipo") or "ALTRO") for row in filtrati)
-    offices = [_office_row_payload(row, index) for index, row in enumerate(filtrati)]
+    # La consultazione usa ufficio, registro e servizio. I certificati di cifratura
+    # appartengono al deposito e restano verificati nella superficie Tribunali / PEC.
+    offices = [
+        _office_row_payload(row, index, include_certificate=False)
+        for index, row in enumerate(filtrati)
+    ]
     offices.sort(key=lambda item: (item.get("nome", "").lower(), item.get("distretto", "").lower()))
     return offices, {
         "source": stato.get("sorgente", "bundle"),
@@ -1096,7 +1107,6 @@ def _portal_office_rows(portal: str) -> tuple[list[dict[str, Any]], dict[str, An
         "cachePath": stato.get("cache_path", ""),
         "expired": bool(stato.get("scaduta")),
         "perType": dict(sorted(per_tipo.items())),
-        "certificates": _office_certificate_summary(offices),
     }
 
 
@@ -1236,16 +1246,74 @@ def build_react_telematico_payload(
     get_telematico: Callable[[], Any],
     get_fascicoli: Callable[[], Any],
     build_access_status_payload: Callable[[str], dict[str, Any]],
+    prepare_dashboard: Callable[[], dict[str, int]] | None = None,
+    dashboard_warning_message: Callable[[Exception], str] | None = None,
     logger: Any | None = None,
 ) -> dict[str, Any]:
     """Costruisce il payload reale per ``/api/v1/ui/telematico``."""
 
+    notices: list[dict[str, str]] = []
+    if callable(prepare_dashboard):
+        try:
+            prepare_summary = dict(prepare_dashboard() or {})
+            if _int(prepare_summary.get("failed")):
+                notices.append(
+                    {
+                        "tone": "warning",
+                        "title": "Allineamento parziale",
+                        "body": (
+                            "Alcuni fascicoli non sono stati riallineati. "
+                            "La cabina resta disponibile e il sistema riproverà automaticamente."
+                        ),
+                    }
+                )
+        except Exception as error:
+            if logger is not None:
+                logger.exception("Errore preparazione dashboard telematica: %s", error)
+            notices.append(
+                {
+                    "tone": "warning",
+                    "title": "Allineamento temporaneamente non disponibile",
+                    "body": (
+                        dashboard_warning_message(error)
+                        if callable(dashboard_warning_message)
+                        else "Il sistema non ha completato il riallineamento e riproverà automaticamente."
+                    ),
+                }
+            )
     repo = _safe("telematico_repo", get_telematico, None, logger)
-    stats = _safe("case_stats", lambda: repo.case_stats() if repo else {}, {"totale": 0, "per_service": {}}, logger)
-    recent_cases = _safe("list_cases", lambda: repo.list_cases(limit=18) if repo else [], [], logger)
-    recent_events = _safe("list_recent_events", lambda: repo.list_recent_events(limit=12) if repo else [], [], logger)
     fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(), [], logger)
     fascicoli_index = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+    practice_ids = {practice_id for practice_id in fascicoli_index if practice_id}
+    try:
+        stats = repo.case_stats(practice_ids=practice_ids) if repo else {}
+    except Exception as error:
+        if logger is not None:
+            logger.exception("Errore lettura archivio telematico: %s", error)
+        stats = {"totale": 0, "per_service": {}}
+        notices.append(
+            {
+                "tone": "warning",
+                "title": "Archivio telematico temporaneamente non disponibile",
+                "body": (
+                    dashboard_warning_message(error)
+                    if callable(dashboard_warning_message)
+                    else "La cabina resta disponibile e il sistema riproverà automaticamente."
+                ),
+            }
+        )
+    recent_cases = _safe(
+        "list_cases",
+        lambda: repo.list_cases(practice_ids=practice_ids, limit=18) if repo else [],
+        [],
+        logger,
+    )
+    recent_events = _safe(
+        "list_recent_events",
+        lambda: repo.list_recent_events(practice_ids=practice_ids, limit=12) if repo else [],
+        [],
+        logger,
+    )
     control_tower = _safe(
         "control_tower",
         lambda: build_telematico_control_tower(get_telematico=get_telematico, get_fascicoli=get_fascicoli),
@@ -1293,7 +1361,7 @@ def build_react_telematico_payload(
         "recentCases": [_case_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(recent_cases)],
         "recentEvents": [_event_row(dict(row or {}), index, fascicoli_index) for index, row in enumerate(list(recent_events) + list(control_tower.get("recent_events") or []))][:14],
         "controlTower": control_payload,
-        "notices": [],
+        "notices": notices,
         "actions": {
             "checklistHref": _safe_url("checklist_deposito", "/deposito/checklist"),
             "firmaDigitaleHref": "/guida/firma-digitale",

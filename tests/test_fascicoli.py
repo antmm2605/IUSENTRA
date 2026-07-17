@@ -223,6 +223,26 @@ def test_aggiungi_documento_marca_presidio_da_rianalizzare(gf, fascicolo_base):
     assert aggiornato.pagamenti["_presidio_documentale"]["document_id"] == doc.id
 
 
+def test_aggiungi_documenti_accumula_tutti_gli_id_da_analizzare(gf, fascicolo_base):
+    primo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Primo allegato.txt",
+        tipo=TipoDocumento.ALLEGATO,
+        contenuto=b"primo",
+    )
+    secondo = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="Secondo allegato.txt",
+        tipo=TipoDocumento.ALLEGATO,
+        contenuto=b"secondo",
+    )
+
+    marker = gf.get(fascicolo_base.id).pagamenti["_presidio_documentale"]
+
+    assert marker["document_id"] == secondo.id
+    assert marker["document_ids"] == [primo.id, secondo.id]
+
+
 def test_aggiungi_documento_non_duplica_stesso_contenuto(gf, fascicolo_base):
     primo = gf.aggiungi_documento(
         fascicolo_base.id,
@@ -510,6 +530,55 @@ def test_aggiorna_flag_controlli_conformita(gf, fascicolo_base):
 def test_elimina_fascicolo(gf, fascicolo_base):
     gf.elimina(fascicolo_base.id)
     assert gf.get(fascicolo_base.id) is None
+
+
+def test_riallinea_integrita_documento_fisico_preserva_hash_precedente(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "verbale.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"contenuto ricevuto dal portale",
+    )
+    previous_hash = doc.hash_sha256
+    doc.hash_contenuto_sha256 = ""
+    gf._salva()
+    path = gf.percorso_documento(fascicolo_base.id, doc.id)
+    path.write_bytes(b"copia storica gia trasformata")
+
+    report = gf.riallinea_integrita_documento_fisico(fascicolo_base.id, doc.id)
+    updated = gf.get(fascicolo_base.id).documenti[0]
+
+    assert report["changed"] is True
+    assert updated.hash_sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert updated.dimensione_bytes == path.stat().st_size
+    assert updated.hash_contenuto_sha256 == previous_hash
+    assert gf.riallinea_integrita_documento_fisico(fascicolo_base.id, doc.id)["changed"] is False
+
+
+def test_sostituisci_documento_preserva_file_precedente_e_hash_contenuto(gf, fascicolo_base):
+    original_bytes = b"prima versione"
+    updated_bytes = b"seconda versione"
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "memoria.pdf",
+        TipoDocumento.MEMORIA,
+        original_bytes,
+    )
+    original_path = doc.percorso
+
+    updated = gf.sostituisci_documento(
+        fascicolo_base.id,
+        doc.id,
+        "memoria.pdf",
+        updated_bytes,
+        hash_contenuto_sha256=hashlib.sha256(updated_bytes).hexdigest(),
+    )
+
+    assert updated.percorso != original_path
+    assert (gf.documents_dir / original_path).read_bytes() == original_bytes
+    assert (gf.documents_dir / updated.percorso).read_bytes() == updated_bytes
+    assert updated.versioni[-1].percorso == original_path
+    assert updated.hash_contenuto_sha256 == hashlib.sha256(updated_bytes).hexdigest()
 
 
 # ------------------------------------------------------------------ Stato

@@ -7,6 +7,35 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS_DIR = ROOT / "web" / "static" / "react" / "assets"
 
 
+def test_vite_preserva_il_code_splitting_delle_route_react():
+    config = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
+
+    assert "inlineDynamicImports" not in config
+    assert "cssCodeSplit: true" in config
+    assert "enforceBundleBudget" in config
+    assert "maxBytes = 500_000" in config
+    assert "return 'vendor-react'" in config
+    assert "return 'vendor-icons'" in config
+    assert "lazyPage(() => import(" in (ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+
+
+def test_manifest_react_corrente_rispetta_budget_500kb_per_js_e_css():
+    manifest_path = ROOT / "web" / "static" / "react" / ".vite" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    oversized: list[str] = []
+
+    for entry in manifest.values():
+        paths = [entry.get("file"), *(entry.get("css") or [])]
+        for relative in paths:
+            if not relative or Path(relative).suffix not in {".js", ".css"}:
+                continue
+            asset = ROOT / "web" / "static" / "react" / str(relative)
+            if asset.stat().st_size > 500_000:
+                oversized.append(f"{relative}: {asset.stat().st_size} byte")
+
+    assert not oversized, "Budget asset React superato: " + ", ".join(sorted(set(oversized)))
+
+
 def test_react_bundles_refer_to_existing_assets():
     """Cached React shells and lazy chunks must keep loading after deploy."""
 
@@ -28,8 +57,9 @@ def test_telematico_surface_bundle_contiene_copia_pst_aggiornata():
     manifest_path = ROOT / "web" / "static" / "react" / ".vite" / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     entry = manifest.get("src/components/TelematicoSurfacePage.tsx") or {}
-    chunk = ROOT / "web" / "static" / "react" / str(entry.get("file") or "")
-    assert chunk.exists(), "Chunk TelematicoSurfacePage assente dal bundle React pubblicato"
+    entry_file = entry.get("file") or (manifest.get("index.html") or {}).get("file") or ""
+    chunk = ROOT / "web" / "static" / "react" / str(entry_file)
+    assert chunk.is_file(), "Chunk TelematicoSurfacePage assente dal bundle React pubblicato"
 
     source = chunk.read_text(encoding="utf-8", errors="ignore")
     assert "Default PST: copia di consultazione" in source

@@ -184,12 +184,19 @@ def _json_mirror_precheck(studio_db: str | Path) -> dict[str, Any]:
                 return result
 
             count = conn.execute(f"SELECT COUNT(*) FROM {_MIRROR_TABLE}").fetchone()[0]
+            integrity_rows = conn.execute(
+                f"PRAGMA integrity_check('{_MIRROR_TABLE}')"
+            ).fetchall()
+            integrity_messages = [str(item[0] or "") for item in integrity_rows]
+            integrity_ok = integrity_messages == ["ok"]
             result.update(
                 {
-                    "readable": True,
+                    "readable": integrity_ok,
                     "schema_ok": True,
                     "records_before": int(count or 0),
-                    "reason": "mirror leggibile",
+                    "integrity_ok": integrity_ok,
+                    "integrity": integrity_messages[:20],
+                    "reason": "mirror leggibile" if integrity_ok else "mirror strutturalmente corrotto",
                 }
             )
             return result

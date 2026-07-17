@@ -116,6 +116,7 @@ class ConfigDatiStudio:
     piva: str = ""
     cf: str = ""
     indirizzo: str = ""
+    cap: str = ""
     city: str = ""
     province: str = ""
     patron_name: str = ""
@@ -126,7 +127,23 @@ class ConfigDatiStudio:
     sito_web: str = ""
     iban: str = ""
     banca: str = ""
+    bic_swift: str = ""
     codice_fiscale_avvocato: str = ""   # usato per depositi PCT
+
+    def __post_init__(self) -> None:
+        from pct.studio_address import normalize_bic_swift, normalize_studio_location
+
+        location = normalize_studio_location(
+            indirizzo=self.indirizzo,
+            cap=self.cap,
+            city=self.city,
+            province=self.province,
+        )
+        self.indirizzo = location["indirizzo"]
+        self.cap = location["cap"]
+        self.city = location["city"]
+        self.province = location["province"]
+        self.bic_swift = normalize_bic_swift(self.bic_swift)
 
 
 @dataclass
@@ -405,6 +422,47 @@ class ConfigSDI:
 
 
 @dataclass
+class ConfigFatturazione:
+    """Valori fiscali proposti ai nuovi documenti economici dello studio."""
+
+    regime_fiscale: str = "RF01"
+    applica_iva: bool = True
+    applica_cassa: bool = True
+    applica_ritenuta: bool = False
+    applica_bollo: bool = False
+    aliquota_iva: float = 22.0
+    percentuale_spese_generali: float = 15.0
+    metodo_pagamento: str = "Bonifico"
+    giorni_scadenza: int = 30
+    bic_swift: str = ""  # campo storico: la sorgente corrente è ConfigDatiStudio
+
+    def __post_init__(self) -> None:
+        regime = str(self.regime_fiscale or "RF01").strip().upper()
+        self.regime_fiscale = regime if regime in {"RF01", "RF02", "RF19"} else "RF01"
+        metodo = str(self.metodo_pagamento or "Bonifico").strip()
+        consentiti = {"Bonifico", "Contanti", "Assegno", "Carta di credito", "PayPal"}
+        self.metodo_pagamento = metodo if metodo in consentiti else "Bonifico"
+        try:
+            self.percentuale_spese_generali = min(max(float(self.percentuale_spese_generali), 0.0), 100.0)
+        except (TypeError, ValueError):
+            self.percentuale_spese_generali = 15.0
+        try:
+            aliquota = float(self.aliquota_iva)
+        except (TypeError, ValueError):
+            aliquota = 22.0
+        self.aliquota_iva = aliquota if aliquota in {4.0, 5.0, 10.0, 22.0} else 22.0
+        try:
+            self.giorni_scadenza = min(max(int(self.giorni_scadenza), 0), 365)
+        except (TypeError, ValueError):
+            self.giorni_scadenza = 30
+        self.bic_swift = "".join(
+            character for character in str(self.bic_swift or "").upper() if character.isalnum()
+        )[:11]
+        if self.regime_fiscale in {"RF02", "RF19"}:
+            self.applica_iva = False
+
+
+@dataclass
 class ConfigSupportRemote:
     stun_urls: List[str] = field(default_factory=lambda: list(DEFAULT_SUPPORT_STUN_URLS))
     turn_urls: List[str] = field(default_factory=list)
@@ -424,6 +482,7 @@ class ConfigStudio:
     scheduler: ConfigScheduler = field(default_factory=ConfigScheduler)
     ai: ConfigLocalAI = field(default_factory=ConfigLocalAI)
     sdi: ConfigSDI = field(default_factory=ConfigSDI)
+    fatturazione: ConfigFatturazione = field(default_factory=ConfigFatturazione)
     support_remote: ConfigSupportRemote = field(default_factory=ConfigSupportRemote)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -434,8 +493,12 @@ class ConfigStudio:
         def _pick(klass, data):
             return klass(**{k: v for k, v in data.items()
                             if k in klass.__dataclass_fields__})
+        studio_data = dict(d.get("studio", {}) or {})
+        fatturazione_data = dict(d.get("fatturazione", {}) or {})
+        if not studio_data.get("bic_swift") and fatturazione_data.get("bic_swift"):
+            studio_data["bic_swift"] = fatturazione_data.get("bic_swift")
         return cls(
-            studio=_pick(ConfigDatiStudio, d.get("studio", {})),
+            studio=_pick(ConfigDatiStudio, studio_data),
             pec=_pick(ConfigPEC, d.get("pec", {})),
             firma=_pick(ConfigFirma, d.get("firma", {})),
             smtp=_pick(ConfigSMTP, d.get("smtp", {})),
@@ -443,6 +506,7 @@ class ConfigStudio:
             scheduler=_pick(ConfigScheduler, d.get("scheduler", {})),
             ai=_pick(ConfigLocalAI, d.get("ai", {})),
             sdi=_pick(ConfigSDI, d.get("sdi", {})),
+            fatturazione=_pick(ConfigFatturazione, fatturazione_data),
             support_remote=_pick(ConfigSupportRemote, d.get("support_remote", {})),
         )
 
@@ -498,12 +562,18 @@ class GestioneConfigStudio:
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),
                 cf=os.getenv("PCT_STUDIO_CF", ""),
                 indirizzo=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+                cap=os.getenv("PCT_STUDIO_CAP", ""),
                 city=os.getenv("PCT_STUDIO_CITY", ""),
                 province=os.getenv("PCT_STUDIO_PROVINCE", ""),
                 patron_name=os.getenv("PCT_STUDIO_PATRON_NAME", ""),
                 patron_day=int(os.getenv("PCT_STUDIO_PATRON_DAY", "0") or "0"),
                 patron_month=int(os.getenv("PCT_STUDIO_PATRON_MONTH", "0") or "0"),
                 iban=os.getenv("PCT_STUDIO_IBAN", ""),
+                banca=os.getenv("PCT_STUDIO_BANCA", ""),
+                bic_swift=(
+                    os.getenv("PCT_STUDIO_BIC_SWIFT", "")
+                    or os.getenv("PCT_FATTURAZIONE_BIC_SWIFT", "")
+                ),
                 codice_fiscale_avvocato=os.getenv("PCT_CF_AVVOCATO", ""),
             ),
             pec=ConfigPEC(
@@ -572,6 +642,18 @@ class GestioneConfigStudio:
                 nome_commercialista=os.getenv("PCT_SDI_NOME_COMMERCIALISTA", ""),
                 auto_invio_abilitato=os.getenv("PCT_SDI_AUTO_INVIO", "0").lower() not in {"0", "false", "no"},
                 note=os.getenv("PCT_SDI_NOTE", ""),
+            ),
+            fatturazione=ConfigFatturazione(
+                regime_fiscale=os.getenv("PCT_FATTURAZIONE_REGIME_FISCALE", "RF01"),
+                applica_iva=os.getenv("PCT_FATTURAZIONE_APPLICA_IVA", "1").lower() not in {"0", "false", "no"},
+                applica_cassa=os.getenv("PCT_FATTURAZIONE_APPLICA_CASSA", "1").lower() not in {"0", "false", "no"},
+                applica_ritenuta=os.getenv("PCT_FATTURAZIONE_APPLICA_RITENUTA", "0").lower() not in {"0", "false", "no"},
+                applica_bollo=os.getenv("PCT_FATTURAZIONE_APPLICA_BOLLO", "0").lower() not in {"0", "false", "no"},
+                aliquota_iva=float(os.getenv("PCT_FATTURAZIONE_ALIQUOTA_IVA", "22") or "22"),
+                percentuale_spese_generali=float(os.getenv("PCT_FATTURAZIONE_SPESE_GENERALI", "15") or "15"),
+                metodo_pagamento=os.getenv("PCT_FATTURAZIONE_METODO_PAGAMENTO", "Bonifico"),
+                giorni_scadenza=int(os.getenv("PCT_FATTURAZIONE_GIORNI_SCADENZA", "30") or "30"),
+                bic_swift=os.getenv("PCT_FATTURAZIONE_BIC_SWIFT", ""),
             ),
             support_remote=ConfigSupportRemote(
                 stun_urls=[

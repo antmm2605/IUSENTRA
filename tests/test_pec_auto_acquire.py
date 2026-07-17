@@ -205,6 +205,9 @@ def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkey
     recovered_limits: list[int] = []
 
     class FakeRepository:
+        def enqueue_stale_attachment_repairs(self, *, limit: int, actor: str) -> dict[str, object]:
+            return {"ok": True, "queued": 1, "unresolved": 0, "limit": limit, "actor": actor}
+
         def run_pending_jobs(self, *, limit: int, actor: str) -> dict[str, object]:
             return {"processed": 0, "failed": 0, "jobs": [], "limit": limit, "actor": actor}
 
@@ -228,6 +231,7 @@ def test_worker_pec_rispetta_budget_documentale_scheduler(tmp_path: Path, monkey
         document_presidio_limit=5,
     )
     assert recovered_limits == [5]
+    assert report["attachment_maintenance"]["queued"] == 1
     assert report["document_presidio"]["checked_fascicoli"] == 5
 
     skipped = pec_pipeline_runtime.run_workers_for_paths(
@@ -259,6 +263,7 @@ def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) 
         bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
     )
 
+    remote_url = "https://teams.microsoft.com/l/meetup-join/udienza-auto?context=%7B%22Tid%22%3A%22123%22%7D"
     jobs = [
         {
             "job_type": "link",
@@ -268,7 +273,20 @@ def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) 
                     "ok": True,
                     "deadline_id": "SCAD-1",
                     "due_date": "2026-07-01",
-                    "agenda": {"agenda_id": "AG-1"},
+                    "agenda": {"agenda_id": "AG-1", "agenda_href": "/agenda/AG-1"},
+                    "proposal": {
+                        "remote_hearing": {
+                            "detected": True,
+                            "mode": "audiovisiva",
+                            "links": [
+                                {
+                                    "url": remote_url,
+                                    "source": "decreto-udienza.pdf.zip",
+                                    "exact_match": True,
+                                }
+                            ],
+                        }
+                    },
                 }
             },
         },
@@ -290,6 +308,140 @@ def test_notifica_scadenze_automatiche_agli_utenti_dello_studio(tmp_path: Path) 
     repo = NotificationRepository(paths["NOTIFICATIONS_DB"])
     rows = repo.list_notifications(tenant_id="default", user_id=first_user_id(paths), limit=10)
     assert rows, "la notifica deve essere leggibile dal centro notifiche"
+    assert rows[0].title == "Udienza audiovisiva registrata"
+    assert rows[0].href == "/agenda/AG-1"
+    assert rows[0].payload_json["remoteHearingUrl"] == remote_url
+    assert rows[0].payload_json["remoteHearingVerified"] is True
+    assert rows[0].payload_json["dueDateLabel"] == "01/07/2026"
+    assert "Agenda e Scadenziario" in rows[0].body
+
+
+def test_presidio_automatico_invia_una_sola_push_quando_il_link_diventa_verificato(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from flask import Flask
+
+    from pct.auth import GestioneUtenti
+    from pct.notifications import NotificationService
+    from pct.notifications.service import PushDispatchSummary
+    from web.services.pec_pipeline_runtime import notify_auto_deadlines_for_paths
+
+    paths = _paths(tmp_path)
+    paths["AUTH_DB"] = str(tmp_path / "auth" / "utenti.json")
+    paths["AUDIT_DB"] = str(tmp_path / "auth" / "audit.json")
+    paths["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_dispatch(self, record):
+        calls.append(dict(record.payload_json))
+        return PushDispatchSummary(configured=True, attempted=1, sent=1)
+
+    monkeypatch.setattr(NotificationService, "dispatch_web_push", fake_dispatch)
+    base_deadline = {
+        "ok": True,
+        "deadline_id": "SCAD-PUSH-1",
+        "due_date": "2026-10-29",
+        "agenda": {"agenda_id": "AG-PUSH-1", "agenda_href": "/agenda/AG-PUSH-1"},
+    }
+    missing_jobs = [
+        {
+            "job_type": "link",
+            "message_id": "pec-push-verificata",
+            "result": {
+                "auto_deadline": {
+                    **base_deadline,
+                    "remote_hearing": {
+                        "remote_hearing_detected": True,
+                        "remote_hearing_pdf_required": True,
+                    },
+                }
+            },
+        }
+    ]
+    link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_push_verificata/0"
+    verified_jobs = [
+        {
+            "job_type": "link",
+            "message_id": "pec-push-verificata",
+            "result": {
+                "auto_deadline": {
+                    **base_deadline,
+                    "remote_hearing": {
+                        "remote_hearing_detected": True,
+                        "remote_hearing_url": link,
+                        "remote_hearing_source": "decreto.pdf",
+                        "remote_hearing_verified": True,
+                    },
+                }
+            },
+        }
+    ]
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    with app.app_context():
+        first = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=missing_jobs)
+        second = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=verified_jobs)
+
+    assert first["created"] >= 1
+    assert second["duplicates"] >= 1
+    assert len(calls) == 1
+    assert calls[0]["remoteHearingUrl"] == link
+    assert calls[0]["remoteHearingVerified"] is True
+
+
+def test_presidio_automatico_notifica_ogni_udienza_della_stessa_pec(tmp_path: Path) -> None:
+    from flask import Flask
+
+    from pct.auth import GestioneUtenti
+    from pct.notifications import NotificationRepository
+    from web.services.pec_pipeline_runtime import notify_auto_deadlines_for_paths
+
+    paths = _paths(tmp_path)
+    paths["AUTH_DB"] = str(tmp_path / "auth" / "utenti.json")
+    paths["AUDIT_DB"] = str(tmp_path / "auth" / "audit.json")
+    paths["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "auth" / "bootstrap_admin.json"),
+    )
+    hearing_results = [
+        {
+            "ok": True,
+            "deadline_id": f"SCAD-{index}",
+            "due_date": f"2026-10-{28 + index:02d}",
+            "agenda": {"agenda_id": f"AG-{index}"},
+            "scheduled_message_id": f"pec-multi-push:hearing:{index}",
+        }
+        for index in (1, 2)
+    ]
+    jobs = [
+        {
+            "job_type": "link",
+            "message_id": "pec-multi-push",
+            "result": {"auto_deadline": {"ok": True, "hearing_results": hearing_results}},
+        }
+    ]
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    with app.app_context():
+        report = notify_auto_deadlines_for_paths(paths, tenant_label="default", jobs=jobs)
+
+    rows = NotificationRepository(paths["NOTIFICATIONS_DB"]).list_notifications(
+        tenant_id="default",
+        user_id=first_user_id(paths),
+        limit=10,
+    )
+    assert report["created"] == 2 * report["recipients"]
+    assert {row.payload_json["deadlineId"] for row in rows} == {"SCAD-1", "SCAD-2"}
 
 
 def first_user_id(paths: dict[str, str]) -> str:

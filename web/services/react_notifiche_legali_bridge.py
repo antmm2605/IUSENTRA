@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import tempfile
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ from pct.notifiche_legali import (
     template_preview_text,
     template_catalog_version,
 )
+from pct.studio_address import normalize_studio_location
 
 
 _LEGACY_IMPORT_CONTENT_LABEL_CACHE: dict[str, str] = {}
@@ -116,27 +118,79 @@ def _repo_from_getter(getter: Any) -> Any:
     return getter
 
 
-def _infer_public_register(soggetto: Any, ruolo: str = "") -> str:
+def _subject_identity(soggetto: Any, pec: str = "") -> str:
+    identity = " ".join(
+        part
+        for part in (
+            _text(getattr(soggetto, "nome_completo", "")),
+            _text(getattr(soggetto, "ragione_sociale", "")),
+            _text(getattr(soggetto, "qualifica", "")),
+            _text(pec),
+        )
+        if part
+    ).casefold()
+    return "".join(
+        character
+        for character in unicodedata.normalize("NFKD", identity)
+        if not unicodedata.combining(character)
+    )
+
+
+def _is_state_attorney_subject(soggetto: Any, pec: str = "") -> bool:
+    identity = _subject_identity(soggetto, pec)
+    return bool(
+        "avvocaturastato.it" in identity
+        or re.search(r"\bavvocatura\b.{0,48}\b(?:dello|di)\s+stato\b", identity)
+    )
+
+
+def _is_public_administration_subject(soggetto: Any, pec: str = "") -> bool:
+    if _enum_value(getattr(soggetto, "tipo", "")).upper() == "PUBBLICA_AMMINISTRAZIONE":
+        return True
+    identity = _subject_identity(soggetto, pec)
+    institutional_name = re.search(
+        r"\b(?:ministero|mim|miur|usr|usp|ufficio\s+scolastico|comune\s+di|"
+        r"regione|provincia|citta\s+metropolitana|agenzia\s+delle\s+entrate|"
+        r"agenzia\s+entrate.riscossione|rts|inps|inail|universita\s+degli\s+studi|"
+        r"azienda\s+sanitaria|a\.s\.l\.|a\.s\.p\.)\b",
+        identity,
+    )
+    institutional_pec = re.search(
+        r"@[^\s@]*(?:\.gov\.it|giustiziacert\.it|pec\.istruzione\.it|"
+        r"postacert\.istruzione\.it|postacert\.inps\.gov\.it)\b",
+        identity,
+    )
+    return bool(institutional_name or institutional_pec)
+
+
+def _infer_public_register(soggetto: Any, ruolo: str = "", pec: str = "") -> str:
     tipo = _enum_value(getattr(soggetto, "tipo", "")).upper()
     qualifica = _text(getattr(soggetto, "qualifica", "")).lower()
     ruolo = ruolo.upper()
-    if "DIFENSORE" in ruolo or "avv" in qualifica or "avvocato" in qualifica:
+    if _is_state_attorney_subject(soggetto, pec):
         return "reginde"
-    if tipo == "PUBBLICA_AMMINISTRAZIONE":
+    if "DIFENSORE" in ruolo:
+        return "reginde"
+    if _is_public_administration_subject(soggetto, pec):
         return "registro_ppaa"
     if tipo in {"PERSONA_GIURIDICA", "ENTE", "CONDOMINIO", "ASSOCIAZIONE"}:
         return "ini_pec"
     if tipo == "PROFESSIONISTA":
         return "ini_pec"
+    if "avv" in qualifica or "avvocato" in qualifica:
+        return "reginde"
     return "inad"
 
 
-def _infer_recipient_role(soggetto: Any, ruolo: str = "") -> str:
+def _infer_recipient_role(soggetto: Any, ruolo: str = "", pec: str = "") -> str:
     tipo = _enum_value(getattr(soggetto, "tipo", "")).upper()
+    qualifica = _text(getattr(soggetto, "qualifica", "")).lower()
     ruolo = ruolo.upper()
-    if "DIFENSORE" in ruolo:
+    if _is_state_attorney_subject(soggetto, pec):
         return "difensore"
-    if tipo == "PUBBLICA_AMMINISTRAZIONE":
+    if "DIFENSORE" in ruolo or "avv" in qualifica or "avvocato" in qualifica:
+        return "difensore"
+    if _is_public_administration_subject(soggetto, pec):
         return "pa"
     if tipo == "PROFESSIONISTA":
         return "professionista"
@@ -150,6 +204,40 @@ def _infer_recipient_role(soggetto: Any, ruolo: str = "") -> str:
 _TITLE_PARTS_RE = re.compile(r"^\s*(?:RG\s+\d+\s*/\s*\d{4}\s*[–—-]\s*)?(?P<left>.+?)\s+(?:c\.|contro|/)\s+(?P<right>.+?)\s*$", re.IGNORECASE)
 _RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|NRG|N\.?\s*RG)\s*:?\s*0*(?P<num>\d{1,8})(?:\s*/\s*|\s+)(?P<anno>20\d{2})\b", re.IGNORECASE)
 _PEC_RE = re.compile(r"\b[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+_ORDINARY_EMAIL_DOMAINS = frozenset(
+    {
+        "alice.it",
+        "email.it",
+        "fastwebnet.it",
+        "gmail.com",
+        "gmail.it",
+        "googlemail.com",
+        "hotmail.com",
+        "hotmail.it",
+        "icloud.com",
+        "libero.it",
+        "live.com",
+        "live.it",
+        "mac.com",
+        "me.com",
+        "msn.com",
+        "outlook.com",
+        "outlook.it",
+        "tiscali.it",
+        "tin.it",
+        "virgilio.it",
+        "yahoo.com",
+        "yahoo.it",
+    }
+)
+
+
+def _is_plausible_pec_address(value: str) -> bool:
+    address = _text(value).strip().lower()
+    if not re.fullmatch(r"[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}", address, flags=re.IGNORECASE):
+        return False
+    domain = address.rsplit("@", 1)[1]
+    return domain not in _ORDINARY_EMAIL_DOMAINS
 
 
 def _derive_parties_from_title(title: str) -> tuple[str, str]:
@@ -380,7 +468,9 @@ def _legacy_import_content_label(documento: Any) -> str:
 
 def _infer_fallback_recipient_role(name: str) -> str:
     text = _text(name).lower()
-    if any(token in text for token in ("ministero", "mim", "miur", "avvocatura", "comune", "agenzia", "inps", "inail")):
+    if "avvocatura" in text and "stato" in text:
+        return "difensore"
+    if any(token in text for token in ("ministero", "mim", "miur", "comune", "agenzia", "inps", "inail")):
         return "pa"
     if any(token in text for token in ("s.p.a", "spa", "s.r.l", "srl", "banca", "ass.ni", "assicur")):
         return "impresa"
@@ -399,7 +489,13 @@ def _recipient_from_plain(
     clean_name = _display_text(name)
     clean_pec = _text(pec).lower()
     resolved_role = role or _infer_fallback_recipient_role(clean_name)
-    resolved_source = source or ("registro_ppaa" if resolved_role == "pa" else "ini_pec")
+    resolved_source = source or (
+        "reginde"
+        if resolved_role == "difensore"
+        else "registro_ppaa"
+        if resolved_role == "pa"
+        else "ini_pec"
+    )
     return {
         "id": recipient_id,
         "label": clean_name or clean_pec,
@@ -449,11 +545,28 @@ def _recipients_from_document_notes(documenti: list[Any], *, represented: str) -
 
 def _recipient_from_subject(soggetto: Any, *, ruolo: str = "", note: str = "", fascicolo: Any = None) -> dict[str, Any]:
     pec = _text(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
-    role = _infer_recipient_role(soggetto, ruolo)
-    source = _infer_public_register(soggetto, ruolo)
-    represented = _text(note) or _text(getattr(fascicolo, "controparte", ""))
+    role = _infer_recipient_role(soggetto, ruolo, pec)
+    source = _infer_public_register(soggetto, ruolo, pec)
+    fascicolo_counterparty = _text(getattr(fascicolo, "controparte", ""))
+    _, title_counterparty = _derive_parties_from_title(_text(getattr(fascicolo, "titolo", "")))
+    if role == "difensore" and _is_state_attorney_subject(soggetto, pec):
+        counterparty_identity = re.sub(r"[^a-z0-9]+", "", fascicolo_counterparty.casefold())
+        if not fascicolo_counterparty or "avvocatura" in counterparty_identity:
+            fascicolo_counterparty = title_counterparty
+        represented_identity = re.sub(r"[^a-z0-9]+", "", fascicolo_counterparty.casefold())
+        if represented_identity in {"mim", "miur"}:
+            fascicolo_counterparty = "Ministero dell'Istruzione e del Merito"
+    note_text = _text(note)
+    represented = (
+        fascicolo_counterparty or note_text
+        if role == "difensore"
+        else note_text or fascicolo_counterparty
+    )
+    if fascicolo is None and role == "difensore" and _is_state_attorney_subject(soggetto, pec) and not note_text:
+        represented = ""
     if not represented and role in {"difensore", "controparte", "impresa", "professionista", "terzo"}:
-        represented = _text(getattr(soggetto, "nome_completo", "")) or _text(getattr(soggetto, "ragione_sociale", ""))
+        if not (fascicolo is None and role == "difensore" and _is_state_attorney_subject(soggetto, pec)):
+            represented = _text(getattr(soggetto, "nome_completo", "")) or _text(getattr(soggetto, "ragione_sociale", ""))
     return {
         "id": _text(getattr(soggetto, "id", "")),
         "label": _display_text(getattr(soggetto, "nome_completo", "")) or _display_text(getattr(soggetto, "ragione_sociale", "")),
@@ -461,7 +574,7 @@ def _recipient_from_subject(soggetto: Any, *, ruolo: str = "", note: str = "", f
         "codiceFiscalePiva": _text(getattr(soggetto, "identificativo", "")),
         "pec": pec,
         "ruolo": role,
-        "ruoloPratica": ruolo,
+        "ruoloPratica": role,
         "fontePecSuggerita": source,
         "parteRappresentata": represented,
         "verificaRichiesta": bool(pec),
@@ -658,6 +771,44 @@ def _cliente_option(cliente: Any) -> dict[str, Any]:
     }
 
 
+def _fascicolo_index_option(fascicolo: Any, *, cliente: Any = None) -> dict[str, Any]:
+    title = _text(getattr(fascicolo, "titolo", ""))
+    title_assistito, title_controparte = _derive_parties_from_title(title)
+    derived_numero_rg, derived_anno_rg = _derive_rg_from_text(
+        getattr(fascicolo, "numero", ""),
+        title,
+        getattr(fascicolo, "note", ""),
+        getattr(fascicolo, "oggetto", ""),
+    )
+    explicit_numero_rg = _text(getattr(fascicolo, "numero_rg", ""))
+    raw_anno_rg = _text(getattr(fascicolo, "anno_rg", ""))
+    numero_rg = explicit_numero_rg or derived_numero_rg
+    anno_rg = ("" if raw_anno_rg in {"0", "0.0"} else raw_anno_rg) or derived_anno_rg
+    if not explicit_numero_rg:
+        anno_rg = derived_anno_rg or anno_rg
+    status = _enum_value(getattr(fascicolo, "stato", ""))
+    number = _text(getattr(fascicolo, "numero", ""))
+    client_name = (
+        _text(getattr(cliente, "nome_completo", ""))
+        or _text(getattr(fascicolo, "nome_cliente", ""))
+        or title_assistito
+    )
+    return {
+        "id": _text(getattr(fascicolo, "id", "")),
+        "label": _display_text(" - ".join(part for part in (number, title) if part)),
+        "numero": number,
+        "titolo": _display_text(title),
+        "assistitoNome": _display_text(client_name),
+        "controparte": _display_text(_text(getattr(fascicolo, "controparte", "")) or title_controparte),
+        "ufficio": _display_text(getattr(fascicolo, "tribunale", "")),
+        "numeroRg": numero_rg,
+        "annoRg": anno_rg,
+        "oggetto": _display_text(getattr(fascicolo, "oggetto", "")),
+        "stato": status,
+        "archiviata": status.upper() == "ARCHIVIATO",
+    }
+
+
 def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any = None, pec_emails: list[Any] | None = None) -> dict[str, Any]:
     title = _text(getattr(fascicolo, "titolo", ""))
     title_assistito, title_controparte = _derive_parties_from_title(title)
@@ -810,32 +961,40 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
     soggetti_repo = _repo_from_getter(get_soggetti)
     clienti_by_id = {}
     if clienti_repo is not None:
-        clienti_recenti = _safe_call("clienti", lambda: clienti_repo.tutti(), [])[:250]
+        clienti_recenti = _safe_call("clienti", lambda: clienti_repo.tutti(), [])
         clienti_by_id = {
             _text(getattr(cliente, "id", "")): cliente
             for cliente in clienti_recenti
         }
-    fascicoli = []
+    tutti_fascicoli = []
     if fascicoli_repo is not None:
-        fascicoli = _safe_call("fascicoli", lambda: fascicoli_repo.tutti(archiviati=False), [])
-    pec_emails = _office_pec_messages()
-    pratiche = [
-        _fascicolo_option(
-            fascicolo,
-            cliente=clienti_by_id.get(_text(getattr(fascicolo, "id_cliente", ""))),
-            soggetti_repo=soggetti_repo,
-            pec_emails=pec_emails,
+        tutti_fascicoli = _safe_call(
+            "fascicoli_indice",
+            lambda: fascicoli_repo.tutti(archiviati=True),
+            [],
         )
-        for fascicolo in fascicoli[:80]
-    ]
     destinatari = []
     if soggetti_repo is not None:
         for soggetto in _safe_call("soggetti", lambda: soggetti_repo.tutti(), [])[:250]:
             recipient = _recipient_from_subject(soggetto)
-            if recipient["pec"]:
+            if recipient["pec"] and _is_plausible_pec_address(recipient["pec"]):
                 destinatari.append(recipient)
     return {
-        "pratiche": [item for item in pratiche if item["id"]],
+        # L'indice iniziale resta leggero. Parti, documenti ed evidenze PEC vengono
+        # caricati dalla rotta della singola pratica solo dopo la selezione.
+        "pratiche": [],
+        "indicePratiche": [
+            item
+            for item in (
+                _fascicolo_index_option(
+                    fascicolo,
+                    cliente=clienti_by_id.get(_text(getattr(fascicolo, "id_cliente", ""))),
+                )
+                for fascicolo in tutti_fascicoli
+            )
+            if item["id"]
+        ],
+        "totalePratiche": len([fascicolo for fascicolo in tutti_fascicoli if _text(getattr(fascicolo, "id", ""))]),
         "clienti": [_cliente_option(cliente) for cliente in clienti_by_id.values()],
         "destinatari": destinatari[:120],
         "note": [
@@ -844,6 +1003,36 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
             "La data di verifica PEC non viene inventata: va registrata quando l'elenco pubblico viene controllato.",
         ],
     }
+
+
+def build_react_notifiche_legali_practice_payload(
+    id_fascicolo: str,
+    *,
+    get_clienti: Any = None,
+    get_fascicoli: Any = None,
+    get_soggetti: Any = None,
+) -> dict[str, Any]:
+    fascicoli_repo = _repo_from_getter(get_fascicoli)
+    fascicolo = (
+        _safe_call("fascicolo", lambda: fascicoli_repo.get(_text(id_fascicolo)), None)
+        if fascicoli_repo is not None
+        else None
+    )
+    if fascicolo is None:
+        return _sanitize_ui_payload({"ok": False, "message": "Pratica non trovata.", "pratica": {}})
+
+    clienti_repo = _repo_from_getter(get_clienti)
+    cliente = None
+    id_cliente = _text(getattr(fascicolo, "id_cliente", ""))
+    if clienti_repo is not None and id_cliente:
+        cliente = _safe_call("cliente", lambda: clienti_repo.get(id_cliente), None)
+    pratica = _fascicolo_option(
+        fascicolo,
+        cliente=cliente,
+        soggetti_repo=_repo_from_getter(get_soggetti),
+        pec_emails=_office_pec_messages(),
+    )
+    return _sanitize_ui_payload({"ok": True, "pratica": pratica})
 
 
 def build_react_notifiche_legali_practice_documents_payload(
@@ -880,8 +1069,12 @@ def build_react_notifiche_legali_payload(
 
     avvocato_nome = _text(getattr(studio, "avvocato", ""))
     studio_nome = _text(getattr(studio, "nome", "")) or "IUSENTRA"
-    city = _text(getattr(studio, "city", ""))
-    province = _text(getattr(studio, "province", ""))
+    studio_location = normalize_studio_location(
+        indirizzo=getattr(studio, "indirizzo", ""),
+        cap=getattr(studio, "cap", ""),
+        city=getattr(studio, "city", ""),
+        province=getattr(studio, "province", ""),
+    )
     return _sanitize_ui_payload({
         "source": "configurazione_studio",
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
@@ -901,8 +1094,10 @@ def build_react_notifiche_legali_payload(
             "avvocatoNome": avvocato_nome,
             "avvocatoCf": _text(getattr(studio, "codice_fiscale_avvocato", "")) or _text(getattr(studio, "cf", "")),
             "avvocatoForo": _text(getattr(studio, "ordine_avvocati", "")),
-            "studioIndirizzo": _text(getattr(studio, "indirizzo", "")),
-            "studioCitta": " ".join(part for part in (city, province) if part),
+            "studioIndirizzo": studio_location["indirizzo"],
+            "studioCap": studio_location["cap"],
+            "studioCitta": studio_location["city"],
+            "studioProvincia": studio_location["province"],
             "mittentePec": _text(getattr(pec, "indirizzo", "")),
             "fontePecMittente": "ReGIndE",
         },
@@ -963,6 +1158,9 @@ def build_react_notifiche_legali_payload(
         "azioni": {
             "notifica": "/api/v1/ui/notifiche-legali/notifica",
             "anteprimaRelata": "/api/v1/ui/notifiche-legali/anteprima-relata",
+            "attestazioneConformita": "/api/v1/ui/notifiche-legali/attestazione-conformita",
+            "relataPdf": "/api/v1/ui/notifiche-legali/relata-pdf",
+            "relataFirmata": "/api/v1/ui/notifiche-legali/relata-firmata",
             "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",

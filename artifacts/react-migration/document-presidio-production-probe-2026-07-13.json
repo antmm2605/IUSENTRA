@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "completed": true,
+  "tenant": "studio-legale-giuseppe-montagnese",
+  "source_of_truth": "sqlite",
+  "scan_mode": "incremental_new_or_changed_only",
+  "limit": 5,
+  "until_idle": false,
+  "idle": false,
+  "mirror_regenerated": true,
+  "totals": {
+    "cycles": 1,
+    "processed_new_documents": 5,
+    "indexed_documents": 4,
+    "indexing_skipped": 1,
+    "candidate_dates": 1,
+    "scheduled": 0,
+    "already_presided": 0,
+    "past_remote_hearings_recorded": 1,
+    "skipped_non_blocking_documents": 0,
+    "skipped": 1,
+    "persisted_activity_fascicoli": 1,
+    "errors": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "elapsed_seconds": 6.917,
+      "processed_new_documents": 5,
+      "indexed_documents": 4,
+      "indexing_skipped": 1,
+      "candidate_dates": 1,
+      "scheduled": 0,
+      "already_presided": 0,
+      "past_remote_hearings_recorded": 1,
+      "skipped_non_blocking_documents": 0,
+      "skipped": 1,
+      "persisted_activity_fascicoli": 1,
+      "pending_fascicoli": 298,
+      "pending_documents": 45,
+      "errors": [],
+      "outcomes": [
+        {
+          "status": "past_remote_hearing_recorded",
+          "fascicolo_id": "FB586324",
+          "document": "Sentenza_Tribunale_Vicenza_20-04-2023.PDF",
+          "due_date": "2023-04-20",
+          "kind": "udienza",
+          "reason": "",
+          "deadline": {
+            "ok": false,
+            "message": "",
+            "deadline_id": "",
+            "expired": false
+          },
+          "activity": {
+            "ok": true,
+            "created": true,
+            "activity_id": "704C125B",
+            "message": ""
+          }
+        }
+      ]
+    }
+  ],
+  "applied": true
+}

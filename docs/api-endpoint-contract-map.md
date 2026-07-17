@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 301.
-- Endpoint P0/P1 contrattualizzati: 263.
+- Endpoint React API contrattualizzati: 307.
+- Endpoint P0/P1 contrattualizzati: 269.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 286.
+- Endpoint con provider verification auth-error: 292.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -111,6 +111,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/modifica` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/pagamenti/{kind}` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/predeposito/check` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/proforma/genera` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia/applica-profilo` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia/ricalcola` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -169,6 +170,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/profili/{profile_id}/sincronizza` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/profili/{profile_id}/stato` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/rigenera-link` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/fatturazione/applica-proforme` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/firma/certificato` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/notifiche/invia` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/notifiche/link` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
@@ -189,13 +191,17 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Notifiche legali | `/api/v1/ui/notifiche-legali` | `GET` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/anteprima-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/area-web-pst` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/attestazione-conformita` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/bozze-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/comunicazione-cliente` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/modelli-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/non-pec` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/notifica` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/pratiche/{id_fascicolo}` | `GET` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/pratiche/{id_fascicolo}/documenti` | `GET` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/prova-deposito` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/relata-firmata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/relata-pdf` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/unep` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/compila` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/prefill` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

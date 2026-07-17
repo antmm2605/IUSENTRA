@@ -133,3 +133,18 @@ Sul caso `795C50AC` non è stato eseguito un nuovo invio PEC reale. La prova com
 Ogni modifica futura al deposito deve rilanciare l'audit 252/252, i test mirati, typecheck/build, prova visibile locale su `127.0.0.1:8080` e prova server. Un esito automatico verde non sostituisce i click reali. La selezione automatica di tipo o documenti, un errore HTTP generico, PEC server-side o campi inventati sono regressioni bloccanti.
 
 Al 12/07/2026 il codice runtime `6429973c` è allineato sui branch gemelli, ha superato tutti i check GitHub/CodeQL ed è distribuito e verificato su Hetzner. Il commit documentale che conserva questo esito deve a sua volta superare gli stessi gate prima del report finale; non modifica il comportamento runtime già provato.
+
+## Aggiornamento incrementale e anti-rilettura del 12/07/2026
+
+Il controllo successivo ha riguardato il comportamento dei job automatici sui documenti già acquisiti. La logica ora è persistente e incrementale:
+
+- la prima lettura salva testo/esiti nel database e una marcatura documento+hash;
+- al completamento viene salvata anche l'impronta dell'intero inventario documentale del fascicolo;
+- un ciclo successivo con la stessa impronta non richiama né la raccolta sorgenti né la query ai testi;
+- l'aggiunta o la modifica di un documento invalida l'impronta del fascicolo, ma non quella dei documenti invariati;
+- lo stato completo non viene mai registrato in presenza di lock, errore transitorio o budget parziale;
+- una scadenza futura già presente produce invece uno stato persistente `deferred` con data `resume_after`: il fascicolo non viene riletto nei cicli intermedi e torna automaticamente esaminabile dopo la data indicata o appena cambia l'inventario documentale.
+
+Prova produzione sul tenant principale: `30` nuove marcature documento, tutte con resource ID distinto, `0` duplicati; `14` fascicoli consolidati; contatore storico delle letture automatiche invariato a `2.641.950` dopo più cicli del worker; nessun errore e nessun invio PEC. La suite combinata PEC/documenti/deposito/UI ha superato `110` test e la copia Docker reale locale `127.0.0.1:8080` è stata verificata con click, focus e responsive.
+
+Il confronto Studio Telematico e le fonti ministeriali non vengono sostituiti da questa ottimizzazione: generatori, XSD, campi obbligatori, ufficio, PEC, codice, firme, indice e trasporto restano governati dalla matrice già descritta. Il cambiamento elimina soltanto rielaborazioni non necessarie dei dati già acquisiti.

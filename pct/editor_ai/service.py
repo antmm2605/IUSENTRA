@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any, Callable
 
 from .audit import record_editor_ai_event
@@ -341,6 +342,7 @@ class EditorAIService:
             note="Modifica proposta da Lex accettata",
             preserve_version_snapshot=True,
             reuse_existing_path=True,
+            hash_contenuto_sha256=hashlib.sha256(raw).hexdigest(),
         )
         new_readback = self.read_editor_document_for_lex(
             tenant_id=tenant_id,

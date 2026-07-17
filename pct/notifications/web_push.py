@@ -131,16 +131,45 @@ def _safe_push_fragment(value: Any, *, limit: int = 90) -> str:
     return text[:limit]
 
 
+def safe_remote_hearing_url(payload: dict[str, Any], *, require_verified: bool = True) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    if require_verified and not _as_bool(payload.get("remoteHearingVerified")):
+        return ""
+    candidate = str(payload.get("remoteHearingUrl") or "").strip()
+    if not candidate:
+        return ""
+    try:
+        from pct.pec_pipeline import _is_remote_hearing_url
+
+        accepted, _reason = _is_remote_hearing_url(
+            candidate,
+            context=f"Udienza audiovisiva {payload.get('remoteHearingSource') or ''}",
+        )
+    except Exception:
+        return ""
+    return candidate[:1000] if accepted else ""
+
+
 def safe_web_push_payload(notification: NotificationRecord) -> dict[str, Any]:
     priority = notification.priority if notification.priority in SAFE_BODIES else "normal"
     title = "IUSENTRA"
     body = SAFE_BODIES[priority]
     payload = notification.payload_json if isinstance(notification.payload_json, dict) else {}
+    remote_url = safe_remote_hearing_url(payload)
+    remote_detected = _as_bool(payload.get("remoteHearingDetected")) or bool(remote_url)
+    if remote_detected:
+        title = "IUSENTRA · Udienza"
+        body = (
+            "Udienza audiovisiva: collegamento verificato disponibile."
+            if remote_url
+            else "Udienza audiovisiva: controlla il collegamento in IUSENTRA."
+        )
     if str(notification.type or "").strip() == SUPPORT_REMOTE_TYPE:
         studio_name = _safe_push_fragment(payload.get("studioName") or payload.get("studio_nome"))
         title = "IUSENTRA Assistenza"
         body = f"Richiesta assistenza da {studio_name}." if studio_name else "Richiesta assistenza da uno studio."
-    return {
+    result = {
         "title": title,
         "body": body,
         "href": safe_href(notification.href),
@@ -148,6 +177,9 @@ def safe_web_push_payload(notification: NotificationRecord) -> dict[str, Any]:
         "priority": priority,
         "type": str(notification.type or "operational")[:80],
     }
+    if remote_url:
+        result["remoteHearingUrl"] = remote_url
+    return result
 
 
 def _subscription_info(subscription: PushSubscriptionRecord) -> dict[str, Any]:

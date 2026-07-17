@@ -181,6 +181,7 @@ def pdf_mobile_preview_html(
 ) -> tuple[str, int, dict[str, str]]:
     escaped_name = escape(nome_documento)
     escaped_download = escape(scarica_url, quote=True)
+    viewer_script = escape(url_for("static", filename="js/mobile-pdf-viewer.js"), quote=True)
     if page_urls:
         pages = "".join(
             '<figure class="page">'
@@ -200,29 +201,41 @@ def pdf_mobile_preview_html(
         )
     html = (
         '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover">'
         f"<title>{escaped_name}</title>"
         "<style>"
         ":root{color-scheme:light}"
         "*{box-sizing:border-box}"
-        "html,body{max-width:100%;overflow-x:hidden}"
+        "html,body{width:100%;height:100%;max-width:100%;overflow:hidden}"
         "body{margin:0;background:#e5e7eb;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
-        ".reader{min-width:0;max-width:100vw;min-height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);overflow-x:hidden}"
-        "header{position:sticky;top:0;z-index:2;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#fff}"
+        ".reader{min-width:0;width:100%;height:100dvh;max-width:100vw;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}"
+        "header{z-index:2;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:8px 10px;border-bottom:1px solid #e2e8f0;background:#fff}"
         "header strong{min-width:0;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
-        "header a{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:9px;background:#fff;color:#1d4ed8;padding:0 10px;font-size:12px;font-weight:850;text-decoration:none}"
-        ".pages{min-width:0;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow-x:hidden}"
-        ".page{min-width:0;max-width:100%;margin:0;display:grid;gap:6px}"
+        ".reader-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:6px}"
+        ".reader-toolbar a,.reader-toolbar button{flex:0 0 auto;min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d7dde8;border-radius:8px;background:#fff;color:#0f172a;padding:0 9px;font:850 12px/1 Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer}"
+        ".reader-toolbar a{color:#1d4ed8}.reader-toolbar button:disabled{opacity:.42;cursor:not-allowed}"
+        ".reader-toolbar a:focus-visible,.reader-toolbar button:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:1px;border-color:#2563eb}"
+        ".reader-toolbar__zoom{min-width:54px;color:#334155;font-variant-numeric:tabular-nums;text-align:center}"
+        ".pages{--zoom:1;min-width:0;width:100%;max-width:100%;display:grid;gap:12px;padding:12px;align-content:start;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;scrollbar-gutter:stable}"
+        ".page{width:calc(100% * var(--zoom));min-width:0;max-width:none;margin:0;display:grid;gap:6px;justify-self:start}"
         ".page figcaption{color:#475569;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}"
-        ".page img{width:100%;max-width:100%;height:auto;aspect-ratio:1/1.414;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
+        ".page img{width:100%;max-width:none;height:auto;aspect-ratio:1/1.414;display:block;border:1px solid #d7dde8;border-radius:8px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12);user-select:none;-webkit-user-drag:none}"
         ".empty{min-height:70vh;display:grid;place-content:center;gap:6px;text-align:center;color:#475569}"
         ".empty strong{color:#111827;font-size:15px}"
         "@media(min-width:720px){.pages{max-width:900px;margin:0 auto;padding:18px}.page img{border-radius:10px}}"
+        "@media(max-width:520px){header{grid-template-columns:1fr}header strong{white-space:normal}.reader-toolbar{justify-content:stretch}.reader-toolbar a{margin-left:auto}.reader-toolbar a,.reader-toolbar button{min-height:40px}}"
         "</style></head><body>"
         '<main class="reader">'
-        f"<header><strong>{escaped_name}</strong><a href=\"{escaped_download}\">Scarica</a></header>"
-        f'<section class="pages">{pages}</section>'
-        "</main></body></html>"
+        f"<header><strong>{escaped_name}</strong>"
+        '<nav class="reader-toolbar" aria-label="Controlli del documento">'
+        '<button type="button" data-zoom-out title="Riduci" aria-label="Riduci documento">&minus;</button>'
+        '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
+        '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
+        '<button type="button" data-zoom-in title="Ingrandisci" aria-label="Ingrandisci documento">+</button>'
+        f'<a href="{escaped_download}" title="Scarica documento">Scarica</a>'
+        "</nav></header>"
+        f'<section class="pages" data-document-pages>{pages}</section>'
+        f'</main><script src="{viewer_script}" defer></script></body></html>'
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 

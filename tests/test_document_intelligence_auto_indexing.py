@@ -236,6 +236,52 @@ def test_hash_invariato_non_reindicizza(tmp_path: Path, monkeypatch):
     assert result.summary.ready == 1
 
 
+def test_hash_invariato_ripara_una_sola_volta_record_ready_senza_testo(tmp_path: Path, monkeypatch):
+    _patch_extraction(monkeypatch)
+    service = _service(tmp_path)
+    source = _source()
+    indexer = DocumentAIIndexer(service)
+    first = indexer.process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[source],
+        user_context=_context(),
+    )
+    original_record = service.repository.list_documents("tenant-a", "fas-1")[0]
+    original_getter = service.repository.get_extracted_text
+
+    def missing_original_text(tenant_id, fascicolo_id, document_id, version_id=None):
+        if document_id == original_record.id:
+            return None
+        return original_getter(tenant_id, fascicolo_id, document_id, version_id)
+
+    monkeypatch.setattr(service.repository, "get_extracted_text", missing_original_text)
+    repaired = indexer.process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[source],
+        user_context=_context(),
+    )
+    unchanged = indexer.process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[source],
+        user_context=_context(),
+    )
+
+    records = service.repository.list_documents("tenant-a", "fas-1")
+    assert first.indexed == 1
+    assert repaired.indexed == 1
+    assert len(records) == 2
+    assert any(
+        record.id != original_record.id
+        and original_getter("tenant-a", "fas-1", record.id) is not None
+        for record in records
+    )
+    assert unchanged.indexed == 0
+    assert unchanged.skipped == 1
+
+
 def test_sorgente_fascicolo_con_hash_salvato_non_rilegge_file(tmp_path: Path, monkeypatch):
     docs_root = tmp_path / "documenti"
     docs_root.mkdir()

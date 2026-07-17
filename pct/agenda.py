@@ -69,6 +69,18 @@ class Appuntamento:
     external_rrule: str = ""             # ricorrenza sorgente
     external_hash: str = ""              # impronta semplificata ultimo contenuto
     external_last_sync: str = ""         # ultimo sync riuscito
+    hearing_mode: str = ""
+    hearing_time: str = ""
+    remote_hearing_detected: bool = False
+    remote_hearing_mode: str = ""
+    remote_hearing_url: str = ""
+    remote_hearing_source: str = ""
+    remote_hearing_verified: bool = False
+    remote_hearing_platform: str = ""
+    remote_hearing_meeting_id: str = ""
+    remote_hearing_passcode: str = ""
+    remote_hearing_access_info: str = ""
+    remote_hearing_pdf_required: bool = False
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
     modificato_il: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -155,9 +167,7 @@ class Agenda:
             import json as _json
             json_appuntamenti = self._carica_json_file()
             try:
-                rows = self._studio_db.conn.execute(
-                    "SELECT * FROM appuntamenti"
-                ).fetchall()
+                rows = self._studio_db.fetchall_readonly("SELECT * FROM appuntamenti")
                 self._appuntamenti = {}
                 for row in rows:
                     d = dict(row)

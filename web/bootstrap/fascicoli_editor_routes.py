@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
+import tempfile
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -169,12 +171,45 @@ def register_fascicoli_editor_routes(
                     "warning",
                 )
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
-            esito = converti_pdfa(str(percorso))
+            if str(getattr(documento, "fonte_documento", "") or "").strip().upper() == "PORTALE_TELEMATICO":
+                msg = "Il documento acquisito dal portale viene conservato nella forma ricevuta e non può essere riconvertito."
+                if _wants_json_response():
+                    return jsonify({"ok": False, "messaggio": msg}), 400
+                flash(msg, "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            if bool(getattr(documento, "firmato_digitalmente", False)):
+                msg = "Il documento è già firmato e non può essere riconvertito."
+                if _wants_json_response():
+                    return jsonify({"ok": False, "messaggio": msg}), 400
+                flash(msg, "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            percorso = gestore_fascicoli.percorso_documento_lettura(id_fasc, id_doc)
+            contenuto_originale = decrypt_doc(percorso.read_bytes())
+            with tempfile.TemporaryDirectory(prefix="iusentra-pdfa-") as tmp_dir:
+                temp_path = Path(tmp_dir) / Path(documento.nome).name
+                temp_path.write_bytes(contenuto_originale)
+                esito = converti_pdfa(str(temp_path))
+                contenuto_convertito = temp_path.read_bytes() if esito.get("ok") else b""
             if esito["ok"]:
+                utente = getattr(g, "utente_corrente", None)
+                gestore_fascicoli.sostituisci_documento(
+                    id_fasc,
+                    id_doc,
+                    nome_file=documento.nome,
+                    contenuto=encrypt_doc(contenuto_convertito),
+                    caricato_da=getattr(utente, "username", "") or "conversione PDF/A",
+                    note="Convertito in PDF/A-2B",
+                    preserve_version_snapshot=True,
+                    hash_contenuto_sha256=hashlib.sha256(contenuto_convertito).hexdigest(),
+                )
                 msg = "Documento convertito in PDF/A-2B con successo."
                 flash(msg, "success")
-                audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=documento.nome)
+                audit(
+                    "documento.converti_pdfa",
+                    "fascicolo",
+                    id_fasc,
+                    dettagli=f"doc {id_doc} - {documento.nome}",
+                )
                 if _wants_json_response():
                     return jsonify({"ok": True, "messaggio": msg})
             else:
@@ -239,6 +274,7 @@ def register_fascicoli_editor_routes(
                 contenuto=encrypt_doc(contenuto_raw),
                 caricato_da=utente.username if utente else "editor",
                 note="Salvato dall'editor" + (" (auto)" if auto else ""),
+                hash_contenuto_sha256=hashlib.sha256(contenuto_raw).hexdigest(),
             )
             accoda_ocr(
                 percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),
@@ -317,6 +353,7 @@ def register_fascicoli_editor_routes(
                 contenuto=encrypt_doc(raw),
                 caricato_da=utente.username if utente else "editor",
                 note="Importato nell'anteprima editor",
+                hash_contenuto_sha256=hashlib.sha256(raw).hexdigest(),
             )
             accoda_ocr(
                 percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),

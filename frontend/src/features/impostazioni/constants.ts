@@ -9,6 +9,7 @@ import {
   CreditCard,
   MailCheck,
   MessageCircle,
+  ReceiptText,
   Send,
   ShieldCheck,
   type LucideIcon,
@@ -23,6 +24,7 @@ export const SETTINGS_SECTIONS: Array<{
   tone: SettingTone
 }> = [
   { id: 'studio', label: 'Dati Studio', description: 'Anagrafica, albo, recapiti e coordinate usate nei documenti.', icon: Building2, tone: 'primary' },
+  { id: 'fatturazione', label: 'Fatturazione', description: 'Regole fiscali e pagamento proposti nei documenti economici.', icon: ReceiptText, tone: 'info' },
   { id: 'pec', label: 'PEC', description: 'Parametri certificati per invio e ricezione telematica.', icon: MailCheck, tone: 'success' },
   { id: 'firma', label: 'Firma Digitale', description: 'P12, PEM o dispositivo di firma tramite IUSENTRA Local Signer.', icon: ShieldCheck, tone: 'warning' },
   { id: 'smtp', label: 'Email SMTP', description: 'Casella ordinaria separata dalla PEC.', icon: AtSign, tone: 'info' },
@@ -50,6 +52,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
     { name: 'email', label: 'Email studio', type: 'email', width: 'third' },
     { name: 'sito_web', label: 'Sito web', type: 'url', width: 'third' },
     { name: 'indirizzo', label: 'Indirizzo', width: 'full' },
+    { name: 'cap', label: 'CAP', width: 'third', placeholder: '00000' },
     { name: 'city', label: 'Città', width: 'third' },
     { name: 'province', label: 'Provincia', width: 'third', placeholder: 'MI' },
     { name: 'patron_name', label: 'Santo patrono', width: 'third' },
@@ -57,6 +60,33 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
     { name: 'patron_month', label: 'Mese patrono', type: 'number', width: 'third', min: 0, max: 12 },
     { name: 'iban', label: 'IBAN', width: 'half' },
     { name: 'banca', label: 'Banca', width: 'half' },
+    { name: 'bic_swift', label: 'BIC o SWIFT', width: 'half', placeholder: '8 o 11 caratteri' },
+  ],
+  fatturazione: [
+    { name: 'regime_fiscale', label: 'Regime fiscale', type: 'select', required: true, width: 'half', options: [
+      { value: 'RF01', label: 'Ordinario' },
+      { value: 'RF19', label: 'Forfettario' },
+      { value: 'RF02', label: 'Contribuenti minimi' },
+    ] },
+    { name: 'percentuale_spese_generali', label: 'Spese generali (%)', type: 'number', required: true, width: 'third', min: 0, max: 100 },
+    { name: 'metodo_pagamento', label: 'Metodo di pagamento', type: 'select', required: true, width: 'half', options: [
+      { value: 'Bonifico', label: 'Bonifico' },
+      { value: 'Contanti', label: 'Contanti' },
+      { value: 'Assegno', label: 'Assegno' },
+      { value: 'Carta di credito', label: 'Carta di credito' },
+      { value: 'PayPal', label: 'PayPal' },
+    ] },
+    { name: 'giorni_scadenza', label: 'Scadenza predefinita (giorni)', type: 'number', required: true, width: 'third', min: 0, max: 365 },
+    { name: 'applica_cassa', label: 'Cassa Forense', type: 'checkbox', width: 'half' },
+    { name: 'applica_iva', label: 'IVA', type: 'checkbox', width: 'half' },
+    { name: 'aliquota_iva', label: 'Aliquota IVA', type: 'select', width: 'half', enabledWhen: { field: 'applica_iva', equals: true }, options: [
+      { value: '22', label: '22% ordinaria' },
+      { value: '10', label: '10% ridotta' },
+      { value: '5', label: '5% ridotta' },
+      { value: '4', label: '4% ridotta' },
+    ] },
+    { name: 'applica_ritenuta', label: "Ritenuta d'acconto", type: 'checkbox', width: 'half' },
+    { name: 'applica_bollo', label: 'Bollo', type: 'checkbox', width: 'half' },
   ],
   pec: [
     { name: 'indirizzo', label: 'Indirizzo PEC', type: 'email', required: true, width: 'half' },

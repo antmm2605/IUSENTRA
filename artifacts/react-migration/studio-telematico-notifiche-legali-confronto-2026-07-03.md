@@ -154,3 +154,28 @@ Guardrail aggiunti/eseguiti:
 - `python scripts\validate_openapi.py docs\openapi.yaml` -> passato.
 
 Stato da completare: commit, push dei branch gemelli, deploy Hetzner della versione `2.253.164` e nuova prova produzione del tab cliente dopo deploy.
+
+## Attestazione cumulativa sul modello dello studio - 13/07/2026
+
+Il confronto è stato esteso alla generazione dell'attestazione di conformità per più copie. La regola operativa resta quella ricostruita per il flusso notifiche: l'avvocato sceglie i documenti, il software distingue l'origine, produce una sola attestazione cumulativa nella relata e non dichiara conformi originali informatici o file già firmati quando non ricorre il presupposto.
+
+Il documento Word ora deriva direttamente dal modello consegnato dallo studio, con SHA-256 identico tra fonte e copia applicativa. La compilazione modifica soltanto `word/document.xml`, rimuove le evidenziazioni usate come marcatori e preserva byte per byte stili, numerazione, relazioni, geometria e restante pacchetto Word. Il report completo, comprensivo di campi, fonti, test e prova materiale locale, è in `artifacts/notifiche-legali/attestazione-conformita-unica-2026-07-13.md`.
+
+La UI continua a non mostrare nomi del software confrontato o dettagli del decompilato. Nessuna PEC o notifica reale è stata inviata durante la prova.
+
+## Consolidamento ReGIndE e firma locale - 16/07/2026
+
+Il confronto operativo è stato approfondito sul tratto che precede la firma e l'invio:
+
+- selezione della pratica e preselezione assistita di avvocato, parte rappresentata, destinatario e registro;
+- verifica distinta di notificante e destinatario sul pubblico elenco effettivamente mostrato;
+- ricerca ReGIndE per indirizzo PEC, gestione di più recapiti e ruoli e conservazione dell'evidenza;
+- riallineamento del codice fiscale ammesso solo per il destinatario e solo quando la risposta autorevole corrisponde alla PEC interrogata;
+- unico inserimento PIN nel comando di firma, con uso locale per verifica e firma e cancellazione immediata dalla pagina;
+- relata firmata salvata nel fascicolo prima dell'approvazione finale;
+- approvazione finale mantenuta come scelta esclusiva dell'avvocato;
+- invio PEC reale escluso dai test e sempre affidato alla macchina locale.
+
+La superficie React usa testi operativi neutri e non espone il nome, gli alias o i dettagli tecnici del software confrontato. I test coprono anche il divieto di correggere automaticamente l'identità del notificante e la necessità di interrogare il registro coerente con il destinatario selezionato.
+
+Esiti tecnici: `314` test mirati superati, build React superata, asset sotto `500.000` byte, Local Signer `1.6.92` con token e certificato di firma rilevati, copia locale e produzione healthy. La conformità crittografica finale resta aperta fino alla prova materiale con click reale e apertura della relata firmata; questi esiti non costituiscono conferma preventiva dell'accettazione di una specifica notifica o di un deposito da parte dell'ufficio.

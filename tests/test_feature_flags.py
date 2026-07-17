@@ -32,6 +32,7 @@ def test_feature_flags_default_rollout_scope(tmp_path: Path):
     assert all(resolved[key] is False for key in APP_V2_DEFAULT_OFF_FLAGS)
     assert is_feature_enabled("routes.appV2.docsPanel", app.config) is True
     assert is_feature_enabled("routes.appV2.documents.list", app.config) is True
+    assert is_feature_enabled("routes.appV2.notifications.mobilePush", app.config) is True
     assert is_feature_enabled("routes.appV2.telematico.center", app.config) is False
     assert is_feature_enabled("lex.legalSkills.enabled", app.config) is True
     assert is_feature_enabled("routes.appV2.legalSkills.catalog", app.config) is True
@@ -150,7 +151,10 @@ def test_feature_flags_do_not_cross_app_configs(tmp_path: Path):
 
 
 def test_mobile_push_actions_reject_when_flag_off(tmp_path: Path):
-    app = _app(tmp_path)
+    app = _app(
+        tmp_path,
+        flags={"routes.appV2.notifications.mobilePush": False},
+    )
     _crea_operatore(app)
 
     with app.test_client() as client:

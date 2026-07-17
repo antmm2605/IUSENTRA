@@ -9,6 +9,8 @@ Il modulo separa tre percorsi che non devono essere confusi:
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import io
 import json
 import re
@@ -21,6 +23,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode
 from xml.sax.saxutils import escape
+from zoneinfo import ZoneInfo
+
+from pct.studio_address import compose_studio_address
 
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
@@ -31,6 +36,10 @@ UNEP_NOTIFICATION_OPERATION = "notifica_unep"
 NON_PEC_NOTIFICATION_OPERATION = "notifica_non_pec"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
+ATTESTAZIONE_CONFORMITA_TEMPLATE_PATH = (
+    Path(__file__).with_name("data") / "templates" / "attestazione_conformita.docx"
+)
+ROME_TZ = ZoneInfo("Europe/Rome")
 SHA256_HEX_RE = re.compile(r"^[a-fA-F0-9]{64}$")
 RG_PAIR_RE = re.compile(
     r"\b(?:R\.?\s*G\.?|RG|REGISTRO\s+GENERALE)?\s*(?:N\.?|NR\.?)?\s*[:\-]?\s*0*(\d{1,8})\s*/\s*(\d{4})\b",
@@ -697,7 +706,11 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Avvocato", "label": "Codice fiscale avvocato", "token": "{{ avvocato.codice_fiscale }}"},
     {"group": "Avvocato", "label": "Foro", "token": "{{ avvocato.foro }}"},
     {"group": "Avvocato", "label": "PEC notificante", "token": "{{ avvocato.pec }}"},
-    {"group": "Avvocato", "label": "Studio", "token": "{{ avvocato.studio }}"},
+    {"group": "Avvocato", "label": "Indirizzo studio", "token": "{{ avvocato.studio }}"},
+    {"group": "Avvocato", "label": "Indirizzo completo studio", "token": "{{ avvocato.studio_completo }}"},
+    {"group": "Avvocato", "label": "CAP studio", "token": "{{ avvocato.studio_cap }}"},
+    {"group": "Avvocato", "label": "Città studio", "token": "{{ avvocato.studio_citta }}"},
+    {"group": "Avvocato", "label": "Provincia studio", "token": "{{ avvocato.studio_provincia }}"},
     {"group": "Avvocato", "label": "Firma avvocato in calce", "token": "{{ avvocato.firma_in_calce }}"},
     {"group": "Avvocato", "label": "Dicitura firma digitale", "token": "{{ avvocato.firma_digitale_dicitura }}"},
     {"group": "Assistito", "label": "Parte assistita", "token": "{{ cliente.nome_denominazione }}"},
@@ -715,9 +728,10 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Destinatario", "label": "Ora verifica PEC", "token": "{{ destinatario.ora_verifica_pec }}"},
     {"group": "Documenti", "label": "Elenco documenti", "token": "{{ documenti_righe }}"},
     {"group": "Documenti", "label": "Elenco documenti riservato", "token": "{{ documenti_righe_privacy }}"},
-    {"group": "Documenti", "label": "Attestazioni automatiche", "token": "{{ attestazioni_testo }}"},
+    {"group": "Documenti", "label": "Attestazione di conformità dell'avvocato", "token": "{{ attestazioni_testo }}"},
     {"group": "Notifica", "label": "Luogo relata", "token": "{{ notifica.luogo }}"},
     {"group": "Notifica", "label": "Data relata", "token": "{{ notifica.data }}"},
+    {"group": "Notifica", "label": "Ora relata", "token": "{{ notifica.ora }}"},
     {"group": "Notifica", "label": "Oggetto PEC L. 53", "token": "{{ notifica.oggetto_pec }}"},
     {"group": "Provvedimento", "label": "Tipo provvedimento", "token": "{{ provvedimento.tipo }}"},
     {"group": "Provvedimento", "label": "Numero provvedimento", "token": "{{ provvedimento.numero }}"},
@@ -729,8 +743,12 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
 _OPERATIONAL_TEMPLATE_FIELDS = {
     "documenti_righe": "Elenco documenti",
     "documenti_righe_privacy": "Elenco documenti riservato",
-    "attestazioni_testo": "Attestazioni automatiche",
+    "attestazioni_testo": "Attestazione di conformità dell'avvocato",
     "blocco_procedimento": "Blocco procedimento",
+}
+_OPTIONAL_OPERATIONAL_TEMPLATE_FIELDS = {
+    "attestazioni_testo",
+    "blocco_procedimento",
 }
 _FORBIDDEN_TEMPLATE_TOKEN_CHARS = set("[]()")
 
@@ -843,6 +861,111 @@ def normalise_public_register(value: Any) -> str:
 def register_label(value: Any) -> str:
     key = normalise_public_register(value)
     return PUBLIC_PEC_REGISTERS.get(key, text(value))
+
+
+def _normalise_identity(value: Any) -> str:
+    return re.sub(r"[^A-Z0-9]", "", text(value).upper())
+
+
+def _pec_verification_matches(
+    evidence: Any,
+    *,
+    expected_pec: Any,
+    expected_cf: Any,
+    expected_source: Any,
+) -> bool:
+    if not isinstance(evidence, dict) or not boolish(evidence.get("verified")):
+        return False
+    address = text(
+        evidence.get("pec_attesa")
+        or evidence.get("address")
+        or evidence.get("pec")
+    ).lower()
+    expected_address = text(expected_pec).lower()
+    if not expected_address or address != expected_address:
+        return False
+    evidence_cf = _normalise_identity(
+        evidence.get("codice_fiscale")
+        or evidence.get("taxCode")
+        or evidence.get("codiceFiscale")
+    )
+    required_cf = _normalise_identity(expected_cf)
+    if required_cf and evidence_cf != required_cf:
+        return False
+    source = normalise_public_register(evidence.get("source"))
+    required_source = normalise_public_register(expected_source)
+    if not source or source != required_source or source not in PUBLIC_PEC_REGISTERS:
+        return False
+    checked_at = text(
+        evidence.get("verified_at")
+        or evidence.get("verifiedAt")
+        or evidence.get("checked_at")
+        or evidence.get("checkedAt")
+    )
+    evidence_sha256 = text(evidence.get("evidence_sha256") or evidence.get("evidenceSha256"))
+    evidence_body_b64 = text(evidence.get("evidence_body_b64") or evidence.get("evidenceBodyBase64"))
+    if not checked_at or not SHA256_HEX_RE.fullmatch(evidence_sha256) or not evidence_body_b64:
+        return False
+    try:
+        evidence_body = base64.b64decode(evidence_body_b64, validate=True)
+    except (ValueError, TypeError):
+        return False
+    if not evidence_body or len(evidence_body) > 2_000_000:
+        return False
+    if hashlib.sha256(evidence_body).hexdigest() != evidence_sha256.lower():
+        return False
+    evidence_text = evidence_body.decode("utf-8", errors="ignore")
+    if expected_address not in evidence_text.lower():
+        return False
+    if required_cf and required_cf not in _normalise_identity(evidence_text):
+        return False
+    return not bool(re.search(r"radiat|cancellat|sospes|cessat|revocat", evidence_text, re.IGNORECASE))
+
+
+def _sender_pec_verified(payload: dict[str, Any], context: dict[str, Any]) -> bool:
+    evidence = payload.get("verifica_pec_mittente") or payload.get("mittente_verifica_pec")
+    if isinstance(evidence, dict):
+        return _pec_verification_matches(
+            evidence,
+            expected_pec=context["avvocato"]["pec"],
+            expected_cf=context["avvocato"]["codice_fiscale"],
+            expected_source=_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente"),
+        )
+    return False
+
+
+def _recipient_rows(payload: dict[str, Any], context: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = payload.get("destinatari")
+    if isinstance(rows, list) and rows:
+        return [item for item in rows if isinstance(item, dict)]
+    return [{
+        "pec": context["destinatario"]["pec"],
+        "codice_fiscale_piva": context["destinatario"].get("codice_fiscale_piva", ""),
+        "fonte_pec": context["destinatario"]["fonte_pec_key"],
+    }]
+
+
+def _recipients_pec_verified(payload: dict[str, Any], context: dict[str, Any]) -> bool:
+    evidences = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
+    if isinstance(evidences, list):
+        evidence_rows = [item for item in evidences if isinstance(item, dict)]
+        recipients = _recipient_rows(payload, context)
+        if not recipients or len(evidence_rows) < len(recipients):
+            return False
+        for recipient in recipients:
+            if not any(_pec_verification_matches(
+                evidence,
+                expected_pec=recipient.get("pec") or recipient.get("indirizzo_pec"),
+                expected_cf=(
+                    recipient.get("codice_fiscale_piva")
+                    or recipient.get("codice_fiscale")
+                    or recipient.get("cf")
+                ),
+                expected_source=recipient.get("fonte_pec") or recipient.get("fonte"),
+            ) for evidence in evidence_rows):
+                return False
+        return True
+    return False
 
 
 def normalise_unep_notification_type(value: Any) -> str:
@@ -1721,7 +1844,7 @@ def template_preview_text(template: dict[str, Any]) -> str:
         "Io sottoscritto Avv. {{ avvocato.full_name }},",
         "C.F. {{ avvocato.codice_fiscale }},",
         "iscritto all'Ordine degli Avvocati di {{ avvocato.foro }},",
-        "con studio in {{ avvocato.studio }},",
+        "con studio in {{ avvocato.studio_completo }},",
         "indirizzo PEC {{ avvocato.pec }},",
         "",
         "nella qualita' di difensore di {{ cliente.nome_denominazione }},",
@@ -1748,7 +1871,7 @@ def template_preview_text(template: dict[str, Any]) -> str:
         "",
         "{{ attestazioni_testo }}",
         "",
-        "{{ notifica.luogo }}, {{ notifica.data }}",
+        "{{ notifica.luogo }}, {{ notifica.data }} alle ore {{ notifica.ora }}",
         "",
         "{{ avvocato.firma_in_calce }}",
         "{{ avvocato.firma_digitale_dicitura }}",
@@ -1845,6 +1968,40 @@ def _split_datetime(value: Any) -> tuple[str, str]:
         date, hour = raw.rsplit(" ", 1)
         return _format_italian_date(date), hour[:5]
     return _format_italian_date(raw), ""
+
+
+def _latest_verified_pec_timestamp(payload: dict[str, Any]) -> str:
+    evidences: list[dict[str, Any]] = []
+    sender = payload.get("verifica_pec_mittente") or payload.get("mittente_verifica_pec")
+    if isinstance(sender, dict):
+        evidences.append(sender)
+    recipients = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
+    if isinstance(recipients, list):
+        evidences.extend(item for item in recipients if isinstance(item, dict))
+    timestamps = [
+        text(
+            item.get("verified_at")
+            or item.get("verifiedAt")
+            or item.get("checked_at")
+            or item.get("checkedAt")
+        )
+        for item in evidences
+        if boolish(item.get("verified"))
+    ]
+    return max((item for item in timestamps if item), default="")
+
+
+def _format_italian_time(value: Any, fallback: str = "") -> str:
+    raw = text(value, fallback).strip()
+    if not raw:
+        return ""
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})(?::\d{2})?", raw)
+    if not match:
+        return raw
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if hour > 23 or minute > 59:
+        return raw
+    return f"{hour:02d}:{minute:02d}"
 
 
 def _normalise_lawyer_name(value: Any) -> str:
@@ -2429,10 +2586,22 @@ def build_notification_send_plan(
 
 
 def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None = None) -> dict[str, Any]:
-    data_verifica, ora_verifica = _split_datetime(_first(payload, "destinatario.data_verifica_pec", "data_verifica_pec"))
+    data_verifica, ora_verifica = _split_datetime(_latest_verified_pec_timestamp(payload))
+    studio_cap = text(_first(payload, "avvocato.studio_cap", "studio_cap", fallback=""))
     studio_citta = text(_first(payload, "avvocato.studio_citta", "studio_citta", fallback=""))
-    notifica_data = _format_italian_date(_first(payload, "notifica.data", "data_relata", fallback=datetime.now().strftime("%d/%m/%Y")))
-    notifica_luogo = text(_first(payload, "notifica.luogo", "luogo", fallback=studio_citta))
+    studio_provincia = text(_first(payload, "avvocato.studio_provincia", "studio_provincia", fallback="")).upper()
+    studio_indirizzo = text(_first(payload, "avvocato.studio", "studio_indirizzo", fallback=""))
+    studio_completo = compose_studio_address(
+        indirizzo=studio_indirizzo,
+        cap=studio_cap,
+        city=studio_citta,
+        province=studio_provincia,
+        cap_label=True,
+    )
+    notifica_data = _format_italian_date(_first(payload, "notifica.data", "data_relata"))
+    notifica_ora = _format_italian_time(_first(payload, "notifica.ora", "ora_relata"))
+    luogo_studio = " ".join(part for part in (studio_citta, f"({studio_provincia})" if studio_provincia else "") if part)
+    notifica_luogo = text(_first(payload, "notifica.luogo", "luogo", fallback=luogo_studio))
     role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
     source_key = normalise_public_register(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))
     documents = _documents(payload)
@@ -2479,8 +2648,11 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "codice_fiscale": text(_first(payload, "avvocato.codice_fiscale", "avvocato_cf")),
             "foro": text(_first(payload, "avvocato.foro", "avvocato_foro")),
             "pec": text(_first(payload, "avvocato.pec", "mittente_pec")),
-            "studio": text(_first(payload, "avvocato.studio", "studio_indirizzo")),
+            "studio": studio_indirizzo,
+            "studio_completo": studio_completo,
+            "studio_cap": studio_cap,
             "studio_citta": studio_citta,
+            "studio_provincia": studio_provincia,
             "fonte_pec": register_label(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente", fallback="reginde")),
             "firma_in_calce": firma_in_calce,
             "firma_digitale_dicitura": firma_digitale_dicitura,
@@ -2519,6 +2691,7 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "oggetto_pec": LEGAL_NOTIFICATION_SUBJECT,
             "luogo": notifica_luogo,
             "data": notifica_data,
+            "ora": notifica_ora,
             "relata_firmata": boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
             "firma_tipo": text(_first(payload, "notifica.firma_tipo", "firma_tipo", fallback="PAdES")),
             "ricevuta_tipo": "completa" if boolish(payload.get("ricevuta_completa")) else text(payload.get("ricevuta_tipo")),
@@ -2772,24 +2945,139 @@ def _document_attestation_text(document: dict[str, Any], context: dict[str, Any]
     return ""
 
 
+def _attestation_document_title_detail(
+    document: dict[str, Any],
+    context: dict[str, Any],
+) -> tuple[str, str]:
+    description = text(document.get("descrizione")).strip(" ,;:")
+    filename = text(document.get("nome_file"))
+    stem = Path(filename).name
+    while Path(stem).suffix.lower() in {".p7m", ".pdf", ".doc", ".docx"}:
+        stem = Path(stem).stem
+    source = description or stem or "Documento"
+    haystack = f"{description} {stem}".lower()
+    known_titles = (
+        ("decreto fissazione udienza", "Decreto fissazione udienza"),
+        ("decreto", "Decreto"),
+        ("sentenza", "Sentenza"),
+        ("ordinanza", "Ordinanza"),
+        ("provvedimento", "Provvedimento"),
+        ("ricorso", "Ricorso"),
+        ("procura", "Procura"),
+        ("memoria", "Memoria"),
+        ("verbale", "Verbale"),
+        ("istanza", "Istanza"),
+        ("atto di citazione", "Atto di citazione"),
+    )
+    title = next((label for token, label in known_titles if token in haystack), "")
+
+    if title and source.lower().startswith(title.lower()):
+        detail = source[len(title) :].strip(" ,;:-")
+    elif "," in source:
+        source_title, source_detail = source.split(",", 1)
+        if not title:
+            title = source_title.strip()
+        detail = source_detail.strip(" ,;:")
+    else:
+        detail = "" if title else source
+    title = title or source
+
+    proceeding = context["procedimento"]
+    document_date = _format_italian_date(
+        document.get("data_documento") or document.get("data_comunicazione_cancelleria")
+    )
+    if title in {"Sentenza", "Ordinanza", "Provvedimento", "Decreto", "Decreto fissazione udienza"} and not detail:
+        office = text(context["provvedimento"].get("ufficio_origine") or proceeding.get("ufficio"))
+        section = text(proceeding.get("sezione"))
+        date_label = _format_italian_date(
+            context["provvedimento"].get("data_deposito")
+            or context["provvedimento"].get("data")
+            or document_date
+        )
+        participle = "emessa" if title in {"Sentenza", "Ordinanza"} else "emesso"
+        detail = f"{participle} {_sentence_office_intro(office)}"
+        if section:
+            detail += f" Sez. {section}"
+        if date_label:
+            detail += f" in data {date_label}"
+    elif title == "Procura" and detail.lower() in {"", "alle liti"}:
+        detail = "mandato alle liti"
+    elif title == "Ricorso":
+        detail = detail or "atto introduttivo"
+        if document_date and "depositat" not in detail.lower():
+            detail += f", depositato in data {document_date}"
+    elif not detail:
+        detail = "documento allegato alla notificazione"
+
+    if document["origine"] == "comunicazione_cancelleria" and document["data_comunicazione_cancelleria"]:
+        communication_date = _format_italian_date(document["data_comunicazione_cancelleria"])
+        if communication_date and communication_date not in detail:
+            detail += f", allegato alla comunicazione di cancelleria del {communication_date}"
+    return title.strip(), detail.strip(" ,;:")
+
+
+def _attestation_conclusion(documents: list[dict[str, Any]], context: dict[str, Any]) -> str:
+    origins = {document["origine"] for document in documents}
+    proceeding = context["procedimento"]
+    office = text(proceeding.get("ufficio"))
+    section = text(proceeding.get("sezione"))
+    rg = _rg_reference(proceeding)
+    proceeding_parts = [office, f"Sez. {section}" if section else "", f"R.G. n. {rg}" if rg else ""]
+    proceeding_label = ", ".join(part for part in proceeding_parts if part)
+    singular = len(documents) == 1
+    if origins == {"copia_fascicolo_informatico"}:
+        rg_label = _rg_reference(proceeding)
+        proceeding_reference = f" del relativo procedimento R.G. n. {rg_label}" if rg_label else ""
+        return (
+            f"{'è conforme alla copia informatica presente' if singular else 'sono conformi alle copie informatiche presenti'} "
+            f"nel fascicolo informatico{proceeding_reference} "
+            f"dal quale {'è estratta' if singular else 'sono estratte'}."
+        )
+    if origins == {"comunicazione_cancelleria"}:
+        return (
+            f"{'è conforme al documento allegato' if singular else 'sono conformi ai documenti allegati'} "
+            f"{'alla comunicazione telematica' if singular else 'alle comunicazioni telematiche'} di cancelleria"
+            f"{f' relative al procedimento {proceeding_label}' if proceeding_label else ''}."
+        )
+    if origins == {"scansione_analogico"}:
+        return (
+            f"{'è conforme all’originale analogico' if singular else 'sono conformi agli originali analogici'} "
+            "in possesso del sottoscritto difensore."
+        )
+    return (
+        f"{'è conforme alla rispettiva fonte indicata' if singular else 'sono conformi alle rispettive fonti indicate'}"
+        f"{f' con riferimento al procedimento {proceeding_label}' if proceeding_label else ''}."
+    )
+
+
+def _attestation_document_rows(
+    documents: list[dict[str, Any]],
+    context: dict[str, Any],
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for document in documents:
+        title, detail = _attestation_document_title_detail(document, context)
+        rows.append(
+            {
+                "title": title,
+                "detail": detail,
+                "text": f"{title}, {detail}" if detail else title,
+            }
+        )
+    return rows
+
+
 def _attestation_blocks(context: dict[str, Any]) -> list[str]:
-    items: list[str] = []
-    for document in context["documenti"]:
-        if not document["necessita_attestazione"]:
-            continue
-        block = _document_attestation_text(document, context)
-        if block:
-            items.append(block)
-    if not items:
+    documents = [document for document in context["documenti"] if document["necessita_attestazione"]]
+    if not documents:
         return []
     intro = (
-        "Attesto, ai sensi della normativa vigente, che il seguente documento informatico "
-        "allegato alla presente notificazione è conforme alla rispettiva fonte indicata:"
-        if len(items) == 1
-        else "Attesto, ai sensi della normativa vigente, che i seguenti documenti informatici "
-        "allegati alla presente notificazione sono conformi alle rispettive fonti indicate:"
+        "Attesto, ai sensi della normativa vigente, che la seguente copia informatica:"
+        if len(documents) == 1
+        else "Attesto, ai sensi della normativa vigente, che le seguenti copie informatiche:"
     )
-    return ["\n".join([intro, *(f"- {item}" for item in items)])]
+    items = [f"- {row['text']};" for row in _attestation_document_rows(documents, context)]
+    return ["\n".join([intro, *items, _attestation_conclusion(documents, context)])]
 
 
 def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -2803,9 +3091,8 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
 
     context = _build_context(payload)
     attested_documents = [document for document in context["documenti"] if document["necessita_attestazione"]]
-    documents = context["documenti"]
+    documents = attested_documents
     sentence_documents = [document for document in documents if _is_sentence_attestation_document(document, context)]
-    single_sentence_attestation = len(documents) == 1 and bool(sentence_documents)
     missing: list[str] = []
     if not context["avvocato"]["full_name"]:
         missing.append("avvocato.nome")
@@ -2831,29 +3118,14 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         )
         if not sentence_date:
             missing.append("provvedimento.data_deposito")
+    document_rows = _attestation_document_rows(documents, context)
     doc_lines: list[str] = []
-    if single_sentence_attestation:
-        doc_lines.append(_sentence_attestation_text(sentence_documents[0], context))
+    if not documents:
         conformity_text = ""
         copy_intro = "ai sensi di legge, che la copia informatica:"
     else:
-        for index, document in enumerate(documents, 1):
-            date_label = _format_italian_date(document.get("data_documento") or document.get("data_comunicazione_cancelleria"))
-            suffix = f", in data {date_label}" if date_label else ""
-            doc_lines.append(
-                f"{index}. {document['descrizione'] or document['nome_file']} ({document['nome_file']}){suffix};"
-            )
-        if attested_documents:
-            conformity_text = (
-                "sono conformi alle copie informatiche presenti nel fascicolo informatico "
-                f"del relativo procedimento R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']} "
-                "dal quale sono estratte."
-            )
-        else:
-            conformity_text = (
-                "sono documenti informatici indicati dal fascicolo; non risultano origini che richiedano "
-                "attestazione automatica di conformità."
-            )
+        doc_lines.extend(f"- {row['text']};" for row in document_rows)
+        conformity_text = _attestation_conclusion(documents, context)
         copy_intro = "ai sensi di legge, che le copie informatiche:" if len(documents) != 1 else "ai sensi di legge, che la copia informatica:"
     lines = [
         "ATTESTAZIONE DI CONFORMITÀ",
@@ -2869,14 +3141,9 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         *doc_lines,
         conformity_text,
         "",
-        f"{context['notifica']['luogo']}, {context['notifica']['data']}".strip(", "),
-        "",
         context["avvocato"]["firma_in_calce"],
         context["avvocato"]["firma_digitale_dicitura"],
     ]
-    blocks = _attestation_blocks(context)
-    if blocks:
-        lines.extend(["", "Dettaglio attestazioni:", *blocks])
     return {
         "schema": "iusentra.attestazione_conformita.v1",
         "ok": not missing,
@@ -2891,9 +3158,14 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
                 "origine_label": DOCUMENT_ORIGIN_LABELS.get(document["origine"], document["origine"]),
                 "necessita_attestazione": bool(document["necessita_attestazione"]),
                 "hash_sha256": document["hash_sha256"],
+                "data_documento": document["data_documento"],
+                "data_comunicazione_cancelleria": document["data_comunicazione_cancelleria"],
             }
             for document in documents
         ],
+        "document_rows": document_rows,
+        "copy_intro": copy_intro,
+        "conformity_text": conformity_text,
         "campi_database": {
             "avvocato": context["avvocato"],
             "cliente": context["cliente"],
@@ -2920,34 +3192,132 @@ def generate_attestazione_conformita_docx(
     payload: dict[str, Any],
     output_path: str | Path,
 ) -> dict[str, Any]:
-    """Genera DOCX dell'attestazione usando i dati fascicolo/cliente/parti."""
+    """Genera una sola attestazione usando impaginazione e stili del modello dello studio."""
 
     attestation = build_attestazione_conformita_payload(payload)
     try:
-        from docx import Document
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from lxml import etree
+        from zipfile import ZipFile
     except Exception as exc:  # pragma: no cover - dipendenza ambiente
-        raise RuntimeError(f"python-docx non disponibile: {exc}") from exc
+        raise RuntimeError(f"Supporto DOCX non disponibile: {exc}") from exc
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    document = Document()
-    for index, raw_line in enumerate(str(attestation["text"]).splitlines()):
-        paragraph = document.add_paragraph()
-        line = raw_line.strip()
-        if index == 0:
-            run = paragraph.add_run(line)
-            run.bold = True
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            continue
-        if line.lower() == "attesta":
-            run = paragraph.add_run("Attesta")
-            run.bold = True
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            continue
-        paragraph.add_run(line)
-    document.save(output)
-    return {**attestation, "output_path": str(output)}
+    if not ATTESTAZIONE_CONFORMITA_TEMPLATE_PATH.is_file():
+        raise RuntimeError("Modello Word dell'attestazione di conformità non disponibile.")
+    if output.resolve() == ATTESTAZIONE_CONFORMITA_TEMPLATE_PATH.resolve():
+        raise RuntimeError("Il modello Word non può essere sovrascritto.")
+
+    word_namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    xml_namespace = "http://www.w3.org/XML/1998/namespace"
+    namespaces = {"w": word_namespace}
+
+    def qn(local_name: str) -> str:
+        prefix, name = local_name.split(":", 1)
+        if prefix != "w":
+            raise RuntimeError(f"Namespace DOCX non riconosciuto: {prefix}")
+        return f"{{{word_namespace}}}{name}"
+
+    def paragraph_text(paragraph: Any) -> str:
+        return "".join(paragraph.xpath(".//w:t/text()", namespaces=namespaces))
+
+    def clear_paragraph(paragraph: Any) -> None:
+        for child in list(paragraph):
+            if child.tag != qn("w:pPr"):
+                paragraph.remove(child)
+
+    def run_from(prototype: Any, value: str) -> Any:
+        run = deepcopy(prototype)
+        for child in list(run):
+            if child.tag != qn("w:rPr"):
+                run.remove(child)
+        for highlight in list(run.xpath("./w:rPr/w:highlight", namespaces=namespaces)):
+            parent = highlight.getparent()
+            if parent is not None:
+                parent.remove(highlight)
+        text_element = etree.Element(qn("w:t"))
+        if value[:1].isspace() or value[-1:].isspace():
+            text_element.set(f"{{{xml_namespace}}}space", "preserve")
+        text_element.text = value
+        run.append(text_element)
+        return run
+
+    with ZipFile(ATTESTAZIONE_CONFORMITA_TEMPLATE_PATH, "r") as source:
+        infos = source.infolist()
+        package = {info.filename: source.read(info.filename) for info in infos}
+
+    document_xml_path = "word/document.xml"
+    try:
+        document_root = etree.fromstring(package[document_xml_path])
+    except Exception as exc:
+        raise RuntimeError("Il contenuto del modello Word non è leggibile.") from exc
+    body = document_root.find(f".//{{{word_namespace}}}body")
+    paragraphs = [] if body is None else body.findall(qn("w:p"))
+    if len(paragraphs) != 12 or paragraph_text(paragraphs[0]).strip() != "ATTESTAZIONE DI CONFORMITÀ":
+        raise RuntimeError("Struttura del modello Word dell'attestazione non riconosciuta.")
+
+    lawyer = attestation["campi_database"]["avvocato"]
+    intro_regular_run = paragraphs[1].xpath("./w:r", namespaces=namespaces)[0]
+    intro_lawyer_run = paragraphs[1].xpath("./w:r[w:rPr/w:b and w:rPr/w:i]", namespaces=namespaces)[0]
+    clear_paragraph(paragraphs[1])
+    paragraphs[1].append(run_from(intro_regular_run, "Il sottoscritto "))
+    paragraphs[1].append(run_from(intro_lawyer_run, f"Avv. {lawyer['full_name']}"))
+    paragraphs[1].append(
+        run_from(
+            intro_regular_run,
+            f" C. F. {lawyer['codice_fiscale']}, del Foro di {lawyer['foro']},",
+        )
+    )
+
+    copy_intro_run = paragraphs[4].xpath("./w:r", namespaces=namespaces)[0]
+    clear_paragraph(paragraphs[4])
+    paragraphs[4].append(run_from(copy_intro_run, attestation["copy_intro"]))
+
+    list_prototype = deepcopy(paragraphs[5])
+    title_run_prototype = paragraphs[5].xpath("./w:r[w:rPr/w:b and w:rPr/w:u]", namespaces=namespaces)[0]
+    detail_run_prototype = paragraphs[6].xpath("./w:r[not(w:rPr/w:b)]", namespaces=namespaces)[0]
+    conclusion = paragraphs[8]
+    for paragraph in paragraphs[5:8]:
+        body.remove(paragraph)
+    for row in attestation["document_rows"]:
+        list_paragraph = deepcopy(list_prototype)
+        clear_paragraph(list_paragraph)
+        list_paragraph.append(run_from(title_run_prototype, row["title"]))
+        detail = text(row.get("detail"))
+        list_paragraph.append(run_from(detail_run_prototype, f", {detail};" if detail else ";"))
+        conclusion.addprevious(list_paragraph)
+
+    conclusion_run = conclusion.xpath("./w:r", namespaces=namespaces)[0]
+    clear_paragraph(conclusion)
+    conclusion.append(run_from(conclusion_run, attestation["conformity_text"]))
+
+    signature_run = paragraphs[10].xpath("./w:r", namespaces=namespaces)[0]
+    clear_paragraph(paragraphs[10])
+    paragraphs[10].append(run_from(signature_run, lawyer["firma_in_calce"]))
+
+    digital_signature_run = paragraphs[11].xpath("./w:r", namespaces=namespaces)[0]
+    clear_paragraph(paragraphs[11])
+    paragraphs[11].append(run_from(digital_signature_run, lawyer["firma_digitale_dicitura"]))
+
+    for highlight in list(document_root.xpath(".//w:highlight", namespaces=namespaces)):
+        parent = highlight.getparent()
+        if parent is not None:
+            parent.remove(highlight)
+    package[document_xml_path] = etree.tostring(
+        document_root,
+        xml_declaration=True,
+        encoding="UTF-8",
+        standalone=True,
+    )
+
+    with ZipFile(output, "w") as destination:
+        for info in infos:
+            destination.writestr(info, package[info.filename])
+    return {
+        **attestation,
+        "output_path": str(output),
+        "template_path": str(ATTESTAZIONE_CONFORMITA_TEMPLATE_PATH),
+    }
 
 
 def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[str]:
@@ -3051,6 +3421,8 @@ def _render_restricted_template_body(
             return ""
         value = _template_lookup_value({**render_context, **context}, token)
         if not text(value):
+            if token in _OPTIONAL_OPERATIONAL_TEMPLATE_FIELDS:
+                return ""
             label = labels.get(token, token.replace(".", " ").replace("_", " "))
             if label not in missing:
                 missing.append(label)
@@ -3109,6 +3481,9 @@ def _render_standard_template_preview(
         value = preview_context.get(token) if token in _OPERATIONAL_TEMPLATE_FIELDS else _context_lookup(preview_context, token)
         if text(value):
             continue
+        if token in _OPTIONAL_OPERATIONAL_TEMPLATE_FIELDS:
+            preview_context[token] = ""
+            continue
         label = labels.get(token) or _field_label(template, token)
         if label not in missing:
             missing.append(label)
@@ -3163,13 +3538,63 @@ def _append_lawyer_addition(lines: list[str], payload: dict[str, Any]) -> None:
         lines.extend(["", "INTEGRAZIONE DELL'AVVOCATO", "", addition])
 
 
-def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
+def _validate_relata_override(
+    override: str,
+    canonical: str,
+    context: dict[str, Any],
+) -> list[str]:
+    if not override:
+        return []
+    normalized_override = text(override).casefold()
+    normalized_canonical = text(canonical).casefold()
+    anchors = [
+        "relazione di notificazione",
+        context["avvocato"]["codice_fiscale"],
+        context["avvocato"]["pec"],
+        context["cliente"]["codice_fiscale_piva"],
+        context["destinatario"]["pec"],
+        context["destinatario"]["fonte_pec"],
+        context["destinatario"]["data_verifica_pec"],
+        context["destinatario"]["ora_verifica_pec"],
+        context["notifica"]["data"],
+        context["notifica"]["ora"],
+        *(document.get("nome_file") for document in context["documenti"]),
+    ]
+    if context["procedimento"]["presente"]:
+        anchors.extend([
+            context["procedimento"]["ufficio"],
+            context["procedimento"]["numero_rg"],
+            context["procedimento"]["anno_rg"],
+        ])
+    if "attestazione di conform" in normalized_canonical:
+        anchors.append("attestazione di conform")
+    missing = [
+        text(anchor)
+        for anchor in anchors
+        if text(anchor) and text(anchor).casefold() not in normalized_override
+    ]
+    if not missing:
+        return []
+    visible = ", ".join(dict.fromkeys(missing[:8]))
+    return [block(
+        "RELAZIONE_CONTENUTO_OBBLIGATORIO_REQUIRED",
+        f"La bozza modificata non contiene tutti i dati obbligatori della relata: {visible}.",
+    )]
+
+
+def validate_legal_notification(
+    payload: dict[str, Any],
+    *,
+    require_signed_relata: bool = True,
+) -> LegalWorkflowResult:
     """Validate and prepare a controlled L. 53/1994 notification draft."""
 
     blockers: list[str] = []
     warnings: list[str] = []
     template = select_relata_template(payload)
     context = _build_context(payload, template=template)
+    sender_pec_verified = _sender_pec_verified(payload, context)
+    recipients_pec_verified = _recipients_pec_verified(payload, context)
     custom_body = multiline_text(template.get("custom_body"))
     if custom_body:
         blockers.extend(validate_custom_template_body(custom_body))
@@ -3204,28 +3629,27 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         ("destinatario.pec", "Indica la PEC del destinatario."),
         ("notifica.luogo", "Indica il luogo della relata."),
         ("notifica.data", "Indica la data della relata."),
+        ("notifica.ora", "Indica l'ora italiana della relata."),
     ]
     for path, message in required_paths:
         if not text(_context_lookup(context, path)):
             blockers.append(message)
 
-    if not boolish(payload.get("mittente_pec_pubblico_elenco")) and not text(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente")):
+    if normalise_public_register(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente")) not in PUBLIC_PEC_REGISTERS:
         blockers.append(block("PEC_MITTENTE_FONTE_REQUIRED", "La PEC del notificante deve risultare da un pubblico elenco."))
-    if not boolish(_first(payload, "avvocato.abilitato_notifiche", "mittente_avvocato_abilitato", "avvocato_abilitato")):
-        blockers.append(block("AVVOCATO_ABILITATO_REQUIRED", "Il mittente deve essere avvocato abilitato alla notifica in proprio."))
-    if not boolish(_first(payload, "avvocato.pec_validata", "mittente_pec_validata", "pec_mittente_validata")):
-        blockers.append(block("PEC_MITTENTE_VALIDATA_REQUIRED", "La PEC del notificante deve essere presente e validata."))
+    if not sender_pec_verified:
+        blockers.append(block("PEC_MITTENTE_VALIDATA_REQUIRED", "Il controllo automatico non ha verificato la PEC del notificante nel pubblico elenco."))
 
     source_key = context["destinatario"]["fonte_pec_key"]
     if source_key not in PUBLIC_PEC_REGISTERS:
         blockers.append(block("PEC_DESTINATARIO_FONTE_REQUIRED", "La PEC del destinatario deve avere una fonte da pubblico elenco."))
     if not context["destinatario"]["data_verifica_pec"] or not context["destinatario"]["ora_verifica_pec"]:
         blockers.append(block("PEC_DESTINATARIO_VERIFICA_REQUIRED", "Registra data e ora della verifica PEC del destinatario."))
-    if not boolish(_first(payload, "destinatario.pec_pubblico_elenco", "destinatario_pec_pubblico_elenco", fallback=True)):
-        blockers.append(block("PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED", "La PEC destinatario deve essere estratta da pubblico elenco."))
+    if not recipients_pec_verified:
+        blockers.append(block("PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED", "Il controllo automatico non ha verificato la PEC del destinatario nel pubblico elenco indicato."))
     if not boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato")):
         blockers.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
-    if not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
+    if require_signed_relata and not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
         blockers.append(block("RELATA_FIRMATA_REQUIRED", "La relata deve essere firmata digitalmente."))
     if not boolish(payload.get("ricevuta_completa")) or text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
         blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La notifica PEC L. 53/1994 richiede ricevuta di avvenuta consegna completa."))
@@ -3284,6 +3708,8 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     )
     if relata_override_text and len(relata_override_text) > 30000:
         blockers.append("La bozza relata modificata è troppo lunga.")
+    canonical_relata = render_relata(payload, template=template)
+    blockers.extend(_validate_relata_override(relata_override_text, canonical_relata, context))
 
     blockers = list(dict.fromkeys(blockers))
     if blockers:
@@ -3297,7 +3723,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             template_version=template_catalog_version(),
         )
 
-    relata_text = f"{relata_override_text}\n" if relata_override_text else render_relata(payload, template=template)
+    relata_text = f"{relata_override_text}\n" if relata_override_text else canonical_relata
     body = render_control_document("corpo_pec_standard", payload, template=template)
     checklist = render_control_document("checklist_pre_invio", payload, template=template)
     attestation_blocks = _attestation_blocks(_build_context(payload, template=template))
@@ -3350,7 +3776,7 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
         f"Io sottoscritto Avv. {context['avvocato']['full_name']},",
         f"C.F. {context['avvocato']['codice_fiscale']},",
         f"iscritto all'Ordine degli Avvocati di {context['avvocato']['foro']},",
-        f"con studio in {context['avvocato']['studio'] or 'indirizzo indicato negli atti di studio'},",
+        f"con studio in {context['avvocato']['studio_completo'] or 'indirizzo indicato negli atti di studio'},",
         f"indirizzo PEC {context['avvocato']['pec']},",
         "",
         f"nella qualita' di difensore di {context['cliente']['nome_denominazione']},",
@@ -3394,7 +3820,10 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     attestations = _attestation_blocks(context)
     manual_attestation = text(payload.get("attestazione_conformita"))
     if manual_attestation:
-        attestations.append(manual_attestation)
+        if attestations:
+            attestations[0] = f"{attestations[0]}\n\nPrecisazione dell'avvocato:\n{manual_attestation}"
+        else:
+            attestations.append(manual_attestation)
     if attestations:
         lines.extend(["", "ATTESTAZIONE DI CONFORMITÀ", ""])
         for block in attestations:
@@ -3541,6 +3970,8 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
     """Return the legal checks applied to the L. 53/1994 notification draft."""
 
     context = context or _build_context(payload, template=select_relata_template(payload))
+    sender_pec_verified = _sender_pec_verified(payload, context)
+    recipients_pec_verified = _recipients_pec_verified(payload, context)
     documents = context["documenti"]
     office_acquisition = _office_document_acquisition_state(payload, context)
     office_pec_eml = _office_pec_eml_state(payload)
@@ -3564,19 +3995,17 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             id="pec_mittente",
             label="PEC notificante da pubblico elenco",
             source="L. 53/1994, art. 3-bis, comma 1",
-            passed=boolish(payload.get("mittente_pec_pubblico_elenco")) and boolish(
-                _first(payload, "avvocato.pec_validata", "mittente_pec_validata", "pec_mittente_validata")
-            ),
-            detail="La casella del notificante deve essere censita e validata.",
+            passed=sender_pec_verified,
+            detail="La casella del notificante deve essere verificata automaticamente nel pubblico elenco.",
         ),
         _check_row(
             id="pec_destinatario",
             label="PEC destinatario e fonte",
             source="D.L. 179/2012, art. 16-ter",
             passed=context["destinatario"]["fonte_pec_key"] in PUBLIC_PEC_REGISTERS
-            and boolish(_first(payload, "destinatario.pec_pubblico_elenco", "destinatario_pec_pubblico_elenco", fallback=True))
+            and recipients_pec_verified
             and bool(context["destinatario"]["data_verifica_pec"]),
-            detail="Sono richiesti fonte pubblica, data e ora della verifica.",
+            detail="Sono richiesti esito automatico, fonte pubblica, data e ora della verifica.",
         ),
         _check_row(
             id="destinatario_casistica",
@@ -3722,7 +4151,9 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def generate_relata_pdf_bytes(payload: dict[str, Any], *, pdfa: bool = False) -> bytes:
-    result = validate_legal_notification(payload)
+    # Il PDF e' il documento sorgente da sottoporre a firma: la prova della
+    # firma viene richiesta soltanto dopo che Local Signer lo ha restituito.
+    result = validate_legal_notification(payload, require_signed_relata=False)
     if not result.ok:
         raise ValueError("; ".join(result.blockers))
 

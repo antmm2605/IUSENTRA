@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 262.
+- Route Flask GET candidate rilevate fuori manifest: 263.
 
 ### Distribuzione rischio
 
@@ -497,7 +497,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.billing.quotes | IUSENTRA_FF_ROUTES_APPV2_BILLING_QUOTES | Preventivi e incarichi nella shell App V2 sperimentale. | on |
 | routes.appV2.billing.compensi | IUSENTRA_FF_ROUTES_APPV2_BILLING_COMPENSI | Compensi forensi nella shell App V2 sperimentale. | on |
 | routes.appV2.billing.tariffario | IUSENTRA_FF_ROUTES_APPV2_BILLING_TARIFFARIO | Tariffario nella shell App V2 sperimentale. | on |
-| routes.appV2.notifications.mobilePush | IUSENTRA_FF_ROUTES_APPV2_NOTIFICATIONS_MOBILEPUSH | Notifiche Web Push su dispositivo mobile/tablet. | off |
+| routes.appV2.notifications.mobilePush | IUSENTRA_FF_ROUTES_APPV2_NOTIFICATIONS_MOBILEPUSH | Notifiche Web Push su dispositivo mobile/tablet. | on |
 | lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Legal Skills Engine governato per Lex. | on |
 | lex.autonomousLearning | IUSENTRA_FF_LEX_AUTONOMOUSLEARNING | Superficie read-only dell'apprendimento autonomo Lex (memoria, letture, proposte in revisione umana). | on |
 | lex.procedureCompletion.enabled | IUSENTRA_FF_LEX_PROCEDURECOMPLETION_ENABLED | Procedure Completion Engine: schede procedura governate con review avvocato. | on |

@@ -67,7 +67,16 @@ class DocumentAIIndexer:
         errors: list[str] = []
         for source in sources:
             state = _state_for_source(source, records)
-            if state == _READY or state == _INDEXING or state == _ARCHIVED:
+            if state == _READY and _ready_source_has_extracted_text(
+                self.service,
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id,
+                source=source,
+                records=records,
+            ):
+                skipped += 1
+                continue
+            if state == _INDEXING or state == _ARCHIVED:
                 skipped += 1
                 continue
             if state == _ERROR and not retry_errors:
@@ -96,6 +105,54 @@ class DocumentAIIndexer:
         refreshed = self.service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context)
         summary = build_lex_indexing_summary(sources=sources, records=refreshed, extra_warnings=errors)
         return DocumentAIIndexingResult(summary=summary, indexed=indexed, skipped=skipped, errors=errors)
+
+
+def _ready_source_has_extracted_text(
+    service: Any,
+    *,
+    tenant_id: str,
+    fascicolo_id: str,
+    source: DocumentAISource,
+    records: list[Any],
+) -> bool:
+    """Un record ready senza testo e' corrotto/incompleto e va rigenerato una volta."""
+
+    source_names = {source.filename.casefold(), source.safe_filename.casefold()}
+    matching = [
+        record
+        for record in records
+        if str(getattr(record, "status", "") or "") == _READY
+        and (
+            (source.sha256 and str(getattr(record, "sha256", "") or "") == source.sha256)
+            or source_names
+            & {
+                str(getattr(record, "original_filename", "") or "").casefold(),
+                str(getattr(record, "safe_filename", "") or "").casefold(),
+            }
+        )
+    ]
+    if not matching:
+        return False
+    repository = getattr(service, "repository", None)
+    getter = getattr(repository, "get_extracted_text", None)
+    if not callable(getter):
+        return True
+    for record in matching:
+        version_id = str(getattr(record, "current_version_id", "") or "")
+        if not version_id:
+            continue
+        try:
+            extracted = getter(
+                tenant_id,
+                fascicolo_id,
+                str(getattr(record, "id", "") or ""),
+                version_id,
+            )
+        except Exception:
+            return True
+        if extracted is not None and str(getattr(extracted, "text", "") or "").strip():
+            return True
+    return False
 
 
 def build_lex_indexing_summary(

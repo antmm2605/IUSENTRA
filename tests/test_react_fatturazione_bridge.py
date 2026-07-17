@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import base64
+import io
 from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 
 from pct.clienti import Cliente, Indirizzo, Recapiti, TipoCliente
 from pct.fatturazione import GestioneFatturazione, VoceParcella
+from pypdf import PdfReader
+from web.blueprints.fatturazione import _genera_pdf
 from web.services.react_fatturazione_bridge import (
+    build_fatturazione_runtime_config,
     build_react_fatturazione_payload,
     create_react_fattura,
     update_react_fatturazione_numbering,
@@ -17,7 +22,9 @@ from web.services.react_fatturazione_archive_actions import (
     confirm_react_fatturazione_xml_signed,
     prepare_react_fatturazione_commercialista,
     prepare_react_fatturazione_sdi_pec,
+    prepare_react_fatturazione_xml_signature,
     update_react_fatturazione_detail,
+    update_react_fatturazione_status,
 )
 
 
@@ -71,6 +78,25 @@ def _cliente() -> Cliente:
     )
 
 
+def _cliente_persona_fisica() -> Cliente:
+    return Cliente(
+        id="CLI-PF-001",
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Robertino",
+        cognome="Alessi",
+        codice_fiscale="LSSRRR80A01H501X",
+        indirizzo_residenza=Indirizzo(
+            via="Via Roma",
+            civico="9",
+            cap="89029",
+            comune="Taurianova",
+            provincia="RC",
+            nazione="Italia",
+        ),
+        recapiti=Recapiti(email="robertino.alessi@example.test"),
+    )
+
+
 def _fascicolo(cliente_id: str) -> SimpleNamespace:
     return SimpleNamespace(
         id="FAS-001",
@@ -113,6 +139,67 @@ def _studio_config() -> dict[str, str]:
     }
 
 
+def test_conversione_proforma_richiede_conferma_esplicita(tmp_path):
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    proforma = manager.crea(
+        id_cliente="CLI-001",
+        id_fascicolo="FAS-001",
+        voci=[VoceParcella(descrizione="Compenso", prezzo_unitario=100.0)],
+        dati_personalizzati={
+            "document": {
+                "documento_operativo": "PROFORMA",
+                "tipo_documento_label": "Proforma",
+            }
+        },
+    )
+    audit = _AuditUsers()
+
+    blocked, blocked_status = update_react_fatturazione_status(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit,
+        current_user=_User(),
+        id_documento=proforma.id,
+        payload={"stato": "EMESSA"},
+    )
+    confirmed, confirmed_status = update_react_fatturazione_status(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit,
+        current_user=_User(),
+        id_documento=proforma.id,
+        payload={"stato": "EMESSA", "confermaProforma": True},
+    )
+
+    assert blocked_status == 409
+    assert blocked["errors"]["confermaProforma"] == "Conferma esplicita richiesta."
+    assert confirmed_status == 200
+    assert confirmed["ok"] is True
+    converted = manager.get(proforma.id)
+    assert converted is not None
+    assert converted.dati_personalizzati["document"]["documento_operativo"] == "FATTURA"
+
+
+def test_frontend_proforma_chiede_conferma_prima_della_fattura():
+    source = Path("frontend/src/components/FatturazionePage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fatturazioneData.ts").read_text(encoding="utf-8")
+
+    assert "Conferma ed emetti" in source
+    assert "window.confirm('Confermi la proforma e procedi con l’emissione della fattura?')" in source
+    assert "confermaProforma: confirmsProforma" in source
+    assert "confermaProforma?: boolean" in data_source
+    assert "studio: formState.dati_personalizzati.studio" not in source
+    assert "dati_personalizzati: datiPersonalizzati" in source
+    assert "Scrittura tracciata" not in source
+    assert "<WarningPanel" not in source
+    assert "<SdiWorkflowPanel" not in source
+    assert "<ContractPanel" not in source
+    assert "Nuova proforma" in source
+    assert "...(detail.isProforma ? [] : [['xml', 'XML e SdI']])" in source
+    assert "const value = event.currentTarget.value" in source
+    assert "percentuale_spese_generali: value" in source
+    assert "percentuale_spese_generali: event.currentTarget.value" not in source
+    assert "specificError ? `${result.message} ${specificError}` : result.message" in source
+
+
 def test_bridge_fatturazione_prefila_nuova_parcella_personalizzata(tmp_path):
     cliente = _cliente()
     fascicolo = _fascicolo(cliente.id)
@@ -136,10 +223,11 @@ def test_bridge_fatturazione_prefila_nuova_parcella_personalizzata(tmp_path):
     defaults = payload["form"]["defaults"]
     personalized = defaults["dati_personalizzati"]
 
-    assert payload["form"]["title"] == "Nuova parcella personalizzata"
+    assert payload["form"]["title"] == "Nuovo documento economico"
     assert payload["nextNumber"].endswith("/002")
-    assert payload["studioProfile"]["nome"] == "Mario"
-    assert payload["studioProfile"]["cognome"] == "Rossi"
+    assert payload["studioProfile"]["denominazione"] == "Studio Legale Rossi"
+    assert payload["studioProfile"]["nome"] == ""
+    assert payload["studioProfile"]["cognome"] == ""
     assert personalized["transmission"]["identificativo_fiscale"] == "RSSMRA80A01H501Z"
     assert personalized["recipient"]["nome_denominazione"] == "Beta Srl"
     assert personalized["recipient"]["pec"] == "beta@pec.example"
@@ -147,6 +235,78 @@ def test_bridge_fatturazione_prefila_nuova_parcella_personalizzata(tmp_path):
     assert personalized["document"]["fascicolo_label"].startswith("Opposizione a decreto ingiuntivo")
     assert personalized["payment"]["iban"] == "IT60X0542811101000000123456"
     assert personalized["payment"]["modalita_pagamento_label"] == "Bonifico"
+
+
+def test_bridge_fatturazione_separa_nome_e_cognome_della_persona_fisica(tmp_path):
+    cliente = _cliente_persona_fisica()
+    payload = build_react_fatturazione_payload(
+        get_fatturazione=lambda: GestioneFatturazione(db_path=str(tmp_path / "parcelle.json")),
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(),
+        current_user=_User(),
+        query={"id_cliente": cliente.id, "documento_operativo": "PROFORMA"},
+        route="/fatturazione/nuova",
+        config=_studio_config(),
+    )
+
+    recipient = payload["form"]["defaults"]["dati_personalizzati"]["recipient"]
+    assert payload["form"]["title"] == "Nuova proforma"
+    assert recipient["nome"] == "Robertino"
+    assert recipient["cognome"] == "Alessi"
+    assert recipient["denominazione"] == ""
+    assert recipient["nome_denominazione"] == "Robertino"
+
+
+def test_config_fatturazione_usa_solo_studio_e_pagamenti_del_tenant():
+    studio_cfg = SimpleNamespace(
+        studio=SimpleNamespace(
+            nome="Studio Tenant",
+            avvocato="Avv. Ada Tenant",
+            piva="12345678901",
+            cf="TNTDAA80A01H501Z",
+            indirizzo="Via Tenant 1",
+            city="Roma",
+            province="RM",
+            telefono="061111111",
+            email="studio@tenant.example",
+            iban="",
+            banca="",
+        ),
+        sdi=SimpleNamespace(
+            modalita="intermediario",
+            nome_intermediario="Intermediario Tenant",
+            codice_canale="",
+            endpoint_trasmissione="",
+        ),
+        fatturazione=SimpleNamespace(
+            regime_fiscale="RF01",
+            applica_iva=True,
+            applica_cassa=True,
+            applica_ritenuta=False,
+            applica_bollo=False,
+            percentuale_spese_generali=15.0,
+            metodo_pagamento="Bonifico",
+            giorni_scadenza=30,
+            bic_swift="BCITITMMXXX",
+        ),
+    )
+    pagamenti_cfg = SimpleNamespace(
+        bonifico=SimpleNamespace(
+            iban="IT60X0542811101000000123456",
+            intestazione="Studio Tenant",
+            banca="Banca Tenant",
+        )
+    )
+
+    config = build_fatturazione_runtime_config(studio_cfg, pagamenti_cfg)
+
+    assert config["STUDIO_NOME"] == "Studio Tenant"
+    assert config["STUDIO_PIVA"] == "12345678901"
+    assert config["STUDIO_IBAN"] == "IT60X0542811101000000123456"
+    assert config["STUDIO_BANCA"] == "Banca Tenant"
+    assert config["STUDIO_BIC_SWIFT"] == "BCITITMMXXX"
+    assert config["FATTURAZIONE_DEFAULTS"]["bic_swift"] == "BCITITMMXXX"
+    assert config["SDI_INTERMEDIARIO"] == "Intermediario Tenant"
 
 
 def test_bridge_fatturazione_presidia_sdi_senza_falso_canale_accreditato(tmp_path):
@@ -242,6 +402,7 @@ def test_bridge_fatturazione_ricostruisce_rg_completo_da_numero_e_anno(tmp_path)
     assert record["caseRg"] == "697/2025"
     assert "RG 697/2025" in record["caseReference"]
     assert "RG 697/2025" in record["caseTitle"]
+    assert record["detailHref"] == f"/fatturazione?id_documento={parcella.id}"
 
 
 def test_bridge_fatturazione_configura_numerazione_fatture(tmp_path):
@@ -301,9 +462,9 @@ def test_create_react_fattura_salva_snapshot_personalizzato_e_registra_audit(tmp
                 "email": "segreteria@studio-rossi.example",
             },
             "studio": {
-                "nome_denominazione": "Studio Legale Rossi",
-                "partita_iva": "09876543210",
-                "codice_fiscale": "RSSMRA80A01H501Z",
+                "nome_denominazione": "Studio Estraneo",
+                "partita_iva": "11111111111",
+                "codice_fiscale": "STRNGE80A01H501X",
             },
             "recipient": {
                 "denominazione": "Beta Srl",
@@ -357,9 +518,111 @@ def test_create_react_fattura_salva_snapshot_personalizzato_e_registra_audit(tmp
     assert parcella.metodo_pagamento == "Bonifico"
     assert parcella.voci[1].tipo == "SPESE"
     assert parcella.dati_personalizzati["recipient"]["denominazione"] == "Beta Srl"
+    assert parcella.dati_personalizzati["studio"]["nome_denominazione"] == "Studio Legale Rossi"
+    assert parcella.dati_personalizzati["studio"]["partita_iva"] == "09876543210"
     assert parcella.dati_personalizzati["payment"]["iban"] == "IT60X0542811101000000123456"
+    assert result["redirect_href"] == f"/fatturazione?id_documento={parcella.id}"
     assert audit_users.events
     assert audit_users.events[0][0][0] == "fatturazione.crea"
+
+
+def test_create_react_fattura_non_accetta_iban_browser_se_manca_nel_tenant(tmp_path):
+    cliente = _cliente()
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    config = {**_studio_config(), "STUDIO_IBAN": ""}
+    payload = {
+        "id_cliente": cliente.id,
+        "data_emissione": "2026-07-13",
+        "data_scadenza": "2026-08-12",
+        "voci": [{"descrizione": "Compenso", "quantita": "1", "prezzo_unitario": "100", "tipo": "ONORARIO"}],
+        "opzioni_fiscali": {"applica_iva": True, "applica_cassa": True, "applica_ritenuta": False, "applica_bollo": False},
+        "metodo_pagamento": "Bonifico",
+        "dati_personalizzati": {
+            "document": {"documento_operativo": "PROFORMA", "tipo_documento": "TD01"},
+            "payment": {
+                "modalita_pagamento_label": "Bonifico",
+                "modalita_pagamento_codice": "MP05",
+                "iban": "IT60X0542811101000000123456",
+            },
+        },
+    }
+
+    result, status = create_react_fattura(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(),
+        get_utenti=lambda: _AuditUsers(),
+        get_preventivi=None,
+        current_user=_User(),
+        payload=payload,
+        config=config,
+    )
+
+    assert status == 400
+    assert result["errors"]["dati_personalizzati.payment.iban"].startswith("Inserisci")
+    assert manager.tutte() == []
+
+
+def test_proforma_non_prepara_xml_fatturapa_prima_della_conferma(tmp_path):
+    cliente = _cliente()
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    proforma = manager.crea(
+        id_cliente=cliente.id,
+        voci=[VoceParcella(descrizione="Compenso", prezzo_unitario=100.0)],
+        dati_personalizzati={"document": {"documento_operativo": "PROFORMA", "tipo_documento_label": "Proforma"}},
+    )
+
+    result, status = prepare_react_fatturazione_xml_signature(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        current_user=_User(),
+        id_documento=proforma.id,
+        config=_studio_config(),
+    )
+
+    assert status == 409
+    assert result["errors"]["proforma"]
+
+
+def test_pdf_proforma_usa_snapshot_tenant_e_riporta_iban(tmp_path):
+    cliente = _cliente()
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    proforma = manager.crea(
+        id_cliente=cliente.id,
+        voci=[VoceParcella(descrizione="Compenso", prezzo_unitario=100.0)],
+        studio_piva="09876543210",
+        studio_cf="RSSMRA80A01H501Z",
+        studio_indirizzo="Via Verdi 8",
+        studio_iban="IT60X0542811101000000123456",
+        dati_personalizzati={
+            "studio": {
+                "nome_denominazione": "Studio Legale Rossi",
+                "partita_iva": "09876543210",
+                "codice_fiscale": "RSSMRA80A01H501Z",
+                "indirizzo": "Via Verdi 8",
+            },
+            "document": {"documento_operativo": "PROFORMA", "tipo_documento_label": "Proforma"},
+            "payment": {
+                "beneficiario": "Studio Legale Rossi",
+                "istituto_finanziario": "Banca Forense",
+                "iban": "IT60X0542811101000000123456",
+            },
+        },
+    )
+
+    pdf = _genera_pdf(
+        proforma,
+        cliente,
+        None,
+        {"STUDIO_NOME": "Studio Estraneo", "STUDIO_IBAN": "IT00INVALIDO"},
+    ).getvalue()
+    text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(pdf)).pages)
+
+    assert "PROFORMA" in text
+    assert "Studio Legale Rossi" in text
+    assert "IT60X0542811101000000123456" in text
+    assert "Banca Forense" in text
+    assert "Studio Estraneo" not in text
 
 
 def test_create_react_fattura_forfettaria_disattiva_iva_anche_se_selezionata(tmp_path):
@@ -469,6 +732,44 @@ def test_fatturazione_detail_modal_payload_e_modifica_voci_preservano_calcoli(tm
     assert status == 400
     assert blocked["ok"] is False
     assert "totale" in blocked["errors"]
+
+
+def test_fatturazione_detail_bonifico_usa_coordinate_tenant_correnti(tmp_path):
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    parcella = manager.crea(
+        id_cliente="CLI-001",
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=296.70)],
+        metodo_pagamento="Bonifico",
+        studio_iban="",
+        dati_personalizzati={"document": {"documento_operativo": "PROFORMA"}, "payment": {}},
+    )
+    studio_config = {
+        **_studio_config(),
+        "STUDIO_BENEFICIARIO": "Studio Legale Rossi",
+        "STUDIO_BIC_SWIFT": "BCITITMMXXX",
+    }
+
+    result, status = update_react_fatturazione_detail(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: _AuditUsers(),
+        current_user=_User(),
+        id_documento=parcella.id,
+        payload={
+            "voci": [{"descrizione": "Compenso", "quantita": "1", "prezzo_unitario": "296.70", "tipo": "ONORARIO"}],
+            "fiscal": {"percentuale_spese_generali": "15", "regime_fiscale": "RF01"},
+            "payment": {"metodo_pagamento": "Bonifico"},
+        },
+        studio_config=studio_config,
+    )
+
+    updated = manager.get(parcella.id)
+    assert status == 200
+    assert result["ok"] is True
+    assert updated is not None
+    assert updated.studio_iban == studio_config["STUDIO_IBAN"]
+    assert updated.dati_personalizzati["payment"]["iban"] == studio_config["STUDIO_IBAN"]
+    assert updated.dati_personalizzati["payment"]["istituto_finanziario"] == "Banca Forense"
+    assert updated.dati_personalizzati["payment"]["bic_swift"] == "BCITITMMXXX"
 
 
 def test_fatturazione_xml_firmato_sdi_e_commercialista_usano_storage_tenant_aware(tmp_path):

@@ -534,6 +534,27 @@
 .iu-scad-remote-source{color:var(--iu-slate-700)!important}
 .iu-scad-remote-check.is-verified{color:#047857!important}
 .iu-scad-remote-check.is-review{color:#b45309!important}
+.iu-scad-source-link{
+  width:max-content;
+  max-width:100%;
+  min-height:28px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:7px;
+  padding:5px 8px;
+  border:1px solid rgba(37,99,235,.2);
+  border-radius:8px;
+  background:rgba(239,246,255,.74);
+  color:var(--iu-blue-700);
+  font-size:11px;
+  font-weight:900;
+  text-decoration:none;
+}
+.iu-scad-source-link span{white-space:nowrap}
+.iu-scad-source-link small{min-width:0;margin:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-600)!important;font-weight:750!important}
+.iu-scad-source-link svg:last-child{flex:0 0 auto;color:#047857}
+.iu-scad-source-link:hover,.iu-scad-source-link:focus-visible{outline:0;border-color:rgba(37,99,235,.42);background:#dbeafe}
 .iu-scad-flags{
   display:flex!important;
   align-items:center;

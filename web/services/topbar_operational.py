@@ -20,7 +20,12 @@ from pct.global_search.service import GlobalSearchService, default_global_search
 from pct.notifiche_legali import released_office_documents_from_pec
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from pct.scadenziario import PrioritaTermine, StatoTermine
-from pct.notifications import NotificationRecord, NotificationServiceError
+from pct.notifications import (
+    NotificationRecord,
+    NotificationServiceError,
+    coalesce_operational_items,
+)
+from pct.notifications.web_push import safe_remote_hearing_url
 from web.services.notifications_runtime import (
     build_notification_service,
     current_tenant_id as _notification_tenant_id,
@@ -235,6 +240,25 @@ def _priority_from_deadline(scadenza: Any, day: date | None = None) -> str:
 
 def _priority_weight(priority: str) -> int:
     return {"urgent": 0, "important": 1, "normal": 2}.get(priority, 2)
+
+
+def _notification_operational_sort_key(
+    item: dict[str, Any],
+    *,
+    now: datetime,
+) -> tuple[int, int, float]:
+    created_at = _parse_iso(item.get("createdAt"))
+    if created_at is None:
+        return (2, _priority_weight(item.get("priority", "")), float("inf"))
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=ROME_TZ)
+    distance = (created_at - now).total_seconds()
+    operational_window = 0 if -(7 * 86400) <= distance <= (14 * 86400) else 1
+    return (
+        operational_window,
+        _priority_weight(item.get("priority", "")),
+        abs(distance),
+    )
 
 
 def _deadline_date(scadenza: Any) -> date | None:
@@ -731,6 +755,7 @@ def _persistent_notification_items(user: Any) -> list[dict[str, Any]]:
 def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
     payload = record.payload_json if isinstance(record.payload_json, dict) else {}
     message = _clean_text(record.body)
+    remote_hearing_url = safe_remote_hearing_url(payload, require_verified=True)
     return {
         "id": record.id,
         "type": record.type,
@@ -742,6 +767,12 @@ def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
         "read": bool(record.read_at),
         "href": _react_href(record.href),
         "actionLabel": payload.get("actionLabel") or None,
+        "secondaryHref": remote_hearing_url or None,
+        "secondaryLabel": (
+            "Collegati all'udienza"
+            if remote_hearing_url
+            else None
+        ),
     }
 
 
@@ -789,15 +820,66 @@ def _portal_acquisition_href_for_release(fascicolo: Any, release: dict[str, Any]
     return f"{base}?{query}#acquisizione-portale" if query else f"{base}#acquisizione-portale"
 
 
-def _notification_items(user: Any) -> list[dict[str, Any]]:
-    now = datetime.now(ROME_TZ)
-    today = now.date()
+def _pec_deadline_notification_key(item: Any) -> str:
+    for value in (
+        getattr(item, "external_uid", ""),
+        getattr(item, "note", ""),
+    ):
+        match = re.search(r"PEC_AUDIT:[^\s]+", str(value or ""), flags=re.IGNORECASE)
+        if not match:
+            continue
+        candidate = match.group(0).rstrip(".,;:)]}")
+        suffix = candidate.split(":", 1)[1] if ":" in candidate else ""
+        if not suffix:
+            continue
+        canonical = f"PEC_AUDIT:{suffix}"
+        return canonical if canonical.lower().endswith(":deadline") else f"{canonical}:deadline"
+    return ""
+
+
+def agenda_scadenziario_notification_items(
+    agenda: Any,
+    scadenziario: Any,
+    *,
+    include_agenda: bool = True,
+    include_scadenziario: bool = True,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    current = now or datetime.now(ROME_TZ)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=ROME_TZ)
+    today = current.date()
     items: list[dict[str, Any]] = []
-    if _has_perm(user, "scadenziario.leggi"):
+    upcoming_appointments: list[Any] = []
+    if include_agenda:
         try:
-            for scadenza in get_scadenziario().tutte(solo_aperte=False):
+            for appointment in agenda.tutti():
+                if is_legacy_pec_agenda_item(appointment):
+                    continue
+                dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(
+                    getattr(appointment, "data_ora", "")
+                )
+                if dt and dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=ROME_TZ)
+                if dt and current <= dt <= current + timedelta(hours=48):
+                    upcoming_appointments.append(appointment)
+        except Exception:
+            current_app.logger.info("Top bar notifiche: agenda non disponibile", exc_info=True)
+    upcoming_appointment_ids = {
+        _clean_text(getattr(appointment, "id", ""), limit=220)
+        for appointment in upcoming_appointments
+        if _clean_text(getattr(appointment, "id", ""), limit=220)
+    }
+    linked_notification_keys: dict[str, str] = {}
+    if include_scadenziario:
+        try:
+            for scadenza in scadenziario.tutte(solo_aperte=False):
                 if is_legacy_pec_deadline(scadenza):
                     continue
+                linked_appointment_id = _clean_text(
+                    getattr(scadenza, "id_appuntamento", ""),
+                    limit=220,
+                )
                 due = _deadline_date(scadenza)
                 status = _deadline_status(scadenza, today)
                 if due is None or status == "completed":
@@ -806,45 +888,104 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
                 if days > 2 and _priority_from_deadline(scadenza, today) != "urgent":
                     continue
                 priority = _priority_from_deadline(scadenza, today)
+                remote_hearing = _remote_hearing_notification_payload(scadenza)
+                deadline_message = (
+                    "Scadenza oggi"
+                    if days == 0
+                    else "Scadenza superata"
+                    if days < 0
+                    else f"Scade tra {days} giorni"
+                )
+                if remote_hearing:
+                    remote_label = _remote_hearing_notification_label(remote_hearing)
+                    if remote_label:
+                        deadline_message = f"{deadline_message} · {remote_label}"
+                pec_key = _pec_deadline_notification_key(scadenza)
+                notification_key = pec_key or f"deadline:{scadenza.id}:{due.isoformat()}"
+                if linked_appointment_id in upcoming_appointment_ids:
+                    linked_notification_keys[linked_appointment_id] = notification_key
                 items.append(
                     _notification(
-                        f"deadline:{scadenza.id}:{due.isoformat()}",
+                        notification_key,
                         "deadline",
                         _clean_text(scadenza.titolo),
-                        "Scadenza oggi" if days == 0 else "Scadenza superata" if days < 0 else f"Scade tra {days} giorni",
+                        deadline_message,
                         due.isoformat(),
                         priority,
                         f"/scadenziario/{scadenza.id}/modifica",
                         "Apri scadenza",
+                        payload=remote_hearing,
+                        source_type="pec_deadline" if pec_key else "deadline",
                     )
                 )
         except Exception:
             current_app.logger.info("Top bar notifiche: scadenze non disponibili", exc_info=True)
-    if _has_perm(user, "agenda.leggi"):
+    if include_agenda:
         try:
-            for appointment in get_agenda().tutti():
-                if is_legacy_pec_agenda_item(appointment):
-                    continue
+            for appointment in upcoming_appointments:
                 dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(getattr(appointment, "data_ora", ""))
                 if dt and dt.tzinfo is None:
                     dt = dt.replace(tzinfo=ROME_TZ)
-                if not dt or not (now <= dt <= now + timedelta(hours=48)):
+                if not dt:
                     continue
                 kind = "hearing" if _enum_value(getattr(appointment, "tipo", "")) == TipoAppuntamento.UDIENZA.value else "task"
+                remote_hearing = _remote_hearing_notification_payload(appointment)
+                appointment_message = dt.strftime("%d/%m/%Y alle %H:%M")
+                if remote_hearing:
+                    remote_label = _remote_hearing_notification_label(remote_hearing)
+                    if remote_label:
+                        appointment_message = f"{appointment_message} · {remote_label}"
+                pec_key = _pec_deadline_notification_key(appointment)
+                notification_key = (
+                    pec_key
+                    or linked_notification_keys.get(
+                        _clean_text(getattr(appointment, "id", ""), limit=220)
+                    )
+                    or f"{kind}:{appointment.id}:{dt.isoformat()}"
+                )
                 items.append(
                     _notification(
-                        f"{kind}:{appointment.id}:{dt.isoformat()}",
+                        notification_key,
                         kind,
                         _clean_text(appointment.titolo),
-                        dt.strftime("%d/%m/%Y alle %H:%M"),
+                        appointment_message,
                         dt.isoformat(),
                         "important" if kind == "hearing" else "normal",
                         f"/agenda/{appointment.id}/modifica",
                         "Apri agenda",
+                        payload=remote_hearing,
+                        source_type="pec_deadline" if pec_key else kind,
                     )
                 )
         except Exception:
             current_app.logger.info("Top bar notifiche: agenda non disponibile", exc_info=True)
+    return coalesce_operational_items(items)
+
+
+def _notification_items(user: Any) -> list[dict[str, Any]]:
+    now = datetime.now(ROME_TZ)
+    today = now.date()
+    can_agenda = _has_perm(user, "agenda.leggi")
+    can_scadenziario = _has_perm(user, "scadenziario.leggi")
+    agenda = None
+    scadenziario = None
+    if can_agenda:
+        try:
+            agenda = get_agenda()
+        except Exception:
+            current_app.logger.info("Top bar notifiche: agenda non disponibile", exc_info=True)
+    if can_scadenziario:
+        try:
+            scadenziario = get_scadenziario()
+        except Exception:
+            current_app.logger.info("Top bar notifiche: scadenze non disponibili", exc_info=True)
+    items = agenda_scadenziario_notification_items(
+        agenda,
+        scadenziario,
+        include_agenda=agenda is not None,
+        include_scadenziario=scadenziario is not None,
+        now=now,
+    )
     if _has_perm(user, "messaggi.leggi"):
         try:
             for email in _email_manager().tutte(cartella=CartellaEmail.INBOX, solo_non_lette=True)[:10]:
@@ -951,7 +1092,7 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
         except Exception:
             current_app.logger.info("Top bar notifiche: fatturazione non disponibile", exc_info=True)
     items = _dedupe_items(items)
-    items.sort(key=lambda item: (_priority_weight(item["priority"]), item.get("createdAt") or ""), reverse=False)
+    items.sort(key=lambda item: _notification_operational_sort_key(item, now=now))
     return items[:40]
 
 
@@ -990,8 +1131,11 @@ def _notification(
     priority: str,
     href: str | None,
     action_label: str | None,
+    *,
+    payload: dict[str, Any] | None = None,
+    source_type: str = "",
 ) -> dict[str, Any]:
-    return {
+    item = {
         "id": item_id,
         "type": item_type,
         "title": title or "Notifica operativa",
@@ -1003,3 +1147,72 @@ def _notification(
         "href": _react_href(href),
         "actionLabel": action_label,
     }
+    if payload:
+        item.update(payload)
+    if source_type:
+        item["sourceType"] = source_type
+    return item
+
+
+def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
+    mode = _clean_text(
+        getattr(item, "remote_hearing_mode", "")
+        or getattr(item, "hearing_mode", ""),
+        limit=40,
+    )
+    source = _clean_text(getattr(item, "remote_hearing_source", ""), limit=500)
+    verified = bool(getattr(item, "remote_hearing_verified", False))
+    detected = bool(
+        getattr(item, "remote_hearing_detected", False)
+        or mode.lower() in {"remoto", "mista", "audiovisiva", "teams"}
+    )
+    raw_url = _clean_text(getattr(item, "remote_hearing_url", ""), limit=1000)
+    candidate_payload = {
+        "remoteHearingDetected": detected,
+        "remoteHearingMode": mode,
+        "remoteHearingUrl": raw_url,
+        "remoteHearingSource": source,
+        "remoteHearingVerified": verified,
+    }
+    verified_url = safe_remote_hearing_url(candidate_payload, require_verified=True)
+    pdf_required = bool(getattr(item, "remote_hearing_pdf_required", False))
+    if not any((detected, mode, verified_url, source, pdf_required)):
+        return {}
+    return {
+        "remoteHearingDetected": bool(detected or verified_url or pdf_required),
+        "remoteHearingMode": mode,
+        "remoteHearingUrl": verified_url,
+        "remoteHearingSource": source,
+        "remoteHearingVerified": bool(verified_url),
+        "remoteHearingTime": _clean_text(
+            getattr(item, "remote_hearing_time", "")
+            or getattr(item, "hearing_time", ""),
+            limit=120,
+        ),
+        "remoteHearingPlatform": _clean_text(
+            getattr(item, "remote_hearing_platform", ""),
+            limit=80,
+        ),
+        "remoteHearingMeetingId": _clean_text(
+            getattr(item, "remote_hearing_meeting_id", ""),
+            limit=160,
+        ),
+        "remoteHearingPasscode": _clean_text(
+            getattr(item, "remote_hearing_passcode", ""),
+            limit=160,
+        ),
+        "remoteHearingAccessInfo": _clean_text(
+            getattr(item, "remote_hearing_access_info", ""),
+            limit=500,
+        ),
+        "remoteHearingPdfRequired": pdf_required,
+    }
+
+
+def _remote_hearing_notification_label(payload: dict[str, Any]) -> str:
+    platform = _clean_text(payload.get("remoteHearingPlatform"), limit=80)
+    if payload.get("remoteHearingUrl"):
+        return f"Collegamento audiovisivo verificato{f' su {platform}' if platform else ''}"
+    if payload.get("remoteHearingPdfRequired"):
+        return "Istruzioni audiovisive da verificare nel documento"
+    return "Udienza audiovisiva da verificare"

@@ -11,6 +11,7 @@ import {
 } from '@/components/iusentra'
 import { SETTINGS_FIELDS, SETTINGS_SECTIONS } from './constants'
 import { BackupSettingsPanel } from './components/BackupSettingsPanel'
+import { BillingSettingsPanel } from './components/BillingSettingsPanel'
 import { CalendarSettingsPanel } from './components/CalendarSettingsPanel'
 import { SettingsActions } from './components/SettingsActions'
 import { NotificationsSettingsPanel } from './components/NotificationsSettingsPanel'
@@ -99,6 +100,14 @@ export function ImpostazioniPage() {
                       {section.id === 'backup' ? (
                         <BackupSettingsPanel
                           data={settings.data}
+                          onReload={settings.load}
+                        />
+                      ) : section.id === 'fatturazione' ? (
+                        <BillingSettingsPanel
+                          data={settings.data}
+                          canUpdate={canUpdate}
+                          saving={settings.saving === section.id}
+                          onSave={settings.save}
                           onReload={settings.load}
                         />
                       ) : section.id === 'calendari' ? (

@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from pct.document_intelligence.extraction import ExtractionResult
+from pct.document_intelligence.extraction import (
+    ExtractionResult,
+    _preprocess_ocr_image,
+    _read_tesseract_text_best,
+)
 from pct.document_intelligence.models import DocumentAIPageText
 from pct.document_intelligence.repository import DocumentAIRepository
 from pct.document_intelligence.security import DocumentAINotFound, DocumentAIPermissionDenied, DocumentAIValidationError
@@ -50,6 +54,53 @@ def _service(tmp_path: Path) -> DocumentAIService:
 
 def _context(user: FakeUser | None = None):
     return {"user": user or FakeUser(), "user_id": "user-1"}
+
+
+def test_preprocess_ocr_ritaglia_foglio_centrale_con_margini_larghi():
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (1400, 900), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((380, 0, 1020, 899), fill=(222, 216, 198))
+    draw.text((440, 120), "TRIBUNALE UDIENZA 6 OTTOBRE 2026", fill="black")
+
+    prepared = _preprocess_ocr_image(image)
+
+    assert prepared.mode == "L"
+    assert prepared.width < image.width * 0.7
+    assert prepared.height >= image.height * 0.95
+
+
+def test_ocr_riprova_con_soglia_calcolata_solo_se_la_lettura_normale_e_vuota():
+    from PIL import Image
+
+    image = Image.new("L", (240, 120), 205)
+
+    class FakeOutput:
+        DICT = "dict"
+
+    class FakeTesseract:
+        Output = FakeOutput
+
+        @staticmethod
+        def image_to_data(candidate, **_kwargs):
+            if candidate.mode != "1":
+                return {"text": [""], "conf": ["-1"]}
+            return {
+                "text": ["TRIBUNALE", "DI", "VICENZA", "CONTRATTO", "2024"],
+                "conf": ["91", "88", "93", "90", "92"],
+            }
+
+    text, warnings = _read_tesseract_text_best(
+        FakeTesseract(),
+        image,
+        lang="ita",
+        base_config="",
+        page_number=1,
+    )
+
+    assert text == "TRIBUNALE DI VICENZA CONTRATTO 2024"
+    assert warnings == []
 
 
 def test_document_ai_service_upload_successo_crea_record_versione_testo_audit(tmp_path: Path, monkeypatch):
@@ -129,6 +180,41 @@ def test_document_ai_service_ricerca_registra_audit(tmp_path: Path, monkeypatch)
 
     assert results
     assert any(event["event_type"] == "document_ai.search" for event in service.repository._data["audit_events"])
+
+
+def test_document_ai_service_non_duplica_audit_lettura_per_scheduler(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    monkeypatch.setattr(
+        "pct.document_intelligence.service.extract_text_from_document",
+        lambda *_args: ExtractionResult(
+            ok=True,
+            text="Testo per il presidio automatico.",
+            pages=[],
+            extraction_engine="test-engine",
+        ),
+    )
+    record = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context()).document
+
+    service.get_fascicolo_document_text(
+        "tenant-a",
+        "fas-1",
+        record.id,
+        {"user_id": "scheduler", "skip_permission_check": True},
+    )
+    scheduler_reads = [
+        event
+        for event in service.repository._data["audit_events"]
+        if event["event_type"] == "document_ai.read" and event["user_id"] == "scheduler"
+    ]
+    assert scheduler_reads == []
+
+    service.get_fascicolo_document_text("tenant-a", "fas-1", record.id, _context())
+    user_reads = [
+        event
+        for event in service.repository._data["audit_events"]
+        if event["event_type"] == "document_ai.read" and event["user_id"] == "user-1"
+    ]
+    assert len(user_reads) == 1
 
 
 def test_document_ai_service_query_vuota_fallisce(tmp_path: Path):

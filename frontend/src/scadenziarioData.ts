@@ -72,12 +72,19 @@ export type ScadenziarioRow = {
   sourceEventLabel: string
   sourceEventType: string
   sourceEventTypeLabel: string
+  sourceHref: string
+  sourceLabel: string
+  sourceKind: string
+  sourceVerified: boolean
   officeLabel: string
   officeModeLabel: string
   officePatronLabel: string
   officeVerifiedAt: string
   octoberObservanceBlocks: boolean
   traceCount: number
+  hearingMode: string
+  hearingModeSource: string
+  hearingTime: string
   remoteHearingDetected: boolean
   remoteHearingMode: string
   remoteHearingUrl: string
@@ -85,6 +92,9 @@ export type ScadenziarioRow = {
   remoteHearingVerified: boolean
   remoteHearingIntegrity: string
   remoteHearingTime: string
+  remoteHearingPlatform: string
+  remoteHearingMeetingId: string
+  remoteHearingPasscode: string
   remoteHearingAccessInfo: string
   remoteHearingPdfRequired: boolean
   href: string
@@ -230,6 +240,8 @@ export type ScadenziarioQuery = {
   operative?: boolean
   guidaPratica?: string
   fascicoloId?: string
+  focusId?: string
+  compact?: boolean
 }
 
 export type PdfDeadlineCandidate = {
@@ -487,12 +499,19 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     sourceEventLabel: asString(item.sourceEventLabel),
     sourceEventType: asString(item.sourceEventType),
     sourceEventTypeLabel: asString(item.sourceEventTypeLabel),
+    sourceHref: asString(item.sourceHref),
+    sourceLabel: asString(item.sourceLabel),
+    sourceKind: asString(item.sourceKind),
+    sourceVerified: asBoolean(item.sourceVerified),
     officeLabel: asString(item.officeLabel),
     officeModeLabel: asString(item.officeModeLabel),
     officePatronLabel: asString(item.officePatronLabel),
     officeVerifiedAt: asString(item.officeVerifiedAt),
     octoberObservanceBlocks: asBoolean(item.octoberObservanceBlocks),
     traceCount: asNumber(item.traceCount),
+    hearingMode: asString(item.hearingMode),
+    hearingModeSource: asString(item.hearingModeSource),
+    hearingTime: asString(item.hearingTime),
     remoteHearingDetected: asBoolean(item.remoteHearingDetected),
     remoteHearingMode: asString(item.remoteHearingMode),
     remoteHearingUrl: asString(item.remoteHearingUrl),
@@ -500,6 +519,9 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     remoteHearingVerified: asBoolean(item.remoteHearingVerified),
     remoteHearingIntegrity: asString(item.remoteHearingIntegrity),
     remoteHearingTime: asString(item.remoteHearingTime),
+    remoteHearingPlatform: asString(item.remoteHearingPlatform),
+    remoteHearingMeetingId: asString(item.remoteHearingMeetingId),
+    remoteHearingPasscode: asString(item.remoteHearingPasscode),
     remoteHearingAccessInfo: asString(item.remoteHearingAccessInfo),
     remoteHearingPdfRequired: asBoolean(item.remoteHearingPdfRequired),
     href: asString(item.href, `/scadenziario/${asString(item.id, '')}`),
@@ -714,6 +736,8 @@ function queryParams(query: ScadenziarioQuery): string {
   if (query.operative) params.set('operative', '1')
   if (query.guidaPratica) params.set('guida_pratica', query.guidaPratica)
   if (query.fascicoloId) params.set('id_fascicolo', query.fascicoloId)
+  if (query.focusId) params.set('focus_id', query.focusId)
+  if (query.compact) params.set('compatto', '1')
   return params.toString()
 }
 

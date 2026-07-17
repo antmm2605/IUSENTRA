@@ -364,6 +364,18 @@ class AttivitaProcessuale:
     id_deposito_pct: str = ""       # collegamento deposito PCT
     id_documento: str = ""          # documento risultante
     avvocato: str = ""
+    hearing_mode: str = ""
+    hearing_time: str = ""
+    remote_hearing_detected: bool = False
+    remote_hearing_mode: str = ""
+    remote_hearing_url: str = ""
+    remote_hearing_source: str = ""
+    remote_hearing_verified: bool = False
+    remote_hearing_platform: str = ""
+    remote_hearing_meeting_id: str = ""
+    remote_hearing_passcode: str = ""
+    remote_hearing_access_info: str = ""
+    remote_hearing_pdf_required: bool = False
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict:
@@ -958,9 +970,7 @@ class GestioneFascicoli:
 
     def _carica(self) -> None:
         if self._studio_db is not None:
-            rows = self._studio_db.conn.execute(
-                "SELECT * FROM fascicoli"
-            ).fetchall()
+            rows = self._studio_db.fetchall_readonly("SELECT * FROM fascicoli")
             self._fascicoli = {}
             if not rows:
                 for payload in self._payloads_da_json_bootstrap():
@@ -1065,13 +1075,47 @@ class GestioneFascicoli:
         rows = list(fascicoli)
         if not rows:
             return
-        conn = self._studio_db.conn
-        conn.execute("PRAGMA busy_timeout=5000")
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            for f in rows:
-                d = f.to_dict()
-                values = (
+
+        def _upsert(conn, f):
+            d = f.to_dict()
+            conn.execute(
+                """
+                INSERT INTO fascicoli
+                (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
+                 tribunale, sezione, giudice, numero_rg, anno_rg,
+                 controparte, avvocato_referente, avvocato_dominus,
+                 data_apertura, data_chiusura, oggetto, note, creato_il,
+                 attivita_json, documenti_json, scadenze_json,
+                 profilo_deposito_json, dati_json)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(id) DO UPDATE SET
+                    numero=excluded.numero,
+                    titolo=excluded.titolo,
+                    tipo=excluded.tipo,
+                    stato=excluded.stato,
+                    id_cliente=excluded.id_cliente,
+                    nome_cliente=excluded.nome_cliente,
+                    tribunale=excluded.tribunale,
+                    sezione=excluded.sezione,
+                    giudice=excluded.giudice,
+                    numero_rg=excluded.numero_rg,
+                    anno_rg=excluded.anno_rg,
+                    controparte=excluded.controparte,
+                    avvocato_referente=excluded.avvocato_referente,
+                    avvocato_dominus=excluded.avvocato_dominus,
+                    data_apertura=excluded.data_apertura,
+                    data_chiusura=excluded.data_chiusura,
+                    oggetto=excluded.oggetto,
+                    note=excluded.note,
+                    creato_il=excluded.creato_il,
+                    attivita_json=excluded.attivita_json,
+                    documenti_json=excluded.documenti_json,
+                    scadenze_json=excluded.scadenze_json,
+                    profilo_deposito_json=excluded.profilo_deposito_json,
+                    dati_json=excluded.dati_json
+                """,
+                (
+                    f.id,
                     f.numero,
                     f.titolo,
                     f.tipo.value,
@@ -1096,40 +1140,10 @@ class GestioneFascicoli:
                     _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
                     _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
                     _json.dumps(d, ensure_ascii=False),
-                    f.id,
-                )
-                cur = conn.execute(
-                    """
-                    UPDATE fascicoli
-                    SET numero=?, titolo=?, tipo=?, stato=?, id_cliente=?, nome_cliente=?,
-                        tribunale=?, sezione=?, giudice=?, numero_rg=?, anno_rg=?,
-                        controparte=?, avvocato_referente=?, avvocato_dominus=?,
-                        data_apertura=?, data_chiusura=?, oggetto=?, note=?, creato_il=?,
-                        attivita_json=?, documenti_json=?, scadenze_json=?,
-                        profilo_deposito_json=?, dati_json=?
-                    WHERE id=?
-                    """,
-                    values,
-                )
-                if cur.rowcount:
-                    continue
-                conn.execute(
-                    """
-                    INSERT INTO fascicoli
-                    (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
-                     tribunale, sezione, giudice, numero_rg, anno_rg,
-                     controparte, avvocato_referente, avvocato_dominus,
-                     data_apertura, data_chiusura, oggetto, note, creato_il,
-                     attivita_json, documenti_json, scadenze_json,
-                     profilo_deposito_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (f.id, *values[:-1]),
-                )
-            conn.execute("COMMIT")
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise
+                ),
+            )
+
+        self._studio_db.salva_tabella("fascicoli", rows, _upsert, delete_all=False)
         if rigenera_mirror:
             self._rigenera_mirror_fascicoli_json()
 
@@ -1715,10 +1729,24 @@ class GestioneFascicoli:
         document_id: str = "",
     ) -> None:
         payments = dict(fascicolo.pagamenti or {})
+        previous = payments.get("_presidio_documentale")
+        previous = dict(previous) if isinstance(previous, dict) else {}
+        document_ids = [
+            str(value or "").strip()
+            for value in list(previous.get("document_ids") or [])
+            if str(value or "").strip()
+        ]
+        previous_document_id = str(previous.get("document_id") or "").strip()
+        if previous.get("status") == "stale" and previous_document_id and previous_document_id not in document_ids:
+            document_ids.append(previous_document_id)
+        current_document_id = str(document_id or "").strip()
+        if current_document_id and current_document_id not in document_ids:
+            document_ids.append(current_document_id)
         payments["_presidio_documentale"] = {
             "status": "stale",
             "reason": reason,
-            "document_id": str(document_id or "").strip(),
+            "document_id": current_document_id,
+            "document_ids": document_ids,
             "updated_at": datetime.now().isoformat(),
         }
         fascicolo.pagamenti = payments
@@ -1984,6 +2012,8 @@ class GestioneFascicoli:
         nuovo_stato: StatoFascicolo,
         note: str = "",
         avvocato: str = "",
+        *,
+        persist: bool = True,
     ) -> Fascicolo:
         """
         Cambia lo stato del fascicolo e registra l'avanzamento.
@@ -2007,7 +2037,8 @@ class GestioneFascicoli:
         )
         f.avanzamento.append(av)
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        if persist:
+            self._salva_fascicoli_parziale([f])
         return f
 
     def registra_onboarding(
@@ -2253,6 +2284,7 @@ class GestioneFascicoli:
         note: str = "",
         preserve_version_snapshot: bool = True,
         reuse_existing_path: bool = False,
+        hash_contenuto_sha256: str = "",
     ) -> "Documento":
         """
         Sostituisce il file di un documento esistente mantenendo lo storico
@@ -2280,7 +2312,10 @@ class GestioneFascicoli:
         else:
             nome_safe = Path(nome_file).name
             dest = fasc_dir / nome_safe
-            if dest.exists() and str(dest.relative_to(self.documents_dir)) != doc.percorso:
+            if dest.exists() and (
+                str(dest.relative_to(self.documents_dir)) != doc.percorso
+                or preserve_version_snapshot
+            ):
                 stem, suffix = Path(nome_safe).stem, Path(nome_safe).suffix
                 nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
                 dest = fasc_dir / nome_safe
@@ -2291,6 +2326,8 @@ class GestioneFascicoli:
         doc.nome = nome_file
         doc.dimensione_bytes = len(contenuto)
         doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()
+        content_hash = str(hash_contenuto_sha256 or "").strip().lower()
+        doc.hash_contenuto_sha256 = content_hash if re.fullmatch(r"[0-9a-f]{64}", content_hash) else doc.hash_sha256
         doc.caricato_da = caricato_da or doc.caricato_da
         if note:
             doc.note = note
@@ -2696,6 +2733,8 @@ class GestioneFascicoli:
         self,
         id_fasc: str,
         updates: Iterable[dict[str, Any]],
+        *,
+        salva: bool = True,
     ) -> list[Documento]:
         """Aggiorna più metadati deposito e salva il fascicolo una sola volta."""
 
@@ -2729,8 +2768,25 @@ class GestioneFascicoli:
             updated.append(doc)
         if touched:
             f.modificato_il = datetime.now().isoformat()
-            self._salva()
+            if salva:
+                self._salva_fascicoli_parziale([f])
         return updated
+
+    def aggiorna_preparazione_deposito(
+        self,
+        id_fasc: str,
+        *,
+        document_updates: Iterable[dict[str, Any]],
+        profilo_deposito: dict[str, Any],
+    ) -> Fascicolo:
+        """Salva classificazione documenti e dati busta in un'unica transazione."""
+
+        f = self._get_o_errore(id_fasc)
+        self.aggiorna_documenti_deposito(id_fasc, document_updates, salva=False)
+        f.profilo_deposito = dict(profilo_deposito or {})
+        f.modificato_il = datetime.now().isoformat()
+        self._salva_fascicoli_parziale([f])
+        return f
 
     def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
         f = self._get_o_errore(id_fasc)
@@ -3271,12 +3327,46 @@ class GestioneFascicoli:
 
     # ---------------------------------------------------------------- Attività
 
+    def riallinea_integrita_documento_fisico(self, id_fasc: str, id_doc: str) -> dict[str, Any]:
+        """Riallinea hash e dimensione al file conservato senza alterarne i byte."""
+
+        f = self._get_o_errore(id_fasc)
+        doc = next((item for item in f.documenti if item.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato.")
+        path = self.percorso_documento_lettura(id_fasc, id_doc)
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        physical_bytes = path.read_bytes()
+        physical_hash = hashlib.sha256(physical_bytes).hexdigest()
+        physical_size = len(physical_bytes)
+        previous_hash = str(doc.hash_sha256 or "").strip().lower()
+        previous_size = int(doc.dimensione_bytes or 0)
+        changed = previous_hash != physical_hash or previous_size != physical_size
+        if changed:
+            if not str(doc.hash_contenuto_sha256 or "").strip() and re.fullmatch(r"[0-9a-f]{64}", previous_hash):
+                doc.hash_contenuto_sha256 = previous_hash
+            doc.hash_sha256 = physical_hash
+            doc.dimensione_bytes = physical_size
+            f.modificato_il = datetime.now().isoformat()
+            self._salva_fascicoli_parziale([f])
+        return {
+            "changed": changed,
+            "previous_hash_sha256": previous_hash,
+            "physical_hash_sha256": physical_hash,
+            "previous_size_bytes": previous_size,
+            "physical_size_bytes": physical_size,
+            "content_hash_sha256": str(doc.hash_contenuto_sha256 or "").strip().lower(),
+        }
+
     def aggiungi_attivita(
         self,
         id_fasc: str,
         tipo: TipoAttivita,
         data: str,
         titolo: str,
+        *,
+        persist: bool = True,
         **kwargs,
     ) -> AttivitaProcessuale:
         """Aggiunge un'attività processuale al fascicolo."""
@@ -3299,18 +3389,25 @@ class GestioneFascicoli:
 
         # passa automaticamente IN_CORSO se ancora APERTO
         if f.stato == StatoFascicolo.APERTO:
-            self.cambia_stato(id_fasc, StatoFascicolo.IN_CORSO,
-                              note="Avviata prima attività processuale")
+            self.cambia_stato(
+                id_fasc,
+                StatoFascicolo.IN_CORSO,
+                note="Avviata prima attività processuale",
+                persist=False,
+            )
             f = self._get_o_errore(id_fasc)
 
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        if persist:
+            self._salva_fascicoli_parziale([f])
         return att
 
     def aggiorna_attivita(
         self,
         id_fasc: str,
         id_att: str,
+        *,
+        persist: bool = True,
         **campi,
     ) -> AttivitaProcessuale:
         f = self._get_o_errore(id_fasc)
@@ -3321,7 +3418,8 @@ class GestioneFascicoli:
             if hasattr(att, k):
                 setattr(att, k, v)
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        if persist:
+            self._salva_fascicoli_parziale([f])
         return att
 
     def rimuovi_attivita(self, id_fasc: str, id_att: str) -> None:

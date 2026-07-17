@@ -176,6 +176,22 @@
 .iu-fas-economic-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0;align-items:stretch}
 .iu-fas-economic-edit-grid .iu-fas-economic-cell{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:8px}
 .iu-fas-economic-edit-grid .iu-fas-economic-cell label:nth-of-type(3){grid-column:1/3}
+.iu-fas-economic-editor__actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:10px;border-top:1px solid var(--iu-border)}
+.iu-fas-economic-editor__actions>span{min-width:0;color:var(--iu-slate-500);font-size:11.5px;font-weight:800;text-align:right}
+.iu-fas-economic-generate{min-width:154px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 12px;border:1px solid var(--iu-blue-700);border-radius:8px;background:var(--iu-blue-700);color:#fff;font-size:12px;font-weight:900;cursor:pointer}
+.iu-fas-economic-generate:hover{border-color:var(--iu-navy-900);background:var(--iu-navy-900)}
+.iu-fas-economic-generate:focus-visible{outline:3px solid rgba(37,99,235,.26);outline-offset:2px}
+.iu-fas-economic-generate:disabled{border-color:#cbd5e1;background:#e2e8f0;color:#64748b;cursor:wait}
+.iu-fas-economic-generate .iu-spin{animation:iu-fas-spin .8s linear infinite}
+.iu-fas-economic-editor__message{display:flex;align-items:flex-start;gap:7px;padding:9px 10px;border:1px solid;border-radius:8px;font-size:12px;font-weight:800;line-height:1.4}
+.iu-fas-economic-editor__message svg{flex:0 0 auto;margin-top:1px}
+.iu-fas-economic-editor__message--success{border-color:#a7f3d0;background:#ecfdf5;color:#166534}
+.iu-fas-economic-editor__message--error{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+.iu-fas-mobile-economic-editor{margin-top:8px;border-top:1px solid var(--iu-border)}
+.iu-fas-mobile-economic-editor>summary{min-height:42px;display:flex;align-items:center;gap:7px;list-style:none;color:var(--iu-blue-700);font-size:12px;font-weight:900;cursor:pointer}
+.iu-fas-mobile-economic-editor>summary::-webkit-details-marker{display:none}
+.iu-fas-mobile-economic-editor>summary:focus-visible{outline:3px solid rgba(37,99,235,.22);outline-offset:2px}
+.iu-fas-mobile-economic-editor>div{display:grid;gap:10px;padding:0 0 8px}
 /* Griglia interna flessibile: i tre campi (Stato/Importo/Data) usano minmax(0,..fr)
    cosi' si adattano alla larghezza del <td> senza mai sbordare; il bottone Salva
    resta a larghezza fissa. min-width:0 sui figli e' garantito da .iu-fas-economic-cell label. */
@@ -281,6 +297,8 @@
   .iu-fas-mobile-card footer{justify-content:flex-start;flex-wrap:wrap;color:var(--iu-slate-600);font-size:12px;font-weight:850}
   .iu-fas-mobile-card footer>span{display:inline-flex;align-items:center;gap:5px}
   .iu-fas-mobile-card .iu-fas-actions{margin-left:auto}
+  .iu-fas-mobile-economic-editor .iu-fas-economic-edit-grid{grid-template-columns:1fr}
+  .iu-fas-mobile-economic-editor .iu-fas-economic-evidence{margin-top:0}
 }
 
 @media(max-width:760px){
@@ -303,6 +321,9 @@
   .iu-fas-deadline-alert>svg{width:20px;height:20px}
   .iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}
   .iu-fas-deadline-alert a{width:100%;min-height:34px;justify-content:space-between;padding:7px 8px}
+  .iu-fas-economic-editor__actions{align-items:stretch;flex-direction:column}
+  .iu-fas-economic-editor__actions>span{text-align:left}
+  .iu-fas-economic-generate{width:100%;min-height:42px}
   .iu-fas-stat,
   .iusentra-preset-active .iu-fascicoli-page .iu-fas-stat,
   .iusentra-route-preset--active .iu-fascicoli-page .iu-fas-stat{flex:0 0 148px;min-height:66px;grid-template-columns:30px minmax(0,1fr);padding:8px;border-radius:12px;scroll-snap-align:start;gap:1px 7px}
@@ -1280,6 +1301,10 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-activity-main p{margin-top:6px;max-width:78ch}
 .iu-fas-activity-main .iu-fas-inline-link{color:var(--iu-blue-700);font-weight:900;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 .iu-fas-activity-main .iu-fas-inline-link:hover,.iu-fas-activity-main .iu-fas-inline-link:focus-visible{color:var(--iu-blue-900);outline:2px solid rgba(37,99,235,.25);outline-offset:2px;border-radius:4px}
+.iu-fas-activity-remote{display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px;margin-top:8px;padding:8px 9px;border:1px solid rgba(37,99,235,.18);border-radius:9px;background:#eff6ff}
+.iu-fas-activity-remote small{color:var(--iu-slate-700);font-size:11px;font-weight:780;line-height:1.35}
+.iu-fas-activity-remote a{min-height:30px;display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding:4px 8px;border:1px solid rgba(37,99,235,.24);border-radius:8px;background:#fff;color:var(--iu-blue-700);font-size:11px;font-weight:950;text-decoration:none}
+.iu-fas-activity-remote a:hover,.iu-fas-activity-remote a:focus-visible{outline:0;border-color:rgba(37,99,235,.44);background:#dbeafe}
 .iu-fas-activity-actions{align-self:start;justify-content:flex-end}
 .iu-fas-mini-form--activity{gap:6px}
 .iu-fas-mini-form--activity select{width:116px}

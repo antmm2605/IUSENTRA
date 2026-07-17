@@ -12,11 +12,13 @@ from pct.email_client import GestioneEmailRicevute
 from pct.pec_control_tower import PecControlTowerRepository
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset, parse_pec_message
 from web.services.pec_pipeline_runtime import (
+    build_pec_deadline_notification,
     email_rilevante_per_presidio_pec,
     local_email_sort_key,
     read_or_reconstruct_local_mime,
     rebuild_operational_matrix_for_paths,
     run_workers_for_paths,
+    should_send_pec_deadline_web_push,
 )
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
@@ -439,8 +441,15 @@ def _pec_deadline_summary_message(
 def _notify_pec_deadline(message_id: str, result: dict[str, Any]) -> dict[str, Any]:
     if not result.get("ok"):
         return result
-    deadline_id = str(result.get("deadline_id") or "").strip()
-    if not deadline_id:
+    deadline_results = (
+        [item for item in list(result.get("hearing_results") or []) if isinstance(item, dict)]
+        if isinstance(result.get("hearing_results"), list)
+        else []
+    ) or [result]
+    deadline_results = [
+        item for item in deadline_results if item.get("ok") and str(item.get("deadline_id") or "").strip()
+    ]
+    if not deadline_results:
         return result
     try:
         from web.services.notifications_runtime import (
@@ -449,37 +458,45 @@ def _notify_pec_deadline(message_id: str, result: dict[str, Any]) -> dict[str, A
             current_user_id,
         )
 
-        agenda = result.get("agenda") if isinstance(result.get("agenda"), dict) else {}
-        agenda_id = str(agenda.get("agenda_id") or "")
-        due_date = str(result.get("due_date") or "")
-        source_id = str(message_id or deadline_id)
-        agenda_text = " e all'agenda" if agenda_id else ""
-        due_text = f" per il {due_date}" if due_date else ""
         service = build_notification_service()
-        _record, created, summary = service.create_notification(
-            tenant_id=current_tenant_id(),
-            user_id=current_user_id() or _actor(),
-            type="pec_deadline",
-            priority="important",
-            title="Scadenza PEC registrata",
-            body=f"Presidio PEC collegato allo scadenziario{agenda_text}{due_text}.",
-            href="/scadenziario?vista=pec",
-            source_type="pec_deadline",
-            source_id=source_id,
-            dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
-            payload_json={
-                "deadlineId": deadline_id,
-                "agendaId": agenda_id,
-                "dueDate": due_date,
-                "alreadyExists": bool(result.get("already_exists")),
-            },
-            send_push=True,
-        )
+        notification_results: list[dict[str, Any]] = []
+        for deadline in deadline_results:
+            source_id = str(deadline.get("scheduled_message_id") or message_id or deadline.get("deadline_id"))
+            notification = build_pec_deadline_notification(
+                deadline,
+                source_id=source_id,
+                automatic=False,
+            )
+            _record, created, summary = service.create_notification(
+                tenant_id=current_tenant_id(),
+                user_id=current_user_id() or _actor(),
+                type="pec_deadline",
+                priority="important",
+                title=notification["title"],
+                body=notification["body"],
+                href=notification["href"],
+                source_type="pec_deadline",
+                source_id=source_id,
+                dedupe_key=f"PEC_AUDIT:{source_id}:deadline",
+                payload_json=notification["payload_json"],
+                send_push=should_send_pec_deadline_web_push(notification),
+                redispatch_on_remote_hearing_enrichment=True,
+            )
+            notification_results.append(
+                {
+                    "sourceId": source_id,
+                    "created": created,
+                    "pushConfigured": summary.configured,
+                    "pushAttempted": summary.attempted,
+                    "pushSent": summary.sent,
+                }
+            )
         result["notification"] = {
-            "created": created,
-            "pushConfigured": summary.configured,
-            "pushAttempted": summary.attempted,
-            "pushSent": summary.sent,
+            "created": any(item["created"] for item in notification_results),
+            "pushConfigured": any(item["pushConfigured"] for item in notification_results),
+            "pushAttempted": sum(int(item["pushAttempted"] or 0) for item in notification_results),
+            "pushSent": sum(int(item["pushSent"] or 0) for item in notification_results),
+            "items": notification_results,
         }
     except Exception as exc:
         result["notification"] = {"created": False, "error": str(exc)[:180]}
@@ -1143,6 +1160,24 @@ def pec_workers_run():
             limit=int(request.args.get("limit", "200") or 200),
         )
         return _json_success({"ok": True, "report": report})
+    except TenantDataPathError:
+        return _json_error(403)
+
+
+@pec_pipeline_api.post("/messages/<message_id>/riesegui-controllo")
+@_richiedi_auth
+def pec_refresh_message_analysis(message_id: str):
+    try:
+        result = _repo().refresh_message_analysis(message_id, actor=_actor())
+        if result.get("ok"):
+            result["message"] = "Controllo PEC aggiornato sul messaggio e sugli allegati originali."
+            result["messaggio"] = result["message"]
+            return _json_success(result)
+        result["message"] = "Controllo PEC non aggiornato: verifica il messaggio originale e riprova."
+        result["messaggio"] = result["message"]
+        return _json_success(result, 409)
+    except KeyError:
+        return _json_error(404)
     except TenantDataPathError:
         return _json_error(403)
 

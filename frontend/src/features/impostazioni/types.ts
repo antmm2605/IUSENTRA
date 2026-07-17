@@ -1,5 +1,6 @@
 export type SettingsSection =
   | 'studio'
+  | 'fatturazione'
   | 'pec'
   | 'firma'
   | 'smtp'
@@ -65,6 +66,12 @@ export type SettingsPayload = {
     linux_filename: string
   }
   studio: Record<string, string | number | boolean>
+  fatturazione: Record<string, string | number | boolean>
+  fatturazione_stats: {
+    totali: number
+    aggiornabili: number
+    escluse: number
+  }
   pec: Record<string, string | number | boolean | SecretState>
   firma: Record<string, string | number | boolean | SecretState>
   smtp: Record<string, string | number | boolean | SecretState>
@@ -94,11 +101,23 @@ export type SettingsField = {
   accept?: string
   min?: number
   max?: number
+  enabledWhen?: { field: string; equals: string | number | boolean }
 }
 
 export type TestResult = {
   ok: boolean
   message: string
+}
+
+export type BillingDefaultsApplyResult = {
+  ok: boolean
+  message: string
+  errors?: Record<string, string>
+  result?: {
+    aggiornate: number
+    escluse: number
+    errori: number
+  }
 }
 
 export type AiRuntimePayload = {

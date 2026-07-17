@@ -1159,6 +1159,25 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   color:inherit;
   text-decoration:none;
 }
+.iu-notification__content{
+  display:grid;
+  min-width:0;
+  gap:5px;
+}
+.iu-notification__secondary{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  width:max-content;
+  max-width:100%;
+  color:var(--iu-blue-700)!important;
+  font-size:11px;
+  font-weight:850;
+}
+.iu-notification__secondary:hover,
+.iu-notification__secondary:focus-visible{
+  text-decoration:underline;
+}
 .iu-notification.is-read{
   opacity:.62;
 }

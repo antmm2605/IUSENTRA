@@ -75,10 +75,14 @@ def build_telematico_control_tower(
     limit: int = 24,
 ) -> dict[str, Any]:
     repo = get_telematico()
-    stats = repo.case_stats()
     fascicoli_index = {fasc.id: fasc for fasc in get_fascicoli().tutti()}
-    recent_cases = [_decorate_case(row, fascicoli_index) for row in repo.list_cases(limit=max(int(limit or 24), 24))]
-    recent_events = list(repo.list_recent_events(limit=12))
+    practice_ids = {str(practice_id) for practice_id in fascicoli_index if str(practice_id)}
+    stats = repo.case_stats(practice_ids=practice_ids)
+    recent_cases = [
+        _decorate_case(row, fascicoli_index)
+        for row in repo.list_cases(practice_ids=practice_ids, limit=max(int(limit or 24), 24))
+    ]
+    recent_events = list(repo.list_recent_events(practice_ids=practice_ids, limit=12))
 
     pending_outcomes = [row for row in recent_cases if str(row.get("internal_status") or "") in PENDING_STATUSES][:8]
     incomplete_imports = [

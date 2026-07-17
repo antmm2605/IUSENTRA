@@ -4769,3 +4769,127 @@ Durante la prova reale su `https://app.iusentra.it/fascicoli?vista=economica` il
 Regola corretta: gli asset ES module Vite nella shell React si caricano con URL hashato puro (`{{ js_file }}`), mentre gli script classici non hashati restano versionati con `?v={{ app_version }}`. Guardrail aggiornati: `tests/test_react_shell.py::test_react_shell_mobile_sblocca_scroll_e_compatta_card` e `frontend/scripts/check-react-contracts.mjs`.
 
 Prova locale eseguita su Docker reale `127.0.0.1:8080` dopo rebuild `--no-cache`: `/api/pronto` risponde `2.253.194`, `iusentra-app` è healthy, la pagina `/fascicoli?vista=economica` monta `#root` React e l'entry osservata è `/static/react/assets/index-Dpk0SLzI.js` senza query `?v=`.
+
+## Presidio documentale incrementale persistente - 12/07/2026
+
+Problema reale rilevato durante il controllo del deposito e dei processi automatici: il worker documentale conservava l'esito per documento, ma a ogni ciclo ricostruiva comunque l'inventario dei fascicoli e interrogava testi già estratti per stabilire la priorità. Nel tenant di produzione principale erano presenti `2.641.950` eventi storici `document_ai.read` attribuiti al vecchio attore `scheduler`; continuare con la stessa strategia avrebbe prodotto lavoro ripetuto, crescita del database e WAL e tempi non coerenti con un presidio professionale.
+
+Regola applicata:
+
+- un documento viene acquisito e analizzato una volta; testo ed esiti restano nelle tabelle SQL Document AI;
+- il completamento dell'inventario viene salvato nell'audit SQL append-only `pec_audit_log` con stato `complete`, versione parser, numero documenti e impronta SHA-256 del fascicolo;
+- l'impronta usa solo metadati persistiti: identificativo, nome, tipo, percorso, dimensione, hash contenuto, date documentali e versioni precedenti; non apre i file;
+- se l'impronta è invariata, il job salta il fascicolo prima della raccolta sorgenti e prima della query ai testi;
+- se arriva o cambia un documento, cambia l'impronta del fascicolo, ma gli identificativi documento+hash già marcati restano esclusi: viene elaborato soltanto il documento nuovo o modificato;
+- un lotto parziale, un lock SQLite o un errore transitorio non vengono registrati falsamente come lettura completa;
+- un fascicolo con scadenza futura già presidiata viene salvato con stato `deferred`, impronta corrente e `resume_after`: finché la data non scade e i documenti non cambiano, il job lo salta senza aprire i file; dopo la data o una modifica torna automaticamente nel perimetro di controllo;
+- la priorità Lex interroga soltanto i fascicoli variati e collega testo e documento per tenant, fascicolo, documento e versione corrente, eliminando il precedente collegamento SQL troppo ampio;
+- le aperture eseguite da persone continuano a produrre audit `document_ai.read`; soltanto gli attori automatici del worker non aggiungono milioni di eventi di lettura ridondanti.
+
+Correzioni collegate emerse nei gate:
+
+- la ricostruzione della matrice PEC ora genera un identificativo dell'evento legale deterministico anche rispetto alla versione analizzata, evitando il conflitto `UNIQUE` tra due versioni della stessa PEC e conservando entrambe;
+- il test calendario all-day usa una data futura relativa, così non diventa falsamente rosso con il passare del tempo;
+- la preparazione deposito salva classificazione documenti e profilo in un'unica transazione sul solo fascicolo interessato, sia con SQLite sia con PostgreSQL;
+- prima di qualsiasi scrittura, prova senza invio e simulazione controllano i dati ministeriali obbligatori; una prova storica non riabilita l'invio reale dopo una modifica del pacchetto.
+
+Guardrail automatici eseguiti:
+
+- `17` test del presidio documentale, inclusi prima acquisizione, secondo ciclo senza richiamo alle sorgenti o ai testi, aggiunta di un solo documento, budget parziale, lock, rinvio persistente con riesame e rotazione;
+- suite combinata `tests/test_pec_audit_pipeline.py`, `tests/test_document_intelligence_service.py`, `tests/test_regia_api_payloads.py` e `tests/test_regia_ui_react.py`: `110` test superati;
+- `ruff` mirato sui moduli modificati: nessuna violazione;
+- build Docker reale locale di app, scheduler e OCR; `http://127.0.0.1:8080/api/pronto` ha risposto `ok=true`, versione `2.256.0`, fuso `Europe/Rome`.
+
+Prova materiale locale nel browser integrato su `127.0.0.1:8080`, fascicolo `A1FB22FE`, senza salvataggi e senza invii:
+
+- tipo deposito inizialmente non scelto e `0` documenti selezionati automaticamente;
+- selezione temporanea di `Opposizione a decreto ingiuntivo (mediante ricorso)` con comparsa puntuale di numero, anno e data del decreto come obbligatori e dei due riferimenti alla causa come facoltativi;
+- `Completa dati deposito` è tornato al pannello corretto e il primo campo ha ricevuto il focus reale;
+- Tribunale di Vicenza, PEC e codice ufficio sono stati risolti automaticamente;
+- prova, simulazione e invio reale sono rimasti disabilitati per il motivo essenziale reale `Atto principale da selezionare`, non per avvisi facoltativi;
+- controllo desktop, tablet `1024x768` e mobile `390x844`: nessun overflow orizzontale, testi leggibili e navigazione coerente;
+- la password dell'account tecnico locale è stata cambiata solo per la sessione visibile e ripristinata subito dopo nei repository governati; nessun account di produzione è stato modificato.
+
+Prova worker reale su Hetzner, senza cancellazioni, backup o modifiche ai documenti dello studio:
+
+- baseline: `2.641.950` letture automatiche storiche, ultima alle `21:30` ora italiana dell'11/07/2026;
+- dopo più cicli reali del job `pec_audit_pipeline_workers`, il contatore è rimasto `2.641.950`;
+- `30` documenti nuovi o da rivalutare hanno prodotto `30` resource ID distinti e `0` duplicati;
+- `14` fascicoli risultano già consolidati con impronta completa; il backlog restante procede nei lotti previsti senza rileggere quelli già marcati;
+- cicli documentali chiusi con `0` errori e `0` rinvii per lock; il tratto caldo per il tenant principale si è chiuso in circa otto secondi;
+- app, scheduler e OCR sono rimasti healthy; nessuna PEC o deposito reale è stato inviato.
+
+Questa modifica non cambia generatori, tabelle ministeriali, scelta del tipo deposito o regole ricostruite dal materiale Studio Telematico. Restano valide le fonti e la matrice `252/252` già documentate in `deposito-confronto-fonti-2026-07-12.md`; cambia soltanto il riuso persistente dei risultati già acquisiti.
+
+## Attestazione di conformità nella relata - 13/07/2026
+
+La generazione dell'attestazione di conformità collegata alla notifica è stata riallineata al modello Word consegnato dallo studio. L'attestazione è unica per tutte e sole le copie selezionate dall'avvocato, viene inserita cumulativamente nella relata e può essere scaricata come DOCX senza duplicare una dichiarazione per ciascun allegato. La scelta documentale resta manuale e nessun documento viene incluso automaticamente.
+
+Prova locale eseguita con tre documenti, click reali e download confermato su `127.0.0.1:8080`, senza firma, PEC o deposito reale. Il controllo strutturale dimostra che il generatore modifica soltanto `word/document.xml` del modello e conserva tutte le altre parti; il render Word è una pagina senza evidenziazioni, tagli o sovrapposizioni. Dettaglio completo: `artifacts/notifiche-legali/attestazione-conformita-unica-2026-07-13.md`.
+
+Questa tranche non cambia `DatiAtto.xml`, `IndiceBusta.xml`, `Atto.enc`, generatori ministeriali o regole di abilitazione dell'invio deposito.
+
+## Automazione successiva al deposito - scheda di cancelleria e copia PST 15/07/2026
+
+Il ciclo successivo all'invio del ricorso è stato esteso usando come evidenza reale la scheda `Documento_30446614.pdf` del procedimento `RG 771/2025`. La scheda viene normalmente anticipata dalla comunicazione di cancelleria e acquisita successivamente nella sua copia ufficiale tramite PST.
+
+Comportamento applicativo introdotto:
+
+- ogni nuovo documento PEC, caricato o scaricato dal PST entra nel medesimo presidio incrementale;
+- la scheda viene riconosciuta dalla struttura dei campi di ruolo, non dal solo nome del file;
+- RG e anno sono la guardia primaria: una scheda discordante non può sovrascrivere un fascicolo diverso;
+- ufficio, iscrizione, sezione, giudice, ruolo, materia, oggetto, parti, difensore, contributo unificato e prima udienza vengono consolidati solo se mancanti o coerenti;
+- la provenienza, l'identificativo del documento e l'impronta SHA-256 restano nel fascicolo per audit e idempotenza;
+- la copia PST completa la conoscenza del fascicolo senza diventare un documento da reinviare nella busta;
+- al secondo ciclo, se identificativo e impronta non cambiano, il file non viene riaperto e non viene riletto;
+- l'esenzione esplicita del contributo unificato viene registrata senza importo e senza creare una proforma;
+- la prima udienza alimenta i processi già governati di fascicolo, Agenda e Scadenziario.
+
+Prove automatiche superate: parser campo per campo sul testo reale, variante a testo compattato su una sola riga, aggiornamento fascicolo, conflitto RG, classificazione fuori busta, esenzione, job incrementale e secondo ciclo senza lettura. La chiusura resta subordinata alla prova visibile locale e sul server reale documentata nel verbale `artifacts/pst/verifica-acquisizione-rg-771-2025-2026-07-15.md`.
+
+## Verifica pubblici elenchi e firma relata - 16/07/2026
+
+La tranche notifiche legali collegata al fascicolo è stata consolidata senza modificare i generatori ministeriali del deposito e senza abilitare invii dal server.
+
+Regole applicate:
+
+- la verifica del pubblico elenco usa il servizio ReGIndE ufficiale per indirizzo PEC;
+- notificante e destinatario sono controllati separatamente e il registro mostrato in UI coincide con quello interrogato;
+- il codice fiscale del notificante resta immutabile;
+- il codice fiscale del destinatario può essere corretto soltanto con risposta autorevole associata alla PEC cercata e con autorizzazione esplicita del controllo destinatario;
+- risposta, indirizzi, ruoli, stato e impronta dell'evidenza vengono conservati per il controllo successivo;
+- un solo PIN inserito accanto a `Firma relata` viene usato sul PC locale per completare verifica e firma, poi viene cancellato dallo stato della pagina;
+- la firma salva la relata nel fascicolo e non implica approvazione finale o invio PEC;
+- l'invio PEC operativo resta esclusivamente locale e non è stato eseguito durante i test.
+
+Fonti tecniche consultate:
+
+- catalogo WSDL ministeriale locale `docs/specs/ministero/A1_WSDL_CATALOG_v1.52/WSDL/Altri Servizi/ReGIndE/ServiziInterrogazioneSoggetto.wsdl`;
+- implementazione e casistiche già documentate nel confronto interno sulle notifiche;
+- notifiche e dati reali del tenant usati per verificare associazione di avvocato, parte rappresentata, destinatario e pubblico elenco, senza riportare riferimenti tecnici nella UI.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_local_signer.py tests/test_notifiche_legali.py tests/test_react_asset_retention.py -q` -> `314` test superati;
+- `npm run build` in `frontend` -> typecheck e build superati;
+- limite per singolo asset JavaScript/CSS inferiore a `500.000` byte;
+- immagine Docker locale ricostruita e `iusentra-app` ricreato healthy su `127.0.0.1:8080`;
+- Local Signer `1.6.92` installato, dispositivo e certificato di firma rilevati, un solo listener locale;
+- produzione aggiornata, container applicativo unico healthy e `/api/pronto` positivo.
+
+Stato di accettazione: resta obbligatoria la prova materiale nella scheda autenticata con click su `Firma relata`, inserimento PIN, verifica positiva dei pubblici elenchi, salvataggio e apertura della relata firmata. Nessun test automatico viene usato come sostituto di tale prova e nessuna PEC reale deve essere inviata.
+## Presidio udienze da PEC e documenti, aggiornamento 17/07/2026
+
+Il flusso collegato PEC, fascicolo, Agenda e Scadenziario conserva le attività `UDIENZA` anche nella timeline del fascicolo. Lo stesso evento strutturato trasporta modalità, data, ora, piattaforma, ID riunione, codice di accesso, istruzioni, fonte e collegamento audiovisivo.
+
+Il centro notifiche e il Web Push non ricostruiscono il dato dal testo libero: usano il payload materializzato dalla pipeline PEC. L'azione esterna `Collegati` è disponibile soltanto quando il collegamento è stato verificato sulla fonte e il dominio appartiene all'elenco audiovisivo ammesso. Un URL non verificato o un dominio somigliante apre soltanto il dettaglio interno per il controllo.
+
+Quando un PDF o ZIP viene letto dopo la prima registrazione e aggiunge il link verificato, il sistema aggiorna la stessa scadenza, lo stesso appuntamento e la stessa notifica. Il record torna non letto e viene inviato un solo nuovo Web Push per l'informazione aggiunta; una seconda elaborazione invariata non crea duplicati.
+
+Verifiche automatiche del 17/07/2026: 86 test mirati, build e contratti React, integrità UTF-8, conservazione asset e budget massimo di 500 kB per chunk. La chiusura resta subordinata alla prova materiale finale sul server e a una consegna Web Push osservata con sottoscrizione reale del browser.
+
+### Prova reale locale dei canali udienza - 17/07/2026
+
+Sulla copia reale `http://127.0.0.1:8080` è stato seguito con click il medesimo evento controllato attraverso Agenda, Scadenziario, timeline del fascicolo e centro notifiche. I quattro punti hanno mostrato gli stessi dati strutturati e il collegamento audiovisivo verificato, senza perdere note o fonte.
+
+Nel pannello Notifiche il dispositivo è stato registrato, la notifica di prova è stata inviata e mostrata e lo stato finale è risultato `Attivo`. È stato inoltre eliminato lo stato indefinito `Attivazione...`: se il browser non conclude il permesso o il riallineamento, l'operazione termina entro il limite governato e restituisce un messaggio comprensibile. La verifica non ha prodotto invii PEC, depositi o notifiche legali reali.

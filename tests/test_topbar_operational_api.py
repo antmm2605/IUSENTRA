@@ -7,7 +7,7 @@ from pct.agenda import Agenda, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import Fascicolo, GestioneFascicoli, TipoFascicolo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from web.app import create_app
 
@@ -335,20 +335,25 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
 def test_topbar_today_include_pratiche_doppie_cliente_rg(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     _create_user(app, "operatore", "Operatore123!")
-    _seed_domain(app)
+    _cliente_id, original_id = _seed_domain(app)
     fascicoli = GestioneFascicoli(
         app.config["FASCICOLI_DB"],
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
     )
-    fascicoli.nuovo(
-        "Recupero credito Alfa - import portale",
-        TipoFascicolo.CIVILE,
-        nome_cliente="Maria Verdi",
-        tribunale="Tribunale di Roma",
-        numero_rg="1234",
-        anno_rg=2026,
+    original = fascicoli.get(original_id)
+    assert original is not None
+    historical_payload = original.to_dict()
+    historical_payload.update(
+        {
+            "id": "DUPLTEST",
+            "numero": "2026/999",
+            "titolo": "Recupero credito Alfa - import storico",
+        }
     )
+    historical_duplicate = Fascicolo.from_dict(historical_payload)
+    fascicoli._fascicoli[historical_duplicate.id] = historical_duplicate
+    fascicoli._salva()
 
     with app.test_client() as client:
         _login(client)
@@ -357,7 +362,7 @@ def test_topbar_today_include_pratiche_doppie_cliente_rg(tmp_path: Path):
 
         assert today["summary"]["tasksToday"] >= 1
         assert today["summary"]["urgentItems"] >= 1
-        assert duplicate_item["clientName"] == "Maria Verdi"
+        assert duplicate_item["clientName"] == "Verdi Maria"
         assert duplicate_item["priority"] == "important"
         assert duplicate_item["href"].startswith("/fascicoli?rg=")
 

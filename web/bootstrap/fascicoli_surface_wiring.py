@@ -36,6 +36,7 @@ def register_fascicoli_surfaces(
         get_agenda=core["get_agenda"],
         get_soggetti=core["get_soggetti"],
         get_config_studio=core["get_config_studio"],
+        get_telematico=core["get_telematico"],
         cliente_accessibile=core["cliente_accessibile"],
         audit=core["audit"],
         sync_pubblica=core["sync_pubblica"],

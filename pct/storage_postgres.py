@@ -970,6 +970,11 @@ class PostgresStudioDB:
     def conn(self) -> PostgresCompatConnection:
         return PostgresCompatConnection(self)
 
+    def fetchall_readonly(self, sql: str, parameters: tuple[Any, ...] = ()) -> list[Any]:
+        """Mantiene il contratto di lettura usato dai repository core."""
+
+        return list(self.conn.execute(sql, parameters).fetchall())
+
     def _ensure_schema(self) -> None:
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as cur:

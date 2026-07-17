@@ -18,6 +18,7 @@ from web.services.lex_dataset_training_status import build_lex_dataset_training_
 
 ALLOWED_SECTIONS = {
     "studio",
+    "fatturazione",
     "pec",
     "firma",
     "smtp",
@@ -30,6 +31,10 @@ ALLOWED_SECTIONS = {
     "backup",
     "calendari",
 }
+
+_FATTURAZIONE_REGIMI = {"RF01", "RF02", "RF19"}
+_FATTURAZIONE_METODI = {"Bonifico", "Contanti", "Assegno", "Carta di credito", "PayPal"}
+_FATTURAZIONE_ALIQUOTE_IVA = {4.0, 5.0, 10.0, 22.0}
 
 
 SDI_OFFICIAL_SOURCES: tuple[dict[str, str], ...] = (
@@ -83,6 +88,14 @@ def _bool(value: Any, default: bool = False) -> bool:
 def _int(value: Any, default: int, *, minimum: int = 0, maximum: int = 65535) -> int:
     try:
         parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(maximum, parsed))
+
+
+def _float(value: Any, default: float, *, minimum: float = 0.0, maximum: float = 100.0) -> float:
+    try:
+        parsed = float(str(value).strip().replace(",", "."))
     except (TypeError, ValueError):
         parsed = default
     return max(minimum, min(maximum, parsed))
@@ -166,6 +179,77 @@ def _gestore_config():
     return _get_gestore()
 
 
+def resolve_react_fatturazione_defaults(cfg: Any) -> dict[str, Any]:
+    """Risolve i default fiscali dal backend SQL tenant e usa il JSON solo come mirror."""
+
+    source = getattr(cfg, "fatturazione", None)
+    fallback = {
+        "regime_fiscale": _text(getattr(source, "regime_fiscale", "RF01"), "RF01").upper(),
+        "applica_iva": bool(getattr(source, "applica_iva", True)),
+        "applica_cassa": bool(getattr(source, "applica_cassa", True)),
+        "applica_ritenuta": bool(getattr(source, "applica_ritenuta", False)),
+        "applica_bollo": bool(getattr(source, "applica_bollo", False)),
+        "aliquota_iva": float(getattr(source, "aliquota_iva", 22.0) or 22.0),
+        "percentuale_spese_generali": float(getattr(source, "percentuale_spese_generali", 15.0) or 0.0),
+        "metodo_pagamento": _text(getattr(source, "metodo_pagamento", "Bonifico"), "Bonifico"),
+        "giorni_scadenza": int(getattr(source, "giorni_scadenza", 30) or 0),
+    }
+    try:
+        from pct.impostazioni_config_repository import load_settings_config_section
+        from web.blueprints.impostazioni import _studio_config_path
+        from web.services.storage_runtime import get_request_studio_db
+
+        studio_db = get_request_studio_db(_studio_config_path())
+        stored = load_settings_config_section(studio_db, "fatturazione")
+    except Exception:
+        stored = {}
+    raw = {**fallback, **stored}
+    regime = _text(raw.get("regime_fiscale"), "RF01").upper()
+    if regime not in _FATTURAZIONE_REGIMI:
+        regime = "RF01"
+    metodo = _text(raw.get("metodo_pagamento"), "Bonifico")
+    if metodo not in _FATTURAZIONE_METODI:
+        metodo = "Bonifico"
+    applica_iva = _bool(raw.get("applica_iva"), True) and regime not in {"RF02", "RF19"}
+    aliquota_iva = _float(raw.get("aliquota_iva"), 22.0)
+    if aliquota_iva not in _FATTURAZIONE_ALIQUOTE_IVA:
+        aliquota_iva = 22.0
+    return {
+        "regime_fiscale": regime,
+        "applica_iva": applica_iva,
+        "applica_cassa": _bool(raw.get("applica_cassa"), True),
+        "applica_ritenuta": _bool(raw.get("applica_ritenuta"), False),
+        "applica_bollo": _bool(raw.get("applica_bollo"), False),
+        "aliquota_iva": aliquota_iva,
+        "percentuale_spese_generali": _float(raw.get("percentuale_spese_generali"), 15.0),
+        "metodo_pagamento": metodo,
+        "giorni_scadenza": _int(raw.get("giorni_scadenza"), 30, minimum=0, maximum=365),
+    }
+
+
+def _fatturazione_proforma_summary() -> dict[str, int]:
+    try:
+        from web.helpers import get_fatturazione as helper_get_fatturazione
+
+        loader = _runtime_loader("get_fatturazione") or helper_get_fatturazione
+        records = list(loader().tutte())
+    except Exception:
+        return {"totali": 0, "aggiornabili": 0, "escluse": 0}
+
+    totali = 0
+    aggiornabili = 0
+    for record in records:
+        personalized = getattr(record, "dati_personalizzati", {}) or {}
+        document = personalized.get("document") if isinstance(personalized, dict) else {}
+        if not isinstance(document, dict) or _text(document.get("documento_operativo")).upper() != "PROFORMA":
+            continue
+        totali += 1
+        stato = _text(getattr(getattr(record, "stato", ""), "value", getattr(record, "stato", ""))).upper()
+        if stato != "ANNULLATA" and not _text(getattr(record, "sdi_data_invio", "")):
+            aggiornabili += 1
+    return {"totali": totali, "aggiornabili": aggiornabili, "escluse": totali - aggiornabili}
+
+
 def _local_signer_payload() -> dict[str, Any]:
     from web.blueprints.impostazioni import _local_signer_meta
 
@@ -214,6 +298,7 @@ def _section_status(
     backup_status = backup.get("status") or {}
     return [
         _status("Dati Studio", bool(cfg.studio.nome), "Anagrafica usata in atti, parcelle e depositi."),
+        _status("Fatturazione", True, "Regole fiscali predefinite per proforme e fatture."),
         _status("PEC", bool(cfg.pec.indirizzo and cfg.pec.smtp_host and cfg.pec.imap_host), "Canale PCT e notifiche."),
         _status("Firma Digitale", cfg.firma.backend_firma_operativo_safe != "nessuno", "Local Signer gestisce la firma dal PC."),
         _status("Email SMTP", bool(cfg.smtp.host and cfg.smtp.username), "Posta ordinaria separata dalla PEC."),
@@ -309,6 +394,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
         maximum=365,
     )
     pagamenti, notifiche, backup, calendari = _operational_settings_payloads(cfg)
+    fatturazione = resolve_react_fatturazione_defaults(cfg)
     return {
         "ok": True,
         "source": "config_studio",
@@ -334,6 +420,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "piva": cfg.studio.piva,
             "cf": cfg.studio.cf,
             "indirizzo": cfg.studio.indirizzo,
+            "cap": getattr(cfg.studio, "cap", ""),
             "city": cfg.studio.city,
             "province": cfg.studio.province,
             "patron_name": cfg.studio.patron_name,
@@ -344,8 +431,11 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "sito_web": cfg.studio.sito_web,
             "iban": cfg.studio.iban,
             "banca": cfg.studio.banca,
+            "bic_swift": getattr(cfg.studio, "bic_swift", "") or getattr(cfg.fatturazione, "bic_swift", ""),
             "codice_fiscale_avvocato": cfg.studio.codice_fiscale_avvocato,
         },
+        "fatturazione": fatturazione,
+        "fatturazione_stats": _fatturazione_proforma_summary(),
         "pec": {
             "indirizzo": cfg.pec.indirizzo,
             "username": getattr(cfg.pec, "username", ""),
@@ -569,6 +659,7 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
 
     from pct.config_studio import (
         ConfigDatiStudio,
+        ConfigFatturazione,
         ConfigFirma,
         ConfigLocalAI,
         ConfigPEC,
@@ -585,6 +676,22 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
     data = payload or {}
 
     if section == "studio":
+        from pct.studio_address import normalize_bic_swift, normalize_studio_location
+
+        location = normalize_studio_location(
+            indirizzo=data.get("indirizzo"),
+            cap=data.get("cap"),
+            city=data.get("city"),
+            province=data.get("province"),
+        )
+        bic_swift = normalize_bic_swift(data.get("bic_swift"))
+        errors: dict[str, str] = {}
+        if _text(data.get("cap")) and len(location["cap"]) != 5:
+            errors["cap"] = "Inserisci un CAP italiano di 5 cifre."
+        if bic_swift and len(bic_swift) not in {8, 11}:
+            errors["bic_swift"] = "Inserisci un BIC/SWIFT di 8 o 11 caratteri."
+        if errors:
+            return {"ok": False, "message": "Controlla i dati dello studio.", "errors": errors}
         cfg.studio = ConfigDatiStudio(
             nome=_text(data.get("nome")),
             avvocato=_text(data.get("avvocato")),
@@ -593,9 +700,10 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             ordine_avvocati=_text(data.get("ordine_avvocati")),
             piva=_text(data.get("piva")),
             cf=_text(data.get("cf")),
-            indirizzo=_text(data.get("indirizzo")),
-            city=_text(data.get("city")),
-            province=_text(data.get("province")).upper()[:2],
+            indirizzo=location["indirizzo"],
+            cap=location["cap"],
+            city=location["city"],
+            province=location["province"],
             patron_name=_text(data.get("patron_name")),
             patron_day=_int(data.get("patron_day"), 0, minimum=0, maximum=31),
             patron_month=_int(data.get("patron_month"), 0, minimum=0, maximum=12),
@@ -604,7 +712,53 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             sito_web=_text(data.get("sito_web")),
             iban=_text(data.get("iban")),
             banca=_text(data.get("banca")),
+            bic_swift=bic_swift,
             codice_fiscale_avvocato=_text(data.get("codice_fiscale_avvocato")).upper(),
+        )
+    elif section == "fatturazione":
+        regime = _text(data.get("regime_fiscale"), "RF01").upper()
+        metodo = _text(data.get("metodo_pagamento"), "Bonifico")
+        errors: dict[str, str] = {}
+        if regime not in _FATTURAZIONE_REGIMI:
+            errors["regime_fiscale"] = "Seleziona un regime fiscale valido."
+        if metodo not in _FATTURAZIONE_METODI:
+            errors["metodo_pagamento"] = "Seleziona una modalità di pagamento valida."
+        raw_percentuale = _text(data.get("percentuale_spese_generali"), "15").replace(",", ".")
+        try:
+            percentuale = float(raw_percentuale)
+        except ValueError:
+            errors["percentuale_spese_generali"] = "Inserisci una percentuale valida."
+            percentuale = 15.0
+        if not 0 <= percentuale <= 100:
+            errors["percentuale_spese_generali"] = "Inserisci una percentuale compresa tra 0 e 100."
+        raw_giorni = _text(data.get("giorni_scadenza"), "30")
+        try:
+            giorni_scadenza = int(raw_giorni)
+        except ValueError:
+            errors["giorni_scadenza"] = "Inserisci un numero intero di giorni."
+            giorni_scadenza = 30
+        if not 0 <= giorni_scadenza <= 365:
+            errors["giorni_scadenza"] = "Inserisci un valore compreso tra 0 e 365 giorni."
+        raw_aliquota = _text(data.get("aliquota_iva"), "22").replace(",", ".")
+        try:
+            aliquota_iva = float(raw_aliquota)
+        except ValueError:
+            aliquota_iva = 22.0
+            errors["aliquota_iva"] = "Seleziona un’aliquota IVA valida."
+        if aliquota_iva not in _FATTURAZIONE_ALIQUOTE_IVA:
+            errors["aliquota_iva"] = "Seleziona un’aliquota IVA tra 4%, 5%, 10% e 22%."
+        if errors:
+            return {"ok": False, "message": "Controlla le impostazioni di fatturazione.", "errors": errors}
+        cfg.fatturazione = ConfigFatturazione(
+            regime_fiscale=regime,
+            applica_iva=_bool(data.get("applica_iva"), True),
+            applica_cassa=_bool(data.get("applica_cassa"), True),
+            applica_ritenuta=_bool(data.get("applica_ritenuta"), False),
+            applica_bollo=_bool(data.get("applica_bollo"), False),
+            aliquota_iva=aliquota_iva,
+            percentuale_spese_generali=percentuale,
+            metodo_pagamento=metodo,
+            giorni_scadenza=giorni_scadenza,
         )
     elif section == "pec":
         password = _text(data.get("pec_password") or data.get("password"))
@@ -741,8 +895,40 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
     _sync_settings_config_snapshot(cfg, _extra_settings_sections(pagamenti, notifiche, backup, calendari))
     _audit(section)
     response = _payload_from_config(cfg, can_update=True)
-    response.update({"message": "Impostazioni salvate.", "updated_section": section})
+    message = "Impostazioni di fatturazione salvate." if section == "fatturazione" else "Impostazioni salvate."
+    response.update({"message": message, "updated_section": section})
     return response
+
+
+def apply_react_impostazioni_fatturazione_to_proformas(payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    from web.helpers import get_fatturazione as helper_get_fatturazione
+    from web.helpers import get_pagamenti as helper_get_pagamenti
+    from web.helpers import get_utenti
+    from web.services.react_fatturazione_archive_actions import apply_react_fatturazione_defaults_to_proformas
+    from web.services.react_fatturazione_bridge import build_fatturazione_runtime_config
+
+    cfg = _gestore_config().config
+    defaults = resolve_react_fatturazione_defaults(cfg)
+    get_fatturazione = _runtime_loader("get_fatturazione") or helper_get_fatturazione
+    get_pagamenti = _runtime_loader("get_pagamenti") or helper_get_pagamenti
+    try:
+        pagamenti_config = getattr(get_pagamenti(), "config", None)
+    except Exception:
+        pagamenti_config = None
+    studio_config = build_fatturazione_runtime_config(
+        cfg,
+        pagamenti_config,
+        fatturazione_defaults=defaults,
+    )
+    return apply_react_fatturazione_defaults_to_proformas(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=g.get("utente_corrente"),
+        defaults=defaults,
+        studio_config=studio_config,
+        confirm=(payload or {}).get("confirm") is True,
+        ip_address=request.remote_addr or "",
+    )
 
 
 def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[str, Any]:

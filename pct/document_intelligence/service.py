@@ -33,6 +33,9 @@ from .security import (
 from .versioning import build_document_storage_relative_path, build_extracted_text_relative_path, build_initial_version
 
 
+_NON_INTERACTIVE_READ_ACTORS = frozenset({"scheduler", "scheduler-worker", "scheduler-rebuild"})
+
+
 class DocumentAIService:
     def __init__(
         self,
@@ -329,18 +332,20 @@ class DocumentAIService:
         text = self.repository.get_extracted_text(tenant_id, fascicolo_id, document_id, document.current_version_id)
         if not text:
             raise DocumentAINotFound("Testo del documento non trovato")
-        record_document_ai_event(
-            self.repository,
-            "document_ai.read",
-            tenant_id=tenant_id,
-            fascicolo_id=fascicolo_id,
-            user_context=user_context,
-            document_id=document_id,
-            version_id=text.version_id,
-            sha256=document.sha256,
-            filename=document.original_filename,
-            status=document.status,
-        )
+        actor = user_id_from_context(user_context).strip().casefold()
+        if actor not in _NON_INTERACTIVE_READ_ACTORS:
+            record_document_ai_event(
+                self.repository,
+                "document_ai.read",
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo_id,
+                user_context=user_context,
+                document_id=document_id,
+                version_id=text.version_id,
+                sha256=document.sha256,
+                filename=document.original_filename,
+                status=document.status,
+            )
         return text
 
     def search_fascicolo_document(

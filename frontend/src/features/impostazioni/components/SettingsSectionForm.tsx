@@ -75,7 +75,42 @@ export function SettingsSectionForm({
   const visibleValues = useMemo(() => values, [values])
 
   function updateValue(name: string, value: unknown) {
-    setValues((current) => ({ ...current, [name]: value }))
+    setValues((current) => {
+      const next = { ...current, [name]: value }
+      if (section === 'fatturazione' && name === 'regime_fiscale' && ['RF02', 'RF19'].includes(String(value))) {
+        next.applica_iva = false
+      }
+      return next
+    })
+  }
+
+  async function completeStudioLocation(cityValue: string) {
+    const query = cityValue.trim()
+    if (section !== 'studio' || query.length < 2) return
+    try {
+      const response = await fetch(`/api/v1/ui/territorio/comuni?q=${encodeURIComponent(query)}&limit=8`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+      if (!response.ok) return
+      const payload = await response.json() as { items?: unknown[]; comuni?: unknown[] }
+      const rows = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.comuni) ? payload.comuni : []
+      const normalized = query.toLocaleLowerCase('it-IT')
+      const candidates = rows
+        .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+      const exact = candidates.filter((item) => String(item.nome || item.label || '').trim().toLocaleLowerCase('it-IT').replace(/\s*\([a-z]{2}\)\s*$/i, '') === normalized)
+      const selected = exact.length === 1 ? exact[0] : candidates.length === 1 ? candidates[0] : null
+      if (!selected) return
+      const caps = Array.isArray(selected.cap) ? selected.cap.map((item) => String(item || '').trim()).filter(Boolean) : []
+      setValues((current) => ({
+        ...current,
+        city: String(selected.nome || query).trim(),
+        province: String(selected.siglaProvincia || selected.sigla_provincia || current.province || '').trim().toUpperCase().slice(0, 2),
+        cap: caps.includes(String(current.cap || '').trim()) ? current.cap : caps[0] || current.cap || '',
+      }))
+    } catch {
+      // Il salvataggio backend completa comunque il CAP dalla banca dati territoriale.
+    }
   }
 
   function renderPasswordField(field: SettingsField, id: string, label: ReactNode) {
@@ -114,6 +149,10 @@ export function SettingsSectionForm({
 
   function renderField(field: SettingsField) {
     const id = `settings-${section}-${field.name}`
+    const dependencyDisabled = field.enabledWhen
+      ? visibleValues[field.enabledWhen.field] !== field.enabledWhen.equals
+      : false
+    const fieldDisabled = !canUpdate || dependencyDisabled
     const commonLabel = (
       <span>
         {field.label}
@@ -139,7 +178,7 @@ export function SettingsSectionForm({
       return (
         <label className={cn('iu-settings-field', `is-${field.width || 'half'}`)} key={field.name}>
           {commonLabel}
-          <Select value={textValue(visibleValues[field.name])} onValueChange={(value) => updateValue(field.name, value)} disabled={!canUpdate}>
+          <Select value={textValue(visibleValues[field.name])} onValueChange={(value) => updateValue(field.name, value)} disabled={fieldDisabled}>
             <SelectTrigger className="iu-settings-select">
               <SelectValue placeholder="Seleziona" />
             </SelectTrigger>
@@ -186,8 +225,13 @@ export function SettingsSectionForm({
           max={field.max}
           placeholder={field.placeholder}
           value={textValue(visibleValues[field.name])}
-          disabled={!canUpdate}
+          disabled={fieldDisabled}
+          inputMode={field.name === 'cap' ? 'numeric' : undefined}
+          maxLength={field.name === 'cap' ? 5 : field.name === 'bic_swift' ? 11 : undefined}
           onChange={(event) => updateValue(field.name, event.currentTarget.value)}
+          onBlur={(event) => {
+            if (section === 'studio' && field.name === 'city') void completeStudioLocation(event.currentTarget.value)
+          }}
         />
         {renderFieldHelp(field)}
       </label>

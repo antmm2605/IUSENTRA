@@ -1,0 +1,38 @@
+﻿{
+  "ok": true,
+  "tenant": "studio-legale-giuseppe-montagnese",
+  "source_of_truth": "sqlite",
+  "scan_mode": "incremental_new_or_changed_only",
+  "limit": 25,
+  "until_idle": false,
+  "idle": false,
+  "mirror_regenerated": true,
+  "totals": {
+    "cycles": 1,
+    "processed_new_documents": 25,
+    "indexed_documents": 8,
+    "indexing_skipped": 17,
+    "candidate_dates": 14,
+    "scheduled": 0,
+    "already_presided": 0,
+    "persisted_activity_fascicoli": 4,
+    "errors": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "elapsed_seconds": 18.224,
+      "processed_new_documents": 25,
+      "indexed_documents": 8,
+      "indexing_skipped": 17,
+      "candidate_dates": 14,
+      "scheduled": 0,
+      "already_presided": 0,
+      "persisted_activity_fascicoli": 4,
+      "pending_fascicoli": 296,
+      "pending_documents": 150,
+      "errors": []
+    }
+  ],
+  "applied": true
+}

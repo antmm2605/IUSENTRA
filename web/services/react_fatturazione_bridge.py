@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Any, Callable
 
 from pct.fatturazione import VoceParcella
@@ -141,6 +143,88 @@ SDI_CHANNEL_CONFIG_KEYS = {
 }
 
 
+def build_fatturazione_runtime_config(
+    studio_config: Any,
+    pagamenti_config: Any | None = None,
+    fatturazione_defaults: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Appiattisce solo la configurazione del tenant autenticato per fatturazione."""
+
+    studio = getattr(studio_config, "studio", None)
+    sdi = getattr(studio_config, "sdi", None)
+    fatturazione = getattr(studio_config, "fatturazione", None)
+    bonifico = getattr(pagamenti_config, "bonifico", None)
+
+    def attr(source: Any, name: str) -> str:
+        return _text(getattr(source, name, "")) if source is not None else ""
+
+    studio_name = attr(studio, "nome")
+    beneficiary = attr(bonifico, "intestazione") or studio_name or attr(studio, "avvocato")
+    iban = attr(bonifico, "iban") or attr(studio, "iban")
+    bank = attr(bonifico, "banca") or attr(studio, "banca")
+    sdi_mode = attr(sdi, "modalita").lower()
+    channel_code = attr(sdi, "codice_canale")
+    intermediary = attr(sdi, "nome_intermediario")
+    endpoint = attr(sdi, "endpoint_trasmissione")
+    bic_swift = _text(
+        attr(studio, "bic_swift") or attr(fatturazione, "bic_swift"),
+        limit=11,
+    ).upper()
+    defaults = dict(fatturazione_defaults or {})
+    if not defaults:
+        defaults = {
+            "regime_fiscale": attr(fatturazione, "regime_fiscale") or "RF01",
+            "applica_iva": bool(getattr(fatturazione, "applica_iva", True)),
+            "applica_cassa": bool(getattr(fatturazione, "applica_cassa", True)),
+            "applica_ritenuta": bool(getattr(fatturazione, "applica_ritenuta", False)),
+            "applica_bollo": bool(getattr(fatturazione, "applica_bollo", False)),
+            "aliquota_iva": float(getattr(fatturazione, "aliquota_iva", 22.0) or 22.0),
+            "percentuale_spese_generali": float(getattr(fatturazione, "percentuale_spese_generali", 15.0) or 0.0),
+            "metodo_pagamento": attr(fatturazione, "metodo_pagamento") or "Bonifico",
+            "giorni_scadenza": int(getattr(fatturazione, "giorni_scadenza", 30) or 0),
+        }
+    defaults["bic_swift"] = bic_swift
+
+    from pct.studio_address import compose_studio_address
+
+    studio_cap = _resolve_italian_cap(
+        attr(studio, "cap"),
+        attr(studio, "indirizzo"),
+        attr(studio, "city"),
+        attr(studio, "province"),
+    )
+    studio_address = compose_studio_address(
+        indirizzo=attr(studio, "indirizzo"),
+        cap=studio_cap,
+        city=attr(studio, "city"),
+        province=attr(studio, "province"),
+    )
+
+    return {
+        "STUDIO_NOME": studio_name,
+        "STUDIO_AVVOCATO": attr(studio, "avvocato"),
+        "STUDIO_PIVA": attr(studio, "piva"),
+        "STUDIO_CF": attr(studio, "cf"),
+        "STUDIO_INDIRIZZO": attr(studio, "indirizzo"),
+        "STUDIO_INDIRIZZO_COMPLETO": studio_address,
+        "STUDIO_CAP": studio_cap,
+        "STUDIO_CITY": attr(studio, "city"),
+        "STUDIO_PROVINCE": attr(studio, "province"),
+        "STUDIO_TELEFONO": attr(studio, "telefono"),
+        "STUDIO_EMAIL": attr(studio, "email"),
+        "STUDIO_IBAN": iban,
+        "STUDIO_BANCA": bank,
+        "STUDIO_BENEFICIARIO": beneficiary,
+        "STUDIO_BIC_SWIFT": bic_swift,
+        "SDI_CANALE_ACCREDITATO": channel_code if sdi_mode == "canale_accreditato" else "",
+        "SDI_INTERMEDIARIO": intermediary if sdi_mode == "intermediario" else "",
+        "FATTURAPA_INTERMEDIARIO": intermediary,
+        "FATTURAPA_SDI_CANALE": channel_code,
+        "FATTURAPA_SDI_ENDPOINT": endpoint,
+        "FATTURAZIONE_DEFAULTS": defaults,
+    }
+
+
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -196,6 +280,21 @@ def _sdi_channel_configured(config: dict[str, Any] | None) -> bool:
 
 
 def _sdi_status_payload(parcella: Any) -> dict[str, Any]:
+    if _is_proforma(parcella):
+        return {
+            "sdiState": "",
+            "sdiStateLabel": "",
+            "sdiStateTone": "neutral",
+            "sdiStatusMessage": "XML e invio SdI saranno disponibili dopo la conferma della proforma.",
+            "sdiIdentifier": "",
+            "sdiChannel": "",
+            "sdiSentAt": "",
+            "sdiSentLabel": "",
+            "sdiOutcomeAt": "",
+            "sdiOutcomeLabel": "",
+            "sdiReceipt": "",
+            "sdiNote": "",
+        }
     raw_status = _text(getattr(parcella, "sdi_stato", "")).upper()
     label, tone, message = SDI_STATUS_LABELS.get(raw_status, (raw_status or "Da registrare", "neutral", "Stato SdI da verificare."))
     return {
@@ -351,6 +450,41 @@ def _country_code(value: Any) -> str:
     return raw[:2] if len(raw) >= 2 else "IT"
 
 
+@lru_cache(maxsize=512)
+def _cap_from_comune(comune: str, provincia: str) -> str:
+    if not comune:
+        return ""
+    try:
+        from pct.territorio_italia import normalize_comune_key, search_comuni
+
+        comune_key = normalize_comune_key(comune)
+        province_key = _text(provincia, limit=2).upper()
+        matches = search_comuni(comune, limit=20)
+        exact = [
+            item
+            for item in matches
+            if normalize_comune_key(item.nome) == comune_key
+            and (not province_key or item.sigla_provincia.upper() == province_key)
+        ]
+        candidate = exact[0] if exact else next(
+            (item for item in matches if not province_key or item.sigla_provincia.upper() == province_key),
+            None,
+        )
+        return _text(candidate.cap[0], limit=5) if candidate and candidate.cap else ""
+    except Exception:
+        return ""
+
+
+def _resolve_italian_cap(explicit: Any, address: Any, comune: Any, provincia: Any) -> str:
+    cap = _digits(explicit, limit=5)
+    if len(cap) == 5:
+        return cap
+    match = re.search(r"(?<!\d)(\d{5})(?!\d)", _text(address))
+    if match:
+        return match.group(1)
+    return _cap_from_comune(_text(comune, limit=80), _text(provincia, limit=2).upper())
+
+
 def _address_parts(value: Any) -> tuple[str, str, str, str]:
     if not value:
         return "", "", "", "IT"
@@ -381,14 +515,16 @@ def _client_profile(cliente: Any) -> dict[str, Any]:
     recapiti = getattr(cliente, "recapiti", None)
     address = _client_address(cliente)
     via, cap, comune, provincia = _address_parts(address)
-    denominazione = _text(getattr(cliente, "ragione_sociale", ""), limit=80) if _enum(getattr(cliente, "tipo", "")) == "PERSONA_GIURIDICA" else ""
+    cap = _resolve_italian_cap(cap, _text(str(address), limit=240) if address else via, comune, provincia)
+    is_company = _enum(getattr(cliente, "tipo", "")) == "PERSONA_GIURIDICA"
+    denominazione = _text(getattr(cliente, "ragione_sociale", ""), limit=80) if is_company else ""
     nome = _text(getattr(cliente, "nome", ""), limit=60)
     cognome = _text(getattr(cliente, "cognome", ""), limit=60)
     return {
         "id": _text(getattr(cliente, "id", "")),
         "partita_iva": _text(getattr(cliente, "partita_iva", ""), limit=16),
         "codice_fiscale": _text(getattr(cliente, "codice_fiscale", ""), limit=16),
-        "nome_denominazione": denominazione or _client_label(cliente),
+        "nome_denominazione": denominazione or nome,
         "denominazione": denominazione,
         "nome": nome,
         "cognome": cognome,
@@ -440,15 +576,25 @@ def _studio_profile(config: dict[str, Any] | None) -> dict[str, Any]:
             first_name = parts[0][:60]
     city = _text(cfg.get("STUDIO_CITY"), limit=80)
     province = _text(cfg.get("STUDIO_PROVINCE"), limit=2).upper()
-    indirizzo = _text(cfg.get("STUDIO_INDIRIZZO"), limit=120)
-    address_parts = [indirizzo, f"{_text(cfg.get('STUDIO_CAP'), limit=5)} {city}".strip(), province]
+    indirizzo = _text(cfg.get("STUDIO_INDIRIZZO_VIA") or cfg.get("STUDIO_INDIRIZZO"), limit=120)
+    cap = _resolve_italian_cap(cfg.get("STUDIO_CAP"), indirizzo, city, province)
+    from pct.studio_address import compose_studio_address
+
+    indirizzo_completo = _text(cfg.get("STUDIO_INDIRIZZO_COMPLETO"), limit=240) or compose_studio_address(
+        indirizzo=indirizzo,
+        cap=cap,
+        city=city,
+        province=province,
+    )
+    uses_denominazione = bool(name)
     return {
-        "nome_denominazione": name or avvocato or "Studio legale",
-        "nome": first_name,
-        "cognome": last_name,
+        "nome_denominazione": name if uses_denominazione else (first_name or avvocato or "Studio legale"),
+        "denominazione": name if uses_denominazione else "",
+        "nome": "" if uses_denominazione else first_name,
+        "cognome": "" if uses_denominazione else last_name,
         "indirizzo": indirizzo,
-        "indirizzo_completo": ", ".join(part for part in address_parts if part).strip(", "),
-        "cap": _text(cfg.get("STUDIO_CAP"), limit=5),
+        "indirizzo_completo": indirizzo_completo,
+        "cap": cap,
         "citta": city,
         "provincia": province,
         "partita_iva": _text(cfg.get("STUDIO_PIVA"), limit=16),
@@ -457,6 +603,8 @@ def _studio_profile(config: dict[str, Any] | None) -> dict[str, Any]:
         "email": _text(cfg.get("STUDIO_EMAIL"), limit=256),
         "iban": _text(cfg.get("STUDIO_IBAN"), limit=34),
         "istituto_finanziario": _text(cfg.get("STUDIO_BANCA"), limit=120),
+        "bic_swift": _text(cfg.get("STUDIO_BIC_SWIFT"), limit=11).upper(),
+        "beneficiario": _text(cfg.get("STUDIO_BENEFICIARIO"), limit=120) or name or avvocato,
     }
 
 
@@ -510,6 +658,17 @@ def _default_personalized_data(
     }
     fascicolo_label = _case_label(fascicolo) if fascicolo else ""
     causale = _text(defaults.get("note"), limit=2000) or fascicolo_label
+    regime = _text(defaults.get("regime_fiscale")).upper() or "RF01"
+    regime_labels = {"RF01": "Regime ordinario", "RF02": "Contribuenti minimi", "RF19": "Regime forfettario"}
+    payment_method = _text(defaults.get("metodo_pagamento")) or "Bonifico"
+    payment_codes = {
+        "Bonifico": "MP05",
+        "Contanti": "MP01",
+        "Assegno": "MP02",
+        "Carta di credito": "MP08",
+        "PayPal": "MP08",
+    }
+    payment_code = payment_codes.get(payment_method, "MP05")
     return {
         "transmission": {
             "identificativo_fiscale": studio.get("codice_fiscale") or studio.get("partita_iva") or "",
@@ -525,28 +684,30 @@ def _default_personalized_data(
         "document": {
             "tipo_documento": "TD01",
             "tipo_documento_label": "Fattura",
+            "documento_operativo": "FATTURA",
             "numero_documento": next_number,
             "data_documento": defaults.get("data_emissione", ""),
             "causale_oggetto": causale,
-            "regime_fiscale": "RF01",
-            "regime_fiscale_label": "Regime ordinario",
+            "regime_fiscale": regime,
+            "regime_fiscale_label": regime_labels.get(regime, "Regime ordinario"),
             "esigibilita_iva": "I",
             "esigibilita_iva_label": "Immediata",
             "cassa_previdenziale": "TC01",
             "cassa_previdenziale_label": "Avvocati",
-            "percentuale_spese_generali": "15",
+            "percentuale_spese_generali": _text(defaults.get("percentuale_spese_generali")),
+            "aliquota_iva": _text(defaults.get("aliquota_iva") or "22"),
             "fascicolo_label": fascicolo_label,
         },
         "payment": {
-            "modalita_pagamento": "MP05",
-            "modalita_pagamento_label": "Bonifico",
-            "modalita_pagamento_codice": "MP05",
-            "beneficiario": studio.get("nome_denominazione", ""),
+            "modalita_pagamento": payment_code,
+            "modalita_pagamento_label": payment_method,
+            "modalita_pagamento_codice": payment_code,
+            "beneficiario": studio.get("beneficiario") or studio.get("nome_denominazione", ""),
             "istituto_finanziario": studio.get("istituto_finanziario", ""),
             "iban": studio.get("iban", ""),
-            "bic_swift": "",
+            "bic_swift": studio.get("bic_swift", ""),
             "data_decorrenza": defaults.get("data_scadenza", ""),
-            "giorni_termini": "30",
+            "giorni_termini": _text(defaults.get("giorni_scadenza")),
             "importo_pagamento": "",
         },
     }
@@ -577,9 +738,9 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "documentKindLabel": _document_kind_label(parcella),
         "proformaSourceLabel": "Sentenza Lex AI" if _text(getattr(parcella, "origine", "")) == "lex_ai_sentenza_tribunale" else "",
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
-        "detailHref": f"/fatturazione/{pid}" if pid else "",
+        "detailHref": f"/fatturazione?id_documento={pid}" if pid else "",
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
-        "xmlHref": f"/fatturazione/{pid}/xml" if pid else "",
+        "xmlHref": f"/fatturazione/{pid}/xml" if pid and not _is_proforma(parcella) else "",
     }
     record.update(_sdi_status_payload(parcella))
     return record
@@ -712,8 +873,13 @@ def _new_form_payload(
     next_number: str,
 ) -> dict[str, Any]:
     args = query or {}
+    billing_defaults = dict((config or {}).get("FATTURAZIONE_DEFAULTS") or {})
     today = date.today()
-    due = today + timedelta(days=30)
+    try:
+        due_days = min(max(int(billing_defaults.get("giorni_scadenza", 30)), 0), 365)
+    except (TypeError, ValueError):
+        due_days = 30
+    due = today + timedelta(days=due_days)
     id_cliente = _text(args.get("id_cliente") or args.get("from_cliente") or getattr(preventivo, "id_cliente", ""))
     id_fascicolo = _text(args.get("id_fascicolo") or getattr(preventivo, "id_fascicolo", ""))
     clienti_map = {_text(getattr(cliente, "id", "")): cliente for cliente in clienti}
@@ -726,13 +892,15 @@ def _new_form_payload(
         "note": _text(args.get("note") or getattr(preventivo, "note", ""), limit=2000),
         "voci": _initial_voices(query),
         "opzioni_fiscali": {
-            "applica_iva": _bool_from_query(args, "applica_iva", getattr(preventivo, "applica_iva", True)),
-            "applica_cassa": _bool_from_query(args, "applica_cassa", getattr(preventivo, "applica_cassa", True)),
-            "applica_ritenuta": _bool_from_query(args, "applica_ritenuta", False),
-            "applica_bollo": _bool_from_query(args, "applica_bollo", False),
+            "applica_iva": _bool_from_query(args, "applica_iva", getattr(preventivo, "applica_iva", billing_defaults.get("applica_iva", True))),
+            "applica_cassa": _bool_from_query(args, "applica_cassa", getattr(preventivo, "applica_cassa", billing_defaults.get("applica_cassa", True))),
+            "applica_ritenuta": _bool_from_query(args, "applica_ritenuta", bool(billing_defaults.get("applica_ritenuta", False))),
+            "applica_bollo": _bool_from_query(args, "applica_bollo", bool(billing_defaults.get("applica_bollo", False))),
         },
-        "percentuale_spese_generali": _text(args.get("percentuale_spese_generali") or "15", limit=6),
-        "metodo_pagamento": _text(args.get("metodo_pagamento") or "Bonifico", limit=60),
+        "percentuale_spese_generali": _text(args.get("percentuale_spese_generali") or billing_defaults.get("percentuale_spese_generali") or "0", limit=6),
+        "metodo_pagamento": _text(args.get("metodo_pagamento") or billing_defaults.get("metodo_pagamento") or "Bonifico", limit=60),
+        "regime_fiscale": _text(billing_defaults.get("regime_fiscale") or "RF01", limit=8).upper(),
+        "giorni_scadenza": str(due_days),
         "hidden": _hidden_defaults(query, preventivo),
     }
     defaults["dati_personalizzati"] = _default_personalized_data(
@@ -742,13 +910,26 @@ def _new_form_payload(
         defaults=defaults,
         next_number=next_number,
     )
+    requested_operation = _text(args.get("documento_operativo"), limit=24).upper()
+    operation_was_requested = requested_operation in {"PROFORMA", "FATTURA", "NOTA_CREDITO"}
+    if not operation_was_requested:
+        requested_operation = "FATTURA"
+    operation_types = {
+        "PROFORMA": ("TD01", "Proforma"),
+        "FATTURA": ("TD01", "Fattura"),
+        "NOTA_CREDITO": ("TD04", "Nota di credito"),
+    }
+    document = defaults["dati_personalizzati"]["document"]
+    document["documento_operativo"] = requested_operation
+    document["tipo_documento"], document["tipo_documento_label"] = operation_types[requested_operation]
+    operation_label = operation_types[requested_operation][1]
     return {
         "id": "nuova_parcella",
-        "title": "Nuova parcella personalizzata",
-        "description": "Dati trasmissione, studio, destinatario, documento e pagamento sono precompilati dai dati reali disponibili.",
+        "title": f"Nuova {operation_label.lower()}" if operation_was_requested else "Nuovo documento economico",
+        "description": "Proforma, fattura e nota di credito usano i dati dello studio autenticato e del cliente selezionato.",
         "readHref": "/api/v1/ui/fatturazione/nuova",
         "saveHref": "/api/v1/ui/fatturazione/nuova",
-        "submitLabel": "Crea parcella",
+        "submitLabel": f"Crea {operation_label.lower()}" if operation_was_requested else "Crea parcella",
         "enabled": _can(current_user, "fatturazione.scrivi"),
         "defaults": defaults,
         "hidden": defaults["hidden"],
@@ -777,14 +958,12 @@ def _fiscal_options(defaults: dict[str, Any]) -> list[dict[str, Any]]:
 def _actions_for(route: str, current_user: Any) -> list[dict[str, Any]]:
     if route == "/fatturazione/nuova":
         return [
-            {"id": "save", "label": "Crea parcella", "href": "/api/v1/ui/fatturazione/nuova", "method": "POST", "tone": "primary", "enabled": _can(current_user, "fatturazione.scrivi")},
+            {"id": "save", "label": "Crea documento", "href": "/api/v1/ui/fatturazione/nuova", "method": "POST", "tone": "primary", "enabled": _can(current_user, "fatturazione.scrivi")},
             {"id": "archive", "label": "Archivio fatturazione", "href": "/fatturazione", "method": "GET", "tone": "neutral", "enabled": True},
-            {"id": "recupero", "label": "Percorso di recupero", "href": "/fatturazione/nuova?_legacy=1", "method": "GET", "tone": "warning", "enabled": True},
         ]
     return [
-        _action("nuova", "Nuova parcella personalizzata", "/fatturazione/nuova", "primary"),
+        _action("nuova", "Nuova proforma", "/fatturazione/nuova?documento_operativo=PROFORMA", "primary"),
         _action("export", "Esporta CSV", "/export/fatturazione.csv", "neutral"),
-        _action("recupero", "Percorso di recupero", "/fatturazione?_legacy=1", "warning"),
     ]
 
 
@@ -1171,6 +1350,78 @@ def _sanitize_personalized_data(raw_value: Any, errors: dict[str, str]) -> dict[
     }
 
 
+def _normalise_iban(value: Any) -> str:
+    return "".join(character for character in _text(value).upper() if character.isalnum())[:34]
+
+
+def _iban_is_valid(value: str) -> bool:
+    iban = _normalise_iban(value)
+    if len(iban) < 15 or len(iban) > 34 or not iban[:2].isalpha() or not iban[2:4].isdigit():
+        return False
+    rearranged = iban[4:] + iban[:4]
+    numeric = "".join(str(ord(character) - 55) if character.isalpha() else character for character in rearranged)
+    remainder = 0
+    for character in numeric:
+        remainder = (remainder * 10 + int(character)) % 97
+    return remainder == 1
+
+
+def _canonical_personalized_data(
+    data: dict[str, Any],
+    config: dict[str, Any],
+    errors: dict[str, str],
+) -> dict[str, Any]:
+    canonical = {section: dict(data.get(section) or {}) for section in ("transmission", "studio", "recipient", "document", "payment")}
+    studio = _studio_profile(config)
+    if not _text(studio.get("nome_denominazione")):
+        errors["studio.nome_denominazione"] = "Completa il nome dello studio nelle impostazioni."
+    if not (_text(studio.get("partita_iva")) or _text(studio.get("codice_fiscale"))):
+        errors["studio.identificativo_fiscale"] = "Completa partita IVA o codice fiscale dello studio nelle impostazioni."
+
+    canonical["studio"] = studio
+    transmission = canonical["transmission"]
+    transmission.update({
+        "identificativo_fiscale": studio.get("codice_fiscale") or studio.get("partita_iva") or "",
+        "telefono": studio.get("telefono") or "",
+        "email": studio.get("email") or "",
+    })
+
+    document = canonical["document"]
+    operation = _text(document.get("documento_operativo")).upper()
+    if not operation:
+        operation = "NOTA_CREDITO" if _text(document.get("tipo_documento")).upper() == "TD04" else "FATTURA"
+    document_types = {
+        "PROFORMA": ("TD01", "Proforma"),
+        "FATTURA": ("TD01", "Fattura"),
+        "NOTA_CREDITO": ("TD04", "Nota di credito"),
+    }
+    if operation not in document_types:
+        errors["dati_personalizzati.document.documento_operativo"] = "Seleziona Proforma, Fattura o Nota di credito."
+        operation = "PROFORMA"
+    document["documento_operativo"] = operation
+    document["tipo_documento"], document["tipo_documento_label"] = document_types[operation]
+
+    payment = canonical["payment"]
+    payment_label = _text(payment.get("modalita_pagamento_label") or payment.get("modalita_pagamento"))
+    payment_code = _text(payment.get("modalita_pagamento_codice")).upper()
+    is_bank_transfer = payment_code == "MP05" or "bonifico" in payment_label.casefold()
+    if is_bank_transfer:
+        iban = _normalise_iban(studio.get("iban"))
+        if not iban:
+            errors["dati_personalizzati.payment.iban"] = "Inserisci l’IBAN dello studio prima di creare il documento."
+        elif not _iban_is_valid(iban):
+            errors["dati_personalizzati.payment.iban"] = "L’IBAN dello studio non è valido."
+        payment.update({
+            "beneficiario": studio.get("beneficiario") or studio.get("nome_denominazione") or "",
+            "istituto_finanziario": studio.get("istituto_finanziario") or "",
+            "iban": iban,
+            "bic_swift": studio.get("bic_swift") or "",
+        })
+    else:
+        payment["iban"] = ""
+    return canonical
+
+
 def _validate_payload(
     payload: dict[str, Any],
     *,
@@ -1332,6 +1583,16 @@ def create_react_fattura(
         }, 403
 
     validated, errors = _validate_payload(payload, get_clienti=get_clienti, get_fascicoli=get_fascicoli)
+    # La validazione strutturale non conosce il tenant. Ricostruisce quindi qui
+    # l'identita' canonica dello studio autenticato e ignora eventuali dati
+    # fiscali dello studio inviati dal browser.
+    tenant_errors: dict[str, str] = {}
+    validated["dati_personalizzati"] = _canonical_personalized_data(
+        validated.get("dati_personalizzati") or {},
+        config,
+        tenant_errors,
+    )
+    errors.update(tenant_errors)
     if errors:
         return {
             "ok": False,
@@ -1366,10 +1627,10 @@ def create_react_fattura(
             valore_controversia=validated["valore_controversia"],
             complessita=validated["complessita"],
             log_calcolo=log_calcolo,
-            studio_piva=_text(config.get("STUDIO_PIVA")),
-            studio_cf=_text(config.get("STUDIO_CF")),
-            studio_indirizzo=_text(config.get("STUDIO_INDIRIZZO")),
-            studio_iban=_text(config.get("STUDIO_IBAN")),
+            studio_piva=_text(validated["dati_personalizzati"]["studio"].get("partita_iva")),
+            studio_cf=_text(validated["dati_personalizzati"]["studio"].get("codice_fiscale")),
+            studio_indirizzo=_text(validated["dati_personalizzati"]["studio"].get("indirizzo_completo") or validated["dati_personalizzati"]["studio"].get("indirizzo")),
+            studio_iban=_text(validated["dati_personalizzati"]["payment"].get("iban")),
             sdi_identificativo=validated["sdi_identificativo"],
             sdi_stato=validated["sdi_stato"],
             sdi_canale=validated["sdi_canale"],
@@ -1387,16 +1648,199 @@ def create_react_fattura(
             "errors": {"payload": _text(exc) or "Dati non validi."},
             "item": None,
         }, 400
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Salvataggio non completato. Nessun documento è stato registrato.",
+            "errors": {"server": "L’archivio dello studio non è scrivibile."},
+            "item": None,
+        }, 500
+
+    persisted = manager.get(_text(getattr(parcella, "id", "")))
+    if persisted is None:
+        return {
+            "ok": False,
+            "message": "Salvataggio non verificato. Nessun documento è stato registrato.",
+            "errors": {"server": "Verifica di persistenza non superata."},
+            "item": None,
+        }, 500
+    parcella = persisted
 
     _audit_create(get_utenti, current_user, parcella, ip_address)
     redirect_href = (
         f"/clienti/{validated['from_cliente']}" if validated["from_cliente"]
-        else f"/fatturazione/{_text(getattr(parcella, 'id', ''))}?_legacy=1"
+        else f"/fatturazione?id_documento={_text(getattr(parcella, 'id', ''))}"
     )
+    document_label = _document_kind_label(parcella)
     return {
         "ok": True,
-        "message": f"Parcella {_text(getattr(parcella, 'numero', ''))} creata.",
+        "message": f"{document_label} {_text(getattr(parcella, 'numero', ''))} creata.",
         "errors": {},
         "item": _created_item(parcella),
         "redirect_href": redirect_href,
     }, 200
+
+
+def create_react_fascicolo_proforma(
+    *,
+    get_fatturazione: Callable[[], Any],
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    get_preventivi: Callable[[], Any] | None,
+    current_user: Any,
+    fascicolo: Any,
+    amount: float,
+    amount_source: str,
+    config: dict[str, Any],
+    ip_address: str = "",
+) -> tuple[dict[str, Any], int]:
+    """Crea una proforma canonica dal controllo economico del fascicolo."""
+
+    if not _can(current_user, "fatturazione.scrivi"):
+        return {
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }, 403
+
+    fid = _text(getattr(fascicolo, "id", ""))
+    id_cliente = _text(getattr(fascicolo, "id_cliente", ""))
+    if not fid or not id_cliente:
+        return {
+            "ok": False,
+            "message": "Completa il cliente del fascicolo prima di generare la proforma.",
+            "errors": {"fascicolo": "Cliente del fascicolo mancante."},
+            "item": None,
+        }, 400
+    if amount <= 0:
+        return {
+            "ok": False,
+            "message": "Inserisci un importo Parcella maggiore di zero.",
+            "errors": {"importo": "Importo Parcella obbligatorio."},
+            "item": None,
+        }, 400
+
+    try:
+        manager = get_fatturazione()
+        existing = [
+            item
+            for item in list(manager.per_fascicolo(fid))
+            if _enum(getattr(item, "stato", "")).upper() != "ANNULLATA"
+        ]
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Archivio fatturazione non disponibile.",
+            "errors": {"archive": "Impossibile verificare i documenti economici del fascicolo."},
+            "item": None,
+        }, 500
+
+    existing_proforma = next((item for item in existing if _is_proforma(item)), None)
+    if existing_proforma is not None:
+        existing_item = _created_item(existing_proforma)
+        document_id = _text(existing_item.get("id"))
+        return {
+            "ok": True,
+            "existing": True,
+            "message": f"Proforma {existing_item.get('number') or ''} già presente: la apro senza crearne un'altra.",
+            "errors": {},
+            "item": existing_item,
+            "redirect_href": f"/fatturazione?id_documento={document_id}",
+        }, 200
+    if existing:
+        existing_item = _created_item(existing[0])
+        document_id = _text(existing_item.get("id"))
+        return {
+            "ok": False,
+            "existing": True,
+            "message": "Il fascicolo ha già un documento fiscale attivo: non è stata creata una proforma duplicata.",
+            "errors": {"duplicate": "Apri il documento economico già presente."},
+            "item": existing_item,
+            "redirect_href": f"/fatturazione?id_documento={document_id}",
+        }, 409
+
+    try:
+        cliente = get_clienti().get(id_cliente)
+    except Exception:
+        cliente = None
+    if cliente is None:
+        return {
+            "ok": False,
+            "message": "Cliente del fascicolo non trovato.",
+            "errors": {"id_cliente": "Il cliente collegato non è disponibile nello studio."},
+            "item": None,
+        }, 400
+
+    today = date.today()
+    try:
+        numbering_loader = getattr(manager, "carica_numerazione", None)
+        if callable(numbering_loader):
+            next_number = _text(numbering_loader(today.year).get("prossimoNumero"))
+        else:
+            next_number = _text(manager._prossimo_numero(today.year))
+    except Exception:
+        next_number = f"{today.year}/001"
+
+    title = (
+        _text(getattr(fascicolo, "titolo", ""), limit=160)
+        or _text(getattr(fascicolo, "oggetto", ""), limit=160)
+        or _case_rg_value(fascicolo)
+        or fid
+    )
+    source = _text(amount_source, limit=120) or "importo Parcella confermato dall’avvocato"
+    query = {
+        "id_cliente": id_cliente,
+        "id_fascicolo": fid,
+        "descrizione": f"Compenso professionale - {title}",
+        "quantita": "1",
+        "importo": f"{amount:.2f}",
+        "tipo": "ONORARIO",
+        "note": (
+            f"Bozza proforma generata dal controllo economico del fascicolo. "
+            f"Base di calcolo: {source}."
+        ),
+        "origine": "controllo_economico_fascicolo",
+        "tipo_compenso": "Compenso professionale",
+        "tipo_procedimento": _text(getattr(fascicolo, "tipo_procedimento", ""), limit=120),
+        "valore_controversia": _text(getattr(fascicolo, "valore_causa", ""), limit=40),
+    }
+    defaults = _new_form_payload(
+        clienti=[cliente],
+        fascicoli=[fascicolo],
+        query=query,
+        preventivo=None,
+        current_user=current_user,
+        config=config,
+        next_number=next_number,
+    )["defaults"]
+    payload = {key: value for key, value in defaults.items() if key != "hidden"}
+    payload.update(defaults.get("hidden") or {})
+    personalized = dict(payload.get("dati_personalizzati") or {})
+    document = dict(personalized.get("document") or {})
+    document.update({
+        "documento_operativo": "PROFORMA",
+        "tipo_documento": "TD01",
+        "tipo_documento_label": "Proforma",
+        "causale_oggetto": f"Proforma - {title}",
+        "revisione_avvocato_richiesta": True,
+    })
+    personalized["document"] = document
+    payload["dati_personalizzati"] = personalized
+
+    result, status = create_react_fattura(
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_utenti=get_utenti,
+        get_preventivi=get_preventivi,
+        current_user=current_user,
+        payload=payload,
+        config=config,
+        ip_address=ip_address,
+    )
+    if result.get("ok"):
+        result["existing"] = False
+        result["message"] = f"{result.get('message') or 'Proforma creata'} Controlla il riepilogo prima dell’emissione."
+    return result, status

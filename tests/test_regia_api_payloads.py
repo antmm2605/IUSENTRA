@@ -213,6 +213,50 @@ def test_api_deposito_classifica_documenti_collega_slot_e_metadati(tmp_path):
     assert docs[fuori.id].tipo == TipoDocumento.ALTRO
 
 
+def test_preparazione_deposito_salva_una_sola_riga_in_unica_transazione(tmp_path, monkeypatch):
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+    fascicolo = gf.nuovo(titolo="Deposito atomico", tipo=TipoFascicolo.LAVORO)
+    documento = gf.aggiungi_documento(
+        fascicolo.id,
+        "ricorso.pdf",
+        TipoDocumento.ALTRO,
+        pdfa_bytes(),
+        firmato=False,
+    )
+    calls: list[tuple[str, int, bool]] = []
+    original_salva_tabella = studio_db.salva_tabella
+
+    def _record_salva_tabella(table, rows, inserter, delete_all=True):
+        calls.append((table, len(rows), bool(delete_all)))
+        return original_salva_tabella(table, rows, inserter, delete_all=delete_all)
+
+    monkeypatch.setattr(studio_db, "salva_tabella", _record_salva_tabella)
+
+    aggiornato = gf.aggiorna_preparazione_deposito(
+        fascicolo.id,
+        document_updates=[{"id_doc": documento.id, "tipo": TipoDocumento.ATTO_GIUDIZIARIO.value}],
+        profilo_deposito={"preparazione_busta": {"tipo_deposito_telematico_key": "OpposizioneDILavoro"}},
+    )
+
+    assert calls == [("fascicoli", 1, False)]
+    assert aggiornato.documenti[0].tipo == TipoDocumento.ATTO_GIUDIZIARIO
+    assert aggiornato.profilo_deposito["preparazione_busta"]["tipo_deposito_telematico_key"] == "OpposizioneDILavoro"
+    ricaricato = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )._get_o_errore(fascicolo.id)
+    assert ricaricato.documenti[0].tipo == TipoDocumento.ATTO_GIUDIZIARIO
+    assert ricaricato.profilo_deposito == aggiornato.profilo_deposito
+
+
 def test_api_deposito_classifica_documenti_non_richiede_firma_su_contenitore_p7m(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     p7m = gf.aggiungi_documento(fascicolo.id, "Procura.PDF.p7m", TipoDocumento.ALTRO, pdfa_bytes(), firmato=False)

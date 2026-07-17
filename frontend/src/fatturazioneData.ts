@@ -69,6 +69,10 @@ export type FatturazionePermissions = {
 
 export type FatturazioneDetail = FatturazioneRecord & {
   note: string
+  dataEmissione: string
+  dataScadenza: string
+  fiscal: FatturazioneDetailFiscal
+  payment: FatturazioneDetailPayment
   workflow: FatturazioneWorkflow
   voci: Array<{
     descrizione: string
@@ -78,6 +82,15 @@ export type FatturazioneDetail = FatturazioneRecord & {
     importoDisplay: string
     tipo: string
   }>
+}
+
+export type FatturazioneDetailFiscal = FatturazioneFiscalDefaults & {
+  percentuale_spese_generali: string
+  regime_fiscale: string
+}
+
+export type FatturazioneDetailPayment = {
+  metodo_pagamento: string
 }
 
 export type FatturazioneWorkflow = {
@@ -92,6 +105,10 @@ export type FatturazioneWorkflow = {
 
 export type FatturazioneDetailUpdatePayload = {
   note: string
+  data_emissione: string
+  data_scadenza: string
+  fiscal: FatturazioneDetailFiscal
+  payment: FatturazioneDetailPayment
   voci: Array<{
     descrizione: string
     quantita: string
@@ -153,6 +170,7 @@ export type UpdateFatturazioneStatusPayload = {
   data_pagamento?: string
   metodo_pagamento?: string
   note?: string
+  confermaProforma?: boolean
 }
 
 export type FatturazioneMutationItem = {
@@ -245,11 +263,13 @@ export type FatturazionePersonalizedParty = {
   codice_destinatario?: string
   iban?: string
   istituto_finanziario?: string
+  bic_swift?: string
 }
 
 export type FatturazionePersonalizedDocument = {
   tipo_documento: string
   tipo_documento_label: string
+  documento_operativo: 'PROFORMA' | 'FATTURA' | 'NOTA_CREDITO'
   numero_documento: string
   data_documento: string
   causale_oggetto: string
@@ -402,7 +422,7 @@ export type CreateFatturaPayload = {
   log_calcolo?: string
   percentuale_spese_generali?: string
   metodo_pagamento?: string
-  dati_personalizzati?: FatturazionePersonalizedData
+  dati_personalizzati?: Omit<FatturazionePersonalizedData, 'studio'>
 }
 
 export type CreateFatturaItem = {
@@ -460,6 +480,7 @@ const emptyParty: FatturazionePersonalizedParty = {
   codice_destinatario: '',
   iban: '',
   istituto_finanziario: '',
+  bic_swift: '',
 }
 
 const emptyPersonalizedData: FatturazionePersonalizedData = {
@@ -474,6 +495,7 @@ const emptyPersonalizedData: FatturazionePersonalizedData = {
   document: {
     tipo_documento: 'TD01',
     tipo_documento_label: 'Fattura',
+    documento_operativo: 'FATTURA',
     numero_documento: '',
     data_documento: '',
     causale_oggetto: '',
@@ -950,6 +972,7 @@ function normaliseParty(raw: unknown): FatturazionePersonalizedParty {
     codice_destinatario: text(item.codice_destinatario),
     iban: text(item.iban),
     istituto_finanziario: display(item.istituto_finanziario),
+    bic_swift: text(item.bic_swift).toUpperCase(),
   }
 }
 
@@ -970,6 +993,11 @@ function normalisePersonalizedData(raw: unknown): FatturazionePersonalizedData {
     document: {
       tipo_documento: text(document.tipo_documento) || 'TD01',
       tipo_documento_label: display(document.tipo_documento_label) || 'Fattura',
+      documento_operativo: (
+        ['PROFORMA', 'FATTURA', 'NOTA_CREDITO'].includes(text(document.documento_operativo).toUpperCase())
+          ? text(document.documento_operativo).toUpperCase()
+          : (text(document.tipo_documento).toUpperCase() === 'TD04' ? 'NOTA_CREDITO' : 'FATTURA')
+      ) as FatturazionePersonalizedDocument['documento_operativo'],
       numero_documento: text(document.numero_documento),
       data_documento: text(document.data_documento),
       causale_oggetto: text(document.causale_oggetto),
@@ -1207,9 +1235,24 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
   const payload = await apiJson<unknown>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}`, { ok: false, item: null })
   const page = asRecord(payload)
   const rawItem = asRecord(page.item)
+  const rawFiscal = asRecord(rawItem.fiscal)
+  const rawPayment = asRecord(rawItem.payment)
   const item = page.item ? {
     ...normaliseRecord(page.item),
     note: display(rawItem.note),
+    dataEmissione: text(rawItem.dataEmissione ?? rawItem.data_emissione),
+    dataScadenza: text(rawItem.dataScadenza ?? rawItem.data_scadenza),
+    fiscal: {
+      applica_iva: bool(rawFiscal.applica_iva, true),
+      applica_cassa: bool(rawFiscal.applica_cassa, true),
+      applica_ritenuta: bool(rawFiscal.applica_ritenuta),
+      applica_bollo: bool(rawFiscal.applica_bollo),
+      percentuale_spese_generali: String(rawFiscal.percentuale_spese_generali ?? '0'),
+      regime_fiscale: text(rawFiscal.regime_fiscale, 'RF01'),
+    },
+    payment: {
+      metodo_pagamento: text(rawPayment.metodo_pagamento, 'Non indicato'),
+    },
     workflow: normaliseWorkflow(rawItem.workflow),
     voci: list(rawItem.voci).map((voice) => {
       const row = asRecord(voice)

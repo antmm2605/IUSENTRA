@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import sys
 import threading
 import time
 from pathlib import Path
@@ -64,6 +65,12 @@ def _is_readonly_write_error(exc: BaseException) -> bool:
 
 def _requires_delete_journal_for_mount(db_path: Path) -> bool:
     """Evita WAL sui bind mount Windows/9p dove i lock SQLite sono instabili."""
+    # Lo stesso studio.db viene aperto sia da Python nativo Windows sia dal
+    # container Docker tramite bind mount 9p. Se Windows lo lascia in WAL, il
+    # container non riesce piu' ad aprirlo in scrittura. DELETE e' quindi il
+    # formato condiviso governato per entrambi i lati del mount.
+    if sys.platform == "win32":
+        return True
     mounts = Path("/proc/mounts")
     if not mounts.exists():
         return False
@@ -295,6 +302,17 @@ class StudioDB:
         c.execute("PRAGMA temp_store=MEMORY")
         return c
 
+    def fetchall_readonly(self, sql: str, parameters: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
+        """Esegue una lettura senza tentare configurazioni scrivibili sui mount locali."""
+
+        if not _requires_delete_journal_for_mount(self.db_path):
+            return list(self.conn.execute(sql, parameters).fetchall())
+        conn = self._connect_readonly_immutable()
+        try:
+            return list(conn.execute(sql, parameters).fetchall())
+        finally:
+            conn.close()
+
     # Tabelle che non hanno ancora dati_json nello schema originale.
     # ALTER TABLE ... ADD COLUMN è idempotente (fallisce silenziosamente se già esiste).
     _UPGRADE_ADD_DATI_JSON: tuple = (
@@ -310,6 +328,33 @@ class StudioDB:
         ("conferimenti_records", "profilo_deposito_json", "TEXT NOT NULL DEFAULT '{}'"),
     )
 
+    def _schema_gia_pronto_su_connessione(self, conn: sqlite3.Connection) -> bool:
+        required_tables = {
+            "fascicoli",
+            "clienti",
+            "appuntamenti",
+            "scadenze",
+            "moduli_dati",
+            "moduli_json_records",
+            "settings_config",
+        }
+        tables = {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        if not required_tables.issubset(tables):
+            return False
+        for table, column, _ddl in self._UPGRADE_ADD_COLUMNS:
+            columns = {
+                str(row[1])
+                for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+            }
+            if column not in columns:
+                return False
+        return True
+
     def _schema_gia_pronto(self) -> bool:
         if not self.db_path.exists() or self.db_path.stat().st_size <= 4096:
             return False
@@ -317,31 +362,7 @@ class StudioDB:
             uri = f"file:{self.db_path.as_posix()}?mode=ro&immutable=1"
             conn = sqlite3.connect(uri, uri=True, timeout=5)
             try:
-                required_tables = {
-                    "fascicoli",
-                    "clienti",
-                    "appuntamenti",
-                    "scadenze",
-                    "moduli_dati",
-                    "moduli_json_records",
-                    "settings_config",
-                }
-                tables = {
-                    str(row[0])
-                    for row in conn.execute(
-                        "SELECT name FROM sqlite_master WHERE type='table'"
-                    ).fetchall()
-                }
-                if not required_tables.issubset(tables):
-                    return False
-                for table, column, _ddl in self._UPGRADE_ADD_COLUMNS:
-                    columns = {
-                        str(row[1])
-                        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
-                    }
-                    if column not in columns:
-                        return False
-                return True
+                return self._schema_gia_pronto_su_connessione(conn)
             finally:
                 conn.close()
         except Exception:
@@ -509,7 +530,13 @@ class StudioDB:
 
     def ensure_schema(self) -> None:
         """Riallinea lo schema SQLite corrente ai requisiti runtime."""
-        self._ensure_schema()
+
+        conn = self.conn
+        if not self._schema_gia_pronto_su_connessione(conn):
+            self._ensure_schema_once()
+            return
+        self._backfill_deposit_profiles(conn)
+        conn.commit()
 
     # ---------------------------------------------------------------- utilità transazione
 

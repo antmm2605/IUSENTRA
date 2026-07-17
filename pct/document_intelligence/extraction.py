@@ -1111,6 +1111,27 @@ def _read_tesseract_text_best(
         text, avg_confidence = _text_from_tesseract_data(data)
         candidates.append((_score_document_ai_ocr_text(text, avg_confidence), text))
     if candidates:
+        best_text = max(candidates, key=lambda item: item[0])[1].strip()
+        if len(best_text) >= 40:
+            return best_text, warnings
+    for variant_name, variant in _low_contrast_ocr_variants(prepared):
+        for config_name, config in _document_ai_tesseract_configs(base_config):
+            try:
+                data = image_to_data(variant, lang=lang, config=config, output_type=output_dict)
+            except TypeError:
+                try:
+                    data = image_to_data(variant, lang=lang, output_type=output_dict)
+                except Exception as exc:
+                    warnings.append(
+                        f"Pagina {page_number}: OCR {variant_name}/{config_name} non completato ({exc})."
+                    )
+                    continue
+            except Exception as exc:
+                warnings.append(f"Pagina {page_number}: OCR {variant_name}/{config_name} non completato ({exc}).")
+                continue
+            text, avg_confidence = _text_from_tesseract_data(data)
+            candidates.append((_score_document_ai_ocr_text(text, avg_confidence), text))
+    if candidates:
         return max(candidates, key=lambda item: item[0])[1].strip(), warnings
     text, fallback_warnings = _read_tesseract_text_fallback(
         pytesseract,
@@ -1147,14 +1168,77 @@ def _read_tesseract_text_fallback(
 
 def _preprocess_ocr_image(image: Any) -> Any:
     try:
-        from PIL import ImageEnhance, ImageOps  # type: ignore
+        from PIL import Image, ImageChops, ImageEnhance, ImageOps  # type: ignore
 
         gray = ImageOps.grayscale(image)
-        gray = ImageOps.autocontrast(gray)
+        white = Image.new("L", gray.size, 255)
+        difference = ImageChops.difference(gray, white)
+        content_mask = difference.point(lambda pixel: 255 if pixel > 10 else 0)
+        content_box = content_mask.getbbox()
+        if content_box:
+            left, top, right, bottom = content_box
+            content_width = right - left
+            content_height = bottom - top
+            removes_margin = content_width < gray.width * 0.9 or content_height < gray.height * 0.9
+            preserves_page = content_width >= gray.width * 0.35 and content_height >= gray.height * 0.35
+            if removes_margin and preserves_page:
+                padding = max(8, int(min(gray.size) * 0.015))
+                gray = gray.crop(
+                    (
+                        max(0, left - padding),
+                        max(0, top - padding),
+                        min(gray.width, right + padding),
+                        min(gray.height, bottom + padding),
+                    )
+                )
+        gray = ImageOps.autocontrast(gray, cutoff=1)
         gray = ImageEnhance.Sharpness(gray).enhance(1.8)
         return ImageEnhance.Contrast(gray).enhance(1.08)
     except Exception:
         return image
+
+
+def _low_contrast_ocr_variants(image: Any) -> list[tuple[str, Any]]:
+    try:
+        from PIL import ImageOps  # type: ignore
+
+        gray = ImageOps.grayscale(image)
+        histogram = gray.histogram()
+        total = sum(histogram)
+        if total <= 0:
+            return []
+        weighted_total = sum(index * count for index, count in enumerate(histogram))
+        background_weight = 0
+        background_sum = 0
+        best_threshold = 0
+        best_variance = -1.0
+        for threshold, count in enumerate(histogram):
+            background_weight += count
+            if background_weight <= 0:
+                continue
+            foreground_weight = total - background_weight
+            if foreground_weight <= 0:
+                break
+            background_sum += threshold * count
+            background_mean = background_sum / background_weight
+            foreground_mean = (weighted_total - background_sum) / foreground_weight
+            variance = background_weight * foreground_weight * (background_mean - foreground_mean) ** 2
+            if variance > best_variance:
+                best_variance = variance
+                best_threshold = threshold
+        thresholds = {
+            max(48, min(210, round(best_threshold * 0.45))),
+            max(48, min(210, round(best_threshold * 0.70))),
+        }
+        return [
+            (
+                f"contrasto-{threshold}",
+                gray.point(lambda pixel, limit=threshold: 0 if pixel < limit else 255, mode="1"),
+            )
+            for threshold in sorted(thresholds)
+        ]
+    except Exception:
+        return []
 
 
 def _document_ai_tesseract_configs(base_config: str) -> list[tuple[str, str]]:

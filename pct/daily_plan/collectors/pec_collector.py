@@ -23,6 +23,7 @@ WEAK_LINK_SCORE = 0.75
 _BAD_QUALITY = {"rosso"}
 _WARN_QUALITY = {"giallo", "da_controllare"}
 _BAD_SIGNATURE = {"non_valida", "invalida", "errore"}
+_REMOTE_HEARING_MODES = {"remoto", "mista", "remota", "remote", "telematica", "videoudienza"}
 
 
 def _fascicolo_of(row: dict[str, Any]) -> tuple[str, str]:
@@ -182,26 +183,44 @@ class PecSignalCollector:
         )
 
     def _remote_link_signal(self, ctx: CollectorContext, row: dict[str, Any]) -> OperationalSignal | None:
-        mode = str(row.get("mode") or "").lower()
-        link = str(row.get("link") or "")
-        if mode not in {"remota", "remote", "telematica", "videoudienza"} or link:
+        mode = str(row.get("mode") or "").strip().lower()
+        link = str(row.get("link") or "").strip()
+        verified = row.get("link_verified")
+        has_trusted_link = bool(link) and (verified is True or verified == 1)
+        if mode not in _REMOTE_HEARING_MODES or has_trusted_link:
             return None
         fascicolo_id, _ = _fascicolo_of(row)
+        link_is_present = bool(link)
         return OperationalSignal(
             id=f"sig_pecl_{row.get('id')}",
             tenant_id=ctx.tenant_id,
             source_type=self.source_type,
             source_id=f"{row.get('id')}:link",
             kind="hearing_link_missing",
-            title="Collegamento per udienza da remoto mancante",
+            title=(
+                "Collegamento per udienza da remoto non verificato"
+                if link_is_present
+                else "Collegamento per udienza da remoto mancante"
+            ),
             dedupe_key="",
             fascicolo_id=fascicolo_id,
-            reason="L'udienza si terrà da remoto ma il collegamento non risulta acquisito.",
+            reason=(
+                "L'udienza si terrà da remoto ma il collegamento acquisito non risulta verificato."
+                if link_is_present
+                else "L'udienza si terrà da remoto ma il collegamento non risulta acquisito."
+            ),
             due_at=str(row.get("hearing_date") or ""),
             priority_hint="P1",
             confidence=float(row.get("event_confidence") or 0.0),
             metadata={"canonical_event": f"pec_hearing_link:{row.get('id')}"},
-            evidence=[_evidence(row, "Udienza da remoto senza collegamento")],
+            evidence=[
+                _evidence(
+                    row,
+                    "Udienza da remoto con collegamento non verificato"
+                    if link_is_present
+                    else "Udienza da remoto senza collegamento",
+                )
+            ],
         )
 
     def _payment_signal(self, ctx: CollectorContext, row: dict[str, Any]) -> OperationalSignal:

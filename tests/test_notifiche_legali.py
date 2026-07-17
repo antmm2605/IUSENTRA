@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
+    RECIPIENT_NOTIFICATION_DIRECTIVES,
     available_template_fields,
     build_attestazione_conformita_payload,
     build_client_communication,
@@ -45,15 +48,36 @@ def _app(tmp_path: Path):
     return app
 
 
-def _legal_payload() -> dict[str, object]:
+def _pec_evidence(source: str, pec: str, tax_code: str, checked_at: str) -> dict[str, object]:
+    raw = (
+        f"<risposta><codiceFiscale>{tax_code}</codiceFiscale>"
+        f"<postaElettronicaCertificata>{pec}</postaElettronicaCertificata>"
+        "<stato>ATTIVO</stato></risposta>"
+    ).encode("utf-8")
     return {
+        "source": source,
+        "verified": True,
+        "found": True,
+        "pec_attesa": pec,
+        "codice_fiscale": tax_code,
+        "verified_at": checked_at,
+        "checked_at": checked_at,
+        "evidence_sha256": hashlib.sha256(raw).hexdigest(),
+        "evidence_body_b64": base64.b64encode(raw).decode("ascii"),
+    }
+
+
+def _legal_payload() -> dict[str, object]:
+    payload: dict[str, object] = {
         "operazione": "notifica_pec_l53",
         "oggetto_pec": LEGAL_NOTIFICATION_SUBJECT,
         "avvocato_nome": "Mario Rossi",
         "avvocato_cf": "RSSMRA80A01H501U",
         "avvocato_foro": "Roma",
         "studio_indirizzo": "Via Roma 1",
+        "studio_cap": "00100",
         "studio_citta": "Roma",
+        "studio_provincia": "RM",
         "mittente_pec": "studio@example.pec.it",
         "fonte_pec_mittente": "ReGIndE",
         "mittente_pec_pubblico_elenco": True,
@@ -67,6 +91,8 @@ def _legal_payload() -> dict[str, object]:
         "fonte_pec_destinatario": "registro_imprese",
         "destinatario_pec_pubblico_elenco": True,
         "data_verifica_pec": "2026-05-12T10:30",
+        "data_relata": "2026-05-12",
+        "ora_relata": "14:25",
         "procedimento_pendente": True,
         "ufficio_giudiziario": "Tribunale di Roma",
         "sezione": "III",
@@ -85,6 +111,19 @@ def _legal_payload() -> dict[str, object]:
         ],
         "attestazione_conformita": "che il file ricorso.pdf è copia informatica conforme al fascicolo informatico.",
     }
+    payload["verifica_pec_mittente"] = _pec_evidence(
+        "reginde",
+        "studio@example.pec.it",
+        "RSSMRA80A01H501U",
+        "2026-05-12T10:30:00+02:00",
+    )
+    payload["verifiche_pec_destinatari"] = [_pec_evidence(
+        "registro_imprese",
+        "controparte@example.pec.it",
+        "",
+        "2026-05-12T10:30:01+02:00",
+    )]
+    return payload
 
 
 def test_notifica_l53_genera_relata_solo_con_controlli_completi():
@@ -96,6 +135,70 @@ def test_notifica_l53_genera_relata_solo_con_controlli_completi():
     assert "ricorso.pdf - Ricorso notificato" in result.relata_text
     assert "Registro Imprese" in result.relata_text
     assert "R.G. n. 1234/2026" in result.relata_text
+    assert "Via Roma 1, CAP 00100" in result.relata_text
+    assert "Roma (RM)" in result.relata_text
+
+
+def test_notifica_pec_non_richiede_conferma_manual_abilitazione_avvocato():
+    payload = _legal_payload()
+    payload.pop("mittente_avvocato_abilitato", None)
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert all("AVVOCATO_ABILITATO" not in item for item in result.blockers)
+
+
+def test_payload_notifiche_legali_completa_cap_dal_comune_dello_studio():
+    config = SimpleNamespace(
+        studio=SimpleNamespace(
+            nome="Studio Legale Montagnese",
+            avvocato="Giuseppe Montagnese",
+            indirizzo="Via NINO BIXIO 4",
+            cap="",
+            city="Taurianova",
+            province="RC",
+        ),
+        pec=SimpleNamespace(indirizzo="studio@example.pec.it"),
+    )
+
+    payload = build_react_notifiche_legali_payload(config_studio=config)
+
+    assert payload["defaults"]["studioIndirizzo"] == "Via NINO BIXIO 4"
+    assert payload["defaults"]["studioCap"] == "89029"
+    assert payload["defaults"]["studioCitta"] == "Taurianova"
+    assert payload["defaults"]["studioProvincia"] == "RC"
+
+
+def test_notifica_accetta_solo_verifiche_pec_coerenti_con_soggetti_correnti():
+    payload = _legal_payload()
+    payload["destinatario_cf"] = "01234567890"
+    payload["verifica_pec_mittente"] = _pec_evidence(
+        "reginde", "studio@example.pec.it", "RSSMRA80A01H501U", "2026-07-13T10:30:00+02:00",
+    )
+    payload["verifiche_pec_destinatari"] = [_pec_evidence(
+        "registro_imprese", "controparte@example.pec.it", "01234567890", "2026-07-13T10:30:01+02:00",
+    )]
+
+    assert validate_legal_notification(payload).ok is True
+
+    payload["destinatario_pec"] = "pec-diversa@example.pec.it"
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED" in item for item in result.blockers)
+
+
+def test_notifica_rifiuta_impronta_prova_pubblico_elenco_manomessa():
+    payload = _legal_payload()
+    sender = dict(payload["verifica_pec_mittente"])
+    sender["evidence_sha256"] = "f" * 64
+    payload["verifica_pec_mittente"] = sender
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("PEC_MITTENTE_VALIDATA_REQUIRED" in item for item in result.blockers)
 
 
 def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
@@ -165,9 +268,11 @@ def test_notifica_l53_attestazione_automatica_cumulativa_per_documenti_multipli(
     assert result.ok is True
     assert result.relata_text.count("Attesto, ai sensi della normativa vigente") == 1
     assert "Attesto che il file provvedimento.pdf" not in result.relata_text
-    assert "- provvedimento.pdf, contenente Provvedimento" in result.relata_text
-    assert "- ordinanza.pdf, contenente Ordinanza" in result.relata_text
-    assert "- verbale.pdf, contenente Verbale" in result.relata_text
+    assert "- Provvedimento, emesso dal Tribunale di Roma Sez. III;" in result.relata_text
+    assert "- Ordinanza, emessa dal Tribunale di Roma Sez. III;" in result.relata_text
+    assert "- Verbale, documento allegato alla notificazione;" in result.relata_text
+    assert result.relata_text.count("sono conformi alle copie informatiche presenti") == 1
+    assert "copia informatica conforme al corrispondente" not in result.relata_text
 
 
 def test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto():
@@ -278,14 +383,16 @@ def test_attestazione_conformita_autocompila_fascicolo_cliente_e_documenti():
     assert "ATTESTAZIONE DI CONFORMITÀ" in model["text"]
     assert "Avv. Mario Rossi" in model["text"]
     assert "R.G. n. 1234/2026" in model["text"]
-    assert "Ricorso per il recupero delle annualità Carta del docente" in model["text"]
-    assert "Procura alle liti" in model["text"]
-    assert len(model["documenti"]) == 3
+    assert "Ricorso, per il recupero delle annualità Carta del docente;" in model["text"]
+    assert "Procura alle liti" not in model["text"]
+    assert len(model["documenti"]) == 2
     assert "comunicazione_cancelleria" in {item["origine"] for item in model["documenti"]}
+    assert model["text"].count("\nAttesta\n") == 1
+    assert "Dettaglio attestazioni" not in model["text"]
     assert "art. 196-undecies" in " ".join(model["normativa"])
 
 
-def test_attestazione_conformita_docx_generato_contiene_placeholder_compilati(tmp_path):
+def test_attestazione_conformita_docx_rispetta_modello_e_rimuove_evidenziazioni(tmp_path):
     output = tmp_path / "attestazione.docx"
 
     result = generate_attestazione_conformita_docx(_legal_payload(), output)
@@ -294,11 +401,83 @@ def test_attestazione_conformita_docx_generato_contiene_placeholder_compilati(tm
     assert output.exists()
 
     from docx import Document
+    from docx.enum.text import WD_UNDERLINE
+    from docx.oxml.ns import qn
+    from zipfile import ZipFile
 
-    text = "\n".join(paragraph.text for paragraph in Document(output).paragraphs)
+    with ZipFile(result["template_path"]) as template_zip, ZipFile(output) as output_zip:
+        assert template_zip.namelist() == output_zip.namelist()
+        changed_parts = {
+            name
+            for name in template_zip.namelist()
+            if template_zip.read(name) != output_zip.read(name)
+        }
+    assert changed_parts == {"word/document.xml"}
+
+    document = Document(output)
+    text = "\n".join(paragraph.text for paragraph in document.paragraphs)
     assert "ATTESTAZIONE DI CONFORMITÀ" in text
     assert "Avv. Mario Rossi" in text
-    assert "ricorso.pdf" in text
+    assert "Ricorso, notificato;" in text
+    assert "Roma, " not in text
+    assert len(document.sections) == 1
+    section = document.sections[0]
+    assert section.page_width.twips == 11910
+    assert section.page_height.twips == 16840
+    assert section.top_margin.twips == 1340
+    assert section.bottom_margin.twips == 280
+    assert section.left_margin.twips == 1020
+    assert section.right_margin.twips == 1020
+    list_paragraphs = [paragraph for paragraph in document.paragraphs if paragraph.style.name == "List Paragraph"]
+    assert len(list_paragraphs) == 1
+    assert list_paragraphs[0].runs[0].text == "Ricorso"
+    assert list_paragraphs[0].runs[0].bold is True
+    assert list_paragraphs[0].runs[0].underline == WD_UNDERLINE.THICK
+    assert document.paragraphs[-2].paragraph_format.left_indent.twips == 5778
+    assert document.paragraphs[-2].runs[0].bold is True
+    assert document.paragraphs[-2].runs[0].italic is True
+    assert document.paragraphs[-1].runs[0].italic is True
+    assert not document.element.body.xpath(".//w:highlight")
+    assert "Giuseppe Montagnese" not in text
+    assert "MNTGPP94L01G791A" not in text
+    assert not any(
+        run._r.rPr is not None and run._r.rPr.find(qn("w:highlight")) is not None
+        for paragraph in document.paragraphs
+        for run in paragraph.runs
+    )
+
+
+def test_attestazione_conformita_preserva_descrizione_con_virgole():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "ricorso.pdf",
+            "descrizione": (
+                "Ricorso per il recupero delle annualità della Carta del docente richiesto "
+                "a favore dell'assistito e contro il Ministero, i.p.l.r.p.t."
+            ),
+            "origine": "copia_fascicolo_informatico",
+            "data_documento": "2026-05-18",
+        }
+    ]
+
+    model = build_attestazione_conformita_payload(payload)
+
+    assert model["document_rows"] == [
+        {
+            "title": "Ricorso",
+            "detail": (
+                "per il recupero delle annualità della Carta del docente richiesto "
+                "a favore dell'assistito e contro il Ministero, i.p.l.r.p.t., "
+                "depositato in data 18/05/2026"
+            ),
+            "text": (
+                "Ricorso, per il recupero delle annualità della Carta del docente richiesto "
+                "a favore dell'assistito e contro il Ministero, i.p.l.r.p.t., "
+                "depositato in data 18/05/2026"
+            ),
+        }
+    ]
 
 
 def test_attestazione_sentenza_autocompila_modello_word_e_firma():
@@ -325,6 +504,9 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
         ],
         "attestazione_multipla": True,
     })
+    payload["verifica_pec_mittente"] = _pec_evidence(
+        "reginde", "studio@example.pec.it", "MNTGPP94L01G791A", "2026-05-12T10:30:00+02:00",
+    )
 
     model = build_attestazione_conformita_payload(payload)
     result = validate_legal_notification(payload)
@@ -505,6 +687,9 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
         "provvedimento_data": "2026-05-20",
         "provvedimento_data_deposito": "2026-05-20",
     })
+    payload["verifiche_pec_destinatari"] = [_pec_evidence(
+        "reginde", "controparte@example.pec.it", "", "2026-05-12T10:30:01+02:00",
+    )]
 
     result = validate_legal_notification(payload)
 
@@ -798,6 +983,7 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
     payload = _legal_payload()
     payload["luogo"] = "TAURIANOVA RC"
     payload["data_relata"] = "2026-05-14"
+    payload["ora_relata"] = "16:40"
     payload["template_id"] = "relata_personalizzata_prova"
     payload["template_personalizzato"] = {
         "id": "relata_personalizzata_prova",
@@ -809,7 +995,7 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
             "{{ documenti_righe }}",
             "{{ blocco_procedimento }}",
             "{{ attestazioni_testo }}",
-            "{{ notifica.luogo }}, {{ notifica.data }}",
+            "{{ notifica.luogo }}, {{ notifica.data }} alle ore {{ notifica.ora }}",
         ]),
         "requires_proceeding": True,
     }
@@ -824,7 +1010,7 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
     assert "R.G. n. 1234/2026" in result.relata_text
     assert "INTEGRAZIONE DELL'AVVOCATO" in result.relata_text
     assert "Precisazione finale aggiunta dall'avvocato." in result.relata_text
-    assert "TAURIANOVA RC, 14/05/2026" in result.relata_text
+    assert "TAURIANOVA RC, 14/05/2026 alle ore 16:40" in result.relata_text
     assert "TAURIANOVA RC, 2026-05-14" not in result.relata_text
 
 
@@ -892,9 +1078,46 @@ def test_anteprima_relata_compilata_con_placeholder():
 
     assert full["ok"] is True
     assert "Cliente S.r.l." in full["previewText"]
+    assert "Via Roma 1, CAP 00100" in full["previewText"]
+    assert "Roma (RM)" in full["previewText"]
     assert missing["ok"] is True
     assert "[dato mancante: PEC destinatario]" in missing["previewText"]
     assert "PEC destinatario" in missing["missingFields"]
+
+
+def test_anteprima_non_segnala_attestazioni_automatiche_quando_non_servono():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "ricorso.pdf.p7m",
+            "descrizione": "Ricorso firmato digitalmente",
+            "origine": "firmato_digitalmente",
+        }
+    ]
+
+    preview = preview_legal_relata(payload)
+
+    assert preview["ok"] is True
+    assert "[dato mancante: Attestazioni automatiche]" not in preview["previewText"]
+    assert "Attestazioni automatiche" not in preview["missingFields"]
+
+
+def test_anteprima_genera_attestazione_dell_avvocato_per_copia_da_fascicolo():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "sentenza.pdf",
+            "descrizione": "Sentenza estratta dal fascicolo informatico",
+            "origine": "copia_fascicolo_informatico",
+        }
+    ]
+
+    preview = preview_legal_relata(payload)
+
+    assert preview["ok"] is True
+    assert "Attesto, ai sensi della normativa vigente" in preview["previewText"]
+    assert "Sentenza estratta dal fascicolo informatico" in preview["previewText"]
+    assert "[dato mancante: Attestazioni automatiche]" not in preview["previewText"]
 
 
 def test_anteprima_modelli_standard_catalogo_non_bloccata():
@@ -1177,12 +1400,25 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
         json=_legal_payload(),
         headers=headers,
     )
+    attestation_response = client.post(
+        "/api/v1/ui/notifiche-legali/attestazione-conformita",
+        json=_legal_payload(),
+        headers=headers,
+    )
     send_payload = _legal_payload()
     send_payload["operazione"] = "invio_pec_l53"
-    send_payload["data_verifica_pec"] = ""
     send_response = client.post(
         "/api/v1/ui/notifiche-legali/notifica",
         json=send_payload,
+        headers=headers,
+    )
+    unverified_send_payload = _legal_payload()
+    unverified_send_payload["operazione"] = "invio_pec_l53"
+    unverified_send_payload["verifica_pec_mittente"] = {}
+    unverified_send_payload["verifiche_pec_destinatari"] = []
+    unverified_send_response = client.post(
+        "/api/v1/ui/notifiche-legali/notifica",
+        json=unverified_send_payload,
         headers=headers,
     )
     client_response = client.post(
@@ -1233,6 +1469,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     invalid_payload = invalid_response.get_json()
     valid_payload = valid_response.get_json()
     send_result = send_response.get_json()
+    unverified_send_result = unverified_send_response.get_json()
     client_payload = client_response.get_json()
     unep_payload = unep_response.get_json()
     non_pec_payload = non_pec_response.get_json()
@@ -1251,6 +1488,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert any(item["value"] == "raccomandata" for item in payload["tipiNotificaNonPec"])
     assert payload["azioni"]["unep"] == "/api/v1/ui/notifiche-legali/unep"
     assert payload["azioni"]["nonPec"] == "/api/v1/ui/notifiche-legali/non-pec"
+    assert payload["azioni"]["attestazioneConformita"] == "/api/v1/ui/notifiche-legali/attestazione-conformita"
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
@@ -1259,10 +1497,15 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert "RELAZIONE DI NOTIFICAZIONE" in valid_payload["relataText"]
     assert valid_payload["outputPlan"]["workflowSteps"]
     assert valid_payload["outputPlan"]["auditTrail"]["documentsCount"] == 1
+    assert attestation_response.status_code == 200
+    assert attestation_response.mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    assert attestation_response.data.startswith(b"PK")
     assert send_response.status_code == 200
     assert send_result["ok"] is True
     assert send_result["message"] == "Piano di invio PEC pronto per la conferma dell'avvocato."
     assert len(send_result["outputPlan"]["timingPlan"]["plannedAt"].split(":")) == 3
+    assert unverified_send_response.status_code == 400
+    assert any("PEC_DESTINATARIO_VERIFICA_REQUIRED" in item for item in unverified_send_result["blockers"])
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""
@@ -1363,20 +1606,25 @@ def test_api_react_notifiche_legali_salva_bozza_relata_e_non_modello(tmp_path: P
     assert (tmp_path / "notifiche" / "bozze_relata.json").exists()
 
 
-def test_bozza_relata_override_usata_ma_controlli_restano_attivi():
+def test_bozza_relata_override_non_puo_eliminare_i_dati_obbligatori():
     payload = _legal_payload()
     payload["relata_override_text"] = "TESTO MANUALE DELLA RELATA"
-    ok = validate_legal_notification(payload)
-    blocked = _legal_payload()
-    blocked["relata_override_text"] = "TESTO MANUALE DELLA RELATA"
-    blocked["destinatario_pec"] = ""
+    result = validate_legal_notification(payload)
 
-    blocked_result = validate_legal_notification(blocked)
+    assert result.ok is False
+    assert any("RELAZIONE_CONTENUTO_OBBLIGATORIO_REQUIRED" in item for item in result.blockers)
 
-    assert ok.ok is True
-    assert ok.relata_text == "TESTO MANUALE DELLA RELATA\n"
-    assert blocked_result.ok is False
-    assert any("PEC del destinatario" in item for item in blocked_result.blockers)
+
+def test_notifica_richiede_data_e_ora_relata_esplicite():
+    payload = _legal_payload()
+    payload["data_relata"] = ""
+    payload["ora_relata"] = ""
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert "Indica la data della relata." in result.blockers
+    assert "Indica l'ora italiana della relata." in result.blockers
 
 
 def test_api_react_notifiche_legali_robustezza_json_e_limiti(tmp_path: Path):
@@ -1505,16 +1753,28 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     )
     parte = SimpleNamespace(ruolo=SimpleNamespace(value="CONTROPARTE"), note="")
 
-    payload = build_react_notifiche_legali_payload(
-        get_clienti=lambda: SimpleNamespace(tutti=lambda: [cliente]),
-        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
-        get_soggetti=lambda: SimpleNamespace(
+    clienti_repo = SimpleNamespace(tutti=lambda: [cliente], get=lambda _id: cliente)
+    fascicoli_repo = SimpleNamespace(
+        tutti=lambda archiviati=False: [fascicolo],
+        get=lambda _id: fascicolo,
+    )
+    soggetti_repo = SimpleNamespace(
             tutti=lambda: [soggetto],
             parti_fascicolo=lambda id_fascicolo: [(parte, soggetto)],
-        ),
+    )
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: clienti_repo,
+        get_fascicoli=lambda: fascicoli_repo,
+        get_soggetti=lambda: soggetti_repo,
+    )
+    practice_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-1",
+        get_clienti=lambda: clienti_repo,
+        get_fascicoli=lambda: fascicoli_repo,
+        get_soggetti=lambda: soggetti_repo,
     )
 
-    pratica = payload["precompilazione"]["pratiche"][0]
+    pratica = practice_payload["pratica"]
     destinatario = pratica["destinatari"][0]
     documento_payload = pratica["documenti"][0]
 
@@ -1537,7 +1797,151 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert documento_payload["necessitaAttestazione"] is True
     assert pratica["portaleAcquisizioneHref"].startswith("/portali/pst/acquisizione?")
     assert pratica["documentoUfficioMonitor"]["stato"] == "da_verificare"
+    assert payload["precompilazione"]["pratiche"] == []
+    assert payload["precompilazione"]["indicePratiche"][0]["id"] == "fascicolo-1"
     assert payload["azioni"]["firmaDigitale"] == "/guida/firma-digitale"
+
+
+def test_destinatario_avvocatura_usa_reginde_e_parte_rappresentata_del_fascicolo():
+    soggetto = SimpleNamespace(
+        id="avvocatura-venezia",
+        tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+        nome_completo="Avvocatura Distrettuale dello Stato di Venezia",
+        ragione_sociale="",
+        identificativo="94026160278",
+        recapiti=SimpleNamespace(pec="ads.ve@mailcert.avvocaturastato.it"),
+        qualifica="",
+    )
+    fascicolo = SimpleNamespace(controparte="Ministero dell'Istruzione e del Merito")
+
+    recipient = react_notifiche_legali_bridge._recipient_from_subject(
+        soggetto,
+        ruolo="CONTROPARTE",
+        note="Aggiunta durante l'apertura del fascicolo.",
+        fascicolo=fascicolo,
+    )
+
+    assert recipient["ruolo"] == "difensore"
+    assert recipient["fontePecSuggerita"] == "reginde"
+    assert recipient["parteRappresentata"] == "Ministero dell'Istruzione e del Merito"
+    assert recipient["pec"] == "ads.ve@mailcert.avvocaturastato.it"
+
+
+def test_destinatario_avvocatura_storico_non_rappresenta_se_stesso():
+    soggetto = SimpleNamespace(
+        id="avvocatura-venezia",
+        tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+        nome_completo="Avvocatura Distrettuale dello Stato di Venezia",
+        ragione_sociale="",
+        identificativo="94026160278",
+        recapiti=SimpleNamespace(pec="ads.ve@mailcert.avvocaturastato.it"),
+        qualifica="",
+    )
+    fascicolo = SimpleNamespace(
+        titolo="2026/332 - Marchetti c. MIM",
+        controparte="Avvocatura Distrettuale di Stato di Venezia",
+    )
+
+    recipient = react_notifiche_legali_bridge._recipient_from_subject(
+        soggetto,
+        ruolo="CONTROPARTE",
+        fascicolo=fascicolo,
+    )
+
+    assert recipient["ruolo"] == "difensore"
+    assert recipient["ruoloPratica"] == "difensore"
+    assert recipient["fontePecSuggerita"] == "reginde"
+    assert recipient["parteRappresentata"] == "Ministero dell'Istruzione e del Merito"
+
+
+def test_destinatario_avvocatura_generico_non_inventa_la_parte_rappresentata():
+    soggetto = SimpleNamespace(
+        id="avvocatura-venezia",
+        tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+        nome_completo="Avvocatura Distrettuale dello Stato di Venezia",
+        ragione_sociale="",
+        identificativo="94026160278",
+        recapiti=SimpleNamespace(pec="ads.ve@mailcert.avvocaturastato.it"),
+        qualifica="",
+    )
+
+    recipient = react_notifiche_legali_bridge._recipient_from_subject(soggetto)
+
+    assert recipient["ruolo"] == "difensore"
+    assert recipient["fontePecSuggerita"] == "reginde"
+    assert recipient["parteRappresentata"] == ""
+
+
+def test_matrice_destinatari_automatici_copre_tutte_le_categorie_e_registri_ammessi():
+    cases = (
+        ("Soggetto di prova", "PERSONA_FISICA", "CONTROPARTE", "", "persona@domiciliodigitale.test", "controparte", "inad"),
+        ("Società di prova", "PERSONA_GIURIDICA", "CONTROPARTE", "", "societa@pec.impresa.test", "impresa", "ini_pec"),
+        ("Ente privato", "ENTE", "CONTROPARTE", "", "ente@pec.test", "impresa", "ini_pec"),
+        ("Professionista", "PROFESSIONISTA", "CONTROPARTE", "commercialista", "studio@pec.test", "professionista", "ini_pec"),
+        ("Avvocato", "PERSONA_FISICA", "DIFENSORE", "avvocato", "avvocato@pec.test", "difensore", "reginde"),
+        ("Ente pubblico", "PUBBLICA_AMMINISTRAZIONE", "CONTROPARTE", "", "protocollo@ente.gov.it", "pa", "registro_ppaa"),
+        ("Ministero", "PERSONA_GIURIDICA", "CONTROPARTE", "", "notifiche@pec.istruzione.it", "pa", "registro_ppaa"),
+        ("MIM - USP Milano", "PERSONA_GIURIDICA", "CONTROPARTE", "", "uspmi@postacert.istruzione.it", "pa", "registro_ppaa"),
+        ("USR Catanzaro", "PERSONA_GIURIDICA", "CONTROPARTE", "", "uspcz.contenzioso@postacert.istruzione.it", "pa", "registro_ppaa"),
+        ("Città Metropolitana di Reggio Calabria", "PERSONA_GIURIDICA", "CONTROPARTE", "", "protocollo@pec.cittametropolitana.rc.it", "pa", "registro_ppaa"),
+        ("Agenzia delle Entrate-Riscossione", "PERSONA_GIURIDICA", "CONTROPARTE", "", "protocollo@pec.agenziariscossione.gov.it", "pa", "registro_ppaa"),
+        ("Terzo", "PERSONA_FISICA", "TERZO", "", "terzo@domiciliodigitale.test", "terzo", "inad"),
+    )
+
+    for nome, tipo, ruolo, qualifica, pec, expected_role, expected_register in cases:
+        soggetto = SimpleNamespace(
+            tipo=SimpleNamespace(value=tipo),
+            nome_completo=nome,
+            ragione_sociale="",
+            qualifica=qualifica,
+        )
+        inferred_role = react_notifiche_legali_bridge._infer_recipient_role(soggetto, ruolo, pec)
+        inferred_register = react_notifiche_legali_bridge._infer_public_register(soggetto, ruolo, pec)
+
+        assert inferred_role == expected_role
+        assert inferred_register == expected_register
+        assert inferred_register in RECIPIENT_NOTIFICATION_DIRECTIVES[inferred_role]["allowed_registers"]
+
+
+def test_suggerimenti_notifica_escludono_email_ordinaria_spacciata_per_pec():
+    ordinary = SimpleNamespace(
+        id="ordinary",
+        tipo=SimpleNamespace(value="PERSONA_FISICA"),
+        nome_completo="Valeria",
+        ragione_sociale="",
+        identificativo="",
+        recapiti=SimpleNamespace(pec="valeria@gmail.com"),
+        qualifica="",
+    )
+    certified = SimpleNamespace(
+        id="certified",
+        tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+        nome_completo="Alfa S.p.A.",
+        ragione_sociale="Alfa S.p.A.",
+        identificativo="01234567890",
+        recapiti=SimpleNamespace(pec="alfa@pec.impresa.it"),
+        qualifica="",
+    )
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: []),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [ordinary, certified]),
+    )
+
+    suggestions = payload["precompilazione"]["destinatari"]
+    assert [item["id"] for item in suggestions] == ["certified"]
+    assert suggestions[0]["fontePecSuggerita"] == "ini_pec"
+
+
+def test_destinatario_avvocatura_plain_usa_ruolo_e_registro_difensore():
+    recipient = react_notifiche_legali_bridge._recipient_from_plain(
+        recipient_id="avvocatura",
+        name="Avvocatura Distrettuale dello Stato di Venezia",
+    )
+
+    assert recipient["ruolo"] == "difensore"
+    assert recipient["fontePecSuggerita"] == "reginde"
 
 
 def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_import_pratiche():
@@ -1592,13 +1996,14 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_impor
         oggetto="",
     )
 
-    payload = build_react_notifiche_legali_payload(
-        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
-        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+    practice_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-quick",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda _id: fascicolo),
         get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
     )
 
-    pratica = payload["precompilazione"]["pratiche"][0]
+    pratica = practice_payload["pratica"]
     recipient_names = {item["nome"] for item in pratica["destinatari"]}
     recipient_pecs = {item["pec"] for item in pratica["destinatari"] if item["pec"]}
     documento_payload = pratica["documenti"][0]
@@ -1613,7 +2018,7 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_impor
     assert documento_payload["nomeFile"] == "Ricorso Lisciotto.pdf"
     assert documento_payload["label"] == "Ricorso Lisciotto.pdf"
     assert "QuickOrganizer" not in documento_payload["label"]
-    serialized_payload = json.dumps(payload, ensure_ascii=False)
+    serialized_payload = json.dumps(practice_payload, ensure_ascii=False)
     assert "QuickOrganizer" not in serialized_payload
     assert "DatiAtto.xml" not in serialized_payload
     assert "TAVOLA" not in serialized_payload
@@ -1641,13 +2046,14 @@ def test_payload_react_notifiche_legali_deriva_rg_da_numero_fascicolo():
         oggetto="",
     )
 
-    payload = build_react_notifiche_legali_payload(
-        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
-        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+    payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-rg",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda _id: fascicolo),
         get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
     )
 
-    procedimento = payload["precompilazione"]["pratiche"][0]["procedimento"]
+    procedimento = payload["pratica"]["procedimento"]
 
     assert procedimento["numeroRg"] == "466"
     assert procedimento["annoRg"] == "2023"
@@ -1742,13 +2148,17 @@ def test_deriva_titoli_provvedimenti_carta_docente_da_ocr_reale():
     )
 
 
-def test_ui_notifiche_legali_carica_relata_firmata_nel_flusso_operativo():
+def test_ui_notifiche_legali_firma_relata_direttamente_nel_flusso_operativo():
     page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
 
-    assert "handleSignedRelataFile" in page
-    assert "Carica relata firmata" in page
+    assert "signRelata" in page
+    assert 'className="iu-legal-signature-pin"' in page
+    assert 'aria-label="PIN del dispositivo di firma"' in page
+    assert "Il PIN resta su questo PC e viene cancellato dopo la firma." in page
+    assert "Firma relata" in page
+    assert "Carica relata firmata" not in page
     assert "relata_sha256" in page
-    assert "setNotifica((current) => ({ ...current, relata_firmata: true }))" in page
+    assert "setNotifica((current) => ({ ...current, ...notificaOverrides, relata_firmata: true }))" in page
 
 
 def test_ui_notifiche_legali_ogni_controllo_porta_esito_in_vista():
@@ -1760,6 +2170,47 @@ def test_ui_notifiche_legali_ogni_controllo_porta_esito_in_vista():
     scroll_index = page.index("scrollResultIntoView()", result_index)
     working_index = page.index("setWorking(false)", result_index)
     assert result_index < scroll_index < working_index
+
+
+def test_ui_notifiche_legali_mostra_data_catalogo_in_formato_italiano():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "function templateVersionDate" in page
+    assert "function templateVersionLabel" in page
+    assert "aggiornato il ${date}" in page
+    assert "Aggiornato il ${templateVersionDate(data.templateCatalogVersion)}" in page
+    assert "Versione ${data.templateCatalogVersion}" not in page
+    assert "` - ${result.templateVersion}`" not in page
+
+
+def test_ui_notifiche_legali_rende_automatici_i_controlli_non_decisionali():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "Verifica automatica delle PEC" in page
+    assert "Relata separata predisposta automaticamente" in page
+    assert "Ricevuta completa prevista automaticamente" in page
+    assert "Approvazione finale dell'avvocato prima dell'invio" in page
+    assert "Avvocato abilitato alla notifica in proprio" not in page
+    assert "Data e ora verifica PEC" not in page
+    assert "checked={notifica.ricevuta_completa}" not in page
+    assert "checked={notifica.relata_documento_separato}" not in page
+
+
+def test_ui_notifiche_legali_verifica_i_dati_visibili_del_destinatario_attivo():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "const isActive = recipient.id === selectedRecipientId" in page
+    assert "isActive ? notifica.fonte_pec_destinatario || recipient.fontePecSuggerita" in page
+    assert "isActive ? notifica.destinatario_pec || recipient.pec" in page
+
+
+def test_ui_notifiche_legali_allinea_caso_modello_e_mostra_il_blocco_locale_reale():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "item.templateId === practice.modelloSuggerito" in page
+    assert "caso_notifica: suggestedCase?.value || current.caso_notifica" in page
+    assert "pecVerificationMessage(raw)" in page
+    assert "Il certificato di autenticazione del dispositivo non è disponibile." in page
 
 
 def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeypatch):
@@ -1810,15 +2261,21 @@ def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeyp
     )
     monkeypatch.setattr("web.services.react_notifiche_legali_bridge._office_pec_messages", lambda: [pec])
 
-    payload = build_react_notifiche_legali_payload(
+    initial_payload = build_react_notifiche_legali_payload(
         get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
         get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
         get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
     )
+    payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-portale",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda _id: fascicolo),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
 
-    pratica = payload["precompilazione"]["pratiche"][0]
+    pratica = payload["pratica"]
 
-    assert payload["contracts"]["officeDocumentPecEvidence"] is True
+    assert initial_payload["contracts"]["officeDocumentPecEvidence"] is True
     assert pratica["documentoUfficioMonitor"]["stato"] == "da_acquisire"
     assert pratica["documentoUfficioMonitor"]["documentiDaAcquisire"] == 1
     assert pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["nome"] == "ordinanza_da_notificare.pdf"

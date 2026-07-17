@@ -1135,16 +1135,51 @@ function isAcquisitionPath(portal: string): boolean {
 
 function formatGeneratedAt(value: string) {
   if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', {
-    timeZone: 'Europe/Rome',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  const fallback = value.replace(/^(\d{2}\/\d{2}\/\d{4}),\s*(\d{2}:\d{2})$/, '$1 $2')
+  return formatDateTimeIt(value, fallback)
+}
+
+const OFFICE_TYPE_LABELS: Record<string, string> = {
+  TRIBUNALE: 'Tribunale',
+  CORTE_APPELLO: "Corte d'Appello",
+  PROCURA: 'Procura della Repubblica',
+  PROCURA_GENERALE: 'Procura Generale',
+  CORTE_CASSAZIONE: 'Corte di Cassazione',
+  TM: 'Tribunale per i Minorenni',
+  SORVEGLIANZA: 'Tribunale di Sorveglianza',
+  CORTE_ASSISE: "Corte d'Assise",
+  CORTE_APPELLO_SEZIONE: "Sezione di Corte d'Appello",
+  GDP: 'Giudice di Pace',
+  UNEP: 'UNEP',
+  TAR: 'TAR',
+  CDS: 'Consiglio di Stato',
+  CGARS: 'Consiglio di Giustizia Amministrativa',
+  CGT: 'Corte di Giustizia Tributaria di secondo grado',
+  CPT: 'Corte di Giustizia Tributaria di primo grado',
+}
+
+function officeTypeLabel(value: string): string {
+  const normalized = asText(value).toUpperCase()
+  return OFFICE_TYPE_LABELS[normalized] || normalized.replaceAll('_', ' ')
+}
+
+function officeSuggestionDetails(office: OfficeRow): string {
+  const seen = new Set<string>()
+  return [
+    officeTypeLabel(office.tipo),
+    office.distretto,
+    office.comune || office.provincia,
+    office.codice || office.codiceMinistero,
+  ]
+    .map((value) => asText(value))
+    .filter((value) => {
+      if (!value) return false
+      const key = value.toLocaleLowerCase('it-IT')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .join(' - ')
 }
 
 function linkKindLabel(kind: string) {
@@ -2745,15 +2780,6 @@ function requestLocalSignerUpdate() {
   requestLocalSignerProtocol('iusentra-local-signer://update')
 }
 
-function requestLocalSignerInstallerDownload(data: TelematicoSurfaceData) {
-  if (!isDesktopLocalSignerHost()) return
-  const iframe = document.createElement('iframe')
-  iframe.hidden = true
-  iframe.src = localSignerInstallHref(data)
-  document.body.appendChild(iframe)
-  window.setTimeout(() => iframe.remove(), 30000)
-}
-
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -2850,6 +2876,7 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
   const nomeUfficio = asText(row.nome_ufficio || row.ufficio_nome || query.ufficioNome || query.ufficio)
   const parti = asList(row.parti).map((item) => asText(item)).filter(Boolean)
   const controparti = asList(row.controparti).map((item) => asText(item)).filter(Boolean)
+  const localMatch = asRecord(row.local_match)
   const raw = {
     external_id: [
       codiceUfficio,
@@ -2867,6 +2894,7 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     ufficio_nome: nomeUfficio,
     procedimento,
     sub_procedimento: asText(row.sub_procedimento),
+    id_dfa: asText(row.id_dfa),
     sezione: asText(row.sezione),
     stato: asText(row.stato),
     oggetto: asText(row.oggetto || query.oggetto),
@@ -2877,7 +2905,12 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     ultima_attivita: asText(row.data_udienza || row.data_iscrizione || row.ultima_attivita),
     servizio_pst: asText(row.servizio_pst),
     registro_portale: registroPortale,
+    tipo_registro: asText(row.tipo_registro || registroPortale),
     tabella_ministeriale: asText(row.tabella_ministeriale),
+    fascicolo_locale_id: asText(row.fascicolo_locale_id || localMatch.id),
+    local_match: localMatch,
+    already_present: Boolean(row.already_present || row.fascicolo_locale_id || localMatch.id),
+    mapping_mode: asText(row.mapping_mode || row.suggested_mode),
     payload: row,
   }
   return {
@@ -2887,6 +2920,29 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     badge: asText(raw.stato || raw.procedimento, 'Fascicolo'),
     meta: italianDate(raw.ultima_attivita),
     raw,
+  }
+}
+
+function acquisitionResultLocalTargetId(result: AcquisitionResult | null): string {
+  if (!result) return ''
+  const localMatch = asRecord(result.raw.local_match)
+  return asText(result.raw.fascicolo_locale_id || localMatch.id)
+}
+
+function pstLocalMatchIdentity(raw: JsonRecord): JsonRecord {
+  return {
+    external_id: asText(raw.external_id),
+    id_fascicolo: asText(raw.id_fascicolo),
+    numero: asText(raw.numero),
+    anno: asNumber(raw.anno),
+    ufficio_codice: asText(raw.ufficio_codice),
+    ufficio_nome: asText(raw.ufficio_nome),
+    procedimento: asText(raw.procedimento),
+    sub_procedimento: asText(raw.sub_procedimento),
+    id_dfa: asText(raw.id_dfa),
+    registro_portale: asText(raw.registro_portale),
+    tipo_registro: asText(raw.tipo_registro || raw.registro_portale),
+    servizio_pst: asText(raw.servizio_pst),
   }
 }
 
@@ -3618,6 +3674,7 @@ function AcquisitionWizard({
   const [assistantMonitoring, setAssistantMonitoring] = useState(false)
   const assistantTimerRef = useRef<number | null>(null)
   const autoPstTestStartedRef = useRef(false)
+  const autoMatchedTargetRef = useRef('')
   const mappingTargetOptions = useMemo(() => {
     const rows: Array<{ id: string; title: string }> = []
     const add = (id: string, title: string) => {
@@ -3626,11 +3683,16 @@ function AcquisitionWizard({
       rows.push({ id: cleanId, title: asText(title, 'Pratica locale selezionata') })
     }
     add(initialTargetFascicoloId, 'Pratica locale selezionata')
+    const localMatch = asRecord(selection?.raw.local_match)
+    add(
+      acquisitionResultLocalTargetId(selection),
+      asText(localMatch.titolo || localMatch.title || selection?.title, 'Fascicolo locale già presente'),
+    )
     data.recentCases.forEach((item) => {
       add(item.practiceId || item.id, item.title)
     })
     return rows
-  }, [data.recentCases, initialTargetFascicoloId])
+  }, [data.recentCases, initialTargetFascicoloId, selection])
   const previewDocuments = useMemo(() => pstPreviewDocuments(preview), [preview])
   const structuredHearingLabel = useMemo(() => previewStructuredHearingLabel(preview), [preview])
   const deadlineSourceDocuments = useMemo(() => previewDeadlineSourceDocuments(preview), [preview])
@@ -3700,7 +3762,7 @@ function AcquisitionWizard({
 
   const checkLocalSigner = async (
     tryStart = false,
-    options: { silent?: boolean } = {},
+    options: { silent?: boolean; timeoutMs?: number } = {},
   ): Promise<BrowserLocalSignerStatus> => {
     if (!localSignerDesktopSupported) {
       const next = {
@@ -3732,7 +3794,7 @@ function AcquisitionWizard({
       const endpoint = localSignerEndpoint('/ping?light=1', baseUrl)
       probeUrls.push(endpoint)
       try {
-        const { payload, ok } = await localSignerBrowserJson(endpoint, undefined, 3500)
+        const { payload, ok } = await localSignerBrowserJson(endpoint, undefined, options.timeoutMs || 3500)
         const version = asText(payload.versione || payload.version || payload.local_signer_version)
         const tokenList = asList(payload.token || payload.tokens)
         const firstToken = asRecord(tokenList[0])
@@ -3792,12 +3854,16 @@ function AcquisitionWizard({
       message: 'Aggiornamento automatico Local Signer avviato. IUSENTRA usa il pacchetto ufficiale e poi ricontrolla il servizio locale.',
     }))
     let updateStarted = false
-    let updateNeedsInstaller = false
+    let updateTargetStillOld = false
     try {
-      const updatePayload = await localSignerJson('/update', { base_url: window.location.origin }, 8000)
+      const updatePayload = await localSignerJson('/update', { base_url: window.location.origin }, 60000)
       updateStarted = updatePayload.ok !== false
-      const updateVersion = asText(updatePayload.versione || updatePayload.version || updatePayload.versione_corrente)
-      updateNeedsInstaller = Boolean(
+      const updateVersion = asText(
+        updatePayload.versione_destinazione
+        || updatePayload.versione
+        || updatePayload.versione_corrente,
+      )
+      updateTargetStillOld = Boolean(
         data.localSigner.latestVersion
         && updateVersion
         && compareVersions(updateVersion, data.localSigner.latestVersion) < 0,
@@ -3805,13 +3871,13 @@ function AcquisitionWizard({
     } catch {
       updateStarted = false
     }
-    if (!updateStarted || updateNeedsInstaller) {
+    if (!updateStarted || updateTargetStillOld) {
       requestLocalSignerUpdate()
-      window.setTimeout(() => requestLocalSignerInstallerDownload(data), 1500)
     }
-    for (let attempt = 0; attempt < 70; attempt += 1) {
-      await wait(1200)
-      const next = await checkLocalSigner(false, { silent: true })
+    const updateDeadline = Date.now() + 360000
+    for (let attempt = 0; attempt < 240 && Date.now() < updateDeadline; attempt += 1) {
+      await wait(1500)
+      const next = await checkLocalSigner(false, { silent: true, timeoutMs: 1500 })
       if (next.ok && !next.outdated) {
         setLocalSigner(next)
         setMessage(`Local Signer aggiornato alla versione ${next.version || data.localSigner.latestVersion}.`)
@@ -3826,7 +3892,7 @@ function AcquisitionWizard({
       unsupported: false,
       version: localSigner.version,
       tokenLabel: localSigner.tokenLabel,
-      message: 'Aggiornamento automatico non completato. Se Windows non ha autorizzato l’avvio, usa il pacchetto ufficiale e poi verifica di nuovo.',
+      message: 'Aggiornamento automatico non completato. Usa Installa o aggiorna e poi esegui una nuova verifica.',
     }
     setLocalSigner(next)
     return next
@@ -4015,15 +4081,14 @@ function AcquisitionWizard({
   )
 
   const rememberPstSession = (payload: JsonRecord, tribunale: string, cert: PstCertificate): PstSession | null => {
-    const sessionId = asText(payload.pst_session_id)
-    if (!sessionId) return null
-    const ttlSeconds = asNumber(payload.pst_session_ttl_seconds) || 900
-    const session = {
-      sessionId,
-      tribunale: asText(payload.tribunale || tribunale),
-      certThumbprint: cert.thumbprint,
-      expiresAt: Date.now() + ttlSeconds * 1000,
-    }
+    const snapshot = asRecord(payload.snapshot)
+    const session = (
+      coercePstSessionFromPayload(payload, tribunale, cert)
+      || coercePstSessionFromPayload(payload.pst_session, tribunale, cert)
+      || coercePstSessionFromPayload(payload.session, tribunale, cert)
+      || coercePstSessionFromPayload(snapshot.pst_session, tribunale, cert)
+    )
+    if (!session) return null
     setPstSession(session)
     storePstSession(session)
     return session
@@ -4060,8 +4125,16 @@ function AcquisitionWizard({
     expires_at: session.expiresAt,
   })
 
-  const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
+  const invalidateImportCheck = () => {
+    setAnalysis({})
+    setImportResult({})
+  }
+  const updateQuery = (key: keyof AcquisitionQuery, value: string) => {
+    setQuery((current) => ({ ...current, [key]: value }))
+    invalidateImportCheck()
+  }
   const applyMinisterialSchema = (schemaValue: string) => {
+    invalidateImportCheck()
     if (!schemaValue) {
       setQuery((current) => ({
         ...current,
@@ -4090,17 +4163,46 @@ function AcquisitionWizard({
       return next
     })
   }
-  const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
-  const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => {
-    const next = { ...current, [key]: value } as AcquisitionMapping
-    if (key === 'target_fascicolo_id' && value && current.mode === 'create_new') {
-      next.mode = 'update_existing'
-    }
-    if (key === 'mode' && value === 'create_new') {
-      next.target_fascicolo_id = ''
-    }
-    return next
-  })
+  const updateOption = (key: keyof AcquisitionOptions, value: boolean) => {
+    setOptions((current) => ({ ...current, [key]: value }))
+    invalidateImportCheck()
+  }
+  const updateMapping = (key: keyof AcquisitionMapping, value: string) => {
+    setMapping((current) => {
+      const next = { ...current, [key]: value } as AcquisitionMapping
+      if (key === 'target_fascicolo_id' && value && current.mode === 'create_new') {
+        next.mode = 'update_existing'
+      }
+      if (key === 'mode' && value === 'create_new') {
+        next.target_fascicolo_id = ''
+      }
+      return next
+    })
+    invalidateImportCheck()
+  }
+  const applyAutomaticDestination = (result: AcquisitionResult | null) => {
+    const targetId = acquisitionResultLocalTargetId(result)
+    const previousAutoTarget = autoMatchedTargetRef.current
+    setMapping((current) => {
+      if (targetId) {
+        autoMatchedTargetRef.current = targetId
+        return {
+          ...current,
+          mode: 'update_existing',
+          target_fascicolo_id: targetId,
+        }
+      }
+      if (previousAutoTarget && current.target_fascicolo_id === previousAutoTarget) {
+        autoMatchedTargetRef.current = ''
+        return {
+          ...current,
+          mode: 'create_new',
+          target_fascicolo_id: '',
+        }
+      }
+      return current
+    })
+  }
   const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
   const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
   const pstSchemaLookupKey = useMemo(() => {
@@ -4325,6 +4427,19 @@ function AcquisitionWizard({
   })
 
   const runSearch = async () => {
+    const previousAutoTarget = autoMatchedTargetRef.current
+    if (previousAutoTarget) {
+      setMapping((current) => current.target_fascicolo_id === previousAutoTarget
+        ? { ...current, mode: 'create_new', target_fascicolo_id: '' }
+        : current)
+      autoMatchedTargetRef.current = ''
+    }
+    setResults([])
+    setSelection(null)
+    setPreview({})
+    setFiles([])
+    setSelectedDocumentKeys([])
+    invalidateImportCheck()
     let precheckedPstCert: PstCertificate | null = null
     if (portalUsesOfficialAssistant) {
       setStep(1)
@@ -4453,6 +4568,7 @@ function AcquisitionWizard({
               cert_key: cert.thumbprint || '',
               purpose: REACT_PST_SESSION_PURPOSE,
               pst_session_id: session?.sessionId || '',
+              include_full_snapshot: true,
             }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
           } catch (error: unknown) {
             const message = asText(error instanceof Error ? error.message : error)
@@ -4502,6 +4618,20 @@ function AcquisitionWizard({
         const sourceRows = signerRows.length
           ? signerRows
           : (Object.keys(snapshotFascicolo).length || searchDocumenti.length ? [snapshotFascicolo] : [])
+        const completeSearchSnapshot = Boolean(
+          signerPayload.full_snapshot
+          || signerPayload.master_detail
+          || snapshot.full_snapshot
+          || snapshot.master_detail
+          || (
+            Object.keys(snapshotFascicolo).length
+            && searchDocumenti.length
+            && (
+              Object.prototype.hasOwnProperty.call(snapshot, 'eventi')
+              || Object.prototype.hasOwnProperty.call(snapshot, 'events')
+            )
+          )
+        )
         rows = sourceRows.map((row, index) => {
           const item = normalisePstAcquisitionResult(row, index, query, tribunale)
           return {
@@ -4510,6 +4640,8 @@ function AcquisitionWizard({
               ...item.raw,
               ...(Object.keys(snapshot).length ? { snapshot } : {}),
               ...(searchDocumenti.length ? { documenti: searchDocumenti } : {}),
+              full_snapshot: completeSearchSnapshot,
+              master_detail: completeSearchSnapshot,
               pst_session: pstSessionForServer(nextSession, cert),
             },
           }
@@ -4519,8 +4651,33 @@ function AcquisitionWizard({
         if (payload.ok === false) throw new Error(asText(payload.errore, 'Ricerca non completata.'))
         rows = asList(payload.results || payload.fascicoli).map(normaliseAcquisitionResult)
       }
+      if (portal === 'pst' && rows.length) {
+        const localMatchesPayload = await portalJson('pst', 'local-matches', {
+          results: rows.map((result) => pstLocalMatchIdentity(result.raw)),
+        })
+        if (localMatchesPayload.ok === false) {
+          throw new Error('La verifica dei fascicoli già presenti non è riuscita. Ripeti la ricerca prima di importare.')
+        }
+        const annotatedRows = asList(localMatchesPayload.results).map(asRecord)
+        rows = rows.map((result, index) => {
+          const annotated = annotatedRows[index] || {}
+          const localMatch = asRecord(annotated.local_match)
+          return {
+            ...result,
+            raw: {
+              ...result.raw,
+              fascicolo_locale_id: asText(annotated.fascicolo_locale_id || localMatch.id),
+              local_match: localMatch,
+              already_present: Boolean(annotated.already_present || annotated.fascicolo_locale_id || localMatch.id),
+              mapping_mode: asText(annotated.mapping_mode || annotated.suggested_mode),
+            },
+          }
+        })
+      }
       setResults(rows)
-      setSelection(rows[0] || null)
+      const firstResult = rows[0] || null
+      setSelection(firstResult)
+      applyAutomaticDestination(firstResult)
       setStep(2)
       setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
       setImportProgress((current) => ({
@@ -4601,6 +4758,10 @@ function AcquisitionWizard({
       return
     }
     setSelection(activeSelection)
+    setPreview({})
+    setFiles([])
+    setSelectedDocumentKeys([])
+    invalidateImportCheck()
     setBusy('preview')
     try {
       let payload: JsonRecord
@@ -4632,20 +4793,22 @@ function AcquisitionWizard({
           }
         }
         let pstSessionPayload = asRecord(activeSelection.raw.pst_session)
-        const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0
-        const hasSearchSnapshotDocuments = hasSearchSnapshotPayload
-          && documenti.length > 0
-          && (
-            documenti.some((item, index) => pstPreviewDocumentIsDownloadable(item, index))
-            || documenti.some(pstDocumentHasDirectPortalDownload)
+        const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0 && documenti.length > 0
+        const hasSearchSnapshotDocuments = hasSearchSnapshotPayload && documenti.length > 0
+        const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments && Boolean(
+          activeSelection.raw.full_snapshot
+          || activeSelection.raw.master_detail
+          || snapshot.full_snapshot
+          || snapshot.master_detail
+          || (
+            Object.keys(asRecord(snapshot.fascicolo)).length
+            && documenti.length
+            && (
+              Object.prototype.hasOwnProperty.call(snapshot, 'eventi')
+              || Object.prototype.hasOwnProperty.call(snapshot, 'events')
+            )
           )
-        const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments
-          && Boolean(
-            activeSelection.raw.full_snapshot
-            || activeSelection.raw.master_detail
-            || snapshot.full_snapshot
-            || snapshot.master_detail
-          )
+        )
         if (hasSearchSnapshotPayload) {
           setImportProgress((current) => ({
             ...current,
@@ -4670,6 +4833,7 @@ function AcquisitionWizard({
             anno_rg: asText(activeSelection.raw.anno || query.anno),
             id_fascicolo: asText(activeSelection.raw.id_fascicolo),
             sub_procedimento: asText(activeSelection.raw.sub_procedimento),
+            id_dfa: asText(activeSelection.raw.id_dfa),
             servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
             registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
             tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
@@ -4787,7 +4951,17 @@ function AcquisitionWizard({
         target_document: targetDocumentPayload,
       })
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Analisi non completata.'))
-      setAnalysis(asRecord(payload.analysis))
+      const nextAnalysis = asRecord(payload.analysis)
+      const autoTargetId = asText(nextAnalysis.auto_target_fascicolo_id)
+      if (asText(nextAnalysis.resolved_mode) === 'update_existing' && autoTargetId) {
+        autoMatchedTargetRef.current = autoTargetId
+        setMapping((current) => ({
+          ...current,
+          mode: 'update_existing',
+          target_fascicolo_id: autoTargetId,
+        }))
+      }
+      setAnalysis(nextAnalysis)
       setStep(6)
       setMessage("Analisi completata: controlla blocchi, avvisi e corrispondenze prima dell'importazione.")
     } catch (error: unknown) {
@@ -4798,6 +4972,7 @@ function AcquisitionWizard({
   }
 
   const onFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    invalidateImportCheck()
     setBusy('files')
     setMessage('Preparazione dei file selezionati...')
     try {
@@ -4813,6 +4988,7 @@ function AcquisitionWizard({
   }
 
   const togglePreviewDocument = (doc: JsonRecord, index: number, checked: boolean) => {
+    invalidateImportCheck()
     const key = pstDocumentSelectionKey(doc, index)
     setSelectedDocumentKeys((current) => {
       const next = new Set(current)
@@ -4826,11 +5002,13 @@ function AcquisitionWizard({
   }
 
   const selectAllPreviewDocuments = () => {
+    invalidateImportCheck()
     setSelectedDocumentKeys(previewDocumentKeys)
     if (previewDocumentKeys.length) setOptions((current) => ({ ...current, importa_documenti: true }))
   }
 
   const clearPreviewDocumentSelection = () => {
+    invalidateImportCheck()
     setSelectedDocumentKeys([])
     setOptions((current) => ({ ...current, importa_documenti: false }))
   }
@@ -4921,6 +5099,9 @@ function AcquisitionWizard({
       setMessage(`${downloaded.files.length} documenti PST scaricati e pronti per l'importazione.`)
       if (downloaded.failures.length) {
         recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '))
+      } else if (Object.keys(analysis).length && !issueRows(analysis, 'blockers').length) {
+        setMessage(`${downloaded.files.length} documenti PST ricevuti. Registro e apro il fascicolo.`)
+        await runImport(merged)
       }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
@@ -4938,7 +5119,7 @@ function AcquisitionWizard({
     }
   }
 
-  const runImport = async (overrideFiles?: AcquisitionFile[]) => {
+  async function runImport(overrideFiles?: AcquisitionFile[]) {
     let activeFiles = overrideFiles || files
     if (portalUsesOfficialAssistant && assistantSession?.downloaded_files?.length) {
       activeFiles = mergeAcquisitionFiles(
@@ -4964,6 +5145,22 @@ function AcquisitionWizard({
     if (!payloadJson && portalUsesOfficialAssistant && !downloadedFiles.length && (!selection || !Object.keys(preview).length)) {
       setMessage('Raccogli file dalla sessione assistita o seleziona dati autorizzati prima di importare.')
       setStep(4)
+      return
+    }
+    if (mapping.mode === 'update_existing' && !mapping.target_fascicolo_id) {
+      setMessage('Seleziona il fascicolo interno in cui registrare dati e documenti.')
+      setStep(5)
+      return
+    }
+    const currentBlockers = issueRows(analysis, 'blockers')
+    if (!Object.keys(analysis).length) {
+      setMessage("Esegui prima l'analisi dei conflitti e dei dati da importare.")
+      setStep(6)
+      return
+    }
+    if (currentBlockers.length) {
+      setMessage('Risolvi i blocchi indicati nella verifica prima di importare.')
+      setStep(6)
       return
     }
     setBusy('import')
@@ -5129,19 +5326,14 @@ function AcquisitionWizard({
     }
     const merged = mergeAcquisitionFiles(files, collected)
     setFiles(merged)
+    invalidateImportCheck()
     stopAssistantMonitor()
-    const canImportNow = Boolean(
-      (selection && Object.keys(preview).length && !asList(analysis.blockers).length)
-      || (portalUsesOfficialAssistant && mapping.target_fascicolo_id),
-    )
-    if (canImportNow) {
-      setMessage(`${collected.length} file ufficiali raccolti. Importazione nel fascicolo interno in corso...`)
-      await runImport(merged)
-    } else if (portalUsesOfficialAssistant && !mapping.target_fascicolo_id) {
+    if (portalUsesOfficialAssistant && !mapping.target_fascicolo_id) {
       setMessage(`${collected.length} file ufficiali raccolti. Seleziona il fascicolo interno e conferma l'importazione finale.`)
       setStep(5)
     } else {
-      setMessage(`${collected.length} file ufficiali raccolti. Completa verifica e importazione finale per registrarli nel fascicolo interno.`)
+      setMessage(`${collected.length} file ufficiali raccolti. Esegui la verifica prima dell'importazione finale.`)
+      setStep(5)
     }
   }
 
@@ -5253,6 +5445,8 @@ function AcquisitionWizard({
     ['create_new', 'Crea fascicolo da ricevute', 'Usalo solo se la pratica non esiste ancora nel gestionale.'],
   ]
   const mappingModes = isPatAcquisition ? patMappingModes : acquisitionMappingModes
+  const selectedLocalTargetId = acquisitionResultLocalTargetId(selection)
+  const selectedLocalMatch = asRecord(selection?.raw.local_match)
   const selectedMappingMode = mappingModes.find(([value]) => value === mapping.mode)
   const selectedTargetTitle = mapping.target_fascicolo_id
     ? mappingTargetOptions.find((item) => item.id === mapping.target_fascicolo_id)?.title || mapping.target_fascicolo_id
@@ -5260,6 +5454,27 @@ function AcquisitionWizard({
   const finalDestinationLabel = mapping.mode === 'create_new'
     ? isPatAcquisition ? 'Nuovo fascicolo IUSENTRA da creare' : 'Nuova pratica da creare'
     : selectedTargetTitle || 'Fascicolo interno non selezionato'
+  const finalPayloadReady = Boolean(authorisedPayload(files))
+  const finalPreviewReady = Boolean(selection && Object.keys(preview).length)
+  const finalAssistantFilesReady = Boolean(
+    portalUsesOfficialAssistant
+    && (files.some((file) => !file.payload_json) || assistantSession?.downloaded_files?.length),
+  )
+  const finalSourceReady = finalPayloadReady || finalPreviewReady || finalAssistantFilesReady
+  const finalDestinationReady = portalUsesOfficialAssistant
+    ? Boolean(mapping.target_fascicolo_id)
+    : mapping.mode === 'create_new' || Boolean(mapping.target_fascicolo_id)
+  const finalAnalysisReady = Boolean(Object.keys(analysis).length && blockers.length === 0)
+  const finalImportReady = finalSourceReady && finalDestinationReady && finalAnalysisReady
+  const finalImportBlockReason = !finalSourceReady
+    ? "Carica prima l'anteprima del fascicolo o i file autorizzati."
+    : !finalDestinationReady
+      ? 'Seleziona il fascicolo interno in cui registrare dati e documenti.'
+      : !Object.keys(analysis).length
+        ? "Esegui prima l'analisi dei conflitti e dei dati da importare."
+        : blockers.length
+          ? 'Risolvi i blocchi indicati nella verifica prima di importare.'
+          : ''
   const finalDocumentLabel = options.importa_documenti
     ? `${selectedPreviewDocuments.length}/${previewDocuments.length} documenti selezionati`
     : 'Documenti esclusi'
@@ -5479,7 +5694,7 @@ function AcquisitionWizard({
                       autoComplete="off"
                     />
                     <select value={officeTypeFilter} onChange={(event) => setOfficeTypeFilter(event.currentTarget.value)} aria-label="Filtra tipo ufficio">
-                      {officeTypes.map((type) => <option key={type} value={type}>{type === 'tutti' ? 'Tutti gli uffici' : type}</option>)}
+                      {officeTypes.map((type) => <option key={type} value={type}>{type === 'tutti' ? 'Tutti gli uffici' : officeTypeLabel(type)}</option>)}
                     </select>
                   </div>
                   <div className="iu-tel-acq-office-results" aria-live="polite">
@@ -5489,7 +5704,7 @@ function AcquisitionWizard({
                       officeMatches.map((office) => (
                         <button type="button" key={office.id} onClick={() => selectOffice(office)} className={selectedOfficeMatches(office) ? 'is-selected' : ''}>
                           <strong>{office.nome}</strong>
-                          <small>{[office.tipo, office.distretto, office.comune || office.provincia, office.codice || office.codiceMinistero, office.servizioPst].filter(Boolean).join(' - ')}</small>
+                          <small>{officeSuggestionDetails(office)}</small>
                         </button>
                       ))
                     ) : (
@@ -5559,11 +5774,18 @@ function AcquisitionWizard({
                 {results.map((result) => (
                   <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => {
                     setSelection(result)
+                    applyAutomaticDestination(result)
+                    setPreview({})
+                    setFiles([])
+                    setSelectedDocumentKeys([])
+                    invalidateImportCheck()
                     if (portal === 'pst' && pstHasYearSearch()) void runPreview(result)
                   }} key={result.id}>
                     <strong>{result.title}</strong>
                     <span>{result.subtitle}</span>
-                    <em>{result.badge} {result.meta ? `- ${result.meta}` : ''}</em>
+                    <em>{acquisitionResultLocalTargetId(result)
+                      ? 'Già presente - verrà aggiornato'
+                      : `${result.badge}${result.meta ? ` - ${result.meta}` : ''}`}</em>
                   </button>
                 ))}
               </div>
@@ -5821,12 +6043,26 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-mapping-mode">
                 {mappingModes.map(([value, label, help]) => (
                   <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
-                    <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
+                    <input
+                      type="radio"
+                      checked={mapping.mode === value}
+                      disabled={Boolean(selectedLocalTargetId) && value === 'create_new'}
+                      onChange={() => updateMapping('mode', value)}
+                    />
                     <strong>{label}</strong>
                     <span>{help}</span>
                   </label>
                 ))}
               </div>
+              {selectedLocalTargetId ? (
+                <div className="iu-tel-local-signer-inline" role="status">
+                  <CheckCircle2 size={16}/>
+                  <span>
+                    Fascicolo già presente: <strong>{asText(selectedLocalMatch.titolo || selectedLocalMatch.title || selection?.title)}</strong>.
+                    {' '}I dati nuovi verranno aggiunti senza creare un duplicato.
+                  </span>
+                </div>
+              ) : null}
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
                 <label><span>Fascicolo locale</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
@@ -5905,8 +6141,9 @@ function AcquisitionWizard({
                 </article>
               </div>
               <p className="iu-tel-acq-note">{isPatAcquisition ? 'IUSENTRA registra nel fascicolo interno ricevute, riepilogo deposito, modulo PDF, allegati e stato SIGA selezionati. La consegna ufficiale resta documentata dai file riportati dal portale.' : portalUsesOfficialAssistant ? 'IUSENTRA registra nel fascicolo interno i file raccolti dalla sessione locale assistita e i dati autorizzati selezionati.' : "Questo comando registra nel fascicolo interno i documenti già scaricati, i file selezionati e i dati autorizzati. Non avvia uno scarico nascosto dal portale."}</p>
+              {!finalImportReady ? <p className="iu-tel-acq-note" role="status">{finalImportBlockReason}</p> : null}
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'import' || (mapping.mode === 'update_existing' && !mapping.target_fascicolo_id)} onClick={() => runImport()}><UploadCloud size={15}/> {mapping.mode === 'create_new' ? isPatAcquisition ? 'Crea fascicolo e registra esito' : 'Crea pratica e importa' : isPatAcquisition ? 'Registra nel fascicolo selezionato' : 'Importa nel fascicolo selezionato'}</button>
+                <button type="button" disabled={busy === 'import' || !finalImportReady} onClick={() => runImport()}><UploadCloud size={15}/> {mapping.mode === 'create_new' ? isPatAcquisition ? 'Crea fascicolo e registra esito' : 'Crea pratica e importa' : isPatAcquisition ? 'Registra nel fascicolo selezionato' : 'Importa nel fascicolo selezionato'}</button>
                 <button type="button" disabled={busy === 'import'} onClick={() => setStep(5)}><FolderOpen size={15}/> Correggi destinazione</button>
               </div>
               {Object.keys(documentReport).length ? (

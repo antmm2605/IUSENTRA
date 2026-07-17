@@ -42,7 +42,10 @@ from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, reso
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
+    build_attestazione_conformita_payload,
     build_client_communication,
+    generate_attestazione_conformita_docx,
+    generate_relata_pdf_bytes,
     normalise_custom_template,
     prepare_pst_failed_notification_workflow,
     preview_legal_relata,
@@ -115,6 +118,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
     clear_react_fascicoli_base_cache,
+    generate_react_fascicolo_proforma,
     run_react_fascicoli_economic_presidio,
     update_react_fascicolo_deposit_value,
     update_react_fascicolo_payment,
@@ -123,6 +127,7 @@ from web.services.react_fascicoli_bridge import (
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
 from web.services.react_notifiche_legali_bridge import (
     build_react_notifiche_legali_payload,
+    build_react_notifiche_legali_practice_payload,
     build_react_notifiche_legali_practice_documents_payload,
     sanitize_react_notifiche_legali_payload,
 )
@@ -133,7 +138,6 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
     dedupe_calculator_templates,
 )
-from web.services.storage_runtime import get_request_storage_runtime
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.services.react_statistiche_bridge import (
@@ -196,6 +200,7 @@ from web.services.react_sito_studio_ai_bridge import (
 )
 from web.services.react_studio_bridge import build_react_studio_error_payload, build_react_studio_payload
 from web.services.react_impostazioni_bridge import (
+    apply_react_impostazioni_fatturazione_to_proformas,
     bootstrap_react_impostazioni_ai,
     build_react_impostazioni_ai_status,
     build_react_impostazioni_error_payload,
@@ -237,6 +242,7 @@ from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_payload,
 )
 from web.services.react_fatturazione_bridge import (
+    build_fatturazione_runtime_config,
     build_react_fatturazione_detail_payload,
     build_react_fatturazione_error_payload,
     build_react_fatturazione_payload,
@@ -1102,6 +1108,19 @@ def _telematico_runtime_func(name: str) -> Callable[..., Any]:
     return _missing_runtime
 
 
+def _fascicoli_runtime_func(name: str) -> Callable[..., Any]:
+    bundle = current_app.extensions.get("application_runtime_bundle")
+    runtime = getattr(bundle, "fascicoli", {}) if bundle else {}
+    func = dict(runtime or {}).get(name)
+    if callable(func):
+        return func
+
+    def _missing_runtime(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError(f"Runtime fascicoli non disponibile: {name}.")
+
+    return _missing_runtime
+
+
 def _core_runtime_func(name: str) -> Callable[..., Any] | None:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     func = core_runtime.get(name)
@@ -1433,6 +1452,26 @@ def _studio_config_runtime():
     except Exception:
         current_app.logger.exception("Configurazione studio non disponibile per API React")
         return None
+
+
+def _fatturazione_runtime_config() -> dict[str, Any]:
+    studio_config = _studio_config_runtime()
+    try:
+        pagamenti_config = getattr(get_pagamenti(), "config", None)
+    except Exception:
+        current_app.logger.exception("Configurazione pagamenti tenant non disponibile per fatturazione")
+        pagamenti_config = None
+    try:
+        from web.services.react_impostazioni_bridge import resolve_react_fatturazione_defaults
+
+        fatturazione_defaults = resolve_react_fatturazione_defaults(studio_config)
+    except Exception:
+        fatturazione_defaults = None
+    return build_fatturazione_runtime_config(
+        studio_config,
+        pagamenti_config,
+        fatturazione_defaults=fatturazione_defaults,
+    )
 
 
 def _studio_telematico_staging_root() -> Path:
@@ -2946,11 +2985,38 @@ _NOTIFICHE_MODEL_DESCRIPTION_MAX = 500
 _NOTIFICHE_MODEL_BODY_MAX = 24000
 _NOTIFICHE_DRAFT_BODY_MAX = 30000
 _NOTIFICHE_CLIENT_BODY_MAX = 20000
+_NOTIFICHE_SIGNED_RELATA_MAX_BYTES = 20 * 1024 * 1024
 
 
 def _json_payload_or_error() -> tuple[dict[str, Any] | None, Any | None]:
     payload, error = _request_json_object()
     return payload, error
+
+
+def _normalise_relata_text_for_comparison(value: str) -> str:
+    normalised = unicodedata.normalize("NFKC", str(value or ""))
+    normalised = normalised.replace("’", "'").replace("‘", "'").replace("\u00ad", "")
+    return re.sub(r"\s+", " ", normalised).strip()
+
+
+def _extract_pdf_text_for_relata(data: bytes) -> str:
+    from pypdf import PdfReader
+
+    reader = PdfReader(io.BytesIO(data))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
+def _signed_relata_payload_from_form() -> tuple[dict[str, Any] | None, Any | None]:
+    raw = str(request.form.get("payload") or "")
+    if not raw or len(raw) > 200_000:
+        return None, (jsonify({"ok": False, "message": "Dati della relata mancanti o non validi."}), 400)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return None, (jsonify({"ok": False, "message": "Dati della relata non leggibili."}), 400)
+    if not isinstance(payload, dict):
+        return None, (jsonify({"ok": False, "message": "Dati della relata non validi."}), 400)
+    return payload, None
 
 
 def _notifiche_custom_templates_path() -> Path:
@@ -3062,12 +3128,8 @@ def _stamp_notifica_pec_times(payload: dict[str, Any]) -> dict[str, Any]:
         return payload
     stamped = dict(payload)
     now = _local_rome_datetime_seconds()
-    if not str(stamped.get("data_verifica_pec") or "").strip():
-        stamped["data_verifica_pec"] = now
     if operation == "invio_pec_l53":
         stamped["data_ora_invio_pec"] = now
-    elif not str(stamped.get("data_ora_invio_pec") or "").strip():
-        stamped["data_ora_invio_pec"] = stamped["data_verifica_pec"]
     return stamped
 
 
@@ -3091,6 +3153,17 @@ def notifiche_legali_pratica_documenti(id_fascicolo: str):
     return jsonify(build_react_notifiche_legali_practice_documents_payload(
         id_fascicolo,
         get_fascicoli=get_fascicoli,
+    ))
+
+
+@api_v1_react.get("/notifiche-legali/pratiche/<id_fascicolo>")
+@_richiedi_auth
+def notifiche_legali_pratica(id_fascicolo: str):
+    return jsonify(build_react_notifiche_legali_practice_payload(
+        id_fascicolo,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_soggetti=get_soggetti,
     ))
 
 
@@ -3156,6 +3229,200 @@ def notifiche_legali_anteprima_relata():
     return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
+@api_v1_react.post("/notifiche-legali/attestazione-conformita")
+@_richiedi_auth
+def notifiche_legali_attestazione_conformita():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    payload = _augment_custom_relata_payload(payload)
+    model = build_attestazione_conformita_payload(payload)
+    if not model.get("ok"):
+        return jsonify({
+            "ok": False,
+            "message": "Completa i dati indicati prima di scaricare l'attestazione.",
+            "missingFields": model.get("missing_fields") or [],
+        }), 400
+
+    with tempfile.TemporaryDirectory(prefix="iusentra-attestazione-") as tmp_dir:
+        output = Path(tmp_dir) / "attestazione_conformita.docx"
+        generate_attestazione_conformita_docx(payload, output)
+        content = output.read_bytes()
+
+    proceeding = model.get("campi_database", {}).get("procedimento", {})
+    rg = re.sub(r"[^0-9]+", "", str(proceeding.get("numero_rg") or ""))
+    year = re.sub(r"[^0-9]+", "", str(proceeding.get("anno_rg") or ""))
+    suffix = f"_{rg}_{year}" if rg and year else ""
+    filename = f"Attestazione_di_conformita{suffix}.docx"
+    _audit_event(
+        "notifiche_legali.attestazione_conformita",
+        "notifica_legale",
+        str(payload.get("pratica_codice") or payload.get("practice_id") or ""),
+        "Attestazione unica compilata sul modello dello studio.",
+    )
+    return send_file(
+        io.BytesIO(content),
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=filename,
+        max_age=0,
+    )
+
+
+@api_v1_react.post("/notifiche-legali/relata-pdf")
+@_richiedi_auth
+def notifiche_legali_relata_pdf():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    payload = _augment_custom_relata_payload(payload)
+    result = validate_legal_notification(payload, require_signed_relata=False)
+    if not result.ok:
+        return _notifiche_legali_result_response(
+            result,
+            success_message="Relata pronta per la firma.",
+        )
+    content = generate_relata_pdf_bytes(payload)
+    source_sha256 = hashlib.sha256(content).hexdigest()
+    date_token = re.sub(r"[^0-9]", "", str(payload.get("data_relata") or date.today().isoformat()))[:8]
+    filename = f"Relata_di_notificazione_{date_token or date.today().strftime('%Y%m%d')}.pdf"
+    _audit_event(
+        "notifiche_legali.relata_generata",
+        "notifica_legale",
+        str(payload.get("fascicolo_id") or payload.get("practice_id") or ""),
+        "Relata PDF generata per la firma locale.",
+    )
+    response = send_file(
+        io.BytesIO(content),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+        max_age=0,
+    )
+    response.headers["X-IUSENTRA-Document-SHA256"] = source_sha256
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@api_v1_react.post("/notifiche-legali/relata-firmata")
+@_richiedi_auth
+def notifiche_legali_relata_firmata():
+    payload, error = _signed_relata_payload_from_form()
+    if error is not None:
+        return error
+    assert payload is not None
+    payload = _augment_custom_relata_payload(payload)
+    fascicolo_id = str(payload.get("fascicolo_id") or payload.get("practice_id") or "").strip()
+    if not fascicolo_id:
+        return jsonify({"ok": False, "message": "Seleziona la pratica prima di firmare la relata."}), 400
+    fascicolo = get_fascicoli().get(fascicolo_id)
+    if fascicolo is None:
+        return jsonify({"ok": False, "message": "La pratica selezionata non e' disponibile nello studio corrente."}), 404
+
+    result = validate_legal_notification(payload, require_signed_relata=False)
+    if not result.ok:
+        public = sanitize_react_notifiche_legali_payload(result.to_dict())
+        public["message"] = "Completa i dati indicati prima di firmare la relata."
+        return jsonify(public), 400
+
+    uploaded = request.files.get("file")
+    if uploaded is None or not uploaded.filename:
+        return jsonify({"ok": False, "message": "File della relata firmata mancante."}), 400
+    signed_data = uploaded.read(_NOTIFICHE_SIGNED_RELATA_MAX_BYTES + 1)
+    if not signed_data or len(signed_data) > _NOTIFICHE_SIGNED_RELATA_MAX_BYTES:
+        return jsonify({"ok": False, "message": "File della relata firmata vuoto o troppo grande."}), 400
+    if not str(uploaded.filename).lower().endswith(".p7m"):
+        return jsonify({"ok": False, "message": "La firma della relata deve produrre un file CAdES .p7m."}), 400
+
+    from pct.firma import analizza_firma_documento
+    from pct.firme_cades import inspect_signed_document_bytes
+
+    inspected = inspect_signed_document_bytes(
+        source_name=Path(uploaded.filename).name,
+        data=signed_data,
+    )
+    if not inspected.status.signature_verified or not inspected.payload_bytes:
+        return jsonify({"ok": False, "message": "Firma digitale non verificabile: la relata non e' stata salvata."}), 400
+    source_pdf = inspected.payload_bytes
+    if not source_pdf.startswith(b"%PDF"):
+        return jsonify({"ok": False, "message": "Il file firmato non contiene la relata PDF generata da IUSENTRA."}), 400
+    try:
+        actual_text = _extract_pdf_text_for_relata(source_pdf)
+    except Exception:
+        return jsonify({"ok": False, "message": "Il contenuto della relata firmata non e' leggibile."}), 400
+    if _normalise_relata_text_for_comparison(actual_text) != _normalise_relata_text_for_comparison(result.relata_text):
+        return jsonify({"ok": False, "message": "Il file firmato non corrisponde alla relata corrente. Rigenera e firma la relata aggiornata."}), 409
+
+    signatures = analizza_firma_documento(signed_data, Path(uploaded.filename).name)
+    if not signatures or any(bool(item.get("scaduto")) for item in signatures):
+        return jsonify({"ok": False, "message": "Il certificato di firma della relata non e' valido alla data del controllo."}), 400
+
+    source_sha256 = hashlib.sha256(source_pdf).hexdigest()
+    evidence_tag = f"relata-source-sha256:{source_sha256}"
+    existing = next(
+        (
+            document
+            for document in list(getattr(fascicolo, "documenti", []) or [])
+            if evidence_tag in list(getattr(document, "tags", []) or [])
+            and bool(getattr(document, "firmato_digitalmente", False))
+        ),
+        None,
+    )
+    if existing is not None:
+        return jsonify({
+            "ok": True,
+            "message": "Relata gia' firmata e salvata nel fascicolo.",
+            "documentId": str(getattr(existing, "id", "")),
+            "fileName": str(getattr(existing, "nome", "")),
+            "sha256": str(getattr(existing, "hash_contenuto_sha256", "") or getattr(existing, "hash_sha256", "")),
+            "sourceSha256": source_sha256,
+            "previewUrl": f"/fascicoli/{fascicolo_id}/documenti/{getattr(existing, 'id', '')}/visualizza",
+            "downloadUrl": f"/fascicoli/{fascicolo_id}/documenti/{getattr(existing, 'id', '')}/scarica",
+            "signatures": signatures,
+        })
+
+    recipient = re.sub(r"[^A-Za-z0-9]+", "_", str(payload.get("destinatario_nome") or "destinatario")).strip("_")
+    date_token = re.sub(r"[^0-9]", "", str(payload.get("data_relata") or date.today().isoformat()))[:8]
+    filename = f"Relata_di_notificazione_{recipient or 'destinatario'}_{date_token or date.today().strftime('%Y%m%d')}.pdf.p7m"
+    save_document = _fascicoli_runtime_func("salva_documento_fascicolo")
+    document = save_document(
+        gf=get_fascicoli(),
+        id_fasc=fascicolo_id,
+        nome_file=filename,
+        raw=signed_data,
+        tipo_doc=TipoDocumento.NOTIFICA,
+        note="Relata di notificazione firmata digitalmente e verificata.",
+        tags=["relata-notifica", "firma-verificata", evidence_tag],
+        data_documento=str(payload.get("data_relata") or date.today().isoformat()),
+        firmato=True,
+        caricato_da=_actor_label(),
+        fonte_documento="NOTIFICA_LEGALE",
+        nome_originale=filename,
+    )
+    document_id = str(getattr(document, "id", ""))
+    clear_react_fascicoli_base_cache()
+    _sync_event("modifica", "fascicoli", fascicolo_id)
+    _audit_event(
+        "notifiche_legali.relata_firmata",
+        "fascicolo",
+        fascicolo_id,
+        f"Relata firmata verificata e salvata come documento {document_id}.",
+    )
+    return jsonify({
+        "ok": True,
+        "message": "Relata firmata e salvata nel fascicolo.",
+        "documentId": document_id,
+        "fileName": str(getattr(document, "nome", filename)),
+        "sha256": hashlib.sha256(signed_data).hexdigest(),
+        "sourceSha256": source_sha256,
+        "previewUrl": f"/fascicoli/{fascicolo_id}/documenti/{document_id}/visualizza",
+        "downloadUrl": f"/fascicoli/{fascicolo_id}/documenti/{document_id}/scarica",
+        "signatures": signatures,
+    })
+
+
 @api_v1_react.post("/notifiche-legali/bozze-relata")
 @_richiedi_auth
 def notifiche_legali_salva_bozza_relata():
@@ -3211,7 +3478,10 @@ def notifiche_legali_preview():
         return jsonify({"ok": False, "message": "La bozza relata modificata e' troppo lunga.", "blockers": ["La bozza relata modificata e' troppo lunga."]}), 400
     payload = _stamp_notifica_pec_times(payload)
     is_send = str(payload.get("operazione") or "").strip() == "invio_pec_l53"
-    result = validate_legal_notification(_augment_custom_relata_payload(payload))
+    result = validate_legal_notification(
+        _augment_custom_relata_payload(payload),
+        require_signed_relata=is_send,
+    )
     return _notifiche_legali_result_response(
         result,
         success_message=(
@@ -3319,12 +3589,16 @@ def messaggi_react_nuovo():
 @api_v1_react.get("/scadenziario")
 @_richiedi_auth
 def scadenziario_react_list():
+    email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
     return jsonify(build_react_scadenziario_payload(
         gestione_scadenziario=get_scadenziario(),
         gestione_fascicoli=get_fascicoli(),
-        gestione_utenti=get_utenti(),
+        gestione_utenti=get_utenti(carica_audit=False),
+        gestione_agenda=get_agenda(),
         query_args=request.args,
         termini_processuali_db=str(_termini_processuali_repository().path),
+        pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
+        tenant_id=_tenant_runtime_label(),
     ))
 
 
@@ -3836,6 +4110,8 @@ def telematico_react_dashboard():
             get_telematico=_telematico_loader(),
             get_fascicoli=get_fascicoli,
             build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
+            prepare_dashboard=_telematico_runtime_func("backfill_telematico_from_existing_fascicoli"),
+            dashboard_warning_message=_telematico_runtime_func("telematico_dashboard_warning_message"),
             logger=current_app.logger,
         )
     )
@@ -5761,6 +6037,41 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+@api_v1_react.post("/fascicoli/<id_fasc>/proforma/genera")
+@_richiedi_auth
+def fascicolo_react_genera_proforma(id_fasc: str):
+    utente = g.get("utente_corrente")
+    if not utente or not (_api_key_valida() or _session_user_can("fatturazione.scrivi")):
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+        }), 403
+    result, status = generate_react_fascicolo_proforma(
+        get_fascicoli=_fascicoli_loader(),
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        get_utenti=get_utenti,
+        get_preventivi=get_preventivi,
+        current_user=utente,
+        id_fasc=id_fasc,
+        payload=_request_payload(),
+        config=_fatturazione_runtime_config(),
+        actor=_actor_label(),
+        ip_address=request.remote_addr or "",
+    )
+    if result.get("ok"):
+        clear_dashboard_payload_cache()
+        _clear_fascicoli_list_payload_cache()
+        _audit_event(
+            "fascicoli.proforma_generata",
+            "fascicolo",
+            id_fasc,
+            str(result.get("message") or "Proforma collegata al fascicolo."),
+        )
+    return redacted_json_response(result, status)
+
+
 @api_v1_react.post("/fascicoli/<id_fasc>/deposito/valore-causa")
 @_richiedi_auth
 def fascicolo_react_deposito_valore_causa(id_fasc: str):
@@ -6251,9 +6562,6 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
             "requiresSignature": requires_signature,
         })
 
-    if document_deposit_updates:
-        ctx["gf"].aggiorna_documenti_deposito(id_fasc, document_deposit_updates)
-
     deposit_profile = dict(getattr(ctx["fascicolo"], "profilo_deposito", {}) or {})
     deposit_profile["preparazione_busta"] = {
         "tipo_deposito_telematico_key": str(payload.get("tipo_deposito_telematico_key") or "").strip(),
@@ -6264,7 +6572,11 @@ def fascicolo_deposito_classifica_documenti(id_fasc: str):
         "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "updated_by": _actor_label(),
     }
-    ctx["fascicolo"] = ctx["gf"].aggiorna(id_fasc, profilo_deposito=deposit_profile)
+    ctx["fascicolo"] = ctx["gf"].aggiorna_preparazione_deposito(
+        id_fasc,
+        document_updates=document_deposit_updates,
+        profilo_deposito=deposit_profile,
+    )
 
     if ctx["profile"] is not None:
         run_predeposit_check(
@@ -7629,6 +7941,16 @@ def impostazioni_firma_certificato_update():
     return jsonify(result), 200 if result.get("ok") else 400
 
 
+@api_v1_react.post("/impostazioni/fatturazione/applica-proforme")
+@_richiedi_auth
+def impostazioni_fatturazione_applica_proforme():
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = apply_react_impostazioni_fatturazione_to_proformas(payload or {})
+    return jsonify(result), status
+
+
 @api_v1_react.post("/impostazioni/test/<test_id>")
 @_richiedi_auth
 def impostazioni_page_test(test_id: str):
@@ -7942,7 +8264,7 @@ def fatturazione_page():
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione",
-                config=current_app.config,
+                config=_fatturazione_runtime_config(),
             )
         )
     except Exception as exc:
@@ -7973,7 +8295,7 @@ def fatturazione_nuova_page():
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione/nuova",
-                config=current_app.config,
+                config=_fatturazione_runtime_config(),
             )
         )
     except Exception as exc:
@@ -8018,7 +8340,7 @@ def fatturazione_nuova_crea():
             get_preventivi=get_preventivi,
             current_user=utente,
             payload=payload,
-            config=current_app.config,
+            config=_fatturazione_runtime_config(),
             ip_address=request.remote_addr or "",
         )
         return _jsonify_redacted(result), status
@@ -8102,6 +8424,7 @@ def fatturazione_aggiorna_dettaglio(id_documento: str):
         current_user=utente,
         id_documento=id_documento,
         payload=payload,
+        studio_config=_fatturazione_runtime_config(),
         ip_address=request.remote_addr or "",
     )
     return _jsonify_redacted(result), status
@@ -8118,7 +8441,7 @@ def fatturazione_prepara_firma_xml(id_documento: str):
         get_clienti=get_clienti,
         current_user=utente,
         id_documento=id_documento,
-        config=current_app.config,
+        config=_fatturazione_runtime_config(),
     )
     return _jsonify_redacted(result), status
 
@@ -8222,7 +8545,7 @@ def fatturazione_prepara_commercialista(id_documento: str):
         storage_root=_fatturazione_document_storage_root(),
         pec_cfg=getattr(cfg, "pec", None),
         sdi_cfg=getattr(cfg, "sdi", None),
-        config=current_app.config,
+        config=_fatturazione_runtime_config(),
     )
     return _jsonify_redacted(result), status
 
@@ -11272,6 +11595,7 @@ def agenda():
     payload = build_react_agenda_payload(
         get_agenda,
         get_scadenziario,
+        get_fascicoli,
         from_value=request.args.get("from", ""),
         to_value=request.args.get("to", ""),
         selected_id=request.args.get("selected_id", "").strip(),

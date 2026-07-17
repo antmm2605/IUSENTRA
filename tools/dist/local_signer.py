@@ -76,6 +76,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, unquote_plus, urlencode, urljoin, urlparse
+from urllib.request import Request, urlopen
 
 _THIS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -116,7 +117,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.90"
+VERSION = "1.6.92"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -221,10 +222,57 @@ def _local_signer_install_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
+def _windows_presidia_avvio_automatico_unico() -> bool:
+    """Mantiene un solo avvio automatico: attivita' pianificata o Startup."""
+    if sys.platform != "win32":
+        return False
+    appdata = str(os.getenv("APPDATA") or "").strip()
+    if not appdata:
+        return False
+    shortcut = (
+        Path(appdata)
+        / "Microsoft"
+        / "Windows"
+        / "Start Menu"
+        / "Programs"
+        / "Startup"
+        / "IUSENTRA Local Signer.lnk"
+    )
+    if not shortcut.exists():
+        return False
+    try:
+        result = subprocess.run(
+            ["schtasks.exe", "/Query", "/TN", "IUSENTRA Local Signer", "/XML"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=8,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        if result.returncode != 0:
+            return False
+        task_xml = ""
+        for encoding in ("utf-16", "utf-16-le", "utf-8"):
+            try:
+                task_xml = (result.stdout or b"").decode(encoding)
+                break
+            except UnicodeError:
+                continue
+        task_norm = task_xml.casefold()
+        if "wscript.exe" not in task_norm or "start_local_signer.vbs" not in task_norm:
+            return False
+        shortcut.unlink(missing_ok=True)
+        log.info("Avvio automatico Local Signer riallineato: rimossa la scorciatoia Startup duplicata.")
+        return True
+    except Exception as exc:
+        log.debug("Controllo avvio automatico Local Signer non applicabile: %s", exc)
+        return False
+
+
 # Sorgenti aggiornabili a caldo (senza EXE): nome file locale -> path download sul server.
-# Python e le dipendenze sono gia' installati: basta sostituire i .py e riavviare.
 _LOCAL_SIGNER_SOURCE_FILES: tuple[tuple[str, str], ...] = (
     ("local_signer.py", "/polisWeb/local-signer/download"),
+    ("local_signer_windows_http.ps1", "/polisWeb/local-signer/download/windows-http"),
     ("local_ai_host_bridge.py", "/polisWeb/local-signer/download/local-ai-bridge"),
     ("lex_document_context.py", "/polisWeb/local-signer/download/lex-document-context"),
     ("visible_signature.py", "/polisWeb/local-signer/download/visible-signature"),
@@ -275,8 +323,9 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
 
     Funziona su qualsiasi installazione gia' attiva (Python + dipendenze
     presenti): scarica i file, li valida con py_compile in una cartella
-    temporanea, fa backup degli attuali e li sostituisce. Se qualcosa va
-    storto prima dello swap, l'installazione resta intatta.
+    temporanea e li sostituisce in modo atomico. L'eventuale copia di rollback
+    vive solo nella cartella temporanea ed e' rimossa al termine: non restano
+    backup permanenti nell'installazione.
     """
     import py_compile
     import shutil
@@ -289,6 +338,8 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
     staging_mod.mkdir(parents=True, exist_ok=True)
 
     scaricati: list[tuple[Path, Path]] = []  # (file_staging, destinazione)
+    applicati: list[tuple[Path, Optional[Path], bool]] = []
+    versione_remota = ""
     try:
         # 1) Scarica + valida i file di primo livello
         for nome, path in _LOCAL_SIGNER_SOURCE_FILES:
@@ -303,7 +354,12 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
                     )
             dest_stage = staging / nome
             dest_stage.write_bytes(data)
-            py_compile.compile(str(dest_stage), doraise=True)
+            if dest_stage.suffix.lower() == ".py":
+                py_compile.compile(str(dest_stage), doraise=True)
+            else:
+                helper_text = data.decode("utf-8", errors="strict")
+                if "HttpClientHandler" not in helper_text or "CurrentUser\\My" not in helper_text:
+                    raise RuntimeError(f"Componente Local Signer non valido: {nome}")
             scaricati.append((dest_stage, install_dir / nome))
 
         # 2) Scarica + valida i moduli local_signer_mod
@@ -314,13 +370,41 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
             py_compile.compile(str(dest_stage), doraise=True)
             scaricati.append((dest_stage, mod_dir / nome))
 
-        # 3) Tutto valido: applica con backup .bak per rollback manuale
+        # 3) Tutto valido: sostituzione atomica con rollback solo temporaneo.
+        rollback_dir = staging / "rollback"
+        rollback_dir.mkdir(parents=True, exist_ok=True)
         mod_dir.mkdir(parents=True, exist_ok=True)
-        for sorgente, destinazione in scaricati:
-            if destinazione.exists():
-                backup = destinazione.with_suffix(destinazione.suffix + ".bak")
-                shutil.copy2(destinazione, backup)
-            shutil.copy2(sorgente, destinazione)
+        try:
+            for indice, (sorgente, destinazione) in enumerate(scaricati):
+                destinazione.parent.mkdir(parents=True, exist_ok=True)
+                esisteva = destinazione.exists()
+                rollback = rollback_dir / f"{indice:02d}-{destinazione.name}" if esisteva else None
+                if rollback is not None:
+                    shutil.copy2(destinazione, rollback)
+
+                temporaneo = destinazione.with_name(
+                    f".{destinazione.name}.iusentra-update-{secrets.token_hex(6)}"
+                )
+                try:
+                    shutil.copy2(sorgente, temporaneo)
+                    os.replace(temporaneo, destinazione)
+                finally:
+                    temporaneo.unlink(missing_ok=True)
+                applicati.append((destinazione, rollback, esisteva))
+        except Exception:
+            for destinazione, rollback, esisteva in reversed(applicati):
+                if esisteva and rollback is not None and rollback.exists():
+                    temporaneo = destinazione.with_name(
+                        f".{destinazione.name}.iusentra-rollback-{secrets.token_hex(6)}"
+                    )
+                    try:
+                        shutil.copy2(rollback, temporaneo)
+                        os.replace(temporaneo, destinazione)
+                    finally:
+                        temporaneo.unlink(missing_ok=True)
+                elif not esisteva:
+                    destinazione.unlink(missing_ok=True)
+            raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 
@@ -328,7 +412,9 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
     return {
         "ok": True,
         "metodo": "sorgenti",
-        "versione_corrente": VERSION,
+        "versione_precedente": VERSION,
+        "versione_corrente": versione_remota or VERSION,
+        "versione_destinazione": versione_remota or VERSION,
         "file_aggiornati": [str(dest) for _, dest in scaricati],
         "messaggio": "Sorgenti Local Signer aggiornati. Riavvio in corso: l'assistente torna attivo tra pochi secondi.",
     }
@@ -361,11 +447,24 @@ def _programma_riavvio_local_signer() -> None:
             "Select-Object -ExpandProperty OwningProcess -Unique | "
             "ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop } catch {} }; "
         )
+        verify_single_instance = (
+            "$ready=$false; "
+            "for ($i=0; $i -lt 60; $i++) { "
+            "try { $ping=Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; "
+            "if ($ping.ok) { $ready=$true; break } } catch {}; Start-Sleep -Milliseconds 500 }; "
+            "if ($ready) { "
+            "$owner=Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | "
+            "Select-Object -First 1 -ExpandProperty OwningProcess; "
+            "if ($owner) { Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and "
+            "$_.CommandLine -match $target -and [int]$_.ProcessId -ne [int]$owner } | "
+            "ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} } } }; "
+        )
         ps_command = (
             f"$ErrorActionPreference='SilentlyContinue'; "
             f"try {{ Wait-Process -Id {pid} -Timeout 15 }} catch {{}}; "
             f"{cleanup_old_processes}"
-            f"Start-Sleep -Milliseconds 500; {relaunch}"
+            f"Start-Sleep -Milliseconds 500; {relaunch}; {verify_single_instance}"
         )
         subprocess.Popen(
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-Command", ps_command],
@@ -416,8 +515,17 @@ def _avvia_aggiornamento_local_signer(base_url: str = "") -> dict:
         f"$url={_powershell_single_quote(update_url)}; "
         "if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; "
         f"$target={_powershell_single_quote(str(target))}; "
+        "try { "
         "Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; "
-        "Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q')"
+        "$installer=Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q') -PassThru -Wait; "
+        "if ($installer.ExitCode -ne 0) { exit $installer.ExitCode }; "
+        "$ready=$false; "
+        "for ($i=0; $i -lt 180; $i++) { "
+        "try { $ping=Invoke-RestMethod 'http://127.0.0.1:27272/ping?light=1' -UseBasicParsing -TimeoutSec 2; "
+        "if ($ping.ok) { $ready=$true; break } } catch {}; "
+        "Start-Sleep -Seconds 1 }; "
+        "if (-not $ready) { exit 3 } "
+        "} finally { Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue }"
     )
     subprocess.Popen(
         [
@@ -436,8 +544,10 @@ def _avvia_aggiornamento_local_signer(base_url: str = "") -> dict:
     )
     return {
         "ok": True,
-        "versione_corrente": VERSION,
-        "messaggio": "Aggiornamento Local Signer avviato dal pacchetto ufficiale.",
+        "metodo": "installer",
+        "fase": "download_installazione",
+        "versione_precedente": VERSION,
+        "messaggio": "Download e installazione automatica del Local Signer avviati. IUSENTRA ne verifichera' il riavvio.",
         "installer_url": update_url,
     }
 
@@ -636,6 +746,24 @@ _PST_TABELLE_MINISTERIALI_POLICY = {
         "errore_lotto": "per_documento",
         "x_wasp_user": True,
     },
+    "JPW_CASSCI": {
+        "tabella": "CASSAZIONE_CIVILE",
+        "registro": "CASSCI",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_always",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": False,
+        "documenti_mode": "diretto",
+    },
+    "JPW_CASSPE": {
+        "tabella": "CASSAZIONE_PENALE",
+        "registro": "CASSPE",
+        "download": "",
+        "warmup": "",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": False,
+        "documenti_mode": "portale_ufficiale",
+    },
 }
 
 _PST_RICHIESTE_COPIE_QBUILDER_NAMESPACE = "urn:RichiestaCopie-consultazioni-distr"
@@ -718,6 +846,7 @@ _uffici_hacs_cache: Optional[list[dict[str, Any]]] = None
 _uffici_pst_pubblici_cache: Optional[dict[str, list[dict[str, Any]]]] = None
 _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
+_reginde_smartcard_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
 _pst_session_lock = threading.Lock()
 _pst_async_job_cache: dict[str, dict[str, Any]] = {}
@@ -2468,87 +2597,6 @@ def _cert_preferred_score(
     return score
 
 
-def _pick_preferred_windows_cert(
-    certs: list[dict],
-    *,
-    prefer_issuer: str = "",
-    prefer_subject: str = "",
-    prefer_cf: str = "",
-    auto: bool = False,
-) -> Optional[dict]:
-    lista = [
-        cert for cert in list(certs or [])
-        if _certificato_windows_pst_candidato(cert, prefer_cf=prefer_cf)
-    ]
-    if not lista:
-        return None
-
-    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
-
-    # Se è richiesto un codice fiscale, l'auto-selezione deve lavorare
-    # SOLO sui certificati che contengono davvero quel CF.
-    # Se nessuno combacia, niente auto-pick: si aprirà il selettore Windows.
-    if prefer_cf_norm:
-        matching_cf = [
-            cert for cert in lista
-            if prefer_cf_norm in (
-                f"{cert.get('codice_fiscale', '')} "
-                f"{cert.get('soggetto', '')} "
-                f"{cert.get('soggetto_completo', '')}"
-            ).upper()
-        ]
-        if not matching_cf:
-            return None
-        lista = matching_cf
-        if len(lista) == 1:
-            return lista[0]
-
-    issuer_keywords = _cert_match_keywords(prefer_issuer)
-    subject_keywords = _cert_match_keywords(prefer_subject)
-
-    if auto and not issuer_keywords:
-        issuer_keywords = _cert_match_keywords(_PST_CERT_ISSUER_PRIORITIES)
-    if auto and not subject_keywords:
-        subject_keywords = _cert_match_keywords(_PST_CERT_SUBJECT_HINTS)
-
-    # Se non ho keyword ma ho un CF valido, posso comunque scegliere
-    # tra i certificati già filtrati per CF.
-    if not issuer_keywords and not subject_keywords and not prefer_cf_norm:
-        return None
-
-    scored = []
-    for cert in lista:
-        score = _cert_preferred_score(
-            cert,
-            issuer_keywords,
-            subject_keywords,
-            prefer_cf=prefer_cf_norm,
-        )
-
-        # Se sto scegliendo solo in base al CF, assegno un punteggio minimo
-        # per consentire la scelta del certificato unico compatibile.
-        if prefer_cf_norm and not issuer_keywords and not subject_keywords:
-            score = max(score, 1)
-
-        if score > 0:
-            scored.append((score, cert))
-
-    if not scored:
-        return None
-
-    scored.sort(key=lambda item: item[0], reverse=True)
-
-    if len(scored) == 1:
-        return scored[0][1]
-
-    # Se il primo è nettamente migliore, ok.
-    if scored[0][0] > scored[1][0]:
-        return scored[0][1]
-
-    # Parità: meglio non scegliere automaticamente.
-    return None
-
-
 def _ping_query_preferences(path: str) -> dict:
     query = parse_qs(urlparse(path).query or "")
     prefer_cf = str((query.get("prefer_cf") or [""])[0] or "").strip()
@@ -2575,7 +2623,10 @@ def _pick_preferred_windows_cert(
     prefer_cf: str = "",
     auto: bool = False,
 ) -> Optional[dict]:
-    lista = list(certs or [])
+    lista = [
+        cert for cert in list(certs or [])
+        if _certificato_windows_pst_candidato(cert, prefer_cf=prefer_cf)
+    ]
     if not lista:
         return None
 
@@ -2593,8 +2644,6 @@ def _pick_preferred_windows_cert(
         if not matching_cf:
             return None
         lista = matching_cf
-        if len(lista) == 1:
-            return lista[0]
 
     issuer_keywords = _cert_match_keywords(prefer_issuer)
     subject_keywords = _cert_match_keywords(prefer_subject)
@@ -3854,6 +3903,523 @@ def _build_cades_bes_inline(
 
 _SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/"
 _PST_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+_REGINDE_INTERROGAZIONE_URL = (
+    "https://ext.processotelematico.giustizia.it/"
+    "ServiziInterrogazioneRegindeExt/ServiziInterrogazioneSoggetto"
+)
+_REGINDE_INTERROGAZIONE_NS = (
+    "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
+)
+_IPA_PUBLIC_API_BASE = "https://indicepa.gov.it/PortaleServices/api"
+_REGINDE_CF_RE = re.compile(r"^(?:[A-Z0-9]{11}|[A-Z]{6}[A-Z0-9]{2}[A-Z][A-Z0-9]{2}[A-Z][A-Z0-9]{3}[A-Z])$")
+
+
+def _reginde_normalize_cf(value: Any) -> str:
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def _reginde_normalize_pec(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _reginde_soap_body(codice_fiscale: str) -> str:
+    ET.register_namespace("soapenv", _SOAP_NS)
+    ET.register_namespace("int", _REGINDE_INTERROGAZIONE_NS)
+    envelope = ET.Element(f"{{{_SOAP_NS}}}Envelope")
+    ET.SubElement(envelope, f"{{{_SOAP_NS}}}Header")
+    body = ET.SubElement(envelope, f"{{{_SOAP_NS}}}Body")
+    operation = ET.SubElement(body, f"{{{_REGINDE_INTERROGAZIONE_NS}}}ricercaSoggettoEx")
+    ET.SubElement(operation, "codiceFiscale").text = codice_fiscale
+    return ET.tostring(envelope, encoding="unicode", xml_declaration=True)
+
+
+def _reginde_soap_body_for_address(address: str) -> str:
+    ET.register_namespace("soapenv", _SOAP_NS)
+    ET.register_namespace("int", _REGINDE_INTERROGAZIONE_NS)
+    envelope = ET.Element(f"{{{_SOAP_NS}}}Envelope")
+    ET.SubElement(envelope, f"{{{_SOAP_NS}}}Header")
+    body = ET.SubElement(envelope, f"{{{_SOAP_NS}}}Body")
+    operation = ET.SubElement(body, f"{{{_REGINDE_INTERROGAZIONE_NS}}}dettagliSoggettoPerIndirizzo")
+    ET.SubElement(operation, "indirizzo").text = _reginde_normalize_pec(address)
+    return ET.tostring(envelope, encoding="unicode", xml_declaration=True)
+
+
+def _xml_local_name(value: Any) -> str:
+    raw = str(value or "")
+    return raw.rsplit("}", 1)[-1].split(":", 1)[-1]
+
+
+def _reginde_node_values(node: ET.Element) -> dict[str, list[str]]:
+    values: dict[str, list[str]] = {}
+
+    def _add(name: Any, value: Any) -> None:
+        key = re.sub(r"[^a-z0-9]", "", _xml_local_name(name).lower())
+        text_value = str(value or "").strip()
+        if key and text_value:
+            values.setdefault(key, []).append(text_value)
+
+    for element in node.iter():
+        _add(element.tag, element.text)
+        for attr_name, attr_value in element.attrib.items():
+            _add(attr_name, attr_value)
+    return values
+
+
+def _reginde_first(values: dict[str, list[str]], *names: str) -> str:
+    for name in names:
+        normalized = re.sub(r"[^a-z0-9]", "", name.lower())
+        candidates = values.get(normalized) or []
+        if candidates:
+            return candidates[0].strip()
+    return ""
+
+
+def _reginde_parse_subject(xml_bytes: bytes, codice_fiscale: str, pec_attesa: str) -> dict[str, Any]:
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError as exc:
+        raise RuntimeError("La risposta del registro non e' un XML valido.") from exc
+
+    requested_cf = _reginde_normalize_cf(codice_fiscale)
+    expected = _reginde_normalize_pec(pec_attesa)
+
+    # Il WSDL ministeriale modella ogni risultato come <return type="soggetto">:
+    # l'identita' e' nel figlio <soggetto>, mentre una persona giuridica puo'
+    # avere piu' <ruoliente>, ciascuno con PEC e indirizziAbilitati distinti.
+    # Il vecchio parser leggeva il solo nodo identita' e scartava questi recapiti.
+    result_nodes = [
+        node for node in root.iter()
+        if _xml_local_name(node.tag).lower() == "return"
+        and any(_xml_local_name(child.tag).lower() == "soggetto" for child in node)
+    ]
+    if not result_nodes:
+        # Compatibilita' con le risposte storiche semplificate gia' acquisite.
+        result_nodes = [
+            node for node in root.iter()
+            if _xml_local_name(node.tag).lower() == "soggetto"
+        ]
+
+    parsed: list[dict[str, Any]] = []
+    for node in result_nodes:
+        values = _reginde_node_values(node)
+        codice_candidates = {
+            _reginde_normalize_cf(value)
+            for key in ("codicefiscale", "codfisc", "cf")
+            for value in values.get(key, [])
+            if _reginde_normalize_cf(value)
+        }
+        address_candidates: list[str] = []
+        address_seen: set[str] = set()
+        address_fields = (
+            "postaelettronicacertificata",
+            "indirizzopec",
+            "emailpec",
+            "indirizzodigitale",
+            "pec",
+        )
+        for key in address_fields:
+            for value in values.get(key, []):
+                address = _reginde_normalize_pec(value)
+                if address and "@" in address and address not in address_seen:
+                    address_seen.add(address)
+                    address_candidates.append(address)
+        for role_node in node.iter():
+            if _xml_local_name(role_node.tag).lower() != "indirizziabilitati":
+                continue
+            role_values = _reginde_node_values(role_node)
+            for value in role_values.get("email", []):
+                address = _reginde_normalize_pec(value)
+                if address and "@" in address and address not in address_seen:
+                    address_seen.add(address)
+                    address_candidates.append(address)
+
+        nome = " ".join(part for part in (
+            _reginde_first(values, "nome"),
+            _reginde_first(values, "cognome"),
+        ) if part).strip()
+        denominazione = _reginde_first(
+            values,
+            "nomeCompagnia",
+            "denominazione",
+            "ragioneSociale",
+            "descrizione",
+        )
+        role_records: list[dict[str, str]] = []
+        for role_node in node.iter():
+            if _xml_local_name(role_node.tag).lower() != "ruoliente":
+                continue
+            role_values = _reginde_node_values(role_node)
+            role_addresses = [
+                _reginde_normalize_pec(value)
+                for key in ("pec", "indirizzodigitale")
+                for value in role_values.get(key, [])
+                if "@" in _reginde_normalize_pec(value)
+            ]
+            for enabled_node in role_node.iter():
+                if _xml_local_name(enabled_node.tag).lower() != "indirizziabilitati":
+                    continue
+                enabled_values = _reginde_node_values(enabled_node)
+                role_addresses.extend(
+                    _reginde_normalize_pec(value)
+                    for value in enabled_values.get("email", [])
+                    if "@" in _reginde_normalize_pec(value)
+                )
+            role_records.append({
+                "ruolo": _reginde_first(role_values, "ruolo", "descrizione", "tipologia"),
+                "stato": _reginde_first(role_values, "status", "stato"),
+                "matches_expected": str(expected in role_addresses).lower(),
+            })
+        matching_role = next((item for item in role_records if item["matches_expected"] == "true"), None)
+        parsed.append({
+            "codici_fiscali": codice_candidates,
+            "pec_candidates": address_candidates,
+            "pec": expected if expected in address_seen else (address_candidates[0] if address_candidates else ""),
+            "nome": nome or denominazione,
+            "ruolo": (matching_role or (role_records[0] if role_records else {})).get("ruolo", _reginde_first(values, "ruolo", "tipoSoggetto", "qualifica")),
+            "stato": (matching_role or (role_records[0] if role_records else {})).get("stato", _reginde_first(values, "status", "stato")),
+        })
+
+    selected = next((item for item in parsed if requested_cf in item["codici_fiscali"]), None)
+    if selected is None and len(parsed) == 1:
+        selected = parsed[0]
+    selected = selected or {
+        "codici_fiscali": set(),
+        "pec_candidates": [],
+        "pec": "",
+        "nome": "",
+        "ruolo": "",
+        "stato": "",
+    }
+    found = bool(selected["codici_fiscali"] or selected["pec_candidates"])
+    pec_matches = bool(found and expected and expected in selected["pec_candidates"])
+    registry_cf = next(
+        (value for value in selected["codici_fiscali"] if value == requested_cf),
+        next(iter(sorted(selected["codici_fiscali"])), ""),
+    )
+    return {
+        "found": found,
+        "pec": selected["pec"],
+        "pec_candidates": selected["pec_candidates"],
+        "pec_matches": pec_matches,
+        "codice_fiscale": registry_cf,
+        "codice_fiscale_richiesto": requested_cf,
+        "cf_matches": bool(registry_cf and registry_cf == requested_cf),
+        "nome": selected["nome"],
+        "ruolo": selected["ruolo"],
+        "stato": selected["stato"],
+    }
+
+
+def _reginde_cert_thumbprint(requested: Any, prefer_cf: str) -> Optional[str]:
+    effective = _certificato_windows_effettivo(str(requested or ""))
+    if sys.platform == "win32" and not effective:
+        preferred = _pick_preferred_windows_cert(
+            _windows_lista_certificati(),
+            prefer_cf=prefer_cf,
+            auto=True,
+        )
+        if preferred:
+            _ricorda_certificato_windows(preferred)
+            effective = str(preferred.get("thumbprint") or "").strip()
+    return _require_certificato_pst(effective)
+
+
+def _reginde_windows_native_batch(
+    requests: list[dict[str, Any]],
+    *,
+    cert_thumbprint: str,
+    pin: str,
+) -> list[dict[str, Any]]:
+    """Usa il client certificati Windows nativo, evitando il blocco Schannel di curl."""
+    script_path = Path(__file__).with_name("local_signer_windows_http.ps1")
+    if not script_path.is_file():
+        raise RuntimeError("Componente Windows del Local Signer non disponibile. Aggiorna il Local Signer.")
+    powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+    if not powershell:
+        raise RuntimeError("Componente Windows del Local Signer non disponibile.")
+
+    payload = {
+        "cert_thumbprint": cert_thumbprint,
+        "pin": pin,
+        "requests": [
+            {
+                "url": str(item.get("url") or ""),
+                "soap_body": str(item.get("soap_body") or ""),
+                "soap_action": str(item.get("soap_action") or ""),
+                "content_type": str(item.get("content_type") or "text/xml; charset=utf-8"),
+                "extra_headers": list(item.get("extra_headers") or []),
+                "max_time": int(item.get("max_time") or 90),
+            }
+            for item in requests
+        ],
+    }
+    timeout_seconds = sum(int(item.get("max_time") or 90) + 10 for item in requests)
+    result = _run_process_with_pin_foreground(
+        [
+            powershell,
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
+        ],
+        input=json.dumps(payload, ensure_ascii=False),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout_seconds,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(detail or "Verifica del pubblico elenco non completata dal componente Windows.")
+    try:
+        decoded = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Il componente Windows non ha restituito una risposta valida.") from exc
+    rows = decoded if isinstance(decoded, list) else [decoded]
+    responses: list[dict[str, Any]] = []
+    for row in rows:
+        source = row if isinstance(row, dict) else {}
+        try:
+            body_bytes = base64.b64decode(str(source.get("body_b64") or ""), validate=True)
+        except (ValueError, TypeError):
+            body_bytes = b""
+        headers_text = str(source.get("headers_text") or "")
+        status_code = int(source.get("status_code") or 0)
+        error = str(source.get("error") or "").strip()
+        body_text = body_bytes.decode("utf-8", "replace")
+        fault = _estrai_fault_soap(body_text)
+        if not error and status_code >= 400:
+            error = _http_errore_leggibile(
+                status_code,
+                body_text,
+                _REGINDE_INTERROGAZIONE_URL,
+                _http_header_value(headers_text, "Content-Type"),
+            )
+        if not error and fault:
+            error = f"Il PST ha restituito una SOAP Fault: {fault}"
+        responses.append({
+            "body_bytes": body_bytes,
+            "headers_text": headers_text,
+            "status_code": status_code,
+            "error": error,
+        })
+    if len(responses) != len(requests):
+        raise RuntimeError("Il componente Windows non ha restituito tutte le verifiche richieste.")
+    return responses
+
+
+def _reginde_verify_subjects(
+    subjects: list[dict[str, Any]],
+    *,
+    cert_thumbprint: Any = "",
+    pin: Any = "",
+) -> dict[str, Any]:
+    normalized: list[dict[str, str]] = []
+    for index, subject in enumerate(subjects[:20]):
+        codice_fiscale = _reginde_normalize_cf(subject.get("codice_fiscale") or subject.get("codiceFiscale"))
+        pec_attesa = _reginde_normalize_pec(subject.get("pec_attesa") or subject.get("pec") or subject.get("expected_pec"))
+        if not _REGINDE_CF_RE.fullmatch(codice_fiscale):
+            raise ValueError(f"Codice fiscale non valido per il soggetto {index + 1}.")
+        if not pec_attesa or "@" not in pec_attesa:
+            raise ValueError(f"Indirizzo PEC non valido per il soggetto {index + 1}.")
+        normalized.append({
+            "key": str(subject.get("key") or index),
+            "codice_fiscale": codice_fiscale,
+            "pec_attesa": pec_attesa,
+            "allow_tax_code_correction": bool(subject.get("allow_tax_code_correction")),
+        })
+    if not normalized:
+        raise ValueError("Indica almeno un soggetto da verificare.")
+    effective_pin = str(pin or "").strip()
+    if sys.platform == "win32" and not effective_pin:
+        raise ValueError("Inserisci il PIN nel riquadro Firma relata e riprova.")
+
+    requests_batch = [{
+        "url": _REGINDE_INTERROGAZIONE_URL,
+        "soap_body": _reginde_soap_body_for_address(item["pec_attesa"]),
+        "soap_action": _REGINDE_INTERROGAZIONE_NS,
+        "max_time": 35,
+        "connect_timeout": 12,
+    } for item in normalized]
+    with _reginde_smartcard_lock:
+        certificate = _reginde_cert_thumbprint(cert_thumbprint, normalized[0]["codice_fiscale"])
+        responses = (
+            _reginde_windows_native_batch(
+                requests_batch,
+                cert_thumbprint=certificate,
+                pin=effective_pin,
+            )
+            if sys.platform == "win32"
+            else _soap_call_curl_batch_raw_best_effort(
+                requests_batch,
+                cert_thumbprint=certificate,
+            )
+        )
+    attempted_at = datetime.now().astimezone().isoformat(timespec="seconds")
+    results: list[dict[str, Any]] = []
+    for item, response in zip(normalized, responses):
+        response_bytes = response.get("body_bytes") or b""
+        error = str(response.get("error") or "").strip()
+        if error:
+            results.append({
+                **item,
+                "verified": False,
+                "found": False,
+                "pec": "",
+                "pec_matches": False,
+                "attempted_at": attempted_at,
+                "verified_at": "",
+                "checked_at": "",
+                "evidence_sha256": "",
+                "evidence_body_b64": "",
+                "message": "Verifica del pubblico elenco non completata.",
+                "error": error,
+            })
+            continue
+        parsed = _reginde_parse_subject(response_bytes, item["codice_fiscale"], item["pec_attesa"])
+        inactive = bool(re.search(r"radiat|cancellat|sospes|cessat|revocat", str(parsed.get("stato") or ""), re.IGNORECASE))
+        tax_code_accepted = bool(parsed.get("cf_matches") or item["allow_tax_code_correction"])
+        verified = bool(parsed["found"] and parsed["pec_matches"] and tax_code_accepted and not inactive)
+        verified_at = attempted_at if verified else ""
+        returned_pec = str(parsed.get("pec") or "").strip()
+        message = (
+            (
+                "Indirizzo PEC verificato sul pubblico elenco; codice fiscale del destinatario allineato al registro."
+                if verified and not parsed.get("cf_matches")
+                else "Indirizzo PEC verificato sul pubblico elenco."
+            )
+            if verified
+            else (
+                "Il pubblico elenco associa la PEC a un codice fiscale diverso da quello indicato."
+                if parsed.get("pec_matches") and not parsed.get("cf_matches")
+                else
+                f"Il pubblico elenco associa al soggetto l'indirizzo {returned_pec}, diverso da quello indicato."
+                if returned_pec
+                else "Il pubblico elenco non associa questa PEC al codice fiscale indicato."
+            )
+        )
+        results.append({
+            **item,
+            **parsed,
+            "verified": verified,
+            "attempted_at": attempted_at,
+            "verified_at": verified_at,
+            "checked_at": verified_at,
+            "evidence_sha256": hashlib.sha256(response_bytes).hexdigest(),
+            "evidence_body_b64": base64.b64encode(response_bytes).decode("ascii"),
+            "message": message,
+            "error": "",
+        })
+    return {
+        "ok": bool(results) and all(item.get("verified") for item in results),
+        "source": "reginde",
+        "attempted_at": attempted_at,
+        "verified_at": attempted_at if results and all(item.get("verified") for item in results) else "",
+        "checked_at": attempted_at if results and all(item.get("verified") for item in results) else "",
+        "results": results,
+    }
+
+
+def _ipa_json_request(path: str, payload: Optional[dict[str, Any]] = None) -> tuple[dict[str, Any], bytes]:
+    url = f"{_IPA_PUBLIC_API_BASE}/{path.lstrip('/')}"
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
+    request = Request(
+        url,
+        data=body,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": f"IUSENTRA-LocalSigner/{VERSION}",
+        },
+        method="POST" if body is not None else "GET",
+    )
+    with urlopen(request, timeout=20) as response:
+        raw = response.read()
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("La risposta del pubblico elenco non e' valida.") from exc
+    if not isinstance(parsed, dict) or parsed.get("errore") is True:
+        raise RuntimeError("Il pubblico elenco non ha completato la ricerca.")
+    return parsed, raw
+
+
+def _ipa_verify_pec(pec_attesa: Any, codice_fiscale: Any = "") -> dict[str, Any]:
+    expected_pec = _reginde_normalize_pec(pec_attesa)
+    expected_cf = _reginde_normalize_cf(codice_fiscale)
+    if not expected_pec or "@" not in expected_pec:
+        raise ValueError("Indirizzo PEC non valido.")
+    search_payload = {
+        "paginazione": {
+            "campoOrdinamento": "id",
+            "tipoOrdinamento": "asc",
+            "paginaRichiesta": 1,
+            "righePerPagina": 20,
+        },
+        "indirizzoPec": expected_pec,
+        "denominazione": None,
+        "area": None,
+    }
+    search, search_raw = _ipa_json_request("mail", search_payload)
+    risposta = search.get("risposta") if isinstance(search.get("risposta"), dict) else {}
+    candidates = risposta.get("listaResponse") if isinstance(risposta.get("listaResponse"), list) else []
+    attempted_at = datetime.now().astimezone().isoformat(timespec="seconds")
+    details_raw: list[bytes] = []
+    selected: dict[str, Any] = {}
+    selected_detail: dict[str, Any] = {}
+    for candidate in candidates[:20]:
+        if not isinstance(candidate, dict) or not candidate.get("idEnte"):
+            continue
+        detail_payload, detail_raw = _ipa_json_request(f"ente/eager/{int(candidate['idEnte'])}")
+        details_raw.append(detail_raw)
+        detail = detail_payload.get("risposta") if isinstance(detail_payload.get("risposta"), dict) else {}
+        entity_cf = _reginde_normalize_cf(detail.get("codiceFiscalePg") or detail.get("codiceFiscalePf"))
+        primary_mail = detail.get("mail") if isinstance(detail.get("mail"), dict) else {}
+        all_mail = [primary_mail, *(detail.get("mailList") if isinstance(detail.get("mailList"), list) else [])]
+        matching_mail = next((mail for mail in all_mail if (
+            isinstance(mail, dict)
+            and _reginde_normalize_pec(mail.get("mail")) == expected_pec
+            and str(mail.get("idTipoEmail") or "").upper() == "P"
+            and str(mail.get("idTipoStatoMail") or "").upper() == "OK"
+        )), None)
+        if not matching_mail:
+            continue
+        if expected_cf and entity_cf != expected_cf:
+            continue
+        selected = candidate
+        selected_detail = detail
+        break
+
+    verified = bool(selected_detail)
+    evidence_bytes = b"\n".join([search_raw, *details_raw])
+    verified_at = attempted_at if verified else ""
+    return {
+        "ok": verified,
+        "source": "registro_ppaa",
+        "verified": verified,
+        "found": bool(candidates),
+        "pec": expected_pec if verified else "",
+        "pec_attesa": expected_pec,
+        "codice_fiscale": _reginde_normalize_cf(
+            selected_detail.get("codiceFiscalePg") or selected_detail.get("codiceFiscalePf") or expected_cf
+        ),
+        "nome": str(selected_detail.get("denominazione") or selected.get("denominazione") or "").strip(),
+        "stato": "attivo" if verified else "non_verificato",
+        "attempted_at": attempted_at,
+        "verified_at": verified_at,
+        "checked_at": verified_at,
+        "evidence_sha256": hashlib.sha256(evidence_bytes).hexdigest() if evidence_bytes else "",
+        "evidence_body_b64": base64.b64encode(evidence_bytes).decode("ascii") if evidence_bytes else "",
+        "message": (
+            "Indirizzo PEC verificato sul pubblico elenco."
+            if verified
+            else "Il pubblico elenco non associa questa PEC al codice fiscale indicato."
+        ),
+    }
 
 
 def _pst_host(url: str) -> str:
@@ -4078,10 +4644,18 @@ def _pst_registro_documenti_sicid(base_url: str) -> str:
     return _pst_servizio_proxy(base_url) or _pst_registro_da_base_url(base_url)
 
 
-def _pst_tabella_ministeriale_policy(base_url: str) -> dict:
+def _pst_tabella_ministeriale_policy(base_url: str, registro_portale: str = "") -> dict:
     servizio = _pst_servizio_proxy(base_url)
     policy = dict(_PST_TABELLE_MINISTERIALI_POLICY.get(servizio or "", {}))
     if policy:
+        registro = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
+        if servizio == "JPW_SIECIC":
+            policy["tabella"] = {
+                "ESM": "SIECIC_ESECUZIONI_MOBILIARI",
+                "ESIM": "SIECIC_ESECUZIONI_IMMOBILIARI",
+                "FALL": "SIECIC_PROCEDURE_CONCORSUALI",
+            }.get(registro, policy["tabella"])
+            policy["registro"] = registro or policy["registro"]
         policy.setdefault("servizio", servizio)
         return policy
     return {
@@ -4867,6 +5441,28 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
                 if flash_window:
                     try:
                         flash_window(hwnd, True)
+                    except Exception:
+                        pass
+                flash_window_ex = getattr(user32, "FlashWindowEx", None)
+                if flash_window_ex:
+                    try:
+                        class _FlashWindowInfo(ctypes.Structure):
+                            _fields_ = (
+                                ("cbSize", ctypes.c_uint),
+                                ("hwnd", ctypes.c_void_p),
+                                ("dwFlags", ctypes.c_uint),
+                                ("uCount", ctypes.c_uint),
+                                ("dwTimeout", ctypes.c_uint),
+                            )
+
+                        flash_info = _FlashWindowInfo(
+                            ctypes.sizeof(_FlashWindowInfo),
+                            hwnd,
+                            0x00000003 | 0x0000000C,
+                            6,
+                            0,
+                        )
+                        flash_window_ex(ctypes.byref(flash_info))
                     except Exception:
                         pass
                 # Windows a volte rifiuta SetForegroundWindow ma mostra comunque
@@ -6457,10 +7053,11 @@ def _pst_catalogo_certificato_ufficio(
 
 
 def _soap_qbuilder_envelope(namespace: str, body_inner: str, *, role: str, group: str) -> str:
+    group_attr = f' group="{_esc(group)}"' if str(group or "").strip() else ""
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
   <soapenv:Header>
-    <ws:InvocationDomain name="JPW" role="{_esc(role)}" group="{_esc(group)}"
+    <ws:InvocationDomain name="JPW" role="{_esc(role)}"{group_attr}
         soapenv:mustUnderstand="1"
         soapenv:actor="http://schemas.xmlsoap.org/soap/actor/next"
         xmlns:ws="http://www.netserv.it/anag/security"/>
@@ -6595,7 +7192,7 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                     _pst_servizio_ricorsi_cassazione(base_url),
                     values,
                     role="AVV",
-                    group=codice_ufficio,
+                    group="",
                     empty_order=True,
                 )
             if _pst_servizio_siecic(base_url):
@@ -6652,15 +7249,20 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
             )
         if anno_rg and not str(numero_rg or "").strip() and not (nome_parte or cf_parte):
             if _pst_servizio_cassazione(base_url):
+                data_field = (
+                    "DATAISCR"
+                    if _pst_servizio_cassazione_penale(base_url)
+                    else "DATADEP"
+                )
                 return _soap_qbuilder_execute_body(
                     namespace,
                     _pst_servizio_ricorsi_cassazione(base_url),
                     [
-                        ("DATAISCR_DA", "date", f"01/01/{int(anno_rg):04d}"),
-                        ("DATAISCR_AL", "date", f"31/12/{int(anno_rg):04d}"),
+                        (f"{data_field}_DA", "date", f"01/01/{int(anno_rg):04d}"),
+                        (f"{data_field}_AL", "date", f"31/12/{int(anno_rg):04d}"),
                     ],
                     role="AVV",
-                    group=codice_ufficio,
+                    group="",
                     empty_order=True,
                 )
             if _pst_servizio_siecic(base_url):
@@ -6668,19 +7270,14 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 if registro_siecic in {"ESM", "ESIM", "FALL"}:
                     return _soap_qbuilder_execute_body(
                         namespace,
-                        "RicercaInformazioniFascicoloPerNumero",
-                        [
+                        "RicercaArchivioPC" if registro_siecic == "FALL" else "RicercaArchivioEI",
+                        _pst_values_con_id_ruolo_jpw([
                             ("idUfficio", "string", codice_ufficio),
-                            ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
-                            ("registro", "string", registro_siecic),
-                            ("tipo", "string", "RNG"),
-                            ("numero", "integer", ""),
-                            ("anno", "string", str(anno_rg)),
-                            ("NUMEROUNITARIO", "string", ""),
-                        ],
+                            ("annoRuolo", "integer", str(anno_rg)),
+                        ], id_ruolo_jpw),
                         role="AVV",
                         group=codice_ufficio,
-                        order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+                        order_entries=[("annoRuolo, numeroRuolo", "asc")],
                     )
                 return _soap_qbuilder_execute_body(
                     namespace,
@@ -6791,15 +7388,19 @@ def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno
     if _pst_servizio_siecic(base_url):
         registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
         if registro_siecic in {"ESM", "ESIM", "FALL"}:
+            service_name = "RicercaArchivioPC" if registro_siecic == "FALL" else "RicercaArchivioEI"
+            values = _pst_values_con_id_ruolo_jpw([
+                ("idUfficio", "string", codice_ufficio),
+                ("annoRuolo", "integer", str(anno_rg)),
+            ], id_ruolo_jpw)
             return [
-                _soap_ricerca_fascicoli_body(
-                    base_url=base_url,
-                    codice_ufficio=codice_ufficio,
-                    anno_rg=anno_rg,
-                    cf_avvocato=cf_avvocato,
-                    sub_procedimento=sub_procedimento,
-                    id_ruolo_jpw=id_ruolo_jpw,
-                    registro_portale=registro_siecic,
+                _soap_qbuilder_execute_body(
+                    namespace,
+                    service_name,
+                    values,
+                    role="AVV",
+                    group=codice_ufficio,
+                    order_entries=[("annoRuolo, numeroRuolo", "asc")],
                 )
             ]
         values = _pst_values_con_id_ruolo_jpw([
@@ -6841,31 +7442,27 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
                           anno_rg: int, cf_avvocato: str = "", sub_procedimento: str = "",
                           id_ruolo_jpw: str = "",
                           registro_portale: str = "",
-                          id_dfa: str = "") -> str:
+                          id_dfa: str = "",
+                          id_fascicolo: str = "") -> str:
     """Costruisce il body SOAP per ConsultazioneAvanzataDocumenti o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
         numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+        if _pst_servizio_cassazione_penale(base_url):
+            return ""
+        if _pst_servizio_cassazione_civile(base_url):
+            nrg = str(id_fascicolo or "").strip()
+            if not nrg:
+                return ""
+            return _soap_qbuilder_execute_body(
+                namespace,
+                "QC_FascicoloInformatico",
+                [("NRG", "string", nrg)],
+                role="AVV",
+                group="",
+                empty_order=True,
+            )
         if _pst_servizio_siecic(base_url):
-            registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
-            if registro_siecic in {"ESM", "ESIM", "FALL"}:
-                values = [
-                    ("idUfficio", "string", codice_ufficio),
-                    ("idRuoloJPW", "string", _pst_id_ruolo_jpw_effettivo(id_ruolo_jpw)),
-                    ("numero", "integer", numero_value),
-                    ("anno", "string", str(anno_rg)),
-                    ("subpro", "integer", sub_procedimento if sub_procedimento else ""),
-                    ("registro", "string", registro_siecic),
-                    ("idDfa", "string", str(id_dfa or "").strip()),
-                ]
-                return _soap_qbuilder_execute_body(
-                    namespace,
-                    "DocumentiFascicolo",
-                    values,
-                    role="AVV",
-                    group=codice_ufficio,
-                    order_entries=[("DATADEPOSITO", "desc")],
-                )
             return _soap_qbuilder_execute_body(
                 namespace,
                 "ElencoDocumenti",
@@ -6936,6 +7533,8 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
                                  id_dfa: str = "") -> str:
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace:
+        return ""
+    if _pst_servizio_cassazione(base_url):
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     if _pst_servizio_siecic(base_url):
@@ -7079,6 +7678,8 @@ def _qbuilder_row_has_documento(row: dict) -> bool:
         "idDoc",
         "IDATTO",
         "idAtto",
+        "IDATTOPRINCIPALE",
+        "idAttoPrincipale",
         "IDCAT",
         "idCat",
         "IDREPEATTO",
@@ -7296,8 +7897,17 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
     ) or numero_cassazione
     anno_ruolo_raw = _qbuilder_value(row, "ANNORUOLO", "annoRuolo", "ANNO", "anno")
     anno_ruolo = int(anno_ruolo_raw or anno_cassazione or 0)
+    registro_portale = _qbuilder_value(row, "REGISTRO", "registro")
     return {
-        "id_fascicolo": _qbuilder_value(row, "IDFASCICOLO", "idFascicolo", "IDDFA", "idDfa", "NRG"),
+        "id_fascicolo": _qbuilder_value(
+            row,
+            "IDFASCICOLO",
+            "idFascicolo",
+            "NRG",
+            "IDDFA",
+            "idDfa",
+        ),
+        "id_dfa": _qbuilder_value(row, "IDDFA", "idDfa"),
         "numero_rg": numero_ruolo,
         "anno_rg": anno_ruolo,
         "ruolo": _qbuilder_value(row, "RUOLODESCRIZIONE", "ruoloDescrizione", "DESCRRITO", "descrRito", "RUOLO", "DESCRUOLO", "RITO", "TIPO"),
@@ -7311,6 +7921,15 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
         "codice_ufficio": codice_ufficio,
         "nome_ufficio": str((ufficio or {}).get("nome") or "").strip(),
         "sub_procedimento": _qbuilder_value(row, "SUBPROCEDIMENTO", "subProcedimento"),
+        "registro_portale": registro_portale,
+        "tipo_registro": registro_portale,
+        "registro_decode": _qbuilder_value(row, "REGISTRODECODE", "registroDecode", "REGISTODECODE"),
+        "numero_estensione": _qbuilder_value(row, "NUMEROESTENSIONE", "numeroEstensione"),
+        "codice_rito": _qbuilder_value(row, "CODRITO", "codRito"),
+        "descrizione_rito": _qbuilder_value(row, "DESCRRITO", "descrRito", "RITO", "rito"),
+        "data_ultima_modifica": _normalizza_data_pst(
+            _qbuilder_value(row, "DATAULTIMAMODIFICA", "dataUltimaModifica")
+        ),
         "parti": [parte["nome"] for parte in parti_dettaglio if parte.get("nome")],
         "parti_dettaglio": parti_dettaglio,
         "materia": _qbuilder_value(row, "DESCMATERIA", "descMateria", "MATERIA", "materia"),
@@ -7331,7 +7950,19 @@ def _map_qbuilder_documento(
     livello: int = 0,
     sezione_portale: str = "DocumentiFascicolo",
 ) -> dict:
-    tipo = _qbuilder_tipo_documento(_qbuilder_value(row, "TIPO", "tipo", "TIPODOCUMENTO", "tipoDocumento", "TIPOATTO", "tipoAtto"))
+    tipo = _qbuilder_tipo_documento(_qbuilder_value(
+        row,
+        "TIPO",
+        "tipo",
+        "TIPODOCUMENTO",
+        "tipoDocumento",
+        "TIPOATTO",
+        "tipoAtto",
+        "TIPODEPOSITO",
+        "tipoDeposito",
+        "TIPOALLEGATO",
+        "tipoAllegato",
+    ))
     id_cat = _qbuilder_value(row, "IDCAT", "idCat", "IDCATEGORIA", "idCategoria")
     id_documento = _qbuilder_value(
         row,
@@ -7344,6 +7975,8 @@ def _map_qbuilder_documento(
         "idDoc",
         "IDATTO",
         "idAtto",
+        "IDATTOPRINCIPALE",
+        "idAttoPrincipale",
         "IDCAT",
         "idCat",
         "IDDOCMITTENTE",
@@ -7357,10 +7990,21 @@ def _map_qbuilder_documento(
     id_reperto = _qbuilder_value(row, "IDREPERTO", "idReperto", "IDREPERTORIO", "idRepertorio", "IDRACCOGLITORE", "idRaccoglitore", "IDCATREPOSITORY", "idCatRepository")
     msg_id = _qbuilder_value(row, "MSGID", "MSG_ID", "msgId", "msgid")
     numero_doc = _qbuilder_numero_rg(numero_documento or id_documento)
-    id_deposito = id_doc_mittente
+    id_deposito = _qbuilder_value(row, "IDBUSTA", "idBusta", "IDDEPOSITO", "idDeposito") or id_doc_mittente
     id_documento_candidates: list[str] = []
     for candidate in (
-        _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "IDATTO", "idAtto", "IDDOC", "idDoc"),
+        _qbuilder_value(
+            row,
+            "IDDOCUMENTO",
+            "IdDocumento",
+            "idDocumento",
+            "IDATTO",
+            "idAtto",
+            "IDATTOPRINCIPALE",
+            "idAttoPrincipale",
+            "IDDOC",
+            "idDoc",
+        ),
         numero_documento,
         id_doc_mittente,
         id_reperto,
@@ -8138,12 +8782,18 @@ def _flatten_qbuilder_documenti(rows: list[dict]) -> list[dict]:
     def _visit(row: dict, parent: Optional[dict], livello: int) -> None:
         current_parent = parent
         if _qbuilder_row_has_documento(row):
+            row_class = str(row.get("__class") or "").strip().lower()
+            cassazione = row_class in {"depositoinformatico", "dettaglioallegato"}
             doc = _map_qbuilder_documento(
                 row,
                 parent=parent,
                 is_allegato=bool(parent) or livello > 0,
                 livello=livello,
-                sezione_portale="Allegati" if parent or livello > 0 else "DocumentiFascicolo",
+                sezione_portale=(
+                    "Fascicolo informatico"
+                    if cassazione
+                    else "Allegati" if parent or livello > 0 else "DocumentiFascicolo"
+                ),
             )
             documenti.append(doc)
             current_parent = doc
@@ -8733,6 +9383,21 @@ def _soap_bea_siecic_body(operation: str, parameters: list[tuple[str, str]]) -> 
 </soapenv:Envelope>"""
 
 
+def _soap_bea_cassazione_body(operation: str, parameters: list[tuple[str, str]]) -> str:
+    namespace = "http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"
+    params_xml = "".join(
+        f"<{_esc(name)}>{_esc(str(value))}</{_esc(name)}>"
+        for name, value in parameters
+        if value not in ("", None)
+    )
+    body_inner = (
+        f'<impl:{_esc(operation)} xmlns:impl="{namespace}">'
+        f"{params_xml}"
+        f'</impl:{_esc(operation)}>'
+    )
+    return _soap_qbuilder_envelope(namespace, body_inner, role="AVV", group="")
+
+
 def _soap_sigp_download_body(id_repeatto: str, codice_ufficio: str) -> str:
     body_inner = f"""
     <y:downloadAtto xmlns:y="urn:sigp-consultazioneDocumenti">
@@ -8842,6 +9507,17 @@ def _pst_download_documento_payload(
         if not download_id_repeatto:
             raise RuntimeError("Il servizio SIGP richiede idRepeatTo per il download dell'atto.")
         soap_body = _soap_sigp_download_body(download_id_repeatto, codice_ufficio)
+    elif servizio == "JPW_CASSCI":
+        cassazione_id = str(id_documento or id_cat).strip()
+        if not cassazione_id:
+            raise RuntimeError("Il documento di Cassazione non contiene l'identificativo necessario al download.")
+        soap_body = _soap_bea_cassazione_body(
+            "downloadDocumento",
+            [
+                ("idDoc", cassazione_id),
+                ("original", "true" if original else "false"),
+            ],
+        )
     else:
         raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
 
@@ -9216,12 +9892,18 @@ def _soap_qbuilder_fascicolo_section_body(
     id_ruolo_jpw: str = "",
     registro_portale: str = "",
     id_dfa: str = "",
+    id_fascicolo: str = "",
 ) -> str:
     namespace = _pst_namespace_qbuilder(base_url)
     if not namespace:
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
-    if _pst_servizio_siecic(base_url):
+    if _pst_servizio_cassazione(base_url):
+        nrg = str(id_fascicolo or "").strip()
+        if not nrg:
+            return ""
+        values = [("NRG", "string", nrg)]
+    elif _pst_servizio_siecic(base_url):
         registro_siecic = _pst_registro_portale_da_payload({"registro_portale": registro_portale})
         if registro_siecic in {"ESM", "ESIM", "FALL"}:
             values = [
@@ -9258,7 +9940,7 @@ def _soap_qbuilder_fascicolo_section_body(
         service_name,
         values,
         role="AVV",
-        group=codice_ufficio,
+        group="" if _pst_servizio_cassazione(base_url) else codice_ufficio,
         empty_order=True,
     )
 
@@ -9374,6 +10056,33 @@ def _map_qbuilder_scadenza(row: dict, servizio: str) -> dict:
     }
 
 
+def _map_qbuilder_parte_cassazione(row: dict, servizio: str) -> dict:
+    nome = _qbuilder_value(
+        row,
+        "PARTE",
+        "parte",
+        "RICORRENTE",
+        "ricorrente",
+        "NOMINATIVO",
+        "nominativo",
+        "PARTI",
+        "parti",
+    )
+    difensore = _qbuilder_value(row, "DIFENSORE", "difensore")
+    return {
+        "nome": nome,
+        "tipo": "Parte",
+        "codice_fiscale": _qbuilder_value(row, "CODICEFISCALE", "codiceFiscale"),
+        "difensore": difensore,
+        "cf_difensore": _qbuilder_value(
+            row,
+            "CODICEFISCALEDIFENSORE",
+            "codiceFiscaleDifensore",
+        ),
+        "servizio_portale": servizio,
+    }
+
+
 def _parse_pst_structured_sections_xml(xml_by_service: dict[str, str]) -> dict[str, list[dict]]:
     sezioni: dict[str, list[dict]] = {
         "eventi": [],
@@ -9381,6 +10090,8 @@ def _parse_pst_structured_sections_xml(xml_by_service: dict[str, str]) -> dict[s
         "comunicazioni": [],
         "istanze": [],
         "scadenze_termini": [],
+        "parti": [],
+        "difensori": [],
     }
     for servizio, xml_resp in xml_by_service.items():
         if not xml_resp or _estrai_fault_soap(xml_resp):
@@ -9388,13 +10099,24 @@ def _parse_pst_structured_sections_xml(xml_by_service: dict[str, str]) -> dict[s
         rows = _parse_qbuilder_row_list(xml_resp)
         for row in rows:
             class_name = str(row.get("__class") or "").lower()
-            if servizio in {"ComunicazioneCancelleria", "DettaglioComunicazione", "NotificheDaRitirare"} or "comunic" in class_name or "notifica" in class_name:
+            if "Parti" in servizio or "Difensori" in servizio:
+                parte = _map_qbuilder_parte_cassazione(row, servizio)
+                if parte.get("nome"):
+                    sezioni["parti"].append(parte)
+                if parte.get("difensore"):
+                    sezioni["difensori"].append({
+                        "nome": parte["difensore"],
+                        "codice_fiscale": parte.get("cf_difensore", ""),
+                        "servizio_portale": servizio,
+                    })
+            elif servizio in {"ComunicazioneCancelleria", "DettaglioComunicazione", "NotificheDaRitirare"} or "comunic" in class_name or "notifica" in class_name:
                 sezioni["comunicazioni"].append(_map_qbuilder_comunicazione(row, servizio))
             elif servizio == "DettaglioIstanze" or "istanza" in class_name:
                 sezioni["istanze"].append(_map_qbuilder_istanza(row, servizio))
-            elif servizio == "RicercaScadenze" or "scadenz" in class_name:
+            elif servizio == "RicercaScadenze" or "scadenz" in class_name or "UdienzeRicorso" in servizio:
                 sezioni["udienze"].append(_map_qbuilder_scadenza(row, servizio))
-                sezioni["scadenze_termini"].append(_map_qbuilder_scadenza(row, servizio))
+                if servizio == "RicercaScadenze" or "scadenz" in class_name:
+                    sezioni["scadenze_termini"].append(_map_qbuilder_scadenza(row, servizio))
             else:
                 sezioni["eventi"].append(_map_qbuilder_evento(row, servizio))
     return sezioni
@@ -9416,16 +10138,38 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
     id_ruolo_jpw: str = "",
     registro_portale: str = "",
     id_dfa: str = "",
+    id_fascicolo: str = "",
 ) -> dict[str, list[dict]]:
     if not _pst_namespace_qbuilder(base_url):
-        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
-    servizi = [
-        "StoricoFascicolo",
-        "RicercaScadenze",
-        "ComunicazioneCancelleria",
-        "DettaglioComunicazione",
-        "DettaglioIstanze",
-    ]
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": [], "parti": [], "difensori": []}
+    if _pst_servizio_cassazione_civile(base_url):
+        servizi = [
+            "QC_ProvvedimentiImpugnati",
+            "QC_PartiRicorso",
+            "QC_DifensoriRicorso",
+            "QC_ElencoMemorie",
+            "QC_UdienzeRicorso",
+            "QC_EsitoRicorso",
+            "QC_Controricorso",
+            "QC_SentenzeRicorso",
+        ]
+    elif _pst_servizio_cassazione_penale(base_url):
+        servizi = [
+            "QP_ProvvedimentiImpugnati",
+            "QP_PartiDifensori",
+            "QP_UdienzeRicorso",
+            "QP_EsitoRicorso",
+            "QP_ElencoRestituzioni",
+            "QP_SentenzeRicorso",
+        ]
+    else:
+        servizi = [
+            "StoricoFascicolo",
+            "RicercaScadenze",
+            "ComunicazioneCancelleria",
+            "DettaglioComunicazione",
+            "DettaglioIstanze",
+        ]
     requests: list[dict] = []
     names: list[str] = []
     extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
@@ -9440,6 +10184,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
             id_ruolo_jpw=id_ruolo_jpw,
             registro_portale=registro_portale,
             id_dfa=id_dfa,
+            id_fascicolo=id_fascicolo,
         )
         if not body:
             continue
@@ -9455,7 +10200,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
         )
         names.append(servizio)
     if not requests:
-        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": [], "parti": [], "difensori": []}
     try:
         results = _soap_call_pst_session_batch_raw_best_effort(
             requests,
@@ -9466,7 +10211,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
         )
     except Exception as exc:
         log.warning("Sezioni PST fascicolo non disponibili: %s", exc)
-        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": [], "parti": [], "difensori": []}
     xml_by_service: dict[str, str] = {}
     for name, result in zip(names, results):
         if not isinstance(result, dict):
@@ -9649,7 +10394,16 @@ def _pst_download_documenti_batch_payloads(
                 cookie_file=cookie_file,
             )
         servizio = _pst_servizio_proxy(base_url)
-        policy = _pst_tabella_ministeriale_policy(base_url)
+        first_document = documenti[0] if documenti and isinstance(documenti[0], dict) else {}
+        policy = _pst_tabella_ministeriale_policy(
+            base_url,
+            str(
+                first_document.get("registro_portale")
+                or first_document.get("tipo_registro")
+                or first_document.get("registro")
+                or ""
+            ).strip(),
+        )
         url_documenti = _pst_url_documenti(base_url)
         download_cookie_file = _pst_download_cookie_file(base_url, cookie_file)
         prefer_cookie_only = _pst_download_can_use_cookie_only(base_url, download_cookie_file)
@@ -9861,6 +10615,19 @@ def _pst_download_documenti_batch_payloads(
                     )
                     soap_action = ""
                     extra_h = extra_base
+                elif servizio == "JPW_CASSCI":
+                    cassazione_id = str(id_doc or id_cat).strip()
+                    if not cassazione_id:
+                        raise RuntimeError("Identificativo documento di Cassazione mancante nel lotto.")
+                    soap_body = _soap_bea_cassazione_body(
+                        "downloadDocumento",
+                        [
+                            ("idDoc", cassazione_id),
+                            ("original", "true" if original else "false"),
+                        ],
+                    )
+                    soap_action = ""
+                    extra_h = extra_base
                 else:
                     raise RuntimeError(
                         f"Servizio PST non supportato per il download batch: {servizio or 'sconosciuto'}."
@@ -9904,16 +10671,23 @@ def _pst_download_documenti_batch_payloads(
                     or ""
                 ).strip()
                 if first_doc_id:
-                    warmup_reqs.append({
-                        "url": url_documenti,
-                        "soap_body": _soap_bea_sicid_body(
+                    if servizio == "JPW_CASSCI":
+                        warmup_body = _soap_bea_cassazione_body(
+                            "calcolaHash",
+                            [("idDoc", first_doc_id)],
+                        )
+                    else:
+                        warmup_body = _soap_bea_sicid_body(
                             "calcolaHash",
                             [
                                 ("idUtenteCorrente", cf_avvocato),
                                 ("idDoc", first_doc_id),
                             ],
                             group=codice_ufficio,
-                        ),
+                        )
+                    warmup_reqs.append({
+                        "url": url_documenti,
+                        "soap_body": warmup_body,
                         "soap_action": "",
                         "extra_headers": extra_base or [f"X-WASP-User: {cf_avvocato}"],
                         "cookie_file": download_cookie_file,
@@ -10431,6 +11205,8 @@ class _Handler(BaseHTTPRequestHandler):
             "/ai/rag/query/stream",
             "/ai/embed",
             "/update",
+            "/pec/ipa",
+            "/pst/reginde",
             "/pst/preflight-auth",
             "/pst/certificato-ufficio",
             "/pst/ricerca",
@@ -10470,6 +11246,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._firma()
         elif path == "/firma-batch":
             self._firma_batch()
+        elif path == "/pec/ipa":
+            self._pec_ipa()
+        elif path == "/pst/reginde":
+            self._pst_reginde()
         elif path == "/pst/preflight-auth":
             self._pst_preflight_auth()
         elif path == "/pst/certificato-ufficio":
@@ -11240,6 +12020,52 @@ class _Handler(BaseHTTPRequestHandler):
             payload["pin_session_ttl_seconds"] = PIN_SESSION_TTL_SECONDS
         self._send_json(payload, 200 if firmati or not falliti else 500)
 
+    def _pec_ipa(self):
+        """Verifica una PEC attiva della pubblica amministrazione."""
+        data = self._read_json()
+        try:
+            payload = _ipa_verify_pec(
+                data.get("pec_attesa") or data.get("pec"),
+                data.get("codice_fiscale") or data.get("codiceFiscale"),
+            )
+            self._send_json(payload, 200)
+        except ValueError as exc:
+            self._send_json({"ok": False, "errore": str(exc)}, 400)
+        except Exception as exc:
+            log.error("Verifica PEC pubblica amministrazione non completata: %s", exc)
+            self._send_json({
+                "ok": False,
+                "errore": "Verifica del pubblico elenco non completata. Riprova tra poco.",
+            }, 500)
+
+    def _pst_reginde(self):
+        """Verifica uno o piu' indirizzi PEC nel registro professionale ufficiale."""
+        if sys.platform != "win32" and not _curl_disponibile():
+            self._send_json({
+                "ok": False,
+                "errore": "Il componente di rete del PC non e' disponibile.",
+            }, 400)
+            return
+        data = self._read_json()
+        subjects = data.get("soggetti")
+        if not isinstance(subjects, list):
+            subjects = [data]
+        try:
+            payload = _reginde_verify_subjects(
+                [item for item in subjects if isinstance(item, dict)],
+                cert_thumbprint=data.get("cert_thumbprint") or data.get("certificato_windows_thumbprint"),
+                pin=data.get("pin"),
+            )
+            self._send_json(payload, 200)
+        except ValueError as exc:
+            self._send_json({"ok": False, "errore": str(exc)}, 400)
+        except Exception as exc:
+            log.error("Verifica pubblico elenco non completata: %s", exc)
+            self._send_json({
+                "ok": False,
+                "errore": "Verifica del pubblico elenco non completata. Controlla il dispositivo e riprova.",
+            }, 500)
+
     def _pst_preflight_auth(self):
         """
         POST /pst/preflight-auth
@@ -11771,6 +12597,7 @@ class _Handler(BaseHTTPRequestHandler):
                 id_ruolo_jpw=id_ruolo_jpw,
                 registro_portale=registro_portale,
                 id_dfa=id_dfa,
+                id_fascicolo=str(data.get("id_fascicolo") or "").strip(),
             )
             soap_profilo = _soap_profilo_fascicolo_body(
                 base_url=base_url,
@@ -11810,15 +12637,17 @@ class _Handler(BaseHTTPRequestHandler):
                         "cookie_file": cookie_file,
                         "servizio_logico": _pst_servizio_proxy(base_url),
                     })
-                documenti_index = len(batch_requests)
-                batch_requests.append({
-                    "url": url_documenti,
-                    "soap_body": soap_documenti,
-                    "extra_headers": extra_headers,
-                    "soap_action": "",
-                    "cookie_file": cookie_file,
-                    "servizio_logico": _pst_servizio_proxy(base_url),
-                })
+                documenti_index = None
+                if soap_documenti:
+                    documenti_index = len(batch_requests)
+                    batch_requests.append({
+                        "url": url_documenti,
+                        "soap_body": soap_documenti,
+                        "extra_headers": extra_headers,
+                        "soap_action": "",
+                        "cookie_file": cookie_file,
+                        "servizio_logico": _pst_servizio_proxy(base_url),
+                    })
                 sigp_atti_index = None
                 if _pst_servizio_sigp(base_url):
                     sigp_atti_index = len(batch_requests)
@@ -11909,25 +12738,28 @@ class _Handler(BaseHTTPRequestHandler):
                                 "cookie_file": cookie_file,
                                 "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                             })
-                        fallback_info["documenti_index"] = len(batch_requests)
-                        batch_requests.append({
-                            "url": fallback_url_documenti,
-                            "soap_body": _soap_documenti_body(
-                                base_url=fallback_base_url,
-                                codice_ufficio=fallback_codice,
-                                numero_rg=numero_rg,
-                                anno_rg=anno_rg,
-                                cf_avvocato=cf_avvocato,
-                                sub_procedimento=sub_procedimento,
-                                id_ruolo_jpw=id_ruolo_jpw,
-                                registro_portale=registro_portale,
-                                id_dfa=id_dfa,
-                            ),
-                            "extra_headers": fallback_extra_headers,
-                            "soap_action": "",
-                            "cookie_file": cookie_file,
-                            "servizio_logico": _pst_servizio_proxy(fallback_base_url),
-                        })
+                        fallback_soap_documenti = _soap_documenti_body(
+                            base_url=fallback_base_url,
+                            codice_ufficio=fallback_codice,
+                            numero_rg=numero_rg,
+                            anno_rg=anno_rg,
+                            cf_avvocato=cf_avvocato,
+                            sub_procedimento=sub_procedimento,
+                            id_ruolo_jpw=id_ruolo_jpw,
+                            registro_portale=registro_portale,
+                            id_dfa=id_dfa,
+                            id_fascicolo=str(data.get("id_fascicolo") or "").strip(),
+                        )
+                        if fallback_soap_documenti:
+                            fallback_info["documenti_index"] = len(batch_requests)
+                            batch_requests.append({
+                                "url": fallback_url_documenti,
+                                "soap_body": fallback_soap_documenti,
+                                "extra_headers": fallback_extra_headers,
+                                "soap_action": "",
+                                "cookie_file": cookie_file,
+                                "servizio_logico": _pst_servizio_proxy(fallback_base_url),
+                            })
                         if _pst_servizio_sigp(fallback_base_url):
                             fallback_info["sigp_atti_index"] = len(batch_requests)
                             batch_requests.append({
@@ -11971,7 +12803,7 @@ class _Handler(BaseHTTPRequestHandler):
             )
             xml_documenti = (
                 batch_results[documenti_index][0].decode("utf-8", "replace")
-                if len(batch_results) > documenti_index
+                if documenti_index is not None and len(batch_results) > documenti_index
                 else ""
             )
             xml_sigp_atti = (
@@ -12048,7 +12880,7 @@ class _Handler(BaseHTTPRequestHandler):
                     fallback_codice = str(fallback_info.get("codice_ufficio") or codice_pst or tribunale).strip()
                     try:
                         fallback_ricerca_index = int(fallback_info.get("ricerca_index"))
-                        fallback_documenti_index = int(fallback_info.get("documenti_index"))
+                        fallback_documenti_index = fallback_info.get("documenti_index")
                         fallback_profile_index = fallback_info.get("profilo_index")
                         fallback_sigp_atti_index = fallback_info.get("sigp_atti_index")
 
@@ -12076,8 +12908,9 @@ class _Handler(BaseHTTPRequestHandler):
                             else ""
                         )
                         fallback_xml_documenti = (
-                            batch_results[fallback_documenti_index][0].decode("utf-8", "replace")
-                            if len(batch_results) > fallback_documenti_index
+                            batch_results[int(fallback_documenti_index)][0].decode("utf-8", "replace")
+                            if fallback_documenti_index is not None
+                            and len(batch_results) > int(fallback_documenti_index)
                             else ""
                         )
                         fallback_xml_sigp_atti = (
@@ -12164,7 +12997,7 @@ class _Handler(BaseHTTPRequestHandler):
             sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
             include_full_snapshot = bool(data.get("include_full_snapshot"))
             if _pst_namespace_qbuilder(base_url) and include_full_snapshot:
-                web_info = _pst_carica_infofascicolo_web(
+                web_info = {} if _pst_servizio_cassazione(base_url) else _pst_carica_infofascicolo_web(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
                     numero_rg=numero_rg,
@@ -12178,7 +13011,7 @@ class _Handler(BaseHTTPRequestHandler):
                 web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
                 if isinstance(web_documenti, list) and web_documenti:
                     documenti = _merge_documenti_catalogo(documenti, web_documenti)
-                else:
+                elif not _pst_servizio_cassazione(base_url):
                     documenti = _pst_arricchisci_documenti_con_master_detail(
                         documenti,
                         base_url=base_url,
@@ -12206,6 +13039,11 @@ class _Handler(BaseHTTPRequestHandler):
                     id_ruolo_jpw=id_ruolo_jpw,
                     registro_portale=registro_portale,
                     id_dfa=id_dfa,
+                    id_fascicolo=str(
+                        (fascicoli[0] if fascicoli else {}).get("id_fascicolo")
+                        or data.get("id_fascicolo")
+                        or ""
+                    ).strip(),
                 )
                 if isinstance(web_info, dict):
                     sezioni_pst["eventi"] = _merge_pst_section_items(
@@ -12248,7 +13086,23 @@ class _Handler(BaseHTTPRequestHandler):
             snapshot = None
             if fascicolo_row or documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(str(fascicolo_row.get("codice_ufficio") or codice_pst))
-                tabella_policy = _pst_tabella_ministeriale_policy(base_url)
+                tabella_policy = _pst_tabella_ministeriale_policy(base_url, registro_portale)
+                parti_fascicolo = list(
+                    fascicolo_row.get("parti")
+                    if isinstance(fascicolo_row.get("parti"), list)
+                    else []
+                )
+                for parte in sezioni_pst.get("parti", []):
+                    nome_parte = str((parte or {}).get("nome") or "").strip()
+                    if nome_parte and nome_parte not in parti_fascicolo:
+                        parti_fascicolo.append(nome_parte)
+                snapshot_completo = bool(
+                    include_full_snapshot
+                    and (
+                        not _pst_servizio_cassazione_civile(base_url)
+                        or bool(soap_documenti)
+                    )
+                )
                 fascicolo = {
                     "codice_ufficio": str(fascicolo_row.get("codice_ufficio") or codice_pst or tribunale),
                     "ufficio_codice": str(fascicolo_row.get("codice_ufficio") or codice_pst or tribunale),
@@ -12276,7 +13130,7 @@ class _Handler(BaseHTTPRequestHandler):
                         or fascicolo_row.get("data_iscrizione")
                         or ""
                     ),
-                    "parti": fascicolo_row.get("parti") if isinstance(fascicolo_row.get("parti"), list) else [],
+                    "parti": parti_fascicolo,
                     "controparti": fascicolo_row.get("controparti") if isinstance(fascicolo_row.get("controparti"), list) else [],
                     "servizio_pst": _pst_servizio_proxy(base_url),
                     "registro_portale": str(
@@ -12300,8 +13154,14 @@ class _Handler(BaseHTTPRequestHandler):
                     "fascicolo": fascicolo,
                     "documenti": documenti,
                     "catalogo": documenti,
-                    "full_snapshot": include_full_snapshot,
-                    "master_detail": include_full_snapshot,
+                    "full_snapshot": snapshot_completo,
+                    "master_detail": snapshot_completo,
+                    "documenti_mode": tabella_policy.get("documenti_mode", "diretto"),
+                    "avviso_documenti": (
+                        "Per questo registro i documenti si consultano nella pagina ufficiale autenticata."
+                        if _pst_servizio_cassazione_penale(base_url)
+                        else ""
+                    ),
                     "depositi": [],
                     "sezioni": {
                         "documenti_fascicolo": documenti,
@@ -12324,6 +13184,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "fascicoli_precedenti": fascicolo.get("fascicoli_precedenti", []),
                     "campione_civile": fascicolo.get("campione_civile", []),
                     "parti": fascicolo["parti"],
+                    "difensori": sezioni_pst.get("difensori", []),
                 }
 
             self._send_json({
@@ -12434,11 +13295,18 @@ class _Handler(BaseHTTPRequestHandler):
                 id_ruolo_jpw=_pst_id_ruolo_jpw_da_payload(data),
                 registro_portale=registro_portale,
                 id_dfa=id_dfa,
+                id_fascicolo=str(data.get("id_fascicolo") or "").strip(),
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             is_sigp = _pst_servizio_sigp(base_url)
             xml_sigp_atti = ""
-            if is_sigp:
+            if not soap:
+                if _pst_servizio_cassazione_civile(base_url):
+                    raise RuntimeError(
+                        "Per leggere i documenti di Cassazione civile occorre prima selezionare il fascicolo trovato."
+                    )
+                xml_resp = ""
+            elif is_sigp:
                 batch_results = _soap_call_pst_session_batch_raw(
                     [
                         {
@@ -12488,7 +13356,7 @@ class _Handler(BaseHTTPRequestHandler):
                         documenti,
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
-            if _pst_namespace_qbuilder(base_url):
+            if _pst_namespace_qbuilder(base_url) and not _pst_servizio_cassazione(base_url):
                 web_info = _pst_carica_infofascicolo_web(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -12532,6 +13400,15 @@ class _Handler(BaseHTTPRequestHandler):
                 "ok": True,
                 "documenti": documenti,
                 "raw_xml": xml_resp[:2000] if not documenti else None,
+                "documenti_mode": _pst_tabella_ministeriale_policy(
+                    base_url,
+                    registro_portale,
+                ).get("documenti_mode", "diretto"),
+                "avviso_documenti": (
+                    "Per questo registro i documenti si consultano nella pagina ufficiale autenticata."
+                    if _pst_servizio_cassazione_penale(base_url)
+                    else ""
+                ),
                 **_pst_session_response_fields(session_entry),
             })
         except Exception as e:
@@ -12652,11 +13529,22 @@ class _Handler(BaseHTTPRequestHandler):
                     id_ruolo_jpw=id_ruolo_jpw,
                     registro_portale=registro_portale,
                     id_dfa=id_dfa,
+                    id_fascicolo=str(
+                        data.get("id_fascicolo")
+                        or selection.get("id_fascicolo")
+                        or ""
+                    ).strip(),
                 )
                 extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
                 is_sigp = _pst_servizio_sigp(base_url)
                 xml_sigp_atti = ""
-                if is_sigp:
+                if not soap:
+                    if _pst_servizio_cassazione_civile(base_url):
+                        raise RuntimeError(
+                            "Il fascicolo di Cassazione civile non contiene l'identificativo necessario alla lettura documenti."
+                        )
+                    xml_resp = ""
+                elif is_sigp:
                     batch_results = _soap_call_pst_session_batch_raw(
                         [
                             {
@@ -12708,7 +13596,7 @@ class _Handler(BaseHTTPRequestHandler):
                         )
                 sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
                 if _pst_namespace_qbuilder(base_url):
-                    web_info = _pst_carica_infofascicolo_web(
+                    web_info = {} if _pst_servizio_cassazione(base_url) else _pst_carica_infofascicolo_web(
                         base_url=base_url,
                         codice_ufficio=codice_pst,
                         numero_rg=rg,
@@ -12727,7 +13615,7 @@ class _Handler(BaseHTTPRequestHandler):
                     web_documenti = web_info.get("documenti") if isinstance(web_info, dict) else []
                     if isinstance(web_documenti, list) and web_documenti:
                         documenti = _merge_documenti_catalogo(documenti, web_documenti)
-                    else:
+                    elif not _pst_servizio_cassazione(base_url):
                         documenti = _pst_arricchisci_documenti_con_master_detail(
                             documenti,
                             base_url=base_url,
@@ -12760,6 +13648,11 @@ class _Handler(BaseHTTPRequestHandler):
                         id_ruolo_jpw=id_ruolo_jpw,
                         registro_portale=registro_portale,
                         id_dfa=id_dfa,
+                        id_fascicolo=str(
+                            selection.get("id_fascicolo")
+                            or data.get("id_fascicolo")
+                            or ""
+                        ).strip(),
                     )
                     if isinstance(web_info, dict):
                         sezioni_pst["eventi"] = _merge_pst_section_items(
@@ -12780,6 +13673,16 @@ class _Handler(BaseHTTPRequestHandler):
                     auth_ready=True,
                 )
 
+            parti_fascicolo = list(
+                selection.get("parti")
+                if isinstance(selection.get("parti"), list)
+                else []
+            )
+            for parte in sezioni_pst.get("parti", []):
+                nome_parte = str((parte or {}).get("nome") or "").strip()
+                if nome_parte and nome_parte not in parti_fascicolo:
+                    parti_fascicolo.append(nome_parte)
+            tabella_policy = _pst_tabella_ministeriale_policy(base_url, registro_portale)
             fascicolo = {
                 "codice_ufficio": codice,
                 "ufficio_codice": codice,
@@ -12796,7 +13699,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "procedimento": selection.get("procedimento") or "",
                 "oggetto": selection.get("oggetto") or "",
                 "stato": selection.get("stato") or "",
-                "parti": selection.get("parti") if isinstance(selection.get("parti"), list) else [],
+                "parti": parti_fascicolo,
                 "controparti": selection.get("controparti") if isinstance(selection.get("controparti"), list) else [],
                 "scadenze_termini": selection.get("scadenze_termini") if isinstance(selection.get("scadenze_termini"), list) else [],
                 "fascicoli_precedenti": selection.get("fascicoli_precedenti") if isinstance(selection.get("fascicoli_precedenti"), list) else [],
@@ -12806,6 +13709,14 @@ class _Handler(BaseHTTPRequestHandler):
                 "fascicolo": fascicolo,
                 "documenti": documenti,
                 "catalogo": documenti,
+                "full_snapshot": True,
+                "master_detail": True,
+                "documenti_mode": tabella_policy.get("documenti_mode", "diretto"),
+                "avviso_documenti": (
+                    "Per questo registro i documenti si consultano nella pagina ufficiale autenticata."
+                    if _pst_servizio_cassazione_penale(base_url)
+                    else ""
+                ),
                 "depositi": [],
                 "sezioni": {
                     "documenti_fascicolo": documenti,
@@ -12828,6 +13739,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "fascicoli_precedenti": fascicolo.get("fascicoli_precedenti", []),
                 "campione_civile": fascicolo.get("campione_civile", []),
                 "parti": fascicolo["parti"],
+                "difensori": sezioni_pst.get("difensori", []),
             }
             self._send_json({
                 "ok": True,
@@ -13509,6 +14421,7 @@ Esempi:
         _trova_libreria(args.lib)
 
     _acquisisci_lock_istanza_unica(args.port)
+    _windows_presidia_avvio_automatico_unico()
     server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
     lib = _trova_libreria()

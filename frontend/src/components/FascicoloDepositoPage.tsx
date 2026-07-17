@@ -2371,11 +2371,11 @@ function DepositPreparePage({ id }:{id:string}) {
     }
   }
   const prepareDepositBeforeSubmit = async () => {
-    await submitDepositClassification()
     if (missingRequiredDepositSpecificFields.length) {
       goToDepositPhase('proposta-busta', 'auto')
       throw new Error(`Completa i dati obbligatori del deposito: ${missingRequiredDepositSpecificFields.map((field) => field.label).join(', ')}.`)
     }
+    await submitDepositClassification()
     await recoverPstOfficeCertificateBeforePackage()
     await runBatchSignatureBeforeDeposit()
   }
@@ -2441,8 +2441,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const compatibilityReceipts = Array.isArray(compatibilityReport.ricevute_attese)
     ? compatibilityReport.ricevute_attese.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     : []
-  const persistedDryRunProofReady = !depositProofInvalidated && recentDeposits.some(depositHasPersistedDryRunProof)
-  const packageReadyForRealSend = Boolean(packagePreview?.packageReady || persistedDryRunProofReady)
+  const packageReadyForRealSend = Boolean(packagePreview?.packageReady && !depositProofInvalidated)
   const selectedDepositTypeBlocksRealSend = Boolean(selectedDepositType && !selectedDepositType.rules.real_send_allowed_from_pct_panel)
   const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend && !selectedDepositTypeBlocksRealSend
   const realSendDisabledReason = !selectedDepositType
@@ -4590,11 +4589,6 @@ function depositStatusLabel(status: string): string {
     .join(' ')
 }
 
-function depositHasPersistedDryRunProof(dep: FascicoloDeposit): boolean {
-  const text = normaliseText(`${dep.status} ${dep.message} ${dep.checks} ${dep.source}`)
-  return dep.simulated || /prova\s+senza\s+invio/.test(text)
-}
-
 function isCancelleriaCommunication(dep: FascicoloDeposit): boolean {
   const text = depositCommunicationText(dep)
   return /(accettazion|consegna|rdac|rac|esito|cancelleria|deposito|busta)/.test(text)
@@ -5102,11 +5096,23 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
   }
 }
 
-async function pollLocalSignerStatus(attempts = 10, delayMs = 900): Promise<LocalSignerStatus | null> {
+async function pollLocalSignerStatus(
+  attempts = 10,
+  delayMs = 900,
+  minimumVersion = '',
+  maxDurationMs = 0,
+): Promise<LocalSignerStatus | null> {
+  const startedAt = Date.now()
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (maxDurationMs > 0 && Date.now() - startedAt >= maxDurationMs) break
     if (attempt > 0) await sleep(delayMs)
-    const payload = await fetchLocalSignerStatus()
-    if (payload && payload.ok !== false) return payload
+    const payload = await fetchLocalSignerStatus(minimumVersion ? 1500 : 3500)
+    const installedVersion = localSignerInstalledVersion(payload)
+    if (
+      payload
+      && payload.ok !== false
+      && (!minimumVersion || (installedVersion && compareLocalSignerVersions(installedVersion, minimumVersion) >= 0))
+    ) return payload
   }
   return null
 }
@@ -5120,13 +5126,18 @@ async function recoverLocalSignerAutomatically(
     const installed = localSignerInstalledVersion(status)
     options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
     try {
-      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), { method: 'POST', cache: 'no-store' })
+      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_url: window.location.origin }),
+      })
       const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
       if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
     } catch {
       requestLocalSignerUpdate()
     }
-    const updated = await pollLocalSignerStatus(14, 1000)
+    const updated = await pollLocalSignerStatus(240, 1500, latest, 360000)
     return updated || status
   }
   if (localSignerNeedsRestart(status)) {

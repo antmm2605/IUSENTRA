@@ -157,6 +157,8 @@ function resolveSelectedCard(module: StudioModuleConfig): StudioModuleCard | und
   const currentPath = normalizeRoute(window.location.pathname)
   const currentSearch = window.location.search
   const currentHash = window.location.hash
+  const explicitTool = new URLSearchParams(currentSearch).get('tool')
+  if (!explicitTool && !currentHash) return undefined
   return module.cards.find((card) => {
     const url = localUrl(card.href)
     if (!url) return false
@@ -166,7 +168,7 @@ function resolveSelectedCard(module: StudioModuleConfig): StudioModuleCard | und
     if (url.hash && currentHash) return url.hash === currentHash
     if (url.search && currentSearch) return url.search === currentSearch
     return true
-  }) || module.cards[0]
+  })
 }
 
 function operationForCard(runtime: StudioModuleRuntime, card: StudioModuleCard): StudioRuntimeOperation | undefined {
@@ -486,7 +488,7 @@ function ActiveFunctionPanel({
   const Icon = iconFor(card.icon)
   const actions = operation?.actions?.length ? operation.actions : [{ label: card.action, href: card.href, method: 'GET' as const, tone: card.tone }]
   const metrics = operation?.metrics?.length ? operation.metrics : runtime.metrics
-  const recordLimit = module.id === 'strumenti-forensi' ? 90 : 12
+  const recordLimit = 12
   return (
     <section id="funzione-operativa" className={`iu-sm-focus iu-sm-focus--${card.tone}`}>
       <div className="iu-sm-focus__icon"><Icon size={22}/></div>
@@ -571,13 +573,13 @@ export function StudioModulePage() {
   const [runtime, setRuntime] = useState<StudioModuleRuntime>(emptyStudioModuleRuntime)
   const [runtimeLoading, setRuntimeLoading] = useState(true)
   const [toolResults, setToolResults] = useState<Record<string, ToolResultState>>({})
-  const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard || module.cards[0]
+  const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard
   const selectedOperation = operationForCurrentRoute(runtime, selectedCard)
   const selectedResultKey = selectedOperation?.tool?.toolId || selectedOperation?.id || ''
   const selectedResultState = selectedResultKey ? toolResults[selectedResultKey] : undefined
 
   useEffect(() => {
-    const updateFromLocation = () => setSelectedCardTitle(resolveSelectedCard(module)?.title || module.cards[0]?.title || '')
+    const updateFromLocation = () => setSelectedCardTitle(resolveSelectedCard(module)?.title || '')
     updateFromLocation()
     window.addEventListener('popstate', updateFromLocation)
     return () => window.removeEventListener('popstate', updateFromLocation)
@@ -650,7 +652,7 @@ export function StudioModulePage() {
   }
 
   return (
-    <main className="iu-content iu-studio-module">
+    <main className="iu-content iu-tools-module">
       <section className={`iu-sm-hero iu-sm-hero--${module.kpis[0]?.tone || 'primary'}`}>
         <div>
           <p>{module.section}</p>

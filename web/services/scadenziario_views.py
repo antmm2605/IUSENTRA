@@ -66,6 +66,10 @@ def _is_overdue(scadenza: Scadenza) -> bool:
     return bool(days is not None and days < 0)
 
 
+def _is_effectively_open(scadenza: Scadenza) -> bool:
+    return getattr(scadenza, "stato", None) == StatoTermine.APERTO and not _is_overdue(scadenza)
+
+
 def _is_currently_actionable(scadenza: Scadenza) -> bool:
     if getattr(scadenza, "stato", None) != StatoTermine.APERTO or _is_overdue(scadenza):
         return False
@@ -98,20 +102,27 @@ def scadenze_per_vista(
     """Restituisce le scadenze della vista richiesta, mantenendo i filtri attivi."""
     gs = gestione_scadenziario
     vista = normalizza_vista_scadenziario(vista)
-    gs.scadute()
 
     def _base(solo_aperte: bool = True, stato: StatoTermine | None = None) -> list[Scadenza]:
-        return [
+        items = [
             item
             for item in gs.tutte(
-                stato=stato,
                 tipo=tipo,
                 priorita=priorita,
                 id_fascicolo=id_fascicolo,
-                solo_aperte=solo_aperte,
+                solo_aperte=False,
             )
             if not is_legacy_pec_deadline(item)
         ]
+        if stato == StatoTermine.SCADUTO:
+            return [item for item in items if _is_overdue(item)]
+        if stato == StatoTermine.APERTO:
+            return [item for item in items if _is_effectively_open(item)]
+        if stato is not None:
+            return [item for item in items if getattr(item, "stato", None) == stato]
+        if solo_aperte:
+            return [item for item in items if _is_effectively_open(item)]
+        return items
 
     if vista == "completate":
         return _base(solo_aperte=False, stato=StatoTermine.COMPLETATO)
@@ -122,14 +133,11 @@ def scadenze_per_vista(
     if vista == "alte":
         return [s for s in _base(solo_aperte=True, stato=StatoTermine.APERTO) if s.priorita == PrioritaTermine.ALTA]
     if vista == "imminenti":
-        scadenze = [s for s in gs.imminenti(entro_giorni=7) if not is_legacy_pec_deadline(s)]
-        if tipo:
-            scadenze = [s for s in scadenze if s.tipo == tipo]
-        if priorita:
-            scadenze = [s for s in scadenze if s.priorita == priorita]
-        if id_fascicolo:
-            scadenze = [s for s in scadenze if s.id_fascicolo == id_fascicolo]
-        return scadenze
+        return [
+            item
+            for item in _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            if (days := _deadline_days(item)) is not None and 0 <= days <= 7
+        ]
     if vista == "avanzate":
         return [s for s in _base(solo_aperte=False) if s.ha_calcolo_avanzato]
     if vista == "operative":

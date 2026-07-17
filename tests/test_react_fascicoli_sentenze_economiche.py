@@ -197,3 +197,112 @@ def test_payload_auto_analizza_tutte_le_sentenze_candidate_senza_limite_fisso(mo
     assert payload["autoAnalysis"]["candidates"] == 10
     assert payload["autoAnalysis"]["analyzed"] == 10
     assert payload["summary"]["totals"]["sentenze_lette"] == 10
+
+
+class _EconomicFascicoliRepo:
+    def __init__(self, fascicolo):
+        self.fascicolo = fascicolo
+
+    def get(self, fascicolo_id):
+        return self.fascicolo if fascicolo_id == self.fascicolo.id else None
+
+    def tutti(self):
+        return [self.fascicolo]
+
+    def aggiorna(self, fascicolo_id, **changes):
+        assert fascicolo_id == self.fascicolo.id
+        for key, value in changes.items():
+            setattr(self.fascicolo, key, value)
+        return self.fascicolo
+
+
+class _EconomicFatturazioneRepo:
+    def per_fascicolo(self, _fascicolo_id):
+        return []
+
+    def elimina(self, _documento_id):
+        return True
+
+
+def _economic_fascicolo(payments=None):
+    return SimpleNamespace(
+        id="F-PROFORMA",
+        id_cliente="C-PROFORMA",
+        titolo="Calabrò Daniela",
+        numero_rg="3571",
+        anno_rg=2025,
+        pagamenti=payments or {},
+        documenti=[],
+    )
+
+
+def test_genera_proforma_persiste_la_base_economica_del_pannello_e_restituisce_apertura(monkeypatch):
+    import web.services.react_fatturazione_bridge as fatturazione_bridge
+
+    fascicolo = _economic_fascicolo()
+    fascicoli = _EconomicFascicoliRepo(fascicolo)
+    fatturazione = _EconomicFatturazioneRepo()
+    captured = {}
+
+    def _create(**kwargs):
+        captured.update(kwargs)
+        return {
+            "ok": True,
+            "existing": False,
+            "message": "Proforma 2026/001 creata.",
+            "item": {"id": "P-1", "number": "2026/001"},
+            "redirect_href": "/fatturazione?id_documento=P-1",
+        }, 201
+
+    monkeypatch.setattr(fatturazione_bridge, "create_react_fascicolo_proforma", _create)
+
+    result, status = bridge.generate_react_fascicolo_proforma(
+        get_fascicoli=lambda: fascicoli,
+        get_fatturazione=lambda: fatturazione,
+        get_clienti=lambda: object(),
+        get_utenti=lambda: object(),
+        get_preventivi=None,
+        current_user=SimpleNamespace(id="U-1"),
+        id_fasc=fascicolo.id,
+        payload={
+            "basis": {
+                "sourceKind": "parcella",
+                "status": "da_emettere",
+                "importo": "296,70",
+                "dataPagamento": "2026-07-13",
+            }
+        },
+        config={},
+        actor="Avv. Test",
+    )
+
+    assert status == 200
+    assert result["ok"] is True
+    assert result["proformaId"] == "P-1"
+    assert result["redirectHref"] == "/fatturazione?id_documento=P-1"
+    assert captured["amount"] == 296.7
+    assert fascicolo.pagamenti["parcella"]["importo"] == 296.7
+    assert fascicolo.pagamenti["parcella"]["proforma_id"] == "P-1"
+
+
+def test_genera_proforma_blocca_un_importo_ui_diverso_da_quello_salvato():
+    fascicolo = _economic_fascicolo({
+        "parcella": {"status": "da_emettere", "importo": 296.7},
+    })
+    fascicoli = _EconomicFascicoliRepo(fascicolo)
+
+    result, status = bridge.generate_react_fascicolo_proforma(
+        get_fascicoli=lambda: fascicoli,
+        get_fatturazione=lambda: _EconomicFatturazioneRepo(),
+        get_clienti=lambda: object(),
+        get_utenti=lambda: object(),
+        get_preventivi=None,
+        current_user=SimpleNamespace(id="U-1"),
+        id_fasc=fascicolo.id,
+        payload={"basis": {"sourceKind": "parcella", "status": "da_emettere", "importo": 300}},
+        config={},
+    )
+
+    assert status == 409
+    assert result["ok"] is False
+    assert "cambiati" in result["message"]

@@ -1,40 +1,39 @@
 {
-  "generatedAt": "2026-06-14T10:38:17.831Z",
+  "generatedAt": "2026-07-17T00:36:10.897Z",
   "baseUrl": "http://127.0.0.1:8080",
-  "chromePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "chromePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "visibleBrowser": true,
   "depositPath": "/fascicoli/9B9DF2A1/deposito/prepara",
   "depositPaths": [
-    "/fascicoli/9B9DF2A1/deposito/prepara",
-    "/fascicoli/2DE106E6/deposito/prepara"
+    "/fascicoli/9B9DF2A1/deposito/prepara"
   ],
   "screenshotsDir": "artifacts\\react-migration\\pec-agenda-scadenziario-visual",
   "pages": [
     {
       "label": "agenda-desktop",
-      "href": "http://127.0.0.1:8080/agenda",
+      "href": "http://127.0.0.1:8080/agenda?vista=week&data=2026-07-16",
       "title": "IUSENTRA",
       "h1": [
         "Agenda"
       ],
-      "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA Calendario Nuovo Appuntamento Timesheet FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo AGENDA Agenda Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica. Regia Calendari Nuovo appuntamento Giorno Sett. Mese Oggi 08/06/2026 - 14/06/2026 Tutti Udienze Appuntamenti Scadenze Depositi Call Studio Dati agenda aggiornati Orari cliccabili e drag & drop su giorno, settimana e mese. OGGI 0 impegni in giornata SETTIMANA 0 eventi nel periodo UDIENZE 0 da presidiare SCADENZE 0 termini e depositi ALERT 0 priorita alta o critica Vista settimana 08/06/2026 - 14/06/2026 - 7 giorni visibili - 0 elementi allineata Preferenze Lun 8 Giu 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mar 9 Giu 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mer 10 G",
+      "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA Calendario Nuovo Appuntamento Timesheet FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo AGENDA Agenda Regia Calendari Nuovo appuntamento Giorno Sett. Mese Oggi 13/07/2026 - 19/07/2026 Tutti Udienze Appuntamenti Scadenze Depositi Call Studio Dati agenda aggiornati In evidenza: Opposizione alla trattazione scritta · RG 274/2026 · LOPRETE DOMENICO · Entro giornata 2 elementi nel periodo selezionato. Vista settimana 13/07/2026 - 19/07/2026 - 7 giorni visibili - 2 elementi Udienza Scadenza o deposito Appuntamento Attività di studio Completata 2 da sincronizzare Preferenze Lun 13 Lug 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Opposizione alla trattazione scritta RG 274/2026 · LOPRETE DOMENICO Entro giornata Mar 14 Lug 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mer 15 Lug 08:0",
       "forbidden": [],
       "bodyOverflowX": false,
-      "scrollHeight": 2126,
+      "scrollHeight": 2709,
       "viewportHeight": 768,
       "buttonOverflow": [],
       "snapshots": [
         {
           "label": "agenda-desktop",
-          "href": "http://127.0.0.1:8080/agenda",
+          "href": "http://127.0.0.1:8080/agenda?vista=week&data=2026-07-16",
           "title": "IUSENTRA",
           "h1": [
             "Agenda"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA Calendario Nuovo Appuntamento Timesheet FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo AGENDA Agenda Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica. Regia Calendari Nuovo appuntamento Giorno Sett. Mese Oggi 08/06/2026 - 14/06/2026 Tutti Udienze Appuntamenti Scadenze Depositi Call Studio Dati agenda aggiornati Orari cliccabili e drag & drop su giorno, settimana e mese. OGGI 0 impegni in giornata SETTIMANA 0 eventi nel periodo UDIENZE 0 da presidiare SCADENZE 0 termini e depositi ALERT 0 priorita alta o critica Vista settimana 08/06/2026 - 14/06/2026 - 7 giorni visibili - 0 elementi allineata Preferenze Lun 8 Giu 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mar 9 Giu 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mer 10 G",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA Calendario Nuovo Appuntamento Timesheet FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo AGENDA Agenda Regia Calendari Nuovo appuntamento Giorno Sett. Mese Oggi 13/07/2026 - 19/07/2026 Tutti Udienze Appuntamenti Scadenze Depositi Call Studio Dati agenda aggiornati In evidenza: Opposizione alla trattazione scritta · RG 274/2026 · LOPRETE DOMENICO · Entro giornata 2 elementi nel periodo selezionato. Vista settimana 13/07/2026 - 19/07/2026 - 7 giorni visibili - 2 elementi Udienza Scadenza o deposito Appuntamento Attività di studio Completata 2 da sincronizzare Preferenze Lun 13 Lug 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Opposizione alla trattazione scritta RG 274/2026 · LOPRETE DOMENICO Entro giornata Mar 14 Lug 08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00 Spazio disponibile Mer 15 Lug 08:0",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 2126,
+          "scrollHeight": 2709,
           "viewportHeight": 768,
           "buttonOverflow": []
         }
@@ -42,103 +41,172 @@
       "screenshots": [
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\agenda-desktop-top.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\agenda-desktop-hover.png",
+        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\agenda-controlled-hover.png",
+        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\agenda-controlled-source-modal.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\agenda-desktop-bottom.png"
       ],
       "events": {
-        "cards": [],
+        "cards": [
+          {
+            "text": "Opposizione alla trattazione scritta RG 274/2026 · LOPRETE DOMENICO Entro giornata",
+            "aria": "",
+            "title": "",
+            "x": 337,
+            "y": 645,
+            "width": 132,
+            "height": 68
+          },
+          {
+            "text": "Udienza RG 139/2023 · Montagnese Elisabetta 16:45",
+            "aria": "",
+            "title": "",
+            "x": 793,
+            "y": 1327,
+            "width": 132,
+            "height": 68
+          }
+        ],
         "nativeTitleCount": 0,
         "scadenzeAlleNove": [],
         "duplicates": []
       },
       "hover": {
-        "skipped": "Nessun evento visibile nel range corrente."
+        "visibleCount": 1,
+        "tooltips": [
+          {
+            "text": "Opposizione alla trattazione scritta: LOPRETE DOMENICO · RG 274/2026 Cliente/parte: LOPRETE DOMENICO Fascicolo/RG: RG 274/2026 Quando: 13/07/2026 Entro giornata · Scadenza Ufficio: Tribunale di Palmi Responsabile: scheduler Attività per l'avvocato: verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti. Visualizza fonte · PEC originale",
+            "visible": true,
+            "width": 380,
+            "height": 276
+          }
+        ]
       },
-      "selected": null
+      "selected": null,
+      "controlled": {
+        "card": {
+          "x": 717,
+          "y": 378,
+          "width": 132,
+          "height": 68,
+          "text": "Udienza RG 139/2023 · Montagnese Elisabetta 16:45",
+          "inlineTop": "72.9167%",
+          "computedTop": "770px",
+          "dayLabel": "Gio 16 Lug",
+          "bodyTop": -420,
+          "bodyHeight": 1056,
+          "bodyScrollHeight": 1056,
+          "slotHeight": 44,
+          "slotMinHeight": "44px"
+        },
+        "tooltip": {
+          "text": "Udienza: Montagnese Elisabetta · RG 139/2023 Cliente/parte: Montagnese Elisabetta Fascicolo/RG: RG 139/2023 Quando: 16/07/2026 16:45 · 45 min Luogo: Udienza in presenza Ufficio: Tribunale di Vibo Valentia Collegati all'udienza · teams.microsoft.com Visualizza fonte · VerbaleUdienza_80312550.pdf",
+          "hasExpectedTime": true,
+          "remoteHref": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_IUSENTRA_CONTROLLED_TEST%40thread.v2/0",
+          "hasSourceAction": true,
+          "sourceButton": {
+            "x": 842,
+            "y": 313,
+            "width": 354,
+            "height": 44
+          }
+        },
+        "sourceModal": {
+          "visible": true,
+          "text": "FONTE DELL'INFORMAZIONE VerbaleUdienza_80312550.pdf Udienza · RG 139/2023 · Montagnese Elisabetta Apri originale Chiudi",
+          "iframeSrc": "/fascicoli/AF656B01/documenti/BF22C30F/visualizza"
+        },
+        "hoverState": {
+          "matchesHover": true,
+          "hitTag": "STRONG",
+          "hitClass": "",
+          "hitInsideTarget": true
+        }
+      }
     },
     {
       "label": "scadenziario",
       "snapshots": [
         {
           "label": "scadenziario-desktop-top",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CH",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezio",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 3309,
+          "scrollHeight": 2708,
           "viewportHeight": 768,
           "buttonOverflow": []
         },
         {
           "label": "scadenziario-desktop-middle",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CH",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezio",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 3309,
+          "scrollHeight": 2708,
           "viewportHeight": 768,
           "buttonOverflow": []
         },
         {
           "label": "scadenziario-desktop-bottom",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CH",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI Scadenziario Nuova Scadenza Preparazione Udienza Guidata Controlli Atti SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezio",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 3309,
+          "scrollHeight": 2708,
           "viewportHeight": 768,
           "buttonOverflow": []
         },
         {
           "label": "scadenziario-mobile-top",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CHIUDERE 227 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostra critiche SCADENZE DA PEC 7 Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli. Apri PEC opera",
+          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (173) Termine perentorio Termine ordinatorio Altro Tutte le priorità (182) Critica (179) Alta Media Bassa (3) Filtri Reset SCADUTE DA CHIUDERE 179 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostr",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 8331,
+          "scrollHeight": 5755,
           "viewportHeight": 844,
           "buttonOverflow": []
         },
         {
           "label": "scadenziario-mobile-middle",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CHIUDERE 227 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostra critiche SCADENZE DA PEC 7 Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli. Apri PEC opera",
+          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (173) Termine perentorio Termine ordinatorio Altro Tutte le priorità (182) Critica (179) Alta Media Bassa (3) Filtri Reset SCADUTE DA CHIUDERE 179 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostr",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 8331,
+          "scrollHeight": 5755,
           "viewportHeight": 844,
           "buttonOverflow": []
         },
         {
           "label": "scadenziario-mobile-bottom",
-          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte",
+          "href": "http://127.0.0.1:8080/scadenziario?vista=tutte&q=PROVA%20CONTROLLATA%20-%20Udienza%20audiovisiva",
           "title": "IUSENTRA",
           "h1": [
             "Scadenziario Legale"
           ],
-          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza Aperte 8 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 1 chiuse Storico scadute 227 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 30 calcolo legale Operative 30 anticipo studio Da PEC 7 aperte operative Tutti i tipi (235) Udienza (3) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (231) Termine perentorio Termine ordinatorio Altro Tutte le priorità (235) Critica (227) Alta Media (3) Bassa (5) Filtri Reset SCADUTE DA CHIUDERE 227 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostra critiche SCADENZE DA PEC 7 Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli. Apri PEC opera",
+          "visibleTextSample": "Cerca fascicolo, cliente, udienza, documento... Scadenziario Legale Scadenziario Legale Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale. Cabina Scadenze PDF CSV PDF iCal Nuova scadenza 179 scadenze scadute nello storico. PROVA CONTROLLATA - Udienza audiovisiva — ieri · Opposizione alla trattazione scritta — 13 lug · Udienza da portale — 9 lug Apri storico scadute Aperte 3 da lavorare Critiche 0 massima priorità Alta priorità 0 da presidiare Completate 0 chiuse Storico scadute 179 fuori dalla vista operativa Entro 7 gg 0 orizzonte breve Avanzate 5 calcolo legale Operative 5 anticipo studio Da PEC 3 aperte operative Tutti i tipi (182) Udienza (8) Deposito memoria Deposito atto (1) Notifica Impugnazione Risposta/eccezione Pagamento Prescrizione Decadenza Adempimento (173) Termine perentorio Termine ordinatorio Altro Tutte le priorità (182) Critica (179) Alta Media Bassa (3) Filtri Reset SCADUTE DA CHIUDERE 179 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute PRESIDIO CRITICO 0 Filtra le scadenze critiche e lavora prima quelle con fascicolo o udienza collegata. Mostr",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 8331,
+          "scrollHeight": 5755,
           "viewportHeight": 844,
           "buttonOverflow": []
         }
@@ -147,64 +215,23 @@
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-desktop-top.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-desktop-middle.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-desktop-bottom.png",
+        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-controlled-desktop.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-mobile-top.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-mobile-middle.png",
         "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\scadenziario-mobile-bottom.png"
       ],
       "cards": {
-        "count": 8,
+        "count": 1,
         "sample": [
           {
-            "text": "9 lug Media Udienza da portale Scadenza generata da sincronizzazione portale +25 gg Udienza Cliente da collegare Aperta",
-            "width": 348,
-            "height": 283,
-            "visible": true
-          },
-          {
-            "text": "9 lug Media Udienza da PEC: fissazione udienza - RG 12756/2026 Udienza rilevata da PEC. Fascicolo RG 12756/2026. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +25 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "9 lug Media Udienza da PEC: conferma udienza - RG 274/2026 Udienza rilevata da PEC. Fascicolo RG 274/2026. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +25 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "17 set Bassa Udienza da PEC: fissazione udienza - RG 179/2012 Udienza rilevata da PEC. Fascicolo RG 179/2012. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +95 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "7 ott Bassa Udienza da PEC: rinvio udienza - RG 179/2012 Udienza rilevata da PEC. Fascicolo RG 179/2012. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +115 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "9 ott Bassa Udienza da PEC: differimento udienza - RG 179/2012 Udienza rilevata da PEC. Fascicolo RG 179/2012. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +117 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "10 nov Bassa Udienza da PEC: fissazione udienza - RG 179/2012 Udienza rilevata da PEC. Fascicolo RG 179/2012. Verificare provvedimento, fascicolo e attività collegate. Evento: Udienza +149 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
-            "visible": true
-          },
-          {
-            "text": "15/01/2030 Bassa Notifica giudiziaria da PEC - RG 179/2012 Notifica giudiziaria rilevata da PEC: controllare atto, fascicolo e termini applicabili. Evento: Notifica giudiziaria +1311 gg Adempimento Cliente da collegare Aperta Calcolo Operativa",
-            "width": 348,
-            "height": 344,
+            "text": "ieri Critica PROVA CONTROLLATA - Udienza audiovisiva Montagnese Elisabetta · RG 139/2023 · Tribunale di Vibo Valentia Evento: Udienza · Ufficio: Tribunale di Vibo Valentia Apri link udienza audiovisiva Allegato udienza: VerbaleUdienza_80312550.pdf Link verificato sull’allegato Visualizza fonte VerbaleUdienza_80312550.pdf -1 gg Udienza Montagnese Elisabetta Scaduta Mista: in presenza e da remoto, ore 16:45",
+            "width": 351,
+            "height": 498,
             "visible": true
           }
         ],
-        "minHeight": 283,
-        "maxHeight": 344,
+        "minHeight": 498,
+        "maxHeight": 498,
         "duplicates": []
       },
       "layout": {
@@ -220,7 +247,7 @@
           "duplicateTitles": [],
           "sample": [
             {
-              "text": "Aperte 8 da lavorare",
+              "text": "Aperte 3 da lavorare",
               "top": 278,
               "left": 260,
               "width": 169,
@@ -244,7 +271,7 @@
               "visible": true
             },
             {
-              "text": "Completate 1 chiuse",
+              "text": "Completate 0 chiuse",
               "top": 278,
               "left": 798,
               "width": 169,
@@ -252,7 +279,7 @@
               "visible": true
             },
             {
-              "text": "Storico scadute 227 fuori dalla vista operativa",
+              "text": "Storico scadute 179 fuori dalla vista operativa",
               "top": 278,
               "left": 977,
               "width": 169,
@@ -268,7 +295,7 @@
               "visible": true
             },
             {
-              "text": "Avanzate 30 calcolo legale",
+              "text": "Avanzate 5 calcolo legale",
               "top": 415,
               "left": 260,
               "width": 169,
@@ -276,7 +303,7 @@
               "visible": true
             },
             {
-              "text": "Operative 30 anticipo studio",
+              "text": "Operative 5 anticipo studio",
               "top": 415,
               "left": 439,
               "width": 169,
@@ -284,7 +311,7 @@
               "visible": true
             },
             {
-              "text": "Da PEC 7 aperte operative",
+              "text": "Da PEC 3 aperte operative",
               "top": 415,
               "left": 619,
               "width": 169,
@@ -304,7 +331,7 @@
           "duplicateTitles": [],
           "sample": [
             {
-              "text": "SCADUTE DA CHIUDERE 227 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute",
+              "text": "SCADUTE DA CHIUDERE 179 Apri subito i termini scaduti non completati e decidi se completarli, correggerli o riassegnarli. Apri scadute",
               "top": 527,
               "left": 260,
               "width": 258,
@@ -320,7 +347,7 @@
               "visible": true
             },
             {
-              "text": "SCADENZE DA PEC 7 Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli. Apri PEC operative",
+              "text": "SCADENZE DA PEC 3 Apri le scadenze PEC ancora operative, con agenda e priorità collegate. I termini già superati restano nello storico dei controlli. Apri PEC operative",
               "top": 527,
               "left": 799,
               "width": 258,
@@ -337,6 +364,13 @@
             }
           ]
         }
+      },
+      "controlled": {
+        "text": "ieri Scaduta PROVA CONTROLLATA - Udienza audiovisiva Montagnese Elisabetta · RG 139/2023 · Tribunale di Vibo Valentia Evento: Udienza · Ufficio: Tribunale di Vibo Valentia Apri link udienza audiovisiva Allegato udienza: VerbaleUdienza_80312550.pdf Link verificato sull’allegato Visualizza fonte VerbaleUdienza_80312550.pdf Mista: in presenza e da remoto, ore 16:45 Udienza — Critica RG 139/2023 - solo danni a cose Montagnese Elisabetta -1 gg",
+        "remoteHref": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_IUSENTRA_CONTROLLED_TEST%40thread.v2/0",
+        "sourceHref": "/fascicoli/AF656B01/documenti/BF22C30F/visualizza",
+        "hasVerifiedState": true,
+        "hasSourceAction": true
       }
     },
     {
@@ -349,10 +383,10 @@
           "h1": [
             "Impostazioni"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI Impostazioni Studio Notifiche Pagamenti Canali SdI Backup Sincronizzazione Calendari AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo Impostazioni Dati studio, canali di comunicazione, firma digitale, automazioni e AI locale in un unico pannello operativo. Aggiorna Dati Studio PEC Firma Digitale Email SMTP WhatsApp Scheduler AI Locale Canali SdI Pagamenti Notifiche Backup Calendari Calendari Collega agenda e scadenze ai calendari usati dallo studio. Calendari 0 calendari collegati 0 attivi 390 appuntamenti 8 scadenze Sincronizzazione diretta lettura e scrittura Google Calendar e Outlook collegati leggono e scrivono appuntamenti e scadenze direttamente. I link riservati restano una copia in sola lettura. Collega Google Calendar Outlook / Microsoft 365 Ambiente prova locale Aggiungi calendario in sola lettura Nome Link calendario Tipo predefinito Altro Minu",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI Impostazioni Studio Notifiche Pagamenti Canali SdI Backup Sincronizzazione Calendari AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo Impostazioni Dati studio, canali di comunicazione, firma digitale, automazioni e AI locale in un unico pannello operativo. Aggiorna Dati Studio Fatturazione PEC Firma Digitale Email SMTP WhatsApp Scheduler AI Locale Canali SdI Pagamenti Notifiche Backup Calendari Calendari Collega agenda e scadenze ai calendari usati dallo studio. Calendari 0 calendari collegati 0 attivi 355 appuntamenti 7 scadenze Sincronizzazione diretta lettura e scrittura Google Calendar e Outlook collegati leggono e scrivono appuntamenti e scadenze direttamente. I link riservati restano una copia in sola lettura. Collega Google Calendar Outlook / Microsoft 365 Ambiente prova locale Aggiungi calendario in sola lettura Nome Link calendario Tipo ",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 1653,
+          "scrollHeight": 1701,
           "viewportHeight": 768,
           "buttonOverflow": []
         },
@@ -363,10 +397,10 @@
           "h1": [
             "Impostazioni"
           ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI Impostazioni Studio Notifiche Pagamenti Canali SdI Backup Sincronizzazione Calendari AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo Impostazioni Dati studio, canali di comunicazione, firma digitale, automazioni e AI locale in un unico pannello operativo. Aggiorna Dati Studio PEC Firma Digitale Email SMTP WhatsApp Scheduler AI Locale Canali SdI Pagamenti Notifiche Backup Calendari Calendari Collega agenda e scadenze ai calendari usati dallo studio. Calendari 0 calendari collegati 0 attivi 390 appuntamenti 8 scadenze Sincronizzazione diretta lettura e scrittura Google Calendar e Outlook collegati leggono e scrivono appuntamenti e scadenze direttamente. I link riservati restano una copia in sola lettura. Collega Google Calendar Outlook / Microsoft 365 Ambiente prova locale Aggiungi calendario in sola lettura Nome Link calendario Tipo predefinito Altro Minu",
+          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Oggi Regia Operativa Ricerca Studio AGENDA FASCICOLI CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI Impostazioni Studio Notifiche Pagamenti Canali SdI Backup Sincronizzazione Calendari AMMINISTRAZIONE C Codex PEC pagina Test AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota ven 17 lug Nuovo Impostazioni Dati studio, canali di comunicazione, firma digitale, automazioni e AI locale in un unico pannello operativo. Aggiorna Dati Studio Fatturazione PEC Firma Digitale Email SMTP WhatsApp Scheduler AI Locale Canali SdI Pagamenti Notifiche Backup Calendari Calendari Collega agenda e scadenze ai calendari usati dallo studio. Calendari 0 calendari collegati 0 attivi 355 appuntamenti 7 scadenze Sincronizzazione diretta lettura e scrittura Google Calendar e Outlook collegati leggono e scrivono appuntamenti e scadenze direttamente. I link riservati restano una copia in sola lettura. Collega Google Calendar Outlook / Microsoft 365 Ambiente prova locale Aggiungi calendario in sola lettura Nome Link calendario Tipo ",
           "forbidden": [],
           "bodyOverflowX": false,
-          "scrollHeight": 1653,
+          "scrollHeight": 1701,
           "viewportHeight": 768,
           "buttonOverflow": []
         }
@@ -382,156 +416,19 @@
         "readOnlyCopy": true,
         "oldWebCalPrimary": false
       }
-    },
-    {
-      "label": "deposito-prepara-url-riferito",
-      "depositPath": "/fascicoli/9B9DF2A1/deposito/prepara",
-      "snapshots": [
-        {
-          "label": "deposito-prepara-url-riferito-top",
-          "href": "http://127.0.0.1:8080/fascicoli/9B9DF2A1/deposito/prepara",
-          "title": "IUSENTRA",
-          "h1": [
-            "Fascicolo non trovato"
-          ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI Tutti i Fascicoli Nuovo Fascicolo Archivio CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo DEPOSITO TELEMATICO Fascicolo non trovato Non ho trovato il fascicolo richiesto nella copia locale. Torna ai fascicoli Apri l'assistente Lex",
-          "forbidden": [],
-          "bodyOverflowX": false,
-          "scrollHeight": 768,
-          "viewportHeight": 768,
-          "buttonOverflow": []
-        },
-        {
-          "label": "deposito-prepara-url-riferito-bottom",
-          "href": "http://127.0.0.1:8080/fascicoli/9B9DF2A1/deposito/prepara",
-          "title": "IUSENTRA",
-          "h1": [
-            "Fascicolo non trovato"
-          ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI Tutti i Fascicoli Nuovo Fascicolo Archivio CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo DEPOSITO TELEMATICO Fascicolo non trovato Non ho trovato il fascicolo richiesto nella copia locale. Torna ai fascicoli Apri l'assistente Lex",
-          "forbidden": [],
-          "bodyOverflowX": false,
-          "scrollHeight": 768,
-          "viewportHeight": 768,
-          "buttonOverflow": []
-        }
-      ],
-      "screenshots": [
-        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\deposito-prepara-url-riferito-top.png",
-        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\deposito-prepara-url-riferito-bottom.png"
-      ],
-      "checks": {
-        "notLegacyQuery": true,
-        "hasReactRoot": true,
-        "hasDepositCopy": true,
-        "hasDocumentsCopy": true,
-        "topbarSignals": true,
-        "stillLoading": false,
-        "notFound": true,
-        "wholeCaseDocuments": 0,
-        "wholeCaseNote": "",
-        "visibleCaseIdentity": false,
-        "quickOrganizerClient": false,
-        "quickOrganizerObjectCode": false,
-        "professionalDocumentNames": false,
-        "documentRows": [],
-        "documentTitleProblems": []
-      }
-    },
-    {
-      "label": "deposito-prepara-fascicolo-reale",
-      "depositPath": "/fascicoli/2DE106E6/deposito/prepara",
-      "snapshots": [
-        {
-          "label": "deposito-prepara-fascicolo-reale-top",
-          "href": "http://127.0.0.1:8080/fascicoli/2DE106E6/deposito/prepara",
-          "title": "IUSENTRA",
-          "h1": [
-            "Prepara deposito"
-          ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI Tutti i Fascicoli Nuovo Fascicolo Archivio CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo DEPOSITO TELEMATICO Prepara deposito Da verificare RG 12/2026 - Moscato Marco Torna al fascicolo Documenti Controlli atti RG 12/2026 Ufficio del Giudice di Pace di Palmi civile Dati aggiornati REGIA 0% da verificare TUTTO FASCICOLO 2 letto integralmente CANDIDATI BUSTA 2 0 firmati DA FIRMARE 2 firma multipla immediata ATTI PRINCIPALI 1 da confermare CATALOGO PORTALE 0 separato dalla busta RICEVUTE 2 INVIATO Verifica deposito 0 Da verificare Deposito telematico Esegui la verifica operativa prima di preparare la sessione. Canale da verificare La Regia sceglie il canale operativo dopo la verifica del profilo e del registro. Profilo pratica Profilo pratica da confermare - profilo non determinabile automaticamente Regola operativa Bloccano l’invio solo i requisiti obbli",
-          "forbidden": [],
-          "bodyOverflowX": false,
-          "scrollHeight": 2640,
-          "viewportHeight": 768,
-          "buttonOverflow": []
-        },
-        {
-          "label": "deposito-prepara-fascicolo-reale-bottom",
-          "href": "http://127.0.0.1:8080/fascicoli/2DE106E6/deposito/prepara",
-          "title": "IUSENTRA",
-          "h1": [
-            "Prepara deposito"
-          ],
-          "visibleTextSample": "IUSENTRA Lo studio legale, in un unico sistema Panoramica Regia Operativa Ricerca Studio AGENDA FASCICOLI Tutti i Fascicoli Nuovo Fascicolo Archivio CLIENTI E ANAGRAFICHE SOGGETTI E PARTI COMUNICAZIONI SCADENZE E TERMINI SERVIZI TELEMATICI STUDIO SITO STUDIO IMPOSTAZIONI AMMINISTRAZIONE A Antonella Mammola AMMINISTRATORE Cerca fascicolo, cliente, udienza, documento... Ctrl K Voce Studio Assistenza remota dom 14 giu Nuovo DEPOSITO TELEMATICO Prepara deposito Da verificare RG 12/2026 - Moscato Marco Torna al fascicolo Documenti Controlli atti RG 12/2026 Ufficio del Giudice di Pace di Palmi civile Dati aggiornati REGIA 0% da verificare TUTTO FASCICOLO 2 letto integralmente CANDIDATI BUSTA 2 0 firmati DA FIRMARE 2 firma multipla immediata ATTI PRINCIPALI 1 da confermare CATALOGO PORTALE 0 separato dalla busta RICEVUTE 2 INVIATO Verifica deposito 0 Da verificare Deposito telematico Esegui la verifica operativa prima di preparare la sessione. Canale da verificare La Regia sceglie il canale operativo dopo la verifica del profilo e del registro. Profilo pratica Profilo pratica da confermare - profilo non determinabile automaticamente Regola operativa Bloccano l’invio solo i requisiti obbli",
-          "forbidden": [],
-          "bodyOverflowX": false,
-          "scrollHeight": 2640,
-          "viewportHeight": 768,
-          "buttonOverflow": []
-        }
-      ],
-      "screenshots": [
-        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\deposito-prepara-fascicolo-reale-top.png",
-        "artifacts\\react-migration\\pec-agenda-scadenziario-visual\\deposito-prepara-fascicolo-reale-bottom.png"
-      ],
-      "checks": {
-        "notLegacyQuery": true,
-        "hasReactRoot": true,
-        "hasDepositCopy": true,
-        "hasDocumentsCopy": true,
-        "topbarSignals": true,
-        "stillLoading": false,
-        "notFound": false,
-        "wholeCaseDocuments": 2,
-        "wholeCaseNote": "letto integralmente",
-        "visibleCaseIdentity": true,
-        "quickOrganizerClient": false,
-        "quickOrganizerObjectCode": false,
-        "professionalDocumentNames": false,
-        "documentRows": [
-          {
-            "role": "",
-            "title": "01_Memoria.pdf",
-            "meta": "Candidato busta",
-            "text": "Candidato busta01_Memoria.pdfStudio - ALLEGATO - 25/03/2026 - 5 KBLetto dall’intero fascicolo per atto o allegato."
-          },
-          {
-            "role": "",
-            "title": "02_Indice_allegati.pdf",
-            "meta": "Candidato busta",
-            "text": "Candidato busta02_Indice_allegati.pdfStudio - ALLEGATO - 25/03/2026 - 5 KBLetto dall’intero fascicolo per atto o allegato."
-          },
-          {
-            "role": "",
-            "title": "01_Memoria.pdf",
-            "meta": "ALLEGATO · 5 KB · 25/03/2026",
-            "text": "01_Memoria.pdfALLEGATO · 5 KB · 25/03/2026Salvato dall'editorDa firmareStudio"
-          },
-          {
-            "role": "",
-            "title": "02_Indice_allegati.pdf",
-            "meta": "ALLEGATO · 5 KB · 25/03/2026",
-            "text": "02_Indice_allegati.pdfALLEGATO · 5 KB · 25/03/2026Salvato dall'editorDa firmareStudio"
-          },
-          {
-            "role": "",
-            "title": "Esito deposito: MEMORIA",
-            "meta": "Inviato",
-            "text": "InviatoEsito deposito: MEMORIA23/03/2026 - gdp.palmi@giustiziapec.itDeposito inviatoIl deposito è registrato: verifica l’arrivo delle ricevute PEC.Accettazione PECAvvenuta consegnaControlli automaticiConferma deposito Genera accettazioneProva senza invio reale"
-          },
-          {
-            "role": "",
-            "title": "Esito deposito: MEMORIA",
-            "meta": "Inviato",
-            "text": "InviatoEsito deposito: MEMORIA25/03/2026 - gdp.palmi@giustiziapec.itDeposito inviatoIl deposito è registrato: verifica l’arrivo delle ricevute PEC.Accettazione PECAvvenuta consegnaControlli automaticiConferma deposito Genera accettazioneProva senza invio reale"
-          }
-        ],
-        "documentTitleProblems": []
-      }
     }
   ],
   "consoleErrors": [],
   "failures": [],
-  "notes": []
+  "notes": [],
+  "pushRuntime": {
+    "configStatus": 200,
+    "configured": true,
+    "enabled": true,
+    "featureEnabled": true,
+    "workerStatus": 200,
+    "hasAgendaAction": true,
+    "hasRemoteAction": true,
+    "readsRemoteUrl": true
+  }
 }

@@ -7,7 +7,7 @@ from flask import g, session
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.core_storage_backend import build_core_storage_backend
-from pct.database import GestioneDatabase
+from pct.database import GestioneDatabase, SCHEMA_SQL
 from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from scripts.audit_tenant_data_structure import audit_tenant_data_structure
@@ -56,6 +56,10 @@ def _write_studio_config(path: Path) -> None:
         ),
         encoding="utf-8-sig",
     )
+
+
+def test_schema_sql_non_forza_wal_sui_volumi_windows():
+    assert "journal_mode" not in SCHEMA_SQL.casefold()
 
 
 def test_legacy_bootstrap_non_importa_email_root_automaticamente(tmp_path: Path):
@@ -2291,6 +2295,8 @@ def test_storage_manifest_mostra_postgresql_attivo_per_domini_core(tmp_path: Pat
 def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, monkeypatch):
     from pct import storage as storage_module
 
+    monkeypatch.setattr(storage_module, "_requires_delete_journal_for_mount", lambda _path: False)
+
     real_connect = sqlite3.connect
     statements: list[str] = []
 
@@ -2327,6 +2333,14 @@ def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, 
     assert any("PRAGMA journal_mode=WAL" in sql for sql in statements)
     assert any("PRAGMA journal_mode=DELETE" in sql for sql in statements)
     assert row[0] == 1
+
+
+def test_studio_db_windows_impone_journal_delete(monkeypatch, tmp_path: Path):
+    from pct import storage as storage_module
+
+    monkeypatch.setattr(storage_module.sys, "platform", "win32")
+
+    assert storage_module._requires_delete_journal_for_mount(tmp_path / "studio.db") is True
 
 
 def test_studio_db_non_fallisce_se_journal_delete_bloccato_su_mount_locale(tmp_path: Path, monkeypatch):
@@ -2369,6 +2383,32 @@ def test_studio_db_non_fallisce_se_journal_delete_bloccato_su_mount_locale(tmp_p
 
     assert any("PRAGMA journal_mode=DELETE" in sql for sql in statements)
     assert row[0] == 1
+
+
+def test_studio_db_lettura_mount_locale_non_tenta_connessione_scrivibile(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    db.conn.execute("CREATE TABLE lettura_rapida (id TEXT PRIMARY KEY)")
+    db.conn.execute("INSERT INTO lettura_rapida (id) VALUES ('riga-1')")
+    db.conn.commit()
+    db._close_thread_connection()
+
+    real_connect = sqlite3.connect
+    opened: list[str] = []
+
+    def _connect(database, *args, **kwargs):
+        opened.append(str(database))
+        return real_connect(database, *args, **kwargs)
+
+    monkeypatch.setattr(storage_module, "_requires_delete_journal_for_mount", lambda _path: True)
+    monkeypatch.setattr(storage_module.sqlite3, "connect", _connect)
+
+    rows = db.fetchall_readonly("SELECT id FROM lettura_rapida")
+
+    assert [row["id"] for row in rows] == ["riga-1"]
+    assert opened == [f"file:{db.db_path.resolve().as_posix()}?mode=ro&immutable=1"]
+    assert getattr(db._local, "_conn", None) is None
 
 
 def test_studio_db_ensure_schema_riusa_connessione_thread_locale(tmp_path: Path, monkeypatch):

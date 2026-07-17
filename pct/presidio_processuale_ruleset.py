@@ -247,6 +247,7 @@ PRESIDIO_RULES: tuple[PresidioRule, ...] = (
         label="Contributo unificato esente o prenotato a debito",
         legal_basis=("D.P.R. 115/2002 art. 9", "D.P.R. 115/2002 art. 76"),
         patterns=(
+            r"\bcontributo\s+unificat[oi]\s*(?:[:\-]\s*)?esent[eo]\b",
             r"\besente\s+dal\s+pagamento\s+(?:del\s+)?contributo\s+unificato\b",
             r"\besenzione\s+(?:dal\s+)?contributo\s+unificato\b",
             r"\bcontributo\s+unificato\s+non\s+dovut[oaie]\b",

@@ -5136,6 +5136,7 @@ def test_download_local_signer_python_e_pubblico(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/download")
+        alias = c.get("/polisWeb/local-signer/download/local-signer.py")
 
     assert r.status_code == 200
     assert "attachment" in r.headers.get("Content-Disposition", "")
@@ -5143,6 +5144,10 @@ def test_download_local_signer_python_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "IUSENTRA Local Signer" in body
     assert "def main()" in body
+    assert alias.status_code == 200
+    assert "attachment" in alias.headers.get("Content-Disposition", "")
+    assert "<html" not in alias.data[:200].decode("utf-8", errors="ignore").lower()
+    assert "IUSENTRA Local Signer" in alias.data.decode("utf-8")
 
 
 def test_download_registro_uffici_local_signer_e_pubblico(tmp_path):

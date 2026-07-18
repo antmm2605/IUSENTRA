@@ -467,6 +467,7 @@ def register_auth_runtime(
         allowed_path_prefixes = (
             "/admin/database",
             "/api/assistente",
+            "/polisWeb/local-signer/",
             "/support/join/",
             "/support/operatore/",
             "/support/api/",
@@ -505,6 +506,7 @@ def register_auth_runtime(
                 "/support/ws/",
                 "/web/",
                 "/api/pec/",
+                "/polisWeb/local-signer/",
             )
         ):
             return None

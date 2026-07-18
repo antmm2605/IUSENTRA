@@ -320,3 +320,18 @@ Stato prova:
 
 - test automatici mirati: superati;
 - applicazione al Local Signer installato sul PC e prova reale browser: da completare prima della chiusura della tranche.
+
+## Hotfix 18/07/2026 - aggiornamento Local Signer senza login IUSENTRA
+
+Perche' la sessione assistita PST usi davvero la logica nuova sul PC dell'avvocato,
+il servizio locale deve poter scaricare sorgente, moduli, cataloghi e installer dal
+server anche quando non possiede la sessione web IUSENTRA. La rotta
+`/polisWeb/local-signer/` resta quindi pubblica solo per i pacchetti Local Signer e
+non cambia le regole di accesso dell'applicazione.
+
+Guardrail aggiunti:
+
+- alias pubblico `/polisWeb/local-signer/download/local-signer.py` per evitare che
+  un controllo manuale cada nella pagina di login;
+- esenzione di tutto il prefisso `/polisWeb/local-signer/` dal gate di login;
+- test anonimi sul download Python, alias, cataloghi, moduli, requisiti e installer.

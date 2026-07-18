@@ -97,6 +97,7 @@ def register_telematico_local_signer_routes(
         return "Download Local Signer non disponibile. Verifica i pacchetti e riprova.", 500
 
     @app.route("/polisWeb/local-signer/download")
+    @app.route("/polisWeb/local-signer/download/local-signer.py")
     def polis_local_signer_download():
         try:
             signer_path = Path(__file__).resolve().parents[2] / "tools" / "local_signer.py"

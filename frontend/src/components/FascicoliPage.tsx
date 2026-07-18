@@ -130,6 +130,7 @@ import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
+const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((module) => ({ default: module.OfficeDocumentsPanel })))
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
 const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'
@@ -5054,6 +5055,7 @@ type LocalSignerStatus = {
 type LocalSignerRecoveryOptions = {
   onMessage?: (message: string) => void
 }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -5311,10 +5313,13 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
     try {
-      const response = await fetch(candidate.endpoint, {
+      const requestOptions: LocalNetworkRequestInit = {
         cache: 'no-store',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         signal: controller.signal,
-      })
+      }
+      const response = await fetch(candidate.endpoint, requestOptions)
       const payload = await response.json().catch(() => ({} as LocalSignerStatus))
       return {
         ...payload,
@@ -5367,12 +5372,15 @@ async function recoverLocalSignerAutomatically(
     const installed = localSignerInstalledVersion(status)
     options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
     try {
-      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), {
+      const updateRequestOptions: LocalNetworkRequestInit = {
         method: 'POST',
         cache: 'no-store',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base_url: window.location.origin }),
-      })
+      }
+      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), updateRequestOptions)
       const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
       if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
     } catch {
@@ -5591,8 +5599,10 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       const downloadResponse = await fetch(doc.actions.download, { credentials: 'same-origin' })
       if (!downloadResponse.ok) throw new Error(`Download documento non riuscito: HTTP ${downloadResponse.status}`)
       const sourceBuffer = await downloadResponse.arrayBuffer()
-      const signResponse = await fetch(localSignerEndpointForStatus('/firma', localSigner), {
+      const signRequestOptions: LocalNetworkRequestInit = {
         method: 'POST',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documento: arrayBufferToBase64(sourceBuffer),
@@ -5603,7 +5613,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           visible_signature_place: visibleSignaturePlace,
           visible_signature_datetime_mode: visibleSignatureDatetimeMode,
         }),
-      })
+      }
+      const signResponse = await fetch(localSignerEndpointForStatus('/firma', localSigner), signRequestOptions)
       const signedPayload = await parseLocalSignerResponse(signResponse)
       if (!signResponse.ok || !signedPayload.ok) {
         throw new Error(String(signedPayload.errore || signedPayload.messaggio || `Firma non riuscita: HTTP ${signResponse.status}`))
@@ -6232,6 +6243,20 @@ function DetailPage({ id }:{id:string}) {
       setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded', relata: 'loaded', audit: 'loaded', lex: 'loaded' })
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
   }
+  const refreshDocuments = (message?: string) => {
+    if (message) setToast({ tone: 'success', message })
+    getFascicoloDetailSection(id, 'documenti').then((payload) => {
+      setData((current) => ({
+        ...current,
+        quickCounts: { ...current.quickCounts, ...payload.quickCounts },
+        documents: payload.documents,
+        documentPresidio: payload.documentPresidio,
+        operationalPresidio: payload.operationalPresidio,
+        lexIndexing: payload.lexIndexing,
+      }))
+      setLazyStatus((current) => ({ ...current, documenti: 'loaded', lex: 'loaded' }))
+    }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento documenti non riuscito.' }))
+  }
   const failDetail = (message: string) => setToast({ tone: 'danger', message })
   const openSection = (sectionId: string, lazySection?: FascicoloDetailSection) => (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
@@ -6292,6 +6317,9 @@ function DetailPage({ id }:{id:string}) {
             <NotificationRelataMonitor data={data}/>
           </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
+            <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
+              <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail}/>
+            </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-section-list">

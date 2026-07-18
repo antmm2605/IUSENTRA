@@ -42,6 +42,7 @@ from pct.fascicoli import (
 )
 from pct.ical_import import EventoImportato
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
+from pct.notifiche_legali import is_plausible_pec_address
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 
 
@@ -1128,13 +1129,20 @@ def _recapiti_from_row(row: Mapping[str, Any]) -> Recapiti:
 def _subject_payload(row: Mapping[str, Any]) -> dict[str, Any]:
     nome, cognome = _split_person_name(row)
     tipo = _subject_type(row)
+    public_register = _text(_row_value(row, "PubblicoElenco"))
+    source_role = _text(_row_value(row, "CONTROLLO")).upper()
+    tags = ["quickorganizer"]
+    if public_register:
+        tags.append(f"pubblico-elenco:{public_register}")
+    if source_role:
+        tags.append(f"ruolo-origine:{source_role}")
     payload = {
         "codice_fiscale": _text(_row_value(row, "CODICE_FISCALE")).upper(),
         "partita_iva": _text(_row_value(row, "PARTITA_IVA")),
         "indirizzo": _address_from_row(row),
         "recapiti": _recapiti_from_row(row),
         "note": _text(_row_value(row, "NOTE")),
-        "tag": ["quickorganizer"],
+        "tag": tags,
     }
     if tipo == TipoSoggetto.PERSONA_FISICA:
         payload.update(
@@ -1160,12 +1168,18 @@ def _subject_payload(row: Mapping[str, Any]) -> dict[str, Any]:
 def _subject_identity(row: Mapping[str, Any]) -> str:
     cf = _text(_row_value(row, "CODICE_FISCALE")).upper()
     piva = _text(_row_value(row, "PARTITA_IVA"))
+    pec = _text(_row_value(row, "PEC")).casefold()
     if cf:
-        return f"cf:{cf}"
-    if piva:
-        return f"piva:{piva}"
-    nome, cognome = _split_person_name(row)
-    return f"name:{nome.casefold()}:{cognome.casefold()}"
+        base = f"cf:{cf}"
+    elif piva:
+        base = f"piva:{piva}"
+    else:
+        nome, cognome = _split_person_name(row)
+        base = f"name:{nome.casefold()}:{cognome.casefold()}"
+    # Enti e amministrazioni possono avere piu' domicili digitali territoriali
+    # pur condividendo lo stesso codice fiscale. La PEC e' quindi parte
+    # dell'identita' del recapito, non un attributo sovrascrivibile del soggetto.
+    return f"{base}|pec:{pec}" if pec else base
 
 
 def _is_client_control(row: Mapping[str, Any]) -> bool:
@@ -1327,18 +1341,104 @@ def _existing_subject_index(soggetti: GestioneSoggetti) -> dict[str, str]:
     for soggetto in soggetti.tutti():
         cf = _text(getattr(soggetto, "codice_fiscale", "")).upper()
         piva = _text(getattr(soggetto, "partita_iva", ""))
+        pec = _text(getattr(getattr(soggetto, "recapiti", None), "pec", "")).casefold()
         if cf:
-            index.setdefault(f"cf:{cf}", soggetto.id)
+            key = f"cf:{cf}|pec:{pec}" if pec else f"cf:{cf}"
+            index.setdefault(key, soggetto.id)
         if piva:
-            index.setdefault(f"piva:{piva}", soggetto.id)
+            key = f"piva:{piva}|pec:{pec}" if pec else f"piva:{piva}"
+            index.setdefault(key, soggetto.id)
         nome = _text(getattr(soggetto, "nome", "")).casefold()
         cognome = _text(getattr(soggetto, "cognome", "")).casefold()
         if nome or cognome:
-            index.setdefault(f"name:{nome}:{cognome}", soggetto.id)
+            key = f"name:{nome}:{cognome}|pec:{pec}" if pec else f"name:{nome}:{cognome}"
+            index.setdefault(key, soggetto.id)
         full_name = _text(getattr(soggetto, "nome_completo", "")).casefold()
         if full_name:
-            index.setdefault(f"name:{full_name}:", soggetto.id)
+            key = f"name:{full_name}:|pec:{pec}" if pec else f"name:{full_name}:"
+            index.setdefault(key, soggetto.id)
     return index
+
+
+def reconcile_quickorganizer_notification_recipients(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    soggetti: GestioneSoggetti,
+) -> dict[str, Any]:
+    """Riallinea la rubrica PEC senza importare nuovamente pratiche o documenti."""
+    source_rows = [row for row in rows if _text(_row_value(row, "PEC"))]
+    subject_index = _existing_subject_index(soggetti)
+    created = 0
+    updated = 0
+    seen_identities: set[str] = set()
+
+    for row in source_rows:
+        identity = _subject_identity(row)
+        if identity in seen_identities:
+            continue
+        seen_identities.add(identity)
+        subject_id = subject_index.get(identity)
+        expected_tags = list(_subject_payload(row).get("tag") or [])
+        if subject_id:
+            subject = soggetti.get(subject_id)
+            if subject is not None:
+                current_tags = list(getattr(subject, "tag", []) or [])
+                merged_tags = list(dict.fromkeys([*current_tags, *expected_tags]))
+                if merged_tags != current_tags:
+                    soggetti.aggiorna(subject.id, tag=merged_tags)
+                    updated += 1
+            continue
+        subject = soggetti.crea(_subject_type(row), **_subject_payload(row))
+        subject_index[identity] = subject.id
+        created += 1
+
+    audit = audit_quickorganizer_notification_recipients(source_rows, soggetti=soggetti)
+    return {
+        **audit,
+        "created": created,
+        "updated": updated,
+    }
+
+
+def audit_quickorganizer_notification_recipients(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    soggetti: GestioneSoggetti,
+) -> dict[str, Any]:
+    """Confronta tutte le PEC sorgente con la rubrica SQL senza esporre indirizzi."""
+    source_rows = [row for row in rows if _text(_row_value(row, "PEC"))]
+    source_pec = {
+        _text(_row_value(row, "PEC")).casefold()
+        for row in source_rows
+        if _text(_row_value(row, "PEC"))
+    }
+    stored_pec = {
+        _text(getattr(getattr(subject, "recapiti", None), "pec", "")).casefold()
+        for subject in soggetti.tutti()
+        if _text(getattr(getattr(subject, "recapiti", None), "pec", ""))
+    }
+    missing = sorted(source_pec - stored_pec)
+    source_eligible = {value for value in source_pec if is_plausible_pec_address(value)}
+    stored_eligible = {value for value in stored_pec if is_plausible_pec_address(value)}
+    missing_eligible = sorted(source_eligible - stored_eligible)
+    source_identities = {_subject_identity(row) for row in source_rows}
+    return {
+        "ok": not missing,
+        "sourceRows": len(source_rows),
+        "sourceIdentities": len(source_identities),
+        "sourceUniquePec": len(source_pec),
+        "sourceEligiblePec": len(source_eligible),
+        "sourceExcludedPec": len(source_pec - source_eligible),
+        "storedUniquePec": len(stored_pec),
+        "storedEligiblePec": len(stored_eligible),
+        "missingCount": len(missing),
+        "missingEligibleCount": len(missing_eligible),
+        "missingFingerprints": [hashlib.sha256(value.encode("utf-8")).hexdigest()[:16] for value in missing],
+        "missingEligibleFingerprints": [
+            hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+            for value in missing_eligible
+        ],
+    }
 
 
 def _activity_kind(row: Mapping[str, Any]) -> TipoAttivita:

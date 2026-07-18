@@ -4,6 +4,16 @@ export type LegalOption = {
   needsAttestazione?: boolean
 }
 
+export type LegalPublicRegisterOption = LegalOption & {
+  verificationMode: string
+  officialUrl: string
+  automatic: boolean
+  requiresPin: boolean
+  requiresUserConfirmation: boolean
+  validForNotification: boolean
+  actionLabel: string
+}
+
 export type LegalSourceReference = {
   id: string
   label: string
@@ -120,6 +130,19 @@ export type LegalRecipientSuggestion = {
   verificaRichiesta: boolean
 }
 
+export type LegalUnepOffice = {
+  id: string
+  codice: string
+  nome: string
+  distretto: string
+  comune: string
+  provincia: string
+  regione: string
+  pec: string
+  fonte: string
+  aggiornatoIl: string
+}
+
 export type LegalPracticeIndexItem = {
   id: string
   label: string
@@ -202,6 +225,28 @@ export type LegalWorkflowResult = {
   message?: string
 }
 
+export async function confirmLegalPublicRegister(
+  endpoint: string,
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  const result = isRecord(body) ? body : {}
+  if (!response.ok || !bool(result.ok)) {
+    throw new Error(text(result.message, 'La verifica dell’indirizzo PEC non è stata registrata.'))
+  }
+  return result
+}
+
 export type LegalRelataPreviewResult = {
   ok: boolean
   previewText: string
@@ -245,13 +290,15 @@ export type NotificheLegaliData = {
     mittentePec: string
     fontePecMittente: string
   }
-  registriPec: LegalOption[]
+  registriPec: LegalPublicRegisterOption[]
   matriceNotifica: {
     roles: LegalNotificationDirective[]
     cases: LegalNotificationDirective[]
   }
   ruoliDestinatario: LegalOption[]
   tipiNotificaUnep: LegalOption[]
+  tipiRichiestaUnep: LegalOption[]
+  ufficiUnep: LegalUnepOffice[]
   tipiNotificaNonPec: LegalOption[]
   originiDocumento: LegalOption[]
   modelliRelata: LegalTemplateOption[]
@@ -292,6 +339,7 @@ export type NotificheLegaliData = {
     bozzaRelata: string
     comunicazioneCliente: string
     provaDeposito: string
+    verificaPecConsultata: string
     unep: string
     nonPec: string
     areaWebPst: string
@@ -359,6 +407,10 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     { value: 'estero', label: "All'estero" },
     { value: 'telematica', label: 'Telematica' },
   ],
+  tipiRichiestaUnep: [
+    { value: 'notifica_civile_pagamento', label: 'Notifica di atto civile a pagamento' },
+  ],
+  ufficiUnep: [],
   tipiNotificaNonPec: [
     { value: 'raccomandata', label: 'Raccomandata' },
     { value: 'ufficiale_giudiziario', label: 'Ufficiale giudiziario' },
@@ -405,6 +457,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
+    verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
     unep: '/api/v1/ui/notifiche-legali/unep',
     nonPec: '/api/v1/ui/notifiche-legali/non-pec',
     areaWebPst: '/api/v1/ui/notifiche-legali/area-web-pst',
@@ -437,6 +490,25 @@ function options(value: unknown): LegalOption[] {
       value: text(row.value),
       label: text(row.label, text(row.value)),
       needsAttestazione: bool(row.needsAttestazione),
+    }
+  }).filter((item) => item.value && item.label)
+}
+
+function publicRegisterOptions(value: unknown): LegalPublicRegisterOption[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      value: text(row.value),
+      label: text(row.label, text(row.value)),
+      needsAttestazione: false,
+      verificationMode: text(row.verificationMode, 'not_available'),
+      officialUrl: text(row.officialUrl),
+      automatic: bool(row.automatic),
+      requiresPin: bool(row.requiresPin),
+      requiresUserConfirmation: bool(row.requiresUserConfirmation),
+      validForNotification: bool(row.validForNotification),
+      actionLabel: text(row.actionLabel, 'Consulta fonte ufficiale'),
     }
   }).filter((item) => item.value && item.label)
 }
@@ -681,6 +753,25 @@ function clientSuggestions(value: unknown): LegalClientSuggestion[] {
   }).filter((item) => item.id && item.nome)
 }
 
+function unepOffices(value: unknown): LegalUnepOffice[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      codice: text(row.codice),
+      nome: text(row.nome),
+      distretto: text(row.distretto),
+      comune: text(row.comune),
+      provincia: text(row.provincia),
+      regione: text(row.regione),
+      pec: text(row.pec),
+      fonte: text(row.fonte),
+      aggiornatoIl: text(row.aggiornatoIl),
+    }
+  }).filter((item) => item.id && item.nome && item.pec)
+}
+
 function automationSteps(value: unknown): LegalAutomationStep[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => {
@@ -764,13 +855,15 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       mittentePec: text(defaults.mittentePec),
       fontePecMittente: text(defaults.fontePecMittente, 'ReGIndE'),
     },
-    registriPec: options(payload.registriPec),
+    registriPec: publicRegisterOptions(payload.registriPec),
     matriceNotifica: {
       roles: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.roles : []),
       cases: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.cases : []),
     },
     ruoliDestinatario: options(payload.ruoliDestinatario),
     tipiNotificaUnep: options(payload.tipiNotificaUnep).length ? options(payload.tipiNotificaUnep) : emptyNotificheLegaliData.tipiNotificaUnep,
+    tipiRichiestaUnep: options(payload.tipiRichiestaUnep).length ? options(payload.tipiRichiestaUnep) : emptyNotificheLegaliData.tipiRichiestaUnep,
+    ufficiUnep: unepOffices(payload.ufficiUnep),
     tipiNotificaNonPec: options(payload.tipiNotificaNonPec).length ? options(payload.tipiNotificaNonPec) : emptyNotificheLegaliData.tipiNotificaNonPec,
     originiDocumento: options(payload.originiDocumento),
     modelliRelata: templateOptions(payload.modelliRelata),
@@ -811,6 +904,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
+      verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),
       unep: text(azioni.unep, emptyNotificheLegaliData.azioni.unep),
       nonPec: text(azioni.nonPec, emptyNotificheLegaliData.azioni.nonPec),
       areaWebPst: text(azioni.areaWebPst, emptyNotificheLegaliData.azioni.areaWebPst),

@@ -134,6 +134,16 @@ def test_docker_frontend_builder_ha_manifest_workspace_presenti():
         assert (REPO_ROOT / relative).exists(), f"File richiesto dal Dockerfile mancante: {relative}"
 
 
+def test_docker_runtime_pulisce_asset_react_storici_prima_del_bundle_corrente():
+    docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    cleanup = "rm -rf /app/web/static/react"
+    copy_bundle = "COPY --from=frontend-builder /build/web/static/react/ web/static/react/"
+
+    assert cleanup in docker_text
+    assert copy_bundle in docker_text
+    assert docker_text.index(cleanup) < docker_text.index(copy_bundle)
+
+
 def test_root_governance_docs_e_pyproject_sono_presenti():
     assert (REPO_ROOT / "pyproject.toml").exists()
     assert (REPO_ROOT / "LICENSE").exists()

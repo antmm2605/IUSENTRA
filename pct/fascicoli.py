@@ -2812,6 +2812,7 @@ class GestioneFascicoli:
 
         old_nome = doc.nome
         old_percorso = doc.percorso
+        old_tags = list(doc.tags or [])
         old_modificato = f.modificato_il
         moved = False
         temp_case_path: Path | None = None
@@ -2826,11 +2827,14 @@ class GestioneFascicoli:
                 moved = True
             doc.nome = nuovo_nome
             doc.percorso = str(destinazione.relative_to(self.documents_dir)) if destinazione.exists() else old_percorso
+            if "iusentra:nome-personalizzato" not in {str(tag).casefold() for tag in (doc.tags or [])}:
+                doc.tags = [*(doc.tags or []), "iusentra:nome-personalizzato"]
             f.modificato_il = datetime.now().isoformat()
             self._salva()
         except Exception:
             doc.nome = old_nome
             doc.percorso = old_percorso
+            doc.tags = old_tags
             f.modificato_il = old_modificato
             if temp_case_path and temp_case_path.exists() and not percorso_corrente.exists():
                 try:

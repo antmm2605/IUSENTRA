@@ -3,6 +3,7 @@ from __future__ import annotations
 import email
 import os
 import sys
+import zipfile
 from datetime import datetime
 from email.message import EmailMessage
 from io import BytesIO
@@ -1241,6 +1242,109 @@ def test_email_pec_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
         assert download.data == p7m_bytes
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
         assert "ricorso.pdf.p7m" in download.headers.get("Content-Disposition", "")
+
+
+def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    archive_buffer = BytesIO()
+    with zipfile.ZipFile(archive_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("documenti/istruzioni.txt", "Consultare il decreto allegato.")
+        archive.writestr("documenti/Decreto fissazione udienza.pdf", b"%PDF-1.4 decreto udienza\n")
+    zip_bytes = archive_buffer.getvalue()
+
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    em = EmailRicevuta(
+        id="MAIL-ZIP-PEC",
+        message_id="msg-zip-pec",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con decreto in archivio ZIP",
+        data="2026-07-17T10:00:00+02:00",
+        allegati=[{
+            "nome": "21866865s.pdf.zip",
+            "mime": "application/zip",
+            "size": len(zip_bytes),
+            "percorso_rel": "MAIL-ZIP-PEC/21866865s.pdf.zip",
+            "nome_file": "21866865s.pdf.zip",
+        }],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / "MAIL-ZIP-PEC"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    (allegato_dir / "21866865s.pdf.zip").write_bytes(zip_bytes)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        inline = client.get("/email/messaggio/MAIL-ZIP-PEC/allegato/0")
+        assert inline.status_code == 200
+        assert inline.mimetype == "application/pdf"
+        assert inline.data == b"%PDF-1.4 decreto udienza\n"
+        assert "Decreto fissazione udienza.pdf" in inline.headers.get("Content-Disposition", "")
+
+        source = client.get(
+            "/api/v1/ui/email/source/msg-zip-pec",
+            query_string={"name": "21866865s.pdf.zip"},
+        )
+        assert source.status_code == 200
+        assert source.mimetype == "application/pdf"
+        assert source.data == b"%PDF-1.4 decreto udienza\n"
+
+        download = client.get(
+            "/api/v1/ui/email/source/msg-zip-pec",
+            query_string={"name": "21866865s.pdf.zip", "download": "1"},
+        )
+        assert download.status_code == 200
+        assert download.data == zip_bytes
+        assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+        assert "21866865s.pdf.zip" in download.headers.get("Content-Disposition", "")
+
+
+def test_email_pec_visualizza_zip_dal_presidio_audit_anche_se_non_e_in_casella(tmp_path):
+    from pct.pec_pipeline import PecAuditRepository
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    archive_buffer = BytesIO()
+    with zipfile.ZipFile(archive_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("allegati/istruzioni udienza.pdf", b"%PDF-1.4 collegamento audiovisivo\n")
+    zip_bytes = archive_buffer.getvalue()
+
+    message = EmailMessage()
+    message["From"] = "tribunale.palmi@example.test"
+    message["To"] = "studio@example.test"
+    message["Date"] = "Fri, 17 Jul 2026 10:00:00 +0200"
+    message["Message-ID"] = "<monea-21866865@example.test>"
+    message["Subject"] = "Comunicazione RG 1394/2026"
+    message.set_content("Udienza con istruzioni contenute nell'allegato.")
+    message.add_attachment(zip_bytes, maintype="application", subtype="zip", filename="21866865s.pdf.zip")
+
+    repository = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    ingested = repository.ingest_mime(message.as_bytes(), account_email="studio@example.test", enqueue=False)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        source = client.get(
+            f"/api/v1/ui/email/source/{ingested['id']}",
+            query_string={"name": "21866865s.pdf.zip"},
+        )
+        assert source.status_code == 200
+        assert source.mimetype == "application/pdf"
+        assert source.data == b"%PDF-1.4 collegamento audiovisivo\n"
+
+        download = client.get(
+            f"/api/v1/ui/email/source/{ingested['id']}",
+            query_string={"name": "21866865s.pdf.zip", "download": "1"},
+        )
+        assert download.status_code == 200
+        assert download.data == zip_bytes
+        assert "attachment" in download.headers.get("Content-Disposition", "").lower()
 
 
 def test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):

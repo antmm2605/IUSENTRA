@@ -32,6 +32,8 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { SourceDocumentModal } from './SourceDocumentModal'
+import { OperationalModal } from './OperationalModal'
 import {
   emptyScadenziarioPage,
   calculateProcessDeadline,
@@ -262,15 +264,14 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
   )
 }
 
-function SourceEvidenceLink({ item }: { item: ScadenziarioRow }) {
+function SourceEvidenceLink({ item, onOpen }: { item: ScadenziarioRow; onOpen: (item: ScadenziarioRow) => void }) {
   if (!item.sourceHref) return null
   const sourceLabel = item.sourceLabel || 'Fonte originaria'
   return (
-    <a
+    <button
+      type="button"
       className="iu-scad-source-link"
-      href={item.sourceHref}
-      target="_blank"
-      rel="noreferrer"
+      onClick={() => onOpen(item)}
       title={`Visualizza fonte: ${sourceLabel}`}
       aria-label={`Visualizza fonte: ${sourceLabel}`}
     >
@@ -278,7 +279,7 @@ function SourceEvidenceLink({ item }: { item: ScadenziarioRow }) {
       <span>Visualizza fonte</span>
       <small>{sourceLabel}</small>
       {item.sourceVerified ? <CheckCircle2 size={12} aria-label="Fonte verificata"/> : null}
-    </a>
+    </button>
   )
 }
 
@@ -289,6 +290,8 @@ function DeadlineTable({
   onToggleAll,
   onComplete,
   onDelete,
+  onOpenSource,
+  onOpenDetail,
 }:{
   rows: ScadenziarioRow[]
   selectedIds: string[]
@@ -296,6 +299,8 @@ function DeadlineTable({
   onToggleAll: () => void
   onComplete: (item: ScadenziarioRow) => void
   onDelete: (item: ScadenziarioRow) => void
+  onOpenSource: (item: ScadenziarioRow) => void
+  onOpenDetail: (item: ScadenziarioRow) => void
 }) {
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.includes(row.id))
   return (
@@ -320,7 +325,11 @@ function DeadlineTable({
               <td><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.title}`}/></td>
               <td><strong>{item.dateLabel}</strong><span>{item.statusLabel}</span></td>
               <td>
-                <a className="iu-scad-title" href={item.href}>{item.title}</a>
+                <a className="iu-scad-title" href={item.href} onClick={(clickEvent) => {
+                  if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+                  clickEvent.preventDefault()
+                  onOpenDetail(item)
+                }}>{item.title}</a>
                 <small>{item.description || item.sourceEventLabel || 'Nessuna descrizione operativa.'}</small>
                 {item.sourceEventTypeLabel || item.officeLabel ? (
                   <span className="iu-scad-event-line">
@@ -330,7 +339,7 @@ function DeadlineTable({
                   </span>
                 ) : null}
                 <RemoteHearingNotice item={item}/>
-                <SourceEvidenceLink item={item}/>
+                <SourceEvidenceLink item={item} onOpen={onOpenSource}/>
                 <DeadlineFlags item={item}/>
               </td>
               <td><Badge tone="neutral">{item.typeLabel}</Badge></td>
@@ -356,12 +365,16 @@ function DeadlineCardList({
   onToggle,
   onComplete,
   onDelete,
+  onOpenSource,
+  onOpenDetail,
 }:{
   rows: ScadenziarioRow[]
   selectedIds: string[]
   onToggle: (id: string) => void
   onComplete: (item: ScadenziarioRow) => void
   onDelete: (item: ScadenziarioRow) => void
+  onOpenSource: (item: ScadenziarioRow) => void
+  onOpenDetail: (item: ScadenziarioRow) => void
 }) {
   return (
     <div className="iu-scad-card-list">
@@ -371,7 +384,11 @@ function DeadlineCardList({
             <label><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => onToggle(item.id)}/><span>{item.dateLabel}</span></label>
             <Badge tone={item.tone}>{item.priorityLabel}</Badge>
           </header>
-          <a href={item.href}>{item.title}</a>
+          <a href={item.href} onClick={(clickEvent) => {
+            if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+            clickEvent.preventDefault()
+            onOpenDetail(item)
+          }}>{item.title}</a>
           <p>{item.description || item.fascicoloLabel || 'Scadenza senza descrizione.'}</p>
           {item.sourceEventTypeLabel || item.officeLabel ? (
             <span className="iu-scad-event-line">
@@ -381,7 +398,7 @@ function DeadlineCardList({
             </span>
           ) : null}
           <RemoteHearingNotice item={item}/>
-          <SourceEvidenceLink item={item}/>
+          <SourceEvidenceLink item={item} onOpen={onOpenSource}/>
           <div className="iu-scad-mobile-meta">
             <span><CalendarDays size={14}/>{item.daysLabel}</span>
             <span><Gavel size={14}/>{item.typeLabel}</span>
@@ -812,6 +829,8 @@ export function ScadenziarioPage() {
   const [pdfSelectedIds, setPdfSelectedIds] = useState<string[]>([])
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
+  const [sourcePreview, setSourcePreview] = useState<ScadenziarioRow | null>(null)
+  const [detailPreview, setDetailPreview] = useState<ScadenziarioRow | null>(null)
 
   const buildQuery = (compact = false): ScadenziarioQuery => ({
     view,
@@ -1071,7 +1090,26 @@ export function ScadenziarioPage() {
       .finally(() => setPdfBusy(false))
   }
   const focusedId = routeDeadlineId()
-  const focusedRow = focusedId ? data.items.find((item) => item.id === focusedId) : undefined
+  const focusedRow = detailPreview || (focusedId ? data.items.find((item) => item.id === focusedId) : undefined)
+
+  useEffect(() => {
+    const syncDetailFromRoute = () => {
+      const routeId = routeDeadlineId()
+      setDetailPreview(routeId ? data.items.find((item) => item.id === routeId) || null : null)
+    }
+    window.addEventListener('popstate', syncDetailFromRoute)
+    return () => window.removeEventListener('popstate', syncDetailFromRoute)
+  }, [data.items])
+
+  const openDeadlineDetail = (item: ScadenziarioRow) => {
+    window.history.pushState(window.history.state, '', `/scadenziario/${encodeURIComponent(item.id)}${window.location.search}`)
+    setDetailPreview(item)
+  }
+
+  const closeDeadlineDetail = () => {
+    window.history.replaceState(window.history.state, '', `/scadenziario${window.location.search}`)
+    setDetailPreview(null)
+  }
 
   return (
     <main className="iu-content iu-scad-page iusentra-route-sequence">
@@ -1180,7 +1218,17 @@ export function ScadenziarioPage() {
       ) : null}
 
       {focusedRow ? (
-        <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
+        <OperationalModal
+          open
+          ariaLabel="Scadenza selezionata"
+          eyebrow={<><CalendarCheck size={14}/> Scadenza selezionata</>}
+          title={focusedRow.title}
+          subtitle={[focusedRow.fascicoloLabel, focusedRow.clientLabel].filter(Boolean).join(' · ')}
+          onClose={closeDeadlineDetail}
+          boxClassName="iu-ag-source-modal__box--detail"
+          bodyClassName="iu-ag-source-modal__body--detail"
+        >
+          <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
           <div>
             <Badge tone={focusedRow.tone}>{focusedRow.statusLabel}</Badge>
             <h2>{focusedRow.title}</h2>
@@ -1213,12 +1261,14 @@ export function ScadenziarioPage() {
                 <Link2 size={15}/> Apri link udienza
               </a>
             ) : null}
+            {focusedRow.sourceHref ? <button type="button" onClick={() => setSourcePreview(focusedRow)}><FileSearch size={15}/> Visualizza fonte</button> : null}
             <Button href={focusedRow.editHref}><Edit3 size={15}/> Modifica</Button>
             <button type="button" onClick={() => runComplete(focusedRow)}><CheckCircle2 size={15}/> Completa</button>
             <button type="button" onClick={() => runDelete(focusedRow)}><Trash2 size={15}/> Elimina</button>
-            <Button href="/scadenziario"><ArrowLeft size={15}/> Torna allo scadenziario</Button>
+            <button type="button" onClick={closeDeadlineDetail}><ArrowLeft size={15}/> Torna allo scadenziario</button>
           </div>
-        </section>
+          </section>
+        </OperationalModal>
       ) : null}
 
       <section className="iu-scad-layout">
@@ -1234,8 +1284,8 @@ export function ScadenziarioPage() {
           </header>
           {visibleRows.length ? (
             <>
-              <DeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete}/>
-              <DeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete}/>
+              <DeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+              <DeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
             </>
           ) : (
             <div className="iu-scad-empty">
@@ -1275,6 +1325,15 @@ export function ScadenziarioPage() {
         primaryLabel="Apri Lex sulle scadenze"
         secondaryHref="/workspace-intelligente"
         secondaryLabel="Regia operativa"
+      />
+      <SourceDocumentModal
+        source={sourcePreview ? {
+          href: sourcePreview.sourceHref,
+          label: sourcePreview.sourceLabel || 'Fonte originaria',
+          context: [sourcePreview.title, sourcePreview.fascicoloLabel, sourcePreview.clientLabel].filter(Boolean).join(' · '),
+          kind: sourcePreview.sourceKind,
+        } : null}
+        onClose={() => setSourcePreview(null)}
       />
     </main>
   )

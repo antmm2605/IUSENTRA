@@ -19,15 +19,19 @@ from pct.notifiche_legali import (
     NON_PEC_NOTIFICATION_TYPES,
     PUBLIC_PEC_REGISTERS,
     UNEP_NOTIFICATION_TYPES,
+    UNEP_REQUEST_TYPES,
     available_template_fields,
     client_communication_templates_version,
     list_client_communication_templates,
     list_notification_templates,
     legal_notification_automation_payload,
+    is_plausible_pec_address,
+    normalise_public_register,
     normalise_custom_template,
     normalise_document_origin,
     notification_directive_matrix,
     office_notification_evidence_from_pec,
+    public_register_capability,
     template_preview_text,
     template_catalog_version,
 )
@@ -44,6 +48,42 @@ _UI_TECHNICAL_LABEL_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 def _text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _unep_office_catalog() -> list[dict[str, Any]]:
+    """Espone il catalogo UNEP dalla stessa fonte usata da Tribunali / PEC."""
+
+    from pct.uffici_giudiziari import get_gestore, indirizzi_telematici_ufficio
+
+    gestore = get_gestore()
+    rows = [
+        row
+        for row in gestore.carica()
+        if _text(row.get("tipo")).upper() == "UNEP"
+    ]
+    updated_at = _text(gestore.stato().get("aggiornato_il"))
+    offices: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        addresses = indirizzi_telematici_ufficio(row, data_rilevazione=updated_at)
+        pec = _text(row.get("pec") or row.get("pec_ministero")).lower()
+        offices.append({
+            "id": _text(row.get("codice_ministero") or row.get("codice")) or f"unep-{index}",
+            "codice": _text(row.get("codice_ministero") or row.get("codice")),
+            "nome": _text(row.get("nome") or row.get("descrizione_ministero")),
+            "distretto": _text(row.get("distretto_ministero") or row.get("distretto")),
+            "comune": _text(row.get("comune_ministero") or row.get("comune")),
+            "provincia": _text(row.get("provincia_ministero") or row.get("provincia")),
+            "regione": _text(row.get("regione_ministero") or row.get("regione")),
+            "pec": pec,
+            "fonte": _text(addresses[0].get("fonte")) if addresses else "PST",
+            "aggiornatoIl": updated_at,
+        })
+    offices.sort(key=lambda item: (
+        item["comune"].casefold(),
+        item["nome"].casefold(),
+        item["codice"],
+    ))
+    return offices
 
 
 def _sanitize_ui_string(value: str) -> str:
@@ -164,6 +204,12 @@ def _is_public_administration_subject(soggetto: Any, pec: str = "") -> bool:
 
 
 def _infer_public_register(soggetto: Any, ruolo: str = "", pec: str = "") -> str:
+    for tag in (getattr(soggetto, "tag", []) or []):
+        raw_tag = _text(tag)
+        if raw_tag.casefold().startswith("pubblico-elenco:"):
+            explicit = normalise_public_register(raw_tag.split(":", 1)[1])
+            if explicit in PUBLIC_PEC_REGISTERS:
+                return explicit
     tipo = _enum_value(getattr(soggetto, "tipo", "")).upper()
     qualifica = _text(getattr(soggetto, "qualifica", "")).lower()
     ruolo = ruolo.upper()
@@ -204,42 +250,6 @@ def _infer_recipient_role(soggetto: Any, ruolo: str = "", pec: str = "") -> str:
 _TITLE_PARTS_RE = re.compile(r"^\s*(?:RG\s+\d+\s*/\s*\d{4}\s*[–—-]\s*)?(?P<left>.+?)\s+(?:c\.|contro|/)\s+(?P<right>.+?)\s*$", re.IGNORECASE)
 _RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|NRG|N\.?\s*RG)\s*:?\s*0*(?P<num>\d{1,8})(?:\s*/\s*|\s+)(?P<anno>20\d{2})\b", re.IGNORECASE)
 _PEC_RE = re.compile(r"\b[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-_ORDINARY_EMAIL_DOMAINS = frozenset(
-    {
-        "alice.it",
-        "email.it",
-        "fastwebnet.it",
-        "gmail.com",
-        "gmail.it",
-        "googlemail.com",
-        "hotmail.com",
-        "hotmail.it",
-        "icloud.com",
-        "libero.it",
-        "live.com",
-        "live.it",
-        "mac.com",
-        "me.com",
-        "msn.com",
-        "outlook.com",
-        "outlook.it",
-        "tiscali.it",
-        "tin.it",
-        "virgilio.it",
-        "yahoo.com",
-        "yahoo.it",
-    }
-)
-
-
-def _is_plausible_pec_address(value: str) -> bool:
-    address = _text(value).strip().lower()
-    if not re.fullmatch(r"[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}", address, flags=re.IGNORECASE):
-        return False
-    domain = address.rsplit("@", 1)[1]
-    return domain not in _ORDINARY_EMAIL_DOMAINS
-
-
 def _derive_parties_from_title(title: str) -> tuple[str, str]:
     clean = re.sub(r"\s+", " ", _text(title))
     match = _TITLE_PARTS_RE.search(clean)
@@ -508,6 +518,65 @@ def _recipient_from_plain(
         "parteRappresentata": _display_text(represented or clean_name),
         "verificaRichiesta": bool(clean_pec),
     }
+
+
+def _canonical_recipient_identity(value: Any) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "", _text(value).casefold())
+    if normalized in {"mim", "miur", "ministeroistruzione", "ministerodellistruzione"}:
+        return "ministerodellistruzioneedelmerito"
+    if normalized.startswith("ministerodellistruzioneedelmerito"):
+        return "ministerodellistruzioneedelmerito"
+    return normalized
+
+
+def _merge_notification_recipients(recipients: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Unisce alias della stessa parte privilegiando il recapito PEC completo."""
+    merged: list[dict[str, Any]] = []
+    by_identity: dict[str, int] = {}
+    by_pec: dict[str, int] = {}
+    for raw in recipients:
+        candidate = dict(raw)
+        pec = _text(candidate.get("pec")).lower()
+        identity = _canonical_recipient_identity(candidate.get("nome") or candidate.get("label"))
+        existing_index = by_pec.get(pec) if pec else None
+        if existing_index is None and identity:
+            identity_index = by_identity.get(identity)
+            # Due domicili digitali diversi dello stesso ente restano due
+            # destinatari distinti. Il nome serve a fondere solo alias privi di PEC.
+            if identity_index is not None and (
+                not pec or not _text(merged[identity_index].get("pec"))
+            ):
+                existing_index = identity_index
+        if existing_index is None:
+            existing_index = len(merged)
+            merged.append(candidate)
+        else:
+            current = merged[existing_index]
+            # Se il record attuale e' soltanto un alias senza PEC, il record
+            # completo diventa quello operativo conservando i dati utili gia' noti.
+            if pec and not _text(current.get("pec")):
+                replacement = candidate
+                for key, value in current.items():
+                    if not _text(replacement.get(key)) and _text(value):
+                        replacement[key] = value
+                merged[existing_index] = replacement
+                current = replacement
+            else:
+                for key, value in candidate.items():
+                    if not _text(current.get(key)) and _text(value):
+                        current[key] = value
+        current = merged[existing_index]
+        current_identity = _canonical_recipient_identity(current.get("nome") or current.get("label"))
+        current_pec = _text(current.get("pec")).lower()
+        if identity:
+            by_identity.setdefault(identity, existing_index)
+        if current_identity:
+            by_identity.setdefault(current_identity, existing_index)
+        if pec:
+            by_pec[pec] = existing_index
+        if current_pec:
+            by_pec[current_pec] = existing_index
+    return sorted(merged, key=lambda item: (not bool(_text(item.get("pec"))),))
 
 
 def _recipient_source_from_pec(address: str) -> tuple[str, str]:
@@ -930,7 +999,7 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
             "giudice": _text(getattr(fascicolo, "giudice", "")),
             "tipoProcedimento": _text(getattr(fascicolo, "tipo_procedimento", "")),
         },
-        "destinatari": recipients[:40],
+        "destinatari": _merge_notification_recipients(recipients),
         "documenti": documents,
         "portaleAcquisizioneHref": _portal_acquisition_href(fascicolo),
         "documentoUfficioMonitor": {
@@ -975,9 +1044,9 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
         )
     destinatari = []
     if soggetti_repo is not None:
-        for soggetto in _safe_call("soggetti", lambda: soggetti_repo.tutti(), [])[:250]:
+        for soggetto in _safe_call("soggetti", lambda: soggetti_repo.tutti(), []):
             recipient = _recipient_from_subject(soggetto)
-            if recipient["pec"] and _is_plausible_pec_address(recipient["pec"]):
+            if recipient["pec"] and is_plausible_pec_address(recipient["pec"]):
                 destinatari.append(recipient)
     return {
         # L'indice iniziale resta leggero. Parti, documenti ed evidenze PEC vengono
@@ -996,7 +1065,7 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
         ],
         "totalePratiche": len([fascicolo for fascicolo in tutti_fascicoli if _text(getattr(fascicolo, "id", ""))]),
         "clienti": [_cliente_option(cliente) for cliente in clienti_by_id.values()],
-        "destinatari": destinatari[:120],
+        "destinatari": destinatari,
         "note": [
             "I dati di pratica, assistito, procedimento e documenti sono proposti dai fascicoli IUSENTRA.",
             "La fonte PEC viene suggerita in base al ruolo e al tipo di soggetto; la verifica sul pubblico elenco resta da confermare.",
@@ -1102,7 +1171,17 @@ def build_react_notifiche_legali_payload(
             "fontePecMittente": "ReGIndE",
         },
         "registriPec": [
-            {"value": key, "label": label}
+            {
+                "value": key,
+                "label": label if public_register_capability(key)["valid_for_notification"] else f"{label} (non certifica PEC)",
+                "verificationMode": public_register_capability(key)["verification_mode"],
+                "officialUrl": public_register_capability(key)["official_url"],
+                "automatic": public_register_capability(key)["automatic"],
+                "requiresPin": public_register_capability(key)["requires_pin"],
+                "requiresUserConfirmation": public_register_capability(key)["requires_user_confirmation"],
+                "validForNotification": public_register_capability(key)["valid_for_notification"],
+                "actionLabel": public_register_capability(key)["action_label"],
+            }
             for key, label in PUBLIC_PEC_REGISTERS.items()
         ],
         "matriceNotifica": notification_directive_matrix(),
@@ -1114,6 +1193,11 @@ def build_react_notifiche_legali_payload(
             {"value": key, "label": label}
             for key, label in UNEP_NOTIFICATION_TYPES.items()
         ],
+        "tipiRichiestaUnep": [
+            {"value": key, "label": value["label"], "schema": value["schema"]}
+            for key, value in UNEP_REQUEST_TYPES.items()
+        ],
+        "ufficiUnep": _unep_office_catalog(),
         "tipiNotificaNonPec": [
             {"value": key, "label": label}
             for key, label in NON_PEC_NOTIFICATION_TYPES.items()
@@ -1164,6 +1248,7 @@ def build_react_notifiche_legali_payload(
             "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
+            "verificaPecConsultata": "/api/v1/ui/notifiche-legali/verifica-pec-consultata",
             "unep": "/api/v1/ui/notifiche-legali/unep",
             "nonPec": "/api/v1/ui/notifiche-legali/non-pec",
             "areaWebPst": "/api/v1/ui/notifiche-legali/area-web-pst",

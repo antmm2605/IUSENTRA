@@ -563,6 +563,80 @@ def test_import_studio_telematico_identita_nominativo_vuoto_usa_stesso_fallback_
     assert quickorganizer_import._subject_payload(row)["cognome"] == "Nominativo importato"
 
 
+def test_import_studio_telematico_distingue_domicili_digitali_dello_stesso_ente(tmp_path: Path):
+    rows = [
+        {
+            "NUM_NOM": 1,
+            "CONTROLLO": "CTP",
+            "COGNOME": "Ministero - ufficio uno",
+            "CODICE_FISCALE": "80185250588",
+            "PEC": "ufficio.uno@postacert.istruzione.it",
+            "PubblicoElenco": "IPA",
+        },
+        {
+            "NUM_NOM": 2,
+            "CONTROLLO": "CTP",
+            "COGNOME": "Ministero - ufficio due",
+            "CODICE_FISCALE": "80185250588",
+            "PEC": "ufficio.due@postacert.istruzione.it",
+            "PubblicoElenco": "IPA",
+        },
+    ]
+    _, _, soggetti = _repositories(tmp_path)
+
+    result = quickorganizer_import.reconcile_quickorganizer_notification_recipients(
+        rows,
+        soggetti=soggetti,
+    )
+
+    assert quickorganizer_import._subject_identity(rows[0]) != quickorganizer_import._subject_identity(rows[1])
+    assert result["ok"] is True
+    assert result["created"] == 2
+    assert result["sourceUniquePec"] == 2
+    assert result["sourceEligiblePec"] == 2
+    assert result["missingEligibleCount"] == 0
+    assert {item.recapiti.pec for item in soggetti.tutti()} == {
+        "ufficio.uno@postacert.istruzione.it",
+        "ufficio.due@postacert.istruzione.it",
+    }
+    assert all("pubblico-elenco:IPA" in item.tag for item in soggetti.tutti())
+
+    second = quickorganizer_import.reconcile_quickorganizer_notification_recipients(
+        rows,
+        soggetti=soggetti,
+    )
+
+    assert second["created"] == 0
+    assert len(soggetti.tutti()) == 2
+
+
+def test_audit_rubrica_destinatari_separa_pec_utilizzabili_e_valori_esclusi(tmp_path: Path):
+    rows = [
+        {"NUM_NOM": 1, "COGNOME": "Ente", "PEC": "ufficio@pec.ente.it"},
+        {"NUM_NOM": 2, "COGNOME": "Contatto ordinario", "PEC": "utente@gmail.com"},
+        {"NUM_NOM": 3, "COGNOME": "Dominio non ASCII", "PEC": "ufficio@città.example"},
+    ]
+    _, _, soggetti = _repositories(tmp_path)
+
+    before = quickorganizer_import.audit_quickorganizer_notification_recipients(
+        rows,
+        soggetti=soggetti,
+    )
+    repaired = quickorganizer_import.reconcile_quickorganizer_notification_recipients(
+        rows,
+        soggetti=soggetti,
+    )
+
+    assert before["ok"] is False
+    assert before["missingCount"] == 3
+    assert before["sourceEligiblePec"] == 1
+    assert before["sourceExcludedPec"] == 2
+    assert repaired["ok"] is True
+    assert repaired["storedUniquePec"] == 3
+    assert repaired["storedEligiblePec"] == 1
+    assert repaired["missingCount"] == 0
+
+
 def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirror(tmp_path: Path):
     package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
     studio_db, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)

@@ -4878,6 +4878,29 @@ Guardrail eseguiti:
 - produzione aggiornata, container applicativo unico healthy e `/api/pronto` positivo.
 
 Stato di accettazione: resta obbligatoria la prova materiale nella scheda autenticata con click su `Firma relata`, inserimento PIN, verifica positiva dei pubblici elenchi, salvataggio e apertura della relata firmata. Nessun test automatico viene usato come sostituto di tale prova e nessuna PEC reale deve essere inviata.
+
+### Correzione verifica enti ReGIndE e prova Locri - 17/07/2026
+
+La verifica del destinatario ente non usa più il servizio destinato ai soli professionisti. Per Avvocature, Ordini e altri enti ReGIndE viene interrogata l'operazione ministeriale `ricercaEnteEx`, fornendo contemporaneamente denominazione, codice fiscale e indirizzo PEC. La risposta è valida soltanto se l'ente è visibile, attivo e coincide con tutti i dati mostrati nella relata; non sono consentiti riallineamenti automatici del codice fiscale.
+
+Fonti e controlli:
+
+- WSDL ministeriale `docs/specs/ministero/A1_WSDL_CATALOG_v1.52/WSDL/Altri Servizi/ReGIndE/ServiziInterrogazioneEnte.wsdl`;
+- test mirati ReGIndE in `tests/test_local_signer.py`: `9` superati;
+- compilazione Python, `git diff --check` e build React superati;
+- pagina Notifiche legali costruita in un chunk di circa `133 kB`, sotto il limite di `500 kB`.
+
+Prova visibile sul server: selezionata la pratica `2026/339`, `RG 1854/2026`, Tribunale di Locri. La UI ha proposto Avvocatura Distrettuale dello Stato di Reggio Calabria, codice fiscale `92006980806`, PEC `ads.rc@mailcert.avvocaturastato.it`, ReGIndE e Ministero dell'Istruzione e del Merito. Il click `Controlla relata` non ha prodotto invii e ha mantenuto bloccata la PEC in assenza di dispositivo, documento scelto, firma e approvazione finale.
+
+La prova crittografica finale resta **non verificata su macchina reale** perché durante questo controllo la chiavetta non era inserita. L'avvocato deve inserire il dispositivo, scegliere i documenti, inserire il PIN, ottenere esito positivo per notificante e destinatario, firmare la relata, aprire il file firmato e solo dopo dare l'approvazione finale. Nessuna PEC reale è stata inviata durante questa verifica.
+
+### Presidio richieste UNEP e catalogo uffici - 18/07/2026
+
+Il canale UNEP resta autonomo rispetto al deposito civile e alla notifica PEC L. 53. La pagina Notifiche legali usa ora il medesimo catalogo della sezione Tribunali: l'ufficio viene selezionato con denominazione, codice ministeriale e PEC inseparabili. Il backend risolve nuovamente il codice sul catalogo corrente e blocca combinazioni alterate o storiche non più corrispondenti.
+
+La matrice comprende quattro mezzi di notifica e diciotto tipi di richiesta distinti. Atto, richiesta o relata, eventuale pagamento e successivi ritorni restano documenti separati del fascicolo. L'indirizzo dell'ufficio UNEP non è trattato come PEC del destinatario e non abilita da solo alcun invio.
+
+Il controllo automatico ripetibile è `python scripts/audit_legal_notification_coverage.py`; verifica copertura del catalogo, univocità di codici e PEC, corrispondenza con la UI, uso dell'indirizzo e copertura integrale dei tipi di richiesta. La prova finale richiede click reali su produzione e sulla copia locale `127.0.0.1:8080`, senza eseguire una richiesta UNEP o una PEC reale.
 ## Presidio udienze da PEC e documenti, aggiornamento 17/07/2026
 
 Il flusso collegato PEC, fascicolo, Agenda e Scadenziario conserva le attività `UDIENZA` anche nella timeline del fascicolo. Lo stesso evento strutturato trasporta modalità, data, ora, piattaforma, ID riunione, codice di accesso, istruzioni, fonte e collegamento audiovisivo.
@@ -4893,3 +4916,50 @@ Verifiche automatiche del 17/07/2026: 86 test mirati, build e contratti React, i
 Sulla copia reale `http://127.0.0.1:8080` è stato seguito con click il medesimo evento controllato attraverso Agenda, Scadenziario, timeline del fascicolo e centro notifiche. I quattro punti hanno mostrato gli stessi dati strutturati e il collegamento audiovisivo verificato, senza perdere note o fonte.
 
 Nel pannello Notifiche il dispositivo è stato registrato, la notifica di prova è stata inviata e mostrata e lo stato finale è risultato `Attivo`. È stato inoltre eliminato lo stato indefinito `Attivazione...`: se il browser non conclude il permesso o il riallineamento, l'operazione termina entro il limite governato e restituisce un messaggio comprensibile. La verifica non ha prodotto invii PEC, depositi o notifiche legali reali.
+
+### Ciclo dei pubblici elenchi per le notifiche - 18/07/2026
+
+Il confronto approfondito del flusso di compilazione ha confermato che non deve esistere una rubrica statica presentata come certificata. La regola operativa implementata è: selezione della fonte corretta, ricerca del soggetto, associazione fra identità e PEC, registrazione di data e ora italiane e conservazione della prova nel fascicolo. La UI non espone riferimenti tecnici al prodotto usato per il confronto.
+
+Le fonti sono governate per capacità effettiva:
+
+- `ReGIndE`: interrogazione autenticata tramite il servizio ministeriale e prova restituita dal servizio;
+- `Registro PP.AA.`: consultazione autenticata sul Portale dei Servizi Telematici, con conferma nominativa dell'avvocato dopo aver visto soggetto e PEC;
+- `INI-PEC professionisti`, `INI-PEC imprese` e `Registro Imprese`: consultazione del portale ufficiale e conferma nominativa della corrispondenza;
+- `INAD`: consultazione pubblica assistita; l'eventuale CAPTCHA resta svolto dall'avvocato e non viene eluso;
+- `ANPR`: non è trattato come pubblico elenco PEC valido per una notifica e non può produrre una verifica positiva;
+- `IPA`: resta distinto dal Registro PP.AA. del Ministero della Giustizia e non può certificarne l'esito.
+
+La conferma conserva nel `source_snapshot` SQL-backed del fascicolo: tenant e fascicolo, fonte, URL ufficiale, PEC, codice fiscale o partita IVA, denominazione, data e ora della consultazione in `Europe/Rome`, operatore autenticato, metodo di verifica e impronta SHA-256 della prova. La validazione rifiuta fonti non ammesse, prove alterate, URL diversi dalla fonte configurata, identità mancanti, orari futuri o consultazioni assistite più vecchie di quattro ore. Non sono state aggiunte tabelle divergenti fra SQLite e PostgreSQL.
+
+Guardrail eseguiti prima del collaudo reale: `89` test notifiche legali, `233` test Local Signer, audit di copertura con `7` fonti pubbliche, `141` uffici UNEP, `18` tipi di richiesta e nessun fallimento; typecheck e build React superati. Il modulo Notifiche legali pesa `142,15 kB` e il chunk JavaScript corrente più grande pesa `369,24 kB`, entrambi sotto il limite di `500 kB`.
+
+Stato di accettazione: il codice e i guardrail sono pronti; la voce resta aperta finché non vengono eseguiti sul server e sulla copia reale locale i click di apertura della fonte, conferma, ricaricamento del fascicolo e rilettura della prova conservata. Nessuna PEC reale deve essere inviata durante il collaudo.
+
+### Documenti del fascicolo d'ufficio: confronto del flusso - 18/07/2026
+
+Il decompilato di confronto è stato seguito lungo entrambi i percorsi usati per i documenti ufficiali.
+
+Consultazione dalla pratica:
+
+- prima dell'apertura vengono validati autorità giudiziaria, codice ufficio, registro, numero e anno RG, ruolo dell'utente ed eventuale sotto-procedimento;
+- il browser incorporato apre il fascicolo ufficiale già contestualizzato e, quando riconosce la pagina del fascicolo, individua il collegamento alla sezione documenti e vi naviga automaticamente;
+- il contenuto mostrato resta quello del portale ufficiale: il gestionale non ricostruisce una pagina parallela e non richiede di ricercare nuovamente il fascicolo.
+
+Acquisizione strutturata:
+
+- la ricerca documenti interroga il servizio del registro corretto e ottiene per ogni deposito identificativo documento, stato, autore, data, tipo, ufficio e riferimenti del fascicolo;
+- per ogni documento viene letto il dettaglio con un elemento principale e i suoi allegati, collegati tramite l'identificativo del deposito;
+- l'elenco mostra data, depositante, nome file originale, tipologia e stato di download; gli allegati sono righe figlie del documento principale;
+- per ogni file l'avvocato sceglie fra duplicato/originale informatico, copia di consultazione o esclusione;
+- gli elementi già presenti nella pratica sono confrontati tramite l'identificativo ufficiale del documento, marcati come acquisiti e non scaricati di nuovo;
+- al completamento il file viene associato alla pratica corrente con nome originale, identificativo ufficiale, origine telematica e stato firma, quindi l'elenco documenti viene aggiornato immediatamente;
+- il download manuale dal browser usa la stessa pratica già selezionata; la scelta di un'altra pratica è richiesta solo quando il percorso è stato avviato senza contesto.
+
+Confronto con IUSENTRA:
+
+- il servizio locale dispone già di sessioni PST riusabili, ricerca documenti, dettaglio principale/allegati, download singolo e batch, scelta copia/originale e identificativi `id_documento`/`id_cat`;
+- il runtime fascicoli conserva già identificativi portale, impronta, metadati e logica di aggiornamento senza duplicati;
+- manca ancora nella superficie React del fascicolo il comando completo che avvia la ricerca con i dati della pratica, presenta l'albero ufficiale, consente la scelta per file e importa nel fascicolo senza passare da una pagina separata.
+
+Regola di implementazione: la UI deve mostrare soltanto comandi operativi per l'avvocato, senza riferimenti al prodotto confrontato o dettagli tecnici. Nessun PIN, certificato o cookie di sessione deve transitare o essere conservato sul server. Stato: analisi completata; implementazione e prova reale ancora aperte.

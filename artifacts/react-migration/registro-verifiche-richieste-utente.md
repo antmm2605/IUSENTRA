@@ -1,6 +1,6 @@
 # Registro permanente delle richieste e delle verifiche
 
-Aggiornato il 17/07/2026. Questo file è il registro operativo vincolante delle revisioni richieste dall'utente.
+Aggiornato il 18/07/2026. Questo file è il registro operativo vincolante delle revisioni richieste dall'utente e la memoria principale del lavoro ancora da completare.
 
 ## Regola di gestione
 
@@ -10,6 +10,14 @@ Aggiornato il 17/07/2026. Questo file è il registro operativo vincolante delle 
 - `[x]` si usa soltanto dopo prova materiale su `https://app.iusentra.it`, con click reale, scroll completo e risultato osservato.
 - Test automatici, build e typecheck non autorizzano da soli il passaggio a `[x]`.
 - Per ogni voce chiusa vanno annotati data, route, dato reale usato ed esito visibile.
+- Ogni nuova richiesta, decisione di flusso, confronto con fonti, difetto osservato o prova reale aggiorna questo registro prima del report finale; le informazioni non devono restare soltanto nella conversazione.
+- Le analisi estese possono vivere in dossier dedicati, ma devono essere collegate qui e mantenere separati: requisito, implementazione, test automatico, prova reale server, prova reale locale e stato di rilascio.
+
+## Memorie collegate
+
+- `artifacts/react-migration/confronto-documenti-fascicolo-ufficio.md`: consultazione e acquisizione dei documenti del fascicolo d'ufficio, gerarchia documento/allegati, copia/originale, deduplicazione e collaudo.
+- `artifacts/react-migration/procedura-deposito-telematico.md`: deposito, firma, busta, PEC locale, ricevute, notifiche legali e verifiche operative sensibili.
+- `artifacts/data-flow/incarico-operativo-permanente.md`: tenant, fonte dati SQL, API, React, persistenza e doppio controllo della struttura dati.
 
 ## Interventi attivi del 15/07/2026
 
@@ -25,21 +33,29 @@ Aggiornato il 17/07/2026. Questo file è il registro operativo vincolante delle 
   Accettazione: stessa estensione visiva delle due colonne su desktop e nessuna regressione nel lettore mobile.
 - [~] `PEC-002` Leggere automaticamente il PDF contenuto negli allegati `.pdf.zip`, estrarre link e istruzioni audiovisive, verificarli e riportarli in PEC, Agenda e Scadenziario.
   Accettazione: il caso reale `21866865s.pdf.zip` mostra link cliccabile, fonte, orario e stato di verifica; nessun messaggio generico se il PDF è disponibile.
+- [~] `PEC-003` Aprire automaticamente il documento leggibile contenuto negli ZIP PEC senza chiedere all'avvocato di estrarre manualmente l'archivio.
+  Accettazione: il click sull'allegato `.pdf.zip` mostra direttamente il PDF interno nel visualizzatore IUSENTRA; il download conserva lo ZIP originale e gli archivi non sicuri vengono bloccati con un messaggio chiaro.
 - [~] `DEPLOY-001` Distribuire gli interventi attivi sul server e provare ogni route con browser reale.
 
 ## Agenda e Scadenziario
 
-- [x] `AG-003` Visualizzare la fonte PDF/PEC dentro IUSENTRA in una finestra sopra Agenda, senza uscire dal software; usare il visualizzatore mobile con zoom.
+- [~] `AG-003` Visualizzare la fonte PDF/PEC dentro IUSENTRA in una finestra sopra Agenda e Scadenziario, senza sostituire o incorporare il documento nel contenuto della pagina; usare il visualizzatore mobile con zoom.
+  Accettazione: `Visualizza fonte` apre lo stesso pannello sovrapposto su entrambe le route, mantiene data, vista e filtri sottostanti e si chiude con pulsante, sfondo o tasto Esc.
 - [x] `AG-004` Mostrare nel passaggio del mouse dati completi e immediatamente comprensibili: cliente, RG, ufficio, evento, data, ora, modalità e link udienza.
 - [x] `AG-005` Rendere il link dell'udienza audiovisiva cliccabile e verificato nella scheda Agenda e nello Scadenziario.
 - [ ] `AG-006` Assegnare colori distinti per udienza, scadenza/deposito, appuntamento, attività di studio e completata; il completamento deve essere riconoscibile subito.
 - [ ] `AG-007` Inserire la legenda colori nel titolo della vista calendario senza sottrarre spazio utile.
-- [ ] `AG-008` Gestire più eventi allo stesso orario senza sovrapposizioni o colonne illeggibili.
+- [~] `AG-008` Gestire eventi uguali o ravvicinati senza sovrapposizioni o colonne illeggibili, compresi i casi reali del 14 e 20 luglio.
+  Accettazione: ogni fascia occupata mostra un solo riepilogo leggibile; il passaggio del mouse elenca separatamente orario, titolo e azioni di ciascun evento.
 - [ ] `AG-009` Espandere il planner a tutto schermo e verificarlo anche su notebook da 14 pollici e mobile.
 - [ ] `AG-010` Evitare `n.d.` quando documenti o PEC contengono una prossima udienza/scadenza; mantenere `n.d.` solo se l'evento non esiste realmente.
 - [x] `AG-011` Ogni evento automatico deve avere un'azione `Visualizza fonte` che apra il documento o la PEC originaria.
 - [~] `AG-012` Le attività `UDIENZA` devono restare nella timeline del fascicolo e alimentare Agenda, Scadenziario, notifiche operative e Web Push senza perdere note, modalità o link audiovisivo.
   Accettazione: un solo record per evento; il collegamento appare nell'app; il Web Push espone l'azione esterna solo dopo validazione; un allegato PDF/ZIP elaborato successivamente aggiorna la stessa notifica e invia un nuovo push soltanto quando aggiunge un'informazione audiovisiva utile.
+- [~] `AG-013` Aprire il dettaglio operativo di eventi e scadenze in una finestra sopra Agenda e Scadenziario, senza incorporarlo nel flusso della pagina.
+  Accettazione: il click su un evento Agenda o su una scadenza mantiene calendario, elenco, data e filtri sullo sfondo; il dettaglio conserva tutte le azioni e si chiude con pulsante, sfondo o tasto Esc. La route diretta con identificativo apre la stessa finestra.
+- [~] `PEC-004` Risolvere la fonte collegata anche quando la PEC è conservata nel presidio documentale e non compare nella sola casella email.
+  Accettazione: il caso reale `21866865s.pdf.zip` apre il PDF interno dalla fonte PEC registrata, senza il messaggio “PEC collegata non disponibile”, mantenendo lo ZIP originale per il download.
 
 ## PEC, documenti e intelligenza del fascicolo
 
@@ -156,6 +172,28 @@ Nessuna delle voci attive del 15/07/2026 viene ancora dichiarata chiusa: sono in
 - Verifiche automatiche rieseguite: `86` test mirati backend e bridge, build React, contratti React, copertura UI, integrità UTF-8 e conservazione asset. Il chunk JavaScript maggiore è `369,24 kB`, sotto il limite di `500 kB`.
 - Resta necessaria la prova materiale finale su produzione, inclusa una sottoscrizione Web Push reale con permesso del browser, prima di trasformare `AG-012` da `[~]` a `[x]`.
 
+## Verifica urgente notifica Tribunale di Locri - 17/07/2026
+
+- Server di produzione aggiornato con Local Signer `1.6.94`; container applicativo unico `iusentra-app` osservato healthy e `https://app.iusentra.it/api/pronto` raggiungibile.
+- Caso reale selezionato con click nella pagina autenticata: pratica `2026/339`, `RG 1854/2026`, Cuzzupoli Maria, `TRIBUNALE DI LOCRI`.
+- Precompilazione osservata campo per campo: Avv. Giuseppe Montagnese, assistita e codice fiscale, Avvocatura Distrettuale dello Stato di Reggio Calabria, codice fiscale `92006980806`, PEC `ads.rc@mailcert.avvocaturastato.it`, registro `ReGIndE`, Ministero dell'Istruzione e del Merito come parte rappresentata.
+- La verifica degli enti ReGIndE usa l'operazione ministeriale esatta `ricercaEnteEx`, con descrizione, codice fiscale e PEC. Il software non sostituisce il codice fiscale inserito e non accetta una risposta non visibile o non coincidente con tutti i dati mostrati.
+- Click reale su `Controlla relata`: controllo eseguito alle `22:33`, nessun invio eseguito e messaggio operativo che richiede il PIN nel riquadro `Firma relata`. `Invia PEC` resta disabilitato finché mancano documento scelto, verifica ReGIndE, firma e approvazione finale.
+- I documenti del fascicolo sono caricati e disponibili ma non preselezionati: la scelta degli atti da notificare resta dell'avvocato.
+- Il servizio locale risponde su `127.0.0.1:27272`, versione `1.6.94`; al momento della verifica espone `0` dispositivi perché la chiavetta era stata rimossa. Verifica ReGIndE live e firma crittografica restano pertanto **non verificate su macchina reale** e devono essere completate dall'avvocato dopo l'inserimento del dispositivo.
+- Nessuna PEC reale è stata inviata.
+
+## Catalogo UNEP condiviso con Tribunali - 18/07/2026
+
+- La pagina Notifiche legali non mantiene una seconda rubrica UNEP: usa lo stesso catalogo caricato dalla sezione `Tribunali e indirizzi PEC`.
+- Il catalogo operativo espone `141` uffici UNEP distinti, ciascuno con denominazione, codice ministeriale, distretto e PEC. La PEC è classificata per richieste e ritorni UNEP e non viene confusa con una PEC di deposito PCT o con la PEC del destinatario della notifica.
+- La ricerca nella pagina Notifiche legali accetta ufficio, città, distretto, codice e PEC; la selezione conserva insieme codice e indirizzo. Il backend rilegge il catalogo e rifiuta una combinazione codice/PEC non corrispondente.
+- La pratica propone l'ufficio coerente con l'autorità giudiziaria, ma l'avvocato può sostituirlo dal catalogo. I casi di controllo includono Locri, Palmi e Vicenza.
+- Sono governati separatamente i quattro mezzi di esecuzione (`a mani`, `posta`, `estero`, `telematica`) e i `18` tipi di richiesta UNEP ricostruiti dai relativi tracciati, comprese notifiche civili e penali, materia lavoro, pignoramenti, integrazioni di pagamento, ricerca beni e restituzione somme.
+- Audit ripetibile: `python scripts/audit_legal_notification_coverage.py`. Fallisce per uffici mancanti, duplicati, PEC assente, uso errato dell'indirizzo, divergenza fra catalogo e UI o tipo di richiesta non mappato.
+- Nessun riferimento al prodotto usato per il confronto viene esposto nella UI.
+- La prova materiale su produzione e sulla copia reale locale resta obbligatoria prima di marcare questa tranche come chiusa; nessuna PEC o richiesta UNEP reale deve essere inviata durante il test.
+
 ## Accettazione locale reale del 17/07/2026 - `AG-012`
 
 - Copia reale verificata: `http://127.0.0.1:8080`, container `iusentra-app` healthy, `/api/pronto` positivo, fuso `Europe/Rome`, versione `2.256.2`.
@@ -167,3 +205,24 @@ Nessuna delle voci attive del 15/07/2026 viene ancora dichiarata chiusa: sono in
 - Corretto anche lo stato sospeso del browser: permesso e riallineamento sono limitati temporalmente e il pulsante torna sempre utilizzabile con esito chiaro.
 - Guardrail rieseguiti: suite mirata PEC/udienze/Scadenziario/notifiche senza errori, build React, typecheck e `git diff --check`; chunk JavaScript massimo `369,24 kB`, inferiore al limite di `500 kB`.
 - `AG-012` resta formalmente `[~]` fino alla ripetizione della prova sul server dopo il deploy dello stesso commit; la prova locale non viene usata per anticipare l'accettazione di produzione.
+
+## Pubblici elenchi notifiche - ciclo completo del 18/07/2026
+
+- [~] `NOT-002` è stato esteso a tutte le fonti governate: ReGIndE autenticato; Registro PP.AA./PST, INI-PEC professionisti, INI-PEC imprese, Registro Imprese e INAD con consultazione ufficiale assistita; ANPR escluso perché non certifica una PEC per la notifica.
+- [x] `NOT-REG-001` IPA e Registro PP.AA. sono distinti: una risposta IPA non può essere registrata o mostrata come verifica del Registro PP.AA.
+- [x] `NOT-REG-002` La conferma richiede fonte, soggetto, codice fiscale o partita IVA, PEC, operatore, data e ora della consultazione e URL ufficiale; il backend conserva una prova con impronta nel fascicolo e rifiuta prove alterate o scadute.
+- [x] `NOT-REG-003` Il pannello React espone per ogni fonte l'azione corretta e non tenta di aggirare CAPTCHA o accessi riservati. Nessun riferimento tecnico al prodotto confrontato è mostrato nella UI.
+- [x] `NOT-REG-004` Guardrail automatici superati: `89` test notifiche, `233` test Local Signer, audit `7` fonti / `141` uffici UNEP / `18` richieste UNEP, typecheck e build React; chunk massimo corrente `369,24 kB`.
+- [ ] `NOT-REG-005` Eseguire il click reale su produzione e sulla copia locale `127.0.0.1:8080`: apertura della fonte ufficiale, conferma soggetto/PEC, ricaricamento, prova conservata nel fascicolo, responsive e stati hover/focus. Nessun invio PEC reale.
+
+## Fascicolo, documenti e avvio rapido dei flussi - 18/07/2026
+
+- [ ] `FAS-DOC-001` Correggere il rinomina documento: il nome salvato, mostrato dopo il ricaricamento e usato nei download deve coincidere; non basta modificare una sola etichetta descrittiva.
+- [~] `FAS-DOC-002` Aggiungere nel fascicolo la ricerca dei documenti d'ufficio sul Portale dei Servizi Telematici tramite il servizio locale e il browser governato, riusando autenticazione e sessione già attive senza esporre credenziali al server.
+  Analisi di confronto completata il 18/07/2026: il flusso di riferimento parte dalla pratica selezionata, valida ufficio, registro, RG, anno, ruolo e sotto-procedimento, apre il fascicolo ufficiale e porta direttamente alla sezione documenti. Il catalogo di acquisizione conserva la gerarchia documento principale/allegati, data, depositante, nome originale e identificativo ufficiale; i file già acquisiti sono riconosciuti dall'identificativo senza nuovo download. Ogni elemento consente la scelta fra originale informatico, copia di consultazione o esclusione. L'accettazione resta aperta fino all'implementazione React e alla prova reale server/locale.
+  Memoria tecnica e funzionale permanente: `artifacts/react-migration/confronto-documenti-fascicolo-ufficio.md`.
+- [ ] `FAS-DOC-003` Consentire all'avvocato di selezionare nel fascicolo i documenti da notificare e aprire Notifiche legali con soli riferimenti e impronte dei documenti scelti, senza nuovo caricamento dei file.
+- [ ] `FAS-DOC-004` Applicare lo stesso contratto di selezione al deposito: scelta manuale nel fascicolo, passaggio di identificativi tenant-aware e caricamento del contenuto soltanto quando serve a firma o busta.
+- [ ] `FAS-DOC-005` Conservare nella notifica e nel deposito la scelta dell'avvocato senza preselezionare automaticamente tutti i documenti e senza duplicare record o file.
+- [ ] `NOT-REG-006` Rendere rapida l'aggiunta di destinatari ulteriori con ricerca nella fonte ufficiale selezionata; le proposte del fascicolo restano prioritarie ma non sostituiscono l'accesso agli altri soggetti verificabili.
+- [~] `FAS-DOC-007` Ripristinare la visualizzazione interna dei file EML importati anche quando il titolo descrittivo non conserva l'estensione: il formato deve essere ricavato dal nome originale o dal file acquisito e il download deve mantenere `.eml`.

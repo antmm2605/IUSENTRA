@@ -60,7 +60,9 @@ import os
 import re
 import secrets
 import shutil
+import socket
 import subprocess
+import struct
 import sys
 import tempfile
 import threading
@@ -117,7 +119,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.92"
+VERSION = "1.6.97"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3907,6 +3909,10 @@ _REGINDE_INTERROGAZIONE_URL = (
     "https://ext.processotelematico.giustizia.it/"
     "ServiziInterrogazioneRegindeExt/ServiziInterrogazioneSoggetto"
 )
+_REGINDE_INTERROGAZIONE_ENTE_URL = (
+    "https://ext.processotelematico.giustizia.it/"
+    "ServiziInterrogazioneRegindeExt/ServiziInterrogazioneEnte"
+)
 _REGINDE_INTERROGAZIONE_NS = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
@@ -3941,6 +3947,42 @@ def _reginde_soap_body_for_address(address: str) -> str:
     body = ET.SubElement(envelope, f"{{{_SOAP_NS}}}Body")
     operation = ET.SubElement(body, f"{{{_REGINDE_INTERROGAZIONE_NS}}}dettagliSoggettoPerIndirizzo")
     ET.SubElement(operation, "indirizzo").text = _reginde_normalize_pec(address)
+    return ET.tostring(envelope, encoding="unicode", xml_declaration=True)
+
+
+def _reginde_entity_search_term(description: Any, address: Any = "") -> str:
+    normalized = re.sub(r"\s+", " ", str(description or "").strip())
+    if normalized:
+        avvocatura = re.search(
+            r"\bavvocatura(?:\s+distrettuale)?(?:\s+(?:di|dello))?\s+stato\s+di\s+(.+)$",
+            normalized,
+            re.IGNORECASE,
+        )
+        if avvocatura:
+            return avvocatura.group(1).strip()
+        locality = re.search(r"\b(?:di|del|della)\s+([A-Za-zÀ-ÿ' -]{3,})$", normalized, re.IGNORECASE)
+        if locality:
+            return locality.group(1).strip()
+        return normalized
+    mailbox = _reginde_normalize_pec(address).split("@", 1)[0]
+    parts = [part for part in re.split(r"[^a-z0-9]+", mailbox) if len(part) >= 3]
+    return parts[-1] if parts else mailbox
+
+
+def _reginde_soap_body_for_entity(
+    description: str,
+    codice_fiscale: str,
+    pec_attesa: str,
+) -> str:
+    ET.register_namespace("soapenv", _SOAP_NS)
+    ET.register_namespace("int", _REGINDE_INTERROGAZIONE_NS)
+    envelope = ET.Element(f"{{{_SOAP_NS}}}Envelope")
+    ET.SubElement(envelope, f"{{{_SOAP_NS}}}Header")
+    body = ET.SubElement(envelope, f"{{{_SOAP_NS}}}Body")
+    operation = ET.SubElement(body, f"{{{_REGINDE_INTERROGAZIONE_NS}}}ricercaEnteEx")
+    ET.SubElement(operation, "descrizione").text = str(description or "").strip()
+    ET.SubElement(operation, "codiceFiscale").text = _reginde_normalize_cf(codice_fiscale)
+    ET.SubElement(operation, "indirizzoPec").text = _reginde_normalize_pec(pec_attesa)
     return ET.tostring(envelope, encoding="unicode", xml_declaration=True)
 
 
@@ -3983,14 +4025,11 @@ def _reginde_parse_subject(xml_bytes: bytes, codice_fiscale: str, pec_attesa: st
     requested_cf = _reginde_normalize_cf(codice_fiscale)
     expected = _reginde_normalize_pec(pec_attesa)
 
-    # Il WSDL ministeriale modella ogni risultato come <return type="soggetto">:
-    # l'identita' e' nel figlio <soggetto>, mentre una persona giuridica puo'
-    # avere piu' <ruoliente>, ciascuno con PEC e indirizziAbilitati distinti.
-    # Il vecchio parser leggeva il solo nodo identita' e scartava questi recapiti.
+    # Il servizio soggetti racchiude l'identita' in <soggetto>; il servizio enti
+    # restituisce invece uno o piu' <return> che contengono direttamente CF e PEC.
     result_nodes = [
         node for node in root.iter()
         if _xml_local_name(node.tag).lower() == "return"
-        and any(_xml_local_name(child.tag).lower() == "soggetto" for child in node)
     ]
     if not result_nodes:
         # Compatibilita' con le risposte storiche semplificate gia' acquisite.
@@ -4077,6 +4116,7 @@ def _reginde_parse_subject(xml_bytes: bytes, codice_fiscale: str, pec_attesa: st
             "nome": nome or denominazione,
             "ruolo": (matching_role or (role_records[0] if role_records else {})).get("ruolo", _reginde_first(values, "ruolo", "tipoSoggetto", "qualifica")),
             "stato": (matching_role or (role_records[0] if role_records else {})).get("stato", _reginde_first(values, "status", "stato")),
+            "visibile": str(_reginde_first(values, "visibile", "visible") or "true").strip().lower() not in {"0", "false", "no"},
         })
 
     selected = next((item for item in parsed if requested_cf in item["codici_fiscali"]), None)
@@ -4089,6 +4129,7 @@ def _reginde_parse_subject(xml_bytes: bytes, codice_fiscale: str, pec_attesa: st
         "nome": "",
         "ruolo": "",
         "stato": "",
+        "visibile": True,
     }
     found = bool(selected["codici_fiscali"] or selected["pec_candidates"])
     pec_matches = bool(found and expected and expected in selected["pec_candidates"])
@@ -4107,6 +4148,7 @@ def _reginde_parse_subject(xml_bytes: bytes, codice_fiscale: str, pec_attesa: st
         "nome": selected["nome"],
         "ruolo": selected["ruolo"],
         "stato": selected["stato"],
+        "visibile": bool(selected["visibile"]),
     }
 
 
@@ -4218,7 +4260,7 @@ def _reginde_verify_subjects(
     cert_thumbprint: Any = "",
     pin: Any = "",
 ) -> dict[str, Any]:
-    normalized: list[dict[str, str]] = []
+    normalized: list[dict[str, Any]] = []
     for index, subject in enumerate(subjects[:20]):
         codice_fiscale = _reginde_normalize_cf(subject.get("codice_fiscale") or subject.get("codiceFiscale"))
         pec_attesa = _reginde_normalize_pec(subject.get("pec_attesa") or subject.get("pec") or subject.get("expected_pec"))
@@ -4230,7 +4272,8 @@ def _reginde_verify_subjects(
             "key": str(subject.get("key") or index),
             "codice_fiscale": codice_fiscale,
             "pec_attesa": pec_attesa,
-            "allow_tax_code_correction": bool(subject.get("allow_tax_code_correction")),
+            "descrizione": str(subject.get("descrizione") or subject.get("nome") or subject.get("label") or "").strip(),
+            "entity_hint": bool(subject.get("entity_hint") or subject.get("ente")),
         })
     if not normalized:
         raise ValueError("Indica almeno un soggetto da verificare.")
@@ -4238,13 +4281,27 @@ def _reginde_verify_subjects(
     if sys.platform == "win32" and not effective_pin:
         raise ValueError("Inserisci il PIN nel riquadro Firma relata e riprova.")
 
-    requests_batch = [{
-        "url": _REGINDE_INTERROGAZIONE_URL,
-        "soap_body": _reginde_soap_body_for_address(item["pec_attesa"]),
-        "soap_action": _REGINDE_INTERROGAZIONE_NS,
-        "max_time": 35,
-        "connect_timeout": 12,
-    } for item in normalized]
+    requests_batch = []
+    for item in normalized:
+        is_entity = bool(item["entity_hint"])
+        search_term = _reginde_entity_search_term(item["descrizione"], item["pec_attesa"])
+        if is_entity and not search_term:
+            raise ValueError(f"Denominazione dell'ente mancante per il soggetto {item['key']}.")
+        requests_batch.append({
+            "url": _REGINDE_INTERROGAZIONE_ENTE_URL if is_entity else _REGINDE_INTERROGAZIONE_URL,
+            "soap_body": (
+                _reginde_soap_body_for_entity(
+                    search_term,
+                    item["codice_fiscale"],
+                    item["pec_attesa"],
+                )
+                if is_entity
+                else _reginde_soap_body_for_address(item["pec_attesa"])
+            ),
+            "soap_action": _REGINDE_INTERROGAZIONE_NS,
+            "max_time": 35,
+            "connect_timeout": 12,
+        })
     with _reginde_smartcard_lock:
         certificate = _reginde_cert_thumbprint(cert_thumbprint, normalized[0]["codice_fiscale"])
         responses = (
@@ -4282,20 +4339,20 @@ def _reginde_verify_subjects(
             continue
         parsed = _reginde_parse_subject(response_bytes, item["codice_fiscale"], item["pec_attesa"])
         inactive = bool(re.search(r"radiat|cancellat|sospes|cessat|revocat", str(parsed.get("stato") or ""), re.IGNORECASE))
-        tax_code_accepted = bool(parsed.get("cf_matches") or item["allow_tax_code_correction"])
-        verified = bool(parsed["found"] and parsed["pec_matches"] and tax_code_accepted and not inactive)
+        verified = bool(parsed["found"] and parsed["pec_matches"] and parsed.get("cf_matches") and parsed.get("visibile") and not inactive)
         verified_at = attempted_at if verified else ""
         returned_pec = str(parsed.get("pec") or "").strip()
         message = (
             (
-                "Indirizzo PEC verificato sul pubblico elenco; codice fiscale del destinatario allineato al registro."
-                if verified and not parsed.get("cf_matches")
-                else "Indirizzo PEC verificato sul pubblico elenco."
+                "Indirizzo PEC verificato sul pubblico elenco."
             )
             if verified
             else (
                 "Il pubblico elenco associa la PEC a un codice fiscale diverso da quello indicato."
                 if parsed.get("pec_matches") and not parsed.get("cf_matches")
+                else
+                "Il pubblico elenco non rende disponibile questa associazione PEC e codice fiscale."
+                if parsed.get("found") and not parsed.get("visibile")
                 else
                 f"Il pubblico elenco associa al soggetto l'indirizzo {returned_pec}, diverso da quello indicato."
                 if returned_pec
@@ -4371,18 +4428,34 @@ def _ipa_verify_pec(pec_attesa: Any, codice_fiscale: Any = "") -> dict[str, Any]
     details_raw: list[bytes] = []
     selected: dict[str, Any] = {}
     selected_detail: dict[str, Any] = {}
+    selected_entity: dict[str, Any] = {}
     for candidate in candidates[:20]:
         if not isinstance(candidate, dict) or not candidate.get("idEnte"):
             continue
-        detail_payload, detail_raw = _ipa_json_request(f"ente/eager/{int(candidate['idEnte'])}")
+        entity_type = str(candidate.get("tipo") or "ENTE").strip().upper()
+        entity_code = re.sub(r"[^A-Za-z0-9_-]", "", str(candidate.get("codEntita") or "").strip())
+        if entity_type == "AOO" and entity_code:
+            detail_path = f"aoo/eager/{entity_code}"
+        elif entity_type == "UO" and entity_code:
+            detail_path = f"uo/eager/{entity_code}"
+        else:
+            detail_path = f"ente/eager/{int(candidate['idEnte'])}"
+        detail_payload, detail_raw = _ipa_json_request(detail_path)
         details_raw.append(detail_raw)
         detail = detail_payload.get("risposta") if isinstance(detail_payload.get("risposta"), dict) else {}
-        entity_cf = _reginde_normalize_cf(detail.get("codiceFiscalePg") or detail.get("codiceFiscalePf"))
-        primary_mail = detail.get("mail") if isinstance(detail.get("mail"), dict) else {}
-        all_mail = [primary_mail, *(detail.get("mailList") if isinstance(detail.get("mailList"), list) else [])]
+        entity = detail.get("ente") if isinstance(detail.get("ente"), dict) else detail
+        entity_cf = _reginde_normalize_cf(entity.get("codiceFiscalePg") or entity.get("codiceFiscalePf"))
+        all_mail: list[dict[str, Any]] = []
+        for container in (detail, entity):
+            primary_mail = container.get("mail") if isinstance(container.get("mail"), dict) else None
+            if primary_mail:
+                all_mail.append(primary_mail)
+            all_mail.extend(
+                mail for mail in (container.get("mailList") if isinstance(container.get("mailList"), list) else [])
+                if isinstance(mail, dict)
+            )
         matching_mail = next((mail for mail in all_mail if (
-            isinstance(mail, dict)
-            and _reginde_normalize_pec(mail.get("mail")) == expected_pec
+            _reginde_normalize_pec(mail.get("mail")) == expected_pec
             and str(mail.get("idTipoEmail") or "").upper() == "P"
             and str(mail.get("idTipoStatoMail") or "").upper() == "OK"
         )), None)
@@ -4392,6 +4465,7 @@ def _ipa_verify_pec(pec_attesa: Any, codice_fiscale: Any = "") -> dict[str, Any]
             continue
         selected = candidate
         selected_detail = detail
+        selected_entity = entity
         break
 
     verified = bool(selected_detail)
@@ -4399,15 +4473,22 @@ def _ipa_verify_pec(pec_attesa: Any, codice_fiscale: Any = "") -> dict[str, Any]
     verified_at = attempted_at if verified else ""
     return {
         "ok": verified,
-        "source": "registro_ppaa",
+        "source": "ipa",
         "verified": verified,
         "found": bool(candidates),
         "pec": expected_pec if verified else "",
         "pec_attesa": expected_pec,
         "codice_fiscale": _reginde_normalize_cf(
-            selected_detail.get("codiceFiscalePg") or selected_detail.get("codiceFiscalePf") or expected_cf
+            selected_entity.get("codiceFiscalePg") or selected_entity.get("codiceFiscalePf") or expected_cf
         ),
-        "nome": str(selected_detail.get("denominazione") or selected.get("denominazione") or "").strip(),
+        "nome": str(
+            selected_detail.get("denominazione")
+            or selected_detail.get("desAoo")
+            or selected_detail.get("desUo")
+            or selected_entity.get("denominazione")
+            or selected.get("denominazione")
+            or ""
+        ).strip(),
         "stato": "attivo" if verified else "non_verificato",
         "attempted_at": attempted_at,
         "verified_at": verified_at,
@@ -4415,9 +4496,9 @@ def _ipa_verify_pec(pec_attesa: Any, codice_fiscale: Any = "") -> dict[str, Any]
         "evidence_sha256": hashlib.sha256(evidence_bytes).hexdigest() if evidence_bytes else "",
         "evidence_body_b64": base64.b64encode(evidence_bytes).decode("ascii") if evidence_bytes else "",
         "message": (
-            "Indirizzo PEC verificato sul pubblico elenco."
+            "Indirizzo PEC verificato nell'Indice dei domicili digitali della Pubblica Amministrazione."
             if verified
-            else "Il pubblico elenco non associa questa PEC al codice fiscale indicato."
+            else "L'Indice dei domicili digitali della Pubblica Amministrazione non associa questa PEC al codice fiscale indicato."
         ),
     }
 
@@ -4849,6 +4930,8 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
 
 def _portale_browser_url(portale: str) -> str:
     portale_norm = str(portale or "").strip().lower()
+    if portale_norm == "pst":
+        return _PDP_OFFICIAL_BROWSER_URL
     if portale_norm == "pdp":
         return _PDP_OFFICIAL_BROWSER_URL
     if portale_norm == "pat":
@@ -4856,6 +4939,227 @@ def _portale_browser_url(portale: str) -> str:
     if portale_norm == "ptt":
         return "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"
     return ""
+
+
+def _portal_assistant_edge_candidates() -> list[Path]:
+    if sys.platform != "win32":
+        return []
+    candidates: list[Path] = []
+    for env_key in ("ProgramFiles", "ProgramFiles(x86)", "LocalAppData"):
+        base = os.environ.get(env_key)
+        if not base:
+            continue
+        candidates.append(Path(base) / "Microsoft" / "Edge" / "Application" / "msedge.exe")
+    return [path for path in candidates if path.exists()]
+
+
+def _portal_assistant_is_pst_info_target(portale: str, url: str) -> bool:
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm != "pst":
+        return False
+    parsed = urlparse(str(url or ""))
+    host = (parsed.netloc or "").lower()
+    if "servizipst.giustizia.it" not in host:
+        return False
+    path = (parsed.path or "").lower()
+    query = (parsed.query or "").lower()
+    return "_infofascicolo.wp" in path or "documentifascicolo.action" in query
+
+
+def _portal_assistant_edge_debug_port(session_id: str) -> int:
+    digest = hashlib.sha1(str(session_id or "").encode("utf-8")).digest()
+    return 34272 + (int.from_bytes(digest[:2], "big") % 1000)
+
+
+def _portal_assistant_profile_dir(session: dict[str, Any], *, controlled: bool) -> Path:
+    downloads_dir = Path(str(session.get("downloads_dir") or tempfile.gettempdir()))
+    if controlled:
+        return downloads_dir / "edge-profile"
+    return downloads_dir.parent / "edge-profile"
+
+
+def _portal_assistant_cdp_targets(port: int) -> list[dict[str, Any]]:
+    if not port:
+        return []
+    try:
+        request = Request(
+            f"http://127.0.0.1:{int(port)}/json",
+            headers={"Accept": "application/json"},
+        )
+        with urlopen(request, timeout=1.5) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="replace") or "[]")
+        return [item for item in payload if isinstance(item, dict)]
+    except Exception:
+        return []
+
+
+def _portal_assistant_target_reached(current_url: str, target_url: str) -> bool:
+    current = str(current_url or "").strip()
+    target = str(target_url or "").strip()
+    if not current or not target:
+        return False
+    if current == target:
+        return True
+    current_parsed = urlparse(current)
+    target_parsed = urlparse(target)
+    if current_parsed.netloc.lower() != target_parsed.netloc.lower():
+        return False
+    if current_parsed.path.lower() != target_parsed.path.lower():
+        return False
+    current_qs = parse_qs(current_parsed.query or "")
+    target_qs = parse_qs(target_parsed.query or "")
+    for key in ("ufficioRicerca", "numero", "anno", "registroRicerca"):
+        expected = [str(value) for value in target_qs.get(key, []) if str(value).strip()]
+        if expected and current_qs.get(key) != expected:
+            return False
+    return True
+
+
+def _portal_assistant_ws_send_json(ws_url: str, command: dict[str, Any]) -> bool:
+    parsed = urlparse(str(ws_url or ""))
+    if parsed.scheme != "ws" or not parsed.hostname or not parsed.port:
+        return False
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    request = (
+        f"GET {path} HTTP/1.1\r\n"
+        f"Host: {parsed.hostname}:{parsed.port}\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        "Sec-WebSocket-Version: 13\r\n"
+        "\r\n"
+    )
+    payload = json.dumps(command, separators=(",", ":")).encode("utf-8")
+    mask = os.urandom(4)
+    header = bytearray([0x81])
+    if len(payload) < 126:
+        header.append(0x80 | len(payload))
+    elif len(payload) < 65536:
+        header.append(0x80 | 126)
+        header.extend(struct.pack("!H", len(payload)))
+    else:
+        header.append(0x80 | 127)
+        header.extend(struct.pack("!Q", len(payload)))
+    masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+    try:
+        with socket.create_connection((parsed.hostname, parsed.port), timeout=1.5) as sock:
+            sock.sendall(request.encode("ascii"))
+            response = b""
+            while b"\r\n\r\n" not in response and len(response) < 8192:
+                chunk = sock.recv(1024)
+                if not chunk:
+                    break
+                response += chunk
+            if b" 101 " not in response.split(b"\r\n", 1)[0]:
+                return False
+            sock.sendall(bytes(header) + mask + masked)
+        return True
+    except Exception:
+        return False
+
+
+def _portal_assistant_cdp_navigate(port: int, target_url: str) -> bool:
+    targets = _portal_assistant_cdp_targets(port)
+    pages = [item for item in targets if str(item.get("type") or "") == "page"]
+    if not pages:
+        return False
+    selected = next(
+        (
+            item for item in pages
+            if "servizipst.giustizia.it" in str(item.get("url") or "").lower()
+        ),
+        pages[0],
+    )
+    ws_url = str(selected.get("webSocketDebuggerUrl") or "").strip()
+    if not ws_url:
+        return False
+    return _portal_assistant_ws_send_json(
+        ws_url,
+        {
+            "id": int(time.time() * 1000) % 100000,
+            "method": "Page.navigate",
+            "params": {"url": target_url},
+        },
+    )
+
+
+def _portal_assistant_schedule_target_redirect(session_id: str) -> None:
+    try:
+        session = _portal_assistant_get(session_id)
+    except Exception:
+        return
+    target_url = str(session.get("target_url") or "").strip()
+    port = int(session.get("browser_debug_port") or 0)
+    if not target_url or not port:
+        return
+
+    def _worker() -> None:
+        delays = [6, 8, 10, 12, 15, 20, 20, 25, 30, 30]
+        for delay in delays:
+            time.sleep(delay)
+            try:
+                current = _portal_assistant_get(session_id)
+            except Exception:
+                return
+            if str(current.get("status") or "") in {"sessione_chiusa", "sessione_annullata"}:
+                return
+            current_target = str(current.get("target_url") or "").strip()
+            current_port = int(current.get("browser_debug_port") or 0)
+            if not current_target or not current_port:
+                return
+            targets = _portal_assistant_cdp_targets(current_port)
+            if any(_portal_assistant_target_reached(str(item.get("url") or ""), current_target) for item in targets):
+                current["status"] = "infofascicolo_documenti_aperto"
+                current["message"] = "InfoFascicolo documenti aperto nella sessione ufficiale."
+                _portal_assistant_save(current)
+                return
+            if _portal_assistant_cdp_navigate(current_port, current_target):
+                current["status"] = "infofascicolo_documenti_richiesto"
+                current["message"] = "Accesso rilevato: apertura di InfoFascicolo documenti richiesta."
+                _portal_assistant_save(current)
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def _portal_assistant_open_official_url(session: dict[str, Any], official_url: str) -> str:
+    if sys.platform == "win32":
+        target_url = str(session.get("target_url") or "").strip()
+        controlled = _portal_assistant_is_pst_info_target(str(session.get("portale") or ""), target_url)
+        session_dir = _portal_assistant_profile_dir(session, controlled=controlled)
+        open_url = _portale_browser_url("pst") if controlled else official_url
+        debug_port = _portal_assistant_edge_debug_port(str(session.get("session_id") or "")) if controlled else 0
+        for edge in _portal_assistant_edge_candidates():
+            try:
+                session_dir.mkdir(parents=True, exist_ok=True)
+                args = [
+                    str(edge),
+                    f"--app={open_url}",
+                    f"--user-data-dir={session_dir}",
+                    "--new-window",
+                    "--window-size=1280,900",
+                    "--no-first-run",
+                    "--no-default-browser-check",
+                ]
+                if debug_port:
+                    args.append(f"--remote-debugging-port={debug_port}")
+                subprocess.Popen(
+                    args,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                )
+                if debug_port:
+                    session["browser_debug_port"] = debug_port
+                    session["opened_url"] = open_url
+                    return "finestra_app_assistita"
+                return "finestra_app"
+            except Exception:
+                continue
+    webbrowser.open(official_url, new=1, autoraise=True)
+    return "browser"
 
 
 def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
@@ -4924,6 +5228,7 @@ def _portal_assistant_public(session: dict[str, Any]) -> dict[str, Any]:
         "session_id": session.get("session_id", ""),
         "portale": session.get("portale", ""),
         "official_url": session.get("official_url", ""),
+        "target_url": session.get("target_url", ""),
         "status": session.get("status", ""),
         "fascicolo_id": session.get("fascicolo_id", ""),
         "deposito_id": session.get("deposito_id", ""),
@@ -4952,8 +5257,9 @@ def _portal_assistant_save(session: dict[str, Any]) -> dict[str, Any]:
 
 def _portal_assistant_start_local(data: dict[str, Any]) -> dict[str, Any]:
     portale = str(data.get("portale") or "").strip().lower()
-    if portale not in {"ptt", "pat", "pdp"}:
+    if portale not in {"pst", "ptt", "pat", "pdp"}:
         raise RuntimeError("Portale non supportato per la sessione assistita.")
+    context = data.get("context") if isinstance(data.get("context"), dict) else {}
     session_id = str(data.get("session_id") or secrets.token_urlsafe(18)).strip()
     session_dir = _portal_assistant_base_dir() / session_id
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -4961,6 +5267,7 @@ def _portal_assistant_start_local(data: dict[str, Any]) -> dict[str, Any]:
         "session_id": session_id,
         "portale": portale,
         "official_url": str(data.get("official_url") or _portale_browser_url(portale)).strip(),
+        "target_url": str(data.get("target_url") or context.get("infofascicolo_url") or "").strip(),
         "fascicolo_id": str(data.get("fascicolo_id") or "").strip(),
         "deposito_id": str(data.get("deposito_id") or "").strip(),
         "purpose": str(data.get("purpose") or "acquisizione").strip() or "acquisizione",
@@ -9216,6 +9523,17 @@ def _filename_from_content_disposition(headers_text: str) -> str:
     return ""
 
 
+def _pst_document_original_mode(item: dict, default: bool = False) -> bool:
+    if "original_documento_portale" in item:
+        return bool(item.get("original_documento_portale"))
+    mode = str(item.get("modalita_documento_portale") or "").strip().lower()
+    if mode:
+        return mode == "originale"
+    if "original" in item:
+        return bool(item.get("original"))
+    return bool(default)
+
+
 def _pst_download_documenti_da_url_semplice(
     *,
     base_url: str,
@@ -9246,7 +9564,12 @@ def _pst_download_documenti_da_url_semplice(
         nome = str(item.get("nome_documento") or item.get("nome") or "").strip()
         if not nome:
             nome = unquote_plus(str((parse_qs(urlparse(url).query or "").get("fileName") or [""])[0] or "")).strip()
-        meta.append({"item": item, "id_documento": id_doc, "nome_documento": nome})
+        meta.append({
+            "item": item,
+            "id_documento": id_doc,
+            "nome_documento": nome,
+            "original": _pst_document_original_mode(item, original),
+        })
 
     if not requests:
         return files, failures
@@ -9277,7 +9600,7 @@ def _pst_download_documenti_da_url_semplice(
                 id_doc,
                 nome,
                 base_url,
-                original=original,
+                original=bool(info["original"]),
             )
             payload["download_url_portale"] = str(item.get("download_url_portale") or item.get("download_url") or "").strip()
             payload["download_mode"] = "downloadDocumentoSemplice"
@@ -10549,6 +10872,7 @@ def _pst_download_documenti_batch_payloads(
 
         for raw in documenti:
             item = raw if isinstance(raw, dict) else {}
+            item_original = _pst_document_original_mode(item, original)
             id_doc = _pst_primary_document_id(item)
             id_cat = _pst_effective_id_cat(item, id_doc)
             id_output = id_doc or id_cat or str(item.get("id_repeatto") or "").strip()
@@ -10580,7 +10904,7 @@ def _pst_download_documenti_batch_payloads(
                                     data_documento=str(
                                         item.get("data_deposito") or item.get("data_documento") or ""
                                     ).strip(),
-                                    original=original,
+                                    original=item_original,
                                     cookie_file=download_cookie_file,
                                     prefer_cookie_only=prefer_cookie_only,
                                 )
@@ -10600,7 +10924,7 @@ def _pst_download_documenti_batch_payloads(
                         [
                             ("idUtenteCorrente", cf_avvocato),
                             ("idCat", id_cat),
-                            ("original", "true" if original else "false"),
+                            ("original", "true" if item_original else "false"),
                         ],
                         group=codice_ufficio,
                     )
@@ -10611,7 +10935,7 @@ def _pst_download_documenti_batch_payloads(
                         raise RuntimeError("idCat mancante nel lotto SIECIC.")
                     soap_body = _soap_bea_siecic_body(
                         "downloadDocumento",
-                        [("idCat", id_cat), ("original", "true" if original else "false")],
+                        [("idCat", id_cat), ("original", "true" if item_original else "false")],
                     )
                     soap_action = ""
                     extra_h = extra_base
@@ -10623,7 +10947,7 @@ def _pst_download_documenti_batch_payloads(
                         "downloadDocumento",
                         [
                             ("idDoc", cassazione_id),
-                            ("original", "true" if original else "false"),
+                            ("original", "true" if item_original else "false"),
                         ],
                     )
                     soap_action = ""
@@ -10641,7 +10965,12 @@ def _pst_download_documenti_batch_payloads(
                     "max_time": PST_DOWNLOAD_MAX_TIME,
                     "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                 })
-                dl_meta.append({"id_documento": id_output, "nome_documento": nome_doc, "item": item})
+                dl_meta.append({
+                    "id_documento": id_output,
+                    "nome_documento": nome_doc,
+                    "item": item,
+                    "original": item_original,
+                })
             except Exception as e:
                 failures.append({"id_documento": id_output, "nome_documento": nome_doc, "errore": str(e)})
 
@@ -10718,7 +11047,7 @@ def _pst_download_documenti_batch_payloads(
                             meta["id_documento"],
                             meta["nome_documento"],
                             base_url,
-                            original=original,
+                            original=bool(meta["original"]),
                         )
                     )
                 except Exception as e:
@@ -10762,7 +11091,7 @@ def _pst_download_documenti_batch_payloads(
                             meta["id_documento"],
                             meta["nome_documento"],
                             base_url,
-                            original=original,
+                            original=bool(meta["original"]),
                         )
                     )
                 except Exception as e:
@@ -11264,6 +11593,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_fascicolo_snapshot()
         elif path == "/pst/fascicolo-snapshot-job":
             self._pst_fascicolo_snapshot_job()
+        elif re.fullmatch(r"/pst/jobs/[^/]+", path):
+            # POST forza il preflight CORS/PNA nei browser HTTPS moderni.
+            # Il GET resta disponibile per retrocompatibilita'.
+            self._pst_job_status(path)
         elif path == "/pdp/ricerca":
             self._pdp_ricerca()
         elif path == "/pdp/documenti":
@@ -14323,10 +14656,22 @@ class _Handler(BaseHTTPRequestHandler):
                 official_url = str(data.get("official_url") or session.get("official_url") or "").strip()
                 if not official_url:
                     raise RuntimeError("URL ufficiale mancante.")
-                webbrowser.open(official_url, new=1, autoraise=True)
+                target_url = str(data.get("target_url") or session.get("target_url") or "").strip()
+                if target_url:
+                    session["target_url"] = target_url
+                open_mode = _portal_assistant_open_official_url(session, official_url)
+                session["open_mode"] = open_mode
                 session["status"] = "portale_ufficiale_assistito_aperto"
-                session["message"] = "Portale ufficiale aperto nella sessione assistita locale."
+                session["message"] = (
+                    "Portale ufficiale aperto nella finestra assistita locale: dopo l'accesso IUSENTRA apre InfoFascicolo documenti."
+                    if open_mode == "finestra_app_assistita"
+                    else
+                    "Portale ufficiale aperto nella finestra assistita locale."
+                    if open_mode == "finestra_app"
+                    else "Portale ufficiale aperto nel browser locale."
+                )
                 _portal_assistant_save(session)
+                _portal_assistant_schedule_target_redirect(str(session.get("session_id") or ""))
                 self._send_json({"ok": True, **_portal_assistant_public(session)})
                 return
             if action == "watch-downloads":

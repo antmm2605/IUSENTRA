@@ -105,10 +105,15 @@ def _source_evidence(
     pec_match = re.search(r"\bPEC_AUDIT:([A-Za-z0-9][A-Za-z0-9_.:-]{1,179})", notes, re.IGNORECASE)
     if pec_match:
         message_id = pec_match.group(1).rstrip(".,;:")
+        source_label = _clean_text(source_name, limit=140).rstrip(".")
         return {
-            "sourceHref": f"/email/?audit_id={quote(message_id, safe='')}",
-            "sourceLabel": "PEC originale",
-            "sourceKind": "pec",
+            "sourceHref": (
+                f"/api/v1/ui/email/source/{quote(message_id, safe='')}?name={quote(source_label, safe='')}"
+                if source_label
+                else f"/email/?audit_id={quote(message_id, safe='')}"
+            ),
+            "sourceLabel": source_label or "PEC originale",
+            "sourceKind": "documento" if source_label else "pec",
             "sourceVerified": True,
         }
 
@@ -661,6 +666,7 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         notes,
         matter_id=matter_id,
         external_source_url=str(getattr(item, "external_source_url", "") or ""),
+        source_name=str(getattr(item, "remote_hearing_source", "") or ""),
     )
     return _decorate_event({
         "id": item_id,

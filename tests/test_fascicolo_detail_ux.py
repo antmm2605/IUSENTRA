@@ -177,7 +177,7 @@ def test_rinomina_documento_da_react_action(fascicolo_ux):
             json={"nome_file": "Ricorso principale"},
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
-        detail = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}").get_json()
+        detail = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti").get_json()
 
     assert response.status_code == 200
     payload = response.get_json()
@@ -185,6 +185,40 @@ def test_rinomina_documento_da_react_action(fascicolo_ux):
     assert payload["nome_file"] == "Ricorso principale.pdf"
     assert detail["documents"][0]["name"] == "Ricorso principale.pdf"
     assert detail["documents"][0]["actions"]["rename"].endswith(f"/documenti/{doc.id}/rinomina")
+
+
+def test_rinomina_documento_portale_mostra_nome_scelto_e_conserva_originale(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "9732730s.pdf",
+        TipoDocumento.SENTENZA,
+        b"%PDF-1.4",
+        nome_originale="9732730s.pdf",
+        nome_portale="9732730s.pdf",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/rinomina",
+            json={"nome_file": "Sentenza"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        detail = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti").get_json()
+
+    assert response.status_code == 200
+    assert detail["documents"][0]["name"] == "Sentenza.pdf"
+    assert "Nome file originale: 9732730s.pdf" in detail["documents"][0]["tags"]
+    assert all("iusentra:" not in tag for tag in detail["documents"][0]["tags"])
 
 
 def test_documenti_xml_p7m_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
@@ -275,6 +309,70 @@ def test_documenti_xml_p7m_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux
         documents_dir=cfg["FASCICOLI_DOCS"],
         archive_dir=cfg["FASCICOLI_ARCH"],
     ).get(fascicolo.id).documenti
+
+
+def test_eml_importato_con_titolo_senza_estensione_resta_visualizzabile(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    eml = gf.aggiungi_documento(
+        fascicolo.id,
+        "CONSEGNA_notifica.eml",
+        TipoDocumento.COMUNICAZIONE,
+        b"Subject: CONSEGNA notifica\r\nFrom: gestore@example.test\r\nTo: studio@example.test\r\n\r\nRicevuta completa",
+        nome_originale="CONSEGNA_notifica.eml",
+    )
+    eml.nome = "CONSEGNA: Notificazione ai sensi della legge n. 53 del 1994"
+    gf._salva()
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/visualizza")
+        download = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/scarica")
+
+    assert preview.status_code == 200
+    assert preview.mimetype == "text/html"
+    assert "Email PEC / EML" in preview.data.decode("utf-8")
+    assert "Ricevuta completa" in preview.data.decode("utf-8")
+    assert download.status_code == 200
+    assert ".eml" in download.headers["Content-Disposition"].casefold()
+
+
+def test_eml_storico_senza_estensione_nei_metadati_viene_riconosciuto_dal_contenuto(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    eml = gf.aggiungi_documento(
+        fascicolo.id,
+        "ricevuta_storica",
+        TipoDocumento.COMUNICAZIONE,
+        b"Subject: ACCETTAZIONE deposito\r\nFrom: gestore@example.test\r\nTo: studio@example.test\r\nDate: Sat, 18 Jul 2026 10:00:00 +0200\r\n\r\nMessaggio acquisito",
+        nome_originale="ricevuta_storica",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/visualizza")
+        download = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/scarica")
+
+    assert preview.status_code == 200
+    assert preview.mimetype == "text/html"
+    assert "Email PEC / EML" in preview.data.decode("utf-8")
+    assert "Messaggio acquisito" in preview.data.decode("utf-8")
+    assert download.status_code == 200
+    assert ".eml" in download.headers["Content-Disposition"].casefold()
 
 
 def test_elimina_documenti_multipli_rimuove_senza_flash_ripetuti(fascicolo_ux):
@@ -389,7 +487,7 @@ def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_u
         _login(client)
         response = client.get(f"/fascicoli/{fascicolo.id}")
         legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
-        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
+        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti")
 
     body = response.data.decode("utf-8")
     legacy_body = legacy_response.data.decode("utf-8")

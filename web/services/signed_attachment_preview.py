@@ -7,7 +7,10 @@ from email import policy
 from email.parser import BytesParser
 from html import escape
 from html.parser import HTMLParser
+import io
 import mimetypes
+from pathlib import PurePosixPath
+import zipfile
 from xml.dom import minidom
 
 from pct.firme_cades import (
@@ -28,6 +31,20 @@ INLINE_PREVIEW_MIME_TYPES = {
     "application/xml",
     "text/xml",
 }
+
+MAX_ARCHIVE_FILES = 128
+MAX_ARCHIVE_MEMBER_BYTES = 40 * 1024 * 1024
+MAX_ARCHIVE_TOTAL_BYTES = 120 * 1024 * 1024
+MAX_ARCHIVE_COMPRESSION_RATIO = 250
+ARCHIVE_LEGAL_KEYWORDS = (
+    "udienza",
+    "decreto",
+    "ordinanza",
+    "provvedimento",
+    "verbale",
+    "fissazione",
+    "sentenza",
+)
 
 @dataclass(slots=True)
 class AttachmentPreviewPayload:
@@ -276,11 +293,109 @@ def _render_supported_textual_preview(
     return None
 
 
+def _archive_member_priority(info: zipfile.ZipInfo) -> tuple[int, int, str]:
+    lower = info.filename.casefold()
+    if lower.endswith(".pdf"):
+        format_rank = 0
+    elif lower.endswith((".pdf.p7m", ".p7m")):
+        format_rank = 1
+    elif lower.endswith((".png", ".jpg", ".jpeg", ".gif")):
+        format_rank = 2
+    elif lower.endswith((".eml", ".xml", ".txt")):
+        format_rank = 3
+    else:
+        format_rank = 9
+    semantic_rank = 0 if any(keyword in lower for keyword in ARCHIVE_LEGAL_KEYWORDS) else 1
+    return format_rank, semantic_rank, lower
+
+
+def _archive_preview_payload(
+    *,
+    nome_file: str,
+    data: bytes,
+    archive_depth: int,
+) -> AttachmentPreviewPayload:
+    original_mime = attachment_mimetype(nome_file, "application/zip")
+    if archive_depth > 0:
+        return AttachmentPreviewPayload(
+            data=data,
+            mimetype=original_mime,
+            download_name=nome_file,
+            unavailable_reason="L'archivio contiene un ulteriore archivio: scarica l'originale per verificarlo.",
+        )
+
+    try:
+        archive_stream = io.BytesIO(data)
+        if not zipfile.is_zipfile(archive_stream):
+            raise zipfile.BadZipFile
+        archive_stream.seek(0)
+        with zipfile.ZipFile(archive_stream, "r") as archive:
+            members = [info for info in archive.infolist() if not info.is_dir()]
+            if not members:
+                raise ValueError("L'archivio ZIP non contiene documenti.")
+            if len(members) > MAX_ARCHIVE_FILES:
+                raise ValueError("L'archivio ZIP contiene troppi file per una visualizzazione sicura.")
+
+            total_size = 0
+            candidates: list[zipfile.ZipInfo] = []
+            for info in members:
+                member_name = info.filename.replace("\\", "/")
+                member_path = PurePosixPath(member_name)
+                if (
+                    not member_name
+                    or member_name.startswith("/")
+                    or ".." in member_path.parts
+                    or (member_path.parts and ":" in member_path.parts[0])
+                ):
+                    raise ValueError("L'archivio ZIP contiene un percorso non sicuro.")
+                if info.flag_bits & 0x1:
+                    raise ValueError("L'archivio ZIP contiene file cifrati e non può essere aperto automaticamente.")
+                if info.file_size > MAX_ARCHIVE_MEMBER_BYTES:
+                    raise ValueError("Un documento nell'archivio ZIP supera il limite di visualizzazione.")
+                total_size += info.file_size
+                if total_size > MAX_ARCHIVE_TOTAL_BYTES:
+                    raise ValueError("L'archivio ZIP supera il limite complessivo di visualizzazione.")
+                if info.file_size and (
+                    not info.compress_size
+                    or info.file_size / info.compress_size > MAX_ARCHIVE_COMPRESSION_RATIO
+                ):
+                    raise ValueError("L'archivio ZIP presenta una compressione anomala e non viene aperto automaticamente.")
+                if _archive_member_priority(info)[0] < 9:
+                    candidates.append(info)
+
+            for info in sorted(candidates, key=_archive_member_priority):
+                member_data = archive.read(info)
+                member_name = PurePosixPath(info.filename.replace("\\", "/")).name
+                preview = build_attachment_preview_payload(
+                    nome_file=member_name,
+                    data=member_data,
+                    mime_salvato=attachment_mimetype(member_name),
+                    _archive_depth=archive_depth + 1,
+                )
+                if not preview.unavailable_reason and is_inline_preview_mime(preview.mimetype):
+                    return preview
+    except (OSError, ValueError, zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
+        return AttachmentPreviewPayload(
+            data=data,
+            mimetype=original_mime,
+            download_name=nome_file,
+            unavailable_reason=str(exc) or "L'archivio ZIP non è leggibile.",
+        )
+
+    return AttachmentPreviewPayload(
+        data=data,
+        mimetype=original_mime,
+        download_name=nome_file,
+        unavailable_reason="L'archivio ZIP non contiene documenti visualizzabili direttamente.",
+    )
+
+
 def build_attachment_preview_payload(
     *,
     nome_file: str,
     data: bytes,
     mime_salvato: str = "",
+    _archive_depth: int = 0,
 ) -> AttachmentPreviewPayload:
     """Prepara il contenuto da mostrare inline.
 
@@ -290,6 +405,15 @@ def build_attachment_preview_payload(
 
     original_name = str(nome_file or "").strip() or "allegato"
     original_mime = attachment_mimetype(original_name, mime_salvato)
+    if original_name.casefold().endswith(".zip") or original_mime in {
+        "application/zip",
+        "application/x-zip-compressed",
+    }:
+        return _archive_preview_payload(
+            nome_file=original_name,
+            data=data,
+            archive_depth=_archive_depth,
+        )
     if not is_p7m_filename(original_name):
         textual = _render_supported_textual_preview(
             nome_file=original_name,

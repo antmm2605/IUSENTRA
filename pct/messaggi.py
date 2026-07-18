@@ -22,7 +22,7 @@ import os
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4, _crea_contesto_tls_sicuro, _msg_errore_rete
 from datetime import datetime, date, timedelta
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Iterable
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from email.mime.multipart import MIMEMultipart
@@ -101,12 +101,18 @@ def _attachment_allowed_roots() -> tuple[Path, ...]:
     return (cwd, *env_roots)
 
 
-def _resolve_attachment_path(percorso: str) -> Path | None:
+def _resolve_attachment_path(percorso: str, extra_roots: Iterable[str | Path] | None = None) -> Path | None:
     raw = str(percorso or "").strip()
     if not raw:
         return None
     candidate_abs = os.path.abspath(raw)
-    for root in _attachment_allowed_roots():
+    roots = list(_attachment_allowed_roots())
+    for item in extra_roots or []:
+        try:
+            roots.append(Path(item).resolve())
+        except Exception:
+            continue
+    for root in roots:
         root_abs = str(root)
         try:
             relative = os.path.relpath(candidate_abs, root_abs)
@@ -459,6 +465,7 @@ class GestioneMessaggi:
         corpo_testo: str,
         corpo_html: str = "",
         allegati: Optional[List[str]] = None,
+        allegati_root: str | Path | None = None,
         id_cliente: str = "",
         nome_destinatario: str = "",
         tipo_automazione: str = "",
@@ -515,7 +522,7 @@ class GestioneMessaggi:
                 mime.attach(body_container)
 
             for percorso in (allegati or []):
-                p = _resolve_attachment_path(percorso)
+                p = _resolve_attachment_path(percorso, [allegati_root] if allegati_root else None)
                 if p is None:
                     continue
                 with p.open("rb") as fh:

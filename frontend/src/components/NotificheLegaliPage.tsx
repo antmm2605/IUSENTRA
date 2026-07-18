@@ -8,6 +8,7 @@ import {
   FileSignature,
   FileText,
   FolderOpen,
+  ExternalLink,
   Inbox,
   Info,
   LockKeyhole,
@@ -32,6 +33,7 @@ import { Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyNotificheLegaliData,
+  confirmLegalPublicRegister,
   downloadLegalAttestation,
   getNotificheLegaliData,
   getNotificheLegaliPractice,
@@ -48,6 +50,7 @@ import {
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
   type LegalTemplateFieldToken,
+  type LegalUnepOffice,
   type LegalWorkflowResult,
   type NotificheLegaliData,
 } from '../notificheLegaliData'
@@ -355,7 +358,156 @@ function PracticePicker({
   )
 }
 
+function UnepOfficePicker({
+  offices,
+  value,
+  onSelect,
+}: {
+  offices: LegalUnepOffice[]
+  value: string
+  onSelect: (office: LegalUnepOffice | null) => void
+}) {
+  const inputId = useId()
+  const listId = `${inputId}-risultati`
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const selected = useMemo(() => offices.find((item) => item.codice === value || item.id === value), [offices, value])
+  const matches = useMemo(() => {
+    const tokens = practiceSearchText(query).split(' ').filter(Boolean)
+    if (!tokens.length) return offices
+    return offices.filter((office) => {
+      const search = practiceSearchText([
+        office.nome,
+        office.codice,
+        office.pec,
+        office.distretto,
+        office.comune,
+        office.provincia,
+        office.regione,
+      ].join(' '))
+      return tokens.every((token) => search.includes(token))
+    })
+  }, [offices, query])
+  const visibleMatches = matches.slice(0, 60)
+
+  const choose = (office: LegalUnepOffice) => {
+    onSelect(office)
+    setQuery('')
+    setOpen(false)
+    setActiveIndex(0)
+  }
+
+  return (
+    <div className="iu-legal-field iu-legal-field--wide iu-legal-practice-picker">
+      <label htmlFor={inputId}>Ufficio UNEP</label>
+      {selected ? (
+        <div className="iu-legal-practice-picker__selected">
+          <CheckCircle2 size={17} />
+          <span>
+            <strong>{selected.nome}</strong>
+            <small>{[selected.distretto, selected.pec, selected.codice ? `Codice ${selected.codice}` : ''].filter(Boolean).join(' - ')}</small>
+          </span>
+          <button type="button" aria-label="Rimuovi ufficio UNEP" title="Rimuovi ufficio UNEP" onClick={() => onSelect(null)}>
+            <X size={16} />
+          </button>
+        </div>
+      ) : null}
+      <div className="iu-legal-practice-picker__input">
+        <Search size={17} />
+        <input
+          id={inputId}
+          type="search"
+          value={query}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-activedescendant={open && visibleMatches[activeIndex] ? `${listId}-${visibleMatches[activeIndex].id}` : undefined}
+          placeholder={selected ? 'Cerca un altro ufficio' : 'Cerca per ufficio, città, distretto, codice o PEC'}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value)
+            setActiveIndex(0)
+            setOpen(true)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              setOpen(true)
+              setActiveIndex((current) => Math.min(current + 1, Math.max(visibleMatches.length - 1, 0)))
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              setActiveIndex((current) => Math.max(current - 1, 0))
+            } else if (event.key === 'Enter' && open && visibleMatches[activeIndex]) {
+              event.preventDefault()
+              choose(visibleMatches[activeIndex])
+            } else if (event.key === 'Escape') {
+              setOpen(false)
+            }
+          }}
+        />
+        {query ? (
+          <button type="button" aria-label="Cancella ricerca" title="Cancella ricerca" onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(''); setActiveIndex(0) }}>
+            <X size={16} />
+          </button>
+        ) : null}
+      </div>
+      {open ? (
+        <div className="iu-legal-practice-picker__results" id={listId} role="listbox" aria-label="Uffici UNEP trovati">
+          <div className="iu-legal-practice-picker__status">
+            <span>{query ? `${matches.length} risultati` : `${offices.length} uffici disponibili`}</span>
+            {matches.length > visibleMatches.length ? <small>Affina la ricerca per vedere altri risultati.</small> : null}
+          </div>
+          {visibleMatches.map((office, index) => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={office.codice === value || office.id === value}
+              id={`${listId}-${office.id}`}
+              className={`${index === activeIndex ? 'is-active' : ''} ${office.codice === value || office.id === value ? 'is-selected' : ''}`}
+              key={office.id}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => choose(office)}
+            >
+              <strong>{office.nome}</strong>
+              <span>{[office.distretto, office.pec].filter(Boolean).join(' - ')}</span>
+              <small>{[office.comune, office.provincia, office.codice].filter(Boolean).join(' - ')}</small>
+            </button>
+          ))}
+          {!visibleMatches.length ? <p>Nessun ufficio corrisponde alla ricerca.</p> : null}
+        </div>
+      ) : null}
+      <small>Elenco ufficiale condiviso con la sezione Tribunali e indirizzi PEC.</small>
+    </div>
+  )
+}
+
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i
+
+const UNEP_OFFICE_GENERIC_TOKENS = new Set([
+  'tribunale', 'ordinario', 'corte', 'appello', 'giudice', 'pace', 'ufficio', 'unep', 'nep', 'di', 'della', 'del', 'sezione',
+])
+
+function suggestUnepOffice(court: string, offices: LegalUnepOffice[]): LegalUnepOffice | null {
+  const courtSearch = practiceSearchText(court)
+  const tokens = courtSearch.split(' ').filter((token) => token.length > 2 && !UNEP_OFFICE_GENERIC_TOKENS.has(token))
+  if (!tokens.length) return null
+  const courtWantsAppeal = courtSearch.includes('corte') && courtSearch.includes('appello')
+  const ranked = offices.map((office) => {
+    const officeSearch = practiceSearchText([office.nome, office.comune, office.provincia, office.distretto].join(' '))
+    const matches = tokens.filter((token) => officeSearch.includes(token)).length
+    const exactCity = practiceSearchText(office.comune)
+    const cityBonus = exactCity && courtSearch.includes(exactCity) ? 8 : 0
+    const kindBonus = courtWantsAppeal === officeSearch.includes('corte appello') ? 2 : 0
+    return { office, score: matches * 3 + cityBonus + kindBonus }
+  }).filter((item) => item.score > 0)
+  ranked.sort((left, right) => right.score - left.score || left.office.nome.localeCompare(right.office.nome, 'it'))
+  return ranked[0]?.office || null
+}
 
 function normalizeSha256Input(value: string) {
   return value.replace(/\s+/g, '').toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 64)
@@ -388,6 +540,8 @@ type RelataSignerStatus = {
   versione?: string
 }
 
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+
 type SignedRelataRecord = {
   documentId: string
   fileName: string
@@ -411,6 +565,11 @@ type PecVerificationEvidence = {
   name: string
   status: string
   message: string
+  verificationMethod: string
+  confirmedBy: string
+  confirmedAt: string
+  consultedAt: string
+  officialUrl: string
 }
 
 type PecVerificationSubject = {
@@ -436,7 +595,7 @@ function normalizePecSource(value: unknown): string {
     registro_ppaa: 'registro_ppaa',
     registro_pst: 'registro_ppaa',
     pst: 'registro_ppaa',
-    ipa: 'registro_ppaa',
+    ipa: 'ipa',
     inad: 'inad',
     anpr: 'anpr',
     altro: 'altro_pubblico_elenco',
@@ -505,6 +664,11 @@ function pecEvidenceFromResponse(raw: Record<string, unknown>, subject: PecVerif
     name: String(raw.nome || raw.name || subject.label || '').trim(),
     status,
     message: pecVerificationMessage(raw),
+    verificationMethod: String(raw.verification_method || raw.verificationMethod || '').trim(),
+    confirmedBy: String(raw.confirmed_by || raw.confirmedBy || '').trim(),
+    confirmedAt: String(raw.confirmed_at || raw.confirmedAt || '').trim(),
+    consultedAt: String(raw.consulted_at || raw.consultedAt || '').trim(),
+    officialUrl: String(raw.official_url || raw.officialUrl || '').trim(),
   }
 }
 
@@ -545,6 +709,11 @@ function pecEvidencePayload(evidence: PecVerificationEvidence | null | undefined
     evidence_body_b64: evidence.evidenceBodyBase64,
     nome: evidence.name,
     stato: evidence.status,
+    verification_method: evidence.verificationMethod,
+    confirmed_by: evidence.confirmedBy,
+    confirmed_at: evidence.confirmedAt,
+    consulted_at: evidence.consultedAt,
+    official_url: evidence.officialUrl,
   }
 }
 
@@ -584,10 +753,13 @@ async function fetchRelataLocalSignerStatus(timeoutMs = 3500): Promise<RelataSig
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetch(relataLocalSignerEndpoint('/ping'), {
+    const requestOptions: LocalNetworkRequestInit = {
       cache: 'no-store',
+      mode: 'cors',
+      targetAddressSpace: 'local',
       signal: controller.signal,
-    })
+    }
+    const response = await fetch(relataLocalSignerEndpoint('/ping'), requestOptions)
     const payload = await response.json().catch(() => ({} as RelataSignerStatus))
     return { ...payload, ok: response.ok ? payload.ok : false }
   } catch {
@@ -1177,6 +1349,8 @@ export function NotificheLegaliPage() {
   const recipientPecVerificationsRef = useRef<Record<string, PecVerificationEvidence>>({})
   const [pecVerificationWorking, setPecVerificationWorking] = useState(false)
   const [pecVerificationMessage, setPecVerificationMessage] = useState('')
+  const [publicRegisterConsultedAt, setPublicRegisterConsultedAt] = useState<Record<string, string>>({})
+  const [publicRegisterConfirmationWorking, setPublicRegisterConfirmationWorking] = useState(false)
 
   const [notifica, setNotifica] = useState({
     template_id: 'relata_pec_base_l53',
@@ -1280,8 +1454,11 @@ export function NotificheLegaliPage() {
   const [depositAutoMessage, setDepositAutoMessage] = useState('')
 
   const [unep, setUnep] = useState({
+    tipo_richiesta_unep: 'notifica_civile_pagamento',
     tipo_notifica_unep: 'mani',
     ufficio_unep: '',
+    ufficio_unep_codice: '',
+    ufficio_unep_pec: '',
     atto_notificare: '',
     atto_sha256: '',
     richiesta_o_relata: '',
@@ -1316,6 +1493,8 @@ export function NotificheLegaliPage() {
     data_spedizione: todayLocalDate(),
     data_ricevuta_raccomandata: '',
     ufficio_unep: '',
+    ufficio_unep_codice: '',
+    ufficio_unep_pec: '',
     numero_cronologico: '',
     consegnatario: '',
     autorita_o_canale: '',
@@ -1385,7 +1564,19 @@ export function NotificheLegaliPage() {
     () => practiceDetailsById[selectedPracticeId] || data.precompilazione.pratiche.find((item) => item.id === selectedPracticeId),
     [data.precompilazione.pratiche, practiceDetailsById, selectedPracticeId],
   )
-  const recipientSuggestions = selectedPractice?.destinatari.length ? selectedPractice.destinatari : data.precompilazione.destinatari
+  const practiceRecipientSuggestions = selectedPractice?.destinatari || []
+  const recipientSuggestions = useMemo(() => {
+    const seen = new Set<string>()
+    return [...practiceRecipientSuggestions, ...data.precompilazione.destinatari].filter((item) => {
+      const key = (item.pec || item.id || item.nome || item.label).trim().toLocaleLowerCase('it-IT')
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [data.precompilazione.destinatari, practiceRecipientSuggestions])
+  const visibleRecipientSuggestions = selectedPractice
+    ? practiceRecipientSuggestions
+    : data.precompilazione.destinatari
   const documentSuggestions = (selectedPracticeId && hydratedDocumentsByPractice[selectedPracticeId]?.length)
     ? hydratedDocumentsByPractice[selectedPracticeId]
     : selectedPractice?.documenti || []
@@ -1822,10 +2013,20 @@ export function NotificheLegaliPage() {
         }, subject)
         return
       }
-      if (subject.source === 'reginde' && !subject.taxCode) {
+      const capability = data.registriPec.find((item) => item.value === subject.source)
+      if (!capability?.validForNotification) {
         nextByKey[subject.key] = pecEvidenceFromResponse({
           verified: false,
-          message: `Codice fiscale ${subject.kind === 'sender' ? 'del notificante' : 'del destinatario'} mancante: serve per verificare la PEC.`,
+          message: capability
+            ? `${capability.label} non certifica un indirizzo PEC utilizzabile per questa notifica.`
+            : 'Seleziona un pubblico elenco ammesso per la notifica.',
+        }, subject)
+        return
+      }
+      if (!subject.taxCode) {
+        nextByKey[subject.key] = pecEvidenceFromResponse({
+          verified: false,
+          message: `Codice fiscale o partita IVA ${subject.kind === 'sender' ? 'del notificante' : 'del destinatario'} mancante: serve per associare la PEC al soggetto corretto.`,
         }, subject)
         return
       }
@@ -1851,8 +2052,10 @@ export function NotificheLegaliPage() {
         const controller = new AbortController()
         const timeout = window.setTimeout(() => controller.abort(), 80000)
         try {
-          const response = await fetch(relataLocalSignerEndpoint('/pst/reginde'), {
+          const requestOptions: LocalNetworkRequestInit = {
             method: 'POST',
+            mode: 'cors',
+            targetAddressSpace: 'local',
             headers: { 'Content-Type': 'application/json' },
             signal: controller.signal,
             body: JSON.stringify({
@@ -1861,26 +2064,21 @@ export function NotificheLegaliPage() {
                 key: subject.key,
                 codice_fiscale: subject.taxCode,
                 pec_attesa: subject.address,
-                allow_tax_code_correction: subject.kind === 'recipient',
+                descrizione: subject.label,
+                entity_hint: subject.kind === 'recipient' && (
+                  /@mailcert\.avvocaturastato\.it$/i.test(subject.address)
+                  || /\b(?:avvocatura|ordine\s+degli?\s+avvocati|consiglio\s+nazionale\s+forense)\b/i.test(subject.label)
+                ),
               })),
             }),
-          })
+          }
+          const response = await fetch(relataLocalSignerEndpoint('/pst/reginde'), requestOptions)
           const payload = await response.json().catch(() => ({})) as Record<string, unknown>
           const rows = Array.isArray(payload.results) ? payload.results.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : []
           regindeSubjects.forEach((subject) => {
             const row = rows.find((item) => String(item.key || '') === subject.key)
             if (response.ok && row) {
-              const registryTaxCode = normalizePecIdentity(row.codice_fiscale)
-              const correctedSubject = subject.kind === 'recipient' && pecBoolean(row.verified) && registryTaxCode
-                ? { ...subject, taxCode: registryTaxCode, key: pecVerificationKey(subject.source, registryTaxCode, subject.address) }
-                : subject
-              if (correctedSubject.key !== subject.key) {
-                delete nextByKey[subject.key]
-                subject.key = correctedSubject.key
-                subject.taxCode = correctedSubject.taxCode
-                setNotifica((current) => ({ ...current, destinatario_cf: registryTaxCode }))
-              }
-              nextByKey[correctedSubject.key] = pecEvidenceFromResponse({ ...row, key: correctedSubject.key, source: 'reginde' }, correctedSubject)
+              nextByKey[subject.key] = pecEvidenceFromResponse({ ...row, key: subject.key, source: 'reginde' }, subject)
             }
             else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'))
           })
@@ -1895,33 +2093,17 @@ export function NotificheLegaliPage() {
       }
     }
 
-    const publicAdministrationSubjects = pending.filter((subject) => subject.source === 'registro_ppaa')
-    await Promise.all(publicAdministrationSubjects.map(async (subject) => {
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 30000)
-      try {
-        const response = await fetch(relataLocalSignerEndpoint('/pec/ipa'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({ codice_fiscale: subject.taxCode, pec_attesa: subject.address }),
-        })
-        const payload = await response.json().catch(() => ({})) as Record<string, unknown>
-        if (response.ok) nextByKey[subject.key] = pecEvidenceFromResponse(payload, subject)
-        else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Riprova tra poco.'))
-      } catch {
-        markFailed(subject, 'Verifica della PEC non completata. Avvia Local Signer e riprova.')
-      } finally {
-        window.clearTimeout(timeout)
-      }
-    }))
-
     pending
-      .filter((subject) => !['reginde', 'registro_ppaa'].includes(subject.source))
-      .forEach((subject) => markFailed(
-        subject,
-        'La verifica automatica non è disponibile per l’elenco selezionato. Controlla l’elenco e riprova.',
-      ))
+      .filter((subject) => subject.source !== 'reginde')
+      .forEach((subject) => {
+        const capability = data.registriPec.find((item) => item.value === subject.source)
+        markFailed(
+          subject,
+          capability?.requiresUserConfirmation
+            ? `Apri ${capability.label}, scegli il soggetto corretto e conferma l’indirizzo PEC visualizzato.`
+            : `${capability?.label || 'La fonte selezionata'} non consente la verifica richiesta.`,
+        )
+      })
 
     const senderEvidence = nextByKey[sender.key] || null
     const recipientEvidence: Record<string, PecVerificationEvidence> = {}
@@ -1952,11 +2134,80 @@ export function NotificheLegaliPage() {
       .find((item) => item && !item.verified)
     const ok = senderVerified && recipientsVerified
     setPecVerificationMessage(ok
-      ? `PEC verificate automaticamente${checkedAt ? ` il ${localClockLabel(checkedAt)}` : ''}.`
+      ? `PEC verificate${checkedAt ? ` il ${localClockLabel(checkedAt)}` : ''}.`
       : firstFailure?.message || 'Completa i dati indicati per verificare le PEC.'
     )
     setPecVerificationWorking(false)
     return { ok, sender: senderEvidence, recipients: recipientEvidence }
+  }
+
+  const openSelectedPublicRegister = () => {
+    const source = normalizePecSource(notifica.fonte_pec_destinatario)
+    const capability = data.registriPec.find((item) => item.value === source)
+    const subject = currentPecVerificationSubjects().recipients.find((item) => item.source === source)
+    if (!capability || !subject) {
+      setPecVerificationMessage('Completa destinatario, PEC e pubblico elenco prima della consultazione.')
+      return
+    }
+    if (!capability.validForNotification) {
+      setPecVerificationMessage(`${capability.label} non certifica indirizzi PEC utilizzabili per questa notifica.`)
+      return
+    }
+    const consultedAt = new Date().toISOString()
+    if (capability.officialUrl) {
+      const opened = window.open(capability.officialUrl, '_blank')
+      if (!opened) {
+        setPecVerificationMessage('Il browser ha bloccato l’apertura del pubblico elenco. Consenti l’apertura e riprova.')
+        return
+      }
+      opened.opener = null
+    }
+    setPublicRegisterConsultedAt((current) => ({ ...current, [subject.key]: consultedAt }))
+    setPecVerificationMessage(`Seleziona ${subject.label} nella fonte aperta, controlla la PEC e torna qui per confermarla.`)
+  }
+
+  const confirmSelectedPublicRegister = async () => {
+    const source = normalizePecSource(notifica.fonte_pec_destinatario)
+    const capability = data.registriPec.find((item) => item.value === source)
+    const subjects = currentPecVerificationSubjects()
+    const subject = subjects.recipients.find((item) => item.source === source && item.address === normalizePecAddress(notifica.destinatario_pec))
+      || subjects.recipients.find((item) => item.source === source)
+    if (!capability?.requiresUserConfirmation || !subject) {
+      setPecVerificationMessage('La fonte selezionata non richiede questa conferma.')
+      return
+    }
+    setPublicRegisterConfirmationWorking(true)
+    setPecVerificationMessage('Registrazione della verifica in corso...')
+    try {
+      const payload = await confirmLegalPublicRegister(data.azioni.verificaPecConsultata, {
+        fascicolo_id: selectedPracticeId,
+        source,
+        pec: subject.address,
+        codice_fiscale: subject.taxCode,
+        soggetto: subject.label,
+        consulted_at: publicRegisterConsultedAt[subject.key] || '',
+      })
+      const evidence = pecEvidenceFromResponse(payload, subject)
+      if (!evidence.verified) throw new Error('La prova restituita non corrisponde al soggetto e alla PEC selezionati.')
+      const nextRecipients = { ...recipientPecVerificationsRef.current, [subject.key]: evidence }
+      recipientPecVerificationsRef.current = nextRecipients
+      setRecipientPecVerifications(nextRecipients)
+      const allRecipientsVerified = subjects.recipients.length > 0
+        && subjects.recipients.every((item) => pecEvidenceMatches(nextRecipients[item.key], item))
+      const senderVerified = pecEvidenceMatches(senderPecVerificationRef.current, subjects.sender)
+      setNotifica((current) => ({
+        ...current,
+        destinatario_pec_pubblico_elenco: allRecipientsVerified,
+        mittente_pec_pubblico_elenco: senderVerified,
+        mittente_pec_validata: senderVerified,
+        data_verifica_pec: evidence.checkedAt,
+      }))
+      setPecVerificationMessage(`PEC di ${subject.label} verificata su ${capability.label}; prova salvata nel fascicolo il ${localClockLabel(evidence.checkedAt)}.`)
+    } catch (error) {
+      setPecVerificationMessage(error instanceof Error ? error.message : 'La verifica dell’indirizzo PEC non è stata registrata.')
+    } finally {
+      setPublicRegisterConfirmationWorking(false)
+    }
   }
 
   const manualNotificationDocument = (): NotificaDocumentPayload | null => {
@@ -2082,9 +2333,10 @@ export function NotificheLegaliPage() {
     setPracticeDetailsById((current) => ({ ...current, [practice.id]: practice }))
     setPracticeSelectionMessage('Pratica selezionata e dati compilati.')
     setSelectedPracticeId(practice.id)
-    const primoDestinatario = practice.destinatari[0] || null
+    const destinatariCompleti = practice.destinatari.filter((item) => Boolean(item.pec))
+    const primoDestinatario = destinatariCompleti[0] || practice.destinatari[0] || null
     setSelectedRecipientId(primoDestinatario?.id || '')
-    setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])
+    setSelectedRecipientIds(destinatariCompleti.map((item) => item.id).filter(Boolean))
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
     setSelectedDepositDocumentIds([])
@@ -2153,9 +2405,12 @@ export function NotificheLegaliPage() {
       destinatario_pec: primoDestinatario?.pec || current.destinatario_pec,
       fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || current.fonte_pec_destinatario,
     }))
+    const suggestedUnep = suggestUnepOffice(practice.procedimento.ufficio, data.ufficiUnep)
     setUnep((current) => ({
       ...current,
-      ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
+      ufficio_unep: suggestedUnep?.nome || current.ufficio_unep || practice.procedimento.ufficio,
+      ufficio_unep_codice: suggestedUnep?.codice || current.ufficio_unep_codice,
+      ufficio_unep_pec: suggestedUnep?.pec || current.ufficio_unep_pec,
       atto_notificare: '',
       atto_sha256: '',
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
@@ -2170,7 +2425,9 @@ export function NotificheLegaliPage() {
       atto_sha256: '',
       destinatario_nome: primoDestinatario?.nome || current.destinatario_nome || practice.controparte,
       destinatario_cf: primoDestinatario?.codiceFiscalePiva || current.destinatario_cf || practice.controparteCf,
-      ufficio_unep: current.ufficio_unep || practice.procedimento.ufficio,
+      ufficio_unep: suggestedUnep?.nome || current.ufficio_unep || practice.procedimento.ufficio,
+      ufficio_unep_codice: suggestedUnep?.codice || current.ufficio_unep_codice,
+      ufficio_unep_pec: suggestedUnep?.pec || current.ufficio_unep_pec,
     }))
   }
 
@@ -2582,6 +2839,18 @@ export function NotificheLegaliPage() {
     setDeposito((current) => refreshDepositReference(current, { ...current, [fileKey]: fileName, [shaKey]: sha256 }))
   }
   const changeUnep = (key: keyof typeof unep, value: string | boolean) => setUnep((current) => ({ ...current, [key]: value }))
+  const applyUnepOffice = (office: LegalUnepOffice | null) => setUnep((current) => ({
+    ...current,
+    ufficio_unep: office?.nome || '',
+    ufficio_unep_codice: office?.codice || '',
+    ufficio_unep_pec: office?.pec || '',
+  }))
+  const applyNonPecUnepOffice = (office: LegalUnepOffice | null) => setNonPec((current) => ({
+    ...current,
+    ufficio_unep: office?.nome || '',
+    ufficio_unep_codice: office?.codice || '',
+    ufficio_unep_pec: office?.pec || '',
+  }))
   const updateUnepFile = (fileKey: keyof typeof unep, shaKey: keyof typeof unep, fileName: string, sha256: string) => {
     setUnep((current) => ({ ...current, [fileKey]: fileName, [shaKey]: sha256 }))
   }
@@ -2675,8 +2944,10 @@ export function NotificheLegaliPage() {
       const timeout = window.setTimeout(() => controller.abort(), RELATA_LOCAL_SIGNER_TIMEOUT_MS)
       let signerResponse: Response
       try {
-        signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), {
+        const requestOptions: LocalNetworkRequestInit = {
           method: 'POST',
+          mode: 'cors',
+          targetAddressSpace: 'local',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
@@ -2685,7 +2956,8 @@ export function NotificheLegaliPage() {
             slot_id: token?.slot_id,
             cert_thumbprint: certificate?.thumbprint,
           }),
-        })
+        }
+        signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), requestOptions)
       } finally {
         window.clearTimeout(timeout)
       }
@@ -2774,6 +3046,17 @@ export function NotificheLegaliPage() {
     ? 'Prepara invio PEC dal PC locale dopo controllo positivo.'
     : `Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`
   const currentPecSubjects = currentPecVerificationSubjects()
+  const selectedRecipientRegister = data.registriPec.find(
+    (item) => item.value === normalizePecSource(notifica.fonte_pec_destinatario),
+  )
+  const selectedRecipientVerificationSubject = currentPecSubjects.recipients.find(
+    (item) => item.source === selectedRecipientRegister?.value
+      && item.address === normalizePecAddress(notifica.destinatario_pec),
+  ) || currentPecSubjects.recipients.find((item) => item.source === selectedRecipientRegister?.value)
+  const selectedRegisterConsulted = Boolean(
+    selectedRecipientVerificationSubject
+    && publicRegisterConsultedAt[selectedRecipientVerificationSubject.key],
+  )
   const currentSenderPecEvidence = pecEvidenceTargets(senderPecVerification, currentPecSubjects.sender)
     ? senderPecVerification
     : null
@@ -2962,9 +3245,9 @@ export function NotificheLegaliPage() {
                       ))}
                     </select>
                   </Field>
-                  {recipientSuggestions.length ? (
+                  {visibleRecipientSuggestions.length ? (
                     <div className="iu-legal-recipient-picker iu-legal-field--wide" aria-label="Destinatari suggeriti">
-                      {recipientSuggestions.map((item) => {
+                      {visibleRecipientSuggestions.map((item) => {
                         const selected = selectedRecipientIds.includes(item.id)
                         return (
                           <button
@@ -3295,6 +3578,31 @@ export function NotificheLegaliPage() {
                       {pecVerificationWorking ? 'Verifica...' : 'Verifica di nuovo'}
                     </button>
                   </div>
+                  {selectedRecipientRegister?.requiresUserConfirmation ? (
+                    <div className="iu-legal-register-actions">
+                      <button type="button" onClick={openSelectedPublicRegister} disabled={pecVerificationWorking || publicRegisterConfirmationWorking}>
+                        <ExternalLink size={15} /> {selectedRecipientRegister.actionLabel}
+                      </button>
+                      <button
+                        type="button"
+                        className="is-primary"
+                        onClick={() => void confirmSelectedPublicRegister()}
+                        disabled={!selectedRegisterConsulted || !selectedPracticeId || publicRegisterConfirmationWorking || pecVerificationWorking}
+                      >
+                        <ShieldCheck size={15} /> {publicRegisterConfirmationWorking ? 'Registrazione...' : 'Conferma soggetto e PEC'}
+                      </button>
+                      <span>
+                        {selectedRegisterConsulted
+                          ? 'Confronta soggetto, codice fiscale e PEC visualizzati, poi conferma.'
+                          : 'Apri la fonte selezionata per cercare il soggetto.'}
+                      </span>
+                    </div>
+                  ) : selectedRecipientRegister && !selectedRecipientRegister.validForNotification ? (
+                    <div className="iu-legal-register-warning">
+                      <AlertTriangle size={16} />
+                      <span>{selectedRecipientRegister.label} non certifica indirizzi PEC utilizzabili per questa notifica.</span>
+                    </div>
+                  ) : null}
                   <div className={`iu-legal-pec-verification__row ${currentSenderPecEvidence?.verified ? 'is-ok' : currentSenderPecEvidence ? 'is-error' : ''}`}>
                     {currentSenderPecEvidence?.verified ? <CheckCircle2 size={17} /> : <ShieldCheck size={17} />}
                     <div>
@@ -3679,14 +3987,21 @@ export function NotificheLegaliPage() {
                 </div>
               </div>
               <div className="iu-legal-form-grid">
+                <Field label="Tipo richiesta UNEP" wide>
+                  <select value={unep.tipo_richiesta_unep} onChange={(event) => changeUnep('tipo_richiesta_unep', event.currentTarget.value)}>
+                    {data.tipiRichiestaUnep.map((item) => <option value={item.value} key={`unep-request-${item.value}`}>{item.label}</option>)}
+                  </select>
+                </Field>
                 <Field label="Tipo notifica">
                   <select value={unep.tipo_notifica_unep} onChange={(event) => changeUnep('tipo_notifica_unep', event.currentTarget.value)}>
                     {data.tipiNotificaUnep.map((item) => <option value={item.value} key={`unep-tipo-${item.value}`}>{item.label}</option>)}
                   </select>
                 </Field>
-                <Field label="Ufficio NEP">
-                  <input value={unep.ufficio_unep} onChange={(event) => changeUnep('ufficio_unep', event.currentTarget.value)} placeholder="Ufficio competente" />
-                </Field>
+                <UnepOfficePicker
+                  offices={data.ufficiUnep}
+                  value={unep.ufficio_unep_codice}
+                  onSelect={applyUnepOffice}
+                />
                 <Field label="Destinatario">
                   <input value={unep.destinatario_nome} onChange={(event) => changeUnep('destinatario_nome', event.currentTarget.value)} />
                 </Field>
@@ -3851,9 +4166,11 @@ export function NotificheLegaliPage() {
                 ) : null}
                 {nonPecUfficiale ? (
                   <>
-                    <Field label="Ufficio">
-                      <input value={nonPec.ufficio_unep} onChange={(event) => changeNonPec('ufficio_unep', event.currentTarget.value)} />
-                    </Field>
+                    <UnepOfficePicker
+                      offices={data.ufficiUnep}
+                      value={nonPec.ufficio_unep_codice}
+                      onSelect={applyNonPecUnepOffice}
+                    />
                     <Field label="Numero cronologico">
                       <input value={nonPec.numero_cronologico} onChange={(event) => changeNonPec('numero_cronologico', event.currentTarget.value)} />
                     </Field>

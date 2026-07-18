@@ -42,6 +42,7 @@ from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, reso
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
+    build_public_register_confirmation_evidence,
     build_attestazione_conformita_payload,
     build_client_communication,
     generate_attestazione_conformita_docx,
@@ -57,6 +58,7 @@ from pct.notifiche_legali import (
     validate_unep_notification_request,
 )
 from pct.preventivi import StatoPreventivo
+from pct.pec_pipeline import extract_message_parts, message_from_bytes
 from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
 from pct.practice_engine.deposit_readiness import run_predeposit_check
 from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_pack, ensure_profile_for_fascicolo
@@ -102,6 +104,8 @@ from web.services.react_clienti_bridge import (
 from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_upload
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
 from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
+from web.services.pec_pipeline_runtime import repository_from_paths as pec_repository_from_paths
+from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
 from web.services.react_dashboard_cache import (
     DASHBOARD_CACHE_TTL_SECONDS,
     clear_dashboard_payload_cache,
@@ -109,6 +113,7 @@ from web.services.react_dashboard_cache import (
 )
 from web.services.react_payload_cache import ReactPayloadTTLCache
 from web.services.security_redaction import redacted_json_response
+from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 from web.services.react_fascicoli_bridge import (
@@ -3165,6 +3170,60 @@ def notifiche_legali_pratica(id_fascicolo: str):
         get_fascicoli=get_fascicoli,
         get_soggetti=get_soggetti,
     ))
+
+
+@api_v1_react.post("/notifiche-legali/verifica-pec-consultata")
+@_richiedi_auth
+def notifiche_legali_verifica_pec_consultata():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    fascicolo_id = str(payload.get("fascicolo_id") or payload.get("practice_id") or "").strip()
+    if not fascicolo_id:
+        return jsonify({"ok": False, "message": "Seleziona la pratica prima di verificare l'indirizzo PEC."}), 400
+    gestione_fascicoli = get_fascicoli()
+    fascicolo = gestione_fascicoli.get(fascicolo_id)
+    if fascicolo is None:
+        return jsonify({"ok": False, "message": "La pratica selezionata non è disponibile nello studio corrente."}), 404
+    actor = _actor_label()
+    try:
+        evidence = build_public_register_confirmation_evidence(payload, confirmed_by=actor)
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+
+    source_snapshot = dict(getattr(fascicolo, "source_snapshot", {}) or {})
+    existing_rows = source_snapshot.get("legal_notification_public_register_evidence")
+    rows = [dict(item) for item in existing_rows if isinstance(item, dict)] if isinstance(existing_rows, list) else []
+    evidence_record = {
+        key: evidence[key]
+        for key in (
+            "source",
+            "pec",
+            "codice_fiscale",
+            "nome",
+            "consulted_at",
+            "confirmed_at",
+            "confirmed_by",
+            "official_url",
+            "verification_method",
+            "evidence_sha256",
+            "evidence_body_b64",
+        )
+    }
+    rows = [item for item in rows if item.get("evidence_sha256") != evidence_record["evidence_sha256"]]
+    rows.append(evidence_record)
+    source_snapshot["legal_notification_public_register_evidence"] = rows[-100:]
+    gestione_fascicoli.aggiorna(fascicolo_id, source_snapshot=source_snapshot)
+    clear_react_fascicoli_base_cache()
+    _sync_event("modifica", "fascicoli", fascicolo_id)
+    _audit_event(
+        "notifiche_legali.verifica_pec_pubblico_elenco",
+        "fascicolo",
+        fascicolo_id,
+        f"Consultazione {evidence['source']} registrata con soggetto, data, ora e prova verificabile.",
+    )
+    return jsonify({**evidence, "fascicolo_id": fascicolo_id, "saved_in_practice": True})
 
 
 @api_v1_react.post("/notifiche-legali/modelli-relata")
@@ -11601,6 +11660,120 @@ def agenda():
         selected_id=request.args.get("selected_id", "").strip(),
     )
     return jsonify(payload)
+
+
+@api_v1_react.get("/email/source/<message_id>")
+@_richiedi_auth
+def email_source_attachment(message_id: str):
+    """Apre la fonte documentale di una PEC senza duplicare l'allegato originale."""
+
+    requested_name = Path(str(request.args.get("name", "") or "").replace("\\", "/")).name.rstrip(" .").casefold()
+
+    def matching_indices(names: list[str]) -> list[int]:
+        normalized = [Path(name.replace("\\", "/")).name.rstrip(" .").casefold() for name in names]
+        matches = [index for index, name in enumerate(normalized) if name == requested_name]
+        if not matches and requested_name:
+            matches = [index for index, name in enumerate(normalized) if requested_name in name]
+        if not requested_name and len(normalized) == 1:
+            matches = [0]
+        return matches
+
+    raw_data: bytes | None = None
+    original_name = ""
+    original_mime = ""
+    gestore = GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+    email_item = gestore.get(message_id)
+    if email_item is None:
+        wanted_id = str(message_id or "").strip().strip("<>").casefold()
+        email_item = next(
+            (
+                item
+                for item in gestore.tutte()
+                if wanted_id in {
+                    str(getattr(item, "id", "") or "").strip().strip("<>").casefold(),
+                    str(getattr(item, "message_id", "") or "").strip().strip("<>").casefold(),
+                }
+            ),
+            None,
+        )
+    if email_item is not None:
+        attachments = list(getattr(email_item, "allegati", []) or [])
+        names = [
+            str((info or {}).get("nome") or (info or {}).get("nome_file") or "allegato").strip()
+            for info in attachments
+        ]
+        matching = matching_indices(names)
+        if len(matching) != 1:
+            return Response("L'allegato indicato non è stato trovato in modo univoco nella PEC.", status=404, mimetype="text/plain")
+        attachment_index = matching[0]
+        raw_data = gestore.leggi_allegato(email_item, attachment_index)
+        if raw_data is None:
+            return Response("L'allegato non è disponibile nello storico locale. Sincronizza nuovamente la PEC.", status=409, mimetype="text/plain")
+        info = attachments[attachment_index] or {}
+        original_name = names[attachment_index]
+        original_mime = attachment_mimetype(original_name, str(info.get("mime") or ""))
+    else:
+        repository = pec_repository_from_paths(
+            getattr(g, "data_paths", {}) or {},
+            tenant_label=_tenant_runtime_label(),
+        )
+        with repository.connect() as connection:
+            row = connection.execute(
+                "SELECT original_mime, mime_sha256 FROM pec_messages WHERE tenant_id=? AND id=?",
+                (repository.tenant_id, str(message_id or "").strip()),
+            ).fetchone()
+            if row is None:
+                return Response("La PEC collegata non è disponibile nello storico dello studio.", status=404, mimetype="text/plain")
+            raw_mime_bytes = bytes(row["original_mime"] or b"")
+            repository.append_audit(
+                connection,
+                action="pec.attachment.source.opened",
+                resource_type="pec_message",
+                resource_id=str(message_id or "").strip(),
+                payload={"mime_sha256": str(row["mime_sha256"] or ""), "attachment": requested_name},
+                actor="pec-api",
+            )
+        _, _, audit_attachments = extract_message_parts(message_from_bytes(raw_mime_bytes))
+        names = [attachment.filename for attachment in audit_attachments]
+        matching = matching_indices(names)
+        if len(matching) != 1:
+            return Response("L'allegato indicato non è stato trovato in modo univoco nella PEC.", status=404, mimetype="text/plain")
+        audit_attachment = audit_attachments[matching[0]]
+        raw_data = audit_attachment.data
+        original_name = audit_attachment.filename
+        original_mime = attachment_mimetype(original_name, audit_attachment.content_type)
+
+    if raw_data is None:
+        return Response("L'allegato non è disponibile nello storico dello studio.", status=409, mimetype="text/plain")
+    if request.args.get("download") == "1":
+        return send_file(
+            io.BytesIO(raw_data),
+            mimetype=original_mime,
+            as_attachment=True,
+            download_name=original_name,
+            conditional=False,
+        )
+
+    preview = build_attachment_preview_payload(
+        nome_file=original_name,
+        data=raw_data,
+        mime_salvato=original_mime,
+    )
+    if preview.unavailable_reason:
+        download_url = url_for(
+            "api_v1_react.email_source_attachment",
+            message_id=message_id,
+            name=original_name,
+            download=1,
+        )
+        return preview_unavailable_html(original_name, download_url)
+    return send_file(
+        io.BytesIO(preview.data),
+        mimetype=preview.mimetype,
+        as_attachment=False,
+        download_name=preview.download_name,
+        conditional=False,
+    )
 
 
 @api_v1_react.get("/agenda/importa")

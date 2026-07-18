@@ -275,6 +275,12 @@ export type FascicoloDocument = {
   portalSender: string
   portalDate: string
   hash: string
+  portalDocumentId: string
+  portalIdCat: string
+  portalIdRepeatto: string
+  portalMessageId: string
+  portalDepositId: string
+  portalParentId: string
   catalogRole: string
   catalogLabel: string
   catalogSection: string
@@ -506,6 +512,12 @@ export type FascicoloSourceSnapshot = {
   anno: number
   ufficioNome: string
   ufficioCodice: string
+  registroPortale: string
+  servizioPst: string
+  tabellaMinisteriale: string
+  idDfa: string
+  idRuoloJpw: string
+  idFascicoloPortale: string
   procedimento: string
   subProcedimento: string
   sezione: string
@@ -1274,7 +1286,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
     firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '',
-    sourceSnapshot: { portale: '', importLogId: '', acquisitoIl: '', externalId: '', numero: '', anno: 0, ufficioNome: '', ufficioCodice: '', procedimento: '', subProcedimento: '', sezione: '', stato: '', oggetto: '', dataIscrizione: '', dataUdienza: '', ultimaAttivita: '', parti: [], controparti: [], difensori: [], counts: {} },
+    sourceSnapshot: { portale: '', importLogId: '', acquisitoIl: '', externalId: '', numero: '', anno: 0, ufficioNome: '', ufficioCodice: '', registroPortale: '', servizioPst: '', tabellaMinisteriale: '', idDfa: '', idRuoloJpw: '', idFascicoloPortale: '', procedimento: '', subProcedimento: '', sezione: '', stato: '', oggetto: '', dataIscrizione: '', dataUdienza: '', ultimaAttivita: '', parti: [], controparti: [], difensori: [], counts: {} },
     hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
@@ -1888,6 +1900,12 @@ function normalizeSourceSnapshot(value: unknown): FascicoloSourceSnapshot {
     anno: number(row.anno),
     ufficioNome: text(row.ufficioNome ?? row.ufficio_nome),
     ufficioCodice: text(row.ufficioCodice ?? row.ufficio_codice),
+    registroPortale: text(row.registroPortale ?? row.registro_portale ?? row.tipo_registro),
+    servizioPst: text(row.servizioPst ?? row.servizio_pst),
+    tabellaMinisteriale: text(row.tabellaMinisteriale ?? row.tabella_ministeriale),
+    idDfa: text(row.idDfa ?? row.id_dfa),
+    idRuoloJpw: text(row.idRuoloJpw ?? row.id_ruolo_jpw),
+    idFascicoloPortale: text(row.idFascicoloPortale ?? row.id_fascicolo_portale ?? row.id_fascicolo),
     procedimento: text(row.procedimento),
     subProcedimento: text(row.subProcedimento ?? row.sub_procedimento),
     sezione: text(row.sezione),
@@ -2093,6 +2111,12 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         source: text(row.source ?? row.fonte_documento),
         portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
         portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
+        portalDocumentId: text(row.portalDocumentId ?? row.id_documento_portale ?? row.id_documento),
+        portalIdCat: text(row.portalIdCat ?? row.id_cat_portale ?? row.id_cat),
+        portalIdRepeatto: text(row.portalIdRepeatto ?? row.id_repeatto_portale ?? row.id_repeatto),
+        portalMessageId: text(row.portalMessageId ?? row.msg_id_portale ?? row.msg_id),
+        portalDepositId: text(row.portalDepositId ?? row.id_deposito_portale ?? row.id_deposito_esterno ?? row.id_deposito),
+        portalParentId: text(row.portalParentId ?? row.id_documento_padre_portale ?? row.id_documento_padre ?? row.parent_id_documento),
         catalogRole: text(row.catalogRole ?? row.catalog_role),
         catalogLabel: text(row.catalogLabel ?? row.catalog_label),
         catalogSection: text(row.catalogSection ?? row.catalog_section),

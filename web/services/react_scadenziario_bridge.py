@@ -191,10 +191,19 @@ def _source_evidence(scadenza: Any, *, fascicolo_id: str = "") -> dict[str, Any]
 
     message_id = _pec_audit_message_id(scadenza)
     if message_id:
+        source_name = _short_text(
+            getattr(scadenza, "remote_hearing_source", "")
+            or getattr(scadenza, "hearing_mode_source", ""),
+            140,
+        ).rstrip(".")
         return {
-            "sourceHref": f"/email/?audit_id={quote(message_id, safe='')}",
-            "sourceLabel": "PEC originale",
-            "sourceKind": "pec",
+            "sourceHref": (
+                f"/api/v1/ui/email/source/{quote(message_id, safe='')}?name={quote(source_name, safe='')}"
+                if source_name
+                else f"/email/?audit_id={quote(message_id, safe='')}"
+            ),
+            "sourceLabel": source_name or "PEC originale",
+            "sourceKind": "documento" if source_name else "pec",
             "sourceVerified": True,
         }
 

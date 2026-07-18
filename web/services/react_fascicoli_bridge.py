@@ -779,6 +779,8 @@ def _visible_document_tags(doc: Any, *, display_name: str, technical_name: str) 
         key = tag.casefold().strip()
         if not key:
             continue
+        if key.startswith("iusentra:"):
+            continue
         if any(token in key for token in ("quickorganizer", "import_esterno", "backend", "frontend", "payload", "runtime", "legacy")):
             continue
         if key in {"email", "mail"}:
@@ -913,6 +915,20 @@ def _professional_document_name(doc: Any, counters: Counter[str]) -> str:
     stored_name = _clean_document_filename(getattr(doc, "nome", ""))
     path_name = _clean_document_filename(getattr(doc, "percorso", ""))
     note_name = _quickorganizer_name_from_note(getattr(doc, "note", ""))
+    tags = {str(tag).casefold().strip() for tag in (getattr(doc, "tags", []) or [])}
+    renamed_by_user = "iusentra:nome-personalizzato" in tags
+    migrated_user_rename = bool(
+        stored_name
+        and path_name
+        and stored_name.casefold() == path_name.casefold()
+        and not _technical_filename(stored_name)
+        and any(
+            candidate and candidate.casefold() != stored_name.casefold() and _technical_filename(candidate)
+            for candidate in (portal_name, original_name)
+        )
+    )
+    if (renamed_by_user or migrated_user_rename) and stored_name:
+        return stored_name
     signed_names = [
         candidate
         for candidate in (portal_name, note_name, original_name, stored_name, path_name)
@@ -6360,6 +6376,10 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
     for doc in local_documents:
         did = _text(getattr(doc, "id", ""))
         technical_name = _clean_document_filename(getattr(doc, "nome", ""))
+        original_name = (
+            _clean_document_filename(getattr(doc, "nome_portale", ""))
+            or _clean_document_filename(getattr(doc, "nome_originale", ""))
+        )
         base_name = _professional_document_name(doc, display_name_counters)
         name = _document_name_with_signature_suffix(
             doc,
@@ -6399,7 +6419,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "uploadedAt": _date_label_optional(getattr(doc, "data_caricamento", "")),
                 "documentDate": _date_label_optional(getattr(doc, "data_documento", "")),
                 "notes": _short(_italian_dates_in_text(getattr(doc, "note", "")), 180),
-                "tags": _visible_document_tags(doc, display_name=name, technical_name=technical_name),
+                "tags": _visible_document_tags(doc, display_name=name, technical_name=original_name),
                 "signed": signed,
                 "statusLabel": "Firmato" if signed else "Da firmare",
                 "statusTone": "success" if signed else "warning",
@@ -6409,6 +6429,12 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "portalSender": _text(getattr(doc, "mittente_portale", "")),
                 "portalDate": _date_label_optional(getattr(doc, "data_deposito_portale", "")),
                 "hash": _text(getattr(doc, "hash_sha256", "")),
+                "portalDocumentId": _text(getattr(doc, "id_documento_portale", "")),
+                "portalIdCat": _text(getattr(doc, "id_cat_portale", "")),
+                "portalIdRepeatto": _text(getattr(doc, "id_repeatto_portale", "")),
+                "portalMessageId": _text(getattr(doc, "msg_id_portale", "")),
+                "portalDepositId": _text(getattr(doc, "id_deposito_esterno", "")),
+                "portalParentId": _text(getattr(doc, "id_documento_padre_portale", "")),
                 "catalogRole": catalog.role,
                 "catalogLabel": catalog.label,
                 "catalogSection": catalog.section,
@@ -6488,6 +6514,12 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                     "portalSender": _text(row.get("mittente")),
                     "portalDate": _date_label_optional(row.get("data_deposito") or row.get("data_documento")),
                     "hash": "",
+                    "portalDocumentId": _text(row.get("id_documento") or row.get("id_documento_portale")),
+                    "portalIdCat": _text(row.get("id_cat")),
+                    "portalIdRepeatto": _text(row.get("id_repeatto")),
+                    "portalMessageId": _text(row.get("msg_id")),
+                    "portalDepositId": _text(row.get("id_deposito") or getattr(dep, "id_deposito_esterno", "")),
+                    "portalParentId": _text(row.get("id_documento_padre") or row.get("parent_id_documento")),
                     "catalogRole": portal_catalog.role,
                     "catalogLabel": portal_catalog.label,
                     "catalogSection": portal_catalog.section,

@@ -204,6 +204,8 @@ type LocalSignerBrowserRequestResult = {
   transport: 'fetch' | 'xhr'
 }
 
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+
 type AssistantSession = {
   session_id: string
   local_session_id: string
@@ -384,14 +386,16 @@ async function localSignerFetchJson(
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetch(endpoint, {
+    const requestOptions: LocalNetworkRequestInit = {
       method: body ? 'POST' : 'GET',
       cache: 'no-store',
       mode: 'cors',
+      targetAddressSpace: 'local',
       headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
-    })
+    }
+    const response = await fetch(endpoint, requestOptions)
     const text = await response.text()
     return {
       payload: parseLocalSignerResponseText(text),
@@ -2267,14 +2271,16 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
     const timer = window.setTimeout(() => controller.abort(), LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
     try {
       const baseUrl = asText(data.localSigner.browserUrl, 'http://127.0.0.1:27272').replace(/\/+$/, '')
-      const response = await fetch(`${baseUrl}${path}`, {
+      const requestOptions: LocalNetworkRequestInit = {
         method: body ? 'POST' : 'GET',
         cache: 'no-store',
         mode: 'cors',
+        targetAddressSpace: 'local',
         headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
-      })
+      }
+      const response = await fetch(`${baseUrl}${path}`, requestOptions)
       const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida dal Local Connector.' })))
       if (!response.ok || payload.ok === false) {
         throw new Error(asText(payload.errore || payload.error || payload.message, `Local Connector non disponibile (${response.status}).`))
@@ -3977,7 +3983,7 @@ function AcquisitionWizard({
         throw new Error(asText(jobPayload.errore || jobPayload.error, 'Visualizzazione PST non completata dal Local Signer.'))
       }
       await localSignerDelay(2500)
-      jobPayload = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, undefined, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
+      jobPayload = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, {}, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
     }
     throw new Error('Visualizzazione PST ancora in attesa: il portale ufficiale non ha completato la scheda entro il tempo massimo. Riprova dalla stessa schermata mantenendo inserito il token.')
   }

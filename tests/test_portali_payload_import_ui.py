@@ -369,19 +369,21 @@ def test_guard_blocca_client_diretto_pdp_senza_manifest():
         ClientPDP(codice_fiscale_avvocato="RSSMRA80A01H501U").deposita_atto("PDP_PA", "Memoria", "missing.pdf")
 
 
-def test_assistant_start_rifiuta_pst(tmp_path: Path):
+def test_assistant_start_accetta_pst_per_documenti_fascicolo(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _seed_user(cfg)
     app = create_app(cfg)
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
-        response = client.post("/api/portali/pst/assistant/start", json={})
+        response = client.post("/api/portali/pst/assistant/start", json={"fascicolo_id": "FASC-1"})
 
     data = response.get_json()
-    assert response.status_code == 400
-    assert data["ok"] is False
-    assert "PST usa il canale diretto interno" in data["errore"]
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["portale"] == "pst"
+    assert data["official_url"] == "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
+    assert data["fascicolo_id"] == "FASC-1"
 
 
 @pytest.mark.parametrize("portale", ["ptt", "pat", "pdp"])

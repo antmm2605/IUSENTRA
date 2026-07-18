@@ -720,6 +720,7 @@ def test_rinomina_documento_aggiorna_nome_e_file(gf, fascicolo_base):
     assert not percorso_originale.exists()
     assert gf.percorso_documento(fascicolo_base.id, doc.id).exists()
     assert gf.get(fascicolo_base.id).documenti[0].nome == "Ricorso introduttivo.pdf"
+    assert "iusentra:nome-personalizzato" in gf.get(fascicolo_base.id).documenti[0].tags
 
 
 def test_rinomina_documento_non_cambia_estensione(gf, fascicolo_base):

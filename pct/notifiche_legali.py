@@ -56,6 +56,107 @@ PUBLIC_PEC_REGISTERS: dict[str, str] = {
     "altro_pubblico_elenco": "Altro pubblico elenco ammesso",
 }
 
+PUBLIC_PEC_REGISTER_CAPABILITIES: dict[str, dict[str, Any]] = {
+    "reginde": {
+        "verification_mode": "authenticated_service",
+        "official_url": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
+        "automatic": True,
+        "requires_pin": True,
+        "requires_user_confirmation": False,
+        "valid_for_notification": True,
+        "action_label": "Verifica con il dispositivo di firma",
+    },
+    "registro_ppaa": {
+        "verification_mode": "assisted_browser",
+        "official_url": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
+        "automatic": False,
+        "requires_pin": True,
+        "requires_user_confirmation": True,
+        "valid_for_notification": True,
+        "action_label": "Apri Registro PP.AA.",
+    },
+    "ini_pec": {
+        "verification_mode": "assisted_browser",
+        "official_url": "https://www.inipec.gov.it/cerca-pec",
+        "automatic": False,
+        "requires_pin": False,
+        "requires_user_confirmation": True,
+        "valid_for_notification": True,
+        "action_label": "Apri INI-PEC",
+    },
+    "registro_imprese": {
+        "verification_mode": "assisted_browser",
+        "official_url": "https://www.registroimprese.it/",
+        "automatic": False,
+        "requires_pin": False,
+        "requires_user_confirmation": True,
+        "valid_for_notification": True,
+        "action_label": "Apri Registro Imprese",
+    },
+    "inad": {
+        "verification_mode": "assisted_browser",
+        "official_url": "https://domiciliodigitale.gov.it/dgit/home/public/#!/home",
+        "automatic": False,
+        "requires_pin": False,
+        "requires_user_confirmation": True,
+        "valid_for_notification": True,
+        "action_label": "Apri INAD",
+    },
+    "anpr": {
+        "verification_mode": "not_notification_register",
+        "official_url": "https://www.anagrafenazionale.interno.it/",
+        "automatic": False,
+        "requires_pin": False,
+        "requires_user_confirmation": False,
+        "valid_for_notification": False,
+        "action_label": "Apri ANPR",
+    },
+    "altro_pubblico_elenco": {
+        "verification_mode": "documented_manual",
+        "official_url": "",
+        "automatic": False,
+        "requires_pin": False,
+        "requires_user_confirmation": True,
+        "valid_for_notification": True,
+        "action_label": "Registra consultazione",
+    },
+}
+
+ORDINARY_EMAIL_DOMAINS = frozenset(
+    {
+        "alice.it",
+        "email.it",
+        "fastwebnet.it",
+        "gmail.com",
+        "gmail.it",
+        "googlemail.com",
+        "hotmail.com",
+        "hotmail.it",
+        "icloud.com",
+        "libero.it",
+        "live.com",
+        "live.it",
+        "mac.com",
+        "me.com",
+        "msn.com",
+        "outlook.com",
+        "outlook.it",
+        "tiscali.it",
+        "tin.it",
+        "virgilio.it",
+        "yahoo.com",
+        "yahoo.it",
+    }
+)
+
+
+def is_plausible_pec_address(value: Any) -> bool:
+    """Accetta solo indirizzi utilizzabili come PEC nella UI operativa."""
+    address = " ".join(str(value or "").split()).strip().lower()
+    if not re.fullmatch(r"[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}", address, flags=re.IGNORECASE):
+        return False
+    return address.rsplit("@", 1)[1] not in ORDINARY_EMAIL_DOMAINS
+
 LEGAL_RECIPIENT_ROLES = {
     "controparte",
     "difensore",
@@ -72,6 +173,84 @@ UNEP_NOTIFICATION_TYPES: dict[str, str] = {
     "posta": "A mezzo posta",
     "estero": "All'estero",
     "telematica": "Telematica",
+}
+
+# Tipi di richiesta distinti dal mezzo di esecuzione. Il catalogo riproduce i
+# rami UNEP esposti dal tracciato ministeriale e impedisce che pignoramenti,
+# integrazioni e richieste di notifica siano registrati come lo stesso atto.
+UNEP_REQUEST_TYPES: dict[str, dict[str, str]] = {
+    "notifica_civile_pagamento": {
+        "label": "Notifica di atto civile a pagamento",
+        "schema": "Atti_UNEP::AttoCivileAPagamento",
+    },
+    "notifica_penale_pagamento": {
+        "label": "Notifica di atto penale a pagamento",
+        "schema": "Atti_UNEP::AttoPenaleAPagamento",
+    },
+    "notifica_civile_debito": {
+        "label": "Notifica di atto civile a debito",
+        "schema": "Atti_UNEP::AttoCivileDebito",
+    },
+    "notifica_penale_debito": {
+        "label": "Notifica di atto penale a debito",
+        "schema": "Atti_UNEP::AttoPenaleDebito",
+    },
+    "notifica_lavoro_esente": {
+        "label": "Notifica di atto in materia di lavoro esente",
+        "schema": "Atti_UNEP::AttoEsenteLavoro",
+    },
+    "integrazione_pagamento_notifica": {
+        "label": "Integrazione pagamento richiesta di notifica",
+        "schema": "Atti_UNEP::PagamentoRichiestaNotifica",
+    },
+    "pignoramento_mobiliare_pagamento": {
+        "label": "Pignoramento mobiliare a pagamento",
+        "schema": "Atti_UNEP::RichiestaPignoramentoMobiliare",
+    },
+    "pignoramento_mobiliare_debito": {
+        "label": "Pignoramento mobiliare a debito",
+        "schema": "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+    },
+    "pignoramento_mobiliare_lavoro": {
+        "label": "Pignoramento mobiliare in materia di lavoro",
+        "schema": "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+    },
+    "pignoramento_immobiliare_pagamento": {
+        "label": "Pignoramento immobiliare a pagamento",
+        "schema": "Atti_UNEP::RichiestaPignoramentoImmobiliare",
+    },
+    "pignoramento_immobiliare_debito": {
+        "label": "Pignoramento immobiliare a debito",
+        "schema": "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
+    },
+    "pignoramento_immobiliare_lavoro": {
+        "label": "Pignoramento immobiliare in materia di lavoro",
+        "schema": "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
+    },
+    "pignoramento_terzi_pagamento": {
+        "label": "Pignoramento presso terzi a pagamento",
+        "schema": "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
+    },
+    "pignoramento_terzi_debito": {
+        "label": "Pignoramento presso terzi a debito",
+        "schema": "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
+    },
+    "pignoramento_terzi_lavoro": {
+        "label": "Pignoramento presso terzi in materia di lavoro",
+        "schema": "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
+    },
+    "integrazione_pagamento_pignoramento": {
+        "label": "Integrazione pagamento richiesta di pignoramento",
+        "schema": "Atti_UNEP::PagamentoRichiestaPignoramento",
+    },
+    "ricerca_beni": {
+        "label": "Ricerca telematica dei beni da pignorare",
+        "schema": "Atti_UNEP::RichiestaRicercaBeni",
+    },
+    "restituzione_somme": {
+        "label": "Restituzione somme in eccesso",
+        "schema": "Atti_UNEP::RichiestaRestituzioneSomme",
+    },
 }
 
 NON_PEC_NOTIFICATION_TYPES: dict[str, str] = {
@@ -848,8 +1027,8 @@ def normalise_public_register(value: Any) -> str:
         "registro_ppaa": "registro_ppaa",
         "registro_pst": "registro_ppaa",
         "pst": "registro_ppaa",
-        "ipa": "registro_ppaa",
-        "indice_pubbliche_amministrazioni": "registro_ppaa",
+        "ipa": "ipa",
+        "indice_pubbliche_amministrazioni": "ipa",
         "inad": "inad",
         "anpr": "anpr",
         "altro": "altro_pubblico_elenco",
@@ -861,6 +1040,113 @@ def normalise_public_register(value: Any) -> str:
 def register_label(value: Any) -> str:
     key = normalise_public_register(value)
     return PUBLIC_PEC_REGISTERS.get(key, text(value))
+
+
+def public_register_capability(value: Any) -> dict[str, Any]:
+    key = normalise_public_register(value)
+    capability = PUBLIC_PEC_REGISTER_CAPABILITIES.get(key, {})
+    return {
+        "value": key,
+        "label": PUBLIC_PEC_REGISTERS.get(key, text(value)),
+        "verification_mode": text(capability.get("verification_mode"), "not_available"),
+        "official_url": text(capability.get("official_url")),
+        "automatic": bool(capability.get("automatic")),
+        "requires_pin": bool(capability.get("requires_pin")),
+        "requires_user_confirmation": bool(capability.get("requires_user_confirmation")),
+        "valid_for_notification": bool(capability.get("valid_for_notification")),
+        "action_label": text(capability.get("action_label"), "Consulta fonte ufficiale"),
+    }
+
+
+def build_public_register_confirmation_evidence(
+    payload: dict[str, Any],
+    *,
+    confirmed_by: str,
+) -> dict[str, Any]:
+    capability = public_register_capability(payload.get("source"))
+    source = capability["value"]
+    if source not in PUBLIC_PEC_REGISTERS:
+        raise ValueError("Seleziona un pubblico elenco riconosciuto.")
+    if not capability["valid_for_notification"]:
+        raise ValueError("La fonte selezionata non certifica indirizzi PEC per la notifica.")
+    if capability["verification_mode"] not in {"assisted_browser", "documented_manual"}:
+        raise ValueError("La fonte selezionata usa una verifica automatica distinta.")
+
+    pec = text(payload.get("pec") or payload.get("pec_attesa")).strip().lower()
+    if not pec or "@" not in pec:
+        raise ValueError("Indica la PEC visualizzata nel pubblico elenco.")
+    tax_code = _normalise_identity(payload.get("codice_fiscale") or payload.get("tax_code"))
+    if not tax_code:
+        raise ValueError("Indica il codice fiscale o la partita IVA del soggetto consultato.")
+    subject = text(payload.get("soggetto") or payload.get("label")).strip()
+    if not subject:
+        raise ValueError("Indica il soggetto associato alla PEC.")
+    actor = text(confirmed_by).strip()
+    if not actor:
+        raise ValueError("Operatore non identificato.")
+
+    confirmed_at_dt = datetime.now(ROME_TZ).replace(microsecond=0)
+    consulted_at_raw = text(payload.get("consulted_at") or payload.get("consultedAt")).strip()
+    if capability["verification_mode"] == "assisted_browser":
+        if not consulted_at_raw:
+            raise ValueError("Apri prima il pubblico elenco selezionato.")
+        try:
+            consulted_at_dt = datetime.fromisoformat(consulted_at_raw.replace("Z", "+00:00"))
+            if consulted_at_dt.tzinfo is None:
+                consulted_at_dt = consulted_at_dt.replace(tzinfo=ROME_TZ)
+            consulted_at_dt = consulted_at_dt.astimezone(ROME_TZ)
+        except ValueError as exc:
+            raise ValueError("La consultazione del pubblico elenco non ha una data valida.") from exc
+        age_seconds = (confirmed_at_dt - consulted_at_dt).total_seconds()
+        if age_seconds < -300 or age_seconds > 14_400:
+            raise ValueError("Riapri il pubblico elenco e ripeti la verifica dell'indirizzo.")
+    else:
+        consulted_at_dt = confirmed_at_dt
+
+    confirmed_at = confirmed_at_dt.isoformat()
+    consulted_at = consulted_at_dt.replace(microsecond=0).isoformat()
+    fascicolo_id = text(payload.get("fascicolo_id") or payload.get("practice_id")).strip()
+    evidence_document = {
+        "source": source,
+        "source_label": capability["label"],
+        "official_url": capability["official_url"],
+        "subject": subject,
+        "codice_fiscale": tax_code,
+        "pec": pec,
+        "fascicolo_id": fascicolo_id,
+        "consulted_at": consulted_at,
+        "confirmed_at": confirmed_at,
+        "confirmed_by": actor,
+        "verification_method": "official_register_user_confirmation",
+    }
+    evidence_bytes = json.dumps(
+        evidence_document,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    evidence_sha256 = hashlib.sha256(evidence_bytes).hexdigest()
+    return {
+        "ok": True,
+        "verified": True,
+        "found": True,
+        "source": source,
+        "pec": pec,
+        "pec_attesa": pec,
+        "codice_fiscale": tax_code,
+        "nome": subject,
+        "checked_at": confirmed_at,
+        "verified_at": confirmed_at,
+        "confirmed_at": confirmed_at,
+        "consulted_at": consulted_at,
+        "confirmed_by": actor,
+        "official_url": capability["official_url"],
+        "verification_method": "official_register_user_confirmation",
+        "stato": "attivo",
+        "evidence_sha256": evidence_sha256,
+        "evidence_body_b64": base64.b64encode(evidence_bytes).decode("ascii"),
+        "message": "Consultazione del pubblico elenco registrata con soggetto, PEC, data e ora.",
+    }
 
 
 def _normalise_identity(value: Any) -> str:
@@ -896,6 +1182,9 @@ def _pec_verification_matches(
     required_source = normalise_public_register(expected_source)
     if not source or source != required_source or source not in PUBLIC_PEC_REGISTERS:
         return False
+    capability = public_register_capability(source)
+    if not capability["valid_for_notification"]:
+        return False
     checked_at = text(
         evidence.get("verified_at")
         or evidence.get("verifiedAt")
@@ -919,6 +1208,31 @@ def _pec_verification_matches(
         return False
     if required_cf and required_cf not in _normalise_identity(evidence_text):
         return False
+    if capability["verification_mode"] in {"assisted_browser", "documented_manual"}:
+        if text(evidence.get("verification_method")) != "official_register_user_confirmation":
+            return False
+        if not text(evidence.get("confirmed_by")) or not text(evidence.get("confirmed_at")):
+            return False
+        try:
+            evidence_document = json.loads(evidence_text)
+        except json.JSONDecodeError:
+            return False
+        if not isinstance(evidence_document, dict):
+            return False
+        if text(evidence_document.get("verification_method")) != "official_register_user_confirmation":
+            return False
+        if normalise_public_register(evidence_document.get("source")) != source:
+            return False
+        if text(evidence_document.get("confirmed_by")) != text(evidence.get("confirmed_by")):
+            return False
+        if text(evidence_document.get("confirmed_at")) != text(evidence.get("confirmed_at")):
+            return False
+        if capability["verification_mode"] == "assisted_browser":
+            official_url = capability["official_url"]
+            if not official_url or text(evidence_document.get("official_url")) != official_url:
+                return False
+            if not text(evidence_document.get("consulted_at")):
+                return False
     return not bool(re.search(r"radiat|cancellat|sospes|cessat|revocat", evidence_text, re.IGNORECASE))
 
 
@@ -4573,8 +4887,36 @@ def _file_with_hash(payload: dict[str, Any], file_key: str, hash_key: str, *, la
     return {"filename": filename, "sha256": file_hash}
 
 
+def _official_unep_office(payload: dict[str, Any]) -> dict[str, str] | None:
+    """Risolve l'ufficio UNEP sul catalogo PST senza fidarsi del testo client."""
+
+    code = text(payload.get("ufficio_unep_codice"))
+    pec = text(payload.get("ufficio_unep_pec")).lower()
+    if not code or not pec:
+        return None
+
+    from pct.uffici_giudiziari import get_gestore
+
+    for row in get_gestore().carica():
+        if text(row.get("tipo")).upper() != "UNEP":
+            continue
+        row_code = text(row.get("codice_ministero") or row.get("codice"))
+        row_pec = text(row.get("pec") or row.get("pec_ministero")).lower()
+        if row_code == code and row_pec == pec:
+            return {
+                "codice": row_code,
+                "nome": text(row.get("nome") or row.get("descrizione_ministero")),
+                "pec": row_pec,
+                "distretto": text(row.get("distretto_ministero") or row.get("distretto")),
+                "fonte": "PST",
+            }
+    return None
+
+
 def build_unep_notification_checks(payload: dict[str, Any]) -> list[dict[str, Any]]:
     tipo = normalise_unep_notification_type(payload.get("tipo_notifica_unep") or payload.get("tipo_notifica"))
+    request_type = text(payload.get("tipo_richiesta_unep"))
+    official_office = _official_unep_office(payload)
     telematica = tipo == "telematica"
     estero = tipo == "estero"
     precetto_required = boolish(payload.get("precetto_gia_notificato")) or "precetto" in text(payload.get("atto_descrizione")).lower()
@@ -4586,10 +4928,17 @@ def build_unep_notification_checks(payload: dict[str, Any]) -> list[dict[str, An
     return [
         _check_row(
             id="ufficio_unep",
-            label="Ufficio NEP",
+            label="Ufficio UNEP",
             source="PST, XSD UNEP 06/11/2024",
-            passed=bool(text(payload.get("ufficio_unep"))),
-            detail="La richiesta deve indicare l'ufficio NEP destinatario del deposito.",
+            passed=official_office is not None,
+            detail="Codice e PEC dell'ufficio devono coincidere con il catalogo ufficiale degli uffici UNEP.",
+        ),
+        _check_row(
+            id="tipo_richiesta_unep",
+            label="Tipo richiesta UNEP",
+            source="XSD UNEP 06/11/2024",
+            passed=request_type in UNEP_REQUEST_TYPES,
+            detail="Notifica, pignoramento, integrazione, ricerca beni e restituzione seguono rami distinti.",
         ),
         _check_row(
             id="tipo_notifica",
@@ -4647,6 +4996,9 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
     blockers: list[str] = []
     warnings: list[str] = []
     tipo = normalise_unep_notification_type(payload.get("tipo_notifica_unep") or payload.get("tipo_notifica"))
+    request_type = text(payload.get("tipo_richiesta_unep"))
+    request_config = UNEP_REQUEST_TYPES.get(request_type)
+    official_office = _official_unep_office(payload)
     telematica = tipo == "telematica"
     estero = tipo == "estero"
     payment_due = boolish(payload.get("spese_unep_dovute"))
@@ -4654,8 +5006,10 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
 
     if text(payload.get("operazione")) not in {"", UNEP_NOTIFICATION_OPERATION}:
         blockers.append(block("OPERAZIONE_UNEP_REQUIRED", "Usa il canale UNEP per questa richiesta."))
-    if not text(payload.get("ufficio_unep")):
-        blockers.append(block("UFFICIO_UNEP_REQUIRED", "Indica l'ufficio NEP destinatario."))
+    if official_office is None:
+        blockers.append(block("UFFICIO_UNEP_REQUIRED", "Seleziona l'ufficio UNEP dal catalogo ufficiale: codice e PEC devono coincidere."))
+    if request_config is None:
+        blockers.append(block("TIPO_RICHIESTA_UNEP_REQUIRED", "Seleziona il tipo di richiesta UNEP."))
     if tipo not in UNEP_NOTIFICATION_TYPES:
         blockers.append(block("TIPO_UNEP_REQUIRED", "Seleziona il tipo di notifica UNEP."))
     if not text(payload.get("destinatario_nome")):
@@ -4692,7 +5046,7 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
         evidence_items.append({"kind": "pagamento", "label": "Ricevuta pagamento", **pagamento, "required": payment_due})
 
     body = (
-        f"Richiesta UNEP {UNEP_NOTIFICATION_TYPES.get(tipo, tipo)} pronta per revisione e deposito sul canale dedicato."
+        f"Richiesta UNEP {request_config['label']} - {UNEP_NOTIFICATION_TYPES.get(tipo, tipo)} pronta per revisione e deposito sul canale dedicato."
         if not blockers
         else "Completa i dati UNEP prima di registrare la richiesta come pronta."
     )
@@ -4715,9 +5069,15 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
             "normativeChecks": checks,
             "evidencePack": {"items": evidence_items, "missing": [], "invalid_hashes": []},
             "unepRequest": {
+                "requestType": request_type,
+                "requestTypeLabel": request_config["label"] if request_config else request_type,
+                "schema": request_config["schema"] if request_config else "",
                 "tipo": tipo,
                 "tipoLabel": UNEP_NOTIFICATION_TYPES.get(tipo, tipo),
-                "ufficio": text(payload.get("ufficio_unep")),
+                "ufficio": official_office["nome"] if official_office else text(payload.get("ufficio_unep")),
+                "ufficioCodice": official_office["codice"] if official_office else text(payload.get("ufficio_unep_codice")),
+                "ufficioPec": official_office["pec"] if official_office else text(payload.get("ufficio_unep_pec")),
+                "ufficioFonte": official_office["fonte"] if official_office else "",
                 "precettoDate": text(payload.get("data_notifica_precetto")),
                 "channel": "UNEP",
             },
@@ -4725,8 +5085,10 @@ def validate_unep_notification_request(payload: dict[str, Any]) -> LegalWorkflow
         },
         log_json={
             "evento": "controllo_notifica_unep",
+            "tipo_richiesta": request_type,
             "tipo": tipo,
-            "ufficio": text(payload.get("ufficio_unep")),
+            "ufficio": official_office["nome"] if official_office else text(payload.get("ufficio_unep")),
+            "ufficio_codice": official_office["codice"] if official_office else text(payload.get("ufficio_unep_codice")),
             "fascicolo_id": text(payload.get("fascicolo_id") or payload.get("practice_id")),
         },
     )

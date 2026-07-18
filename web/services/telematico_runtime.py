@@ -302,9 +302,9 @@ def build_telematico_runtime(
             "home_endpoint": "polisWeb_home",
             "source_label": "Portale Servizi Telematici",
             "requires_local_signer": True,
-            "official_url": "https://pst.giustizia.it/PST/",
-            "assistant_label": "",
-            "assistant_disclaimer": "",
+            "official_url": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
+            "assistant_label": "Portale ufficiale assistito",
+            "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica nel PST, sceglie i documenti nel fascicolo d'ufficio e il software importa nel fascicolo interno solo i file scaricati.",
             "deposit_assistant_enabled": False,
             "quick_filters": [
                 "civile",
@@ -3809,7 +3809,7 @@ def build_telematico_runtime(
             raise ValueError(describe_portale_runtime_error(portale, operation="preview", exc=e)) from e
         return [dict(vars(doc)) for doc in docs]
 
-    _ASSISTED_PORTALS = {"ptt", "pat", "pdp"}
+    _ASSISTED_PORTALS = {"pst", "ptt", "pat", "pdp"}
     _SAFE_ASSISTANT_EXTENSIONS = {".zip", ".pdf", ".p7m", ".xml", ".json", ".eml", ".msg", ".txt", ".html", ".htm"}
     _DEPOSIT_PROFILE_BY_PORTAL = {
         "ptt": "ptt_sigit",
@@ -3819,8 +3819,6 @@ def build_telematico_runtime(
 
     def _require_assisted_portal(portale: str) -> str:
         portale_norm = (portale or "").strip().lower()
-        if portale_norm == "pst":
-            raise ValueError("PST usa il canale diretto interno e non appartiene al portale ufficiale assistito.")
         if portale_norm not in _ASSISTED_PORTALS:
             raise ValueError("Portale non supportato per la sessione assistita.")
         return portale_norm
@@ -4977,7 +4975,7 @@ Write-Host "  Aggiorno pip..."
 & $pyExe -m pip install --quiet --upgrade pip
 
 Write-Host "  Installo dipendenze Local Signer..."
-    & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+    & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
 function Test-LocalSignerOnline {{
     try {{
@@ -5210,7 +5208,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -5293,7 +5291,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
 
 cat > "$SERVICE" <<EOF
 [Unit]

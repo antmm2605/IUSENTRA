@@ -69,11 +69,15 @@ def _studio_config_path() -> str:
     return _cfg_path("STUDIO_CONFIG", "./config/studio.json", "CONFIG_STUDIO_DB")
 
 
+def _compose_attachment_root() -> Path:
+    return Path(_cfg_path("MESSAGGI_DB", "./messaggi/storico.json")).parent / "allegati_invio"
+
+
 def _save_compose_attachments() -> list[str]:
     uploads = [upload for upload in request.files.getlist("allegati") if upload and upload.filename]
     if not uploads:
         return []
-    base = Path(_cfg_path("MESSAGGI_DB", "./messaggi/storico.json")).parent / "allegati_invio" / uuid4().hex
+    base = _compose_attachment_root() / uuid4().hex
     base.mkdir(parents=True, exist_ok=True)
     saved: list[str] = []
     for index, upload in enumerate(uploads, start=1):
@@ -431,6 +435,7 @@ def scrivi():
             corpo_testo=corpo_testo,
             id_cliente=id_cliente,
             allegati=allegati,
+            allegati_root=_compose_attachment_root(),
         )
         if getattr(msg, "stato", None) == StatoMessaggio.FALLITO:
             raise RuntimeError(getattr(msg, "errore", "") or "invio non completato")

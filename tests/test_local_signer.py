@@ -38,6 +38,43 @@ def _load_local_ai_host_bridge():
     return module
 
 
+def test_portal_assistant_pst_infofascicolo_apre_accesso_con_rientro_controllato(tmp_path, monkeypatch):
+    module = _load_local_signer()
+    auth_url = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
+    target_url = (
+        "https://servizipst.giustizia.it/PST/it/sicid_infofascicolo.wp?"
+        "actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action"
+        "&currentFrame=0&registroRicerca=RGN&ruoloRicerca=AVV@AVV&ufficioRicerca=0800570094&numero=1428&anno=2026"
+    )
+    edge = tmp_path / "msedge.exe"
+    edge.write_text("", encoding="utf-8")
+    calls = []
+
+    def fake_popen(args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(pid=1234)
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module, "_portal_assistant_edge_candidates", lambda: [edge])
+    monkeypatch.setattr(module.subprocess, "Popen", fake_popen)
+
+    session = {
+        "session_id": "assist-pst-test",
+        "portale": "pst",
+        "downloads_dir": str(tmp_path / "downloads"),
+        "target_url": target_url,
+    }
+    mode = module._portal_assistant_open_official_url(session, auth_url)
+
+    assert mode == "finestra_app_assistita"
+    assert calls
+    args = calls[0][0]
+    assert f"--app={auth_url}" in args
+    assert any(str(arg).startswith("--remote-debugging-port=") for arg in args)
+    assert session["browser_debug_port"]
+    assert session["opened_url"] == auth_url
+
+
 def test_reginde_costruisce_richiesta_e_legge_soggetto_verificato():
     module = _load_local_signer()
     codice_fiscale = "RSSMRA80A01H501U"
@@ -100,7 +137,51 @@ def test_reginde_legge_tutti_gli_indirizzi_abilitati_di_un_ente():
     assert parsed["stato"] == "ATTIVO"
 
 
-def test_reginde_allinea_codice_fiscale_destinatario_da_ricerca_pec(monkeypatch):
+def test_reginde_interroga_il_servizio_enti_e_verifica_avvocatura(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    codice_fiscale = "94026160278"
+    pec = "ads.ve@mailcert.avvocaturastato.it"
+    response_xml = f"""<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <soap:Body><ricercaEnteResponse>
+        <return><classe>AMM</classe><codiceFiscale>{codice_fiscale}</codiceFiscale>
+          <codice>ADS94026160278</codice><descrizione>AVVOCATURA DELLO STATO DI VENEZIA</descrizione>
+          <pec>{pec}</pec><partitaIVA>{codice_fiscale}</partitaIVA><ruolo>PPAA</ruolo><stato>ATTIVO</stato>
+        </return>
+        <return><codiceFiscale>99999999999</codiceFiscale><descrizione>ALTRO ENTE DI VENEZIA</descrizione>
+          <pec>altro@example.pec.it</pec><stato>ATTIVO</stato></return>
+      </ricercaEnteResponse></soap:Body>
+    </soap:Envelope>""".encode("utf-8")
+    captured = {}
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
+
+    def fake_batch(requests_batch, cert_thumbprint):
+        captured["requests"] = requests_batch
+        return [{"body_bytes": response_xml, "error": ""}]
+
+    monkeypatch.setattr(module, "_soap_call_curl_batch_raw_best_effort", fake_batch)
+
+    result = module._reginde_verify_subjects([{
+        "key": "destinatario",
+        "codice_fiscale": codice_fiscale,
+        "pec_attesa": pec,
+        "descrizione": "Avvocatura Distrettuale di Stato di Venezia",
+        "entity_hint": True,
+    }])
+
+    request = captured["requests"][0]
+    assert request["url"] == module._REGINDE_INTERROGAZIONE_ENTE_URL
+    assert "ricercaEnteEx" in request["soap_body"]
+    assert "<descrizione>Venezia</descrizione>" in request["soap_body"]
+    assert f"<codiceFiscale>{codice_fiscale}</codiceFiscale>" in request["soap_body"]
+    assert f"<indirizzoPec>{pec}</indirizzoPec>" in request["soap_body"]
+    assert result["ok"] is True
+    assert result["results"][0]["verified"] is True
+    assert result["results"][0]["cf_matches"] is True
+    assert result["results"][0]["pec_matches"] is True
+
+
+def test_reginde_non_accetta_pec_con_codice_fiscale_diverso(monkeypatch):
     module = _load_local_signer()
     monkeypatch.setattr(module.sys, "platform", "linux")
     codice_storico = "94026160278"
@@ -121,16 +202,61 @@ def test_reginde_allinea_codice_fiscale_destinatario_da_ricerca_pec(monkeypatch)
         "key": "destinatario",
         "codice_fiscale": codice_storico,
         "pec_attesa": pec,
-        "allow_tax_code_correction": True,
     }])
 
     row = result["results"][0]
-    assert result["ok"] is True
-    assert row["verified"] is True
+    assert result["ok"] is False
+    assert row["verified"] is False
     assert row["pec_matches"] is True
     assert row["cf_matches"] is False
     assert row["codice_fiscale"] == codice_registro
-    assert "allineato al registro" in row["message"]
+    assert "codice fiscale diverso" in row["message"]
+
+
+def test_reginde_non_tratta_automaticamente_una_partita_iva_come_ente(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    captured = {}
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
+
+    def fake_batch(requests_batch, cert_thumbprint):
+        captured["requests"] = requests_batch
+        return [{"body_bytes": b"<Envelope><Body/></Envelope>", "error": ""}]
+
+    monkeypatch.setattr(module, "_soap_call_curl_batch_raw_best_effort", fake_batch)
+    module._reginde_verify_subjects([{
+        "key": "professionista",
+        "codice_fiscale": "12345678901",
+        "pec_attesa": "professionista@example.pec.it",
+        "descrizione": "Professionista con partita IVA",
+    }])
+
+    assert captured["requests"][0]["url"] == module._REGINDE_INTERROGAZIONE_URL
+    assert "dettagliSoggettoPerIndirizzo" in captured["requests"][0]["soap_body"]
+
+
+def test_reginde_blocca_un_ente_non_visibile(monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    codice_fiscale = "94026160278"
+    pec = "ads.ve@mailcert.avvocaturastato.it"
+    response_xml = f"""<Envelope><Body><return><codiceFiscale>{codice_fiscale}</codiceFiscale>
+      <descrizione>AVVOCATURA DELLO STATO DI VENEZIA</descrizione><pec>{pec}</pec>
+      <visibile>false</visibile><stato>ATTIVO</stato></return></Body></Envelope>""".encode("utf-8")
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
+    monkeypatch.setattr(module, "_soap_call_curl_batch_raw_best_effort", lambda requests_batch, cert_thumbprint: [{"body_bytes": response_xml, "error": ""}])
+
+    result = module._reginde_verify_subjects([{
+        "key": "destinatario",
+        "codice_fiscale": codice_fiscale,
+        "pec_attesa": pec,
+        "descrizione": "Avvocatura Distrettuale di Stato di Venezia",
+        "entity_hint": True,
+    }])
+
+    assert result["ok"] is False
+    assert result["results"][0]["visibile"] is False
+    assert "non rende disponibile" in result["results"][0]["message"]
 
 
 def test_reginde_verifica_batch_e_blocca_soggetto_non_attivo(monkeypatch):
@@ -235,11 +361,48 @@ def test_ipa_verifica_pec_attiva_e_codice_fiscale(monkeypatch):
 
     assert result["ok"] is True
     assert result["verified"] is True
-    assert result["source"] == "registro_ppaa"
+    assert result["source"] == "ipa"
     assert result["codice_fiscale"] == "01234567890"
     assert len(result["evidence_sha256"]) == 64
     assert calls[0][0] == "mail"
     assert calls[1][0] == "ente/eager/7"
+
+
+def test_ipa_verifica_pec_aoo_sul_dettaglio_corretto(monkeypatch):
+    module = _load_local_signer()
+    calls = []
+
+    def fake_request(path, payload=None):
+        calls.append((path, payload))
+        if path == "mail":
+            return ({"risposta": {"listaResponse": [{
+                "tipo": "AOO",
+                "codEntita": "ACAB49C",
+                "idEnte": 20611,
+                "denominazione": "Direzione generale",
+            }]}}, b"search")
+        return ({"risposta": {
+            "desAoo": "Direzione generale per gli ordinamenti scolastici",
+            "ente": {
+                "codiceFiscalePg": "80185250588",
+                "denominazione": "Ministero dell'istruzione e del merito",
+            },
+            "mailList": [{
+                "mail": "dgosv@postacert.istruzione.it",
+                "idTipoEmail": "P",
+                "idTipoStatoMail": "OK",
+            }],
+        }}, b"aoo-detail")
+
+    monkeypatch.setattr(module, "_ipa_json_request", fake_request)
+
+    result = module._ipa_verify_pec("dgosv@postacert.istruzione.it", "80185250588")
+
+    assert result["ok"] is True
+    assert result["verified"] is True
+    assert result["codice_fiscale"] == "80185250588"
+    assert result["nome"] == "Direzione generale per gli ordinamenti scolastici"
+    assert calls[1][0] == "aoo/eager/ACAB49C"
 
 
 def test_pst_varianti_registro_esplicito_non_esplorano_tabelle_estranee(monkeypatch):
@@ -1787,6 +1950,24 @@ def test_endpoint_pec_locale_viene_dispatchato_dal_local_signer():
     assert captured["status"] == 200
     assert captured["payload"]["smtp_host"] == "smtp.example.test"
     assert captured["data"]["ok"] is True
+
+
+def test_stato_job_pst_accetta_post_per_browser_https():
+    module = _load_local_signer()
+    captured = {}
+
+    class _FakeHandler:
+        path = "/pst/jobs/job-browser"
+
+        def _cors_ok(self):
+            return True
+
+        def _pst_job_status(self, path):
+            captured["path"] = path
+
+    module._Handler.do_POST(_FakeHandler())
+
+    assert captured["path"] == "/pst/jobs/job-browser"
 
 
 def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
@@ -6099,6 +6280,86 @@ def test_download_documenti_batch_rispetta_original_false_sicid():
     assert calls["batch"][0]["connect_timeout"] == module.PST_DOWNLOAD_CONNECT_TIMEOUT
     assert esito["files"][0]["original_documento_portale"] is False
     assert esito["files"][0]["modalita_documento_portale"] == "copia"
+
+
+def test_download_documenti_batch_rispetta_modalita_per_singolo_documento():
+    module = _load_local_signer()
+
+    orig_best_effort = module._soap_call_pst_session_batch_raw_best_effort
+    calls = {"requests": []}
+
+    def _response(content_id: str) -> dict:
+        body = (
+            b"--abc123\r\n"
+            b"Content-Type: text/xml\r\n"
+            b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+            + (
+                "<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope "
+                "xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+                "<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+                f"<return href='cid:{content_id}'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+            ).encode("utf-8")
+            + b"--abc123\r\n"
+            b"Content-Type: application/pdf\r\n"
+            b"Content-Transfer-Encoding: base64\r\n"
+            + f"Content-ID: <{content_id}>\r\n\r\n".encode("ascii")
+            + b"JVBERi0xLjcK\r\n"
+            b"--abc123--\r\n"
+        )
+        return {
+            "body_bytes": body,
+            "headers_text": 'Content-Type: multipart/related; boundary="abc123"',
+            "status_code": 200,
+            "error": "",
+        }
+
+    try:
+        def _fake_best_effort(requests, **kwargs):
+            calls["requests"] = list(requests)
+            return [
+                {
+                    "body_bytes": b"<calcolaHashResponse><return>HASH</return></calcolaHashResponse>",
+                    "headers_text": "Content-Type: text/xml",
+                    "status_code": 200,
+                    "error": "",
+                },
+                _response("doc-copy"),
+                _response("doc-original"),
+            ]
+
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {
+                    "id_documento": "DOC-COPY",
+                    "id_cat": "CAT-COPY",
+                    "nome_documento": "copia.pdf",
+                    "modalita_documento_portale": "copia",
+                },
+                {
+                    "id_documento": "DOC-ORIGINAL",
+                    "id_cat": "CAT-ORIGINAL",
+                    "nome_documento": "originale.pdf",
+                    "modalita_documento_portale": "originale",
+                },
+            ],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+            original=False,
+        )
+    finally:
+        module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
+
+    assert esito["ok"] is True
+    assert len(calls["requests"]) == 3
+    assert "<original>false</original>" in calls["requests"][1]["soap_body"]
+    assert "<original>true</original>" in calls["requests"][2]["soap_body"]
+    assert esito["files"][0]["modalita_documento_portale"] == "copia"
+    assert esito["files"][1]["modalita_documento_portale"] == "originale"
 
 
 def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():

@@ -2082,8 +2082,10 @@ function DepositPreparePage({ id }:{id:string}) {
     }
     let signatureResponse: Response
     try {
-      signatureResponse = await fetch(endpoint, {
+      const requestOptions: LocalNetworkRequestInit = {
         method: 'POST',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...signPayload,
@@ -2094,7 +2096,8 @@ function DepositPreparePage({ id }:{id:string}) {
           visible_signature_mode: 'nessuna',
           visible_signature_datetime_mode: 'nessuna',
         }),
-      })
+      }
+      signatureResponse = await fetch(endpoint, requestOptions)
     } catch {
       throw new Error('Local Signer non raggiungibile dal browser per firmare i dati del deposito. Verifica che il servizio locale sia attivo e ripeti la prova deposito.')
     }
@@ -2156,11 +2159,14 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!password.trim()) {
       throw new Error('Password PEC mancante. Inseriscila per completare l’invio dal PC locale.')
     }
-    const localResponse = await fetch(endpoint, {
+    const localRequestOptions: LocalNetworkRequestInit = {
       method: 'POST',
+      mode: 'cors',
+      targetAddressSpace: 'local',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...localPayload, password }),
-    })
+    }
+    const localResponse = await fetch(endpoint, localRequestOptions)
     const localResult = await parseLocalSignerResponse(localResponse)
     if (!localResponse.ok || localResult.ok === false) {
       throw new Error(recordText(localResult, 'messaggio', recordText(localResult, 'errore', 'Local Signer non ha confermato l’invio PEC.')))
@@ -2336,16 +2342,19 @@ function DepositPreparePage({ id }:{id:string}) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 90000)
     try {
-      const localResponse = await fetch(localSignerEndpointForStatus('/pst/certificato-ufficio', signerStatus), {
+      const localRequestOptions: LocalNetworkRequestInit = {
         method: 'POST',
         cache: 'no-store',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           codice_ufficio: codiceUfficio,
           cert_thumbprint: windowsCertificate.thumbprint,
         }),
         signal: controller.signal,
-      })
+      }
+      const localResponse = await fetch(localSignerEndpointForStatus('/pst/certificato-ufficio', signerStatus), localRequestOptions)
       const localPayload = await localResponse.json().catch(() => ({} as Record<string, unknown>))
       const certificatoB64 = String(localPayload.certificato_b64 || '').trim()
       if (!localResponse.ok || localPayload.ok === false || !certificatoB64) {
@@ -3702,8 +3711,10 @@ function DepositBatchSignaturePanel({
       const timeout = window.setTimeout(() => controller.abort(), LOCAL_SIGNER_BATCH_TIMEOUT_MS)
       let signResponse: Response
       try {
-        signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), {
+        const requestOptions: LocalNetworkRequestInit = {
           method: 'POST',
+          mode: 'cors',
+          targetAddressSpace: 'local',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
@@ -3715,7 +3726,8 @@ function DepositBatchSignaturePanel({
             visible_signature_place: visibleSignaturePlace,
             visible_signature_datetime_mode: visibleSignatureDatetimeMode,
           }),
-        })
+        }
+        signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), requestOptions)
       } catch (exc) {
         if (exc instanceof DOMException && exc.name === 'AbortError') {
           throw new Error('Local Signer non ha risposto entro 45 secondi. Verifica dispositivo di firma, PIN e servizio locale, poi ripeti la firma.')
@@ -4813,6 +4825,7 @@ type LocalSignerStatus = {
 type LocalSignerRecoveryOptions = {
   onMessage?: (message: string) => void
 }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -5070,10 +5083,13 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
     try {
-      const response = await fetch(candidate.endpoint, {
+      const requestOptions: LocalNetworkRequestInit = {
         cache: 'no-store',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         signal: controller.signal,
-      })
+      }
+      const response = await fetch(candidate.endpoint, requestOptions)
       const payload = await response.json().catch(() => ({} as LocalSignerStatus))
       return {
         ...payload,
@@ -5126,12 +5142,15 @@ async function recoverLocalSignerAutomatically(
     const installed = localSignerInstalledVersion(status)
     options.onMessage?.(`Local Signer ${installed || 'installato'} da aggiornare alla versione ${latest}. IUSENTRA avvia l'aggiornamento automatico e ricontrolla il servizio.`)
     try {
-      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), {
+      const updateRequestOptions: LocalNetworkRequestInit = {
         method: 'POST',
         cache: 'no-store',
+        mode: 'cors',
+        targetAddressSpace: 'local',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base_url: window.location.origin }),
-      })
+      }
+      const updateResponse = await fetch(localSignerEndpointForStatus('/update', status), updateRequestOptions)
       const updatePayload = await updateResponse.json().catch(() => ({} as Record<string, unknown>))
       if (!updateResponse.ok || updatePayload.ok === false) throw new Error('Aggiornamento locale non avviato')
     } catch {

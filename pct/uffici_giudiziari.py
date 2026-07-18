@@ -79,7 +79,7 @@ _TIPI_USO_PEC = {
     "SORVEGLIANZA": "deposito_penale",
     "CORTE_ASSISE": "deposito_penale",
     "GDP": "deposito_pct",
-    "UNEP": "deposito_pct",
+    "UNEP": "richiesta_unep",
     "TAR": "deposito_amministrativo",
     "CDS": "deposito_amministrativo",
     "CGARS": "deposito_amministrativo",
@@ -180,7 +180,8 @@ def indirizzi_telematici_ufficio(ufficio: dict, *, data_rilevazione: str = "") -
         return []
     uso = _uso_pec_ufficio(ufficio)
     fonte = _fonte_prevalente_ufficio(ufficio)
-    url_fonte = _PST_SERVIZI_UFFICI_URL if uso in _USI_PEC_PROCESSUALI else _IPA_OPEN_DATA_URL
+    tipo = str(ufficio.get("tipo") or "").upper()
+    url_fonte = _PST_SERVIZI_UFFICI_URL if uso in _USI_PEC_PROCESSUALI or tipo == "UNEP" else _IPA_OPEN_DATA_URL
     if fonte == "sito_ufficiale":
         url_fonte = ""
     return [
@@ -192,9 +193,13 @@ def indirizzi_telematici_ufficio(ufficio: dict, *, data_rilevazione: str = "") -
             "data_rilevazione": data_rilevazione,
             "attiva": True,
             "note": (
-                "PEC per deposito telematico: usare solo per atti processuali."
-                if uso in _USI_PEC_PROCESSUALI
-                else "PEC amministrativa o protocollo: usare per comunicazioni generiche."
+                "PEC dell'ufficio UNEP per richieste e ritorni del relativo canale."
+                if tipo == "UNEP"
+                else (
+                    "PEC per deposito telematico: usare solo per atti processuali."
+                    if uso in _USI_PEC_PROCESSUALI
+                    else "PEC amministrativa o protocollo: usare per comunicazioni generiche."
+                )
             ),
         }
     ]

@@ -70,6 +70,13 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Link verificato sull’allegato" in page_source
     assert "SourceEvidenceLink" in page_source
     assert "Visualizza fonte" in page_source
+    assert "SourceDocumentModal" in page_source
+    assert "OperationalModal" in page_source
+    assert "openDeadlineDetail" in page_source
+    assert "closeDeadlineDetail" in page_source
+    assert 'ariaLabel="Scadenza selezionata"' in page_source
+    assert "onOpenDetail={openDeadlineDetail}" in page_source
+    assert "onOpen={onOpenSource}" in page_source
     assert ".iu-scad-source-link" in css
     assert "Hash audit" not in page_source
     assert "Fonte link" not in page_source
@@ -518,9 +525,9 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingSource"] == "13744017s.pdf.zip"
     assert row["remoteHearingVerified"] is True
     assert exact_link in row["remoteHearingUrl"]
-    assert row["sourceHref"] == "/email/?audit_id=msg-link"
-    assert row["sourceLabel"] == "PEC originale"
-    assert row["sourceKind"] == "pec"
+    assert row["sourceHref"] == "/api/v1/ui/email/source/msg-link?name=13744017s.pdf.zip"
+    assert row["sourceLabel"] == "13744017s.pdf.zip"
+    assert row["sourceKind"] == "documento"
     assert row["sourceVerified"] is True
 
 

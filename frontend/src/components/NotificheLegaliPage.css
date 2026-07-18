@@ -912,6 +912,72 @@
   opacity: .68;
 }
 
+.iu-legal-register-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content)) minmax(180px, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(31, 93, 153, .2);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.iu-legal-register-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(31, 93, 153, .28);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--iu-blue-700, #173a67);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iu-legal-register-actions button.is-primary {
+  border-color: var(--iu-blue-700, #173a67);
+  background: var(--iu-blue-700, #173a67);
+  color: #fff;
+}
+
+.iu-legal-register-actions button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.iu-legal-register-actions > span {
+  color: var(--iu-slate-600, #526173);
+  font-size: .76rem;
+  line-height: 1.35;
+}
+
+.iu-legal-register-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid rgba(180, 83, 9, .28);
+  border-radius: 7px;
+  background: rgba(255, 251, 235, .78);
+  color: #92400e;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .iu-legal-register-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-legal-register-actions button {
+    width: 100%;
+  }
+}
+
 .iu-legal-pec-verification__row {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);

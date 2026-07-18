@@ -1,0 +1,11 @@
+{
+  "counts": {
+    "canaliNotificaUnep": 4,
+    "tipiRichiestaUnep": 18,
+    "ufficiUnep": 141,
+    "ufficiUnepUi": 141
+  },
+  "failures": [],
+  "ok": true,
+  "sourceOfTruth": "catalogo_uffici_pst"
+}

@@ -3,15 +3,21 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
+
+import pytest
 
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
     RECIPIENT_NOTIFICATION_DIRECTIVES,
+    UNEP_REQUEST_TYPES,
     available_template_fields,
     build_attestazione_conformita_payload,
     build_client_communication,
+    build_public_register_confirmation_evidence,
     generate_attestazione_conformita_docx,
     build_notification_attachment_manifest,
     build_notification_normative_checks,
@@ -23,6 +29,7 @@ from pct.notifiche_legali import (
     list_client_communication_templates,
     list_notification_templates,
     normalise_public_register,
+    public_register_capability,
     get_notification_template,
     notification_directive_matrix,
     office_notification_evidence_from_pec,
@@ -35,8 +42,10 @@ from pct.notifiche_legali import (
     validate_non_pec_notification_tracking,
     validate_unep_notification_request,
 )
+from pct.fascicoli import TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
+from web.helpers import get_fascicoli
 from web.services import react_notifiche_legali_bridge
 from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
 
@@ -49,12 +58,26 @@ def _app(tmp_path: Path):
 
 
 def _pec_evidence(source: str, pec: str, tax_code: str, checked_at: str) -> dict[str, object]:
-    raw = (
+    confirmation = source != "reginde"
+    capability = public_register_capability(source)
+    document = {
+        "source": source,
+        "source_label": capability["label"],
+        "official_url": capability["official_url"],
+        "subject": "Soggetto verificato",
+        "codice_fiscale": tax_code,
+        "pec": pec,
+        "consulted_at": checked_at,
+        "confirmed_at": checked_at,
+        "confirmed_by": "Avvocato di prova",
+        "verification_method": "official_register_user_confirmation",
+    }
+    raw = json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8") if confirmation else (
         f"<risposta><codiceFiscale>{tax_code}</codiceFiscale>"
         f"<postaElettronicaCertificata>{pec}</postaElettronicaCertificata>"
         "<stato>ATTIVO</stato></risposta>"
     ).encode("utf-8")
-    return {
+    evidence = {
         "source": source,
         "verified": True,
         "found": True,
@@ -65,6 +88,15 @@ def _pec_evidence(source: str, pec: str, tax_code: str, checked_at: str) -> dict
         "evidence_sha256": hashlib.sha256(raw).hexdigest(),
         "evidence_body_b64": base64.b64encode(raw).decode("ascii"),
     }
+    if confirmation:
+        evidence.update({
+            "verification_method": "official_register_user_confirmation",
+            "confirmed_by": "Avvocato di prova",
+            "confirmed_at": checked_at,
+            "consulted_at": checked_at,
+            "official_url": capability["official_url"],
+        })
+    return evidence
 
 
 def _legal_payload() -> dict[str, object]:
@@ -87,6 +119,7 @@ def _legal_payload() -> dict[str, object]:
         "assistito_cf": "01234567890",
         "ruolo_destinatario": "controparte",
         "destinatario_nome": "Controparte S.p.A.",
+        "destinatario_cf": "01234567890",
         "destinatario_pec": "controparte@example.pec.it",
         "fonte_pec_destinatario": "registro_imprese",
         "destinatario_pec_pubblico_elenco": True,
@@ -120,7 +153,7 @@ def _legal_payload() -> dict[str, object]:
     payload["verifiche_pec_destinatari"] = [_pec_evidence(
         "registro_imprese",
         "controparte@example.pec.it",
-        "",
+        "01234567890",
         "2026-05-12T10:30:01+02:00",
     )]
     return payload
@@ -206,7 +239,7 @@ def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
         "INIPEC-professionisti": "ini_pec",
         "RegistroImprese": "registro_imprese",
         "RegInde": "reginde",
-        "IPA": "registro_ppaa",
+        "IPA": "ipa",
         "altro": "altro_pubblico_elenco",
     }
     for raw, expected in aliases.items():
@@ -219,6 +252,83 @@ def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
 
     assert result.ok is True
     assert "Registro Imprese" in result.relata_text
+
+
+def test_pubblici_elenchi_distinguono_servizio_autenticato_consultazione_e_fonti_non_valide():
+    expected = {
+        "reginde": ("authenticated_service", True, True),
+        "registro_ppaa": ("assisted_browser", False, True),
+        "ini_pec": ("assisted_browser", False, True),
+        "registro_imprese": ("assisted_browser", False, True),
+        "inad": ("assisted_browser", False, True),
+        "anpr": ("not_notification_register", False, False),
+        "altro_pubblico_elenco": ("documented_manual", False, True),
+    }
+
+    for source, (mode, automatic, valid) in expected.items():
+        capability = public_register_capability(source)
+        assert capability["verification_mode"] == mode
+        assert capability["automatic"] is automatic
+        assert capability["valid_for_notification"] is valid
+
+    assert normalise_public_register("IPA") == "ipa"
+    assert "ipa" not in expected
+
+
+def test_consultazione_pubblico_elenco_produce_prova_verificabile_per_la_relata():
+    now = datetime.now(ZoneInfo("Europe/Rome")).replace(microsecond=0).isoformat()
+    evidence = build_public_register_confirmation_evidence({
+        "source": "ini_pec",
+        "pec": "controparte@example.pec.it",
+        "codice_fiscale": "01234567890",
+        "soggetto": "Controparte S.p.A.",
+        "consulted_at": now,
+        "fascicolo_id": "FASCICOLO-TEST",
+    }, confirmed_by="Avvocato di prova")
+    payload = _legal_payload()
+    payload["fonte_pec_destinatario"] = "ini_pec"
+    payload["verifiche_pec_destinatari"] = [evidence]
+
+    assert validate_legal_notification(payload).ok is True
+    assert evidence["verification_method"] == "official_register_user_confirmation"
+    assert evidence["confirmed_by"] == "Avvocato di prova"
+    assert evidence["consulted_at"]
+    assert len(str(evidence["evidence_sha256"])) == 64
+
+    raw = json.loads(base64.b64decode(str(evidence["evidence_body_b64"])).decode("utf-8"))
+    raw["official_url"] = "https://example.invalid/"
+    tampered_body = json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    tampered = {
+        **evidence,
+        "evidence_sha256": hashlib.sha256(tampered_body).hexdigest(),
+        "evidence_body_b64": base64.b64encode(tampered_body).decode("ascii"),
+    }
+    payload["verifiche_pec_destinatari"] = [tampered]
+    assert validate_legal_notification(payload).ok is False
+
+
+def test_anpr_non_puo_essere_registrato_come_prova_pec_di_notifica():
+    with pytest.raises(ValueError, match="non certifica indirizzi PEC"):
+        build_public_register_confirmation_evidence({
+            "source": "anpr",
+            "pec": "persona@example.pec.it",
+            "codice_fiscale": "RSSMRA80A01H501U",
+            "soggetto": "Mario Rossi",
+            "consulted_at": datetime.now(ZoneInfo("Europe/Rome")).isoformat(),
+        }, confirmed_by="Avvocato di prova")
+
+
+def test_payload_react_espone_modalita_e_azione_di_verifica_per_ogni_fonte():
+    payload = build_react_notifiche_legali_payload(config_studio=None)
+    sources = {item["value"]: item for item in payload["registriPec"]}
+
+    assert sources["reginde"]["automatic"] is True
+    assert sources["registro_ppaa"]["verificationMode"] == "assisted_browser"
+    assert sources["registro_ppaa"]["officialUrl"].startswith("https://servizipst.giustizia.it/")
+    assert sources["ini_pec"]["requiresUserConfirmation"] is True
+    assert sources["anpr"]["validForNotification"] is False
+    assert "non certifica PEC" in sources["anpr"]["label"]
+    assert payload["azioni"]["verificaPecConsultata"].endswith("/verifica-pec-consultata")
 
 
 def test_notifica_l53_normalizza_avvocato_e_blocco_procedimento():
@@ -688,7 +798,7 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
         "provvedimento_data_deposito": "2026-05-20",
     })
     payload["verifiche_pec_destinatari"] = [_pec_evidence(
-        "reginde", "controparte@example.pec.it", "", "2026-05-12T10:30:01+02:00",
+        "reginde", "controparte@example.pec.it", "01234567890", "2026-05-12T10:30:01+02:00",
     )]
 
     result = validate_legal_notification(payload)
@@ -1282,6 +1392,7 @@ def test_prova_deposito_richiede_metadati_destinatario_studio_telematico():
 def test_unep_richiede_canale_ufficio_destinatario_e_documenti():
     result = validate_unep_notification_request({
         "operazione": "notifica_unep",
+        "tipo_richiesta_unep": "notifica_civile_pagamento",
         "tipo_notifica_unep": "telematica",
         "destinatario_nome": "Controparte",
         "atto_notificare": "atto.pdf",
@@ -1298,8 +1409,11 @@ def test_unep_richiede_canale_ufficio_destinatario_e_documenti():
 def test_unep_telematica_con_precetto_e_pagamento_produce_piano():
     result = validate_unep_notification_request({
         "operazione": "notifica_unep",
+        "tipo_richiesta_unep": "notifica_civile_pagamento",
         "tipo_notifica_unep": "telematica",
-        "ufficio_unep": "UNEP presso il Tribunale di Milano",
+        "ufficio_unep": "UNEP - Corte d'Appello - Milano",
+        "ufficio_unep_codice": "1514600637",
+        "ufficio_unep_pec": "unep.ca.milano@civile.ptel.giustiziacert.it",
         "atto_notificare": "atto.pdf",
         "atto_sha256": "a" * 64,
         "richiesta_o_relata": "richiesta_unep.pdf",
@@ -1318,7 +1432,52 @@ def test_unep_telematica_con_precetto_e_pagamento_produce_piano():
     assert result.ok is True
     assert result.template_id == "workflow_unep_notifica"
     assert result.output_plan["unepRequest"]["tipo"] == "telematica"
+    assert result.output_plan["unepRequest"]["schema"] == "Atti_UNEP::AttoCivileAPagamento"
+    assert result.output_plan["unepRequest"]["ufficioCodice"] == "1514600637"
     assert any(item["id"] == "recapito_destinatario" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
+
+
+def test_unep_copre_tutti_i_rami_ministeriali_e_blocca_ufficio_non_coerente():
+    expected_schemas = {
+        "Atti_UNEP::AttoCivileAPagamento",
+        "Atti_UNEP::AttoPenaleAPagamento",
+        "Atti_UNEP::AttoCivileDebito",
+        "Atti_UNEP::AttoPenaleDebito",
+        "Atti_UNEP::AttoEsenteLavoro",
+        "Atti_UNEP::PagamentoRichiestaNotifica",
+        "Atti_UNEP::RichiestaPignoramentoMobiliare",
+        "Atti_UNEP::RichiestaPignoramentoMobiliareADebito",
+        "Atti_UNEP::RichiestaPignoramentoMobiliareMateriaLavoro",
+        "Atti_UNEP::RichiestaPignoramentoImmobiliare",
+        "Atti_UNEP::RichiestaPignoramentoImmobiliareADebito",
+        "Atti_UNEP::RichiestaPignoramentoImmobiliareMateriaLavoro",
+        "Atti_UNEP::RichiestaPignoramentoPressoTerzi",
+        "Atti_UNEP::RichiestaPignoramentoPressoTerziADebito",
+        "Atti_UNEP::RichiestaPignoramentoPressoTerziMateriaLavoro",
+        "Atti_UNEP::PagamentoRichiestaPignoramento",
+        "Atti_UNEP::RichiestaRicercaBeni",
+        "Atti_UNEP::RichiestaRestituzioneSomme",
+    }
+    assert {item["schema"] for item in UNEP_REQUEST_TYPES.values()} == expected_schemas
+
+    result = validate_unep_notification_request({
+        "operazione": "notifica_unep",
+        "tipo_richiesta_unep": "notifica_civile_pagamento",
+        "tipo_notifica_unep": "mani",
+        "ufficio_unep": "UNEP - Corte d'Appello - Milano",
+        "ufficio_unep_codice": "1514600637",
+        "ufficio_unep_pec": "unep.errata@example.pec.it",
+        "destinatario_nome": "Controparte",
+        "destinatario_indirizzo": "Via Roma 1",
+        "destinatario_comune": "Milano",
+        "atto_notificare": "atto.pdf",
+        "atto_sha256": "a" * 64,
+        "richiesta_o_relata": "richiesta_unep.pdf",
+        "richiesta_sha256": "b" * 64,
+    })
+
+    assert result.ok is False
+    assert any("UFFICIO_UNEP_REQUIRED" in item for item in result.blockers)
 
 
 def test_notifica_non_pec_blocca_campi_tavola_mancanti():
@@ -1430,8 +1589,11 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
         "/api/v1/ui/notifiche-legali/unep",
         json={
             "operazione": "notifica_unep",
+            "tipo_richiesta_unep": "notifica_civile_pagamento",
             "tipo_notifica_unep": "telematica",
-            "ufficio_unep": "UNEP presso il Tribunale di Milano",
+            "ufficio_unep": "UNEP - Corte d'Appello - Milano",
+            "ufficio_unep_codice": "1514600637",
+            "ufficio_unep_pec": "unep.ca.milano@civile.ptel.giustiziacert.it",
             "atto_notificare": "atto.pdf",
             "atto_sha256": "a" * 64,
             "richiesta_o_relata": "richiesta_unep.pdf",
@@ -1485,6 +1647,26 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["automazioneGuidata"]["nonPec"][0]["id"] == "nonpec_tipo"
     assert any(item["id"] == "eml_ufficio" for item in payload["automazioneGuidata"]["allegati"])
     assert any(item["value"] == "telematica" for item in payload["tipiNotificaUnep"])
+    assert any(
+        item["value"] == "ricerca_beni"
+        and item["schema"] == "Atti_UNEP::RichiestaRicercaBeni"
+        for item in payload["tipiRichiestaUnep"]
+    )
+    pst_snapshot = json.loads((Path(__file__).parents[1] / "pct" / "data" / "uffici_pst_pubblici.json").read_text(encoding="utf-8"))
+    expected_unep_codes = {
+        item["codice_ufficio"]
+        for item in pst_snapshot["uffici"]["civili"]
+        if "UNEP" in item["descrizione"].upper()
+    }
+    actual_unep_codes = {item["codice"] for item in payload["ufficiUnep"]}
+    assert len(expected_unep_codes) == 141
+    assert actual_unep_codes == expected_unep_codes
+    assert all(item["pec"] for item in payload["ufficiUnep"])
+    assert any(
+        item["codice"] == "02411602235"
+        and item["pec"] == "unep.tribunale.vicenza@civile.ptel.giustiziacert.it"
+        for item in payload["ufficiUnep"]
+    )
     assert any(item["value"] == "raccomandata" for item in payload["tipiNotificaNonPec"])
     assert payload["azioni"]["unep"] == "/api/v1/ui/notifiche-legali/unep"
     assert payload["azioni"]["nonPec"] == "/api/v1/ui/notifiche-legali/non-pec"
@@ -1518,6 +1700,41 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert non_pec_blocked_response.status_code == 400
     assert non_pec_blocked_payload["ok"] is False
     assert any("NOTIFICA_ID_REQUIRED" in item for item in non_pec_blocked_payload["blockers"])
+
+
+def test_api_consultazione_pubblico_elenco_salva_la_prova_nel_fascicolo(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Pratica verifica PEC",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente di prova",
+        )
+
+    response = app.test_client().post(
+        "/api/v1/ui/notifiche-legali/verifica-pec-consultata",
+        json={
+            "fascicolo_id": fascicolo.id,
+            "source": "ini_pec",
+            "pec": "controparte@example.pec.it",
+            "codice_fiscale": "01234567890",
+            "soggetto": "Controparte S.p.A.",
+            "consulted_at": datetime.now(ZoneInfo("Europe/Rome")).isoformat(),
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["verified"] is True
+    assert body["saved_in_practice"] is True
+    with app.app_context():
+        saved = get_fascicoli().get(fascicolo.id)
+        rows = saved.source_snapshot["legal_notification_public_register_evidence"]
+    assert len(rows) == 1
+    assert rows[0]["source"] == "ini_pec"
+    assert rows[0]["evidence_sha256"] == body["evidence_sha256"]
 
 
 def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):
@@ -1934,6 +2151,59 @@ def test_suggerimenti_notifica_escludono_email_ordinaria_spacciata_per_pec():
     assert suggestions[0]["fontePecSuggerita"] == "ini_pec"
 
 
+def test_suggerimenti_notifica_non_applicano_limiti_arbitrari_alla_rubrica():
+    subjects = [
+        SimpleNamespace(
+            id=f"subject-{index}",
+            tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+            nome_completo=f"Soggetto {index}",
+            ragione_sociale=f"Soggetto {index}",
+            identificativo=f"{index:011d}",
+            recapiti=SimpleNamespace(pec=f"soggetto{index}@pec.example.it"),
+            qualifica="",
+            tag=["pubblico-elenco:RegistroImprese"],
+        )
+        for index in range(275)
+    ]
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: []),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: subjects),
+    )
+
+    suggestions = payload["precompilazione"]["destinatari"]
+    assert len(suggestions) == 275
+    assert all(item["fontePecSuggerita"] == "registro_imprese" for item in suggestions)
+
+
+def test_destinatari_omonimi_con_pec_diverse_restano_distinti():
+    recipients = [
+        react_notifiche_legali_bridge._recipient_from_plain(
+            recipient_id="uno",
+            name="Ministero dell'Istruzione e del Merito",
+            pec="ufficio.uno@postacert.istruzione.it",
+            role="pa",
+            source="registro_ppaa",
+        ),
+        react_notifiche_legali_bridge._recipient_from_plain(
+            recipient_id="due",
+            name="Ministero dell'Istruzione e del Merito",
+            pec="ufficio.due@postacert.istruzione.it",
+            role="pa",
+            source="registro_ppaa",
+        ),
+    ]
+
+    merged = react_notifiche_legali_bridge._merge_notification_recipients(recipients)
+
+    assert len(merged) == 2
+    assert {item["pec"] for item in merged} == {
+        "ufficio.uno@postacert.istruzione.it",
+        "ufficio.due@postacert.istruzione.it",
+    }
+
+
 def test_destinatario_avvocatura_plain_usa_ruolo_e_registro_difensore():
     recipient = react_notifiche_legali_bridge._recipient_from_plain(
         recipient_id="avvocatura",
@@ -2012,9 +2282,10 @@ def test_payload_react_notifiche_legali_deriva_parti_rg_destinatari_e_nomi_impor
     assert pratica["controparte"] == "MIM"
     assert pratica["procedimento"]["numeroRg"] == "2048"
     assert pratica["procedimento"]["annoRg"] == "2025"
-    assert "MIM" in recipient_names
+    assert "MIM" not in recipient_names
     assert "ads.rc@mailcert.avvocaturastato.it" in recipient_pecs
     assert "dgosv@postcert.istruzione.it" in recipient_pecs
+    assert all(item["pec"] for item in pratica["destinatari"])
     assert documento_payload["nomeFile"] == "Ricorso Lisciotto.pdf"
     assert documento_payload["label"] == "Ricorso Lisciotto.pdf"
     assert "QuickOrganizer" not in documento_payload["label"]

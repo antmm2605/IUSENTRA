@@ -5,6 +5,8 @@ from __future__ import annotations
 import io
 from collections.abc import Callable
 from datetime import date
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +56,47 @@ def register_fascicoli_document_routes(
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
+
+    preview_extensions = (
+        ".xml.p7m",
+        ".eml.p7m",
+        ".txt.p7m",
+        ".pdf.p7m",
+        ".xml",
+        ".eml",
+        ".txt",
+        ".pdf",
+        ".p7m",
+    )
+
+    def _nome_documento_operativo(documento: Any, percorso: Path, data: bytes | None = None) -> str:
+        """Mantiene il titolo leggibile e recupera l'estensione del file acquisito."""
+
+        display_name = str(getattr(documento, "nome", "") or "").strip()
+        candidates = (
+            display_name,
+            str(getattr(documento, "nome_originale", "") or "").strip(),
+            str(getattr(documento, "nome_portale", "") or "").strip(),
+            percorso.name,
+        )
+        for candidate in candidates:
+            lower_candidate = candidate.casefold()
+            for extension in preview_extensions:
+                if not lower_candidate.endswith(extension):
+                    continue
+                if display_name.casefold().endswith(extension):
+                    return display_name
+                return f"{display_name or Path(candidate).stem}{candidate[-len(extension):]}"
+
+        if data:
+            try:
+                message = BytesParser(policy=policy.default).parsebytes(data, headersonly=True)
+                is_eml = bool(message.get("subject")) and bool(message.get("from")) and bool(message.get("to"))
+            except (TypeError, ValueError):
+                is_eml = False
+            if is_eml:
+                return f"{display_name or percorso.name}.eml"
+        return display_name or percorso.name
 
     def _redirect_to_documenti_section(id_fasc: str):
         section = str(request.form.get("next_section") or "sezione-documenti-fascicolo").strip().lstrip("#")
@@ -432,8 +475,9 @@ def register_fascicoli_document_routes(
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
+            download_name = _nome_documento_operativo(documento, percorso, data)
             audit("fascicoli.documento.scarica", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
-            return send_file(io.BytesIO(data), as_attachment=True, download_name=documento.nome)
+            return send_file(io.BytesIO(data), as_attachment=True, download_name=download_name)
         except Exception as exc:
             app.logger.exception("Errore scarica_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
             flash("Impossibile scaricare il documento. Verifica il fascicolo e riprova.", "danger")
@@ -447,23 +491,24 @@ def register_fascicoli_document_routes(
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
-            firma_payload = firma_payload_corrente_o_sibling(percorso, documento.nome, data)
+            operational_name = _nome_documento_operativo(documento, percorso, data)
+            firma_payload = firma_payload_corrente_o_sibling(percorso, operational_name, data)
             preview_payload = data
-            preview_name = documento.nome
-            lower_name = documento.nome.lower()
+            preview_name = operational_name
+            lower_name = operational_name.casefold()
 
             if lower_name.endswith((".xml", ".xml.p7m", ".eml", ".eml.p7m", ".txt", ".txt.p7m")):
                 from web.services.signed_attachment_preview import build_attachment_preview_payload
 
                 signed_payload = firma_payload if lower_name.endswith(".p7m") else data
                 preview_document = build_attachment_preview_payload(
-                    nome_file=documento.nome,
+                    nome_file=operational_name,
                     data=signed_payload,
                     mime_salvato="",
                 )
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 if preview_document.unavailable_reason:
-                    return preview_unavailable_html(documento.nome, scarica_url)
+                    return preview_unavailable_html(operational_name, scarica_url)
                 audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
                 return send_file(
                     io.BytesIO(preview_document.data),
@@ -505,7 +550,7 @@ def register_fascicoli_document_routes(
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 return preview_unavailable_html(documento.nome, scarica_url)
 
-            if documento.nome.lower().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
+            if operational_name.casefold().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
                 try:
                     from pct.firma import analizza_firma_documento
 

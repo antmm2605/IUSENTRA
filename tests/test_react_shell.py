@@ -854,7 +854,20 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "params.set('data', toDateKey(anchorDate))" in agenda_page
     assert 'className="iu-ag-event__content"' in agenda_page
     assert "clusteredEvents.length" in agenda_page
+    assert "125 * 60 * 1000" in agenda_page
+    assert "clusterWhenLabel" in agenda_page
     assert "Visualizza fonte" in agenda_page
+    source_modal = Path("frontend/src/components/SourceDocumentModal.tsx").read_text(encoding="utf-8")
+    operational_modal = Path("frontend/src/components/OperationalModal.tsx").read_text(encoding="utf-8")
+    assert "SourceDocumentModal" in source_modal
+    assert "role=\"dialog\"" in operational_modal
+    assert "aria-modal=\"true\"" in operational_modal
+    assert "closeOnEscape" in operational_modal
+    assert "modalStack.at(-1)" in operational_modal
+    assert "openAgendaDetail" in agenda_page
+    assert "closeAgendaDetail" in agenda_page
+    assert 'ariaLabel="Dettaglio operativo agenda"' in agenda_page
+    assert "onOpenDetail={openAgendaDetail}" in agenda_page
     assert "sourceHref" in agenda_data
     assert ".iu-ag-event__cluster-list" in css
     email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
@@ -2189,6 +2202,16 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "function statusHasPstCertificatePreference" in source
     assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
     assert "const certificateStatus = await statusForPstCertificate()" in source
+
+
+def test_office_documents_portale_pst_separa_accesso_e_infofascicolo():
+    source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
+    assert "const accessUrl = officialPstAccessUrl()" in source
+    assert "const targetUrl = portalUrl" in source
+    assert "official_url: accessUrl" in source
+    assert "target_url: targetUrl" in source
+    assert "infofascicolo_url: portalUrl" in source
+    assert "Dopo l'accesso la finestra viene portata su InfoFascicolo > Documenti" in source
 
 
 def test_local_signer_verifica_avvia_autoaggiornamento_se_versione_vecchia():

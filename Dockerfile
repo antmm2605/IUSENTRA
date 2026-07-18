@@ -156,14 +156,14 @@ COPY web /app/web
 COPY lex /app/lex
 COPY docker/entrypoint.py /usr/local/bin/iusentra-entrypoint.py
 RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
-    && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+    && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete \
+    && rm -rf /app/web/static/react
 
 # Sovrascrive i CSS con quelli compilati da SCSS (dart-sass, stage sass-builder)
 COPY --from=sass-builder /out/ web/static/css/
 
-# Sovrascrive il bundle React con quello appena ricompilato da Vite (stage frontend-builder).
-# Il bundle in /app/web/static/react/ viene ricreato anche se nel repo era vecchio:
-# questo evita drift fra sorgenti TSX e artefatti compilati.
+# Copia solo il bundle React appena ricompilato da Vite: gli asset storici
+# presenti nel repo non devono entrare nell'immagine finale.
 COPY --from=frontend-builder /build/web/static/react/ web/static/react/
 
 # PYTHONPATH -> pct/ e web/ vengono importati dal sorgente in /app

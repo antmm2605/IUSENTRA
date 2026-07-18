@@ -75,6 +75,80 @@ def test_portal_assistant_pst_infofascicolo_apre_accesso_con_rientro_controllato
     assert session["opened_url"] == auth_url
 
 
+def test_portal_assistant_pst_documenti_guida_ricerca_post_accesso(monkeypatch):
+    module = _load_local_signer()
+    service_url = (
+        "https://servizipst.giustizia.it/PST/it/pst_2_1_2_4.wp?"
+        "registroRicerca=LAV&ufficioRicerca=0800570094&ruoloRicerca=AVV@AVV"
+    )
+    target_url = (
+        "https://servizipst.giustizia.it/PST/it/lav_infofascicolo.wp?"
+        "actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action"
+        "&currentFrame=0&registroRicerca=LAV&ruoloRicerca=AVV@AVV&ufficioRicerca=0800570094&numero=1428&anno=2026"
+    )
+    session = {
+        "session_id": "assist-pst-test",
+        "portale": "pst",
+        "browser_debug_port": 34567,
+        "target_url": target_url,
+        "context": {
+            "numero_rg": "1428",
+            "anno_rg": "2026",
+            "ufficio_codice": "0800570094",
+            "registro": "LAV",
+        },
+    }
+    navigated = []
+
+    monkeypatch.setattr(module, "_portal_assistant_cdp_page", lambda port: {
+        "url": "https://servizipst.giustizia.it/PST/it/homepage.wp?redirectflag=1",
+        "type": "page",
+    })
+    monkeypatch.setattr(module, "_portal_assistant_cdp_navigate", lambda port, url: navigated.append(url) or True)
+
+    status, message, done = module._portal_assistant_pst_control_step(session)
+
+    assert status == "ricerca_fascicolo_richiesta"
+    assert not done
+    assert navigated == [service_url]
+    assert "ricerca fascicolo" in message
+
+
+def test_portal_assistant_pst_documenti_non_considera_arrivo_la_pagina_ricerca():
+    module = _load_local_signer()
+    service_url = "https://servizipst.giustizia.it/PST/it/pst_2_1_2_4.wp?registroRicerca=LAV&ufficioRicerca=0800570094&ruoloRicerca=AVV@AVV"
+
+    assert module._portal_assistant_is_pst_info_target("pst", service_url)
+    assert not module._portal_assistant_target_reached(service_url, service_url)
+
+
+def test_portal_assistant_pst_infofascicolo_clicca_tab_documenti(monkeypatch):
+    module = _load_local_signer()
+    target_url = (
+        "https://servizipst.giustizia.it/PST/it/sicid_infofascicolo.wp?"
+        "actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/documentiFascicolo.action"
+        "&currentFrame=0&registroRicerca=RGN&ruoloRicerca=AVV@AVV&ufficioRicerca=0800570094&numero=1428&anno=2026"
+    )
+    session = {
+        "session_id": "assist-pst-test",
+        "portale": "pst",
+        "browser_debug_port": 34567,
+        "target_url": target_url,
+        "context": {"numero_rg": "1428", "anno_rg": "2026"},
+    }
+    monkeypatch.setattr(module, "_portal_assistant_cdp_page", lambda port: {
+        "url": "https://servizipst.giustizia.it/PST/it/sicid_infofascicolo.wp?actionPath=/ExtStr2/do/consultazioneregistri/sicid/dettagliofascicolo/infoFascicolo.action&numero=1428&anno=2026",
+        "type": "page",
+    })
+    monkeypatch.setattr(module, "_portal_assistant_pst_click_documenti", lambda port: "documenti_selezionati")
+
+    status, message, done = module._portal_assistant_pst_control_step(session)
+
+    assert status == "infofascicolo_documenti_richiesto"
+    assert not done
+    assert "Documenti" in message
+
+
 def test_reginde_costruisce_richiesta_e_legge_soggetto_verificato():
     module = _load_local_signer()
     codice_fiscale = "RSSMRA80A01H501U"

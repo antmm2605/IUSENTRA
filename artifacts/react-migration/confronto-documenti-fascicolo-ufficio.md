@@ -286,3 +286,37 @@ Stato della correzione:
 - Test mirati eseguiti: `python -m py_compile tools/local_signer.py tools/dist/local_signer.py`, `pnpm --dir frontend typecheck`, `pytest` mirati su Local Signer, payload PST e React shell.
 - Correzione immagine Docker: prima di copiare il bundle React appena compilato viene rimossa la vecchia cartella `web/static/react`, così gli asset storici non entrano nel container. Controllo post-deploy: chunk JavaScript più grande nel container `369239` byte, quindi sotto 500 kB.
 - Prova reale locale su `127.0.0.1:8080`: da eseguire dopo riallineamento della copia locale.
+
+## Verifica 18/07/2026 - automazione post accesso PST
+
+Nuovo controllo richiesto: dopo l'accesso al Portale Servizi la sessione assistita non deve restare su una pagina generica e non deve tentare un link profondo non autenticato. Il comportamento da mantenere e' il ciclo osservato nel materiale di confronto:
+
+1. apertura della pagina ufficiale di accesso PST;
+2. riconoscimento della sessione autenticata dopo il login;
+3. apertura della pagina di ricerca documenti del registro corretto;
+4. compilazione di ufficio, registro, ruolo, numero e anno gia' presenti nel fascicolo IUSENTRA;
+5. avvio della ricerca;
+6. selezione del collegamento InfoFascicolo corrispondente a numero e anno;
+7. selezione automatica del tab Documenti;
+8. scelta manuale dei documenti da parte dell'avvocato e raccolta governata dei download nel fascicolo.
+
+Implementazione IUSENTRA:
+
+- `tools/local_signer.py` ora distingue tra pagina di ricerca PST, pagina InfoFascicolo e tab Documenti;
+- una pagina `pst_2_1_*_4.wp` non viene piu' considerata arrivo finale;
+- se la sessione arriva su `homepage.wp?redirectflag=1`, il Local Signer calcola la pagina documenti corretta per il registro e vi naviga;
+- sulla pagina di ricerca compila i campi disponibili e avvia la ricerca senza chiedere all'avvocato di reinserire i dati del fascicolo;
+- sulla pagina InfoFascicolo clicca il tab Documenti quando presente;
+- se il tab e' gia' su `documentiFascicolo.action`, lo stato diventa finale;
+- la versione Local Signer collegata alla correzione e' `1.6.98`.
+
+Test mirati aggiunti:
+
+- `test_portal_assistant_pst_documenti_guida_ricerca_post_accesso`;
+- `test_portal_assistant_pst_documenti_non_considera_arrivo_la_pagina_ricerca`;
+- `test_portal_assistant_pst_infofascicolo_clicca_tab_documenti`.
+
+Stato prova:
+
+- test automatici mirati: superati;
+- applicazione al Local Signer installato sul PC e prova reale browser: da completare prima della chiusura della tranche.

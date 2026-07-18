@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 307.
-- Endpoint P0/P1 contrattualizzati: 269.
+- Endpoint React API contrattualizzati: 309.
+- Endpoint P0/P1 contrattualizzati: 271.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 292.
+- Endpoint con provider verification auth-error: 294.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 15.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -89,6 +89,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Email ordinaria | `/api/v1/ui/email-ordinaria/messaggio/{id_email}` | `GET` | Email ordinaria | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email/bulk-action` | `POST` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email/messaggio/{id_email}` | `GET` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Email PEC | `/api/v1/ui/email/source/{message_id}` | `GET` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli` | `GET` | Fascicoli (/app/fascicoli) | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.cases.list` | current_tenant | verified |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/attivita` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -203,6 +204,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Notifiche legali | `/api/v1/ui/notifiche-legali/relata-firmata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/relata-pdf` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/unep` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/verifica-pec-consultata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/compila` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/prefill` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/preview/{token}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

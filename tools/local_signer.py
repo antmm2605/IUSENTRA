@@ -119,7 +119,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.97"
+VERSION = "1.6.98"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4963,7 +4963,7 @@ def _portal_assistant_is_pst_info_target(portale: str, url: str) -> bool:
         return False
     path = (parsed.path or "").lower()
     query = (parsed.query or "").lower()
-    return "_infofascicolo.wp" in path or "documentifascicolo.action" in query
+    return "_infofascicolo.wp" in path or "documentifascicolo.action" in query or "pst_2_1_" in path
 
 
 def _portal_assistant_edge_debug_port(session_id: str) -> int:
@@ -4998,10 +4998,14 @@ def _portal_assistant_target_reached(current_url: str, target_url: str) -> bool:
     target = str(target_url or "").strip()
     if not current or not target:
         return False
+    target_parsed = urlparse(target)
+    target_path = (target_parsed.path or "").lower()
+    target_query = (target_parsed.query or "").lower()
+    if "_infofascicolo.wp" not in target_path and "documentifascicolo.action" not in target_query:
+        return False
     if current == target:
         return True
     current_parsed = urlparse(current)
-    target_parsed = urlparse(target)
     if current_parsed.netloc.lower() != target_parsed.netloc.lower():
         return False
     if current_parsed.path.lower() != target_parsed.path.lower():
@@ -5013,6 +5017,78 @@ def _portal_assistant_target_reached(current_url: str, target_url: str) -> bool:
         if expected and current_qs.get(key) != expected:
             return False
     return True
+
+
+def _portal_assistant_pst_authenticated_url(url: str) -> bool:
+    parsed = urlparse(str(url or ""))
+    if "servizipst.giustizia.it" not in (parsed.netloc or "").lower():
+        return False
+    path = (parsed.path or "").lower()
+    if "/authentication/" in path or "/smartcard/" in path:
+        return False
+    return bool(path and not path.endswith("/pst/"))
+
+
+def _portal_assistant_pst_documents_service_url(session: dict[str, Any], target_url: str) -> str:
+    parsed = urlparse(str(target_url or ""))
+    qs = parse_qs(parsed.query or "")
+    context = session.get("context") if isinstance(session.get("context"), dict) else {}
+
+    def _first(key: str, fallback: str = "") -> str:
+        values = qs.get(key) or []
+        for value in values:
+            text = str(value or "").strip()
+            if text:
+                return text
+        return str(context.get(fallback or key) or "").strip()
+
+    registro = (_first("registroRicerca", "registro") or "RGN").upper()
+    if registro == "GP":
+        registro = "GDP"
+    page_by_registry = {
+        "LAV": "pst_2_1_2_4.wp",
+        "FALL": "pst_2_1_3_4.wp",
+        "ESIM": "pst_2_1_4_4.wp",
+        "ESM": "pst_2_1_5_4.wp",
+        "GDP": "pst_2_1_6_4.wp",
+        "VG": "pst_2_1_14_4.wp",
+    }
+    page = page_by_registry.get(registro, "pst_2_1_1_4.wp")
+    params = {
+        "registroRicerca": registro,
+        "ufficioRicerca": _first("ufficioRicerca", "ufficio_codice"),
+        "ruoloRicerca": _first("ruoloRicerca", "ruolo") or "AVV@AVV",
+    }
+    pa = _first("pa", "pa")
+    if pa:
+        params["pa"] = pa
+    return f"https://servizipst.giustizia.it/PST/it/{page}?{urlencode(params, safe='@[]')}"
+
+
+def _portal_assistant_pst_target_context(session: dict[str, Any]) -> dict[str, str]:
+    target_url = str(session.get("target_url") or "").strip()
+    parsed = urlparse(target_url)
+    qs = parse_qs(parsed.query or "")
+    context = session.get("context") if isinstance(session.get("context"), dict) else {}
+
+    def _value(key: str, fallback: str = "") -> str:
+        for item in qs.get(key, []):
+            text = str(item or "").strip()
+            if text:
+                return text
+        return str(context.get(fallback or key) or "").strip()
+
+    return {
+        "target_url": target_url,
+        "service_url": str(session.get("service_url") or "").strip() or _portal_assistant_pst_documents_service_url(session, target_url),
+        "numero": _value("numero", "numero_rg"),
+        "anno": _value("anno", "anno_rg"),
+        "subpro": _value("subpro", "sub_procedimento"),
+        "registro": (_value("registroRicerca", "registro") or "RGN").upper(),
+        "ufficio": _value("ufficioRicerca", "ufficio_codice"),
+        "ruolo": _value("ruoloRicerca", "ruolo") or "AVV@AVV",
+        "pa": _value("pa", "pa"),
+    }
 
 
 def _portal_assistant_ws_send_json(ws_url: str, command: dict[str, Any]) -> bool:
@@ -5061,18 +5137,104 @@ def _portal_assistant_ws_send_json(ws_url: str, command: dict[str, Any]) -> bool
         return False
 
 
-def _portal_assistant_cdp_navigate(port: int, target_url: str) -> bool:
-    targets = _portal_assistant_cdp_targets(port)
-    pages = [item for item in targets if str(item.get("type") or "") == "page"]
+def _portal_assistant_ws_request_json(ws_url: str, command: dict[str, Any], *, timeout: float = 2.5) -> dict[str, Any] | None:
+    parsed = urlparse(str(ws_url or ""))
+    if parsed.scheme != "ws" or not parsed.hostname or not parsed.port:
+        return None
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    request = (
+        f"GET {path} HTTP/1.1\r\n"
+        f"Host: {parsed.hostname}:{parsed.port}\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        "Sec-WebSocket-Version: 13\r\n"
+        "\r\n"
+    )
+    payload = json.dumps(command, separators=(",", ":")).encode("utf-8")
+    mask = os.urandom(4)
+    header = bytearray([0x81])
+    if len(payload) < 126:
+        header.append(0x80 | len(payload))
+    elif len(payload) < 65536:
+        header.append(0x80 | 126)
+        header.extend(struct.pack("!H", len(payload)))
+    else:
+        header.append(0x80 | 127)
+        header.extend(struct.pack("!Q", len(payload)))
+    masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+
+    def _recv_exact(sock: socket.socket, size: int) -> bytes:
+        chunks: list[bytes] = []
+        remaining = size
+        while remaining > 0:
+            chunk = sock.recv(remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        return b"".join(chunks)
+
+    try:
+        with socket.create_connection((parsed.hostname, parsed.port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            sock.sendall(request.encode("ascii"))
+            response = b""
+            while b"\r\n\r\n" not in response and len(response) < 8192:
+                chunk = sock.recv(1024)
+                if not chunk:
+                    break
+                response += chunk
+            if b" 101 " not in response.split(b"\r\n", 1)[0]:
+                return None
+            sock.sendall(bytes(header) + mask + masked)
+            expected_id = command.get("id")
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                frame = _recv_exact(sock, 2)
+                if len(frame) < 2:
+                    return None
+                opcode = frame[0] & 0x0F
+                length = frame[1] & 0x7F
+                if length == 126:
+                    length = struct.unpack("!H", _recv_exact(sock, 2))[0]
+                elif length == 127:
+                    length = struct.unpack("!Q", _recv_exact(sock, 8))[0]
+                mask_key = _recv_exact(sock, 4) if frame[1] & 0x80 else b""
+                data = _recv_exact(sock, int(length))
+                if mask_key:
+                    data = bytes(byte ^ mask_key[index % 4] for index, byte in enumerate(data))
+                if opcode == 1:
+                    decoded = json.loads(data.decode("utf-8", errors="replace"))
+                    if expected_id is None or decoded.get("id") == expected_id:
+                        return decoded
+                if opcode == 8:
+                    return None
+    except Exception:
+        return None
+    return None
+
+
+def _portal_assistant_cdp_page(port: int) -> dict[str, Any]:
+    pages = [item for item in _portal_assistant_cdp_targets(port) if str(item.get("type") or "") == "page"]
     if not pages:
-        return False
-    selected = next(
+        return {}
+    return next(
         (
             item for item in pages
             if "servizipst.giustizia.it" in str(item.get("url") or "").lower()
         ),
         pages[0],
     )
+
+
+def _portal_assistant_cdp_navigate(port: int, target_url: str) -> bool:
+    selected = _portal_assistant_cdp_page(port)
+    if not selected:
+        return False
     ws_url = str(selected.get("webSocketDebuggerUrl") or "").strip()
     if not ws_url:
         return False
@@ -5086,6 +5248,184 @@ def _portal_assistant_cdp_navigate(port: int, target_url: str) -> bool:
     )
 
 
+def _portal_assistant_cdp_evaluate(port: int, expression: str) -> dict[str, Any] | None:
+    selected = _portal_assistant_cdp_page(port)
+    ws_url = str(selected.get("webSocketDebuggerUrl") or "").strip()
+    if not ws_url:
+        return None
+    command_id = int(time.time() * 1000) % 100000
+    return _portal_assistant_ws_request_json(
+        ws_url,
+        {
+            "id": command_id,
+            "method": "Runtime.evaluate",
+            "params": {
+                "expression": expression,
+                "awaitPromise": True,
+                "returnByValue": True,
+            },
+        },
+    )
+
+
+def _portal_assistant_eval_value(response: dict[str, Any] | None) -> str:
+    if not isinstance(response, dict):
+        return ""
+    result = response.get("result")
+    if not isinstance(result, dict):
+        return ""
+    inner = result.get("result")
+    if not isinstance(inner, dict):
+        return ""
+    value = inner.get("value")
+    if value is None:
+        value = inner.get("description")
+    return str(value or "").strip()
+
+
+def _portal_assistant_pst_click_infofascicolo(port: int, ctx: dict[str, str]) -> str:
+    numero = json.dumps(ctx.get("numero", ""))
+    anno = json.dumps(ctx.get("anno", ""))
+    expression = f"""
+(() => {{
+  const numero = {numero};
+  const anno = {anno};
+  const anchors = Array.from(document.querySelectorAll('a'));
+  const match = anchors.find((a) => {{
+    const href = String(a.href || a.getAttribute('href') || '').toLowerCase();
+    return href.includes('infofascicolo') && (!numero || href.includes('numero=' + encodeURIComponent(numero).toLowerCase()) || href.includes('numero=' + numero.toLowerCase())) && (!anno || href.includes('anno=' + anno.toLowerCase()));
+  }});
+  if (match) {{
+    match.click();
+    return 'infofascicolo_selezionato';
+  }}
+  return 'infofascicolo_non_trovato';
+}})()
+"""
+    return _portal_assistant_eval_value(_portal_assistant_cdp_evaluate(port, expression))
+
+
+def _portal_assistant_pst_click_documenti(port: int) -> str:
+    expression = """
+(() => {
+  const anchors = Array.from(document.querySelectorAll('a'));
+  const match = anchors.find((a) => {
+    const href = String(a.href || a.getAttribute('href') || '').toLowerCase();
+    const label = String(a.textContent || a.title || '').toLowerCase();
+    return href.includes('documentifascicolo') || label.includes('documenti');
+  });
+  if (match) {
+    match.click();
+    return 'documenti_selezionati';
+  }
+  return 'documenti_non_trovati';
+})()
+"""
+    return _portal_assistant_eval_value(_portal_assistant_cdp_evaluate(port, expression))
+
+
+def _portal_assistant_pst_submit_search(port: int, ctx: dict[str, str]) -> str:
+    values = json.dumps(
+        {
+            "numero": ctx.get("numero", ""),
+            "anno": ctx.get("anno", ""),
+            "subpro": ctx.get("subpro", ""),
+            "registroRicerca": ctx.get("registro", ""),
+            "ufficioRicerca": ctx.get("ufficio", ""),
+            "ruoloRicerca": ctx.get("ruolo", "AVV@AVV"),
+        },
+        ensure_ascii=False,
+    )
+    expression = f"""
+(() => {{
+  const values = {values};
+  const changed = [];
+  const setField = (id, value) => {{
+    if (!value) return false;
+    const el = document.getElementById(id) || document.querySelector(`[name="${{id}}"]`);
+    if (!el) return false;
+    if (el.tagName === 'SELECT') {{
+      const option = Array.from(el.options || []).find((item) => String(item.value).toUpperCase() === String(value).toUpperCase() || String(item.textContent).toUpperCase().includes(String(value).toUpperCase()));
+      if (option) el.value = option.value;
+      else el.value = value;
+    }} else {{
+      el.value = value;
+    }}
+    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+    el.style.backgroundColor = '#fff7c2';
+    changed.push(id);
+    return true;
+  }};
+  setField('numero', values.numero);
+  setField('anno', values.anno);
+  setField('subpro', values.subpro);
+  setField('subProcedimento', values.subpro);
+  setField('registroRicerca', values.registroRicerca);
+  setField('ufficioRicerca', values.ufficioRicerca);
+  setField('ruoloRicerca', values.ruoloRicerca);
+  const tipoDoc = document.getElementById('tipiDocumento-5');
+  if (tipoDoc) {{
+    tipoDoc.checked = true;
+    tipoDoc.dispatchEvent(new Event('change', {{ bubbles: true }}));
+    changed.push('tipiDocumento-5');
+  }}
+  const clickables = Array.from(document.querySelectorAll('button,input[type="submit"],input[type="button"],a'));
+  const byText = clickables.find((el) => /cerca|ricerca|consulta|visualizza|avvia|conferma|ok/i.test(String(el.textContent || el.value || el.title || '')) && !el.disabled);
+  if (byText) {{
+    byText.click();
+    return 'ricerca_avviata:' + changed.join(',');
+  }}
+  const form = document.querySelector('form');
+  if (form) {{
+    form.submit();
+    return 'ricerca_submit:' + changed.join(',');
+  }}
+  return 'ricerca_non_avviata:' + changed.join(',');
+}})()
+"""
+    return _portal_assistant_eval_value(_portal_assistant_cdp_evaluate(port, expression))
+
+
+def _portal_assistant_pst_control_step(session: dict[str, Any]) -> tuple[str, str, bool]:
+    target_url = str(session.get("target_url") or "").strip()
+    port = int(session.get("browser_debug_port") or 0)
+    if not target_url or not port:
+        return ("sessione_assistita_pronta", "Sessione assistita pronta.", True)
+    page = _portal_assistant_cdp_page(port)
+    current_url = str(page.get("url") or "").strip()
+    if not current_url:
+        return ("portale_in_apertura", "Apertura del Portale Servizi in corso.", False)
+    if _portal_assistant_target_reached(current_url, target_url):
+        return ("infofascicolo_documenti_aperto", "InfoFascicolo documenti aperto nella sessione ufficiale.", True)
+    ctx = _portal_assistant_pst_target_context(session)
+    service_url = ctx.get("service_url") or target_url
+    path = (urlparse(current_url).path or "").lower()
+    lower_url = current_url.lower()
+    if "/authentication/" in path or "/smartcard/" in path or path.endswith("/pst_ar.wp"):
+        return ("accesso_portale_in_attesa", "Completa l'accesso al Portale Servizi: poi IUSENTRA apre il fascicolo e i documenti.", False)
+    if not _portal_assistant_pst_authenticated_url(current_url):
+        return ("accesso_portale_in_attesa", "Attesa della pagina autenticata del Portale Servizi.", False)
+    if "_infofascicolo.wp" in path:
+        result = _portal_assistant_pst_click_documenti(port)
+        if result == "documenti_selezionati":
+            return ("infofascicolo_documenti_richiesto", "InfoFascicolo aperto: selezione Documenti richiesta.", False)
+        if _portal_assistant_cdp_navigate(port, target_url):
+            return ("infofascicolo_documenti_richiesto", "InfoFascicolo aperto: apertura diretta Documenti richiesta.", False)
+        return ("infofascicolo_documenti_da_selezionare", "InfoFascicolo aperto: seleziona Documenti nella pagina.", False)
+    if "fascicolipersonali" in lower_url:
+        result = _portal_assistant_pst_click_infofascicolo(port, ctx)
+        if result == "infofascicolo_selezionato":
+            return ("infofascicolo_richiesto", "Fascicolo trovato: apertura InfoFascicolo richiesta.", False)
+    if "pst_2_1_" in path:
+        result = _portal_assistant_pst_submit_search(port, ctx)
+        if result.startswith(("ricerca_avviata", "ricerca_submit")):
+            return ("ricerca_fascicolo_avviata", "Ricerca fascicolo avviata nel Portale Servizi.", False)
+    if _portal_assistant_cdp_navigate(port, service_url):
+        return ("ricerca_fascicolo_richiesta", "Accesso rilevato: apertura della ricerca fascicolo richiesta.", False)
+    return ("ricerca_fascicolo_da_completare", "Portale Servizi aperto: ricerca fascicolo da completare nella finestra.", False)
+
+
 def _portal_assistant_schedule_target_redirect(session_id: str) -> None:
     try:
         session = _portal_assistant_get(session_id)
@@ -5097,9 +5437,8 @@ def _portal_assistant_schedule_target_redirect(session_id: str) -> None:
         return
 
     def _worker() -> None:
-        delays = [6, 8, 10, 12, 15, 20, 20, 25, 30, 30]
-        for delay in delays:
-            time.sleep(delay)
+        for index in range(180):
+            time.sleep(1.5 if index < 30 else 3.0)
             try:
                 current = _portal_assistant_get(session_id)
             except Exception:
@@ -5110,16 +5449,12 @@ def _portal_assistant_schedule_target_redirect(session_id: str) -> None:
             current_port = int(current.get("browser_debug_port") or 0)
             if not current_target or not current_port:
                 return
-            targets = _portal_assistant_cdp_targets(current_port)
-            if any(_portal_assistant_target_reached(str(item.get("url") or ""), current_target) for item in targets):
-                current["status"] = "infofascicolo_documenti_aperto"
-                current["message"] = "InfoFascicolo documenti aperto nella sessione ufficiale."
-                _portal_assistant_save(current)
+            status, message, done = _portal_assistant_pst_control_step(current)
+            current["status"] = status
+            current["message"] = message
+            _portal_assistant_save(current)
+            if done:
                 return
-            if _portal_assistant_cdp_navigate(current_port, current_target):
-                current["status"] = "infofascicolo_documenti_richiesto"
-                current["message"] = "Accesso rilevato: apertura di InfoFascicolo documenti richiesta."
-                _portal_assistant_save(current)
 
     threading.Thread(target=_worker, daemon=True).start()
 
@@ -5229,6 +5564,7 @@ def _portal_assistant_public(session: dict[str, Any]) -> dict[str, Any]:
         "portale": session.get("portale", ""),
         "official_url": session.get("official_url", ""),
         "target_url": session.get("target_url", ""),
+        "service_url": session.get("service_url", ""),
         "status": session.get("status", ""),
         "fascicolo_id": session.get("fascicolo_id", ""),
         "deposito_id": session.get("deposito_id", ""),
@@ -5268,6 +5604,8 @@ def _portal_assistant_start_local(data: dict[str, Any]) -> dict[str, Any]:
         "portale": portale,
         "official_url": str(data.get("official_url") or _portale_browser_url(portale)).strip(),
         "target_url": str(data.get("target_url") or context.get("infofascicolo_url") or "").strip(),
+        "service_url": str(data.get("service_url") or context.get("service_url") or "").strip(),
+        "context": dict(context),
         "fascicolo_id": str(data.get("fascicolo_id") or "").strip(),
         "deposito_id": str(data.get("deposito_id") or "").strip(),
         "purpose": str(data.get("purpose") or "acquisizione").strip() or "acquisizione",

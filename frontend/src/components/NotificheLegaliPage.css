@@ -1462,6 +1462,11 @@
   box-shadow: inset 3px 0 0 var(--iu-blue-600, #2563eb);
 }
 
+.iu-legal-recipient-picker button.is-practice {
+  border-color: rgba(21, 128, 61, .24);
+  background: rgba(240, 253, 244, .72);
+}
+
 .iu-legal-recipient-picker strong {
   font-size: .86rem;
 }
@@ -1470,6 +1475,76 @@
   color: var(--iu-slate-600, #475569);
   font-size: .75rem;
   line-height: 1.35;
+}
+
+.iu-legal-recipient-picker small {
+  justify-self: start;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(21, 128, 61, .1);
+  color: var(--iu-success-700, #15803d);
+  font-size: .68rem;
+  font-weight: 850;
+}
+
+.iu-legal-unep-quick {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(184, 134, 11, .26);
+  border-radius: 12px;
+  background: rgba(255, 251, 235, .62);
+}
+
+.iu-legal-unep-quick header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-legal-unep-quick header div,
+.iu-legal-unep-quick > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.iu-legal-unep-quick strong {
+  color: var(--iu-slate-900, #0f172a);
+  font-size: .88rem;
+  font-weight: 900;
+}
+
+.iu-legal-unep-quick span,
+.iu-legal-unep-quick p {
+  margin: 0;
+  color: var(--iu-slate-600, #475569);
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.38;
+}
+
+.iu-legal-unep-quick button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(184, 134, 11, .28);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--iu-slate-800, #1e293b);
+  padding: 8px 11px;
+  font-size: .76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.iu-legal-unep-quick > div button {
+  display: grid;
+  justify-content: stretch;
+  text-align: left;
 }
 
 .iu-legal-selected-documents {
@@ -2079,6 +2154,15 @@
   .iu-legal-picker-actions,
   .iu-legal-auto-notes {
     grid-template-columns: 1fr;
+  }
+
+  .iu-legal-unep-quick header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .iu-legal-unep-quick header button {
+    width: 100%;
   }
 
   .iu-legal-action-panel__head {

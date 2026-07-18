@@ -53,6 +53,7 @@ import {
   UsersRound,
   Video,
   WalletCards,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
@@ -5022,6 +5023,142 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
   )
 }
 
+type DocumentFlowMode = 'notifica' | 'deposito'
+
+function documentFlowTitle(mode: DocumentFlowMode): string {
+  return mode === 'deposito' ? 'Prepara deposito telematico' : 'Prepara notifica'
+}
+
+function documentFlowPrimaryLabel(mode: DocumentFlowMode): string {
+  return mode === 'deposito' ? 'Continua al deposito' : 'Continua alla notifica'
+}
+
+function appendSelectedDocumentsToHref(href: string, documentIds: string[]): string {
+  if (!documentIds.length) return href
+  try {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'https://app.iusentra.it'
+    const parsed = new URL(href, base)
+    parsed.searchParams.set('documenti', documentIds.join(','))
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    const separator = href.includes('?') ? '&' : '?'
+    return `${href}${separator}documenti=${encodeURIComponent(documentIds.join(','))}`
+  }
+}
+
+function isNotificationSelectableDocument(doc: FascicoloDocument): boolean {
+  const name = doc.name || ''
+  const text = normaliseText(`${doc.name} ${doc.type} ${doc.rawType} ${doc.catalogLabel} ${doc.catalogRole} ${doc.notes} ${doc.tags.join(' ')}`)
+  if (/\.(eml|msg)$/i.test(name)) return false
+  if (/\.(pdf|pdfa|p7m)$/i.test(name)) return true
+  return /(atto|ricorso|procura|decreto|sentenza|provvedimento|contratto|relata|documento)/.test(text)
+}
+
+function DocumentFlowSelectionModal({
+  mode,
+  documents,
+  loading,
+  baseHref,
+  onClose,
+}: {
+  mode: DocumentFlowMode
+  documents: FascicoloDocument[]
+  loading: boolean
+  baseHref: string
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const documentSignature = documents.map((doc) => doc.id).join('|')
+  useEffect(() => {
+    setQuery('')
+    setSelectedIds([])
+  }, [documentSignature, mode])
+  const visibleDocuments = useMemo(() => {
+    const tokens = normaliseText(query).split(' ').filter(Boolean)
+    if (!tokens.length) return documents
+    return documents.filter((doc) => {
+      const search = normaliseText(`${doc.name} ${doc.type} ${doc.rawType} ${doc.catalogLabel} ${doc.source} ${doc.tags.join(' ')}`)
+      return tokens.every((token) => search.includes(token))
+    })
+  }, [documents, query])
+  const suggestedIds = useMemo(() => documents
+    .filter((doc) => mode === 'deposito' ? (doc.depositCandidate || isDepositCandidateDocument(doc) || isDepositManualSelectableDocument(doc)) : isNotificationSelectableDocument(doc))
+    .map((doc) => doc.id)
+    .filter(Boolean), [documents, mode])
+  const selectedDocuments = documents.filter((doc) => selectedIds.includes(doc.id))
+  const targetHref = appendSelectedDocumentsToHref(baseHref, selectedIds)
+  const toggleDocument = (doc: FascicoloDocument, checked: boolean) => {
+    setSelectedIds((current) => checked
+      ? Array.from(new Set([...current, doc.id]))
+      : current.filter((id) => id !== doc.id))
+  }
+  return (
+    <div className="iu-fas-document-flow-modal" role="dialog" aria-modal="true" aria-label={documentFlowTitle(mode)}>
+      <section className="iu-fas-document-flow-modal__box">
+        <header>
+          <div className="iu-fas-preview-modal__title">
+            <span><FileText size={14}/> Documenti del fascicolo</span>
+            <strong>{documentFlowTitle(mode)}</strong>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Chiudi selezione documenti"><X size={16}/> Chiudi</button>
+        </header>
+        <div className="iu-fas-document-flow-toolbar">
+          <label>
+            <Search size={16}/>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder="Cerca documento, tipo o tag"
+            />
+          </label>
+          <button type="button" onClick={() => setSelectedIds(suggestedIds)} disabled={!suggestedIds.length}>
+            <CheckCircle2 size={15}/> Seleziona proposti
+          </button>
+          <button type="button" onClick={() => setSelectedIds([])} disabled={!selectedIds.length}>
+            <Trash2 size={15}/> Svuota
+          </button>
+        </div>
+        <div className="iu-fas-document-flow-summary">
+          <strong>{selectedIds.length ? `${selectedIds.length} documenti selezionati` : 'Nessun documento selezionato'}</strong>
+          <span>{selectedIds.length ? 'La pagina successiva riceverà solo questi documenti come perimetro iniziale.' : 'Puoi continuare senza selezione oppure scegliere i file da usare.'}</span>
+        </div>
+        <div className="iu-fas-document-flow-list">
+          {loading ? <p className="iu-empty">Caricamento documenti del fascicolo...</p> : null}
+          {!loading && visibleDocuments.map((doc) => (
+            <label className="iu-fas-document-flow-row" key={doc.id}>
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(doc.id)}
+                onChange={(event) => toggleDocument(doc, event.currentTarget.checked)}
+              />
+              <span>
+                <strong>{doc.name}</strong>
+                <small>{[doc.type, doc.documentDate || doc.uploadedAt, doc.statusLabel].filter(Boolean).join(' · ')}</small>
+                {doc.notes ? <em>{doc.notes}</em> : null}
+              </span>
+            </label>
+          ))}
+          {!loading && !visibleDocuments.length ? <p className="iu-empty">Nessun documento corrisponde alla ricerca.</p> : null}
+        </div>
+        <footer>
+          <a className="iu-button iu-button--secondary" href={baseHref}>Apri senza selezione</a>
+          <a className="iu-button iu-button--primary" href={targetHref}>
+            <Send size={15}/> {documentFlowPrimaryLabel(mode)}
+          </a>
+        </footer>
+        {selectedDocuments.length ? (
+          <div className="iu-fas-document-flow-selected" aria-label="Documenti scelti">
+            {selectedDocuments.slice(0, 5).map((doc) => <span key={`chosen-${doc.id}`}>{doc.name}</span>)}
+            {selectedDocuments.length > 5 ? <span>+{selectedDocuments.length - 5} altri</span> : null}
+          </div>
+        ) : null}
+      </section>
+    </div>
+  )
+}
+
 type LocalSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string; model?: string; serial?: string }
 type LocalSignerWindowsCertificate = {
   thumbprint?: string
@@ -6131,6 +6268,7 @@ function DetailPage({ id }:{id:string}) {
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
+  const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   useEffect(() => {
@@ -6222,6 +6360,10 @@ function DetailPage({ id }:{id:string}) {
         setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Caricamento sezione non riuscito.' })
       })
   }
+  const openDocumentFlow = (mode: DocumentFlowMode) => {
+    setDocumentFlowMode(mode)
+    if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
+  }
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -6269,7 +6411,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={notificationHref} title="Prepara una notifica legale per questa pratica"><Bell size={15}/> Notifica</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
@@ -6427,6 +6569,15 @@ function DetailPage({ id }:{id:string}) {
         </aside>
         </div>
       </section>
+      {documentFlowMode ? (
+        <DocumentFlowSelectionModal
+          mode={documentFlowMode}
+          documents={data.documents}
+          loading={lazyStatus.documenti === 'loading'}
+          baseHref={documentFlowMode === 'deposito' ? depositTelematicHref : notificationHref}
+          onClose={() => setDocumentFlowMode(null)}
+        />
+      ) : null}
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
       <EmbeddedRecordModal record={embeddedRecord} onClose={() => setEmbeddedRecord(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>

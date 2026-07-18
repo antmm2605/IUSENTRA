@@ -4963,3 +4963,29 @@ Confronto con IUSENTRA:
 - manca ancora nella superficie React del fascicolo il comando completo che avvia la ricerca con i dati della pratica, presenta l'albero ufficiale, consente la scelta per file e importa nel fascicolo senza passare da una pagina separata.
 
 Regola di implementazione: la UI deve mostrare soltanto comandi operativi per l'avvocato, senza riferimenti al prodotto confrontato o dettagli tecnici. Nessun PIN, certificato o cookie di sessione deve transitare o essere conservato sul server. Stato: analisi completata; implementazione e prova reale ancora aperte.
+
+### Selezione documenti da fascicolo per Notifica e Deposito - 18/07/2026
+
+Il confronto operativo con il materiale decompilato conferma che destinatari e documenti devono essere scelti prima della fase finale di relata o deposito. Il pannello finale deve lavorare sul perimetro selezionato, non ricostruire ogni volta tutto il fascicolo.
+
+Aggiornamento implementato:
+
+- dal fascicolo i pulsanti `Notifica` e `Deposito telematico` aprono una finestra di scelta documenti;
+- l'avvocato può cercare, selezionare uno o più documenti oppure aprire il flusso senza selezione;
+- la pagina di destinazione riceve i soli documenti scelti tramite query `documenti`;
+- Notifica usa quella query per idratare soltanto il perimetro richiesto e preselezionarlo;
+- Deposito usa la stessa query come selezione iniziale dei documenti da inviare;
+- se non esiste una selezione esplicita, il comportamento storico resta invariato;
+- gli indirizzi di notifica non vengono più limitati ai soli destinatari della pratica: quelli della pratica restano evidenziati, ma la ricerca include anche gli altri indirizzi disponibili;
+- il percorso NEP/UNEP resta separato dalla notifica PEC L. 53 ed è accessibile rapidamente dal pannello notifica.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_notifiche_legali.py::test_payload_documenti_pratica_rispetta_selezione_esplicita_oltre_primo_blocco tests/test_notifiche_legali.py::test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto -q`;
+- `python -m pytest tests/test_regia_ui_react.py::test_ui_notifiche_relata_firma_solo_con_prova_tecnica tests/test_regia_ui_react.py::test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti tests/test_regia_ui_react.py::test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti tests/test_regia_ui_react.py::test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo -q`;
+- `pnpm --dir frontend typecheck`;
+- `python -m py_compile web\services\react_notifiche_legali_bridge.py web\blueprints\api_v1_react.py`;
+- `git diff --check`;
+- `pnpm --dir frontend build`, senza asset JavaScript o CSS sopra `500.000` byte.
+
+Stato: implementazione e guardrail automatici completati. Restano obbligatori deploy, click reali sul server, riallineamento locale, commit e push prima della chiusura formale.

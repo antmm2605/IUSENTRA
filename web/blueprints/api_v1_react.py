@@ -3155,8 +3155,13 @@ def notifiche_legali_payload():
 @api_v1_react.get("/notifiche-legali/pratiche/<id_fascicolo>/documenti")
 @_richiedi_auth
 def notifiche_legali_pratica_documenti(id_fascicolo: str):
+    selected_document_ids: list[str] = []
+    for key in ("documenti", "documenti_ids", "id_documento", "id_documenti", "documento"):
+        for value in request.args.getlist(key):
+            selected_document_ids.extend([part.strip() for part in str(value).split(",") if part.strip()])
     return jsonify(build_react_notifiche_legali_practice_documents_payload(
         id_fascicolo,
+        selected_document_ids=selected_document_ids,
         get_fascicoli=get_fascicoli,
     ))
 

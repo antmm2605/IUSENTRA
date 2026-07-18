@@ -57,6 +57,41 @@ function normaliseText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+const DOCUMENT_SELECTION_QUERY_KEYS = ['documenti', 'documenti_ids', 'id_documento', 'id_documenti', 'documento']
+
+function documentSelectionTokensFromUrl(): string[] {
+  if (typeof window === 'undefined') return []
+  const params = new URLSearchParams(window.location.search)
+  const tokens: string[] = []
+  DOCUMENT_SELECTION_QUERY_KEYS.forEach((key) => {
+    params.getAll(key).forEach((value) => {
+      String(value || '').split(',').forEach((part) => {
+        const token = decodeURIComponent(part).trim()
+        if (token) tokens.push(token)
+      })
+    })
+  })
+  return Array.from(new Set(tokens))
+}
+
+function compactDocumentSelectionToken(value: string): string {
+  return String(value || '').trim().toLocaleLowerCase('it-IT')
+}
+
+function fascicoloDocumentMatchesSelectionTokens(doc: FascicoloDocument, tokens: string[]): boolean {
+  if (!tokens.length) return false
+  const wanted = new Set(tokens.map(compactDocumentSelectionToken).filter(Boolean))
+  if (!wanted.size) return false
+  return [
+    doc.id,
+    doc.name,
+    doc.portalDocumentId,
+    doc.portalIdCat,
+    doc.portalIdRepeatto,
+    doc.portalMessageId,
+  ].some((value) => wanted.has(compactDocumentSelectionToken(value)))
+}
+
 function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void}) {
   const body = (
     <>
@@ -1689,6 +1724,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [localSignaturePinError, setLocalSignaturePinError] = useState('')
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
   const batchSignaturePinSessionRef = useRef('')
+  const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
 
   const refreshDetail = (message?: string) => {
     if (message) {
@@ -1890,13 +1926,22 @@ function DepositPreparePage({ id }:{id:string}) {
   const persistedDepositSelectionIds = data.depositPreparation.saved
     ? data.depositPreparation.documents.filter((row) => row.selected).map((row) => row.documentId)
     : []
-  const defaultDepositSelectionIds = data.depositPreparation.saved
-    ? persistedDepositSelectionIds
+  const requestedDepositSelectionIds = requestedDocumentSelectionTokens.length
+    ? depositSelectableDocuments
+      .filter((doc) => fascicoloDocumentMatchesSelectionTokens(doc, requestedDocumentSelectionTokens))
+      .map((doc) => doc.id)
     : []
+  const explicitDocumentSelection = requestedDocumentSelectionTokens.length > 0
+  const defaultDepositSelectionIds = explicitDocumentSelection
+    ? requestedDepositSelectionIds
+    : data.depositPreparation.saved
+      ? persistedDepositSelectionIds
+      : []
   const validMainActDocumentIds = new Set(depositSelectableDocuments.filter(isMainActCandidateDocument).map((doc) => doc.id))
   const depositClassificationSignature = [
     f.id || id,
     depositSelectableDocuments.map((doc) => doc.id).join('|'),
+    requestedDocumentSelectionTokens.join('|'),
     defaultDepositSelectionIds.join('|'),
     data.depositPreparation.documents.map((row) => `${row.documentId}:${row.selected}:${row.role}:${row.requiresSignature}`).join('|'),
     usableLinkedSlotDocuments.map((row) => `${recordText(row.slot, 'slotKey')}:${row.document.id}`).join('|'),
@@ -2917,6 +2962,12 @@ function DepositPreparePage({ id }:{id:string}) {
                   {packageDocuments.length === 1 ? '1 selezionato' : `${packageDocuments.length} selezionati`}
                 </Badge>
               </header>
+              {explicitDocumentSelection ? (
+                <div className={`iu-fas-action-notice iu-fas-action-notice--${requestedDepositSelectionIds.length ? 'success' : 'danger'}`} role="status">
+                  <Badge tone={requestedDepositSelectionIds.length ? 'success' : 'danger'}>{requestedDepositSelectionIds.length ? 'Scelta dal fascicolo' : 'Da controllare'}</Badge>
+                  <span>{requestedDepositSelectionIds.length ? `${requestedDepositSelectionIds.length === 1 ? '1 documento ricevuto' : `${requestedDepositSelectionIds.length} documenti ricevuti`} dal fascicolo come perimetro iniziale del deposito.` : 'I documenti scelti nel fascicolo non sono stati trovati nel deposito: apri i documenti del fascicolo e ripeti la selezione.'}</span>
+                </div>
+              ) : null}
               <DepositTypePreviewPanel
                 catalog={data.depositCatalog}
                 selectedKey={selectedDepositTypeKey}

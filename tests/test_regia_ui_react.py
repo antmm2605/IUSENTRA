@@ -429,21 +429,23 @@ def test_ui_deposito_controlla_i_dati_prima_di_qualsiasi_scrittura_e_abilita_inv
 def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
-    signature_block = source[source.index("const handleSignedRelataFile"):source.index("const applyDepositFile")]
+    signature_block = source[source.index("const signRelata = async () => {"):source.index("const applyDepositFile")]
 
     assert "signatureHref" not in source
     assert "Apri firma digitale" not in source
     assert "Apri la firma digitale" not in source
-    assert "lo stato si aggiorna solo con una prova di firma digitale" in source
-    assert "Verifica Local Signer" in source
+    assert "IUSENTRA genera la relata corrente, la firma sul PC e la salva automaticamente nel fascicolo." in source
+    assert "PIN dispositivo" in source
+    assert "ensureRelataSignerReady()" in signature_block
+    assert "relataLocalSignerEndpoint('/firma')" in signature_block
     assert "fileContainsCadesSignedData" in source
     assert "pdfContainsPadesSignature" in source
     assert "signedDataOid" in source
-    assert "non contiene una firma digitale riconoscibile" in source
+    assert "Relata firmata non verificabile." in source
     assert "non contiene una busta CAdES/PKCS#7 riconoscibile" not in source
     assert "setNotifica((current) => ({ ...current, relata_firmata: false }))" in signature_block
     assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" in source
-    assert "Relata firmata acquisita con prova tecnica" in source
+    assert "Relata firmata e salvata nel fascicolo" in source
     assert ".iu-legal-signature-button" in css
     assert "hasNotifiableExtension" in source
     assert "hasSendableNotificationAttachmentExtension" in source
@@ -474,3 +476,40 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "Invio PEC bloccato" in source
     assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
     assert "Tutti notificabili" in source
+
+
+def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():
+    source = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/NotificheLegaliPage.css").read_text(encoding="utf-8")
+
+    assert "const visibleRecipientSuggestions = useMemo" in source
+    assert "if (!query) return recipientSuggestions" in source
+    assert "practiceRecipientSuggestionKeys" in source
+    assert "Cerca indirizzo o soggetto" in source
+    assert "Uffici NEP / UNEP" in source
+    assert "getNotificheLegaliPracticeDocuments(selectedPracticeId, requestedDocumentSelectionTokens)" in source
+    assert "documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens)" in source
+    assert ".iu-legal-unep-quick" in css
+
+
+def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert "DocumentFlowSelectionModal" in source
+    assert "appendSelectedDocumentsToHref" in source
+    assert "parsed.searchParams.set('documenti', documentIds.join(','))" in source
+    assert "openDocumentFlow('notifica')" in source
+    assert "openDocumentFlow('deposito')" in source
+    assert "La pagina successiva riceverà solo questi documenti come perimetro iniziale." in source
+    assert ".iu-fas-document-flow-modal" in css
+
+
+def test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
+
+    assert "documentSelectionTokensFromUrl" in source
+    assert "requestedDepositSelectionIds" in source
+    assert "explicitDocumentSelection" in source
+    assert "fascicoloDocumentMatchesSelectionTokens(doc, requestedDocumentSelectionTokens)" in source
+    assert "Scelta dal fascicolo" in source

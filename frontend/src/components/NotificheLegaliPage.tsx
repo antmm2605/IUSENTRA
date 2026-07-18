@@ -209,6 +209,40 @@ function practiceSearchText(value: string) {
     .trim()
 }
 
+const DOCUMENT_SELECTION_QUERY_KEYS = ['documenti', 'documenti_ids', 'id_documento', 'id_documenti', 'documento']
+
+function documentSelectionTokensFromUrl(): string[] {
+  if (typeof window === 'undefined') return []
+  const params = new URLSearchParams(window.location.search)
+  const tokens: string[] = []
+  DOCUMENT_SELECTION_QUERY_KEYS.forEach((key) => {
+    params.getAll(key).forEach((value) => {
+      String(value || '').split(',').forEach((part) => {
+        const token = decodeURIComponent(part).trim()
+        if (token) tokens.push(token)
+      })
+    })
+  })
+  return Array.from(new Set(tokens))
+}
+
+function compactDocumentToken(value: string): string {
+  return String(value || '').trim().toLocaleLowerCase('it-IT')
+}
+
+function documentMatchesSelectionTokens(documento: LegalDocumentSuggestion, tokens: string[]): boolean {
+  if (!tokens.length) return false
+  const wanted = new Set(tokens.map(compactDocumentToken).filter(Boolean))
+  if (!wanted.size) return false
+  return [
+    documento.id,
+    documento.nomeFile,
+    documento.nomeOriginale,
+    documento.label,
+    documento.riferimentoPortale,
+  ].some((value) => wanted.has(compactDocumentToken(value)))
+}
+
 function PracticePicker({
   practices,
   value,
@@ -1405,11 +1439,14 @@ export function NotificheLegaliPage() {
   const [practiceSelectionMessage, setPracticeSelectionMessage] = useState('')
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
+  const [recipientSearch, setRecipientSearch] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
   const [manualNotificationDocuments, setManualNotificationDocuments] = useState<ManualNotificationDocument[]>([])
   const [notificationFilesMessage, setNotificationFilesMessage] = useState('')
   const [selectedDepositDocumentIds, setSelectedDepositDocumentIds] = useState<string[]>([])
+  const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
+  const documentSelectionAppliedRef = useRef('')
   const [selectedClientId, setSelectedClientId] = useState('')
   const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false)
@@ -1574,9 +1611,52 @@ export function NotificheLegaliPage() {
       return true
     })
   }, [data.precompilazione.destinatari, practiceRecipientSuggestions])
-  const visibleRecipientSuggestions = selectedPractice
-    ? practiceRecipientSuggestions
-    : data.precompilazione.destinatari
+  const practiceRecipientSuggestionKeys = useMemo(
+    () => new Set(practiceRecipientSuggestions.map((item) => item.id).filter(Boolean)),
+    [practiceRecipientSuggestions],
+  )
+  const visibleRecipientSuggestions = useMemo(() => {
+    const query = practiceSearchText(recipientSearch)
+    if (!query) return recipientSuggestions
+    const tokens = query.split(' ').filter(Boolean)
+    return recipientSuggestions.filter((item) => {
+      const search = practiceSearchText([
+        item.label,
+        item.nome,
+        item.pec,
+        item.codiceFiscalePiva,
+        item.ruolo,
+        item.ruoloPratica,
+        item.fontePecSuggerita,
+        item.parteRappresentata,
+      ].join(' '))
+      return tokens.every((token) => search.includes(token))
+    })
+  }, [recipientSearch, recipientSuggestions])
+  const suggestedUnepOffice = useMemo(
+    () => selectedPractice ? suggestUnepOffice(selectedPractice.procedimento.ufficio, data.ufficiUnep) : null,
+    [data.ufficiUnep, selectedPractice],
+  )
+  const quickUnepOffices = useMemo(() => {
+    const query = practiceSearchText(recipientSearch)
+    const tokens = query.split(' ').filter(Boolean)
+    const selectedCourt = practiceSearchText(selectedPractice?.procedimento.ufficio || '')
+    const seen = new Set<string>()
+    const ordered = [
+      suggestedUnepOffice,
+      ...data.ufficiUnep.filter((office) => {
+        const search = practiceSearchText([office.nome, office.distretto, office.comune, office.provincia, office.regione, office.pec, office.codice].join(' '))
+        if (tokens.length) return tokens.every((token) => search.includes(token))
+        return selectedCourt && selectedCourt.split(' ').some((token) => token.length > 2 && search.includes(token))
+      }),
+    ].filter((office): office is LegalUnepOffice => Boolean(office))
+    return ordered.filter((office) => {
+      const key = office.codice || office.id || office.pec || office.nome
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).slice(0, tokens.length ? 40 : 8)
+  }, [data.ufficiUnep, recipientSearch, selectedPractice, suggestedUnepOffice])
   const documentSuggestions = (selectedPracticeId && hydratedDocumentsByPractice[selectedPracticeId]?.length)
     ? hydratedDocumentsByPractice[selectedPracticeId]
     : selectedPractice?.documenti || []
@@ -1858,7 +1938,7 @@ export function NotificheLegaliPage() {
     if (!selectedPracticeId || hydratedDocumentsByPractice[selectedPracticeId]?.length) return
     let active = true
     setDocumentHydrationMessage('Lettura dei nomi documento in corso...')
-    getNotificheLegaliPracticeDocuments(selectedPracticeId)
+    getNotificheLegaliPracticeDocuments(selectedPracticeId, requestedDocumentSelectionTokens)
       .then((documents) => {
         if (!active) return
         if (!documents.length) {
@@ -1873,7 +1953,26 @@ export function NotificheLegaliPage() {
       })
       .catch(() => { if (active) setDocumentHydrationMessage('Lettura documenti non completata: puoi comunque selezionare gli allegati.') })
     return () => { active = false }
-  }, [selectedPracticeId])
+  }, [requestedDocumentSelectionTokens, selectedPracticeId])
+
+  useEffect(() => {
+    if (!requestedDocumentSelectionTokens.length || !selectedPracticeId || !documentSuggestions.length) return
+    const matchedIds = documentSuggestions
+      .filter((documento) => documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens))
+      .map((documento) => documento.id)
+      .filter(Boolean)
+    if (!matchedIds.length) return
+    const signature = `${selectedPracticeId}:${tab}:${matchedIds.join('|')}`
+    if (documentSelectionAppliedRef.current === signature) return
+    documentSelectionAppliedRef.current = signature
+    setSelectedDocumentId(matchedIds[0] || '')
+    if (tab === 'deposito') {
+      setSelectedDepositDocumentIds(matchedIds)
+    } else {
+      setSelectedNotificationDocumentIds(matchedIds)
+    }
+    setPracticeSelectionMessage(`${matchedIds.length === 1 ? '1 documento preselezionato' : `${matchedIds.length} documenti preselezionati`} dal fascicolo.`)
+  }, [documentSuggestions, requestedDocumentSelectionTokens, selectedPracticeId, tab])
 
   const depositDocumentPayload = (documento: LegalDocumentSuggestion): EvidenceDocumentPayload => ({
     nome_file: documentEvidenceName(documento),
@@ -3245,22 +3344,63 @@ export function NotificheLegaliPage() {
                       ))}
                     </select>
                   </Field>
+                  {recipientSuggestions.length ? (
+                    <Field label="Cerca indirizzo o soggetto" hint={selectedPractice ? 'I destinatari della pratica restano in evidenza; la ricerca include anche gli altri indirizzi disponibili.' : 'Filtra rubrica, parti e indirizzi disponibili.'}>
+                      <input
+                        type="search"
+                        value={recipientSearch}
+                        onChange={(event) => setRecipientSearch(event.currentTarget.value)}
+                        placeholder="Nome, PEC, parte, registro o ufficio"
+                      />
+                    </Field>
+                  ) : null}
                   {visibleRecipientSuggestions.length ? (
                     <div className="iu-legal-recipient-picker iu-legal-field--wide" aria-label="Destinatari suggeriti">
                       {visibleRecipientSuggestions.map((item) => {
                         const selected = selectedRecipientIds.includes(item.id)
+                        const practiceRecipient = practiceRecipientSuggestionKeys.has(item.id)
                         return (
                           <button
                             type="button"
                             key={`${item.id}-${item.ruolo}-choice`}
-                            className={selected ? 'is-selected' : ''}
+                            className={`${selected ? 'is-selected' : ''} ${practiceRecipient ? 'is-practice' : ''}`.trim()}
                             onClick={() => selected ? removeRecipient(item.id) : applyRecipient(item)}
                           >
                             <strong>{item.label || item.nome}</strong>
                             <span>{[item.ruoloPratica || item.ruolo, item.pec, item.parteRappresentata ? `parte: ${item.parteRappresentata}` : ''].filter(Boolean).join(' · ')}</span>
+                            {practiceRecipient ? <small>pratica</small> : null}
                           </button>
                         )
                       })}
+                    </div>
+                  ) : recipientSearch ? (
+                    <p className="iu-legal-empty iu-legal-field--wide">Nessun indirizzo corrisponde alla ricerca.</p>
+                  ) : null}
+                  {selectedPractice && data.ufficiUnep.length ? (
+                    <div className="iu-legal-unep-quick iu-legal-field--wide">
+                      <header>
+                        <div>
+                          <strong>Uffici NEP / UNEP</strong>
+                          <span>Per notifiche tramite ufficiale giudiziario apri il percorso dedicato e scegli l'ufficio competente.</span>
+                        </div>
+                        <button type="button" onClick={() => { setTab('unep'); setResult(emptyResult) }}>
+                          <ExternalLink size={14} /> Apri percorso
+                        </button>
+                      </header>
+                      {quickUnepOffices.length ? (
+                        <div>
+                          {quickUnepOffices.map((office) => (
+                            <button
+                              type="button"
+                              key={`quick-unep-${office.id}`}
+                              onClick={() => { applyUnepOffice(office); setTab('unep'); setResult(emptyResult) }}
+                            >
+                              <strong>{office.nome}</strong>
+                              <span>{[office.distretto, office.pec, office.codice ? `codice ${office.codice}` : ''].filter(Boolean).join(' · ')}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : <p>Usa la ricerca per trovare l'ufficio NEP / UNEP.</p>}
                     </div>
                   ) : null}
                   {selectedRecipients.length ? (

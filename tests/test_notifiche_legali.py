@@ -2369,6 +2369,43 @@ def test_payload_documenti_pratica_idrata_nome_timestamp_da_contenuto(monkeypatc
     assert documento_payload["nomeOriginale"] == "20260510185021337.PDF"
 
 
+def test_payload_documenti_pratica_rispetta_selezione_esplicita_oltre_primo_blocco():
+    def documento(index: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            id=f"doc-{index}",
+            nome=f"Documento_{index}.pdf",
+            nome_originale=f"Documento_{index}.pdf",
+            nome_portale="",
+            percorso="",
+            tipo_atto_portale="",
+            classificazione_portale="",
+            note="",
+            fonte_documento="PST",
+            servizio_portale="PST",
+            hash_sha256="",
+            data_documento="",
+            data_deposito_portale="",
+            id_documento_portale=f"PORT-{index}",
+            tags=[],
+        )
+
+    fascicolo = SimpleNamespace(id="fascicolo-1", documenti=[documento(index) for index in range(1, 56)])
+    repo = SimpleNamespace(get=lambda id_fascicolo: fascicolo if id_fascicolo == "fascicolo-1" else None)
+
+    default_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_documents_payload(
+        "fascicolo-1",
+        get_fascicoli=lambda: repo,
+    )
+    selected_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_documents_payload(
+        "fascicolo-1",
+        selected_document_ids=["doc-55", "PORT-45"],
+        get_fascicoli=lambda: repo,
+    )
+
+    assert len(default_payload["documenti"]) == 40
+    assert [item["id"] for item in selected_payload["documenti"]] == ["doc-45", "doc-55"]
+
+
 def test_deriva_titolo_documento_da_testo_ocr():
     text = """
     ISTITUTO COMPRENSIVO IC 2 E 4 DI VICENZA

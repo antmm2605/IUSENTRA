@@ -1107,15 +1107,36 @@ def build_react_notifiche_legali_practice_payload(
 def build_react_notifiche_legali_practice_documents_payload(
     id_fascicolo: str,
     *,
+    selected_document_ids: Iterable[str] | None = None,
     get_fascicoli: Any = None,
 ) -> dict[str, Any]:
     repo = _repo_from_getter(get_fascicoli)
     fascicolo = _safe_call("fascicolo", lambda: repo.get(_text(id_fascicolo)), None) if repo is not None else None
     if fascicolo is None:
         return _sanitize_ui_payload({"ok": False, "message": "Pratica non trovata.", "documenti": []})
+    raw_documents = list(getattr(fascicolo, "documenti", []) or [])
+    requested = {_text(item).strip().lower() for item in (selected_document_ids or []) if _text(item).strip()}
+    if requested:
+        def _matches_requested_document(documento: Any) -> bool:
+            values = {
+                _text(getattr(documento, "id", "")),
+                _text(getattr(documento, "nome", "")),
+                _text(getattr(documento, "titolo", "")),
+                _text(getattr(documento, "nome_portale", "")),
+                _text(getattr(documento, "nome_originale", "")),
+                _text(getattr(documento, "id_documento_portale", "")),
+                _text(getattr(documento, "id_portale", "")),
+                _text(getattr(documento, "codice_portale", "")),
+                _text(getattr(documento, "riferimento_portale", "")),
+            }
+            return any(value.strip().lower() in requested for value in values if value.strip())
+
+        raw_documents = [documento for documento in raw_documents if _matches_requested_document(documento)]
+    else:
+        raw_documents = raw_documents[:40]
     documents = [
         _document_from_fascicolo(documento, resolve_content_label=True)
-        for documento in (getattr(fascicolo, "documenti", []) or [])[:40]
+        for documento in raw_documents
     ]
     return _sanitize_ui_payload({
         "ok": True,

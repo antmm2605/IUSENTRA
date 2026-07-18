@@ -339,3 +339,26 @@ Guardrail aggiunti:
   un controllo manuale cada nella pagina di login;
 - esenzione di tutto il prefisso `/polisWeb/local-signer/` dal gate di login;
 - test anonimi sul download Python, alias, cataloghi, moduli, requisiti e installer.
+
+## Aggiornamento 18/07/2026 - selezione documenti prima di Notifica e Deposito
+
+Il criterio operativo confermato è lo stesso del ciclo documentale osservato: l'avvocato sceglie i documenti nel contesto del fascicolo e il flusso successivo riceve soltanto quella selezione. Questo evita di ricaricare l'intero fascicolo nella pagina Notifica o Deposito e riduce il rischio di allegare documenti non voluti.
+
+Implementazione:
+
+- nel dettaglio fascicolo i pulsanti `Notifica` e `Deposito telematico` aprono una finestra sopra la pagina;
+- la finestra mostra documenti ricercabili e selezionabili, con comando rapido per i documenti proposti;
+- la destinazione riceve la query `documenti` con gli identificativi scelti;
+- l'API documenti Notifica accetta la selezione esplicita e restituisce anche documenti oltre il vecchio primo blocco di quaranta elementi;
+- il deposito legge la stessa query come perimetro iniziale dei documenti da inviare;
+- se non viene indicata alcuna selezione esplicita, resta valida la logica precedente.
+
+Verifiche automatiche eseguite:
+
+- `tests/test_notifiche_legali.py::test_payload_documenti_pratica_rispetta_selezione_esplicita_oltre_primo_blocco`;
+- `tests/test_regia_ui_react.py::test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti`;
+- `tests/test_regia_ui_react.py::test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti`;
+- `tests/test_regia_ui_react.py::test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo`;
+- typecheck React e build Vite con budget asset sotto `500.000` byte.
+
+Stato: codice pronto per prova reale server. Nessun riferimento tecnico al materiale di confronto viene esposto nella UI.

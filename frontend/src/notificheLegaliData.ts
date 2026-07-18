@@ -939,9 +939,13 @@ export async function getNotificheLegaliPractice(practiceId: string): Promise<Le
   return practiceSuggestions([body.pratica])[0] || null
 }
 
-export async function getNotificheLegaliPracticeDocuments(practiceId: string): Promise<LegalDocumentSuggestion[]> {
+export async function getNotificheLegaliPracticeDocuments(practiceId: string, documentIds: string[] = []): Promise<LegalDocumentSuggestion[]> {
   if (!practiceId) return []
-  const response = await fetch(`/api/v1/ui/notifiche-legali/pratiche/${encodeURIComponent(practiceId)}/documenti`, {
+  const params = new URLSearchParams()
+  const requestedIds = documentIds.map((item) => item.trim()).filter(Boolean)
+  if (requestedIds.length) params.set('documenti', requestedIds.join(','))
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  const response = await fetch(`/api/v1/ui/notifiche-legali/pratiche/${encodeURIComponent(practiceId)}/documenti${suffix}`, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })

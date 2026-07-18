@@ -308,13 +308,17 @@ Implementazione IUSENTRA:
 - sulla pagina di ricerca compila i campi disponibili e avvia la ricerca senza chiedere all'avvocato di reinserire i dati del fascicolo;
 - sulla pagina InfoFascicolo clicca il tab Documenti quando presente;
 - se il tab e' gia' su `documentiFascicolo.action`, lo stato diventa finale;
-- la versione Local Signer collegata alla correzione e' `1.6.98`.
+- la versione Local Signer collegata alla correzione e' `1.6.99`.
+- il profilo browser assistito PST e' stabile per portale, non piu' creato dentro la
+  singola sessione casuale, cosi' la sessione autenticata non viene persa a ogni
+  apertura e si riduce la richiesta ripetuta di PIN.
 
 Test mirati aggiunti:
 
 - `test_portal_assistant_pst_documenti_guida_ricerca_post_accesso`;
 - `test_portal_assistant_pst_documenti_non_considera_arrivo_la_pagina_ricerca`;
-- `test_portal_assistant_pst_infofascicolo_clicca_tab_documenti`.
+- `test_portal_assistant_pst_infofascicolo_clicca_tab_documenti`;
+- `test_portal_assistant_pst_profile_controllato_stabile`.
 
 Stato prova:
 

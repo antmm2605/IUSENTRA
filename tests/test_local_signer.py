@@ -75,6 +75,32 @@ def test_portal_assistant_pst_infofascicolo_apre_accesso_con_rientro_controllato
     assert session["opened_url"] == auth_url
 
 
+def test_portal_assistant_pst_profile_controllato_stabile(tmp_path, monkeypatch):
+    module = _load_local_signer()
+    monkeypatch.setenv("HACS_SIGNER_PORTAL_ASSISTANT_DIR", str(tmp_path / "assistant"))
+
+    session_a = {
+        "session_id": "assist-pst-a",
+        "portale": "pst",
+        "downloads_dir": str(tmp_path / "assist-pst-a"),
+    }
+    session_b = {
+        "session_id": "assist-pst-b",
+        "portale": "pst",
+        "downloads_dir": str(tmp_path / "assist-pst-b"),
+    }
+
+    profile_a = module._portal_assistant_profile_dir(session_a, controlled=True)
+    profile_b = module._portal_assistant_profile_dir(session_b, controlled=True)
+
+    assert profile_a == tmp_path / "assistant" / "profiles" / "pst"
+    assert profile_b == profile_a
+    assert "assist-pst-a" not in str(profile_a)
+    assert module._portal_assistant_profile_dir(session_a, controlled=False) == (
+        Path(session_a["downloads_dir"]).parent / "edge-profile"
+    )
+
+
 def test_portal_assistant_pst_documenti_guida_ricerca_post_accesso(monkeypatch):
     module = _load_local_signer()
     service_url = (

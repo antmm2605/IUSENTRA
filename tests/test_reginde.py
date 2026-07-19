@@ -100,6 +100,28 @@ def test_risoluzione_pst_palmi_usa_gl_e_servizio():
     )
 
 
+def test_risoluzione_tribunale_reggio_calabria_accetta_alias_pratica_reale():
+    aliases = [
+        "TRIBUNALE DI REGGIO DI CALABRIA",
+        "TRIBUNALE ORDINARIO DI REGGIO DI CALABRIA",
+        "Tribunale Ordinario - Reggio di Calabria",
+    ]
+    for alias in aliases:
+        ufficio = risolvi_ufficio(alias, tipo="TRIBUNALE")
+        assert ufficio is not None, alias
+        assert ufficio["codice"] == "0910010"
+        assert ufficio["codice_ministero"] == "0800630097"
+        assert ufficio["pec"] == "tribunale.reggiocalabria@civile.ptel.giustiziacert.it"
+
+
+def test_risoluzione_gdp_preferisce_ufficio_attivo_con_pec_su_alias_storico():
+    ufficio = risolvi_ufficio("GIUDICE DI PACE DI BARRA", tipo="GDP")
+    assert ufficio is not None
+    assert ufficio["codice_ministero"] == "06304911552"
+    assert ufficio["pec"] == "gdp.barra@civile.ptel.giustiziacert.it"
+    assert "NON ATTIVO" not in ufficio["nome"].upper()
+
+
 def test_risoluzione_pst_gdp_palmi_usa_sigp():
     assert risolvi_codice_ministero("0910401") == "0800570152"
     assert risolvi_servizio_pst("0910401") == "JPW_SIGP"

@@ -1,5 +1,24 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-19 - Uffici deposito, alias reali e audit fallente
+
+Caso bloccante emerso in produzione: nel deposito del fascicolo `F7AA4E0C` l'ufficio veniva mostrato come `TRIBUNALE DI REGGIO DI CALABRIA`, mentre il catalogo ministeriale interno contiene `Tribunale di Reggio Calabria`. Il risultato era PEC non disponibile e codice ufficio non risolto.
+
+Correzione applicata:
+
+- il resolver centrale `pct/uffici_giudiziari.py` normalizza articoli, preposizioni e qualificatori non essenziali nei nomi ufficio;
+- sono coperti alias reali di pratica come `TRIBUNALE DI ...`, `TRIBUNALE ORDINARIO DI ...`, `GIUDICE DI PACE DI ...`, `Corte d'Appello di ...` e varianti con trattino;
+- quando esistono righe storiche `ex` o `non attivo`, viene preferita la riga operativa con PEC e codice completo;
+- il payload React deposito usa il resolver centrale prima del fallback testuale interno.
+
+Guardrail aggiunti:
+
+- `tests/test_reginde.py::test_risoluzione_tribunale_reggio_calabria_accetta_alias_pratica_reale`;
+- `tests/test_reginde.py::test_risoluzione_gdp_preferisce_ufficio_attivo_con_pec_su_alias_storico`;
+- `scripts/audit_deposito_catalogo_end_to_end.py` prova ora alias reali per tutti gli uffici PCT operativi e fallisce se un solo alias non produce PEC/codice verificati.
+
+Esito audit locale del 19/07/2026: 270 tipi deposito controllati, 252 generatori PCT, 18 UNEP, 593 uffici PCT operativi coperti, 0 uffici mancanti, 0 PEC/codici mancanti, 0 errori del resolver React deposito.
+
 ## Aggiornamento 2026-07-09 - Selezione documenti deposito e avvisi non bloccanti
 
 Ambito: flusso React `Prepara deposito`, fase `Documenti da inviare` e fase `Pacchetto deposito`, con caso guida produzione `FB586324`.

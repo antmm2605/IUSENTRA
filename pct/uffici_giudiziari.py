@@ -135,6 +135,96 @@ def _n(testo: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().replace(" ", "")
 
 
+_STOPWORDS_ALIAS_UFFICIO = {
+    "a",
+    "ad",
+    "al",
+    "alla",
+    "alle",
+    "allo",
+    "ai",
+    "agli",
+    "d",
+    "da",
+    "dal",
+    "dalla",
+    "dalle",
+    "dallo",
+    "dei",
+    "degli",
+    "del",
+    "dell",
+    "della",
+    "delle",
+    "di",
+    "il",
+    "l",
+    "la",
+    "le",
+    "lo",
+}
+_QUALIFICATORI_ALIAS_UFFICIO = {"ordinario", "ordinaria"}
+
+
+def _slug_alias_ufficio(testo: str) -> str:
+    """Normalizza i nomi ufficio per alias reali delle pratiche e del PST."""
+    raw = str(testo or "").strip()
+    if not raw:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", raw)
+    ascii_text = "".join(c for c in nfkd if not unicodedata.combining(c)).casefold()
+    tokens: list[str] = []
+    corrente: list[str] = []
+    for char in ascii_text:
+        if char.isalnum():
+            corrente.append(char)
+        else:
+            if corrente:
+                tokens.append("".join(corrente))
+                corrente = []
+    if corrente:
+        tokens.append("".join(corrente))
+    filtered = [
+        token
+        for token in tokens
+        if token not in _STOPWORDS_ALIAS_UFFICIO and token not in _QUALIFICATORI_ALIAS_UFFICIO
+    ]
+    return "".join(filtered) or _n(raw.replace("-", " "))
+
+
+def _alias_ufficio(ufficio: dict) -> set[str]:
+    """Restituisce alias normalizzati per descrizioni ministeriali e nomi pratica."""
+    tipo = str(ufficio.get("tipo") or "").upper()
+    tipo_label = str((TIPI_UFFICIO.get(tipo) or ("", tipo))[1] or tipo)
+    comune = str(ufficio.get("comune_ministero") or "").strip()
+    values = {
+        str(ufficio.get("nome") or ""),
+        str(ufficio.get("descrizione_ministero") or ""),
+        str(ufficio.get("tipo_ministero_descrizione") or ""),
+    }
+    if comune:
+        values.update(
+            {
+                f"{tipo_label} {comune}",
+                f"{tipo_label} di {comune}",
+                f"{tipo_label} - {comune}",
+                f"{ufficio.get('tipo_ministero_descrizione') or tipo_label} {comune}",
+                f"{ufficio.get('tipo_ministero_descrizione') or tipo_label} - {comune}",
+            }
+        )
+        if tipo == "TRIBUNALE":
+            values.update(
+                {
+                    f"Tribunale {comune}",
+                    f"Tribunale di {comune}",
+                    f"Tribunale Ordinario {comune}",
+                    f"Tribunale Ordinario di {comune}",
+                    f"Tribunale Ordinario - {comune}",
+                }
+            )
+    return {slug for value in values if (slug := _slug_alias_ufficio(value))}
+
+
 def _uffici_hash(uffici: list[dict]) -> str:
     """Restituisce un hash stabile del contenuto logico del bundle/cache."""
     canonici = [
@@ -1835,6 +1925,33 @@ def risolvi_ufficio(
     def _ok_tipo(ufficio: dict) -> bool:
         return not tipo_norm or (ufficio.get("tipo") or "").upper() == tipo_norm
 
+    def _preferisci_ufficio(candidati: list[dict]) -> dict | None:
+        if not candidati:
+            return None
+
+        def _score(ufficio: dict) -> tuple[int, int, int, int, int, str]:
+            testo = " ".join(
+                str(ufficio.get(key) or "").upper()
+                for key in ("nome", "descrizione_ministero", "tipo_ministero_descrizione")
+            )
+            non_operativo = any(
+                marker in testo
+                for marker in ("NON ATTIVO", "EX GIUD", "EX SD", "SEZIONE DISTACCATA", "MODEL OFFICE", "FORMAZIONE")
+            )
+            pec = str(ufficio.get("pec") or ufficio.get("pec_ministero") or "").strip()
+            codice = str(ufficio.get("codice_ministero") or ufficio.get("codice") or "").strip()
+            servizi = [str(s or "").strip().upper() for s in (ufficio.get("servizi_ministero") or []) if str(s or "").strip()]
+            return (
+                0 if non_operativo else 1,
+                1 if pec else 0,
+                1 if codice else 0,
+                1 if any(s.startswith("JPW_") for s in servizi) else 0,
+                len(codice),
+                str(ufficio.get("nome") or ""),
+            )
+
+        return sorted(candidati, key=_score, reverse=True)[0]
+
     for ufficio in uffici:
         if _ok_tipo(ufficio) and chiave == ufficio.get("codice"):
             return ufficio
@@ -1856,27 +1973,63 @@ def risolvi_ufficio(
                 return ufficio
 
     chiave_norm = _n(chiave.replace("-", " "))
-    for ufficio in uffici:
-        if not _ok_tipo(ufficio):
-            continue
-        campi = (
-            ufficio.get("nome", ""),
-            ufficio.get("descrizione_ministero", ""),
-            ufficio.get("comune_ministero", ""),
+    chiave_alias = _slug_alias_ufficio(chiave)
+    if chiave_alias:
+        match = _preferisci_ufficio(
+            [ufficio for ufficio in uffici if _ok_tipo(ufficio) and chiave_alias in _alias_ufficio(ufficio)]
         )
-        if any(_n(str(val).replace("-", " ")) == chiave_norm for val in campi if val):
-            return ufficio
+        if match is not None:
+            return match
 
-    for ufficio in uffici:
-        if not _ok_tipo(ufficio):
-            continue
-        campi = (
-            ufficio.get("nome", ""),
-            ufficio.get("descrizione_ministero", ""),
-            ufficio.get("comune_ministero", ""),
+    match = _preferisci_ufficio(
+        [
+            ufficio
+            for ufficio in uffici
+            if _ok_tipo(ufficio)
+            and any(
+                _n(str(val).replace("-", " ")) == chiave_norm
+                for val in (
+                    ufficio.get("nome", ""),
+                    ufficio.get("descrizione_ministero", ""),
+                    ufficio.get("comune_ministero", ""),
+                )
+                if val
+            )
+        ]
+    )
+    if match is not None:
+        return match
+
+    if len(chiave_alias) >= 8:
+        match = _preferisci_ufficio(
+            [
+                ufficio
+                for ufficio in uffici
+                if _ok_tipo(ufficio)
+                and any(chiave_alias in alias or alias in chiave_alias for alias in _alias_ufficio(ufficio))
+            ]
         )
-        if any(chiave_norm in _n(str(val).replace("-", " ")) for val in campi if val):
-            return ufficio
+        if match is not None:
+            return match
+
+    match = _preferisci_ufficio(
+        [
+            ufficio
+            for ufficio in uffici
+            if _ok_tipo(ufficio)
+            and any(
+                chiave_norm in _n(str(val).replace("-", " "))
+                for val in (
+                    ufficio.get("nome", ""),
+                    ufficio.get("descrizione_ministero", ""),
+                    ufficio.get("comune_ministero", ""),
+                )
+                if val
+            )
+        ]
+    )
+    if match is not None:
+        return match
 
     return None
 

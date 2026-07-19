@@ -5471,7 +5471,7 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
     profile_complete = bool(profile_pec and (profile_code or profile_ministerial_code))
 
     try:
-        from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore
+        from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore, risolvi_ufficio
 
         offices = get_gestore(_uffici_cache_path()).carica()
     except Exception:
@@ -5513,10 +5513,20 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
             _text(row.get("pec_ministero")).casefold(),
         )
 
-    office = next(
+    office = None
+    for term in wanted_terms:
+        try:
+            office = risolvi_ufficio(term, cache_path=_uffici_cache_path())
+        except Exception:
+            office = None
+        if office is not None:
+            break
+
+    if office is None:
+        office = next(
         (row for row in offices if any(term in _office_field_values(row) for term in wanted_terms)),
         None,
-    )
+        )
     if office is None:
         name_terms = [term for term in wanted_terms[:2] if term]
         office = next(

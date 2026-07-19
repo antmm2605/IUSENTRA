@@ -537,6 +537,31 @@ def _external_office_is_operational_pct(row: dict[str, Any]) -> bool:
     return any(service.startswith("JPW_") for service in services)
 
 
+def _office_aliases_for_deposit_audit(office: dict[str, Any], source_row: dict[str, Any]) -> list[str]:
+    aliases = {
+        str(office.get("nome") or "").strip(),
+        str(office.get("descrizione_ministero") or source_row.get("descrizione") or "").strip(),
+    }
+    office_type = str(office.get("tipo") or "").strip().upper()
+    comune = str(office.get("comune_ministero") or "").strip()
+    if comune:
+        if office_type == "TRIBUNALE":
+            aliases.update(
+                {
+                    f"TRIBUNALE DI {comune.upper()}",
+                    f"TRIBUNALE ORDINARIO DI {comune.upper()}",
+                    f"Tribunale Ordinario - {comune}",
+                }
+            )
+        elif office_type == "GDP":
+            aliases.update({f"GIUDICE DI PACE DI {comune.upper()}", f"Giudice di Pace - {comune}"})
+        elif office_type == "CORTE_APPELLO":
+            aliases.update({f"CORTE D'APPELLO DI {comune.upper()}", f"Corte d'Appello - {comune}"})
+        elif office_type == "TM":
+            aliases.update({f"TRIBUNALE PER I MINORENNI DI {comune.upper()}"})
+    return sorted(alias for alias in aliases if alias)
+
+
 def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
     try:
         from pct.pst_cifratura import _iter_certificati_cifratura_target_rows
@@ -572,21 +597,28 @@ def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
         if not pec or not internal_code:
             empty_target.append({"codice": code, "nome": name, "pec": pec, "codice_iusentra": internal_code})
             continue
-        resolved = _deposit_office_payload(
-            SimpleNamespace(
-                tribunale=name,
-                profilo_deposito={"ufficio": {"nome": name, "pec": pec}},
+        for alias in _office_aliases_for_deposit_audit(office, row):
+            resolved = _deposit_office_payload(
+                SimpleNamespace(
+                    tribunale=alias,
+                    profilo_deposito={},
+                )
             )
-        )
-        if not (resolved.get("pec") and (resolved.get("code") or resolved.get("ministerialCode")) and resolved.get("verified")):
-            resolver_errors.append(
-                {
-                    "codice": code,
-                    "nome": name,
-                    "pec": pec,
-                    "resolver_message": str(resolved.get("message") or ""),
-                }
-            )
+            if not (
+                resolved.get("pec")
+                and (resolved.get("code") or resolved.get("ministerialCode"))
+                and resolved.get("verified")
+            ):
+                resolver_errors.append(
+                    {
+                        "codice": code,
+                        "nome": name,
+                        "alias": alias,
+                        "pec": pec,
+                        "resolver_message": str(resolved.get("message") or ""),
+                    }
+                )
+                break
 
     external_rows, external_source = _quickorganizer_office_rows()
     external_operational = [row for row in external_rows if _external_office_is_operational_pct(row)]
@@ -623,7 +655,10 @@ def _check_office_catalog_contracts(errors: list[str]) -> dict[str, Any]:
     ):
         if rows:
             sample = "; ".join(
-                f"{row.get('codice')} {row.get('nome') or row.get('descrizione') or row.get('resolver_message') or ''}".strip()
+                (
+                    f"{row.get('codice')} "
+                    f"{row.get('alias') or row.get('nome') or row.get('descrizione') or row.get('resolver_message') or ''}"
+                ).strip()
                 for row in rows[:8]
             )
             errors.append(f"catalogo uffici: {label}: {len(rows)} ({sample})")

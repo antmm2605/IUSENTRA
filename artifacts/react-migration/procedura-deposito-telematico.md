@@ -5020,4 +5020,14 @@ Guardrail eseguiti:
 - `python -m pytest -q tests/test_regia_ui_react.py`;
 - `pnpm --filter @iusentra/studio build`, con `FascicoloDepositoPage` a `158,41 kB` e nessun chunk JavaScript sopra `500 kB`.
 
-Stato: codice locale compilato e coperto da test mirati. Restano obbligatori deploy Hetzner, click reale su `https://app.iusentra.it/fascicoli/F7AA4E0C/deposito/prepara?...#generazione-busta`, verifica visiva desktop/mobile, commit, push branch gemelli e riallineamento locale/server prima della chiusura definitiva.
+Verifica reale su produzione del 19/07/2026:
+
+- pagina aperta su `https://app.iusentra.it/fascicoli/F7AA4E0C/deposito/prepara?documenti=9D585112%2C2A81BC67%2C10E84CA1#generazione-busta`;
+- pannello `Aggiungi documenti al deposito` visibile nella fase `Pacchetto deposito`, con 17 documenti aggiungibili dal fascicolo;
+- ricerca interna provata con `Procura`: il selettore ha filtrato il documento `Procura.PDF`;
+- comando `Aggiungi alla busta` provato: il contatore è passato da 3 a 4 documenti in busta e la lista pacchetto ha aggiunto una riga;
+- reload pagina provato: la selezione temporanea non è stata salvata senza conferma e il perimetro è tornato ai 3 documenti della query;
+- comando `Visualizza` provato su documento EML del pacchetto: il lettore documento si è aperto sopra la pagina, con contenuto leggibile e pulsanti `Scarica`/`Chiudi`;
+- area `Carica da PC e inserisci nella busta` aperta e verificata con caricatore reale, senza upload di file di prova per non scrivere documenti non necessari nel fascicolo di produzione.
+
+Stato: codice compilato, test automatici mirati eseguiti, produzione Hetzner aggiornata al commit pushato e verifica reale desktop completata. Resta non eseguito solo l'upload materiale di un file esterno nel fascicolo reale, per evitare dati di prova in produzione senza necessità operativa.

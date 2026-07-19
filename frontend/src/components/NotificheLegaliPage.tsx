@@ -3480,8 +3480,7 @@ export function NotificheLegaliPage() {
                                 <a
                                   className="iu-legal-document-view"
                                   href={viewHref}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                  onClick={(event) => event.stopPropagation()}
                                   aria-label={`Visualizza documento ${documentPrimaryName(documento)}`}
                                   title="Visualizza documento"
                                 >

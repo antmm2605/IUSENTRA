@@ -489,7 +489,12 @@ def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():
     assert "Uffici NEP / UNEP" in source
     assert "getNotificheLegaliPracticeDocuments(selectedPracticeId, requestedDocumentSelectionTokens)" in source
     assert "documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens)" in source
+    assert "if (!data.precompilazione.indicePratiche.length || selectedPracticeId) return" not in source
+    assert "documentViewHref(documento)" in source
+    assert "Visualizza documento" in source
+    assert "Eye size={15}" in source
     assert ".iu-legal-unep-quick" in css
+    assert ".iu-legal-document-view" in css
 
 
 def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():

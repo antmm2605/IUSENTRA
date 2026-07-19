@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ClipboardCheck,
+  Eye,
   FileDown,
   FileCheck2,
   FileSignature,
@@ -1913,6 +1914,12 @@ export function NotificheLegaliPage() {
     return details.join(' · ')
   }
 
+  const documentViewHref = (documento: LegalDocumentSuggestion) => (
+    selectedPracticeId && documento.id
+      ? `/fascicoli/${encodeURIComponent(selectedPracticeId)}/documenti/${encodeURIComponent(documento.id)}/visualizza`
+      : ''
+  )
+
   const hasNotifiableExtension = (value: string) => /\.(?:pdf|pdfa|p7m)$/i.test((value || '').trim())
   const hasSendableNotificationAttachmentExtension = (value: string) => /\.(?:pdf|pdfa|p7m|eml|msg)$/i.test((value || '').trim())
   const hasEmailEvidenceExtension = (value: string) => /\.(?:eml|msg)$/i.test((value || '').trim())
@@ -2531,7 +2538,7 @@ export function NotificheLegaliPage() {
   }
 
   useEffect(() => {
-    if (!data.precompilazione.indicePratiche.length || selectedPracticeId) return
+    if (selectedPracticeId) return
     const params = new URLSearchParams(window.location.search)
     const practiceId = params.get('id_fascicolo') || params.get('id_fasc') || params.get('fascicolo')
     const phase = params.get('fase')
@@ -2540,10 +2547,8 @@ export function NotificheLegaliPage() {
     if (phase === 'unep') setTab('unep')
     if (phase === 'nonpec' || phase === 'non-pec') setTab('nonpec')
     if (!practiceId) return
-    if (data.precompilazione.indicePratiche.some((item) => item.id === practiceId)) {
-      void selectPracticeById(practiceId)
-    }
-  }, [data.precompilazione.indicePratiche, selectedPracticeId])
+    void selectPracticeById(practiceId)
+  }, [selectedPracticeId])
 
   const buildNotificaPayload = (
     includeDraft: boolean,
@@ -3454,21 +3459,38 @@ export function NotificheLegaliPage() {
                     </div>
                     {documentSuggestions.length ? (
                       <div className="iu-legal-document-picker__grid">
-                        {documentSuggestions.map((documento) => (
-                          <label className="iu-legal-check" key={documento.id}>
-                            <input
-                              type="checkbox"
-                              checked={selectedNotificationDocumentIds.includes(documento.id)}
-                              onChange={(event) => toggleNotificationDocument(documento, event.currentTarget.checked)}
-                            />
-                            <span className="iu-legal-document-line">
-                              <strong>{documentPrimaryName(documento)}</strong>
-                              {documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
-                              {hasEmailEvidenceExtension(documentPrimaryName(documento)) ? <em>EML/MSG selezionabile manualmente</em> : null}
-                              {documento.necessitaAttestazione ? <em>Incluso nell’attestazione unica in relata</em> : null}
-                            </span>
-                          </label>
-                        ))}
+                        {documentSuggestions.map((documento) => {
+                          const viewHref = documentViewHref(documento)
+                          return (
+                            <div className="iu-legal-check iu-legal-check--with-action" key={documento.id}>
+                              <label className="iu-legal-check__select">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedNotificationDocumentIds.includes(documento.id)}
+                                  onChange={(event) => toggleNotificationDocument(documento, event.currentTarget.checked)}
+                                />
+                                <span className="iu-legal-document-line">
+                                  <strong>{documentPrimaryName(documento)}</strong>
+                                  {documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
+                                  {hasEmailEvidenceExtension(documentPrimaryName(documento)) ? <em>EML/MSG selezionabile manualmente</em> : null}
+                                  {documento.necessitaAttestazione ? <em>Incluso nell’attestazione unica in relata</em> : null}
+                                </span>
+                              </label>
+                              {viewHref ? (
+                                <a
+                                  className="iu-legal-document-view"
+                                  href={viewHref}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={`Visualizza documento ${documentPrimaryName(documento)}`}
+                                  title="Visualizza documento"
+                                >
+                                  <Eye size={15} />
+                                </a>
+                              ) : null}
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : <p className="iu-legal-empty">Nessun documento disponibile per la pratica selezionata.</p>}
                     {currentNotificationDocuments.length ? (

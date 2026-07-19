@@ -4989,3 +4989,13 @@ Guardrail eseguiti:
 - `pnpm --dir frontend build`, senza asset JavaScript o CSS sopra `500.000` byte.
 
 Stato: implementazione e guardrail automatici completati. Restano obbligatori deploy, click reali sul server, riallineamento locale, commit e push prima della chiusura formale.
+
+### Hotfix 19/07/2026 - aggancio pratica Notifica da URL
+
+Nel test reale su `https://app.iusentra.it` e' emersa una regressione: entrando in Notifica dal fascicolo con `id_fascicolo` e `documenti=...`, la pagina poteva restare senza pratica selezionata quando l'indice pratiche non era gia' disponibile. In quel caso destinatari, percorso NEP/UNEP e documenti risultavano a zero.
+
+Correzione applicata: l'URL con `id_fascicolo`, `id_fasc` o `fascicolo` avvia sempre il caricamento diretto della pratica tramite API, senza dipendere dall'indice iniziale. La fase (`notifica`, `deposito`, `unep`, `nonpec`) continua a essere letta dalla query.
+
+Nel pannello `Documenti da notificare` ogni documento proposto mostra anche l'azione `Visualizza documento`, collegata al visualizzatore interno del fascicolo. L'avvocato puo' quindi aprire la fonte prima di includerla nella relata senza uscire dal software e senza trasformare la riga in un download esterno.
+
+Verifica da ripetere sul server: Fascicolo -> Notifica -> selezione documenti -> Notifica, controllando pratica agganciata, documenti preselezionati, ricerca destinatari completa, percorso NEP/UNEP visibile e icona di visualizzazione documento funzionante.

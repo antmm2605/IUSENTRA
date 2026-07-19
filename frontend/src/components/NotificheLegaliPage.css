@@ -791,6 +791,19 @@
   font-weight: 650;
 }
 
+.iu-legal-check--with-action {
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.iu-legal-check__select {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .iu-legal-check input {
   margin-top: 3px;
 }
@@ -825,6 +838,30 @@
   font-size: .7rem;
   font-style: normal;
   font-weight: 850;
+}
+
+.iu-legal-document-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  margin-top: -1px;
+  border: 1px solid rgba(37, 99, 235, .24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .92);
+  color: var(--iu-action-blue, #2563eb);
+  text-decoration: none;
+}
+
+.iu-legal-document-view:hover,
+.iu-legal-document-view:focus-visible {
+  border-color: rgba(37, 99, 235, .55);
+  background: rgba(235, 244, 255, .95);
+  color: var(--iu-blue-700, #173a67);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .13);
+  outline: none;
 }
 
 .iu-legal-directive-box {

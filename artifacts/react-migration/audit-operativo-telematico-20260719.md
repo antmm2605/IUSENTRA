@@ -89,3 +89,9 @@ Esito verificato:
 - Verifica PST/PolisWeb: apertura portale, accesso, arrivo a InfoFascicolo, tab documenti, scelta documento, acquisizione nel fascicolo senza duplicati.
 - Verifica agenda/scadenziario: fonte visualizzabile in finestra sopra pagina, link audiovisivo cliccabile, colori coerenti con legenda, completamento stato funzionante.
 - Riallineamento locale, commit, push branch gemelli, deploy Hetzner, container unico `iusentra-app`, `/api/pronto`, igiene repo.
+
+## Aggiornamento 19/07/2026 - pulsanti prova deposito
+
+Log deposito controllato: in `artifacts/react-migration/procedura-deposito-telematico.md` è registrata la prova reale del 29/06/2026 su `795C50AC`, con `Prova senza invio reale` cliccabile, busta pronta, destinatario PEC, oggetto PEC, report di compatibilità e successivo invio reale partito dal PC locale dell'avvocato.
+
+Correzione richiesta: `Prova senza invio reale` e `Simula invio PEC` non devono più spegnersi per gli stessi motivi dell'invio reale. Devono restare azionabili come prova diagnostica e riportare il requisito mancante senza spedire PEC. `Invia deposito reale` mantiene invece tutti i blocchi obbligatori fino a prova positiva, busta conforme e invio locale disponibile.

@@ -2541,12 +2541,19 @@ function DepositPreparePage({ id }:{id:string}) {
       ? 'Seleziona l’atto principale prima di visualizzare l’indice.'
       : 'Seleziona almeno un documento prima di visualizzare l’indice.'
   const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady
+  const proofActionBlocked = loading || !f.id || !dryRunBustaAction
+  const proofActionBlockedReason = loading || !f.id
+    ? 'Caricamento proposta busta in corso.'
+    : 'Azione di prova deposito non disponibile.'
   const requiredDepositDataBlocked = missingRequiredSlots.length > 0 || missingRequiredDepositSpecificFields.length > 0
   const actionBlockedReason = !selectedDepositType
     ? 'Scegli il tipo di deposito prima di preparare la prova.'
     : !officeRecipientReady
     ? officeRecipientBlockingReason
     : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots)
+  const proofActionNotice = !proofActionBlocked && actionBlocked
+    ? `${actionBlockedReason} La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla.`
+    : ''
   const requiredChoicesNotice = missingRequiredSlots.length
     ? `${missingRequiredSlots.length === 1 ? 'Documento richiesto da verificare' : 'Documenti richiesti da verificare'}: ${missingDepositSlotsSummary(missingRequiredSlots) || `${missingRequiredSlots.length} scelte`}. La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente e non blocca la prova.`
     : ''
@@ -3418,8 +3425,8 @@ function DepositPreparePage({ id }:{id:string}) {
               <DepositActionButton
                 action={dryRunBustaAction}
                 payload={depositDryRunActionPayload}
-                disabled={actionBlocked}
-                disabledReason={actionBlockedReason}
+                disabled={proofActionBlocked}
+                disabledReason={proofActionBlockedReason || actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 tone="primary"
@@ -3439,8 +3446,8 @@ function DepositPreparePage({ id }:{id:string}) {
               <DepositActionButton
                 action={dryRunBustaAction}
                 payload={depositSimulationActionPayload}
-                disabled={actionBlocked}
-                disabledReason={actionBlockedReason}
+                disabled={proofActionBlocked}
+                disabledReason={proofActionBlockedReason || actionBlockedReason}
                 beforeSubmit={prepareDepositBeforeSubmit}
                 progressItems={DEPOSIT_PROGRESS_USER_STEPS}
                 progressLabel="Simulazione PEC in corso"
@@ -3454,6 +3461,7 @@ function DepositPreparePage({ id }:{id:string}) {
               >
                 <Mail size={15}/> Simula invio PEC
               </DepositActionButton>
+              {proofActionNotice ? <small>{depositUserFacingMessage(proofActionNotice)}</small> : null}
               <DepositActionButton
                 action={realSendAction}
                 payload={depositActionPayload}

@@ -5050,3 +5050,25 @@ Verifica reale su produzione del 19/07/2026:
 - area `Carica da PC e inserisci nella busta` aperta e verificata con caricatore reale, senza upload di file di prova per non scrivere documenti non necessari nel fascicolo di produzione.
 
 Stato: codice compilato, test automatici mirati eseguiti, produzione Hetzner aggiornata al commit pushato e verifica reale desktop completata. Resta non eseguito solo l'upload materiale di un file esterno nel fascicolo reale, per evitare dati di prova in produzione senza necessità operativa.
+
+### Hotfix 19/07/2026 - prova deposito sempre cliccabile
+
+Richiesta utente: `Prova senza invio reale` e `Simula invio PEC` non devono restare disabilitati quando il sistema deve ancora diagnosticare tipo deposito, atto principale o altri requisiti; quei blocchi devono impedire l'invio reale, non la prova controllata.
+
+Log storico controllato:
+
+- nella prova reale del 29/06/2026 sul fascicolo `795C50AC`, `Prova senza invio reale` era cliccabile e ha concluso con busta, indice, destinatario e testo PEC pronti per il controllo;
+- il successivo invio reale è stato eseguito dall'avvocato dal PC locale, con ricevute PEC osservate e successivo esito PST che ha guidato le correzioni su `Atto.msg`, `IndiceBusta.xml` e allegati `.eml`;
+- le prove successive su `DC5BF1DB`, `E5AE4668` e `F08F92A2` mostrano che la simulazione positiva abilita `Invia deposito reale`, mentre l'invio reale resta bloccato solo da requisiti obbligatori effettivi.
+
+Correzione applicata:
+
+- `Prova senza invio reale` e `Simula invio PEC` usano ora un blocco dedicato minimo: caricamento pagina, fascicolo non disponibile o azione di prova mancante;
+- tipo deposito non scelto, atto principale non selezionato o ufficio non pronto restano mostrati come diagnosi visibile, ma la prova può partire e restituire un esito controllato senza inviare nulla;
+- `Invia deposito reale` conserva il blocco pieno su tipo deposito, atto principale, ufficio, dati obbligatori, prova positiva, busta/trasporto e canale PEC locale.
+
+Guardrail aggiunto:
+
+- `tests/test_regia_ui_react.py::test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto` fallisce se i due comandi di prova tornano a usare `disabled={actionBlocked}`.
+
+Verifica reale ancora da ripetere dopo deploy: aprire la pagina deposito in produzione, controllare che `Prova senza invio reale` e `Simula invio PEC` siano cliccabili, confermare la simulazione senza invio reale e verificare che l'eventuale blocco venga riportato come requisito puntuale, non come pulsante spento.

@@ -252,8 +252,11 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
 
     assert "const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady" in deposit_page
+    assert "const proofActionBlocked = loading || !f.id || !dryRunBustaAction" in deposit_page
     assert "const requiredDepositDataBlocked = missingRequiredSlots.length > 0" in deposit_page
+    assert deposit_page.count("disabled={proofActionBlocked}") >= 2
     assert "disabled={actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla." in deposit_page
     assert "Durante la prova il dispositivo firma i dati del deposito" in deposit_page
     assert "Boolean(missingRequiredSlots.length) || !officeRecipientReady" not in deposit_page
     assert "requiredChoicesNotice" in deposit_page

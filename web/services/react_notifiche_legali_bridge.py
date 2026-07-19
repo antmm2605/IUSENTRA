@@ -9,7 +9,7 @@ import tempfile
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 from urllib.parse import urlencode
 
 from pct.notifiche_legali import (

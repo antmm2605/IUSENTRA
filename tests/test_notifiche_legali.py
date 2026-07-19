@@ -2406,6 +2406,67 @@ def test_payload_documenti_pratica_rispetta_selezione_esplicita_oltre_primo_bloc
     assert [item["id"] for item in selected_payload["documenti"]] == ["doc-45", "doc-55"]
 
 
+def test_payload_pratica_notifiche_risolve_alias_fascicolo_da_link_diretto():
+    documento = SimpleNamespace(
+        id="doc-reddito",
+        nome="Autocertificazione reddito.PDF",
+        nome_originale="Autocertificazione reddito.PDF",
+        nome_portale="",
+        percorso="",
+        tipo_atto_portale="",
+        classificazione_portale="",
+        note="",
+        fonte_documento="PST",
+        servizio_portale="PST",
+        hash_sha256="",
+        data_documento="2026-07-18",
+        data_deposito_portale="2026-07-18",
+        id_documento_portale="PORT-REDDITO",
+        tags=[],
+    )
+    fascicolo = SimpleNamespace(
+        id="fascicolo-interno",
+        id_pratica="78D6022C",
+        numero="RG 1428/2026",
+        titolo="Romeo Maria c. MIM",
+        id_cliente="",
+        nome_cliente="Romeo Maria",
+        controparte="Ministero dell'Istruzione e del Merito",
+        cf_controparte="",
+        tribunale="TRIBUNALE DI PALMI",
+        sezione="",
+        numero_rg="1428",
+        anno_rg="2026",
+        giudice="",
+        tipo_procedimento="",
+        oggetto="",
+        note="",
+        documenti=[documento],
+    )
+    repo = SimpleNamespace(
+        get=lambda id_fascicolo: None,
+        tutti=lambda archiviati=False: [fascicolo],
+    )
+
+    practice_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "78D6022C",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: repo,
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda _id: []),
+    )
+    documents_payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_documents_payload(
+        "78D6022C",
+        selected_document_ids=["PORT-REDDITO"],
+        get_fascicoli=lambda: repo,
+    )
+
+    assert practice_payload["ok"] is True
+    assert practice_payload["pratica"]["id"] == "fascicolo-interno"
+    assert practice_payload["pratica"]["documenti"][0]["nomeFile"] == "Autocertificazione reddito.PDF"
+    assert documents_payload["ok"] is True
+    assert [item["id"] for item in documents_payload["documenti"]] == ["doc-reddito"]
+
+
 def test_deriva_titolo_documento_da_testo_ocr():
     text = """
     ISTITUTO COMPRENSIVO IC 2 E 4 DI VICENZA

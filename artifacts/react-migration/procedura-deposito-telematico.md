@@ -4998,4 +4998,6 @@ Correzione applicata: l'URL con `id_fascicolo`, `id_fasc` o `fascicolo` avvia se
 
 Nel pannello `Documenti da notificare` ogni documento proposto mostra anche l'azione `Visualizza documento`, collegata al visualizzatore interno del fascicolo. L'avvocato puo' quindi aprire la fonte prima di includerla nella relata senza uscire dal software e senza trasformare la riga in un download esterno; l'apertura avviene nella stessa app, non tramite popup o nuova scheda fragile.
 
+Seconda correzione dello stesso hotfix: le API Notifica risolvono ora il fascicolo anche quando l'URL contiene l'identificativo pubblico della route o un alias storico, mentre il repository risponde con un ID interno diverso. Questo evita che il link diretto mostri `0 dati già proposti`, nessun documento e nessun percorso NEP/UNEP.
+
 Verifica da ripetere sul server: Fascicolo -> Notifica -> selezione documenti -> Notifica, controllando pratica agganciata, documenti preselezionati, ricerca destinatari completa, percorso NEP/UNEP visibile e icona di visualizzazione documento funzionante.

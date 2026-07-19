@@ -50,6 +50,48 @@ def _text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _fascicolo_lookup_keys(fascicolo: Any) -> set[str]:
+    fields = (
+        "id",
+        "id_pratica",
+        "numero",
+        "numero_interno",
+        "numero_rg",
+        "riferimento",
+        "reference",
+        "codice",
+        "codice_fascicolo",
+        "source_external_id",
+        "import_log_id",
+    )
+    keys = {_text(getattr(fascicolo, field, "")) for field in fields}
+    fid = _text(getattr(fascicolo, "id", ""))
+    if fid:
+        keys.update({fid.upper(), fid.lower()})
+    return {key for key in keys if key}
+
+
+def _all_fascicoli_for_lookup(repo: Any) -> list[Any]:
+    rows = _safe_call("fascicoli_lookup_archiviati", lambda: repo.tutti(archiviati=True), [])
+    if rows:
+        return list(rows)
+    return list(_safe_call("fascicoli_lookup", lambda: repo.tutti(), []))
+
+
+def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
+    safe_id = _text(requested_id)
+    direct = _safe_call("fascicolo", lambda: repo.get(safe_id), None) if safe_id else None
+    if direct is not None:
+        return direct
+    wanted = safe_id.casefold()
+    if not wanted:
+        return None
+    for fascicolo in _all_fascicoli_for_lookup(repo):
+        if wanted in {key.casefold() for key in _fascicolo_lookup_keys(fascicolo)}:
+            return fascicolo
+    return None
+
+
 def _unep_office_catalog() -> list[dict[str, Any]]:
     """Espone il catalogo UNEP dalla stessa fonte usata da Tribunali / PEC."""
 
@@ -1083,7 +1125,7 @@ def build_react_notifiche_legali_practice_payload(
 ) -> dict[str, Any]:
     fascicoli_repo = _repo_from_getter(get_fascicoli)
     fascicolo = (
-        _safe_call("fascicolo", lambda: fascicoli_repo.get(_text(id_fascicolo)), None)
+        _resolve_fascicolo(fascicoli_repo, id_fascicolo)
         if fascicoli_repo is not None
         else None
     )
@@ -1111,7 +1153,7 @@ def build_react_notifiche_legali_practice_documents_payload(
     get_fascicoli: Any = None,
 ) -> dict[str, Any]:
     repo = _repo_from_getter(get_fascicoli)
-    fascicolo = _safe_call("fascicolo", lambda: repo.get(_text(id_fascicolo)), None) if repo is not None else None
+    fascicolo = _resolve_fascicolo(repo, id_fascicolo) if repo is not None else None
     if fascicolo is None:
         return _sanitize_ui_payload({"ok": False, "message": "Pratica non trovata.", "documenti": []})
     raw_documents = list(getattr(fascicolo, "documenti", []) or [])

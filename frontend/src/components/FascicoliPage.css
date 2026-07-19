@@ -2570,7 +2570,7 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 
 .iu-fas-office-docs__row.is-attachment {
   margin-left: 28px;
-  border-left: 3px solid #9dbce8;
+  background: #fbfdff;
 }
 
 .iu-fas-office-docs__row.is-acquired {

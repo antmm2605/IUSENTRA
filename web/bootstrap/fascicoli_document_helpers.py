@@ -4,14 +4,28 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
+from email import policy
+from email.parser import BytesParser
 from html import escape
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, request, send_file, url_for
+from flask import current_app, redirect, request, send_file, url_for
 
 from pct.fascicoli import TipoDocumento
 from pct.fascicolo_document_catalog import catalog_tipo_documento_per_nome
+
+PREVIEW_EXTENSIONS = (
+    ".xml.p7m",
+    ".eml.p7m",
+    ".txt.p7m",
+    ".pdf.p7m",
+    ".xml",
+    ".eml",
+    ".txt",
+    ".pdf",
+    ".p7m",
+)
 
 
 def estrai_pdf_da_raw(data: bytes) -> bytes | None:
@@ -22,6 +36,61 @@ def estrai_pdf_da_raw(data: bytes) -> bytes | None:
     if eof_idx > idx:
         return data[idx : eof_idx + 5]
     return data[idx:]
+
+
+def nome_documento_operativo(documento: Any, percorso: Path, data: bytes | None = None) -> str:
+    """Mantiene il titolo leggibile e recupera l'estensione del file acquisito."""
+
+    display_name = str(getattr(documento, "nome", "") or "").strip()
+    candidates = (
+        display_name,
+        str(getattr(documento, "nome_originale", "") or "").strip(),
+        str(getattr(documento, "nome_portale", "") or "").strip(),
+        percorso.name,
+    )
+    for candidate in candidates:
+        lower_candidate = candidate.casefold()
+        for extension in PREVIEW_EXTENSIONS:
+            if not lower_candidate.endswith(extension):
+                continue
+            if display_name.casefold().endswith(extension):
+                return display_name
+            return f"{display_name or Path(candidate).stem}{candidate[-len(extension):]}"
+
+    if data:
+        try:
+            message = BytesParser(policy=policy.default).parsebytes(data, headersonly=True)
+            is_eml = bool(message.get("subject")) and bool(message.get("from")) and bool(message.get("to"))
+        except (TypeError, ValueError):
+            is_eml = False
+        if is_eml:
+            return f"{display_name or percorso.name}.eml"
+    return display_name or percorso.name
+
+
+def redirect_to_documenti_section(id_fasc: str):
+    section = str(request.form.get("next_section") or "sezione-documenti-fascicolo").strip().lstrip("#")
+    if not section.startswith("sezione-"):
+        section = "sezione-documenti-fascicolo"
+    return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
+
+
+def contenuto_portale_bytes(item: dict) -> bytes:
+    raw = item.get("contenuto") or b""
+    if isinstance(raw, bytes):
+        return raw
+    if isinstance(raw, bytearray):
+        return bytes(raw)
+    if isinstance(raw, str):
+        return raw.encode("utf-8")
+    return b""
+
+
+def percorso_documento_lettura(gestore_fascicoli: Any, id_fasc: str, id_doc: str) -> Path:
+    resolver = getattr(gestore_fascicoli, "percorso_documento_lettura", None)
+    if callable(resolver):
+        return Path(resolver(id_fasc, id_doc))
+    return Path(gestore_fascicoli.percorso_documento(id_fasc, id_doc))
 
 
 def wants_json_response() -> bool:

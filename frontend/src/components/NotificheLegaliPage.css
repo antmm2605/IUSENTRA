@@ -873,8 +873,7 @@
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(9, 16, 30, .58);
-  backdrop-filter: blur(6px);
+  background: rgba(9, 16, 30, .64);
 }
 
 .iu-legal-document-preview-modal__panel {

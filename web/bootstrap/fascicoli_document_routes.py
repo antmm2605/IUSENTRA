@@ -5,9 +5,6 @@ from __future__ import annotations
 import io
 from collections.abc import Callable
 from datetime import date
-from email import policy
-from email.parser import BytesParser
-from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
@@ -18,11 +15,15 @@ from pct.fascicoli import TipoDocumento
 from web.bootstrap.fascicoli_document_helpers import (
     applica_modalita_portale,
     classifica_tipo_documento,
+    contenuto_portale_bytes,
     estrai_pdf_da_raw,
     mobile_pdf_preview_response,
+    nome_documento_operativo,
     payload_bool,
+    percorso_documento_lettura,
     preview_error_html,
     preview_unavailable_html,
+    redirect_to_documenti_section,
     wants_json_response,
 )
 from web.services.fascicoli_document_rename import rinomina_documento_response
@@ -56,53 +57,6 @@ def register_fascicoli_document_routes(
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
-
-    preview_extensions = (
-        ".xml.p7m",
-        ".eml.p7m",
-        ".txt.p7m",
-        ".pdf.p7m",
-        ".xml",
-        ".eml",
-        ".txt",
-        ".pdf",
-        ".p7m",
-    )
-
-    def _nome_documento_operativo(documento: Any, percorso: Path, data: bytes | None = None) -> str:
-        """Mantiene il titolo leggibile e recupera l'estensione del file acquisito."""
-
-        display_name = str(getattr(documento, "nome", "") or "").strip()
-        candidates = (
-            display_name,
-            str(getattr(documento, "nome_originale", "") or "").strip(),
-            str(getattr(documento, "nome_portale", "") or "").strip(),
-            percorso.name,
-        )
-        for candidate in candidates:
-            lower_candidate = candidate.casefold()
-            for extension in preview_extensions:
-                if not lower_candidate.endswith(extension):
-                    continue
-                if display_name.casefold().endswith(extension):
-                    return display_name
-                return f"{display_name or Path(candidate).stem}{candidate[-len(extension):]}"
-
-        if data:
-            try:
-                message = BytesParser(policy=policy.default).parsebytes(data, headersonly=True)
-                is_eml = bool(message.get("subject")) and bool(message.get("from")) and bool(message.get("to"))
-            except (TypeError, ValueError):
-                is_eml = False
-            if is_eml:
-                return f"{display_name or percorso.name}.eml"
-        return display_name or percorso.name
-
-    def _redirect_to_documenti_section(id_fasc: str):
-        section = str(request.form.get("next_section") or "sezione-documenti-fascicolo").strip().lstrip("#")
-        if not section.startswith("sezione-"):
-            section = "sezione-documenti-fascicolo"
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
 
     def _indicizza_documento_lex(
         *,
@@ -140,22 +94,6 @@ def register_fascicoli_document_routes(
             )
         except Exception as exc:
             app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
-
-    def _contenuto_portale_bytes(item: dict) -> bytes:
-        raw = item.get("contenuto") or b""
-        if isinstance(raw, bytes):
-            return raw
-        if isinstance(raw, bytearray):
-            return bytes(raw)
-        if isinstance(raw, str):
-            return raw.encode("utf-8")
-        return b""
-
-    def _percorso_documento_lettura(gestore_fascicoli: Any, id_fasc: str, id_doc: str) -> Path:
-        resolver = getattr(gestore_fascicoli, "percorso_documento_lettura", None)
-        if callable(resolver):
-            return Path(resolver(id_fasc, id_doc))
-        return Path(gestore_fascicoli.percorso_documento(id_fasc, id_doc))
 
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
@@ -367,7 +305,7 @@ def register_fascicoli_document_routes(
                     id_fasc=id_fasc,
                     document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
                     filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
-                    content=_contenuto_portale_bytes(item),
+                    content=contenuto_portale_bytes(item),
                     source_type="portale_telematico",
                     metadata={"trigger": "import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
                 )
@@ -442,7 +380,7 @@ def register_fascicoli_document_routes(
                     id_fasc=id_fasc,
                     document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
                     filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
-                    content=_contenuto_portale_bytes(item),
+                    content=contenuto_portale_bytes(item),
                     source_type="portale_telematico",
                     metadata={"trigger": "api_import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
                 )
@@ -471,11 +409,11 @@ def register_fascicoli_document_routes(
     def scarica_documento(id_fasc, id_doc):
         gestore_fascicoli = get_fascicoli()
         try:
-            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
-            download_name = _nome_documento_operativo(documento, percorso, data)
+            download_name = nome_documento_operativo(documento, percorso, data)
             audit("fascicoli.documento.scarica", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             return send_file(io.BytesIO(data), as_attachment=True, download_name=download_name)
         except Exception as exc:
@@ -487,11 +425,11 @@ def register_fascicoli_document_routes(
     def visualizza_documento(id_fasc, id_doc):
         gestore_fascicoli = get_fascicoli()
         try:
-            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+            percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
-            operational_name = _nome_documento_operativo(documento, percorso, data)
+            operational_name = nome_documento_operativo(documento, percorso, data)
             firma_payload = firma_payload_corrente_o_sibling(percorso, operational_name, data)
             preview_payload = data
             preview_name = operational_name
@@ -652,7 +590,7 @@ def register_fascicoli_document_routes(
             if wants_json_response():
                 return jsonify({"ok": False, "messaggio": msg}), 503
             flash(msg, "danger")
-        return _redirect_to_documenti_section(id_fasc)
+        return redirect_to_documenti_section(id_fasc)
 
     @app.route("/fascicoli/<id_fasc>/documenti/elimina-multipla", methods=["POST"])
     def elimina_documenti_multipli(id_fasc):
@@ -660,7 +598,7 @@ def register_fascicoli_document_routes(
         ids_doc = [item.strip() for item in ids_raw.split(",") if item.strip()]
         if not ids_doc:
             flash("Seleziona almeno un documento da eliminare.", "warning")
-            return _redirect_to_documenti_section(id_fasc)
+            return redirect_to_documenti_section(id_fasc)
 
         gestore_fascicoli = get_fascicoli()
         rimossi = 0
@@ -690,4 +628,4 @@ def register_fascicoli_document_routes(
             )
         if errori:
             flash("Alcuni documenti non sono stati eliminati: " + "; ".join(errori[:3]), "warning")
-        return _redirect_to_documenti_section(id_fasc)
+        return redirect_to_documenti_section(id_fasc)

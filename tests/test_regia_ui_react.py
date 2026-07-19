@@ -526,7 +526,12 @@ def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
     assert "parsed.searchParams.set('documenti', documentIds.join(','))" in source
     assert "openDocumentFlow('notifica')" in source
     assert "openDocumentFlow('deposito')" in source
-    assert "La pagina successiva riceverà solo questi documenti come perimetro iniziale." in source
+    assert "compareDocumentFlowByRecentDate" in source
+    assert "const sortedDocuments = useMemo(() => [...documents].sort(compareDocumentFlowByRecentDate), [documents])" in source
+    assert "if (!tokens.length) return sortedDocuments" in source
+    assert "const suggestedIds = useMemo(() => sortedDocuments" in source
+    assert "const selectedDocuments = sortedDocuments.filter" in source
+    assert "Documenti ordinati dal più recente" in source
     assert ".iu-fas-document-flow-modal" in css
 
 

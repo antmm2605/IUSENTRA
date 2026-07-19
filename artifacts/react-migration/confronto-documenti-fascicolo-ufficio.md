@@ -362,3 +362,23 @@ Verifiche automatiche eseguite:
 - typecheck React e build Vite con budget asset sotto `500.000` byte.
 
 Stato: codice pronto per prova reale server. Nessun riferimento tecnico al materiale di confronto viene esposto nella UI.
+
+### Aggiornamento 19/07/2026 - ordine documenti nella scelta Notifica e Deposito
+
+Richiesta utente: nella finestra `Documenti del fascicolo`, aperta dal fascicolo prima di Notifica o Deposito, i documenti devono essere ordinati per data dal più recente al meno recente. L'avvocato deve trovare subito gli ultimi documenti caricati, senza scorrere l'elenco in ordine storico o casuale.
+
+Correzione applicata:
+
+- la modale condivisa ordina i documenti usando data portale, data documento e data caricamento;
+- sono supportati formati italiani e ISO, mantenendo ordinamento stabile per nome a parità di data;
+- ricerca, `Seleziona proposti`, riepilogo documenti scelti e pulsanti `Continua alla notifica` / `Continua al deposito` usano tutti lo stesso ordine;
+- il comportamento resta identico se l'avvocato filtra o seleziona manualmente i documenti.
+
+Guardrail eseguiti:
+
+- `python -m pytest -q tests/test_regia_ui_react.py::test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `git diff --check`;
+- `pnpm --filter @iusentra/studio build`, senza asset JavaScript sopra `500 kB`.
+
+Stato: pronto per deploy e verifica reale in produzione sulla modale aperta da `Notifica` e `Deposito telematico`.

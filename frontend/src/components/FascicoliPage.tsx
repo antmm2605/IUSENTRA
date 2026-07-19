@@ -5054,6 +5054,40 @@ function isNotificationSelectableDocument(doc: FascicoloDocument): boolean {
   return /(atto|ricorso|procura|decreto|sentenza|provvedimento|contratto|relata|documento)/.test(text)
 }
 
+function documentFlowDateTimestamp(value: string): number {
+  const raw = value.trim()
+  if (!raw) return 0
+
+  const italian = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/)
+  if (italian) {
+    const [, day, month, year, hour = '0', minute = '0', second = '0'] = italian
+    return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second))
+  }
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/)
+  if (iso) {
+    const [, year, month, day, hour = '0', minute = '0', second = '0'] = iso
+    return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second))
+  }
+
+  const parsed = Date.parse(raw)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function documentFlowDocumentTimestamp(doc: FascicoloDocument): number {
+  return Math.max(
+    documentFlowDateTimestamp(doc.portalDate),
+    documentFlowDateTimestamp(doc.documentDate),
+    documentFlowDateTimestamp(doc.uploadedAt),
+  )
+}
+
+function compareDocumentFlowByRecentDate(a: FascicoloDocument, b: FascicoloDocument): number {
+  const byDate = documentFlowDocumentTimestamp(b) - documentFlowDocumentTimestamp(a)
+  if (byDate !== 0) return byDate
+  return normaliseText(a.name).localeCompare(normaliseText(b.name), 'it')
+}
+
 function DocumentFlowSelectionModal({
   mode,
   documents,
@@ -5074,19 +5108,20 @@ function DocumentFlowSelectionModal({
     setQuery('')
     setSelectedIds([])
   }, [documentSignature, mode])
+  const sortedDocuments = useMemo(() => [...documents].sort(compareDocumentFlowByRecentDate), [documents])
   const visibleDocuments = useMemo(() => {
     const tokens = normaliseText(query).split(' ').filter(Boolean)
-    if (!tokens.length) return documents
-    return documents.filter((doc) => {
+    if (!tokens.length) return sortedDocuments
+    return sortedDocuments.filter((doc) => {
       const search = normaliseText(`${doc.name} ${doc.type} ${doc.rawType} ${doc.catalogLabel} ${doc.source} ${doc.tags.join(' ')}`)
       return tokens.every((token) => search.includes(token))
     })
-  }, [documents, query])
-  const suggestedIds = useMemo(() => documents
+  }, [query, sortedDocuments])
+  const suggestedIds = useMemo(() => sortedDocuments
     .filter((doc) => mode === 'deposito' ? (doc.depositCandidate || isDepositCandidateDocument(doc) || isDepositManualSelectableDocument(doc)) : isNotificationSelectableDocument(doc))
     .map((doc) => doc.id)
-    .filter(Boolean), [documents, mode])
-  const selectedDocuments = documents.filter((doc) => selectedIds.includes(doc.id))
+    .filter(Boolean), [mode, sortedDocuments])
+  const selectedDocuments = sortedDocuments.filter((doc) => selectedIds.includes(doc.id))
   const targetHref = appendSelectedDocumentsToHref(baseHref, selectedIds)
   const toggleDocument = (doc: FascicoloDocument, checked: boolean) => {
     setSelectedIds((current) => checked
@@ -5122,7 +5157,7 @@ function DocumentFlowSelectionModal({
         </div>
         <div className="iu-fas-document-flow-summary">
           <strong>{selectedIds.length ? `${selectedIds.length} documenti selezionati` : 'Nessun documento selezionato'}</strong>
-          <span>{selectedIds.length ? 'La pagina successiva riceverà solo questi documenti come perimetro iniziale.' : 'Puoi continuare senza selezione oppure scegliere i file da usare.'}</span>
+          <span>{selectedIds.length ? 'La pagina successiva riceverà solo questi documenti come perimetro iniziale.' : 'Documenti ordinati dal più recente: puoi continuare senza selezione oppure scegliere i file da usare.'}</span>
         </div>
         <div className="iu-fas-document-flow-list">
           {loading ? <p className="iu-empty">Caricamento documenti del fascicolo...</p> : null}

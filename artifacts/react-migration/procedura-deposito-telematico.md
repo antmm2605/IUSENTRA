@@ -5072,3 +5072,22 @@ Guardrail aggiunto:
 - `tests/test_regia_ui_react.py::test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto` fallisce se i due comandi di prova tornano a usare `disabled={actionBlocked}`.
 
 Verifica reale su produzione del 19/07/2026: aperta `https://app.iusentra.it/fascicoli/F7AA4E0C/deposito/prepara?documenti=9D585112%2C2A81BC67%2C10E84CA1#generazione-busta` sul commit `e0bcdd4a35ab26f54977148150b593111671aef7`. `Prova senza invio reale` e `Simula invio PEC` risultano cliccabili. Il click reale su `Simula invio PEC` apre la conferma "senza spedire nulla all'esterno"; dopo `Conferma` il controllo non resta bloccato e riporta il requisito puntuale `Atto principale non selezionato. Seleziona l'atto principale nello step documenti.`. `Invia deposito reale` resta disabilitato, come previsto, finché tipo deposito, atto principale e prova positiva non sono completati.
+
+### Aggiornamento 19/07/2026 - ordine documenti da depositare
+
+Richiesta utente: la finestra `Documenti del fascicolo`, usata anche dal pulsante `Deposito telematico`, deve mostrare prima i documenti più recenti. Questo serve quando il fascicolo contiene molti depositi, ricevute o atti acquisiti e l'avvocato deve individuare subito i file appena caricati da includere nel deposito.
+
+Correzione applicata:
+
+- la modale condivisa Notifica/Deposito ordina i documenti per data portale, data documento e data caricamento, dal più recente al meno recente;
+- lo stesso ordine viene mantenuto durante ricerca, selezione dei proposti e riepilogo documenti scelti;
+- l'ordinamento non cambia le regole di abilitazione deposito, firma, prova o invio: modifica solo la leggibilità della scelta documentale.
+
+Guardrail eseguiti:
+
+- `python -m pytest -q tests/test_regia_ui_react.py::test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `git diff --check`;
+- `pnpm --filter @iusentra/studio build`, senza chunk sopra `500 kB`.
+
+Stato: pronto per deploy e verifica reale server su fascicolo con modale aperta da `Deposito telematico`.

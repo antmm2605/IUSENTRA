@@ -26,6 +26,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Search,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -1722,6 +1723,9 @@ function DepositPreparePage({ id }:{id:string}) {
   const [localSignaturePinRequest, setLocalSignaturePinRequest] = useState<LocalSignaturePinRequest | null>(null)
   const [localSignaturePin, setLocalSignaturePin] = useState('')
   const [localSignaturePinError, setLocalSignaturePinError] = useState('')
+  const [packageAddQuery, setPackageAddQuery] = useState('')
+  const [packageAddDocumentId, setPackageAddDocumentId] = useState('')
+  const [pendingDepositIncludeIds, setPendingDepositIncludeIds] = useState<string[]>([])
   const batchSignatureActionRef = useRef<BatchSignatureAction | null>(null)
   const batchSignaturePinSessionRef = useRef('')
   const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
@@ -1739,6 +1743,13 @@ function DepositPreparePage({ id }:{id:string}) {
   const failDetail = (message: string) => {
     setToast({ tone: 'danger', message })
     setDepositActionNotice({ tone: 'danger', message })
+  }
+  const handleDepositUploadDone = (message?: string, documentIds: string[] = []) => {
+    const uploadedIds = Array.from(new Set(documentIds.map((item) => String(item || '').trim()).filter(Boolean)))
+    if (uploadedIds.length) {
+      setPendingDepositIncludeIds((current) => Array.from(new Set([...current, ...uploadedIds])))
+    }
+    refreshDetail(message || (uploadedIds.length ? 'Documento caricato nel fascicolo e inserito nel deposito.' : 'Documenti caricati.'))
   }
   const startDepositDocumentRename = (doc: FascicoloDocument) => {
     setDepositRenameDocId(doc.id)
@@ -1996,6 +2007,24 @@ function DepositPreparePage({ id }:{id:string}) {
     || selectedDepositDocuments.find(isMainActCandidateDocument)
   const packageDocuments = uniqueFascicoloDocuments(selectedDepositDocuments)
   const packageDocumentNames = packageDocuments.map((doc) => doc.name).filter(Boolean)
+  const packageDocumentIdSet = new Set(packageDocuments.map((doc) => doc.id))
+  const packageAddAvailableDocuments = depositSelectableDocuments.filter((doc) => !packageDocumentIdSet.has(doc.id))
+  const packageAddSearchTokens = normaliseText(packageAddQuery).split(/\s+/).filter(Boolean)
+  const packageAddOptions = packageAddAvailableDocuments
+    .filter((doc) => {
+      if (!packageAddSearchTokens.length) return true
+      const haystack = normaliseText([
+        doc.name,
+        doc.type,
+        doc.rawType,
+        doc.notes,
+        doc.portalName,
+        doc.tags.join(' '),
+      ].filter(Boolean).join(' '))
+      return packageAddSearchTokens.every((token) => haystack.includes(token))
+    })
+    .slice(0, 80)
+  const packageAddSelectedDocument = packageAddOptions.find((doc) => doc.id === packageAddDocumentId) || packageAddOptions[0]
   const standardPecBody = buildDepositPecBody(packageDocumentNames)
   useEffect(() => {
     if (!pecBodyEdited) setPecBodyDraft(standardPecBody)
@@ -2313,6 +2342,48 @@ function DepositPreparePage({ id }:{id:string}) {
       return next
     })
   }
+  const includeDepositDocumentsByIds = (documentIds: string[], message?: string) => {
+    const cleanIds = Array.from(new Set(documentIds.map((item) => String(item || '').trim()).filter(Boolean)))
+    if (!cleanIds.length) return
+    const currentMainActId = mainActDocument?.id || ''
+    setDepositClassificationById((current) => {
+      const next = { ...current }
+      cleanIds.forEach((documentId) => {
+        const doc = depositSelectableDocuments.find((item) => item.id === documentId)
+        if (!doc) return
+        const existing = next[documentId]
+        let role = existing?.role && existing.role !== 'fuori_busta'
+          ? existing.role
+          : defaultDepositRoleForDocument(doc, '', defaultMainActDocumentId === documentId)
+        if (currentMainActId && role === 'atto_principale' && currentMainActId !== documentId) role = 'allegato'
+        next[documentId] = {
+          selected: true,
+          role,
+          alreadySigned: existing?.alreadySigned ?? doc.signed,
+          requiresSignature: existing?.requiresSignature ?? defaultSignatureRequiredForDepositRole(doc, role),
+        }
+      })
+      return next
+    })
+    setPackagePreview(null)
+    setDepositProofInvalidated(true)
+    if (message) {
+      setToast({ tone: 'success', message })
+      setDepositActionNotice({ tone: 'success', message })
+    }
+  }
+  useEffect(() => {
+    if (!pendingDepositIncludeIds.length) return
+    const availableIds = pendingDepositIncludeIds.filter((documentId) => depositSelectableDocuments.some((doc) => doc.id === documentId))
+    if (!availableIds.length) return
+    includeDepositDocumentsByIds(
+      availableIds,
+      availableIds.length === 1
+        ? 'Documento caricato nel fascicolo e inserito nel deposito.'
+        : `${availableIds.length} documenti caricati nel fascicolo e inseriti nel deposito.`,
+    )
+    setPendingDepositIncludeIds((current) => current.filter((documentId) => !availableIds.includes(documentId)))
+  }, [pendingDepositIncludeIds.join('|'), depositSelectableDocuments.map((doc) => doc.id).join('|')])
   const depositClassificationPayload = () => ({
     tipo_deposito_telematico_key: selectedDepositType?.key || '',
     tipo_deposito_telematico_label: selectedDepositType?.label || '',
@@ -2993,7 +3064,7 @@ function DepositPreparePage({ id }:{id:string}) {
               {data.actions.uploadDocument ? (
                 <details className="iu-fas-deposit-upload">
                   <summary><UploadCloud size={14}/> Allega documentazione al fascicolo</summary>
-                  <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
+                  <DocumentUploadWorkspace data={data} onDone={handleDepositUploadDone} onError={failDetail}/>
                 </details>
               ) : null}
               <div className="iu-fas-deposit-selection__list">
@@ -3156,6 +3227,71 @@ function DepositPreparePage({ id }:{id:string}) {
                 <span>{unsignedPackageDocuments.length ? 'Documenti che IUSENTRA firmerà con un solo PIN.' : 'Documenti selezionati già firmati o senza firma richiesta.'}</span>
               </article>
             </div>
+            <div className="iu-fas-package-document-tools" aria-label="Aggiungi documenti al pacchetto deposito">
+              <header>
+                <div>
+                  <strong>Aggiungi documenti al deposito</strong>
+                  <span>Se manca un file, puoi inserirlo dalla pratica o caricarlo dal PC senza uscire da questa fase.</span>
+                </div>
+                <Badge tone={packageAddAvailableDocuments.length ? 'primary' : 'success'}>
+                  {packageAddAvailableDocuments.length ? `${packageAddAvailableDocuments.length} disponibili` : 'Pacchetto completo'}
+                </Badge>
+              </header>
+              {packageAddAvailableDocuments.length ? (
+                <div className="iu-fas-package-document-tools__grid">
+                  <label>
+                    <span>Cerca nel fascicolo</span>
+                    <div className="iu-fas-package-document-tools__search">
+                      <Search size={15} aria-hidden="true"/>
+                      <input
+                        type="search"
+                        value={packageAddQuery}
+                        onChange={(event) => {
+                          setPackageAddQuery(event.currentTarget.value)
+                          setPackageAddDocumentId('')
+                        }}
+                        placeholder="Nome, tipo, origine o etichetta"
+                        aria-label="Cerca documento del fascicolo da aggiungere al deposito"
+                      />
+                    </div>
+                  </label>
+                  <label>
+                    <span>Documento da inserire</span>
+                    <select
+                      value={packageAddSelectedDocument?.id || ''}
+                      onChange={(event) => setPackageAddDocumentId(event.currentTarget.value)}
+                      aria-label="Documento del fascicolo da aggiungere al deposito"
+                    >
+                      {!packageAddOptions.length ? <option value="">Nessun documento trovato</option> : null}
+                      {packageAddOptions.map((doc) => (
+                        <option key={`package-add-${doc.id}`} value={doc.id}>
+                          {[doc.name, doc.type, doc.size].filter(Boolean).join(' - ')}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!packageAddSelectedDocument}
+                    onClick={() => {
+                      if (!packageAddSelectedDocument) return
+                      includeDepositDocumentsByIds([packageAddSelectedDocument.id], `${packageAddSelectedDocument.name} inserito nel deposito.`)
+                      setPackageAddDocumentId('')
+                    }}
+                  >
+                    <PackageCheck size={15} aria-hidden="true"/> Aggiungi alla busta
+                  </button>
+                </div>
+              ) : (
+                <p>Tutti i documenti selezionabili del fascicolo sono già nel pacchetto.</p>
+              )}
+              {data.actions.uploadDocument ? (
+                <details className="iu-fas-package-document-tools__upload">
+                  <summary><UploadCloud size={14}/> Carica da PC e inserisci nella busta</summary>
+                  <DocumentUploadWorkspace data={data} onDone={handleDepositUploadDone} onError={failDetail}/>
+                </details>
+              ) : null}
+            </div>
             <div className="iu-fas-package-docs">
               <article key="package-datiatto">
                 <FileText size={16}/>
@@ -3163,7 +3299,9 @@ function DepositPreparePage({ id }:{id:string}) {
                   <strong>Dati deposito</strong>
                   <span>Dati preparati dal software in base al tipo deposito e ai documenti selezionati.</span>
                 </div>
-                <small>Generato</small>
+                <div className="iu-fas-package-docs__actions">
+                  <small>Generato</small>
+                </div>
               </article>
               <article key="package-indice-documenti">
                 <FileText size={16}/>
@@ -3171,15 +3309,17 @@ function DepositPreparePage({ id }:{id:string}) {
                   <strong>Indice documenti</strong>
                   <span>Indice generato dal software con atto principale, allegati e prove selezionate.</span>
                 </div>
-                <DepositPdfPreviewButton
-                  action={`/fascicoli/${encodedId}/deposito/indice-documenti`}
-                  payload={depositActionPayload}
-                  onPreview={setPreviewDoc}
-                  onError={failDetail}
-                  disabled={indicePreviewDisabled}
-                  disabledReason={indicePreviewDisabledReason}
-                />
-                <small>Generato</small>
+                <div className="iu-fas-package-docs__actions">
+                  <DepositPdfPreviewButton
+                    action={`/fascicoli/${encodedId}/deposito/indice-documenti`}
+                    payload={depositActionPayload}
+                    onPreview={setPreviewDoc}
+                    onError={failDetail}
+                    disabled={indicePreviewDisabled}
+                    disabledReason={indicePreviewDisabledReason}
+                  />
+                  <small>Generato</small>
+                </div>
               </article>
               {packageDocuments.map((doc) => {
                 const proofLabel = notificationProofKind(doc) ? notificationProofLabel(doc) : ''
@@ -3192,7 +3332,23 @@ function DepositPreparePage({ id }:{id:string}) {
                       <strong>{doc.name}</strong>
                       <span>{[proofLabel, doc.type, signatureLabel, doc.size].filter(Boolean).join(' - ')}</span>
                     </div>
-                    {willSign ? <small>Firma software prima della busta</small> : null}
+                    <div className="iu-fas-package-docs__actions">
+                      {doc.actions.preview ? (
+                        <button
+                          type="button"
+                          title={`Visualizza ${doc.name}`}
+                          aria-label={`Visualizza ${doc.name}`}
+                          onClick={() => setPreviewDoc({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download || doc.actions.preview })}
+                        >
+                          <Eye size={17} strokeWidth={2.4} aria-hidden="true"/>
+                        </button>
+                      ) : (
+                        <button type="button" disabled title="Anteprima non disponibile" aria-label={`Anteprima non disponibile per ${doc.name}`}>
+                          <Eye size={17} strokeWidth={2.4} aria-hidden="true"/>
+                        </button>
+                      )}
+                      {willSign ? <small>Firma software prima della busta</small> : null}
+                    </div>
                   </article>
                 )
               })}
@@ -4758,7 +4914,7 @@ function DocumentUploadWorkspace({
   onError,
 }: {
   data: FascicoloDetailData
-  onDone: (message?: string) => void
+  onDone: (message?: string, documentIds?: string[]) => void
   onError: (message: string) => void
 }) {
   const [files, setFiles] = useState<File[]>([])
@@ -4780,7 +4936,14 @@ function DocumentUploadWorkspace({
       form.reset()
       setFiles([])
       setMode('auto')
-      onDone(result.message || 'Documenti caricati.')
+      const resultRecord = result as Record<string, unknown>
+      const createdIds = [
+        String(resultRecord.documento_id || '').trim(),
+        ...(Array.isArray(resultRecord.documenti_id)
+          ? resultRecord.documenti_id.map((item) => String(item || '').trim())
+          : []),
+      ].filter(Boolean)
+      onDone(String(resultRecord.message || resultRecord.messaggio || 'Documenti caricati.'), Array.from(new Set(createdIds)))
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Caricamento non riuscito.')
     } finally {

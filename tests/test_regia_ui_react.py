@@ -137,7 +137,18 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "onClick={selectAllDepositDocuments}" not in source
     assert "Il software segnala i candidati; l'avvocato sceglie cosa entra nella busta" in source
     assert "const linkedDefaultDocuments = uniqueFascicoloDocuments(usableLinkedSlotDocuments.map((row) => row.document))" in source
-    assert "const defaultDepositSelectionIds = data.depositPreparation.saved" in source
+    assert "const explicitDocumentSelection = requestedDocumentSelectionTokens.length > 0" in source
+    assert "const defaultDepositSelectionIds = explicitDocumentSelection" in source
+    assert "? requestedDepositSelectionIds" in source
+    assert ": data.depositPreparation.saved" in source
+    assert "Aggiungi documenti al deposito" in source
+    assert "Cerca nel fascicolo" in source
+    assert "includeDepositDocumentsByIds" in source
+    assert "Carica da PC e inserisci nella busta" in source
+    assert "onDone={handleDepositUploadDone}" in source
+    assert "resultRecord.documenti_id" in source
+    assert ".iu-fas-package-document-tools" in css
+    assert ".iu-fas-package-docs__actions button" in css
     assert ": []" in source
     assert ": defaultMainActDocumentId ? [defaultMainActDocumentId] : []" not in source
     assert "depositCandidateDocuments]).map((doc) => doc.id)" not in source

@@ -5001,3 +5001,23 @@ Nel pannello `Documenti da notificare` ogni documento proposto mostra anche l'az
 Seconda correzione dello stesso hotfix: le API Notifica risolvono ora il fascicolo anche quando l'URL contiene l'identificativo pubblico della route o un alias storico, mentre il repository risponde con un ID interno diverso. Questo evita che il link diretto mostri `0 dati già proposti`, nessun documento e nessun percorso NEP/UNEP.
 
 Verifica da ripetere sul server: Fascicolo -> Notifica -> selezione documenti -> Notifica, controllando pratica agganciata, documenti preselezionati, ricerca destinatari completa, percorso NEP/UNEP visibile e icona di visualizzazione documento funzionante.
+
+### Hotfix 19/07/2026 - controllo documenti nel pacchetto deposito
+
+Richiesta utente: estendere al deposito la stessa logica già applicata alla notifica, cioè partire dai documenti scelti nel fascicolo, evitare di ricaricare tutto inutilmente e consentire all'avvocato di correggere il pacchetto senza uscire dal flusso.
+
+Correzione applicata nel pannello React `Prepara deposito`:
+
+- la fase `Pacchetto deposito` mostra ora un comando `Visualizza` su ogni documento della busta, usando il visualizzatore interno già presente;
+- la stessa fase permette di cercare un altro documento già presente nel fascicolo e aggiungerlo subito alla busta;
+- se il documento manca nel fascicolo, l'avvocato può caricarlo dal PC nella stessa fase: il file viene salvato nel fascicolo e, appena l'API restituisce l'identificativo creato, viene incluso nel deposito;
+- l'aggiunta di documenti invalida la prova precedente e richiede una nuova verifica del pacchetto, così firma, indice e invio lavorano sempre sul perimetro corrente;
+- il comportamento storico resta invariato quando il deposito viene aperto senza una selezione esplicita da fascicolo.
+
+Guardrail eseguiti:
+
+- `pnpm --filter @iusentra/studio typecheck`;
+- `python -m pytest -q tests/test_regia_ui_react.py`;
+- `pnpm --filter @iusentra/studio build`, con `FascicoloDepositoPage` a `158,41 kB` e nessun chunk JavaScript sopra `500 kB`.
+
+Stato: codice locale compilato e coperto da test mirati. Restano obbligatori deploy Hetzner, click reale su `https://app.iusentra.it/fascicoli/F7AA4E0C/deposito/prepara?...#generazione-busta`, verifica visiva desktop/mobile, commit, push branch gemelli e riallineamento locale/server prima della chiusura definitiva.

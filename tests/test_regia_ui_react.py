@@ -491,12 +491,16 @@ def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():
     assert "documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens)" in source
     assert "if (!data.precompilazione.indicePratiche.length || selectedPracticeId) return" not in source
     assert "documentViewHref(documento)" in source
+    assert "openDocumentPreview(documento)" in source
+    assert "iu-legal-document-preview-modal" in source
+    assert "<iframe title={`Documento ${documentPreview.title}`} src={documentPreview.href} />" in source
     assert "Visualizza documento" in source
     assert "Eye size={15}" in source
     assert "event.stopPropagation()" in source
     assert 'className="iu-legal-document-view"\n                                  href={viewHref}\n                                  target="_blank"' not in source
     assert ".iu-legal-unep-quick" in css
     assert ".iu-legal-document-view" in css
+    assert ".iu-legal-document-preview-modal" in css
 
 
 def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():

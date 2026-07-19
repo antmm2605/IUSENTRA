@@ -1470,6 +1470,7 @@ export function NotificheLegaliPage() {
   const [attestationDownloadMessage, setAttestationDownloadMessage] = useState('')
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})
   const [documentHydrationMessage, setDocumentHydrationMessage] = useState('')
+  const [documentPreview, setDocumentPreview] = useState<{ href: string; title: string } | null>(null)
 
   const [deposito, setDeposito] = useState({
     atto_notificato: '',
@@ -1920,6 +1921,15 @@ export function NotificheLegaliPage() {
       : ''
   )
 
+  const openDocumentPreview = (documento: LegalDocumentSuggestion) => {
+    const href = documentViewHref(documento)
+    if (!href) return
+    setDocumentPreview({
+      href,
+      title: documentPrimaryName(documento) || 'Documento',
+    })
+  }
+
   const hasNotifiableExtension = (value: string) => /\.(?:pdf|pdfa|p7m)$/i.test((value || '').trim())
   const hasSendableNotificationAttachmentExtension = (value: string) => /\.(?:pdf|pdfa|p7m|eml|msg)$/i.test((value || '').trim())
   const hasEmailEvidenceExtension = (value: string) => /\.(?:eml|msg)$/i.test((value || '').trim())
@@ -1941,6 +1951,15 @@ export function NotificheLegaliPage() {
     }
     return { numero: '', anno: '' }
   }
+  useEffect(() => {
+    if (!documentPreview) return undefined
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDocumentPreview(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [documentPreview])
+
   useEffect(() => {
     if (!selectedPracticeId || hydratedDocumentsByPractice[selectedPracticeId]?.length) return
     let active = true
@@ -3477,15 +3496,18 @@ export function NotificheLegaliPage() {
                                 </span>
                               </label>
                               {viewHref ? (
-                                <a
+                                <button
+                                  type="button"
                                   className="iu-legal-document-view"
-                                  href={viewHref}
-                                  onClick={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    openDocumentPreview(documento)
+                                  }}
                                   aria-label={`Visualizza documento ${documentPrimaryName(documento)}`}
                                   title="Visualizza documento"
                                 >
                                   <Eye size={15} />
-                                </a>
+                                </button>
                               ) : null}
                             </div>
                           )
@@ -4551,6 +4573,29 @@ export function NotificheLegaliPage() {
           </Panel>
         </aside>
       </section>
+
+      {documentPreview ? (
+        <div className="iu-legal-document-preview-modal" role="dialog" aria-modal="true" aria-label={`Visualizza documento ${documentPreview.title}`}>
+          <section className="iu-legal-document-preview-modal__panel">
+            <header>
+              <div>
+                <span>Documento</span>
+                <strong>{documentPreview.title}</strong>
+              </div>
+              <div className="iu-legal-document-preview-modal__actions">
+                <a href={documentPreview.href} target="_blank" rel="noreferrer">
+                  <ExternalLink size={15} />
+                  Apri pagina
+                </a>
+                <button type="button" onClick={() => setDocumentPreview(null)} aria-label="Chiudi visualizzazione documento">
+                  <X size={17} />
+                </button>
+              </div>
+            </header>
+            <iframe title={`Documento ${documentPreview.title}`} src={documentPreview.href} />
+          </section>
+        </div>
+      ) : null}
 
       <FloatingLex
         context="notifiche-legali"

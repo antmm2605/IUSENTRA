@@ -3906,7 +3906,6 @@ def _ensure_contributo_unificato_for_fascicolo(
     if not fid:
         return {"status": "skipped", "reason": "Fascicolo senza ID."}
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
-    raw_cu = _payment_source_for_kind(payments, "contributo_unificato")
     needs_cu_value = _payment_source_needs_automatic_value(payments, "contributo_unificato")
     marker = _presidio_documentale_marker(payments)
     marker_current = _presidio_documentale_marker_is_current(fascicolo, payments)
@@ -4977,6 +4976,7 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
 def _facets(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     types = Counter(item["type"] for item in items)
     statuses = Counter(item["status"] for item in items)
+    defined_count = statuses.get("definito", 0) + statuses.get("da_archiviare", 0)
     type_labels = {
         "civile": "Civile",
         "penale": "Penale",
@@ -5001,7 +5001,14 @@ def _facets(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
         "types": [{"value": "tutti", "label": "Tutti i tipi", "count": len(items)}]
         + [{"value": value, "label": label, "count": types.get(value, 0)} for value, label in type_labels.items()],
         "statuses": [{"value": "tutti", "label": "Tutti gli stati", "count": len(items)}]
-        + [{"value": value, "label": label, "count": statuses.get(value, 0)} for value, label in status_labels.items()],
+        + [
+            {
+                "value": value,
+                "label": label,
+                "count": defined_count if value == "definito" else statuses.get(value, 0),
+            }
+            for value, label in status_labels.items()
+        ],
     }
 
 
@@ -5098,8 +5105,13 @@ def _matches_list_filters(
     if type_key and type_key != "tutti" and _text(item.get("type")).lower() != type_key:
         return False
     status_key = _text(status_filter).lower()
-    if status_key and status_key != "tutti" and _text(item.get("status")).lower() != status_key:
-        return False
+    if status_key and status_key != "tutti":
+        item_status = _text(item.get("status")).lower()
+        if status_key == "definito":
+            if item_status not in {"definito", "da_archiviare"}:
+                return False
+        elif item_status != status_key:
+            return False
     court_needle = _text(court).lower()
     if court_needle and court_needle not in _text(item.get("court")).lower():
         return False

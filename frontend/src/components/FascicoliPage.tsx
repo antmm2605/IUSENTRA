@@ -79,14 +79,18 @@ import {
   getFascicoliArchive,
   getFascicoliExport,
   getFascicoliPage,
+  getFascicoliFilterPreferences,
   getFascicoloDetail,
   getFascicoloDetailSection,
   getFascicoloForm,
   generateFascicoloProforma,
   runFascicoliEconomicPresidio,
+  saveFascicoliFilterPreferences,
   updateFascicoloPayment,
   updateFascicoloStatus,
+  defaultFascicoliFilterPreferences,
   fascicoloPaymentKinds,
+  type FascicoliFilterPreferences,
   type FascicoliPageData,
   type FascicoliPageParams,
   type FascicoloPaymentFilter,
@@ -304,6 +308,38 @@ function initialUrlBool(...names: string[]): boolean {
   return names.some((name) => ['1', 'true', 'si', 'sì'].includes((params.get(name) || '').toLowerCase()))
 }
 
+function hasExplicitListPreferenceParams(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  return [
+    'q',
+    'client',
+    'rg',
+    'type',
+    'status',
+    'court',
+    'sort',
+    'view',
+    'vista',
+    'alerts_only',
+    'alertsOnly',
+    'payments_only',
+    'paymentsOnly',
+    'missing_rg_only',
+    'missingRgOnly',
+    'duplicates_only',
+    'duplicatesOnly',
+    'cu',
+    'contributo_unificato',
+    'fondo_spese',
+    'fondoSpese',
+    'liquidazione',
+    'liquidazione_giudice',
+    'parcella',
+    'page_size',
+    'pageSize',
+  ].some((name) => params.has(name))
+}
+
 function initialStatusFilter(): FascicoloStato {
   const raw = initialUrlParam('status').toLowerCase()
   return ['aperto', 'in_corso', 'definito', 'da_archiviare', 'archiviato', 'sospeso'].includes(raw) ? raw as FascicoloStato : 'tutti'
@@ -317,6 +353,36 @@ function initialSortFilter(): SortKey {
 function initialPaymentFilter(name: string): FascicoloPaymentFilter {
   const raw = initialUrlParam(name).toLowerCase()
   return ['non_previsto', 'da_registrare', 'pagato', 'parziale', 'da_emettere'].includes(raw) ? raw as FascicoloPaymentFilter : 'tutti'
+}
+
+function toSavedSortKey(value: string): SortKey {
+  return ['recenti', 'rg', 'cliente', 'scadenza', 'documenti'].includes(value) ? value as SortKey : defaultFascicoliFilterPreferences.sort as SortKey
+}
+
+function toSavedListView(value: string): ListView {
+  return value === 'economica' ? 'economica' : 'operativa'
+}
+
+function toSavedPaymentFilter(value: string): FascicoloPaymentFilter {
+  return ['non_previsto', 'da_registrare', 'pagato', 'parziale', 'da_emettere'].includes(value) ? value as FascicoloPaymentFilter : 'tutti'
+}
+
+function filterPreferencesSignature(preferences: FascicoliFilterPreferences): string {
+  return JSON.stringify({
+    type: preferences.type,
+    status: preferences.status,
+    sort: preferences.sort,
+    view: preferences.view,
+    court: preferences.court.trim(),
+    alertsOnly: preferences.alertsOnly,
+    paymentsOnly: preferences.paymentsOnly,
+    missingRgOnly: preferences.missingRgOnly,
+    duplicatesOnly: preferences.duplicatesOnly,
+    cu: preferences.cu,
+    liquidazione: preferences.liquidazione,
+    parcella: preferences.parcella,
+    pageSize: preferences.pageSize,
+  })
 }
 
 function fascicoliListCacheKey(params: FascicoliPageParams): string {
@@ -2134,7 +2200,9 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   )
 }
 
-function ListFilters({ data, query, setQuery, type, setType, status, setStatus, sort, setSort, advancedOpen, setAdvancedOpen, refresh }:{data:FascicoliPageData; query:string; setQuery:(value:string)=>void; type:FascicoloTipo; setType:(value:FascicoloTipo)=>void; status:FascicoloStato; setStatus:(value:FascicoloStato)=>void; sort:SortKey; setSort:(value:SortKey)=>void; advancedOpen:boolean; setAdvancedOpen:(value:boolean)=>void; refresh:()=>void}) {
+function ListFilters({ data, query, setQuery, type, setType, status, setStatus, sort, setSort, advancedOpen, setAdvancedOpen, refresh, onSavePreferences, preferencesState, preferencesUpdatedAt }:{data:FascicoliPageData; query:string; setQuery:(value:string)=>void; type:FascicoloTipo; setType:(value:FascicoloTipo)=>void; status:FascicoloStato; setStatus:(value:FascicoloStato)=>void; sort:SortKey; setSort:(value:SortKey)=>void; advancedOpen:boolean; setAdvancedOpen:(value:boolean)=>void; refresh:()=>void; onSavePreferences:()=>void; preferencesState:'idle'|'dirty'|'saving'|'saved'|'error'; preferencesUpdatedAt:string}) {
+  const saveLabel = preferencesState === 'saving' ? 'Salvataggio...' : preferencesState === 'saved' ? 'Vista salvata' : 'Salva vista'
+  const saveTitle = preferencesUpdatedAt ? `Vista salvata per questo studio: ${formatDateTimeIt(preferencesUpdatedAt)}` : 'Salva questi filtri come vista predefinita dello studio'
   return (
     <IusentraFiltersBar className="iu-fas-toolbar">
       <label className="iu-fas-search">
@@ -2158,6 +2226,10 @@ function ListFilters({ data, query, setQuery, type, setType, status, setStatus, 
         <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select>
       </label>
       <button className="iu-fas-filter-btn" type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}><Filter size={16}/> Filtri</button>
+      <button className={`iu-fas-filter-save iu-fas-filter-save--${preferencesState}`} type="button" onClick={onSavePreferences} disabled={preferencesState === 'saving'} title={saveTitle}>
+        {preferencesState === 'saving' ? <RefreshCw size={16}/> : <Save size={16}/>}
+        {saveLabel}
+      </button>
       <button className="iu-fas-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna fascicoli"><RefreshCw size={17}/></button>
     </IusentraFiltersBar>
   )
@@ -2249,6 +2321,11 @@ function FascicoliListPage() {
   const pageCacheRef = useRef<Map<string, FascicoliPageData>>(new Map())
   const pageRequestsRef = useRef<Map<string, Promise<FascicoliPageData>>>(new Map())
   const economicPresidioRunRef = useRef('')
+  const explicitListPreferenceParamsRef = useRef(hasExplicitListPreferenceParams())
+  const savedFilterPreferencesSignatureRef = useRef('')
+  const [preferencesReady, setPreferencesReady] = useState(() => explicitListPreferenceParamsRef.current)
+  const [filterPreferencesState, setFilterPreferencesState] = useState<'idle'|'dirty'|'saving'|'saved'|'error'>('idle')
+  const [filterPreferencesUpdatedAt, setFilterPreferencesUpdatedAt] = useState('')
 
   const listParams = (overrides: Partial<FascicoliPageParams> = {}): FascicoliPageParams => ({
     page,
@@ -2268,6 +2345,27 @@ function FascicoliListPage() {
     parcella: parcellaFilter,
     ...overrides,
   })
+
+  const currentFilterPreferences = useMemo<FascicoliFilterPreferences>(() => ({
+    type,
+    status,
+    sort,
+    view,
+    court: court.trim(),
+    alertsOnly,
+    paymentsOnly,
+    missingRgOnly,
+    duplicatesOnly,
+    cu: cuFilter,
+    liquidazione: liquidazioneFilter,
+    parcella: parcellaFilter,
+    pageSize,
+  }), [alertsOnly, court, cuFilter, duplicatesOnly, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+
+  const currentFilterPreferencesSignature = useMemo(
+    () => filterPreferencesSignature(currentFilterPreferences),
+    [currentFilterPreferences],
+  )
 
   const requestFascicoliPage = (params: FascicoliPageParams, options: { force?: boolean } = {}) => {
     const key = fascicoliListCacheKey(params)
@@ -2330,6 +2428,53 @@ function FascicoliListPage() {
   }
 
   useEffect(() => {
+    if (explicitListPreferenceParamsRef.current) return
+    let active = true
+    getFascicoliFilterPreferences()
+      .then((result) => {
+        if (!active) return
+        const preferences = result.preferences
+        if (result.configured) {
+          setPage(1)
+          setType(preferences.type)
+          setStatus(preferences.status)
+          setSort(toSavedSortKey(String(preferences.sort)))
+          setView(toSavedListView(String(preferences.view)))
+          setCourt(preferences.court)
+          setDebouncedCourt(preferences.court.trim())
+          setAlertsOnly(preferences.alertsOnly)
+          setPaymentsOnly(preferences.paymentsOnly)
+          setMissingRgOnly(preferences.missingRgOnly)
+          setDuplicatesOnly(preferences.duplicatesOnly)
+          setCuFilter(toSavedPaymentFilter(String(preferences.cu)))
+          setLiquidazioneFilter(toSavedPaymentFilter(String(preferences.liquidazione)))
+          setParcellaFilter(toSavedPaymentFilter(String(preferences.parcella)))
+          setPageSize(preferences.pageSize)
+          setAdvancedOpen(Boolean(
+            preferences.court.trim()
+            || preferences.alertsOnly
+            || preferences.paymentsOnly
+            || preferences.missingRgOnly
+            || preferences.duplicatesOnly
+            || preferences.cu !== 'tutti'
+            || preferences.liquidazione !== 'tutti'
+            || preferences.parcella !== 'tutti',
+          ))
+          savedFilterPreferencesSignatureRef.current = filterPreferencesSignature(preferences)
+          setFilterPreferencesState('saved')
+          setFilterPreferencesUpdatedAt(result.updatedAt)
+        }
+      })
+      .catch(() => {
+        if (active) setFilterPreferencesState('error')
+      })
+      .finally(() => {
+        if (active) setPreferencesReady(true)
+      })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setPage(1)
       setDebouncedQuery(query.trim())
@@ -2339,6 +2484,7 @@ function FascicoliListPage() {
   }, [court, query])
 
   useEffect(() => {
+    if (!preferencesReady) return
     let active = true
     const params = listParams()
     const hasCachedPage = pageCacheRef.current.has(fascicoliListCacheKey(params))
@@ -2358,9 +2504,19 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, sort, status, type, view])
+  }, [alertsOnly, cuFilter, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, preferencesReady, sort, status, type, view])
 
   useEffect(() => {
+    if (!preferencesReady) return
+    if (filterPreferencesState === 'saving') return
+    if (!savedFilterPreferencesSignatureRef.current) return
+    setFilterPreferencesState(
+      savedFilterPreferencesSignatureRef.current === currentFilterPreferencesSignature ? 'saved' : 'dirty',
+    )
+  }, [currentFilterPreferencesSignature, filterPreferencesState, preferencesReady])
+
+  useEffect(() => {
+    if (!preferencesReady) return
     if (loading || pendingPage) return
     const current = data.pagination.page || page
     const totalPages = data.pagination.pages || 0
@@ -2371,7 +2527,7 @@ function FascicoliListPage() {
     })
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita prefetch su filtri vecchi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, sort, status, type, view])
+  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedQuery, duplicatesOnly, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, preferencesReady, sort, status, type, view])
 
   useEffect(() => {
     const presidioDue = Number(data.summary.economicAnalysisDue || 0)
@@ -2414,6 +2570,21 @@ function FascicoliListPage() {
   const updateParcellaFilter = (value: FascicoloPaymentFilter) => { setPage(1); setParcellaFilter(value) }
   const updateView = (value: ListView) => { setView(value); syncListViewInUrl(value) }
   const updatePageSize = (value: number) => { setPage(1); setPageSize(value) }
+  const saveCurrentFilterPreferences = () => {
+    setFilterPreferencesState('saving')
+    saveFascicoliFilterPreferences(currentFilterPreferences)
+      .then((result) => {
+        savedFilterPreferencesSignatureRef.current = filterPreferencesSignature(result.preferences)
+        setFilterPreferencesUpdatedAt(result.updatedAt)
+        setFilterPreferencesState('saved')
+        setToast({ tone: 'success', message: result.message || 'Vista fascicoli salvata per questo studio.' })
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message.trim() : ''
+        setFilterPreferencesState('error')
+        setToast({ tone: 'danger', message: message || 'Preferenze filtri non salvate.' })
+      })
+  }
   const prefetchPage = (value: number) => {
     const maxPage = Math.max(1, data.pagination.pages || 1)
     const target = Math.max(1, Math.min(maxPage, value))
@@ -2591,7 +2762,7 @@ function FascicoliListPage() {
 
       <IusentraMainArea className="iu-fas-layout">
         <IusentraMainSurface className="iu-fas-main-list">
-          <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} sort={sort} setSort={updateSort} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh}/>
+          <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} sort={sort} setSort={updateSort} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh} onSavePreferences={saveCurrentFilterPreferences} preferencesState={filterPreferencesState} preferencesUpdatedAt={filterPreferencesUpdatedAt}/>
 
       {advancedOpen ? (
       <IusentraContextFilters className="iu-fas-advanced is-open">

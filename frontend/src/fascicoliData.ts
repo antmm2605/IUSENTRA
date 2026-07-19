@@ -242,6 +242,30 @@ export type FascicoliPageParams = {
   parcella?: FascicoloPaymentFilter
 }
 
+export type FascicoliFilterPreferences = {
+  type: FascicoloTipo
+  status: FascicoloStato
+  sort: 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti' | string
+  view: 'operativa' | 'economica' | string
+  court: string
+  alertsOnly: boolean
+  paymentsOnly: boolean
+  missingRgOnly: boolean
+  duplicatesOnly: boolean
+  cu: FascicoloPaymentFilter
+  liquidazione: FascicoloPaymentFilter
+  parcella: FascicoloPaymentFilter
+  pageSize: number
+}
+
+export type FascicoliFilterPreferencesResult = {
+  ok: boolean
+  configured: boolean
+  updatedAt: string
+  preferences: FascicoliFilterPreferences
+  message: string
+}
+
 export type FascicoliPageData = {
   source: string
   generatedAt: string
@@ -1154,6 +1178,22 @@ export const emptyFascicoliPage: FascicoliPageData = {
   deadlines: [],
 }
 
+export const defaultFascicoliFilterPreferences: FascicoliFilterPreferences = {
+  type: 'tutti',
+  status: 'tutti',
+  sort: 'rg',
+  view: 'operativa',
+  court: '',
+  alertsOnly: false,
+  paymentsOnly: false,
+  missingRgOnly: false,
+  duplicatesOnly: false,
+  cu: 'tutti',
+  liquidazione: 'tutti',
+  parcella: 'tutti',
+  pageSize: 25,
+}
+
 export const emptyRegiaOperativa: RegiaOperativaData = {
   source: 'repository reale',
   mock_fallback: false,
@@ -1718,6 +1758,43 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
         tone: (text(row.tone, 'warning') as Tone),
       }
     }),
+  }
+}
+
+function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPreferences {
+  const row = isRecord(value) ? value : {}
+  const type = text(row.type, defaultFascicoliFilterPreferences.type) as FascicoloTipo
+  const status = text(row.status, defaultFascicoliFilterPreferences.status) as FascicoloStato
+  const sort = text(row.sort, defaultFascicoliFilterPreferences.sort)
+  const view = text(row.view, defaultFascicoliFilterPreferences.view)
+  const cu = text(row.cu, defaultFascicoliFilterPreferences.cu) as FascicoloPaymentFilter
+  const liquidazione = text(row.liquidazione, defaultFascicoliFilterPreferences.liquidazione) as FascicoloPaymentFilter
+  const parcella = text(row.parcella, defaultFascicoliFilterPreferences.parcella) as FascicoloPaymentFilter
+  return {
+    type,
+    status,
+    sort,
+    view,
+    court: text(row.court, ''),
+    alertsOnly: bool(row.alertsOnly ?? row.alerts_only),
+    paymentsOnly: bool(row.paymentsOnly ?? row.payments_only),
+    missingRgOnly: bool(row.missingRgOnly ?? row.missing_rg_only),
+    duplicatesOnly: bool(row.duplicatesOnly ?? row.duplicates_only),
+    cu,
+    liquidazione,
+    parcella,
+    pageSize: Math.max(5, Math.min(100, number(row.pageSize ?? row.page_size) || defaultFascicoliFilterPreferences.pageSize)),
+  }
+}
+
+function normalizeFascicoliFilterPreferencesResult(payload: unknown): FascicoliFilterPreferencesResult {
+  const row = isRecord(payload) ? payload : {}
+  return {
+    ok: row.ok !== false,
+    configured: bool(row.configured),
+    updatedAt: text(row.updatedAt ?? row.updated_at),
+    preferences: normalizeFascicoliFilterPreferences(row.preferences),
+    message: text(row.message ?? row.messaggio),
   }
 }
 
@@ -2629,6 +2706,37 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
 
 export function getFascicoliPage(params: FascicoliPageParams = {}): Promise<FascicoliPageData> {
   return safeFetch(`/api/v1/ui/fascicoli${buildFascicoliQuery(params)}`, normalizePagePayload, emptyFascicoliPage)
+}
+
+export function getFascicoliFilterPreferences(): Promise<FascicoliFilterPreferencesResult> {
+  return safeFetch(
+    '/api/v1/ui/fascicoli/preferenze-filtri',
+    normalizeFascicoliFilterPreferencesResult,
+    { ok: true, configured: false, updatedAt: '', preferences: defaultFascicoliFilterPreferences, message: '' },
+  )
+}
+
+export async function saveFascicoliFilterPreferences(
+  preferences: FascicoliFilterPreferences,
+): Promise<FascicoliFilterPreferencesResult> {
+  const token = csrfToken()
+  const response = await fetch('/api/v1/ui/fascicoli/preferenze-filtri', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify(preferences),
+  })
+  const payload = await response.json().catch(() => ({}))
+  const result = normalizeFascicoliFilterPreferencesResult(payload)
+  if (!response.ok || !result.ok) {
+    throw new Error(result.message || 'Preferenze filtri non salvate.')
+  }
+  return result
 }
 
 export type FascicoliEconomicPresidioResult = {

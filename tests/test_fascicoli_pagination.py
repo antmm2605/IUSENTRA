@@ -803,6 +803,7 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
         by_rg = client.get("/api/v1/ui/fascicoli?rg=1017&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_type = client.get("/api/v1/ui/fascicoli?type=penale&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_status = client.get("/api/v1/ui/fascicoli?status=da_archiviare&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        by_defined = client.get("/api/v1/ui/fascicoli?status=definito&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_court = client.get("/api/v1/ui/fascicoli?court=TAR&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         combined = client.get("/api/v1/ui/fascicoli?client=Cliente%2012&rg=1012&type=penale&status=aperto&court=Milano&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
 
@@ -815,8 +816,54 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
     assert all(item["type"] == "penale" for item in by_type["items"])
     assert by_status["pagination"]["total"] == 4
     assert all(item["status"] == "da_archiviare" for item in by_status["items"])
+    assert by_defined["pagination"]["total"] == 4
+    assert all(item["status"] in {"definito", "da_archiviare"} for item in by_defined["items"])
+    facets = {facet["value"]: facet["count"] for facet in by_defined["facets"]["statuses"]}
+    assert facets["definito"] == 4
+    assert facets["da_archiviare"] == 4
     assert all("TAR" in item["court"] for item in by_court["items"])
     assert [item["title"] for item in combined["items"]] == ["Pratica paginata 12"]
+
+
+def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 3)
+    payload = {
+        "type": "civile",
+        "status": "definito",
+        "sort": "scadenza",
+        "view": "economica",
+        "court": "Tribunale",
+        "alertsOnly": True,
+        "paymentsOnly": False,
+        "missingRgOnly": True,
+        "duplicatesOnly": False,
+        "cu": "da_registrare",
+        "liquidazione": "pagato",
+        "parcella": "da_emettere",
+        "pageSize": 50,
+    }
+
+    with app.test_client() as client:
+        empty_response = client.get("/api/v1/ui/fascicoli/preferenze-filtri", headers={"X-API-Key": "react-test-key"})
+        save_response = client.post(
+            "/api/v1/ui/fascicoli/preferenze-filtri",
+            headers={"X-API-Key": "react-test-key"},
+            json=payload,
+        )
+        load_response = client.get("/api/v1/ui/fascicoli/preferenze-filtri", headers={"X-API-Key": "react-test-key"})
+
+    assert empty_response.status_code == 200
+    assert empty_response.get_json()["configured"] is False
+    assert save_response.status_code == 200
+    saved = save_response.get_json()
+    loaded = load_response.get_json()
+    assert saved["configured"] is True
+    assert saved["preferences"]["sort"] == "scadenza"
+    assert loaded["configured"] is True
+    assert loaded["preferences"]["status"] == "definito"
+    assert loaded["preferences"]["pageSize"] == 50
+    assert loaded["preferences"]["cu"] == "da_registrare"
 
 
 def test_fascicoli_api_filtra_rg_mancanti_da_card(tmp_path):
@@ -918,6 +965,8 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "query.set('alerts_only', '1')" in data_source
     assert "query.set('missing_rg_only', '1')" in data_source
     assert "query.set('duplicates_only', '1')" in data_source
+    assert "getFascicoliFilterPreferences" in data_source
+    assert "saveFascicoliFilterPreferences" in data_source
     assert "Contesto filtri" not in page_source
     assert "client={clientFilter}" not in page_source
     assert "rg={rgFilter}" not in page_source
@@ -949,6 +998,10 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "applyStatContext({ duplicatesOnly: true })" in page_source
     assert "syncListContextInUrl(next)" in page_source
     assert "economicPresidioRunRef.current === presidioKey" in page_source
+    assert "hasExplicitListPreferenceParams" in page_source
+    assert "Salva vista" in page_source
+    assert "preferencesState === 'saved' ? 'Vista salvata'" in page_source
+    assert ".iu-fas-filter-save" in css_source
     assert "data.summary.economicAnalysisDue" in page_source
     assert "const presidioDue = Number(data.summary.economicAnalysisDue || 0)" in page_source
     assert "data.summary.invoicesToIssue || 0) + Number(data.summary.economicAnalysisDue" not in page_source

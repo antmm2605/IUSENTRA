@@ -5920,6 +5920,184 @@ def clear_react_fascicoli_list_payload_cache() -> None:
     _clear_fascicoli_list_payload_cache()
 
 
+_FASCICOLI_FILTER_PREFERENCES_SECTION = "fascicoli_filtri"
+_FASCICOLI_FILTER_SORTS = {"recenti", "rg", "cliente", "scadenza", "documenti"}
+_FASCICOLI_FILTER_STATUSES = {"tutti", "aperto", "in_corso", "definito", "da_archiviare", "archiviato", "sospeso"}
+_FASCICOLI_FILTER_TYPES = {
+    "tutti",
+    "civile",
+    "penale",
+    "amministrativo",
+    "tributario",
+    "stragiudiziale",
+    "consulenza",
+    "lavoro",
+    "famiglia",
+    "successioni",
+    "altro",
+}
+_FASCICOLI_FILTER_PAYMENT_STATUSES = {"tutti", "non_previsto", "da_registrare", "pagato", "parziale", "da_emettere"}
+_FASCICOLI_FILTER_VIEWS = {"operativa", "economica"}
+
+
+def _fascicoli_filter_preferences_defaults() -> dict[str, Any]:
+    return {
+        "type": "tutti",
+        "status": "tutti",
+        "sort": "rg",
+        "view": "operativa",
+        "court": "",
+        "alertsOnly": False,
+        "paymentsOnly": False,
+        "missingRgOnly": False,
+        "duplicatesOnly": False,
+        "cu": "tutti",
+        "liquidazione": "tutti",
+        "parcella": "tutti",
+        "pageSize": 25,
+    }
+
+
+def _fascicoli_filter_choice(value: Any, allowed: set[str], default: str) -> str:
+    raw = str(value or "").strip().lower()
+    return raw if raw in allowed else default
+
+
+def _fascicoli_filter_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    raw = str(value or "").strip().lower()
+    return raw in {"1", "true", "si", "sì", "yes", "on"}
+
+
+def _fascicoli_filter_preferences_payload(raw: Mapping[str, Any] | None) -> dict[str, Any]:
+    source = dict(raw or {})
+    defaults = _fascicoli_filter_preferences_defaults()
+    try:
+        page_size = int(source.get("pageSize") or source.get("page_size") or defaults["pageSize"])
+    except (TypeError, ValueError):
+        page_size = defaults["pageSize"]
+    return {
+        "type": _fascicoli_filter_choice(source.get("type"), _FASCICOLI_FILTER_TYPES, defaults["type"]),
+        "status": _fascicoli_filter_choice(source.get("status"), _FASCICOLI_FILTER_STATUSES, defaults["status"]),
+        "sort": _fascicoli_filter_choice(source.get("sort"), _FASCICOLI_FILTER_SORTS, defaults["sort"]),
+        "view": _fascicoli_filter_choice(source.get("view"), _FASCICOLI_FILTER_VIEWS, defaults["view"]),
+        "court": str(source.get("court") or "").strip()[:120],
+        "alertsOnly": _fascicoli_filter_bool(source.get("alertsOnly") if "alertsOnly" in source else source.get("alerts_only")),
+        "paymentsOnly": _fascicoli_filter_bool(source.get("paymentsOnly") if "paymentsOnly" in source else source.get("payments_only")),
+        "missingRgOnly": _fascicoli_filter_bool(source.get("missingRgOnly") if "missingRgOnly" in source else source.get("missing_rg_only")),
+        "duplicatesOnly": _fascicoli_filter_bool(source.get("duplicatesOnly") if "duplicatesOnly" in source else source.get("duplicates_only")),
+        "cu": _fascicoli_filter_choice(source.get("cu"), _FASCICOLI_FILTER_PAYMENT_STATUSES, defaults["cu"]),
+        "liquidazione": _fascicoli_filter_choice(source.get("liquidazione"), _FASCICOLI_FILTER_PAYMENT_STATUSES, defaults["liquidazione"]),
+        "parcella": _fascicoli_filter_choice(source.get("parcella"), _FASCICOLI_FILTER_PAYMENT_STATUSES, defaults["parcella"]),
+        "pageSize": max(5, min(100, page_size)),
+    }
+
+
+def _fascicoli_filter_preferences_studio_db():
+    anchor = tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)
+    return get_request_studio_db(anchor)
+
+
+def _load_fascicoli_filter_preferences() -> dict[str, Any]:
+    from pct.impostazioni_config_repository import load_settings_config_section
+
+    studio_db = _fascicoli_filter_preferences_studio_db()
+    stored = load_settings_config_section(studio_db, _FASCICOLI_FILTER_PREFERENCES_SECTION)
+    preferences = _fascicoli_filter_preferences_payload(stored.get("preferences") if isinstance(stored.get("preferences"), dict) else stored)
+    return {
+        "ok": True,
+        "configured": bool(stored),
+        "updatedAt": str(stored.get("updatedAt") or stored.get("updated_at") or ""),
+        "preferences": preferences,
+    }
+
+
+def _save_fascicoli_filter_preferences(payload: Mapping[str, Any]) -> dict[str, Any]:
+    from pct.impostazioni_config_repository import ensure_settings_config_schema
+
+    studio_db = _fascicoli_filter_preferences_studio_db()
+    if studio_db is None:
+        return {
+            "ok": False,
+            "message": "Preferenze filtri non salvate: archivio strutturato dello studio non disponibile.",
+        }
+    preferences = _fascicoli_filter_preferences_payload(payload)
+    updated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    stored = {
+        "preferences": preferences,
+        "updatedAt": updated_at,
+    }
+    ensure_settings_config_schema(studio_db)
+    row = {
+        "section": _FASCICOLI_FILTER_PREFERENCES_SECTION,
+        "updated_at": updated_at,
+        "source": "react_fascicoli",
+        "secret_fields_json": "[]",
+        "dati_json": json.dumps(stored, ensure_ascii=False, separators=(",", ":")),
+    }
+
+    def _insert(conn: Any, item: dict[str, Any]) -> None:
+        conn.execute(
+            """
+            INSERT INTO settings_config
+            (section, updated_at, source, secret_fields_json, dati_json)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(section) DO UPDATE SET
+                updated_at = excluded.updated_at,
+                source = excluded.source,
+                secret_fields_json = excluded.secret_fields_json,
+                dati_json = excluded.dati_json
+            """,
+            (
+                item["section"],
+                item["updated_at"],
+                item["source"],
+                item["secret_fields_json"],
+                item["dati_json"],
+            ),
+        )
+
+    studio_db.salva_tabella("settings_config", [row], _insert, delete_all=False)
+    return {
+        "ok": True,
+        "configured": True,
+        "updatedAt": updated_at,
+        "preferences": preferences,
+        "message": "Vista fascicoli salvata per questo studio.",
+    }
+
+
+@api_v1_react.get("/fascicoli/preferenze-filtri")
+@_richiedi_auth
+def fascicoli_react_filter_preferences():
+    try:
+        return jsonify(_load_fascicoli_filter_preferences())
+    except TenantDataPathError as exc:
+        return _tenant_data_path_error(exc)
+
+
+@api_v1_react.post("/fascicoli/preferenze-filtri")
+@_richiedi_auth
+def fascicoli_react_save_filter_preferences():
+    payload, error = _request_json_object()
+    if error:
+        return error
+    try:
+        result = _save_fascicoli_filter_preferences(payload)
+    except TenantDataPathError as exc:
+        return _tenant_data_path_error(exc)
+    status_code = 200 if result.get("ok") else 409
+    if result.get("ok"):
+        _audit_event(
+            "fascicoli.preferenze_filtri_salvate",
+            "fascicoli",
+            "preferenze-filtri",
+            "Preferenze filtri fascicoli aggiornate.",
+        )
+    return jsonify(result), status_code
+
+
 def _fascicoli_list_cache_key() -> tuple | None:
     if not _FASCICOLI_LIST_PAYLOAD_CACHE.enabled:
         return None

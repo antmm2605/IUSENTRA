@@ -1,0 +1,1 @@
+import{j as r}from"./vendor-react-BLQXznre.js";import{A as i,b as t,a as s}from"./alert-DMPR1jTh.js";import{c2 as o}from"./vendor-icons-Bg8qJ-u4.js";function c({title:e="Verifica richiesta",message:a}){return r.jsxs(i,{className:"border-amber-200 bg-amber-50 text-amber-950",children:[r.jsx(o,{"aria-hidden":"true"}),r.jsx(t,{children:e}),r.jsx(s,{children:a})]})}export{c as E};

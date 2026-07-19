@@ -17,6 +17,7 @@ import os
 import re
 import secrets
 import shutil
+import sqlite3
 import tempfile
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
@@ -6036,6 +6037,63 @@ def _save_fascicoli_filter_preferences(payload: Mapping[str, Any]) -> dict[str, 
         "secret_fields_json": "[]",
         "dati_json": json.dumps(stored, ensure_ascii=False, separators=(",", ":")),
     }
+
+    if str(getattr(studio_db, "backend_kind", "")).lower() != "postgresql":
+        db_path = getattr(studio_db, "db_path", None)
+        if db_path is None:
+            return {
+                "ok": False,
+                "message": "Preferenze filtri non salvate: archivio SQLite dello studio non disponibile.",
+            }
+        try:
+            with sqlite3.connect(str(db_path), timeout=1.5) as conn:
+                conn.execute("PRAGMA busy_timeout=1500")
+                conn.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS settings_config (
+                        section TEXT PRIMARY KEY,
+                        updated_at TEXT NOT NULL,
+                        source TEXT NOT NULL DEFAULT 'config_studio',
+                        secret_fields_json TEXT NOT NULL DEFAULT '[]',
+                        dati_json TEXT NOT NULL DEFAULT '{}'
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_settings_config_updated ON settings_config(updated_at);
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO settings_config
+                    (section, updated_at, source, secret_fields_json, dati_json)
+                    VALUES (?,?,?,?,?)
+                    ON CONFLICT(section) DO UPDATE SET
+                        updated_at = excluded.updated_at,
+                        source = excluded.source,
+                        secret_fields_json = excluded.secret_fields_json,
+                        dati_json = excluded.dati_json
+                    """,
+                    (
+                        row["section"],
+                        row["updated_at"],
+                        row["source"],
+                        row["secret_fields_json"],
+                        row["dati_json"],
+                    ),
+                )
+            return {
+                "ok": True,
+                "configured": True,
+                "updatedAt": updated_at,
+                "preferences": preferences,
+                "message": "Vista fascicoli salvata per questo studio.",
+            }
+        except sqlite3.OperationalError as exc:
+            if "locked" in str(exc).lower():
+                return {
+                    "ok": False,
+                    "message": "Vista non salvata: archivio dello studio occupato. Riprova tra pochi secondi.",
+                    "retryable": True,
+                }
+            raise
 
     def _insert(conn: Any, item: dict[str, Any]) -> None:
         conn.execute(

@@ -527,6 +527,9 @@ def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
     assert "openDocumentFlow('notifica')" in source
     assert "openDocumentFlow('deposito')" in source
     assert "compareDocumentFlowByRecentDate" in source
+    assert "documentFlowDateTimestamp(doc.documentDate)" in source
+    assert "|| documentFlowDateTimestamp(doc.uploadedAt)" in source
+    assert "|| documentFlowDateTimestamp(doc.portalDate)" in source
     assert "const sortedDocuments = useMemo(() => [...documents].sort(compareDocumentFlowByRecentDate), [documents])" in source
     assert "if (!tokens.length) return sortedDocuments" in source
     assert "const suggestedIds = useMemo(() => sortedDocuments" in source

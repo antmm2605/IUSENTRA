@@ -369,7 +369,7 @@ Richiesta utente: nella finestra `Documenti del fascicolo`, aperta dal fascicolo
 
 Correzione applicata:
 
-- la modale condivisa ordina i documenti usando data portale, data documento e data caricamento;
+- la modale condivisa ordina i documenti usando prima la data documento visibile, poi la data caricamento e infine la data portale solo come fallback;
 - sono supportati formati italiani e ISO, mantenendo ordinamento stabile per nome a parità di data;
 - ricerca, `Seleziona proposti`, riepilogo documenti scelti e pulsanti `Continua alla notifica` / `Continua al deposito` usano tutti lo stesso ordine;
 - il comportamento resta identico se l'avvocato filtra o seleziona manualmente i documenti.

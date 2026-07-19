@@ -5075,11 +5075,9 @@ function documentFlowDateTimestamp(value: string): number {
 }
 
 function documentFlowDocumentTimestamp(doc: FascicoloDocument): number {
-  return Math.max(
-    documentFlowDateTimestamp(doc.portalDate),
-    documentFlowDateTimestamp(doc.documentDate),
-    documentFlowDateTimestamp(doc.uploadedAt),
-  )
+  return documentFlowDateTimestamp(doc.documentDate)
+    || documentFlowDateTimestamp(doc.uploadedAt)
+    || documentFlowDateTimestamp(doc.portalDate)
 }
 
 function compareDocumentFlowByRecentDate(a: FascicoloDocument, b: FascicoloDocument): number {

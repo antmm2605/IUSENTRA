@@ -5079,7 +5079,7 @@ Richiesta utente: la finestra `Documenti del fascicolo`, usata anche dal pulsant
 
 Correzione applicata:
 
-- la modale condivisa Notifica/Deposito ordina i documenti per data portale, data documento e data caricamento, dal più recente al meno recente;
+- la modale condivisa Notifica/Deposito ordina i documenti per data documento visibile, data caricamento e data portale di fallback, dal più recente al meno recente;
 - lo stesso ordine viene mantenuto durante ricerca, selezione dei proposti e riepilogo documenti scelti;
 - l'ordinamento non cambia le regole di abilitazione deposito, firma, prova o invio: modifica solo la leggibilità della scelta documentale.
 

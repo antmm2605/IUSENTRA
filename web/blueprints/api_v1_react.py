@@ -6000,11 +6000,95 @@ def _fascicoli_filter_preferences_studio_db():
     return get_request_studio_db(anchor)
 
 
+def _fascicoli_filter_preferences_sqlite_path() -> Path:
+    anchor = Path(tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)).resolve()
+    return anchor.parent / "ui_preferences.db"
+
+
+def _fascicoli_filter_preferences_sqlite_load() -> dict[str, Any]:
+    db_path = _fascicoli_filter_preferences_sqlite_path()
+    if not db_path.exists():
+        return {}
+    with sqlite3.connect(str(db_path), timeout=2.0) as conn:
+        conn.execute("PRAGMA busy_timeout=2000")
+        row = conn.execute(
+            """
+            SELECT updated_at, dati_json
+            FROM ui_preferences
+            WHERE scope = ?
+            """,
+            (_FASCICOLI_FILTER_PREFERENCES_SECTION,),
+        ).fetchone()
+    if not row:
+        return {}
+    try:
+        stored = json.loads(row[1] or "{}")
+    except json.JSONDecodeError:
+        stored = {}
+    if not isinstance(stored, dict):
+        return {}
+    if "updatedAt" not in stored:
+        stored["updatedAt"] = row[0]
+    return stored
+
+
+def _fascicoli_filter_preferences_sqlite_save(stored: Mapping[str, Any], updated_at: str) -> None:
+    db_path = _fascicoli_filter_preferences_sqlite_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path), timeout=5.0) as conn:
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS ui_preferences (
+                scope TEXT PRIMARY KEY,
+                updated_at TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'react_fascicoli',
+                dati_json TEXT NOT NULL DEFAULT '{}'
+            );
+            CREATE INDEX IF NOT EXISTS idx_ui_preferences_updated ON ui_preferences(updated_at);
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO ui_preferences
+            (scope, updated_at, source, dati_json)
+            VALUES (?,?,?,?)
+            ON CONFLICT(scope) DO UPDATE SET
+                updated_at = excluded.updated_at,
+                source = excluded.source,
+                dati_json = excluded.dati_json
+            """,
+            (
+                _FASCICOLI_FILTER_PREFERENCES_SECTION,
+                updated_at,
+                "react_fascicoli",
+                json.dumps(dict(stored), ensure_ascii=False, separators=(",", ":")),
+            ),
+        )
+
+
 def _load_fascicoli_filter_preferences() -> dict[str, Any]:
     from pct.impostazioni_config_repository import load_settings_config_section
 
+    stored_sqlite = _fascicoli_filter_preferences_sqlite_load()
+    if stored_sqlite:
+        preferences = _fascicoli_filter_preferences_payload(
+            stored_sqlite.get("preferences") if isinstance(stored_sqlite.get("preferences"), dict) else stored_sqlite
+        )
+        return {
+            "ok": True,
+            "configured": True,
+            "updatedAt": str(stored_sqlite.get("updatedAt") or stored_sqlite.get("updated_at") or ""),
+            "preferences": preferences,
+        }
+
     studio_db = _fascicoli_filter_preferences_studio_db()
-    stored = load_settings_config_section(studio_db, _FASCICOLI_FILTER_PREFERENCES_SECTION)
+    try:
+        stored = load_settings_config_section(studio_db, _FASCICOLI_FILTER_PREFERENCES_SECTION)
+    except sqlite3.OperationalError as exc:
+        if "locked" not in str(exc).lower():
+            raise
+        stored = {}
     preferences = _fascicoli_filter_preferences_payload(stored.get("preferences") if isinstance(stored.get("preferences"), dict) else stored)
     return {
         "ok": True,
@@ -6029,7 +6113,6 @@ def _save_fascicoli_filter_preferences(payload: Mapping[str, Any]) -> dict[str, 
         "preferences": preferences,
         "updatedAt": updated_at,
     }
-    ensure_settings_config_schema(studio_db)
     row = {
         "section": _FASCICOLI_FILTER_PREFERENCES_SECTION,
         "updated_at": updated_at,
@@ -6039,61 +6122,16 @@ def _save_fascicoli_filter_preferences(payload: Mapping[str, Any]) -> dict[str, 
     }
 
     if str(getattr(studio_db, "backend_kind", "")).lower() != "postgresql":
-        db_path = getattr(studio_db, "db_path", None)
-        if db_path is None:
-            return {
-                "ok": False,
-                "message": "Preferenze filtri non salvate: archivio SQLite dello studio non disponibile.",
-            }
-        try:
-            with sqlite3.connect(str(db_path), timeout=1.5) as conn:
-                conn.execute("PRAGMA busy_timeout=1500")
-                conn.executescript(
-                    """
-                    CREATE TABLE IF NOT EXISTS settings_config (
-                        section TEXT PRIMARY KEY,
-                        updated_at TEXT NOT NULL,
-                        source TEXT NOT NULL DEFAULT 'config_studio',
-                        secret_fields_json TEXT NOT NULL DEFAULT '[]',
-                        dati_json TEXT NOT NULL DEFAULT '{}'
-                    );
-                    CREATE INDEX IF NOT EXISTS idx_settings_config_updated ON settings_config(updated_at);
-                    """
-                )
-                conn.execute(
-                    """
-                    INSERT INTO settings_config
-                    (section, updated_at, source, secret_fields_json, dati_json)
-                    VALUES (?,?,?,?,?)
-                    ON CONFLICT(section) DO UPDATE SET
-                        updated_at = excluded.updated_at,
-                        source = excluded.source,
-                        secret_fields_json = excluded.secret_fields_json,
-                        dati_json = excluded.dati_json
-                    """,
-                    (
-                        row["section"],
-                        row["updated_at"],
-                        row["source"],
-                        row["secret_fields_json"],
-                        row["dati_json"],
-                    ),
-                )
-            return {
-                "ok": True,
-                "configured": True,
-                "updatedAt": updated_at,
-                "preferences": preferences,
-                "message": "Vista fascicoli salvata per questo studio.",
-            }
-        except sqlite3.OperationalError as exc:
-            if "locked" in str(exc).lower():
-                return {
-                    "ok": False,
-                    "message": "Vista non salvata: archivio dello studio occupato. Riprova tra pochi secondi.",
-                    "retryable": True,
-                }
-            raise
+        _fascicoli_filter_preferences_sqlite_save(stored, updated_at)
+        return {
+            "ok": True,
+            "configured": True,
+            "updatedAt": updated_at,
+            "preferences": preferences,
+            "message": "Vista fascicoli salvata per questo studio.",
+        }
+
+    ensure_settings_config_schema(studio_db)
 
     def _insert(conn: Any, item: dict[str, Any]) -> None:
         conn.execute(

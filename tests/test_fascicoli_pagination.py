@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 from datetime import date
@@ -864,6 +865,15 @@ def test_fascicoli_api_salva_preferenze_filtri_per_studio(tmp_path):
     assert loaded["preferences"]["status"] == "definito"
     assert loaded["preferences"]["pageSize"] == 50
     assert loaded["preferences"]["cu"] == "da_registrare"
+    preferences_db = Path(app.config["FASCICOLI_DB"]).parent / "ui_preferences.db"
+    assert preferences_db.exists()
+    with sqlite3.connect(preferences_db) as conn:
+        stored_scope, stored_json = conn.execute(
+            "SELECT scope, dati_json FROM ui_preferences WHERE scope = ?",
+            ("fascicoli_filtri",),
+        ).fetchone()
+    assert stored_scope == "fascicoli_filtri"
+    assert '"status":"definito"' in stored_json
 
 
 def test_fascicoli_api_filtra_rg_mancanti_da_card(tmp_path):

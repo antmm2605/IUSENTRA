@@ -427,3 +427,18 @@ Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --c
 - Frontend/gate React verdi: `pnpm --dir frontend typecheck` e `pnpm --filter @iusentra/studio test`.
 - Sintassi e diff: `python -m py_compile ...` sui moduli toccati e `git diff --check` verdi.
 - Da fare ora: stage esplicito dei file della tranche, commit, push su entrambi i branch gemelli, attesa gate GitHub e deploy Hetzner finale dallo stesso commit.
+
+[20/07/2026 18:50 Europe/Rome] Chiusura operativa codice notifiche Montagnese:
+- Commit funzionale creato: `e84087125814aa6b0b23aa7d87fa6c7e653c078a` con messaggio `Fix presidio notifiche fascicoli Montagnese`; il post-commit ha riallineato il branch locale `claude/legal-electronic-filing-kIxcV`.
+- Push completato su `origin/Codex/legal-electronic-filing-kIxcV` e `origin/claude/legal-electronic-filing-kIxcV`; `git ls-remote` ha confermato entrambi i remoti sullo stesso SHA `e84087125814aa6b0b23aa7d87fa6c7e653c078a`.
+- Gate GitHub sullo SHA `e84087125814aa6b0b23aa7d87fa6c7e653c078a` verdi: `CI`, `CI Required Gates`, `Frontend React CI`, `CI Quality Overlay`, `CodeQL`, `Security Supply Chain`, `Sync Twin Branches`.
+- Deploy Hetzner CPX42 verde sullo stesso SHA: workflow `Deploy Hetzner CPX42` completato con successo, pulizia chiave e pulizia cache Docker incluse.
+- Verifica diretta server post-deploy: `/opt/iusentra/repo` è sul commit `e84087125814aa6b0b23aa7d87fa6c7e653c078a`; `https://app.iusentra.it/api/pronto` risponde `ok=true`, versione `2.257.1`, fuso `Europe/Rome`; esiste un solo container applicativo `iusentra-app`, healthy.
+- `docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps` conferma profilo Hetzner operativo con `iusentra-app`, `iusentra-scheduler-worker` e `iusentra-ocr-worker` healthy.
+- Audit reale post-deploy sul tenant `studio-legale-giuseppe-montagnese`: fonte `sqlite`, `333` fascicoli DB, `301` fascicoli visibili analizzati, `32` archiviati saltati, `0` notifiche ancora da eseguire, `0` azioni correlate residue, `0` falsi positivi; tempi medi `2.428 ms`, massimo `4.816 ms` per fascicolo.
+- Conteggi reali post-deploy: `prova_depositata=250`, `prova_raccolta=17`, `storico_gestito=6`, `monitoraggio=28`. Quindi ciò che resta da notificare naturalmente sul perimetro dei `301` fascicoli visibili è `0`.
+- Materializzatore topbar/Web Push/scadenziario post-deploy: `301` fascicoli scansionati, `items=0`, `to_notify=0`, `recipients=1`, `errors=0`, calendario/scadenziario `created=0`, `updated=0`, `completed=0`.
+- Repository fisici post-deploy: tabella `notifications` con `source_type='legal_notification_presidio'` = `0`; scadenze aperte con marker `IUSENTRA_LEGAL_NOTIFICATION` = `0`.
+- Prova browser reale produzione sul fascicolo `BE831526`: visibili `Prova notifica depositata` e `Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare`; assenti `Relata da firmare` e `Firma relata`; click su `Apri prova depositata` porta a `#cancelleria`; console senza errori.
+- Pulizia Hetzner finale rieseguita: `docker builder prune --all --force` restituisce `Total: 0B`; `/opt/iusentra/tmp-backup-snapshot` assente.
+- Da fare solo per persistenza di questo aggiornamento di registro: commit documentale, push branch gemelli, verifica/deploy finale dello stesso contenuto documentato e controllo igiene repo.

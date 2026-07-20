@@ -289,3 +289,12 @@ Regola permanente relata/notifica: la relata o la prova di notifica si chiude so
 ## Regola anti falso-verde
 
 Un test automatico verde non significa lavoro concluso. Per qualsiasi comportamento visibile serve prova reale sulla macchina dell'utente. Se non è stata eseguita, il report deve dire chiaramente: non verificato su macchina reale.
+
+## Aggiornamento 20/07/2026 - presidio notifiche fascicoli, topbar e Web Push
+
+- Fonte di verità del presidio notifiche interno ai fascicoli: `studio.db`, tabella `fascicoli`, campo `documenti_json`; i JSON tenant-aware restano mirror/storico e non sono fonte decisionale quando esiste SQL.
+- Regola storica tenant Montagnese: fino al `19/07/2026` le notifiche dovute risultano eseguite dallo studio; il codice applica `storico_gestito` e non crea nuove azioni su quei segnali. Dal `20/07/2026` eventuali documenti/provvedimenti da notificare restano residui veri.
+- La topbar non scansiona i fascicoli al caricamento: il job schedulato `legal_notification_relata_presidio` materializza fuori UI solo i residui veri in `notifications/notifications.db` con `source_type=legal_notification_presidio`.
+- Web Push usa il repository notifiche esistente: se viene creato un nuovo residuo vero, il servizio `NotificationService.sync_operational_items` lo deduplica e lo invia solo ai dispositivi/subscription abilitati.
+- Calendario/scadenziario: i residui con stato `da_preparare`, `da_firmare` o `pronta_invio` creano/aggiornano una scadenza `TipoTermine.NOTIFICA` con marker `IUSENTRA_LEGAL_NOTIFICATION`; quando il residuo sparisce, la scadenza aperta creata dal job viene completata.
+- Audit server Montagnese: `301` fascicoli visibili analizzati, `0` notifiche residue, `0` azioni correlate, `0` falsi positivi; report in `artifacts/notifiche-legali/audit-montagnese-301-20260720.md`.

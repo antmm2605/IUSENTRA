@@ -293,7 +293,7 @@ def _relata_sector(notification_relata: dict[str, Any], *, fid: str) -> dict[str
     status_label = _text(notification_relata.get("statusLabel"), "Monitoraggio attivo")
     primary_href = _text(notification_relata.get("primaryHref") or notification_relata.get("prepareHref"))
     actions: list[dict[str, Any]] = []
-    if status != "monitoraggio":
+    if status not in {"monitoraggio", "prova_depositata", "storico_gestito"}:
         priority = "P1" if status in {"da_acquisire", "ricevute_da_completare"} else "P2"
         actions.append(
             _action(

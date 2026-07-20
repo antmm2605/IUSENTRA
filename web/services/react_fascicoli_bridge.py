@@ -42,6 +42,7 @@ from pct.fascicolo_document_presidio import (
 )
 from pct.fascicolo_operational_presidio import build_fascicolo_operational_presidio
 from pct.notifiche_legali import office_notification_evidence_from_pec
+from pct.pec_notification_presidio.historical_policy import HISTORICAL_CUTOFF, STRICT_TRACKING_FROM
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.presidio_documentale_state import (
     build_marker as build_presidio_documentale_marker,
@@ -59,6 +60,8 @@ from web.services.react_practice_engine_bridge import build_react_practice_engin
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 ROME_TZ = ZoneInfo("Europe/Rome")
+NOTIFICATION_HISTORICAL_CUTOFF = HISTORICAL_CUTOFF.astimezone(ROME_TZ).replace(tzinfo=None)
+NOTIFICATION_STRICT_TRACKING_FROM = STRICT_TRACKING_FROM.astimezone(ROME_TZ).replace(tzinfo=None)
 ECONOMIC_DOCUMENT_ANALYSIS_VERSION = "2026-07-13-cu-all-indexed-v5"
 
 _FASCICOLI_LIST_BASE_TTL_SECONDS = max(
@@ -834,6 +837,8 @@ def _notification_context_present(text: str) -> bool:
 def _notification_proof_kind_for_document(doc: Any) -> str:
     text = _notification_document_haystack(doc)
     has_context = _notification_context_present(text)
+    if _notification_proof_deposit_confirmed(doc):
+        return "deposito_prova"
     if "relata" in text and has_context:
         return "relata"
     if "originale notificato" in text and any(
@@ -853,6 +858,175 @@ def _notification_proof_kind_for_document(doc: Any) -> str:
     return ""
 
 
+def _notification_proof_deposit_confirmed(doc: Any) -> bool:
+    text = _notification_document_haystack(doc)
+    if "deposito telematico" not in text and "data deposito" not in text:
+        return False
+    has_notification_scope = any(
+        token in text
+        for token in (
+            "originale notificato",
+            "relata di notifica",
+            "prova notifica",
+            "notifica_id",
+            "notificazione ai sensi",
+        )
+    )
+    if not has_notification_scope:
+        return False
+    return any(
+        token in text
+        for token in (
+            "consegna",
+            "accettazione",
+            "esito",
+            "data deposito",
+            "copia informatica scaricata dal polisweb",
+            "refid",
+        )
+    )
+
+
+def _notification_parse_italian_datetime(date_text: Any, time_text: Any = "") -> datetime | None:
+    raw_date = _text(date_text).replace("-", "/").strip()
+    raw_time = _text(time_text).strip()
+    if not raw_date:
+        return None
+    candidates: list[tuple[str, str]] = []
+    if raw_time:
+        if len(raw_time.split(":")) == 2:
+            candidates.append((f"{raw_date} {raw_time}", "%d/%m/%Y %H:%M"))
+        candidates.append((f"{raw_date} {raw_time}", "%d/%m/%Y %H:%M:%S"))
+    candidates.append((raw_date, "%d/%m/%Y"))
+    for candidate, fmt in candidates:
+        try:
+            return datetime.strptime(candidate, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _notification_datetime_from_text(text: str) -> datetime | None:
+    if not text:
+        return None
+    date_pattern = r"(\d{1,2}[/-]\d{1,2}[/-]\d{4})"
+    time_pattern = r"(?:\s+(?:alle\s+ore|ore|h\.?)\s*(\d{1,2}:\d{2}(?::\d{2})?))?"
+    semantic_patterns = (
+        rf"\bdata\s+(?:notifica|notificazione|deposito|consegna|accettazione|ricezione|invio)\s*:?\s*{date_pattern}{time_pattern}",
+        rf"\b(?:notificat[oa]|depositat[oa]|consegnat[oa]|accettat[oa]|inviat[oa])\s+(?:il|in\s+data)?\s*{date_pattern}{time_pattern}",
+        rf"\b(?:rac|rdac|accettazione|consegna|relata|notifica|notificazione|deposito)\b[^\n\r]{{0,80}}?\b{date_pattern}{time_pattern}",
+    )
+    for pattern in semantic_patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            parsed = _notification_parse_italian_datetime(match.group(1), match.group(2) if match.lastindex and match.lastindex >= 2 else "")
+            if parsed:
+                return parsed
+    compact = re.search(r"\b(20\d{2})(\d{2})(\d{2})(?:\d{6})?\b", text)
+    if compact:
+        try:
+            return datetime(int(compact.group(1)), int(compact.group(2)), int(compact.group(3)))
+        except ValueError:
+            return None
+    return None
+
+
+def _notification_document_effective_datetime(doc: Any) -> datetime | None:
+    for value in (
+        getattr(doc, "data_documento", ""),
+        getattr(doc, "data_deposito_portale", ""),
+        getattr(doc, "data_notifica", ""),
+        getattr(doc, "data_comunicazione_cancelleria", ""),
+    ):
+        parsed = _parse_datetime(value)
+        if parsed:
+            return parsed
+    return _notification_datetime_from_text(_notification_document_haystack(doc))
+
+
+def _notification_release_effective_datetime(release: dict[str, Any]) -> datetime | None:
+    for key in (
+        "dataDeposito",
+        "data_deposito",
+        "dataComunicazione",
+        "data_comunicazione",
+        "ricevutaIl",
+        "ricevuta_il",
+        "timestamp",
+        "data",
+    ):
+        parsed = _parse_datetime(release.get(key))
+        if parsed:
+            return parsed
+    return _notification_datetime_from_text(" ".join(_text(release.get(key)) for key in ("nome", "tipo", "riferimentoPortale")))
+
+
+def _notification_is_historical_import_source(doc: Any) -> bool:
+    text = _notification_document_haystack(doc)
+    return any(
+        token in text
+        for token in (
+            "quickorganizer",
+            "quick organizer",
+            "import-pratiche",
+            "import_pratiche",
+            "importazione pratica",
+            "studio telematico",
+            "gestionale precedente",
+            "legacy",
+        )
+    )
+
+
+def _notification_legacy_assessment(
+    documents: Iterable[Any],
+    notification_kinds: dict[int, str],
+    historical_pending_releases: Iterable[dict[str, Any]] = (),
+) -> dict[str, Any]:
+    legacy_signal_count = 0
+    strict_signal_count = 0
+    signal_count = 0
+    basis: list[str] = []
+    latest_legacy: datetime | None = None
+    earliest_strict: datetime | None = None
+    for doc in documents:
+        kind = notification_kinds.get(id(doc)) or ""
+        text = _notification_document_haystack(doc)
+        if not kind and not _notification_context_present(text):
+            continue
+        signal_count += 1
+        effective = _notification_document_effective_datetime(doc)
+        if effective is not None and effective >= NOTIFICATION_STRICT_TRACKING_FROM:
+            strict_signal_count += 1
+            earliest_strict = min(earliest_strict, effective) if earliest_strict else effective
+            basis.append("documento successivo al 19/07/2026")
+            continue
+        if effective is not None and effective <= NOTIFICATION_HISTORICAL_CUTOFF:
+            legacy_signal_count += 1
+            latest_legacy = max(latest_legacy, effective) if latest_legacy else effective
+            basis.append("data documento/notifica entro 19/07/2026")
+            continue
+        if _notification_is_historical_import_source(doc):
+            legacy_signal_count += 1
+            basis.append("documento importato dallo storico")
+    for release in historical_pending_releases:
+        signal_count += 1
+        legacy_signal_count += 1
+        effective = _notification_release_effective_datetime(release)
+        if effective is not None:
+            latest_legacy = max(latest_legacy, effective) if latest_legacy else effective
+        basis.append("PEC cancelleria storica entro 19/07/2026")
+    return {
+        "legacyAssumedHandled": bool(legacy_signal_count and not strict_signal_count),
+        "legacySignalCount": legacy_signal_count,
+        "strictSignalCount": strict_signal_count,
+        "notificationSignalCount": signal_count,
+        "legacyEffectiveAt": latest_legacy.isoformat() if latest_legacy else "",
+        "strictEffectiveAt": earliest_strict.isoformat() if earliest_strict else "",
+        "basis": sorted(set(basis)),
+    }
+
+
 def _notification_kind_label(kind: str) -> str:
     return {
         "documento_ufficio": "Documento d'ufficio",
@@ -861,6 +1035,7 @@ def _notification_kind_label(kind: str) -> str:
         "pec": "PEC inviata",
         "rac": "RAC",
         "rdac": "RdAC",
+        "deposito_prova": "Deposito prova",
         "attestazione": "Attestazione di conformità",
         "prova": "Prova notifica",
     }.get(kind, "Documento")
@@ -873,6 +1048,7 @@ def _notification_status_label(status: str) -> str:
         "inviato": "inviato",
         "ricevuta_presente": "ricevuta presente",
         "documento_notificato": "notificato",
+        "depositato": "depositato",
     }.get(status, status.replace("_", " "))
 
 
@@ -5982,7 +6158,14 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         fascicolo,
         _office_pec_messages() if office_pec_messages is None else office_pec_messages,
     )
-    pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
+    raw_pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
+    historical_pending_releases = [
+        item
+        for item in raw_pending_releases
+        if (effective := _notification_release_effective_datetime(item)) is not None
+        and effective <= NOTIFICATION_HISTORICAL_CUTOFF
+    ]
+    pending_releases = [item for item in raw_pending_releases if item not in historical_pending_releases]
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
 
     def _doc_haystack(doc: Any) -> str:
@@ -6028,15 +6211,23 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     proof_documents = [
         doc
         for doc in local_documents
-        if notification_kinds.get(id(doc)) in {"atto_notificato", "pec", "rac", "rdac", "attestazione"}
+        if notification_kinds.get(id(doc)) in {"atto_notificato", "pec", "rac", "rdac", "attestazione", "deposito_prova"}
     ]
+    proof_deposit_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "deposito_prova"]
     has_rac = any(notification_kinds.get(id(doc)) == "rac" for doc in local_documents)
     has_rdac = any(notification_kinds.get(id(doc)) == "rdac" for doc in local_documents)
     notification_already_sent = any(
-        notification_kinds.get(id(doc)) in {"pec", "rac", "rdac", "atto_notificato"}
+        notification_kinds.get(id(doc)) in {"pec", "rac", "rdac", "atto_notificato", "deposito_prova"}
         for doc in local_documents
     )
     proof_complete = bool(has_rac and has_rdac)
+    proof_deposited = bool(proof_deposit_documents and (proof_complete or notification_already_sent))
+    legacy_assessment = _notification_legacy_assessment(
+        local_documents,
+        notification_kinds,
+        historical_pending_releases,
+    )
+    legacy_assumed_handled = bool(legacy_assessment["legacyAssumedHandled"])
     first_release = pending_releases[0] if pending_releases else {}
     acquisition_href = _notifica_portal_acquisition_href(fascicolo, first_release)
     prepare_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=notifica#notifica" if fid else "/notifiche-legali#notifica"
@@ -6047,6 +6238,24 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         tone = "warning"
         primary_href = _text(first_release.get("acquisitionHref")) or acquisition_href
         primary_label = "Scarica dal portale"
+    elif proof_deposited:
+        status = "prova_depositata"
+        status_label = "Prova notifica depositata"
+        tone = "success"
+        primary_href = f"/fascicoli/{quote(fid)}#cancelleria" if fid else "#cancelleria"
+        primary_label = "Apri prova depositata"
+    elif proof_complete:
+        status = "prova_raccolta"
+        status_label = "Prova notifica raccolta"
+        tone = "success"
+        primary_href = deposit_href
+        primary_label = "Controlla prova"
+    elif legacy_assumed_handled:
+        status = "storico_gestito"
+        status_label = "Storico notifiche già gestito"
+        tone = "success"
+        primary_href = f"/fascicoli/{quote(fid)}#relata-notifica" if fid else "#relata-notifica"
+        primary_label = "Controlla storico"
     elif office_documents and not relata_documents:
         status = "da_preparare"
         status_label = "Relata da preparare"
@@ -6071,12 +6280,6 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         tone = "success"
         primary_href = prepare_href
         primary_label = "Apri notifica"
-    elif proof_complete:
-        status = "prova_raccolta"
-        status_label = "Prova notifica pronta per deposito"
-        tone = "success"
-        primary_href = deposit_href
-        primary_label = "Controlla prova"
     else:
         status = "monitoraggio"
         status_label = "Monitoraggio attivo"
@@ -6084,40 +6287,80 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         primary_href = prepare_href
         primary_label = "Apri notifica"
     primary_href = primary_href or prepare_href
+    release_step_status = "da_acquisire" if pending_releases else "superato" if office_documents or historical_pending_releases else "monitorato"
+    release_step_detail = (
+        f"{len(pending_releases)} documento/i comunicati via PEC da scaricare dal portale"
+        if pending_releases
+        else f"{len(historical_pending_releases)} comunicazione/i PEC storiche entro il 19/07/2026 considerate già gestite."
+        if historical_pending_releases
+        else "Nessuna PEC d'ufficio pendente."
+    )
+    acquisition_step_status = "superato" if office_documents or legacy_assumed_handled else "da_completare"
+    acquisition_step_detail = (
+        f"{len(office_documents)} documento/i già nei Documenti e atti."
+        if office_documents
+        else "Storico notifiche chiuso dallo studio fino al 19/07/2026."
+        if legacy_assumed_handled
+        else "Integra solo il provvedimento indicato dalla PEC senza duplicare gli atti già presenti."
+    )
+    relata_step_status = "superato" if relata_documents or legacy_assumed_handled else "da_preparare" if office_documents else "in_attesa"
+    relata_step_detail = (
+        f"{len(relata_documents)} relata/e nel fascicolo."
+        if relata_documents
+        else "Notifiche storiche già dichiarate eseguite dallo studio."
+        if legacy_assumed_handled
+        else "La relata sarà generata dai dati della pratica e dai documenti collegati."
+    )
+    firma_step_status = (
+        "superato"
+        if signed_relata or notification_already_sent or proof_complete or proof_deposited or legacy_assumed_handled
+        else "da_firmare"
+        if relata_documents
+        else "in_attesa"
+    )
+    firma_step_detail = (
+        "Notifica già eseguita: non viene richiesto di rifirmare la relata."
+        if notification_already_sent or proof_complete or proof_deposited or legacy_assumed_handled
+        else "Nessun invio automatico senza revisione finale."
+    )
+    proof_step_status = "superato" if proof_complete or proof_deposited or legacy_assumed_handled else "da_completare" if signed_relata or notification_already_sent else "in_attesa"
+    proof_step_detail = (
+        f"{len(proof_documents)} documento/i prova collegati."
+        if proof_documents
+        else "Storico notifiche chiuso fino al 19/07/2026: nessuna nuova notifica da preparare."
+        if legacy_assumed_handled
+        else "Dopo l'invio PEC collega RAC e RdAC originali, senza creare una nuova notifica."
+    )
     steps = [
         {
             "id": "rilascio_portale",
             "label": "PEC ufficio",
-            "status": "da_acquisire" if pending_releases else "superato" if office_documents else "monitorato",
-            "detail": f"{len(pending_releases)} documento/i comunicati via PEC da scaricare dal portale" if pending_releases else "Nessuna PEC d'ufficio pendente.",
+            "status": release_step_status,
+            "detail": release_step_detail,
         },
         {
             "id": "acquisizione",
             "label": "Documento in atti",
-            "status": "superato" if office_documents else "da_completare",
-            "detail": f"{len(office_documents)} documento/i già nei Documenti e atti." if office_documents else "Integra solo il provvedimento indicato dalla PEC senza duplicare gli atti già presenti.",
+            "status": acquisition_step_status,
+            "detail": acquisition_step_detail,
         },
         {
             "id": "relata",
             "label": "Relata notifica",
-            "status": "superato" if relata_documents else "da_preparare" if office_documents else "in_attesa",
-            "detail": f"{len(relata_documents)} relata/e nel fascicolo." if relata_documents else "La relata sarà generata dai dati della pratica e dai documenti collegati.",
+            "status": relata_step_status,
+            "detail": relata_step_detail,
         },
         {
             "id": "firma",
             "label": "Firma e revisione avvocato",
-            "status": "superato" if signed_relata else "da_firmare" if relata_documents else "in_attesa",
-            "detail": "Nessun invio automatico senza revisione finale.",
+            "status": firma_step_status,
+            "detail": firma_step_detail,
         },
         {
             "id": "prova",
             "label": "RAC, RdAC e deposito prova",
-            "status": "superato" if proof_complete else "da_completare" if signed_relata or notification_already_sent else "in_attesa",
-            "detail": (
-                f"{len(proof_documents)} documento/i prova collegati."
-                if proof_documents
-                else "Dopo l'invio PEC collega RAC e RdAC originali, senza creare una nuova notifica."
-            ),
+            "status": proof_step_status,
+            "detail": proof_step_detail,
         },
     ]
     monitored_documents = []
@@ -6134,6 +6377,8 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
             doc_status = "documento_notificato"
         elif kind in {"rac", "rdac"}:
             doc_status = "ricevuta_presente"
+        elif kind == "deposito_prova":
+            doc_status = "depositato"
         elif kind == "pec":
             doc_status = "inviato"
         else:
@@ -6163,10 +6408,14 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     system_notification = status_label
     if pending_releases:
         system_notification = "PEC dell'ufficio ricevuta: scarica dal portale solo il provvedimento indicato e collegalo ai Documenti e atti prima della relata."
+    elif proof_deposited:
+        system_notification = "Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare."
     elif notification_already_sent and not proof_complete:
         system_notification = "Notifica già inviata: completa RAC e RdAC originali per depositare la prova, senza preparare un nuovo invio."
     elif proof_complete:
         system_notification = "Notifica già inviata e prova raccolta: controlla i file e deposita la prova quando previsto."
+    if legacy_assumed_handled and status == "storico_gestito":
+        system_notification = "Fino al 19/07/2026 lo studio ha dichiarato le notifiche eseguite: nessuna nuova notifica da preparare; il presidio resta attivo solo per eventi dal 20/07/2026."
     return {
         "status": status,
         "statusLabel": status_label,
@@ -6174,12 +6423,21 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         "releaseDetected": bool(pending_releases),
         "notificationAlreadySent": notification_already_sent,
         "proofComplete": proof_complete,
+        "proofDeposited": proof_deposited,
+        "legacyAssumedHandled": legacy_assumed_handled,
+        "legacyNotificationSignals": int(legacy_assessment["legacySignalCount"]),
+        "strictNotificationSignals": int(legacy_assessment["strictSignalCount"]),
+        "historicalCutoff": "19/07/2026",
+        "strictTrackingFrom": "20/07/2026",
+        "legacyEffectiveAt": _date_label_optional(legacy_assessment["legacyEffectiveAt"]),
+        "legacyBasis": legacy_assessment["basis"],
         "pendingPortalDocuments": len(pending_releases),
         "portalDocuments": len(office_documents),
         "officeDocuments": len(office_documents),
         "relataDocuments": len(relata_documents),
         "signedRelataDocuments": len(signed_relata),
         "proofDocuments": len(proof_documents),
+        "proofDepositDocuments": len(proof_deposit_documents),
         "acquisitionHref": acquisition_href,
         "prepareHref": prepare_href,
         "depositHref": deposit_href,

@@ -5114,3 +5114,35 @@ Guardrail eseguiti:
 - `pnpm --filter @iusentra/studio build`, senza chunk sopra `500 kB`.
 
 Stato: pronto per deploy e verifica reale server su fascicolo con modale aperta da `Deposito telematico`.
+
+### Aggiornamento 20/07/2026 - presidio notifiche fascicoli Montagnese e cutoff storico
+
+Richiesta utente: sul tenant produzione `Studio Legale Giuseppe Montagnese` il presidio interno dei fascicoli non deve più mostrare notifiche da eseguire quando in realtà sono già state eseguite. Regola di dominio confermata dall'utente: fino al `19/07/2026` tutto ciò che andava notificato è stato eseguito e notificato; il tracciamento operativo stretto parte dal `20/07/2026`.
+
+Correzione applicata:
+
+- nel payload React del fascicolo il presidio relata riconosce la `prova_depositata` quando esistono documenti storici di notifica, RAC/RdAC e deposito prova;
+- per lo storico ante `20/07/2026` è stato introdotto lo stato `storico_gestito`, che non genera più `Relata da firmare`, `Prepara relata` o azioni equivalenti a nuova notifica;
+- dal `20/07/2026` in poi eventuali provvedimenti/documenti da notificare restano invece operativi e vengono riportati come residui veri;
+- il presidio operativo interno al fascicolo non crea azioni per `prova_depositata` e `storico_gestito`;
+- un nuovo audit fuori dal caricamento UI (`scripts/audit_notification_relata_fascicoli.py`) produce JSON/Markdown con elenco naturale di ciò che resta da notificare, azioni correlate, campione 30 fascicoli e tempi di calcolo;
+- un nuovo materializzatore schedulato (`legal_notification_relata_presidio`) collega i residui futuri a notifiche operative/topbar/Web Push e, se sono vere notifiche da eseguire, allo scadenziario `TipoTermine.NOTIFICA`, con marker deduplicato `IUSENTRA_LEGAL_NOTIFICATION`.
+
+Prova server reale sul tenant Montagnese:
+
+- fonte di verità: `/data/tenants/studio-legale-giuseppe-montagnese/studio.db`, tabella `fascicoli`, campo `documenti_json`;
+- audit produzione: `333` fascicoli DB, `301` visibili analizzati, `32` archiviati saltati;
+- esito: `0` nuove notifiche da eseguire, `0` azioni correlate residue, `0` falsi positivi;
+- conteggi: `250` `prova_depositata`, `17` `prova_raccolta`, `6` `storico_gestito`, `28` `monitoraggio`;
+- performance audit: media `2.545 ms`, massimo `5.631 ms` per fascicolo, senza scansioni OCR/mailbox nel caricamento pagina;
+- report conservati in `artifacts/notifiche-legali/audit-montagnese-301-20260720.json` e `.md`.
+
+Verifica browser produzione:
+
+- fascicolo reale `BE831526` aperto su `https://app.iusentra.it/fascicoli/BE831526`;
+- visibile `Prova notifica depositata`;
+- visibile messaggio `Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare`;
+- assenti `Relata da firmare` e `Firma relata`;
+- click su `Apri prova depositata` porta a `#cancelleria` senza preparare una nuova notifica e senza invio.
+
+Stato anti-regressione: coperto da `tests/test_notification_relata_fascicolo.py` e `tests/test_notification_relata_materializer.py`. Il server è stato verificato con `iusentra-app` unico/healthy e `/api/pronto` `ok=true`, fuso `Europe/Rome`. Il lavoro resta da riallineare su copia locale, commit/push branch gemelli e deploy finale da commit.

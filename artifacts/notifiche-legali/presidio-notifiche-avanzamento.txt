@@ -381,3 +381,49 @@ Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --c
 - Click reali locali post-rebuild: coda `Da esaminare`, coda `Mancata consegna`, filtro `Cerca pratica o R.G.`, filtro `Cerca destinatario`, `Applica`, `Azzera`, `Aggiorna`; risultato stabile su `section=presidi`, nessun errore console.
 - Lazy-load verificato dopo l'ultimo rebuild locale: click su `Operazioni di notifica` carica il workflow storico solo su richiesta; ritorno a `Presidi notifiche` rimuove il workflow storico dalla vista iniziale e mantiene la pagina leggera.
 - Prossimo passo obbligatorio scritto su richiesta dell'utente: committare anche questo aggiornamento del registro, pushare di nuovo entrambi i branch gemelli, attendere i gate GitHub del nuovo SHA documentale, verificare/deployare Hetzner sullo stesso commit finale, pulire cache build/snapshot, controllare produzione e lasciare copia locale e repository puliti/allineati.
+
+[20/07/2026 16:45 Europe/Rome] Nuova segnalazione utente su falsi positivi nei fascicoli Montagnese:
+- Regola di dominio ricevuta dall'utente e da preservare nel codice/report: fino al 19/07/2026 tutto ciò che andava notificato è stato eseguito e notificato dallo Studio Legale Giuseppe Montagnese; il presidio deve quindi trattare lo storico ante 20/07/2026 come già gestito e non deve più mostrare `Relata da firmare`, `Prepara relata` o altre attività equivalenti a nuova notifica su quei fascicoli.
+- Diagnosi server già eseguita sul tenant produzione `studio-legale-giuseppe-montagnese`: il nuovo registro centrale `/notifiche-legali` non contiene presidi pendenti; il falso positivo è nel presidio interno dei fascicoli, letto da `fascicoli.documenti_json` in `studio.db`.
+- Caso reale osservato in produzione: fascicolo `BE831526` mostrava ancora `Relata da firmare` nonostante documenti storici di notifica, RAC/RdAC e deposito prova (`originale notificato`, `Relata di notifica`, `ACCETTAZIONE`, `CONSEGNA`, `DEPOSITO TELEMATICO`). Il fix deve togliere l'azione falsa e mostrare stato chiuso/prova depositata/storico gestito.
+- Implementato nel codice locale e da trasferire sul server: riconoscimento `deposito_prova`, stato `prova_depositata`, nuovo stato `storico_gestito`, payload `legacyAssumedHandled`, cutoff `19/07/2026`, tracciamento stretto `20/07/2026`, neutralizzazione delle azioni nel presidio interno al fascicolo.
+- Implementato guardrail tecnico locale: `tests/test_notification_relata_fascicolo.py` copre prova depositata, storico ante cutoff non più da firmare e provvedimento dal 20/07/2026 che resta da notificare; esito corrente `python -m pytest -q tests/test_notification_relata_fascicolo.py` verde.
+- Implementato script di audit fuori dal caricamento pagina: `scripts/audit_notification_relata_fascicoli.py`. Deve essere eseguito sul server contro `/data/tenants/studio-legale-giuseppe-montagnese/studio.db`, con `--visible-only --sample 30`, e deve produrre JSON/Markdown con:
+  - totale fascicoli DB;
+  - totale fascicoli visibili analizzati, atteso 301;
+  - fascicoli archiviati saltati;
+  - elenco naturale `Cosa resta ancora da notificare`;
+  - azioni correlate non equivalenti a nuova notifica;
+  - campione software di 30 fascicoli con passaggi;
+  - falsi positivi residui, atteso zero;
+  - tempi medi/massimi per confermare che la logica resta veloce.
+- Da fare subito in modalità server-first: copiare i file modificati su `/opt/iusentra/repo`, ricostruire/riavviare `iusentra-app`, eseguire audit reale sui 301 fascicoli del tenant Montagnese, verificare nel browser produzione almeno il caso `BE831526`, riportare nel report ciò che resta davvero da notificare, poi solo dopo riallineare la copia locale, gate, commit, push branch gemelli e deploy finale.
+
+[20/07/2026 18:05 Europe/Rome] Esito server-first sul tenant Studio Legale Giuseppe Montagnese:
+- File modificati trasferiti su `/opt/iusentra/repo` e app Hetzner ricostruita/riavviata due volte per includere sia fix fascicoli sia materializzatore topbar/Web Push/scadenziario. Container `iusentra-app` unico e healthy; `https://app.iusentra.it/api/pronto` risponde `ok=true`, versione `2.257.0`, fuso `Europe/Rome`.
+- Test tecnico nel container produzione eseguito inline perché `pytest` non è installato nell'immagine: verificati i tre casi chiave `prova_depositata`, `storico_gestito` ante cutoff e `da_preparare` dal 20/07/2026. Esito: `notification_relata_inline_tests_ok`.
+- Audit reale server sul DB tenant `/data/tenants/studio-legale-giuseppe-montagnese/studio.db` completato con `scripts/audit_notification_relata_fascicoli.py --visible-only --sample 30`: `333` fascicoli DB, `301` fascicoli visibili analizzati, `32` archiviati saltati, `0` nuove notifiche da eseguire, `0` azioni correlate residue, `0` falsi positivi; tempo medio `2.545 ms`, massimo `5.631 ms` per fascicolo.
+- Report prodotti e riportati in locale: `artifacts/notifiche-legali/audit-montagnese-301-20260720.json` e `artifacts/notifiche-legali/audit-montagnese-301-20260720.md`. Nel Markdown la sezione `Cosa resta ancora da notificare` dichiara: nessun fascicolo risulta con una nuova notifica da eseguire dopo il filtro storico.
+- Conteggi audit produzione: `prova_depositata=250`, `prova_raccolta=17`, `storico_gestito=6`, `monitoraggio=28`. Il campione software di `30` fascicoli è stato incluso nel report Markdown con stato, prova, storico e passaggio operativo.
+- Verifica browser reale produzione sul fascicolo `BE831526`: visibile `Prova notifica depositata` e messaggio `Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare`; assenti `Relata da firmare` e `Firma relata`. Click reale su `Apri prova depositata` porta a `#cancelleria` senza creare nuova notifica o invio.
+- Integrazione unica implementata: nuovo job `legal_notification_relata_presidio` e funzione `materialize_notification_relata_presidio_for_paths`. La scansione resta fuori dal caricamento UI; se in futuro compare un residuo vero dal 20/07/2026, viene materializzato in topbar/notifiche operative/Web Push e, per le notifiche da eseguire, in scadenziario `TipoTermine.NOTIFICA` con deduplica marker `IUSENTRA_LEGAL_NOTIFICATION`.
+- Materializzatore reale eseguito sul tenant Montagnese: `301` fascicoli scansionati, `items=0`, `to_notify=0`, `recipients=1`, `calendar.created=0`, `calendar.updated=0`, `calendar.completed=0`. Controllo diretto DB: `notifications.source_type='legal_notification_presidio'` attive = `0`; scadenze aperte con marker `IUSENTRA_LEGAL_NOTIFICATION` = `0`.
+- Da fare ora: aggiornare documentazione sensibile, eseguire gate locali mirati e full in proporzione, riallineare/ricostruire copia locale reale `127.0.0.1:8080`, verificare, commit, push su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, attendere gate GitHub, deploy finale Hetzner da commit e pulizia cache/snapshot.
+
+[20/07/2026 18:22 Europe/Rome] Riallineamento e prova locale reale versione 2.257.1:
+- Riletti `AGENTS.md`, questo registro e `artifacts/data-flow/incarico-operativo-permanente.md` prima di riprendere dopo compattazione.
+- Worktree controllata: modifiche limitate alla tranche presidio notifiche fascicoli, audit Montagnese, materializzatore topbar/Web Push/scadenziario, test e documentazione.
+- Docker locale reale ricostruito e ricreato su `127.0.0.1:8080`: servizi `app`, `scheduler-worker` e `ocr-worker` healthy; `/api/pronto` risponde `ok=true`, versione `2.257.1`, fuso `Europe/Rome`.
+- Prova browser reale locale eseguita sul browser integrato in `http://127.0.0.1:8080/notifiche-legali`: pagina React `Presidi notifiche` caricata, `#root` presente, stato vuoto visibile e coerente, tutti i contatori a `0`, data topbar in italiano `lun 20 lug`.
+- Interazioni locali reali: click su `Aggiorna`, scroll fino al fondo, stato `Nessun presidio in questa coda`, nessun errore console. La prova locale conferma che l'integrazione non rallenta il caricamento della pagina presidi e non avvia scansioni fascicoli nel percorso UI.
+- Stato naturale da riportare all'utente sulla produzione Montagnese resta invariato e documentato dall'audit server: sui `301` fascicoli visibili analizzati, ciò che resta ancora da notificare è `0`.
+- Da fare ora: controlli generatori/pre-commit, stage/commit, push branch gemelli, attesa gate GitHub, deploy Hetzner finale dallo stesso commit `2.257.1`, audit/materializzatore server post-deploy, pulizia cache build/snapshot e igiene repository.
+
+[20/07/2026 18:26 Europe/Rome] Gate locali pre-commit:
+- `gh --version` e `gh auth status` verificati: GitHub CLI disponibile e autenticata per `antmm2605`.
+- Generator alignment eseguito: rigenerati e verificati `docs/openapi.yaml`, `docs/test-inventory.md`, `docs/test-plan-app-v2.md`; `docs/api-contracts.md` e `docs/api-endpoint-contract-map.md` risultano già allineati.
+- Check verdi: `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`, `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py --check`.
+- Test verdi: `python -m pytest -q tests/test_notification_relata_fascicolo.py tests/test_notification_relata_materializer.py tests/test_push_notifications.py::test_sync_operational_items_ritira_notifiche_pec_non_piu_generate`.
+- Frontend/gate React verdi: `pnpm --dir frontend typecheck` e `pnpm --filter @iusentra/studio test`.
+- Sintassi e diff: `python -m py_compile ...` sui moduli toccati e `git diff --check` verdi.
+- Da fare ora: stage esplicito dei file della tranche, commit, push su entrambi i branch gemelli, attesa gate GitHub e deploy Hetzner finale dallo stesso commit.

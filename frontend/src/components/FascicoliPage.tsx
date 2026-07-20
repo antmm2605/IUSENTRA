@@ -4149,18 +4149,22 @@ function relataStatusDisplayLabel(value: string): string {
   if (key === 'da firmare') return 'da firmare'
   if (key === 'in attesa') return 'in attesa'
   if (key === 'monitorato') return 'monitorato'
+  if (key === 'prova depositata') return 'prova depositata'
+  if (key === 'storico gestito') return 'storico gestito'
   return value.replace(/_/g, ' ')
 }
 
 function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
   const monitor = data.notificationRelata
-  const alreadySent = monitor.notificationAlreadySent || ['ricevute_da_completare', 'prova_raccolta'].includes(monitor.status)
+  const proofDeposited = monitor.proofDeposited || monitor.status === 'prova_depositata'
+  const legacyHandled = monitor.legacyAssumedHandled || monitor.status === 'storico_gestito'
+  const alreadySent = proofDeposited || legacyHandled || monitor.notificationAlreadySent || ['ricevute_da_completare', 'prova_raccolta'].includes(monitor.status)
   const canPrepareNotification = !alreadySent && ['monitoraggio', 'da_preparare', 'da_firmare', 'pronta_invio'].includes(monitor.status)
   const actions = [
     { label: monitor.primaryLabel || 'Apri presidio', href: monitor.primaryHref, icon: monitor.status === 'da_acquisire' ? <FileDown size={15}/> : <FileSignature size={15}/>, show: true },
     { label: 'Acquisisci dal portale', href: monitor.acquisitionHref, icon: <FileDown size={15}/>, show: monitor.releaseDetected },
     { label: 'Prepara relata', href: monitor.prepareHref, icon: <FileSignature size={15}/>, show: canPrepareNotification },
-    { label: alreadySent ? 'Deposita prova' : 'Prepara deposito prova', href: monitor.depositHref, icon: <Send size={15}/>, show: alreadySent || monitor.proofDocuments > 0 || monitor.proofComplete },
+    { label: alreadySent ? 'Deposita prova' : 'Prepara deposito prova', href: monitor.depositHref, icon: <Send size={15}/>, show: !proofDeposited && !legacyHandled && (alreadySent || monitor.proofDocuments > 0 || monitor.proofComplete) },
   ].filter((item, index, rows) => item.href && rows.findIndex((row) => row.href === item.href) === index)
     .filter((item) => item.show)
   const total = Math.max(monitor.pendingPortalDocuments, monitor.relataDocuments, monitor.signedRelataDocuments, monitor.proofDocuments, monitor.documents.length)

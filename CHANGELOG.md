@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.257.1 - 2026-07-20
+
+- Corregge i falsi positivi del presidio relata nei fascicoli del tenant Studio Legale Giuseppe Montagnese: lo storico notifiche fino al 19/07/2026 viene trattato come già gestito e non genera più `Relata da firmare` o nuove notifiche da preparare.
+- Riconosce la prova notifica depositata dai documenti storici del fascicolo e mostra `Prova notifica depositata` quando la notifica è già eseguita e collegata al deposito.
+- Aggiunge l'audit `scripts/audit_notification_relata_fascicoli.py`, con report JSON/Markdown sui 301 fascicoli visibili Montagnese, campione software di 30 fascicoli e sezione `Cosa resta ancora da notificare`.
+- Integra i residui futuri veri con topbar, centro notifiche/Web Push e scadenziario tramite il job `legal_notification_relata_presidio`, senza scansioni nel caricamento della UI.
+- Prova server reale Montagnese: 301 fascicoli analizzati, 0 nuove notifiche da eseguire, 0 azioni correlate residue, 0 falsi positivi; fascicolo `BE831526` verificato in produzione senza più `Firma relata`.
+
 ## 2.257.0 - 2026-07-20
 
 - Aggiunge il presidio persistente delle notifiche legali con fonte SQL tenant-aware, rollout per studio, RBAC reale e stati per fascicolo, documento, destinatario, evidenze e transizioni.

@@ -457,11 +457,20 @@ export type FascicoloNotificationRelata = {
   releaseDetected: boolean
   notificationAlreadySent: boolean
   proofComplete: boolean
+  proofDeposited: boolean
+  legacyAssumedHandled: boolean
+  legacyNotificationSignals: number
+  strictNotificationSignals: number
+  historicalCutoff: string
+  strictTrackingFrom: string
+  legacyEffectiveAt: string
+  legacyBasis: string[]
   pendingPortalDocuments: number
   portalDocuments: number
   relataDocuments: number
   signedRelataDocuments: number
   proofDocuments: number
+  proofDepositDocuments: number
   acquisitionHref: string
   prepareHref: string
   depositHref: string
@@ -1227,11 +1236,20 @@ export const emptyNotificationRelata: FascicoloNotificationRelata = {
   releaseDetected: false,
   notificationAlreadySent: false,
   proofComplete: false,
+  proofDeposited: false,
+  legacyAssumedHandled: false,
+  legacyNotificationSignals: 0,
+  strictNotificationSignals: 0,
+  historicalCutoff: '19/07/2026',
+  strictTrackingFrom: '20/07/2026',
+  legacyEffectiveAt: '',
+  legacyBasis: [],
   pendingPortalDocuments: 0,
   portalDocuments: 0,
   relataDocuments: 0,
   signedRelataDocuments: 0,
   proofDocuments: 0,
+  proofDepositDocuments: 0,
   acquisitionHref: '/portali/pst/acquisizione?focus=documenti',
   prepareHref: '/notifiche-legali#notifica',
   depositHref: '/notifiche-legali#deposito',
@@ -1944,11 +1962,20 @@ function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelat
     releaseDetected: bool(value.releaseDetected ?? value.release_detected),
     notificationAlreadySent: bool(value.notificationAlreadySent ?? value.notification_already_sent),
     proofComplete: bool(value.proofComplete ?? value.proof_complete),
+    proofDeposited: bool(value.proofDeposited ?? value.proof_deposited),
+    legacyAssumedHandled: bool(value.legacyAssumedHandled ?? value.legacy_assumed_handled),
+    legacyNotificationSignals: number(value.legacyNotificationSignals ?? value.legacy_notification_signals),
+    strictNotificationSignals: number(value.strictNotificationSignals ?? value.strict_notification_signals),
+    historicalCutoff: text(value.historicalCutoff ?? value.historical_cutoff, emptyNotificationRelata.historicalCutoff),
+    strictTrackingFrom: text(value.strictTrackingFrom ?? value.strict_tracking_from, emptyNotificationRelata.strictTrackingFrom),
+    legacyEffectiveAt: text(value.legacyEffectiveAt ?? value.legacy_effective_at),
+    legacyBasis: asArray(value.legacyBasis ?? value.legacy_basis).map((item) => text(item)).filter(Boolean),
     pendingPortalDocuments: number(value.pendingPortalDocuments ?? value.pending_portal_documents),
     portalDocuments: number(value.portalDocuments ?? value.portal_documents),
     relataDocuments: number(value.relataDocuments ?? value.relata_documents),
     signedRelataDocuments: number(value.signedRelataDocuments ?? value.signed_relata_documents),
     proofDocuments: number(value.proofDocuments ?? value.proof_documents),
+    proofDepositDocuments: number(value.proofDepositDocuments ?? value.proof_deposit_documents),
     acquisitionHref: text(value.acquisitionHref ?? value.acquisition_href, emptyNotificationRelata.acquisitionHref),
     prepareHref: text(value.prepareHref ?? value.prepare_href, emptyNotificationRelata.prepareHref),
     depositHref: text(value.depositHref ?? value.deposit_href, emptyNotificationRelata.depositHref),

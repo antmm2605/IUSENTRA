@@ -1197,6 +1197,58 @@ def start_scheduler(app):
                 }
 
     @scheduler.scheduled_job(
+        CronTrigger(minute="4-59/15"),
+        id="legal_notification_relata_presidio",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
+    def _legal_notification_relata_presidio():
+        with app.app_context():
+            try:
+                from web.services.notifications_runtime import (
+                    materialize_notification_relata_presidio_for_paths,
+                )
+
+                tenant_reports: list[dict[str, object]] = []
+                errors = 0
+                recipients = 0
+                items = 0
+                to_notify = 0
+                scanned = 0
+                for label, paths in _mailbox_sync_targets():
+                    report = materialize_notification_relata_presidio_for_paths(
+                        paths,
+                        tenant_label=label,
+                        tenant_id=str(paths.get("_TENANT_NOTIFICATION_ID") or label),
+                        database=paths.get("_TENANT_DATABASE_CONFIG"),
+                    )
+                    tenant_reports.append(report)
+                    errors += _as_int(report.get("errors"))
+                    recipients += _as_int(report.get("recipients"))
+                    items += _as_int(report.get("items"))
+                    to_notify += _as_int(report.get("to_notify"))
+                    scanned += _as_int(report.get("scanned"))
+                return {
+                    "ok": errors == 0,
+                    "job": "legal_notification_relata_presidio",
+                    "source_of_truth": "studio.db fascicoli.documenti_json e notification repository tenant-aware",
+                    "scanned": scanned,
+                    "items": items,
+                    "to_notify": to_notify,
+                    "recipients": recipients,
+                    "errors": errors,
+                    "tenants": tenant_reports,
+                }
+            except Exception as exc:
+                logger.error("[scheduler] Presidio relata/notifiche fascicoli fallito: %s", exc)
+                return {
+                    "ok": False,
+                    "job": "legal_notification_relata_presidio",
+                    "error": str(exc),
+                }
+
+    @scheduler.scheduled_job(
         CronTrigger(minute="13-58/15"),
         id="fascicoli_document_economic_presidio",
         max_instances=1,

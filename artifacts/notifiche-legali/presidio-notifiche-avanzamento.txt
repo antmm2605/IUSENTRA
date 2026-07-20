@@ -1,7 +1,7 @@
 IUSENTRA - PRESIDIO NOTIFICHE PERSISTENTE
 PIANO, REGISTRO DI AVANZAMENTO E CHECKLIST DI RIPRESA
 
-Ultimo aggiornamento: 20/07/2026 15:37 (Europe/Rome)
+Ultimo aggiornamento: 20/07/2026 15:43 (Europe/Rome)
 Repository: antmm2605/IUSENTRA
 Branch di lavoro: Codex/legal-electronic-filing-kIxcV
 Branch gemello: claude/legal-electronic-filing-kIxcV
@@ -362,3 +362,12 @@ Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --c
 - Rigenerati i documenti test App V2 con `python scripts/react-migration/generate_app_v2_test_docs.py`.
 - Verifica `python scripts/react-migration/generate_app_v2_test_docs.py --check` verde.
 - Prossimo passo: stage dei due documenti test e di questo file, amend del commit, nuovo push dei branch gemelli.
+
+[20/07/2026 15:43 Europe/Rome] Push riuscito e prima failure GitHub:
+- Commit emendato su SHA `16e8b53ef9cabf063b110dbec6752bca62fd463e`.
+- Push completato su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`; `git ls-remote` ha confermato entrambi i remoti sullo stesso SHA.
+- GitHub Actions avviate sullo SHA corrente. La causa reale della prima failure non era l'aggregatore, ma il job `Frontend React contratti`, step `pnpm --filter @iusentra/studio test`.
+- Errore letto dal log GitHub: `Design system governance: CSS locali non governati: frontend/src/features/notifiche-legali/PresidiNotifiche.css`.
+- Correzione locale: aggiunto `frontend/src/features/notifiche-legali/PresidiNotifiche.css` alla governance in `scripts/react-migration/design-system-governance.json`.
+- Test locale esatto rilanciato e verde: `pnpm --filter @iusentra/studio test`, con `Design system governance OK: 67 CSS, 10 inline style, 4 divieti`.
+- Prossimo passo: commit correttivo, push branch gemelli, nuovo controllo GitHub dello SHA aggiornato e, dopo verde, rebuild/verify locale e deploy finale Hetzner.

@@ -72,6 +72,7 @@
     "frontend/src/features/impostazioni/components/CalendarSettingsPanel.css",
     "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
     "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",
+    "frontend/src/features/notifiche-legali/PresidiNotifiche.css",
     "frontend/src/features/procedure-completion/procedure-completion.css",
     "frontend/src/index.css",
     "frontend/src/shell/shell.css",

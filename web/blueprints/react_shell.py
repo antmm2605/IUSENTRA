@@ -18,6 +18,9 @@ from web.services.feature_flags import (
     feature_flags_payload,
     is_feature_enabled,
 )
+from web.services.notification_presidia_runtime import (
+    apply_legal_notification_presidia_effective_flags,
+)
 
 react_shell = Blueprint("react_shell", __name__)
 _INLINE_ENTRY_CACHE: dict[str, tuple[int, str]] = {}
@@ -544,5 +547,8 @@ def _react_bootstrap_payload() -> dict[str, Any]:
             "profile": url_for("profilo"),
             "logout": url_for("logout"),
         },
-        "featureFlags": feature_flags_payload(current_app.config)["flags"],
+        "featureFlags": apply_legal_notification_presidia_effective_flags(
+            feature_flags_payload(current_app.config)["flags"],
+            config=current_app.config,
+        ),
     }

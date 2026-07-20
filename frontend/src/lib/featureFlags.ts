@@ -2,6 +2,8 @@ import { apiJson } from '@/lib/apiClient'
 
 export type FeatureFlagKey =
   | 'features.sentenzaEconomicControl'
+  | 'features.legalNotificationPresidia.enabled'
+  | 'features.legalNotificationPresidia.primary'
   | 'lex.economicContextTools'
   | 'routes.appV2.dashboard.home'
   | 'routes.appV2.dashboard.regia'

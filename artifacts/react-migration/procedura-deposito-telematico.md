@@ -1,5 +1,28 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-20 - Presidio persistente notifiche legali
+
+Il flusso Notifiche legali introduce un presidio persistente, tenant-aware e governato da SQL per seguire ordini di notifica, originali da acquisire, relate, RAC/RdAC, mancate consegne e prova da depositare senza rileggere la casella PEC o il fascicolo durante le GET della UI.
+
+Regole operative confermate:
+
+- l'invio PEC legale resta sempre dal PC dell'avvocato tramite Local Signer/servizio locale; il server prepara, classifica e conserva evidenze, ma non diventa canale SMTP reale;
+- il flag globale spento non interroga tenant, repository, mailbox, ZIP, OCR, PDF o fascicoli;
+- la modalità primaria per tenant mostra la vista React `Presidi notifiche` come superficie iniziale, mentre il workflow storico viene caricato solo quando l'utente seleziona `Operazioni di notifica`;
+- lista, contatori e filtri leggono proiezioni SQL paginate e indicizzate; dettaglio, evidenze e transizioni si caricano solo su richiesta;
+- gli stati per destinatario distinguono RAC, RdAC, consegna parziale e mancata consegna; una failure incerta resta in revisione umana e non viene chiusa automaticamente;
+- ogni data/ora visibile resta in italiano e in fuso `Europe/Rome`.
+
+Prova server eseguita sul tenant `Studio Legale Giuseppe Montagnese`:
+
+- `https://app.iusentra.it/notifiche-legali` caricata in sessione autenticata come amministratore;
+- sezione `Presidi notifiche` visibile, nessun errore console e caricamento osservato sotto il baseline richiesto;
+- click reali su code, filtri, `Applica`, `Azzera`, `Aggiorna`, stato vuoto e ritorno dal workflow storico lazy;
+- asset produzione controllati nel container con chunk JavaScript massimo sotto `500.000` byte;
+- nessuna PEC reale, firma digitale o registrazione di notifica effettiva è stata eseguita durante il collaudo.
+
+Stato di chiusura della tranche: prima del report finale restano obbligatori riallineamento e prova della copia locale reale `127.0.0.1:8080`, commit, push dei branch gemelli, deploy Hetzner finale sullo stesso commit, container `iusentra-app` unico/healthy e controllo `/api/pronto`.
+
 ## Aggiornamento 2026-07-19 - Uffici deposito, alias reali e audit fallente
 
 Caso bloccante emerso in produzione: nel deposito del fascicolo `F7AA4E0C` l'ufficio veniva mostrato come `TRIBUNALE DI REGGIO DI CALABRIA`, mentre il catalogo ministeriale interno contiene `Tribunale di Reggio Calabria`. Il risultato era PEC non disponibile e codice ufficio non risolto.

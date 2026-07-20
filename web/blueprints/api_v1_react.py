@@ -370,6 +370,9 @@ from web.services.react_wizard_pro_bridge import (
 )
 from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.services.feature_flags import feature_disabled_response, feature_flags_payload, is_feature_enabled
+from web.services.notification_presidia_runtime import (
+    apply_legal_notification_presidia_effective_flags,
+)
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
@@ -2389,7 +2392,12 @@ def bootstrap():
 @api_v1_react.get("/feature-flags")
 @_richiedi_auth
 def feature_flags():
-    return jsonify(feature_flags_payload(current_app.config))
+    payload = feature_flags_payload(current_app.config)
+    payload["flags"] = apply_legal_notification_presidia_effective_flags(
+        payload["flags"],
+        config=current_app.config,
+    )
+    return jsonify(payload)
 
 
 @api_v1_react.get("/workflow-agents")

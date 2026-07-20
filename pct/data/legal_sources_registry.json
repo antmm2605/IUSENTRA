@@ -1,6 +1,6 @@
 {
-  "schema_version": "iusentra.legal_sources_registry.v1",
-  "generated_at": "2026-05-08T00:00:00+02:00",
+  "schema_version": "iusentra.legal_sources_registry.v2",
+  "generated_at": "2026-07-19T00:00:00+02:00",
   "policy": {
     "principle": "Nessuna fonte viene presentata come aggiornata automaticamente se non esiste un connettore o un controllo governato.",
     "allowed_statuses": [
@@ -191,6 +191,174 @@
       "modules": ["Privacy", "Documenti", "PEC", "Lex AI", "Multi-tenant"],
       "status": "manual_review_required",
       "notes": "La compliance privacy richiede policy di studio e valutazione organizzativa oltre ai controlli software."
+    }
+  ],
+  "notification_sources": [
+    {
+      "id": "src.it.l53_1994.art3bis",
+      "citation": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1994-01-21;53~art3bis=",
+      "legal_state": "current",
+      "effective_from": "2013-02-01",
+      "transition": "Testo vigente da coordinare con art. 147 c.p.c. per il regime temporale corrente.",
+      "snapshot": {"status": "verified", "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-legge-53-1994.html", "sha256": "5F1ACA69A469A58AA77D21EC3DF38A8FFFD35489ECE05F6759738F004B961DF6"}
+    },
+    {
+      "id": "src.it.l53_1994.art3ter",
+      "citation": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1994-01-21;53~art3ter=",
+      "legal_state": "current",
+      "effective_from": "2023-02-28",
+      "transition": "Testo coordinato dal 26/11/2024; commi 2 e 3 operativi dal 01/01/2025 ai sensi del D.Lgs. 164/2024.",
+      "snapshot": {"status": "verified", "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-legge-53-1994.html", "sha256": "5F1ACA69A469A58AA77D21EC3DF38A8FFFD35489ECE05F6759738F004B961DF6"}
+    },
+    {
+      "id": "src.it.cpc.art147",
+      "citation": "Codice di procedura civile, art. 147, commi 2 e 3",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art147=",
+      "legal_state": "current",
+      "effective_from": "2023-01-01",
+      "transition": "Applicabile ai procedimenti introdotti dopo il 28/02/2023 ai sensi dell'art. 35, comma 1, D.Lgs. 149/2022.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 147 c.p.c., salvare il file nel dossier fonti e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dpr68_2005.art6_8",
+      "citation": "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2005-02-11;68=",
+      "legal_state": "current",
+      "effective_from": "2005-05-13",
+      "transition": "RAC, RdAC e avviso di mancata consegna sono evidenze distinte.",
+      "snapshot": {"status": "verified", "local_path": "docs/specs/ministero/fonti_ufficiali/2026-06-02/normattiva-dpr-68-2005-pec.html", "sha256": "B0667B57477E09429CE90C816775FEDCE058D12DBB938656F096D86749B2AC1C"}
+    },
+    {
+      "id": "src.it.dl179_2012.art16ter",
+      "citation": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2012-10-18;179~art16ter=",
+      "legal_state": "current",
+      "effective_from": "2014-12-15",
+      "transition": "Pubblici elenchi utilizzabili secondo il testo vigente.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 16-ter D.L. 179/2012 e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dl179_2012.art16septies.historical",
+      "citation": "D.L. 18 ottobre 2012, n. 179, art. 16-septies (storico)",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2012-10-18;179~art16septies=",
+      "legal_state": "historical",
+      "repealed_from": "2023-02-28",
+      "transition": "Non è fonte corrente; resta rilevante per procedimenti già pendenti al 28/02/2023, con Corte cost. 75/2019.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo multivigente storico dell'art. 16-septies e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dl179_2012.art16decies.historical",
+      "citation": "D.L. 18 ottobre 2012, n. 179, art. 16-decies (storico)",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2012-10-18;179~art16decies=",
+      "legal_state": "historical",
+      "repealed_from": "2023-02-28",
+      "transition": "Sostituito nel regime corrente dagli artt. 196-octies e 196-undecies disp. att. c.p.c.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo multivigente storico dell'art. 16-decies e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dl179_2012.art16undecies.historical",
+      "citation": "D.L. 18 ottobre 2012, n. 179, art. 16-undecies (storico)",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2012-10-18;179~art16undecies=",
+      "legal_state": "historical",
+      "repealed_from": "2023-02-28",
+      "transition": "Sostituito nel regime corrente dagli artt. 196-octies e 196-undecies disp. att. c.p.c.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo multivigente storico dell'art. 16-undecies e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cortecost.75_2019",
+      "citation": "Corte costituzionale, sentenza 9 aprile 2019, n. 75",
+      "official_url": "https://www.cortecostituzionale.it/scheda-pronuncia/2019/75",
+      "legal_state": "historical_transition",
+      "effective_from": "2019-04-09",
+      "transition": "Nel regime storico preserva per il notificante l'effetto alla RAC tra le 21:00 e le 24:00.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire la pronuncia dal sito della Corte costituzionale e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dm44_2011.art18",
+      "citation": "D.M. 21 febbraio 2011, n. 44, art. 18",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:ministero.giustizia:decreto:2011-02-21;44~art18=",
+      "legal_state": "current",
+      "effective_from": "2011-05-18",
+      "transition": "Da leggere con le specifiche tecniche DGSIA correnti.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 18 D.M. 44/2011 e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dispatt_cpc.art196octies",
+      "citation": "Disposizioni di attuazione c.p.c., art. 196-octies",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-08-25;1368~art196octies=",
+      "legal_state": "current",
+      "effective_from": "2023-02-28",
+      "transition": "Fonte corrente per il potere di certificazione di conformità.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 196-octies disp. att. c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dispatt_cpc.art196undecies",
+      "citation": "Disposizioni di attuazione c.p.c., art. 196-undecies",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-08-25;1368~art196undecies=",
+      "legal_state": "current",
+      "effective_from": "2023-02-28",
+      "transition": "Fonte corrente per modalità e collocazione dell'attestazione di conformità.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 196-undecies disp. att. c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dlgs149_2022.art35c1",
+      "citation": "D.Lgs. 10 ottobre 2022, n. 149, art. 35, comma 1",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022-10-10;149~art35=",
+      "legal_state": "transition",
+      "effective_from": "2023-02-28",
+      "transition": "Regola l'applicazione ai procedimenti introdotti dopo il 28/02/2023.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot multivigente dell'art. 35 D.Lgs. 149/2022 e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dlgs164_2024.art7c1",
+      "citation": "D.Lgs. 31 ottobre 2024, n. 164, art. 7, comma 1",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2024-10-31;164~art7=",
+      "legal_state": "transition",
+      "effective_from": "2024-11-26",
+      "transition": "Disciplina l'operatività dal 01/01/2025 dei commi 2 e 3 dell'art. 3-ter L. 53/1994.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva lo snapshot dell'art. 7 D.Lgs. 164/2024 e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.arts137_149",
+      "citation": "Codice di procedura civile, artt. 137-149",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443=",
+      "legal_state": "current_multivigente",
+      "effective_from": null,
+      "transition": "Verificare l'articolo specifico e la disciplina transitoria del procedimento.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva gli snapshot multivigenti degli artt. 137-149 c.p.c. richiesti dal rulepack e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.dgsia.technical_rules_2024.bundle",
+      "citation": "Provvedimento DGSIA 7 agosto 2024, rettifiche 16 settembre e 30 ottobre 2024",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429",
+      "legal_state": "current_technical",
+      "effective_from": "2024-09-30",
+      "transition": "Bundle coordinato virtuale: la rettifica del 30/10/2024 non espone una diversa data di efficacia e il software non la inventa.",
+      "snapshot": {"status": "verified", "local_path": "docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf", "sha256": "EB08225F91AAF9900ED1B291B034CDFC2A98A0618A85FDC85828BDF6B195039B"},
+      "bundle_id": "bundle.dgsia.technical_rules_2024.coordinated"
+    },
+    {
+      "id": "src.it.dgsia.note_area_web_2024_11_12",
+      "citation": "DGSIA, istruzioni modifiche portale area web notifiche, 12 novembre 2024",
+      "official_url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.14112024.0043530.U_20241112_Istruzioni_modifiche_portale_1.pdf",
+      "legal_state": "current_practice",
+      "effective_from": "2025-01-01",
+      "transition": "Istruzioni operative per i commi 2 e 3 dell'art. 3-ter L. 53/1994.",
+      "snapshot": {"status": "verified", "local_path": "docs/specs/ministero/prassi_notifiche/DGSIA_2024_11_12_istruzioni_modifiche_portale_area_web_notifiche.pdf", "sha256": "F8660477D0B67C7035C62EB296DD03C687A63ED772325E097DE90E939AC19E67"}
+    }
+  ],
+  "source_bundles": [
+    {
+      "id": "bundle.dgsia.technical_rules_2024.coordinated",
+      "effective_from": "2024-09-30",
+      "official_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429",
+      "components": [
+        {"date": "2024-08-07", "role": "base", "local_path": "docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf", "sha256": "EB08225F91AAF9900ED1B291B034CDFC2A98A0618A85FDC85828BDF6B195039B"},
+        {"date": "2024-09-16", "role": "rectification", "local_path": "docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_Rettifica_2024_09_16.pdf", "sha256": "F12532EB5CE0EA87CFC9CE305FAC924C75C6AE48313B1D04619DD5CCA965401C"},
+        {"date": "2024-10-30", "role": "rectification", "effective_from": null, "local_path": "docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_Rettifica_2024_10_30.pdf", "sha256": "C7AEF9BF9FEF40576A5E6620631E4088E1CDF4AA8495E6C078AAC8B4C7B9C431"}
+      ]
     }
   ]
 }

@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "test": "node scripts/check-react-contracts.mjs && node ../scripts/react-migration/audit-ui-preset-sequence.mjs && node ../scripts/react-migration/check-design-system-governance.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-studio-voice-assistant.mjs && node scripts/check-legal-skills.mjs && python ../scripts/validate_ui_coverage.py",
+    "test": "node scripts/check-react-contracts.mjs && node scripts/check-notifiche-legali-presidi.mjs && node ../scripts/react-migration/audit-ui-preset-sequence.mjs && node ../scripts/react-migration/check-design-system-governance.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-studio-voice-assistant.mjs && node scripts/check-legal-skills.mjs && python ../scripts/validate_ui_coverage.py",
+    "test:notifiche-legali-presidi": "node scripts/check-notifiche-legali-presidi.mjs",
+    "test:notifiche-legali-presidi:bundle": "node scripts/check-notifiche-legali-presidi-bundle.mjs",
+    "test:notifiche-legali-presidi:full": "npm run test:notifiche-legali-presidi && npm run build:vite && npm run test:notifiche-legali-presidi:bundle",
     "test:app-v2": "node scripts/check-app-v2-frontend.mjs",
     "test:ui-coverage": "python ../scripts/validate_ui_coverage.py",
     "typecheck": "tsc --noEmit",

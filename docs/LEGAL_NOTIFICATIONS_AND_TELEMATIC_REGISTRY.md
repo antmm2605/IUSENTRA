@@ -47,9 +47,11 @@ Fonti salvate per questa tranche:
   Pavia salvate in `docs/specs/ministero/prassi_notifiche/`: area web PST solo
   quando la mancata notifica è imputabile al destinatario, con atto/PEC,
   relata, avviso di mancata consegna EML e certificazione.
-- D.L. 179/2012, art. 16-septies, D.P.R. 68/2005 artt. 6 e 8, Corte
-  costituzionale 75/2019. Regole applicate: RAC/RdAC, avviso di mancata
-  consegna e controllo orario della notifica PEC.
+- Art. 147, commi 2 e 3, c.p.c., D.P.R. 68/2005 artt. 6 e 8; per i
+  procedimenti già pendenti al 28/02/2023, art. 16-septies D.L. 179/2012
+  (storico) e Corte costituzionale 75/2019. Regole applicate: effetti basati
+  sui timestamp effettivi RAC/RdAC; nel regime corrente nessun divieto di
+  invio, con differimento dell'effetto destinatario tra le 21:00 e le 07:00.
 
 Regola operativa attuale sulla firma:
 
@@ -64,9 +66,12 @@ Regola operativa attuale sulla firma:
   normativa o una regola di workflow lo marca espressamente come atto da
   sottoscrivere autonomamente;
 - l'invio PEC resta bloccato finché la relata separata non risulta firmata;
-- l'orario 00:00-06:59 è bloccato nel workflow automatico; la fascia
-  21:00-23:59 resta consentita con evidenza della scissione degli effetti
-  secondo Corte costituzionale 75/2019.
+- nel regime corrente l'orario 00:00-06:59 non è un divieto legale: il piano
+  segnala il possibile differimento dell'effetto per il destinatario e attende
+  i timestamp reali RAC/RdAC; il blocco 00:00-06:59 resta soltanto nel regime
+  storico applicabile, con revisione professionale.
+
+Il cutoff interno del 19/07/2026 governa la migrazione e non seleziona il regime normativo.
 
 ## Provvedimento comunicato dall'ufficio giudiziario
 

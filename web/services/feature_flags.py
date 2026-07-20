@@ -27,6 +27,10 @@ class FeatureFlagDefinition:
     default: bool = False
 
 
+LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG = "features.legalNotificationPresidia.enabled"
+LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG = "features.legalNotificationPresidia.primary"
+
+
 APP_V2_DEFAULT_OFF_FLAGS = frozenset(
     {
         "routes.appV2.telematico.center",
@@ -41,6 +45,8 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "lex.dailyPlan.writeProposals",
         "lex.procedureCompletion.voiceRead.enabled",
         "features.sentenzaEconomicControl",
+        LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG,
+        LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG,
         "lex.economicContextTools",
     }
 )
@@ -230,6 +236,8 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("routes.appV2.clientPortal.videoCalls", "Link videocall governati nel Portale Cliente."),
     _flag("routes.appV2.clientPortal.signatures", "Firma semplice con evidenza nel Portale Cliente."),
     _flag("features.sentenzaEconomicControl", "Controllo economico-probatorio delle sentenze: verifica RG/cliente, spese liquidate ex art. 91/93 c.p.c., contributo unificato. Default-off."),
+    _flag(LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG, "Presidio avanzato notifiche legali: API e superficie React dedicate. Default-off."),
+    _flag(LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG, "Presidio notifiche legali come esperienza primaria della pagina Notifiche Legali. Default-off."),
     _flag("lex.economicContextTools", "Strumenti Lex read-only sul contesto economico da sentenza (governati, fail-closed). Default-off."),
     FeatureFlagDefinition(
         "routes.appV2.docsPanel",

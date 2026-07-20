@@ -262,6 +262,7 @@ Il primo comando può riparare solo parti rigenerabili: mirror SQL `moduli_json_
 
 ## Stato attuale della tranche
 
+- Fatto a livello codice il 2026-07-20 per Notifiche legali: nuovo presidio persistente `pec_notification_presidio` con migrazioni SQLite/PostgreSQL, repository tenant-aware, API JSON dedicata `/api/v1/ui/notifiche-legali/presidi`, route React full `Presidi notifiche`, rollout per tenant e guardrail che mantengono il flag spento a zero letture operative. Il workflow storico resta disponibile solo come import lazy su richiesta dell'utente.
 - Fatto a livello codice: contratto applicativo dati/tenant/route React/topbar/sottomenu in `pct/data_flow_contract.py`.
 - Fatto a livello codice: parità core PostgreSQL e migrazione per messaggi, privacy, notifiche, backup e time tracking.
 - Fatto a livello script: `scripts/audit_data_flow_contract.py` diagnostica `studio.db`, mirror JSON e indice FTS e ripara solo cache rigenerabili quando l'opzione è esplicita.

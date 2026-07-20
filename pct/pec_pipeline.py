@@ -8996,6 +8996,39 @@ class PecAuditRepository:
         ).fetchone()
         return json.loads(row["report_json"]) if row else {}
 
+    def latest_legal_event_understanding(
+        self,
+        conn: sqlite3.Connection,
+        message_id: str,
+        parsed_version_id: str = "",
+    ) -> dict[str, Any]:
+        query = """
+            SELECT event_json FROM pec_legal_events
+            WHERE tenant_id=? AND message_id=?
+        """
+        params: list[Any] = [self.tenant_id, message_id]
+        if parsed_version_id:
+            query += " AND parsed_version_id=?"
+            params.append(parsed_version_id)
+        query += " ORDER BY created_at DESC, rowid DESC LIMIT 1"
+        row = conn.execute(query, tuple(params)).fetchone()
+        if not row and parsed_version_id:
+            row = conn.execute(
+                """
+                SELECT event_json FROM pec_legal_events
+                WHERE tenant_id=? AND message_id=?
+                ORDER BY created_at DESC, rowid DESC LIMIT 1
+                """,
+                (self.tenant_id, message_id),
+            ).fetchone()
+        if not row:
+            return {}
+        try:
+            payload = json.loads(row["event_json"] or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
     def latest_link(self, conn: sqlite3.Connection, message_id: str) -> dict[str, Any]:
         row = conn.execute(
             """
@@ -9058,20 +9091,11 @@ class PecAuditRepository:
             if parsed_meta:
                 parsed_meta.pop("parsed_json", None)
             validation_report = self.latest_report(conn, message_id)
-            # Vista unificata di comprensione dell'evento legale (Incremento C):
-            # aggrega i segnali già prodotti (classificazione, udienza, termine
-            # legale, catena ricevute PCT) in un unico schema pulito e sola-lettura.
-            # Deterministico e fail-closed: non crea una nuova source of truth.
             attachment_items = self.attachment_rows(conn, message_id, str(parsed_meta.get("id") or ""))
-            try:
-                legal_event_understanding = build_legal_event_understanding(
-                    parsed,
-                    validation_report,
-                    dies_a_quo_date=_field_date_value(parsed, "data_consegna", "data_invio"),
-                    attachments=attachment_items,
-                )
-            except Exception:
-                legal_event_understanding = {}
+            # GET read-only: l'analisi costosa viene materializzata dal worker validate/refresh.
+            legal_event_understanding = self.latest_legal_event_understanding(
+                conn, message_id, str(parsed_meta.get("id") or "")
+            )
             validation_report = _merge_legal_hearing_understanding(
                 validation_report,
                 legal_event_understanding,

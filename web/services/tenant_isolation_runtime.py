@@ -44,6 +44,7 @@ TENANT_SENSITIVE_PATH_KEYS = frozenset(
         "MESSAGGI_DB",
         "EMAIL_CASELLA_DB",
         "EMAIL_ORDINARIA_DB",
+        "PEC_AUDIT_DB",
         "FATTURAZIONE_DB",
         "PREVENTIVI_DB",
         "PREVENTIVI_REPOSITORY_DB",
@@ -295,7 +296,17 @@ def assert_tenant_data_path(path: str | Path, key: str = "") -> str:
     return str(resolved)
 
 
+def _normalise_derived_sensitive_paths(paths: dict[str, Any]) -> None:
+    """Populate tenant-bound derived paths before fail-closed validation."""
+
+    if not _text(paths.get("PEC_AUDIT_DB")):
+        email_db = _text(paths.get("EMAIL_CASELLA_DB"))
+        if email_db:
+            paths["PEC_AUDIT_DB"] = str(Path(email_db).expanduser().resolve().parent / "pec_audit.sqlite")
+
+
 def _assert_sensitive_paths(paths: dict[str, Any]) -> None:
+    _normalise_derived_sensitive_paths(paths)
     missing = sorted(key for key in TENANT_SENSITIVE_PATH_KEYS if not _text(paths.get(key)))
     if missing:
         current_app.logger.warning(

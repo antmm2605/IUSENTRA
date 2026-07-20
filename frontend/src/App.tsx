@@ -109,7 +109,17 @@ const SoggettiPage = lazyPage(() => import('./components/SoggettiPage').then((mo
 const EmailPecPage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
 const EmailOrdinariaPage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailOrdinariaPage })))
 const EmailComposePage = lazyPage(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailComposePage })))
-const NotificheLegaliPage = lazyPage(() => import('./components/NotificheLegaliPage').then((module) => ({ default: module.NotificheLegaliPage })))
+const LegacyNotificheLegaliPage = lazyPage(() => import('./components/NotificheLegaliPage').then((module) => ({ default: module.NotificheLegaliPage })))
+const NotificheLegaliPresidiShell = lazyPage(() => import('./features/notifiche-legali/NotificheLegaliPresidiShell').then((module) => ({ default: module.NotificheLegaliPresidiShell })))
+
+function NotificheLegaliPage() {
+  const primary = isFeatureFlagEnabledSync('features.legalNotificationPresidia.enabled')
+    && isFeatureFlagEnabledSync('features.legalNotificationPresidia.primary')
+  return primary
+    ? <NotificheLegaliPresidiShell legacyPage={<LegacyNotificheLegaliPage />} />
+    : <LegacyNotificheLegaliPage />
+}
+
 const MessaggiPage = lazyPage(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
 const NuovoMessaggioPage = lazyPage(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
 const ScadenziarioPage = lazyPage(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))

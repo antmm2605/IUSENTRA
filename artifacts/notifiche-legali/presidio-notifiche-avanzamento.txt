@@ -1,0 +1,364 @@
+IUSENTRA - PRESIDIO NOTIFICHE PERSISTENTE
+PIANO, REGISTRO DI AVANZAMENTO E CHECKLIST DI RIPRESA
+
+Ultimo aggiornamento: 20/07/2026 15:37 (Europe/Rome)
+Repository: antmm2605/IUSENTRA
+Branch di lavoro: Codex/legal-electronic-filing-kIxcV
+Branch gemello: claude/legal-electronic-filing-kIxcV
+HEAD locale e server iniziale: 394b0361de181a7c8bd721f2e3216b750cb713e1
+Tenant operativo obbligatorio: Studio Legale Giuseppe Montagnese
+Server reale: https://app.iusentra.it - container iusentra-app unico e healthy
+
+SCOPO
+
+Questo file è la memoria persistente richiesta dall'utente. Deve contenere tutto il perimetro, ciò che è stato eseguito, ciò che manca, problemi, prove e primo passo di ripresa. Dopo ogni compattazione va riletto prima di continuare e va aggiornato senza lasciare decisioni soltanto nella chat.
+
+Legenda: [ ] da fare; [~] in corso; [x] eseguito con evidenza; [!] problema; [B] bloccante.
+
+PROTOCOLLO DOPO OGNI COMPATTAZIONE
+
+[ ] Rileggere integralmente AGENTS.md e questo file.
+[ ] Rileggere artifacts/data-flow/incarico-operativo-permanente.md e docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md.
+[ ] Per PST/documenti rileggere confronto-documenti-fascicolo-ufficio.md e polisweb-studio-telematico-end-to-end.md.
+[ ] Per relata/prova/deposito rileggere le sezioni pertinenti e correnti di procedura-deposito-telematico.md.
+[ ] Eseguire git status --short locale e server; classificare ogni modifica.
+[ ] Aggiornare timestamp, HEAD, eseguito, aperto, problemi e primo passo.
+[ ] Consultare pytest-confirmed-ok.md e pytest-open-issues.md prima di rilanciare gate.
+
+WORKFLOW CORRETTO DALL'UTENTE IL 19/07/2026 ALLE 23:20
+
+[x] L'implementazione e la prima campagna end-to-end devono avvenire direttamente sul server reale e sul tenant Studio Legale Giuseppe Montagnese.
+[ ] Non inviare PEC reali, non firmare con credenziali/PIN reali e non registrare notifiche/depositi fittizi come effettivi.
+[ ] Completare l'intero perimetro sul server prima del riallineamento locale.
+[ ] Dopo la prova server: riportare lo stesso codice nella copia locale, gate mirati, versione, documentazione e Docker 127.0.0.1:8080.
+[ ] Istruzione utente confermata il 20/07/2026 alle 13:23: quando tutto è stato testato, aggiornare obbligatoriamente la copia locale reale, poi eseguire commit, push e deploy; questo passaggio deve restare scritto nel file e non può essere saltato.
+[ ] Solo dopo: commit, push dei due branch gemelli, controlli GitHub/CodeQL e deploy finale ordinato dello stesso commit.
+[ ] Verificare alla fine server, locale e GitHub sullo stesso commit; un solo container app chiamato iusentra-app.
+[ ] A conclusione reale di tutto il lavoro, e soltanto dopo report e verifiche finali, spegnere il PC come richiesto esplicitamente dall'utente il 19/07/2026 alle 23:29.
+
+OBIETTIVO FUNZIONALE NON RIDUCIBILE
+
+[ ] Analizzare tutte le nuove PEC, senza limite alle ultime 500.
+[ ] Aprire un candidato quando PEC, ZIP/PDF o regola pratica indicano un atto potenzialmente da notificare.
+[ ] Distinguere ordine espresso, regola procedurale, valutazione strategica, comunicazione semplice, invio, RAC, RdAC, failure, deposito prova e messaggio estraneo.
+[ ] Verificare documento/versione già notificati senza usare il solo hash come prova conclusiva.
+[ ] Sopprimere solo la stessa istanza già attiva/completa; consentire destinatario, rinnovo, finalità o versione nuovi.
+[ ] Controllare RAC/RdAC/failure separatamente per ogni destinatario.
+[ ] Collegare l'acquisizione dell'originale PST senza scraping e lasciando autenticazione/firma/invio all'avvocato sul PC locale.
+[ ] Riconciliare PEC inviata, RAC, RdAC, mancata consegna e deposito prova.
+[ ] Cutoff storico fisso: 19/07/2026 23:59:59 Europe/Rome; tracking rigoroso dal 20/07/2026 00:00:00.
+
+ARCHITETTURA, TENANT, SICUREZZA E PRESTAZIONI
+
+[ ] SQL fonte operativa, SQLite/PostgreSQL in parità; JSON solo mirror/bootstrap/export governato.
+[ ] Tenant solo dal contesto server e fail-closed se manca; mai tenant_id/studio_id controllabile dal client.
+[ ] RBAC reale: letture e mutazioni con permessi esistenti deliberatamente mappati, non sola autenticazione.
+[ ] Audit append-only di mutazioni, transizioni, denial, retry, riconciliazioni e decisioni umane, senza PII/segreti.
+[ ] EML originale, Message-ID, MIME hash, content hash e prove tecniche immutabili; nessun path filesystem in API.
+[ ] Transizioni con prev_hash/entry_hash; nessuna chiusura autonoma di caso ambiguo.
+[ ] Feature flag tenant-scoped separato, default OFF/shadow; flag-off non interroga repository o mailbox.
+[ ] Riutilizzare Pec Control Tower per ingest/comunicazioni/evidence e Proof Matrix per prova per destinatario; non creare una terza semantica incompatibile.
+[ ] GET lista/dettaglio usa proiezioni SQL indicizzate e paginate; mai mailbox, ZIP, OCR, pdftotext, tesseract o fascicolo completo nella request.
+[ ] OCR, backfill e riconciliazione pesante in job incrementali, resumable, con retry e batch.
+[ ] Baseline e confronto reale server prima/dopo; regressione ripetibile >5% blocca la chiusura.
+[ ] Nessun chunk JavaScript di produzione sopra 500.000 byte; editor storico lazy e non caricato dalla scheda Presidi.
+
+INVENTARIO CONFERMATO
+
+[x] Pec Control Tower già offre legal_communications, eventi, receipts, jobs/recipients/proofs, rule versionate e audit HMAC.
+[x] notification_proof_matrix.py e procedure_lifecycle_repository.py già modellano stati/ricevute/prove per destinatario: devono essere riusati.
+[x] Pipeline PEC V2 già materializza eventi, termini, udienze e pagamenti in SQLite/PostgreSQL.
+[x] Bridge notifiche attuale è 1.372 righe e contiene scan-on-request, limite 500, OCR sincrono e path assoluto: non va esteso.
+[x] Pagina React attuale è 4.611 righe, CSS 2.379 e data client 1.086: nuova sezione modulare e lazy obbligatoria.
+[x] api_v1_react.py è oltre 12.000 righe: nuovo blueprint dedicato.
+[x] Topbar e fascicolo riclassificano/scansionano PEC: devono leggere la stessa proiezione SQL.
+[!] Le API notifiche attuali sono auth-only; la documentazione dichiara RBAC dominio ma il codice non lo applica.
+[!] comunicazioni.leggi/scrivi non è oggi una permission runtime reale; esistono messaggi.leggi/scrivi. Serve decisione deliberata/alias governato e test.
+[!] _resolve_document_path accetta path assoluto: imporre root tenant risolta e route autenticata.
+[!] Tre testi corrotti nell'area relata fascicolo vanno corretti e coperti da gate UTF-8.
+
+FONTI E RULEPACK
+
+[x] Verifica ufficiale di L. 53/1994 artt. 3-bis/3-ter, DPR 68/2005 artt. 6/8, DM 44/2011 art. 18, DGSIA 07/08/2024 artt. 21/22/25/26/27 e rettifiche, artt. 196-octies/196-undecies disp. att. c.p.c.
+[!] Rilievo 19/07/2026: art. 16-septies D.L. 179/2012 abrogato dal 28/02/2023; per procedimenti introdotti dopo tale data governa art. 147 commi 2-3 c.p.c. Invio senza limiti orari; mittente alla RAC; destinatario alla RdAC, con perfezionamento alle 07:00 se RdAC tra 21:00 e 07:00. Corte cost. 75/2019 resta storica per il regime previgente.
+[!] Rilievo 19/07/2026: anche gli artt. 16-decies e 16-undecies D.L. 179/2012 sono abrogati dal 28/02/2023. Per copie dal fascicolo o allegate alle comunicazioni governano oggi artt. 196-octies e 196-undecies disp. att. c.p.c.; mantenere resolver storico per i procedimenti pendenti al 28/02/2023.
+[!] portal_original_required non è un obbligo universale: è vero per avvisi PST senza atto integrale, condizionale quando la copia è allegata dall'ufficio e può essere policy prudenziale distinta dalla norma.
+[ ] Correggere regola corrente/policy 00:00-06:59 nel repository: separare norma vigente, regime storico e policy prudenziale configurabile.
+[ ] Salvare URL ufficiale, data consultazione, efficacia, ambito, limite e hash snapshot senza duplicati.
+[ ] Creare rulepack detection versionato con id stabile, famiglia, evento, trigger, pattern positivi/negativi, fonti, caso, template, originale richiesto, priorità, review ed efficacia temporale.
+[ ] AI/Lex può proporre e spiegare, mai essere unica fonte dispositiva.
+
+CLASSI EVENTO
+
+[ ] EXPLICIT_NOTIFICATION_ORDER; PROCEDURE_RULE_CANDIDATE; STRATEGIC_NOTIFICATION_REVIEW; COMMUNICATION_ONLY.
+[ ] SENT_NOTIFICATION; ACCEPTANCE_RECEIPT; DELIVERY_RECEIPT_COMPLETE; DELIVERY_FAILURE.
+[ ] PROOF_DEPOSIT; PROOF_DEPOSIT_ACCEPTED; NON_LEGAL_NOTIFICATION.
+[ ] Output: tipo, confidence, evidenze, sorgente, pagina/posizione, estratto, rule id/versione, motivo, azione e review.
+[ ] Formula Comunicazione.xml "Notificato alla PEC / in cancelleria" non equivale a notifica dell'avvocato alla controparte.
+
+ZIP, OCR E PST
+
+[ ] Conservare hash ZIP e per membro virtual_path, nome, MIME, dimensione, SHA-256, OCR e source_message_id.
+[ ] Separare daticert.xml, Comunicazione.xml e postacert.eml dai documenti professionali.
+[ ] PDF interno = office_pec_copy, mai portal_original automatico.
+[ ] Estrarre ufficio, RG, provvedimento, tipo, formula e termine; creare candidato e link PST mirato.
+[ ] Link PST: single_document=1, non_duplicare_documenti=1, fase_successiva=relata_notifica e riferimenti specifici.
+[ ] Relata definitiva solo dopo originale acquisito/confermato.
+[ ] Copia/originale con hash diversi: correlazione forte RG/ufficio/id/tipo/numero/data/nome/testo; conferma se ambigua; conservare entrambi.
+[ ] Preservare traversal/zip bomb/membro cifrato/symlink/profondità/MIME guard.
+
+PERSISTENZA E IDENTITÀ
+
+[ ] Migrazioni idempotenti SQLite/PostgreSQL e upgrade DB esistenti.
+[ ] Tabelle pec_legal_notification_presidia, documents, recipients, evidence, transitions; valutare unmatched receipts persistente.
+[ ] Indici tenant/status/priority, fascicolo, source message, dedupe/instance key, destinatario, content hash, portal id, receipt message id.
+[ ] Repository tenant-aware, transazioni atomiche e query di proiezione bounded.
+[ ] canonical_document_identity: portal id; content hash; outer hash; ZIP member hash; message+path; ufficio/RG/numero/data; nome+size solo debole.
+[ ] Conservare container_sha256 ed extracted_content_sha256 dei P7M.
+[ ] notification_instance_identity: tenant, fascicolo, documento/versione, finalità/caso, evento/ordine, destinatari, canale.
+[ ] Score configurabile: Message-ID 1,00; portal id 0,99; content+fascicolo+destinatario 0,98; outer+RG+destinatario 0,95; semantico 0,80 review; filename max 0,40.
+[ ] Rinomina solo UX, idempotente/reversibile/auditata; non cambia hash o prova.
+
+STATI E RICONCILIAZIONE
+
+[ ] DETECTED, NEEDS_REVIEW, ORIGINAL_TO_ACQUIRE, ORIGINAL_ACQUIRED.
+[ ] NOTIFICATION_CONFIRMED, RECIPIENTS_TO_VERIFY, READY_FOR_RELATA, RELATA_DRAFTED, RELATA_SIGNED, READY_TO_SEND.
+[ ] SENT_WAITING_RAC, RAC_RECEIVED, PARTIAL_DELIVERY, DELIVERY_COMPLETE, DELIVERY_FAILED.
+[ ] PROOF_TO_DEPOSIT, PROOF_DEPOSITED, CLOSED, NOT_REQUIRED, CANCELLED.
+[ ] LEGACY_ASSUMED_HANDLED, LEGACY_REVIEW_REQUIRED.
+[ ] Matrice transizioni esplicita/idempotente; motivazione per NOT_REQUIRED/CANCELLED; failure P0.
+[ ] RAC non produce DELIVERY_COMPLETE; RdAC aggiorna un destinatario; tutti gli obbligatori positivi prima della completezza.
+[ ] Se prova deposito richiesta, CLOSED solo dopo esito accettato.
+[ ] Correlare inviata/RAC/RdAC/failure con identificativi originali, daticert.xml e postacert.eml, non solo oggetto.
+[ ] Ricevuta arrivata prima dell'inviata resta unmatched e viene riconciliata dopo.
+[ ] Causa failure: attributable_to_recipient, not_attributable_to_recipient o uncertain; nessun canale successivo automatico se incerto.
+
+STORICO E BACKFILL
+
+[ ] Precedenza date: termine futuro, consegna ufficiale, evento/ordine, rilascio portale, data documento, filesystem solo review.
+[ ] Pre-cutoff senza evidenze negative/futuro = LEGACY_ASSUMED_HANDLED, non prova; failure/parziale = LEGACY_REVIEW_REQUIRED.
+[ ] PEC 19/07 con termine dal 20/07 resta attiva; PEC/rilascio dal 20/07 resta attivo fino a prova completa.
+[ ] Script backfill: --dry-run, --apply, --tenant, --all-tenants, --cutoff-date, --json-output, --limit, --resume-from, --backup.
+[ ] Scansione completa di fascicoli, versioni, attività/documenti NOTIFICA, PEC, EML, relate, attestazioni, RAC/RdAC/failure, evidence pack e prova deposito.
+[ ] Resumable, paginato, idempotente, non bloccante, source_of_truth=sqlite/postgresql; mai chiusura sotto soglia forte.
+
+PIPELINE, API E UI
+
+[ ] Estendere workflow/event understanding con notification candidate, trigger, case, confidence, portal original required, evidenze e issues; event hash stabile.
+[ ] Persistenza candidata nel worker/job; UI non scansiona casella.
+[ ] Blueprint dedicato con GET list/detail/evidence/transitions e POST confirm/not-required/assign/link/reconcile/retry/correct/exclude/recalculate.
+[ ] Filtri server-side: stato, priorità, fascicolo, assegnatario, data, destinatario, canale, legacy, review; paginazione/cursor.
+[ ] OpenAPI, provider verifier, security map, API contract map, audit denial, tenant mismatch 404/403 governato.
+[ ] Nuova sezione iniziale React "Presidi notifiche" modulare e lazy; vecchi workflow caricati solo quando scelti.
+[ ] Tab: Da esaminare, Originale da acquisire, Relata da preparare, In attesa RAC, In attesa RdAC, Consegna parziale, Mancata consegna, Prova da depositare, Chiuse, Storico presunto.
+[ ] Riga: pratica/RG/ufficio/documento/data/termine/caso/destinatari/stati/priorità/motivo/regola/confidence/prossima azione.
+[ ] Dettaglio/evidence/timeline lazy; azioni reali con stati loading/empty/error/forbidden/flag-off/readonly/repository unavailable/success/partial.
+[ ] AbortSignal e stale-response guard; errori 401/403/409/5xx non mascherati da empty.
+[ ] Date/orari italiani Europe/Rome, accessibilità tastiera/focus/AA/touch 44x44 e responsive desktop/tablet/mobile.
+[ ] Fascicolo e topbar leggono la stessa proiezione SQL; push senza PII.
+
+45 SCENARI OBBLIGATORI
+
+[ ] 01 PEC ZIP/PDF con ordine di notifica; 02 ZIP sicuro; 03 traversal; 04 zip bomb; 05 membro cifrato.
+[ ] 06 comunicazione generica; 07 sentenza strategica; 08 rinnovo espresso; 09 termine espresso; 10 originale mancante.
+[ ] 11 link PST completo; 12 stesso hash; 13 hash diverso correlazione forte; 14 ambigua review; 15 PEC duplicata.
+[ ] 16 inoltro FWD/I/R; 17 EML+relata+RAC+RdAC già presenti; 18 sola inviata; 19 inviata+RAC; 20 due destinatari/una RdAC.
+[ ] 21 tutti RdAC; 22 failure P0; 23 receipt unmatched; 24 nuovo destinatario; 25 rinnovo.
+[ ] 26 nuova versione; 27 nome NOTIFICATO senza prove; 28 attività NOTIFICA senza ricevute; 29 prova richiesta assente; 30 prova accettata.
+[ ] 31 SDI; 32 cliente; 33 legacy assumed; 34 legacy failure review; 35 PEC 19/07 con termine 20/07.
+[ ] 36 PEC dal 20/07; 37 confine Europe/Rome; 38 dry-run non scrive; 39 apply idempotente; 40 isolamento tenant.
+[ ] 41 RBAC; 42 nessun path API; 43 nessuna PII push; 44 transizioni append-only; 45 rinomina idempotente/hash invariato.
+
+GATE E DOCUMENTAZIONE
+
+[ ] Pytest notifiche, pipeline, OCR, repository, reconciler, backfill, API/RBAC/tenant, rulepack e frontend; ogni comando sotto 5 minuti/shardabile.
+[ ] Typecheck, test e build frontend; budget asset; UTF-8; OpenAPI; provider; docs link/commands; quality gate UI.
+[ ] EXPLAIN/query plan SQLite e PostgreSQL; benchmark query lista/aggregazione bounded.
+[ ] Prova reale server: click, scroll completo, hover/focus/selected/disabled/loading/error/success, desktop/tablet/mobile, nessun invio.
+[ ] Dopo riallineamento, rebuild Docker locale --no-cache, healthy, /api/pronto stesso commit e prova locale obbligatoria.
+[ ] Creare PEC_NOTIFICATION_PRESIDIO.md; aggiornare LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY, PEC_INGEST_OCR_PIPELINE, api-contracts, security, flags, test plan, release rollout, OpenAPI, procedura deposito, incarico permanente, changelog e versione.
+
+LAVORO ESEGUITO
+
+[x] Letti integralmente AGENTS.md, allegato utente, README e documenti architettura/API/sicurezza/test/PEC/UI/tenant/PST indicati nel dossier.
+[x] Usate skill Impeccable e Browser con preflight; nessuna modifica UI ancora eseguita.
+[x] Creato il primo registro persistente alle 22:53; dopo interruzione il file non era più presente ed è stato ricreato integralmente alle 23:20.
+[x] Inventario API/UI completato in sola lettura con gap, riusi e riferimenti file/linea.
+[x] Audit fonti ha rilevato la criticità art. 16-septies/art. 147 c.p.c.; dossier ufficiale completo ancora da ricevere.
+[x] Utente ha corretto il workflow: server-first sul tenant indicato; credenziali usate solo per l'accesso e mai salvate nel repository/log.
+[x] Server verificato alle 23:20: HEAD 394b0361de181a7c8bd721f2e3216b750cb713e1, branch corretto, worktree pulita, iusentra-app unico healthy, /api/pronto versione 2.256.2.
+[x] Ripresa post-compattazione alle 23:30: riletti integralmente AGENTS.md, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb e sezioni correnti su notifiche/relata/prova/PST della procedura deposito; consultati gli stati pytest pertinenti.
+[x] Worktree locale ricontrollata: solo questo registro e docs/backend-endpoint-security-map.md. La mappa sicurezza generata con 280 endpoint è stata classificata come utile e il controllo `generate_backend_security_map.py --check` risulta allineato.
+[x] Produzione ricontrollata alle 23:30: HEAD invariato 394b0361de181a7c8bd721f2e3216b750cb713e1, worktree remota pulita, unico container applicativo iusentra-app healthy, /api/pronto versione 2.256.2 e fuso Europe/Rome.
+[x] Sessione browser reale di produzione già autenticata come Giuseppe Montagnese, ruolo AMMINISTRATORE, pagina React /notifiche-legali pronta; nessuna credenziale è stata riscritta o salvata.
+[x] Baseline reale pre-modifica su produzione: tre reload con risposta pagina in 276/270/265 ms e contenuto operativo visibile in 1.232/1.125/2.055 ms; cambio pagina Fascicoli -> Notifiche legali con contenuto visibile in 1.258 ms. Asset osservati: chunk NotificheLegaliPage-MBZBE4XC.js e API /api/v1/ui/notifiche-legali; il nuovo presidio dovrà mantenere la lista SQL paginata e l'editor storico lazy.
+[x] Ripresa post-compattazione alle 23:38: riletti integralmente AGENTS.md e questo registro; riletti incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb e sezioni correnti su relata/notifica/PST della procedura deposito; consultati gli ultimi stati pytest pertinenti.
+[x] Inventario backend consolidato: le cinque tabelle nuove non esistono; repository PEC audit, Proof Matrix e Control Tower correnti non sono tenant-safe/dual-backend abbastanza da diventare fonte canonica. Scelta: dominio dedicato modulare, tenant obbligatorio, SQLite/PostgreSQL, transizioni monotone/hash-chain, compatibilità/import senza dual-write permanente.
+[x] Dossier fonti ufficiali consolidato con URL Normattiva/PST, efficacia, transitorio e SHA-256 dei tre PDF DGSIA. Regola corrente separata dal regime storico; blocco 00:00-06:59 ammesso solo come policy prudenziale configurabile, mai come divieto legale vigente.
+[x] Worktree ricontrollata alle 23:38: locale contiene soltanto la mappa sicurezza generata e questo registro; server ancora pulito sul commit 394b0361de181a7c8bd721f2e3216b750cb713e1, branch corretto e unico iusentra-app healthy.
+[!] Tentativo di baseline locale interrotto e non utilizzabile; non costituisce prova di questa tranche perché il workflow ora è server-first.
+[x] Ripresa post-compattazione alle 23:45: riletti integralmente AGENTS.md e questo registro; riletti integralmente incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; riletti i blocchi correnti su notifica, relata, pubblici elenchi, prova e selezione documenti della procedura deposito; consultati gli ultimi stati pytest pertinenti.
+[x] Prima di qualunque modifica UI sono stati riletti integralmente IUSENTRA_DESIGN.md, IUSENTRA_UI_RULES.md e UI_DESIGN_SYSTEM.md. Direzione UI: registro operativo compatto e modulare, tab e filtri server-side, dettaglio lazy, stati espliciti, nessuna griglia decorativa e nessun dato inventato.
+[x] Inventario UI/API finale ricevuto: il flusso attuale resta invariato quando la nuova funzione è spenta; la nuova sezione usa blueprint dedicato, RBAC messaggi.leggi/scrivi deliberatamente mappato, componente React lazy e proiezione SQL, senza estendere i monoliti esistenti.
+[x] Worktree ricontrollata alle 23:45: locale ancora sul commit iniziale con sole modifiche intenzionali alla mappa sicurezza generata e a questo registro; server pulito sullo stesso commit e con unico iusentra-app healthy, più scheduler/OCR healthy.
+[x] Ripresa post-compattazione alle 23:53: riletti integralmente AGENTS.md e questo registro; riletti integralmente incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito su notifiche, relata, pubblici elenchi, prova, fascicolo/PST e selezione documenti; consultati gli ultimi stati pytest pertinenti.
+[x] Dossier normativo finale ricevuto in sola lettura: definito schema v2 del registro fonti, bundle DGSIA coordinato e rulepack deterministico; confermati resolver procedurale Cartabia, regime corrente art. 147 c.p.c., ramo storico art. 16-septies/Corte cost. 75/2019 e cutoff studio separato senza effetto legale. Nessun file applicativo è stato modificato dall'agente.
+[x] Stato locale alle 23:52: HEAD 394b0361de181a7c8bd721f2e3216b750cb713e1, branch corretto, un solo worktree; restano soltanto le due modifiche intenzionali già classificate (`docs/backend-endpoint-security-map.md` e questo registro).
+[x] Stato produzione alle 23:52: repository pulito sullo stesso HEAD e branch; unico container applicativo `iusentra-app` healthy, scheduler/OCR healthy; `/api/pronto` risponde `ok=true`, versione `2.256.2`, timezone `Europe/Rome`.
+[x] Ripresa post-compattazione alle 23:59: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito da notifiche/relata fino agli hotfix del 19/07; consultati gli ultimi stati `pytest-confirmed-ok.md` e `pytest-open-issues.md` pertinenti.
+[x] Stato locale alle 23:59: HEAD e branch invariati, un solo worktree e soli file intenzionali nel perimetro corrente: mappa sicurezza generata, registro persistente e directory patch server. Sono arrivati gli artifact provvisori `10_domain_repository.patch` e `30_frontend_presidi.patch`; gli agenti risultano ancora in esecuzione, quindi non sono ancora considerati finali né applicati.
+[x] Stato produzione alle 23:59: repository ancora pulito sul commit `394b0361de181a7c8bd721f2e3216b750cb713e1`; unico container applicativo `iusentra-app` healthy, scheduler/OCR healthy; `/api/pronto` risponde `ok=true`, versione `2.256.2`, timezone `Europe/Rome`.
+[x] Ripresa post-compattazione alle 00:13 del 20/07/2026: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito da notifiche/relata fino agli hotfix del 19/07; consultati gli ultimi stati pertinenti di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 00:13: branch e HEAD invariati, unico worktree; modifiche ancora soltanto intenzionali nel perimetro corrente (`docs/backend-endpoint-security-map.md`, questo registro e directory patch server). Nessun sorgente applicativo locale è stato modificato.
+[x] Stato produzione alle 00:13: repository pulito sul commit iniziale `394b0361de181a7c8bd721f2e3216b750cb713e1`; unico container applicativo `iusentra-app` healthy, scheduler/OCR healthy; `/api/pronto` risponde `ok=true`, versione `2.256.2`, timezone `Europe/Rome`.
+[x] Artifact frontend `30_frontend_presidi.patch` chiuso: 14 moduli React/CSS più wiring minimo, legacy e dettaglio ancora lazy, deep-link storici preservati, budget file rispettati e `git apply --check --verbose` superato. Nessun test/typecheck/build ancora eseguito e nessun sorgente applicativo locale toccato.
+[~] Artifact backend `10_domain_repository.patch`: `git apply --check` superato dopo correzioni PostgreSQL, Message-ID ambiguo fail-closed e catena append-only; l'agente sta completando l'ultimo audit statico. Artifact fonti/rulepack ancora in chiusura.
+[!] Rivalidazione principale alle 00:15: `10_domain_repository.patch` e `30_frontend_presidi.patch` passano `git apply --check --verbose`; `20_rules_pipeline.patch` non passa ancora per hunk fuori base in `pct/notifiche_legali.py`, `docs/LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md` e `docs/specs/ministero/notifiche_legali_directives.md`. L'agente fonti/rulepack è stato informato e deve rigenerare gli hunk contro HEAD, confermando che la fascia 00:00-06:59 sia solo policy prudenziale configurabile e non norma vigente.
+[x] Ripresa post-compattazione alle 00:22 del 20/07/2026: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito dalla notifica/relata fino agli hotfix del 19/07; consultati gli ultimi stati pertinenti di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 00:22: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`, unico worktree; modifiche ancora soltanto intenzionali nel perimetro (`docs/backend-endpoint-security-map.md`, questo registro e directory artifact patch). Nessun sorgente applicativo locale è stato modificato.
+[x] Stato produzione alle 00:22: repository pulito sullo stesso HEAD e branch; unico container applicativo `iusentra-app` healthy, scheduler/OCR healthy; `/api/pronto` risponde `ok=true`, versione `2.256.2`, fuso `Europe/Rome`.
+[x] Artifact backend finale rigenerato e governabile: 17 file, repository facade 115 righe e moduli focalizzati tutti sotto 500 righe; SHA-256 `5A3CDEF6ECB5BF8EFA6771617D972ED54F6C21E5A6AA2782783BA440DB5CB329`; `git apply --check --verbose` superato.
+[x] Artifact fonti/rulepack finale rigenerato contro HEAD: 11 file, registry fonti v2, rulepack deterministico, resolver corrente/storico, RAC/RdAC/DST e policy prudenziale separata; SHA-256 `2BA375DF0F8641102BB143321BA2CAE7621BF8AC7394097F09AFB7B155064CD4`; `git apply --check --verbose` superato.
+[x] Artifact frontend invariato e ancora applicabile: SHA-256 `5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5`; `git apply --check --verbose` superato. Restano da ricevere e revisionare i test frontend richiesti.
+[x] Ripresa post-compattazione alle 00:29 del 20/07/2026: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito dalla notifica/relata fino agli hotfix del 19/07; consultati gli ultimi stati pertinenti di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 00:29: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`, unico worktree; modifiche ancora soltanto intenzionali nel perimetro (`docs/backend-endpoint-security-map.md`, questo registro e directory artifact patch). Nessun sorgente applicativo locale è stato modificato.
+[x] Stato produzione alle 00:29: repository pulito sullo stesso HEAD e branch; unico container applicativo `iusentra-app` healthy, scheduler/OCR healthy; `/api/pronto` risponde `ok=true`, versione `2.256.2`, fuso `Europe/Rome`.
+[~] I tre agenti restano in esecuzione sui correttivi backend, rulepack e test frontend. Le patch non saranno applicate sul server finché il riesame principale non conferma chiavi tenant composite, confine storico esatto, classi evento complete, parità SQLite/PostgreSQL e contratti React/API.
+
+[x] Ripresa post-compattazione alle 13:01 del 20/07/2026: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio e dossier PolisWeb; rilette le sezioni correnti della procedura deposito dalla notifica/relata fino al fondo; consultati gli ultimi stati pertinenti di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 13:01: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`, unico worktree; modifiche intenzionali ancora limitate a `docs/backend-endpoint-security-map.md`, questo registro e directory artifact patch. Nessun sorgente applicativo locale e' stato modificato.
+[x] Stato produzione alle 13:01: repository pulito sullo stesso HEAD e branch. La verifica `git status --short` remota non mostra modifiche.
+[!] Rivalidazione artifact alle 13:01: `30_frontend_presidi.patch` + `35_frontend_presidi_tests.patch` passano `git apply --check --verbose --whitespace=error-all`; `10_domain_repository.patch` fallisce solo per una riga vuota aggiunta a EOF in `repository.py`; `20_rules_pipeline.patch` e' corrotto come patch alla riga 945 e deve essere rigenerato/riparato prima di qualunque applicazione sul server. Hash correnti: `10`=`CB47FD60D497405BB1AF04C6A249EA3E5876238BC05183BC08F4F091F4CB67BC`, `20`=`2E9101CBF831EB8C073FAB0E1524B6DC3F9D6B97F61BEFB176473467C3E13646`, `30`=`5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5`, `35`=`F0F7F8060CC8300F71432BCFC256EA06677B010E2FCF6E23096F2CD09AFE6B9D`.
+[x] Ripresa post-compattazione alle 13:10 del 20/07/2026: riletti integralmente `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb e sezioni correnti della procedura deposito dalla notifica/relata fino al fondo; consultati gli ultimi stati pertinenti di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 13:10: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`, unico worktree; modifiche intenzionali ancora limitate a `docs/backend-endpoint-security-map.md`, questo registro e directory artifact patch. Nessun sorgente applicativo locale e' stato modificato.
+[x] Stato produzione alle 13:10: repository pulito sullo stesso HEAD e branch; `iusentra-app` unico e healthy, scheduler/OCR healthy.
+[x] Artifact riparati e rivalidati alle 13:10: la composizione `10_domain_repository.patch` + `20_rules_pipeline.patch` + `30_frontend_presidi.patch` + `35_frontend_presidi_tests.patch` passa `git apply --check --verbose --whitespace=error-all`. Hash correnti: `10`=`2037011792170AC449195F405631C8C83E7A44F64FAA52D371EA0AF011B4300D` (`139241` byte), `20`=`816DC30CAB14AD852CFC520DE7EDC3739AEC5DDE89BE66ADAB679610297AEF50` (`86262` byte), `30`=`5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5` (`73599` byte), `35`=`F0F7F8060CC8300F71432BCFC256EA06677B010E2FCF6E23096F2CD09AFE6B9D` (`30815` byte). Prossimo blocco: review logica backend/rulepack prima di qualunque mutazione server, con attenzione a stati monotoni, failure attribution persistita, chiavi destinatario/evidence, off rigoroso e API tenant-scoped.
+[x] Correzione review backend alle 13:17: aggiornato `10_domain_repository.patch` con `FailureAttribution` esplicita, colonna `failure_attribution` in SQLite/PostgreSQL, propagazione envelope -> destinatario -> transizione, escalation `P0` su ogni failure, revisione umana obbligatoria quando l'attribuzione e' `uncertain`, aggregazione che lascia `PARTIAL_DELIVERY` nei casi misti consegnato/fallito e rimozione dei passaggi automatici `DELIVERY_FAILED -> DELIVERY_COMPLETE` e `PARTIAL_DELIVERY -> DELIVERY_FAILED`. Aggiunti test `tests/test_pec_notification_presidio.py` su consegna parziale + failure P0 e RdAC tardiva che non chiude una failure incerta.
+[x] Rivalidazione composizione alle 13:17: `git apply --check --verbose --whitespace=error-all` passa su `10+20+30+35`. Nuovo hash `10`=`39C768F3B011735A7870AFD85D28EDBAA232E02ECC1F8BB266A6D99319AED8AD` (`148443` byte); invariati `20`=`816DC30CAB14AD852CFC520DE7EDC3739AEC5DDE89BE66ADAB679610297AEF50`, `30`=`5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5`, `35`=`F0F7F8060CC8300F71432BCFC256EA06677B010E2FCF6E23096F2CD09AFE6B9D`.
+[x] Correzione review rulepack alle 13:19: `20_rules_pipeline.patch` ora allinea `calculate_recipients_effects` alla semantica backend: caso misto consegnato/fallito = `PARTIAL_DELIVERY` con priorita' `P0`, solo failure senza consegne = `DELIVERY_FAILED`, failure incerta = `human_review_required=true`; l'attribuzione viene normalizzata su `attributable_to_recipient`, `not_attributable_to_recipient`, `uncertain`. Aggiunto test `test_matrice_destinatari_mista_resta_parziale_e_failure_incerta_richiede_review`.
+[x] Rivalidazione composizione alle 13:19: `git apply --check --verbose --whitespace=error-all` passa su `10+20+30+35`. Hash correnti: `10`=`39C768F3B011735A7870AFD85D28EDBAA232E02ECC1F8BB266A6D99319AED8AD` (`148443` byte), `20`=`8D5004C7A5EB8FC72ED52395F38098E0EC40C37B50195E52D1006EED4F10BE22` (`88126` byte), `30`=`5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5`, `35`=`F0F7F8060CC8300F71432BCFC256EA06677B010E2FCF6E23096F2CD09AFE6B9D`.
+[x] Ripresa post-compattazione alle 13:22 del 20/07/2026: riletti `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb e sezioni correnti della procedura deposito/notifiche dal punto notifiche legali fino al fondo; consultati gli ultimi stati di `pytest-confirmed-ok.md` e `pytest-open-issues.md`.
+[x] Stato locale alle 13:22: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`; worktree intenzionalmente non pulita solo per `docs/backend-endpoint-security-map.md`, questo registro e directory `artifacts/notifiche-legali/server-patches/`. Nessun sorgente applicativo locale è stato modificato.
+[x] Stato produzione alle 13:22: repository remoto pulito sullo stesso HEAD e branch; nessuna modifica server ancora applicata dopo la compattazione. Prossimo passo confermato: ispezione wiring feature flag/API e costruzione patch rollout con flag globali/tenant spenti di default e zero overhead a flag spento.
+[x] Istruzione utente registrata alle 13:23: dopo test completi del perimetro su server reale bisogna riallineare la copia locale reale, ricostruire/verificare `127.0.0.1:8080`, aggiornare documentazione/versione, poi commit, push dei branch gemelli, controlli GitHub/CodeQL, deploy Hetzner e verifica finale su stesso commit.
+[x] Ripresa post-compattazione alle 13:31 del 20/07/2026: riletti `AGENTS.md`, questo registro, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb, sezioni correnti deposito/notifiche e stati pytest pertinenti.
+[x] Stato locale alle 13:31: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`; modifiche ancora limitate a `docs/backend-endpoint-security-map.md`, questo registro e directory artifact patch. Nessun sorgente applicativo locale è stato modificato.
+[x] Stato produzione alle 13:31: repository remoto pulito sullo stesso HEAD e branch; container applicativo unico `iusentra-app` healthy, scheduler/OCR separati healthy. Nessuna patch applicata sul server dopo la ripresa.
+
+DISEGNO TECNICO DEFINITIVO PRIMA DEL CODICE
+
+[x] Nuovo bounded context pct/pec_notification_presidio, suddiviso in modelli, identità, rulepack/detector, repository, riconciliatore, policy storica e servizio; nessuna logica business nel blueprint.
+[x] Persistenza canonica nello stesso repository SQLite tenant-aware PEC già esistente (`email/pec_audit.sqlite`) o nel backend PostgreSQL equivalente, senza introdurre un terzo database: migrazioni gemelle per cinque tabelle richieste più impostazioni rollout, coda job atomica e inbox ricevute non abbinate; tutte le chiavi, FK, unique e query includono tenant_id. Il repository dedicato resta SQL e fonte operativa del dominio; JSON non è fonte decisionale.
+[x] Modalità effettive off/shadow/primary. Kill switch globale e configurazione persistente per tenant; assenza contesto tenant o combinazione invalida fallisce chiusa. In off: zero istanze repository, query o letture mailbox. In shadow: persistenza e metriche senza cambiare fascicolo/topbar. In primary: proiezione nuova visibile.
+[x] Ingest soltanto dopo la pipeline PEC/worker, usando Message-ID già processati; mai scan, ZIP, OCR o PDF in una GET. Claim job atomico: CAS SQLite e FOR UPDATE SKIP LOCKED PostgreSQL.
+[x] Stati per destinatario monotoni, ricevute fuori ordine in inbox persistente, RAC distinta da RdAC, chiusura solo con tutti i destinatari obbligatori e prova deposito accettata quando richiesta; transizioni append-only con prev_hash/entry_hash.
+[x] Identità separata documento canonico/istanza notifica; hash è evidenza forte ma non unica; nuovo destinatario, rinnovo, finalità o versione crea istanza distinta. Match semantico sotto soglia richiede revisione umana.
+[x] Rulepack deterministico versionato con regime vigente art. 147 c.p.c., resolver storico previgente e policy prudenziale oraria separata/configurabile. AI/Lex solo proposta/spiegazione, mai fonte dispositiva unica.
+[x] API dedicata /api/v1/ui/notifiche-legali/presidi, paginata e tenant-scoped; lista/dettaglio/evidenze/transizioni e mutazioni sottili. Nessun path filesystem nei DTO; contenuti solo da route autenticata e root tenant validata.
+[x] RBAC runtime reale: messaggi.leggi per letture, messaggi.scrivi per mutazioni, fascicoli.leggi/scrivi quando si apre o collega un documento. La terminologia di prodotto Comunicazioni viene mappata e documentata, senza introdurre permessi inesistenti che bloccherebbero gli utenti.
+[x] React: nuovo shell lazy sotto frontend/src/features/notifiche-legali; Presidi è iniziale solo in primary. Il vecchio workflow viene importato soltanto scegliendo Operazioni di notifica o usando deep-link storici. Default-off non aggiunge chunk né RTT al percorso attuale.
+[x] Fascicolo e topbar useranno la stessa proiezione SQL soltanto in primary; nessuna PII in push. In shadow restano invariati e si raccolgono solo metriche di confronto. Repository indisponibile produce errore esplicito, mai empty o fallback falso-verde.
+[x] Preflight UI: schermata /notifiche-legali; utenti avvocato/personale autorizzato; file consentiti solo nuovi moduli dedicati e wiring minimo; vietati riscrittura dei monoliti NotificheLegaliPage/react_notifiche_legali_bridge/api_v1_react e dipendenze nuove; rischio principale regressione tempi/tenant; keep solo con prestazioni entro baseline, RBAC/tenant verde e campagna reale completa.
+
+LAVORO ANCORA DA FARE
+
+[x] Ricevere/consolidare inventario backend e dossier fonti interrotti dalla nuova richiesta.
+[x] Accedere alla produzione autenticata nel tenant indicato e misurare baseline server prima del codice.
+[x] Disegno tecnico definitivo senza duplicare Control Tower/Proof Matrix e wiring UI/API minimale chiusi e registrati.
+[ ] Implementare tutte le sezioni aperte sopra direttamente sul server.
+[ ] Campagna server completa; poi riallineamento locale, gate, commit/push, deploy finale e verifica commit unico.
+
+PRIMO PASSO ALLA RIPRESA
+
+Aggiornamento 13:31: protocollo post-compattazione rieseguito, istruzione utente sulla chiusura confermata nel file e server ancora pulito/healthy. Proseguire con ispezione feature flag, React bootstrap, blueprint registry, RBAC e tenant context per costruire il wiring API/rollout separato con off rigoroso e modalità tenant effettiva. Solo dopo trasferire e applicare sul server il primo nucleo con flag ancora off, eseguire test mirati e rebuild Hetzner controllato. A campagna server completata: aggiornare copia locale reale, testare `127.0.0.1:8080`, poi commit, push branch gemelli e deploy finale dello stesso commit.
+
+Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --check` e review statica completa. Costruire il wiring API/rollout separato con off rigoroso e modalità tenant effettiva; poi trasferire e applicare sul server il primo nucleo con flag ancora off, eseguire test mirati e rebuild Hetzner controllato. La copia applicativa locale resta intatta fino alla campagna server completa.
+
+[20/07/2026 13:34 Europe/Rome] Istruzione utente aggiunta al piano obbligatorio:
+- Dopo il completamento e il test reale sul server produzione, Codex deve aggiornare anche la copia locale reale, ricostruire/verificare su http://127.0.0.1:8080, aggiornare documentazione/versione, eseguire commit, push dei branch gemelli e deploy finale.
+- Questa sequenza resta scritta nel presente file come vincolo operativo: non dichiarare concluso il lavoro finche' server, locale, GitHub e deploy finale non risultano allineati e verificati.
+- Vincolo prestazionale confermato: l'implementazione notifiche legali deve restare rapida nel caricamento; flag disattivato = nessuna lettura tenant/repository/mailbox, lista = sole proiezioni SQL paginate, dettagli/evidenze = caricamento solo su richiesta.
+
+[20/07/2026 13:47 Europe/Rome] Patch rollout/API costruita e validata:
+- Creato artifact `25_web_rollout_api.patch` senza modificare sorgenti applicativi locali. La copia locale resta non applicata: solo registro e artifact patch sono cambiati.
+- Contenuto tecnico del blocco 25: flag globali default-off `features.legalNotificationPresidia.enabled` e `.primary`; overlay bootstrap/API con decisione tenant effettiva; blueprint dedicato `/api/v1/ui/notifiche-legali`; endpoint `presidi`, dettaglio, evidenze, transizioni, mutazioni e rollout admin; RBAC reale `messaggi.leggi/scrivi`, `fascicoli.leggi/scrivi`, `admin.configura`; config rollout persistente SQLite/PostgreSQL; filtro lista multi-stato in una sola query SQL; ricerca destinatario su proiezione SQL; nessuna esposizione pubblica di tenant_id/studio_id/path/hash tecnici nei DTO.
+- Vincolo prestazionale rispettato nel disegno: global flag OFF = nessun repository/tenant read; primary/shadow solo dopo config tenant; lista paginata = SQL projection e join leggere su documenti/destinatari della pagina; contenuti evidenza solo on-demand; nessuna scansione mailbox, ZIP, PDF o OCR su GET.
+- Validazione pulita eseguita in staging temporaneo da `git archive -o` con applicazione sequenziale: 10 -> 20 -> check/apply 25 -> check 30+35. Esito `PATCHCHECK_OK`. Directory e tar temporanei rimossi.
+- Hash artifact correnti: `10`=`39C768F3B011735A7870AFD85D28EDBAA232E02ECC1F8BB266A6D99319AED8AD` (`148443` byte), `20`=`8D5004C7A5EB8FC72ED52395F38098E0EC40C37B50195E52D1006EED4F10BE22` (`88126` byte), `25`=`1E526D121273A11BBF578EC7CBEA0F1B4F61357FD7833C24D6B55DBE333ECE09` (`60688` byte), `30`=`5599A7CD2DFFEC904C8F8872A824D273551825D3B77EB4D31BFD168C983DDDD5` (`73599` byte), `35`=`F0F7F8060CC8300F71432BCFC256EA06677B010E2FCF6E23096F2CD09AFE6B9D` (`30815` byte).
+- Prossimo passo: trasferire gli artifact sul server Hetzner, applicare in ordine sul repository remoto ancora pulito, eseguire test mirati backend/frontend con flag off/on controllato, poi rebuild produzione e verifica reale autenticata sul tenant Studio Legale Giuseppe Montagnese.
+
+[20/07/2026 14:15 Europe/Rome] Ripresa post-compattazione e stato server:
+- Riletti `AGENTS.md`, questo presidio, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb, procedura deposito telematico e stati pytest pertinenti.
+- Stato locale: branch `Codex/legal-electronic-filing-kIxcV`, HEAD `394b0361de181a7c8bd721f2e3216b750cb713e1`, unico worktree. Nessun sorgente applicativo locale applicato; restano solo `docs/backend-endpoint-security-map.md`, questo presidio e artifact patch.
+- Stato server: branch `Codex/legal-electronic-filing-kIxcV`, HEAD iniziale invariato, patch 10/20/25/30/35 applicate in working tree remoto.
+- `frontend/src/features/notifiche-legali/PresidiNotifiche.css` e' stato ripulito dalla corruzione dell'artifact 30: 369 righe CSS, nessun frammento `setBusyAction`, nessun marker `tokens` e nessun contenuto `Drawer` nel CSS.
+- Problema risolto: il build Docker precedente era fallito per codice TSX finito nel CSS. Il file server corretto sostituisce l'artifact frontend corrotto; prima del riallineamento locale bisognera' rigenerare o sostituire l'artifact 30, evitando di applicare localmente la versione corrotta.
+- Prossimo passo immediato: rilanciare build Hetzner con `--env-file /opt/iusentra/.env.hetzner`, poi ricreare i container del profilo `deploy/hetzner`, verificare `iusentra-app` unico/healthy e `/api/pronto` produzione.
+
+[20/07/2026 14:38 Europe/Rome] Stato aggiornato richiesto dall'utente e prove server:
+- Istruzione utente ribadita: quando tutta la campagna server è stata testata, Codex deve aggiornare la copia locale reale, ricostruire/verificare `http://127.0.0.1:8080`, poi eseguire commit, push dei branch gemelli e deploy finale Hetzner dello stesso commit. Questa sequenza resta obbligatoria e non può essere saltata.
+- Build server Hetzner completata dopo la pulizia del CSS `PresidiNotifiche.css`; immagini `iusentra-app`, `iusentra-scheduler-worker` e `iusentra-ocr-worker` ricostruite, container ricreati e `iusentra-app` verificato unico e healthy.
+- `/api/pronto` produzione verificato con `ok=true`, versione `2.256.2`, fuso `Europe/Rome`.
+- Problema reale risolto sul server: dopo login sul tenant `studio-legale-giuseppe-montagnese`, `/notifiche-legali` restituiva `409` per `PEC_AUDIT_DB` mancante nel controllo tenant-isolation. Applicato hotfix su `web/services/tenant_isolation_runtime.py` per derivare `PEC_AUDIT_DB` dalla root email tenant-aware prima della validazione fail-closed. Il fix deve essere riportato identico nella copia locale prima del commit.
+- Flag globali produzione impostati a `IUSENTRA_FF_FEATURES_LEGALNOTIFICATIONPRESIDIA_ENABLED=1` e `IUSENTRA_FF_FEATURES_LEGALNOTIFICATIONPRESIDIA_PRIMARY=1`; rollout tenant salvato in SQLite `email/pec_audit.sqlite` con `rollout_enabled=true`, `rollout_mode=primary`, decisione `enabled=true`, `primary=true`.
+- Prova produzione a flag/tenant primary su `https://app.iusentra.it/notifiche-legali`: pagina autenticata come `Giuseppe Montagnese`, ruolo `AMMINISTRATORE`, sezione iniziale `Presidi notifiche` visibile, nessun errore console, caricamento misurato circa `666 ms` DOM e `677 ms` load.
+- UI server verificata con click reali: tab coda `Originale da acquisire`, `Mancata consegna`, filtri `Fascicolo o R.G.`, `Destinatario`, `Priorità`, pulsanti `Applica`, `Azzera`, `Aggiorna`, stato vuoto `Nessun presidio in questa coda`, paginazione disabilitata senza elementi. Il filtro destinatario ha aria-label corretto `Cerca destinatario` e placeholder visibile `Nome, codice fiscale o PEC`.
+- Verifica lazy server: scegliendo `Operazioni di notifica` viene caricato il workflow storico completo `NOTIFICHE E COMUNICAZIONI`; tornando a `Presidi notifiche` la vista leggera ritorna iniziale. Questo conferma che l'editor storico non viene caricato come contenuto primario della pagina Presidi.
+- Asset produzione controllati nel container: chunk JavaScript massimo osservato `369239` byte, CSS massimo `215979` byte; nessun chunk JS sopra `500000` byte.
+- Focus tastiera osservato sul tab `Presidi notifiche` con outline visibile e testo leggibile; il controllo responsive materiale desktop è positivo. Restano da completare prima della chiusura formale: controllo tablet/mobile materiale, riallineamento locale, rebuild Docker locale reale, prova `127.0.0.1:8080`, gate mirati, documentazione/versione, commit, push dei due branch gemelli, controlli GitHub/CodeQL, deploy finale e pulizia Hetzner.
+
+[20/07/2026 14:51 Europe/Rome] Ripresa post-compattazione, riallineamento locale e guardrail:
+- Riletti `AGENTS.md`, questo presidio, incarico operativo permanente, specifica PEC V2, confronto documenti fascicolo d'ufficio, dossier PolisWeb, procedura deposito telematico e stati pytest pertinenti.
+- Stato locale dopo il riallineamento dal server: i sorgenti del presidio notifiche sono presenti nella copia `D:\legale\IUSENTRA`; restano da pulire solo artefatti React generati dalla build prima del commit.
+- Guardrail prestazionale bundle eseguito: `node frontend/scripts/check-notifiche-legali-presidi-bundle.mjs` verde con JS `33308` byte, CSS `20957` byte e workflow legacy separato/lazy.
+- Guardrail frontend Presidi eseguito: `node frontend/scripts/check-notifiche-legali-presidi.mjs` verde con `2030` righe, `63779` byte e `6` mutazioni presidiate.
+- Il primo lancio del guardrail frontend aveva fermato il CSS a `376/360` righe; compattate solo righe vuote in `PresidiNotifiche.css`, senza cambiare selettori o comportamento, portando il file a `321` righe.
+- Mappa sicurezza backend controllata con `python scripts/react-migration/generate_backend_security_map.py --check`: `docs/backend-endpoint-security-map.md allineato`.
+- Rimossa dal worktree la cartella temporanea non sorgente `artifacts/notifiche-legali/server-patches/`, perché conteneva artifact di staging ormai superati dal codice reale e non deve entrare nel commit.
+- Prossimo passo: completare documentazione/versione, ripulire gli asset React generati, rilanciare i gate mirati cumulativi, ricostruire la copia Docker locale reale su `127.0.0.1:8080`, verificare nel browser reale e solo dopo commit, push, deploy finale e controlli Hetzner.
+
+[20/07/2026 14:58 Europe/Rome] Documentazione, versione e gate mirati:
+- Versione applicativa portata a `2.257.0` in `pct/__init__.py`, `Dockerfile`, `railway.toml` e `CHANGELOG.md`.
+- Aggiornati `artifacts/react-migration/procedura-deposito-telematico.md` e `artifacts/data-flow/incarico-operativo-permanente.md` con il presidio persistente notifiche, vincolo di invio PEC sempre dal PC locale, fonte SQL tenant-aware e sequenza server -> locale -> GitHub -> deploy.
+- Gate backend/rulepack/API eseguito: `python -m pytest tests/test_pec_notification_presidio.py tests/test_legal_notification_rulepack.py tests/test_notification_presidia_rollout_api.py tests/test_notifiche_legali.py tests/test_utf8_integrity.py -q` verde, `119` test superati.
+- Typecheck React eseguito: `pnpm --dir frontend typecheck` verde.
+- Compilazione Python mirata eseguita con elenco file esplicito dopo errore tecnico del wildcard PowerShell: verde.
+- `git diff --check` verde; resta solo warning CRLF già noto su `docs/backend-endpoint-security-map.md`.
+- Build React eseguita: `pnpm --dir frontend build` verde.
+- Guardrail Presidi post-build eseguiti: bundle Presidi JS `33308` byte, CSS `20957` byte, legacy separato; controllo sorgenti Presidi verde con `2030` righe, `63779` byte, `6` mutazioni.
+- Budget asset dal manifest corrente: max JS `CodiceOggettoPstSearch-mdGCkmi_.js` `369239` byte, max CSS `FascicoliPage-DicMHZ6-.css` `215979` byte, `0` JS oltre `500000` byte.
+- Prossimo passo: pulizia asset React generati non committabili, rebuild Docker locale reale no-cache, verifica `http://127.0.0.1:8080/api/pronto` e prova browser reale locale.
+
+[20/07/2026 15:28 Europe/Rome] Copia locale reale aggiornata e verificata:
+- Dopo compattazione sono stati riletti `AGENTS.md`, questo registro, `artifacts/data-flow/incarico-operativo-permanente.md` e la skill Browser; la sequenza richiesta dall'utente resta: prova completa, aggiornamento copia locale, commit, push branch gemelli e deploy finale.
+- Docker locale reale ricostruito e riavviato su `127.0.0.1:8080`: `iusentra-app` unico e healthy, scheduler/OCR healthy, `/api/pronto` risponde `ok=true`, versione `2.257.0`, fuso `Europe/Rome`.
+- Feature flag locali del presidio abilitati in `.env` locale ignorato da Git; rollout tenant locale salvato come `primary` nei due DB tenant-aware `email/pec_audit.sqlite` e `pec/pec_audit.sqlite` per evitare ambiguità tra path storico e path runtime.
+- Accesso locale verificato nella scheda reale del browser integrato su `http://127.0.0.1:8080/notifiche-legali` con sessione `Codex PEC pagina Test`, ruolo `AMMINISTRATORE`; la password temporaneamente impostata per il test sul solo utente locale è stata ripristinata dal backup e il backup cancellato.
+- Prova locale desktop reale: reload completato e modulo Presidi visibile; prima lettura a circa `1211 ms` arrivata sullo stato `Caricamento modulo`, dopo attesa breve la vista `Presidi notifiche` è apparsa correttamente. Nessun errore console.
+- Click locali reali eseguiti: code `Originale da acquisire` e `Mancata consegna`, campi `Fascicolo o R.G.` e `Cerca destinatario`, selettore `Priorità`, pulsanti `Applica`, `Azzera`, `Aggiorna`, stato vuoto `Nessun presidio in questa coda` e paginazione disabilitata. Nessun errore console.
+- Verifica lazy locale: click su `Operazioni di notifica` carica il workflow storico `NOTIFICHE E COMUNICAZIONI` solo su richiesta; click di ritorno su `Presidi notifiche` ripristina la vista leggera iniziale. La pagina Presidi non parte dal workflow storico.
+- Focus e dettagli visibili: input `Cerca pratica o R.G.` focalizzato con outline leggibile, testi italiani con accenti corretti, pulsanti `Precedenti`/`Successivi` disabilitati leggibili, altezza controlli principali almeno `42/44 px`, scroll completo fino al fondo e nessun overflow orizzontale su desktop.
+- Responsive reale con capability viewport del browser integrato: tablet `900x900` e mobile `390x844` ricaricati, vista `Presidi notifiche` presente, coda `Mancata consegna` cliccabile, filtri e `Aggiorna` presenti, stato vuoto visibile, scroll fino al fondo, mobile nav presente, nessun overflow orizzontale e nessun errore console.
+- Il movimento puntatore su `Aggiorna` è stato eseguito con browser visibile; il DOM del bridge non ha marcato `:hover`, ma il controllo mantiene testo nero su fondo bianco, bordo leggibile e altezza `44 px`. La prova focus/click/scroll e gli stati disabled sono materialmente verificati.
+- Prossimo passo obbligatorio: `git status --short`, igiene repo, stage/commit della release `2.257.0`, push su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, controlli GitHub/CodeQL disponibili, deploy Hetzner dello stesso commit, verifica `iusentra-app` unico/healthy, `/api/pronto` produzione `2.257.0`, prova produzione finale e pulizia cache build/snapshot.
+
+[20/07/2026 15:31 Europe/Rome] Pre-push e OpenAPI:
+- Commit locale iniziale creato su SHA `567c750fcca4c2efedbc5980a5b15cf74e846155`; il hook post-commit ha riallineato il branch locale gemello `claude/legal-electronic-filing-kIxcV` allo stesso SHA.
+- Primo push bloccato dal pre-push perché `docs/openapi.yaml` non era allineato. Nessun push remoto è stato completato in questa fase.
+- Rigenerato `docs/openapi.yaml` con `python scripts/react-migration/generate_api_contracts.py`.
+- Verifiche pre-amend eseguite: `python scripts/react-migration/generate_api_contracts.py --check` verde, `python scripts/validate_openapi.py docs/openapi.yaml` verde, `python scripts/verify_openapi_provider.py` verde con `auth-error=296`, `public-safe=15`, `success=29`, `backend-security=1`.
+- Prossimo passo: stage di `docs/openapi.yaml` e registro, amend del commit, nuovo push dei branch gemelli.
+
+[20/07/2026 15:34 Europe/Rome] Secondo pre-push:
+- Commit emendato su SHA `b3a13fa0ac2b82529d2568a7acb8330434987182`, branch locali `Codex/...` e `claude/...` allineati e worktree pulita.
+- Secondo push bloccato dal pre-push perché `docs/app-v2-page-registry.md` non era aggiornato. Nessun push remoto è stato completato in questa fase.
+- Rigenerato `docs/app-v2-page-registry.md` con `python scripts/react-migration/generate_app_v2_page_registry.py`.
+- Verifica `python scripts/react-migration/generate_app_v2_page_registry.py --check` verde.
+- Prossimo passo: stage del registro App V2 e di questo file, amend del commit, nuovo push dei branch gemelli.
+
+[20/07/2026 15:37 Europe/Rome] Terzo pre-push:
+- Commit emendato su SHA `1eed216bbcb8bea9f3f5f9b2cebcbf7c61e15fbd`, branch locali gemelli allineati e worktree pulita.
+- Terzo push bloccato dal pre-push perché `docs/test-inventory.md` e `docs/test-plan-app-v2.md` non erano aggiornati. Nessun push remoto è stato completato in questa fase.
+- Rigenerati i documenti test App V2 con `python scripts/react-migration/generate_app_v2_test_docs.py`.
+- Verifica `python scripts/react-migration/generate_app_v2_test_docs.py --check` verde.
+- Prossimo passo: stage dei due documenti test e di questo file, amend del commit, nuovo push dei branch gemelli.

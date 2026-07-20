@@ -931,24 +931,25 @@ def test_piano_firma_include_solo_documento_marcato_come_atto_da_sottoscrivere()
     assert plan["alreadySigned"] == [{"filename": "provvedimento.pdf.p7m", "reason": "Documento già firmato digitalmente o già in formato firmato."}]
 
 
-def test_piano_orario_applica_scissione_e_blocco_notturno():
-    ordinario = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T10:40:57"})
+def test_piano_orario_distingue_regime_corrente_e_storico():
+    current = {"data_inizio_procedimento": "2026-01-10"}
+    ordinario = build_notification_timing_plan({**current, "data_ora_invio_pec": "2026-05-24T10:40:57"})
     assert ordinario["ready"] is True
     assert ordinario["status"] == "fascia_ordinaria"
     assert ordinario["plannedAt"] == "24/05/2026 10:40:57"
 
-    serale = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T21:30"})
+    serale = build_notification_timing_plan({**current, "data_ora_invio_pec": "2026-05-24T21:30"})
 
     assert serale["ready"] is True
-    assert serale["status"] == "fascia_serale_con_scissione"
+    assert serale["status"] == "fascia_con_differimento_destinatario"
     assert "RAC" in serale["senderEffect"]
     assert "07:00" in serale["recipientEffect"]
-    assert any(item["id"] == "corte_cost_75_2019" for item in serale["legalBasis"])
+    assert any(item["id"] == "cpc_art147" for item in serale["legalBasis"])
 
-    notturno = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T06:30"})
+    notturno = build_notification_timing_plan({**current, "data_ora_invio_pec": "2026-05-24T06:30"})
 
-    assert notturno["ready"] is False
-    assert notturno["status"] == "fuori_fascia_destinatario"
+    assert notturno["ready"] is True
+    assert notturno["status"] == "fascia_con_differimento_destinatario"
 
 
 def test_area_web_pst_mancata_notifica_salva_art_3ter_e_avviso_eml():
@@ -1014,7 +1015,7 @@ def test_matrice_notifica_esposta_per_ui_e_script():
     assert any(item["id"] == "dgsia_2024_art22" for item in provvedimento["legalBasis"])
     sentenza = next(item for item in matrix["cases"] if item["value"] == "sentenza_termine_breve")
     assert any(item["id"] == "cpc_326" for item in sentenza["legalBasis"])
-    assert any(item["id"] == "dl179_art16decies" for item in sentenza["legalBasis"])
+    assert any(item["id"] == "disp_att_cpc_196octies" for item in sentenza["legalBasis"])
 
 
 def test_modello_sentenza_attestazione_esposto_con_campi_autocompilanti():

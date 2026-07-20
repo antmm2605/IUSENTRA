@@ -25,6 +25,9 @@ from urllib.parse import quote, urlencode
 from xml.sax.saxutils import escape
 from zoneinfo import ZoneInfo
 
+from pct.legal_notification_rulepack import (
+    build_notification_timing_plan as build_rulepack_notification_timing_plan,
+)
 from pct.studio_address import compose_studio_address
 
 
@@ -483,14 +486,24 @@ LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
         "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni.",
     },
     {
+        "id": "cpc_art147",
+        "label": "Art. 147, commi 2 e 3, c.p.c.",
+        "rule": "Regime corrente: invio telematico senza limiti orari; effetti alla RAC e alla RdAC, con differimento per il destinatario tra le 21:00 e le 07:00.",
+    },
+    {
+        "id": "disp_att_cpc_196octies",
+        "label": "Art. 196-octies disp. att. c.p.c.",
+        "rule": "Fonte corrente per il potere di certificazione di conformità delle copie estratte dal fascicolo informatico.",
+    },
+    {
         "id": "dl179_art16decies",
-        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-decies",
-        "rule": "Potere di attestazione di conformità delle copie informatiche estratte dal fascicolo informatico e dai registri telematici.",
+        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-decies (storico)",
+        "rule": "Fonte abrogata dal 28 febbraio 2023; non usare come base corrente della conformità.",
     },
     {
         "id": "dl179_art16septies",
-        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies",
-        "rule": "Regole temporali delle notifiche telematiche, lette con Corte cost. 75/2019.",
+        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies (storico)",
+        "rule": "Fonte abrogata dal 28 febbraio 2023, rilevante soltanto per il regime storico e letta con Corte cost. 75/2019.",
     },
     {
         "id": "corte_cost_75_2019",
@@ -641,7 +654,7 @@ CASE_DIRECTIVE_LEGAL_SOURCES: dict[str, tuple[str, ...]] = {
     "sentenza_termine_breve": (
         "l53_art3bis",
         "l53_art3ter",
-        "dl179_art16decies",
+        "disp_att_cpc_196octies",
         "dm44_art18",
         "cpc_170",
         "cpc_285",
@@ -2626,73 +2639,20 @@ def _document_signature_required(document: dict[str, Any]) -> bool:
     )
 
 
-def _parse_notification_datetime(value: Any) -> datetime | None:
-    raw = text(value)
-    if not raw:
-        return None
-    for pattern in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M"):
-        try:
-            return datetime.strptime(raw[:19] if "T" in raw and len(raw) >= 19 else raw, pattern)
-        except ValueError:
-            continue
-    return None
-
-
 def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
-    """Apply the PEC notification timing rules without hiding the lawyer review."""
+    """Piano compatibile con la UI, governato dal rulepack versionato."""
 
-    raw_send_at = text(
-        _first(
-            payload,
-            "notifica.invio_programmato",
-            "notifica.data_ora_invio",
-            "invio_programmato",
-            "data_ora_invio_pec",
-            "pec_send_at",
-        )
-    )
-    planned_at = _parse_notification_datetime(raw_send_at)
-    if planned_at is None:
-        return {
-            "plannedAt": raw_send_at,
-            "ready": True,
-            "status": "da_pianificare",
-            "senderEffect": "La RAC determinerà il perfezionamento per il notificante.",
-            "recipientEffect": "La RdAC determinerà il perfezionamento per il destinatario, con verifica della fascia oraria.",
-            "warning": "",
-            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
-        }
-
-    hour = planned_at.hour
-    if 0 <= hour < 7:
-        return {
-            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
-            "ready": False,
-            "status": "fuori_fascia_destinatario",
-            "senderEffect": "Verifica professionale richiesta prima dell'invio.",
-            "recipientEffect": "La fascia 00:00-06:59 resta da evitare nel workflow automatico.",
-            "warning": "Invio bloccato: pianifica dalle 07:00 oppure conferma manuale fuori automatismo.",
-            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
-        }
-    if 21 <= hour <= 23:
-        return {
-            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
-            "ready": True,
-            "status": "fascia_serale_con_scissione",
-            "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
-            "recipientEffect": "Per il destinatario resta il differimento alle ore 07:00 del giorno successivo.",
-            "warning": "Fascia serale: il software mostra la scissione degli effetti prima della conferma dell'avvocato.",
-            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
-        }
-    return {
-        "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
-        "ready": True,
-        "status": "fascia_ordinaria",
-        "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
-        "recipientEffect": "Per il destinatario vale il momento di generazione della RdAC.",
-        "warning": "",
-        "legalBasis": _legal_source_rows("l53_art3bis", "dpr68_art6_8"),
+    plan = build_rulepack_notification_timing_plan(payload)
+    source_aliases = {
+        "src.it.l53_1994.art3bis": "l53_art3bis",
+        "src.it.cpc.art147": "cpc_art147",
+        "src.it.dpr68_2005.art6_8": "dpr68_art6_8",
+        "src.it.dl179_2012.art16septies.historical": "dl179_art16septies",
+        "src.it.cortecost.75_2019": "corte_cost_75_2019",
     }
+    source_ids = [source_aliases[item] for item in plan.pop("legalSourceIds", []) if item in source_aliases]
+    plan["legalBasis"] = _legal_source_rows(*source_ids)
+    return plan
 
 
 def build_notification_signature_plan(
@@ -2865,7 +2825,7 @@ def build_notification_send_plan(
         _check_row(
             id="orario_notifica",
             label="Orario notifica PEC",
-            source="D.L. 179/2012, art. 16-septies; Corte cost. 75/2019; D.P.R. 68/2005",
+            source="Art. 147 c.p.c. (corrente); art. 16-septies D.L. 179/2012 e Corte cost. 75/2019 (storico); D.P.R. 68/2005",
             passed=bool(timing_plan.get("ready")),
             detail=text(timing_plan.get("warning") or timing_plan.get("recipientEffect")),
         ),
@@ -3490,7 +3450,7 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         },
         "normativa": [
             "art. 196-undecies disp. att. c.p.c.",
-            "D.L. 179/2012, art. 16-decies",
+            "art. 196-octies disp. att. c.p.c.",
             "L. 53/1994, art. 3-bis",
             "artt. 285, 325 e 326 c.p.c.",
             "Provvedimento DGSIA 7 agosto 2024, art. 27",

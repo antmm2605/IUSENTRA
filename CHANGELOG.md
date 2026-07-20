@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.257.0 - 2026-07-20
+
+- Aggiunge il presidio persistente delle notifiche legali con fonte SQL tenant-aware, rollout per studio, RBAC reale e stati per fascicolo, documento, destinatario, evidenze e transizioni.
+- Introduce la vista React iniziale `Presidi notifiche`, con lista paginata server-side, filtri leggeri, dettaglio lazy, stati vuoti/errore/permessi espliciti e workflow storico caricato solo su richiesta.
+- Integra il rulepack deterministico delle notifiche, distinguendo ordine espresso, comunicazione semplice, ricevute, consegna parziale, mancata consegna, originale da acquisire e storico presunto.
+- Mantiene il caricamento rapido: a flag spento non parte alcuna lettura tenant/repository/mailbox; a flag attivo la lista usa sole proiezioni SQL paginate e nessun chunk JavaScript supera il budget di 500 kB.
+- Documenta il workflow server-first richiesto: prova reale sul tenant Studio Legale Giuseppe Montagnese, poi riallineamento della copia locale reale su `127.0.0.1:8080`, commit, push dei branch gemelli e deploy Hetzner finale dello stesso commit.
+
 ## 2.256.2 - 2026-07-17
 
 - Conserva le attività `UDIENZA` nella timeline del fascicolo, comprese note, modalità di trattazione, fonte e collegamento audiovisivo.

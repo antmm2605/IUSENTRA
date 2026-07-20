@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
+from pct.legal_notification_rulepack import detect_notification_candidates
 from pct.pec_economia import classifica_contributo_unificato_pec, integra_contributo_unificato
 from pct.pec_legal_deadline_proposer import propose_legal_deadline
 from pct.pec_legal_workflow import classifica_pec_legale, estrai_registri
@@ -814,13 +815,33 @@ def build_legal_event_understanding(
     )
     integra_contributo_unificato(classification, payments, contributo_unificato)
     pct = _pct_receipts(parsed, report)
+    notifications = detect_notification_candidates(parsed, report, attachments=attachments)
     priority = _priority(classification, deadlines, hearings, payments, pct)
+    notification_priorities = {str(item.get("priority") or "P3") for item in notifications}
+    if "P0" in notification_priorities:
+        priority = "P0"
+    elif "P1" in notification_priorities and priority not in {"P0", "P1"}:
+        priority = "P1"
     actions = _actions(classification, deadlines, hearings, payments, pct)
+    actions.extend(
+        {
+            "action_type": "notifica_legale",
+            "title": _clean(item.get("proposed_action"), 160) or "Notifica legale da presidiare",
+            "description": _clean(item.get("reason"), 360),
+            "priority": item.get("priority") or "P1",
+            "due_hint": None,
+            "requires_lawyer_confirmation": bool(item.get("human_review_required", True)),
+            "source_rule_id": item.get("rule_id"),
+        }
+        for item in notifications
+        if item.get("creates_notification_candidate")
+    )
     human_review = bool(
         classification.get("human_review_required")
         or any(item.get("human_review_required") for item in hearings)
         or any(item.get("human_review_required") for item in deadlines)
         or any(item.get("human_review_required") for item in payments)
+        or any(item.get("human_review_required") for item in notifications)
         or pct.get("blocking_errors")
         or priority in {"P0", "P1"}
     )
@@ -856,17 +877,19 @@ def build_legal_event_understanding(
         "hearings": hearings,
         "payments": payments,
         "pct_receipts": pct,
+        "notifications": notifications,
         "actions": actions,
         "lex_memory": {
             "summary_for_lex": _clean(
                 f"{classification.get('primary_event')} - priorità {priority}. "
-                f"Udienze: {len(hearings)}; termini: {len(deadlines)}; pagamenti: {len(payments)}.",
+                f"Udienze: {len(hearings)}; termini: {len(deadlines)}; pagamenti: {len(payments)}; notifiche: {len(notifications)}.",
                 500,
             ),
             "facts": [
                 *[f"Evento rilevato: {item}" for item in _list(classification.get("events"))],
                 *([f"Udienza {hearings[0].get('mode')} rilevata"] if hearings else []),
                 *([f"Pagamento/liquidazione: {payments[0].get('payment_event_type')}"] if payments else []),
+                *[f"Notifica: {item.get('event_type')} ({item.get('rule_id')})" for item in notifications],
             ],
             "do_not_infer": [
                 "Non inviare PEC, depositare atti o chiudere workflow senza conferma umana.",
@@ -878,11 +901,13 @@ def build_legal_event_understanding(
         },
         "audit": {
             "rulepack_version": str(rules.get("version") or RULEPACK_VERSION),
+            "notification_rulepack_version": notifications[0].get("rulepack_version") if notifications else None,
             "model_should_not_be_sole_source": True,
-            "evidence_count": sum(len(_list(item.get("evidence"))) for item in [*deadlines, *hearings, *payments, pct]),
+            "evidence_count": sum(len(_list(item.get("evidence"))) for item in [*deadlines, *hearings, *payments, pct, *notifications]),
             "unresolved_issues": [
                 *([hearing.get("web_push_safe_title") for hearing in hearings if hearing.get("human_review_required")]),
                 *([deadline.get("deadline_type") for deadline in deadlines if deadline.get("human_review_required")]),
+                *([item.get("reason") for item in notifications if item.get("human_review_required")]),
             ],
         },
         "human_review_required": human_review,

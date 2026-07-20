@@ -43,6 +43,7 @@ Il JSON V2 contiene:
 - `hearings`: data, ora, modalità, link, piattaforma, aula, passcode e azione agenda;
 - `payments`: spese, distrazione, gratuito patrocinio, contributo unificato e beneficiario;
 - `pct_receipts`: stato catena deposito PCT;
+- `notifications`: candidati e ricevute di notifica con evidenza, regola, fonte, priorità e revisione umana;
 - `actions`: agenda, scadenziario, incasso, task, notifica web push e Lex;
 - `lex_memory`: fatti e limiti di inferenza per il DB vettoriale;
 - `audit`: versione ruleset, conteggio evidenze e criticità residue.
@@ -116,6 +117,21 @@ Il presidio impone revisione umana quando:
 
 Le web push non espongono dati sensibili: usano solo titoli sintetici, per esempio `P0 - Udienza da remoto senza link trovato`.
 
+## Notifiche legali rulepack v1
+
+Le regole vivono in `pct/data/legal_notification_detection_rules_v1.json` e
+sono caricate/compilate una sola volta da `pct/legal_notification_rulepack.py`.
+La scansione avviene durante `validate`/refresh e il JSON viene materializzato in
+`pec_legal_events`: le route GET leggono il record persistito e non rileggono
+testo o allegati. `Comunicazione.xml` dell'ufficio non prova una notifica
+dell'avvocato; l'originale da portale è richiesto solo quando l'avviso sicuro
+non contiene già il documento utilizzabile.
+
+Il resolver distingue procedimenti introdotti dopo il 28/02/2023 (art. 147
+c.p.c.) e procedimenti già pendenti (regime storico art. 16-septies coordinato
+con Corte cost. 75/2019). Il cutoff interno del 19/07/2026 governa soltanto la
+migrazione dei record e non seleziona mai la norma applicabile.
+
 ## Test obbligatori
 
 Copertura minima in `tests/test_pec_legal_event_understanding.py`:
@@ -143,6 +159,7 @@ Test collegati:
 - `tests/test_pec_audit_pipeline.py`;
 - `tests/test_pec_auto_acquire.py`;
 - `tests/test_scheduler.py`.
+- `tests/test_legal_notification_rulepack.py` (suite normativa shardabile, senza rete).
 
 ## Fonti normative/tecniche
 

@@ -371,3 +371,13 @@ Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --c
 - Correzione locale: aggiunto `frontend/src/features/notifiche-legali/PresidiNotifiche.css` alla governance in `scripts/react-migration/design-system-governance.json`.
 - Test locale esatto rilanciato e verde: `pnpm --filter @iusentra/studio test`, con `Design system governance OK: 67 CSS, 10 inline style, 4 divieti`.
 - Prossimo passo: commit correttivo, push branch gemelli, nuovo controllo GitHub dello SHA aggiornato e, dopo verde, rebuild/verify locale e deploy finale Hetzner.
+
+[20/07/2026 16:10 Europe/Rome] Ripresa post-compattazione, push verde e verifica locale finale:
+- Riletti `AGENTS.md`, questo registro, `artifacts/data-flow/incarico-operativo-permanente.md` e la skill Browser prima di riprendere.
+- Commit correttivo eseguito e pushato sui branch gemelli: `13aa5b5b2898d575bb12b487a9bde6b8a92d3f50`, con `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` allineati sullo stesso SHA.
+- Controllo GitHub required gates sullo SHA `13aa5b5b2898d575bb12b487a9bde6b8a92d3f50` completato con esito OK: CI Required Gates, Frontend React CI, CI Quality Overlay, CodeQL, Supply Chain e Deploy Hetzner risultano verdi; i report runtime `artifacts/ci/current-sha-required-gates.*` sono stati ripristinati per non lasciare worktree sporca.
+- Copia locale reale ricostruita dopo il fix GitHub: Docker su `127.0.0.1:8080` con `iusentra-app` healthy, worker healthy, `/api/pronto` `ok=true`, versione `2.257.0`, fuso `Europe/Rome`.
+- Prova browser reale locale post-rebuild su `http://127.0.0.1:8080/notifiche-legali`: vista primaria `Presidi notifiche` visibile, `NOTIFICHE E COMUNICAZIONI` assente all'avvio, stato vuoto leggibile, nessun overflow orizzontale, console vuota.
+- Click reali locali post-rebuild: coda `Da esaminare`, coda `Mancata consegna`, filtro `Cerca pratica o R.G.`, filtro `Cerca destinatario`, `Applica`, `Azzera`, `Aggiorna`; risultato stabile su `section=presidi`, nessun errore console.
+- Lazy-load verificato dopo l'ultimo rebuild locale: click su `Operazioni di notifica` carica il workflow storico solo su richiesta; ritorno a `Presidi notifiche` rimuove il workflow storico dalla vista iniziale e mantiene la pagina leggera.
+- Prossimo passo obbligatorio scritto su richiesta dell'utente: committare anche questo aggiornamento del registro, pushare di nuovo entrambi i branch gemelli, attendere i gate GitHub del nuovo SHA documentale, verificare/deployare Hetzner sullo stesso commit finale, pulire cache build/snapshot, controllare produzione e lasciare copia locale e repository puliti/allineati.

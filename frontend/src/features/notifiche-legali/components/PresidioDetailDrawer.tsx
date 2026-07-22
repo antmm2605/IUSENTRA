@@ -18,6 +18,21 @@ import type { PresidioAvailableAction } from '../types'
 import { PresidioActions } from './PresidioActions'
 import { PresidioEvidence } from './PresidioEvidence'
 
+function downloadHrefForPresidioDocument(viewerHref: string, fallbackHref: string): string {
+  if (viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')) {
+    try {
+      const parsed = new URL(viewerHref, window.location.origin)
+      if (parsed.origin === window.location.origin) {
+        parsed.searchParams.set('download', '1')
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`
+      }
+    } catch {
+      return fallbackHref
+    }
+  }
+  return fallbackHref
+}
+
 export default function PresidioDetailDrawer({
   id,
   onClose,
@@ -127,7 +142,7 @@ export default function PresidioDetailDrawer({
               <div className="nlp-document-list">
                 {detail.documents.map((document) => {
                   const viewer = safeInternalHref(document.viewer_url)
-                  const download = safeInternalHref(document.download_url)
+                  const download = downloadHrefForPresidioDocument(viewer, safeInternalHref(document.download_url))
                   const acquisition = safeInternalHref(document.original_acquisition_url)
                   return (
                     <article key={document.id}>
@@ -155,7 +170,7 @@ export default function PresidioDetailDrawer({
                             <Eye size={15} />Visualizza
                           </Button>
                         ) : null}
-                        {download ? <ButtonLink tone="neutral" href={download}><Download size={15} />Scarica</ButtonLink> : null}
+                        {download ? <ButtonLink tone="neutral" href={download} download><Download size={15} />Scarica</ButtonLink> : null}
                         {acquisition ? (
                           <ButtonLink tone="primary" href={acquisition}>
                             <FileDown size={15} />Acquisisci originale

@@ -5392,3 +5392,7 @@ Correzione applicata alla UI comune delle fonti:
 - il testo di errore resta in italiano e indica `Apri originale` o `Scarica` solo come recupero quando il formato non è renderizzabile, non come percorso primario.
 
 Prove automatiche mirate: test React della pagina Agenda/lettore e gruppo Agenda/PEC/fonti/notifiche superati; build React superata. Prova reale finale da ripetere dopo deploy.
+
+### Aggiornamento 22/07/2026 - download verificabile dall'originale collegato
+
+Il percorso Presidio notifiche → originale PST → relata richiede che l'avvocato possa anche scaricare il documento collegato senza uscire dalla pratica. Dopo il test reale, la rotta storica `/scarica` è stata mantenuta come compatibilità, ma il dettaglio Presidi ora preferisce il download dallo stesso viewer interno con `?download=1`. Questa scelta tiene unificati visualizzazione e scaricamento: il documento che si vede nel lettore è lo stesso che viene scaricato.

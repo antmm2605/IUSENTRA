@@ -431,6 +431,14 @@ def register_fascicoli_document_routes(
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
             operational_name = nome_documento_operativo(documento, percorso, data)
+            if payload_bool(request.args.get("download"), False):
+                audit(
+                    "fascicoli.documento.scarica",
+                    "fascicolo",
+                    id_fasc,
+                    dettagli=f"doc {id_doc} — {documento.nome}",
+                )
+                return send_file(io.BytesIO(data), as_attachment=True, download_name=operational_name)
             firma_payload = firma_payload_corrente_o_sibling(percorso, operational_name, data)
             preview_payload = data
             preview_name = operational_name

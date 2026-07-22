@@ -3282,6 +3282,7 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
         )
         html_response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza?viewer=mobile")
         page_response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza?viewer=mobile&page=1")
+        download_response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza?download=1")
 
     assert html_response.status_code == 200
     assert html_response.mimetype == "text/html"
@@ -3303,6 +3304,11 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     assert page_response.status_code == 200
     assert page_response.mimetype == "image/png"
     assert page_response.data.startswith(b"\x89PNG")
+    assert download_response.status_code == 200
+    assert download_response.mimetype == "application/pdf"
+    assert download_response.data.startswith(b"%PDF-")
+    assert "attachment" in download_response.headers.get("Content-Disposition", "")
+    assert "Ricorso.PDF" in download_response.headers.get("Content-Disposition", "")
 
 
 def test_visualizza_documento_reader_interno_supporta_formati_professionali(tmp_path):

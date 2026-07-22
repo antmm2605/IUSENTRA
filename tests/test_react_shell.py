@@ -5061,6 +5061,15 @@ def test_react_agenda_presidio_notifica_sentenza_allineato_a_scadenziario(tmp_pa
     assert "/fascicoli/" not in event["sourceHref"]
 
 
+def test_react_presidio_documento_pst_scarica_dalla_rotta_viewer_download() -> None:
+    drawer = Path("frontend/src/features/notifiche-legali/components/PresidioDetailDrawer.tsx").read_text(encoding="utf-8")
+
+    assert "function downloadHrefForPresidioDocument" in drawer
+    assert "viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')" in drawer
+    assert "parsed.searchParams.set('download', '1')" in drawer
+    assert "href={download} download" in drawer
+
+
 def test_react_agenda_scadenza_sentenza_da_cancelleria_mostra_etichetta_specifica(tmp_path: Path):
     app = _app(tmp_path)
     from web.services.react_agenda_bridge import build_react_agenda_payload

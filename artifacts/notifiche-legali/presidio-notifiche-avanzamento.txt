@@ -1217,3 +1217,16 @@ Guardrail già eseguiti su questa correzione:
 - `pnpm --dir frontend build` superato.
 
 Stato: resta da eseguire `diff-check`, controllo UTF-8, commit/push, deploy Hetzner e prova reale finale in produzione e su copia locale `127.0.0.1:8080`.
+
+### Aggiornamento 22/07/2026 - download del documento PST dal presidio
+
+Durante la prova reale in produzione, dopo la visualizzazione corretta di `SentenzaDefinitiva_35882174.pdf`, è stato controllato anche il pulsante `Scarica` del documento PST collegato. Il click raggiungeva la rotta storica `/fascicoli/78D6022C/documenti/DE29EE7F/scarica`, ma Chrome mostrava `ERR_BLOCKED_BY_CLIENT` e non veniva creato un file nella cartella Download. Quindi il solo collegamento alla rotta storica non è stato considerato sufficiente.
+
+Correzione generale applicata:
+
+- il backend `visualizza_documento` ora supporta `?download=1` e restituisce lo stesso file come allegato scaricabile;
+- il dettaglio Presidi notifiche, quando esiste un viewer interno del documento (`/documenti/.../visualizza`), costruisce `Scarica` come `viewer?download=1` invece di navigare alla vecchia rotta `/scarica`;
+- il link mantiene l'attributo HTML `download`, così il browser resta nel contesto del presidio e non viene spostato su una pagina di errore;
+- il fallback alla vecchia rotta resta solo se non esiste un viewer interno sicuro.
+
+Guardrail aggiunti: test backend sul download da `visualizza?download=1` e test React sul contratto del drawer Presidi.

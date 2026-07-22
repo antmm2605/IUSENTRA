@@ -431,3 +431,7 @@ Il confronto operativo ora include anche il comportamento di apertura dal presid
 - il lettore interno del fascicolo deve essere incorporabile anche nella modale `Fonte dell'informazione`, senza pagina bianca e senza uscire dal software.
 
 Correzione collegata: il sandbox della modale fonte ora consente `allow-same-origin` anche per URL interne `/documenti/.../visualizza`, così il preview PDF del documento PST può caricare le proprie risorse same-origin.
+
+### Aggiornamento 22/07/2026 - scaricamento dal viewer interno
+
+Per i documenti PST già acquisiti e collegati al presidio, lo scaricamento operativo non deve spostare l'avvocato fuori dal drawer e non deve dipendere dalla sola rotta `/scarica` se il browser la blocca. Il viewer interno `/documenti/.../visualizza` ora accetta `download=1` e viene usato dal dettaglio Presidi come canale primario di scaricamento quando il viewer è disponibile.

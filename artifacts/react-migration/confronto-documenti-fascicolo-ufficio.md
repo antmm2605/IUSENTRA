@@ -15,6 +15,22 @@ Il passaggio da presidio notifica a fascicolo d'ufficio deve essere trattato com
 
 Caso reale di riferimento: `Romeo Maria`, R.G. `1428/2026`, `Tribunale di Palmi`, PEC `pec_d23c133a4ef8ada88ecb8c08`, ZIP PEC `9732730s.pdf.zip`, presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`. La prova reale ha evidenziato un falso errore di canale locale dovuto al riavvio del Local Signer dopo certificato già confermato; la regola aggiornata impedisce quel riavvio nel percorso presidio → PST.
 
+## Aggiornamento 2026-07-22 - Documento PST già acquisito da riconciliare al presidio
+
+Nel caso Romeo Maria, R.G. `1428/2026`, il documento `SentenzaDefinitiva_35882174.pdf` è già presente nel fascicolo `78D6022C` come documento `DE29EE7F`, importato da PolisWeb/PST il 22/07/2026. La PEC del presidio conserva lo ZIP `9732730s.pdf.zip` come copia informativa di cancelleria; la fonte autorevole per la relata e per la decisione di notifica deve però essere il documento PST nel fascicolo quando esiste.
+
+La riconciliazione è stata trasformata in regola generale:
+
+1. non si cerca in tutti gli studi e non si usa un database diverso: si legge soltanto il fascicolo collegato al presidio nel tenant corrente;
+2. non si scansionano in runtime alberi pesanti, ZIP, OCR o caselle PEC: il controllo resta leggero per non rallentare il caricamento;
+3. sono candidati solo documenti con metadati PST/PolisWeb o identificativo portale;
+4. sono collegabili automaticamente solo provvedimenti decisori, cioè sentenze, ordinanze, decreti, verbali o provvedimenti;
+5. sono esclusi ricorsi, memorie, istanze, comparse, note, ricevute, esiti controlli e accettazioni di deposito;
+6. se il collegamento è univoco, il documento diventa `Documento PST acquisito nel fascicolo` e viene aperto dal lettore interno IUSENTRA;
+7. se il documento manca davvero, il flusso resta `Scarica dal portale`, già compilato con ufficio, R.G., registro, PEC sorgente e modalità anti-duplicato.
+
+Questa regola evita che l'avvocato debba ricontrollare manualmente tutti i documenti del fascicolo e impedisce che una copia PEC venga scambiata per originale notificabile.
+
 ## Obiettivo
 
 Dal fascicolo IUSENTRA l'avvocato deve poter:

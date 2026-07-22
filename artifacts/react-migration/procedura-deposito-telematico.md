@@ -24,6 +24,28 @@ Guardrail eseguiti prima del deploy di questa correzione:
 
 Stato operativo: il fix elimina il riavvio improprio del Local Signer nel passaggio presidio → PST. Prima di dichiarare chiuso il flusso resta obbligatoria la prova reale post-deploy dal presidio in produzione e, se il PST risponde, la verifica che il documento originale acquisito compaia nel fascicolo e alimenti relata, Agenda, Scadenziario, topbar e Web Push senza invio PEC.
 
+## Aggiornamento 2026-07-22 - Riconciliazione presidio con documento PST già nel fascicolo
+
+Caso reale emerso dopo la prova di acquisizione: nel fascicolo `78D6022C` del tenant Studio Legale Giuseppe Montagnese è già presente `SentenzaDefinitiva_35882174.pdf`, documento `DE29EE7F`, importato da PolisWeb/PST il 22/07/2026 con origine `pst:JPW_SIL_DISTR:35882174`, tipo atto portale `SentenzaDefinitiva` e impronta SHA-256 `ea33441ec44017f7b7525e52fda19b4f29d030bccac0afe6cc248b12b189a2da`.
+
+Regola operativa fissata nel codice: il dettaglio del presidio non deve chiedere un nuovo scaricamento quando il documento PST decisorio è già nei Documenti e atti dello stesso fascicolo. La copia ZIP ricevuta via PEC resta evidenza della comunicazione di cancelleria, ma non è trattata come originale notificabile se esiste un documento PST collegabile.
+
+Comportamento atteso:
+
+1. aprendo il presidio, il backend legge solo il fascicolo già collegato al presidio;
+2. considera soltanto documenti provenienti da PST/PolisWeb e di natura decisoria, come sentenza, provvedimento, ordinanza, decreto o verbale;
+3. esclude documenti non decisori o non notificabili, come ricorsi, memorie, istanze, note, ricevute, esiti controlli e accettazioni deposito;
+4. se trova un solo documento coerente, lo collega come `portal_original`, aggiorna lo stato a `ORIGINAL_ACQUIRED` e materializza la stessa fonte su relata, Agenda, Scadenziario, topbar e Web Push;
+5. se non trova un documento coerente, mantiene il percorso `Scarica dal portale` già compilato e tenant-aware;
+6. ogni apertura deve usare il lettore interno IUSENTRA tramite route del fascicolo, senza uscire dal software e senza invii PEC.
+
+Guardrail aggiunti:
+
+- `tests/test_pst_original_presidio_runtime.py::test_presidio_riconosce_provvedimento_pst_gia_presente_nel_fascicolo`;
+- `tests/test_notification_presidia_payloads.py::test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo`.
+
+Stato: test automatici mirati superati. Restano obbligatori deploy della correzione, prova reale in produzione dal presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`, verifica locale reale su `127.0.0.1:8080`, commit, push, deploy finale e pulizia.
+
 ## Aggiornamento 2026-07-22 - Ripristino contratto PST Locri, Local Signer 1.6.102 e sessioni download
 
 Problema reale segnalato in produzione durante acquisizione mirata da PEC dell'ufficio per `Calabrò Daniela`, R.G. `3571/2025`, `Tribunale di Locri`, tabella `SICID_LAVORO`: il wizard mostrava `Impossibile determinare codice GL/servizio PST dell'ufficio selezionato`. La causa tecnica non era il fascicolo e non era il PIN: la UI consentiva la scelta di Locri dal catalogo PST pubblico (`0800430095`), mentre il resolver usato dal Local Signer dipendeva dallo snapshot ministeriale locale e non ricostruiva il codice GL/servizio quando quell'ufficio mancava dallo snapshot.

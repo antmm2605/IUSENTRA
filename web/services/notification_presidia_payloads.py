@@ -39,7 +39,7 @@ STATUS_LABELS = {
 CHANNEL_LABELS = {"pec": "PEC", "unep": "UNEP", "non_pec": "Non PEC", "nonpec": "Non PEC", "cliente": "Cliente"}
 DOCUMENT_ROLE_LABELS = {
     "office_pec_copy": "PEC di cancelleria · copia informativa",
-    "portal_original": "Originale acquisito dal Portale Servizi",
+    "portal_original": "Documento PST acquisito nel fascicolo",
     "notified_act": "Atto notificato",
     "relata": "Relata",
     "attestation": "Attestazione",
@@ -373,14 +373,69 @@ def _detail_rows(repo: Any, presidio_id: str) -> tuple[dict[str, Any], list[dict
     return row, docs, recipients
 
 
+def _has_linked_portal_document(docs: list[Mapping[str, Any]]) -> bool:
+    return any(
+        str(item.get("document_role") or "") == "portal_original"
+        and bool(str(item.get("fascicolo_document_id") or "").strip())
+        and bool(item.get("authoritative"))
+        for item in docs
+    )
+
+
+def _try_link_existing_pst_document(
+    repo: Any,
+    row: Mapping[str, Any],
+    docs: list[Mapping[str, Any]],
+    portal_context: Mapping[str, Any],
+) -> bool:
+    if _has_linked_portal_document(docs):
+        return False
+    if not str(row.get("fascicolo_id") or "").strip():
+        return False
+    permissions = presidio_permissions()
+    if not permissions.get("can_write"):
+        return False
+    try:
+        from web.services.pst_original_presidio_runtime import (
+            link_existing_pst_originals_for_current_tenant,
+        )
+
+        report = link_existing_pst_originals_for_current_tenant(
+            repo,
+            presidio=row,
+            actor=current_actor_id(),
+            portal_context=portal_context,
+        )
+    except Exception:
+        return False
+    return bool(report.get("collegati"))
+
+
+def _summary_projection(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "fascicoloId": row.get("fascicolo_id"),
+        "status": row.get("status"),
+        "priority": row.get("priority"),
+        "confidence": row.get("confidence"),
+        "humanReviewRequired": row.get("human_review_required"),
+        "notificationCase": row.get("notification_case"),
+        "channel": row.get("channel"),
+        "assignedUserId": row.get("assigned_user_id"),
+        "legacyAssumedHandled": row.get("legacy_assumed_handled"),
+        "sourceEffectiveAt": row.get("source_effective_at"),
+        "explicitDueAt": row.get("explicit_due_at"),
+        "updatedAt": row.get("updated_at"),
+    }
+
+
 def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]:
     permissions = presidio_permissions()
     if not permissions["can_read"]:
         raise PermissionError("Permesso messaggi.leggi richiesto.")
     row, docs, recipients = _detail_rows(repo, presidio_id)
     assignees = _user_options()
-    projection = {"id": row["id"], "fascicoloId": row.get("fascicolo_id"), "status": row.get("status"), "priority": row.get("priority"), "confidence": row.get("confidence"), "humanReviewRequired": row.get("human_review_required"), "notificationCase": row.get("notification_case"), "channel": row.get("channel"), "assignedUserId": row.get("assigned_user_id"), "legacyAssumedHandled": row.get("legacy_assumed_handled"), "sourceEffectiveAt": row.get("source_effective_at"), "explicitDueAt": row.get("explicit_due_at"), "updatedAt": row.get("updated_at")}
-    detail = _summary(projection, row, recipients, docs, assignees)
+    detail = _summary(_summary_projection(row), row, recipients, docs, assignees)
     practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
     detail["recipients"] = [_public_recipient(item) for item in recipients]
     fascicolo_id = str(row.get("fascicolo_id") or "")
@@ -390,12 +445,14 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
         source_message_id,
         expected_rg=str(practice.get("rg") or ""),
     )
-    has_portal_original = any(
-        str(item.get("document_role") or "") == "portal_original"
-        and bool(item.get("fascicolo_document_id"))
-        and bool(item.get("authoritative"))
-        for item in docs
-    )
+    if _try_link_existing_pst_document(repo, row, docs, portal_context):
+        row, docs, recipients = _detail_rows(repo, presidio_id)
+        detail = _summary(_summary_projection(row), row, recipients, docs, assignees)
+        practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
+        detail["recipients"] = [_public_recipient(item) for item in recipients]
+        fascicolo_id = str(row.get("fascicolo_id") or "")
+        source_message_id = str(row.get("source_message_id") or "")
+    has_portal_original = _has_linked_portal_document(docs)
     detail["documents"] = [
         _public_document(
             item,

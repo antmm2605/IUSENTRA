@@ -12,7 +12,10 @@ from pct.pec_notification_presidio import (
     PresidioStatus,
 )
 from web.services import notifications_runtime
-from web.services.pst_original_presidio_runtime import register_imported_pst_originals
+from web.services.pst_original_presidio_runtime import (
+    link_existing_pst_originals_from_fascicolo,
+    register_imported_pst_originals,
+)
 from web.bootstrap.portali_acquisizione_routes import register_portali_acquisizione_routes
 
 
@@ -234,6 +237,80 @@ def test_originale_pst_ambiguo_non_viene_collegato_arbitrariamente(tmp_path: Pat
     assert report["saltati"] == [{"reason": "correlazione_ambigua"}]
     assert repository.get_presidio(first)["status"] == "DETECTED"
     assert repository.get_presidio(second)["status"] == "DETECTED"
+
+
+def test_presidio_riconosce_provvedimento_pst_gia_presente_nel_fascicolo(monkeypatch, tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    presidio_id = _seed_presidio(
+        repository,
+        fascicolo_id="78D6022C",
+        source_message_id="pec_d23c133a4ef8ada88ecb8c08",
+        filename="9732730s.pdf.zip",
+        content_sha256="f" * 64,
+    )
+    fascicolo = SimpleNamespace(
+        documenti=[
+            SimpleNamespace(
+                id="DE29EE7F",
+                nome="SentenzaDefinitiva_35882174.pdf",
+                nome_originale="SentenzaDefinitiva_35882174.pdf",
+                nome_portale="SentenzaDefinitiva_35882174.pdf",
+                tipo="SENTENZA",
+                tipo_atto_portale="SentenzaDefinitiva",
+                classificazione_portale="SentenzaDefinitiva",
+                id_documento_portale="35882174",
+                id_cat_portale="35882174",
+                hash_sha256="ea33441ec44017f7b7525e52fda19b4f29d030bccac0afe6cc248b12b189a2da",
+                note="Importato da PolisWeb / PST il 22/07/2026 | Origine: pst:JPW_SIL_DISTR:35882174 | Tipo atto portale: SentenzaDefinitiva",
+                tags=["Documenti fascicolo", "SentenzaDefinitiva", "Copia di consultazione"],
+            ),
+            SimpleNamespace(
+                id="RICORSO-1",
+                nome="Ricorso introduttivo.pdf",
+                nome_originale="Ricorso introduttivo.pdf",
+                tipo="RICORSO",
+                tipo_atto_portale="Ricorso",
+                id_documento_portale="111",
+                id_cat_portale="111",
+                note="Importato da PolisWeb / PST il 20/05/2026 | Origine: pst:JPW_SIL_DISTR:111",
+                tags=["Documenti fascicolo", "Ricorso"],
+            ),
+        ]
+    )
+    import web.helpers
+
+    monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: SimpleNamespace(get=lambda identifier: fascicolo if identifier == "78D6022C" else None))
+
+    report = link_existing_pst_originals_from_fascicolo(
+        repository,
+        presidio=repository.get_presidio(presidio_id),
+        actor="sistema",
+        portal_context={"tipo_documento": "sentenza"},
+        projector=lambda **kwargs: {"ok": True, "kwargs": kwargs},
+    )
+
+    assert report["ok"] is True
+    assert report["collegati"][0]["fascicolo_document_id"] == "DE29EE7F"
+    assert report["collegati"][0]["document_role"] == "portal_original"
+    assert report["collegati"][0]["newly_linked"] is True
+    assert report["collegati"][0]["status"] == "ORIGINAL_ACQUIRED"
+    with repository.connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT fascicolo_document_id, document_role, original_filename, portal_document_id
+            FROM pec_legal_notification_documents
+            WHERE tenant_id=? AND presidio_id=? AND document_role='portal_original'
+            """,
+            (repository.tenant_id, presidio_id),
+        ).fetchall()
+    assert [dict(row) for row in rows] == [
+        {
+            "fascicolo_document_id": "DE29EE7F",
+            "document_role": "portal_original",
+            "original_filename": "SentenzaDefinitiva_35882174.pdf",
+            "portal_document_id": "35882174",
+        }
+    ]
 
 
 class _FakeNotificationRepository:

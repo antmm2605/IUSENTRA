@@ -1123,3 +1123,54 @@ Regola operativa richiesta dall'utente e da applicare a tutti i casi equivalenti
 Guardrail eseguiti: test mirati Python `3/3`, Ruff mirato superato, typecheck TypeScript superato e contratto statico Presidi superato. Resta obbligatoria la prova materiale dopo l'aggiornamento del server e poi della Docker locale reale.
 
 Stato: lavoro aperto; collegamenti al lettore/download e acquisizione originale dal Portale Servizi in correzione prima del nuovo deploy server-first.
+
+### Ripresa post-compattazione 22/07/2026 - passaggio completo da presidio a originale PST nel fascicolo
+
+Richiamo operativo richiesto dall'utente: non basta aprire una PEC o un allegato. Il passaggio completo deve essere governato dal software in modo unico, tenant-aware e veloce:
+
+1. dal Presidio notifiche si parte dal presidio reale, con cliente, R.G., ufficio, destinatari e fonte PEC;
+2. la fonte PEC deve aprire la PEC corretta che ha generato il presidio, senza dashboard generiche e senza elenco di PEC non pertinenti;
+3. se la PEC contiene solo copia informativa o ZIP dell'ufficio, quella copia resta evidenza ma non viene qualificata come originale notificabile;
+4. il software deve cercare nel fascicolo se l'originale PST è già stato acquisito, usando R.G., ufficio, identificativo portale, tipo atto, data, nome e provenienza PST;
+5. se l'originale esiste già nel fascicolo, il presidio deve collegarlo automaticamente e non deve chiedere un nuovo scaricamento dal Portale Servizi;
+6. se l'originale manca, il pulsante `Scarica dal portale` deve avviare l'acquisizione mirata del solo documento corretto e, dopo l'importazione, collegarlo al fascicolo e al presidio;
+7. il documento originale deve risultare disponibile in `Documenti fascicolo`, relata, Agenda, Scadenziario, topbar e Web Push;
+8. ogni `Visualizza`, `Apri fonte`, `Apri origine` o documento collegato deve usare il lettore interno IUSENTRA, senza uscire dal software;
+9. il collaudo deve verificare realmente dal presidio che il documento si scarichi o venga riconosciuto se già scaricato, senza inviare PEC reali;
+10. dopo correzione e prove: aggiornare copia locale reale, commit, push dei branch gemelli, deploy Hetzner, verifica container unico `iusentra-app`, `/api/pronto`, pulizia Docker e worktree pulita.
+
+Eseguito in questa ripresa:
+
+- corretto il bug che, dopo certificato PST già confermato, richiamava comunque il riavvio/verifica forte del Local Signer e poteva incastrare la sessione PIN;
+- test mirati PST/Local Signer superati, build frontend superata, Docker locale ricostruita e deploy Hetzner completato sul commit `a12f4f81`;
+- prova reale produzione sul caso Romeo Maria, RG `1428/2026`, presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`, PEC `pec_d23c133a4ef8ada88ecb8c08`: il percorso non richiede più il riavvio del Local Signer, ma la richiesta PST è andata in timeout dopo circa 330 secondi;
+- Local Signer reale sul PC rilevato e rispondente sulla porta `27272`, versione `1.6.102`, con endpoint PST ufficiale raggiungibile ma richiesta snapshot scaduta;
+- il fascicolo mostra che almeno un originale PST del caso è già stato acquisito (`SentenzaDefinitiva_35882174.pdf` importato da PolisWeb/PST), quindi il prossimo intervento non deve riprovare alla cieca lo scaricamento: deve riconciliare il presidio con l'originale già presente.
+
+Stato ancora aperto e prossimo passo:
+
+1. individuare nel codice/API il punto in cui il dettaglio del presidio costruisce `Documenti collegati`;
+2. aggiungere una riconciliazione generale Presidio ↔ documenti PST già presenti nel fascicolo;
+3. quando la riconciliazione trova l'originale, mostrare `Originale PST acquisito nel fascicolo` e aprirlo col lettore interno;
+4. mantenere `Scarica dal portale` solo quando l'originale manca davvero;
+5. ripetere il test reale dal presidio, senza invio PEC, fino a vedere il documento originale collegato o acquisito.
+
+### Aggiornamento operativo 22/07/2026 - riconciliazione automatica dal dettaglio presidio
+
+Implementato nel codice:
+
+- il dettaglio del presidio prova a collegare automaticamente un documento PST decisorio già presente nel fascicolo collegato;
+- il controllo è tenant-aware e leggero: legge solo il fascicolo del presidio, non tutta la PEC, non tutti gli studi e non alberi pesanti;
+- i candidati devono avere provenienza PST/PolisWeb o identificativo portale e natura decisoria;
+- sono esclusi ricorsi, memorie, istanze, comparse, note, ricevute, esiti controlli e accettazioni di deposito;
+- se il documento viene collegato, lo stato passa a `ORIGINAL_ACQUIRED`, il ruolo visibile diventa `Documento PST acquisito nel fascicolo` e la copia PEC non chiede più acquisizione originale;
+- se non c'è un documento PST coerente, resta il percorso `Scarica dal portale` già compilato.
+
+Guardrail eseguiti:
+
+- `python -m py_compile web/services/pst_original_presidio_runtime.py web/services/notification_presidia_payloads.py`;
+- `git diff --check`;
+- `python -m pytest tests/test_pst_original_presidio_runtime.py tests/test_notification_presidia_payloads.py -q` → `17 passed`;
+- `python -m pct.cli utf8-integrity --check-only ... --json` → `ok=true`.
+
+Stato ancora aperto: eseguire gate più ampi, build, deploy della correzione, prova reale dal presidio in produzione e riallineamento della copia locale reale.

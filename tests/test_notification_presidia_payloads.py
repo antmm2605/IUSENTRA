@@ -5,6 +5,7 @@ import sqlite3
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
+from pct.pec_notification_presidio import NotificationPresidioRepository, NotificationPresidioService
 from web.services import notification_presidia_payloads as payloads
 
 
@@ -285,12 +286,83 @@ def test_originale_pst_collegato_usa_le_route_reali_del_fascicolo() -> None:
         has_portal_original=True,
     )
 
-    assert document["role_label"] == "Originale acquisito dal Portale Servizi"
+    assert document["role_label"] == "Documento PST acquisito nel fascicolo"
     assert document["authoritative"] is True
     assert document["original_acquisition_required"] is False
     assert document["original_acquisition_url"] == ""
     assert document["viewer_url"] == "/fascicoli/FASC%2F1/documenti/DOC%2F42/visualizza"
     assert document["download_url"] == "/fascicoli/FASC%2F1/documenti/DOC%2F42/scarica"
+
+
+def test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo(monkeypatch, tmp_path) -> None:
+    repository = NotificationPresidioRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="studio-legale-giuseppe-montagnese",
+    )
+    presidio = NotificationPresidioService(repository).create_candidate(
+        {
+            "fascicolo_id": "78D6022C",
+            "source_message_id": "pec_d23c133a4ef8ada88ecb8c08",
+            "source_order_or_event_id": "pec_d23c133a4ef8ada88ecb8c08",
+            "source_effective_at": "2026-07-17T13:46:00+02:00",
+            "trigger_type": "STRATEGIC_NOTIFICATION_REVIEW",
+            "notification_case": "judgment_to_notify_review",
+            "rulepack_version": "pytest-detail-pst-existing",
+            "priority": "P1",
+            "confidence": 0.83,
+            "live_pec_operational_event": True,
+            "detection_reason": "Sentenza da valutare per la notifica.",
+            "documents": [
+                {
+                    "original_filename": "9732730s.pdf.zip",
+                    "document_role": "office_pec_copy",
+                    "authoritative": False,
+                    "content_sha256": "0" * 64,
+                }
+            ],
+            "recipients": [{"name": "Avvocatura distrettuale", "required": True}],
+        }
+    )
+    fascicolo = SimpleNamespace(
+        nome_cliente="Romeo Maria",
+        titolo="Romeo Maria c. MIM",
+        oggetto="",
+        rg_completo="RG 1428/2026",
+        tribunale="TRIBUNALE DI PALMI",
+        documenti=[
+            SimpleNamespace(
+                id="DE29EE7F",
+                nome="SentenzaDefinitiva_35882174.pdf",
+                nome_originale="SentenzaDefinitiva_35882174.pdf",
+                nome_portale="SentenzaDefinitiva_35882174.pdf",
+                tipo="SENTENZA",
+                tipo_atto_portale="SentenzaDefinitiva",
+                classificazione_portale="SentenzaDefinitiva",
+                id_documento_portale="35882174",
+                id_cat_portale="35882174",
+                hash_sha256="ea33441ec44017f7b7525e52fda19b4f29d030bccac0afe6cc248b12b189a2da",
+                note="Importato da PolisWeb / PST il 22/07/2026 | Origine: pst:JPW_SIL_DISTR:35882174 | Tipo atto portale: SentenzaDefinitiva",
+                tags=["Documenti fascicolo", "SentenzaDefinitiva", "Copia di consultazione"],
+            )
+        ],
+    )
+    import web.helpers
+
+    monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: SimpleNamespace(get=lambda identifier: fascicolo if identifier == "78D6022C" else None))
+    monkeypatch.setattr(payloads, "presidio_permissions", lambda: {"can_read": True, "can_write": True, "can_link_document": True, "can_configure": True})
+    monkeypatch.setattr(payloads, "current_actor_id", lambda: "pytest")
+
+    detail = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
+
+    documents = detail["documents"]
+    pst_document = next(item for item in documents if item["id"] == "DE29EE7F")
+    pec_copy = next(item for item in documents if item["name"] == "9732730s.pdf.zip")
+    assert detail["status"] == "ORIGINAL_ACQUIRED"
+    assert pst_document["role_label"] == "Documento PST acquisito nel fascicolo"
+    assert pst_document["authoritative"] is True
+    assert pst_document["viewer_url"] == "/fascicoli/78D6022C/documenti/DE29EE7F/visualizza"
+    assert pec_copy["original_acquisition_required"] is False
+    assert pec_copy["original_acquisition_url"] == ""
 
 
 def test_documenti_collegabili_espongono_nomi_leggibili_non_soli_id(monkeypatch) -> None:

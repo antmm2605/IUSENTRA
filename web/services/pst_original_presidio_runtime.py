@@ -25,10 +25,47 @@ _ORIGINAL_ACQUIRED_TRANSITION_STATUSES = {
     PresidioStatus.LEGACY_REVIEW_REQUIRED.value,
 }
 _CONTAINER_SUFFIXES = (".p7m", ".p7s", ".smime", ".zip")
+_PST_SOURCE_MARKERS = (
+    "pst:",
+    "polisweb",
+    "portale servizi",
+    "portale telematico",
+)
+_DECISIVE_DOCUMENT_MARKERS = (
+    "sentenza",
+    "sentenzadefinitiva",
+    "ordinanza",
+    "decreto",
+    "verbale",
+    "provvedimento",
+)
+_NON_DECISIVE_DOCUMENT_MARKERS = (
+    "ricorso",
+    "memoria",
+    "istanza",
+    "comparsa",
+    "nota",
+    "note",
+    "accettazione deposito",
+    "esito controlli",
+    "ricevuta",
+    "conferma pagamento",
+)
 
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _field(source: Any, *keys: str) -> Any:
+    for key in keys:
+        if isinstance(source, Mapping) and key in source:
+            value = source.get(key)
+        else:
+            value = getattr(source, key, None)
+        if value not in (None, ""):
+            return value
+    return ""
 
 
 def _normalized_document_name(value: Any) -> str:
@@ -52,6 +89,148 @@ def _is_portal_original(document: Mapping[str, Any]) -> bool:
         or document.get("authoritative")
         or mode == "originale"
     )
+
+
+def _joined_tags(document: Any) -> str:
+    tags = _field(document, "tags")
+    if isinstance(tags, (list, tuple, set)):
+        return " ".join(_text(item) for item in tags)
+    return _text(tags)
+
+
+def _is_pst_fascicolo_document(document: Any) -> bool:
+    if _text(_field(document, "id_documento_portale", "portal_document_id", "id_documento")):
+        return True
+    if _text(_field(document, "id_cat_portale", "id_cat", "msg_id_portale", "msg_id")):
+        return True
+    if _text(_field(document, "servizio_portale", "fonte_documento")).casefold() in {
+        "pst",
+        "polisweb",
+        "portale_telematico",
+        "portale telematico",
+    }:
+        return True
+    haystack = " ".join(
+        _text(_field(document, key))
+        for key in (
+            "note",
+            "origine",
+            "source",
+            "nome_originale",
+            "nome_portale",
+            "classificazione_portale",
+            "tipo_atto_portale",
+        )
+    ).casefold()
+    return any(marker in haystack for marker in _PST_SOURCE_MARKERS)
+
+
+def _is_decisive_pst_document(
+    document: Any,
+    *,
+    notification_case: str = "",
+    portal_context: Mapping[str, Any] | None = None,
+) -> bool:
+    haystack = " ".join(
+        [
+            _text(_field(document, "nome", "filename")),
+            _text(_field(document, "nome_originale", "original_filename")),
+            _text(_field(document, "nome_portale")),
+            _text(_field(document, "tipo", "document_type")),
+            _text(_field(document, "tipo_atto_portale", "classificazione_portale")),
+            _text(_field(document, "note")),
+            _joined_tags(document),
+        ]
+    ).casefold()
+    if not any(marker in haystack for marker in _DECISIVE_DOCUMENT_MARKERS):
+        return False
+    if any(marker in haystack for marker in _NON_DECISIVE_DOCUMENT_MARKERS):
+        return False
+    requested_type = _text((portal_context or {}).get("tipo_documento")).casefold()
+    if requested_type == "sentenza" or "judgment" in _text(notification_case).casefold():
+        return "sentenza" in haystack or "provvedimento" in haystack
+    return True
+
+
+def _fascicolo_document_to_pst_candidate(document: Any) -> dict[str, Any]:
+    fascicolo_document_id = _text(_field(document, "id", "documento_id", "fascicolo_document_id"))
+    name = _text(
+        _field(
+            document,
+            "nome",
+            "nome_originale",
+            "nome_portale",
+            "original_filename",
+            "filename",
+        )
+    )
+    content_sha256 = _text(
+        _field(document, "hash_sha256", "hash_contenuto_sha256", "content_sha256", "sha256")
+    )
+    portal_document_id = _text(
+        _field(document, "id_documento_portale", "portal_document_id", "id_documento")
+    )
+    portal_reference = _text(
+        _field(document, "id_cat_portale", "id_cat", "msg_id_portale", "msg_id")
+    )
+    return {
+        "fascicolo_document_id": fascicolo_document_id,
+        "documento_id": fascicolo_document_id,
+        "id": fascicolo_document_id,
+        "nome": name,
+        "nome_originale": _text(_field(document, "nome_originale")) or name,
+        "original_filename": _text(_field(document, "nome_originale")) or name,
+        "hash_sha256": content_sha256,
+        "content_sha256": content_sha256,
+        "id_documento_portale": portal_document_id,
+        "portal_document_id": portal_document_id,
+        "id_cat_portale": portal_reference,
+        "portal_reference": portal_reference or (
+            f"pst:{_text(_field(document, 'servizio_portale'))}:{portal_document_id}"
+            if portal_document_id
+            else ""
+        ),
+        "modalita_documento_portale": _text(_field(document, "modalita_documento_portale"))
+        or "fascicolo_pst",
+        "original_documento_portale": True,
+        "portal_original": True,
+    }
+
+
+def _existing_pst_documents_from_fascicolo(
+    fascicolo_id: str,
+    *,
+    notification_case: str = "",
+    portal_context: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    identifier = _text(fascicolo_id)
+    if not identifier:
+        return []
+    try:
+        from web.helpers import get_fascicoli
+
+        fascicolo = get_fascicoli().get(identifier)
+        documents = getattr(fascicolo, "documenti", []) or []
+    except Exception:
+        return []
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for document in documents[:160]:
+        if not _is_pst_fascicolo_document(document):
+            continue
+        if not _is_decisive_pst_document(
+            document,
+            notification_case=notification_case,
+            portal_context=portal_context,
+        ):
+            continue
+        payload = _fascicolo_document_to_pst_candidate(document)
+        key = _text(payload.get("fascicolo_document_id")) or _text(payload.get("portal_document_id"))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        candidates.append(payload)
+    return candidates
 
 
 def _portal_document_payload(document: Mapping[str, Any]) -> dict[str, Any]:
@@ -147,7 +326,11 @@ def _candidate_documents(repository: Any, presidio_ids: Iterable[str]) -> dict[s
     return grouped
 
 
-def _active_presidia(repository: Any, fascicolo_id: str) -> list[dict[str, Any]]:
+def _active_presidia(
+    repository: Any,
+    fascicolo_id: str,
+    seed_presidio: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     cursor: tuple[str, str] | None = None
     while True:
@@ -160,6 +343,14 @@ def _active_presidia(repository: Any, fascicolo_id: str) -> list[dict[str, Any]]
         if page.next_cursor is None or page.next_cursor == cursor:
             break
         cursor = page.next_cursor
+    if seed_presidio is not None:
+        seed = dict(seed_presidio)
+        if (
+            _text(seed.get("fascicolo_id")) == _text(fascicolo_id)
+            and _text(seed.get("status")) not in _TERMINAL_STATUSES
+            and all(_text(row.get("id")) != _text(seed.get("id")) for row in rows)
+        ):
+            rows.insert(0, seed)
     return [row for row in rows if _text(row.get("status")) not in _TERMINAL_STATUSES]
 
 
@@ -240,6 +431,7 @@ def register_imported_pst_originals(
     imported_documents: Iterable[Mapping[str, Any]],
     actor: str,
     target_document: Mapping[str, Any] | None = None,
+    candidate_presidio: Mapping[str, Any] | None = None,
     projector: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Collega un originale importato solo quando fascicolo, presidio e file sono univoci."""
@@ -259,7 +451,7 @@ def register_imported_pst_originals(
         report["saltati"].append({"reason": "nessun_originale_pst_importato"})
         return report
 
-    candidates = _active_presidia(repository, safe_fascicolo_id)
+    candidates = _active_presidia(repository, safe_fascicolo_id, candidate_presidio)
     if not candidates:
         report["saltati"].append({"reason": "nessun_presidio_attivo_nel_fascicolo"})
         return report
@@ -303,7 +495,7 @@ def register_imported_pst_originals(
         "source_type": "document",
         "source_id": _text(document_payload.get("fascicolo_document_id")),
         "attachment_sha256": _text(document_payload.get("content_sha256")),
-        "text_excerpt": "Originale acquisito dal Portale Servizi e collegato al fascicolo.",
+        "text_excerpt": "Documento PST acquisito dal Portale Servizi e collegato al fascicolo.",
         "source_locator": _text(document_payload.get("portal_reference")),
         "confidence": 1.0,
     }
@@ -326,7 +518,7 @@ def register_imported_pst_originals(
                 presidio_id,
                 PresidioStatus.ORIGINAL_ACQUIRED,
                 actor=_text(actor) or "sistema",
-                reason="Originale PST acquisito e collegato al fascicolo.",
+                reason="Documento PST acquisito e collegato al fascicolo.",
                 evidence=transition_evidence,
                 idempotency_key=f"pst-original-acquired:{identity.key}",
                 expected_status=transition_status,
@@ -360,6 +552,110 @@ def register_imported_pst_originals(
         )
         report["ok"] = bool(report["materializzazione"].get("ok", False))
     return report
+
+
+def link_existing_pst_originals_from_fascicolo(
+    repository: Any,
+    *,
+    presidio: Mapping[str, Any],
+    actor: str,
+    portal_context: Mapping[str, Any] | None = None,
+    projector: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Riconcilia un presidio con provvedimenti PST già presenti nel fascicolo.
+
+    Il controllo è volutamente leggero: legge solo il fascicolo già collegato al
+    presidio e considera soltanto documenti PST decisori. Non scansiona la casella
+    PEC, non apre ZIP/OCR e non sceglie in modo arbitrario se ci sono più
+    provvedimenti compatibili.
+    """
+
+    fascicolo_id = _text(presidio.get("fascicolo_id"))
+    source_message_id = _text(presidio.get("source_message_id"))
+    if not fascicolo_id:
+        return {
+            "ok": True,
+            "fascicolo_id": "",
+            "originali_valutati": 0,
+            "collegati": [],
+            "saltati": [{"reason": "presidio_senza_fascicolo"}],
+            "materializzazione": {},
+        }
+    imported_documents = _existing_pst_documents_from_fascicolo(
+        fascicolo_id,
+        notification_case=_text(presidio.get("notification_case")),
+        portal_context=portal_context,
+    )
+    if not imported_documents:
+        return {
+            "ok": True,
+            "fascicolo_id": fascicolo_id,
+            "originali_valutati": 0,
+            "collegati": [],
+            "saltati": [{"reason": "nessun_provvedimento_pst_decisorio_nel_fascicolo"}],
+            "materializzazione": {},
+        }
+    presidio_id = _text(presidio.get("id"))
+    report = register_imported_pst_originals(
+        repository,
+        fascicolo_id=fascicolo_id,
+        imported_documents=imported_documents,
+        actor=actor,
+        target_document={
+            "presidioId": presidio_id,
+            "pecId": source_message_id,
+        },
+        candidate_presidio=presidio,
+        projector=projector,
+    )
+    return report
+
+
+def link_existing_pst_originals_for_current_tenant(
+    repository: Any,
+    *,
+    presidio: Mapping[str, Any],
+    actor: str,
+    portal_context: Mapping[str, Any] | None = None,
+    paths: Mapping[str, Any] | None = None,
+    database: Any = None,
+) -> dict[str, Any]:
+    """Wrapper Flask per aggiornare anche Agenda/Scadenziario/topbar dopo il link."""
+
+    from web.services.notifications_runtime import (
+        current_tenant_id,
+        materialize_selected_advanced_notification_presidia_for_paths,
+    )
+
+    runtime_paths = dict(paths or (getattr(g, "data_paths", {}) if has_app_context() else {}) or {})
+    if not runtime_paths:
+        return link_existing_pst_originals_from_fascicolo(
+            repository,
+            presidio=presidio,
+            actor=actor,
+            portal_context=portal_context,
+            projector=None,
+        )
+
+    def _projector(*, presidio_ids: list[str], redispatch_presidio_ids: list[str]) -> dict[str, Any]:
+        return materialize_selected_advanced_notification_presidia_for_paths(
+            runtime_paths,
+            tenant_label=repository.tenant_id,
+            tenant_id=current_tenant_id(),
+            presidio_tenant_id=repository.tenant_id,
+            presidio_ids=presidio_ids,
+            superseded_presidio_ids=presidio_ids,
+            redispatch_presidio_ids=redispatch_presidio_ids,
+            database=database,
+        )
+
+    return link_existing_pst_originals_from_fascicolo(
+        repository,
+        presidio=presidio,
+        actor=actor,
+        portal_context=portal_context,
+        projector=_projector,
+    )
 
 
 def link_imported_pst_originals_for_current_tenant(
@@ -415,6 +711,8 @@ def link_imported_pst_originals_for_current_tenant(
 
 
 __all__ = [
+    "link_existing_pst_originals_for_current_tenant",
+    "link_existing_pst_originals_from_fascicolo",
     "link_imported_pst_originals_for_current_tenant",
     "register_imported_pst_originals",
 ]

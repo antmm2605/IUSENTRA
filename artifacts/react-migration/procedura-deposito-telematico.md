@@ -5260,3 +5260,24 @@ Verifiche automatiche eseguite dopo la correzione:
 - `npm run build` dal frontend, con TypeScript e bundle React superati.
 
 Stato operativo: nessuna PEC composta o inviata, nessuna firma reale eseguita e nessun PIN memorizzato. La prova reale su produzione e la prova sulla copia locale `127.0.0.1:8080` restano obbligatorie prima della chiusura.
+
+### Aggiornamento 22/07/2026 - fallback di trasporto PST `fetch`/XHR
+
+Dopo il deploy della correzione Chrome LNA, la pagina `https://app.iusentra.it/impostazioni?tab=firma` ha rilevato correttamente il Local Signer `1.6.101`, il certificato memorizzato e il codice fiscale del certificato. La prova reale sulla pagina PST del caso Romeo Maria, fascicolo `78D6022C`, R.G. `1428/2026`, non ha più mostrato `Sessione di scaricamento PST non inizializzata dal Local Signer`, ma ha evidenziato un nuovo difetto operativo: il wizard mostrava `Failed to fetch` dopo il passaggio `Certificato confermato; lettura dati dal portale ufficiale`.
+
+Causa tecnica: il resolver React memorizzava il primo trasporto funzionante dopo il ping leggero, spesso `fetch`; sulle chiamate PST lunghe verso `/pst/ricerca-snapshot` o `/pst/ricerca`, Chrome o l'ambiente browser possono chiudere quel trasporto con un errore generico `Failed to fetch`. Il codice non riprovava il trasporto alternativo `XMLHttpRequest` sullo stesso endpoint, quindi l'operazione si fermava anche se il Local Signer locale era attivo e raggiungibile.
+
+Correzione applicata:
+
+- aggiunto fallback governato `fetch -> XMLHttpRequest` e `XMLHttpRequest -> fetch` solo per errori di trasporto locale, esclusi i timeout reali;
+- mantenuti `127.0.0.1:27272`, `targetAddressSpace: "loopback"`, `/pst/ricerca-snapshot`, `/pst/download-documenti-batch`, `pst_session_id` e `preflight_auth: false`;
+- il fallback non crea una nuova logica PST, non invia PEC, non firma documenti e non memorizza PIN;
+- `tools/check_local_signer_boundaries.py` ora blocca anche la rimozione del fallback di trasporto dal wizard React.
+
+Verifiche automatiche eseguite prima del nuovo deploy:
+
+- `python tools/check_local_signer_boundaries.py`;
+- `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico tests/test_regia_ui_react.py::test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin`;
+- `npm run build` dal frontend.
+
+Stato: da riverificare sul server di produzione e poi sulla copia locale reale `127.0.0.1:8080` dopo commit, push, deploy e ricostruzione locale.

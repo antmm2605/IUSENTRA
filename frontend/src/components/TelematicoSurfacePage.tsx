@@ -484,6 +484,47 @@ function localSignerBrowserRequest(
     : localSignerXhrJson(endpoint, body, timeoutMs)
 }
 
+function alternateLocalSignerBrowserTransport(transport: LocalSignerBrowserTransport): LocalSignerBrowserTransport {
+  return transport === 'fetch' ? 'xhr' : 'fetch'
+}
+
+function isLocalSignerTransportFailure(error: unknown): boolean {
+  if (localSignerIsTimeoutError(error)) return false
+  const message = localSignerErrorText(error).toLowerCase()
+  return Boolean(
+    message.includes('failed to fetch')
+    || message.includes('networkerror')
+    || message.includes('load failed')
+    || message.includes('canale locale non disponibile')
+    || message.includes('canale locale non raggiungibile')
+    || message.includes('richiesta annullata dal browser'),
+  )
+}
+
+async function localSignerBrowserRequestWithFallback(
+  endpoint: string,
+  body: JsonRecord | undefined,
+  timeoutMs: number,
+  route: LocalSignerBrowserRoute,
+): Promise<{ result: LocalSignerBrowserRequestResult; route: LocalSignerBrowserRoute }> {
+  try {
+    return {
+      result: await localSignerBrowserRequest(endpoint, body, timeoutMs, route.transport),
+      route,
+    }
+  } catch (error: unknown) {
+    if (!isLocalSignerTransportFailure(error)) throw error
+    const alternateRoute = {
+      baseUrl: route.baseUrl,
+      transport: alternateLocalSignerBrowserTransport(route.transport),
+    }
+    return {
+      result: await localSignerBrowserRequest(endpoint, body, timeoutMs, alternateRoute.transport),
+      route: alternateRoute,
+    }
+  }
+}
+
 async function resolveLocalSignerBrowserRoute(baseUrls: string[]): Promise<LocalSignerBrowserRoute> {
   if (resolvedLocalSignerBrowserRoute && baseUrls.includes(resolvedLocalSignerBrowserRoute.baseUrl)) {
     return resolvedLocalSignerBrowserRoute
@@ -4044,7 +4085,10 @@ function AcquisitionWizard({
 
     const endpoint = localSignerEndpoint(path, route.baseUrl)
     try {
-      const { payload, ok, status } = await localSignerBrowserRequest(endpoint, body, timeoutMs, route.transport)
+      const request = await localSignerBrowserRequestWithFallback(endpoint, body, timeoutMs, route)
+      const { payload, ok, status } = request.result
+      route = request.route
+      resolvedLocalSignerBrowserRoute = route
       if (!ok || payload.ok === false) {
         throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${status}).`))
       }

@@ -5281,3 +5281,25 @@ Verifiche automatiche eseguite prima del nuovo deploy:
 - `npm run build` dal frontend.
 
 Stato: da riverificare sul server di produzione e poi sulla copia locale reale `127.0.0.1:8080` dopo commit, push, deploy e ricostruzione locale.
+
+### Aggiornamento 22/07/2026 - riallineamento tenant locale Studio Giuseppe Montagnese
+
+Durante la prova locale del flusso PST, la copia `studio-montagnese` bloccava la ricerca con il messaggio “su questo PC non risulta un certificato CNS/CIE valido” anche dopo `Local Signer pronto`. La causa non era il ponte Local Signer: il tenant locale era ancora intestato a `Avv. Roberto Montagnese` con codice fiscale `MNTRRT64L01L063H`, mentre il certificato reale installato sul PC è `Avv. Giuseppe Montagnese`, codice fiscale `MNTGPP94L01G791A`.
+
+Correzione dati locali:
+
+- `data/tenants.json` allineato a `Studio Legale Giuseppe Montagnese`;
+- `data/tenant_user_directory.json` allineato allo stesso nome studio;
+- `data/tenants/tenant-8bf98719c459/config/studio.json` allineato a `Avv. Giuseppe Montagnese` e codice fiscale `MNTGPP94L01G791A` sia in `studio.codice_fiscale_avvocato` sia in `firma.cf_avvocato`.
+
+La regola di sicurezza non è stata indebolita: il PST deve continuare a rifiutare certificati con codice fiscale diverso da quello configurato nello studio.
+
+Prova locale eseguita:
+
+- `http://127.0.0.1:8080/api/pronto` risponde `ok=true`, timezone `Europe/Rome`, versione `2.258.1`;
+- su `http://127.0.0.1:8080/impostazioni?tab=firma`, `Verifica dispositivo collegato` rileva Local Signer `1.6.101`, certificato memorizzato e codice fiscale `MNTGPP94L01G791A`;
+- dopo restart locale e reload reale, la pagina PST si apre pulita allo Step 2 con dati aggiornati.
+
+Limite della prova locale: il click finale `Cerca fascicolo` nella copia locale è stato bloccato dalla policy di sicurezza del browser integrato. Non è stato aggirato con CDP, richieste indirette o altri canali. La prova server sullo stesso commit resta valida fino al timeout ministeriale governato: nessun `Failed to fetch`, nessuna “sessione PST non inizializzata”, Local Signer rilevato.
+
+Igiene: la password temporanea usata solo per entrare nel tenant locale di test è stata ripristinata al valore hash originale prima dei gate e del report.

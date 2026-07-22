@@ -1,5 +1,29 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-22 - Presidio notifica e acquisizione PST senza riavvio del Local Signer
+
+Caso reale controllato dal presidio notifiche in produzione, tenant Studio Legale Giuseppe Montagnese: `Romeo Maria`, R.G. `1428/2026`, `Tribunale di Palmi`, presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`, PEC sorgente `pec_d23c133a4ef8ada88ecb8c08`, documento da PEC ufficio `9732730s.pdf.zip`.
+
+Passaggio completo da preservare:
+
+1. dal presidio notifiche l'avvocato apre `Acquisisci originale`;
+2. il wizard PST è già compilato con fascicolo, R.G., ufficio, registro, tabella ministeriale, assistito e PEC sorgente;
+3. il Local Signer conferma il certificato PST sul PC dell'avvocato;
+4. dopo certificato confermato, il frontend non deve più inviare `iusentra-local-signer://restart` né riavviare il servizio locale prima della ricerca;
+5. la ricerca deve usare la sessione già autenticata e portare al solo provvedimento indicato dalla PEC;
+6. l'import deve salvare il documento originale nel fascicolo, evitare duplicati e collegare lo stesso originale a relata, Agenda, Scadenziario, topbar e Web Push, senza effettuare alcun invio PEC.
+
+Difetto individuato nel test reale: dopo `Certificato confermato; lettura dati dal portale ufficiale`, la UI richiamava `checkLocalSigner(true)` perché lo stato React non era ancora aggiornato, provocando l'apertura del protocollo locale e il possibile riavvio del Local Signer tra pre-controllo certificato e ricerca PST. L'effetto visibile era il falso errore `Canale locale non raggiungibile`, pur con Local Signer `1.6.102` raggiungibile e certificato presente.
+
+Correzione applicata: in `frontend/src/components/TelematicoSurfacePage.tsx`, `executeSearch()` considera `precheckedPstCert` come prova sufficiente del Local Signer già vivo nella stessa operazione e costruisce uno stato locale `ok=true` senza auto-start. L'auto-start resta ammesso solo se il certificato PST non è stato ancora confermato.
+
+Guardrail eseguiti prima del deploy di questa correzione:
+
+- `python -m pytest tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente -q` → `2 passed`;
+- `pnpm --dir frontend build`.
+
+Stato operativo: il fix elimina il riavvio improprio del Local Signer nel passaggio presidio → PST. Prima di dichiarare chiuso il flusso resta obbligatoria la prova reale post-deploy dal presidio in produzione e, se il PST risponde, la verifica che il documento originale acquisito compaia nel fascicolo e alimenti relata, Agenda, Scadenziario, topbar e Web Push senza invio PEC.
+
 ## Aggiornamento 2026-07-22 - Ripristino contratto PST Locri, Local Signer 1.6.102 e sessioni download
 
 Problema reale segnalato in produzione durante acquisizione mirata da PEC dell'ufficio per `Calabrò Daniela`, R.G. `3571/2025`, `Tribunale di Locri`, tabella `SICID_LAVORO`: il wizard mostrava `Impossibile determinare codice GL/servizio PST dell'ufficio selezionato`. La causa tecnica non era il fascicolo e non era il PIN: la UI consentiva la scelta di Locri dal catalogo PST pubblico (`0800430095`), mentre il resolver usato dal Local Signer dipendeva dallo snapshot ministeriale locale e non ricostruiva il codice GL/servizio quando quell'ufficio mancava dallo snapshot.

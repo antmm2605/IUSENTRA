@@ -2208,7 +2208,10 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Dettaglio browser" not in source
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
     assert "Local Signer non pronto sul PC" not in source
-    assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" in source
+    assert "Local Signer rilevato: certificato PST già confermato sul PC. Proseguo senza riavviare il servizio locale." in source
+    assert "if (!checkedSigner && precheckedPstCert)" in source
+    assert "checkedSigner = await checkLocalSigner(true)" in source
+    assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" not in source
     assert "dopo il tentativo di avvio automatico" in source
     assert "ok: reachable" in source
     assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
@@ -3510,11 +3513,14 @@ def test_pst_acquisizione_ricerca_non_parte_senza_certificato_preesistente():
     assert "add('tabella_ministeriale', query.tabellaMinisteriale)" in source
     assert "add('servizio_pst_preferito', query.servizioPstPreferito)" in source
     assert "value={ministerialSchemaFromQuery(query)}" in source
-    run_search_block = source[source.index("const runSearch = async"):source.index("const runPreview = async")]
+    run_search_block = source[source.index("const executeSearch = async"):source.index("const runSearch = async")]
     assert "requirePstCertificateBeforeSearch()" in run_search_block
     assert "ensurePstCertificate()" not in run_search_block
     assert run_search_block.index("precheckedPstCert = await requirePstCertificateBeforeSearch()") < run_search_block.index("updateLocalSignerAutomatically()")
     assert "let cert = precheckedPstCert || await requirePstCertificateBeforeSearch()" in run_search_block
+    assert "if (!checkedSigner && precheckedPstCert)" in run_search_block
+    assert "checkLocalSigner(true)" in run_search_block
+    assert "let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)" not in run_search_block
     assert "Ricerca PST non avviata" in source
     assert "Nessun passaggio avviato" in page_source
     assert "progress.active ? <progress" in page_source

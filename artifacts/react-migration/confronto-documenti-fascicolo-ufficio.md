@@ -1,6 +1,19 @@
 # Confronto documenti del fascicolo d'ufficio
 
-Aggiornato il 18/07/2026. Questo documento conserva l'analisi del flusso osservato nel materiale decompilato e la sua traduzione operativa per IUSENTRA. È una memoria di progetto: non deve essere trasformata in riferimenti tecnici visibili nella UI.
+Aggiornato il 22/07/2026. Questo documento conserva l'analisi del flusso osservato nel materiale decompilato e la sua traduzione operativa per IUSENTRA. È una memoria di progetto: non deve essere trasformata in riferimenti tecnici visibili nella UI.
+
+## Aggiornamento 2026-07-22 - Acquisizione mirata da presidio notifiche
+
+Il passaggio da presidio notifica a fascicolo d'ufficio deve essere trattato come un unico flusso tenant-aware, non come apertura generica del portale:
+
+1. il presidio parte dalla PEC che ha generato l'evento e conserva `pec_id`, documento PEC, fascicolo, R.G., ufficio, registro e parte assistita;
+2. `Acquisisci originale` porta al wizard PST già compilato con quei dati, compresa la modalità `single_document=1` e `non_duplicare_documenti=1`;
+3. il controllo certificato PST del Local Signer vale come prova che il servizio locale è vivo per quella sessione; dopo tale controllo la UI non deve riavviare il Local Signer prima della ricerca;
+4. il documento ufficiale scaricato da PST deve essere salvato nei Documenti e atti del fascicolo con origine `PolisWeb / PST`, tipo atto ufficiale e identificativo portale;
+5. lo stesso record documentale deve diventare la fonte unica collegabile a relata, Agenda, Scadenziario, topbar e Web Push, così quando l'avvocato riapre l'evento vede la PEC o il provvedimento che ha generato proprio quel presidio;
+6. se il documento è già presente, il flusso deve mostrare il documento esistente e non crearne duplicati.
+
+Caso reale di riferimento: `Romeo Maria`, R.G. `1428/2026`, `Tribunale di Palmi`, PEC `pec_d23c133a4ef8ada88ecb8c08`, ZIP PEC `9732730s.pdf.zip`, presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`. La prova reale ha evidenziato un falso errore di canale locale dovuto al riavvio del Local Signer dopo certificato già confermato; la regola aggiornata impedisce quel riavvio nel percorso presidio → PST.
 
 ## Obiettivo
 

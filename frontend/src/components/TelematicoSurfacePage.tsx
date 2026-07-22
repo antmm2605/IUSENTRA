@@ -4639,7 +4639,25 @@ function AcquisitionWizard({
     if (requiresBrowserLocalSigner) {
       setStep(1)
       setMessage('Verifico Local Signer sul PC e proseguo appena il servizio locale risponde.')
-      let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(true)
+      let checkedSigner = localSigner.ok ? localSigner : null
+      if (!checkedSigner && precheckedPstCert) {
+        checkedSigner = {
+          checked: true,
+          checking: false,
+          ok: true,
+          outdated: false,
+          unsupported: false,
+          version: localSigner.version,
+          tokenLabel: localSigner.tokenLabel,
+          baseUrl: localSigner.baseUrl,
+          probeUrls: localSigner.probeUrls,
+          message: 'Local Signer rilevato: certificato PST già confermato sul PC. Proseguo senza riavviare il servizio locale.',
+        }
+        setLocalSigner(checkedSigner)
+      }
+      if (!checkedSigner) {
+        checkedSigner = await checkLocalSigner(true)
+      }
       if (!checkedSigner.ok) {
         setMessage('Local Signer non raggiungibile sul PC dopo il tentativo di avvio automatico. Avvialo dal pacchetto installato o reinstalla il pacchetto ufficiale, poi ripeti la ricerca.')
         return

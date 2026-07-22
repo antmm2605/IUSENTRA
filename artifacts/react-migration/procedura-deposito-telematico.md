@@ -5380,3 +5380,15 @@ Il flusso Presidio notifiche → acquisizione originale → relata non deve cons
 Regola anti-regressione: la relata può proporre automaticamente l’originale già acquisito solo quando il documento proviene da PST/PolisWeb o da un identificativo portale ministeriale coerente. Sono escluse fonti `quickorganizer:`, `documenti_ai:`, `manual:` e `upload:`. In caso di ambiguità reale, il software non deve scegliere un documento casuale: deve mantenere il presidio aperto e guidare l’avvocato verso acquisizione/collegamento verificabile.
 
 Test collegati: `tests/test_pst_original_presidio_runtime.py::test_presidio_riconosce_provvedimento_pst_gia_presente_nel_fascicolo` include espressamente due false sentenze QuickOrganizer nello stesso fascicolo e verifica che venga collegata solo `SentenzaDefinitiva_35882174.pdf`.
+
+### Aggiornamento 22/07/2026 - visualizzazione dell'originale PST dentro IUSENTRA
+
+Nel percorso Presidio notifiche → originale PST → relata, il documento ministeriale collegato non deve uscire dal software e non deve aprire una schermata vuota. La prova sul caso Romeo Maria ha confermato che `SentenzaDefinitiva_35882174.pdf` è presente nel fascicolo come documento PST (`DE29EE7F`) e che il lettore diretto `/fascicoli/78D6022C/documenti/DE29EE7F/visualizza?viewer=mobile` renderizza la sentenza. Il problema residuo era limitato alla modale che incorporava il lettore in iframe.
+
+Correzione applicata alla UI comune delle fonti:
+
+- `SourceDocumentModal` usa `allow-same-origin` anche per i lettori interni dei documenti del fascicolo;
+- la regola resta tenant-aware perché non cambia la URL risolta dal backend: rende soltanto visibile, dentro IUSENTRA, il documento già autorizzato;
+- il testo di errore resta in italiano e indica `Apri originale` o `Scarica` solo come recupero quando il formato non è renderizzabile, non come percorso primario.
+
+Prove automatiche mirate: test React della pagina Agenda/lettore e gruppo Agenda/PEC/fonti/notifiche superati; build React superata. Prova reale finale da ripetere dopo deploy.

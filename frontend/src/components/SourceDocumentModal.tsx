@@ -32,9 +32,13 @@ function sourceIframeSandbox(href: string): string {
   try {
     const parsed = new URL(href, window.location.origin)
     const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
-    const trustedReactSource = parsed.origin === window.location.origin
-      && (normalizedPath === '/email' || normalizedPath === '/email-ordinaria')
-    return trustedReactSource
+    const trustedInternalReader = parsed.origin === window.location.origin
+      && (
+        normalizedPath === '/email'
+        || normalizedPath === '/email-ordinaria'
+        || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
+      )
+    return trustedInternalReader
       ? 'allow-downloads allow-same-origin allow-scripts'
       : 'allow-downloads allow-scripts'
   } catch {

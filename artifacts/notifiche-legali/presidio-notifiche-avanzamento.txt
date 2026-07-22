@@ -1196,3 +1196,24 @@ Guardrail eseguiti:
 - `pnpm --dir frontend build` superato.
 
 Stato: da committare, pushare, deployare e riprovare materialmente sul presidio di produzione. La chiusura resta vietata finché il click reale su `https://app.iusentra.it/notifiche-legali?section=presidi&coda=review&presidio=f5480e4d-5fc1-498f-8259-078dcc17fe84` non mostra il documento PST corretto collegato.
+
+### Aggiornamento 22/07/2026 - lettore interno nella modale fonte del presidio
+
+Dopo il deploy del commit `f306ea7a`, il presidio Romeo Maria, R.G. `1428/2026`, ha collegato correttamente `SentenzaDefinitiva_35882174.pdf` come `Documento PST acquisito nel fascicolo`, accanto alla copia PEC `9732730s.pdf.zip`. La prova reale in produzione ha però mostrato un difetto UI residuo: cliccando `Visualizza` dal dettaglio del presidio, la modale `Fonte dell'informazione` apriva l'iframe interno verso `/fascicoli/78D6022C/documenti/DE29EE7F/visualizza?viewer=mobile`, ma il PDF restava bianco nella modale. La stessa URL aperta direttamente mostrava invece correttamente la sentenza nel lettore IUSENTRA.
+
+Causa tecnica: il sandbox della modale fonte concedeva `allow-same-origin` solo alle viste PEC (`/email` e `/email-ordinaria`). Il lettore documenti del fascicolo usa risorse interne same-origin per immagini e pagine PDF; senza `allow-same-origin` il rendering dentro iframe poteva restare vuoto pur avendo il documento corretto.
+
+Correzione generale applicata:
+
+- la modale fonte riconosce come lettore interno affidabile anche le URL same-origin che contengono `/documenti/` e `/visualizza`;
+- per PEC, email ordinaria e lettore documenti del fascicolo viene applicato lo stesso sandbox controllato `allow-downloads allow-same-origin allow-scripts`;
+- `embed=source` resta limitato alle pagine email filtrate, mentre i documenti continuano a ricevere solo `viewer=mobile`;
+- non viene introdotto alcun percorso esterno: il click resta dentro IUSENTRA e usa il lettore interno.
+
+Guardrail già eseguiti su questa correzione:
+
+- `python -m pytest tests/test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q`;
+- gruppo mirato Agenda/PEC/fonti/notifiche con 8 test superati;
+- `pnpm --dir frontend build` superato.
+
+Stato: resta da eseguire `diff-check`, controllo UTF-8, commit/push, deploy Hetzner e prova reale finale in produzione e su copia locale `127.0.0.1:8080`.

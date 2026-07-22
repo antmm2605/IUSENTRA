@@ -884,7 +884,10 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "parsed.pathname.startsWith('/email')" in source_modal
     assert "source.kind === 'pec' || parsed.pathname.startsWith('/email')" not in source_modal
     assert "sourceIframeSandbox" in source_modal
-    assert "normalizedPath === '/email' || normalizedPath === '/email-ordinaria'" in source_modal
+    assert "normalizedPath === '/email'" in source_modal
+    assert "normalizedPath === '/email-ordinaria'" in source_modal
+    assert "normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza')" in source_modal
+    assert "Usa “Apri originale” o “Scarica”" in source_modal
     assert "'allow-downloads allow-same-origin allow-scripts'" in source_modal
     assert "'allow-downloads allow-scripts'" in source_modal
     assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal

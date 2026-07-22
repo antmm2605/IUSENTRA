@@ -421,3 +421,13 @@ Guardrail eseguiti:
 - `pnpm --filter @iusentra/studio build`, senza asset JavaScript sopra `500 kB`.
 
 Stato: pronto per deploy e verifica reale in produzione sulla modale aperta da `Notifica` e `Deposito telematico`.
+
+### Aggiornamento 22/07/2026 - apertura del documento PST riconciliato dal presidio
+
+Il confronto operativo ora include anche il comportamento di apertura dal presidio:
+
+- se il documento PST è già nel fascicolo e viene riconciliato automaticamente, il pulsante `Visualizza` deve aprire quel documento nel lettore interno IUSENTRA;
+- le copie PEC dell'ufficio restano evidenze consultabili, ma non sostituiscono l'originale ministeriale quando l'originale PST è presente;
+- il lettore interno del fascicolo deve essere incorporabile anche nella modale `Fonte dell'informazione`, senza pagina bianca e senza uscire dal software.
+
+Correzione collegata: il sandbox della modale fonte ora consente `allow-same-origin` anche per URL interne `/documenti/.../visualizza`, così il preview PDF del documento PST può caricare le proprie risorse same-origin.

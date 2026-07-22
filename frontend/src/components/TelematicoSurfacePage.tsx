@@ -205,7 +205,7 @@ type LocalSignerBrowserRequestResult = {
   transport: 'fetch' | 'xhr'
 }
 
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 
 type AssistantSession = {
   session_id: string
@@ -397,7 +397,7 @@ async function localSignerFetchJson(
       method: body ? 'POST' : 'GET',
       cache: 'no-store',
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
       headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
@@ -2350,7 +2350,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         method: body ? 'POST' : 'GET',
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.258.1 - 2026-07-22
+
+- Corregge il contratto Chrome Local Network Access del Local Signer: tutte le chiamate React verso `127.0.0.1`/`localhost` usano `targetAddressSpace: loopback`, evitando falsi negativi su Impostazioni firma, PST, download documenti, deposito, firma multipla, notifiche legali e relata.
+- Aggiunge il guardrail `tools/check_local_signer_boundaries.py` per bloccare regressioni future a `targetAddressSpace: local` nei file frontend che parlano con il servizio locale.
+- Mantiene la sessione PST unica `view` e il contratto di firma multipla: un solo PIN/sessione per il lotto, senza introdurre sessioni parallele o fallback di scaricamento singolo.
+- Documenta causa, prove automatiche e stato della prova reale nei dossier operativi di deposito telematico, acquisizione originali PST e data-flow tenant-aware.
+
 ## 2.258.0 - 2026-07-21
 
 - Unifica Agenda, Scadenziario, Presìdi notifiche, topbar e Web Push sulla stessa fonte PEC indicizzata: ogni evento conserva tenant, messaggio e allegato che lo hanno generato e apre direttamente la PEC o il documento utile, senza dashboard generiche né ricerche al click.

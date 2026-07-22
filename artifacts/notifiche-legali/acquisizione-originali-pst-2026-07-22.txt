@@ -73,3 +73,13 @@ Il caso è completato soltanto quando il provvedimento originale è visibile nei
 - 22/07/2026: confermato con test il contratto firma multipla: riuso del medesimo `pin_session_id` per tutto il lotto.
 - 22/07/2026: generato e installato Local Signer `1.6.101`; servizio e Assistenza remota rispondono sulla macchina reale, senza processi PIN/curl pendenti.
 - 22/07/2026: nessuna PEC composta o inviata e nessun documento ministeriale scaricato durante il ripristino.
+
+## Correzione finale Chrome Local Network Access
+
+- 22/07/2026: il download PST ha continuato a fallire con `Sessione di scaricamento PST non inizializzata dal Local Signer` anche dopo il ripristino della sessione logica unica. Causa accertata: nelle chiamate HTTPS verso `127.0.0.1` il frontend dichiarava `targetAddressSpace=local`; Chrome richiede invece `loopback` per `127.0.0.1` e `localhost`.
+- 22/07/2026: sostituito `local` con `loopback` in tutte le superfici React che invocano il servizio locale: Impostazioni firma, AI locale, PST, Documenti fascicolo, Fascicoli, Deposito, Notifiche legali e Relata.
+- 22/07/2026: aggiunto controllo bloccante in `tools/check_local_signer_boundaries.py` per impedire future regressioni dello spazio indirizzi del Local Signer.
+- 22/07/2026: verifiche automatiche superate: guardrail Local Signer, 4 test mirati su Impostazioni/PST/firma deposito e `npm run build` frontend.
+- 22/07/2026: fonti tecniche consultate: documentazione Chrome Developers su Local Network Access e WICG Local Network Access explainer. Nessun PIN, segreto, firma, invio PEC o download ministeriale è stato eseguito durante questa correzione.
+- Prova reale produzione: da ripetere dopo deploy dello stesso commit.
+- Prova reale locale `127.0.0.1:8080`: da ripetere dopo rebuild Docker locale dello stesso commit.

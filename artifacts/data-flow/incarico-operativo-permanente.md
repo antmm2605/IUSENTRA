@@ -307,3 +307,10 @@ Un test automatico verde non significa lavoro concluso. Per qualsiasi comportame
 - Il bootstrap tenant sincronizza soltanto i moduli JSON core esplicitamente governati. La scansione ricorsiva di OCR, `documenti_ai`, importazioni e dataset Lex è riservata agli audit espliciti e non può partire dal caricamento ordinario.
 - Causa accertata sul tenant Montagnese: il primo ciclo scheduler aveva incorporato circa 15 GB di JSON OCR/estratti in `moduli_dati` e `moduli_json_records`. Il guardrail runtime elimina la causa; la manutenzione del database deve rimuovere solo quei mirror ricostruibili, confrontare tutte le tabelle strutturate prima/dopo e conservare rollback verificabile.
 - La copia locale e la produzione devono coincidere per commit, versione, schema e comportamento, non per contenuto privato. I dati reali Montagnese restano sul server; il collaudo locale usa un tenant isolato e dati controllati, senza copiare credenziali, sessioni o l'intero archivio documentale.
+
+## Aggiornamento 22/07/2026 - contratto Local Signer loopback
+
+- Il Local Signer, l'AI locale e i canali PST/firma/deposito/notifiche sono servizi su `127.0.0.1` o `localhost`: per Chrome Local Network Access lo spazio corretto è `loopback`, non `local`.
+- Ogni superficie React che chiama il servizio locale deve usare lo stesso contratto; la distinzione tenant resta lato API e payload, non tramite URL o database paralleli.
+- Il controllo `tools/check_local_signer_boundaries.py` è parte del doppio controllo dati/route: se un nuovo file frontend torna a `targetAddressSpace: local`, il lavoro non può essere dichiarato chiuso.
+- La prova reale su produzione e su `127.0.0.1:8080` resta necessaria perché il guardrail verifica il contratto statico, non l'interazione materiale con Chrome, permesso locale, PIN e sessione PST.

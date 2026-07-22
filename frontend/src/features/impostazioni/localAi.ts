@@ -15,7 +15,7 @@ export type MobileAiInstallPlan = {
   missingSignals: boolean
 }
 
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 
 const DEFAULT_AI_BASE_URL = 'http://127.0.0.1:11434/api'
 const START_WAIT_STEPS = [500, 900, 1400, 2000, 2600]
@@ -173,7 +173,7 @@ async function fetchJson(url: string, init?: RequestInit, timeoutMs = 4000): Pro
       ...init,
       signal: controller.signal,
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
     }
     const response = await fetch(url, requestOptions)
     const payload = await response.json().catch(() => ({}))

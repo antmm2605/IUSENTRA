@@ -5383,7 +5383,7 @@ type LocalSignerStatus = {
 type LocalSignerRecoveryOptions = {
   onMessage?: (message: string) => void
 }
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -5644,7 +5644,7 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
       const requestOptions: LocalNetworkRequestInit = {
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         signal: controller.signal,
       }
       const response = await fetch(candidate.endpoint, requestOptions)
@@ -5704,7 +5704,7 @@ async function recoverLocalSignerAutomatically(
         method: 'POST',
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base_url: window.location.origin }),
       }
@@ -5930,7 +5930,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       const signRequestOptions: LocalNetworkRequestInit = {
         method: 'POST',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documento: arrayBufferToBase64(sourceBuffer),

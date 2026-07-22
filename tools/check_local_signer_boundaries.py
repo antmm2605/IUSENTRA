@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -109,6 +110,32 @@ def main() -> int:
         failures.append("TelematicoSurfacePage non deve chiamare /pst/preflight-auth")
     if "localSignerJson('/pst/download-documento'" in react_text:
         failures.append("TelematicoSurfacePage non deve tornare al download documento singolo")
+
+    # Chrome Local Network Access distingue espressamente gli indirizzi
+    # 127.0.0.1/localhost (loopback) dagli host della rete privata (local).
+    # Un valore errato lascia arrivare la richiesta al servizio, ma impedisce
+    # alla pagina HTTPS di leggere la risposta: il falso negativo risultante
+    # blocca Impostazioni, PST, firma, deposito e notifiche.
+    loopback_frontend_paths = (
+        "frontend/src/features/impostazioni/localSigner.ts",
+        "frontend/src/features/impostazioni/localAi.ts",
+        "frontend/src/components/TelematicoSurfacePage.tsx",
+        "frontend/src/components/OfficeDocumentsPanel.tsx",
+        "frontend/src/components/FascicoliPage.tsx",
+        "frontend/src/components/FascicoloDepositoPage.tsx",
+        "frontend/src/components/NotificheLegaliPage.tsx",
+    )
+    for frontend_path in loopback_frontend_paths:
+        frontend_text = _read(frontend_path)
+        address_spaces = re.findall(r"targetAddressSpace\s*:\s*['\"]([^'\"]+)['\"]", frontend_text)
+        if not address_spaces:
+            failures.append(f"{frontend_path} non dichiara lo spazio di rete Local Signer")
+            continue
+        invalid_spaces = sorted({value for value in address_spaces if value != "loopback"})
+        if invalid_spaces:
+            failures.append(
+                f"{frontend_path} usa spazi di rete non validi per il Local Signer: {', '.join(invalid_spaces)}"
+            )
 
     wizard_text = _read("web/templates/portale/acquisizione_wizard.html")
     wizard_required = (

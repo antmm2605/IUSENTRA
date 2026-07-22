@@ -15,7 +15,7 @@ export type LocalSignerCertificate = {
   giorni_scadenza?: number
 }
 
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -47,7 +47,7 @@ async function fetchJsonWithTimeout(
       ...init,
       signal: controller.signal,
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
       headers: buildHeaders(init.headers),
     }
     const response = await fetch(url, requestOptions)

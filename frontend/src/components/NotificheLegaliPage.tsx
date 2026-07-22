@@ -575,7 +575,7 @@ type RelataSignerStatus = {
   versione?: string
 }
 
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 
 type SignedRelataRecord = {
   documentId: string
@@ -791,7 +791,7 @@ async function fetchRelataLocalSignerStatus(timeoutMs = 3500): Promise<RelataSig
     const requestOptions: LocalNetworkRequestInit = {
       cache: 'no-store',
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
       signal: controller.signal,
     }
     const response = await fetch(relataLocalSignerEndpoint('/ping'), requestOptions)
@@ -2193,7 +2193,7 @@ export function NotificheLegaliPage() {
           const requestOptions: LocalNetworkRequestInit = {
             method: 'POST',
             mode: 'cors',
-            targetAddressSpace: 'local',
+            targetAddressSpace: 'loopback',
             headers: { 'Content-Type': 'application/json' },
             signal: controller.signal,
             body: JSON.stringify({
@@ -3146,7 +3146,7 @@ export function NotificheLegaliPage() {
         const requestOptions: LocalNetworkRequestInit = {
           method: 'POST',
           mode: 'cors',
-          targetAddressSpace: 'local',
+          targetAddressSpace: 'loopback',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({

@@ -5237,3 +5237,26 @@ Guardrail eseguiti: `27` test Pytest mirati superati, inclusi payload DOCX malev
 - Generata e installata realmente sul PC la versione `1.6.101` in `C:\Users\antmm\AppData\Roaming\IUSENTRA\LocalSigner`; `/ping?light=1` e `/support/status` rispondono correttamente e non risultano processi `curl` o finestre PIN pendenti.
 - Verifiche automatiche: `5/5` PST/firma multipla, `16/16` Local Signer/installer e `60/60` notifiche, sorgenti, tenant e lettore; typecheck e build React superati.
 - Nessuna firma reale, nessun download ministeriale e nessun invio PEC sono stati eseguiti durante questi guardrail.
+
+### Aggiornamento 22/07/2026 - correzione Chrome LNA per Local Signer
+
+Durante la prova reale del download PST è comparso ancora l'errore `Sessione di scaricamento PST non inizializzata dal Local Signer`. La causa tecnica non era una seconda sessione PST, ma il contratto browser: le superfici React inviavano le chiamate al servizio locale con `targetAddressSpace: local`, mentre Chrome Local Network Access classifica `127.0.0.1` e `localhost` come `loopback`.
+
+Correzione applicata in modo unico su tutte le superfici che parlano con il servizio locale:
+
+- Impostazioni firma e AI locale;
+- Servizi telematici/PST;
+- pannello Documenti del fascicolo;
+- firma singola e firma multipla del deposito;
+- notifiche legali e relata;
+- pagine fascicoli collegate.
+
+Guardrail aggiunto in `tools/check_local_signer_boundaries.py`: ogni uso frontend di `targetAddressSpace` nei file Local Signer deve restare `loopback`; qualunque ritorno a `local` fallisce il controllo. Fonti tecniche usate per il criterio: Chrome Developers, Local Network Access; WICG Local Network Access explainer.
+
+Verifiche automatiche eseguite dopo la correzione:
+
+- `python tools/check_local_signer_boundaries.py`;
+- `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico tests/test_regia_ui_react.py::test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin`;
+- `npm run build` dal frontend, con TypeScript e bundle React superati.
+
+Stato operativo: nessuna PEC composta o inviata, nessuna firma reale eseguita e nessun PIN memorizzato. La prova reale su produzione e la prova sulla copia locale `127.0.0.1:8080` restano obbligatorie prima della chiusura.

@@ -23,7 +23,7 @@ type Certificate = {
   fiscalCode: string
 }
 
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 
 type PstSession = {
   sessionId: string
@@ -313,7 +313,7 @@ async function localFetchRequest(endpoint: string, body?: JsonRecord, timeoutMs 
       method: body ? 'POST' : 'GET',
       cache: 'no-store',
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
       headers: body
         ? { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         : { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },

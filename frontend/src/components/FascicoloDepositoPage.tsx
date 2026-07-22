@@ -2144,7 +2144,7 @@ function DepositPreparePage({ id }:{id:string}) {
       const requestOptions: LocalNetworkRequestInit = {
         method: 'POST',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...signPayload,
@@ -2223,7 +2223,7 @@ function DepositPreparePage({ id }:{id:string}) {
     const localRequestOptions: LocalNetworkRequestInit = {
       method: 'POST',
       mode: 'cors',
-      targetAddressSpace: 'local',
+      targetAddressSpace: 'loopback',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...localPayload, password }),
     }
@@ -2453,7 +2453,7 @@ function DepositPreparePage({ id }:{id:string}) {
         method: 'POST',
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           codice_ufficio: codiceUfficio,
@@ -3920,7 +3920,7 @@ function DepositBatchSignaturePanel({
         const requestOptions: LocalNetworkRequestInit = {
           method: 'POST',
           mode: 'cors',
-          targetAddressSpace: 'local',
+          targetAddressSpace: 'loopback',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
@@ -5038,7 +5038,7 @@ type LocalSignerStatus = {
 type LocalSignerRecoveryOptions = {
   onMessage?: (message: string) => void
 }
-type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'local' }
+type LocalNetworkRequestInit = RequestInit & { targetAddressSpace?: 'loopback' }
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -5319,7 +5319,7 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
       const requestOptions: LocalNetworkRequestInit = {
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         signal: controller.signal,
       }
       const response = await fetch(candidate.endpoint, requestOptions)
@@ -5387,7 +5387,7 @@ async function recoverLocalSignerAutomatically(
         method: 'POST',
         cache: 'no-store',
         mode: 'cors',
-        targetAddressSpace: 'local',
+        targetAddressSpace: 'loopback',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base_url: window.location.origin }),
       }

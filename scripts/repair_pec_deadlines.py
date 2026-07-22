@@ -52,7 +52,11 @@ def run_repair(*, registry: Path, tenant: str = "", limit: int = 0, actor: str =
                 scadenziario_db_path=paths["SCADENZIARIO_DB"],
                 agenda_db_path=paths["AGENDA_DB"],
             )
-            refresh = repo.refresh_validation_reports(actor=actor, limit=0)
+            # Il comando riconcilia la logica giuridica con gli OCR già
+            # conservati. Non avviare OCR massivo durante la manutenzione
+            # ordinaria: l'estrazione si ripara con il flusso dedicato quando
+            # mancano testo o link, senza rallentare PEC, Agenda e studio.
+            refresh = repo.refresh_validation_reports(actor=actor, limit=0, refresh_ocr=False)
             result = repo.repair_pec_deadlines(actor=actor, limit=limit)
             result["refresh_reports"] = refresh
         payload["studios"][studio.slug] = result

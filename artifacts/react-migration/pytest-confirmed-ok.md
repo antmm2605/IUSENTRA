@@ -1,5 +1,12 @@
 # Pytest shard confermati OK
 
+## Topbar notifiche persistenti - 2026-07-20
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_topbar_operational_api.py::test_topbar_today_notifications_deadlines_recent_and_timer tests\test_topbar_hooks.py --tb=short` | OK | 3 test superati. La topbar legge il repository notifiche risolto dall'applicativo e non esegue scansioni o sincronizzazioni di fascicoli/PEC durante la GET. |
+| Browser reale produzione `https://app.iusentra.it/notifiche-legali` | OK sul campione server | Campanella senza caricamento residuo; Romeo Maria/R.G. 1428/2026 e Alfano Giuseppe/R.G. 1100/2026 presenti con titolo italiano. Non sostituisce la prova finale locale su `127.0.0.1:8080`. |
+
 ## Shell React versionata e azioni fascicoli - 2026-07-06
 
 | Comando / verifica | Esito | Note |
@@ -6302,3 +6309,13 @@ Aggiornamento post-bump `2.253.135`: dopo rebuild Docker senza cache, `/api/pron
 | Docker reale locale e `/api/pronto` | OK | Un solo `iusentra-app`, healthy; versione `2.256.2`, fuso `Europe/Rome`. |
 | Browser reale `127.0.0.1:8080` | OK osservato | Agenda desktop/notebook e Scadenziario desktop/mobile: evento alle `16:45`, tooltip completo, link Teams verificato, fonte PDF aperta nel modal interno, nessun duplicato, overflow o errore console. |
 | Runtime Web Push | OK applicativo | Endpoint configurazione `200`, feature attiva, service worker `200`, azioni `Apri Agenda` e `Collegati` presenti. La consegna OS richiede una sottoscrizione browser reale e non viene dichiarata provata in sua assenza. |
+
+## Local Signer 1.6.101 e contratto PST/firma multipla - 22/07/2026
+
+| Comando / verifica | Esito | Note |
+| --- | --- | --- |
+| Test PST e firma multipla mirati | OK | `5/5`: sessione unica `view`, nessun preflight separato, riuso `pin_session_id` nel lotto. |
+| Test Local Signer, installer e build | OK | `16/16`: staging, lock, rollback e pacchetto Windows versionato. |
+| Test notifiche, tenant, lettore e sorgenti | OK | `60/60` superati. |
+| Typecheck e build React | OK | `tsc --noEmit` e build Vite superati; il primo tentativo ha incontrato un lock transitorio su `index.html`, il secondo è riuscito integralmente. |
+| Installazione PC reale | OK tecnico | `/ping?light=1` espone `1.6.101`; `/support/status` risponde; nessun processo `curl` o prompt PIN pendente. |

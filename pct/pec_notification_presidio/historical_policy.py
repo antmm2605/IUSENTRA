@@ -63,6 +63,14 @@ def classify_historical_record(payload: Mapping[str, Any]) -> HistoricalDecision
     complete_proof = bool(payload.get("complete_proof"))
     negative_delivery = bool(payload.get("negative_delivery"))
     partial_delivery = bool(payload.get("partial_delivery"))
+    notification_case = str(payload.get("notification_case") or "")
+    trigger_type = str(payload.get("trigger_type") or "").strip().upper()
+    live_operational_event = bool(payload.get("live_pec_operational_event"))
+    explicit_notification_request = trigger_type in {
+        "EXPLICIT_NOTIFICATION_ORDER",
+        "PROCEDURE_RULE_CANDIDATE",
+        "NOTIFICATION_TO_PREPARE",
+    }
     explicit_due = _parse(payload.get("explicit_due_at"))
     effective, basis, weak_basis = _effective_date(payload)
 
@@ -85,6 +93,25 @@ def classify_historical_record(payload: Mapping[str, Any]) -> HistoricalDecision
             False,
             True,
             "Esito negativo o parziale: revisione obbligatoria anche prima del cutoff.",
+        )
+    # Il cutoff del 19/07/2026 e' una dichiarazione di migrazione dello storico,
+    # non una prova giuridica di esecuzione. Un evento PEC ancora operativo o una
+    # richiesta espressa di notifica resta quindi aperto finche' non esiste una
+    # catena probatoria completa e correlata.
+    if live_operational_event or explicit_notification_request:
+        requires_review = bool(
+            payload.get("human_review_required")
+            or effective is None
+            or effective < STRICT_TRACKING_FROM
+        )
+        return HistoricalDecision(
+            PresidioStatus.DETECTED,
+            Priority.P1,
+            effective.isoformat() if effective else "",
+            basis,
+            False,
+            requires_review,
+            "Evento PEC operativo o richiesta espressa senza prova completa: presidio attivo.",
         )
     if explicit_due is not None and explicit_due >= STRICT_TRACKING_FROM:
         return HistoricalDecision(

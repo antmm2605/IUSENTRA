@@ -207,6 +207,40 @@ def test_nuovo_studio_crea_configurazione_runtime_agenda_scadenze_notifiche(tmp_
     assert {"notifications", "push_subscriptions", "notification_preferences"}.issubset(tables)
 
 
+def test_runtime_baseline_non_duplica_ocr_e_staging_ricorsivi_in_studio_db(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Runtime Leggero", "studio-runtime-leggero", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    extracted = (
+        Path(paths["DOCUMENTI_AI_DIR"])
+        / studio.slug
+        / "fascicoli"
+        / "FAS-1"
+        / "documenti_ai"
+        / "docai-test"
+        / "v1"
+        / "extracted_text.json"
+    )
+    extracted.parent.mkdir(parents=True, exist_ok=True)
+    extracted.write_text(
+        json.dumps({"text": "testo OCR" * 10_000, "pages": [{"number": 1, "text": "pagina"}]}),
+        encoding="utf-8",
+    )
+
+    report = tm.ensure_runtime_baseline(studio.slug, force=True)
+
+    assert report["ok"] is True
+    with sqlite3.connect(paths["STUDIO_DB"]) as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'documenti_ai_file_%'"
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moduli_json_records WHERE modulo LIKE 'documenti_ai_file_%'"
+        ).fetchone()[0] == 0
+
+
 def test_audit_tenant_data_structure_verifica_json_sqlite_postgres(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))
@@ -320,7 +354,7 @@ def test_audit_tenant_data_structure_blocca_json_operativo_nascosto(tmp_path: Pa
     assert any("JSON operativo non censito in studio.db" in error for error in report["errors"])
 
 
-def test_audit_tenant_data_structure_popola_sql_per_json_operativi_noti(tmp_path: Path):
+def test_audit_tenant_data_structure_non_duplica_repository_verticali_pesanti(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))
     studio = tm.crea("Studio Audit Moduli", "studio-audit-moduli", db_config={"mode": "SQLITE"})
@@ -354,19 +388,21 @@ def test_audit_tenant_data_structure_popola_sql_per_json_operativi_noti(tmp_path
 
     assert report["ok"] is True
     assert report["studios"][studio.slug]["hidden_json_summary"]["operational_untracked"] == 0
+    assert report["studios"][studio.slug]["hidden_json_summary"]["vertical_repository_files"] == 3
+    assert report["studios"][studio.slug]["hidden_json_summary"]["vertical_repository_bytes"] > 0
     with sqlite3.connect(paths["STUDIO_DB"]) as conn:
         assert conn.execute(
             "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'documenti_ai_file_%'"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 0
         assert conn.execute(
             "SELECT COUNT(*) FROM moduli_json_records WHERE modulo LIKE 'documenti_ai_file_%'"
-        ).fetchone()[0] > 0
+        ).fetchone()[0] == 0
         assert conn.execute(
             "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'fascicoli_importazione_%'"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 0
         assert conn.execute(
             "SELECT COUNT(*) FROM moduli_dati WHERE nome LIKE 'lex_dataset_%'"
-        ).fetchone()[0] == 1
+        ).fetchone()[0] == 0
         for module in (
             "editor_ai",
             "pec_cancelleria_state",

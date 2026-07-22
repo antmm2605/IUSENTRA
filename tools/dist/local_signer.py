@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.99
+IUSENTRA Local Signer - v1.6.101
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -119,7 +119,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.99"
+VERSION = "1.6.101"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -127,6 +127,10 @@ PST_DOWNLOAD_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_MAX_TIME", "300"
 PST_DOWNLOAD_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_CONNECT_TIMEOUT", str(PST_SOAP_CONNECT_TIMEOUT)))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
+PST_INTERACTIVE_CURL_MAX_TIME = max(
+    int(os.getenv("HACS_SIGNER_PST_INTERACTIVE_MAX_TIME", "330")),
+    60,
+)
 PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "1800")), 60)
 PIN_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_MAX_ACTIVE", "4")), 1)
 PST_SESSION_TTL_SECONDS = max(
@@ -150,6 +154,8 @@ LOCAL_SIGNER_UPDATE_URL = os.getenv(
 )
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
 _INSTANCE_LOCK_HANDLE: Any = None
+_managed_process_lock = threading.RLock()
+_managed_processes: dict[int, dict[str, Any]] = {}
 
 
 def _acquisisci_lock_istanza_unica(port: int) -> None:
@@ -424,6 +430,7 @@ def _aggiorna_sorgenti_local_signer(base_url: str = "") -> dict:
 
 def _programma_riavvio_local_signer() -> None:
     """Riavvia il Local Signer: lo starter su Windows, exec diretto altrove."""
+    _cleanup_managed_processes()
     install_dir = _local_signer_install_dir()
     if sys.platform == "win32":
         starter = install_dir / "start_local_signer.vbs"
@@ -853,6 +860,7 @@ _pst_session_cache: dict[str, dict] = {}
 _pst_session_lock = threading.Lock()
 _pst_async_job_cache: dict[str, dict[str, Any]] = {}
 _pst_async_job_lock = threading.Lock()
+_pst_interactive_curl_lock = threading.Lock()
 _PST_ASYNC_JOB_TTL_SECONDS = 30 * 60
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
 _local_ai_bridge_instance = None
@@ -2990,7 +2998,7 @@ def _pst_session_response_fields(session_entry: Optional[dict]) -> dict:
 
 
 def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optional[dict]:
-    """Restituisce la prima sessione view autenticata per lo stesso certificato e ufficio."""
+    """Restituisce la sessione view autenticata dello stesso certificato e ufficio."""
     thumbprint = (cert_thumbprint or "").strip()
     trib = (tribunale or "").strip()
     now = _utcnow_naive()
@@ -2998,9 +3006,9 @@ def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optiona
         for entry in _pst_session_cache.values():
             if str(entry.get("purpose") or "view").lower() != "view":
                 continue
-            if thumbprint and entry.get("cert_thumbprint", "").strip() != thumbprint:
+            if thumbprint and str(entry.get("cert_thumbprint") or "").strip() != thumbprint:
                 continue
-            if trib and entry.get("tribunale", "").strip() != trib:
+            if trib and str(entry.get("tribunale") or "").strip() != trib:
                 continue
             if entry.get("expires_at") and entry["expires_at"] <= now:
                 continue
@@ -3008,15 +3016,6 @@ def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optiona
                 continue
             return dict(entry)
     return None
-
-
-def _reuse_view_session_id_if_available(session_id: str, cert_thumbprint: str, tribunale: str) -> str:
-    """Riusa una sessione PST gia' autenticata quando il client non ne passa una."""
-    requested_id = (session_id or "").strip()
-    if requested_id:
-        return requested_id
-    view_entry = _find_view_session_for_cert(cert_thumbprint, tribunale)
-    return str((view_entry or {}).get("session_id") or "").strip()
 
 
 def _pst_existing_session_purpose(session_id: str, default: str = "view") -> str:
@@ -6134,7 +6133,35 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
         return False
 
 
-def _windows_try_foreground_pin_prompt_once() -> bool:
+def _windows_visible_top_level_window_handles() -> set[int]:
+    """Fotografa le finestre gia' aperte prima di avviare l'operazione protetta."""
+    if sys.platform != "win32":
+        return set()
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        handles: set[int] = set()
+
+        @EnumWindowsProc
+        def _enum_window(hwnd, _lparam):
+            if user32.IsWindowVisible(hwnd) or user32.IsIconic(hwnd):
+                handles.add(int(hwnd))
+            return True
+
+        user32.EnumWindows(_enum_window, 0)
+        return handles
+    except Exception as exc:
+        log.debug("Snapshot finestre Windows non disponibile: %s", exc)
+        return set()
+
+
+def _windows_try_foreground_pin_prompt_once(
+    excluded_handles: Optional[set[int]] = None,
+    owned_handles: Optional[set[int]] = None,
+) -> bool:
     """
     Best-effort: durante il TLS client-auth di curl, alcune dialog Windows
     per il PIN restano minimizzate o dietro al browser. Se ne troviamo una
@@ -6151,6 +6178,7 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
         EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
         EnumChildWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
         matched: list[tuple[int, Any]] = []
+        excluded = {int(value) for value in (excluded_handles or set())}
 
         def _window_text(hwnd: Any) -> str:
             length = user32.GetWindowTextLengthW(hwnd)
@@ -6209,6 +6237,8 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
 
         @EnumWindowsProc
         def _enum_window(hwnd, _lparam):
+            if int(hwnd) in excluded:
+                return True
             if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
                 return True
             title = _window_text(hwnd)
@@ -6221,6 +6251,8 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
                 score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
             if score:
                 matched.append((score, hwnd))
+                if owned_handles is not None:
+                    owned_handles.add(int(hwnd))
             return True
 
         user32.EnumWindows(_enum_window, 0)
@@ -6237,11 +6269,187 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
         return False
 
 
-def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_seconds: float) -> None:
+def _windows_pin_prompt_foreground_pump(
+    stop_event: threading.Event,
+    deadline_seconds: float,
+    excluded_handles: Optional[set[int]] = None,
+    owned_handles: Optional[set[int]] = None,
+) -> None:
     deadline = time.monotonic() + max(1.0, min(float(deadline_seconds or 1), 900.0))
     while not stop_event.is_set() and time.monotonic() < deadline:
-        found = _windows_try_foreground_pin_prompt_once()
+        found = _windows_try_foreground_pin_prompt_once(excluded_handles, owned_handles)
         stop_event.wait(0.22 if found else 0.25)
+
+
+def _windows_close_owned_pin_prompts(handles: set[int]) -> None:
+    """Chiude soltanto le finestre nate durante l'operazione governata."""
+    if sys.platform != "win32" or not handles:
+        return
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        wm_close = 0x0010
+        for raw_handle in tuple(handles):
+            try:
+                hwnd = int(raw_handle)
+                if hwnd and user32.IsWindow(hwnd):
+                    user32.PostMessageW(hwnd, wm_close, 0, 0)
+            except Exception:
+                continue
+    except Exception as exc:
+        log.debug("Chiusura finestra PIN governata non disponibile: %s", exc)
+
+
+def _windows_create_kill_on_close_job(process: Any) -> Any:
+    """Lega il processo a un Job Object che non può lasciare figli orfani."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _IoCounters(ctypes.Structure):
+            _fields_ = (
+                ("ReadOperationCount", ctypes.c_ulonglong),
+                ("WriteOperationCount", ctypes.c_ulonglong),
+                ("OtherOperationCount", ctypes.c_ulonglong),
+                ("ReadTransferCount", ctypes.c_ulonglong),
+                ("WriteTransferCount", ctypes.c_ulonglong),
+                ("OtherTransferCount", ctypes.c_ulonglong),
+            )
+
+        class _BasicLimitInformation(ctypes.Structure):
+            _fields_ = (
+                ("PerProcessUserTimeLimit", ctypes.c_longlong),
+                ("PerJobUserTimeLimit", ctypes.c_longlong),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            )
+
+        class _ExtendedLimitInformation(ctypes.Structure):
+            _fields_ = (
+                ("BasicLimitInformation", _BasicLimitInformation),
+                ("IoInfo", _IoCounters),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            )
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateJobObjectW.argtypes = (ctypes.c_void_p, ctypes.c_wchar_p)
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        kernel32.SetInformationJobObject.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            wintypes.DWORD,
+        )
+        kernel32.SetInformationJobObject.restype = wintypes.BOOL
+        kernel32.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
+        kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+
+        job_handle = kernel32.CreateJobObjectW(None, None)
+        if not job_handle:
+            return None
+        limits = _ExtendedLimitInformation()
+        limits.BasicLimitInformation.LimitFlags = 0x00002000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        configured = kernel32.SetInformationJobObject(
+            job_handle,
+            9,  # JobObjectExtendedLimitInformation
+            ctypes.byref(limits),
+            ctypes.sizeof(limits),
+        )
+        process_handle = wintypes.HANDLE(int(getattr(process, "_handle", 0) or 0))
+        assigned = bool(process_handle and kernel32.AssignProcessToJobObject(job_handle, process_handle))
+        if not configured or not assigned:
+            kernel32.CloseHandle(job_handle)
+            return None
+        return job_handle
+    except Exception as exc:
+        log.warning("Job Object Windows non disponibile; applico la chiusura diretta del processo: %s", exc)
+        return None
+
+
+def _windows_close_job_handle(job_handle: Any) -> None:
+    if sys.platform != "win32" or not job_handle:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.CloseHandle(job_handle)
+    except Exception:
+        pass
+
+
+def _register_managed_process(process: Any, job_handle: Any, owned_handles: set[int]) -> None:
+    with _managed_process_lock:
+        _managed_processes[int(process.pid)] = {
+            "process": process,
+            "job_handle": job_handle,
+            "owned_handles": owned_handles,
+        }
+
+
+def _take_managed_process(process_id: int) -> Optional[dict[str, Any]]:
+    with _managed_process_lock:
+        return _managed_processes.pop(int(process_id), None)
+
+
+def _finish_managed_process(entry: Optional[dict[str, Any]], *, terminate: bool) -> None:
+    if not entry:
+        return
+    process = entry.get("process")
+    job_handle = entry.get("job_handle")
+    if terminate and process is not None and process.poll() is None:
+        terminated_by_job = False
+        if sys.platform == "win32" and job_handle:
+            try:
+                import ctypes
+                from ctypes import wintypes
+
+                kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+                kernel32.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
+                kernel32.TerminateJobObject.restype = wintypes.BOOL
+                terminated_by_job = bool(kernel32.TerminateJobObject(job_handle, 1))
+            except Exception:
+                terminated_by_job = False
+        if not terminated_by_job:
+            try:
+                process.terminate()
+            except Exception:
+                pass
+        try:
+            process.wait(timeout=2)
+        except Exception:
+            try:
+                process.kill()
+                process.wait(timeout=2)
+            except Exception:
+                pass
+    _windows_close_owned_pin_prompts(set(entry.get("owned_handles") or set()))
+    _windows_close_job_handle(job_handle)
+
+
+def _cleanup_managed_processes() -> None:
+    """Arresta tutte le operazioni native prima di riavvio o chiusura."""
+    with _managed_process_lock:
+        entries = list(_managed_processes.values())
+        _managed_processes.clear()
+    for entry in entries:
+        _finish_managed_process(entry, terminate=True)
 
 
 def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
@@ -6254,23 +6462,83 @@ def _run_process_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subproces
     except (TypeError, ValueError):
         pump_seconds = float(PST_SOAP_MAX_TIME + 10)
 
+    timeout_seconds = run_kwargs.pop("timeout", None)
+    check = bool(run_kwargs.pop("check", False))
+    input_payload = run_kwargs.pop("input", None)
+    capture_output = bool(run_kwargs.pop("capture_output", False))
+    if input_payload is not None:
+        if run_kwargs.get("stdin") is not None:
+            raise ValueError("stdin and input arguments may not both be used")
+        run_kwargs["stdin"] = subprocess.PIPE
+    if capture_output:
+        if run_kwargs.get("stdout") is not None or run_kwargs.get("stderr") is not None:
+            raise ValueError("stdout and stderr arguments may not be used with capture_output")
+        run_kwargs["stdout"] = subprocess.PIPE
+        run_kwargs["stderr"] = subprocess.PIPE
+
+    existing_windows = _windows_visible_top_level_window_handles()
+    owned_windows: set[int] = set()
     stop_event = threading.Event()
-    worker = threading.Thread(
-        target=_windows_pin_prompt_foreground_pump,
-        args=(stop_event, pump_seconds),
-        name="iusentra-pin-foreground",
-        daemon=True,
-    )
-    worker.start()
+    worker: Optional[threading.Thread] = None
+    process: Any = None
     try:
-        return subprocess.run(cmd, **run_kwargs)
+        process = subprocess.Popen(cmd, **run_kwargs)
+        job_handle = _windows_create_kill_on_close_job(process)
+        _register_managed_process(process, job_handle, owned_windows)
+        worker = threading.Thread(
+            target=_windows_pin_prompt_foreground_pump,
+            args=(stop_event, pump_seconds, existing_windows, owned_windows),
+            name="iusentra-pin-foreground",
+            daemon=True,
+        )
+        worker.start()
+        try:
+            stdout, stderr = process.communicate(input=input_payload, timeout=timeout_seconds)
+        except subprocess.TimeoutExpired as exc:
+            entry = _take_managed_process(process.pid)
+            _finish_managed_process(entry, terminate=True)
+            stdout, stderr = process.communicate()
+            raise subprocess.TimeoutExpired(
+                exc.cmd,
+                exc.timeout,
+                output=stdout,
+                stderr=stderr,
+            ) from exc
+        completed = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
+        if check:
+            completed.check_returncode()
+        return completed
     finally:
         stop_event.set()
-        worker.join(timeout=0.5)
+        if worker is not None:
+            worker.join(timeout=0.5)
+        if process is not None:
+            entry = _take_managed_process(process.pid)
+            _finish_managed_process(entry, terminate=process.poll() is None)
 
 
 def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
-    return _run_process_with_pin_foreground(cmd, **kwargs)
+    requested_timeout = kwargs.get("timeout")
+    try:
+        timeout_seconds = float(requested_timeout or PST_INTERACTIVE_CURL_MAX_TIME)
+    except (TypeError, ValueError):
+        timeout_seconds = float(PST_INTERACTIVE_CURL_MAX_TIME)
+    kwargs["timeout"] = min(timeout_seconds, float(PST_INTERACTIVE_CURL_MAX_TIME))
+
+    if not _pst_interactive_curl_lock.acquire(blocking=False):
+        raise RuntimeError(
+            "Un'altra operazione PST è già in corso sul dispositivo. "
+            "Completa o annulla la richiesta PIN visibile prima di riprovare."
+        )
+    try:
+        return _run_process_with_pin_foreground(cmd, **kwargs)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            "La richiesta PST è scaduta e il processo locale è stato chiuso. "
+            "Nessun download è stato registrato: ripeti l'operazione e completa una sola richiesta PIN."
+        ) from exc
+    finally:
+        _pst_interactive_curl_lock.release()
 
 
 def _http_status_from_headers(header_text: str) -> Optional[int]:
@@ -6802,7 +7070,7 @@ def _soap_call_curl_batch_raw(
 
         log.debug("curl batch: %d richieste SOAP in un solo processo", len(transfers))
         result = _run_curl_with_pin_foreground(
-            [_curl_command(), "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
@@ -6982,7 +7250,7 @@ def _soap_call_curl_batch_raw_best_effort(
         tmp_files.append(cfg_file)
 
         result = _run_curl_with_pin_foreground(
-            [_curl_command(), "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
@@ -9240,7 +9508,7 @@ def _pst_http_get_batch_raw_best_effort(
         tmp_files.append(cfg_file)
 
         result = _run_curl_with_pin_foreground(
-            [_curl_command(), "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
@@ -12820,19 +13088,6 @@ class _Handler(BaseHTTPRequestHandler):
                     cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
                 )
                 session_cleanup_id = session_entry["session_id"]
-                # Per sessioni import appena create: eredita i cookie della sessione view attiva
-                # (stesso certificato e ufficio). I cookie esistenti pre-autenticano il canale
-                # TLS evitando un nuovo prompt PIN quando la sessione Windows e' ancora attiva.
-                if purpose == "import" and _created:
-                    view_entry = _find_view_session_for_cert(cert_thumbprint, tribunale)
-                    if view_entry:
-                        view_cookie = str(view_entry.get("cookie_file") or "").strip()
-                        import_cookie = str(session_entry.get("cookie_file") or "").strip()
-                        if view_cookie and import_cookie and view_cookie != import_cookie:
-                            try:
-                                shutil.copy2(view_cookie, import_cookie)
-                            except Exception:
-                                pass
             with _pst_session_lock_for(session_entry):
                 esito = _pst_preflight_auth_curl(
                     url=_pst_url_ricerca(base_url),
@@ -13218,7 +13473,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "cert_preferences": data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             }
             try:
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     requested_session_id,
                     **session_kwargs,
                 )
@@ -13229,7 +13484,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "PST ricerca-snapshot: sessione %s non piu' presente, apertura batch con nuova sessione",
                     requested_session_id,
                 )
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     "",
                     **session_kwargs,
                 )
@@ -13676,7 +13931,9 @@ class _Handler(BaseHTTPRequestHandler):
                     anno_rg=anno_rg,
                     sub_procedimento=sub_procedimento,
                     cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
+                    # Dopo il batch autenticato iniziale l'arricchimento usa
+                    # soltanto il cookie: non può aprire una seconda richiesta PIN.
+                    cert_thumbprint="",
                     cookie_file=cookie_file,
                     registro=registro_portale,
                 )
@@ -13690,10 +13947,10 @@ class _Handler(BaseHTTPRequestHandler):
                         url_documenti=url_documenti,
                         codice_ufficio=codice_pst,
                         cf_avvocato=cf_avvocato,
-                        cert_thumbprint=cert_thumbprint,
+                        cert_thumbprint="",
                         cookie_file=cookie_file,
                         prefer_cookie_only=True,
-                        allow_cert_retry=True,
+                        allow_cert_retry=False,
                         registro_portale=registro_portale,
                     )
                 sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
@@ -13704,7 +13961,7 @@ class _Handler(BaseHTTPRequestHandler):
                     anno_rg=anno_rg,
                     sub_procedimento=sub_procedimento,
                     cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
+                    cert_thumbprint="",
                     cookie_file=cookie_file,
                     prefer_cookie_only=True,
                     allow_cert_retry=False,
@@ -14747,11 +15004,6 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
-            requested_session_id = _reuse_view_session_id_if_available(
-                requested_session_id,
-                cert_thumbprint,
-                tribunale,
-            )
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
@@ -14773,38 +15025,27 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=tribunale,
+                # Lo scaricamento singolo è già la chiamata autenticata reale:
+                # nessun preflight e nessun riuso della sessione di consultazione.
+                file_payload = _pst_download_documento_payload(
                     base_url=base_url,
-                    cf_avvocato=cf_avvocato,
+                    codice_ufficio=codice_pst,
+                    id_documento=id_documento,
+                    nome_documento=nome_documento,
                     cert_thumbprint=cert_thumbprint,
-                    force=_session_created,
+                    cf_avvocato=cf_avvocato,
+                    id_cat=str(data.get("id_cat") or "").strip(),
+                    id_repeatto=str(data.get("id_repeatto") or "").strip(),
+                    msg_id=str(data.get("msg_id") or "").strip(),
+                    data_documento=str(data.get("data_documento") or "").strip(),
+                    original=(
+                        data.get("original", False)
+                        if isinstance(data.get("original", False), bool)
+                        else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
+                    ),
+                    cookie_file="",
+                    prefer_cookie_only=False,
                 )
-                cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                host = _pst_host(_pst_url_documenti(base_url))
-                if host:
-                    with _mTLS_required_lock:
-                        _mTLS_required_hosts.add(host)
-            file_payload = _pst_download_documento_payload(
-                base_url=base_url,
-                codice_ufficio=codice_pst,
-                id_documento=id_documento,
-                nome_documento=nome_documento,
-                cert_thumbprint=cert_thumbprint,
-                cf_avvocato=cf_avvocato,
-                id_cat=str(data.get("id_cat") or "").strip(),
-                id_repeatto=str(data.get("id_repeatto") or "").strip(),
-                msg_id=str(data.get("msg_id") or "").strip(),
-                data_documento=str(data.get("data_documento") or "").strip(),
-                original=(
-                    data.get("original", False)
-                    if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
-                ),
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
-            )
             file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
             file_payload["id_deposito_esterno"] = str(data.get("id_deposito_esterno") or "").strip()
             file_payload["id_deposito_pct"] = str(data.get("id_deposito_pct") or "").strip()
@@ -14870,11 +15111,6 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
-            requested_session_id = _reuse_view_session_id_if_available(
-                requested_session_id,
-                cert_thumbprint,
-                tribunale,
-            )
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
@@ -14899,7 +15135,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "cert_preferences": data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             }
             try:
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     requested_session_id,
                     **session_kwargs,
                 )
@@ -14910,33 +15146,16 @@ class _Handler(BaseHTTPRequestHandler):
                     "PST download batch: sessione %s non piu' presente, apertura batch con nuova sessione",
                     requested_session_id,
                 )
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     "",
                     **session_kwargs,
                 )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            preflight_requested = bool(data.get("preflight_auth", False))
             with _pst_session_lock_for(session_entry):
-                if preflight_requested:
-                    session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
-                        session_entry,
-                        tribunale=tribunale,
-                        base_url=base_url,
-                        cf_avvocato=cf_avvocato,
-                        cert_thumbprint=cert_thumbprint,
-                        force=session_created or preflight_requested,
-                    )
-                else:
-                    # Il batch documenti e' gia' un unico processo curl con
-                    # certificato client. Non aprire un warm-up/preflight qui:
-                    # sulle CNS Windows quello era il punto che moltiplicava
-                    # le finestre PIN tra visualizzazione e scaricamento.
-                    # Il canale download QBuilder richiede certificato diretto:
-                    # i cookie della visualizzazione possono produrre payload
-                    # non-documentali o 401 mascherati.
-                    _prefer_cookie_only = False
-                batch_cookie_file = str((session_entry or {}).get("cookie_file") or "") if _prefer_cookie_only else ""
+                # Contratto anti-regressione: il batch è l'unica chiamata
+                # autenticata della fase download. Il client non può riattivare
+                # un warm-up/preflight che produrrebbe una seconda finestra PIN.
                 esito = _pst_download_documenti_batch_payloads(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -14944,7 +15163,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     documenti=documenti,
                     do_preflight=False,
-                    cookie_file=batch_cookie_file,
+                    cookie_file="",
                     original=(
                         data.get("original", False)
                         if isinstance(data.get("original", False), bool)
@@ -15137,6 +15356,9 @@ Esempi:
     except KeyboardInterrupt:
         print("\nArresto LocalSigner.")
         server.shutdown()
+    finally:
+        _cleanup_managed_processes()
+        server.server_close()
 
 
 if __name__ == "__main__":

@@ -258,6 +258,10 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 CREATE INDEX IF NOT EXISTS idx_legal_communications_tenant_received
     ON legal_communications (tenant_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_legal_communications_event_received
+    ON legal_communications (tenant_id, legal_event_type, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_legal_communications_event_received_prefix
+    ON legal_communications (tenant_id, legal_event_type, substr(received_at, 1, 19));
 CREATE INDEX IF NOT EXISTS idx_legal_communications_category
     ON legal_communications (tenant_id, legal_category, status);
 CREATE INDEX IF NOT EXISTS idx_legal_deadlines_status
@@ -1535,15 +1539,27 @@ class PecControlTowerRepository:
                         already_synced = True
                         break
                 if not already_synced:
+                    legal_event_type = communication.get("legal_event_type") or "pec"
+                    summary = _clean(communication.get("summary") or "", 700)
+                    task = _clean(deadline.get("title") or communication.get("summary") or "", 700)
+                    description = summary or "Presidio PEC generato dalla classificazione legale."
+                    note_lines = [
+                        f"PEC_CONTROL_TOWER:{communication_id}",
+                        f"Tipo evento: {legal_event_type}",
+                        f"Fonte: PEC ricevuta il {communication.get('received_at') or due_date}",
+                        f"Attività per l'avvocato: {task}" if task else "",
+                        "La comunicazione di cancelleria non prova da sola la notifica dell'avvocato." if legal_event_type == "sentenza_da_valutare_per_notifica" else "",
+                        "Termine operativo non definitivo: conferma professionale obbligatoria.",
+                    ]
                     manager.nuova(
                         titolo=deadline["title"],
                         tipo=TipoTermine.ADEMPIMENTO,
                         data_scadenza=due_date,
                         id_fascicolo=matter_id,
-                        descrizione="Bozza da confermare generata da presidio PEC Control Tower.",
-                        note="Termine operativo non definitivo: conferma professionale obbligatoria.",
+                        descrizione=description,
+                        note="\n".join(line for line in note_lines if line),
                         perentorio=False,
-                        source_event_type=communication.get("legal_event_type") or "pec",
+                        source_event_type=legal_event_type,
                         source_event_at=communication.get("received_at") or "",
                         external_uid=deadline["id"],
                         external_provider="pec_control_tower",
@@ -1570,6 +1586,13 @@ class PecControlTowerRepository:
                         already_synced = True
                         break
                 if not already_synced:
+                    legal_event_type = communication.get("legal_event_type") or "pec"
+                    agenda_note_lines = [
+                        f"PEC_CONTROL_TOWER:{communication_id}",
+                        f"Tipo evento: {legal_event_type}",
+                        _clean(communication.get("summary") or "", 700),
+                        "Presidio PEC da confermare.",
+                    ]
                     agenda.aggiungi(
                         titolo=deadline["title"],
                         tipo=TipoAppuntamento.SCADENZA,
@@ -1578,7 +1601,7 @@ class PecControlTowerRepository:
                         luogo="Studio",
                         allow_overlap=True,
                         procedimento=communication.get("fascicolo_id") or "",
-                        note="Presidio PEC da confermare.",
+                        note="\n".join(line for line in agenda_note_lines if line),
                         external_uid=deadline["id"],
                         external_provider="pec_control_tower",
                     )
@@ -1936,7 +1959,17 @@ def classify_legal(parsed: dict[str, Any], technical: dict[str, Any]) -> dict[st
             "Ricevuta di avvenuta consegna.",
         )
     if any(token in text for token in ("giustiziacert", "cancelleria", "tribunale", "corte d", "ufficio giudiziario", "pst")):
-        if any(token in text for token in ("sentenza", "decreto", "ordinanza", "provvedimento")):
+        if "sentenza" in text or "definitivamente decidendo" in text or "resa ex art. 429" in text:
+            return _legal(
+                "PROVVEDIMENTO_GIUDIZIARIO",
+                "sentenza_da_valutare_per_notifica",
+                "Sentenza da valutare per la notifica",
+                "alta",
+                0.92,
+                "Esamina la sentenza e valuta/prepara la notifica: la comunicazione di cancelleria non prova la notifica dell'avvocato.",
+                "Sentenza o provvedimento decisorio ricevuto dalla cancelleria; serve presidio post-sentenza e valutazione della notifica.",
+            )
+        if any(token in text for token in ("decreto", "ordinanza", "provvedimento")):
             return _legal(
                 "PROVVEDIMENTO_GIUDIZIARIO",
                 "provvedimento_da_esaminare",
@@ -2074,8 +2107,11 @@ def _deadline_rule(legal: dict[str, Any], extracted: dict[str, Any]) -> dict[str
 
 def _deadline_title(legal: dict[str, Any]) -> str:
     category = legal.get("legal_category")
+    event_type = legal.get("legal_event_type")
     if category == "PEC_OUTBOUND_PROOF":
         return "Presidio ricevute PEC da completare"
+    if event_type == "sentenza_da_valutare_per_notifica":
+        return "Sentenza da valutare per la notifica"
     if category in {"CANCELLERIA_PCT", "PROVVEDIMENTO_GIUDIZIARIO"}:
         return "Verifica comunicazione di cancelleria e termini"
     if category in {"ATTO_AMMINISTRATIVO_PA", "ENTE_RICHIESTA_RISCONTRO"}:

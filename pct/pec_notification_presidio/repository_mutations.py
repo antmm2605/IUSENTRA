@@ -227,7 +227,51 @@ class NotificationPresidioMutationMixin:
                  zip_sha256, zip_member_path, portal_document_id, portal_reference,
                  original_filename, authoritative, created_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(tenant_id, presidio_id, identity_key) DO NOTHING
+                ON CONFLICT(tenant_id, presidio_id, identity_key) DO UPDATE SET
+                    fascicolo_document_id=CASE
+                        WHEN excluded.fascicolo_document_id<>'' THEN excluded.fascicolo_document_id
+                        ELSE pec_legal_notification_documents.fascicolo_document_id
+                    END,
+                    document_role=CASE
+                        WHEN excluded.document_role='portal_original' THEN excluded.document_role
+                        ELSE pec_legal_notification_documents.document_role
+                    END,
+                    document_version=CASE
+                        WHEN excluded.document_version<>'' THEN excluded.document_version
+                        ELSE pec_legal_notification_documents.document_version
+                    END,
+                    outer_sha256=CASE
+                        WHEN excluded.outer_sha256<>'' THEN excluded.outer_sha256
+                        ELSE pec_legal_notification_documents.outer_sha256
+                    END,
+                    content_sha256=CASE
+                        WHEN excluded.content_sha256<>'' THEN excluded.content_sha256
+                        ELSE pec_legal_notification_documents.content_sha256
+                    END,
+                    zip_sha256=CASE
+                        WHEN excluded.zip_sha256<>'' THEN excluded.zip_sha256
+                        ELSE pec_legal_notification_documents.zip_sha256
+                    END,
+                    zip_member_path=CASE
+                        WHEN excluded.zip_member_path<>'' THEN excluded.zip_member_path
+                        ELSE pec_legal_notification_documents.zip_member_path
+                    END,
+                    portal_document_id=CASE
+                        WHEN excluded.portal_document_id<>'' THEN excluded.portal_document_id
+                        ELSE pec_legal_notification_documents.portal_document_id
+                    END,
+                    portal_reference=CASE
+                        WHEN excluded.portal_reference<>'' THEN excluded.portal_reference
+                        ELSE pec_legal_notification_documents.portal_reference
+                    END,
+                    original_filename=CASE
+                        WHEN excluded.original_filename<>'' THEN excluded.original_filename
+                        ELSE pec_legal_notification_documents.original_filename
+                    END,
+                    authoritative=CASE
+                        WHEN excluded.authoritative THEN TRUE
+                        ELSE pec_legal_notification_documents.authoritative
+                    END
                 """,
                 (
                     str(document.get("id") or self._uuid()),

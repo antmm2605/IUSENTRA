@@ -1,7 +1,17 @@
 IUSENTRA - PRESIDIO NOTIFICHE PERSISTENTE
 PIANO, REGISTRO DI AVANZAMENTO E CHECKLIST DI RIPRESA
 
-Ultimo aggiornamento: 20/07/2026 15:43 (Europe/Rome)
+ULTIMO CICLO — 21/07/2026 09:45 Europe/Rome
+- Applicata sul server la regola comune di qualificazione della fonte: un atto di parte, una data contrattuale o un periodo descrittivo non possono generare automaticamente una scadenza. Per un termine serve una fonte dell'ufficio o un provvedimento e un ordine processuale esplicito.
+- La riconciliazione agisce esclusivamente sulle voci automatiche con il marcatore tecnico del documento sorgente: conserva ricorso e fascicolo, annulla la sola derivazione errata e registra nella nota il motivo. Non modifica scadenze manuali dello studio.
+- Corretto il traduttore della UI: il solo termine «notificato» nel nome di un file non può più trasformare un evento documentale in «Notifica».
+- Test mirati: 3 test della pipeline del presidio documentale, 1 test del bridge Scadenziario e 4 test della materializzazione delle notifiche superati. Una prima asserzione ha rilevato una normalizzazione dell'accento non coerente; è stata corretta e rieseguita con esito positivo.
+- Prova materiale su https://app.iusentra.it/scadenziario, tenant Studio Legale Giuseppe Montagnese: dopo riavvio del solo container iusentra-app e risposta pronta dell'API, la riga «Attività processuale da presidiare - 31/08/2026 - RG 143/2026» non è più presente nella vista operativa; nessun documento del fascicolo è stato eliminato.
+- Regola estesa richiesta dall'avvocato: prima dell'audit dell'intero archivio verrà costruita una matrice unica fonte → qualificazione → azione operativa → superfici pubblicate. Ogni scenario omogeneo dovrà produrre lo stesso esito in Presìdi notifiche, Scadenziario, Agenda, topbar e Web Push, con documento o PEC sorgente apribile.
+- Restano obbligatori: confronto delle voci esistenti, verifica su 127.0.0.1:8080, commit, push dei branch gemelli e deploy finale.
+
+Ultimo aggiornamento: 21/07/2026 09:45 (Europe/Rome)
+Stato corrente del campione Presidio/Agenda/topbar/Web Push: `artifacts/notifiche-legali/stato-campione-topbar-web-push-20260720.md`.
 Repository: antmm2605/IUSENTRA
 Branch di lavoro: Codex/legal-electronic-filing-kIxcV
 Branch gemello: claude/legal-electronic-filing-kIxcV
@@ -442,3 +452,674 @@ Ricevere i tre artifact corretti dagli agenti e rieseguirne hash, `git apply --c
 - Prova browser reale produzione sul fascicolo `BE831526`: visibili `Prova notifica depositata` e `Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare`; assenti `Relata da firmare` e `Firma relata`; click su `Apri prova depositata` porta a `#cancelleria`; console senza errori.
 - Pulizia Hetzner finale rieseguita: `docker builder prune --all --force` restituisce `Total: 0B`; `/opt/iusentra/tmp-backup-snapshot` assente.
 - Da fare solo per persistenza di questo aggiornamento di registro: commit documentale, push branch gemelli, verifica/deploy finale dello stesso contenuto documentato e controllo igiene repo.
+
+[20/07/2026 20:10 Europe/Rome] Nuova analisi obbligatoria prima del codice sul caso Alfano/RG 1100/2026:
+- L'utente ha segnalato il PDF `19040620s.pdf`, sentenza/verbale Tribunale di Padova del 16/07/2026, RG `1100/2026`, parte `GIUSEPPE ALFANO`, Carta docente, resa ex art. 429 c.p.c., e ha precisato che questo atto va notificato.
+- Decisione operativa: prima di scrivere altro codice va documentata la griglia degli atti che generano una notifica reale. Il presidio non deve marcare automaticamente ogni documento come `da notificare`; deve distinguere sentenze/provvedimenti notificabili, prove già raccolte/depositate, comunicazioni di cancelleria, documenti storici e atti solo da annotare.
+- Prima regola da correggere: il cutoff storico `19/07/2026` non può cancellare una nuova attività se il documento proviene da PEC/cancelleria o da elaborazione recente e contiene una sentenza da notificare. Il cutoff vale per storico già gestito, non per nuovi documenti ricevuti/elaborati che richiedono un presidio operativo.
+- Fonti avviate: Codice di procedura civile art. 429, 326, 327, 431, 433, 479; PST Ministero Giustizia su notificazioni L. 53/1994 via PEC e requisiti della relata/ricevute.
+- Da fare ora: verificare sul server Hetzner, nel DB reale del tenant `studio-legale-giuseppe-montagnese`, fascicolo Alfano/RG 1100/2026 e PEC collegate; poi riesaminare tutti i 301 fascicoli e le PEC con la nuova griglia, riportando naturalmente ciò che resta davvero da notificare.
+
+[20/07/2026 20:18 Europe/Rome] Perimetro ampliato su richiesta utente:
+- L'utente ha chiesto esplicitamente di non fare ricerche piccole e di costruire una logica completa su sentenze, notifiche, trattazione, opposizione, note scritte, rinvio udienze e il resto del flusso.
+- Sono stati attivati tre agenti: uno per matrice giuridica/fonti, uno per audit dati Montagnese/PEC, uno per architettura codice/prestazioni. Il coordinamento resta nel task principale e nessun codice va scritto finché la matrice non è coerente.
+- La matrice da produrre deve coprire almeno: sentenze ex art. 429 c.p.c. e non, comunicazioni di cancelleria, deposito/pubblicazione sentenza, notifica della sentenza per termine breve, titolo esecutivo/precetto, notifiche L. 53/1994 via PEC, RAC/RdAC, deposito prova, mancata consegna, trattazione scritta art. 127-ter c.p.c., opposizione/richiesta nei termini, note scritte, fissazione/rinvio udienza, udienza da remoto/mista/in presenza, ordinanze/decreti e provvedimenti cautelari/monitori.
+- Output richiesto prima del codice: per ogni evento indicare cosa deve andare in Agenda, cosa nello Scadenziario, cosa nella topbar/Web Push, cosa nel presidio interno fascicolo, cosa resta solo monitoraggio, e quali segnali impediscono falsi positivi.
+
+[20/07/2026 20:12 Europe/Rome] Richiesta utente: logica tecnico-giuridica prima del codice:
+- L'utente ha chiesto di non scrivere codice prima di aver capito e documentato quali atti devono essere notificati; quindi la fase codice resta sospesa.
+- Attivati agenti paralleli già disponibili: uno per la matrice giuridica da fonti ufficiali e uno per l'audit in sola lettura del tenant Montagnese, con focus su fascicoli, PEC, agenda, scadenziario e caso Alfano.
+- Obiettivo tecnico della matrice: distinguere `da notificare`, `solo monitoraggio/scadenza`, `già notificato con prova`, `comunicazione di cancelleria non notificabile`, `storico ante 20/07/2026 già gestito`, e `nuovo documento PEC/cancelleria che non deve essere oscurato dal cutoff storico`.
+- Da fare prima di implementare: verificare fonti normative/ufficiali, definire segnali testuali/documentali, criteri anti-falso positivo, criteri di prova della notifica già eseguita e mappa dei payload da scrivere in agenda, topbar, Web Push e fascicolo.
+
+[20/07/2026 20:25 Europe/Rome] Estensione richiesta dall'utente:
+- L'utente ha chiesto una logica tecnica e giuridica prima del codice e ha autorizzato l'uso degli agenti. Sono attivi tre filoni: matrice giuridica, audit dati reali Montagnese, architettura/codice del presidio.
+- La regola da validare sul caso Alfano è: sentenza/verbale ex art. 429 c.p.c. ricevuta via PEC/cancelleria o comunque elaborata come nuovo evento operativo deve aprire presidio `da notificare` se mancano relata, accettazione, consegna e prova depositata; non deve essere spenta dal cutoff storico solo perché il provvedimento è datato 16/07/2026.
+- La riverifica finale dovrà coprire tutti i 301 fascicoli visibili e le PEC pertinenti, riportando l'elenco naturale di ciò che resta da notificare e collegandolo ad agenda, scadenziario, topbar e Web Push senza scansioni pesanti al caricamento pagina.
+
+[20/07/2026 20:28 Europe/Rome] Ripresa dopo compattazione:
+- Riletti `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`, questo registro e la matrice tecnico-giuridica in costruzione.
+- Confermato stato repository: modifiche documentali aperte su questo registro e nuova matrice `artifacts/notifiche-legali/matrice-tecnico-giuridica-presidio-notifiche-20260720.md`; nessun nuovo codice applicativo scritto dopo la richiesta di fermarsi prima sulla logica.
+- Agenti attivi: matrice giuridica/fonti, audit dati Montagnese/PEC reali, architettura codice/prestazioni. In attesa degli esiti, ma il task principale continua a consolidare la regola madre.
+- Cosa è già emerso sul caso Alfano: l'attuale agenda/scadenziario non può fermarsi a `Opposizione alla trattazione scritta ex art. 127-ter c.p.c.`; il documento `19040620s.pdf` è una sentenza/verbale ex art. 429 c.p.c. e, se mancano relata/RAC/RdAC/prova depositata, deve aprire un presidio post-sentenza da notificare o almeno da valutare per notifica.
+- Cosa non fare ancora: non modificare codice, DB o UI finché la matrice non distingue in modo stabile sentenze, comunicazioni di cancelleria, trattazione scritta, opposizione 127-ter, udienze, notifiche L. 53, ricevute RAC/RdAC, prova depositata e storico realmente gestito.
+- Cosa resta da fare prima del codice: integrare gli esiti degli agenti, chiudere la matrice tecnica/giuridica, definire segnali anti-falso positivo e solo dopo applicare il fix server-first sul tenant `studio-legale-giuseppe-montagnese`.
+
+[20/07/2026 20:34 Europe/Rome] Verifica server reale in sola lettura su Alfano/RG 1100/2026:
+- Tenant verificato sul server Hetzner: `/data/tenants/studio-legale-giuseppe-montagnese`.
+- Fascicolo corretto: `C3565650`, `Alfano Giuseppe c. MIM`, Tribunale di Padova, RG `1100/2026`, stato `IN_CORSO`; esiste anche un secondo fascicolo Alfano non pertinente (`1CD1BDCC`).
+- PEC reale: `pec_8d456e0fe2f268159b5510b5`, account `giuseppe.montagnese94@pec.it`, ricevuta il `16/07/2026 13:01` ora italiana, collegata al fascicolo `C3565650` con confidenza `0,83`.
+- Allegati PEC rilevanti: `Comunicazione.xml` con oggetto `SENTENZA A VERBALE (art. 127 ter cpc)` e `19040620s.pdf.zip` con OCR della sentenza/verbale ex art. 429 c.p.c.; `Comunicazione.xml` è comunicazione/notificazione di cancelleria, non prova di notifica L. 53 eseguita dallo studio alla controparte.
+- Errore confermato nello scadenziario reale: voce aperta `Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)`, scadenza `2026-07-21`, `perentorio=1`, generata dalla PEC della sentenza; contiene anche falsi dettagli di udienza (`Orario udienza: 13:01`, `Codice di accesso: _fiscale_destinatario`).
+- Errore confermato nel V2 PEC: `pec_legal_events` per quella PEC ha `primary_event=udienza_online`, `priority=P0`, azioni agenda/scadenziario 127-ter e incasso non pienamente corretto; non esiste alcun record in `pec_legal_notification_presidia` per la sentenza Alfano.
+- Conclusione tecnica prima del codice: bisogna dare priorità al contesto `sentenza/decisione resa/fase decisoria` rispetto a `127-ter`, bloccare la proposta `CIV_OPPOSIZIONE_127_TER` quando `127-ter` è solo il rito con cui si è svolta l'udienza già decisa, creare/aggiornare presidio post-sentenza e correggere i falsi dati già materializzati.
+
+[20/07/2026 20:40 Europe/Rome] Matrice tecnico-giuridica consolidata prima del codice:
+- Riletti `AGENTS.md`, questo registro, `artifacts/data-flow/incarico-operativo-permanente.md` e `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`.
+- Creata/aggiornata la matrice `artifacts/notifiche-legali/matrice-tecnico-giuridica-presidio-notifiche-20260720.md`.
+- Fonti ufficiali/verificate usate per la logica: art. 429 c.p.c. su pronuncia della sentenza nel rito lavoro; art. 133 c.p.c. come modificato, secondo cui la comunicazione del deposito non fa decorrere i termini di impugnazione; art. 433 c.p.c. per appello rito lavoro; PST Ministero Giustizia sulla notifica PEC L. 53/1994 con oggetto, allegati, relata firmata, RAC e RdAC; artt. 325/326/327 c.p.c. come regole sui termini breve/lungo.
+- Regola tecnica fissata: `Comunicazione.xml` e PEC di cancelleria sono fonti dell'evento, non prove di notifica dell'avvocato; `RAC` senza `RdAC` non chiude; `RdAC` più RAC chiude la consegna; deposito prova chiude il presidio documentale.
+- Regola cutoff fissata: 19/07/2026 è solo overlay storico/migrazione e non può spegnere una PEC nuova, un allegato nuovo, una elaborazione nuova o una richiesta esplicita dell'avvocato.
+- Decisione caso Alfano/RG 1100/2026: l'agenda attuale non è sufficiente se resta su opposizione/trattazione 127-ter; la sentenza ex art. 429 del 16/07/2026 deve produrre `Sentenza resa ex art. 429 c.p.c. da esaminare`, `Valutare/preparare notifica sentenza` finché mancano prove complete, e presidio economico per spese distratte/adempimento Carta docente.
+- Performance: la UI deve leggere presidi materializzati; ricalcolo PEC/PDF/OCR/301 fascicoli solo in job/script incrementale, mai durante il caricamento pagina.
+- Da fare ora: attendere/integrare gli esiti degli agenti, ispezionare i punti esatti di codice e test, poi implementare server-first sul tenant Montagnese e rieseguire audit completo 301 fascicoli + PEC.
+
+[20/07/2026 20:55 Europe/Rome] Primo blocco codice/test locale sulla logica PEC:
+- Aggiornato `pct/pec_legal_event_understanding.py` per riconoscere `sentenza a verbale`, `art. 429` e `artt. 429`, `definitivamente decidendo`, e per dare priorità a `sentenza_a_verbale` quando il workflow precedente aveva classificato l'atto solo come udienza/127-ter.
+- La proposta `Opposizione alla trattazione scritta ex art. 127-ter` viene ora soppressa quando lo stesso testo è già una sentenza decisoria; resta il presidio `Esame sentenza e valutazione notifica senza termine breve automatico`.
+- I link tecnici `.dtd/.xsd` e gli schemi `processotelematico` non vengono più trattati come link udienza.
+- Aggiornato `pct/data/legal_notification_detection_rules_v1.json` a `legal_notification_detection_rules_v1.0.1` con la regola `notif.detect.sentenza_verbale_429_review.v1`, che crea candidato `judgment_to_notify_review` su sentenza a verbale/429 ma lascia `Comunicazione.xml` come fonte ufficio non probatoria.
+- Aggiornati i test `tests/test_legal_notification_rulepack.py` e `tests/test_pec_legal_event_understanding.py` con caso Alfano sintetico.
+- Gate mirato verde: `python -m pytest -q tests/test_legal_notification_rulepack.py tests/test_pec_legal_event_understanding.py -q`.
+- Da fare ora: materializzare i candidati `notifications` del JSON PEC V2 nelle tabelle `pec_legal_notification_presidia`, con destinatari da verificare se non c'è PEC certa, senza scansioni in UI.
+
+[20/07/2026 21:10 Europe/Rome] Materializzazione presidi PEC V2 implementata e testata localmente:
+- Aggiornato `pct/pec_notification_presidio/historical_policy.py`: per `judgment_to_notify_review`/`judgment_short_term_review` provenienti da pipeline PEC live, il cutoff storico non chiude automaticamente; lo stato resta `NEEDS_REVIEW` se manca prova completa.
+- Aggiornato `pct/pec_pipeline.py`: dopo `validate_message` e dopo `refresh_validation_reports`, i candidati `notifications` del JSON V2 vengono trasformati in righe idempotenti `pec_legal_notification_presidia`.
+- Il materializzatore usa eventi e allegati già persistiti, non rilegge mailbox/PDF/OCR nella GET UI; se manca PEC certa del destinatario crea `Destinatario da verificare`, senza inventare indirizzi.
+- Test aggiunti in `tests/test_pec_notification_presidio.py`: cutoff non chiude sentenza decisoria da pipeline PEC e flusso end-to-end PEC sentenza 429 -> presidio `Da esaminare`.
+- Gate mirato verde: `python -m pytest -q tests/test_pec_notification_presidio.py tests/test_legal_notification_rulepack.py tests/test_pec_legal_event_understanding.py -q`.
+- Da fare ora in server-first: trasferire patch su Hetzner, rielaborare `pec_8d456e0fe2f268159b5510b5`, verificare presidio generato per fascicolo Alfano, poi estendere audit a tutte le PEC/fascicoli Montagnese.
+
+[20/07/2026 21:18 Europe/Rome] Verifica server reale caso Alfano:
+- File codice/regole trasferiti su `/opt/iusentra/repo` e copiati nel container `iusentra-app`; `py_compile` nel container verde sui moduli toccati.
+- Rielaborata sul server la PEC `pec_8d456e0fe2f268159b5510b5` del tenant `studio-legale-giuseppe-montagnese` con `PecAuditRepository.validate_message`.
+- Esito materializzatore: `checked=1`, `created=1`, `existing=0`, `skipped=0`, `errors=[]`.
+- Nuovo evento V2: `primary_event=sentenza_a_verbale`, `priority=P1`, eventi `udienza_online`, `sentenza_a_verbale`, `sentenza_rito_lavoro_art_429`, `deposito_sentenza`.
+- Deadline/azioni post-sentenza: `Valutare/preparare notifica sentenza` e `Esame sentenza e valutazione notifica senza termine breve automatico`; non è più presente la falsa opposizione 127-ter.
+- Presidio creato: id `57a10647-21ec-471b-bde5-f6196b2f7651`, fascicolo `C3565650`, stato `NEEDS_REVIEW`, priorità `P1`, `notification_case=judgment_to_notify_review`, `legacy_assumed_handled=0`.
+- Da fare ora: audit server completo su PEC e 301 fascicoli, con elenco naturale di ciò che resta da notificare, poi verifica UI produzione `/notifiche-legali` e fascicolo Alfano.
+
+[20/07/2026 21:30 Europe/Rome] Ampliamento del cervello tecnico-giuridico su richiesta utente:
+- L'utente ha chiarito che il presidio deve ragionare come un avvocato e basarsi su logica giuridica dimostrabile, con articoli e fonti, prima di estendere gli automatismi.
+- Consultate fonti ufficiali su c.p.c./notifiche PEC (Gazzetta Ufficiale e PST Ministero), processo amministrativo, processo penale, Carta docente/CGUE/Cassazione e fonti professionali usate soltanto come radar.
+- Consultata anche la Guida Pratica interna: catalogo curato, termini, template e schede su opposizioni, monitorio, esecuzione, cautelare, impugnazioni, lavoro, notifiche, amministrativo e penale. La Guida viene usata per trovare scenari e controlli, non come sostituto della norma.
+- Aggiornata `artifacts/notifiche-legali/matrice-tecnico-giuridica-presidio-notifiche-20260720.md` con: gerarchia delle fonti, domande operative per ogni fascicolo, separazione dei canali processuali, catena di prova della notifica, criteri di prudenza e vincoli prestazionali.
+- Creato il registro permanente `docs/PEC_NOTIFICATION_LEGAL_SOURCE_REGISTER_20260720.md`: fonti, articoli, usi consentiti, limiti, campi minimi di una regola eseguibile e distinzione tra fonte primaria e fonte-radar.
+- Regola confermata: un termine o un automatismo entra nel motore solo se è registrata la fonte primaria, il rito, il fatto generatore, il dies a quo, la prova richiesta, le eccezioni e il comportamento prudente. Altrimenti il risultato resta `da verificare` e non genera una falsa scadenza o una falsa notifica.
+- Da fare ora: completare l'analisi delle fonti e dei casi dai risultati degli agenti, trasformare la matrice in un rulepack versionato per canale e soltanto dopo concludere audit e UI sul server Montagnese.
+
+[20/07/2026 20:49 Europe/Rome] Ripresa operativa dopo compattazione:
+- Riletti di nuovo `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`, questo registro e la skill PDF.
+- Confermato il metodo richiesto dall'utente: prima logica tecnico-giuridica, poi codice e dati; niente scansioni pesanti in UI, solo materializzazione server/job.
+- Agenti ancora attivi ma senza esito finale al momento; il task principale prosegue e integrerà i loro risultati appena arrivano.
+- Cosa risulta già fatto: matrice fonti/regole, fix codice locale mirato, test locali verdi, hotfix copiato su server, container Hetzner healthy e PEC Alfano rielaborata con presidio `NEEDS_REVIEW`.
+- Cosa resta ora: audit completo server su 301 fascicoli e PEC, correzione dati materializzati falsi già presenti nello scadenziario, verifica che il presidio arrivi in pannello unico/topbar/calendario/Web Push, poi prova reale produzione, riallineo locale, commit, push branch gemelli e deploy finale.
+
+[20/07/2026 22:10 Europe/Rome] Fonti normative rese controllo eseguibile:
+- Consultato il testo ufficiale Normattiva del c.p.c. e della L. 533/1973 per collocare correttamente gli artt. 133, 285, 324-327, 429 e 431 c.p.c.; il caso Alfano resta una sentenza ex art. 429, non una mera opposizione alla trattazione scritta.
+- Corretto un difetto del rulepack: le regole richiamavano gli artt. 133, 325, 326 e 429 ma tali chiavi non erano censite nel registro tecnico delle fonti.
+- Aggiornato `pct/data/legal_sources_registry.json` con le fonti ufficiali e le istruzioni di acquisizione con hash per artt. 91, 93, 133, 285, 324-327, 429, 431 c.p.c. e art. 1, comma 121, L. 107/2015.
+- Aggiunto `validate_rulepack_source_references`: ogni regola eseguibile deve ora indicare esclusivamente fonti presenti nel catalogo; una fonte assente blocca il caricamento del rulepack e il test di regressione. Il controllo e' cacheato per processo e non aggiunge scansioni, rete o I/O al caricamento della UI o alla singola PEC.
+- Aggiornato il registro `docs/PEC_NOTIFICATION_LEGAL_SOURCE_REGISTER_20260720.md` per separare il censimento della fonte dalla verifica dello snapshot ufficiale: una fonte con stato `acquisition_required` non autorizza un nuovo automatismo perentorio.
+- Test tecnico mirato rieseguito sullo stato stabile: `python -m pytest -q tests/test_legal_notification_rulepack.py tests/test_pec_legal_event_understanding.py tests/test_pec_legal_deadline_proposer.py` = 49 test superati.
+- Integrità UTF-8 verificata su registro, matrice, fonti e catalogo tecnico: `utf8-integrity` = 4 file controllati, 0 artefatti.
+- Prossimo: integrare i rapporti degli agenti, completare il rulepack per canale/rito e svolgere l'audit server completo con risultati materiali per i 301 fascicoli e le PEC del tenant Montagnese.
+
+[20/07/2026 22:20 Europe/Rome] Regola di qualità confermata dall'utente:
+- Un test o un controllo che fallisce indica lavoro incompleto, non un dettaglio da minimizzare. Nessun fallimento tecnico, giuridico, dati, UI o deploy può essere presentato come esito positivo o come lavoro concluso.
+- Il primo test delle fonti ha intercettato una incoerenza temporanea tra rulepack e catalogo durante modifiche concorrenti. Nessun dato del tenant, PEC, agenda, scadenziario o produzione è stato modificato da quel test.
+- Correzione adottata: le fonti mancanti sono state censite, il controllo ora è cacheato per processo e la suite mirata stabile è stata rieseguita con 49 test superati.
+- Procedura da rispettare: bloccare le modifiche concorrenti a rulepack/fonti prima dei test; eseguire audit e verifica finale soltanto sullo stato congelato; se un qualsiasi controllo fallisce, correggere e rieseguire finché non resta alcun errore nel perimetro da consegnare.
+
+[20/07/2026 22:25 Europe/Rome] Controllo mirato su stato congelato:
+- Eseguita una sola suite coerente per rulepack fonti, comprensione eventi PEC, proposta termini, presidio PEC e materializzatore Agenda/Topbar/Web Push.
+- Comando: `python -m pytest -q tests/test_legal_notification_rulepack.py tests/test_pec_legal_event_understanding.py tests/test_pec_legal_deadline_proposer.py tests/test_pec_notification_presidio.py tests/test_notification_relata_materializer.py`.
+- Esito: 56 test superati, nessun errore nel perimetro tecnico appena congelato.
+- Questo controllo non sostituisce ancora l'audit reale tenant Montagnese, la prova browser su produzione e la prova macchina locale: tali verifiche restano obbligatorie e il lavoro resta aperto.
+
+[20/07/2026 21:33 Europe/Rome] Blocco di accettazione reale rilevato dall'avvocato prima della migrazione dati:
+- L'avvocato ha segnalato correttamente che la voce operativa `Notifica sentenza da presidiare - Fascicolo FB586324` non riporta il cliente, la pratica o il R.G.; mostra inoltre testo duplicato e il marcatore interno `IUSENTRA_LEGAL_NOTIFICATION:...` nello scadenziario.
+- Riproduzione materiale eseguita su `https://app.iusentra.it/notifiche-legali`, tenant `Studio Legale Giuseppe Montagnese`, sessione amministratore: risultano ancora `10` presidi nella coda `Da esaminare`; la tabella espone anche codici tecnici non ammessi (`judgment_to_notify_review`, versione regola e identificativi sorgente) anziche' etichette operative per lo studio.
+- Causa dati: cinque PEC anteriori al cutoff sono state materializzate due volte per versioni diverse dello stesso evento; il filtro storico non e' stato ancora applicato ai record gia' esistenti. Il solo caso Alfano `C3565650` resta da tenere attivo in forza della richiesta espressa dell'avvocato; gli altri quattro casi storici non devono restare nella coda operativa.
+- Causa contratto dati/UI: il payload del presidio crea l'etichetta generica `Fascicolo <id>` senza arricchirla dal repository tenant-aware di fascicoli; il materializzatore agenda/scadenziario non salva `id_fascicolo`, perciò cliente, parte e R.G. non possono essere risolti. Il marcatore tecnico serve alla deduplicazione, ma non viene rimosso nella rappresentazione visibile.
+- Questo è un difetto bloccante. La migrazione sul database reale è sospesa finché non sono pronti e verificati: (1) dati di pratica completi e tenant-aware nel payload, (2) etichette umane senza chiavi/regole interne, (3) collegamento fascicolo nello scadenziario, (4) mascheramento del marcatore tecnico, (5) deduplicazione storica auditata e (6) prova browser di produzione sull'unico presidio realmente attivo.
+- Salvato prima di ogni modifica un backup SQLite consistente `pec_audit.pre_notification_presidio_20260720_192850.sqlite`, `quick_check=ok`, SHA-256 `c026ba25544ec2d157fcb799dfd45e7e6cb0642a2a95b19b02b3465fe4490c3c`; sono salvate anche copie delle notifiche e dello scadenziario. Il backup globale non è stato forzato: il disco ha 17 GB liberi a fronte di circa 193 GB di dati, quindi forzarlo avrebbe potuto compromettere il server.
+- Esiti tecnici non accettati e corretti nel metodo, senza alcuna scrittura sui dati del tenant: tentativo di importare un'app Flask come oggetto invece che factory; avvio completo della factory oltre timeout; quoting PowerShell errato per lettura ambiente. Da ora la verifica tenant usa direttamente `GestioneTenant('/data/tenants.json')`, senza bootstrap dell'app, e gli script vengono prima provati su copia SQLite del backup.
+- Prossimo passo obbligatorio: patch minima server-first di contratto/presentazione + test su copia del database, quindi applicazione auditata e idempotente sul server, riapertura visibile di `/notifiche-legali`, dettaglio scadenza, Agenda, topbar e Web Push. Solo dopo la prova reale positiva riprende l'audit completo delle PEC e dei 301 fascicoli.
+
+[20/07/2026 21:55 Europe/Rome] Ciclo di correzione UI e blocco infrastrutturale gestito prima dei dati reali:
+- Corretto il contratto React/API del presidio: la pratica viene ora risolta dal repository fascicoli del tenant attivo e restituisce cliente/parte, oggetto, R.G. e ufficio; se il fascicolo non e' risolvibile la UI mostra soltanto `Pratica da completare`, mai l'identificativo interno.
+- Corrette le etichette visibili: `judgment_to_notify_review` diventa `Sentenza da valutare per la notifica`; le chiavi delle fonti sono rese con norma in italiano; versione del rulepack e marcatori interni non sono piu' dati di interfaccia.
+- Corretto il materializzatore: salva `id_fascicolo` anche nelle scadenze originate dal presidio, conserva nel campo tecnico soltanto il marker di deduplicazione e non duplica il messaggio. Il bridge Scadenziario elimina il marker `IUSENTRA_LEGAL_NOTIFICATION` prima della rappresentazione utente.
+- Primo test mirato fallito: la nuova asserzione ha rilevato che il presidio proveniente dal fascicolo non forniva `fascicoloId`, quindi lo Scadenziario non poteva collegare cliente/R.G. Corretto nel costruttore comune `_legal_notification_item`; nessun dato tenant e' stato modificato da questo test.
+- Dopo la correzione: suite mirate passate, `61` controlli complessivi su payload, marker, materializzatore, rulepack, evento PEC, termini e presidio. Restano guardrail tecnici: non sostituiscono la prova visuale reale.
+- Nuova prova materiale richiesta dall'avvocato: nella produzione attuale resta visibile il codice tecnico evidenziato nel browser. Il requisito e' esplicito: linguaggio soltanto italiano, senza chiavi di sistema.
+- Blocco operativo Hetzner: durante il controllo server e' emerso disco saturo. Non sono stati cancellati fascicoli, PEC, allegati, database o volumi. E' stata eliminata esclusivamente la copia temporanea `pec_audit.notification_presidio_simulation_20260720.sqlite` (2.329.206.784 byte), dopo verifica del path; la copia preventiva PEC verificata resta presente.
+- Recuperati ulteriori 5,88 GB solo con `docker builder prune --all --force`; applicazione, scheduler e OCR sono stati riavviati e `https://app.iusentra.it/api/pronto` e' tornato `ok=true`.
+- La crescita anomala riguarda il WAL SQLite di `studio.db` (circa 31 GB). Un primo controllo integrale, troppo invasivo, e' stato interrotto; il relativo processo diagnostico residuo e' stato terminato. Un secondo checkpoint e' stato fermato prima della saturazione: non ha eliminato dati e il WAL resta fonte coerente delle transazioni. Il consolidamento definitivo richiede prima spazio libero adeguato.
+- Per non eliminare l'unico archivio completo server, e' stata avviata una copia aggiuntiva sul PC locale in `D:\legale\backups\iusentra\`; il backup remoto da 56 GB restera' intatto finche' hash e dimensione della copia locale non saranno verificati. Solo allora potra' essere rimosso dal server per liberare spazio con una copia conservata.
+- Ancora da fare, in quest'ordine: completare e verificare la copia di sicurezza; liberare il margine necessario; copiare la patch server-first, ricompilare gli asset React, simulare la deduplicazione su copia isolata; applicare la migrazione auditata al solo tenant Montagnese; verificare nel browser produzione tabella, dettaglio, Scadenziario, Agenda e topbar; poi aggiornare locale, commit, push e deploy finale.
+
+[20/07/2026 22:25 Europe/Rome] Correzione del metodo dopo il riscontro dell'avvocato:
+- L'avvocato ha rilevato, a ragione, che la sequenza richiesta non era stata rispettata: prima ottenere un risultato visibile corretto su un caso, poi estendere il ciclo automatico all'intero archivio. Il lavoro non è considerato riuscito né esteso finché i casi Alfano e Romeo non risultano corretti materialmente in Agenda e nel Presidio.
+- Causa tecnica confermata con lettura diretta del server: le scadenze aperte `CIV_OPPOSIZIONE_127_TER` dei fascicoli `C3565650` (Alfano) e `78D6022C` (Romeo) sono derivate automaticamente da PEC che la logica aggiornata qualifica come sentenze; l'Agenda conserva le copie collegate. Non sono opposizioni reali.
+- Implementata una riconciliazione automatica per messaggio PEC: a ogni elaborazione aggiornata il sistema confronta i marker persistiti `PEC_AUDIT`, annulla soltanto le scadenze e gli appuntamenti automatici non più confermati e conserva audit e storico. Non modifica attività prive del marker di proprietà della pipeline.
+- Aggiunto test di regressione: una precedente `Opposizione alla trattazione scritta` viene annullata, insieme all'Agenda collegata, quando la nuova elaborazione riconosce una sentenza senza termine automatico. Il test mirato è passato insieme ai test di riparazione preesistenti.
+- Patch copiata prima sul server Hetzner e nel container applicativo; compilazione Python riuscita e `/api/pronto` ha risposto correttamente. Nessun dato reale è stato ancora modificato da questa nuova riconciliazione.
+- Primo test sui dati reali isolati non è stato eseguito fino al termine: lo script è stato lanciato per errore nell'host, dove manca `psycopg2`; il processo ha fallito prima di elaborare o scrivere i file di produzione. Il prossimo test usa lo stesso contenitore applicativo con le dipendenze effettive, su copie isolate di `pec_audit.sqlite`, Agenda e Scadenziario.
+- Regola operativa ripristinata: (1) risultato corretto e visibile su Alfano/Romeo in copia isolata; (2) applicazione auditata sui soli due casi in produzione; (3) verifica visibile; (4) solo se il risultato è ottimale, esecuzione incrementale automatica sull'intero tenant e audit conclusivo dei 301 fascicoli.
+
+[20/07/2026 22:32 Europe/Rome] Primo ciclo reale concluso soltanto sui due casi campione:
+- La simulazione eseguita nel contenitore applicativo, su copie isolate dei dati del tenant, ha qualificato le PEC Alfano e Romeo come comunicazioni di cancelleria relative a sentenza, senza una scadenza automatica di opposizione. Per entrambe la riconciliazione ha individuato una sola attività automatica obsoleta e l'ha annullata nella copia; per Romeo anche l'appuntamento Agenda collegato.
+- Applicata in produzione, esclusivamente alle due PEC già verificate, la stessa riconciliazione idempotente. Le scadenze `4f18f01a-1401-4b8d-bfa1-628f7243ca5a` (Alfano) e `19875602-44d4-4af1-a9fd-dc087c10fcd7` (Romeo), e l'appuntamento `E9DE3212` (Romeo), sono ora `ANNULLATO` nello storico. Non sono stati toccati altri fascicoli, PEC, appuntamenti o scadenze.
+- Il primo controllo visuale Agenda ha rilevato un ulteriore difetto: l'API React continuava a restituire le righe `ANNULLATO`, quindi le false opposizioni restavano visibili malgrado l'annullamento corretto nel repository.
+- Correzione minima server-first: `web/services/react_agenda_bridge.py` esclude ora Agenda e Scadenziario con stato `COMPLETATO` o `ANNULLATO` dalla vista operativa, preservandoli nello storico. Test aggiunto: `test_react_agenda_bridge_esclude_azioni_annullate_dal_planner_operativo`; insieme al contratto Agenda esistente, 2 test mirati superati.
+- Applicata la stessa correzione al solo container `iusentra-app`; compilazione Python riuscita e `/api/pronto` ha risposto correttamente.
+
+[20/07/2026 22:50 Europe/Rome] Riapertura obbligatoria del campione dopo il riscontro dell'avvocato:
+- L'avvocato ha rilevato correttamente che l'annullamento delle false opposizioni, da solo, non costituisce il risultato richiesto: il software deve pubblicare l'azione corretta che consenta di valutare la notifica della sentenza.
+- Il criterio del campione viene quindi corretto e riaperto: per Alfano/RG 1100/2026 e Romeo/RG 1428/2026 deve restare un solo presidio attivo denominato `Sentenza da valutare per la notifica`, con cliente, R.G., ufficio e istruzione operativa in italiano; lo stesso elemento deve essere visibile in Presidio notifiche, Agenda, topbar e canale Web Push.
+- Causa individuata: una stessa PEC poteva produrre presìdi duplicati quando il destinatario veniva estratto con testo diverso; inoltre il materializzatore generale avrebbe percorso tutti i fascicoli, in contrasto con il collaudo preventivo sul solo campione.
+- Correzione implementata ma non ancora applicata ai dati reali: identità semantica stabile `PEC + fascicolo + caso di notifica`, deduplicazione conservativa soltanto quando coincidono anche i documenti, audit della riga annullata e pubblicatore campione che non scansiona, non modifica e non chiude elementi estranei.
+- Primo controllo tecnico della deduplicazione ha fallito su un campo di esito della transizione; il difetto è stato corretto prima di qualunque distribuzione. Suite mirata successiva: 12 test superati (`test_pec_notification_presidio.py` e `test_notification_relata_materializer.py`).
+- Stato attuale: nessuna estensione ai 301 fascicoli. Prossimo passo esclusivo: applicare il codice al server, rielaborare soltanto le due PEC campione, pubblicare soltanto i due presìdi risultanti e verificare materialmente le quattro superfici richieste. Se uno solo dei dati o testi visibili non è corretto, il ciclo resta sul difetto.
+- Verifica visiva reale su `https://app.iusentra.it/agenda?vista=week&data=2026-07-20`, tenant Studio Legale Giuseppe Montagnese: il planner mostra 3 elementi; non mostra più `Opposizione alla trattazione scritta` per Alfano/RG 1100/2026 né per Romeo/RG 1428/2026. Restano visibili solo due opposizioni di altri fascicoli, non ancora valutate e quindi non modificate.
+- Criterio superato per il campione: l'annullamento sul dato e la scomparsa dalla vista operativa coincidono. Prossimo passo autorizzato dal risultato, non ancora avviato: costruire l'audit incrementale automatico su copia isolata dell'intero tenant, con invarianti esplicite e report; soltanto se il report è coerente, applicarlo al server e verificare l'intero esito.
+
+[21/07/2026 09:15 Europe/Rome] Ripresa post-compattazione, fonte PEC e uniformità Agenda:
+- Riletti `AGENTS.md`, questo registro e `artifacts/data-flow/incarico-operativo-permanente.md`; riesaminato il contratto dati PEC, Agenda e Scadenziario prima di ogni nuova modifica.
+- Verifica diretta sul tenant `studio-legale-giuseppe-montagnese`: i due casi campione pubblicati, Alfano/RG 1100/2026 e Romeo/RG 1428/2026, sono entrambi `NEEDS_REVIEW` con una PEC sorgente e un allegato ZIP/PDF; solo Romeo aveva però il marcatore tecnico interno `PEC_AUDIT` nella scadenza. Perciò l'azione `Apri fonte` era disponibile materialmente soltanto per Romeo: difetto di pubblicazione, non differenza giuridica tra i due casi.
+- L'avvocato ha indicato il comportamento da riusare: quando una scadenza contiene sia `PEC_AUDIT` sia il nome dell'allegato ZIP, l'azione `Apri fonte` usa la route esistente `/api/v1/ui/email/source/...` e mostra direttamente il documento estratto dall'archivio, con il download dell'originale. Questa è la via da riusare, non una nuova vista PEC da inventare.
+- Regola corretta da applicare in modo generale: ogni `Sentenza da valutare per la notifica` pubblicata dall'automatismo deve conservare, oltre al fascicolo, l'identificativo della PEC sorgente e il nome dell'allegato documentale; Agenda e Scadenziario devono quindi aprire direttamente la stessa fonte per tutti i casi, senza collegamenti manuali per singolo fascicolo.
+- Verifica dati preventiva: esistono presìdi storici duplicati per alcune PEC. La riconciliazione già prevista li annulla soltanto se coincidono PEC, fascicolo, caso, canale e documento; non verrà estesa ai 301 fascicoli in questa fase di correzione visuale. Il ciclo corrente resta limitato ai due casi campione già pubblicati, poi verrà ripetuto in forma incrementale e auditata sull'intero tenant.
+- Da fare ora: aggiungere al materializzatore il nome dell'allegato fonte, pubblicare il marcatore completo anche per Alfano, provare materialmente entrambi i casi su produzione. Solo dopo verranno eseguiti i test mirati, il riallineamento Docker locale su `127.0.0.1:8080`, commit, push dei branch gemelli e deploy ordinato.
+
+[21/07/2026 09:28 Europe/Rome] Difetto bloccante segnalato nello Scadenziario — fascicolo Zagari Giovanna/RG 143/2026:
+- Verifica diretta sul database SQL del tenant: la scadenza aperta `2e139ac3-e9d1-41f2-ab78-8d096900b864` è stata generata automaticamente dal documento del fascicolo `Ricorso Zagari (originale notificato).pdf`, non da una PEC o da un provvedimento dell'ufficio.
+- La data `31/08/2026` è stata estratta dalla frase relativa al contratto di lavoro della ricorrente (dal `04/09/2025` al `31/08/2026`): non è un termine processuale, un adempimento o una nuova notifica.
+- Causa confermata: il recupero documentale ammetteva ogni data etichettata come `termine` senza verificare che il documento fosse un atto dell'ufficio e che il contesto contenesse un ordine processuale. La UI aggravava il falso positivo traducendo la parola `notificato` nel nome del file come evento `Notifica`.
+- Correzione in corso: filtro conservativo alla radice per atti di parte e date contrattuali/descrittive; generazione automatica solo per provvedimenti o comunicazioni dell'ufficio con ordine operativo esplicito; riconciliazione auditata della sola scadenza e dell'appuntamento derivato dal medesimo marker. Nessun fascicolo o dato estraneo è stato modificato in questa fase.
+
+### Aggiornamento 21/07/2026 - uniformità fonte PEC, Scadenziario e calcolatore
+
+- Confermata la regola unica per ogni avviso `Sentenza da valutare per la notifica`: la fonte è la PEC identificata, con allegato nominato; Agenda e Scadenziario aprono la stessa route diretta del documento e non una pagina generica della posta.
+- Corretto il dettaglio PEC generato dal controllo audit: ogni allegato, compresi `.zip`, ora espone visualizzazione e scarico attraverso `/api/v1/ui/email/source/<pec>?name=<allegato>`. Il server estrae in modo controllato il PDF disponibile nello ZIP, senza caricare navigazione, topbar o Lex dentro la vista fonte.
+- Spostato il calcolatore in `/scadenziario/calcola-termini`, raggiungibile dalla navigazione come `Calcola termini processuali`. La pagina carica soltanto template, regole e fonti del calcolo; lo Scadenziario non richiede più i template, così resta più rapido nel caricamento.
+- I collegamenti della Guida Pratica mantengono il codice guida quando aprono il nuovo calcolatore, quindi mostrano le sole regole pertinenti invece della lista completa.
+- Ridotte densità e dimensioni delle card di riepilogo e delle azioni nello Scadenziario, mantenendo contrasto, stato selezionato e pulsanti leggibili.
+- Guardrail eseguiti prima della prova server: TypeScript senza errori; test mirati su calcolatore, bridge Scadenziario, fonti PEC, rilevazione atti di parte e materializzatore relata superati. Prova reale sul server e campagna finale restano obbligatorie e il lavoro è aperto.
+- Ancora da fare: applicare il pacchetto completo sul server, controllare materialmente fonte ZIP/PDF, nuova pagina calcolatore, card compatte, chiusura modali, tutti i presìdi omogenei e i 301 fascicoli; solo dopo riallineare locale, eseguire i gate completi, commit, push dei branch gemelli, deploy finale, pulizia e spegnimento PC autorizzato dall'utente.
+
+### Aggiornamento 21/07/2026 - ciclo completo PEC, regola unica in corso
+
+- La prova reale in Agenda ha confermato che le righe di Speranza Carmelina/RG 1480/2026 e Monea Mariano/RG 1394/2026, originate da `SENTENZA A VERBALE (art. 127-ter c.p.c.)`, erano ancora etichettate come `Opposizione alla trattazione scritta`. Non è una qualificazione accettabile: il riferimento storico all'art. 127-ter non prova da solo una opposizione o un'udienza futura.
+- Corretto il job `repair_pec_deadlines`: per ogni riga automatica PEC rilegge la fonte con la stessa logica dell'acquisizione, annulla esclusivamente i derivati `PEC_AUDIT` che non hanno più un termine o un'udienza confermati e non può riaprirli tramite la cache del repository. Le scadenze manuali restano escluse perché prive del marker di proprietà.
+- Aggiunto il test di regressione `test_pec_repair_reconciles_old_127ter_deadline_when_decision_is_reclassified`; insieme ai casi sentenza a verbale e riconciliazione 127-ter, i controlli mirati hanno superato 3 test. Verificato inoltre che il runtime include `psycopg2-binary`, necessario per eseguire l'audit PEC con il contratto SQLite/PostgreSQL effettivo.
+- Individuata e corretta anche la dipendenza di packaging: il driver PostgreSQL era dichiarato nel file requisiti ma non nel runtime del pacchetto Docker, rendendo impossibile avviare l'audit pur senza cambiare il backend SQLite attivo del tenant.
+- Applicate le due correzioni prima sul server Hetzner; `iusentra-app` è unico e healthy, `https://app.iusentra.it/api/pronto` restituisce `ok=true`.
+- Avviata sul solo tenant Montagnese la rigenerazione auditata di tutti i report PEC già acquisiti e la riconciliazione delle scadenze automatiche. Il job è in corso alla scrittura di questo registro: non sono ancora dichiarati corretti i 301 fascicoli, le false classificazioni residue, Agenda, topbar, Web Push o la copia locale.
+- Resta obbligatorio: attendere il report completo, correggere ogni esito residuo, provare materialmente il risultato sul server, aggiornare la copia Docker locale `127.0.0.1:8080`, rieseguire i gate, aggiornare la documentazione sensibile, commit, push dei branch gemelli, deploy finale, pulizia e spegnimento PC autorizzato.
+
+### Aggiornamento 21/07/2026 - riallineamento identità PEC e audit di copertura
+
+- Recuperato e verificato il database PEC del tenant dopo l'interruzione precedente: il journal SQLite è stato applicato su copia consistente, `PRAGMA quick_check` ha restituito `ok` e il database recuperato è stato ripristinato senza cancellare PEC, allegati, fascicoli o volumi. Una copia preventiva verificata è conservata nel percorso di backup del tenant.
+- La migrazione tenant-aware ha ricondotto i record operativi del controllo PEC al tenant `studio-legale-giuseppe-montagnese`: `1.365` messaggi, `9.896` job e `9.503` elementi di acquisizione sono ora visibili con il tenant corretto. I log append-only storici non sono stati riscritti.
+- Rieseguita la logica unica sulle fonti già acquisite: le false attività `Opposizione alla trattazione scritta` dei casi Speranza/Monea risultano annullate nello storico; i due presìdi reali Romeo/Alfano, `Sentenza da valutare per la notifica`, restano aperti e non vengono cancellati dalla riconciliazione.
+- Individuato un errore dell'audit, non un vuoto di dati: esso assimilava ogni email dotata di `Message-ID` a una PEC e segnalava quattro falsi casi `127-ter`. La regola ora riconosce PEC solo da evidenze PEC reali (busta, stato, mittente/contenuto o tracciati) e considera falso remoto 127-ter soltanto una sentenza decisoria con collegamento remoto realmente estratto, non una trattazione scritta, una L. 53, un PDF da leggere o una fissazione di termine corretta.
+- La lettura diretta dell'archivio ha individuato `982` PEC effettive e `48` ricevute PEC con MIME presente ma ancora senza ultima riga di controllo; non sono atti persi. È in corso il loro presidio con la stessa pipeline, senza OCR nel ciclo ordinario e con commit a blocchi per non trattenere il database. L'API di produzione è rimasta reattiva durante il controllo (`0,05–0,09 s` su `/api/pronto`).
+- Stato: lavoro aperto. Prima della chiusura devono risultare: copertura puntuale delle `982` PEC, audit senza falsi positivi, verifica reale di Agenda/Scadenziario/Presìdi/fonte PEC/topbar-Web Push sul server, test reale sulla copia locale, gate, commit, push, deploy finale e pulizia.
+
+### Aggiornamento 21/07/2026 - ricevute PEC, fonte specifica e cliente non forzato
+
+Richiesta utente: nella scheda Agenda `Ricevuta di accettazione PEC da presidiare · Comunicazione di cancelleria` l'avvocato deve capire a cosa si riferisce la ricevuta, vedere il cliente/fascicolo solo se il collegamento è certo e, con `Apri origine`, visualizzare soltanto la PEC specifica di accettazione o consegna, senza dashboard della casella e senza Lex dentro la fonte.
+
+Analisi sul server reale, tenant `studio-legale-giuseppe-montagnese`:
+
+- scadenza controllata: `587c1f99-08a4-4847-8e13-c1ee372410fd`;
+- comunicazione Control Tower: `lcom_9451841b00e74febb0360758`;
+- PEC audit collegata: `pec_f205aa7f34c13b363f94af81`;
+- oggetto reale: `ACCETTAZIONE: Liquidazione delle spese legali relative sentenza n.325/2025 pubblicata il 26/02/2025 Tribunale di Vibo Valentia`;
+- destinatario della PEC inviata dallo studio: `usp.vv@istruzione.it`;
+- la ricevuta prova l'accettazione/presa in carico dal gestore, non la consegna finale; quindi l'attività corretta è verificare la ricevuta di consegna collegata o l'esito successivo;
+- il match fascicolo trovato è solo debole: `Contarese c. MIM`, score `1.5`, `requiresHumanMatch=true`. Per evitare falso collegamento, il software non scrive cliente/RG come certi e mostra `Possibile fascicolo da verificare: Contarese c. MIM`.
+
+Correzioni applicate:
+
+- nuovo resolver comune `web/services/pec_source_links.py` usato da Agenda e Scadenziario: risolve una sola volta le fonti Control Tower, trova la PEC specifica tramite `mime_sha256`, `message_id_header` o fallback controllato per oggetto/data, e blocca i collegamenti fascicolo quando il match richiede revisione umana o ha score basso;
+- Agenda e Scadenziario ora usano la stessa fonte: `sourceHref=/email/?audit_id=<PEC>&embed=source` nella visualizzazione incorporata, senza aprire la casella PEC generica;
+- il dettaglio operativo mostra in italiano: oggetto PEC, destinatario, mittente, possibile fascicolo da verificare e attività per l'avvocato;
+- la shell React e `base.html` non caricano più il widget/scripts Lex quando la pagina è aperta come fonte incorporata con `embed=source`;
+- rinforzata l'etichetta delle ricevute: se una riga storica ha `technical_type=PEC_RECEIPT_ACCEPTANCE` ma l'oggetto reale inizia con `CONSEGNA:`, la UI mostra `PEC di consegna` e non `PEC di accettazione`.
+
+Prove eseguite:
+
+- test mirati locali verdi:
+  - `tests/test_react_scadenziario_additions.py::test_scadenziario_ricevuta_accettazione_control_tower_apre_pec_specifica`;
+  - `tests/test_react_scadenziario_additions.py::test_scadenziario_ricevuta_consegna_prevale_su_tipo_tecnico_storico`;
+  - `tests/test_react_shell.py::test_react_agenda_ricevuta_accettazione_apre_pec_specifica_senza_cancelleria_generica`;
+  - `tests/test_email_client.py::test_base_template_non_renderizza_vecchio_lex_duplicato`;
+- `python -m py_compile` sui servizi modificati;
+- `npm run build:vite --prefix frontend`;
+- hotfix server-first applicato su Hetzner senza toccare volumi o dati applicativi; container unico `iusentra-app` healthy; `https://app.iusentra.it/api/pronto` ok, timestamp `Europe/Rome`;
+- prova reale browser produzione sulla scadenza `587c1f99-08a4-4847-8e13-c1ee372410fd`: il dettaglio mostra `Possibile fascicolo da verificare: Contarese c. MIM` e l'attività completa `collegare il cliente solo quando il match è certo`;
+- click reale su `Apri origine: PEC di accettazione`: iframe `https://app.iusentra.it/email/?audit_id=pec_f205aa7f34c13b363f94af81&embed=source`, contenuto limitato alla ricevuta specifica, senza dashboard casella, con allegati `daticert.xml` e `smime.p7s`;
+- dopo la correzione della shell React, la stessa fonte incorporata non contiene più `Lex` o `Apri l'assistente Lex`;
+- audit server su 30 ricevute omologhe del tenant Montagnese: `30/30` risolte con `sourceHref` PEC specifico, `17` collegamenti deboli bloccati come `requiresHumanMatch` senza forzare `fascicoloId`; le consegne con oggetto `CONSEGNA:` risultano etichettate come `PEC di consegna`.
+
+Stato: correzione server verificata sul caso reale e generalizzata sui casi omologhi controllati. Restano obbligatori prima della chiusura complessiva: riallineare la copia Docker locale `127.0.0.1:8080`, eseguire prove reali locali, gate mirati/completi richiesti, commit, push dei branch gemelli, deploy finale da commit, pulizia repository e pulizia cache Docker server.
+
+### Aggiornamento 21/07/2026 22:10 Europe/Rome - indicizzazione unica fonte PEC e viewer read-only
+
+Richiesta utente: la fonte PEC deve essere indicizzata una sola volta quando il presidio legge la PEC e genera l'evento in Agenda, Scadenziario, topbar e Web Push. Al click l'avvocato deve aprire subito la PEC/documento esatto che ha generato l'evento, senza ricerche lente, senza dashboard della casella, senza logiche diverse per lo stesso scenario e senza passare da dati di un altro tenant.
+
+Analisi tecnica:
+
+- Agenda e Scadenziario dovevano usare la stessa risoluzione fonte già funzionante nello Scadenziario: identificativo `PEC_AUDIT`, tenant corrente e miglior allegato documentale della PEC, con preferenza per `*.pdf.zip`, poi ZIP/PDF e altri formati supportati.
+- Il viewer locale apriva correttamente il link indicizzato, ma durante il caricamento/full-screen poteva generare `database is locked` perché la route di sola visualizzazione istanziava il repository PEC operativo, riallineava lo schema e scriveva un audit sincrono a ogni click.
+- Questa scrittura non serve per visualizzare: il click deve solo leggere la fonte già indicizzata. La scrittura audit resta compito della pipeline di acquisizione/presidio, non del lettore documenti.
+
+Correzioni applicate:
+
+- introdotto in `web/services/pec_source_links.py` il resolver condiviso `latest_pec_profiles(...)`, che legge in blocco il profilo PEC del tenant e indicizza il miglior allegato sorgente senza una ricerca per ogni click;
+- Agenda (`web/services/react_agenda_bridge.py`) e Scadenziario (`web/services/react_scadenziario_bridge.py`) ora usano lo stesso profilo PEC indicizzato e la stessa priorità documentale;
+- la fonte generica `corpo PEC` o `testo/href` non blocca più l'apertura del documento quando il profilo PEC contiene già lo ZIP/PDF reale;
+- la route `/api/v1/ui/email/source/<pec>?name=<file>` in `web/blueprints/api_v1_react.py` legge il DB PEC in `mode=ro`, con `PRAGMA query_only=ON`, retry breve sui lock transitori e nessuna `repository.connect()`/`append_audit` nel percorso di visualizzazione;
+- aggiunto guardrail automatico: `test_email_source_attachment_legge_pec_read_only_senza_audit_sincrono` fallisce se qualcuno rimette scritture audit o connessioni repository operative dentro il viewer.
+
+Prove eseguite sulla copia reale locale:
+
+- `python -m py_compile` su route e servizi PEC/Agenda/Scadenziario: ok;
+- test mirati: 9/9 verdi, inclusi corpo PEC, testo/href, ZIP/PDF indicizzato, profilo PEC che prevale su fonte generica e route read-only;
+- test mirati successivi su superfici collegate: `tests/test_react_scadenziario_additions.py`, `tests/test_topbar_operational_api.py`, `tests/test_topbar_hooks.py`, totale `34/34` verdi;
+- build Docker locale `docker compose -f docker-compose.yml build app`: ok;
+- riavvio container reale `iusentra-app`: healthy;
+- `http://127.0.0.1:8080/api/pronto`: `ok=true`, timestamp `2026-07-21T22:05:56+02:00`, timezone `Europe/Rome`;
+- prova reale browser su `http://127.0.0.1:8080/agenda/34D1014A?vista=week&data=2026-11-24`:
+  - il dettaglio Agenda espone `Apri origine: PEC originale - 4548015s.pdf.zip`;
+  - click reale su `Apri origine` apre direttamente `/api/v1/ui/email/source/pec_98fe3e6a96d919355fed8839?name=4548015s.pdf.zip&viewer=mobile`;
+  - il lettore interno IUSENTRA mostra subito il PDF `4548015s.pdf` estratto dallo ZIP, con intestazione `TRIBUNALE DI PALMI`, non la dashboard PEC e non una pagina vuota;
+  - click reale su `Tutto schermo`: il lettore resta sul PDF e il pulsante diventa `Vista normale`;
+  - chiusura del viewer e del dettaglio Agenda verificata nel DOM;
+  - log container dopo i click: richieste al viewer PEC `200`, pagina PDF `200`, nessun nuovo `database is locked`, nessun `500`.
+- prova materiale Scadenziario locale tentata su `http://127.0.0.1:8080/scadenziario/83f4c2a4-675e-4ed3-904b-61a316a91963?vista=tutte`: la copia locale ha caricato la vista Scadenziario con `0 scadenze`, quindi quel record specifico non era verificabile visivamente nella sessione locale. Il contratto codice Scadenziario resta coperto dai test e dalla stessa funzione sorgente condivisa usata da Agenda.
+
+Stato: il difetto specifico "evento Agenda/Scadenziario apre fonte PEC sbagliata, lenta o generica" è corretto sul percorso locale reale provato. L'incarico complessivo resta aperto: prima della chiusura finale vanno ancora controllati altri casi omologhi, topbar/Web Push, campagna reale più ampia su server/locale, gate completi, commit, push dei branch gemelli, deploy finale e pulizia repository/cache.
+
+### Aggiornamento 21/07/2026 22:25 Europe/Rome - ripresa post-compattazione, logica sentenza/notifica e copertura PEC server
+
+Richiesta utente: prima del codice va fissata una logica tecnico-giuridica seria, usando anche gli agenti di supporto; il presidio deve lavorare sul server reale del tenant `studio-legale-giuseppe-montagnese`, su tutti i fascicoli/PEC reali, senza rallentare caricamento, Agenda, topbar o Web Push.
+
+Azioni eseguite dopo la ripresa:
+
+- Riletti `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md` e la skill PDF prima di proseguire.
+- Verificato il PDF reale `19040620s.pdf` del caso Alfano: 14 pagine, testo estratto leggibile; contiene all'inizio il richiamo alla trattazione scritta ex art. 127-ter, ma il contenuto decisivo è il dispositivo finale con `definitivamente decidendo`, condanna, distrazione spese e `Sentenza resa ex art. 429 cpc. Padova, 16/07/2026`.
+- Regola fissata: una comunicazione PEC di cancelleria o un deposito sentenza non è prova della notifica dell'avvocato e non fa decorrere da sola il termine breve; per chiudere il presidio servono relata separata, PEC inviata dal PC locale, ricevuta di accettazione, ricevuta completa di avvenuta consegna e deposito/collegamento della prova nel fascicolo.
+- Correzione applicata al motore: una sentenza a verbale/ex art. 429 prevale sulla vecchia etichetta 127-ter; il motore crea un presidio `judgment_to_notify_review` e non lascia come agenda principale `Opposizione alla trattazione scritta` quando il provvedimento è già decisorio.
+- Correzione prestazionale applicata: la pagina non scansiona PDF, OCR o 301/302 fascicoli al caricamento; il controllo opera durante validazione/refresh PEC e materializza record indicizzati in SQLite. I candidati PEC non collegati a fascicolo diventano avvisi di riconciliazione e non errori bloccanti della UI.
+- Test mirati locali eseguiti: `tests/test_legal_notification_rulepack.py`, `tests/test_pec_legal_event_understanding.py`, `tests/test_pec_notification_presidio.py`, `tests/test_pec_legal_deadline_proposer.py`, `tests/test_notification_relata_materializer.py`; esito `56/56` verde.
+- Server Hetzner: `iusentra-app` è healthy, `/api/pronto` risponde `ok=true` con timestamp Europe/Rome; il worker `iusentra-scheduler-worker-1`, rimasto fermo dopo l'audit massivo SQLite, è stato riavviato.
+- Tenant produzione confermato: registry `/data/tenants.json`, chiave `studio-legale-giuseppe-montagnese`, id `0ab0a3ca-7b66-4c84-ab5d-7690fcc62f03`, storage `/data/tenants/studio-legale-giuseppe-montagnese`.
+- Source of truth produzione: `studio.db` per fascicoli, agenda e scadenze strutturate; `email/pec_audit.sqlite` per messaggi PEC, eventi V2 e presidi notifiche; `notifications/notifications.db` per topbar/Web Push.
+- Conteggi produzione read-only dopo validazione delle ultime PEC: `334` fascicoli totali, `302` non archiviati, `32` archiviati; `1.369` PEC; `1.371` eventi V2; `0` PEC senza evento V2; `32` presidi notifica storici/operativi.
+- Presidi notifica attivi dopo riconciliazione: `5` totali, tutti `judgment_to_notify_review`; `4` in `NEEDS_REVIEW` e `1` in `NOTIFICATION_CONFIRMED`. Il caso confermato non va contato come "da preparare", ma resta aperto finché la catena prova/RAC/RdAC/deposito non è chiusa.
+- Casi ancora da presidiare sul server al momento di questo aggiornamento:
+  - Romeo Maria c. MIM, fascicolo `2026/320`, RG `1428/2026`, Tribunale di Palmi, PEC `17/07/2026 13:46`, stato presidio `NOTIFICATION_CONFIRMED`; trovato documento sentenza/attestazione successivo, ma non prova completa post-sorgente.
+  - Alfano Giuseppe c. MIM, fascicolo `2026/307`, RG `1100/2026`, Tribunale di Padova, PEC `16/07/2026 13:01`, stato presidio `NEEDS_REVIEW`; nessuna prova completa post-sorgente nel fascicolo.
+  - Monea Mariano II c. MIM, fascicolo `2026/311`, RG `1394/2026`, Tribunale di Palmi, PEC `14/07/2026 13:05`, stato presidio `NEEDS_REVIEW`; nessuna prova completa post-sorgente nel fascicolo.
+  - Speranza II c. MIM, fascicolo `2026/322`, RG `1480/2026`, Tribunale di Palmi, PEC `14/07/2026 13:01`, stato presidio `NEEDS_REVIEW`; nessuna prova completa post-sorgente nel fascicolo.
+  - Calabrò II ricorso c. MIM, fascicolo `2026/250`, RG `3571/2025`, Tribunale di Locri, PEC `13/07/2026 09:47`, stato presidio `NEEDS_REVIEW`; sentenza/attestazione presenti, ma nessuna prova completa post-sorgente nel fascicolo.
+- Differenza locale/produzione confermata: la copia locale registrata è `studio-montagnese`, storage `tenant-8bf98719c459`, con `10` fascicoli SQL; non coincide con il tenant produzione Montagnese completo. Questa differenza di dataset non va corretta clonando il tenant reale: la parità richiesta riguarda codice, versione, schema, isolamento e comportamento, mentre i dati riservati Montagnese restano verificati direttamente sul server di produzione.
+- Procedura sicura fissata: backup Hetzner con checksum prima degli interventi sui dati; nessun ripristino globale o copia manuale di database, documenti, credenziali, sessioni o configurazioni riservate dalla produzione alla macchina locale. La prova locale usa un tenant isolato e dati controllati, la prova Montagnese usa il tenant reale sul server.
+
+Da fare prima della chiusura:
+
+- Verificare in browser reale produzione `/notifiche-legali`, Agenda/Scadenziario, topbar e fonte PEC per i 5 presidi attivi, con particolare attenzione al caso Alfano.
+- Verificare che i testi visibili distinguano `comunicazione di cancelleria`, `sentenza da valutare per la notifica`, `notifica confermata` e `prova/ricevute da completare`, senza suggerire falsamente che tutto sia già notificato.
+- Ricostruire la copia locale sullo stesso codice/schema della release e provarla su `http://127.0.0.1:8080` con tenant isolato e casi controllati; ripetere separatamente gli stessi percorsi sul tenant Montagnese reale in produzione.
+- Aggiornare i report finali sensibili, eseguire gate mirati/completi, pulire artefatti build/runtime non necessari, commit, push dei branch gemelli, deploy finale da commit, verifica container unico `iusentra-app`, health, worker e pulizia cache Docker.
+
+### Aggiornamento 21/07/2026 22:50 Europe/Rome - microcopy e cursore payload presidi
+
+- Corretto un rischio di ambiguità visibile: lo stato `NOTIFICATION_CONFIRMED` ora viene esposto come `Notifica necessaria confermata`, non più come formula interpretabile dall'avvocato come notifica già eseguita.
+- Aggiunta prossima azione specifica per quello stato: `Verifica destinatari e prepara relata`.
+- Corretto il payload React dei presidi: il repository restituisce `nextCursor` in formato pubblico dizionario; l'encoder ora accetta sia dizionario sia tupla e non può rompere la lista presidi.
+- Test mirati eseguiti: `tests/test_notification_presidia_payloads.py`, `tests/test_notification_relata_materializer.py`, `tests/test_legal_notification_rulepack.py`, `tests/test_pec_legal_event_understanding.py`, `tests/test_pec_notification_presidio.py`, `tests/test_pec_legal_deadline_proposer.py`; esito `69/69` verde.
+- Applicato hotfix backend sul server e riavviato `iusentra-app`; dopo due 503 transitori di avvio, `/api/pronto` è tornato `ok=true`, `iusentra-app` e `iusentra-scheduler-worker-1` risultano healthy.
+- Verifica payload server: lista presidi restituisce `5` elementi e nessun errore cursore; `NOTIFICATION_CONFIRMED` restituisce `Notifica necessaria confermata`.
+
+Resta aperta la prova visiva: gli strumenti automatici non hanno agganciato il browser integrato né un browser di default; lo screenshot desktop ha mostrato Codex, non la pagina IUSENTRA. Prima della chiusura serve ancora verifica materiale della UI su produzione e poi locale.
+
+### Aggiornamento 21/07/2026 22:25 Europe/Rome - chiusura unica locale, GitHub e produzione
+
+Richiesta utente: controllare con rigore tutte le modifiche già presenti sul server e nella copia locale, correggere il precedente confronto eseguito con uno studio diverso, collaudare sul tenant `studio-legale-giuseppe-montagnese`, includere tutte le variazioni applicative valide, quindi eseguire un solo commit/push/deploy serio lasciando locale, GitHub e server sul medesimo commit e con repository puliti.
+
+Stato iniziale verificato:
+
+- copia locale, branch remoti gemelli e repository Hetzner partono tutti dal commit `c9d568557fa7bf3b0a02216f7988d861a8e0aae6`;
+- il Docker locale è healthy e `/api/pronto` espone la versione `2.257.1`;
+- Hetzner espone la stessa versione ed è healthy con un solo container applicativo chiamato `iusentra-app`;
+- sia la repository locale sia quella sul server contengono modifiche non committate applicate durante la campagna server-first; sono presenti anche numerosi asset React e file temporanei generati, che non possono essere inclusi indiscriminatamente;
+- il confronto funzionale precedente non è conclusivo perché la copia locale visualizzava un tenant/dataset diverso dal tenant Montagnese della produzione.
+
+Sequenza di chiusura in corso:
+
+1. inventario file-per-file delle modifiche locali e server rispetto al commit comune;
+2. unione controllata delle sole variazioni applicative, documentali e di test valide, senza sovrascrivere dati o volumi tenant;
+3. verifica esplicita dell'identità tenant e delle fonti di verità SQLite/PostgreSQL;
+4. build Docker locale pulita, accesso al tenant Montagnese e campagna reale su Agenda, Scadenziario, Presìdi notifiche, fonte PEC/documento, topbar e Web Push;
+5. gate mirati e di release, bump versione nei quattro file obbligatori e aggiornamento documentale;
+6. pulizia degli artefatti rigenerabili, commit, push dei branch gemelli, verifica CI, backup e deploy Hetzner;
+7. controllo conclusivo di stesso commit, container unico healthy, `/api/pronto`, repository pulite e assenza di differenze applicative tra locale e server.
+
+Stato: lavoro aperto. Non verrà dichiarato concluso prima della prova reale sul tenant corretto e della parità finale locale/GitHub/Hetzner.
+
+### Aggiornamento 21/07/2026 22:45 Europe/Rome - riconciliazione reale Montagnese dei falsi residui sentenza
+
+Richiesta utente in corso: il Presidio notifiche deve essere giuridicamente affidabile, veloce e collegato a un unico pannello; non deve lasciare nello Scadenziario notifiche o attività da eseguire quando in realtà sono storico già gestito, ma deve mantenere aperti i residui reali ancora da notificare.
+
+Rilettura post-compattazione eseguita:
+
+- riletto `AGENTS.md`;
+- riletto `artifacts/data-flow/incarico-operativo-permanente.md`;
+- riletto `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`;
+- riletto questo registro prima di toccare server/dati/codice.
+
+Analisi server reale, tenant `studio-legale-giuseppe-montagnese`:
+
+- il presidio persistente `pec_legal_notification_presidia` era già senza duplicati attivi e conteneva `5` casi operativi;
+- il repository notifiche aveva ancora vecchie notifiche duplicate non scadute per tre casi;
+- lo Scadenziario aveva molte righe storiche automatiche `Sentenza da valutare per la notifica` risalenti al 2024/2025 e prive del marker stabile `IUSENTRA_LEGAL_NOTIFICATION`;
+- causa tecnica: il materializzatore riconciliava soltanto lo stato `APERTO`, mentre le righe `SCADUTO` restano visibili e operative; inoltre non chiudeva le vecchie righe PEC sentenza senza marker nuovo.
+
+Correzione codice:
+
+- aggiornato `web/services/notifications_runtime.py`;
+- una scadenza `SCADUTO` viene ora trattata come operativa finché non è `COMPLETATO` o `ANNULLATO`;
+- le vecchie righe automatiche PEC `sentenza_da_valutare_per_notifica` senza marker nuovo vengono chiuse come storico riconciliato, senza eliminare fascicoli, PEC o documenti;
+- quando esistono record terminali vecchi con lo stesso marker stabile, il materializzatore preferisce il record operativo aperto e non crea duplicati;
+- se due record operativi hanno lo stesso marker stabile, resta attivo uno solo e l'altro viene chiuso dalla riconciliazione.
+
+Guardrail automatico locale eseguito:
+
+```powershell
+python -m pytest -q tests/test_notification_relata_materializer.py
+```
+
+Esito: `5` test superati.
+
+Applicazione server-first:
+
+- copiato il solo hotfix runtime sul server Hetzner e nel container `iusentra-app`;
+- riavviato `iusentra-app`;
+- verificato `https://app.iusentra.it/api/pronto`: `ok=true`, timestamp `2026-07-21T22:41:17+02:00`, fuso `Europe/Rome`, versione `2.257.1`;
+- eseguita sincronizzazione advanced-only, senza scansione massiva dei fascicoli, senza OCR e senza inviare PEC reali.
+
+Esito dati dopo riconciliazione:
+
+- `pec_legal_notification_presidia`: `5` presìdi attivi, `0` gruppi duplicati;
+- notifiche operative/topbar: `5` attive, vecchie notifiche duplicate scadute;
+- Scadenziario: `5` righe operative `NOTIFICA`, `0` gruppi duplicati;
+- vecchie righe PEC `sentenza_da_valutare_per_notifica` senza marker stabile ancora aperte: `0`;
+- prima sincronizzazione dati: `items=5`, `recipients=1`, `calendar.created=5`, `calendar.completed=56`;
+- seconda sincronizzazione dopo fix idempotenza: `items=5`, `recipients=1`, `calendar.created=0`, `calendar.updated=5`, `calendar.completed=0`.
+
+Residui reali ancora pubblicati come da valutare/notificare:
+
+1. `Calabrò Daniela / Calabrò II ricorso c. MIM`, fascicolo `FB586324`, RG `3571/2025`, PEC `pec_dcbed67be5ce4a05ea562c9b`, allegato `21295227s.pdf.zip`;
+2. `Speranza Carmelina / Speranza II c. MIM`, fascicolo `B6EF37A2`, RG `1480/2026`, PEC `pec_f3e7d685a5784b4df68535cb`, allegato `24262990s.pdf.zip`;
+3. `Monea Mariano / Monea Mariano II c. MIM`, fascicolo `2EE71A39`, RG `1394/2026`, PEC `pec_6d79d24df63219adcca126f5`, allegato `21866865s.pdf.zip`;
+4. `Alfano Giuseppe c. MIM`, fascicolo `C3565650`, RG `1100/2026`, PEC `pec_8d456e0fe2f268159b5510b5`, allegato `19040620s.pdf.zip`;
+5. `Romeo Maria c. MIM`, fascicolo `78D6022C`, RG `1428/2026`, PEC `pec_d23c133a4ef8ada88ecb8c08`, allegato `9732730s.pdf.zip`, stato presidio `NOTIFICATION_CONFIRMED`.
+
+Stato: il dato server del presidio e dello Scadenziario è coerente a livello SQL. Il lavoro resta aperto finché non vengono eseguiti prova reale browser in produzione, controllo topbar/Web Push visibile, riallineamento Docker locale `127.0.0.1:8080`, gate mirati/completi, commit, push branch gemelli, deploy finale e pulizia repository/cache.
+
+### Aggiornamento 21/07/2026 22:57 Europe/Rome - logica tecnico-giuridica consolidata prima della chiusura
+
+Richiesta utente: prima di continuare con codice, commit o deploy, il presidio deve avere una logica tecnica e giuridica autonoma, non basata su ricerche veloci o parole chiave. L'utente ha chiesto anche di attivare gli agenti di supporto.
+
+Azioni di ripresa:
+
+- riletti `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, `docs/specs/PEC_LEGAL_EVENT_UNDERSTANDING_V2.md`, questo registro, la matrice tecnico-giuridica e la procedura deposito/notifica;
+- sollecitati gli agenti `logica_giuridica_notifiche`, `audit_dati_montagnese` e `architettura_codice_presidio` con compiti separati; entro il timeout operativo non hanno restituito un risultato conclusivo, quindi la validazione non viene scaricata sugli agenti e resta eseguita direttamente su fonti ufficiali, codice e dati server;
+- verificate fonti ufficiali/istituzionali: Gazzetta Ufficiale per c.p.c. artt. 133, 285, 325, 326 e 429; Portale Servizi Telematici del Ministero della Giustizia per notifiche PEC L. 53/1994, relata, RAC, RdAC completa e deposito ricevute; specifiche tecniche DGSIA/PST per comunicazioni/notificazioni telematiche dell'ufficio;
+- confermata la distinzione tecnica: `Comunicazione.xml`, PEC di cancelleria e deposito sentenza sono fonte dell'evento, ma non sono prova della notifica dell'avvocato alla controparte;
+- confermata la distinzione processuale: il termine breve di impugnazione non viene calcolato dalla sola comunicazione della cancelleria; serve notificazione della sentenza e perfezionamento/prova verso il destinatario;
+- confermata la regola Alfano: il documento `19040620s.pdf` è sentenza ex art. 429 c.p.c. resa il 16/07/2026; il riferimento a 127-ter riguarda la modalità cartolare precedente, non l'evento finale da presidiare;
+- confermata la catena di chiusura del presidio: sentenza/provvedimento da esaminare -> scelta/ordine di notificare -> relata -> PEC inviata dal PC locale -> RAC -> RdAC completa per ogni destinatario -> prova collegata o depositata;
+- confermata la regola di fiducia utente: `NOTIFICATION_CONFIRMED` significa "notifica necessaria confermata dall'operatore", non "notifica già eseguita"; la UI deve indicare la prossima azione `Verifica destinatari e prepara relata` finché mancano ricevute/prova;
+- confermata la regola prestazionale: nessuna pagina React, topbar o pannello fascicolo deve scansionare PDF, OCR, ZIP, mailbox o 301/302 fascicoli in fase di caricamento; il lavoro pesante resta in validazione/refresh/job incrementali e la UI legge solo proiezioni SQL paginate e indicizzate;
+- confermato che il cutoff del 19/07/2026 è solo regola di migrazione storica: non sopprime una PEC decisoria viva, una sentenza da esaminare o una richiesta esplicita dell'avvocato di notificare.
+
+Decisione operativa corrente:
+
+- il presidio deve pubblicare solo residui reali ancora da lavorare;
+- i falsi residui storici vengono chiusi/riconciliati senza cancellare PEC, fascicoli o documenti;
+- sul tenant produzione Montagnese restano da mostrare come operativi 5 presìdi: Calabrò, Speranza, Monea, Alfano e Romeo;
+- Alfano deve restare `Sentenza da valutare per la notifica`, con fonte PEC/documento apribile e senza falsa `Opposizione alla trattazione scritta`;
+- Romeo, se confermato dall'operatore, non va presentato come "già notificato" finché non risultano RAC/RdAC/prova, ma come catena documentale da completare.
+
+Da fare subito dopo questa logica:
+
+1. ripetere audit read-only server dei 5 presìdi, Scadenziario e topbar;
+2. verificare o correggere ogni testo visibile che possa far credere all'avvocato che la notifica sia già stata eseguita;
+3. ottenere prova materiale della UI produzione su `/notifiche-legali`, Agenda/Scadenziario e topbar;
+4. riallineare la copia locale con il tenant corretto in modo sicuro;
+5. eseguire test/gate, commit, push branch gemelli e deploy finale dello stesso commit.
+
+### Aggiornamento 21/07/2026 23:28 Europe/Rome - ripristino fonte SQL Montagnese e guardrail prestazionale
+
+Durante l'audit server è emersa un'anomalia bloccante: `/data/tenants/studio-legale-giuseppe-montagnese/studio.db` non aveva header SQLite ma iniziava con contenuto JSON dello Scadenziario. Il file era quindi inadatto come fonte di verità e non poteva essere usato per dichiarare attendibili presìdi, conteggi o agenda.
+
+Azioni eseguite sul server Hetzner:
+
+- verificato `https://app.iusentra.it/api/pronto`: `ok=true`, versione `2.257.1`, fuso `Europe/Rome`;
+- verificato il file anomalo: `studio.db` da `1.758.080` byte con primi byte JSON, `studio.db-wal` da circa `15,2 GB`;
+- creato uno stage SQLite esplicito e leggero da mirror tenant-aware core, escludendo `fascicoli/documenti_ai/**/extracted_text.json`, OCR e indici rigenerabili;
+- stage valido: `54.259.712` byte, header `SQLite format 3`, `PRAGMA quick_check=ok`;
+- conteggi stage/installazione: `334` fascicoli, `261` clienti, `272` soggetti, `774` soggetti-parti, `870` appuntamenti, `778` scadenze, `1` utente, `195` audit log, `29` moduli dati, `48` record mirror JSON core;
+- fermati brevemente solo `iusentra-scheduler-worker-1` e `iusentra-app`;
+- spostati in backup forense, senza cancellazione, `studio.db`, `studio.db-wal` e `studio.db-shm` anomali in `backup/sqlite_corruption_recovery/studio_db_install_20260721_232416`;
+- installato lo stage come nuovo `studio.db`;
+- riavviati gli stessi container, tornati healthy;
+- checkpoint a freddo del WAL: da circa `10,3 GB` a `0`, poi stabilizzato a circa `226 KB` dopo riavvio;
+- verificato dal container: `quick_check=ok`, header SQLite valido, conteggi core invariati e guardrail cache attivo.
+
+Guardrail codice applicato:
+
+- aggiornato `pct/cache.py`: la cache JSON ora rifiuta lettura e scrittura su percorsi con estensione `.db`, `.sqlite` e `.sqlite3`;
+- aggiornato `tests/test_cache_security.py` con prove anti-corruzione su `studio.db`, `pec_audit.sqlite` e `scheduler.sqlite3`;
+- copiato l'hotfix anche nel repository server e nei container `iusentra-app` e `iusentra-scheduler-worker-1` per proteggere il runtime prima del commit/deploy finale.
+
+Test automatici locali eseguiti:
+
+```powershell
+python -m pytest -q tests/test_cache_security.py tests/test_scadenziario.py
+python -m pytest -q tests/test_notification_relata_materializer.py tests/test_notification_presidia_payloads.py
+```
+
+Esito: test mirati superati.
+
+Nota prestazionale fissata: `studio.db` non deve inglobare testi OCR massivi, `documenti_ai`, PDF/ZIP o indici di ricerca rigenerabili. La UI React, la topbar e Agenda/Scadenziario devono leggere proiezioni SQL core e repository verticali indicizzati; le analisi pesanti restano in job incrementali e non nel caricamento pagina.
+
+Stato ancora aperto:
+
+1. ripetere audit notifiche/presìdi dal nuovo `studio.db` server;
+2. verificare `/notifiche-legali`, topbar e Agenda/Scadenziario in produzione con dati Montagnese;
+3. riallineare la copia locale allo stesso commit, versione e schema senza importare dati o credenziali Montagnese: collaudo locale su tenant isolato e collaudo dei dati reali esclusivamente sul tenant di produzione;
+4. eseguire gate completi, commit, push dei branch gemelli e deploy finale da commit.
+
+### Aggiornamento 22/07/2026 - correzione governata della decisione di notifica
+
+È stata aggiunta una correzione auditabile per il caso in cui l'avvocato selezioni per errore `Conferma notifica`:
+
+- l'azione `Modifica decisione` compare soltanto quando il presidio è nello stato pre-invio `NOTIFICATION_CONFIRMED`;
+- le destinazioni ammesse sono `Da riesaminare` (`NEEDS_REVIEW`) e `Notifica non necessaria` (`NOT_REQUIRED`); la decisione corrente resta visibile ma non è salvabile come operazione priva di effetti;
+- la motivazione è obbligatoria e deve contenere almeno 12 caratteri;
+- autore, data/ora, motivazione, stato precedente e nuova decisione vengono conservati nella catena verificabile delle transizioni;
+- la correzione è bloccata se risultano destinatari già inviati/consegnati/falliti, RAC/RdAC o documenti di prova post-invio; in tali casi deve essere usato un futuro flusso esplicito di rettifica governata e non una riapertura silenziosa;
+- la UI usa un pannello progressivo con stati hover, focus, disabled e loading leggibili; non introduce nuove chiamate nel caricamento della pagina.
+
+Verifiche automatiche eseguite:
+
+```powershell
+python -m pytest tests/test_notification_presidia_payloads.py tests/test_notification_presidia_rollout_api.py -q --tb=short
+python -m pytest tests/test_pec_notification_presidio.py -q --tb=short
+node frontend/scripts/check-notifiche-legali-presidi.mjs
+npm --prefix frontend run typecheck
+python -m pytest tests/test_utf8_integrity.py -q --tb=short
+python -m py_compile web/services/notification_presidia_runtime.py web/services/notification_presidia_payloads.py pct/pec_notification_presidio/models.py tests/test_notification_presidia_payloads.py tests/test_notification_presidia_rollout_api.py tests/test_pec_notification_presidio.py
+```
+
+Esito: `26/26` test Python mirati superati, contratto frontend verde (`2.185` righe, `69.048` byte, `7` mutazioni), typecheck verde, integrità UTF-8 `4/4` e compilazione Python verde. Il quality gate `ui-support` ha confermato i controlli AGENTS/Open Design ma resta rosso per lo scope globale già ampiamente modificato e per `setup.py`, non per un errore di questa funzione.
+
+Stato anti-falso-verde: prova browser reale non eseguita da questa tranche isolata. Prima della chiusura complessiva occorre ricostruire la copia reale, aprire un presidio confermato, provare click, hover, focus da tastiera, motivazione, salvataggio, cronologia e blocco dopo prova d'invio su `127.0.0.1:8080`, quindi ripetere la stessa verifica in produzione dopo il deploy dello stesso commit.
+
+### Ripresa post-compattazione 22/07/2026 02:41 Europe/Rome - stato eseguito e lavoro residuo
+
+Rilettura obbligatoria completata prima di proseguire:
+
+- `AGENTS.md`;
+- `artifacts/data-flow/incarico-operativo-permanente.md`;
+- questo registro operativo;
+- `docs/COMMIT_PUSH_REQUIRED_GATES.md`.
+
+Stato consolidato ereditato e verificato dal registro:
+
+- il database SQLite reale del tenant `studio-legale-giuseppe-montagnese` è stato compattato rimuovendo soltanto i mirror ricorsivi rigenerabili: da `15.176.749.056` byte a `188.485.632` byte;
+- prima e dopo la compattazione sono rimasti invariati schema logico, hash delle 86 tabelle governate e conteggi core: `334` fascicoli, `261` clienti, `870` appuntamenti, `778` scadenze, `272` soggetti e `774` collegamenti soggetti-parti;
+- i `25` riferimenti storici già anomali sono rimasti identici e non sono stati aggravati; il rollback forense originale resta conservato sul server fino al collaudo reale;
+- i mirror ricorsivi `moduli_dati` e `moduli_json_records` sono rimasti a zero dopo il riavvio; il runtime è protetto contro nuove scansioni ricorsive di OCR, `documenti_ai`, PDF/ZIP e dataset rigenerabili;
+- la logica unica della fonte usa l'indice PEC persistito, il tenant attivo e il marker `PEC_CONTROL_TOWER`; Agenda e Scadenziario condividono risoluzione e priorità del documento, senza ricerca lenta al click;
+- il lettore interno resta tenant-aware e supporta il percorso PEC, ZIP e PDF; sono stati aggiunti limiti sicuri per TIFF/JPEG/PNG/GIF e protezione contro immagini e archivi eccessivi;
+- la coalescenza dei presìdi mantiene separati eventi con fonte diversa e riconcilia soltanto duplicati equivalenti;
+- la logica giuridica mantiene cinque residui reali Montagnese: Calabrò, Speranza, Monea, Alfano e Romeo; la sola comunicazione di cancelleria non equivale a notifica eseguita;
+- `NOTIFICATION_CONFIRMED` è esposto come `Notifica necessaria confermata`, con prossima azione `Verifica destinatari e prepara relata`;
+- è disponibile `Modifica decisione` prima dell'invio: motivazione obbligatoria, transizione auditata e blocco se esistono invio, RAC/RdAC, consegna, errore o prova post-invio;
+- i test mirati già eseguiti coprono payload/materializzatore/presìdi, tenant e cache, fonte PEC, Agenda/Scadenziario, topbar, lettore allegati, pipeline PEC, build React e typecheck; i gruppi monolitici andati in timeout non vengono usati come prova verde.
+
+Lavoro ancora da eseguire, in quest'ordine:
+
+1. eliminare soltanto gli asset React hashed obsoleti dopo verifica completa del manifest e dei riferimenti CSS/font, mantenendo il bundle corrente;
+2. completare `git diff --check`, integrità UTF-8, lint/compilazione e gate mirati collegati alle ultime modifiche;
+3. applicare sul server reale l'intero pacchetto sorgente consolidato senza toccare volumi o dati tenant;
+4. eseguire una campagna browser reale autenticata in produzione sul tenant Montagnese: cinque presìdi, Agenda, Scadenziario, topbar, fonte PEC, ZIP/PDF e almeno un formato non-PDF, chiusura modali, prestazioni, hover/focus e apertura/cancellazione del pannello `Modifica decisione` senza alterare dati legali reali;
+5. ricostruire la copia Docker locale reale su `127.0.0.1:8080` con lo stesso codice e schema, mantenendo il tenant locale isolato, e ripetere il collaudo materiale su dati controllati;
+6. aggiornare documentazione sensibile, changelog, report test e versione `2.258.0`;
+7. eseguire i gate di release pertinenti, creare un solo commit intenzionale, sincronizzare e pushare i branch gemelli;
+8. attendere tutti i required check GitHub dello SHA corrente, quindi eseguire backup e deploy Hetzner dallo stesso commit;
+9. verificare un solo container applicativo `iusentra-app`, servizi healthy, `/api/pronto`, cache Docker pulita, branch locali/remoti sullo stesso SHA e worktree pulita;
+10. ricostruire nuovamente la Docker locale sullo SHA finale se GitHub richiede correzioni e confermare parità di versione e comportamento.
+
+Stato: lavoro ancora aperto. I dati privati Montagnese non verranno copiati in locale; la parità richiesta riguarda codice, schema, versione e comportamento. Nessuno spegnimento del PC è autorizzato dalla richiesta corrente.
+
+### Estensione incarico 22/07/2026 - relate, varianti operative e destinatari multipli
+
+L'utente ha chiesto di non assumere come conforme il solo modello attualmente mostrato da IUSENTRA. Prima di chiudere il rilascio devono essere confrontati:
+
+- tutte le fasi e tutti i tipi di relata presenti nel decompilato di Studio Telematico;
+- il modello reale `D:\marco non codex ad utilizzare\relata\modello da seguire realata.docx`;
+- le relate già presenti nei fascicoli dello studio e già utilizzate operativamente;
+- il catalogo, la matrice dei casi, le attestazioni, i destinatari e il piano di invio attuali di IUSENTRA.
+
+Prime evidenze già accertate:
+
+- il DOCX reale contiene una relata ex art. 3-bis L. 53/1994 con due destinatari distinti, due PEC e due fonti pubbliche (`ReGIndE` e `IPA`), oltre a più documenti e attestazioni differenziate per origine;
+- IUSENTRA conserva già `selectedRecipientIds`, include tutti i destinatari nel payload e genera un piano con una PEC distinta per ciascun destinatario, RAC e RdAC richieste per ciascuno;
+- tuttavia la parte compilata della relata e i campi di dettaglio mostrano soprattutto il destinatario principale: il comportamento va reso esplicito e coerente con il modello reale, senza far credere che il secondo destinatario sia ignorato;
+- il cambio di modello o di caso deve rigenerare immediatamente e deterministicamente l'anteprima compilata, invalidare eventuale firma precedente e non lasciare a video un testo relativo alla selezione precedente;
+- nessun invio reale verrà eseguito durante il collaudo: si verificheranno modello, PDF, firma/preparazione locale e piano dei messaggi fino al blocco precedente alla trasmissione.
+
+Lavoro aggiunto ancora da eseguire:
+
+1. completare la matrice Studio Telematico → modello DOCX/fascicoli → catalogo IUSENTRA;
+2. correggere l'aggiornamento reattivo dell'anteprima, includendo protezione dalle risposte asincrone fuori ordine;
+3. mostrare e convalidare in modo professionale tutti i destinatari selezionati, con modifica del singolo destinatario e conteggio delle PEC distinte previste;
+4. assicurare che la relata e il piano di invio riportino coerentemente tutti i destinatari secondo la variante applicabile;
+5. aggiungere test automatici per cambio modello/caso e due o più destinatari;
+6. provare materialmente nel browser reale produzione e locale ogni variante rappresentativa, inclusi hover, focus, anteprima, PDF e blocco prima dell'invio.
+
+Stato: analisi tecnico-giuridica e confronto del decompilato in corso; non ancora dichiarabile conforme.
+
+### Aggiornamento 22/07/2026 - matrice relate completata e correzione multi-destinatario implementata
+
+Eseguito:
+
+- completata la matrice decompilato, DOCX reale, catalogo IUSENTRA e prassi dei fascicoli; dettaglio conservato nel dossier `artifacts/react-migration/studio-telematico-notifiche-legali-confronto-2026-07-03.md`;
+- audit read-only tenant Montagnese: 267 relate con metadati originali, delle quali 264 con almeno due destinatari;
+- riprodotto il difetto: due PEC nel piano, ma solo il primo destinatario in anteprima e relata;
+- introdotto il contesto plurale con identità e verifica PEC specifica per ogni destinatario;
+- anteprima, relata, override, log, audit e piano messaggi ora preservano tutti i destinatari;
+- aggiunto token governato `destinatari_righe`; i modelli plurimi incapaci di rappresentarlo vengono bloccati;
+- caso e modello modificano realmente le clausole applicate;
+- React ora annulla anteprime obsolete, ricalcola in 250 ms, mostra modello/caso applicati e tutte le PEC previste, invalidando bozza e firma precedenti;
+- `tests/test_notifiche_legali.py` superato integralmente; 7/7 scenari multi-destinatario specifici superati.
+
+Ancora da eseguire prima della chiusura:
+
+1. applicare il pacchetto sorgente completo sul server senza toccare dati o volumi;
+2. prova browser reale produzione del caso `RG 1428/2026`: cambio modello, cambio caso, lista destinatari, timestamp, modifica bozza, PDF/lettore, hover/focus e blocco precedente all'invio;
+3. ripetere la prova sulla Docker reale locale `127.0.0.1:8080` con dati controllati;
+4. completare i test degli altri flussi pendenti, gate release, commit/push gemelli, CI, deploy finale e igiene;
+5. spegnere il computer soltanto dopo parità verificata fra server, GitHub e locale.
+
+Autorizzazione spegnimento: l'utente l'ha formulata esplicitamente nella richiesta corrente del 22/07/2026. Lo spegnimento resta differito fino alla conclusione reale dell'intero incarico.
+
+Stato: lavoro aperto; correzione automatica implementata e coperta da test, non ancora accettata nel browser reale.
+
+### Ripresa post-compattazione 22/07/2026 - duplicati del provvedimento e stato residuo
+
+Riletti prima della ripresa `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, il registro corrente e le regole UI IUSENTRA.
+
+Eseguito prima della compattazione:
+
+- pacchetto sorgente consolidato applicato sul server Hetzner senza modificare volumi o dati tenant;
+- produzione ricostruita sulla versione `2.258.0`, con un solo container applicativo `iusentra-app` e servizi healthy;
+- prova reale in produzione sul caso Romeo Maria, RG `1428/2026`: due destinatari distinti e due PEC distinte risultano visibili; cambio modello e cambio caso aggiornano le clausole; il controllo della relata mostra i requisiti obbligatori mancanti e mantiene disabilitato l'invio reale;
+- corretto il rischio di risposta asincrona fuori ordine e la persistenza impropria della bozza manuale dopo cambio modello/caso; guardrail automatici mirati superati;
+- conservati backup del precedente overlay sorgente e del database del tenant prima delle operazioni di compattazione.
+
+Difetto reale appena segnalato e riprodotto dalla schermata produzione:
+
+- nella sezione `Provvedimento da scaricare dal portale` lo stesso `notificato).pdf`, con identici ufficio, RG e data, compare tre volte;
+- le tre schede non devono essere presentate come tre provvedimenti diversi: la UI deve consolidare i riferimenti equivalenti in una sola voce operativa, mantenendo però tutte le fonti tecniche nella cronologia e nell'audit;
+- la deduplicazione deve essere generale e tenant-aware, basata su identificatori stabili del messaggio PEC e del documento, senza accorpare documenti realmente distinti che abbiano soltanto lo stesso nome.
+
+Lavoro ancora aperto, nell'ordine:
+
+1. individuare nel payload reale i tre identificativi e la causa della duplicazione;
+2. applicare la regola unica di consolidamento e verificare in produzione che resti una sola scheda;
+3. ripetere la prova del cambio modello/bozza dopo la correzione della concorrenza asincrona;
+4. completare lettore interno, topbar e guardrail di governance già in lavorazione;
+5. eseguire la campagna reale completa in produzione e poi sulla Docker reale locale `127.0.0.1:8080`;
+6. completare documentazione, gate, commit, push dei branch gemelli, CI e deploy finale sullo stesso SHA;
+7. spegnere il computer soltanto dopo parità verificata tra produzione, GitHub e copia locale.
+
+Stato: lavoro aperto; nessun invio PEC reale autorizzato o eseguito durante le prove.
+
+### Verifica materiale 22/07/2026 - link documenti, ricevute PCT e originale da Portale Servizi
+
+Prove reali eseguite sulla produzione autenticata, presidio Romeo Maria RG `1428/2026`:
+
+- `Visualizza` sul documento `9732730s.pdf.zip` apre la route `/fascicoli/documenti/22bb48a5-7af1-467e-b665-0501dbb22260`, ma mostra `Dati fascicolo non caricati`;
+- `Scarica` sullo stesso documento apre la route con suffisso `/download`, ma restituisce `Pagina non trovata`;
+- il selettore `Collega documento` espone soli codici tecnici del fascicolo, quindi non permette all'avvocato di capire quale prova, ricevuta o documento stia collegando;
+- il pulsante disabilitato `Conferma notifica` e il salvataggio della correzione possono perdere contrasto quando ricevono focus;
+- il registro a sei colonne richiede scorrimento orizzontale e non consente una lettura professionale immediata.
+
+Causa accertata dei tre falsi `notificato).pdf`:
+
+- sono ricevute del ciclo PCT (`ACCETTAZIONE DEPOSITO` ed `ESITO CONTROLLI AUTOMATICI DEPOSITO`), non tre provvedimenti da acquisire;
+- il parser interpretava il participio `notificato` come richiesta futura di notifica ed estraeva un nome file fittizio;
+- le copie tecniche in Posta in arrivo e Cestino avevano identificativi locali diversi e non venivano consolidate.
+
+Correzione generale implementata nel codice, non sui singoli record:
+
+- esclusione delle ricevute del ciclo deposito dal monitor dei provvedimenti d'ufficio;
+- riconoscimento lessicale della richiesta di notifica senza confondere `notificato` con `da notificare`;
+- scarto dei falsi nomi file sbilanciati o costituiti dal solo participio;
+- consolidamento tramite impronta EML, Message-ID, identificativo ufficiale o SHA-256, preservando tutti gli identificativi PEC tecnici nell'audit;
+- mantenimento separato di documenti con impronte o identificativi ufficiali diversi anche se il nome coincide;
+- registro ridotto a tre colonne responsive, con trasformazione in schede sotto i 900 px e nessuna barra orizzontale;
+- `Modifica decisione` trasformato in pulsante esplicito e stati disabilitati resi leggibili anche con focus.
+
+Regola operativa richiesta dall'utente e da applicare a tutti i casi equivalenti:
+
+- gli ZIP `9732730s.pdf.zip`, `21295227s.pdf.zip`, `19040620s.pdf.zip`, `24262990s.pdf.zip` e `21866865s.pdf.zip` sono copie informative ricevute via PEC di cancelleria, non la copia originale da notificare;
+- il software deve collegare PEC, cliente, RG e fascicolo, ma marcare il provvedimento come `Originale da acquisire dal Portale Servizi`;
+- il pannello deve portare all'acquisizione tenant-aware del solo originale corretto dal PST e soltanto dopo collegare l'originale alla relata;
+- una copia PEC non deve mai essere descritta come `Originale autorevole acquisito`.
+
+Guardrail eseguiti: test mirati Python `3/3`, Ruff mirato superato, typecheck TypeScript superato e contratto statico Presidi superato. Resta obbligatoria la prova materiale dopo l'aggiornamento del server e poi della Docker locale reale.
+
+Stato: lavoro aperto; collegamenti al lettore/download e acquisizione originale dal Portale Servizi in correzione prima del nuovo deploy server-first.

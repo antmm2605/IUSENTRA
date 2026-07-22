@@ -8,8 +8,10 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.fascicoli import Fascicolo, GestioneFascicoli, TipoFascicolo
+from pct.notifications import NotificationRepository, NotificationService
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from web.app import create_app
+from web.services.notifications_runtime import notification_repository_settings
 
 
 def _write_studio_config(path: Path) -> None:
@@ -178,6 +180,49 @@ def _seed_domain(app) -> tuple[str, str]:
     return cliente.id, fascicolo.id
 
 
+def _seed_persistent_topbar_notifications(app, user_id: str) -> None:
+    """Simula il risultato dei worker, mai una scansione dalla topbar."""
+    with app.app_context():
+        notifications_db, _ = notification_repository_settings(config=app.config)
+        repository = NotificationRepository(notifications_db)
+        NotificationService(repository).sync_operational_items(
+            tenant_id="default",
+            user_id=user_id,
+            items=[
+                {
+                    "id": "communication:pec-1",
+                    "type": "communication",
+                    "title": "PEC non letta",
+                    "message": "Cancelleria del Tribunale di Roma",
+                    "createdAt": datetime.now().isoformat(),
+                    "priority": "important",
+                    "href": "/email/messaggio/pec-1",
+                    "actionLabel": "Apri PEC",
+                },
+                {
+                    "id": "pec-office-release:doc-rel-1",
+                    "type": "document",
+                    "title": "Provvedimento da notificare",
+                    "message": "ordinanza_da_notificare.pdf comunicata da PEC cancelleria, R.G. 1234/2026.",
+                    "createdAt": datetime.now().isoformat(),
+                    "priority": "urgent",
+                    "href": "/portali/pst/acquisizione?documento=ordinanza_da_notificare.pdf&single_document=1&non_duplicare_documenti=1",
+                    "actionLabel": "Scarica dal portale",
+                },
+                {
+                    "id": "deadline:scad-test",
+                    "type": "deadline",
+                    "title": "Deposito memoria istruttoria",
+                    "message": "Scadenza oggi",
+                    "createdAt": datetime.now().isoformat(),
+                    "priority": "urgent",
+                    "href": "/scadenziario/scad-test",
+                    "actionLabel": "Apri scadenza",
+                },
+            ],
+        )
+
+
 def test_topbar_search_valida_query_auth_e_permessi(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     _create_user(app, "operatore", "Operatore123!")
@@ -222,6 +267,8 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
+        with client.session_transaction() as session_data:
+            _seed_persistent_topbar_notifications(app, str(session_data["user_id"]))
         today = client.get("/api/dashboard/today").get_json()
         assert today["summary"]["hearingsToday"] == 1
         assert today["summary"]["deadlinesToday"] == 1
@@ -330,6 +377,23 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert stopped.status_code == 200
         assert stopped.get_json()["timer"]["status"] == "stopped"
         assert stopped.get_json()["timeEntry"]["href"] == "/timesheet"
+
+
+def test_topbar_notifications_non_maschera_errore_repository_come_lista_vuota(tmp_path: Path, monkeypatch):
+    app = create_app(_cfg_web(tmp_path))
+    _create_user(app, "operatore", "Operatore123!")
+
+    def _repository_unavailable():
+        raise RuntimeError("repository non disponibile")
+
+    monkeypatch.setattr("web.services.topbar_operational.build_notification_service", _repository_unavailable)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/api/notifications")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"ok": False, "error": "Top bar non disponibile."}
 
 
 def test_topbar_today_include_pratiche_doppie_cliente_rg(tmp_path: Path):

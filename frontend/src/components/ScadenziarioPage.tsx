@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -38,10 +38,12 @@ import {
   emptyScadenziarioPage,
   calculateProcessDeadline,
   createProcessDeadline,
+  getDeadlineCalculator,
   getScadenziarioPage,
   importPdfDeadlines,
   previewPdfDeadlines,
   type DeadlineCalculatorResult,
+  type DeadlineCalculatorState,
   type DeadlineCalculatorTemplate,
   type PdfDeadlinePreview,
   type ScadenziarioActionCard,
@@ -159,6 +161,24 @@ function sortRows(rows: ScadenziarioRow[], sort: SortKey): ScadenziarioRow[] {
   })
 }
 
+function useScadenziarioMobileLayout(): boolean {
+  const [mobile, setMobile] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false
+    return window.matchMedia('(max-width: 760px)').matches
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined
+    const media = window.matchMedia('(max-width: 760px)')
+    const update = () => setMobile(media.matches)
+    update()
+    media.addEventListener?.('change', update)
+    return () => media.removeEventListener?.('change', update)
+  }, [])
+
+  return mobile
+}
+
 function actionIcon(icon: ScadenziarioActionCard['icon']) {
   if (icon === 'alert') return <AlertTriangle size={19}/>
   if (icon === 'check') return <CheckCircle2 size={19}/>
@@ -272,8 +292,8 @@ function SourceEvidenceLink({ item, onOpen }: { item: ScadenziarioRow; onOpen: (
       type="button"
       className="iu-scad-source-link"
       onClick={() => onOpen(item)}
-      title={`Visualizza fonte: ${sourceLabel}`}
-      aria-label={`Visualizza fonte: ${sourceLabel}`}
+      title={`Apri fonte: ${sourceLabel}`}
+      aria-label={`Apri fonte: ${sourceLabel}`}
     >
       <FileSearch size={13}/>
       <span>Visualizza fonte</span>
@@ -412,6 +432,16 @@ function DeadlineCardList({
     </div>
   )
 }
+
+const MemoDeadlineTable = memo(DeadlineTable, (previous, next) => (
+  previous.rows === next.rows &&
+  previous.selectedIds === next.selectedIds
+))
+
+const MemoDeadlineCardList = memo(DeadlineCardList, (previous, next) => (
+  previous.rows === next.rows &&
+  previous.selectedIds === next.selectedIds
+))
 
 function defaultCalculatorForm(templates: DeadlineCalculatorTemplate[]): CalculatorForm {
   const first = templates[0]
@@ -611,6 +641,84 @@ function ProcessDeadlineCalculator({
   )
 }
 
+export function CalcolaTerminiPage() {
+  const [calculator, setCalculator] = useState<DeadlineCalculatorState>(emptyScadenziarioPage.calculator)
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState<CalculatorForm>(() => defaultCalculatorForm(emptyScadenziarioPage.calculator.templates))
+  const [result, setResult] = useState<DeadlineCalculatorResult | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState('')
+  const guidaPratica = new URLSearchParams(window.location.search).get('guida_pratica') || new URLSearchParams(window.location.search).get('codice_guida') || ''
+
+  useEffect(() => {
+    let active = true
+    void getDeadlineCalculator({ guidaPratica })
+      .then((payload) => {
+        if (!active) return
+        setCalculator(payload)
+        setForm((current) => current.templateCode && payload.templates.some((template) => template.code === current.templateCode)
+          ? current
+          : defaultCalculatorForm(payload.templates))
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [guidaPratica])
+
+  const runCalculator = () => {
+    setBusy(true)
+    setStatus('Calcolo termine processuale in corso...')
+    calculateProcessDeadline(calculator.endpoints.calculate, calculatorRequest(form))
+      .then((nextResult) => {
+        setResult(nextResult)
+        setStatus('Calcolo completato e controllo registrato.')
+      })
+      .catch((error) => setStatus(error instanceof Error ? error.message : 'Calcolo non riuscito'))
+      .finally(() => setBusy(false))
+  }
+
+  const runCreateCalculatedDeadline = () => {
+    if (!result) return
+    setBusy(true)
+    setStatus('Creazione della scadenza controllata...')
+    createProcessDeadline(calculator.endpoints.createDeadline, calculatorRequest(form))
+      .then((created) => {
+        setStatus(created.messaggio)
+        window.location.assign(created.href)
+      })
+      .catch((error) => setStatus(error instanceof Error ? error.message : 'Creazione scadenza non riuscita'))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <main className="iu-content iu-scad-page iu-scad-calculator-page iusentra-route-sequence">
+      <section className="iu-scad-hero" data-iusentra-sequence-slot="page-header">
+        <div>
+          <span className="iu-scad-eyebrow"><Gavel size={16}/> Calcola termini processuali</span>
+          <h1>Calcola termini processuali</h1>
+          <p>Calcolo separato dallo scadenziario: carica solo template, regole e fonti necessarie, senza leggere l'elenco delle scadenze.</p>
+        </div>
+        <div className="iu-scad-hero__actions">
+          <Button href="/scadenziario"><ArrowLeft size={15}/> Torna allo scadenziario</Button>
+        </div>
+      </section>
+
+      {loading ? <section className="iu-scad-status-line"><span>Caricamento delle regole di calcolo...</span></section> : null}
+      <ProcessDeadlineCalculator
+        templates={calculator.templates}
+        result={result}
+        form={form}
+        busy={busy}
+        status={status}
+        onForm={setForm}
+        onCalculate={runCalculator}
+        onCreate={runCreateCalculatedDeadline}
+      />
+    </main>
+  )
+}
+
 function PdfDeadlineImportPanel({
   preview,
   selectedIds,
@@ -804,11 +912,6 @@ export function ScadenziarioPage() {
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
   const [backgroundLoading, setBackgroundLoading] = useState(false)
-  const compactLoadedRef = useRef(false)
-  const [calculatorForm, setCalculatorForm] = useState<CalculatorForm>(() => defaultCalculatorForm(emptyScadenziarioPage.calculator.templates))
-  const [calculatorResult, setCalculatorResult] = useState<DeadlineCalculatorResult | null>(null)
-  const [calculatorBusy, setCalculatorBusy] = useState(false)
-  const [calculatorStatus, setCalculatorStatus] = useState('')
   const [view, setView] = useState<ScadenziarioView>(() => initialView())
   const [query, setQuery] = useState(() => initialQuery())
   const [guidaPratica] = useState(() => initialGuidaPratica())
@@ -830,7 +933,7 @@ export function ScadenziarioPage() {
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
   const [sourcePreview, setSourcePreview] = useState<ScadenziarioRow | null>(null)
-  const [detailPreview, setDetailPreview] = useState<ScadenziarioRow | null>(null)
+  const [detailPreviewId, setDetailPreviewId] = useState<string>(() => routeDeadlineId())
 
   const buildQuery = (compact = false): ScadenziarioQuery => ({
     view,
@@ -846,21 +949,14 @@ export function ScadenziarioPage() {
     fascicoloId,
     focusId: compact ? routeDeadlineId() : undefined,
     compact,
+    includeCalculator: false,
   })
-
-  const syncCalculatorDefaults = (payload: ScadenziarioPageData) => {
-    setCalculatorForm((current) => {
-      if (current.templateCode && payload.calculator.templates.some((template) => template.code === current.templateCode)) return current
-      return defaultCalculatorForm(payload.calculator.templates)
-    })
-  }
 
   const load = () => {
     setLoading(true)
     setBackgroundLoading(false)
     getScadenziarioPage(buildQuery(false)).then((payload) => {
       setData(payload)
-      syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
     }).finally(() => setLoading(false))
   }
@@ -873,23 +969,16 @@ export function ScadenziarioPage() {
     const applyPayload = (payload: ScadenziarioPageData) => {
       if (!active) return
       setData(payload)
-      syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
     }
 
     const focusedId = routeDeadlineId()
     const loadPage = async () => {
-      if (focusedId && !compactLoadedRef.current) {
-        compactLoadedRef.current = true
+      if (focusedId) {
         const compactPayload = await getScadenziarioPage(buildQuery(true))
         if (!active) return
         applyPayload(compactPayload)
         setLoading(false)
-        setBackgroundLoading(true)
-
-        const completePayload = await getScadenziarioPage(buildQuery(false))
-        if (!active) return
-        applyPayload(completePayload)
         setBackgroundLoading(false)
         return
       }
@@ -915,6 +1004,7 @@ export function ScadenziarioPage() {
   }, [view, query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
 
   const visibleRows = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
+  const mobileLayout = useScadenziarioMobileLayout()
 
   const toggleSelection = (id: string) => {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
@@ -972,32 +1062,6 @@ export function ScadenziarioPage() {
     setPeremptory(false)
     setAdvanced(false)
     setOperative(false)
-  }
-
-  const runCalculator = () => {
-    setCalculatorBusy(true)
-    setCalculatorStatus('Calcolo termine processuale in corso...')
-    calculateProcessDeadline(data.calculator.endpoints.calculate, calculatorRequest(calculatorForm))
-      .then((result) => {
-        setCalculatorResult(result)
-        setCalculatorStatus('Calcolo completato e controllo registrato.')
-      })
-      .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Calcolo non riuscito'))
-      .finally(() => setCalculatorBusy(false))
-  }
-
-  const runCreateCalculatedDeadline = () => {
-    if (!calculatorResult) return
-    setCalculatorBusy(true)
-    setCalculatorStatus('Creazione della scadenza controllata...')
-    createProcessDeadline(data.calculator.endpoints.createDeadline, calculatorRequest(calculatorForm))
-      .then((result) => {
-        setCalculatorStatus(result.messaggio)
-        window.history.replaceState(null, '', result.href)
-        load()
-      })
-      .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Creazione scadenza non riuscita'))
-      .finally(() => setCalculatorBusy(false))
   }
 
   const pdfRequestOptions = () => ({
@@ -1089,13 +1153,13 @@ export function ScadenziarioPage() {
       .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Importazione PDF non completata'))
       .finally(() => setPdfBusy(false))
   }
-  const focusedId = routeDeadlineId()
-  const focusedRow = detailPreview || (focusedId ? data.items.find((item) => item.id === focusedId) : undefined)
+  const focusedRow = detailPreviewId ? data.items.find((item) => item.id === detailPreviewId) : undefined
+  const isNotificationPresidio = focusedRow?.sourceEventType === 'legal_notification_presidio'
 
   useEffect(() => {
     const syncDetailFromRoute = () => {
       const routeId = routeDeadlineId()
-      setDetailPreview(routeId ? data.items.find((item) => item.id === routeId) || null : null)
+      setDetailPreviewId(routeId)
     }
     window.addEventListener('popstate', syncDetailFromRoute)
     return () => window.removeEventListener('popstate', syncDetailFromRoute)
@@ -1103,12 +1167,15 @@ export function ScadenziarioPage() {
 
   const openDeadlineDetail = (item: ScadenziarioRow) => {
     window.history.pushState(window.history.state, '', `/scadenziario/${encodeURIComponent(item.id)}${window.location.search}`)
-    setDetailPreview(item)
+    setDetailPreviewId(item.id)
   }
 
   const closeDeadlineDetail = () => {
     window.history.replaceState(window.history.state, '', `/scadenziario${window.location.search}`)
-    setDetailPreview(null)
+    setDetailPreviewId('')
+    if (data.query.compact) {
+      load()
+    }
   }
 
   return (
@@ -1190,17 +1257,6 @@ export function ScadenziarioPage() {
 
       <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>
 
-      <ProcessDeadlineCalculator
-        templates={data.calculator.templates}
-        result={calculatorResult}
-        form={calculatorForm}
-        busy={calculatorBusy}
-        status={calculatorStatus}
-        onForm={setCalculatorForm}
-        onCalculate={runCalculator}
-        onCreate={runCreateCalculatedDeadline}
-      />
-
       <section className="iu-scad-status-line">
         <span className={loading ? '' : 'is-ok'}>
           {loading ? 'Sincronizzazione scadenziario...' : backgroundLoading ? 'Dettaglio disponibile, aggiornamento elenco in corso...' : 'Dati scadenziario aggiornati'}
@@ -1234,8 +1290,8 @@ export function ScadenziarioPage() {
             <h2>{focusedRow.title}</h2>
             <p>{focusedRow.detailDescription || focusedRow.description || focusedRow.fascicoloLabel || 'Dettaglio operativo della scadenza selezionata.'}</p>
             <dl>
-              <div><dt>Scadenza legale</dt><dd>{focusedRow.dateLabel}</dd></div>
-              <div><dt>Scadenza operativa</dt><dd>{focusedRow.operationalDueLabel || 'Non impostata'}</dd></div>
+              <div><dt>{isNotificationPresidio ? 'Attività da presidiare' : 'Scadenza legale'}</dt><dd>{focusedRow.dateLabel}</dd></div>
+              {isNotificationPresidio ? <div><dt>Visibilità</dt><dd>Calendario e notifiche operative</dd></div> : <div><dt>Scadenza operativa</dt><dd>{focusedRow.operationalDueLabel || 'Non impostata'}</dd></div>}
               <div><dt>Priorità</dt><dd>{focusedRow.priorityLabel}</dd></div>
               <div><dt>Responsabile</dt><dd>{focusedRow.ownerLabel || 'Non assegnato'}</dd></div>
               {focusedRow.sourceEventTypeLabel ? <div><dt>Evento</dt><dd>{focusedRow.sourceEventTypeLabel}</dd></div> : null}
@@ -1261,7 +1317,7 @@ export function ScadenziarioPage() {
                 <Link2 size={15}/> Apri link udienza
               </a>
             ) : null}
-            {focusedRow.sourceHref ? <button type="button" onClick={() => setSourcePreview(focusedRow)}><FileSearch size={15}/> Visualizza fonte</button> : null}
+            {focusedRow.sourceHref ? <button type="button" onClick={() => setSourcePreview(focusedRow)}><FileSearch size={15}/> Apri fonte</button> : null}
             <Button href={focusedRow.editHref}><Edit3 size={15}/> Modifica</Button>
             <button type="button" onClick={() => runComplete(focusedRow)}><CheckCircle2 size={15}/> Completa</button>
             <button type="button" onClick={() => runDelete(focusedRow)}><Trash2 size={15}/> Elimina</button>
@@ -1284,8 +1340,11 @@ export function ScadenziarioPage() {
           </header>
           {visibleRows.length ? (
             <>
-              <DeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
-              <DeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+              {mobileLayout ? (
+                <MemoDeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+              ) : (
+                <MemoDeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+              )}
             </>
           ) : (
             <div className="iu-scad-empty">

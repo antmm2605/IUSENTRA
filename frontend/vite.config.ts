@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { pruneReactAssets } from './vite/pruneReactAssets'
 
 function sanitizeGeneratedText(): Plugin {
   const mojibakePattern = new RegExp(
@@ -47,7 +48,7 @@ function enforceBundleBudget(maxBytes = 500_000): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), sanitizeGeneratedText(), enforceBundleBudget()],
+  plugins: [react(), sanitizeGeneratedText(), enforceBundleBudget(), pruneReactAssets()],
   base: '/static/react/',
   resolve: {
     alias: {
@@ -60,9 +61,8 @@ export default defineConfig({
     target: 'es2022',
     modulePreload: false,
     cssCodeSplit: true,
-    // I chunk Vite hanno nomi hashati e possono restare in cache nei browser
-    // autenticati durante un deploy. Non svuotare la directory evita 404 sui
-    // bundle ancora referenziati da una shell caricata prima dell'aggiornamento.
+    // Il plugin di pulizia mantiene il bundle corrente e quello precedente:
+    // le sessioni già aperte non ricevono 404 e gli asset storici non si accumulano.
     emptyOutDir: false,
     manifest: true,
     rollupOptions: {

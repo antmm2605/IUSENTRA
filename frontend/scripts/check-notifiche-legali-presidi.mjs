@@ -234,6 +234,7 @@ const pageSource = page.getFullText()
 const apiSource = read('src/features/notifiche-legali/api/presidiApi.ts')
 const detailSource = read('src/features/notifiche-legali/components/PresidioDetailDrawer.tsx')
 const actionsSource = read('src/features/notifiche-legali/components/PresidioActions.tsx')
+const presidiCssSource = read('src/features/notifiche-legali/PresidiNotifiche.css')
 const tableSource = read('src/features/notifiche-legali/components/PresidiTable.tsx')
 const evidenceSource = read('src/features/notifiche-legali/components/PresidioEvidence.tsx')
 const featureFlagsSource = read('src/lib/featureFlags.ts')
@@ -325,12 +326,43 @@ assert.ok(!featureSources.includes('components/NotificheLegaliPage'))
 // Contratto TypeScript: filtri, payload, permessi, mutazioni e stati espliciti.
 assert.deepEqual(unionStrings(types, 'PresidioMutation'), [
   'confirm',
+  'revise-decision',
   'not-required',
   'assign',
   'link-document',
   'reconcile',
   'retry',
 ])
+assert.ok(actionsSource.includes("'revise-decision'"), 'Manca la mutazione per correggere la decisione')
+assert.ok(detailSource.includes('<SourceDocumentModal'), 'I documenti del presidio devono usare il lettore interno unico')
+assert.ok(detailSource.includes('setDocumentSource'), 'Manca l’apertura governata del documento nel lettore interno')
+assert.ok(detailSource.includes('Acquisisci originale'), 'Manca l’azione verso l’acquisizione dell’originale dal portale')
+assert.ok(actionsSource.includes('Prova, ricevuta o documento della notifica'), 'Il collegamento documento non è esplicito')
+assert.ok(actionsSource.includes('document_name:'), 'Il collegamento deve conservare il nome leggibile del documento')
+const decisionRevisionSource = read('src/features/notifiche-legali/components/PresidioDecisionRevision.tsx')
+assert.ok(
+  actionsSource.includes('<PresidioDecisionRevision'),
+  'Manca l’azione visibile collegata alla label Modifica decisione del payload',
+)
+assert.ok(decisionRevisionSource.includes('Da riesaminare'), 'Manca la scelta Da riesaminare')
+assert.ok(decisionRevisionSource.includes('Notifica non necessaria'), 'Manca la scelta Notifica non necessaria')
+assert.ok(decisionRevisionSource.includes('Notifica necessaria confermata'), 'Manca la scelta di conferma corrente')
+assert.match(decisionRevisionSource, /minLength=\{12\}/, 'La motivazione della correzione deve essere obbligatoria')
+assert.ok(decisionRevisionSource.includes('La motivazione, l’autore e la data restano nella cronologia verificabile.'))
+assert.ok(decisionRevisionSource.includes('aria-expanded={open}'), 'Modifica decisione deve essere un’azione visibile ed esplicita')
+assert.ok(decisionRevisionSource.includes('<PencilLine'), 'Manca l’icona che rende riconoscibile la modifica della decisione')
+assert.equal((tableSource.match(/header:/g) || []).length, 3, 'Il registro deve usare tre colonne compatte senza scroll orizzontale')
+assert.ok(presidiCssSource.includes(".nlp-table [data-slot='table-container']"), 'Manca il contenitore tabella senza scroll orizzontale')
+assert.ok(presidiCssSource.includes('table-layout: fixed'), 'La tabella deve distribuire le colonne nello spazio disponibile')
+for (const selector of [
+  '.nlp-action-form > summary:hover',
+  '.nlp-action-form > summary:focus-visible',
+  '.nlp-action-form select:focus-visible',
+  '.nlp-action-form textarea:focus-visible',
+  '.nlp-action-form select:disabled',
+]) {
+  assert.ok(presidiCssSource.includes(selector), `Stato interattivo mancante: ${selector}`)
+}
 for (const state of ['idle', 'loading', 'refreshing', 'ready', 'forbidden', 'flag-off', 'repository-unavailable', 'error']) {
   assert.ok(unionStrings(types, 'PresidioResourceStatus').includes(state), `Stato UI assente: ${state}`)
 }
@@ -460,7 +492,7 @@ assert.equal(
   '/api/v1/ui/notifiche-legali/presidi/PR%2F1/evidence/EV%202/content?download=1',
 )
 
-const mutations = ['confirm', 'not-required', 'assign', 'link-document', 'reconcile', 'retry']
+const mutations = ['confirm', 'revise-decision', 'not-required', 'assign', 'link-document', 'reconcile', 'retry']
 for (const mutation of mutations) {
   postResult = { ok: true, message: 'Operazione completata.' }
   const body = { marker: mutation }
@@ -584,7 +616,7 @@ assert.match(shellSource, /<nav[^>]+aria-label=['"]Sezioni notifiche legali['"]/
 assert.match(read('src/features/notifiche-legali/components/PresidiTabs.tsx'), /<nav[^>]+aria-label=['"]Code dei presidi['"]/)
 assert.match(pageSource, /aria-busy=['"]true['"]/)
 assert.match(read('src/features/notifiche-legali/components/PresidiFilters.tsx'), /aria-label=['"]Cerca destinatario['"]/)
-assert.ok(!read('src/features/notifiche-legali/PresidiNotifiche.css').match(/outline\s*:\s*(?:0|none)/i))
+assert.ok(!presidiCssSource.match(/outline\s*:\s*(?:0|none)/i))
 
 // Budget sorgenti: guardrail stretto sul nuovo perimetro, separato dal limite
 // globale Vite da 500 KB. I margini consentono correzioni senza crescita muta.
@@ -595,6 +627,7 @@ const sourceBudgets = {
   'hooks/usePresidi.ts': [80, 6_500],
   'hooks/usePresidioDetail.ts': [110, 8_000],
   'components/PresidioActions.tsx': [230, 16_000],
+  'components/PresidioDecisionRevision.tsx': [110, 8_000],
   'PresidiNotifichePage.tsx': [280, 21_000],
   'NotificheLegaliPresidiShell.tsx': [120, 9_000],
   'components/PresidioEvidence.tsx': [90, 8_000],
@@ -602,7 +635,7 @@ const sourceBudgets = {
   'components/PresidiTabs.tsx': [60, 6_000],
   'components/PresidiFilters.tsx': [230, 17_000],
   'components/PresidiTable.tsx': [190, 14_000],
-  'PresidiNotifiche.css': [360, 18_000],
+  'PresidiNotifiche.css': [440, 20_000],
 }
 let totalLines = 0
 let totalBytes = 0

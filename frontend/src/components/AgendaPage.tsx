@@ -165,11 +165,21 @@ function agendaTitle(event: AgendaEvent): string {
 }
 
 function agendaLegalLabel(event: AgendaEvent): string {
-  return event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Termine giuridico' : 'Adempimento')
+  return event.legalLabel || (event.kind === 'udienza' ? 'Udienza' : event.kind === 'deposito' ? 'Deposito' : event.kind === 'scadenza' ? 'Scadenza da presidiare' : 'Adempimento')
+}
+
+function sameAgendaText(left: string, right: string): boolean {
+  return left.trim().toLocaleLowerCase('it-IT') === right.trim().toLocaleLowerCase('it-IT')
+}
+
+function agendaHeadline(event: AgendaEvent): string {
+  const label = agendaLegalLabel(event)
+  const title = agendaTitle(event)
+  return sameAgendaText(label, title) ? label : `${label} · ${title}`
 }
 
 function agendaSubjectLine(event: AgendaEvent): string {
-  const contextParts = [event.matter, event.client]
+  const contextParts = [event.client, event.matter]
     .map((value) => value.trim())
     .filter((value, index, values) => value && values.indexOf(value) === index)
   if (contextParts.length) return contextParts.join(' · ')
@@ -177,6 +187,12 @@ function agendaSubjectLine(event: AgendaEvent): string {
   const title = agendaTitle(event)
   const titleKey = title.toLocaleLowerCase('it-IT')
   const parts = titleKey !== label ? [title] : []
+  if (!parts.length) {
+    const fallback = [event.subtitle, event.originTitle]
+      .map((value) => value.trim())
+      .find((value) => value && !sameAgendaText(value, agendaLegalLabel(event)) && !sameAgendaText(value, title))
+    return fallback || 'Dettaglio da verificare'
+  }
   return parts.join(' · ') || event.subtitle || event.originTitle || 'Dettaglio da verificare'
 }
 
@@ -271,10 +287,27 @@ function EventCard({
   const isCompact = !isCluster && naturalHeight < 78
   const isLate = new Date(event.start).getHours() >= 16
   const href = event.href || '/agenda'
-  const clusterSummary = clusteredEvents
-    .slice(0, 2)
-    .map((item) => `${item.timeLabel} · ${agendaLegalLabel(item)} · ${agendaSubjectLine(item)}`)
-    .join(' · ')
+  const clusterSummary = `${clusteredEvents.length} attività raggruppate`
+  const renderClusterEventList = (mode: 'inline' | 'tooltip') => (
+    <div className={`iu-ag-event__cluster-list ${mode === 'inline' ? 'iu-ag-event__cluster-list--inline' : ''}`} aria-label="Eventi raggruppati nell'agenda">
+      {clusteredEvents.map((clusterEvent) => (
+        <section key={`${mode}-${clusterEvent.id}`}>
+          <a href={clusterEvent.href || '/agenda'} onClick={(clickEvent) => {
+            if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+            clickEvent.preventDefault()
+            onOpenDetail(clusterEvent)
+          }}>
+            <strong>{clusterEvent.timeLabel} · {agendaLegalLabel(clusterEvent)}</strong>
+            <span>{agendaSubjectLine(clusterEvent)}</span>
+          </a>
+          <div>
+            {clusterEvent.remoteHearingVerified && clusterEvent.remoteHearingUrl ? <a href={clusterEvent.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={13}/>Collegati</a> : null}
+            {clusterEvent.sourceHref ? <button type="button" onClick={() => onOpenSource(clusterEvent)}><FileSearch size={13}/>Apri fonte</button> : null}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
   return (
     <article
       className={`iu-ag-event iu-ag-event--${event.tone} ${event.completed ? 'is-completed' : ''} ${isCompact ? 'is-compact' : ''} ${isCluster ? 'is-cluster' : ''} ${isLate ? 'is-late' : ''}`}
@@ -309,28 +342,11 @@ function EventCard({
         {isCluster ? (
           <>
             <b>{clusteredEvents.length} eventi {clusterWhen}</b>
-            <div className="iu-ag-event__cluster-list">
-              {clusteredEvents.map((clusterEvent) => (
-                <section key={clusterEvent.id}>
-                  <a href={clusterEvent.href || '/agenda'} onClick={(clickEvent) => {
-                    if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-                    clickEvent.preventDefault()
-                    onOpenDetail(clusterEvent)
-                  }}>
-                    <strong>{clusterEvent.timeLabel} · {agendaLegalLabel(clusterEvent)}</strong>
-                    <span>{agendaSubjectLine(clusterEvent)}</span>
-                  </a>
-                  <div>
-                    {clusterEvent.remoteHearingVerified && clusterEvent.remoteHearingUrl ? <a href={clusterEvent.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={13}/>Collegati</a> : null}
-                    {clusterEvent.sourceHref ? <button type="button" onClick={() => onOpenSource(clusterEvent)}><FileSearch size={13}/>Visualizza fonte</button> : null}
-                  </div>
-                </section>
-              ))}
-            </div>
+            {renderClusterEventList('tooltip')}
           </>
         ) : (
           <>
-            <b>{label}: {title}</b>
+            <b>{agendaHeadline(event)}</b>
             {tooltipLines.map((line) => <span key={line}>{line}</span>)}
             {remoteUrl ? (
               <a className="iu-ag-event__remote-link" href={remoteUrl} target="_blank" rel="noreferrer" title={remoteUrl}>
@@ -339,9 +355,9 @@ function EventCard({
               </a>
             ) : null}
             {event.sourceHref ? (
-              <button className="iu-ag-event__remote-link iu-ag-event__source-link" type="button" onClick={() => onOpenSource(event)} title={`Visualizza fonte: ${event.sourceLabel || 'fonte originaria'}`}>
+              <button className="iu-ag-event__remote-link iu-ag-event__source-link" type="button" onClick={() => onOpenSource(event)} title={`Apri fonte: ${event.sourceLabel || 'fonte originaria'}`}>
                 <FileSearch size={14}/>
-                <span>Visualizza fonte{event.sourceLabel ? ` · ${event.sourceLabel}` : ''}</span>
+                <span>Apri fonte{event.sourceLabel ? ` · ${event.sourceLabel}` : ''}</span>
                 {event.sourceVerified ? <CheckCircle2 size={13}/> : null}
               </button>
             ) : null}
@@ -503,7 +519,7 @@ function AgendaInspector({ events, nextEvent, unsynced, onOpenDetail }:{events:A
                 onOpenDetail(event)
               }}>
                 <Badge tone={event.tone}>{event.kind}</Badge>
-                <strong>{agendaLegalLabel(event)} · {agendaTitle(event)}</strong>
+                <strong>{agendaHeadline(event)}</strong>
                 <span>{formatDateIt(event.date, event.date)} - {event.timeLabel}</span>
               </a>
             ))}
@@ -522,7 +538,9 @@ function AgendaInspector({ events, nextEvent, unsynced, onOpenDetail }:{events:A
   )
 }
 
-function agendaSourceLabel(source: string): string {
+function agendaSourceLabel(source: string, event?: AgendaEvent): string {
+  if (event?.sourceKind === 'pec' || event?.sourceHref?.includes('/email/')) return 'PEC'
+  if (event?.sourceKind === 'documento' || event?.sourceHref?.includes('/documenti/')) return 'Documento'
   const normalized = source.toLowerCase()
   if (normalized.includes('scadenziario')) return 'Scadenziario'
   if (normalized.includes('pec')) return 'PEC'
@@ -541,7 +559,7 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
       <div>
         <a href="/agenda"><ArrowLeftIcon/>Torna all'agenda</a>
         <span>Dettaglio operativo</span>
-        <h2>{agendaLegalLabel(event)} · {agendaTitle(event)}</h2>
+        <h2>{agendaHeadline(event)}</h2>
         <p>{event.subtitle || event.notes || event.location || 'Verifica il fascicolo collegato prima dell’attività.'}</p>
         {visibleDetails.length ? (
           <ul className="iu-ag-focus__details">
@@ -554,7 +572,7 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
         <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
         <div><dt>Cliente/parte</dt><dd>{event.client || 'Da collegare'}</dd></div>
         <div><dt>Fascicolo/RG</dt><dd>{event.matter || 'Da indicare'}</dd></div>
-        <div><dt>Origine</dt><dd>{agendaSourceLabel(event.source)}</dd></div>
+        <div><dt>Origine</dt><dd>{agendaSourceLabel(event.source, event)}</dd></div>
         {event.remoteHearingPlatform ? <div><dt>Piattaforma</dt><dd>{event.remoteHearingPlatform}</dd></div> : null}
         {event.remoteHearingMeetingId ? <div><dt>ID riunione</dt><dd>{event.remoteHearingMeetingId}</dd></div> : null}
         {event.remoteHearingPasscode ? <div><dt>Codice di accesso</dt><dd>{event.remoteHearingPasscode}</dd></div> : null}
@@ -562,11 +580,14 @@ function AgendaFocus({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(e
       </dl>
       <div className="iu-ag-focus__actions">
         {event.remoteHearingVerified && event.remoteHearingUrl ? <a href={event.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={15}/>Collegati all'udienza</a> : null}
-        {event.sourceHref ? <button type="button" onClick={() => onOpenSource(event)} title={`Visualizza fonte: ${event.sourceLabel || 'fonte originaria'}`}><FileSearch size={15}/>Visualizza fonte</button> : null}
         <a href={editHref}><Settings2 size={15}/>Modifica</a>
-        <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
-        <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(`${agendaLegalLabel(event)} - ${agendaTitle(event)}`)}`}><MessageCircleIcon/>Avvisa cliente</a>
-        <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${agendaLegalLabel(event)} - ${agendaTitle(event)}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        {event.sourceHref ? (
+          <button type="button" onClick={() => onOpenSource(event)} title={`Apri origine: ${event.sourceLabel || 'fonte originaria'}`}><FileSearch size={15}/>Apri origine</button>
+        ) : (
+          <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
+        )}
+        <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(agendaHeadline(event))}`}><MessageCircleIcon/>Avvisa cliente</a>
+        <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${agendaHeadline(event)}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline && event.completed ? (
           <span className="iu-ag-focus__completed" role="status"><CheckCircle2 size={15}/>Attività completata</span>
         ) : !isDeadline ? (
@@ -918,7 +939,7 @@ export function AgendaPage() {
         source={sourcePreview ? {
           href: sourcePreview.sourceHref,
           label: sourcePreview.sourceLabel || agendaTitle(sourcePreview),
-          context: `${agendaLegalLabel(sourcePreview)} · ${agendaSubjectLine(sourcePreview)}`,
+          context: `${agendaHeadline(sourcePreview)} · ${agendaSubjectLine(sourcePreview)}`,
           kind: sourcePreview.sourceKind,
         } : null}
         onClose={() => setSourcePreview(null)}

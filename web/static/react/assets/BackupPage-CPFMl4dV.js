@@ -1,1 +1,0 @@
-import{s as o}from"./vendor-D5jv17fb.js";import{ImpostazioniPage as r}from"./ImpostazioniPage-BKK7xXiM.js";import"./alert-q_2PnVtj.js";import"./index-CWYW7aPg.js";import"./vendor-icons-DiDTH1Sx.js";import"./button-D0pPymPq.js";import"./IusPageShell-DNHjZSgr.js";import"./input-D7RRvtym.js";import"./textarea-CkOxunY9.js";function x(){return o.jsx(r,{})}export{x as BackupPage};

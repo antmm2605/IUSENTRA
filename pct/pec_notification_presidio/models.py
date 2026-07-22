@@ -119,6 +119,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
             PresidioStatus.DELIVERY_FAILED,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
+            PresidioStatus.LEGACY_ASSUMED_HANDLED,
         }
     ),
     PresidioStatus.ORIGINAL_TO_ACQUIRE: frozenset(
@@ -311,6 +312,12 @@ def validate_transition(previous: str, next_status: str, *, reason: str = "") ->
     next_value = PresidioStatus(next_status)
     if next_value not in ALLOWED_TRANSITIONS.get(previous_value, frozenset()):
         raise ValueError(f"Transizione non ammessa: {previous_value} -> {next_value}")
+    if (
+        previous_value == PresidioStatus.NOTIFICATION_CONFIRMED
+        and next_value in {PresidioStatus.NEEDS_REVIEW, PresidioStatus.NOT_REQUIRED}
+        and len(str(reason).strip()) < 12
+    ):
+        raise ValueError("La correzione della decisione richiede una motivazione chiara di almeno 12 caratteri")
     if next_value in {PresidioStatus.NOT_REQUIRED, PresidioStatus.CANCELLED} and not str(reason).strip():
         raise ValueError(f"{next_value} richiede una motivazione")
 

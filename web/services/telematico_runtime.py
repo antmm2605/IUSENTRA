@@ -195,6 +195,67 @@ def build_telematico_runtime(
     _portale_ufficiale_label = portale_ufficiale_label
     _ensure_pdp_penale_case_after_import = ensure_pdp_penale_case_after_import
     _cfg_data_path = cfg_data_path
+
+    def _notification_materialization_paths() -> dict[str, Any]:
+        paths = dict(getattr(g, "data_paths", {}) or {})
+        for key in (
+            "STUDIO_DB",
+            "AUTH_DB",
+            "AUDIT_DB",
+            "SCADENZIARIO_DB",
+            "AGENDA_DB",
+            "NOTIFICATIONS_DB",
+            "NOTIFICHE_LOG",
+            "EMAIL_CASELLA_DB",
+            "PEC_AUDIT_DB",
+        ):
+            if str(paths.get(key) or "").strip():
+                continue
+            try:
+                value = _cfg_data_path(key)
+            except Exception:
+                value = ""
+            if str(value or "").strip():
+                paths[key] = str(value)
+        return paths
+
+    def _link_pst_originals_to_notification_presidio(
+        *,
+        fascicolo_id: str,
+        import_result: dict[str, Any],
+        actor: str,
+        target_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        documents = list(import_result.get("documenti") or [])
+        if not documents:
+            return {}
+        if not any(
+            bool(document.get("original_documento_portale"))
+            or str(document.get("modalita_documento_portale") or "").strip().casefold() == "originale"
+            for document in documents
+            if isinstance(document, dict)
+        ):
+            return {
+                "ok": True,
+                "originali_valutati": 0,
+                "collegati": [],
+                "saltati": [{"reason": "nessun_originale_pst_importato"}],
+            }
+        from web.helpers import tenant_corrente
+        from web.services.pst_original_presidio_runtime import (
+            link_imported_pst_originals_for_current_tenant,
+        )
+
+        tenant = tenant_corrente()
+        return link_imported_pst_originals_for_current_tenant(
+            fascicolo_id=fascicolo_id,
+            imported_documents=documents,
+            actor=actor,
+            target_document=target_document,
+            paths=_notification_materialization_paths(),
+            database=getattr(tenant, "database", None),
+        )
+
     def _polis_auth_mode() -> str:
         """
         Restituisce la modalità di autenticazione PST:
@@ -3048,6 +3109,7 @@ def build_telematico_runtime(
         options: dict[str, bool],
         mapping: dict[str, str],
         downloaded_files: list[dict[str, Any]] | None = None,
+        target_document: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
         options = _coerce_import_options(dict(options or {}), portale=portale)
@@ -3394,6 +3456,15 @@ def build_telematico_runtime(
             user_name=user_name,
         )
 
+        presidio_notifica: dict[str, Any] = {}
+        if portale == "pst":
+            presidio_notifica = _link_pst_originals_to_notification_presidio(
+                fascicolo_id=id_fasc,
+                import_result=import_result,
+                actor=user_name,
+                target_document=target_document,
+            )
+
         fasc = gf.get(id_fasc)
         documenti_importati_count = int(import_result.get("documenti_importati", 0) or 0)
         documenti_da_acquisire = max(documenti_attesi - documenti_importati_count, 0)
@@ -3443,6 +3514,7 @@ def build_telematico_runtime(
             "timeline_url": detail_url + "#sezione-attivita-processuali",
             "documenti_url": documenti_url,
             "workflow_url": workflow_url,
+            "presidio_notifica": presidio_notifica,
             "summary": {
                 "id_fascicolo": id_fasc,
                 "fascicolo_id": id_fasc,
@@ -3475,6 +3547,7 @@ def build_telematico_runtime(
                 "catalogo_solo_metadati": bool(importa_file_portale and documenti_attesi > 0 and not files),
                 "download_parziale_portale": bool(partial_pst_existing_update),
                 "albero_originale_salvato": bool(albero_originale_salvato),
+                "presidi_notifica_collegati": len(presidio_notifica.get("collegati") or []),
             },
         }
 
@@ -4636,6 +4709,10 @@ def build_telematico_runtime(
         decoded_items = _decode_portale_downloaded_items(normalized_files)
         if not decoded_items:
             raise ValueError("I file raccolti non contengono documenti leggibili da importare.")
+        decoded_items = _apply_portale_download_mode_to_items(
+            decoded_items,
+            original=_scarica_originale_portale_enabled(options_body, portale_norm),
+        )
 
         user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
         selection = _selection_from_assisted_target(portale_norm, fasc)
@@ -4707,6 +4784,20 @@ def build_telematico_runtime(
             user_name=user_name,
         )
 
+        presidio_notifica: dict[str, Any] = {}
+        if portale_norm == "pst":
+            target_document = body.get("target_document")
+            presidio_notifica = _link_pst_originals_to_notification_presidio(
+                fascicolo_id=fascicolo_id,
+                import_result=document_result,
+                actor=user_name,
+                target_document=(
+                    dict(target_document)
+                    if isinstance(target_document, dict)
+                    else {}
+                ),
+            )
+
         detail_url = url_for("dettaglio_fascicolo", id_fasc=fascicolo_id)
         imported_receipts = list(receipt_result.get("imported") or [])
         summary = {
@@ -4737,6 +4828,7 @@ def build_telematico_runtime(
             "summary": summary,
             "documenti": document_result,
             "ricevute": receipt_result,
+            "presidio_notifica": presidio_notifica,
         }
 
     def _deposito_finalizza_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:

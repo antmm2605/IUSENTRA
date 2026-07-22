@@ -208,6 +208,8 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 CREATE INDEX IF NOT EXISTS idx_legal_communications_tenant_received
     ON legal_communications (tenant_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_legal_communications_event_received
+    ON legal_communications (tenant_id, legal_event_type, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_legal_communications_category
     ON legal_communications (tenant_id, legal_category, status);
 CREATE INDEX IF NOT EXISTS idx_legal_deadlines_status

@@ -1042,6 +1042,11 @@ body.react-shell-page #root{
 .iu-ag-event__source-link{justify-content:flex-start;background:rgba(248,250,252,.96);color:var(--iu-slate-700)}
 .iu-ag-event__source-link svg:last-child{margin-left:auto;color:#047857}
 .iu-ag-event__cluster-list{display:grid;gap:7px;max-height:360px;overflow-y:auto}
+.iu-ag-event__cluster-list--inline{max-height:210px;margin-top:4px;padding-top:5px;border-top:1px solid rgba(37,99,235,.14)}
+.iu-ag-event__cluster-list--inline>section{padding:6px;border-color:rgba(37,99,235,.16);background:rgba(255,255,255,.82)}
+.iu-ag-event__cluster-list--inline>section>a strong{font-size:10.5px}
+.iu-ag-event__cluster-list--inline>section>a span{font-size:10px}
+.iu-ag-event__cluster-list--inline>section>div>a,.iu-ag-event__cluster-list--inline>section>div>button{min-height:26px;padding:3px 6px;font-size:9.5px}
 .iu-ag-event__cluster-list>section{display:grid;gap:6px;padding:8px;border:1px solid var(--iu-border);border-radius:8px;background:#fff}
 .iu-ag-event__cluster-list>section>a{display:grid;gap:2px;color:var(--iu-navy-900);text-decoration:none}
 .iu-ag-event__cluster-list>section>a:hover,.iu-ag-event__cluster-list>section>a:focus-visible{outline:0;color:var(--iu-blue-700)}
@@ -1061,6 +1066,7 @@ body.react-shell-page #root{
 .iu-ag-source-open{overflow:hidden}
 .iu-ag-source-modal{position:fixed;inset:0;z-index:1250;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.56)}
 .iu-ag-source-modal__box{width:min(1320px,calc(100vw - 36px));height:min(91vh,940px);display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#fff;box-shadow:0 28px 90px rgba(15,23,42,.34)}
+.iu-ag-source-modal__box--fullscreen{width:100vw;height:100vh;max-height:none;border-radius:0;border:0}
 .iu-ag-source-modal__box>header{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 14px;border-bottom:1px solid var(--iu-border);background:#fff}
 .iu-ag-source-modal__box>header>div{min-width:0;display:grid;gap:2px}
 .iu-ag-source-modal__box>header span{display:flex;align-items:center;gap:6px;color:var(--iu-blue-700);font-size:10px;font-weight:950;text-transform:uppercase}
@@ -1072,6 +1078,13 @@ body.react-shell-page #root{
 .iu-ag-source-modal__box nav a:hover,.iu-ag-source-modal__box nav a:focus-visible,.iu-ag-source-modal__box nav button:hover,.iu-ag-source-modal__box nav button:focus-visible{outline:0;border-color:rgba(37,99,235,.34);background:#eff6ff;color:var(--iu-blue-700)}
 .iu-ag-source-modal__body{min-height:0;overflow:hidden;background:#f8fafc}
 .iu-ag-source-modal__body>iframe{width:100%;height:100%;min-height:0;border:0;background:#f8fafc}
+.iu-source-document-reader{position:relative;width:100%;height:100%;min-height:0;background:#f8fafc}
+.iu-source-document-reader>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#f8fafc}
+.iu-source-document-reader__state{position:absolute;inset:0;z-index:2;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:linear-gradient(180deg,rgba(248,250,252,.96),rgba(255,255,255,.9));color:var(--iu-slate-600)}
+.iu-source-document-reader__state strong{color:var(--iu-navy-900);font-size:15px;font-weight:950}
+.iu-source-document-reader__state span{max-width:420px;font-size:12px;font-weight:750;line-height:1.45}
+.iu-source-document-reader__state--error{background:#fff7ed;color:#9a3412}
+.iu-source-document-reader__state--error strong{color:#7c2d12}
 .iu-ag-source-modal__box--detail{width:min(1180px,calc(100vw - 36px));height:auto;max-height:min(91vh,940px)}
 .iu-ag-source-modal__body--detail{overflow:auto;padding:14px}
 .iu-ag-source-modal__body--detail>.iu-ag-focus,.iu-ag-source-modal__body--detail>.iu-scad-focus-card{border:0;border-radius:0;background:#fff;box-shadow:none}
@@ -1374,6 +1387,7 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 @media(max-width:920px){
   .iu-ag-source-modal{place-items:stretch;padding:6px}
   .iu-ag-source-modal__box{width:100%;height:calc(100vh - 12px);max-height:none;border-radius:10px}
+  .iu-ag-source-modal__box--fullscreen{width:100vw;height:100vh;border-radius:0}
   .iu-ag-source-modal__box>header{align-items:flex-start;flex-direction:column;gap:8px;padding:9px 10px}
   .iu-ag-source-modal__box>header>div{width:100%}
   .iu-ag-source-modal__box>header strong,.iu-ag-source-modal__box>header small{white-space:normal;line-height:1.25}

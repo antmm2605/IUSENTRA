@@ -18,6 +18,7 @@ from web.bootstrap.fascicoli_document_helpers import (
     contenuto_portale_bytes,
     estrai_pdf_da_raw,
     mobile_pdf_preview_response,
+    mobile_rich_preview_response,
     nome_documento_operativo,
     payload_bool,
     percorso_documento_lettura,
@@ -435,7 +436,7 @@ def register_fascicoli_document_routes(
             preview_name = operational_name
             lower_name = operational_name.casefold()
 
-            if lower_name.endswith((".xml", ".xml.p7m", ".eml", ".eml.p7m", ".txt", ".txt.p7m")):
+            if lower_name.endswith((".xml", ".xml.p7m", ".eml", ".eml.p7m", ".txt", ".txt.p7m")) and request.args.get("viewer") != "mobile":
                 from web.services.signed_attachment_preview import build_attachment_preview_payload
 
                 signed_payload = firma_payload if lower_name.endswith(".p7m") else data
@@ -475,6 +476,18 @@ def register_fascicoli_document_routes(
                             if contenuto_versione:
                                 preview_payload = contenuto_versione
                                 preview_name = nome_preview
+
+            mobile_response, preview_payload, preview_name = mobile_rich_preview_response(
+                preview_payload=preview_payload,
+                preview_name=preview_name,
+                mime_salvato=(mime_preview_documento(preview_name, preview_payload) or ("", ""))[0],
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                documento=documento,
+                audit=audit,
+            )
+            if mobile_response is not None:
+                return mobile_response
 
             preview = mime_preview_documento(preview_name, preview_payload)
             if not preview:

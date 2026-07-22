@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.258.0 - 2026-07-21
+
+- Unifica Agenda, Scadenziario, Presìdi notifiche, topbar e Web Push sulla stessa fonte PEC indicizzata: ogni evento conserva tenant, messaggio e allegato che lo hanno generato e apre direttamente la PEC o il documento utile, senza dashboard generiche né ricerche al click.
+- Rafforza l'isolamento multi-studio: i dettagli PEC falliscono chiusi sulla coppia tenant/identificativo, non riclassificano né spostano messaggi durante una lettura, e i materializzatori usano i repository tenant-aware SQLite/PostgreSQL senza aprire database locali di un altro studio.
+- Corregge la logica tecnico-giuridica delle sentenze e della trattazione scritta: la sentenza ex art. 429 c.p.c. prevale sul riferimento alla modalità ex art. 127-ter, la comunicazione di cancelleria non diventa prova della notifica dell'avvocato e `Notifica necessaria confermata` non viene confusa con una notifica già eseguita.
+- Riconcilia lo storico del tenant Studio Legale Giuseppe Montagnese lasciando operativi soltanto i cinque residui reali di Calabrò, Speranza, Monea, Alfano e Romeo; le vecchie scadenze automatiche duplicate vengono completate senza cancellare fascicoli, PEC o documenti.
+- Estende il lettore interno IUSENTRA con apertura uniforme da PEC/fascicolo, anteprima di PDF e ZIP PEC, XML, EML/MIME, TXT, DOC/DOCX, JPG/JPEG, PNG, TIFF/TIF e P7M/SMIME quando estraibili, più comando a tutto schermo e messaggi espliciti per i formati non renderizzabili.
+- Riduce il tempo percepito di apertura: il viewer è in sola lettura, riusa cache tenant-aware bounded, non esegue audit o parsing ripetuti al click, e le query PEC/Control Tower sono indicizzate e limitate agli eventi visibili invece di riesaminare l'intero storico durante il caricamento pagina.
+- Impedisce che il bootstrap tenant duplichi ricorsivamente OCR, testi estratti e staging `documenti_ai` dentro `studio.db`: il runtime sincronizza solo i moduli JSON core dichiarati, mentre la scansione ricorsiva resta disponibile esclusivamente negli audit espliciti.
+- Sposta il Calcolatore termini processuali in una pagina React dedicata e rende più compatte e uniformi le card dello Scadenziario, mantenendo lingua italiana, cliente prima del RG e layout desktop/tablet/mobile.
+
 ## 2.257.1 - 2026-07-20
 
 - Corregge i falsi positivi del presidio relata nei fascicoli del tenant Studio Legale Giuseppe Montagnese: lo storico notifiche fino al 19/07/2026 viene trattato come già gestito e non genera più `Relata da firmare` o nuove notifiche da preparare.

@@ -1,0 +1,75 @@
+# Acquisizione originali dal Portale Servizi - registro operativo 22/07/2026
+
+## Scopo e vincoli
+
+Acquisire nel fascicolo IUSENTRA la copia originale dei provvedimenti segnalati dalle PEC di cancelleria, collegarla al presidio e alla relata e verificare la propagazione verso Agenda, Scadenziario, topbar e web push.
+
+Vincolo assoluto della prova: nessuna PEC deve essere composta, firmata o inviata. Le credenziali e il PIN usati nel passaggio locale non vengono registrati in questo file, nel codice, nell'audit applicativo o negli output di test.
+
+## Casi in perimetro
+
+1. Romeo Maria - RG 1428/2026 - sorgente PEC `9732730s.pdf.zip` - 17/07/2026 13:46.
+2. Calabrò Daniela - RG 3571/2025 - sorgente PEC `21295227s.pdf.zip` - 13/07/2026 09:47.
+3. Alfano Giuseppe - RG 1100/2026 - sorgente PEC `19040620s.pdf.zip` - 16/07/2026 13:01.
+4. Speranza Carmelina - RG 1480/2026 - sorgente PEC `24262990s.pdf.zip` - 14/07/2026 13:01.
+5. Monea Mariano - RG 1394/2026 - sorgente PEC `21866865s.pdf.zip` - 14/07/2026 13:05.
+
+Gli ZIP PEC sono copie informative della comunicazione di cancelleria. Non devono essere marcati come originali autorevoli e non sostituiscono il provvedimento originale acquisito dal Portale Servizi.
+
+## Procedura generale da rendere automatica
+
+1. Leggere e classificare la PEC di cancelleria.
+2. Associare la PEC al tenant proprietario, al cliente, al fascicolo e al numero di R.G.
+3. Conservare lo ZIP PEC come fonte informativa nel lettore interno.
+4. Identificare il singolo provvedimento originale richiesto dal Portale Servizi.
+5. Autenticarsi tramite il canale locale previsto, senza memorizzare PIN o segreti.
+6. Scaricare l'originale dal PST con identificativo, nome, impronta e metadati di provenienza.
+7. Salvare il documento nel fascicolo SQL del tenant e nel repository documentale dedicato, senza duplicazioni.
+8. Collegare l'originale al presidio e alla bozza di relata; mantenere separata la PEC sorgente.
+9. Aggiornare lo stato operativo e verificare Agenda, Scadenziario, topbar e web push.
+10. Aprire il documento con il lettore interno IUSENTRA e verificare il contenuto.
+11. Arrestare il flusso prima di qualsiasi composizione o invio PEC.
+
+## Registro delle operazioni
+
+- 22/07/2026: prova reale dei vecchi link `Visualizza` e `Scarica` sul presidio Romeo Maria. Esito: route documento errata e download 404; difetto documentato e corretto nel codice.
+- 22/07/2026: accertato che il record collegato non possiede `fascicolo_document_id` ed è una sorgente PEC; introdotta risoluzione tenant-aware della PEC e azione distinta per acquisire l'originale dal PST.
+- 22/07/2026: preparata la regola generale di classificazione, deduplicazione e distinzione tra copia PEC e originale da Portale Servizi.
+- 22/07/2026 11:16: trasferiti sul server reale 20 file sorgente verificati con hash SHA-256 identici alla copia locale; fissata l'immagine precedente come rollback `iusentra-app:pre-presidi-pst-20260722`.
+- 22/07/2026 11:17: ricostruito il solo servizio applicativo, senza modificare volumi o dati. Verificati un solo container applicativo denominato `iusentra-app`, stato `healthy` e risposta positiva di `https://app.iusentra.it/api/pronto`.
+- 22/07/2026: la prova reale del collegamento `Acquisisci originale` ha rilevato un precompilato incompleto e un registro ministeriale errato. L'indice PEC tenant-aware ha confermato per Romeo Maria: Tribunale di Palmi, codice ufficio `0800570094`, R.G. 1428/2026, registro lavoro `LAV`, tabella `SICID_LAVORO`, servizio `JPW_SIL_DISTR` ed evento `SENTENZA A VERBALE`.
+- 22/07/2026: corretta la generazione generale del collegamento PST: i dati certi della PEC indicizzata prevalgono sui metadati generici della pratica e includono ufficio, R.G., assistito, schema, materia, registro, tabella, servizio e tipo del provvedimento.
+- 22/07/2026: individuato e corretto il blocco che svuotava il catalogo PST quando il presidio conosceva la PEC ma non ancora nome, ID o hash dell'originale. In assenza di un identificativo ministeriale il catalogo resta disponibile; un tipo documentale certo, per esempio `sentenza`, viene usato come selezione semantica senza produrre un catalogo vuoto in caso di dizione differente.
+- 22/07/2026: reso vincolante il preset di acquisizione mirata: un solo documento, copia ministeriale originale, nessun albero completo, nessuna importazione di eventi, scadenze o parti. La regola è applicata sia nella UI sia nelle API, così non dipende da una selezione manuale.
+- 22/07/2026: aggiunti blocchi espliciti prima di analisi, download e importazione se il catalogo non identifica esattamente un solo provvedimento. Rimossi dal percorso mirato i comandi `Seleziona tutti` e `Scarica tutti`.
+- 22/07/2026: verifiche tecniche mirate superate: 6 test Pytest sul precompilato PEC, filtro catalogo e contratto React; Ruff sui file toccati; TypeScript del monorepo; `git diff --check`. La prova materiale sul PST resta necessaria e non è sostituita da questi guardrail.
+- Prova di acquisizione PST: DA ESEGUIRE dopo aggiornamento server-first del codice.
+
+## Ripresa dopo compattazione - preparazione della prova scrivente
+
+- 22/07/2026: riletti integralmente `AGENTS.md`, `artifacts/data-flow/incarico-operativo-permanente.md`, `artifacts/react-migration/confronto-documenti-fascicolo-ufficio.md` e `artifacts/react-migration/procedura-deposito-telematico.md` prima di proseguire.
+- 22/07/2026: verificata materialmente in produzione la pagina di acquisizione Romeo Maria. Il precompilato reale contiene Tribunale di Palmi, R.G. 1428/2026, anno 2026, parte assistita Romeo Maria e tabella ministeriale `Lavoro e previdenza`.
+- 22/07/2026: rilevata prima dello scarico una descrizione incoerente (`Civile contenzioso`) causata da un dato storico che prevaleva sulla selezione corrente. Corretto il criterio generale: la materia scelta nel form prevale sull'hint storico.
+- 22/07/2026: acquisita la fotografia SQL precedente alla prova reale per il fascicolo `78D6022C` e il presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`. Stato: `NOTIFICATION_CONFIRMED`; 31 documenti nel fascicolo; nessun documento con ruolo `portal_original`; una sola copia informativa PEC `9732730s.pdf.zip`; nessuna evidenza PST collegata. Nessun dato è stato modificato durante questa fotografia.
+- 22/07/2026: implementato il collegamento automatico e tenant-aware dell'originale PST importato. Il runtime registra ID documento del fascicolo, hash, ID documento ministeriale e riferimento portale; eleva il documento a `portal_original`; conserva separata la copia PEC; non fa regredire una decisione professionale già confermata; ripete in modo idempotente la stessa operazione senza duplicare documento, evidenza o transizione.
+- 22/07/2026: uniformati i tre ingressi di importazione PST (`import`, `importa-payload`, `importa-file`) affinché inoltrino sempre il target indicizzato della PEC, compreso `pecId`, invece di affidarsi a una correlazione generica del fascicolo.
+- 22/07/2026: la proiezione operativa ora preferisce l'originale PST alla copia ZIP e scrive nella scadenza un marcatore documentale interno. Agenda e Scadenziario risolvono quel marcatore nella route del lettore IUSENTRA `/fascicoli/<fascicolo>/documenti/<documento>/visualizza`; topbar e Web Push restano collegati allo stesso presidio e quindi allo stesso originale.
+- 22/07/2026: verifiche mirate superate dopo il collegamento automatico: 25 test Pytest complessivi su import PST, idempotenza, preservazione dello stato, ambiguità, proiezione topbar/Web Push/Scadenziario e lettore interno; 2 test del badge ministeriale; Ruff sui file coinvolti; `git diff --check` senza errori.
+- 22/07/2026: nel repository Web Push del tenant non risultano al momento sottoscrizioni attive. Il codice di pubblicazione è coperto dal test di dispatch, ma la successiva campagna reale dovrà verificare anche l'eventuale registrazione del dispositivo prima di poter osservare una consegna push fisica.
+- 22/07/2026: Local Signer reale verificato sul PC: servizio `1.6.99` raggiungibile su `127.0.0.1:27272`, token rilevato senza usare il PIN, CORS e accesso alla rete locale corretti per `https://app.iusentra.it`. Nessuna firma e nessun invio eseguiti.
+- 22/07/2026: l'utente ha richiesto di completare l'acquisizione dalla propria sessione Google Chrome, non dalla scheda integrata. Il controllo remoto di Chrome non è disponibile sul profilo attivo: la ChatGPT Chrome Extension non risulta installata sul profilo selezionato e il collegamento nativo non è registrato. La prova scrivente resta formalmente aperta finché il collegamento Chrome non viene ripristinato dall'utente tramite la UI dei plugin; non è stato usato alcun percorso alternativo.
+- 22/07/2026 13:24: ripristinato il controllo della sessione Google Chrome e aperto il caso Romeo Maria con tutti i parametri corretti. Il tentativo di sola ricerca non ha raggiunto il Local Signer, nonostante il servizio locale fosse sano: nei log non compare alcuna richiesta proveniente da Chrome. La causa residua è il permesso Chrome di accesso alla rete locale per `https://app.iusentra.it`, precedentemente negato o non concesso. Chrome impedisce al controllo automatico di modificare questa impostazione interna; serve l'abilitazione manuale una tantum nelle impostazioni del sito. Nessun PIN usato, nessun file scaricato, nessun dato fascicolo modificato e nessuna PEC composta o inviata.
+- Prova reale scrivente: ancora non avviata. Nessun PIN è stato memorizzato o esposto e nessuna PEC è stata composta o inviata.
+
+## Criterio di completamento
+
+Il caso è completato soltanto quando il provvedimento originale è visibile nei Documenti e atti del fascicolo, apribile nel lettore interno, collegato al presidio/relata e rappresentato correttamente nei quattro canali operativi, senza che sia stata inviata alcuna PEC.
+
+## Ripristino anti-regressione Local Signer 1.6.101
+
+- 22/07/2026: eliminata una patch di annullamento incompleta prima della distribuzione.
+- 22/07/2026: ripristinata la sessione PST unica `view` per ricerca, anteprima e download batch; il download conserva `preflight_auth=false`.
+- 22/07/2026: uniformato anche il pannello Documenti del fascicolo alla stessa sessione, senza sessione `import` separata.
+- 22/07/2026: confermato con test il contratto firma multipla: riuso del medesimo `pin_session_id` per tutto il lotto.
+- 22/07/2026: generato e installato Local Signer `1.6.101`; servizio e Assistenza remota rispondono sulla macchina reale, senza processi PIN/curl pendenti.
+- 22/07/2026: nessuna PEC composta o inviata e nessun documento ministeriale scaricato durante il ripristino.

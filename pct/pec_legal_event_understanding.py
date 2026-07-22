@@ -46,6 +46,36 @@ _LIQUIDA_RE = re.compile(
     r"(?i)(?:liquid[ao](?:ndo)?|liquidata|liquidate)[^€\n\r]{0,120}(?:complessiva\s+somma\s+di\s+)?(?:€|euro)\s*"
     r"([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)"
 )
+_DECISIVE_JUDGMENT_EVENT = "sentenza_a_verbale"
+_HEARING_PRIMARY_EVENTS = {
+    "udienza_online",
+    "udienza_in_presenza",
+    "udienza_fissata",
+    "rinvio_udienza",
+    "conferma_udienza",
+    "udienza_sostituita_da_note_scritte",
+}
+_TECHNICAL_URL_HOSTS = (
+    "schemi.processotelematico.giustizia.it",
+    "www.w3.org",
+    "w3.org",
+    "uri.etsi.org",
+    "ca1.agid.gov.it",
+    "ocsp.intesigroup.com",
+    "ocsp2.infocert.it",
+    "cacert.actalis.it",
+    "ivaservizi.agenziaentrate.gov.it",
+)
+_TECHNICAL_URL_MARKERS = (
+    ".dtd",
+    ".xsd",
+    "xmldsig",
+    "signedproperties",
+    "/ocsp",
+    "ocsp0",
+    "/crl",
+    "fattura",
+)
 
 
 def load_rulepack(path: str | Path | None = None) -> dict[str, Any]:
@@ -64,6 +94,48 @@ def _clean(value: Any, limit: int = 0) -> str:
 
 def _norm(value: Any) -> str:
     return _clean(value).lower()
+
+
+def _is_technical_process_url(url: str) -> bool:
+    parts = urlsplit(str(url or ""))
+    host = (parts.hostname or "").lower().rstrip(".")
+    path = f"{parts.path}?{parts.query}".lower()
+    return any(_host_matches(host, item) for item in _TECHNICAL_URL_HOSTS) or any(
+        marker in path for marker in _TECHNICAL_URL_MARKERS
+    )
+
+
+def _is_decisive_judgment_text(value: Any) -> bool:
+    lower = _norm(value)
+    if not lower:
+        return False
+    explicit_decision = any(
+        marker in lower
+        for marker in (
+            "sentenza a verbale",
+            "decide la causa con sentenza",
+            "sentenza resa ex art. 429",
+            "sentenza resa ex art 429",
+        )
+    )
+    if explicit_decision:
+        return True
+    has_judgment_noun = bool(re.search(r"\bsentenza\b", lower))
+    has_decisive_outcome = bool(
+        "definitivamente decidendo" in lower
+        or re.search(
+            r"\b(?:condanna|accerta|rigetta|accoglie|dichiara|liquida|ordina)\b",
+            lower,
+        )
+    )
+    has_judicial_context = any(
+        marker in lower
+        for marker in ("tribunale", "il giudice", "la corte", "p.q.m.", "pqm", "dispositivo")
+    )
+    # Art. 429, P.Q.M. e il solo dispositivo possono comparire anche in una
+    # ordinanza interlocutoria o nel richiamo ad atti storici. La sentenza si
+    # riconosce soltanto quando i segnali decisori convivono nella stessa fonte.
+    return has_judgment_noun and has_decisive_outcome and has_judicial_context
 
 
 def _dict(value: Any) -> dict[str, Any]:
@@ -158,6 +230,235 @@ def _attachment_sources(parsed: dict[str, Any], attachments: Iterable[dict[str, 
     return names, [*parsed_sources, *sources], (sum(coverages) / len(coverages) if coverages else None)
 
 
+_CURRENT_SOURCE_ROLES = {
+    "current",
+    "current_event",
+    "operative",
+    "operative_source",
+    "primary",
+    "primary_source",
+}
+_HISTORICAL_SOURCE_ROLES = {
+    "historical",
+    "historical_reference",
+    "reference",
+    "archived_reference",
+    "previous_act",
+}
+
+
+def _attachment_name(item: dict[str, Any]) -> str:
+    return _clean(item.get("filename") or item.get("name") or item.get("nome") or item.get("nome_file"), 260)
+
+
+def _attachment_text(item: dict[str, Any]) -> str:
+    return _clean(
+        item.get("ocr_text")
+        or item.get("extracted_text")
+        or item.get("text")
+        or item.get("content_text"),
+        50000,
+    )
+
+
+def _attachment_role(item: dict[str, Any]) -> str:
+    metadata = _dict(item.get("metadata"))
+    return _norm(
+        item.get("source_role")
+        or item.get("event_source_role")
+        or item.get("document_role")
+        or metadata.get("source_role")
+        or metadata.get("event_source_role")
+    ).replace("-", "_").replace(" ", "_")
+
+
+def _attachment_key(item: dict[str, Any], index: int) -> str:
+    filename = _attachment_name(item).casefold()
+    if filename:
+        return f"file:{filename}"
+    digest = _clean(item.get("sha256") or item.get("content_sha256"), 80).casefold()
+    return f"sha256:{digest}" if digest else f"row:{index}"
+
+
+def _contains_written_proceeding(value: Any) -> bool:
+    lower = _norm(value)
+    return any(
+        marker in lower
+        for marker in (
+            "127-ter",
+            "127_ter",
+            "127 ter",
+            "127ter",
+            "trattazione scritta",
+            "trattazione_scritta",
+            "note scritte",
+            "note_scritte",
+        )
+    )
+
+
+def _contains_current_hearing_order(value: Any) -> bool:
+    lower = _norm(value).replace("_", " ").replace("-", " ")
+    return any(
+        marker in lower
+        for marker in (
+            "rinvio udienza",
+            "rinvio dell'udienza",
+            "rinvio dell udienza",
+            "ordinanza di rinvio",
+            "udienza rinviata",
+            "rinvia la causa",
+            "rinvia l'udienza",
+            "rinvia l udienza",
+            "rinvia all'udienza",
+            "rinvia all udienza",
+            "fissazione udienza",
+            "fissazione dell'udienza",
+            "fissazione dell udienza",
+            "udienza fissata",
+            "fissa l'udienza",
+            "fissa l udienza",
+            "fissa nuova udienza",
+            "differisce l'udienza",
+            "differisce l udienza",
+        )
+    )
+
+
+def _select_operative_attachments(
+    parsed: dict[str, Any],
+    body_text: str,
+    attachments: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Seleziona le fonti dell'evento corrente senza fondere allegati autonomi.
+
+    Il binding esplicito o il nome fonte del parser prevalgono. In assenza di
+    metadati, i segnali del corpo PEC/workflow possono legare l'allegato; se due
+    allegati sostengono eventi incompatibili e manca un legame, il motore resta
+    conservativo e non promuove nessuno dei due a fonte operativa.
+    """
+
+    rows = [item for item in attachments if isinstance(item, dict)]
+    merged: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(rows):
+        key = _attachment_key(item, index)
+        unit = merged.setdefault(
+            key,
+            {"key": key, "names": set(), "texts": [], "roles": set(), "rows": []},
+        )
+        name = _attachment_name(item)
+        text = _attachment_text(item)
+        role = _attachment_role(item)
+        if name:
+            unit["names"].add(name.casefold())
+        if text and text not in unit["texts"]:
+            unit["texts"].append(text)
+        if role:
+            unit["roles"].add(role)
+        unit["rows"].append(item)
+
+    excluded = {
+        key
+        for key, unit in merged.items()
+        if unit["roles"].intersection(_HISTORICAL_SOURCE_ROLES)
+    }
+    available = {key for key, unit in merged.items() if key not in excluded and unit["texts"]}
+    selected = {
+        key
+        for key, unit in merged.items()
+        if key in available and unit["roles"].intersection(_CURRENT_SOURCE_ROLES)
+    }
+    binding_reason = "ruolo fonte esplicito" if selected else ""
+
+    if not selected:
+        referenced_names = {
+            _clean(item.get("source"), 260).casefold()
+            for item in _list(parsed.get("procedural_dates"))
+            if isinstance(item, dict) and _clean(item.get("source"), 260)
+        }
+        selected = {
+            key
+            for key, unit in merged.items()
+            if key in available and unit["names"].intersection(referenced_names)
+        }
+        if selected:
+            binding_reason = "fonte nominata dal parser procedurale"
+
+    workflow_event = _norm(_dict(parsed.get("legal_workflow")).get("event_type"))
+    workflow_written = _contains_written_proceeding(workflow_event)
+    workflow_hearing_order = _contains_current_hearing_order(workflow_event)
+    workflow_judgment = "sentenza" in workflow_event or "judgment" in workflow_event
+    body_written = _contains_written_proceeding(body_text)
+    body_hearing_order = _contains_current_hearing_order(body_text)
+    body_judgment = _is_judgment_decision_text(body_text)
+    written_sources = {
+        key
+        for key, unit in merged.items()
+        if key in available and any(_contains_written_proceeding(text) for text in unit["texts"])
+    }
+    judgment_sources = {
+        key
+        for key, unit in merged.items()
+        if key in available and any(_is_judgment_decision_text(text) for text in unit["texts"])
+    }
+    hearing_order_sources = {
+        key
+        for key, unit in merged.items()
+        if key in available and any(_contains_current_hearing_order(text) for text in unit["texts"])
+    }
+
+    if not selected and (body_written or workflow_written) and written_sources:
+        non_decisive_written_sources = written_sources.difference(judgment_sources)
+        selected = non_decisive_written_sources or written_sources
+        binding_reason = "coerenza con trattazione scritta nel corpo PEC/workflow"
+    if not selected and (body_hearing_order or workflow_hearing_order) and hearing_order_sources:
+        non_decisive_hearing_sources = hearing_order_sources.difference(judgment_sources)
+        if non_decisive_hearing_sources:
+            selected = non_decisive_hearing_sources
+            binding_reason = "coerenza con ordinanza corrente di rinvio o fissazione udienza"
+    if not selected and (body_judgment or workflow_judgment) and judgment_sources:
+        selected = judgment_sources
+        binding_reason = "coerenza con sentenza nel corpo PEC/workflow"
+    procedural_sources = written_sources.union(hearing_order_sources)
+    ambiguous_conflict = bool(
+        not selected
+        and judgment_sources
+        and (
+            (procedural_sources and procedural_sources.isdisjoint(judgment_sources))
+            or (
+                (body_hearing_order or workflow_hearing_order)
+                and not body_judgment
+                and not workflow_judgment
+            )
+        )
+    )
+    if not selected and not ambiguous_conflict:
+        selected = available
+        binding_reason = "fonti non confliggenti" if len(available) > 1 else "unica fonte professionale"
+
+    selected_rows = [
+        row
+        for key in selected
+        for row in merged[key]["rows"]
+    ]
+    selected_names = sorted(
+        name
+        for key in selected
+        for name in merged[key]["names"]
+    )
+    excluded_names = sorted(
+        name
+        for key in set(merged).difference(selected)
+        for name in merged[key]["names"]
+    )
+    return selected_rows, {
+        "status": "ambiguous" if ambiguous_conflict else "bound",
+        "reason": binding_reason or "fonti incompatibili senza legame con l'evento corrente",
+        "selected_sources": selected_names,
+        "excluded_sources": excluded_names,
+    }
+
+
 def _evidence(source: str, text: str, *, confidence: float = 0.75) -> dict[str, Any]:
     return {"source": _clean(source, 160), "text": _clean(text, 260), "confidence": confidence}
 
@@ -181,6 +482,8 @@ def _extract_links(text: str, remote_report: dict[str, Any]) -> list[dict[str, A
         if not isinstance(item, dict):
             continue
         url = _clean(item.get("url"), 1200)
+        if _is_technical_schema_url(url):
+            continue
         if url and url not in seen:
             seen.add(url)
             links.append(
@@ -194,6 +497,8 @@ def _extract_links(text: str, remote_report: dict[str, Any]) -> list[dict[str, A
     for pattern, source in ((_TEAMS_RE, "testo/href Teams"), (_URL_RE, "testo/href")):
         for match in pattern.finditer(text or ""):
             url = match.group(0).rstrip(").,;")
+            if _is_technical_schema_url(url):
+                continue
             if url and url not in seen:
                 seen.add(url)
                 links.append({"url": url, "source": source, "verified": _is_trusted_hearing_url(url), "platform": _platform_from_url(url)})
@@ -217,9 +522,26 @@ def _host_matches(host: str, domain: str) -> bool:
     return host == domain or host.endswith(f".{domain}")
 
 
+def _is_technical_schema_url(url: str) -> bool:
+    parsed = urlsplit(str(url or ""))
+    host = (parsed.hostname or "").lower()
+    path = f"{parsed.path or ''}?{parsed.query or ''}".lower()
+    return bool(
+        path.endswith((".dtd", ".xsd"))
+        or "/schemi/" in path
+        or any(_host_matches(host, item) for item in _TECHNICAL_URL_HOSTS)
+        or any(marker in path for marker in _TECHNICAL_URL_MARKERS)
+        or (host.endswith(".processotelematico.giustizia.it") and path.endswith((".dtd", ".xsd")))
+    )
+
+
 def _is_trusted_hearing_url(url: str) -> bool:
     host = (urlsplit(url).hostname or "").lower()
     return _host_matches(host, "teams.microsoft.com") or _host_matches(host, "zoom.us") or _host_matches(host, "meet.google.com")
+
+
+def _is_judgment_decision_text(text: str) -> bool:
+    return _is_decisive_judgment_text(text)
 
 
 def _hearing_mode(text: str, remote_report: dict[str, Any], links: list[dict[str, Any]]) -> str:
@@ -266,7 +588,15 @@ def _extract_hearing_date(parsed: dict[str, Any], profile: dict[str, Any]) -> st
     return None
 
 
-def _build_hearings(parsed: dict[str, Any], report: dict[str, Any], text: str) -> list[dict[str, Any]]:
+def _build_hearings(
+    parsed: dict[str, Any],
+    report: dict[str, Any],
+    text: str,
+    *,
+    judgment_decision: bool | None = None,
+) -> list[dict[str, Any]]:
+    if judgment_decision if judgment_decision is not None else _is_judgment_decision_text(text):
+        return []
     remote = _dict(report.get("remote_hearing")) or _dict(_dict(report.get("procedural_profile")).get("remote_hearing"))
     if not remote and isinstance(_dict(report.get("deadline_proposal")).get("remote_hearing"), dict):
         remote = _dict(_dict(report.get("deadline_proposal")).get("remote_hearing"))
@@ -461,16 +791,39 @@ def _deadline_from_legal_proposal(proposal: dict[str, Any]) -> dict[str, Any] | 
     }
 
 
-def _build_deadlines(parsed: dict[str, Any], report: dict[str, Any], text: str, *, dies_a_quo_date: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+def _build_deadlines(
+    parsed: dict[str, Any],
+    report: dict[str, Any],
+    text: str,
+    *,
+    dies_a_quo_date: str,
+    judgment_decision: bool | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
     proposal_container = _dict(report.get("deadline_proposal"))
     legal = proposal_container.get("legal_deadline_proposal")
     if not isinstance(legal, dict):
         event_type = _clean(_dict(parsed.get("legal_workflow")).get("event_type"))
         legal = propose_legal_deadline(text, dies_a_quo_date=dies_a_quo_date or _field_value(parsed, "data_consegna", "data_invio"), event_type=event_type)
     deadlines: list[dict[str, Any]] = []
+    judgment_decision = (
+        _is_judgment_decision_text(text)
+        if judgment_decision is None
+        else judgment_decision
+    )
     if isinstance(legal, dict):
         item = _deadline_from_legal_proposal(legal)
-        if item:
+        template_code = _clean(legal.get("template_code") or "", 160)
+        deadline_label = _norm(item.get("deadline_type") if item else "")
+        is_stale_127ter = judgment_decision and (
+            "127-ter" in template_code
+            or "127_ter" in template_code.lower()
+            or "127 ter" in template_code.lower()
+            or "127-ter" in deadline_label
+            or "127_ter" in deadline_label
+            or "trattazione scritta" in deadline_label
+            or ("opposizione" in deadline_label and "127" in deadline_label)
+        )
+        if item and not is_stale_127ter:
             deadlines.append(item)
     lower = _norm(text)
     if any(token in lower for token in ("127-bis", "127 bis", "collegamento audiovisivo")):
@@ -491,10 +844,10 @@ def _build_deadlines(parsed: dict[str, Any], report: dict[str, Any], text: str, 
                 "evidence": [_evidence("testo PEC", "Udienza audiovisiva/127-bis rilevata", confidence=0.75)],
             }
         )
-    if "deposito sentenza" in lower or "pubblicazione sentenza" in lower:
+    if judgment_decision or "deposito sentenza" in lower or "pubblicazione sentenza" in lower:
         deadlines.append(
             {
-                "deadline_type": "Esame sentenza senza termine breve automatico",
+                "deadline_type": "Esame sentenza e valutazione notifica senza termine breve automatico",
                 "norma": "Art. 133 c.p.c. / art. 325 c.p.c.",
                 "duration_value": None,
                 "duration_unit": "giorni",
@@ -506,7 +859,7 @@ def _build_deadlines(parsed: dict[str, Any], report: dict[str, Any], text: str, 
                 "create_in_scadenziario": False,
                 "requires_deterministic_calculation": True,
                 "human_review_required": True,
-                "evidence": [_evidence("regola art. 133 c.p.c.", "La sola comunicazione di deposito sentenza non fa decorrere il termine breve.", confidence=0.95)],
+                "evidence": [_evidence("regola art. 133 c.p.c.", "La sola comunicazione di cancelleria o deposito sentenza non fa decorrere il termine breve.", confidence=0.95)],
             }
         )
     return deadlines, legal if isinstance(legal, dict) else None
@@ -628,7 +981,13 @@ def _pct_receipts(parsed: dict[str, Any], report: dict[str, Any]) -> dict[str, A
     }
 
 
-def _classify(parsed: dict[str, Any], text: str, attachment_names: list[str]) -> dict[str, Any]:
+def _classify(
+    parsed: dict[str, Any],
+    text: str,
+    attachment_names: list[str],
+    *,
+    judgment_decision: bool | None = None,
+) -> dict[str, Any]:
     workflow = _dict(parsed.get("legal_workflow"))
     if not workflow:
         headers = _dict(parsed.get("headers"))
@@ -656,11 +1015,38 @@ def _classify(parsed: dict[str, Any], text: str, attachment_names: list[str]) ->
     for code, keywords in additional:
         if any(keyword in lower for keyword in keywords) and code not in events:
             events.append(code)
+    primary_event = event or (events[0] if events else "evento_ambiguo_revisione")
+    judgment_decision = (
+        _is_judgment_decision_text(text)
+        if judgment_decision is None
+        else judgment_decision
+    )
+    if judgment_decision:
+        events = [item for item in events if item != "udienza_sostituita_da_note_scritte"]
+        if "deposito_sentenza" not in events:
+            events.append("deposito_sentenza")
+        if (
+            any(marker in lower for marker in ("art. 429", "art 429", "artt. 429", "artt 429", "429 cpc", "429 c.p.c"))
+            and "sentenza_rito_lavoro_art_429" not in events
+        ):
+            events.append("sentenza_rito_lavoro_art_429")
+        if _DECISIVE_JUDGMENT_EVENT not in events:
+            events.insert(0, _DECISIVE_JUDGMENT_EVENT)
+        if primary_event in _HEARING_PRIMARY_EVENTS or primary_event in {
+            "comunicazione_generica",
+            "comunicazione_cancelleria",
+            "evento_ambiguo_revisione",
+            "pec_non_riconosciuta",
+            "sentenza_a_verbale",
+        }:
+            primary_event = _DECISIVE_JUDGMENT_EVENT
     confidence = float(workflow.get("confidence") or (0.78 if event else 0.45))
+    if judgment_decision:
+        confidence = max(confidence, 0.86)
     return {
         "family": family or "pec_non_riconosciuta",
         "events": events,
-        "primary_event": event or (events[0] if events else "evento_ambiguo_revisione"),
+        "primary_event": primary_event,
         "confidence": confidence,
         "human_review_required": bool(workflow.get("human_review_required", True)),
         "reason": _clean(workflow.get("azione_proposta") or workflow.get("event_label") or "Evento da presidiare", 360),
@@ -742,6 +1128,17 @@ def _actions(classification: dict[str, Any], deadlines: list[dict[str, Any]], he
                 "requires_lawyer_confirmation": True,
             }
         )
+    if str(classification.get("primary_event") or "") == _DECISIVE_JUDGMENT_EVENT:
+        actions.append(
+            {
+                "action_type": "task_avvocato",
+                "title": "Esamina sentenza e prepara presidio notifica",
+                "description": "La sentenza va distinta dalla trattazione scritta: verificare destinatari, relata, RAC/RdAC e deposito prova prima di segnare la notifica come eseguita.",
+                "priority": "P1",
+                "due_hint": None,
+                "requires_lawyer_confirmation": True,
+            }
+        )
     actions.append(
         {
             "action_type": "lex_ingest",
@@ -787,23 +1184,59 @@ def build_legal_event_understanding(
     rules = rulepack or load_rulepack()
     headers = _dict(parsed.get("headers"))
     attachment_names, text_sources, ocr_confidence = _attachment_sources(parsed, attachments)
-    text = _body_text(parsed, report)
-    body_text = text
-    if attachments:
-        text = "\n".join(
-            [
-                text,
-                "\n".join(_clean(item.get("ocr_text"), 20000) for item in attachments if isinstance(item, dict) and item.get("ocr_text")),
-            ]
-        )
-    classification = _classify(parsed, text, attachment_names)
+    body_text = _body_text(parsed, report)
+    all_attachment_rows = [
+        item
+        for item in [*_list(parsed.get("attachments")), *attachments]
+        if isinstance(item, dict)
+    ]
+    operative_attachments, source_binding = _select_operative_attachments(
+        parsed,
+        body_text,
+        all_attachment_rows,
+    )
+    operative_texts = [
+        text_value
+        for item in operative_attachments
+        for text_value in [_attachment_text(item)]
+        if text_value
+    ]
+    text = "\n".join(dict.fromkeys([body_text, *operative_texts])).strip()
+    source_judgment_decision = any(
+        _is_judgment_decision_text(source_text)
+        for source_text in [body_text, *operative_texts]
+        if source_text
+    )
+    operative_attachment_names = [
+        name
+        for item in operative_attachments
+        for name in [_attachment_name(item)]
+        if name
+    ]
+    classification = _classify(
+        parsed,
+        text,
+        list(dict.fromkeys(operative_attachment_names or attachment_names)),
+        judgment_decision=source_judgment_decision,
+    )
     profile = _dict(parsed.get("procedural_profile"))
     registri = _list(_dict(parsed.get("legal_workflow")).get("registri")) or estrai_registri(text)
     first_registry = registri[0] if registri and isinstance(registri[0], dict) else {}
     if not dies_a_quo_date:
         dies_a_quo_date = str(_field_value(parsed, "data_consegna", "data_invio") or headers.get("date") or "")
-    hearings = _build_hearings(parsed, report, text)
-    deadlines, legacy_deadline = _build_deadlines(parsed, report, text, dies_a_quo_date=dies_a_quo_date)
+    hearings = _build_hearings(
+        parsed,
+        report,
+        text,
+        judgment_decision=source_judgment_decision,
+    )
+    deadlines, legacy_deadline = _build_deadlines(
+        parsed,
+        report,
+        text,
+        dies_a_quo_date=dies_a_quo_date,
+        judgment_decision=source_judgment_decision,
+    )
     payments = _extract_payments(text)
     # Classificazione contributo unificato (D.P.R. 115/2002): riusa gli
     # estrattori deterministici della vista economica dei fascicoli, così
@@ -811,11 +1244,17 @@ def build_legal_event_understanding(
     # versamento producono lo stesso esito su presidio PEC e fascicolo.
     contributo_unificato = classifica_contributo_unificato_pec(
         body_text,
-        attachments=[*_list(parsed.get("attachments")), *attachments],
+        attachments=operative_attachments,
     )
     integra_contributo_unificato(classification, payments, contributo_unificato)
     pct = _pct_receipts(parsed, report)
-    notifications = detect_notification_candidates(parsed, report, attachments=attachments)
+    notification_parsed = dict(parsed)
+    notification_parsed["attachments"] = []
+    notifications = detect_notification_candidates(
+        notification_parsed,
+        report,
+        attachments=operative_attachments,
+    )
     priority = _priority(classification, deadlines, hearings, payments, pct)
     notification_priorities = {str(item.get("priority") or "P3") for item in notifications}
     if "P0" in notification_priorities:
@@ -853,7 +1292,15 @@ def build_legal_event_understanding(
             "ocr_confidence": ocr_confidence,
             "text_sources_used": text_sources,
             "missing_sources": [] if text_sources else ["testo_pec_non_disponibile"],
-            "warnings": [] if text else ["Nessun testo utile disponibile: revisione umana obbligatoria."],
+            "warnings": [
+                *([] if text else ["Nessun testo utile disponibile: revisione umana obbligatoria."]),
+                *(
+                    ["Allegati con eventi incompatibili e senza legame alla fonte corrente: classificazione conservativa."]
+                    if source_binding.get("status") == "ambiguous"
+                    else []
+                ),
+            ],
+            "source_binding": source_binding,
         },
         "message": {
             "message_id": _clean(headers.get("message_id") or parsed.get("message_id"), 160),

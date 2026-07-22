@@ -74,11 +74,9 @@ def _email_relevant_for_pec(row: dict[str, Any]) -> bool:
         )
     ).lower()
     status_pct = str(row.get("stato_pct") or "").upper()
-    message_id = str(row.get("message_id") or "").strip()
     origin = str(row.get("origine") or "").lower()
     return bool(
         row.get("e_pst")
-        or message_id
         or status_pct
         or "pec" in origin
         or "posta certificata" in text
@@ -177,10 +175,23 @@ def _iter_report_links(report: dict[str, Any]) -> list[dict[str, Any]]:
 def _report_has_127_false_remote(report: dict[str, Any]) -> bool:
     remote = report.get("remote_hearing")
     procedural = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
-    if not isinstance(remote, dict) or not (remote.get("detected") or remote.get("pdf_required") or remote.get("links")):
+    proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+    if not isinstance(remote, dict) or not (remote.get("detected") or remote.get("links")):
+        return False
+    if proposal.get("auto_create") and proposal.get("due_date"):
         return False
     blob = json.dumps(procedural, ensure_ascii=False).lower()
-    return "127 ter" in blob or "127-ter" in blob or "sentenza a verbale" in blob or "trattazione scritta" in blob
+    normalized = blob.replace("-", " ")
+    is_decisory = any(
+        marker in normalized
+        for marker in (
+            "sentenza a verbale",
+            "sentenza resa",
+            "sentenza definitiva",
+            "provvedimento decisorio",
+        )
+    )
+    return is_decisory and "127 ter" in normalized
 
 
 def _audit_pec_db(path: Path) -> dict[str, Any]:
@@ -236,6 +247,9 @@ def _audit_pec_db(path: Path) -> dict[str, Any]:
             status = str(item.get("status") or "")
             by_message = report["latest_local_status"]["by_message"]
             by_message[status] = int(by_message.get(status) or 0) + 1
+        # Dato tecnico interno: serve al confronto puntuale con gli identificativi
+        # dell'archivio locale, senza inferire la copertura dai soli conteggi.
+        report["_latest_local_email_ids"] = set(latest_by_email)
         reports = []
         try:
             rows = conn.execute(
@@ -393,6 +407,15 @@ def audit_studio(paths: dict[str, str]) -> dict[str, Any]:
         "agenda": _audit_agenda(Path(paths["AGENDA_DB"])),
         "notifications": _audit_notifications(Path(paths["NOTIFICATIONS_DB"])),
     }
+    latest_email_ids = set(result["pec_control"].pop("_latest_local_email_ids", set())) if isinstance(result["pec_control"], dict) else set()
+    pec_source_ids = {str(row.get("id") or "").strip() for row in pec_relevant_rows if str(row.get("id") or "").strip()}
+    missing_local_ids = pec_source_ids - latest_email_ids
+    result["email_archive"]["pec_controllabili"] = len(pec_source_ids)
+    result["pec_control"]["local_coverage"] = {
+        "expected": len(pec_source_ids),
+        "controlled": len(pec_source_ids & latest_email_ids),
+        "missing": len(missing_local_ids),
+    }
     remote = result["pec_control"].get("remote_hearing", {}) if isinstance(result["pec_control"], dict) else {}
     scad_remote = result["scadenziario"].get("remote_hearing", {}) if isinstance(result["scadenziario"], dict) else {}
     blocking = []
@@ -402,16 +425,13 @@ def audit_studio(paths: dict[str, str]) -> dict[str, Any]:
         blocking.append("Report PEC 127-ter/sentenza classificati come udienza da remoto.")
     if int(scad_remote.get("invalid_links") or 0):
         blocking.append("Scadenziario con link udienza non valido.")
-    latest_local = result["pec_control"].get("latest_local_status", {}) if isinstance(result["pec_control"], dict) else {}
-    latest_by_email = latest_local.get("by_email", {}) if isinstance(latest_local, dict) else {}
-    presided_latest = sum(
-        int(latest_by_email.get(status) or 0)
-        for status in ("duplicate", "ingested", "processed", "already_presided")
-    )
-    if len(pec_relevant_rows) and presided_latest < len(pec_relevant_rows):
+    local_coverage = result["pec_control"].get("local_coverage", {}) if isinstance(result["pec_control"], dict) else {}
+    if int(local_coverage.get("missing") or 0):
         blocking.append(
-            f"PEC rilevanti non presidiate in modo utile: {presided_latest}/{len(pec_relevant_rows)}."
+            "PEC rilevanti non presidiate nell'archivio locale: "
+            f"{local_coverage.get('controlled', 0)}/{local_coverage.get('expected', 0)}."
         )
+    latest_local = result["pec_control"].get("latest_local_status", {}) if isinstance(result["pec_control"], dict) else {}
     if int(latest_local.get("missing_mime_latest") or 0):
         blocking.append("PEC ancora marcate missing_mime nell'ultimo presidio per email.")
     result["ok"] = not blocking

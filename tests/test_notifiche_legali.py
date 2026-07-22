@@ -159,6 +159,53 @@ def _legal_payload() -> dict[str, object]:
     return payload
 
 
+@pytest.fixture
+def legal_payload_due_destinatari() -> dict[str, object]:
+    payload = _legal_payload()
+    avvocatura = {
+        "id": "destinatario-avvocatura-reggio-calabria",
+        "nome": "Avvocatura Distrettuale dello Stato di Reggio Calabria",
+        "codice_fiscale_piva": "80224030587",
+        "pec": "ads.rc@mailcert.avvocaturastato.it",
+        "ruolo": "difensore",
+        "fonte_pec": "reginde",
+        "parte_rappresentata": "Ministero dell'Istruzione e del Merito",
+    }
+    ministero = {
+        "id": "destinatario-ministero-istruzione",
+        "nome": "Ministero dell'Istruzione e del Merito",
+        "codice_fiscale_piva": "80185250588",
+        "pec": "dgosv@postacert.istruzione.it",
+        "ruolo": "pa",
+        "fonte_pec": "registro_ppaa",
+    }
+    payload.update({
+        "caso_notifica": "in_corso_di_causa",
+        "ruolo_destinatario": avvocatura["ruolo"],
+        "destinatario_nome": avvocatura["nome"],
+        "destinatario_cf": avvocatura["codice_fiscale_piva"],
+        "destinatario_pec": avvocatura["pec"],
+        "fonte_pec_destinatario": avvocatura["fonte_pec"],
+        "destinatario_parte_rappresentata": avvocatura["parte_rappresentata"],
+        "destinatari": [avvocatura, ministero],
+        "verifiche_pec_destinatari": [
+            _pec_evidence(
+                "reginde",
+                avvocatura["pec"],
+                avvocatura["codice_fiscale_piva"],
+                "2026-07-21T09:12:13+02:00",
+            ),
+            _pec_evidence(
+                "registro_ppaa",
+                ministero["pec"],
+                ministero["codice_fiscale_piva"],
+                "2026-07-21T11:47:59+02:00",
+            ),
+        ],
+    })
+    return payload
+
+
 def test_notifica_l53_genera_relata_solo_con_controlli_completi():
     result = validate_legal_notification(_legal_payload())
 
@@ -766,6 +813,95 @@ def test_rilascio_documento_ufficio_parte_da_pec_cancelleria_e_non_da_metadati_p
     assert released_office_documents_from_pec(altro_fascicolo_stesso_anno, [pec]) == []
 
 
+def test_monitor_documenti_ufficio_esclude_ricevute_pct_e_nome_fittizio_notificato():
+    fascicolo = SimpleNamespace(
+        id="fasc-ricevute",
+        numero="FASC-RICEVUTE",
+        titolo="Romeo Maria c. MIM",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1428",
+        anno_rg=2026,
+        documenti=[],
+    )
+    ricevute = [
+        SimpleNamespace(
+            id="pec-accettazione",
+            cartella="CESTINO",
+            mittente="tribunale.palmi@giustiziacert.it",
+            oggetto="ACCETTAZIONE DEPOSITO TELEMATICO R.G. 1428/2026",
+            corpo_testo="Accettato il ricorso Romeo Maria (originale notificato).pdf.",
+            data="2026-05-20T10:01:00",
+            message_id="<accettazione-1428@giustizia>",
+            allegati=[],
+        ),
+        SimpleNamespace(
+            id="pec-esito-inbox",
+            cartella="INBOX",
+            mittente="tribunale.palmi@giustiziacert.it",
+            oggetto="ESITO CONTROLLI AUTOMATICI DEPOSITO R.G. 1428/2026",
+            corpo_testo="Esito positivo per il ricorso Romeo Maria (originale notificato).pdf.",
+            data="2026-05-20T10:02:00",
+            message_id="<esito-1428@giustizia>",
+            allegati=[],
+        ),
+        SimpleNamespace(
+            id="pec-esito-cestino",
+            cartella="CESTINO",
+            mittente="tribunale.palmi@giustiziacert.it",
+            oggetto="ESITO CONTROLLI AUTOMATICI DEPOSITO R.G. 1428/2026",
+            corpo_testo="Esito positivo per il ricorso Romeo Maria (originale notificato).pdf.",
+            data="2026-05-20T10:02:00",
+            message_id="<esito-1428@giustizia>",
+            allegati=[],
+        ),
+    ]
+
+    assert office_notification_evidence_from_pec(fascicolo, ricevute) == []
+    assert released_office_documents_from_pec(fascicolo, ricevute) == []
+
+
+def test_monitor_documenti_ufficio_deduplica_copie_pec_ma_non_documenti_distinti():
+    fascicolo = SimpleNamespace(
+        id="fasc-duplicati",
+        numero="FASC-DUP",
+        titolo="Rossi c. Ministero",
+        tribunale="Tribunale di Roma",
+        numero_rg="1234",
+        anno_rg=2026,
+        documenti=[],
+    )
+    base = {
+        "mittente": "cancelleria.tribunale.roma@giustiziacert.it",
+        "oggetto": "R.G. 1234/2026 - ordinanza da notificare",
+        "corpo_testo": "Si trasmette l'ordinanza da notificare.",
+        "data": "2026-05-23T10:15:00",
+        "message_id": "<ordinanza-1234@giustizia>",
+        "allegati": [{"nome": "ordinanza.pdf", "sha256": "a" * 64}],
+    }
+    inbox = SimpleNamespace(id="pec-inbox", cartella="INBOX", **base)
+    cestino = SimpleNamespace(id="pec-cestino", cartella="CESTINO", **base)
+
+    evidence = office_notification_evidence_from_pec(fascicolo, [cestino, inbox])
+
+    assert len(evidence) == 1
+    assert evidence[0]["pecId"] == "pec-inbox"
+    assert evidence[0]["pecSourceIds"] == ["pec-inbox", "pec-cestino"]
+
+    distinto = SimpleNamespace(
+        id="pec-distinto",
+        cartella="INBOX",
+        mittente=base["mittente"],
+        oggetto=base["oggetto"],
+        corpo_testo=base["corpo_testo"],
+        data="2026-05-24T10:15:00",
+        message_id="<ordinanza-distinta-1234@giustizia>",
+        allegati=[{"nome": "ordinanza.pdf", "sha256": "b" * 64}],
+    )
+    evidence = office_notification_evidence_from_pec(fascicolo, [inbox, distinto])
+    assert len(evidence) == 2
+    assert {item["hashSha256"] for item in evidence} == {"a" * 64, "b" * 64}
+
+
 def test_matrice_notifica_blocca_registro_incoerente_per_destinatario():
     payload = _legal_payload()
     payload.update({
@@ -857,6 +993,172 @@ def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
     assert any(item["filename"] == "relata_notifica.pdf.p7m" for item in plan["attachments"])
     assert any(item["filename"] == "ordinanza.pdf" for item in plan["attachments"])
     assert "RAC per ogni destinatario" in plan["postSendEvidenceRequired"]
+
+
+def test_relata_due_destinatari_usa_anteprima_testo_e_timestamp_individuali(
+    legal_payload_due_destinatari: dict[str, object],
+):
+    preview = preview_legal_relata(legal_payload_due_destinatari)
+    result = validate_legal_notification(legal_payload_due_destinatari)
+
+    assert preview["ok"] is True
+    assert result.ok is True
+    for expected in (
+        "Avvocatura Distrettuale dello Stato di Reggio Calabria",
+        "ads.rc@mailcert.avvocaturastato.it",
+        "Ministero dell'Istruzione e del Merito",
+        "dgosv@postacert.istruzione.it",
+    ):
+        assert expected in preview["previewText"]
+        assert expected in result.relata_text
+
+    for rendered in (preview["previewText"], result.relata_text):
+        avvocatura_start = rendered.index("Avvocatura Distrettuale dello Stato di Reggio Calabria")
+        ministero_start = rendered.index("\n2. Ministero dell'Istruzione e del Merito", avvocatura_start + 1)
+        avvocatura_block = rendered[avvocatura_start:ministero_start]
+        ministero_block = rendered[ministero_start:]
+        assert "21/07/2026" in avvocatura_block
+        assert "09:12" in avvocatura_block
+        assert "11:47" not in avvocatura_block
+        assert "21/07/2026" in ministero_block
+        assert "11:47" in ministero_block
+
+
+@pytest.mark.parametrize("difetto", ["pec_mancante", "registro_incoerente"])
+def test_relata_due_destinatari_blocca_secondo_incompleto_o_registro_incoerente(
+    legal_payload_due_destinatari: dict[str, object],
+    difetto: str,
+):
+    secondo = legal_payload_due_destinatari["destinatari"][1]
+    if difetto == "pec_mancante":
+        secondo["pec"] = ""
+    else:
+        secondo["fonte_pec"] = "reginde"
+        legal_payload_due_destinatari["verifiche_pec_destinatari"][1] = _pec_evidence(
+            "reginde",
+            secondo["pec"],
+            secondo["codice_fiscale_piva"],
+            "2026-07-21T11:47:59+02:00",
+        )
+
+    result = validate_legal_notification(legal_payload_due_destinatari)
+    blockers = "\n".join(result.blockers)
+
+    assert result.ok is False
+    assert "Destinatario 2" in blockers
+    if difetto == "pec_mancante":
+        assert "PEC" in blockers
+    else:
+        assert "PEC_DESTINATARIO_REGISTRO_INCOERENTE" in blockers
+        assert "Ministero dell'Istruzione e del Merito" in blockers
+
+
+def test_override_relata_non_puo_eliminare_il_secondo_destinatario(
+    legal_payload_due_destinatari: dict[str, object],
+):
+    canonical = validate_legal_notification(legal_payload_due_destinatari)
+    assert canonical.ok is True
+    legal_payload_due_destinatari["relata_override_text"] = canonical.relata_text.replace(
+        "dgosv@postacert.istruzione.it",
+        "",
+    )
+
+    result = validate_legal_notification(legal_payload_due_destinatari)
+
+    assert result.ok is False
+    assert any(
+        "RELAZIONE_CONTENUTO_OBBLIGATORIO_REQUIRED" in blocker
+        and "dgosv@postacert.istruzione.it" in blocker
+        for blocker in result.blockers
+    )
+
+
+def test_modello_personalizzato_due_destinatari_richiede_elenco_completo(
+    legal_payload_due_destinatari: dict[str, object],
+):
+    legal_payload_due_destinatari["template_id"] = "relata_personalizzata_due_destinatari"
+    legal_payload_due_destinatari["template_personalizzato"] = {
+        "id": "relata_personalizzata_due_destinatari",
+        "label": "Relata personalizzata con destinatari multipli",
+        "custom_body": "\n".join([
+            "RELAZIONE DI NOTIFICAZIONE A MEZZO POSTA ELETTRONICA CERTIFICATA",
+            "Avv. {{ avvocato.full_name }}, C.F. {{ avvocato.codice_fiscale }}, PEC {{ avvocato.pec }}",
+            "per {{ cliente.nome_denominazione }}, C.F./P. IVA {{ cliente.codice_fiscale_piva }}",
+            "{{ destinatari_righe }}",
+            "{{ documenti_righe }}",
+            "{{ blocco_procedimento }}",
+            "{{ notifica.luogo }}, {{ notifica.data }} alle ore {{ notifica.ora }}",
+        ]),
+        "requires_proceeding": True,
+    }
+
+    preview = preview_legal_relata(legal_payload_due_destinatari)
+    result = validate_legal_notification(legal_payload_due_destinatari)
+
+    assert preview["ok"] is True
+    assert result.ok is True
+    assert "ads.rc@mailcert.avvocaturastato.it" in preview["previewText"]
+    assert "dgosv@postacert.istruzione.it" in preview["previewText"]
+    assert "ads.rc@mailcert.avvocaturastato.it" in result.relata_text
+    assert "dgosv@postacert.istruzione.it" in result.relata_text
+
+    legal_payload_due_destinatari["template_personalizzato"]["custom_body"] = (
+        legal_payload_due_destinatari["template_personalizzato"]["custom_body"]
+        .replace("{{ destinatari_righe }}", "a {{ destinatario.nome_denominazione }} presso {{ destinatario.pec }}")
+    )
+    blocked_preview = preview_legal_relata(legal_payload_due_destinatari)
+    blocked_result = validate_legal_notification(legal_payload_due_destinatari)
+
+    assert blocked_preview["ok"] is False
+    assert blocked_result.ok is False
+    assert any("MODELLO_DESTINATARI_MULTIPLI_REQUIRED" in item for item in blocked_preview["blockers"])
+    assert any("MODELLO_DESTINATARI_MULTIPLI_REQUIRED" in item for item in blocked_result.blockers)
+
+
+def test_log_audit_e_piano_invio_conservano_tutti_i_destinatari(
+    legal_payload_due_destinatari: dict[str, object],
+):
+    result = validate_legal_notification(legal_payload_due_destinatari)
+
+    assert result.ok is True
+    expected_pecs = {
+        "ads.rc@mailcert.avvocaturastato.it",
+        "dgosv@postacert.istruzione.it",
+    }
+    assert len(result.log_json["destinatari"]) == 2
+    assert {item["pec"] for item in result.log_json["destinatari"]} == expected_pecs
+
+    audit = result.output_plan["auditTrail"]
+    assert audit["recipientsCount"] == 2
+    assert {item["pec"] for item in audit["recipients"]} == expected_pecs
+
+    delivery = result.output_plan["deliveryPlan"]
+    assert delivery["messagesCount"] == 2
+    assert delivery["separatePecRequired"] is True
+    assert {item["pec"] for item in delivery["recipients"]} == expected_pecs
+    assert all(item["recipientIdentityKey"] for item in delivery["recipients"])
+    assert all(item["verificationEvidenceSha256"] for item in delivery["recipients"])
+
+    assert result.log_json["destinatario"] == result.log_json["destinatari"][0]["nome"]
+    assert result.log_json["pec_destinatario"] == result.log_json["destinatari"][0]["pec"]
+    assert audit["recipient"] == audit["recipients"][0]["name"]
+    assert audit["recipientPec"] == audit["recipients"][0]["pec"]
+
+
+def test_relata_destinatario_singolo_preserva_contratto_legacy():
+    payload = _legal_payload()
+    preview = preview_legal_relata(payload)
+    result = validate_legal_notification(payload)
+
+    assert preview["ok"] is True
+    assert result.ok is True
+    assert "Controparte S.p.A." in preview["previewText"]
+    assert "controparte@example.pec.it" in result.relata_text
+    assert len(result.log_json["destinatari"]) == 1
+    assert result.log_json["destinatario"] == "Controparte S.p.A."
+    assert result.log_json["pec_destinatario"] == "controparte@example.pec.it"
+    assert result.output_plan["auditTrail"]["recipientsCount"] == 1
+    assert result.output_plan["deliveryPlan"]["messagesCount"] == 1
 
 
 def test_piano_firma_seleziona_relata_e_non_rifirma_provvedimento_portale():

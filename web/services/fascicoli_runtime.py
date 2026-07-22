@@ -2045,7 +2045,7 @@ def build_fascicoli_runtime(
             if not doc_esistente and not portal_keys:
                 doc_esistente = documenti_per_nome_hash.get((nome_norm, sha_payload))
             if doc_esistente:
-                documenti_creati.append({"doc": doc_esistente, "item": item})
+                documenti_creati.append({"doc": doc_esistente, "item": item, "riusato": True})
                 continue
             tipo_doc = _tipo_documento_da_item_portale(item)
             note_doc = [f"Importato da {fonte} il {date.today().strftime('%d/%m/%Y')}"]
@@ -2082,7 +2082,7 @@ def build_fascicoli_runtime(
                 id_repeatto_portale=str(item.get("id_repeatto") or "").strip(),
                 msg_id_portale=str(item.get("msg_id") or "").strip(),
             )
-            documenti_creati.append({"doc": doc, "item": item})
+            documenti_creati.append({"doc": doc, "item": item, "riusato": False})
             for key in _portal_key_pairs_from_document(doc) | portal_keys:
                 documenti_per_chiave_portale.setdefault(key, doc)
             if nome_norm:
@@ -2269,6 +2269,38 @@ def build_fascicoli_runtime(
         return {
             "fonte": fonte,
             "documenti_importati": len(documenti_creati),
+            "documenti": [
+                {
+                    "fascicolo_document_id": entry["doc"].id,
+                    "nome": str(getattr(entry["doc"], "nome", "") or ""),
+                    "nome_originale": str(getattr(entry["doc"], "nome_originale", "") or ""),
+                    "hash_sha256": str(getattr(entry["doc"], "hash_sha256", "") or ""),
+                    "id_documento_portale": str(
+                        getattr(entry["doc"], "id_documento_portale", "")
+                        or entry["item"].get("id_documento_portale")
+                        or entry["item"].get("id_documento")
+                        or ""
+                    ),
+                    "id_cat_portale": str(
+                        getattr(entry["doc"], "id_cat_portale", "")
+                        or entry["item"].get("id_cat")
+                        or ""
+                    ),
+                    "msg_id_portale": str(
+                        getattr(entry["doc"], "msg_id_portale", "")
+                        or entry["item"].get("msg_id")
+                        or ""
+                    ),
+                    "modalita_documento_portale": str(
+                        entry["item"].get("modalita_documento_portale") or ""
+                    ),
+                    "original_documento_portale": bool(
+                        entry["item"].get("original_documento_portale")
+                    ),
+                    "riusato": bool(entry.get("riusato")),
+                }
+                for entry in documenti_creati
+            ],
             "depositi_agganciati": depositi_agganciati,
             "lotto_generico": deposito_generico.id if deposito_generico else "",
             "staging_archived": staging_archived,

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from flask import current_app, g, has_app_context
 
-from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from web.services.feature_flags import (
     LEGAL_NOTIFICATION_PRESIDIA_ENABLED_FLAG,
     LEGAL_NOTIFICATION_PRESIDIA_PRIMARY_FLAG,
@@ -67,19 +65,17 @@ def build_notification_presidio_repository():
     from pct.pec_notification_presidio import NotificationPresidioRepository
 
     try:
-        tenant = getattr(g, "tenant", None)
-        dsn = resolve_runtime_postgres_dsn(
-            database=getattr(tenant, "database", None),
-            config=current_app.config,
-            env_url_keys=("IUSENTRA_PEC_AUDIT_DATABASE_URL", "PCT_PEC_AUDIT_DATABASE_URL"),
-        )
         db_path = _presidio_db_path()
-        key = (_tenant_id(), str(db_path), bool(dsn))
+        # La pipeline PEC e il relativo worker scrivono i presìdi nel
+        # PEC_AUDIT_DB SQLite tenant-aware. Il database PostgreSQL core dello
+        # studio non è una fonte alternativa per questo repository verticale:
+        # usarlo qui farebbe leggere alla UI un archivio diverso dal worker.
+        key = (_tenant_id(), str(db_path), False)
         cache = current_app.extensions.setdefault("notification_presidio_repositories", {})
         cached = cache.get(key)
         if cached is not None:
             return cached
-        repo = NotificationPresidioRepository(db_path, tenant_id=key[0], postgres_dsn=dsn)
+        repo = NotificationPresidioRepository(db_path, tenant_id=key[0])
         cache[key] = repo
         return repo
     except (TenantDataPathError, TenantIsolationError):
@@ -183,13 +179,103 @@ def public_error(code: str, message: str, *, status: int = 400) -> tuple[dict[st
     return {"ok": False, "code": code, "message": message, "status": status}, status
 
 
+_DECISION_REVISION_TARGETS = frozenset({
+    "NEEDS_REVIEW",
+    "NOT_REQUIRED",
+    "NOTIFICATION_CONFIRMED",
+})
+_POST_SEND_DOCUMENT_ROLES = (
+    "sent_pec",
+    "rac",
+    "rdac",
+    "delivery_failure",
+    "proof_deposit_receipt",
+)
+
+
+def _revise_notification_decision(
+    repo: Any,
+    presidio_id: str,
+    body: Mapping[str, Any],
+    *,
+    actor: str,
+    idempotency_key: str,
+) -> None:
+    target = str(body.get("target_status") or body.get("decision") or "").strip().upper()
+    reason = str(body.get("reason") or "").strip()
+    if target not in _DECISION_REVISION_TARGETS:
+        raise ValueError("Seleziona una decisione valida per il presidio.")
+    if target == "NOTIFICATION_CONFIRMED":
+        raise ValueError("La notifica risulta già confermata. Seleziona una decisione diversa.")
+    if len(reason) < 12:
+        raise ValueError("Inserisci una motivazione chiara di almeno 12 caratteri per correggere la decisione.")
+
+    presidio = repo.get_presidio(presidio_id)
+    current_status = str(presidio.get("status") or "")
+    if current_status != "NOTIFICATION_CONFIRMED":
+        raise ValueError(
+            "La decisione può essere modificata soltanto dopo la conferma e prima dell'invio della notifica."
+        )
+
+    counts = repo.recipient_counts(presidio_id)
+    if any(int(counts.get(key) or 0) > 0 for key in (
+        "recipients_sent",
+        "recipients_rac",
+        "recipients_delivered",
+        "recipients_failed",
+    )):
+        raise ValueError(
+            "La decisione non può essere modificata perché risultano già invii o ricevute. Usa il flusso di rettifica governata."
+        )
+
+    placeholders = ",".join("?" for _ in _POST_SEND_DOCUMENT_ROLES)
+    with repo.connection() as conn:
+        delivery_document = conn.execute(
+            f"""
+            SELECT id
+            FROM pec_legal_notification_documents
+            WHERE tenant_id=? AND presidio_id=?
+              AND document_role IN ({placeholders})
+            LIMIT 1
+            """,
+            (repo.tenant_id, presidio_id, *_POST_SEND_DOCUMENT_ROLES),
+        ).fetchone()
+    if delivery_document is not None:
+        raise ValueError(
+            "La decisione non può essere modificata perché sono già presenti prove di invio o ricevute. Usa il flusso di rettifica governata."
+        )
+
+    repo.transition(
+        presidio_id,
+        target,
+        actor=actor,
+        reason=reason,
+        evidence={
+            "source": "ui_presidio",
+            "operation": "decision_revision",
+            "previous_decision": "NOTIFICATION_CONFIRMED",
+            "target_decision": target,
+        },
+        idempotency_key=idempotency_key,
+        expected_status="NOTIFICATION_CONFIRMED",
+    )
+
+
 def mutate_presidio(repo: Any, presidio_id: str, mutation: str, body: Mapping[str, Any], *, idempotency_key: str) -> dict[str, Any]:
     permissions = presidio_permissions()
     if not permissions["can_write"]:
         raise PermissionError("Permesso messaggi.scrivi richiesto.")
     actor = current_actor_id()
     if mutation == "confirm":
-        repo.transition(presidio_id, "NOTIFICATION_CONFIRMED", actor=actor, reason=str(body.get("reason") or "Notifica confermata dall'operatore."), evidence={"source": "ui_presidio"}, idempotency_key=idempotency_key)
+        repo.transition(presidio_id, "NOTIFICATION_CONFIRMED", actor=actor, reason=str(body.get("reason") or "Notifica necessaria confermata dall'operatore."), evidence={"source": "ui_presidio"}, idempotency_key=idempotency_key)
+    elif mutation == "revise-decision":
+        _revise_notification_decision(
+            repo,
+            presidio_id,
+            body,
+            actor=actor,
+            idempotency_key=idempotency_key,
+        )
     elif mutation == "not-required":
         reason = str(body.get("reason") or "").strip()
         if len(reason) < 8:

@@ -286,8 +286,11 @@ class NotificationService:
             tenant_id,
             user_id,
             active_dedupe_keys=active_dedupe_keys,
-            source_types=expire_source_types
-            or {"deadline", "hearing", "task", "communication", "document", "filing"},
+            source_types=(
+                {"deadline", "hearing", "task", "communication", "document", "filing"}
+                if expire_source_types is None
+                else expire_source_types
+            ),
         )
         return self.repository.list_notifications(tenant_id, user_id, limit=50)
 

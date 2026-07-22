@@ -42,6 +42,85 @@ def _norm(text: str) -> str:
     return " ".join(str(text or "").lower().split())
 
 
+def _has_any(text_norm: str, markers: tuple[str, ...]) -> bool:
+    return any(_norm(marker) in text_norm for marker in markers)
+
+
+_DECISION_SENTENCE_MARKERS = (
+    "sentenza a verbale",
+    "sentenza in nome del popolo italiano",
+    "decide la causa con sentenza",
+    "decide con sentenza",
+    "sentenza resa ex art. 429",
+    "sentenza resa ex art. 429 cpc",
+)
+
+_WRITTEN_TREATMENT_MARKERS = (
+    "127-ter",
+    "127 ter",
+    "trattazione scritta",
+    "note scritte",
+    "sostituzione dell'udienza",
+)
+
+_PROSPECTIVE_127_TER_MARKERS = (
+    "sostituisce l'udienza",
+    "in sostituzione dell'udienza",
+    "assegna un termine perentorio",
+    "deposito note scritte",
+    "deposito delle note",
+    "note contenenti istanze e conclusioni",
+    "ciascuna parte costituita può opporsi",
+    "ciascuna parte costituita puo' opporsi",
+    "possono opporsi",
+    "può opporsi",
+    "puo' opporsi",
+    "entro cinque giorni dalla comunicazione",
+    "entro 5 giorni dalla comunicazione",
+)
+
+
+def _is_sentence_decision_context(text_norm: str) -> bool:
+    if _has_any(text_norm, _DECISION_SENTENCE_MARKERS):
+        return True
+    has_judgment_noun = "sentenza" in text_norm
+    has_decisive_outcome = _has_any(
+        text_norm,
+        (
+            "definitivamente decidendo",
+            "accerta il diritto",
+            "condanna",
+            "liquida",
+            "rigetta",
+            "accoglie",
+        ),
+    )
+    has_judicial_context = _has_any(
+        text_norm,
+        ("tribunale", "il giudice", "la corte", "p.q.m.", "p. q. m.", "pqm", "dispositivo"),
+    )
+    return has_judgment_noun and has_decisive_outcome and has_judicial_context
+
+
+def _is_prospective_127_ter_context(text_norm: str) -> bool:
+    return _has_any(text_norm, _PROSPECTIVE_127_TER_MARKERS)
+
+
+def _sentence_decision_review_payload() -> dict[str, Any]:
+    return {
+        "ok": False,
+        "human_review_required": True,
+        "reason": (
+            "Il testo è una sentenza/provvedimento decisorio che cita il 127-ter come modalità "
+            "dell'udienza già svolta: non proporre opposizione alla trattazione scritta; "
+            "aprire presidio post-sentenza e valutare eventuale notifica della sentenza."
+        ),
+        "norma": "Art. 133 c.p.c. / artt. 325-326 c.p.c. / art. 429 c.p.c.",
+        "template_code": "",
+        "azione": "Valutare/preparare notifica sentenza",
+    }
+
+
 def _parse_date(value: Any) -> date | None:
     if isinstance(value, date):
         return value
@@ -78,9 +157,16 @@ def propose_legal_deadline(
 
     rules = ruleset or load_ruleset()
     text_norm = _norm(text)
+    sentence_decision_context = event_type in {"sentenza_a_verbale_429", "deposito_sentenza"} or _is_sentence_decision_context(text_norm)
+    if (
+        sentence_decision_context
+        and _has_any(text_norm, _WRITTEN_TREATMENT_MARKERS)
+        and not _is_prospective_127_ter_context(text_norm)
+    ):
+        return _sentence_decision_review_payload()
 
     blocco = rules.get("blocco_art_325", {})
-    is_deposito_sentenza = event_type == "deposito_sentenza" or any(
+    is_deposito_sentenza = event_type in {"deposito_sentenza", "sentenza_a_verbale_429"} or any(
         _norm(kw) in text_norm for kw in blocco.get("keywords", [])
     )
 
@@ -99,6 +185,13 @@ def propose_legal_deadline(
     template = _TEMPLATES_BY_CODE.get(str(rule.get("template_code") or ""))
     if template is None:
         return None
+
+    if (
+        sentence_decision_context
+        and template.code == "CIV_OPPOSIZIONE_127_TER"
+        and not _is_prospective_127_ter_context(text_norm)
+    ):
+        return _sentence_decision_review_payload()
 
     # Regola #1 (art. 133/325): la sola comunicazione di deposito sentenza NON fa
     # decorrere il termine breve. Se la PEC è un deposito sentenza e la regola è un

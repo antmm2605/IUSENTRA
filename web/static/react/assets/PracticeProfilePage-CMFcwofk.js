@@ -1,1 +1,0 @@
-import{j as r}from"./vendor-react-BLQXznre.js";import{L as o}from"./LegalSkillsProfilePage-f118otXH.js";import"./button-BB2Ls753.js";import"./index-CBoW2J5z.js";import"./vendor-icons-CGsZ_kTU.js";import"./input-C0Jwj68Q.js";import"./IusPageShell-4hqyLcyp.js";import"./api-CwShuZmG.js";function l(){return r.jsx(o,{})}export{l as PracticeProfilePage};

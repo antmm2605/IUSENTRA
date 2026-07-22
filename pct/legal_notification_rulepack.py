@@ -86,6 +86,63 @@ def load_legal_source_registry(path: str | Path | None = None) -> dict[str, Any]
     return _load_json(str(Path(path or SOURCE_REGISTRY_PATH).resolve()))
 
 
+@lru_cache(maxsize=4)
+def _validated_rulepack_source_references(
+    resolved_rulepack_path: str,
+    resolved_source_registry_path: str,
+) -> tuple[str, tuple[str, ...]]:
+    """Restituisce il risultato cacheato della verifica fonti del rulepack."""
+
+    rulepack = load_notification_rulepack(resolved_rulepack_path)
+    registry = load_legal_source_registry(resolved_source_registry_path)
+    known_source_ids = {
+        _clean(source.get("id"), 160)
+        for source in registry.get("notification_sources") or []
+        if isinstance(source, dict) and _clean(source.get("id"), 160)
+    }
+    missing: list[str] = []
+    referenced: set[str] = set()
+    for raw_rule in rulepack.get("detection_rules") or []:
+        if not isinstance(raw_rule, dict):
+            continue
+        rule_id = _clean(raw_rule.get("id"), 160) or "<senza id>"
+        source_ids = raw_rule.get("legal_sources") or []
+        if not isinstance(source_ids, list) or not source_ids:
+            missing.append(f"{rule_id}: nessuna fonte normativa o tecnica dichiarata")
+            continue
+        for source_id in source_ids:
+            normalized = _clean(source_id, 160)
+            if not normalized or normalized not in known_source_ids:
+                missing.append(f"{rule_id}: fonte non censita: {normalized or '<vuota>'}")
+            else:
+                referenced.add(normalized)
+    if missing:
+        raise ValueError("Rulepack notifiche con fonti non governate:\n- " + "\n- ".join(missing))
+    return _clean(rulepack.get("version"), 160), tuple(sorted(referenced))
+
+
+def validate_rulepack_source_references(
+    rulepack_path: str | Path | None = None,
+    source_registry_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Impedisce regole eseguibili che citano fonti non censite.
+
+    Il controllo avviene una volta per coppia rulepack/registro nel processo:
+    le route e i worker non aggiungono I/O o scansioni all'elaborazione di una
+    PEC. La validazione degli hash degli snapshot rimane affidata a
+    :func:`validate_source_registry`.
+    """
+
+    resolved_rulepack = str(Path(rulepack_path or RULEPACK_PATH).resolve())
+    resolved_registry = str(Path(source_registry_path or SOURCE_REGISTRY_PATH).resolve())
+    version, source_ids = _validated_rulepack_source_references(resolved_rulepack, resolved_registry)
+    return {
+        "rulepack_version": version,
+        "referenced_source_ids": list(source_ids),
+        "source_count": len(source_ids),
+    }
+
+
 def _normalise_detection_rule(raw: dict[str, Any]) -> dict[str, Any]:
     """Accetta il JSON storico già versionato e lo porta al contratto runtime."""
 
@@ -134,7 +191,9 @@ def _compiled_rules(resolved_path: str) -> tuple[dict[str, Any], ...]:
 
 
 def compiled_notification_rules(path: str | Path | None = None) -> tuple[dict[str, Any], ...]:
-    return _compiled_rules(str(Path(path or RULEPACK_PATH).resolve()))
+    resolved_path = str(Path(path or RULEPACK_PATH).resolve())
+    validate_rulepack_source_references(resolved_path)
+    return _compiled_rules(resolved_path)
 
 
 def validate_source_registry(

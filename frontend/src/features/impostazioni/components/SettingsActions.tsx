@@ -574,11 +574,14 @@ export function SettingsActions({
     const visibleIssuer = latestCertificate?.emittente || savedIssuer
     const visibleDaysNumber = visibleDays === undefined || visibleDays === null || visibleDays === '' ? null : numberValue(visibleDays)
     const warningActive = Boolean(firmaSettings.certificato_avviso_login) || (visibleDaysNumber !== null && visibleDaysNumber <= 20)
+    const publishedSignerVersion = asText(data.local_signer.version)
+    const publishedWindowsFilename = asText(data.local_signer.windows_filename)
 
     const runLocalSignerCheck = async () => {
       setCertificateMessage('')
       const result = await checkLocalSigner(data.local_signer.base_url, data.local_signer.restart_protocol)
       setLocalSigner(result)
+      if (!result.ok) return
       if (!result.certificate?.scadenza) {
         setCertificateMessage('Local Signer verificato: nessuna scadenza certificato leggibile in questa risposta.')
         return
@@ -597,10 +600,15 @@ export function SettingsActions({
 
     return (
       <div className="iu-settings-actions-panel">
-        <div>
-          <strong>IUSENTRA Local Signer</strong>
-          <span>Il dispositivo di firma viene verificato sul PC in uso, senza inviare il PIN allo studio online.</span>
-        </div>
+        <header className="iu-settings-local-signer__head">
+          <div>
+            <strong>IUSENTRA Local Signer</strong>
+            <span>Il dispositivo di firma viene verificato sul PC in uso, senza inviare il PIN allo studio online.</span>
+          </div>
+          <IusStatusBadge tone={publishedSignerVersion ? 'success' : 'neutral'}>
+            {publishedSignerVersion ? `Versione disponibile ${publishedSignerVersion}` : 'Versione da verificare'}
+          </IusStatusBadge>
+        </header>
         <article className={`iu-settings-certificate ${warningActive && visibleExpiry ? 'is-warning' : ''}`}>
           <div className="iu-settings-certificate__head">
             <ShieldCheck aria-hidden="true" />
@@ -623,12 +631,24 @@ export function SettingsActions({
             {certificateSaving ? 'Salvataggio scadenza' : 'Verifica dispositivo collegato'}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <a href={data.local_signer.downloads.windows} target="_blank" rel="noreferrer">
+            <a
+              href={data.local_signer.downloads.windows}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={publishedSignerVersion
+                ? `Installa o aggiorna IUSENTRA Local Signer per Windows, versione ${publishedSignerVersion}`
+                : 'Installa o aggiorna IUSENTRA Local Signer per Windows'}
+            >
               <Download data-icon="inline-start" />
-              Installa su Windows
+              Installa o aggiorna su Windows
             </a>
           </Button>
         </div>
+        <p className="iu-settings-local-signer__download-note">
+          {publishedSignerVersion
+            ? `Il pulsante scarica il pacchetto ufficiale corrente, versione ${publishedSignerVersion}${publishedWindowsFilename ? ` (${publishedWindowsFilename})` : ''}.`
+            : 'Il pulsante scarica il pacchetto ufficiale corrente pubblicato da IUSENTRA.'}
+        </p>
         {certificateMessage ? (
           <Alert className={certificateMessage.includes('non è riuscito') ? 'iu-settings-alert is-warning' : 'iu-settings-alert is-info'}>
             <ClipboardCheck />

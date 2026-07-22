@@ -725,3 +725,55 @@ def test_pst_preview_fonde_catalogo_master_detail_e_scarta_righe_non_scaricabili
     assert "Citazione_28139218.pdf" in nomi
     assert "PROCURA.PDF" in nomi
     assert "ROBERTO" not in nomi
+
+
+def test_pst_preview_mirata_da_pec_non_svuota_il_catalogo_senza_locator(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+    documenti = [
+        {"id_documento": "SENT-1", "nome": "Sentenza_802_2026.pdf", "tipo_atto": "Sentenza"},
+        {"id_documento": "VERB-1", "nome": "Verbale_udienza.pdf", "tipo_atto": "Verbale"},
+    ]
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {"numero": "1428", "anno": "2026", "ufficio_nome": "Tribunale di Palmi"},
+                "documenti": documenti,
+                "target_document": {"singleDocument": True, "pecId": "pec-test"},
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert {row["id_documento"] for row in payload["preview"]["documenti"]} == {"SENT-1", "VERB-1"}
+
+
+def test_pst_preview_mirata_da_pec_restringe_il_catalogo_per_tipo_documento(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+    documenti = [
+        {"id_documento": "SENT-1", "nome": "Sentenza_802_2026.pdf", "tipo_atto": "Sentenza"},
+        {"id_documento": "VERB-1", "nome": "Verbale_udienza.pdf", "tipo_atto": "Verbale"},
+    ]
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {"numero": "1428", "anno": "2026", "ufficio_nome": "Tribunale di Palmi"},
+                "documenti": documenti,
+                "target_document": {"singleDocument": True, "pecId": "pec-test", "tipoDocumento": "sentenza"},
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert [row["id_documento"] for row in payload["preview"]["documenti"]] == ["SENT-1"]

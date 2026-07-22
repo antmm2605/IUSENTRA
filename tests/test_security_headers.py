@@ -3,7 +3,11 @@ from __future__ import annotations
 from flask import Flask
 
 from core.security.headers import apply_security_headers
-from web.services.security_runtime import apply_security_defaults
+from web.services.security_runtime import (
+    DOCUMENT_PREVIEW_CSP,
+    apply_security_defaults,
+    register_security_runtime,
+)
 
 
 def _csp_sources(csp: str, directive: str) -> set[str]:
@@ -51,6 +55,34 @@ def test_security_headers_can_be_report_only() -> None:
     app.config.update(SECURITY_HEADERS_ENABLED=True, CSP_REPORT_ONLY=True)
     response = apply_security_headers(app.response_class("ok"), app)
     assert "Content-Security-Policy-Report-Only" in response.headers
+
+
+def test_document_preview_enforces_dedicated_csp_without_inline_scripts() -> None:
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        ENABLE_SECURITY_HEADERS=True,
+        SECURITY_HEADERS_ENABLED=True,
+        CSP_REPORT_ONLY=False,
+        SECRET_KEY="preview-security-test",
+    )
+    app.add_url_rule(
+        "/preview-documento",
+        endpoint="visualizza_documento",
+        view_func=lambda: app.response_class("<html><body>Documento</body></html>", mimetype="text/html"),
+    )
+    register_security_runtime(app)
+
+    response = app.test_client().get("/preview-documento")
+    csp = response.headers["Content-Security-Policy"]
+
+    assert response.status_code == 200
+    assert csp == DOCUMENT_PREVIEW_CSP
+    assert _csp_has_source(csp, "script-src", "'self'")
+    assert not _csp_has_source(csp, "script-src", "'unsafe-inline'")
+    assert _csp_has_source(csp, "object-src", "'none'")
+    assert _csp_has_source(csp, "connect-src", "'none'")
+    assert response.headers["Referrer-Policy"] == "no-referrer"
 
 
 def test_support_remote_rooms_allow_microphone_and_display_capture() -> None:

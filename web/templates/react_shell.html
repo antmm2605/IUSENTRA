@@ -129,7 +129,10 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
     })();
   </script>
   {% endif %}
+  {% set iusentra_embedded_source_view = request.args.get('embed') == 'source' %}
+  {% if not iusentra_embedded_source_view %}
   {% include "components/pct_ai_widget.html" %}
+  {% endif %}
   {% if g.utente_corrente %}
   {% if react_runtime_flags.local_signer_monitor %}
   <div id="iusentra-local-signer-monitor"
@@ -150,6 +153,7 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
   <script src="/static/js/local-signer-monitor.js?v={{ app_version }}" defer></script>
   {% endif %}
   <script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}" defer></script>
+  {% if not iusentra_embedded_source_view %}
   <script src="/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" defer></script>
   <script src="/static/js/lex-tts/quality-presets.js?v={{ app_version }}" defer></script>
   <script src="/static/js/lex-tts/voice-profiles.js?v={{ app_version }}" defer></script>
@@ -159,6 +163,7 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
   <script src="/static/js/lex-tts/tts-engine-registry.js?v={{ app_version }}" defer></script>
   <script src="/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" defer></script>
   <script src="/static/js/pct-lex-assistant.js?v={{ app_version }}" defer></script>
+  {% endif %}
   {% endif %}
   <script src="/static/js/iusentra-visible-text-guard.js?v={{ app_version }}" defer></script>
 </body>

@@ -581,7 +581,9 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
   const encoded = encodeURIComponent(pecId)
   const attachments = Array.isArray(root.attachments) ? root.attachments : []
   const parsedBody = isRecord(parsed.body) ? parsed.body : {}
-  const fullBodyText = text(parsed.body_text ?? parsedBody.text ?? parsedBody.html_text)
+  const fullBodyText = [parsed.body_text, parsedBody.text, parsedBody.html_text]
+    .map((value) => text(value))
+    .find(Boolean) || ''
   const qualityStatus = text(message.quality_status)
   const signatureStatus = text(message.signature_status)
   const audit = auditFromPayload({
@@ -663,16 +665,22 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     bodyHtml: '',
     attachments: attachments.map((raw, index) => {
       const item = isRecord(raw) ? raw : {}
+      const name = text(item.filename, `allegato-${index + 1}`)
+      const sourceHref = pecId && name
+        ? `/api/v1/ui/email/source/${encoded}?name=${encodeURIComponent(name)}`
+        : ''
       return {
         index,
-        name: text(item.filename, `allegato-${index + 1}`),
+        name,
         mime: text(item.mime_type),
         sizeLabel: '',
-        viewHref: '',
-        previewHref: '',
-        downloadHref: '',
-        available: false,
-        statusLabel: 'Allegato conservato nel controllo PEC.',
+        viewHref: sourceHref,
+        previewHref: sourceHref,
+        downloadHref: sourceHref ? `${sourceHref}&download=1` : '',
+        available: Boolean(sourceHref),
+        statusLabel: sourceHref
+          ? 'Allegato originale disponibile per visualizzazione o scarico.'
+          : 'Allegato conservato nel controllo PEC.',
       }
     }),
     pecAudit: audit,
@@ -681,6 +689,23 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
       reply: '/email/scrivi',
       settings: '/impostazioni?tab=pec',
     },
+  }
+}
+
+export function getEmailPecEmbeddedSourceDetail(id: string): EmailDetailData | null {
+  if (!id || typeof document === 'undefined') return null
+  const element = document.getElementById('iusentra-react-bootstrap')
+  if (!element?.textContent) return null
+  try {
+    const parsed = JSON.parse(element.textContent) as unknown
+    const root = isRecord(parsed) ? parsed : {}
+    const source = isRecord(root.embeddedSourceDetail) ? root.embeddedSourceDetail : {}
+    if (text(source.mode) !== 'pec') return null
+    if (text(source.sourceId) !== id) return null
+    const data = isRecord(source.data) ? source.data : {}
+    return auditDetailFromPayload({ data })
+  } catch {
+    return null
   }
 }
 
@@ -697,6 +722,39 @@ async function fetchPecAuditDetail(id: string): Promise<EmailDetailData> {
   } catch {
     return emptyDetailFor('/email')
   }
+}
+
+const pecSourceRetryStatuses = new Set([423, 429, 500, 503])
+
+function sleepPecSourceRetry(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchPecAuditSourceDetail(id: string): Promise<EmailDetailData> {
+  const pecId = id.replace(/^pec-audit:/, '')
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+    if (controller) {
+      timeout = setTimeout(() => controller.abort(), 8000)
+    }
+    try {
+      const response = await fetch(`/api/pec/messages/${encodeURIComponent(pecId)}/source?_ts=${Date.now()}`, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller?.signal,
+      })
+      if (response.ok) return auditDetailFromPayload(await response.json())
+      if (!pecSourceRetryStatuses.has(response.status) || attempt === 2) return emptyDetailFor('/email')
+    } catch {
+      if (attempt === 2) return emptyDetailFor('/email')
+    } finally {
+      if (timeout) clearTimeout(timeout)
+    }
+    await sleepPecSourceRetry(450 + attempt * 550)
+  }
+  return emptyDetailFor('/email')
 }
 
 export function folderLabel(value: EmailFolder): string {
@@ -738,6 +796,11 @@ export async function getEmailOrdinariaPage(params: EmailPecParams = {}): Promis
 
 export async function getEmailPecDetail(id: string): Promise<EmailDetailData> {
   if (id.startsWith('pec-audit:')) return fetchPecAuditDetail(id)
+  return fetchEmailDetail(`/api/v1/ui/email/messaggio/${encodeURIComponent(id)}`, '/email')
+}
+
+export async function getEmailPecSourceDetail(id: string): Promise<EmailDetailData> {
+  if (id.startsWith('pec-audit:')) return fetchPecAuditSourceDetail(id)
   return fetchEmailDetail(`/api/v1/ui/email/messaggio/${encodeURIComponent(id)}`, '/email')
 }
 

@@ -199,9 +199,9 @@ Regola permanente da seguire per ogni lavoro successivo: negli studi in modalita
 
 Le famiglie JSON dinamiche sono presidiate con moduli stabili derivati dal path:
 
-- `fascicoli/documenti_ai/**/*.json` diventa mirror SQL `documenti_ai_file_*`;
-- `fascicoli/importazioni/**/*.json` diventa mirror SQL `fascicoli_importazione_*`;
-- `intelligence/lex_dataset/**/*.json` diventa mirror SQL `lex_dataset_*`.
+- `fascicoli/documenti_ai/**/*.json`, `fascicoli/importazioni/**/*.json` e `intelligence/lex_dataset/**/*.json` non entrano nel mirror SQL del bootstrap/runtime ordinario;
+- queste famiglie pesanti e rigenerabili restano nei repository verticali dedicati e possono essere censite come `documenti_ai_file_*`, `fascicoli_importazione_*` e `lex_dataset_*` soltanto da un audit/riparazione esplicito con `include_recursive=True`, stima preventiva, backup e report;
+- Agenda, Scadenziario, topbar, worker PEC e apertura del tenant non devono mai innescare la scansione ricorsiva di tali alberi.
 
 Le famiglie note come repository o configurazioni operative sono censite esplicitamente: `studio_local_pack`, `editor_ai`, `pec_cancelleria_state`, repository `intelligence`, `giurisprudenza`, `legal_*`, `telematico_*`, `template_repository`, repository `preventivi` e `termini_processuali`. Cache, backup, file corrotti preservati e archivi restano ammessi solo se classificati come non operativi.
 
@@ -298,3 +298,12 @@ Un test automatico verde non significa lavoro concluso. Per qualsiasi comportame
 - Web Push usa il repository notifiche esistente: se viene creato un nuovo residuo vero, il servizio `NotificationService.sync_operational_items` lo deduplica e lo invia solo ai dispositivi/subscription abilitati.
 - Calendario/scadenziario: i residui con stato `da_preparare`, `da_firmare` o `pronta_invio` creano/aggiornano una scadenza `TipoTermine.NOTIFICA` con marker `IUSENTRA_LEGAL_NOTIFICATION`; quando il residuo sparisce, la scadenza aperta creata dal job viene completata.
 - Audit server Montagnese: `301` fascicoli visibili analizzati, `0` notifiche residue, `0` azioni correlate, `0` falsi positivi; report in `artifacts/notifiche-legali/audit-montagnese-301-20260720.md`.
+
+## Aggiornamento 21/07/2026 - isolamento PEC e guardrail contro la crescita di `studio.db`
+
+- La fonte PEC verticale è `PEC_AUDIT_DB` del tenant, letta con lo slug/storage key; topbar e Web Push usano separatamente l'identificativo tecnico del tenant nel repository notifiche. I due identificativi non sono intercambiabili.
+- Ogni nuovo ID PEC deriva da tenant e impronta MIME. Lookup per ID, Message-ID header e deduplicazione includono sempre il tenant; nessuna GET o inizializzazione può adottare, spostare o riassegnare righe `default` a un altro studio.
+- Se il backend core/topbar è PostgreSQL e manca il DSN, il runtime fallisce chiuso prima di creare SQLite locali o completare/scadere notifiche. Un errore del repository presìdi non viene convertito in lista vuota durante la riconciliazione.
+- Il bootstrap tenant sincronizza soltanto i moduli JSON core esplicitamente governati. La scansione ricorsiva di OCR, `documenti_ai`, importazioni e dataset Lex è riservata agli audit espliciti e non può partire dal caricamento ordinario.
+- Causa accertata sul tenant Montagnese: il primo ciclo scheduler aveva incorporato circa 15 GB di JSON OCR/estratti in `moduli_dati` e `moduli_json_records`. Il guardrail runtime elimina la causa; la manutenzione del database deve rimuovere solo quei mirror ricostruibili, confrontare tutte le tabelle strutturate prima/dopo e conservare rollback verificabile.
+- La copia locale e la produzione devono coincidere per commit, versione, schema e comportamento, non per contenuto privato. I dati reali Montagnese restano sul server; il collaudo locale usa un tenant isolato e dati controllati, senza copiare credenziali, sessioni o l'intero archivio documentale.

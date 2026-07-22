@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import email
+import json
 import os
 import sys
 import zipfile
@@ -466,9 +467,32 @@ def test_email_pec_conferma_locale_registra_inviati_solo_dopo_message_id(tmp_pat
 
 def test_base_template_non_renderizza_vecchio_lex_duplicato():
     template = Path("web/templates/base.html").read_text(encoding="utf-8")
+    react_shell = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
+    email_data = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
+    email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
+    pec_api = Path("web/blueprints/pec_pipeline_api.py").read_text(encoding="utf-8")
     assert "__legacy_lex_disabled__" not in template
     assert "false and g.utente_corrente" not in template
     assert template.count('include "components/pct_ai_widget.html"') == 1
+    assert "iusentra_embedded_source_view = request.args.get('embed') == 'source'" in template
+    assert "{% if not iusentra_embedded_source_view %}" in template
+    assert react_shell.count('include "components/pct_ai_widget.html"') == 1
+    assert "iusentra_embedded_source_view = request.args.get('embed') == 'source'" in react_shell
+    assert "{% if not iusentra_embedded_source_view %}" in react_shell
+    assert '@pec_pipeline_api.get("/messages/<message_id>/source")' in pec_api
+    assert "pec_archive_busy" in pec_api
+    assert '"Retry-After"' in pec_api
+    assert "response.status_code = 503" in pec_api
+    assert "Archivio PEC in aggiornamento. Riprovo tra pochi secondi." in pec_api
+    assert "embeddedSourceDetail" in Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
+    assert "/api/pec/messages/${encodeURIComponent(pecId)}/source" in email_data
+    assert "pecSourceRetryStatuses" in email_data
+    assert "sleepPecSourceRetry" in email_data
+    assert "pecSourceRetryStatuses.has(response.status)" in email_data
+    assert "getEmailPecEmbeddedSourceDetail" in email_data
+    assert "getEmailPecSourceDetail" in email_page
+    assert "getEmailPecEmbeddedSourceDetail(sourceId)" in email_page
+    assert "const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecSourceDetail" in email_page
 
 
 def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
@@ -1244,8 +1268,9 @@ def test_email_pec_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
         assert "ricorso.pdf.p7m" in download.headers.get("Content-Disposition", "")
 
 
-def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path):
+def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path, monkeypatch):
     from web.app import create_app
+    import web.blueprints.api_v1_react as react_api_module
 
     cfg = _cfg_web(tmp_path)
     archive_buffer = BytesIO()
@@ -1277,6 +1302,8 @@ def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path):
     (allegato_dir / "21866865s.pdf.zip").write_bytes(zip_bytes)
 
     app = create_app(cfg)
+    monkeypatch.setattr(react_api_module, "pdf_page_count", lambda data: 2)
+    monkeypatch.setattr(react_api_module, "render_pdf_page_png", lambda data, page_number: b"\x89PNG\r\n\x1a\npagina")
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
@@ -1294,6 +1321,25 @@ def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path):
         assert source.mimetype == "application/pdf"
         assert source.data == b"%PDF-1.4 decreto udienza\n"
 
+        viewer = client.get(
+            "/api/v1/ui/email/source/msg-zip-pec",
+            query_string={"name": "21866865s.pdf.zip", "viewer": "mobile"},
+        )
+        assert viewer.status_code == 200
+        assert viewer.mimetype == "text/html"
+        viewer_html = viewer.get_data(as_text=True)
+        assert "Decreto fissazione udienza.pdf" in viewer_html
+        assert "viewer=mobile&amp;page=1" in viewer_html
+        assert "Scarica" in viewer_html
+
+        page = client.get(
+            "/api/v1/ui/email/source/msg-zip-pec",
+            query_string={"name": "21866865s.pdf.zip", "viewer": "mobile", "page": "1"},
+        )
+        assert page.status_code == 200
+        assert page.mimetype == "image/png"
+        assert page.data.startswith(b"\x89PNG")
+
         download = client.get(
             "/api/v1/ui/email/source/msg-zip-pec",
             query_string={"name": "21866865s.pdf.zip", "download": "1"},
@@ -1304,9 +1350,10 @@ def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path):
         assert "21866865s.pdf.zip" in download.headers.get("Content-Disposition", "")
 
 
-def test_email_pec_visualizza_zip_dal_presidio_audit_anche_se_non_e_in_casella(tmp_path):
+def test_email_pec_visualizza_zip_dal_presidio_audit_anche_se_non_e_in_casella(tmp_path, monkeypatch):
     from pct.pec_pipeline import PecAuditRepository
     from web.app import create_app
+    import web.blueprints.api_v1_react as react_api_module
 
     cfg = _cfg_web(tmp_path)
     archive_buffer = BytesIO()
@@ -1345,6 +1392,79 @@ def test_email_pec_visualizza_zip_dal_presidio_audit_anche_se_non_e_in_casella(t
         assert download.status_code == 200
         assert download.data == zip_bytes
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+
+        def _blob_non_deve_essere_riletto(_message_id: str):
+            raise AssertionError("Il cache hit non deve rileggere il BLOB MIME PEC.")
+
+        monkeypatch.setattr(react_api_module, "_read_pec_source_message_blob", _blob_non_deve_essere_riletto)
+        cached = client.get(
+            f"/api/v1/ui/email/source/{ingested['id']}",
+            query_string={"name": "21866865s.pdf.zip"},
+        )
+        assert cached.status_code == 200
+        assert cached.data == b"%PDF-1.4 collegamento audiovisivo\n"
+        assert cached.headers["X-IUSENTRA-Source-Preview-Cache"] == "hit"
+
+        monkeypatch.setattr(react_api_module, "render_pdf_page_png", lambda data, page_number: b"\x89PNG\r\n\x1a\ncache")
+        cached_page = client.get(
+            f"/api/v1/ui/email/source/{ingested['id']}",
+            query_string={"name": "21866865s.pdf.zip", "viewer": "mobile", "page": "1"},
+        )
+        assert cached_page.status_code == 200
+        assert cached_page.mimetype == "image/png"
+        assert cached_page.headers["X-IUSENTRA-Source-Preview-Cache"] == "hit"
+
+
+def test_cache_anteprime_fonti_pec_resta_limitata(tmp_path, monkeypatch):
+    import web.blueprints.api_v1_react as react_api_module
+
+    cache_dir = tmp_path / "preview-cache"
+    cache_dir.mkdir()
+    monkeypatch.setattr(react_api_module, "_email_source_preview_cache_dir", lambda: cache_dir)
+    monkeypatch.setattr(react_api_module, "_EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRIES", 2)
+    monkeypatch.setattr(react_api_module, "_EMAIL_SOURCE_PREVIEW_CACHE_MAX_BYTES", 1024)
+    monkeypatch.setattr(react_api_module, "_EMAIL_SOURCE_PREVIEW_CACHE_CLEANUP_INTERVAL_SECONDS", 0)
+    react_api_module._EMAIL_SOURCE_PREVIEW_CACHE_LAST_CLEANUP.clear()
+
+    for index in range(4):
+        react_api_module._write_email_source_preview_cache(
+            f"cache-{index}",
+            data=(f"preview-{index}".encode("utf-8")),
+            mimetype="application/pdf",
+            download_name=f"documento-{index}.pdf",
+            original_name=f"fonte-{index}.pdf.zip",
+        )
+
+    assert len(list(cache_dir.glob("*.bin"))) <= 2
+    assert len(list(cache_dir.glob("*.json"))) <= 2
+    assert not list(cache_dir.glob(".*.tmp"))
+    assert sum(path.stat().st_size for path in cache_dir.iterdir()) <= 1024
+
+    monkeypatch.setattr(react_api_module, "_EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES", 8)
+    react_api_module._write_email_source_preview_cache(
+        "troppo-grande",
+        data=b"123456789",
+        mimetype="application/pdf",
+        download_name="documento.pdf",
+        original_name="documento.pdf.zip",
+    )
+    assert not (cache_dir / "troppo-grande.bin").exists()
+    assert not (cache_dir / "troppo-grande.json").exists()
+
+    (cache_dir / "esterna.bin").write_bytes(b"123456789")
+    (cache_dir / "esterna.json").write_text(
+        json.dumps(
+            {
+                "mimetype": "application/pdf",
+                "download_name": "documento.pdf",
+                "original_name": "documento.pdf.zip",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert react_api_module._read_email_source_preview_cache("esterna") is None
+    assert not (cache_dir / "esterna.bin").exists()
+    assert not (cache_dir / "esterna.json").exists()
 
 
 def test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):

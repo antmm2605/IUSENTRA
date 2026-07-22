@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
 
-from pct.agenda import Agenda, TipoAppuntamento
+from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
@@ -19,7 +19,7 @@ from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoAtti
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.privacy import GestioneTrattamenti
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
-from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
+from pct.scadenziario import GestioneScadenziario, PrioritaTermine, StatoTermine, TipoTermine
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 from pct.storage import StudioDB
 from pct.telematico_workflow import TelematicoWorkflowRepository
@@ -816,6 +816,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
     agenda_data = Path("frontend/src/agendaData.ts").read_text(encoding="utf-8")
+    email_data = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
     design_css = Path("frontend/src/styles/iusentra-design-system.css").read_text(encoding="utf-8")
@@ -846,7 +847,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "const isLate = new Date(event.start).getHours() >= 16" in agenda_page
     assert ".iu-ag-event.is-late .iu-ag-event__tooltip" in css
     assert "function agendaSubjectLine(event: AgendaEvent)" in agenda_page
-    assert "const contextParts = [event.matter, event.client]" in agenda_page
+    assert "const contextParts = [event.client, event.matter]" in agenda_page
     assert "function initialAgendaView(): AgendaView" in agenda_page
     assert "function initialAgendaKind(): AgendaKind" in agenda_page
     assert "window.history.replaceState(window.history.state, '', nextHref)" in agenda_page
@@ -856,10 +857,38 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "clusteredEvents.length" in agenda_page
     assert "125 * 60 * 1000" in agenda_page
     assert "clusterWhenLabel" in agenda_page
-    assert "Visualizza fonte" in agenda_page
+    assert "renderClusterEventList('inline')" not in agenda_page
+    assert "attività raggruppate" in agenda_page
+    assert "iu-ag-event__cluster-list--inline" in agenda_page
+    assert "Apri fonte" in agenda_page
+    assert "agendaSourceLabel(event.source, event)" in agenda_page
+    assert "event?.sourceKind === 'pec' || event?.sourceHref?.includes('/email/')" in agenda_page
+    assert "title={`Apri origine: ${event.sourceLabel || 'fonte originaria'}`}" in agenda_page
+    assert "onClick={() => onOpenSource(event)}" in agenda_page
     source_modal = Path("frontend/src/components/SourceDocumentModal.tsx").read_text(encoding="utf-8")
     operational_modal = Path("frontend/src/components/OperationalModal.tsx").read_text(encoding="utf-8")
     assert "SourceDocumentModal" in source_modal
+    assert "parsed.pathname.startsWith('/api/v1/ui/email/source/')" in source_modal
+    assert "parsed.searchParams.set('viewer', 'mobile')" in source_modal
+    assert "Tutto schermo" in source_modal
+    assert "Vista normale" in source_modal
+    assert "iu-ag-source-modal__box--fullscreen" in source_modal
+    assert "Caricamento documento..." in source_modal
+    assert "Documento non visualizzabile nel lettore." in source_modal
+    assert "parsed.pathname.includes('/documenti/')" in source_modal
+    assert "preview && mobile" not in source_modal
+    assert "source.kind === 'documento'" not in source_modal
+    assert "matchMedia('(max-width: 900px)')" not in source_modal
+    assert "prewarmSourceDocument" not in source_modal
+    assert "await response.text()" not in source_modal
+    assert "parsed.pathname.startsWith('/email')" in source_modal
+    assert "source.kind === 'pec' || parsed.pathname.startsWith('/email')" not in source_modal
+    assert "sourceIframeSandbox" in source_modal
+    assert "normalizedPath === '/email' || normalizedPath === '/email-ordinaria'" in source_modal
+    assert "'allow-downloads allow-same-origin allow-scripts'" in source_modal
+    assert "'allow-downloads allow-scripts'" in source_modal
+    assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal
+    assert 'referrerPolicy="no-referrer"' in source_modal
     assert "role=\"dialog\"" in operational_modal
     assert "aria-modal=\"true\"" in operational_modal
     assert "closeOnEscape" in operational_modal
@@ -870,13 +899,28 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "onOpenDetail={openAgendaDetail}" in agenda_page
     assert "sourceHref" in agenda_data
     assert ".iu-ag-event__cluster-list" in css
+    assert ".iu-ag-event__cluster-list--inline" in css
     email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
     assert "currentPecAuditSelectionId" in email_page
     assert "item.pecAudit?.id === auditId" in email_page
+    assert "function EmailSourceView" in email_page
+    assert "SourceDocumentModal" in email_page
+    assert "setAttachmentSource(viewerSource)" in email_page
+    assert 'target="_blank" rel="noreferrer">Visualizza' not in email_page
+    assert "pecSourceRetryStatuses" in email_data
+    assert "sleepPecSourceRetry" in email_data
+    assert "pecSourceRetryStatuses.has(response.status)" in email_data
+    assert "attempt < 3" in email_data
+    assert ".find(Boolean) || ''" in email_data
+    assert "[parsed.body_text, parsedBody.text, parsedBody.html_text]" in email_data
+    assert "pec-audit:${auditId}" in email_page
+    assert "get('embed') === 'source'" in email_page
     assert 'className="iu-ag-highlight"' in agenda_page
     assert "filteredEvents.length === 1 ? 'elemento' : 'elementi'" in agenda_page
     assert ".iu-ag-event__content{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row" in css
     assert ".iu-ag-highlight{" in css
+    assert ".iu-source-document-reader__state" in css
+    assert ".iu-ag-source-modal__box--fullscreen" in css
     assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-kpis"')
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "messageReminderHref" in agenda_page
@@ -2315,6 +2359,11 @@ def test_react_wizard_pst_anteprima_riusa_snapshot_ricerca_rg():
     assert "Scarica selezionati dal PST" not in source
     assert "Scarica tutti dal PST" not in source
     assert "selectedDocumentKeys" in source
+    assert "targetedPreviewDocumentKeys.length === 1" in source
+    assert "Acquisizione mirata: seleziona un solo provvedimento originale del portale." in source
+    assert "Verifica bloccata: seleziona un solo provvedimento originale del portale." in source
+    assert "Importazione bloccata: il presidio richiede un solo provvedimento originale del portale." in source
+    assert "disabled={targetDocument.singleDocument}" in source
     assert "downloadSelectedPstDocuments" in source
     assert "coercePstSessionFromPayload(payload.pst_session, tribunale, cert)" in source
     assert "full_snapshot: completeSearchSnapshot" in source
@@ -3520,6 +3569,17 @@ def test_pst_acquisizione_badge_tabella_non_mostra_codici_tecnici():
     assert "office.codiceMinistero, office.servizioPst" not in source
 
 
+def test_pst_acquisizione_badge_preferisce_la_materia_selezionata_al_hint_storico():
+    source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    badge_block = source[
+        source.index("Tabella ministeriale applicata automaticamente:"):
+        source.index("<div className=\"iu-tel-acq-results\">")
+    ]
+
+    assert "query.materia || pstSchemaHint.materia || query.schema" in badge_block
+    assert "pstSchemaHint.materia || query.materia" not in badge_block
+
+
 def test_pst_catalogo_acquisizione_non_apre_i_certificati_del_deposito(monkeypatch):
     from pct import uffici_giudiziari
     from web.services import react_telematico_bridge as bridge
@@ -4603,6 +4663,500 @@ def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     assert not any(item["id"] == f"scadenza-{linked_deadline.id}" for item in payload["events"])
 
 
+def test_react_agenda_bridge_esclude_azioni_annullate_dal_planner_operativo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_day = date(2026, 7, 21)
+
+    agenda = Agenda(db_path=app.config["AGENDA_DB"])
+    appuntamento = agenda.aggiungi(
+        "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(due_day, datetime.min.time()).replace(hour=13, minute=46).isoformat(timespec="minutes"),
+    )
+    agenda.cambia_stato(appuntamento.id, StatoAppuntamento.ANNULLATO)
+
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    scadenza = scadenziario.nuova(
+        "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        TipoTermine.UDIENZA,
+        due_day.isoformat(),
+    )
+    scadenziario.aggiorna(scadenza.id, stato=StatoTermine.ANNULLATO)
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": due_day.isoformat(), "to": due_day.isoformat()},
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["events"] == []
+
+
+def test_react_agenda_presidio_documentale_annullato_non_mostra_adempimento_operativo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_day = date(2026, 8, 31)
+
+    Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Attività processuale da presidiare - 31/08/2026 - RG 143/2026",
+        TipoAppuntamento.SCADENZA,
+        datetime.combine(due_day, datetime.min.time()).replace(hour=9).isoformat(timespec="minutes"),
+        durata_minuti=45,
+        cliente="Zagari Giovanna",
+        procedimento="RG 143/2026",
+        tribunale="TRIBUNALE DI REGGIO EMILIA",
+        note=(
+            "PEC_AUDIT:docpresidio:7950985A:5193379A:termine:2026-08-31\n"
+            "Tipo evento: fascicolo_documenti_audit\n"
+            "Fonte documentale: Ricorso Zagari (originale notificato).pdf\n"
+            "Presidio documentale automatico annullato: la fonte non contiene un adempimento dell'ufficio. "
+            "Motivo: atto_di_parte_non_genera_adempimento_automatico"
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": due_day.isoformat(), "to": due_day.isoformat()},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    event = response.get_json()["events"][0]
+    visible = " ".join(
+        str(event.get(key) or "")
+        for key in ("legalLabel", "displayTitle", "originTitle", "notes", "detailTitle")
+    )
+    visible = " ".join([visible, *event["detailLines"]])
+
+    assert response.status_code == 200
+    assert event["legalLabel"] == "Presidio documentale annullato"
+    assert event["displayTitle"] == "Zagari Giovanna · RG 143/2026"
+    assert any("atto di parte" in line for line in event["detailLines"])
+    assert "Attività processuale da presidiare" not in visible
+    assert "Adempimento" not in visible
+
+
+def test_react_agenda_bridge_mostra_subito_la_valutazione_notifica_sentenza() -> None:
+    from web.services.react_agenda_bridge import _legal_label
+
+    assert _legal_label(
+        "Sentenza da valutare per la notifica - Romeo Maria · RG 1428/2026",
+        "SCADENZA",
+        "Esamina la sentenza e conferma se procedere con la notifica.",
+    ) == "Sentenza da valutare per la notifica"
+
+
+def test_react_agenda_bridge_non_usa_termine_giuridico_per_sentenza_da_cancelleria() -> None:
+    from web.services.react_agenda_bridge import _legal_label
+
+    label = _legal_label(
+        "Termine giuridico - Monea Mariano - RG 1394/2026",
+        "SCADENZA",
+        (
+            "POSTA CERTIFICATA: COMUNICAZIONE 1394/2026/LAV. "
+            "Oggetto: SENTENZA A VERBALE (art. 127-ter c.p.c.) con comunicazione di cancelleria. "
+            "La comunicazione non prova la notifica dell'avvocato."
+        ),
+    )
+
+    assert label == "Sentenza da valutare per la notifica"
+    assert label != "Termine giuridico"
+
+
+def test_react_agenda_bridge_comunicazione_cancelleria_non_diventa_termine_generico() -> None:
+    from web.services.react_agenda_bridge import _legal_label
+
+    label = _legal_label(
+        "Termine giuridico - Comunicazione di cancelleria",
+        "SCADENZA",
+        "POSTA CERTIFICATA: COMUNICAZIONE 2780/2024/LAV. Verificare il provvedimento collegato.",
+    )
+
+    assert label == "Comunicazione di cancelleria da esaminare"
+    assert label != "Termine giuridico"
+
+
+def test_react_agenda_presidio_notifica_senza_marker_pec_non_apre_documenti_fascicolo() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-alfano:da_preparare\n"
+        "Fonte documentale: 19040620s.pdf",
+        matter_id="C3565650",
+        source_name="19040620s.pdf",
+    )
+
+    assert source == {
+        "sourceHref": "",
+        "sourceLabel": "PEC sorgente da riallineare",
+        "sourceKind": "pec",
+        "sourceVerified": False,
+    }
+
+
+def test_react_agenda_fonte_corpo_pec_apre_pec_originale_non_allegato_vuoto() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_rinvio\nFonte documentale: corpo PEC",
+        matter_id="FASC-RINVIO",
+        source_name="corpo PEC",
+    )
+
+    assert source == {
+        "sourceHref": "/email/?audit_id=pec_rinvio",
+        "sourceLabel": "PEC originale",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_react_agenda_marker_strutturale_preserva_id_legacy_con_due_punti() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "Fonte documentale: corpo PEC",
+        external_uid="PEC_AUDIT:email:03c7d9aef123:hearing:udienza-1:deadline",
+        source_name="corpo PEC",
+    )
+
+    assert source["sourceHref"] == "/email/?audit_id=email%3A03c7d9aef123"
+    assert source["sourceKind"] == "pec"
+    assert source["sourceVerified"] is True
+
+
+def test_react_agenda_fonte_testo_href_apre_pec_originale_non_allegato_vuoto() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_link\nFonte documentale: testo/href",
+        matter_id="FASC-LINK",
+        source_name="testo/href",
+    )
+
+    assert source == {
+        "sourceHref": "/email/?audit_id=pec_link",
+        "sourceLabel": "PEC originale",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_react_agenda_fonte_link_udienza_apre_zip_pdf_della_pec() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_udienza_2780\nFonte link udienza: Decreto fissazione udienza 8960334s.pdf.zip",
+        matter_id="FASC-2780",
+        source_name="",
+    )
+
+    assert source == {
+        "sourceHref": "/api/v1/ui/email/source/pec_udienza_2780?name=Decreto%20fissazione%20udienza%208960334s.pdf.zip",
+        "sourceLabel": "PEC originale - Decreto fissazione udienza 8960334s.pdf.zip",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_react_agenda_label_generica_non_blocca_zip_nelle_note() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_udienza_generica\nFonte documentale: Decreto fissazione udienza 2780s.pdf.zip",
+        matter_id="FASC-2780",
+        source_name="corpo PEC",
+    )
+
+    assert source["sourceHref"] == "/api/v1/ui/email/source/pec_udienza_generica?name=Decreto%20fissazione%20udienza%202780s.pdf.zip"
+    assert source["sourceLabel"] == "PEC originale - Decreto fissazione udienza 2780s.pdf.zip"
+
+
+def test_react_agenda_profilo_pec_indicizzato_vince_su_fonte_generica() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_udienza_indicizzata\nFonte documentale: corpo PEC",
+        matter_id="FASC-393",
+        source_name="corpo PEC",
+        indexed_source_name="4548015s.pdf.zip",
+    )
+
+    assert source == {
+        "sourceHref": "/api/v1/ui/email/source/pec_udienza_indicizzata?name=4548015s.pdf.zip",
+        "sourceLabel": "PEC originale - 4548015s.pdf.zip",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_react_agenda_fonte_evento_esatta_vince_su_altro_zip_indicizzato() -> None:
+    from web.services.react_agenda_bridge import _source_evidence
+
+    source = _source_evidence(
+        "PEC_AUDIT:pec_sentenza\nFonte documentale: sentenza.pdf",
+        matter_id="FASC-SENTENZA",
+        source_name="sentenza.pdf",
+        indexed_source_name="ricorso.pdf.zip",
+    )
+
+    assert source["sourceHref"] == "/api/v1/ui/email/source/pec_sentenza?name=sentenza.pdf"
+    assert source["sourceLabel"] == "PEC originale - sentenza.pdf"
+
+
+def test_email_source_attachment_legge_pec_read_only_senza_audit_sincrono() -> None:
+    source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    route = source[
+        source.index("def email_source_attachment")
+        : source.index('@api_v1_react.get("/agenda/importa")')
+    ]
+
+    assert "mode=ro" in source
+    assert "PRAGMA query_only=ON" in source
+    assert "repository.connect()" not in route
+    assert "append_audit" not in route
+    assert "pec_repository_from_paths" not in route
+
+
+def test_react_agenda_limita_lookup_pec_al_periodo_e_contesti_necessari(monkeypatch) -> None:
+    import web.services.react_agenda_bridge as agenda_bridge
+
+    def appuntamento(item_id: str, when: str, procedimento: str = "") -> SimpleNamespace:
+        return SimpleNamespace(
+            id=item_id,
+            data_ora=when,
+            data_ora_dt=datetime.fromisoformat(when),
+            durata_minuti=60,
+            titolo="Appuntamento di prova",
+            tipo=TipoAppuntamento.ALTRO,
+            stato=StatoAppuntamento.PROGRAMMATO,
+            procedimento=procedimento,
+            descrizione="",
+            note="",
+        )
+
+    def scadenza(item_id: str, due: str, note: str = "") -> SimpleNamespace:
+        return SimpleNamespace(
+            id=item_id,
+            data_scadenza=due,
+            data_calendario_obj=date.fromisoformat(due),
+            titolo="Scadenza di prova",
+            tipo=TipoTermine.ADEMPIMENTO,
+            stato=StatoTermine.APERTO,
+            descrizione="",
+            note=note,
+        )
+
+    visible_appointment = appuntamento("agenda-visibile", "2026-07-21T09:00:00")
+    context_appointment = appuntamento("agenda-contesto", "2026-06-01T09:00:00", "RG 123/2026")
+    selected_appointment = appuntamento("agenda-selezionata", "2026-05-01T09:00:00")
+    irrelevant_appointment = appuntamento("agenda-storica", "2025-01-01T09:00:00", "RG 999/2025")
+    visible_deadline = scadenza("scadenza-visibile", "2026-07-22", "RG 123/2026")
+    irrelevant_deadline = scadenza("scadenza-storica", "2025-01-02", "RG 999/2025")
+
+    agenda_repo = SimpleNamespace(
+        tutti=lambda: [visible_appointment, context_appointment, selected_appointment, irrelevant_appointment],
+        get=lambda item_id: selected_appointment if item_id == selected_appointment.id else None,
+    )
+    deadline_repo = SimpleNamespace(tutte=lambda solo_aperte=False: [visible_deadline, irrelevant_deadline])
+    captured: dict[str, list[str]] = {}
+
+    def capture_profiles(items, **_kwargs):
+        captured["profiles"] = [str(getattr(item, "id", "")) for item in items]
+        return {}
+
+    def capture_control(items, **_kwargs):
+        captured["control"] = [str(getattr(item, "id", "")) for item in items]
+        return {}
+
+    monkeypatch.setattr(agenda_bridge, "latest_pec_profiles", capture_profiles)
+    monkeypatch.setattr(agenda_bridge, "latest_control_tower_sources", capture_control)
+
+    agenda_bridge.build_react_agenda_payload(
+        lambda: agenda_repo,
+        lambda: deadline_repo,
+        from_value="2026-07-20",
+        to_value="2026-07-26",
+        selected_id=selected_appointment.id,
+        pec_audit_db="pec-audit-non-usato.sqlite",
+        tenant_id="studio-test",
+    )
+
+    assert set(captured["profiles"]) == {
+        "agenda-visibile",
+        "agenda-contesto",
+        "agenda-selezionata",
+        "scadenza-visibile",
+    }
+    assert captured["control"] == ["scadenza-visibile"]
+    assert "agenda-storica" not in captured["profiles"]
+    assert "scadenza-storica" not in captured["profiles"]
+
+
+def test_react_agenda_presidio_notifica_sentenza_allineato_a_scadenziario(tmp_path: Path):
+    app = _app(tmp_path)
+    from web.services.react_agenda_bridge import build_react_agenda_payload
+
+    due_day = date.today()
+    agenda = Agenda(db_path=app.config["AGENDA_DB"])
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Maria",
+        cognome="Romeo",
+    )
+    fascicolo = fascicoli.nuovo(
+        "Romeo Maria c. MIM",
+        TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="1428",
+        anno_rg=2026,
+        tribunale="TRIBUNALE DI PALMI",
+    )
+    scadenza = scadenziario.nuova(
+        "ROMEO MARIA - SENTENZA A VERBALE (art. 127 ter cpc) Comunicazione di cancelleria - RG 1428/2026",
+        TipoTermine.NOTIFICA,
+        due_day.isoformat(),
+        id_fascicolo=fascicolo.id,
+        descrizione="Sentenza già resa: la comunicazione di cancelleria non prova la notifica.",
+        note=(
+            "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-romeo:da_preparare\n"
+            "PEC_AUDIT:pec_romeo\n"
+            "Fonte documentale: 9732730s.pdf.zip"
+        ),
+        source_event_type="legal_notification_presidio",
+    )
+
+    payload = build_react_agenda_payload(
+        lambda: agenda,
+        lambda: scadenziario,
+        lambda: fascicoli,
+        from_value=due_day.isoformat(),
+        to_value=due_day.isoformat(),
+    )
+    event = next(item for item in payload["events"] if item["id"] == f"scadenza-{scadenza.id}")
+
+    assert event["legalLabel"] == "Sentenza da valutare per la notifica"
+    assert event["displayTitle"] == "Romeo Maria · RG 1428/2026"
+    assert event["client"] == "Romeo Maria"
+    assert event["matter"] == "RG 1428/2026"
+    assert event["sourceKind"] == "pec"
+    assert event["sourceHref"] == "/api/v1/ui/email/source/pec_romeo?name=9732730s.pdf.zip"
+    assert event["sourceLabel"] == "PEC originale - 9732730s.pdf.zip"
+    assert "/fascicoli/" not in event["sourceHref"]
+
+
+def test_react_agenda_scadenza_sentenza_da_cancelleria_mostra_etichetta_specifica(tmp_path: Path):
+    app = _app(tmp_path)
+    from web.services.react_agenda_bridge import build_react_agenda_payload
+
+    due_day = date(2026, 7, 15)
+    agenda = Agenda(db_path=app.config["AGENDA_DB"])
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mariano",
+        cognome="Monea",
+    )
+    fascicolo = fascicoli.nuovo(
+        "Monea Mariano c. MIM",
+        TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        numero_rg="1394",
+        anno_rg=2026,
+        tribunale="TRIBUNALE DI PALMI",
+    )
+    scadenza = scadenziario.nuova(
+        "Termine giuridico - Monea Mariano - RG 1394/2026",
+        TipoTermine.ADEMPIMENTO,
+        due_day.isoformat(),
+        id_fascicolo=fascicolo.id,
+        descrizione="Comunicazione di cancelleria relativa a sentenza a verbale.",
+        note=(
+            "PEC_AUDIT:pec_monea\n"
+            "Fonte documentale: 24262990s.pdf.zip\n"
+            "Evento: SENTENZA A VERBALE (art. 127-ter c.p.c.). "
+            "Attività per l'avvocato: esaminare la sentenza e valutare la notifica."
+        ),
+        source_event_type="cancelleria_comunicazione",
+    )
+
+    payload = build_react_agenda_payload(
+        lambda: agenda,
+        lambda: scadenziario,
+        lambda: fascicoli,
+        from_value=due_day.isoformat(),
+        to_value=due_day.isoformat(),
+    )
+    event = next(item for item in payload["events"] if item["id"] == f"scadenza-{scadenza.id}")
+
+    assert event["legalLabel"] == "Sentenza da valutare per la notifica"
+    assert event["displayTitle"] == "Monea Mariano · RG 1394/2026"
+    assert event["client"] == "Monea Mariano"
+    assert event["matter"] == "RG 1394/2026"
+    assert "Termine giuridico" not in " ".join(
+        str(event.get(key) or "") for key in ("legalLabel", "displayTitle", "originTitle", "notes")
+    )
+
+
+def test_react_agenda_ricevuta_accettazione_apre_pec_specifica_senza_cancelleria_generica(tmp_path: Path):
+    app = _app(tmp_path)
+    from tests.test_react_scadenziario_additions import _write_control_tower_receipt
+    from web.services.react_agenda_bridge import build_react_agenda_payload
+
+    pec_db = _write_control_tower_receipt(tmp_path / "email")
+    agenda = Agenda(db_path=app.config["AGENDA_DB"])
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    scadenza = scadenziario.nuova(
+        "Presidio ricevute PEC da completare",
+        TipoTermine.ADEMPIMENTO,
+        "2026-07-17",
+        descrizione="Bozza da confermare generata da presidio PEC Control Tower.",
+        note="Termine operativo non definitivo: conferma professionale obbligatoria.",
+        source_event_type="ricevuta_accettazione_da_presidiare",
+        source_event_at="2026-07-16T14:37:00+00:00",
+    )
+
+    payload = build_react_agenda_payload(
+        lambda: agenda,
+        lambda: scadenziario,
+        lambda: fascicoli,
+        from_value="2026-07-14",
+        to_value="2026-07-19",
+        pec_audit_db=str(pec_db),
+        tenant_id="studio-test",
+    )
+
+    event = next(item for item in payload["events"] if item["id"] == f"scadenza-{scadenza.id}")
+    assert event["legalLabel"] == "Ricevuta di accettazione PEC da presidiare"
+    assert event["sourceHref"] == "/email/?audit_id=pec_f205aa7f34c13b363f94af81"
+    assert event["sourceLabel"] == "PEC di accettazione"
+    assert event["sourceKind"] == "pec"
+    assert "Comunicazione di cancelleria" not in event["legalLabel"]
+    assert "usp.vv@istruzione.it" in " ".join(event["detailLines"])
+    assert "Contarese c. MIM" in " ".join(event["detailLines"])
+    assert "ricevuta di consegna" in event["notes"]
+    assert "collegare il cliente solo quando il match è certo" in event["notes"]
+    assert "valutare/preparare notifica" not in event["notes"]
+
+
 def test_react_agenda_collega_contesto_univoco_e_mostra_la_vera_attivita_legale(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
@@ -4777,6 +5331,50 @@ def test_react_agenda_bridge_presidio_documentale_lex_non_confonde_deposito_note
     assert event["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
     assert event["sourceKind"] == "documento"
     assert event["sourceVerified"] is True
+
+
+def test_react_agenda_presidio_documentale_generico_mostra_azione_non_titolo_grezzo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    due_day = date(2026, 8, 31)
+
+    appointment = Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Attività processuale da presidiare - 31/08/2026 - RG 143/2026",
+        TipoAppuntamento.SCADENZA,
+        datetime.combine(due_day, datetime.min.time()).replace(hour=9).isoformat(timespec="minutes"),
+        durata_minuti=45,
+        cliente="Zagari Giovanna",
+        procedimento="RG 143/2026",
+        tribunale="TRIBUNALE DI REGGIO EMILIA",
+        note=(
+            "PEC_AUDIT:docpresidio:7950985A:5193379A:termine:2026-08-31\n"
+            "Presidio documentale Lex AI: verificare il provvedimento e predisporre l'attività processuale rilevata.\n"
+            "Ufficio: TRIBUNALE DI REGGIO EMILIA\n"
+            "RG: 143/2026\n"
+            "Cliente: Zagari Giovanna\n"
+            "Parte/soggetto: Zagari Giovanna\n"
+            "Fonte documentale: Provvedimento giudiziario.pdf"
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": due_day.isoformat(), "to": due_day.isoformat(), "selected_id": appointment.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    event = next(item for item in response.get_json()["events"] if item["id"] == appointment.id)
+    visible = " ".join(
+        str(event.get(key) or "")
+        for key in ("legalLabel", "displayTitle", "originTitle", "notes", "detailTitle")
+    )
+    visible = " ".join([visible, *event["detailLines"]])
+
+    assert response.status_code == 200
+    assert event["legalLabel"] == "Provvedimento giudiziario da esaminare"
+    assert event["originTitle"] == "Provvedimento giudiziario da esaminare - RG 143/2026"
+    assert event["displayTitle"] == "Zagari Giovanna · RG 143/2026"
+    assert any("Attività per l'avvocato: leggere la fonte collegata" in line for line in event["detailLines"])
+    assert "Attività processuale da presidiare" not in visible
 
 
 def test_react_agenda_bridge_presidio_documentale_lex_mostra_link_udienza_da_remoto(tmp_path: Path):
@@ -6811,7 +7409,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Lettore documento" in page_source
     assert "function mobilePreviewUrl" in page_source
     assert "parsed.searchParams.set('viewer', 'mobile')" in page_source
-    assert "window.matchMedia('(max-width: 900px)')" in page_source
+    assert "const viewerUrl = mobileUrl || preview.url" in page_source
     assert ".iu-fas-preview-modal__title" in css
     assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source

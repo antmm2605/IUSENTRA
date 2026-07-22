@@ -1,6 +1,6 @@
 {
   "schema": "iusentra.legal_notification_detection_rules.v1",
-  "version": "legal_notification_detection_rules_v1.0.0",
+  "version": "legal_notification_detection_rules_v1.0.2",
   "generated_at": "2026-07-19T00:00:00+02:00",
   "timezone": "Europe/Rome",
   "source_registry": "legal_sources_registry.json",
@@ -157,6 +157,28 @@
       "portal_original": "conditional"
     },
     {
+      "id": "notif.detect.judgment_to_notify_review.v1",
+      "priority": 675,
+      "source_types": ["message_body", "attachment", "validation_report"],
+      "positive_any": [
+        "sentenza\\s+a\\s+verbale",
+        "decide\\s+la\\s+causa\\s+con\\s+sentenza",
+        "sentenza.{0,260}(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida)",
+        "(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida).{0,260}sentenza"
+      ],
+      "negative_any": ["originale\\s+notificat[oa]", "ricevuta\\s+di\\s+accettazione", "ricevuta\\s+completa\\s+di\\s+avvenuta\\s+consegna", "ricevuta\\s+di\\s+avvenuta\\s+consegna", "prova\\s+di\\s+notifica\\s+depositata", "fac[- ]?simile"],
+      "event_type": "notification_strategic_review",
+      "confidence": 0.86,
+      "reason": "Sentenza o provvedimento decisorio ricevuto: aprire presidio per valutare o preparare la notifica; la comunicazione di cancelleria non prova una notifica dell'avvocato.",
+      "proposed_action": "Aprire presidio notifica sentenza: verificare destinatari, pubblici elenchi, relata separata, invio locale, RAC, RdAC completa e deposito prova.",
+      "creates_notification_candidate": true,
+      "human_review_required": true,
+      "notification_case": "judgment_to_notify",
+      "result_priority": "P1",
+      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.arts137_149", "src.it.cpc.art133", "src.it.cpc.art285", "src.it.cpc.art325", "src.it.cpc.art326", "src.it.cpc.art429"],
+      "portal_original": "conditional"
+    },
+    {
       "id": "notif.detect.strategic_judgment.v1",
       "priority": 650,
       "source_types": ["message_body", "attachment"],
@@ -171,6 +193,29 @@
       "notification_case": "judgment_short_term_review",
       "result_priority": "P1",
       "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.arts137_149"],
+      "portal_original": "conditional"
+    },
+    {
+      "id": "notif.detect.sentenza_verbale_429_review.v1",
+      "priority": 645,
+      "source_types": ["message_body", "attachment"],
+      "positive_any": [
+        "sentenza\\s+a\\s+verbale",
+        "sentenza.{0,220}(?:art\\.?\\s*429|429\\s*c\\.?p\\.?c\\.?).{0,260}(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida)",
+        "(?:art\\.?\\s*429|429\\s*c\\.?p\\.?c\\.?).{0,220}sentenza.{0,260}(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida)",
+        "sentenza.{0,260}p\\.q\\.m\\..{0,260}(?:condanna|accerta|rigetta|accoglie|liquida)",
+        "definitivamente\\s+decidendo.{0,260}(?:condanna|accerta|rigetta|accoglie|liquida).{0,260}sentenza"
+      ],
+      "negative_any": ["fac[- ]?simile", "bozza", "massima\\s+giurisprudenziale"],
+      "event_type": "notification_strategic_review",
+      "confidence": 0.83,
+      "reason": "Sentenza o sentenza a verbale già resa: la comunicazione di cancelleria non prova la notifica dell'avvocato e non fa decorrere da sola il termine breve; serve valutare/preparare notifica e prova.",
+      "proposed_action": "Creare presidio di revisione post-sentenza: valutare/preparare notifica della sentenza, verificare destinatari, relata, RAC, RdAC e deposito prova.",
+      "creates_notification_candidate": true,
+      "human_review_required": true,
+      "notification_case": "judgment_to_notify_review",
+      "result_priority": "P1",
+      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.art133", "src.it.cpc.art285", "src.it.cpc.art325", "src.it.cpc.art326", "src.it.cpc.art429"],
       "portal_original": "conditional"
     },
     {
@@ -204,7 +249,7 @@
       "human_review_required": false,
       "notification_case": "none",
       "result_priority": "P3",
-      "legal_sources": [],
+      "legal_sources": ["src.it.dgsia.technical_rules_2024.bundle"],
       "portal_original": "never"
     }
   ]

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
+import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
@@ -25,6 +27,26 @@ POSTGRES_SCHEMA_PATH = (
     / "sql"
     / "20260719_pec_legal_notification_presidio_postgres.sql"
 )
+
+
+_SQLITE_SCHEMA_LOCKS_GUARD = threading.Lock()
+_SQLITE_SCHEMA_LOCKS: dict[str, threading.Lock] = {}
+_SQLITE_SCHEMA_READY: set[tuple[str, int]] = set()
+
+
+def _sqlite_schema_lock(path: Path) -> threading.Lock:
+    key = str(path.resolve())
+    with _SQLITE_SCHEMA_LOCKS_GUARD:
+        lock = _SQLITE_SCHEMA_LOCKS.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _SQLITE_SCHEMA_LOCKS[key] = lock
+        return lock
+
+
+def _sqlite_is_locked(exc: BaseException) -> bool:
+    return isinstance(exc, sqlite3.OperationalError) and "locked" in str(exc).lower()
+
 
 class NotificationPresidioRepository(
     NotificationPresidioTransitionChainMixin,
@@ -84,9 +106,29 @@ class NotificationPresidioRepository(
             self._postgres_backend.close()
 
     def _ensure_sqlite_schema(self) -> None:
+        ready_key = (str(self.db_path.resolve()), self.sqlite_schema_path.stat().st_mtime_ns)
+        if ready_key in _SQLITE_SCHEMA_READY:
+            return
         schema = self.sqlite_schema_path.read_text(encoding="utf-8")
-        with self.connection() as conn:
-            conn.executescript(schema)
+        lock = _sqlite_schema_lock(self.db_path)
+        with lock:
+            if ready_key in _SQLITE_SCHEMA_READY:
+                return
+            last_locked: sqlite3.OperationalError | None = None
+            for delay in (0.0, 0.2, 0.5, 1.0):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    with self.connection() as conn:
+                        conn.executescript(schema)
+                    _SQLITE_SCHEMA_READY.add(ready_key)
+                    return
+                except sqlite3.OperationalError as exc:
+                    if not _sqlite_is_locked(exc):
+                        raise
+                    last_locked = exc
+            if last_locked is not None:
+                raise last_locked
 
     @staticmethod
     def _row(row: Any) -> dict[str, Any]:

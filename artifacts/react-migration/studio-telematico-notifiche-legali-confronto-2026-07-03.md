@@ -179,3 +179,75 @@ Il confronto operativo è stato approfondito sul tratto che precede la firma e l
 La superficie React usa testi operativi neutri e non espone il nome, gli alias o i dettagli tecnici del software confrontato. I test coprono anche il divieto di correggere automaticamente l'identità del notificante e la necessità di interrogare il registro coerente con il destinatario selezionato.
 
 Esiti tecnici: `314` test mirati superati, build React superata, asset sotto `500.000` byte, Local Signer `1.6.92` con token e certificato di firma rilevati, copia locale e produzione healthy. La conformità crittografica finale resta aperta fino alla prova materiale con click reale e apertura della relata firmata; questi esiti non costituiscono conferma preventiva dell'accettazione di una specifica notifica o di un deposito da parte dell'ufficio.
+
+## Riesame completo delle relate e dei destinatari multipli - 22/07/2026
+
+### Difetto riprodotto
+
+Sul caso reale `RG 1428/2026` la UI mostrava un solo destinatario nei campi principali, mentre il payload React conteneva più destinatari e il piano backend dichiarava più PEC. La prova tecnica ha confermato un falso verde sostanziale: il piano conservava due destinatari, ma anteprima, relata, PDF, validazione dell'override, log e audit utilizzavano soltanto `context.destinatario`.
+
+La causa era in `pct/notifiche_legali.py`: `_build_context()` ignorava `payload.destinatari[]`. Inoltre, la data/ora PEC mostrata era il timestamp più recente fra notificante e tutti i destinatari, non la verifica appartenente alla singola identità PEC.
+
+### Modello reale dello studio
+
+Il file `D:\marco non codex ad utilizzare\relata\modello da seguire realata.docx` è stato letto strutturalmente. Contiene la relazione ex art. 3-bis L. 53/1994 per `RG 1428/2026`, l'avvocato Giuseppe Montagnese, l'assistita Maria Romeo, due destinatari completi (Avvocatura Distrettuale dello Stato di Reggio Calabria con ReGIndE e Ministero dell'Istruzione e del Merito con IPA), ricorso, procura, attestazione, decreto di fissazione udienza e relata, con natura/origine differenziata, procedimento, firma e identificativo notifica.
+
+L'ambiente non disponeva di LibreOffice: struttura e testo sono stati estratti senza modificare il DOCX, ma non viene dichiarata una verifica visuale del documento renderizzato.
+
+### Fasi ricostruite dal decompilato
+
+Il programma confrontato usa un generatore compositivo, non un testo immutabile:
+
+1. selezione documento e controllo PDF (`FormMain.cs:12638-12698`, `32431-32490`);
+2. origine come originale dell'avvocato, duplicato informatico, scansione analogica o copia dal fascicolo (`FormQualeAllegato.cs:147-189`, `714-756`; `AllegatoTipo.cs:3-30`);
+3. controllo di ogni destinatario, codice fiscale, PEC, elenco e parte rappresentata (`FormSentMailBee.cs:15593-15613`, `19583-19795`);
+4. composizione dinamica di documenti, attestazioni, procedimento e destinatari (`FormSentMailBee.cs:15587-15979`);
+5. anteprima modificabile: ogni modifica ricrea il PDF, richiede nuova firma e sostituisce il precedente (`SchedaNotifica.cs:79-156`, `470`; `FormSentMailBee.cs:15931-15953`);
+6. preparazione di oggetto, allegati, firma e invio (`FormSentMailBee.cs:15720-15787`, `7177-7355`);
+7. salvataggio e riconciliazione di inviata, RAC, RdAC/MDC tramite identificativo e PEC (`FormSentMailBee.cs:6896-6955`, `8094-8281`);
+8. UNEP a mani, posta, estero o telematica resta distinto (`FormTipoNotificaUNEP.cs:54-187`; `FormSentMailBee.cs:31075-31436`).
+
+Il catalogo IUSENTRA contiene 40 record: 32 relate e 8 documenti/workflow. Le varianti base/origine, ruolo destinatario, caso processuale e controllo/prova devono alimentare un solo compilatore governato; non possono essere menu contraddittori che lasciano invariata l'anteprima.
+
+### Riscontro sui fascicoli del tenant Montagnese
+
+Audit in sola lettura sul database tenant di produzione:
+
+- 352 documenti relata in 279 fascicoli;
+- 290 firmati;
+- 267 con metadati originali di notifica;
+- 3 con un destinatario, 210 con due, 52 con tre e 2 con quattro destinatari;
+- 61 copie depositate/restituite;
+- 955 attestazioni in 272 fascicoli.
+
+Il dato dimostra la prassi operativa dello studio, ma non è presentato come pronuncia giudiziale di conformità.
+
+### Fonti ufficiali, distinte dalla prassi
+
+- L. 53/1994, art. 3-bis: pubblici elenchi, oggetto prescritto, relata separata firmata e dati del procedimento. Fonte ufficiale: <https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+3+bis&codiceOrdinamento=0000000000000039999900002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B88A389EC-3C9E-4B8F-8C9C-BE0C3DAB28D4%7D>.
+- Specifiche DGSIA 2 agosto 2024, artt. 26-27: formati, RAC/RdAC per ogni destinatario e attestazioni riferite alle copie. Fonte: <https://ca-salerno.giustizia.it/cmsresources/cms/documents/Provvedimento_DGSIA_del_02.08.2024.pdf>.
+- L. 53/1994, art. 9: deposito e prova. Fonte ufficiale: <https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+9&codiceOrdinamento=0000000000000090000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B88A389EC-3C9E-4B8F-8C9C-BE0C3DAB28D4%7D>.
+- Artt. 196-octies e 196-undecies disp. att. c.p.c.: attestazione delle copie estratte dal fascicolo o allegate alle comunicazioni e inserimento nella relazione quando destinate alla notifica.
+
+Indirizzo/sede e data/ora della consultazione dell'elenco sono mantenuti come identificazione e audit professionale, non descritti come requisiti universali del comma 5 senza fonte specifica. Il vecchio avviso Acrobat/P7M non viene copiato come obbligo normativo.
+
+### Correzione unificata realizzata
+
+- `context.destinatari[]` conserva identità stabile, nome, codice fiscale/P. IVA, ruolo, parte rappresentata, PEC, elenco, timestamp e digest della prova specifica; il singolare resta alias di compatibilità;
+- ogni destinatario usa soltanto la propria verifica PEC;
+- il token sicuro `{{ destinatari_righe }}` rende l'elenco completo; un modello personalizzato plurimo senza il token viene bloccato;
+- ruolo, registro, campi del caso, compatibilità e prova PEC sono controllati per ogni destinatario;
+- la bozza manuale non può eliminare un destinatario o i suoi dati obbligatori;
+- log, audit e piano di invio sono plurali e ogni PEC pianificata possiede identità e `messageId` distinti;
+- il caso processuale aggiunge le proprie clausole anche con modello base esplicito;
+- React lega l'anteprima al payload completo, annulla risposte obsolete, ricalcola dopo 250 ms, mostra modello/caso applicati e invalida bozza/firma dopo variazioni;
+- la UI mostra tutti i destinatari e il numero di PEC distinte.
+
+### Guardrail eseguiti
+
+- `python -m pytest tests/test_notifiche_legali.py -q -x` -> superato;
+- 7/7 test specifici multi-destinatario -> superati;
+- typecheck React e 13 controlli mirati dell'anteprima -> superati nella tranche frontend;
+- `git diff --check` -> superato sul perimetro dei test.
+
+La prova browser reale in produzione e locale, la generazione/apertura PDF e il blocco precedente all'invio restano obbligatori prima della chiusura. Nessuna PEC reale è stata inviata.

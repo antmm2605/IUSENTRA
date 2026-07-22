@@ -1,5 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
+## Presidio notifiche, topbar e Web Push - 2026-07-20
+
+| Area | Stato | Azione necessaria |
+| --- | --- | --- |
+| Web Push sul dispositivo reale | Aperto | Il server VAPID è configurato, ma il consenso browser e la sottoscrizione del telefono non sono ancora stati eseguiti; non dichiarare consegna push provata. |
+| Accettazione locale del campione | Aperto | Dopo il riallineamento locale ricostruire `127.0.0.1:8080` e verificare Presidio, Agenda, topbar e Web Push con gli stessi due casi prima dell'audit dei 301 fascicoli. |
+| Audit complessivo 301 fascicoli | Non avviato | Vietata l'estensione finché il campione non supera tutte le superfici richieste. |
+
 ## Local Signer 1.6.90 - prima installazione PC cliente - 2026-06-30
 
 | Area | Gate | Stato | Nota | Azione |

@@ -28,6 +28,9 @@ from zoneinfo import ZoneInfo
 from pct.legal_notification_rulepack import (
     build_notification_timing_plan as build_rulepack_notification_timing_plan,
 )
+from pct.pec_notification_presidio.identity import (
+    recipient_identity_key as build_recipient_identity_key,
+)
 from pct.studio_address import compose_studio_address
 
 
@@ -918,6 +921,7 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Destinatario", "label": "Fonte PEC", "token": "{{ destinatario.fonte_pec }}"},
     {"group": "Destinatario", "label": "Data verifica PEC", "token": "{{ destinatario.data_verifica_pec }}"},
     {"group": "Destinatario", "label": "Ora verifica PEC", "token": "{{ destinatario.ora_verifica_pec }}"},
+    {"group": "Destinatari", "label": "Elenco completo destinatari", "token": "{{ destinatari_righe }}"},
     {"group": "Documenti", "label": "Elenco documenti", "token": "{{ documenti_righe }}"},
     {"group": "Documenti", "label": "Elenco documenti riservato", "token": "{{ documenti_righe_privacy }}"},
     {"group": "Documenti", "label": "Attestazione di conformità dell'avvocato", "token": "{{ attestazioni_testo }}"},
@@ -933,14 +937,17 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
 )
 
 _OPERATIONAL_TEMPLATE_FIELDS = {
+    "destinatari_righe": "Elenco completo destinatari",
     "documenti_righe": "Elenco documenti",
     "documenti_righe_privacy": "Elenco documenti riservato",
     "attestazioni_testo": "Attestazione di conformità dell'avvocato",
     "blocco_procedimento": "Blocco procedimento",
+    "blocco_caso_notifica": "Clausole del caso di notifica",
 }
 _OPTIONAL_OPERATIONAL_TEMPLATE_FIELDS = {
     "attestazioni_testo",
     "blocco_procedimento",
+    "blocco_caso_notifica",
 }
 _FORBIDDEN_TEMPLATE_TOKEN_CHARS = set("[]()")
 
@@ -1444,7 +1451,9 @@ def notification_case_from_payload(payload: dict[str, Any]) -> str:
 
 def resolve_legal_notification_directive(payload: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
     context = context or _build_context(payload, template=select_relata_template(payload))
-    role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario")) or context["destinatario"]["tipo"]
+    role = context["destinatario"]["tipo"] or normalise_role(
+        _first(payload, "destinatario.tipo", "ruolo_destinatario")
+    )
     case_id = notification_case_from_payload(payload)
     role_directive = RECIPIENT_NOTIFICATION_DIRECTIVES.get(role, RECIPIENT_NOTIFICATION_DIRECTIVES["terzo"])
     case_directive = NOTIFICATION_CASE_DIRECTIVES.get(case_id, NOTIFICATION_CASE_DIRECTIVES["ordinaria"])
@@ -1509,6 +1518,50 @@ def _validate_notification_directive(
     if directive["caseId"] in {"famiglia_persone_minori", "provvedimento_giudice", "provvedimento_urgente"}:
         warnings.append(f"Verifica professionale richiesta: {directive['recipientRule']}")
     return directive
+
+
+def _validate_additional_recipient_directives(
+    payload: dict[str, Any],
+    context: dict[str, Any],
+    template: dict[str, Any],
+    blockers: list[str],
+    warnings: list[str],
+) -> None:
+    case_id = notification_case_from_payload(payload)
+    case_directive = NOTIFICATION_CASE_DIRECTIVES.get(case_id, NOTIFICATION_CASE_DIRECTIVES["ordinaria"])
+    allowed_case_roles = set(CASE_ALLOWED_RECIPIENT_ROLES.get(case_id, tuple(LEGAL_RECIPIENT_ROLES)))
+    template_roles = set((template.get("compatibility") or {}).get("recipient_roles") or [])
+    for recipient in context["destinatari"][1:]:
+        label = f"Destinatario {recipient['index']} ({recipient['nome_denominazione'] or 'senza nome'})"
+        role = recipient["tipo"]
+        role_directive = RECIPIENT_NOTIFICATION_DIRECTIVES.get(role, RECIPIENT_NOTIFICATION_DIRECTIVES["terzo"])
+        allowed_registers = set(role_directive.get("allowed_registers") or ())
+        if role in LEGAL_RECIPIENT_ROLES and recipient["fonte_pec_key"] not in allowed_registers:
+            allowed = ", ".join(register_label(item) for item in allowed_registers)
+            blockers.append(block(
+                "PEC_DESTINATARIO_REGISTRO_INCOERENTE",
+                f"{label}: la fonte PEC non è coerente con {role_directive['label']}; usa {allowed}.",
+            ))
+        if role in LEGAL_RECIPIENT_ROLES and role not in allowed_case_roles:
+            blockers.append(block(
+                "DESTINATARIO_CASO_INCOERENTE",
+                f"{label}: il ruolo non è governato per il caso '{case_directive['label']}'.",
+            ))
+        for path in role_directive.get("required_fields") or ():
+            recipient_context = {**context, "destinatario": recipient}
+            if not text(_context_lookup(recipient_context, path)):
+                blockers.append(
+                    f"{label}: completa il campo richiesto {_field_label(template, path)}."
+                )
+        if template_roles and role and role not in template_roles:
+            blockers.append(block(
+                "MODELLO_DESTINATARIO_INCOERENTE",
+                f"{label}: il modello scelto non è compatibile con il ruolo '{role_directive['label']}'.",
+            ))
+        if role == "terzo":
+            warnings.append(
+                f"{label}: verifica espressamente titolo della notifica, ruolo e pubblico elenco prima dell'invio."
+            )
 
 
 def normalise_document_origin(value: Any) -> str:
@@ -1669,7 +1722,17 @@ _OFFICE_DOCUMENT_HINTS = (
     "comunicazione",
     "avviso",
 )
-_NOTIFICATION_REQUEST_HINTS = ("notific", "relata", "termine breve")
+_NOTIFICATION_REQUEST_RE = re.compile(
+    r"\b(?:da\s+notificare|notificare|notifica|notifiche|notificazione|notificazioni|relata|termine\s+breve)\b",
+    re.IGNORECASE,
+)
+_PCT_DEPOSIT_RECEIPT_HINTS = (
+    "accettazione deposito",
+    "consegna deposito",
+    "esito controlli automatici deposito",
+    "esito controlli automatici del deposito",
+    "rifiuto deposito",
+)
 _DOCUMENT_FILENAME_RE = re.compile(
     r"(?P<name>[A-Za-z0-9][A-Za-z0-9._()\-]{1,180}\.(?:pdf(?:\.p7m)?|p7m|docx?|rtf))",
     re.IGNORECASE,
@@ -1771,9 +1834,16 @@ def _email_is_from_office(email_obj: Any) -> bool:
     return any(hint in haystack for hint in _OFFICE_EMAIL_HINTS)
 
 
+def _email_is_pct_deposit_receipt(email_obj: Any) -> bool:
+    haystack = _email_text(email_obj).casefold()
+    return any(hint in haystack for hint in _PCT_DEPOSIT_RECEIPT_HINTS)
+
+
 def _email_requests_notification(email_obj: Any) -> bool:
     haystack = _email_text(email_obj).casefold()
-    has_request = any(hint in haystack for hint in _NOTIFICATION_REQUEST_HINTS)
+    if _email_is_pct_deposit_receipt(email_obj):
+        return False
+    has_request = bool(_NOTIFICATION_REQUEST_RE.search(haystack))
     has_document = any(hint in haystack for hint in _OFFICE_DOCUMENT_HINTS) or bool(_DOCUMENT_FILENAME_RE.search(haystack))
     return bool(has_request and has_document)
 
@@ -1792,10 +1862,20 @@ def _office_email_attachment_rows(email_obj: Any) -> list[dict[str, str]]:
                 "name": name,
                 "sha256": text(_mapping_or_attr(item, "sha256", "hash_sha256")),
                 "mime": text(_mapping_or_attr(item, "mime", "content_type")),
+                "document_id": text(_mapping_or_attr(item, "id_documento", "document_id", "id_documento_portale")),
                 "index": str(index),
             }
         )
     return rows
+
+
+def _plausible_office_filename_match(value: Any) -> bool:
+    name = text(value)
+    if name.count("(") != name.count(")"):
+        return False
+    stem = re.sub(r"\.(?:pdf(?:\.p7m)?|p7m|docx?|rtf)$", "", Path(name).name, flags=re.IGNORECASE)
+    token = re.sub(r"[^a-z]+", "", stem.casefold())
+    return token not in {"notificato", "notificata", "notificati", "notificate"}
 
 
 def _office_document_names_from_email(email_obj: Any) -> list[dict[str, str]]:
@@ -1804,14 +1884,43 @@ def _office_document_names_from_email(email_obj: Any) -> list[dict[str, str]]:
     haystack = _email_text(email_obj)
     for match in _DOCUMENT_FILENAME_RE.finditer(haystack):
         name = text(match.group("name"))
+        if not _plausible_office_filename_match(name):
+            continue
         key = _normalise_office_document_name(name)
         if not key or key in seen:
             continue
         seen.add(key)
-        rows.append({"name": name, "sha256": "", "mime": "", "index": str(len(rows))})
+        rows.append({"name": name, "sha256": "", "mime": "", "document_id": "", "index": str(len(rows))})
     if not rows and _email_requests_notification(email_obj):
-        rows.append({"name": "Documento comunicato dalla cancelleria", "sha256": "", "mime": "", "index": "0"})
+        rows.append(
+            {
+                "name": "Documento comunicato dalla cancelleria",
+                "sha256": "",
+                "mime": "",
+                "document_id": "",
+                "index": "0",
+            }
+        )
     return rows
+
+
+def _office_email_source_key(email_obj: Any, email_id: str) -> str:
+    eml_sha256 = text(_mapping_or_attr(email_obj, "eml_sha256", "pec_eml_sha256", "sha256_eml")).casefold()
+    if eml_sha256:
+        return f"eml:{eml_sha256}"
+    message_id = text(_mapping_or_attr(email_obj, "message_id_header", "message_id")).strip("<> ").casefold()
+    if message_id:
+        return f"message:{message_id}"
+    return f"email:{email_id.casefold()}"
+
+
+def _office_email_operational_priority(email_obj: Any) -> int:
+    folder = text(_mapping_or_attr(email_obj, "cartella", "folder")).upper()
+    if folder in {"INBOX", "IN_ARRIVO", "POSTA_IN_ARRIVO"}:
+        return 0
+    if folder in {"CESTINO", "TRASH"}:
+        return 2
+    return 1
 
 
 def _office_portal_service_from_email(email_obj: Any) -> str:
@@ -1885,9 +1994,10 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
 
     by_name, by_hash = _local_office_document_lookup(fascicolo)
     evidence: list[dict[str, Any]] = []
-    seen: set[tuple[str, str]] = set()
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
     refs = _fascicolo_reference_tokens(fascicolo)
-    for email_obj in list(emails or []):
+    ordered_emails = sorted(list(emails or []), key=_office_email_operational_priority)
+    for email_obj in ordered_emails:
         if not _email_matches_fascicolo(email_obj, fascicolo):
             continue
         if not _email_is_from_office(email_obj):
@@ -1899,16 +2009,26 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
         sender = text(_mapping_or_attr(email_obj, "mittente_nome")) or text(_mapping_or_attr(email_obj, "mittente"))
         eml_file = text(_mapping_or_attr(email_obj, "eml_file", "pec_eml_file", "file_eml"))
         eml_sha256 = text(_mapping_or_attr(email_obj, "eml_sha256", "pec_eml_sha256", "sha256_eml"))
-        message_id = text(_mapping_or_attr(email_obj, "message_id"))
+        message_id = text(_mapping_or_attr(email_obj, "message_id_header", "message_id"))
+        source_key = _office_email_source_key(email_obj, email_id)
         service = _office_portal_service_from_email(email_obj)
         for row in _office_document_names_from_email(email_obj):
             name = text(row.get("name"))
             key = _normalise_office_document_name(name) or f"pec-{email_id}-{row.get('index')}"
-            unique = (email_id, key)
-            if unique in seen:
-                continue
-            seen.add(unique)
             sha = text(row.get("sha256")).lower()
+            official_document_id = text(row.get("document_id"))
+            if official_document_id:
+                unique = ("official", official_document_id.casefold())
+            elif sha:
+                unique = ("sha256", sha)
+            else:
+                unique = (source_key, key)
+            existing = seen.get(unique)
+            if existing is not None:
+                source_ids = existing.setdefault("pecSourceIds", [])
+                if email_id and email_id not in source_ids:
+                    source_ids.append(email_id)
+                continue
             acquired_doc = by_hash.get(sha) if sha else None
             if acquired_doc is None:
                 acquired_doc = by_name.get(key)
@@ -1920,8 +2040,7 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                 service=service,
                 sha256=sha,
             )
-            evidence.append(
-                {
+            item = {
                     "fascicoloId": refs["id"],
                     "fascicoloNumero": refs["numero"],
                     "fascicoloTitolo": refs["titolo"],
@@ -1929,6 +2048,7 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                     "numeroRg": refs["numero_rg"],
                     "annoRg": refs["anno_rg"],
                     "documentoId": f"pec:{email_id}:{row.get('index')}",
+                    "documentoUfficioId": official_document_id,
                     "documentoLocaleId": document_id,
                     "nome": name,
                     "tipo": "Documento comunicato dall'ufficio",
@@ -1939,6 +2059,7 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                     "riferimentoPortale": text(_mapping_or_attr(email_obj, "message_id")) or email_id,
                     "fonteControllo": "pec_cancelleria",
                     "pecId": email_id,
+                    "pecSourceIds": [email_id] if email_id else [],
                     "pecMessageId": message_id,
                     "pecEmlFile": eml_file,
                     "pecEmlSha256": eml_sha256,
@@ -1950,7 +2071,8 @@ def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tu
                     "acquisito": bool(acquired_doc),
                     "hashSha256": sha,
                 }
-            )
+            evidence.append(item)
+            seen[unique] = item
     evidence.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
     return evidence
 
@@ -2180,16 +2302,15 @@ def template_preview_text(template: dict[str, Any]) -> str:
         "",
         "NOTIFICO",
         "",
-        "a {{ destinatario.nome_denominazione }},",
-        "C.F./P.IVA {{ destinatario.codice_fiscale_piva }},",
-        "all'indirizzo PEC {{ destinatario.pec }},",
-        "estratto dal pubblico elenco {{ destinatario.fonte_pec }} in data {{ destinatario.data_verifica_pec }} alle ore {{ destinatario.ora_verifica_pec }},",
+        "{{ destinatari_righe }}",
         "",
         "i seguenti documenti informatici allegati al presente messaggio PEC:",
         "",
         "{{ documenti_righe_privacy }}" if privacy else "{{ documenti_righe }}",
         "",
         "{{ blocco_procedimento }}",
+        "",
+        "{{ blocco_caso_notifica }}",
     ]
     purpose_lines = [multiline_text(line) for line in (template.get("purpose_lines") or []) if multiline_text(line)]
     if purpose_lines:
@@ -2297,25 +2418,45 @@ def _split_datetime(value: Any) -> tuple[str, str]:
     return _format_italian_date(raw), ""
 
 
-def _latest_verified_pec_timestamp(payload: dict[str, Any]) -> str:
-    evidences: list[dict[str, Any]] = []
-    sender = payload.get("verifica_pec_mittente") or payload.get("mittente_verifica_pec")
-    if isinstance(sender, dict):
-        evidences.append(sender)
-    recipients = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
-    if isinstance(recipients, list):
-        evidences.extend(item for item in recipients if isinstance(item, dict))
-    timestamps = [
-        text(
-            item.get("verified_at")
-            or item.get("verifiedAt")
-            or item.get("checked_at")
-            or item.get("checkedAt")
-        )
-        for item in evidences
-        if boolish(item.get("verified"))
-    ]
-    return max((item for item in timestamps if item), default="")
+def _pec_evidence_timestamp(evidence: dict[str, Any]) -> str:
+    return text(
+        evidence.get("verified_at")
+        or evidence.get("verifiedAt")
+        or evidence.get("checked_at")
+        or evidence.get("checkedAt")
+        or evidence.get("confirmed_at")
+        or evidence.get("confirmedAt")
+    )
+
+
+def _recipient_verified_pec_evidence(
+    payload: dict[str, Any],
+    *,
+    pec: Any,
+    codice_fiscale: Any,
+    fonte_pec: Any,
+) -> dict[str, Any] | None:
+    """Return only the verification evidence belonging to this recipient.
+
+    A global/latest timestamp is legally unsafe with more than one addressee:
+    each row of the relata must retain the date, time and digest of the public
+    register check that matches that exact PEC identity.
+    """
+
+    evidences = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
+    if not isinstance(evidences, list):
+        return None
+    for item in evidences:
+        if not isinstance(item, dict):
+            continue
+        if _pec_verification_matches(
+            item,
+            expected_pec=pec,
+            expected_cf=codice_fiscale,
+            expected_source=fonte_pec,
+        ):
+            return item
+    return None
 
 
 def _format_italian_time(value: Any, fallback: str = "") -> str:
@@ -2592,36 +2733,23 @@ def build_notification_attachment_manifest(
 
 
 def _delivery_recipients_from_payload(payload: dict[str, Any], context: dict[str, Any]) -> list[dict[str, Any]]:
-    raw_recipients = payload.get("destinatari")
-    rows: list[dict[str, Any]] = []
-    if isinstance(raw_recipients, list) and raw_recipients:
-        for index, item in enumerate(raw_recipients, start=1):
-            row = item if isinstance(item, dict) else {}
-            name = text(row.get("nome") or row.get("name") or row.get("destinatario_nome"))
-            pec = text(row.get("pec") or row.get("email") or row.get("destinatario_pec"))
-            role = normalise_role(row.get("ruolo") or row.get("role") or row.get("ruolo_destinatario") or context["destinatario"]["tipo"])
-            rows.append(
-                {
-                    "index": index,
-                    "name": name,
-                    "pec": pec,
-                    "role": role,
-                    "source": text(row.get("fonte_pec") or row.get("source") or row.get("fontePec") or context["destinatario"]["fonte_pec_key"]),
-                    "parteRappresentata": text(row.get("parte_rappresentata") or row.get("parteRappresentata")),
-                }
-            )
-    if not rows:
-        rows.append(
-            {
-                "index": 1,
-                "name": context["destinatario"]["nome_denominazione"],
-                "pec": context["destinatario"]["pec"],
-                "role": context["destinatario"]["tipo"],
-                "source": context["destinatario"]["fonte_pec_key"],
-                "parteRappresentata": context["destinatario"]["parte_rappresentata"],
-            }
-        )
-    return rows
+    return [
+        {
+            "index": recipient["index"],
+            "recipientId": recipient["id"],
+            "recipientIdentityKey": recipient["identity_key"],
+            "name": recipient["nome_denominazione"],
+            "fiscalId": recipient["codice_fiscale_piva"],
+            "pec": recipient["pec"],
+            "role": recipient["tipo"],
+            "source": recipient["fonte_pec_key"],
+            "sourceLabel": recipient["fonte_pec"],
+            "verifiedAt": recipient["verified_at"],
+            "verificationEvidenceSha256": recipient["evidence_sha256"],
+            "parteRappresentata": recipient["parte_rappresentata"],
+        }
+        for recipient in context["destinatari"]
+    ]
 
 
 def _document_is_signed(document: dict[str, Any]) -> bool:
@@ -2798,6 +2926,37 @@ def build_notification_send_plan(
             }
         )
 
+    notification_seed = {
+        "practice": context["pratica"]["codice"],
+        "template": text(context["template"].get("id")),
+        "case": context["notifica"]["caso"],
+        "recipients": [item["recipientIdentityKey"] for item in recipients],
+        "documents": [
+            [document["nome_file"], document["hash_sha256"]]
+            for document in documents
+        ],
+    }
+    notification_id = text(
+        payload.get("notification_id") or payload.get("notificationId"),
+        f"notifica-{hashlib.sha256(json.dumps(notification_seed, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest()[:24]}",
+    )
+    messages = [
+        {
+            "messageId": f"{notification_id}-pec-{recipient['index']}",
+            "notificationId": notification_id,
+            "recipientId": recipient["recipientId"],
+            "recipientIdentityKey": recipient["recipientIdentityKey"],
+            "to": recipient["pec"],
+            "recipient": recipient,
+            "subject": LEGAL_NOTIFICATION_SUBJECT,
+            "body": body,
+            "attachments": pec_attachments,
+            "expectedRac": True,
+            "expectedRdacCompleta": True,
+        }
+        for recipient in recipients
+    ]
+
     checks = [
         _check_row(
             id="destinatari_pec",
@@ -2841,7 +3000,9 @@ def build_notification_send_plan(
         "mode": "pec_l53_controllata",
         "subject": LEGAL_NOTIFICATION_SUBJECT,
         "body": body,
+        "notificationId": notification_id,
         "recipients": recipients,
+        "messages": messages,
         "messagesCount": len(recipients),
         "separatePecRequired": True,
         "attachments": pec_attachments,
@@ -2859,8 +3020,132 @@ def build_notification_send_plan(
     }
 
 
+def _build_recipient_contexts(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_rows = payload.get("destinatari")
+    supplied_rows = [item for item in raw_rows if isinstance(item, dict)] if isinstance(raw_rows, list) else []
+    multiple_recipients = len(supplied_rows) > 1
+    if not supplied_rows:
+        supplied_rows = [{
+            "nome": _first(payload, "destinatario.nome_denominazione", "destinatario_nome"),
+            "codice_fiscale_piva": _first(
+                payload,
+                "destinatario.codice_fiscale_piva",
+                "destinatario_cf",
+                "destinatario_codice_fiscale_piva",
+            ),
+            "pec": _first(payload, "destinatario.pec", "destinatario_pec"),
+            "ruolo": _first(payload, "destinatario.tipo", "ruolo_destinatario"),
+            "fonte_pec": _first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"),
+            "parte_rappresentata": _first(
+                payload,
+                "destinatario.parte_rappresentata",
+                "destinatario_parte_rappresentata",
+            ),
+            "qualifica": _first(payload, "destinatario.qualifica", "destinatario_qualifica"),
+        }]
+
+    fallback_role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
+    fallback_source = normalise_public_register(
+        _first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario")
+    )
+    recipients: list[dict[str, Any]] = []
+    for index, row in enumerate(supplied_rows, start=1):
+        name = text(
+            row.get("nome_denominazione")
+            or row.get("nome")
+            or row.get("name")
+            or row.get("destinatario_nome")
+        )
+        fiscal_id = text(
+            row.get("codice_fiscale_piva")
+            or row.get("codice_fiscale")
+            or row.get("cf")
+            or row.get("fiscal_id")
+            or row.get("destinatario_cf")
+        )
+        pec = text(
+            row.get("pec")
+            or row.get("email")
+            or row.get("indirizzo_pec")
+            or row.get("destinatario_pec")
+        )
+        role = normalise_role(
+            row.get("ruolo")
+            or row.get("role")
+            or row.get("tipo")
+            or row.get("ruolo_destinatario")
+            or fallback_role
+        )
+        source_key = normalise_public_register(
+            row.get("fonte_pec")
+            or row.get("fonte")
+            or row.get("source")
+            or row.get("fontePec")
+            or row.get("fonte_pec_destinatario")
+            or fallback_source
+        )
+        evidence = _recipient_verified_pec_evidence(
+            payload,
+            pec=pec,
+            codice_fiscale=fiscal_id,
+            fonte_pec=source_key,
+        )
+        verified_at = _pec_evidence_timestamp(evidence) if evidence else text(
+            row.get("verified_at")
+            or row.get("verifiedAt")
+            or row.get("checked_at")
+            or row.get("checkedAt")
+            or row.get("data_verifica_pec")
+        )
+        if not verified_at and not multiple_recipients:
+            verified_at = text(payload.get("data_verifica_pec"))
+        verified_date, verified_time = _split_datetime(verified_at)
+        verified_date = _format_italian_date(row.get("data_verifica_pec_data") or verified_date)
+        verified_time = _format_italian_time(row.get("ora_verifica_pec") or verified_time)
+        identity_input = {
+            "pec": pec,
+            "codice_fiscale": fiscal_id,
+            "role": role,
+            "nome": name,
+        }
+        try:
+            identity_key = build_recipient_identity_key(identity_input)
+        except ValueError:
+            identity_key = hashlib.sha256(
+                json.dumps([index, name, fiscal_id, pec, role], ensure_ascii=False).encode("utf-8")
+            ).hexdigest()
+        recipient_id = text(
+            row.get("id")
+            or row.get("recipient_id")
+            or row.get("recipientId"),
+            f"destinatario-{identity_key[:16]}",
+        )
+        recipients.append({
+            "index": index,
+            "id": recipient_id,
+            "identity_key": identity_key,
+            "tipo": role,
+            "nome_denominazione": name,
+            "codice_fiscale_piva": fiscal_id,
+            "pec": pec,
+            "fonte_pec": PUBLIC_PEC_REGISTERS.get(source_key, register_label(source_key)),
+            "fonte_pec_key": source_key,
+            "verified_at": verified_at,
+            "data_verifica_pec": verified_date,
+            "ora_verifica_pec": verified_time,
+            "evidence_sha256": text(evidence.get("evidence_sha256")) if evidence else "",
+            "parte_rappresentata": text(
+                row.get("parte_rappresentata")
+                or row.get("parteRappresentata")
+                or row.get("destinatario_parte_rappresentata")
+            ),
+            "qualifica": text(row.get("qualifica") or row.get("qualification")),
+        })
+    return recipients
+
+
 def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None = None) -> dict[str, Any]:
-    data_verifica, ora_verifica = _split_datetime(_latest_verified_pec_timestamp(payload))
+    destinatari = _build_recipient_contexts(payload)
     studio_cap = text(_first(payload, "avvocato.studio_cap", "studio_cap", fallback=""))
     studio_citta = text(_first(payload, "avvocato.studio_citta", "studio_citta", fallback=""))
     studio_provincia = text(_first(payload, "avvocato.studio_provincia", "studio_provincia", fallback="")).upper()
@@ -2876,8 +3161,6 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
     notifica_ora = _format_italian_time(_first(payload, "notifica.ora", "ora_relata"))
     luogo_studio = " ".join(part for part in (studio_citta, f"({studio_provincia})" if studio_provincia else "") if part)
     notifica_luogo = text(_first(payload, "notifica.luogo", "luogo", fallback=luogo_studio))
-    role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
-    source_key = normalise_public_register(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))
     documents = _documents(payload)
     case_id = notification_case_from_payload(payload)
     avvocato_nome = _normalise_lawyer_name(_first(payload, "avvocato.nome", "avvocato_nome"))
@@ -2946,18 +3229,10 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "giudice": text(_first(payload, "procedimento.giudice", "giudice")),
             "tipo_procedimento": text(_first(payload, "procedimento.tipo_procedimento", "tipo_procedimento")),
         },
-        "destinatario": {
-            "tipo": role,
-            "nome_denominazione": text(_first(payload, "destinatario.nome_denominazione", "destinatario_nome")),
-            "codice_fiscale_piva": text(_first(payload, "destinatario.codice_fiscale_piva", "destinatario_cf", "destinatario_codice_fiscale_piva")),
-            "pec": text(_first(payload, "destinatario.pec", "destinatario_pec")),
-            "fonte_pec": PUBLIC_PEC_REGISTERS.get(source_key, text(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))),
-            "fonte_pec_key": source_key,
-            "data_verifica_pec": data_verifica,
-            "ora_verifica_pec": ora_verifica,
-            "parte_rappresentata": text(_first(payload, "destinatario.parte_rappresentata", "destinatario_parte_rappresentata")),
-            "qualifica": text(_first(payload, "destinatario.qualifica", "destinatario_qualifica")),
-        },
+        # Alias singolare mantenuto soltanto per compatibilità con payload e
+        # modelli preesistenti. Ogni nuova logica deve usare ``destinatari``.
+        "destinatario": destinatari[0],
+        "destinatari": destinatari,
         "documenti": documents,
         "notifica": {
             "tipo": text(_first(payload, "notifica.tipo", "tipo_notifica", fallback="pec_l53_1994")),
@@ -3602,6 +3877,78 @@ def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[st
     return rows
 
 
+def _recipient_lines(context: dict[str, Any]) -> list[str]:
+    recipients = context["destinatari"]
+    multiple = len(recipients) > 1
+    lines = ["ai seguenti destinatari:", ""] if multiple else []
+    for index, recipient in enumerate(recipients, start=1):
+        prefix = f"{index}. " if multiple else "a "
+        name = recipient["nome_denominazione"] or "[dato mancante: Destinatario]"
+        pec = recipient["pec"] or "[dato mancante: PEC destinatario]"
+        source_label = recipient["fonte_pec"] or "[dato mancante: Fonte PEC]"
+        lines.append(f"{prefix}{name},")
+        if recipient["codice_fiscale_piva"]:
+            lines.append(f"C.F./P. IVA {recipient['codice_fiscale_piva']},")
+        if recipient["parte_rappresentata"]:
+            lines.append(f"quale difensore di {recipient['parte_rappresentata']},")
+        if recipient["qualifica"]:
+            lines.append(f"in qualità di {recipient['qualifica']},")
+        lines.append(f"all'indirizzo PEC {pec},")
+        verification = f"estratto dal pubblico elenco {source_label}"
+        if recipient["data_verifica_pec"]:
+            verification += f" in data {recipient['data_verifica_pec']}"
+        if recipient["ora_verifica_pec"]:
+            verification += f" alle ore {recipient['ora_verifica_pec']}"
+        lines.append(f"{verification}{';' if multiple else ','}")
+        if multiple and index < len(recipients):
+            lines.append("")
+    return lines
+
+
+def _recipient_block(context: dict[str, Any]) -> str:
+    return "\n".join(_recipient_lines(context))
+
+
+def _recipient_missing_fields(context: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    multiple = len(context["destinatari"]) > 1
+    for recipient in context["destinatari"]:
+        suffix = f" {recipient['index']}" if multiple else ""
+        for value, label in (
+            (recipient["nome_denominazione"], f"Destinatario{suffix}"),
+            (recipient["pec"], f"PEC destinatario{suffix}"),
+            (recipient["fonte_pec_key"], f"Fonte PEC{suffix}"),
+            (recipient["data_verifica_pec"], f"Data verifica PEC{suffix}"),
+            (recipient["ora_verifica_pec"], f"Ora verifica PEC{suffix}"),
+        ):
+            if not text(value) and label not in missing:
+                missing.append(label)
+    return missing
+
+
+def _case_notification_lines(context: dict[str, Any]) -> list[str]:
+    case_id = text(context["notifica"].get("caso"))
+    directive = NOTIFICATION_CASE_DIRECTIVES.get(case_id, NOTIFICATION_CASE_DIRECTIVES["ordinaria"])
+    case_template = get_notification_template(directive.get("template_id"))
+    selected_template_id = text((context.get("template") or {}).get("id"))
+    if not case_template or text(case_template.get("id")) == selected_template_id:
+        return []
+    rendered: list[str] = []
+    for source_line in case_template.get("purpose_lines") or []:
+        line = str(source_line)
+        for token in _iter_template_tokens(line):
+            if _is_identifier_path(token) and token not in _OPERATIONAL_TEMPLATE_FIELDS:
+                line = line.replace(f"{{{{ {token} }}}}", text(_context_lookup(context, token)))
+                line = line.replace(f"{{{{{token}}}}}", text(_context_lookup(context, token)))
+        if line.strip() or source_line == "":
+            rendered.append(line.strip())
+    return rendered
+
+
+def _case_notification_block(context: dict[str, Any]) -> str:
+    return "\n".join(_case_notification_lines(context))
+
+
 def _rg_line(context: dict[str, Any]) -> str:
     number = text(context["procedimento"].get("numero_rg"))
     year = text(context["procedimento"].get("anno_rg"))
@@ -3636,9 +3983,11 @@ def _proceeding_block(context: dict[str, Any]) -> str:
 def _custom_render_context(context: dict[str, Any]) -> dict[str, Any]:
     return {
         **context,
+        "destinatari_righe": _recipient_block(context),
         "documenti_righe": "\n".join(_document_rows(context, privacy=False)),
         "documenti_righe_privacy": "\n".join(_document_rows(context, privacy=True)),
         "blocco_procedimento": _proceeding_block(context),
+        "blocco_caso_notifica": _case_notification_block(context),
         "attestazioni_testo": "\n\n".join(_attestation_blocks(context)),
     }
 
@@ -3782,6 +4131,11 @@ def preview_legal_relata(payload: dict[str, Any]) -> dict[str, Any]:
     context = _build_context(payload, template=template)
     if multiline_text(template.get("custom_body")):
         blockers = validate_custom_template_body(body)
+        if len(context["destinatari"]) > 1 and "destinatari_righe" not in set(_iter_template_tokens(body)):
+            blockers.append(block(
+                "MODELLO_DESTINATARI_MULTIPLI_REQUIRED",
+                "Per più destinatari il modello personalizzato deve includere il campo automatico Elenco completo destinatari.",
+            ))
         if blockers:
             return {
                 "ok": False,
@@ -3795,6 +4149,7 @@ def preview_legal_relata(payload: dict[str, Any]) -> dict[str, Any]:
         preview_text, missing = _render_restricted_template_body(body, context, placeholder_missing=True)
     else:
         preview_text, missing = _render_standard_template_preview(body, context, template)
+    missing = list(dict.fromkeys([*missing, *_recipient_missing_fields(context)]))
     return {
         "ok": True,
         "previewText": preview_text,
@@ -3826,14 +4181,19 @@ def _validate_relata_override(
         context["avvocato"]["codice_fiscale"],
         context["avvocato"]["pec"],
         context["cliente"]["codice_fiscale_piva"],
-        context["destinatario"]["pec"],
-        context["destinatario"]["fonte_pec"],
-        context["destinatario"]["data_verifica_pec"],
-        context["destinatario"]["ora_verifica_pec"],
         context["notifica"]["data"],
         context["notifica"]["ora"],
         *(document.get("nome_file") for document in context["documenti"]),
     ]
+    for recipient in context["destinatari"]:
+        anchors.extend([
+            recipient["nome_denominazione"],
+            recipient["codice_fiscale_piva"],
+            recipient["pec"],
+            recipient["fonte_pec"],
+            recipient["data_verifica_pec"],
+            recipient["ora_verifica_pec"],
+        ])
     if context["procedimento"]["presente"]:
         anchors.extend([
             context["procedimento"]["ufficio"],
@@ -3872,6 +4232,11 @@ def validate_legal_notification(
     custom_body = multiline_text(template.get("custom_body"))
     if custom_body:
         blockers.extend(validate_custom_template_body(custom_body))
+        if len(context["destinatari"]) > 1 and "destinatari_righe" not in set(_iter_template_tokens(custom_body)):
+            blockers.append(block(
+                "MODELLO_DESTINATARI_MULTIPLI_REQUIRED",
+                "Per più destinatari il modello personalizzato deve includere il campo automatico Elenco completo destinatari.",
+            ))
     role = context["destinatario"]["tipo"]
     documents = context["documenti"]
     office_acquisition = _office_document_acquisition_state(payload, context)
@@ -3891,6 +4256,7 @@ def validate_legal_notification(
     if role and role not in LEGAL_RECIPIENT_ROLES and role not in CLIENT_RECIPIENT_ROLES:
         warnings.append("Ruolo destinatario non ricondotto automaticamente: verifica che sia un soggetto notificabile.")
     directive = _validate_notification_directive(payload, context, template, blockers, warnings)
+    _validate_additional_recipient_directives(payload, context, template, blockers, warnings)
 
     required_paths = [
         ("avvocato.full_name", "Indica l'avvocato notificante."),
@@ -3899,8 +4265,6 @@ def validate_legal_notification(
         ("avvocato.pec", "Indica la PEC del notificante."),
         ("cliente.nome_denominazione", "Indica la parte assistita."),
         ("cliente.codice_fiscale_piva", "Indica il codice fiscale o la partita IVA della parte assistita."),
-        ("destinatario.nome_denominazione", "Indica il destinatario della notifica."),
-        ("destinatario.pec", "Indica la PEC del destinatario."),
         ("notifica.luogo", "Indica il luogo della relata."),
         ("notifica.data", "Indica la data della relata."),
         ("notifica.ora", "Indica l'ora italiana della relata."),
@@ -3914,13 +4278,40 @@ def validate_legal_notification(
     if not sender_pec_verified:
         blockers.append(block("PEC_MITTENTE_VALIDATA_REQUIRED", "Il controllo automatico non ha verificato la PEC del notificante nel pubblico elenco."))
 
-    source_key = context["destinatario"]["fonte_pec_key"]
-    if source_key not in PUBLIC_PEC_REGISTERS:
-        blockers.append(block("PEC_DESTINATARIO_FONTE_REQUIRED", "La PEC del destinatario deve avere una fonte da pubblico elenco."))
-    if not context["destinatario"]["data_verifica_pec"] or not context["destinatario"]["ora_verifica_pec"]:
-        blockers.append(block("PEC_DESTINATARIO_VERIFICA_REQUIRED", "Registra data e ora della verifica PEC del destinatario."))
+    for recipient in context["destinatari"]:
+        label = f"Destinatario {recipient['index']} ({recipient['nome_denominazione'] or 'senza nome'})"
+        if not recipient["nome_denominazione"]:
+            blockers.append(block("DESTINATARIO_NOME_REQUIRED", f"{label}: indica nome o denominazione."))
+        if not recipient["pec"]:
+            blockers.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC."))
+        if not recipient["tipo"]:
+            blockers.append(block("DESTINATARIO_RUOLO_REQUIRED", f"{label}: seleziona il ruolo nella notifica."))
+        if recipient["tipo"] in CLIENT_RECIPIENT_ROLES:
+            blockers.append(block(
+                "CLIENTE_NON_NOTIFICA",
+                f"{label}: il cliente non va trattato come destinatario ordinario; usa Comunicazione al cliente.",
+            ))
+        if recipient["tipo"] and recipient["tipo"] not in LEGAL_RECIPIENT_ROLES and recipient["tipo"] not in CLIENT_RECIPIENT_ROLES:
+            warnings.append(f"{label}: ruolo non ricondotto automaticamente; richiede verifica professionale.")
+        if recipient["fonte_pec_key"] not in PUBLIC_PEC_REGISTERS:
+            blockers.append(block(
+                "PEC_DESTINATARIO_FONTE_REQUIRED",
+                f"{label}: la PEC deve avere una fonte da pubblico elenco.",
+            ))
+        if not recipient["data_verifica_pec"] or not recipient["ora_verifica_pec"]:
+            blockers.append(block(
+                "PEC_DESTINATARIO_VERIFICA_REQUIRED",
+                f"{label}: registra data e ora della verifica PEC riferita a questo destinatario.",
+            ))
     if not recipients_pec_verified:
-        blockers.append(block("PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED", "Il controllo automatico non ha verificato la PEC del destinatario nel pubblico elenco indicato."))
+        blockers.append(block(
+            "PEC_DESTINATARIO_VERIFICA_REQUIRED",
+            "Registra per ogni destinatario una verifica PEC valida e riferita alla sua identità.",
+        ))
+        blockers.append(block(
+            "PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED",
+            "Il controllo automatico non ha verificato ogni PEC destinatario nel rispettivo pubblico elenco.",
+        ))
     if not boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato")):
         blockers.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
     if require_signed_relata and not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
@@ -3970,8 +4361,6 @@ def validate_legal_notification(
     _validate_required_context(template, context, blockers)
 
     if boolish(payload.get("invio_finale")):
-        if boolish(payload.get("destinatari_multipli")) and not boolish(payload.get("conferma_destinatari_multipli")):
-            blockers.append("Per più destinatari nella stessa PEC serve una conferma esplicita.")
         if not boolish(payload.get("approvazione_avvocato")):
             blockers.append("L'invio richiede approvazione finale dell'avvocato.")
 
@@ -4036,7 +4425,10 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     privacy = bool(template.get("privacy_description"))
     custom_body = multiline_text(template.get("custom_body"))
     if custom_body:
-        if validate_custom_template_body(custom_body):
+        if validate_custom_template_body(custom_body) or (
+            len(context["destinatari"]) > 1
+            and "destinatari_righe" not in set(_iter_template_tokens(custom_body))
+        ):
             return ""
         rendered, _missing = _render_restricted_template_body(custom_body, context)
         lines = [rendered] if rendered else []
@@ -4063,19 +4455,9 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
         "",
         "NOTIFICO",
         "",
-        f"a {context['destinatario']['nome_denominazione']},",
+        *_recipient_lines(context),
     ])
-    if context["destinatario"]["codice_fiscale_piva"]:
-        lines.append(f"C.F./P.IVA {context['destinatario']['codice_fiscale_piva']},")
-    if context["destinatario"]["parte_rappresentata"]:
-        lines.append(f"quale difensore di {context['destinatario']['parte_rappresentata']},")
-    if context["destinatario"]["qualifica"]:
-        lines.append(f"in qualita' di {context['destinatario']['qualifica']},")
     lines.extend([
-        f"all'indirizzo PEC {context['destinatario']['pec']},",
-        f"estratto dal pubblico elenco {context['destinatario']['fonte_pec']}",
-        f" in data {context['destinatario']['data_verifica_pec']}"
-        f"{(' alle ore ' + context['destinatario']['ora_verifica_pec']) if context['destinatario']['ora_verifica_pec'] else ''},",
         "",
         "i seguenti documenti informatici allegati al presente messaggio PEC:",
         "",
@@ -4087,7 +4469,11 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
         if proceeding_lines:
             lines.extend(["", *proceeding_lines])
 
-    purpose_lines = _render_lines(template.get("purpose_lines") or [], context)
+    purpose_lines = [
+        *_render_lines(template.get("purpose_lines") or [], context),
+        *_case_notification_lines(context),
+    ]
+    purpose_lines = list(dict.fromkeys(line for line in purpose_lines if text(line)))
     if purpose_lines:
         lines.extend(["", *purpose_lines])
 
@@ -4146,6 +4532,22 @@ def build_generation_log(
         "destinatario": context["destinatario"]["nome_denominazione"],
         "pec_destinatario": context["destinatario"]["pec"],
         "fonte_pec": context["destinatario"]["fonte_pec"],
+        "destinatari": [
+            {
+                "id": recipient["id"],
+                "identity_key": recipient["identity_key"],
+                "nome": recipient["nome_denominazione"],
+                "nome_denominazione": recipient["nome_denominazione"],
+                "codice_fiscale_piva": recipient["codice_fiscale_piva"],
+                "ruolo": recipient["tipo"],
+                "parte_rappresentata": recipient["parte_rappresentata"],
+                "pec": recipient["pec"],
+                "fonte_pec": recipient["fonte_pec"],
+                "verified_at": recipient["verified_at"],
+                "evidence_sha256": recipient["evidence_sha256"],
+            }
+            for recipient in context["destinatari"]
+        ],
         "documenti": [
             {
                 "nome_file": document["nome_file"],
@@ -4274,18 +4676,26 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
         ),
         _check_row(
             id="pec_destinatario",
-            label="PEC destinatario e fonte",
+            label="PEC destinatari e fonti",
             source="D.L. 179/2012, art. 16-ter",
-            passed=context["destinatario"]["fonte_pec_key"] in PUBLIC_PEC_REGISTERS
-            and recipients_pec_verified
-            and bool(context["destinatario"]["data_verifica_pec"]),
-            detail="Sono richiesti esito automatico, fonte pubblica, data e ora della verifica.",
+            passed=recipients_pec_verified
+            and all(
+                recipient["fonte_pec_key"] in PUBLIC_PEC_REGISTERS
+                and bool(recipient["data_verifica_pec"])
+                and bool(recipient["ora_verifica_pec"])
+                for recipient in context["destinatari"]
+            ),
+            detail="Per ogni destinatario sono richiesti esito, fonte pubblica, data e ora della verifica riferiti alla sua PEC.",
         ),
         _check_row(
             id="destinatario_casistica",
             label="Destinatario coerente con il caso",
             source="; ".join(item["label"] for item in directive.get("caseLegalBasis", [])) or "L. 53/1994",
-            passed=directive["role"] not in LEGAL_RECIPIENT_ROLES or directive["role"] in directive["allowedRecipientRoles"],
+            passed=all(
+                recipient["tipo"] not in LEGAL_RECIPIENT_ROLES
+                or recipient["tipo"] in directive["allowedRecipientRoles"]
+                for recipient in context["destinatari"]
+            ),
             detail=directive.get("recipientRule") or "La casistica deve essere verificata prima dell'invio.",
         ),
         _check_row(
@@ -4370,6 +4780,22 @@ def build_notification_audit_trail(
         "recipient": context["destinatario"]["nome_denominazione"],
         "recipientPec": context["destinatario"]["pec"],
         "recipientPecSource": context["destinatario"]["fonte_pec"],
+        "recipientsCount": len(context["destinatari"]),
+        "recipients": [
+            {
+                "id": recipient["id"],
+                "identityKey": recipient["identity_key"],
+                "name": recipient["nome_denominazione"],
+                "fiscalId": recipient["codice_fiscale_piva"],
+                "role": recipient["tipo"],
+                "representedParty": recipient["parte_rappresentata"],
+                "pec": recipient["pec"],
+                "pecSource": recipient["fonte_pec"],
+                "verifiedAt": recipient["verified_at"],
+                "verificationEvidenceSha256": recipient["evidence_sha256"],
+            }
+            for recipient in context["destinatari"]
+        ],
         "documentsCount": len(documents),
         "documents": [
             {
@@ -4395,7 +4821,11 @@ def build_notification_audit_trail(
 def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
     context = _build_context(payload, template=select_relata_template(payload))
     date = re.sub(r"[^0-9]", "-", context["notifica"]["data"]).strip("-") or datetime.now().strftime("%Y-%m-%d")
-    recipient = re.sub(r"[^A-Za-z0-9]+", "_", context["destinatario"]["nome_denominazione"]).strip("_").lower() or "destinatario"
+    recipient = (
+        f"{len(context['destinatari'])}_destinatari"
+        if len(context["destinatari"]) > 1
+        else re.sub(r"[^A-Za-z0-9]+", "_", context["destinatario"]["nome_denominazione"]).strip("_").lower() or "destinatario"
+    )
     folder = f"notifica_{date}_{recipient}"
     files = [
         "relata_notifica.pdf",

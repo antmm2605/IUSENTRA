@@ -15,11 +15,13 @@ import type { PresidioSummary } from '../types'
 
 function PracticeCell({ item }: { item: PresidioSummary }) {
   const href = safeInternalHref(item.practice.href)
+  const primary = item.practice.client || item.practice.label
   return (
     <div className="nlp-cell-stack">
       {href
-        ? <a className="nlp-strong-link" href={href}>{item.practice.label}</a>
-        : <strong>{item.practice.label}</strong>}
+        ? <a className="nlp-strong-link" href={href}>{primary}</a>
+        : <strong>{primary}</strong>}
+      {item.practice.subject ? <span>{item.practice.subject}</span> : null}
       {item.practice.rg ? <span>R.G. {item.practice.rg}</span> : null}
       {item.practice.office ? <small>{item.practice.office}</small> : null}
     </div>
@@ -102,21 +104,39 @@ export function PresidiTable({
   onOpen: (id: string) => void
 }) {
   const columns: DataTableColumn<PresidioSummary>[] = [
-    { key: 'practice', header: 'Pratica', render: (item) => <PracticeCell item={item} /> },
-    { key: 'document', header: 'Documento e fonte', render: (item) => <DocumentCell item={item} /> },
-    { key: 'recipients', header: 'Caso e destinatari', render: (item) => <RecipientsCell item={item} /> },
-    { key: 'status', header: 'Stato', render: (item) => <StatusCell item={item} /> },
-    { key: 'reason', header: 'Motivo, regola e fonte', render: (item) => <ReasonCell item={item} /> },
     {
-      key: 'action',
-      header: 'Prossima azione',
+      key: 'practice-source',
+      header: 'Pratica e fonte',
       render: (item) => (
-        <div className="nlp-next-action">
-          <span>{item.next_action || 'Esamina il presidio'}</span>
-          <Button type="button" tone="neutral" onClick={() => onOpen(item.id)}>
-            Apri dettaglio
-            <ChevronRight size={16} aria-hidden="true" />
-          </Button>
+        <div className="nlp-composite-cell">
+          <PracticeCell item={item} />
+          <DocumentCell item={item} />
+        </div>
+      ),
+    },
+    {
+      key: 'case-status',
+      header: 'Caso e stato',
+      render: (item) => (
+        <div className="nlp-composite-cell">
+          <RecipientsCell item={item} />
+          <StatusCell item={item} />
+        </div>
+      ),
+    },
+    {
+      key: 'reason-action',
+      header: 'Motivo e prossima azione',
+      render: (item) => (
+        <div className="nlp-composite-cell">
+          <ReasonCell item={item} />
+          <div className="nlp-next-action">
+            <span>{item.next_action || 'Esamina il presidio'}</span>
+            <Button type="button" tone="neutral" onClick={() => onOpen(item.id)}>
+              Apri dettaglio
+              <ChevronRight size={16} aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       ),
     },

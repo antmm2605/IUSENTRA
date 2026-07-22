@@ -668,7 +668,19 @@ def _add_recursive_json_sources(
         )
 
 
-def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
+def _build_json_to_sqlite_sources(
+    paths: dict[str, str],
+    *,
+    include_recursive: bool = False,
+) -> dict[str, str]:
+    """Costruisce il catalogo dei mirror JSON governati.
+
+    Il runtime importa soltanto i moduli esplicitamente configurati. Le
+    directory ricorsive possono contenere OCR, testi estratti e staging molto
+    pesanti: duplicarle in ``studio.db`` rallenta ogni studio e fa crescere il
+    WAL senza aggiungere una nuova fonte di verita'. Gli strumenti espliciti di
+    audit possono abilitarle per censimento/riparazione controllata.
+    """
     preventivi_path = str(paths.get("PREVENTIVI_DB", "") or "").strip()
     conferimenti_path = (
         str(Path(preventivi_path).with_name("conferimenti.json"))
@@ -768,36 +780,37 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
     }.items():
         _add_source(sources, module, path, seen_paths=seen_paths)
 
-    _add_recursive_json_sources(
-        sources,
-        paths.get("DOCUMENTI_AI_DIR") or (
-            str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "documenti_ai")
-            if paths.get("FASCICOLI_DB")
-            else ""
-        ),
-        "documenti_ai_file",
-        seen_paths=seen_paths,
-    )
-    _add_recursive_json_sources(
-        sources,
-        paths.get("FASCICOLI_IMPORTAZIONI_DIR") or (
-            str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "importazioni")
-            if paths.get("FASCICOLI_DB")
-            else ""
-        ),
-        "fascicoli_importazione",
-        seen_paths=seen_paths,
-    )
-    _add_recursive_json_sources(
-        sources,
-        paths.get("LEX_DATASET_DIR") or (
-            str(Path(paths.get("LEGAL_INTELLIGENCE_DB", "")).resolve().parent / "lex_dataset")
-            if paths.get("LEGAL_INTELLIGENCE_DB")
-            else ""
-        ),
-        "lex_dataset",
-        seen_paths=seen_paths,
-    )
+    if include_recursive:
+        _add_recursive_json_sources(
+            sources,
+            paths.get("DOCUMENTI_AI_DIR") or (
+                str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "documenti_ai")
+                if paths.get("FASCICOLI_DB")
+                else ""
+            ),
+            "documenti_ai_file",
+            seen_paths=seen_paths,
+        )
+        _add_recursive_json_sources(
+            sources,
+            paths.get("FASCICOLI_IMPORTAZIONI_DIR") or (
+                str(Path(paths.get("FASCICOLI_DB", "")).resolve().parent / "importazioni")
+                if paths.get("FASCICOLI_DB")
+                else ""
+            ),
+            "fascicoli_importazione",
+            seen_paths=seen_paths,
+        )
+        _add_recursive_json_sources(
+            sources,
+            paths.get("LEX_DATASET_DIR") or (
+                str(Path(paths.get("LEGAL_INTELLIGENCE_DB", "")).resolve().parent / "lex_dataset")
+                if paths.get("LEGAL_INTELLIGENCE_DB")
+                else ""
+            ),
+            "lex_dataset",
+            seen_paths=seen_paths,
+        )
     return sources
 
 

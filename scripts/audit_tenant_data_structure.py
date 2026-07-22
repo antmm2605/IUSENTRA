@@ -195,6 +195,12 @@ def _rel_to_base(path: Path, base: Path) -> str:
 def _untracked_json_role(relative: str) -> str:
     parts = [part.lower() for part in Path(relative).parts]
     name = Path(relative).name.lower()
+    if (
+        "documenti_ai" in parts
+        or "importazioni" in parts
+        or ("intelligence" in parts and "lex_dataset" in parts)
+    ):
+        return "repository_verticale_rigenerabile"
     if parts and parts[0] == "backup":
         return "archivio_backup"
     if "demo_calendar" in parts or "demo" in parts:
@@ -494,11 +500,13 @@ def _audit_studio(tm: GestioneTenant, slug: str, *, repair: bool = False) -> dic
                 "role": role,
                 "tracked": False,
                 "entries": 0,
+                "size_bytes": int(path.stat().st_size) if path.exists() else 0,
             }
-            try:
-                item["entries"] = _json_entries_count(json.loads(path.read_text(encoding="utf-8")))
-            except Exception:
-                item["entries"] = 0
+            if role != "repository_verticale_rigenerabile":
+                try:
+                    item["entries"] = _json_entries_count(json.loads(path.read_text(encoding="utf-8")))
+                except Exception:
+                    item["entries"] = 0
             hidden_json.append(item)
             if role == "operativo_non_censito":
                 errors.append(
@@ -523,6 +531,14 @@ def _audit_studio(tm: GestioneTenant, slug: str, *, repair: bool = False) -> dic
             "total": len(hidden_json),
             "operational_untracked": sum(1 for item in hidden_json if item.get("role") == "operativo_non_censito"),
             "archive_or_cache": sum(1 for item in hidden_json if item.get("role") != "operativo_non_censito"),
+            "vertical_repository_files": sum(
+                1 for item in hidden_json if item.get("role") == "repository_verticale_rigenerabile"
+            ),
+            "vertical_repository_bytes": sum(
+                int(item.get("size_bytes") or 0)
+                for item in hidden_json
+                if item.get("role") == "repository_verticale_rigenerabile"
+            ),
         },
         "warnings": warnings,
         "errors": errors,

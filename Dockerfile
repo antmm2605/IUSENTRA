@@ -1,4 +1,4 @@
-#  version: 2.257.1
+#  version: 2.258.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -99,6 +99,9 @@ COPY frontend ./frontend
 # Alias '@iusentra-data' -> ../pct/data (vedi frontend/vite.config.ts)
 COPY pct/data ./pct/data
 COPY pct/__init__.py ./pct/__init__.py
+# Conserva nel builder il bundle pubblicato precedente: il plugin Vite mantiene
+# i chunk ancora richiesti dalle schede già aperte e scarta lo storico eccedente.
+COPY web/static/react ./web/static/react
 
 # Build: vite legge outDir='../web/static/react' (relativo a frontend/),
 # quindi l'output finisce in /build/web/static/react/
@@ -113,7 +116,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.257.1" \
+      org.opencontainers.image.version="2.258.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

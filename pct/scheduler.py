@@ -724,6 +724,12 @@ def start_scheduler(app):
                         continue
                     paths = dict(tm.percorsi_dati(studio.slug))
                     paths["_TENANT_DATABASE_CONFIG"] = studio.database
+                    paths["_TENANT_PRESIDIO_ID"] = str(
+                        getattr(studio, "slug", "")
+                        or getattr(studio, "storage_key", "")
+                        or getattr(studio, "id", "")
+                        or "tenant"
+                    )
                     paths["_TENANT_NOTIFICATION_ID"] = str(
                         getattr(studio, "id", "") or studio.slug or "tenant"
                     )
@@ -752,6 +758,7 @@ def start_scheduler(app):
             "NOTIFICATIONS_DB": app.config.get("NOTIFICATIONS_DB", "./notifications/notifications.db"),
             "STUDIO_DB": app.config.get("STUDIO_DB", "./studio.db"),
             "_TENANT_DATABASE_CONFIG": app.config.get("TENANT_DATABASE_CONFIG"),
+            "_TENANT_PRESIDIO_ID": "default",
             "_TENANT_NOTIFICATION_ID": "default",
         }
 
@@ -1221,6 +1228,7 @@ def start_scheduler(app):
                         paths,
                         tenant_label=label,
                         tenant_id=str(paths.get("_TENANT_NOTIFICATION_ID") or label),
+                        presidio_tenant_id=str(paths.get("_TENANT_PRESIDIO_ID") or label),
                         database=paths.get("_TENANT_DATABASE_CONFIG"),
                     )
                     tenant_reports.append(report)

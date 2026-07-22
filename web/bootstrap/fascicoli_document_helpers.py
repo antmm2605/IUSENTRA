@@ -100,20 +100,37 @@ def wants_json_response() -> bool:
     )
 
 
+def _safe_preview_download_url(value: str) -> str:
+    """Consente soltanto destinazioni interne e le rende sicure per un attributo HTML."""
+
+    raw = str(value or "").strip()
+    if not raw or raw.startswith("//") or not raw.startswith(("/", "#")):
+        raw = "#"
+    return escape(raw, quote=True)
+
+
 def preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str, int, dict[str, str]]:
+    escaped_name = escape(str(nome_documento or "Documento"))
+    escaped_download = _safe_preview_download_url(scarica_url)
     html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
-        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
-        '<div class="text-center p-4">'
-        '<i class="bi bi-file-earmark-lock2 text-secondary" style="font-size:3rem"></i>'
-        f'<h6 class="mt-3 mb-2">{nome_documento}</h6>'
-        '<p class="text-muted small mb-3">Anteprima non disponibile per questo formato.<br>'
+        '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<style>'
+        '*{box-sizing:border-box}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:20px;'
+        "background:#f6f7f9;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
+        '.card{width:min(520px,100%);padding:24px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;'
+        'box-shadow:0 12px 30px rgba(15,23,42,.08);text-align:center}.icon{font-size:34px;line-height:1;color:#64748b}'
+        'h1{margin:14px 0 8px;font-size:18px;line-height:1.35;overflow-wrap:anywhere}p{margin:0;color:#64748b;'
+        'font-size:14px;line-height:1.55}a{min-height:44px;margin-top:18px;display:inline-flex;align-items:center;justify-content:center;'
+        'padding:0 16px;border-radius:10px;background:#1e3a8a;color:#fff;font-size:14px;font-weight:800;text-decoration:none}'
+        'a:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:2px}'
+        '</style></head><body><main class="card">'
+        '<div class="icon" aria-hidden="true">&#128196;</div>'
+        f'<h1>{escaped_name}</h1>'
+        '<p>Anteprima non disponibile per questo formato.<br>'
         "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
-        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
-        "</div></body></html>"
+        f'<a href="{escaped_download}">Scarica documento</a>'
+        "</main></body></html>"
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
@@ -191,19 +208,26 @@ def preview_text_html(
 
 
 def preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
+    escaped_download = _safe_preview_download_url(scarica_url)
     html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
-        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
-        '<div class="text-center p-4">'
-        '<i class="bi bi-exclamation-triangle text-warning" style="font-size:3rem"></i>'
-        '<h6 class="mt-3 mb-2">Impossibile visualizzare il documento</h6>'
-        '<p class="text-muted small mb-3">Si e verificato un errore durante il caricamento.<br>'
+        '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<style>'
+        '*{box-sizing:border-box}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:20px;'
+        "background:#f6f7f9;color:#111827;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}"
+        '.card{width:min(520px,100%);padding:24px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;'
+        'box-shadow:0 12px 30px rgba(15,23,42,.08);text-align:center}.icon{font-size:34px;line-height:1;color:#b45309}'
+        'h1{margin:14px 0 8px;font-size:18px;line-height:1.35}p{margin:0;color:#64748b;font-size:14px;line-height:1.55}'
+        'a{min-height:44px;margin-top:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;'
+        'border-radius:10px;background:#1e3a8a;color:#fff;font-size:14px;font-weight:800;text-decoration:none}'
+        'a:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:2px}'
+        '</style></head><body><main class="card">'
+        '<div class="icon" aria-hidden="true">&#9888;</div>'
+        '<h1>Impossibile visualizzare il documento</h1>'
+        '<p>Si è verificato un errore durante il caricamento.<br>'
         "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
-        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
-        "</div></body></html>"
+        f'<a href="{escaped_download}">Scarica documento</a>'
+        "</main></body></html>"
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
@@ -372,6 +396,59 @@ def mobile_pdf_preview_response(
         page_urls=page_urls,
         scarica_url=scarica_url,
     )
+
+
+def mobile_rich_preview_response(
+    *,
+    preview_payload: bytes,
+    preview_name: str,
+    mime_salvato: str,
+    id_fasc: str,
+    id_doc: str,
+    documento: Any,
+    audit: Callable[..., None],
+) -> tuple[Any | None, bytes, str]:
+    """Adatta al lettore mobile gli allegati firmati o non PDF."""
+
+    if request.args.get("viewer") != "mobile":
+        return None, preview_payload, preview_name
+
+    from web.services.signed_attachment_preview import build_attachment_preview_payload
+
+    rich_preview = build_attachment_preview_payload(
+        nome_file=preview_name,
+        data=preview_payload,
+        mime_salvato=mime_salvato,
+    )
+    if rich_preview.unavailable_reason:
+        scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+        return (
+            preview_unavailable_html(rich_preview.download_name or preview_name, scarica_url),
+            preview_payload,
+            preview_name,
+        )
+
+    rich_mime = str(rich_preview.mimetype or "").split(";", 1)[0].strip().lower()
+    if rich_mime and rich_mime != "application/pdf":
+        audit(
+            "fascicoli.documento.visualizza.reader",
+            "fascicolo",
+            id_fasc,
+            dettagli=f"doc {id_doc} - {documento.nome}",
+        )
+        return (
+            send_file(
+                io.BytesIO(rich_preview.data),
+                mimetype=rich_preview.mimetype,
+                as_attachment=False,
+                download_name=rich_preview.download_name,
+            ),
+            preview_payload,
+            preview_name,
+        )
+    if rich_mime == "application/pdf":
+        return None, rich_preview.data, rich_preview.download_name or preview_name
+    return None, preview_payload, preview_name
 
 
 def payload_bool(value: Any, default: bool = False) -> bool:

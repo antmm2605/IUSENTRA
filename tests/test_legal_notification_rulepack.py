@@ -14,6 +14,7 @@ from pct.legal_notification_rulepack import (
     portal_original_requirement,
     resolve_legacy_policy,
     resolve_procedural_regime,
+    validate_rulepack_source_references,
     validate_source_registry,
 )
 from pct.pec_pipeline import PecAuditRepository
@@ -22,7 +23,7 @@ from pct.pec_pipeline import PecAuditRepository
 def test_rulepack_e_regex_sono_caricati_una_sola_volta():
     assert load_notification_rulepack() is load_notification_rulepack()
     assert compiled_notification_rules() is compiled_notification_rules()
-    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.0"
+    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.2"
 
 
 @pytest.mark.parametrize(
@@ -129,6 +130,56 @@ def test_comunicazione_xml_non_diventa_notifica_avvocato():
     assert findings[0]["rule_id"] == "notif.detect.comunicazione_xml_office_negative.v1"
 
 
+def test_sentenza_a_verbale_429_allegata_crea_revisione_notifica_ma_comunicazione_xml_non_prova():
+    findings = detect_notification_candidates(
+        {
+            "headers": {"subject": "Tribunale Ordinario di Padova Notificazione ai sensi del D.L. 179/2012"},
+            "attachments": [
+                {
+                    "filename": "Comunicazione.xml",
+                    "extracted_text": "Notificato alla PEC del difensore e in cancelleria. Oggetto: SENTENZA A VERBALE (art. 127 ter cpc).",
+                },
+                {
+                    "filename": "19040620s.pdf",
+                    "extracted_text": (
+                        "TRIBUNALE ORDINARIO DI PADOVA. Il Giudice decide la causa con sentenza a norma "
+                        "dell'art. 429 c.p.c. Il Giudice, definitivamente decidendo, accerta il diritto e "
+                        "condanna il Ministero alle spese, con distrazione in favore del procuratore antistatario."
+                    ),
+                },
+            ],
+        }
+    )
+
+    office = next(item for item in findings if item["rule_id"] == "notif.detect.comunicazione_xml_office_negative.v1")
+    judgment = next(item for item in findings if item["rule_id"] == "notif.detect.sentenza_verbale_429_review.v1")
+    assert office["creates_notification_candidate"] is False
+    assert judgment["creates_notification_candidate"] is True
+    assert judgment["notification_case"] == "judgment_to_notify_review"
+
+
+def test_pqm_429_e_127ter_senza_segnali_decisori_non_creano_notifica_sentenza():
+    findings = detect_notification_candidates(
+        {
+            "attachments": [
+                {
+                    "filename": "ordinanza-127-ter.pdf",
+                    "extracted_text": (
+                        "TRIBUNALE ORDINARIO. P.Q.M. dispone la trattazione scritta ai sensi "
+                        "dell'art. 127-ter c.p.c. e assegna termine per note. L'art. 429 c.p.c. "
+                        "è richiamato esclusivamente per la successiva fase decisoria."
+                    ),
+                }
+            ]
+        }
+    )
+
+    assert not any(
+        item.get("notification_case") in {"judgment_to_notify", "judgment_to_notify_review"}
+        for item in findings
+    )
+
+
 def test_originale_portale_e_richiesto_solo_se_documento_non_allegato():
     parsed = {"body_text": "Avviso di disponibilità: documento presente nell'area download PST."}
     missing = portal_original_requirement(parsed)
@@ -167,6 +218,19 @@ def test_hash_verificati_e_fonti_mancanti_falliscono_con_istruzione():
     assert registry["schema_version"] == "iusentra.legal_sources_registry.v2"
     with pytest.raises(ValueError, match="Acquisire da Normattiva"):
         validate_source_registry(require_snapshots=True)
+
+
+def test_ogni_regola_eseguibile_cita_solo_fonti_censite():
+    result = validate_rulepack_source_references()
+
+    assert result["rulepack_version"] == "legal_notification_detection_rules_v1.0.2"
+    assert {
+        "src.it.cpc.art133",
+        "src.it.cpc.art285",
+        "src.it.cpc.art325",
+        "src.it.cpc.art326",
+        "src.it.cpc.art429",
+    }.issubset(result["referenced_source_ids"])
 
 
 def test_get_dettaglio_non_riesegue_il_motore_di_scansione():

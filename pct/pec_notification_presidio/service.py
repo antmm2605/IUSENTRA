@@ -24,6 +24,13 @@ class NotificationPresidioService:
         primary = dict(documents[0])
         primary.setdefault("source_message_id", payload.get("source_message_id"))
         document_identity = canonical_document_identity(primary)
+        # Il motore PEC può ricavare la stessa decisione sia dal corpo sia da più
+        # allegati. Quando il chiamante fornisce un'identità semantica stabile,
+        # quella governa il presidio operativo; i documenti restano comunque
+        # tutti collegati come prova nel medesimo presidio.
+        instance_document_key = str(
+            payload.get("notification_instance_document_key") or document_identity.key
+        ).strip()
         source_order = str(
             payload.get("source_order_or_event_id")
             or payload.get("legal_event_id")
@@ -33,7 +40,10 @@ class NotificationPresidioService:
         instance_key = notification_instance_identity(
             tenant_id=self.repository.tenant_id,
             fascicolo_id=required_text(payload.get("fascicolo_id"), "fascicolo_id"),
-            canonical_document_key=document_identity.key,
+            canonical_document_key=required_text(
+                instance_document_key,
+                "notification_instance_document_key",
+            ),
             document_version=str(primary.get("document_version") or "1"),
             notification_case=required_text(payload.get("notification_case"), "notification_case"),
             source_order_or_event_id=source_order,

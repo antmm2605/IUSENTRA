@@ -228,6 +228,36 @@ class NotificationRepository:
             )
             return int(getattr(cur, "rowcount", 0) or 0)
 
+    def expire_notifications_by_source_ids(
+        self,
+        tenant_id: str,
+        user_id: str,
+        *,
+        source_type: str,
+        source_ids: set[str],
+    ) -> int:
+        """Scade soltanto notifiche operative esplicitamente sostituite."""
+
+        safe_source_type = str(source_type or "").strip()
+        safe_source_ids = sorted({str(value or "").strip() for value in source_ids if str(value or "").strip()})
+        if not safe_source_type or not safe_source_ids:
+            return 0
+        placeholders = ",".join("?" for _ in safe_source_ids)
+        now = utc_now_iso()
+        with self._connect() as conn:
+            cur = conn.execute(
+                f"""
+                UPDATE notifications
+                SET expires_at = ?
+                WHERE tenant_id = ? AND user_id = ?
+                  AND source_type = ?
+                  AND source_id IN ({placeholders})
+                  AND (expires_at = '' OR expires_at IS NULL OR expires_at > ?)
+                """,
+                (now, str(tenant_id or ""), str(user_id or ""), safe_source_type, *safe_source_ids, now),
+            )
+            return int(getattr(cur, "rowcount", 0) or 0)
+
     def mark_read(self, tenant_id: str, user_id: str, notification_id: str) -> bool:
         with self._connect() as conn:
             cur = conn.execute(

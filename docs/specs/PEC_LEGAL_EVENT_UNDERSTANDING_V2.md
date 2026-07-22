@@ -132,6 +132,24 @@ c.p.c.) e procedimenti già pendenti (regime storico art. 16-septies coordinato
 con Corte cost. 75/2019). Il cutoff interno del 19/07/2026 governa soltanto la
 migrazione dei record e non seleziona mai la norma applicabile.
 
+## Sentenza a verbale, art. 429 c.p.c. e notifica da valutare - 21/07/2026
+
+Caso pilota: Alfano Giuseppe c. MIM, RG `1100/2026`, Tribunale di Padova, sentenza resa ex art. 429 c.p.c. il `16/07/2026`.
+
+Regola implementata:
+
+- se il testo contiene `sentenza a verbale`, `definitivamente decidendo`, `P.Q.M.`, `sentenza resa ex art. 429` o marcatori equivalenti di decisione, l'evento primario diventa `sentenza_a_verbale`;
+- il riferimento storico a 127-ter resta al più una modalità della trattazione precedente e non può generare come evento principale `Opposizione alla trattazione scritta`;
+- la sola comunicazione di cancelleria o `Comunicazione.xml` non prova una notifica dell'avvocato e non fa decorrere automaticamente il termine breve;
+- viene creato un candidato `judgment_to_notify_review` quando non risultano, dopo la sorgente, relata, PEC L. 53, RAC, RdAC completa e prova/deposito collegati al fascicolo;
+- il cutoff storico del 19/07/2026 non sopprime gli eventi PEC/provvedimenti decisori vivi: serve solo a governare la migrazione dei record storici.
+
+Prestazioni:
+
+- nessuna pagina React deve rianalizzare PDF, OCR, ZIP o centinaia di fascicoli al render;
+- la materializzazione avviene durante `validate`/refresh PEC e la UI legge solo eventi/presidi indicizzati;
+- i candidati PEC senza fascicolo collegato restano avvisi di riconciliazione, non errori bloccanti della lista.
+
 ## Test obbligatori
 
 Copertura minima in `tests/test_pec_legal_event_understanding.py`:
@@ -207,3 +225,19 @@ Prova materiale sulla copia reale `http://127.0.0.1:8080`:
 - attività `UDIENZA` visibile nella timeline del fascicolo con note e collegamento;
 - notifica operativa visibile nella topbar con azione `Collegati all'udienza`;
 - dispositivo Web Push attivato, notifica di prova inviata e mostrata, stato finale `Attivo` osservato nel pannello Notifiche.
+
+## Guardrail fonte dati presidio notifiche - 21/07/2026
+
+Il motore V2 deve trattare `studio.db`/PostgreSQL come fonte strutturata e i JSON tenant-aware come mirror o input di migrazione controllata. Il 21/07/2026 sul tenant produzione `studio-legale-giuseppe-montagnese` è stato ripristinato `studio.db` perché il file risultava sovrascritto da JSON dello Scadenziario. Da questa correzione derivano tre regole permanenti:
+
+- nessun writer JSON può leggere o salvare su percorsi `.db`, `.sqlite` o `.sqlite3`;
+- `studio.db` non deve includere OCR massivi, PDF/ZIP, `documenti_ai/**/extracted_text.json` o indici rigenerabili;
+- le pagine React, topbar, Agenda e Scadenziario devono leggere solo presìdi/eventi materializzati e paginati, non scansionare fascicoli o PEC all'apertura.
+
+La prova tecnica minima per il tenant Montagnese dopo un ripristino o deploy è:
+
+```powershell
+python -m pytest -q tests/test_cache_security.py tests/test_notification_relata_materializer.py tests/test_notification_presidia_payloads.py
+```
+
+e sul server: `PRAGMA quick_check=ok`, header `SQLite format 3`, conteggi core coerenti e WAL non gonfiato da scritture massive.

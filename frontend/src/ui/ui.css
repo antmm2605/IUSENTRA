@@ -105,8 +105,8 @@
   color: #fff;
 }
 
-.iu-btn--primary:hover,
-.iu-btn--primary:focus-visible {
+.iu-btn--primary:not(:disabled):not([aria-disabled='true']):hover,
+.iu-btn--primary:not(:disabled):not([aria-disabled='true']):focus-visible {
   border-color: transparent;
   background: linear-gradient(135deg, #071329, #123d72);
   color: #fff;

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import sqlite3
+import time
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
 
-from flask import Blueprint, Response, g, jsonify, request
+from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from pct.email_client import GestioneEmailRicevute
 from pct.pec_control_tower import PecControlTowerRepository
@@ -167,6 +169,24 @@ def _json_success(payload: dict, status: int = 200):
     return redacted_json_response(payload, status)
 
 
+def _is_sqlite_busy(exc: BaseException) -> bool:
+    return isinstance(exc, sqlite3.OperationalError) and "locked" in str(exc).lower()
+
+
+def _json_pec_archive_busy():
+    response = jsonify(
+        {
+            "ok": False,
+            "errore": "Archivio PEC in aggiornamento. Riprovo tra pochi secondi.",
+            "code": "pec_archive_busy",
+            "retryable": True,
+        }
+    )
+    response.status_code = 503
+    response.headers["Retry-After"] = "2"
+    return response
+
+
 @pec_pipeline_api.get("/messages")
 @_richiedi_auth
 def pec_messages():
@@ -191,6 +211,32 @@ def pec_message_detail(message_id: str):
         return _json_error(404)
     except TenantDataPathError:
         return _json_error(403)
+
+
+@pec_pipeline_api.get("/messages/<message_id>/source")
+@_richiedi_auth
+def pec_message_source(message_id: str):
+    last_busy: sqlite3.OperationalError | None = None
+    for attempt, delay in enumerate((0.0, 0.25, 0.6), start=1):
+        if delay:
+            time.sleep(delay)
+        try:
+            response = _json_success({"ok": True, "data": _repo().get_message_source_detail(message_id)})
+            response.headers["Cache-Control"] = "private, max-age=30"
+            return response
+        except sqlite3.OperationalError as exc:
+            if not _is_sqlite_busy(exc):
+                raise
+            last_busy = exc
+            current_app.logger.warning("Archivio PEC occupato durante apertura fonte %s: tentativo %s", message_id, attempt)
+            continue
+        except KeyError:
+            return _json_error(404)
+        except TenantDataPathError:
+            return _json_error(403)
+    if last_busy is not None:
+        return _json_pec_archive_busy()
+    return _json_pec_archive_busy()
 
 
 @pec_pipeline_api.get("/messages/<message_id>/mime")

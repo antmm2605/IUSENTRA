@@ -1850,7 +1850,10 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+{% set iusentra_embedded_source_view = request.args.get('embed') == 'source' %}
+{% if not iusentra_embedded_source_view %}
 {% include "components/pct_ai_widget.html" %}
+{% endif %}
 {% if g.utente_corrente %}
 <div id="iusentra-local-signer-monitor"
      class="d-none"
@@ -1867,6 +1870,7 @@ if ('serviceWorker' in navigator) {
 <script src="/static/js/support_launch.js?v={{ app_version }}" defer></script>
 <script src="/static/js/local-signer-monitor.js?v={{ app_version }}" defer></script>
 <script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}" defer></script>
+{% if not iusentra_embedded_source_view %}
 <script src="/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" defer></script>
 <script src="/static/js/lex-tts/quality-presets.js?v={{ app_version }}" defer></script>
 <script src="/static/js/lex-tts/voice-profiles.js?v={{ app_version }}" defer></script>
@@ -1876,6 +1880,7 @@ if ('serviceWorker' in navigator) {
 <script src="/static/js/lex-tts/tts-engine-registry.js?v={{ app_version }}" defer></script>
 <script src="/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" defer></script>
 <script src="/static/js/pct-lex-assistant.js?v={{ app_version }}" defer></script>
+{% endif %}
 {% endif %}
 <script src="/static/js/iusentra-visible-text-guard.js?v={{ app_version }}" defer></script>
 </body>

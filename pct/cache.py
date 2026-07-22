@@ -43,6 +43,27 @@ _cache_key = secrets.token_bytes(32)
 _aesgcm_class: Any = None
 _aesgcm_unavailable = False
 _CACHE_MISS = object()
+_SQLITE_LIKE_SUFFIXES = (
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".db-journal",
+    ".db-shm",
+    ".db-wal",
+    ".sqlite-journal",
+    ".sqlite-shm",
+    ".sqlite-wal",
+    ".sqlite3-journal",
+    ".sqlite3-shm",
+    ".sqlite3-wal",
+)
+
+
+def _reject_sqlite_like_json_path(path: Union[str, Path]) -> Path:
+    p = Path(path)
+    if p.name.casefold().endswith(_SQLITE_LIKE_SUFFIXES):
+        raise ValueError(f"Archivio JSON non consentito su percorso SQLite: {p}")
+    return p
 
 
 def _get_aesgcm_class() -> Any:
@@ -98,7 +119,7 @@ def load(
       i dati già in memoria senza aprire il file.
     - In caso di errore di parsing, restituisce `default`.
     """
-    p = Path(path)
+    p = _reject_sqlite_like_json_path(path)
     fallback = {} if default is None else default
 
     if not p.exists():
@@ -146,7 +167,7 @@ def save(
     Passa `indent=None` per file grandi dove le performance contano più
     della leggibilità (es. normative_tables, assistente_redazionale).
     """
-    p = Path(path)
+    p = _reject_sqlite_like_json_path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
 
     with p.open("w", encoding="utf-8") as fh:

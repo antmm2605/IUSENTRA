@@ -62,11 +62,9 @@ def _email_relevant_for_pec(email_obj: Any) -> bool:
         )
     ).lower()
     status_pct = str(getattr(email_obj, "stato_pct", "") or "").upper()
-    message_id = str(getattr(email_obj, "message_id", "") or "").strip()
     origin = str(getattr(email_obj, "origine", "") or "").lower()
     return bool(
         getattr(email_obj, "e_pst", False)
-        or message_id
         or status_pct
         or "pec" in origin
         or "posta certificata" in text
@@ -266,6 +264,9 @@ def presidia_studio(
     actor: str = "pec-maintenance",
     worker_limit: int = 12000,
     queue_repairs: bool = True,
+    refresh_ocr: bool = False,
+    refresh_batch_size: int = 25,
+    control_tower_backfill: bool = False,
 ) -> dict[str, Any]:
     email_db = Path(paths["EMAIL_CASELLA_DB"])
     gestore = GestioneEmailRicevute(str(email_db))
@@ -414,7 +415,12 @@ def presidia_studio(
             report["workers"] = {"processed": 0, "failed": 1, "error": str(exc)[:180]}
             report["errors"].append({"email_id": "pec-worker", "errore": str(exc)[:180]})
     try:
-        refresh = repo.refresh_validation_reports(actor=actor, limit=0)
+        refresh = repo.refresh_validation_reports(
+            actor=actor,
+            limit=0,
+            refresh_ocr=refresh_ocr,
+            batch_size=refresh_batch_size,
+        )
     except Exception as exc:
         refresh = {"ok": False, "error": str(exc)[:180]}
     report["refresh_reports"] = refresh
@@ -506,7 +512,18 @@ def presidia_studio(
     try:
         report["repair_deadlines"] = repo.repair_pec_deadlines(actor=actor, limit=0)
         report["remote_hearing_backfill"] = repo.enrich_deadlines_with_remote_hearing_links(actor=actor, limit=0)
-        report["control_tower"] = control_tower.backfill_from_email_archive(gestore, limit=len(relevant) or 1, actor=actor, max_seconds=0.0)
+        if control_tower_backfill:
+            report["control_tower"] = control_tower.backfill_from_email_archive(
+                gestore,
+                limit=len(relevant) or 1,
+                actor=actor,
+                max_seconds=0.0,
+            )
+        else:
+            report["control_tower"] = {
+                "skipped": True,
+                "reason": "Già aggiornata durante l'acquisizione PEC; il riallineamento completo è un'operazione amministrativa esplicita.",
+            }
     except Exception as exc:
         report["errors"].append({"email_id": "pec-finalize", "errore": str(exc)[:180]})
     status = "completed" if not report["errors"] else "completed_with_warnings"
@@ -538,7 +555,16 @@ def presidia_studio(
     return report
 
 
-def run_presidio(*, registry: Path, tenant: str = "", limit: int = 0, actor: str = "pec-maintenance", worker_limit: int = 12000) -> dict[str, Any]:
+def run_presidio(
+    *,
+    registry: Path,
+    tenant: str = "",
+    limit: int = 0,
+    actor: str = "pec-maintenance",
+    worker_limit: int = 12000,
+    refresh_ocr: bool = False,
+    control_tower_backfill: bool = False,
+) -> dict[str, Any]:
     manager = GestioneTenant(str(registry))
     studios = [studio for studio in manager.lista() if _matches(studio.slug, tenant)]
     payload: dict[str, Any] = {"ok": True, "registry": str(registry), "studios": {}}
@@ -550,6 +576,8 @@ def run_presidio(*, registry: Path, tenant: str = "", limit: int = 0, actor: str
             limit=limit,
             actor=actor,
             worker_limit=worker_limit,
+            refresh_ocr=refresh_ocr,
+            control_tower_backfill=control_tower_backfill,
         )
         payload["studios"][studio.slug] = result
         payload["ok"] = bool(payload["ok"] and result.get("ok"))
@@ -566,6 +594,8 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0, help="Numero massimo di email locali da scansionare per studio; 0 = tutte.")
     parser.add_argument("--actor", default="pec-maintenance", help="Attore audit da registrare.")
     parser.add_argument("--worker-limit", type=int, default=12000, help="Numero massimo di job PEC da eseguire per studio.")
+    parser.add_argument("--con-ocr", action="store_true", help="Esegue anche OCR: usare solo per un'acquisizione esplicita, non per il presidio ordinario.")
+    parser.add_argument("--riallinea-control-tower", action="store_true", help="Riesegue l'intero riallineamento Control Tower: operazione amministrativa esplicita e potenzialmente onerosa.")
     args = parser.parse_args()
     result = run_presidio(
         registry=_registry_path(args.registry),
@@ -573,6 +603,8 @@ def main() -> int:
         limit=args.limit,
         actor=args.actor,
         worker_limit=args.worker_limit,
+        refresh_ocr=bool(args.con_ocr),
+        control_tower_backfill=bool(args.riallinea_control_tower),
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result.get("ok") else 1

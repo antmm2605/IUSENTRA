@@ -332,7 +332,7 @@ function TermsActionList({ items, guida, fascicoloId }: { items?: unknown[]; gui
   if (codice) params.set('guida_pratica', codice)
   if (original) params.set('codice_guida', original)
   if (fascicoloId) params.set('id_fascicolo', fascicoloId)
-  const href = `/scadenziario${params.toString() ? `?${params.toString()}` : ''}#calcolatore-termini-processuali`
+  const href = `/scadenziario/calcola-termini${params.toString() ? `?${params.toString()}` : ''}`
   return (
     <div className="iu-guida-terms-action">
       <ul className="iu-guida-fields">

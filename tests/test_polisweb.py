@@ -3305,6 +3305,83 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     assert page_response.data.startswith(b"\x89PNG")
 
 
+def test_visualizza_documento_reader_interno_supporta_formati_professionali(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    docx_module = pytest.importorskip("docx")
+    Document = docx_module.Document
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1428/2026",
+        tipo=TipoFascicolo.CIVILE,
+    )
+
+    word_stream = io.BytesIO()
+    word = Document()
+    word.add_paragraph("Memoria difensiva caricata nel reader IUSENTRA.")
+    word.save(word_stream)
+
+    image_stream = io.BytesIO()
+    Image.new("RGB", (8, 8), color=(20, 88, 212)).save(image_stream, format="PNG")
+
+    tiff_stream = io.BytesIO()
+    Image.new("RGB", (8, 8), color=(255, 255, 255)).save(tiff_stream, format="TIFF")
+
+    samples = [
+        ("testo.txt", b"Documento testuale leggibile dal reader.", "Documento testuale leggibile"),
+        ("indice.xml", b"<?xml version='1.0'?><atto><oggetto>Sentenza</oggetto></atto>", "&lt;oggetto&gt;"),
+        (
+            "messaggio.eml",
+            b"Subject: Comunicazione di cancelleria\r\nFrom: cancelleria@example.test\r\nTo: studio@example.test\r\n\r\nCorpo PEC da presidiare.",
+            "Corpo PEC da presidiare",
+        ),
+        ("memoria.docx", word_stream.getvalue(), "Memoria difensiva caricata"),
+        ("immagine.png", image_stream.getvalue(), "Immagine"),
+        ("scansione.tiff", tiff_stream.getvalue(), "Immagine TIFF"),
+    ]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        for filename, payload, expected in samples:
+            doc = gestione_fascicoli.aggiungi_documento(
+                fascicolo.id,
+                filename,
+                TipoDocumento.ALLEGATO,
+                payload,
+                caricato_da="avvocato",
+            )
+            response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza?viewer=mobile")
+            body = response.get_data(as_text=True)
+
+            assert response.status_code == 200, filename
+            assert response.mimetype == "text/html", filename
+            assert expected in body, filename
+
+
 def test_lettore_mobile_pdf_presidia_zoom_pinch_e_limiti():
     script = Path("web/static/js/mobile-pdf-viewer.js").read_text(encoding="utf-8")
 
@@ -4125,7 +4202,13 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "codice_fiscale: data.codice_fiscale || data.codiceFiscale || data.codice_fiscale_avvocato || ''" in template
     assert "cf_avvocato: awPstAttorneyCf()" in template
     assert "cf_avvocato: exactByRg ? ''" not in template
-    assert "AW_PST_IMPORT_SESSION?.session_id" not in template
+    assert "import_session_id: AW_PST_SESSION?.session_id || ''" in template
+    assert "awPstSearchViaLocalSigner(query, false)" not in template
+    assert "awPstPreviewViaLocalSigner(selection, false)" not in template
+    assert "awPstDownloadSelectionViaLocalSigner(false)" not in template
+    assert "AW_PST_SEARCH_OPERATION_PROMISE" in template
+    assert "AW_PST_DOWNLOAD_OPERATION_PROMISE" in template
+    assert "operation_id: operationId" in template
     assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
     assert "function awCanProceedWithPartialPstDownload" in template
     assert "Aggiorno la pratica locale selezionata con i file ricevuti" in template

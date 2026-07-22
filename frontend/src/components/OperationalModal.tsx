@@ -55,7 +55,15 @@ export function OperationalModal({
       if (index >= 0) modalStack.splice(index, 1)
       lockedBodyCount = Math.max(0, lockedBodyCount - 1)
       if (!lockedBodyCount) document.body.classList.remove('iu-ag-source-open')
-      previouslyFocused?.focus()
+      if (previouslyFocused?.isConnected && document.contains(previouslyFocused)) {
+        window.requestAnimationFrame(() => {
+          try {
+            previouslyFocused.focus({ preventScroll: true })
+          } catch {
+            previouslyFocused.focus()
+          }
+        })
+      }
     }
   }, [open])
 

@@ -111,6 +111,35 @@ _CSRF_PROTECTED_ENDPOINTS = {
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
+_DOCUMENT_PREVIEW_ENDPOINTS = frozenset(
+    {
+        "api_v1_react.email_source_attachment",
+        "email_client.allegato",
+        "email_ordinaria.allegato",
+        "visualizza_documento",
+    }
+)
+
+# Le anteprime possono contenere dati provenienti da PEC e documenti di terzi.
+# Il solo script ammesso e' il visualizzatore PDF statico, necessario per zoom e
+# navigazione su mobile; nessun inline script/event handler puo' essere eseguito.
+DOCUMENT_PREVIEW_CSP = "; ".join(
+    (
+        "default-src 'none'",
+        "script-src 'self'",
+        "style-src 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'none'",
+        "connect-src 'none'",
+        "media-src 'none'",
+        "object-src 'none'",
+        "frame-src 'none'",
+        "frame-ancestors 'self'",
+        "base-uri 'none'",
+        "form-action 'none'",
+    )
+)
+
 
 def _as_bool(value: object, default: bool = False) -> bool:
     if isinstance(value, bool):
@@ -209,7 +238,11 @@ def register_security_runtime(app: Flask) -> None:
     def apply_security_headers(response):
         if not app.config.get("ENABLE_SECURITY_HEADERS", True):
             return response
-        return apply_core_security_headers(response, app)
+        response = apply_core_security_headers(response, app)
+        if request.endpoint in _DOCUMENT_PREVIEW_ENDPOINTS:
+            response.headers["Content-Security-Policy"] = DOCUMENT_PREVIEW_CSP
+            response.headers["Referrer-Policy"] = "no-referrer"
+        return response
 
 
 def _same_origin_request() -> bool:

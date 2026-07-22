@@ -91,6 +91,7 @@ def register_portali_acquisizione_routes(
             "idDocumento": str(target.get("idDocumento") or target.get("id_documento") or "").strip(),
             "hash": str(target.get("hash") or target.get("sha256") or "").strip().lower(),
             "pecId": str(target.get("pecId") or target.get("pec_id") or "").strip(),
+            "tipoDocumento": str(target.get("tipoDocumento") or target.get("tipo_documento") or "").strip(),
         }
 
     def _coerce_request_mapping(data: dict[str, Any]) -> dict[str, str]:
@@ -116,6 +117,11 @@ def register_portali_acquisizione_routes(
         name_key = _normalise_document_match(target.get("documento"))
         id_key = str(target.get("idDocumento") or "").strip()
         sha_key = str(target.get("hash") or "").strip().lower()
+        type_key = _normalise_document_match(target.get("tipoDocumento"))
+        # Prima della consultazione la PEC non conosce ancora l'ID ministeriale.
+        # Senza un locator concreto il catalogo PST deve restare disponibile.
+        if not any((name_key, id_key, sha_key, type_key)):
+            return documenti
         filtered = []
         for row in documenti:
             if not isinstance(row, dict):
@@ -134,9 +140,38 @@ def register_portali_acquisizione_routes(
                 str(row.get("msg_id") or "").strip(),
             }
             row_hash = str(row.get("sha256") or row.get("hash_sha256") or "").strip().lower()
-            if (name_key and name_key in row_names) or (id_key and id_key in row_ids) or (sha_key and sha_key == row_hash):
+            row_type = _normalise_document_match(
+                " ".join(
+                    str(row.get(key) or "")
+                    for key in ("tipo_atto", "tipo", "descrizione", "oggetto", "nome", "nome_documento")
+                )
+            )
+            if (
+                (name_key and name_key in row_names)
+                or (id_key and id_key in row_ids)
+                or (sha_key and sha_key == row_hash)
+                or (type_key and type_key in row_type)
+            ):
                 filtered.append(row)
-        return filtered
+        # Un hint semantico non deve rendere vuota la consultazione se il PST usa
+        # una descrizione diversa. La UI imporrà comunque un solo documento.
+        return filtered or documenti
+
+    def _coerce_targeted_import_options(data: dict[str, Any], *, portale: str) -> dict[str, bool]:
+        options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
+        target = _target_document_from_payload(data)
+        if portale == "pst" and target.get("singleDocument"):
+            options.update(
+                {
+                    "scarica_originale_portale": True,
+                    "mantieni_albero_originale": False,
+                    "importa_documenti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_parti": False,
+                }
+            )
+        return options
 
     @app.route("/portali/<portale>/acquisizione", methods=["GET"])
     def portale_acquisizione_wizard(portale: str):
@@ -189,6 +224,7 @@ def register_portali_acquisizione_routes(
             "idDocumento": _clean_query_value("id_documento"),
             "hash": _clean_query_value("hash"),
             "pecId": _clean_query_value("pec_id"),
+            "tipoDocumento": _clean_query_value("tipo_documento"),
         }
         return render_template(
             "portale/acquisizione_wizard.html",
@@ -300,7 +336,7 @@ def register_portali_acquisizione_routes(
             preview = dict(data.get("preview") or {})
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
+            options = _coerce_targeted_import_options(data, portale=portale)
             mapping = _coerce_request_mapping(data)
             analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
             return jsonify({"ok": True, "analysis": analysis})
@@ -317,7 +353,7 @@ def register_portali_acquisizione_routes(
             preview = dict(data.get("preview") or {})
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
+            options = _coerce_targeted_import_options(data, portale=portale)
             mapping = _coerce_request_mapping(data)
             downloaded_files_raw = data.get("downloaded_files")
             downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
@@ -328,6 +364,7 @@ def register_portali_acquisizione_routes(
                 options,
                 mapping,
                 downloaded_files=downloaded_files,
+                target_document=_target_document_from_payload(data),
             )
             return jsonify({"ok": True, "result": result, "pst_session": data.get("pst_session") or {}, **result})
         except Exception as e:
@@ -351,7 +388,7 @@ def register_portali_acquisizione_routes(
             preview = dict(normalized.get("preview") or {})
             if not selection or not preview:
                 raise ValueError("Payload autorizzato non riconoscibile.")
-            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
+            options = _coerce_targeted_import_options(data, portale=portale)
             mapping = _coerce_request_mapping(data)
             downloaded_files_raw = data.get("downloaded_files")
             downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
@@ -362,6 +399,7 @@ def register_portali_acquisizione_routes(
                 options,
                 mapping,
                 downloaded_files=downloaded_files,
+                target_document=_target_document_from_payload(data),
             )
             return jsonify({"ok": True, "normalized": normalized, "result": result, **result})
         except Exception as e:
@@ -373,6 +411,7 @@ def register_portali_acquisizione_routes(
         try:
             _spec_portale_acquisizione(portale)
             data = request.get_json(silent=True) or {}
+            data["options"] = _coerce_targeted_import_options(data, portale=portale)
             result = _importa_file_assistiti_portale(portale, data)
             return jsonify({"ok": True, "result": result, **result})
         except Exception as e:

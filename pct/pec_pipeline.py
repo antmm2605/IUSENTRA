@@ -16,6 +16,8 @@ import json
 import mimetypes
 import re
 import sqlite3
+import threading
+import time
 import uuid
 import zipfile
 from dataclasses import dataclass
@@ -33,10 +35,30 @@ from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
+from pct.pec_notification_presidio import NotificationPresidioRepository, NotificationPresidioService
 from pct.fascicolo_registry_document import apply_fascicolo_registry_automation
 
 SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
 DEADLINE_POLICY_VERSION = "2026-06-03.procedural-dates-v1"
+_PEC_AUDIT_SCHEMA_LOCKS_GUARD = threading.Lock()
+_PEC_AUDIT_SCHEMA_LOCKS: dict[str, threading.Lock] = {}
+_PEC_AUDIT_SCHEMA_READY: set[tuple[str, str, str]] = set()
+
+
+def _pec_audit_schema_lock(path: Path) -> threading.Lock:
+    key = str(path.resolve())
+    with _PEC_AUDIT_SCHEMA_LOCKS_GUARD:
+        lock = _PEC_AUDIT_SCHEMA_LOCKS.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _PEC_AUDIT_SCHEMA_LOCKS[key] = lock
+        return lock
+
+
+def _sqlite_is_busy(exc: BaseException) -> bool:
+    return isinstance(exc, sqlite3.OperationalError) and "locked" in str(exc).lower()
+
+
 DEFAULT_TENANT_ID = "default"
 ROME_TZ = ZoneInfo("Europe/Rome")
 _JSON_DIGEST_ITERATIONS = 20_000
@@ -339,6 +361,7 @@ END;
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_deadlines_event ON pec_legal_deadlines(tenant_id, legal_event_id);
@@ -396,6 +419,22 @@ def redact_sensitive_digest_value(value: Any) -> Any:
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _tenant_scoped_message_id(tenant_id: str, mime_sha256: str) -> str:
+    """Deriva un ID deterministico che non collide tra tenant.
+
+    I record legacy mantengono il proprio ID: l'ingestione li ritrova tramite
+    ``tenant_id`` e impronta MIME. Solo i nuovi messaggi usano questa
+    derivazione, senza incorporare lo slug del tenant in chiaro.
+    """
+
+    tenant = clean_text(tenant_id, 160)
+    digest = clean_text(mime_sha256, 80).casefold()
+    if not tenant or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("Tenant o impronta MIME PEC non validi.")
+    scoped_digest = sha256_bytes(f"iusentra-pec\x00{tenant}\x00{digest}".encode("utf-8"))
+    return f"pec_{scoped_digest}"
 
 
 def sha256_json(value: Any) -> str:
@@ -3151,7 +3190,6 @@ def _rule_matches(rule: dict[str, Any], lower_text: str) -> list[str]:
         return []
     features: list[str] = []
     for keyword in rule.get("keywords") or ():
-        needle = str(keyword).lower()
         if _keyword_matches(keyword, lower_text):
             features.append(f"keyword:{keyword}")
     for pattern in rule.get("regex") or ():
@@ -4402,7 +4440,14 @@ def _remote_hearing_for_procedural_candidate(
     if segment:
         access_info = _extract_remote_hearing_access_lines(segment)
         if access_info:
-            result["access_info"] = access_info
+            result["access_info"] = [
+                re.sub(
+                    r"\b(?:https?://|www\.)\S+",
+                    "[link indicato nel campo udienza da remoto]",
+                    line,
+                )
+                for line in access_info
+            ]
         meeting_match = re.search(
             r"\b(?:ID\s+(?:riunione|meeting)|meeting\s+ID)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\s-]{3,80})",
             segment,
@@ -4513,7 +4558,11 @@ def _agenda_title_for_pec_deadline(title: str) -> str:
 def _deadline_updates_for_existing(existing: Any, proposal: dict[str, Any], *, title: str, actor: str = "") -> dict[str, Any]:
     updates: dict[str, Any] = {}
     current_title = clean_text(getattr(existing, "titolo", "") or "", 160)
-    if title and current_title != title and current_title.startswith(("Udienza da PEC", "Termine da PEC", "Valuta termini da notifica PEC", "Data processuale")):
+    generated_from_pec = "PEC_AUDIT:" in str(getattr(existing, "note", "") or "")
+    if title and current_title != title and (
+        generated_from_pec
+        or current_title.startswith(("Udienza da PEC", "Termine da PEC", "Valuta termini da notifica PEC", "Data processuale"))
+    ):
         updates["titolo"] = title
     if clean_text(proposal.get("reason")):
         current_desc = clean_text(getattr(existing, "descrizione", "") or "", 260)
@@ -5481,6 +5530,110 @@ def _document_presidio_activity_label(candidate: dict[str, Any], *, kind: str) -
     return "Attività processuale da presidiare"
 
 
+_DOCUMENT_PRESIDIO_PARTY_DOCUMENT_MARKERS = (
+    "ricorso",
+    "atto di citazione",
+    "comparsa",
+    "memoria difensiva",
+    "procura",
+    "relata di notifica",
+    "notificazione ai sensi",
+    "deposito telematico",
+)
+_DOCUMENT_PRESIDIO_OFFICIAL_DOCUMENT_MARKERS = (
+    "decreto",
+    "ordinanza",
+    "verbale",
+    "provvedimento",
+    "comunicazione di cancelleria",
+    "avviso di cancelleria",
+    "fissazione udienza",
+)
+_DOCUMENT_PRESIDIO_AUTHORITY_CONTEXT_RE = re.compile(
+    r"\b(?:il giudice|la corte|il tribunale|la cancelleria)\b.{0,180}"
+    r"\b(?:fissa|dispone|assegna|comunica|rinvia|differisce|ordina)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_DOCUMENT_PRESIDIO_TERM_ACTION_RE = re.compile(
+    r"\b(?:entro|termine\s+(?:per|di)|assegna(?:to|re)?\s+termine|"
+    r"deposit(?:are|o)|note\s+scritte|memori(?:a|e)|costituirsi|"
+    r"impugnare|opposizione)\b",
+    re.IGNORECASE,
+)
+_DOCUMENT_PRESIDIO_DESCRIPTIVE_PERIOD_RE = re.compile(
+    r"\b(?:contratto|rapporto(?:\s+di\s+lavoro)?|servizio|incarico)\b"
+    r".{0,160}\b(?:dal|da)\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}"
+    r"\s*(?:al|a)\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_DOCUMENT_PRESIDIO_DECISORY_CONTEXT_RE = re.compile(
+    r"\b(?:definitivamente\s+decidendo|p\.?\s*q\.?\s*m\.?|"
+    r"decide\s+la\s+causa\s+con\s+sentenza|sentenza\s+a\s+verbale|"
+    r"sentenza\s+resa\s+ex\s+art\.?\s*429)\b",
+    re.IGNORECASE,
+)
+
+
+def _document_presidio_candidate_is_actionable(
+    candidate: dict[str, Any],
+    *,
+    kind: str,
+    document_name: str,
+    document_text: str = "",
+) -> tuple[bool, str]:
+    """Ammette soltanto ordini processuali leggibili in fonti dell'ufficio.
+
+    Un atto di parte puo' contenere date, riferimenti a notifiche gia' eseguite
+    o periodi contrattuali: nessuno di tali dati crea da solo un adempimento.
+    La funzione e' intenzionalmente conservativa, per evitare falsi positivi
+    nel calendario e nello scadenziario.
+    """
+
+    source = clean_text(
+        " ".join(
+            part
+            for part in (
+                document_name,
+                str(candidate.get("source") or ""),
+                str(candidate.get("label") or ""),
+            )
+            if part
+        ),
+        520,
+    ).casefold()
+    context = clean_text(candidate.get("context") or "", 1600)
+    document_context = clean_text(document_text, 12000)
+    party_source = any(marker in source for marker in _DOCUMENT_PRESIDIO_PARTY_DOCUMENT_MARKERS)
+    official_source = any(marker in source for marker in _DOCUMENT_PRESIDIO_OFFICIAL_DOCUMENT_MARKERS)
+    authority_context = bool(_DOCUMENT_PRESIDIO_AUTHORITY_CONTEXT_RE.search(context))
+    # Alcune buste contengono un unico PDF composto, per esempio "Ricorso e
+    # decreto di fissazione udienza". Il nome resta misto, ma il segmento locale
+    # con l'ordine espresso del giudice è una fonte ufficiale azionabile. Un
+    # ricorso puro, anche se cita genericamente un decreto, resta invece escluso.
+    combined_official_segment = party_source and official_source and authority_context
+    if party_source and not combined_official_segment:
+        return False, "atto_di_parte_non_genera_adempimento_automatico"
+    if _DOCUMENT_PRESIDIO_DESCRIPTIVE_PERIOD_RE.search(context):
+        return False, "periodo_descrittivo_o_contrattuale_non_e_termino_processuale"
+
+    if not official_source and not authority_context:
+        return False, "fonte_non_qualificata_come_provvedimento_o_comunicazione_ufficio"
+    # Un provvedimento decisorio può riportare la precedente trattazione scritta
+    # o la fissazione dell'udienza. Quelle date non restano un'attività da svolgere
+    # dopo la decisione. Rimane invece ammessa una nuova udienza ordinata in modo
+    # esplicito nel contesto locale della singola data.
+    if _DOCUMENT_PRESIDIO_DECISORY_CONTEXT_RE.search(document_context):
+        local_new_hearing_order = bool(
+            authority_context
+            and re.search(r"\b(?:fissa|rinvia|differisce|convoca)\b", context, re.IGNORECASE)
+        )
+        if kind == "termine" or not local_new_hearing_order:
+            return False, "provvedimento_decisorio_prevale_su_termine_o_udienza_pregressa"
+    if kind == "termine" and not _DOCUMENT_PRESIDIO_TERM_ACTION_RE.search(context):
+        return False, "data_senza_ordine_processuale_esplicito"
+    return True, ""
+
+
 def _document_presidio_context_snippet(candidate: dict[str, Any]) -> str:
     context = clean_text(candidate.get("context") or "", 620)
     if not context:
@@ -5936,7 +6089,7 @@ def _document_presidio_profile(fascicolo: Any, *, document_name: str, candidate:
 
 
 DOCUMENT_PRESIDIO_EVENT_TYPE = "fascicolo_documenti_audit"
-DOCUMENT_PRESIDIO_PARSER_VERSION = "2026-07-17-multi-hearing-stable-identity-v3"
+DOCUMENT_PRESIDIO_PARSER_VERSION = "2026-07-21-authoritative-source-gate-v4"
 
 
 def _document_presidio_deadline_proposal(
@@ -6049,6 +6202,24 @@ class PecAuditRepository:
         age_seconds = datetime.now().timestamp() - newest_mtime
         if journal_stat.st_size < 1024 * 1024 or age_seconds < 120:
             return
+
+        # Un journal di rollback può essere perfettamente recuperabile: SQLite
+        # deve avere la prima possibilità di riaprirlo e completare il rollback.
+        # Spostare subito entrambi i file farebbe invece perdere il collegamento
+        # tra il database e il journal e trasformerebbe un arresto del worker in
+        # una falsa inizializzazione dell'archivio PEC. La quarantena è quindi
+        # riservata al solo caso in cui l'apertura/controllo SQLite non riesca.
+        try:
+            with self.db_path.open("rb") as database_file:
+                is_sqlite_database = database_file.read(16) == b"SQLite format 3\x00"
+            if is_sqlite_database:
+                with sqlite3.connect(self.db_path, timeout=5.0) as recovery_conn:
+                    row = recovery_conn.execute("PRAGMA quick_check").fetchone()
+                    if row and str(row[0] or "").strip().lower() == "ok":
+                        return
+        except (OSError, sqlite3.Error):
+            pass
+
         stamp = datetime.now(ROME_TZ).strftime("%Y%m%d-%H%M%S")
         for path in (self.db_path, journal):
             if not path.exists():
@@ -6071,36 +6242,56 @@ class PecAuditRepository:
         return conn
 
     def ensure_schema(self) -> None:
-        with self.connect() as conn:
-            conn.executescript(SQLITE_SCHEMA)
-            hearing_columns = {
-                str(row["name"] or "")
-                for row in conn.execute("PRAGMA table_info(pec_legal_hearings)").fetchall()
-            }
-            for column, declaration in (
-                ("meeting_id", "TEXT NOT NULL DEFAULT ''"),
-                ("passcode", "TEXT NOT NULL DEFAULT ''"),
-                ("judge", "TEXT NOT NULL DEFAULT ''"),
-            ):
-                if column not in hearing_columns:
-                    conn.execute(f"ALTER TABLE pec_legal_hearings ADD COLUMN {column} {declaration}")
-            migration_sha = sha256_bytes(SQLITE_SCHEMA.encode("utf-8"))
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO pec_schema_migrations(version, applied_at, sha256)
-                VALUES (?, ?, ?)
-                """,
-                (SCHEMA_VERSION, iso_now(), migration_sha),
-            )
-            now = iso_now()
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO pec_retention_policies
-                (id, name, original_mime_days, parsed_json_days, legal_hold, action, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                ("pec_audit_default", "Conservazione PEC audit-grade", 3650, 3650, 1, "review", now, now),
-            )
+        ready_key = (str(self.db_path.resolve()), self.tenant_id, SCHEMA_VERSION)
+        if ready_key in _PEC_AUDIT_SCHEMA_READY:
+            return
+        lock = _pec_audit_schema_lock(self.db_path)
+        with lock:
+            if ready_key in _PEC_AUDIT_SCHEMA_READY:
+                return
+            last_busy: sqlite3.OperationalError | None = None
+            for delay in (0.0, 0.2, 0.5, 1.0):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    with self.connect() as conn:
+                        conn.executescript(SQLITE_SCHEMA)
+                        hearing_columns = {
+                            str(row["name"] or "")
+                            for row in conn.execute("PRAGMA table_info(pec_legal_hearings)").fetchall()
+                        }
+                        for column, declaration in (
+                            ("meeting_id", "TEXT NOT NULL DEFAULT ''"),
+                            ("passcode", "TEXT NOT NULL DEFAULT ''"),
+                            ("judge", "TEXT NOT NULL DEFAULT ''"),
+                        ):
+                            if column not in hearing_columns:
+                                conn.execute(f"ALTER TABLE pec_legal_hearings ADD COLUMN {column} {declaration}")
+                        migration_sha = sha256_bytes(SQLITE_SCHEMA.encode("utf-8"))
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO pec_schema_migrations(version, applied_at, sha256)
+                            VALUES (?, ?, ?)
+                            """,
+                            (SCHEMA_VERSION, iso_now(), migration_sha),
+                        )
+                        now = iso_now()
+                        conn.execute(
+                            """
+                            INSERT OR IGNORE INTO pec_retention_policies
+                            (id, name, original_mime_days, parsed_json_days, legal_hold, action, created_at, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            ("pec_audit_default", "Conservazione PEC audit-grade", 3650, 3650, 1, "review", now, now),
+                        )
+                    _PEC_AUDIT_SCHEMA_READY.add(ready_key)
+                    return
+                except sqlite3.OperationalError as exc:
+                    if not _sqlite_is_busy(exc):
+                        raise
+                    last_busy = exc
+            if last_busy is not None:
+                raise last_busy
 
     def append_audit(
         self,
@@ -6200,7 +6391,7 @@ class PecAuditRepository:
         msg = message_from_bytes(raw_mime)
         message_id_header = str(msg.get("Message-ID", "") or "").strip()
         received_at = parsedate_iso(msg.get("Date", "")) or iso_now()
-        message_pk = f"pec_{mime_hash[:24]}"
+        message_pk = _tenant_scoped_message_id(self.tenant_id, mime_hash)
         retention_until = (date.today() + timedelta(days=3650)).isoformat()
         with self.connect() as conn:
             existing = conn.execute(
@@ -6219,38 +6410,6 @@ class PecAuditRepository:
                     resource_type="pec_message",
                     resource_id=existing_id,
                     payload={"mime_sha256": mime_hash, "message_id_header": message_id_header, "folder": folder},
-                    actor=actor,
-                )
-                return {"id": existing_id, "duplicate": True, "mime_sha256": mime_hash}
-            stale_existing = conn.execute(
-                """
-                SELECT id, tenant_id FROM pec_messages
-                WHERE id=? OR mime_sha256=?
-                   OR (message_id_header<>'' AND message_id_header=? AND account_email=?)
-                ORDER BY CASE WHEN tenant_id=? THEN 0 ELSE 1 END
-                LIMIT 1
-                """,
-                (message_pk, mime_hash, message_id_header, account_email, self.tenant_id),
-            ).fetchone()
-            if stale_existing:
-                existing_id = str(stale_existing["id"] or "")
-                previous_tenant = str(stale_existing["tenant_id"] or "")
-                if existing_id and previous_tenant and previous_tenant != self.tenant_id:
-                    conn.execute(
-                        "UPDATE pec_messages SET tenant_id=? WHERE id=? AND tenant_id=?",
-                        (self.tenant_id, existing_id, previous_tenant),
-                    )
-                self.append_audit(
-                    conn,
-                    action="pec.mime.duplicate",
-                    resource_type="pec_message",
-                    resource_id=existing_id,
-                    payload={
-                        "mime_sha256": mime_hash,
-                        "message_id_header": message_id_header,
-                        "folder": folder,
-                        "tenant_normalized_from": previous_tenant if previous_tenant != self.tenant_id else "",
-                    },
                     actor=actor,
                 )
                 return {"id": existing_id, "duplicate": True, "mime_sha256": mime_hash}
@@ -6369,27 +6528,6 @@ class PecAuditRepository:
             "SELECT * FROM pec_messages WHERE tenant_id=? AND id=?",
             (self.tenant_id, clean_id),
         ).fetchone()
-        if row is None:
-            stale = conn.execute("SELECT * FROM pec_messages WHERE id=? LIMIT 1", (clean_id,)).fetchone()
-            if stale is not None:
-                previous_tenant = str(stale["tenant_id"] or "")
-                if previous_tenant and previous_tenant != self.tenant_id:
-                    conn.execute(
-                        "UPDATE pec_messages SET tenant_id=? WHERE id=? AND tenant_id=?",
-                        (self.tenant_id, clean_id, previous_tenant),
-                    )
-                    self.append_audit(
-                        conn,
-                        action="pec.message.tenant_normalized",
-                        resource_type="pec_message",
-                        resource_id=clean_id,
-                        payload={"tenant_normalized_from": previous_tenant},
-                        actor="pec-repository",
-                    )
-                row = conn.execute(
-                    "SELECT * FROM pec_messages WHERE tenant_id=? AND id=?",
-                    (self.tenant_id, clean_id),
-                ).fetchone()
         if row is None:
             raise KeyError(f"PEC non trovata: {clean_id}")
         return row
@@ -6657,6 +6795,840 @@ class PecAuditRepository:
         )
         return {"ok": True, "id": event_id, "event_sha256": event_hash, "understanding": understanding}
 
+    def _notification_candidate_documents(
+        self,
+        candidate: dict[str, Any],
+        attachments: list[dict[str, Any]],
+        *,
+        source_message_id: str,
+    ) -> list[dict[str, Any]]:
+        evidence_rows = [
+            item
+            for item in list(candidate.get("evidence") or [])
+            if isinstance(item, dict)
+        ]
+        wanted_sources = {
+            clean_text(item.get("source_file") or item.get("source_id") or "", 260).casefold()
+            for item in evidence_rows
+            if clean_text(item.get("source_file") or item.get("source_id") or "", 260)
+        }
+
+        def _professional_attachment(row: dict[str, Any]) -> bool:
+            filename = clean_text(row.get("filename") or row.get("original_filename"), 260).casefold()
+            if not filename:
+                return False
+            if filename.endswith(("comunicazione.xml", "daticert.xml", "postacert.eml")):
+                return False
+            return filename.endswith((".pdf", ".zip", ".p7m", ".pdf.p7m", ".doc", ".docx", ".odt"))
+
+        selected: list[dict[str, Any]] = []
+        for row in attachments:
+            if not isinstance(row, dict) or not _professional_attachment(row):
+                continue
+            filename = clean_text(row.get("filename"), 260)
+            filename_key = filename.casefold()
+            if wanted_sources and not any(
+                source == filename_key
+                or source in filename_key
+                or filename_key in source
+                for source in wanted_sources
+            ):
+                continue
+            selected.append(row)
+        if not selected:
+            selected = [row for row in attachments if isinstance(row, dict) and _professional_attachment(row)][:1]
+        documents: list[dict[str, Any]] = []
+        for row in selected[:6]:
+            filename = clean_text(row.get("filename"), 260)
+            documents.append(
+                {
+                    "source_message_id": source_message_id,
+                    "document_role": "office_pec_copy",
+                    "document_version": "1",
+                    "outer_sha256": clean_text(row.get("sha256"), 80),
+                    "content_sha256": clean_text(row.get("sha256"), 80),
+                    "original_filename": filename or "Documento PEC",
+                    "authoritative": True,
+                }
+            )
+        if not documents:
+            source_file = clean_text(candidate.get("source_file") or "Documento PEC", 260)
+            documents.append(
+                {
+                    "source_message_id": source_message_id,
+                    "document_role": "office_pec_copy",
+                    "document_version": "1",
+                    "original_filename": source_file,
+                    "authoritative": False,
+                }
+            )
+        return documents
+
+    def _notification_candidate_recipients(
+        self,
+        understanding: dict[str, Any],
+        candidate: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        def _recipient_name(value: Any) -> str:
+            name = clean_text(value, 220)
+            lowered = name.casefold()
+            cut_points = [
+                lowered.find(marker)
+                for marker in (
+                    " si da' atto",
+                    " si dà atto",
+                    " si da atto",
+                    " il cancelliere",
+                    " la cancelliere",
+                    " ha provveduto",
+                    " al gestore dei servizi telematici",
+                )
+                if lowered.find(marker) > 0
+            ]
+            if cut_points:
+                name = name[: min(cut_points)].strip(" -;,.:")
+            return clean_text(name, 180)
+
+        raw_recipients = candidate.get("recipients")
+        if isinstance(raw_recipients, list) and raw_recipients:
+            cleaned: list[dict[str, Any]] = []
+            for item in raw_recipients:
+                if not isinstance(item, dict):
+                    continue
+                row = dict(item)
+                row["name"] = _recipient_name(row.get("name") or row.get("nome"))
+                if row["name"]:
+                    cleaned.append(row)
+            return cleaned or [
+                {"name": "Destinatario da verificare", "role": "controparte", "required": True}
+            ]
+        recipients: list[dict[str, Any]] = []
+        procedimento = understanding.get("procedimento") if isinstance(understanding.get("procedimento"), dict) else {}
+        for item in list(procedimento.get("parti") or []):
+            name = ""
+            role = ""
+            if isinstance(item, dict):
+                name = clean_text(item.get("name") or item.get("nome") or item.get("denominazione") or item.get("label"), 180)
+                role = clean_text(item.get("role") or item.get("ruolo") or item.get("qualifica"), 80)
+            else:
+                text = clean_text(item, 220)
+                role = "parte"
+                name = text
+            name = _recipient_name(name)
+            role_key = role.casefold()
+            name_key = name.casefold()
+            if not name:
+                continue
+            if any(token in role_key for token in ("resistente", "convenuto", "controparte", "debitore", "ingiunto")) or any(
+                token in name_key for token in ("ministero", "m.i.m", "mim", "avvocatura")
+            ):
+                recipients.append({"name": name, "role": role or "controparte", "required": True})
+        if not recipients:
+            recipients.append({"name": "Destinatario da verificare", "role": "controparte", "required": True})
+        return recipients[:12]
+
+    def _notification_candidate_case(self, candidate: dict[str, Any]) -> str:
+        notification_case = clean_text(candidate.get("notification_case"), 120)
+        if notification_case == "judgment_to_notify":
+            return "judgment_to_notify_review"
+        return notification_case or "legal_notification_review"
+
+    def _notification_complete_proof_from_fascicolo(
+        self,
+        *,
+        fascicolo_id: str,
+        source_effective_at: Any,
+        source_message_id: str,
+        candidate_documents: Iterable[dict[str, Any]] = (),
+        candidate_recipients: Iterable[dict[str, Any]] = (),
+    ) -> dict[str, Any]:
+        if not self.fascicoli_db_path or not fascicolo_id:
+            return {}
+        db_path = Path(self.fascicoli_db_path)
+        if not db_path.exists() or db_path.suffix.lower() != ".db":
+            return {}
+        source_day = clean_text(source_effective_at, 40)[:10]
+        try:
+            with sqlite3.connect(str(db_path), timeout=10) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    "SELECT documenti_json, attivita_json FROM fascicoli WHERE id=?",
+                    (fascicolo_id,),
+                ).fetchone()
+        except sqlite3.Error:
+            return {}
+        if row is None:
+            return {}
+        try:
+            documents = json.loads(str(row["documenti_json"] or "[]"))
+        except Exception:
+            documents = []
+        try:
+            activities = json.loads(str(row["attivita_json"] or "[]"))
+        except Exception:
+            activities = []
+
+        def _eligible_day(value: Any) -> bool:
+            day = clean_text(value, 40)[:10]
+            return bool(day and source_day and day >= source_day)
+
+        nested_containers = ("notification", "notifica", "correlation", "receipt", "evidence")
+
+        def _values(item: dict[str, Any], *keys: str) -> list[Any]:
+            containers = [item]
+            containers.extend(
+                nested
+                for key in nested_containers
+                for nested in [item.get(key)]
+                if isinstance(nested, dict)
+            )
+            return [
+                value
+                for container in containers
+                for key in keys
+                for value in [container.get(key)]
+                if value not in (None, "")
+            ]
+
+        def _token(value: Any, *, message_id: bool = False) -> str:
+            token = clean_text(value, 320).casefold()
+            return token.strip("<> ") if message_id else token
+
+        def _first_token(item: dict[str, Any], *keys: str, message_id: bool = False) -> str:
+            return next(
+                (
+                    token
+                    for value in _values(item, *keys)
+                    for token in [_token(value, message_id=message_id)]
+                    if token
+                ),
+                "",
+            )
+
+        def _stage(item: dict[str, Any]) -> str:
+            raw = " ".join(
+                _token(value)
+                for value in _values(
+                    item,
+                    "notification_stage",
+                    "stage",
+                    "evidence_role",
+                    "document_role",
+                    "receipt_kind",
+                    "event_type",
+                    "kind",
+                    "type",
+                    "tipo",
+                    "categoria",
+                )
+            )
+            if any(marker in raw for marker in ("mancata_consegna", "delivery_failure", "negative_delivery", "failed")):
+                return "failure"
+            if any(marker in raw for marker in ("rdac", "avvenuta_consegna", "delivered_receipt", "delivery_receipt")):
+                return "rdac"
+            if any(marker in raw for marker in ("rac", "accettazione", "acceptance_receipt")):
+                return "rac"
+            if any(marker in raw for marker in ("relata", "service_report")):
+                return "relata"
+            if any(marker in raw for marker in ("notified_act", "atto_notificato", "notification_act")):
+                return "act"
+            if any(marker in raw for marker in ("sent_notification", "notification_sent", "pec_inviata", "invio_notifica")):
+                return "sent"
+            return ""
+
+        def _correlation_id(item: dict[str, Any]) -> str:
+            return _first_token(
+                item,
+                "notification_id",
+                "notifica_id",
+                "id_notifica",
+                "notification_instance_id",
+                "notification_instance_key",
+            )
+
+        def _sent_message_id(item: dict[str, Any], stage: str) -> str:
+            linked = _first_token(
+                item,
+                "sent_message_id",
+                "notification_message_id",
+                "original_message_id",
+                "linked_message_id",
+                "source_sent_message_id",
+                message_id=True,
+            )
+            if linked:
+                return linked
+            if stage == "sent":
+                return _first_token(item, "message_id", "pec_message_id", message_id=True)
+            return ""
+
+        def _recipient_identity(item: dict[str, Any]) -> str:
+            explicit = _first_token(item, "recipient_identity_key", "destinatario_identity_key")
+            if explicit:
+                return f"identity:{explicit}"
+            address = _first_token(
+                item,
+                "recipient_pec",
+                "destinatario_pec",
+                "pec_destinatario",
+                "pec_address",
+                "recipient_address",
+                "address",
+            )
+            if "@" in address:
+                return f"pec:{address}"
+            fiscal_id = re.sub(
+                r"[^a-z0-9]",
+                "",
+                _first_token(
+                    item,
+                    "recipient_fiscal_id",
+                    "destinatario_cf",
+                    "codice_fiscale_destinatario",
+                    "fiscal_id",
+                    "codice_fiscale",
+                ),
+            )
+            return f"cf:{fiscal_id}" if fiscal_id else ""
+
+        def _act_bindings(item: dict[str, Any]) -> set[str]:
+            bindings = {
+                f"msg:{token}"
+                for value in _values(
+                    item,
+                    "notified_source_message_id",
+                    "source_act_message_id",
+                    "legal_event_message_id",
+                    "act_source_message_id",
+                )
+                for token in [_token(value, message_id=True)]
+                if token
+            }
+            bindings.update(
+                f"sha256:{token}"
+                for value in _values(
+                    item,
+                    "notified_document_sha256",
+                    "act_sha256",
+                    "document_sha256",
+                    "content_sha256",
+                )
+                for token in [re.sub(r"[^a-f0-9]", "", _token(value))]
+                if len(token) == 64
+            )
+            return bindings
+
+        def _has_l53_basis(item: dict[str, Any]) -> bool:
+            selected = " ".join(
+                _token(value)
+                for value in _values(item, "notification_law", "legal_basis", "norma", "legal_regime")
+            )
+            compact = re.sub(r"\s+", "", selected)
+            return bool("l53" in compact or "53/1994" in compact or "legge53" in compact)
+
+        source_binding = _token(source_message_id, message_id=True)
+        candidate_bindings = {f"msg:{source_binding}"} if source_binding else set()
+        for document in candidate_documents:
+            if isinstance(document, dict):
+                candidate_bindings.update(_act_bindings(document))
+
+        candidate_recipient_rows = [
+            recipient
+            for recipient in candidate_recipients
+            if isinstance(recipient, dict) and recipient.get("required", True) is not False
+        ]
+        expected_recipients = {
+            identity
+            for recipient in candidate_recipient_rows
+            for identity in [_recipient_identity(recipient)]
+            if identity
+        }
+        if len(candidate_recipient_rows) > 1 and any(
+            not _recipient_identity(recipient)
+            for recipient in candidate_recipient_rows
+        ):
+            return {}
+        groups: dict[str, list[tuple[str, dict[str, Any], str]]] = {}
+        for source_kind, items in (("documento", documents), ("attività", activities)):
+            for item in items if isinstance(items, list) else []:
+                if not isinstance(item, dict):
+                    continue
+                day_value = (
+                    item.get("data_documento")
+                    or item.get("data_notifica")
+                    or item.get("data")
+                    or item.get("data_inizio")
+                    or item.get("created_at")
+                    or item.get("creato_il")
+                )
+                if not _eligible_day(day_value):
+                    continue
+                correlation_id = _correlation_id(item)
+                stage = _stage(item)
+                if correlation_id and stage:
+                    groups.setdefault(correlation_id, []).append((stage, item, source_kind))
+
+        required_stages = {"act", "relata", "sent", "rac", "rdac"}
+        for correlation_id, records in groups.items():
+            stages = {stage for stage, _, _ in records}
+            if not required_stages.issubset(stages) or "failure" in stages:
+                continue
+
+            def _sent_ids(stage_name: str) -> set[str]:
+                return {
+                    sent_id
+                    for stage, item, _ in records
+                    if stage == stage_name
+                    for sent_id in [_sent_message_id(item, stage)]
+                    if sent_id
+                }
+
+            sent_pairs = {
+                (sent_id, identity)
+                for stage, item, _ in records
+                if stage == "sent"
+                for sent_id in [_sent_message_id(item, stage)]
+                for identity in [_recipient_identity(item)]
+                if sent_id and identity
+            }
+            lawful_sent_pairs = {
+                (sent_id, identity)
+                for stage, item, _ in records
+                if stage == "sent" and _has_l53_basis(item)
+                for sent_id in [_sent_message_id(item, stage)]
+                for identity in [_recipient_identity(item)]
+                if sent_id and identity
+            }
+            rdac_pairs = {
+                (sent_id, identity)
+                for stage, item, _ in records
+                if stage == "rdac"
+                for sent_id in [_sent_message_id(item, stage)]
+                for identity in [_recipient_identity(item)]
+                if sent_id and identity
+            }
+            rac_sent_ids = _sent_ids("rac")
+            covered_pairs = {
+                pair
+                for pair in lawful_sent_pairs.intersection(rdac_pairs)
+                if pair[0] in rac_sent_ids
+            }
+            sent_recipients = {identity for _, identity in sent_pairs}
+            required_recipients = expected_recipients.union(sent_recipients)
+            covered_recipients = {identity for _, identity in covered_pairs}
+            if not required_recipients or not required_recipients.issubset(covered_recipients):
+                continue
+            covered_sent_ids = {
+                sent_id
+                for sent_id, identity in covered_pairs
+                if identity in required_recipients
+            }
+
+            act_bindings = set().union(
+                *(_act_bindings(item) for stage, item, _ in records if stage == "act")
+            )
+            relata_bindings = set().union(
+                *(_act_bindings(item) for stage, item, _ in records if stage == "relata")
+            )
+            common_act_bindings = act_bindings.intersection(relata_bindings, candidate_bindings)
+            if not common_act_bindings:
+                continue
+            evidence = [
+                f"{source_kind}:{stage}:{correlation_id}"
+                for stage, _, source_kind in records
+                if stage in required_stages
+            ]
+            return {
+                "complete_proof": True,
+                "reason": (
+                    "Prova completa della stessa notifica presente nel fascicolo: "
+                    "atto e relata correlati, invio L. 53/1994, RAC e RdAC dello stesso "
+                    "Message-ID per tutti i destinatari attesi e correlati."
+                ),
+                "notification_id": correlation_id,
+                "sent_message_id": sorted(covered_sent_ids)[0],
+                "sent_message_ids": sorted(covered_sent_ids),
+                "recipient_identity": sorted(required_recipients)[0],
+                "recipient_identities": sorted(required_recipients),
+                "act_binding": sorted(common_act_bindings)[0],
+                "evidence": evidence[:8],
+            }
+        return {}
+
+    def _mark_presidio_not_required_for_existing_proof(
+        self,
+        repo: NotificationPresidioRepository,
+        presidio_id: str,
+        *,
+        proof: dict[str, Any],
+        actor: str,
+    ) -> None:
+        try:
+            repo.transition(
+                presidio_id,
+                "NOT_REQUIRED",
+                actor=actor,
+                reason=clean_text(proof.get("reason"), 500) or "Prova di notifica già presente nel fascicolo.",
+                evidence={"source": "fascicolo", "complete_proof": True, "items": list(proof.get("evidence") or [])[:8]},
+                idempotency_key=f"proof-already-present:{presidio_id}",
+            )
+        except Exception:
+            pass
+
+    def materialize_legal_notification_candidates(
+        self,
+        *,
+        message_id: str = "",
+        legal_event_id: str = "",
+        actor: str = "pec-validator",
+        limit: int = 0,
+    ) -> dict[str, Any]:
+        """Trasforma i candidati `notifications` del JSON V2 in presidi operativi.
+
+        È un passaggio fuori dal percorso GET/UI: legge eventi già persistiti,
+        allegati già estratti e scrive righe idempotenti nel repository presidi.
+        """
+
+        candidate_marker = '%"creates_notification_candidate":true%'
+        filters = ["e.tenant_id=?", "e.event_json LIKE ?"]
+        params: list[Any] = [self.tenant_id, candidate_marker]
+        if message_id:
+            filters.append("e.message_id=?")
+            params.append(clean_text(message_id, 120))
+        if legal_event_id:
+            filters.append("e.id=?")
+            params.append(clean_text(legal_event_id, 120))
+        else:
+            filters.append(
+                """
+                e.id=(
+                    SELECT newer.id
+                    FROM pec_legal_events newer
+                    WHERE newer.tenant_id=e.tenant_id
+                      AND newer.message_id=e.message_id
+                      AND newer.event_json LIKE ?
+                    ORDER BY newer.created_at DESC, newer.id DESC
+                    LIMIT 1
+                )
+                """
+            )
+            params.append(candidate_marker)
+        sql = f"""
+            SELECT e.*, m.received_at, m.ingested_at, m.linked_fascicolo_id
+            FROM pec_legal_events e
+            JOIN pec_messages m ON m.tenant_id=e.tenant_id AND m.id=e.message_id
+            WHERE {' AND '.join(filters)}
+            ORDER BY e.created_at DESC, e.id DESC
+        """
+        if limit and int(limit) > 0:
+            sql += " LIMIT ?"
+            params.append(int(limit))
+        with self.connect() as conn:
+            rows = [dict(row) for row in conn.execute(sql, tuple(params)).fetchall()]
+
+        repo = NotificationPresidioRepository(self.db_path, tenant_id=self.tenant_id)
+        service = NotificationPresidioService(repo)
+        checked = 0
+        created = 0
+        existing = 0
+        skipped = 0
+        errors: list[str] = []
+        warnings: list[str] = []
+        duplicate_reconciliation: dict[str, Any] = {
+            "checked_groups": 0,
+            "cancelled": 0,
+            "cancelled_presidio_ids": [],
+            "skipped": 0,
+            "errors": [],
+        }
+        decision_reconciliation: dict[str, Any] = {
+            "decisions": 0,
+            "checked": 0,
+            "completed": 0,
+            "agenda_completed": 0,
+            "errors": [],
+        }
+        try:
+            for row in rows:
+                checked += 1
+                try:
+                    understanding = json.loads(str(row.get("event_json") or "{}"))
+                    notifications = [
+                        item
+                        for item in list(understanding.get("notifications") or [])
+                        if isinstance(item, dict) and item.get("creates_notification_candidate")
+                    ]
+                    if not notifications:
+                        skipped += 1
+                        continue
+                    fascicolo_id = clean_text(row.get("linked_fascicolo_id"), 120)
+                    if not fascicolo_id:
+                        skipped += 1
+                        warnings.append(f"{row.get('id')}: fascicolo non collegato, presidio non creato.")
+                        continue
+                    with self.connect() as conn:
+                        attachments = self.attachment_rows(conn, str(row["message_id"]), str(row["parsed_version_id"]))
+                    seen_notification_cases: set[str] = set()
+                    for candidate in notifications:
+                        notification_case = self._notification_candidate_case(candidate)
+                        if notification_case in seen_notification_cases:
+                            skipped += 1
+                            continue
+                        seen_notification_cases.add(notification_case)
+                        payload = {
+                            "fascicolo_id": fascicolo_id,
+                            "legal_event_id": row["id"],
+                            "source_order_or_event_id": row["message_id"],
+                            "source_message_id": row["message_id"],
+                            "notification_instance_document_key": sha256_json(
+                                {
+                                    "kind": "pec-notification-case",
+                                    "message_id": row["message_id"],
+                                    "fascicolo_id": fascicolo_id,
+                                    "notification_case": notification_case,
+                                }
+                            ),
+                            "source_parsed_version_id": row["parsed_version_id"],
+                            "source_effective_at": row.get("received_at") or row.get("created_at"),
+                            "pec_official_delivery_at": row.get("received_at") or "",
+                            "event_or_order_at": row.get("created_at") or "",
+                            "live_pec_operational_event": True,
+                            "trigger_type": candidate.get("event_type") or "STRATEGIC_NOTIFICATION_REVIEW",
+                            "notification_case": notification_case,
+                            "channel": "pec",
+                            "rulepack_version": candidate.get("rulepack_version") or RULEPACK_VERSION,
+                            "priority": candidate.get("priority") or row.get("priority") or "P1",
+                            "confidence": candidate.get("confidence") or row.get("confidence") or 0.0,
+                            "human_review_required": True,
+                            "detection_reason": candidate.get("reason") or candidate.get("proposed_action") or "Candidato notifica rilevato dalla PEC.",
+                            "legal_basis": [{"id": source_id} for source_id in list(candidate.get("legal_sources") or [])],
+                            "evidence_summary": {
+                                "source": "pec_legal_event_understanding",
+                                "legal_event_id": row["id"],
+                                "message_id": row["message_id"],
+                                "rule_id": candidate.get("rule_id"),
+                                "excerpt": candidate.get("text_excerpt") or "",
+                            },
+                            "documents": self._notification_candidate_documents(
+                                candidate,
+                                attachments,
+                                source_message_id=str(row["message_id"]),
+                            ),
+                            "recipients": self._notification_candidate_recipients(understanding, candidate),
+                            "actor": actor,
+                        }
+                        proof = self._notification_complete_proof_from_fascicolo(
+                            fascicolo_id=fascicolo_id,
+                            source_effective_at=payload["source_effective_at"],
+                            source_message_id=str(row["message_id"]),
+                            candidate_documents=list(payload.get("documents") or []),
+                            candidate_recipients=list(payload.get("recipients") or []),
+                        )
+                        if proof.get("complete_proof"):
+                            payload["complete_proof"] = True
+                            payload["resolution_code"] = "proof_already_present"
+                            payload["resolution_reason"] = proof["reason"]
+                            payload["detection_reason"] = (
+                                f"{payload['detection_reason']} {proof['reason']}"
+                            ).strip()
+                            payload["evidence_summary"] = {
+                                **dict(payload.get("evidence_summary") or {}),
+                                "complete_proof": True,
+                                "proof_evidence": list(proof.get("evidence") or [])[:8],
+                            }
+                        result = service.create_candidate(payload)
+                        if result.get("created"):
+                            created += 1
+                        else:
+                            existing += 1
+                            if proof.get("complete_proof"):
+                                self._mark_presidio_not_required_for_existing_proof(
+                                    repo,
+                                    str(result.get("id") or ""),
+                                    proof=proof,
+                                    actor=actor,
+                                )
+                except Exception as exc:
+                    errors.append(f"{row.get('id')}: {clean_text(exc, 300)}")
+            duplicate_reconciliation = self.reconcile_duplicate_notification_presidia(
+                message_id=message_id,
+                actor=actor,
+            )
+            decision_reconciliation = self.reconcile_document_presidia_closed_by_decision(
+                actor=actor,
+            )
+        finally:
+            repo.close()
+        return {
+            "ok": not errors,
+            "checked": checked,
+            "created": created,
+            "existing": existing,
+            "skipped": skipped,
+            "warnings": warnings[:20],
+            "errors": errors[:20],
+            "duplicate_reconciliation": duplicate_reconciliation,
+            "decision_reconciliation": decision_reconciliation,
+        }
+
+    def reconcile_duplicate_notification_presidia(
+        self,
+        *,
+        message_id: str = "",
+        actor: str = "pec-maintenance",
+    ) -> dict[str, Any]:
+        """Mantiene un solo presidio operativo per la stessa PEC e decisione.
+
+        La deduplicazione richiede la coincidenza esatta del fascicolo, della
+        PEC sorgente, del caso di notifica, del canale e dell'insieme dei
+        documenti. Non accorpa quindi decisioni diverse contenute nella stessa
+        PEC. Le righe duplicate restano nell'audit come ``CANCELLED``.
+        """
+
+        source_message_id = clean_text(message_id, 120)
+        filters = ["p.tenant_id=?"]
+        params: list[Any] = [self.tenant_id]
+        if source_message_id:
+            filters.append("p.source_message_id=?")
+            params.append(source_message_id)
+        sql = f"""
+            SELECT p.*, d.identity_key
+            FROM pec_legal_notification_presidia p
+            LEFT JOIN pec_legal_notification_documents d
+              ON d.tenant_id=p.tenant_id AND d.presidio_id=p.id
+            WHERE {' AND '.join(filters)}
+            ORDER BY p.updated_at DESC, p.id DESC, d.identity_key ASC
+        """
+        with self.connect() as conn:
+            rows = [dict(row) for row in conn.execute(sql, tuple(params)).fetchall()]
+        by_id: dict[str, dict[str, Any]] = {}
+        document_keys: dict[str, set[str]] = {}
+        for row in rows:
+            presidio_id = clean_text(row.get("id"), 120)
+            if not presidio_id:
+                continue
+            by_id.setdefault(presidio_id, {key: value for key, value in row.items() if key != "identity_key"})
+            identity_key = clean_text(row.get("identity_key"), 300)
+            if identity_key:
+                document_keys.setdefault(presidio_id, set()).add(identity_key)
+        groups: dict[tuple[str, str, str, str, tuple[str, ...]], list[dict[str, Any]]] = {}
+        skipped = 0
+        for presidio_id, row in by_id.items():
+            identities = tuple(sorted(document_keys.get(presidio_id, set())))
+            if not identities:
+                skipped += 1
+                continue
+            key = (
+                clean_text(row.get("fascicolo_id"), 120),
+                clean_text(row.get("source_message_id"), 120),
+                clean_text(row.get("notification_case"), 120),
+                clean_text(row.get("channel"), 40),
+                identities,
+            )
+            groups.setdefault(key, []).append(row)
+        status_rank = {
+            "CLOSED": 100,
+            "NOT_REQUIRED": 95,
+            "PROOF_DEPOSITED": 90,
+            "PROOF_TO_DEPOSIT": 85,
+            "DELIVERY_COMPLETE": 80,
+            "PARTIAL_DELIVERY": 75,
+            "DELIVERY_FAILED": 75,
+            "RAC_RECEIVED": 70,
+            "SENT_WAITING_RAC": 65,
+            "READY_TO_SEND": 60,
+            "RELATA_SIGNED": 55,
+            "RELATA_DRAFTED": 50,
+            "READY_FOR_RELATA": 45,
+            "RECIPIENTS_TO_VERIFY": 40,
+            "NOTIFICATION_CONFIRMED": 38,
+            "ORIGINAL_ACQUIRED": 35,
+            "ORIGINAL_TO_ACQUIRE": 32,
+            "NEEDS_REVIEW": 30,
+            "DETECTED": 25,
+            "LEGACY_REVIEW_REQUIRED": 20,
+            "LEGACY_ASSUMED_HANDLED": 15,
+            "CANCELLED": 0,
+        }
+        repo = NotificationPresidioRepository(self.db_path, tenant_id=self.tenant_id)
+        checked_groups = 0
+        cancelled = 0
+        cancelled_presidio_ids: list[str] = []
+        errors: list[str] = []
+        try:
+            for members in groups.values():
+                if len(members) < 2:
+                    continue
+                checked_groups += 1
+                survivor = max(
+                    members,
+                    key=lambda row: (
+                        status_rank.get(clean_text(row.get("status")).upper(), -1),
+                        clean_text(row.get("updated_at"), 80),
+                        clean_text(row.get("id"), 120),
+                    ),
+                )
+                survivor_id = clean_text(survivor.get("id"), 120)
+                for duplicate in members:
+                    duplicate_id = clean_text(duplicate.get("id"), 120)
+                    status = clean_text(duplicate.get("status")).upper()
+                    if not duplicate_id or duplicate_id == survivor_id or status == "CANCELLED":
+                        continue
+                    if status in {
+                        "CLOSED",
+                        "NOT_REQUIRED",
+                        "PROOF_DEPOSITED",
+                        "LEGACY_ASSUMED_HANDLED",
+                    }:
+                        skipped += 1
+                        continue
+                    try:
+                        transition = repo.transition(
+                            duplicate_id,
+                            "CANCELLED",
+                            actor=actor,
+                            reason=(
+                                "Duplicato della stessa decisione PEC: resta attivo il presidio "
+                                f"{survivor_id}."
+                            ),
+                            evidence={
+                                "reason": "same_pec_message_same_document",
+                                "survivor_id": survivor_id,
+                                "source_message_id": clean_text(duplicate.get("source_message_id"), 120),
+                            },
+                            idempotency_key=f"deduplicate:{survivor_id}:{duplicate_id}",
+                        )
+                        if transition.inserted:
+                            cancelled += 1
+                            cancelled_presidio_ids.append(duplicate_id)
+                    except Exception as exc:
+                        errors.append(f"{duplicate_id}: {clean_text(exc, 300)}")
+        finally:
+            repo.close()
+        if checked_groups or cancelled or errors:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.notification_presidio.duplicates_reconciled",
+                    resource_type="pec_message",
+                    resource_id=source_message_id or "all",
+                    payload={
+                        "checked_groups": checked_groups,
+                        "cancelled": cancelled,
+                        "cancelled_presidio_ids": cancelled_presidio_ids,
+                        "skipped": skipped,
+                        "errors": errors[:20],
+                    },
+                    actor=actor,
+                )
+        return {
+            "checked_groups": checked_groups,
+            "cancelled": cancelled,
+            "cancelled_presidio_ids": cancelled_presidio_ids,
+            "skipped": skipped,
+            "errors": errors[:20],
+        }
+
     def parse_and_store(self, message_id: str, *, actor: str = "pec-parser") -> dict[str, Any]:
         with self.connect() as conn:
             row = self.get_message_row(conn, message_id)
@@ -6871,9 +7843,20 @@ class PecAuditRepository:
                 attachments=attachments,
             )
             self.enqueue_job(conn, "link", message_id=message_id, priority=45, actor=actor)
+        result["notification_presidia"] = self.materialize_legal_notification_candidates(
+            message_id=message_id,
+            actor=actor,
+        )
         return result
 
-    def refresh_validation_reports(self, *, actor: str = "pec-maintenance", limit: int = 0) -> dict[str, Any]:
+    def refresh_validation_reports(
+        self,
+        *,
+        actor: str = "pec-maintenance",
+        limit: int = 0,
+        refresh_ocr: bool = True,
+        batch_size: int = 25,
+    ) -> dict[str, Any]:
         """Rigenera i report PEC già acquisiti con le regole correnti.
 
         Serve quando cambiano classificazione giuridica, estrazione OCR o filtri
@@ -6884,6 +7867,8 @@ class PecAuditRepository:
         checked = 0
         updated = 0
         errors: list[str] = []
+        materialize_message_ids: list[str] = []
+        batch_limit = max(1, min(int(batch_size or 25), 100))
         with self.connect() as conn:
             rows = conn.execute(
                 """
@@ -6907,7 +7892,15 @@ class PecAuditRepository:
                     parsed_id = str(parsed_row["id"])
                     latest_report = self.latest_report(conn, message_id)
                     needs_remote_hearing_pdf_refresh = _remote_hearing_needs_pdf_link_refresh(latest_report)
-                    if self._stale_zip_ocr_rows(conn, message_id, parsed_id) or needs_remote_hearing_pdf_refresh:
+                    # Una nuova regola giuridica deve poter rileggere i dati
+                    # già estratti senza riaprire migliaia di ZIP/PDF e senza
+                    # trattenere il lock SQLite durante OCR. Il recupero OCR
+                    # resta esplicito per i casi in cui si sta davvero
+                    # riparando estrazione o collegamenti audiovisivi.
+                    if refresh_ocr and (
+                        self._stale_zip_ocr_rows(conn, message_id, parsed_id)
+                        or needs_remote_hearing_pdf_refresh
+                    ):
                         self._refresh_ocr_for_message_on_connection(
                             conn,
                             message_id,
@@ -6937,10 +7930,29 @@ class PecAuditRepository:
                         actor=actor,
                         attachments=attachments,
                     )
+                    materialize_message_ids.append(message_id)
                     updated += 1
                 except Exception as exc:
                     errors.append(f"{message_id}: {exc}")
-        return {"ok": not errors, "checked": checked, "updated": updated, "errors": errors[:20]}
+                if checked % batch_limit == 0:
+                    # Rilascia periodicamente il lock di scrittura: la
+                    # riclassificazione giuridica dell'archivio non deve
+                    # rallentare PEC, Agenda o notifiche mentre prosegue.
+                    conn.commit()
+        presidia = {"checked": 0, "created": 0, "existing": 0, "skipped": 0, "warnings": [], "errors": []}
+        for item_message_id in materialize_message_ids:
+            report = self.materialize_legal_notification_candidates(
+                message_id=item_message_id,
+                actor=actor,
+            )
+            for key in ("checked", "created", "existing", "skipped"):
+                presidia[key] += int(report.get(key) or 0)
+            if report.get("warnings"):
+                presidia["warnings"].extend(list(report.get("warnings") or []))
+            if report.get("errors"):
+                presidia["errors"].extend(list(report.get("errors") or []))
+        errors.extend(str(item) for item in presidia["errors"][:20])
+        return {"ok": not errors, "checked": checked, "updated": updated, "notification_presidia": presidia, "errors": errors[:20]}
 
     def _fascicoli_candidates(self, parsed: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         if not self.fascicoli_db_path:
@@ -7233,7 +8245,85 @@ class PecAuditRepository:
             "auto_deadline": auto_deadline,
         }
 
+    def recover_stale_jobs(self, *, older_than_seconds: int = 21600, actor: str = "pec-worker") -> dict[str, int]:
+        """Chiude i job rimasti `running` dopo un arresto senza rieseguirli alla cieca.
+
+        Un job interrotto può lasciare lo stato `running`; se esiste già un esito
+        terminale equivalente, la riga bloccata viene rimossa. Altrimenti viene
+        registrato un fallimento esplicito, senza riaccodare OCR o operazioni
+        potenzialmente onerose. La soglia di sei ore evita di toccare lavori vivi.
+        """
+
+        seconds = max(3600, int(older_than_seconds or 21600))
+        cutoff = (utc_now() - timedelta(seconds=seconds)).isoformat().replace("+00:00", "Z")
+        now = iso_now()
+        recovered = 0
+        pruned = 0
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, message_id, job_type, attempts, max_attempts, started_at, updated_at
+                FROM pec_jobs
+                WHERE tenant_id=? AND status='running' AND updated_at<>'' AND updated_at<=?
+                ORDER BY updated_at ASC
+                """,
+                (self.tenant_id, cutoff),
+            ).fetchall()
+            for row in rows:
+                job_id = str(row["id"] or "")
+                message_id = str(row["message_id"] or "")
+                job_type = str(row["job_type"] or "")
+                terminal = conn.execute(
+                    """
+                    SELECT id, status FROM pec_jobs
+                    WHERE tenant_id=? AND message_id=? AND job_type=?
+                      AND status IN ('done', 'failed') AND id<>?
+                    ORDER BY updated_at DESC, rowid DESC
+                    LIMIT 1
+                    """,
+                    (self.tenant_id, message_id, job_type, job_id),
+                ).fetchone()
+                payload = {
+                    "message_id": message_id,
+                    "job_type": job_type,
+                    "started_at": str(row["started_at"] or ""),
+                    "updated_at": str(row["updated_at"] or ""),
+                    "cutoff": cutoff,
+                }
+                if terminal is not None:
+                    conn.execute("DELETE FROM pec_jobs WHERE id=? AND tenant_id=? AND status='running'", (job_id, self.tenant_id))
+                    self.append_audit(
+                        conn,
+                        action="pec.job.stale_duplicate_pruned",
+                        resource_type="pec_job",
+                        resource_id=job_id,
+                        payload={**payload, "terminal_job_id": str(terminal["id"] or ""), "terminal_status": str(terminal["status"] or "")},
+                        actor=actor,
+                    )
+                    pruned += 1
+                    continue
+                conn.execute(
+                    """
+                    UPDATE pec_jobs
+                    SET status='failed', finished_at=?, updated_at=?,
+                        error=CASE WHEN error='' THEN 'Job interrotto: recuperato come fallito dopo soglia di sicurezza.' ELSE error END
+                    WHERE id=? AND tenant_id=? AND status='running'
+                    """,
+                    (now, now, job_id, self.tenant_id),
+                )
+                self.append_audit(
+                    conn,
+                    action="pec.job.stale_marked_failed",
+                    resource_type="pec_job",
+                    resource_id=job_id,
+                    payload=payload,
+                    actor=actor,
+                )
+                recovered += 1
+        return {"recovered": recovered, "pruned": pruned, "total": recovered + pruned}
+
     def run_pending_jobs(self, *, limit: int = 100, actor: str = "pec-worker") -> dict[str, Any]:
+        stale_jobs = self.recover_stale_jobs(actor=actor)
         processed = 0
         failed = 0
         done: list[dict[str, Any]] = []
@@ -7325,7 +8415,7 @@ class PecAuditRepository:
                     )
                     self.append_audit(conn, action=f"pec.job.{row['job_type']}.failed", resource_type="pec_job", resource_id=str(row["id"]), payload={"error": str(exc)}, actor=actor)
                 failed += 1
-        return {"processed": processed, "failed": failed, "jobs": done}
+        return {"processed": processed, "failed": failed, "jobs": done, "stale_jobs": stale_jobs}
 
     def enqueue_stale_attachment_repairs(
         self,
@@ -7905,6 +8995,254 @@ class PecAuditRepository:
         except Exception:
             return {}
 
+    def _reconcile_document_presidio_deadlines(
+        self,
+        *,
+        fascicolo_id: str,
+        document_id: str,
+        message_ids: set[str],
+        actor: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Annulla soltanto derivati automatici che il nuovo filtro esclude.
+
+        Le righe rimangono nello storico con motivazione e audit. Non vengono
+        mai toccate scadenze senza l'identita' tecnica del documento sorgente.
+        """
+
+        if not self.scadenziario_db_path:
+            return {"checked": 0, "cancelled": 0, "agenda_cancelled": 0, "errors": []}
+        cleaned_ids = {clean_text(value, 220) for value in message_ids if clean_text(value, 220)}
+        if not fascicolo_id or not document_id or not cleaned_ids:
+            return {"checked": 0, "cancelled": 0, "agenda_cancelled": 0, "errors": []}
+
+        from pct.agenda import StatoAppuntamento
+        from pct.scadenziario import StatoTermine
+
+        markers = {f"PEC_AUDIT:{value}" for value in cleaned_ids}
+        manager = self._scadenziario_manager()
+        agenda = self._agenda_manager() if self.agenda_db_path else None
+        checked = 0
+        cancelled = 0
+        agenda_cancelled = 0
+        cancelled_deadline_ids: list[str] = []
+        cancelled_agenda_ids: set[str] = set()
+        errors: list[str] = []
+        try:
+            for deadline in list(manager.tutte(solo_aperte=False)):
+                if clean_text(getattr(deadline, "id_fascicolo", ""), 120) != fascicolo_id:
+                    continue
+                note = str(getattr(deadline, "note", "") or "")
+                note_lines = {line.strip() for line in note.splitlines() if line.strip()}
+                if not markers.intersection(note_lines):
+                    continue
+                checked += 1
+                deadline_id = clean_text(getattr(deadline, "id", ""), 120)
+                if not deadline_id:
+                    continue
+                if getattr(deadline, "stato", None) != StatoTermine.ANNULLATO:
+                    audit_note = (
+                        "Presidio documentale automatico annullato: la fonte non contiene "
+                        f"un adempimento dell'ufficio. Motivo: {clean_text(reason, 320)}"
+                    )
+                    manager.aggiorna(
+                        deadline_id,
+                        stato=StatoTermine.ANNULLATO,
+                        completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                        note="\n".join(part for part in (note.rstrip(), audit_note) if part),
+                    )
+                    cancelled += 1
+                    cancelled_deadline_ids.append(deadline_id)
+                agenda_id = clean_text(getattr(deadline, "id_appuntamento", ""), 120)
+                if agenda_id:
+                    cancelled_agenda_ids.add(agenda_id)
+            if agenda is not None:
+                for agenda_id in sorted(cancelled_agenda_ids):
+                    try:
+                        appointment = agenda.get(agenda_id)
+                        if getattr(appointment, "stato", None) != StatoAppuntamento.ANNULLATO:
+                            agenda.cambia_stato(agenda_id, StatoAppuntamento.ANNULLATO)
+                            agenda_cancelled += 1
+                    except Exception as exc:
+                        errors.append(clean_text(exc, 300))
+        except Exception as exc:
+            errors.append(clean_text(exc, 300))
+
+        if cancelled or agenda_cancelled:
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.document_presidio.reconciled",
+                        resource_type="fascicolo_documento",
+                        resource_id=_document_presidio_checked_resource_id(
+                            fascicolo_id=fascicolo_id,
+                            document_id=document_id,
+                            sha256="",
+                        ),
+                        payload={
+                            "fascicolo_id": fascicolo_id,
+                            "document_id": document_id,
+                            "markers": sorted(markers),
+                            "cancelled_deadline_ids": cancelled_deadline_ids,
+                            "cancelled_agenda_ids": sorted(cancelled_agenda_ids),
+                            "reason": clean_text(reason, 500),
+                            "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
+                        },
+                        actor=actor,
+                    )
+            except Exception as exc:
+                errors.append(clean_text(exc, 300))
+        return {
+            "checked": checked,
+            "cancelled": cancelled,
+            "agenda_cancelled": agenda_cancelled,
+            "errors": errors[:10],
+        }
+
+    def reconcile_document_presidia_closed_by_decision(
+        self,
+        *,
+        actor: str = "pec-maintenance",
+    ) -> dict[str, Any]:
+        """Chiude soltanto residui automatici di una fase ormai decisa.
+
+        Il documento che fissa l'udienza o assegna note può restare nel fascicolo
+        anche dopo una sentenza a verbale. Se il controllo PEC ha già qualificato
+        una decisione per lo stesso fascicolo, gli appuntamenti e i termini
+        documentali precedenti alla decisione non devono rimanere aperti. La
+        riconciliazione non tocca attività manuali, date successive alla decisione
+        né presìdi di notifica: conserva sempre fonte e storico.
+        """
+
+        if not self.scadenziario_db_path:
+            return {"decisions": 0, "checked": 0, "completed": 0, "agenda_completed": 0, "errors": []}
+
+        terminal_statuses = (
+            "CANCELLED",
+            "CLOSED",
+            "NOT_REQUIRED",
+            "PROOF_DEPOSITED",
+        )
+        placeholders = ",".join("?" for _ in terminal_statuses)
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT id, fascicolo_id, source_effective_at, notification_case
+                FROM pec_legal_notification_presidia
+                WHERE tenant_id=?
+                  AND status NOT IN ({placeholders})
+                  AND (
+                    LOWER(notification_case) LIKE '%judgment%'
+                    OR LOWER(notification_case) LIKE '%sentenza%'
+                  )
+                  AND TRIM(fascicolo_id)<>''
+                ORDER BY source_effective_at DESC, id DESC
+                """,
+                (self.tenant_id, *terminal_statuses),
+            ).fetchall()
+
+        decision_days: dict[str, str] = {}
+        decision_ids: dict[str, list[str]] = {}
+        for row in rows:
+            fascicolo_id = clean_text(row["fascicolo_id"], 120)
+            decision_day = clean_text(row["source_effective_at"], 40)[:10]
+            presidio_id = clean_text(row["id"], 120)
+            if not fascicolo_id or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", decision_day):
+                continue
+            # La prima riga è la decisione più recente: una fase precedente si
+            # considera definita fino a quella data, mai oltre.
+            decision_days.setdefault(fascicolo_id, decision_day)
+            if presidio_id:
+                decision_ids.setdefault(fascicolo_id, []).append(presidio_id)
+
+        if not decision_days:
+            return {"decisions": 0, "checked": 0, "completed": 0, "agenda_completed": 0, "errors": []}
+
+        from pct.agenda import StatoAppuntamento
+        from pct.scadenziario import StatoTermine
+
+        manager = self._scadenziario_manager()
+        agenda = self._agenda_manager() if self.agenda_db_path else None
+        checked = 0
+        completed = 0
+        agenda_completed = 0
+        completed_deadline_ids: list[str] = []
+        completed_agenda_ids: set[str] = set()
+        errors: list[str] = []
+        for deadline in list(manager.tutte(solo_aperte=False)):
+            fascicolo_id = clean_text(getattr(deadline, "id_fascicolo", ""), 120)
+            decision_day = decision_days.get(fascicolo_id, "")
+            if not decision_day or getattr(deadline, "stato", None) != StatoTermine.APERTO:
+                continue
+            due_day = clean_text(getattr(deadline, "data_scadenza", ""), 20)[:10]
+            note = str(getattr(deadline, "note", "") or "")
+            if due_day > decision_day or "PEC_AUDIT:docpresidio:" not in note:
+                continue
+            checked += 1
+            deadline_id = clean_text(getattr(deadline, "id", ""), 120)
+            if not deadline_id:
+                continue
+            note_line = (
+                "Presidio documentale automatico completato: il provvedimento "
+                "decisorio successivo ha definito la fase processuale."
+            )
+            try:
+                manager.aggiorna(
+                    deadline_id,
+                    stato=StatoTermine.COMPLETATO,
+                    completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                    note="\n".join(part for part in (note.rstrip(), note_line) if part),
+                )
+                completed += 1
+                completed_deadline_ids.append(deadline_id)
+                agenda_id = clean_text(getattr(deadline, "id_appuntamento", ""), 120)
+                if agenda_id:
+                    completed_agenda_ids.add(agenda_id)
+            except Exception as exc:
+                errors.append(clean_text(exc, 300))
+
+        if agenda is not None:
+            for agenda_id in sorted(completed_agenda_ids):
+                try:
+                    appointment = agenda.get(agenda_id)
+                    if getattr(appointment, "stato", None) != StatoAppuntamento.COMPLETATO:
+                        agenda.cambia_stato(agenda_id, StatoAppuntamento.COMPLETATO)
+                        agenda_completed += 1
+                except KeyError:
+                    # La scadenza conserva lo storico anche quando il relativo
+                    # appuntamento era già stato rimosso dal calendario.
+                    continue
+                except Exception as exc:
+                    errors.append(clean_text(exc, 300))
+
+        if completed or agenda_completed:
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.document_presidio.closed_by_decision",
+                        resource_type="agenda_scadenziario",
+                        resource_id="document_presidia",
+                        payload={
+                            "decision_days": decision_days,
+                            "decision_presidio_ids": decision_ids,
+                            "completed_deadline_ids": completed_deadline_ids,
+                            "completed_agenda_ids": sorted(completed_agenda_ids),
+                            "parser_version": DOCUMENT_PRESIDIO_PARSER_VERSION,
+                        },
+                        actor=actor,
+                    )
+            except Exception as exc:
+                errors.append(clean_text(exc, 300))
+        return {
+            "decisions": len(decision_days),
+            "checked": checked,
+            "completed": completed,
+            "agenda_completed": agenda_completed,
+            "errors": errors[:10],
+        }
+
     def _document_presidio_enrich_existing_deadline(
         self,
         *,
@@ -8162,6 +9500,9 @@ class PecAuditRepository:
             "indexed_documents": 0,
             "indexing_skipped": 0,
             "candidate_dates": 0,
+            "skipped_non_actionable_candidates": 0,
+            "reconciled_non_actionable_deadlines": 0,
+            "reconciled_non_actionable_agenda": 0,
             "scheduled": 0,
             "already_presided": 0,
             "past_remote_hearings_recorded": 0,
@@ -8526,7 +9867,6 @@ class PecAuditRepository:
                         if candidate_source is source:
                             matching_records.append(candidate_record)
                     text = ""
-                    extracted = None
                     selected_record = record
                     read_errors: list[Exception] = []
                     for candidate_record in matching_records:
@@ -8544,7 +9884,6 @@ class PecAuditRepository:
                         if not candidate_text:
                             continue
                         selected_record = candidate_record
-                        extracted = candidate_extracted
                         text = candidate_text
                         break
                     record = selected_record
@@ -8653,6 +9992,37 @@ class PecAuditRepository:
                             date_value=target_date,
                             discriminator=discriminator,
                         )
+                        actionable, exclusion_reason = _document_presidio_candidate_is_actionable(
+                            candidate,
+                            kind=kind,
+                            document_name=document_name,
+                            document_text=text,
+                        )
+                        if not actionable:
+                            reconciliation = self._reconcile_document_presidio_deadlines(
+                                fascicolo_id=fascicolo_id,
+                                document_id=source.source_id or str(getattr(record, "id", "") or ""),
+                                message_ids={message_id, legacy_message_id},
+                                actor=actor,
+                                reason=exclusion_reason,
+                            )
+                            report["skipped_non_actionable_candidates"] += 1
+                            report["reconciled_non_actionable_deadlines"] += int(reconciliation.get("cancelled") or 0)
+                            report["reconciled_non_actionable_agenda"] += int(reconciliation.get("agenda_cancelled") or 0)
+                            report["errors"].extend(list(reconciliation.get("errors") or [])[:3])
+                            if len(report["items"]) < 30:
+                                report["items"].append(
+                                    {
+                                        "status": "skipped_non_actionable_candidate",
+                                        "fascicolo_id": fascicolo_id,
+                                        "document": document_name,
+                                        "due_date": target_date,
+                                        "kind": kind,
+                                        "reason": exclusion_reason,
+                                        "reconciliation": reconciliation,
+                                    }
+                                )
+                            continue
                         profile = _document_presidio_profile(fascicolo, document_name=document_name, candidate=candidate)
                         attachment = {
                             "filename": document_name,
@@ -8798,6 +10168,13 @@ class PecAuditRepository:
                             message={"linked_fascicolo_id": fascicolo_id},
                             actor=actor,
                             due_date=target_date,
+                            # Il presidio documentale ha già separato e
+                            # classificato il singolo candidato. Rieseguire qui
+                            # l'understanding globale dell'intero documento
+                            # farebbe ereditare al termine 127-ter il link della
+                            # distinta udienza da remoto presente nello stesso
+                            # provvedimento.
+                            _schedule_all_hearings=False,
                         )
                         agenda = deadline.get("agenda") if isinstance(deadline.get("agenda"), dict) else {}
                         agenda_id = clean_text(agenda.get("agenda_id") or "")
@@ -9110,6 +10487,67 @@ class PecAuditRepository:
                 "legal_event_understanding": legal_event_understanding,
             }
 
+    def get_message_source_detail(self, message_id: str) -> dict[str, Any]:
+        """Dettaglio leggero per il lettore fonte PEC.
+
+        La vista Agenda/Scadenziario deve aprire rapidamente la PEC specifica
+        che ha generato l'attività. Qui evitiamo di leggere il BLOB MIME e di
+        caricare la matrice giuridica completa: servono solo intestazioni,
+        testo ricostruito e lista allegati apribili nel nostro lettore.
+        """
+
+        clean_id = clean_text(message_id)
+        columns = """
+            id, tenant_id, account_email, folder, imap_uid, message_id_header,
+            mime_sha256, mime_size, received_at, ingested_at, status,
+            quality_status, signature_status, linked_fascicolo_id,
+            linked_fascicolo_score, retention_policy_id, retention_until,
+            metadata_json
+        """
+        with self.connect() as conn:
+            row = conn.execute(
+                f"SELECT {columns} FROM pec_messages WHERE tenant_id=? AND id=?",
+                (self.tenant_id, clean_id),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"PEC non trovata: {clean_id}")
+            item = _row_to_dict(row)
+            item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
+            parsed_row = self.latest_parsed_row(conn, clean_id)
+            parsed: dict[str, Any] = {}
+            parsed_meta: dict[str, Any] = {}
+            if parsed_row:
+                raw_parsed = json.loads(parsed_row["parsed_json"] or "{}")
+                body = raw_parsed.get("body") if isinstance(raw_parsed.get("body"), dict) else {}
+                body_text = clean_text(
+                    raw_parsed.get("body_text")
+                    or body.get("text")
+                    or body.get("html_text")
+                    or ""
+                )
+                parsed = {
+                    "body_text": body_text,
+                    "body": {
+                        "text": clean_text(body.get("text") or ""),
+                        "html_text": clean_text(body.get("html_text") or ""),
+                    },
+                }
+                if raw_parsed.get("body_html"):
+                    parsed["body_html"] = str(raw_parsed.get("body_html") or "")
+                parsed_meta = _row_to_dict(parsed_row)
+                parsed_meta.pop("parsed_json", None)
+            attachments = self.attachment_rows(conn, clean_id, str(parsed_meta.get("id") or ""))
+            return {
+                "message": item,
+                "parsed": parsed,
+                "parsed_version": parsed_meta,
+                "attachments": attachments,
+                "validation_report": {},
+                "fascicolo_link": self.latest_link(conn, clean_id),
+                "legal_event_understanding": {},
+                "source_mode": "lightweight",
+            }
+
     def find_by_header_message_id(self, message_id_header: str) -> dict[str, Any] | None:
         if not message_id_header:
             return None
@@ -9322,10 +10760,10 @@ class PecAuditRepository:
                     f"""
                     SELECT id, message_id_header
                     FROM pec_messages
-                    WHERE message_id_header IN ({placeholders})
-                    ORDER BY CASE WHEN tenant_id=? THEN 0 ELSE 1 END
+                    WHERE tenant_id=? AND message_id_header IN ({placeholders})
+                    ORDER BY ingested_at DESC
                     """,
-                    (*chunk, self.tenant_id),
+                    (self.tenant_id, *chunk),
                 ).fetchall()
                 for row in rows:
                     header = str(row["message_id_header"] or "")
@@ -10327,12 +11765,162 @@ class PecAuditRepository:
         seen: set[str] = set()
         for match in re.finditer(r"\bPEC_AUDIT:([^\s\r\n]+)", str(note or "")):
             value = match.group(1).strip().strip(".,;")
-            if not value.startswith("pec_"):
+            canonical = PecAuditRepository._canonical_pec_source_message_id(value)
+            if not canonical:
                 continue
-            if value and value not in seen:
-                seen.add(value)
-                values.append(value)
+            if canonical not in seen:
+                seen.add(canonical)
+                values.append(canonical)
         return values
+
+    @staticmethod
+    def _canonical_pec_source_message_id(value: Any) -> str:
+        """Restituisce il messaggio PEC sorgente anche per marker multi-udienza.
+
+        Le righe Agenda/Scadenziario possono usare marker del tipo
+        ``PEC_AUDIT:pec_x:hearing:...``. Il MIME e il report restano pero'
+        associati al solo ``pec_x``: usare il marker completo per rileggere la
+        PEC impediva il recupero della versione piu' recente.
+        """
+
+        text = clean_text(value, 220).strip().strip(".,;")
+        if not text.startswith("pec_"):
+            return ""
+        return clean_text(text.split(":", 1)[0], 160)
+
+    def _reconcile_automatic_pec_deadlines(
+        self,
+        *,
+        source_message_id: str,
+        desired_markers: set[str],
+        actor: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Annulla i soli derivati automatici superati dalla PEC corrente.
+
+        La riconciliazione e' intenzionalmente fuori dalla UI e usa il marker
+        persistito ``PEC_AUDIT`` come chiave di proprieta'. Non tocca mai
+        scadenze senza marker; per quelle generate dal motore conserva invece
+        la riga e l'appuntamento in stato annullato, con audit ripetibile.
+        """
+
+        source_id = self._canonical_pec_source_message_id(source_message_id)
+        if not source_id or not self.scadenziario_db_path:
+            return {"checked": 0, "cancelled": 0, "agenda_cancelled": 0, "errors": []}
+
+        from pct.agenda import StatoAppuntamento
+        from pct.scadenziario import StatoTermine
+
+        marker_prefix = f"PEC_AUDIT:{source_id}"
+        manager = self._scadenziario_manager()
+        agenda = self._agenda_manager() if self.agenda_db_path else None
+        checked = 0
+        cancelled = 0
+        agenda_cancelled = 0
+        errors: list[str] = []
+        cancelled_deadline_ids: list[str] = []
+        cancelled_agenda_ids: set[str] = set()
+        desired = {clean_text(marker, 260) for marker in desired_markers if clean_text(marker, 260)}
+
+        try:
+            for deadline in list(manager.tutte(solo_aperte=False)):
+                note = str(getattr(deadline, "note", "") or "")
+                markers = {
+                    line.strip()
+                    for line in note.splitlines()
+                    if line.strip().startswith(marker_prefix)
+                    and (line.strip() == marker_prefix or line.strip().startswith(f"{marker_prefix}:"))
+                }
+                if not markers:
+                    continue
+                # Le scadenze del presidio notifiche sono un prodotto distinto
+                # della valutazione giuridica post-sentenza: condividono la
+                # fonte PEC per tracciabilità, ma non sono il vecchio termine
+                # PEC automatico da riconciliare. Non cancellarle quando una
+                # sentenza a verbale esclude l'opposizione ex art. 127-ter.
+                if "IUSENTRA_LEGAL_NOTIFICATION:" in note:
+                    continue
+                checked += 1
+                if markers & desired:
+                    continue
+                deadline_id = clean_text(getattr(deadline, "id", ""), 120)
+                if not deadline_id:
+                    continue
+                if getattr(deadline, "stato", None) != StatoTermine.ANNULLATO:
+                    audit_note = (
+                        "Presidio automatico annullato: l'elaborazione PEC piu' recente "
+                        f"non conferma l'attivita' derivata. Motivo: {clean_text(reason, 320)}"
+                    )
+                    manager.aggiorna(
+                        deadline_id,
+                        stato=StatoTermine.ANNULLATO,
+                        completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                        note="\n".join(part for part in (note.rstrip(), audit_note) if part),
+                    )
+                    cancelled += 1
+                    cancelled_deadline_ids.append(deadline_id)
+                agenda_id = clean_text(getattr(deadline, "id_appuntamento", ""), 120)
+                if agenda_id:
+                    cancelled_agenda_ids.add(agenda_id)
+        except Exception as exc:
+            errors.append(clean_text(exc, 300))
+
+        if agenda is not None:
+            try:
+                for appointment in agenda.tutti():
+                    appointment_id = clean_text(getattr(appointment, "id", ""), 120)
+                    external_uid = clean_text(getattr(appointment, "external_uid", ""), 260)
+                    appointment_note = str(getattr(appointment, "note", "") or "")
+                    desired_appointment = any(
+                        marker
+                        and (
+                            external_uid.startswith(f"{marker}:")
+                            or marker in appointment_note
+                        )
+                        for marker in desired
+                    )
+                    source_owned = bool(
+                        external_uid.startswith(f"{marker_prefix}:")
+                        or marker_prefix in appointment_note
+                        or appointment_id in cancelled_agenda_ids
+                    )
+                    if not source_owned or desired_appointment:
+                        continue
+                    if "IUSENTRA_LEGAL_NOTIFICATION:" in appointment_note:
+                        continue
+                    if getattr(appointment, "stato", None) == StatoAppuntamento.ANNULLATO:
+                        continue
+                    agenda.cambia_stato(appointment_id, StatoAppuntamento.ANNULLATO)
+                    agenda_cancelled += 1
+                    cancelled_agenda_ids.add(appointment_id)
+            except Exception as exc:
+                errors.append(clean_text(exc, 300))
+
+        if cancelled or agenda_cancelled:
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.deadline.derived_reconciled",
+                        resource_type="pec_message",
+                        resource_id=source_id,
+                        payload={
+                            "desired_markers": sorted(desired),
+                            "cancelled_deadline_ids": cancelled_deadline_ids,
+                            "cancelled_agenda_ids": sorted(cancelled_agenda_ids),
+                            "reason": clean_text(reason, 500),
+                            "deadline_policy_version": DEADLINE_POLICY_VERSION,
+                        },
+                        actor=actor,
+                    )
+            except Exception as exc:
+                errors.append(clean_text(exc, 300))
+        return {
+            "checked": checked,
+            "cancelled": cancelled,
+            "agenda_cancelled": agenda_cancelled,
+            "errors": errors[:10],
+        }
 
     def _detail_for_deadline_note(self, note: str) -> tuple[str, dict[str, Any]]:
         missing: list[str] = []
@@ -10412,6 +12000,405 @@ class PecAuditRepository:
             "errors": errors[:20],
         }
 
+    @staticmethod
+    def _legacy_control_tower_dt(value: Any) -> datetime | None:
+        text = clean_text(value, 80)
+        if not text:
+            return None
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+
+    @staticmethod
+    def _event_has_judgment_notification(event_json: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+        notifications = event_json.get("notifications") if isinstance(event_json.get("notifications"), list) else []
+        for item in notifications:
+            if not isinstance(item, dict):
+                continue
+            text = canonical_json(item).casefold()
+            if (
+                str(item.get("notification_case") or "") == "judgment_to_notify"
+                or "judgment_to_notify" in text
+                or "sentenza da valutare" in text
+                or "sentenza a verbale" in text
+            ):
+                return True, item
+        return False, {}
+
+    @staticmethod
+    def _legacy_preferred_attachment(
+        conn: sqlite3.Connection,
+        *,
+        message_id: str,
+        preferred: Any = "",
+    ) -> str:
+        preferred_name = clean_text(preferred, 180).strip(" -:;.,")
+        if re.search(r"\.(?:pdf\.zip|zip|pdf|p7m)\b", preferred_name, flags=re.I):
+            return preferred_name
+        rows = conn.execute(
+            """
+            SELECT filename
+            FROM pec_attachments
+            WHERE message_id=?
+            ORDER BY
+              CASE
+                WHEN lower(filename) LIKE '%.pdf.zip' THEN 0
+                WHEN lower(filename) LIKE '%.zip' THEN 1
+                WHEN lower(filename) LIKE '%.pdf' THEN 2
+                ELSE 9
+              END,
+              attachment_index ASC
+            LIMIT 1
+            """,
+            (message_id,),
+        ).fetchall()
+        return clean_text(rows[0]["filename"], 180) if rows else ""
+
+    def _judgment_notification_candidate_for_message(self, message_id: str) -> dict[str, Any]:
+        """Legge l'evento PEC audit-grade che qualifica una sentenza da notificare.
+
+        Il report dei termini può non produrre una scadenza legale calcolabile:
+        una sentenza ricevuta da cancelleria richiede comunque un presidio
+        operativo di valutazione/preparazione notifica.  La fonte autorevole per
+        questa decisione è ``pec_legal_events``, non il titolo storico della riga
+        scadenziario né il solo calcolatore termini.
+        """
+
+        clean_message_id = clean_text(message_id, 160)
+        if not clean_message_id:
+            return {}
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT e.message_id, e.primary_event, e.event_json, e.event_sha256,
+                       m.received_at, m.linked_fascicolo_id
+                FROM pec_legal_events e
+                JOIN pec_messages m ON m.id=e.message_id
+                WHERE e.tenant_id=?
+                  AND e.message_id=?
+                  AND (
+                    e.primary_event IN ('sentenza_a_verbale', 'sentenza_a_verbale_429', 'deposito_sentenza')
+                    OR e.event_json LIKE '%judgment_to_notify%'
+                    OR e.event_json LIKE '%sentenza_a_verbale%'
+                    OR e.event_json LIKE '%sentenza da valutare%'
+                  )
+                ORDER BY e.created_at DESC, e.rowid DESC
+                LIMIT 5
+                """,
+                (self.tenant_id, clean_message_id),
+            ).fetchall()
+            for row in rows:
+                event_json = _json_loads(row["event_json"])
+                event_json = event_json if isinstance(event_json, dict) else {}
+                has_judgment, notification = self._event_has_judgment_notification(event_json)
+                primary_event = clean_text(row["primary_event"], 80)
+                if primary_event not in {"sentenza_a_verbale", "sentenza_a_verbale_429", "deposito_sentenza"} and not has_judgment:
+                    continue
+                source_file = clean_text(notification.get("source_file") or "", 180) if isinstance(notification, dict) else ""
+                source_name = self._legacy_preferred_attachment(conn, message_id=clean_message_id, preferred=source_file)
+                reason = clean_text(
+                    (notification.get("reason") if isinstance(notification, dict) else "")
+                    or "Sentenza o provvedimento decisorio ricevuto: valutare/preparare la notifica.",
+                    700,
+                )
+                return {
+                    "message_id": clean_message_id,
+                    "received_at": clean_text(row["received_at"], 80),
+                    "linked_fascicolo_id": clean_text(row["linked_fascicolo_id"], 120),
+                    "source_name": source_name,
+                    "reason": reason,
+                    "primary_event": primary_event,
+                    "event_sha256": clean_text(row["event_sha256"], 120),
+                }
+        return {}
+
+    def _repair_pec_judgment_notification_deadline(
+        self,
+        manager: Any,
+        scadenza: Any,
+        *,
+        message_id: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        candidate = self._judgment_notification_candidate_for_message(message_id)
+        if not candidate:
+            return {"checked": False, "updated": False}
+        deadline_id = clean_text(getattr(scadenza, "id", ""), 120)
+        if not deadline_id:
+            return {"checked": True, "updated": False}
+
+        old_note = str(getattr(scadenza, "note", "") or "")
+        preserved_markers = [
+            line.strip()
+            for line in old_note.splitlines()
+            if line.strip().startswith("IUSENTRA_LEGAL_NOTIFICATION:")
+        ]
+        source_name = clean_text(candidate.get("source_name"), 180)
+        source_line = f"Fonte documentale: {source_name}" if source_name else ""
+        reason = clean_text(candidate.get("reason"), 700)
+        note_lines = [
+            *preserved_markers,
+            f"PEC_AUDIT:{message_id}",
+            "Tipo evento: sentenza_da_valutare_per_notifica",
+            f"Decorrenza letta: {candidate.get('received_at') or getattr(scadenza, 'source_event_at', '')}",
+            source_line,
+            reason,
+            (
+                "Attività per l'avvocato: esaminare la sentenza e valutare/preparare "
+                "notifica, relata e prova. La comunicazione di cancelleria non prova "
+                "la notifica dell'avvocato e non fa decorrere da sola il termine breve."
+            ),
+        ]
+        updates: dict[str, Any] = {
+            "titolo": "Sentenza da valutare per la notifica",
+            "descrizione": (
+                "Sentenza o sentenza a verbale ricevuta: esaminare il provvedimento, "
+                "valutare la notifica e presidiare relata/prova."
+            ),
+            "note": "\n".join(line for line in note_lines if line),
+            "source_event_type": "sentenza_da_valutare_per_notifica",
+            "source_event_at": clean_text(candidate.get("received_at") or getattr(scadenza, "source_event_at", ""), 80),
+        }
+        linked_fascicolo_id = clean_text(candidate.get("linked_fascicolo_id"), 120)
+        if linked_fascicolo_id and not clean_text(getattr(scadenza, "id_fascicolo", ""), 120):
+            updates["id_fascicolo"] = linked_fascicolo_id
+        manager.aggiorna(deadline_id, **updates)
+        try:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deadline.judgment_notification_preserved",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={
+                        "deadline_id": deadline_id,
+                        "source_name": source_name,
+                        "linked_fascicolo_id": linked_fascicolo_id,
+                        "status_preserved": clean_text(
+                            getattr(getattr(scadenza, "stato", ""), "value", getattr(scadenza, "stato", "")),
+                            40,
+                        ),
+                        "reason": "Presidio sentenza mantenuto anche senza termine automatico calcolabile.",
+                        "deadline_policy_version": DEADLINE_POLICY_VERSION,
+                    },
+                    actor=actor,
+                )
+        except Exception:
+            pass
+        return {"checked": True, "updated": True, "message_id": message_id, "deadline_id": deadline_id}
+
+    def _legacy_control_tower_sentence_candidate(self, scadenza: Any) -> dict[str, Any]:
+        """Recupera la PEC audit-grade per vecchie righe Control Tower povere.
+
+        Le vecchie scadenze ``Verifica comunicazione di cancelleria e termini``
+        non contenevano il marker ``PEC_AUDIT`` pur essendo nate da una PEC.
+        L'aggancio è ammesso con una fonte PEC deterministica (id messaggio o
+        hash evento); per il solo storico privo di fonte serve invece un
+        fascicolo certo e un solo messaggio compatibile nella finestra temporale.
+        """
+
+        status = clean_text(getattr(getattr(scadenza, "stato", ""), "value", getattr(scadenza, "stato", "")), 40).upper()
+        if status in {"ANNULLATO", "COMPLETATO"}:
+            return {}
+        note = str(getattr(scadenza, "note", "") or "")
+        if "PEC_AUDIT:" in note or "IUSENTRA_LEGAL_NOTIFICATION:" in note:
+            return {}
+        source_event_type = clean_text(getattr(scadenza, "source_event_type", ""), 100).casefold()
+        title = clean_text(getattr(scadenza, "titolo", ""), 220).casefold()
+        if source_event_type not in {"provvedimento_da_esaminare", "sentenza_da_valutare_per_notifica"} and not (
+            title.startswith("verifica comunicazione di cancelleria")
+            or title.startswith("termine giuridico")
+        ):
+            return {}
+        fascicolo_id = clean_text(getattr(scadenza, "id_fascicolo", ""), 120)
+        binding_text = "\n".join(
+            str(value or "")
+            for value in (
+                note,
+                getattr(scadenza, "descrizione", ""),
+                getattr(scadenza, "trace_json", ""),
+                getattr(scadenza, "source_url", ""),
+            )
+        )
+        raw_source_message = clean_text(
+            getattr(scadenza, "source_message_id", "")
+            or getattr(scadenza, "pec_message_id", ""),
+            320,
+        )
+        explicit_message_id = self._canonical_pec_source_message_id(raw_source_message)
+        explicit_message_header = clean_text(
+            getattr(scadenza, "source_message_id_header", "")
+            or getattr(scadenza, "message_id_header", ""),
+            320,
+        ).strip("<> ").casefold()
+        if not explicit_message_id and not explicit_message_header and "@" in raw_source_message:
+            explicit_message_header = raw_source_message.strip("<> ").casefold()
+        if not explicit_message_id:
+            source_match = re.search(
+                r"(?:PEC_SOURCE|PEC_MESSAGE_ID|audit_id=|/api/pec/messages/)[\s:=/]*(pec_[A-Za-z0-9_-]+)",
+                binding_text,
+                flags=re.I,
+            )
+            explicit_message_id = self._canonical_pec_source_message_id(
+                source_match.group(1) if source_match else ""
+            )
+        if not explicit_message_header:
+            header_match = re.search(
+                r"(?:PEC_MESSAGE_ID_HEADER|MESSAGE_ID_HEADER|Message-ID)\s*:\s*<?([^>\s]+)>?",
+                binding_text,
+                flags=re.I,
+            )
+            explicit_message_header = clean_text(
+                header_match.group(1) if header_match else "",
+                320,
+            ).strip("<> ").casefold()
+        explicit_event_hash = clean_text(
+            getattr(scadenza, "source_event_sha256", "")
+            or getattr(scadenza, "event_sha256", ""),
+            120,
+        ).casefold()
+        if not re.fullmatch(r"[a-f0-9]{64}", explicit_event_hash):
+            hash_match = re.search(
+                r"(?:PEC_EVENT_SHA256|EVENT_SHA256|SOURCE_SHA256)\s*:\s*([a-fA-F0-9]{64})\b",
+                binding_text,
+                flags=re.I,
+            )
+            explicit_event_hash = hash_match.group(1).casefold() if hash_match else ""
+        deterministic_binding = bool(explicit_message_id or explicit_message_header or explicit_event_hash)
+        source_dt = self._legacy_control_tower_dt(getattr(scadenza, "source_event_at", ""))
+        if not deterministic_binding and (not fascicolo_id or source_dt is None):
+            return {}
+
+        filters = ["e.tenant_id=?"]
+        params: list[Any] = [self.tenant_id]
+        if explicit_message_id:
+            filters.append("e.message_id=?")
+            params.append(explicit_message_id)
+        if explicit_message_header:
+            filters.append("lower(trim(m.message_id_header, '<> '))=?")
+            params.append(explicit_message_header)
+        if explicit_event_hash:
+            filters.append("lower(e.event_sha256)=?")
+            params.append(explicit_event_hash)
+        if not deterministic_binding:
+            filters.append("m.linked_fascicolo_id=?")
+            params.append(fascicolo_id)
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT e.message_id, e.primary_event, e.event_json, m.received_at, m.linked_fascicolo_id
+                FROM pec_legal_events e
+                JOIN pec_messages m ON m.id=e.message_id
+                WHERE {' AND '.join(filters)}
+                  AND (
+                    e.primary_event IN ('sentenza_a_verbale', 'sentenza_a_verbale_429', 'deposito_sentenza')
+                    OR e.event_json LIKE '%judgment_to_notify%'
+                    OR e.event_json LIKE '%sentenza_a_verbale%'
+                  )
+                ORDER BY e.created_at DESC, e.rowid DESC
+                """,
+                tuple(params),
+            ).fetchall()
+            candidates: dict[str, tuple[sqlite3.Row, dict[str, Any], dict[str, Any]]] = {}
+            for row in rows:
+                received_dt = self._legacy_control_tower_dt(row["received_at"])
+                if not deterministic_binding and (
+                    received_dt is None
+                    or source_dt is None
+                    or abs((received_dt - source_dt).total_seconds()) > 180
+                ):
+                    continue
+                event_json = _json_loads(row["event_json"])
+                event_json = event_json if isinstance(event_json, dict) else {}
+                has_judgment, notification = self._event_has_judgment_notification(event_json)
+                primary_event = clean_text(row["primary_event"], 80)
+                if primary_event not in {"sentenza_a_verbale", "sentenza_a_verbale_429", "deposito_sentenza"} and not has_judgment:
+                    continue
+                linked_fascicolo_id = clean_text(row["linked_fascicolo_id"], 120)
+                if fascicolo_id and linked_fascicolo_id and linked_fascicolo_id != fascicolo_id:
+                    continue
+                message_id = clean_text(row["message_id"], 160)
+                if message_id and message_id not in candidates:
+                    candidates[message_id] = (row, event_json, notification)
+            if len(candidates) != 1:
+                return {}
+            row, event_json, notification = next(iter(candidates.values()))
+            message_id = clean_text(row["message_id"], 160)
+            source_file = clean_text(notification.get("source_file") or "", 180) if isinstance(notification, dict) else ""
+            source_name = self._legacy_preferred_attachment(conn, message_id=message_id, preferred=source_file)
+            reason = clean_text(
+                (notification.get("reason") if isinstance(notification, dict) else "")
+                or "Sentenza o provvedimento decisorio ricevuto: valutare/preparare la notifica.",
+                700,
+            )
+            return {
+                "message_id": message_id,
+                "received_at": clean_text(row["received_at"], 80),
+                "linked_fascicolo_id": clean_text(row["linked_fascicolo_id"], 120),
+                "source_name": source_name,
+                "reason": reason,
+                "primary_event": clean_text(row["primary_event"], 80),
+                "event_sha256": clean_text(event_json.get("audit", {}).get("event_sha256") if isinstance(event_json.get("audit"), dict) else "", 120),
+            }
+
+    def _repair_legacy_control_tower_sentence_deadline(self, manager: Any, scadenza: Any, *, actor: str) -> dict[str, Any]:
+        candidate = self._legacy_control_tower_sentence_candidate(scadenza)
+        if not candidate:
+            return {"checked": False, "updated": False}
+        deadline_id = clean_text(getattr(scadenza, "id", ""), 120)
+        if not deadline_id:
+            return {"checked": True, "updated": False}
+        message_id = clean_text(candidate.get("message_id"), 160)
+        source_name = clean_text(candidate.get("source_name"), 180)
+        source_line = f"Fonte documentale: {source_name}" if source_name else ""
+        reason = clean_text(candidate.get("reason"), 700)
+        note_lines = [
+            f"PEC_AUDIT:{message_id}",
+            "Tipo evento: sentenza_da_valutare_per_notifica",
+            f"Decorrenza letta: {candidate.get('received_at') or getattr(scadenza, 'source_event_at', '')}",
+            source_line,
+            reason,
+            "Termine legale conclusivo: no, presidio operativo automatico da verificare professionalmente.",
+        ]
+        updates: dict[str, Any] = {
+            "titolo": "Sentenza da valutare per la notifica",
+            "descrizione": (
+                "Sentenza o sentenza a verbale ricevuta: la comunicazione di cancelleria "
+                "non prova la notifica dell'avvocato e non fa decorrere da sola il termine breve; "
+                "serve valutare/preparare notifica e prova."
+            ),
+            "note": "\n".join(line for line in note_lines if line),
+            "source_event_type": "sentenza_da_valutare_per_notifica",
+            "source_event_at": clean_text(candidate.get("received_at") or getattr(scadenza, "source_event_at", ""), 80),
+        }
+        linked_fascicolo_id = clean_text(candidate.get("linked_fascicolo_id"), 120)
+        if linked_fascicolo_id and not clean_text(getattr(scadenza, "id_fascicolo", ""), 120):
+            updates["id_fascicolo"] = linked_fascicolo_id
+        manager.aggiorna(deadline_id, **updates)
+        try:
+            with self.connect() as conn:
+                self.append_audit(
+                    conn,
+                    action="pec.deadline.legacy_control_tower_promoted",
+                    resource_type="pec_message",
+                    resource_id=message_id,
+                    payload={
+                        "deadline_id": deadline_id,
+                        "source_name": source_name,
+                        "linked_fascicolo_id": linked_fascicolo_id,
+                        "reason": "Vecchia riga Control Tower arricchita con classificazione PEC audit-grade di sentenza.",
+                        "deadline_policy_version": DEADLINE_POLICY_VERSION,
+                    },
+                    actor=actor,
+                )
+        except Exception:
+            pass
+        return {"checked": True, "updated": True, "message_id": message_id, "deadline_id": deadline_id}
+
     def repair_pec_deadlines(self, *, actor: str = "pec-maintenance", limit: int = 0) -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {"ok": False, "message": "Scadenziario non configurato.", "checked": 0, "updated": 0, "deleted": 0}
@@ -10422,11 +12409,25 @@ class PecAuditRepository:
         deleted = 0
         skipped = 0
         errors: list[str] = []
+        handled_deadline_ids: set[str] = set()
+        removed_deadline_ids: set[str] = set()
         for scadenza in list(manager.tutte(solo_aperte=False)):
             if limit and checked >= int(limit):
                 break
+            snapshot_deadline_id = clean_text(getattr(scadenza, "id", ""), 120)
+            if snapshot_deadline_id in handled_deadline_ids or snapshot_deadline_id in removed_deadline_ids:
+                continue
             message_id = ""
             note = str(getattr(scadenza, "note", "") or "")
+            if "PEC_AUDIT:" not in note:
+                legacy = self._repair_legacy_control_tower_sentence_deadline(manager, scadenza, actor=actor)
+                if legacy.get("checked"):
+                    checked += 1
+                    if legacy.get("updated"):
+                        updated += 1
+                    else:
+                        skipped += 1
+                    continue
             if "PEC_AUDIT:" not in note:
                 continue
             message_id = self._message_id_from_deadline_note(note)
@@ -10440,7 +12441,109 @@ class PecAuditRepository:
                 attachments = detail.get("attachments") if isinstance(detail.get("attachments"), list) else []
                 report = build_validation_report(parsed, attachments)
                 proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+                source_marker = f"PEC_AUDIT:{message_id}"
+                exact_duplicates = []
+                for candidate in manager.tutte(solo_aperte=False):
+                    candidate_note = str(getattr(candidate, "note", "") or "")
+                    if "IUSENTRA_LEGAL_NOTIFICATION:" in candidate_note:
+                        continue
+                    candidate_lines = {
+                        line.strip()
+                        for line in candidate_note.splitlines()
+                        if line.strip()
+                    }
+                    has_distinct_hearing_marker = any(
+                        line.startswith(f"{source_marker}:hearing:")
+                        for line in candidate_lines
+                    )
+                    if source_marker in candidate_lines and not has_distinct_hearing_marker:
+                        exact_duplicates.append(candidate)
+                if len(exact_duplicates) > 1:
+                    expected_date = clean_text(proposal.get("due_date") or "", 20)[:10]
+                    expected_kind = "UDIENZA" if clean_text(proposal.get("deadline_kind") or "", 40) == "udienza" else ""
+                    expected_source_type = clean_text(proposal.get("source_event_type") or "", 80)
+                    expected_title = clean_text(proposal.get("title") or "", 180)
+
+                    def duplicate_rank(candidate: Any) -> tuple[int, int, int, int, int, int, int]:
+                        candidate_state = str(
+                            getattr(
+                                getattr(candidate, "stato", None),
+                                "value",
+                                getattr(candidate, "stato", ""),
+                            )
+                            or ""
+                        ).upper()
+                        candidate_kind = str(
+                            getattr(
+                                getattr(candidate, "tipo", None),
+                                "value",
+                                getattr(candidate, "tipo", ""),
+                            )
+                            or ""
+                        ).upper()
+                        candidate_actor = clean_text(getattr(candidate, "id_utente_responsabile", "") or "", 80)
+                        return (
+                            int(candidate_state != "ANNULLATO"),
+                            int(bool(expected_date) and str(getattr(candidate, "data_scadenza", "") or "")[:10] == expected_date),
+                            int(bool(expected_kind) and candidate_kind == expected_kind),
+                            int(
+                                bool(expected_source_type)
+                                and clean_text(getattr(candidate, "source_event_type", "") or "", 80) == expected_source_type
+                            ),
+                            int(bool(expected_title) and clean_text(getattr(candidate, "titolo", "") or "", 180) == expected_title),
+                            int(bool(clean_text(getattr(candidate, "id_appuntamento", "") or "", 120))),
+                            int(not candidate_actor or _deadline_responsible_actor(candidate_actor) == candidate_actor),
+                        )
+
+                    keeper = max(exact_duplicates, key=duplicate_rank)
+                    keeper_id = clean_text(getattr(keeper, "id", ""), 120)
+                    keeper_agenda_id = clean_text(getattr(keeper, "id_appuntamento", "") or "", 120)
+                    for duplicate in exact_duplicates:
+                        duplicate_id = clean_text(getattr(duplicate, "id", ""), 120)
+                        if not duplicate_id or duplicate_id == keeper_id:
+                            continue
+                        duplicate_agenda_id = clean_text(getattr(duplicate, "id_appuntamento", "") or "", 120)
+                        if agenda is not None and duplicate_agenda_id and duplicate_agenda_id != keeper_agenda_id:
+                            try:
+                                agenda.elimina(duplicate_agenda_id)
+                            except Exception:
+                                pass
+                        manager.elimina(duplicate_id)
+                        removed_deadline_ids.add(duplicate_id)
+                        deleted += 1
+                        try:
+                            with self.connect() as conn:
+                                self.append_audit(
+                                    conn,
+                                    action="pec.deadline.duplicate_deleted",
+                                    resource_type="pec_message",
+                                    resource_id=message_id,
+                                    payload={
+                                        "kept_deadline_id": keeper_id,
+                                        "deleted_deadline_id": duplicate_id,
+                                        "deleted_agenda_id": duplicate_agenda_id,
+                                        "reason": "Rimossa proiezione automatica duplicata con lo stesso marker PEC_AUDIT.",
+                                        "deadline_policy_version": DEADLINE_POLICY_VERSION,
+                                    },
+                                    actor=actor,
+                                )
+                        except Exception:
+                            pass
+                    scadenza = keeper
+                handled_deadline_ids.add(clean_text(getattr(scadenza, "id", ""), 120))
                 current_title = clean_text(getattr(scadenza, "titolo", "") or "", 180)
+                judgment_presidio = self._repair_pec_judgment_notification_deadline(
+                    manager,
+                    scadenza,
+                    message_id=message_id,
+                    actor=actor,
+                )
+                if judgment_presidio.get("checked"):
+                    if judgment_presidio.get("updated"):
+                        updated += 1
+                    else:
+                        skipped += 1
+                    continue
                 is_generic_notice = current_title.startswith("Valuta termini da notifica PEC")
                 if is_generic_notice and not proposal.get("auto_create") and not _report_has_legal_deadline(proposal):
                     scadenza_id = str(getattr(scadenza, "id", "") or "")
@@ -10473,7 +12576,68 @@ class PecAuditRepository:
                                 "deadline_policy_version": DEADLINE_POLICY_VERSION,
                             },
                             actor=actor,
-                        )
+                    )
+                    continue
+
+                # La manutenzione deve rieseguire lo stesso percorso unico usato
+                # dall'acquisizione PEC.  In particolare una sentenza a verbale
+                # può contenere il riferimento storico all'art. 127-ter senza
+                # contenere un'opposizione o un'udienza ancora da svolgere:
+                # lasciare la vecchia riga aperta renderebbe Agenda, topbar e
+                # notifiche incoerenti.  schedule_deadline_from_payload
+                # riconcilia esclusivamente i derivati con marker PEC_AUDIT e
+                # conserva sia fonte sia audit; non tocca mai scadenze manuali.
+                has_hearing_proposal = any(
+                    isinstance(item, dict) and clean_text(item.get("due_date") or "", 40)
+                    for item in list(report.get("hearing_proposals") or [])
+                )
+                if not proposal.get("auto_create") and not _report_has_legal_deadline(proposal) and not has_hearing_proposal:
+                    # Nessuna azione automatica confermata: riconciliare
+                    # esplicitamente prima di qualsiasi arricchimento.  Non
+                    # affidiamo questa parte alla UI né a un titolo storico.
+                    reconciled = {
+                        "ok": False,
+                        "reconciliation": self._reconcile_automatic_pec_deadlines(
+                            source_message_id=message_id,
+                            desired_markers=set(),
+                            actor=actor,
+                            reason="La rilettura della PEC non conferma un termine o un'udienza automatica.",
+                        ),
+                    }
+                else:
+                    reconciled = self.schedule_deadline_from_payload(
+                        message_id,
+                        parsed=parsed,
+                        report=report,
+                        message={"linked_fascicolo_id": str(getattr(scadenza, "id_fascicolo", "") or "")},
+                        actor=actor,
+                        _source_message_id=message_id,
+                )
+                reconciliation = reconciled.get("reconciliation") if isinstance(reconciled.get("reconciliation"), dict) else {}
+                if int(reconciliation.get("cancelled") or 0):
+                    # GestioneScadenziario mantiene una piccola cache per
+                    # istanza. La riconciliazione usa intenzionalmente una
+                    # istanza separata per non condividere stato UI: non
+                    # riapplicare quindi gli aggiornamenti alla copia ancora
+                    # aperta, altrimenti la riga appena annullata verrebbe
+                    # riaperta. Il marker PEC_AUDIT rende sicuro il salto.
+                    updated += int(reconciliation.get("cancelled") or 0)
+                    continue
+                refreshed = None
+                try:
+                    refreshed = manager.get(str(getattr(scadenza, "id", "") or ""))
+                except Exception:
+                    refreshed = None
+                current_state = getattr(getattr(refreshed, "stato", None), "value", getattr(refreshed, "stato", ""))
+                if str(current_state).upper() == "ANNULLATO":
+                    updated += max(1, int(reconciliation.get("cancelled") or 0))
+                    continue
+                if reconciled.get("ok") or reconciled.get("expired"):
+                    # Il percorso unico ha già aggiornato la riga e l'eventuale
+                    # proiezione Agenda; evitare un secondo aggiornamento con
+                    # campi ricostruiti da una logica differente.
+                    updated += 1 if reconciled.get("ok") else 0
+                    skipped += 0 if reconciled.get("ok") else 1
                     continue
                 proposal_title = clean_text(proposal.get("title") or current_title, 120)
                 remote_extra = _remote_hearing_deadline_extra(report, proposal)
@@ -10740,6 +12904,7 @@ class PecAuditRepository:
         due_date: str = "",
         _schedule_all_hearings: bool = True,
         _source_message_id: str = "",
+        _reconcile_derived: bool = True,
     ) -> dict[str, Any]:
         if not self.scadenziario_db_path:
             return {"ok": False, "message": "Scadenziario non configurato per questa azione."}
@@ -10775,6 +12940,25 @@ class PecAuditRepository:
                 )
             )
             occurrences: dict[tuple[str, str, str, str], int] = {}
+            desired_markers: set[str] = set()
+            for hearing_proposal in hearing_proposals:
+                semantic_key = (
+                    clean_text(hearing_proposal.get("due_date") or "", 20),
+                    clean_text(hearing_proposal.get("event_time") or "", 10).replace(".", ":"),
+                    clean_text(hearing_proposal.get("source_event_type") or "", 80).casefold(),
+                    clean_text(hearing_proposal.get("hearing_identity_source") or "", 240).casefold(),
+                )
+                occurrence = occurrences.get(semantic_key, 0)
+                occurrences[semantic_key] = occurrence + 1
+                identity = _hearing_proposal_discriminator(hearing_proposal, occurrence=occurrence)
+                desired_markers.add(f"PEC_AUDIT:{source_message_id}:hearing:{identity}")
+            reconciliation = self._reconcile_automatic_pec_deadlines(
+                source_message_id=source_message_id,
+                desired_markers=desired_markers,
+                actor=actor,
+                reason="La versione PEC piu' recente ha aggiornato gli eventi udienza riconosciuti.",
+            )
+            occurrences = {}
             for hearing_proposal in hearing_proposals:
                 semantic_key = (
                     clean_text(hearing_proposal.get("due_date") or "", 20),
@@ -10798,6 +12982,7 @@ class PecAuditRepository:
                     due_date=clean_text(hearing_proposal.get("due_date") or "", 40),
                     _schedule_all_hearings=False,
                     _source_message_id=source_message_id,
+                    _reconcile_derived=False,
                 )
                 result["scheduled_message_id"] = hearing_message_id
                 result["source_message_id"] = source_message_id
@@ -10815,6 +13000,7 @@ class PecAuditRepository:
                     "hearing_results": results,
                     "hearing_count": len(hearing_proposals),
                     "hearing_scheduled": len(successful),
+                    "reconciliation": reconciliation,
                 }
             )
             return summary
@@ -10825,8 +13011,25 @@ class PecAuditRepository:
             report["deadline_proposal"] = proposal
         legal_fields = _legal_deadline_scadenza_fields(proposal)
         target_date = due_date or clean_text(proposal.get("due_date")) or legal_fields["due_date"]
+        source_message_id = self._canonical_pec_source_message_id(_source_message_id or message_id)
+        marker = f"PEC_AUDIT:{message_id}"
+        reconciliation = self._reconcile_automatic_pec_deadlines(
+            source_message_id=source_message_id,
+            desired_markers={marker} if target_date else set(),
+            actor=actor,
+            reason=(
+                "La versione PEC piu' recente non propone una scadenza automatica."
+                if not target_date
+                else "La versione PEC piu' recente ha aggiornato il presidio automatico."
+            ),
+        ) if _reconcile_derived else {"checked": 0, "cancelled": 0, "agenda_cancelled": 0, "errors": []}
         if not target_date:
-            return {"ok": False, "message": "Nessuna scadenza automatica calcolabile per questa PEC.", "proposal": proposal}
+            return {
+                "ok": False,
+                "message": "Nessuna scadenza automatica calcolabile per questa PEC.",
+                "proposal": proposal,
+                "reconciliation": reconciliation,
+            }
         if self._is_expired_deadline_date(target_date):
             try:
                 with self.connect() as conn:
@@ -10848,7 +13051,6 @@ class PecAuditRepository:
                 "proposal": proposal,
             }
         title = clean_text(legal_fields["title"] or proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
-        marker = f"PEC_AUDIT:{message_id}"
         remote_extra = _remote_hearing_deadline_extra(report, proposal)
         remote_note_lines = _remote_hearing_note_lines(report, proposal)
         profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
@@ -10926,6 +13128,22 @@ class PecAuditRepository:
                     **_deadline_updates_for_existing(existing, proposal, title=title, actor=actor),
                     **_remote_hearing_updates_for_existing(existing, remote_extra, remote_note_lines),
                 }
+                if "PEC_AUDIT:" in str(getattr(existing, "note", "") or ""):
+                    authoritative_updates = {
+                        "titolo": title,
+                        "data_scadenza": target_date[:10],
+                        "operational_due_at": target_date,
+                        "perentorio": bool(legal_fields["perentorio"]),
+                        "deadline_profile_code": legal_fields["profile_code"],
+                        **legal_fields["extra"],
+                    }
+                    current_status = getattr(getattr(existing, "stato", None), "value", getattr(existing, "stato", ""))
+                    if str(current_status) == "ANNULLATO":
+                        authoritative_updates["stato"] = "APERTO"
+                        authoritative_updates["completata_il"] = ""
+                    for field, value in authoritative_updates.items():
+                        if getattr(existing, field, None) != value:
+                            updates[field] = value
                 current_note = str(updates.get("note") or getattr(existing, "note", "") or "")
                 current_note_lines = {line.strip() for line in current_note.splitlines() if line.strip()}
                 if marker not in current_note_lines:
@@ -10973,6 +13191,7 @@ class PecAuditRepository:
                     "already_exists": True,
                     "proposal": proposal,
                     "remote_hearing": remote_extra,
+                    "reconciliation": reconciliation,
                     "scheduled_message_id": message_id,
                     "source_message_id": _source_message_id or message_id,
                 }
@@ -11062,6 +13281,7 @@ class PecAuditRepository:
             "calendar_sync": calendar_sync,
             "proposal": proposal,
             "remote_hearing": remote_extra,
+            "reconciliation": reconciliation,
             "scheduled_message_id": message_id,
             "source_message_id": _source_message_id or message_id,
         }

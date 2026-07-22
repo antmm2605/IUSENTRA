@@ -19,6 +19,7 @@ import secrets
 import shutil
 import sqlite3
 import tempfile
+import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
@@ -105,8 +106,13 @@ from web.services.react_clienti_bridge import (
 from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_upload
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
 from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
-from web.services.pec_pipeline_runtime import repository_from_paths as pec_repository_from_paths
-from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
+from web.bootstrap.fascicoli_document_helpers import (
+    pdf_mobile_preview_html,
+    pdf_page_count,
+    preview_error_html,
+    preview_unavailable_html,
+    render_pdf_page_png,
+)
 from web.services.react_dashboard_cache import (
     DASHBOARD_CACHE_TTL_SECONDS,
     clear_dashboard_payload_cache,
@@ -142,6 +148,7 @@ from web.services.react_privacy_bridge import build_react_privacy_registro_paylo
 from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_nuova_payload,
     build_react_scadenziario_payload,
+    calculator_templates_for_guide,
     dedupe_calculator_templates,
 )
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
@@ -3663,13 +3670,14 @@ def messaggi_react_nuovo():
 @_richiedi_auth
 def scadenziario_react_list():
     email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+    include_calculator = str(request.args.get("calcolatore", request.args.get("include_calculator", "1")) or "1").strip() != "0"
     return jsonify(build_react_scadenziario_payload(
         gestione_scadenziario=get_scadenziario(),
         gestione_fascicoli=get_fascicoli(),
         gestione_utenti=get_utenti(carica_audit=False),
         gestione_agenda=get_agenda(),
         query_args=request.args,
-        termini_processuali_db=str(_termini_processuali_repository().path),
+        termini_processuali_db=str(_termini_processuali_repository().path) if include_calculator else "",
         pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
         tenant_id=_tenant_runtime_label(),
     ))
@@ -3800,7 +3808,8 @@ def scadenziario_pdf_scadenze_importa():
 def scadenziario_termini_templates():
     repo = _termini_processuali_repository()
     raw_templates = repo.list_templates()
-    visible_templates = dedupe_calculator_templates(raw_templates)
+    codice_guida = str(request.args.get("guida_pratica") or request.args.get("codice_guida") or "").strip()
+    visible_templates = calculator_templates_for_guide(raw_templates, codice_guida) if codice_guida else dedupe_calculator_templates(raw_templates)
     return jsonify({
         "templates": visible_templates,
         "templatesRawCount": len(raw_templates),
@@ -3812,6 +3821,7 @@ def scadenziario_termini_templates():
             "validate": "/api/v1/ui/scadenziario/termini/validate",
             "audit": "/api/v1/ui/scadenziario/termini/audit",
             "override": "/api/v1/ui/scadenziario/termini/override",
+            "createDeadline": "/api/v1/ui/scadenziario/termini/crea-scadenza",
         },
     })
 
@@ -11938,6 +11948,7 @@ def preventivi_wizard_create_page():
 @api_v1_react.get("/agenda")
 @_richiedi_auth
 def agenda():
+    email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
     payload = build_react_agenda_payload(
         get_agenda,
         get_scadenziario,
@@ -11945,8 +11956,388 @@ def agenda():
         from_value=request.args.get("from", ""),
         to_value=request.args.get("to", ""),
         selected_id=request.args.get("selected_id", "").strip(),
+        pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
+        tenant_id=_tenant_runtime_label(),
     )
     return jsonify(payload)
+
+
+def _email_source_preview_cache_dir() -> Path:
+    anchor = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")).resolve()
+    root = anchor.parent / ".preview-cache" / "pec-source"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+_EMAIL_SOURCE_PREVIEW_CACHE_VERSION = "v3"
+_EMAIL_SOURCE_PREVIEW_CACHE_MAX_AGE_SECONDS = 14 * 24 * 60 * 60
+_EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRIES = 256
+_EMAIL_SOURCE_PREVIEW_CACHE_MAX_BYTES = 384 * 1024 * 1024
+_EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES = 64 * 1024 * 1024
+_EMAIL_SOURCE_PREVIEW_CACHE_MAX_METADATA_BYTES = 64 * 1024
+_EMAIL_SOURCE_PREVIEW_CACHE_CLEANUP_INTERVAL_SECONDS = 300
+_EMAIL_SOURCE_PREVIEW_CACHE_LAST_CLEANUP: dict[str, float] = {}
+
+
+def _email_source_cache_key(
+    *,
+    tenant_id: str,
+    message_id: str,
+    requested_name: str,
+    source_sha256: str,
+) -> str:
+    basis = "\n".join(
+        [
+            str(tenant_id or "default").strip(),
+            str(message_id or "").strip(),
+            str(requested_name or "").strip().casefold(),
+            str(source_sha256 or "").strip().casefold(),
+            _EMAIL_SOURCE_PREVIEW_CACHE_VERSION,
+        ]
+    )
+    return hashlib.sha256(basis.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def _safe_cache_download_name(name: str) -> str:
+    clean = Path(str(name or "anteprima").replace("\\", "/")).name.strip().strip(".") or "anteprima"
+    return re.sub(r"[^A-Za-z0-9._ -]+", "_", clean)[:180] or "anteprima"
+
+
+def _read_email_source_preview_cache(cache_key: str) -> tuple[bytes, str, str, str] | None:
+    cache_dir = _email_source_preview_cache_dir()
+    meta_path = cache_dir / f"{cache_key}.json"
+    data_path = cache_dir / f"{cache_key}.bin"
+    if not meta_path.is_file() or not data_path.is_file():
+        return None
+    try:
+        if (
+            meta_path.stat().st_size > _EMAIL_SOURCE_PREVIEW_CACHE_MAX_METADATA_BYTES
+            or data_path.stat().st_size > _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES
+        ):
+            for oversized_path in (meta_path, data_path):
+                oversized_path.unlink(missing_ok=True)
+            return None
+        with meta_path.open("r", encoding="utf-8") as meta_file:
+            meta_raw = meta_file.read(_EMAIL_SOURCE_PREVIEW_CACHE_MAX_METADATA_BYTES + 1)
+        if len(meta_raw.encode("utf-8")) > _EMAIL_SOURCE_PREVIEW_CACHE_MAX_METADATA_BYTES:
+            return None
+        meta = json.loads(meta_raw)
+        mimetype = str(meta.get("mimetype") or "").strip()
+        download_name = _safe_cache_download_name(str(meta.get("download_name") or "anteprima"))
+        original_name = _safe_cache_download_name(str(meta.get("original_name") or download_name))
+        if not mimetype:
+            return None
+        with data_path.open("rb") as data_file:
+            cached_data = data_file.read(_EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES + 1)
+        if len(cached_data) > _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES:
+            for oversized_path in (meta_path, data_path):
+                oversized_path.unlink(missing_ok=True)
+            return None
+        return cached_data, mimetype, download_name, original_name
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _cleanup_email_source_preview_cache(cache_dir: Path, *, force: bool = False) -> None:
+    """Mantiene la cache tenant-aware entro limiti conservativi.
+
+    La scansione avviene soltanto dopo una scrittura ed è ulteriormente
+    limitata nel tempo: nessun GET a cache calda paga una pulizia completa.
+    """
+
+    cache_key = str(cache_dir.resolve())
+    now_monotonic = time.monotonic()
+    if not force:
+        last_cleanup = _EMAIL_SOURCE_PREVIEW_CACHE_LAST_CLEANUP.get(cache_key, 0.0)
+        if now_monotonic - last_cleanup < _EMAIL_SOURCE_PREVIEW_CACHE_CLEANUP_INTERVAL_SECONDS:
+            return
+    _EMAIL_SOURCE_PREVIEW_CACHE_LAST_CLEANUP[cache_key] = now_monotonic
+    cutoff = time.time() - _EMAIL_SOURCE_PREVIEW_CACHE_MAX_AGE_SECONDS
+    entries: list[tuple[float, int, Path, Path, bool]] = []
+    known_data_paths: set[Path] = set()
+    try:
+        meta_paths = list(cache_dir.glob("*.json"))
+    except OSError:
+        return
+    for meta_path in meta_paths:
+        data_path = cache_dir / f"{meta_path.stem}.bin"
+        known_data_paths.add(data_path)
+        try:
+            meta_stat = meta_path.stat()
+            data_stat = data_path.stat()
+        except OSError:
+            for orphan in (meta_path, data_path):
+                try:
+                    orphan.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            continue
+        newest_mtime = max(meta_stat.st_mtime, data_stat.st_mtime)
+        if newest_mtime < cutoff:
+            for stale_path in (meta_path, data_path):
+                try:
+                    stale_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            continue
+        entries.append(
+            (
+                newest_mtime,
+                int(meta_stat.st_size + data_stat.st_size),
+                meta_path,
+                data_path,
+                (
+                    data_stat.st_size <= _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES
+                    and meta_stat.st_size <= _EMAIL_SOURCE_PREVIEW_CACHE_MAX_METADATA_BYTES
+                ),
+            )
+        )
+
+    try:
+        orphan_data_paths = [path for path in cache_dir.glob("*.bin") if path not in known_data_paths]
+    except OSError:
+        orphan_data_paths = []
+    for orphan in orphan_data_paths:
+        try:
+            orphan.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    retained_bytes = 0
+    for index, (_mtime, entry_size, meta_path, data_path, within_entry_budget) in enumerate(
+        sorted(entries, key=lambda item: item[0], reverse=True)
+    ):
+        keep = (
+            index < _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRIES
+            and within_entry_budget
+            and retained_bytes + entry_size <= _EMAIL_SOURCE_PREVIEW_CACHE_MAX_BYTES
+        )
+        if keep:
+            retained_bytes += entry_size
+            continue
+        for stale_path in (meta_path, data_path):
+            try:
+                stale_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+def _write_email_source_preview_cache(
+    cache_key: str,
+    *,
+    data: bytes,
+    mimetype: str,
+    download_name: str,
+    original_name: str,
+) -> None:
+    if len(data) > _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRY_BYTES:
+        return
+    cache_dir = _email_source_preview_cache_dir()
+    data_path = cache_dir / f"{cache_key}.bin"
+    meta_path = cache_dir / f"{cache_key}.json"
+    write_token = secrets.token_hex(8)
+    tmp_data = cache_dir / f".{cache_key}.{write_token}.bin.tmp"
+    tmp_meta = cache_dir / f".{cache_key}.{write_token}.json.tmp"
+    try:
+        tmp_data.write_bytes(data)
+        tmp_meta.write_text(
+            json.dumps(
+                {
+                    "mimetype": str(mimetype or "application/octet-stream"),
+                    "download_name": _safe_cache_download_name(download_name),
+                    "original_name": _safe_cache_download_name(original_name),
+                    "generated_at": datetime.now(ZoneInfo("Europe/Rome")).isoformat(timespec="seconds"),
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        os.replace(tmp_data, data_path)
+        os.replace(tmp_meta, meta_path)
+    finally:
+        for temporary_path in (tmp_data, tmp_meta):
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+    _cleanup_email_source_preview_cache(cache_dir)
+
+
+def _source_pdf_viewer_requested() -> bool:
+    return str(request.args.get("viewer") or "").strip().casefold() in {"mobile", "pages", "reader"}
+
+
+_PEC_SOURCE_READ_RETRY_DELAYS = (0.0, 0.12, 0.25, 0.5, 1.0)
+
+
+def _sqlite_busy_error(exc: BaseException) -> bool:
+    message = str(exc or "").casefold()
+    return (
+        "database is locked" in message
+        or "database table is locked" in message
+        or "database is busy" in message
+    )
+
+
+def _pec_audit_db_path_for_request() -> Path:
+    paths = getattr(g, "data_paths", {}) or {}
+    explicit_path = str(paths.get("PEC_AUDIT_DB") or "").strip()
+    if explicit_path:
+        return Path(explicit_path).resolve()
+    email_db = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")).resolve()
+    return email_db.parent / "pec_audit.sqlite"
+
+
+def _read_pec_source_message_row(message_id: str, *, include_mime: bool) -> dict[str, bytes | int | str] | None:
+    """Legge una riga PEC tenant-aware, separando metadati e BLOB MIME."""
+
+    clean_message_id = str(message_id or "").strip()
+    if not clean_message_id:
+        return None
+    db_path = _pec_audit_db_path_for_request()
+    if not db_path.exists():
+        return None
+    tenant_id = _tenant_runtime_label()
+    last_busy: sqlite3.OperationalError | None = None
+    for delay in _PEC_SOURCE_READ_RETRY_DELAYS:
+        if delay:
+            time.sleep(delay)
+        try:
+            with sqlite3.connect(
+                f"file:{db_path.as_posix()}?mode=ro",
+                timeout=1.0,
+                uri=True,
+            ) as connection:
+                connection.row_factory = sqlite3.Row
+                try:
+                    connection.execute("PRAGMA query_only=ON")
+                    connection.execute("PRAGMA busy_timeout=1000")
+                except sqlite3.Error:
+                    pass
+                columns = "original_mime" if include_mime else "mime_sha256, mime_size"
+                row = connection.execute(
+                    f"SELECT {columns} FROM pec_messages WHERE tenant_id=? AND id=?",
+                    (tenant_id, clean_message_id),
+                ).fetchone()
+                if row is None:
+                    return None
+                if include_mime:
+                    return {"original_mime": bytes(row["original_mime"] or b"")}
+                return {
+                    "mime_sha256": str(row["mime_sha256"] or ""),
+                    "mime_size": int(row["mime_size"] or 0),
+                }
+        except sqlite3.OperationalError as exc:
+            if not _sqlite_busy_error(exc):
+                raise
+            last_busy = exc
+    if last_busy is not None:
+        raise last_busy
+    return None
+
+
+def _read_pec_source_message_metadata(message_id: str) -> dict[str, int | str] | None:
+    row = _read_pec_source_message_row(message_id, include_mime=False)
+    return row if row is None else {"mime_sha256": str(row.get("mime_sha256") or ""), "mime_size": int(row.get("mime_size") or 0)}
+
+
+def _read_pec_source_message_blob(message_id: str) -> bytes | None:
+    row = _read_pec_source_message_row(message_id, include_mime=True)
+    if row is None:
+        return None
+    return bytes(row.get("original_mime") or b"")
+
+
+def _serve_email_source_preview(
+    preview_data: bytes,
+    preview_mimetype: str,
+    preview_name: str,
+    *,
+    message_id: str,
+    original_name: str,
+):
+    mime = str(preview_mimetype or "").split(";", 1)[0].strip().lower()
+    if mime == "application/pdf" and _source_pdf_viewer_requested():
+        download_url = url_for(
+            "api_v1_react.email_source_attachment",
+            message_id=message_id,
+            name=original_name,
+            download=1,
+        )
+        page_value = str(request.args.get("page") or "").strip()
+        if page_value:
+            try:
+                page_number = int(page_value)
+                png_payload = render_pdf_page_png(preview_data, page_number)
+            except Exception as exc:
+                current_app.logger.warning(
+                    "Anteprima pagina fonte PEC non disponibile message_id=%s file=%s page=%s: %s",
+                    message_id,
+                    original_name,
+                    page_value,
+                    exc,
+                )
+                return preview_error_html(download_url)
+            response = send_file(
+                io.BytesIO(png_payload),
+                mimetype="image/png",
+                as_attachment=False,
+                download_name=f"{Path(preview_name).stem}-pagina-{page_number}.png",
+                conditional=False,
+            )
+            response.headers["Cache-Control"] = "private, max-age=3600"
+            return response
+        try:
+            total_pages = pdf_page_count(preview_data)
+            page_urls = [
+                url_for(
+                    "api_v1_react.email_source_attachment",
+                    message_id=message_id,
+                    name=original_name,
+                    viewer="mobile",
+                    page=page,
+                )
+                for page in range(1, total_pages + 1)
+            ]
+        except Exception as exc:
+            current_app.logger.warning(
+                "Lettore PDF fonte PEC non disponibile message_id=%s file=%s: %s",
+                message_id,
+                original_name,
+                exc,
+            )
+            return preview_error_html(download_url)
+        return pdf_mobile_preview_html(
+            nome_documento=preview_name or original_name,
+            page_urls=page_urls,
+            scarica_url=download_url,
+        )
+    return send_file(
+        io.BytesIO(preview_data),
+        mimetype=preview_mimetype,
+        as_attachment=False,
+        download_name=preview_name,
+        conditional=False,
+    )
+
+
+def _serve_cached_email_source_preview(cache_key: str, *, message_id: str):
+    cached_preview = _read_email_source_preview_cache(cache_key)
+    if not cached_preview:
+        return None
+    preview_data, preview_mimetype, preview_name, original_name = cached_preview
+    response = _serve_email_source_preview(
+        preview_data,
+        preview_mimetype,
+        preview_name,
+        message_id=message_id,
+        original_name=original_name,
+    )
+    if hasattr(response, "headers"):
+        response.headers["Cache-Control"] = "private, max-age=3600"
+        response.headers["X-IUSENTRA-Source-Preview-Cache"] = "hit"
+    return response
 
 
 @api_v1_react.get("/email/source/<message_id>")
@@ -11968,58 +12359,51 @@ def email_source_attachment(message_id: str):
     raw_data: bytes | None = None
     original_name = ""
     original_mime = ""
-    gestore = GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
-    email_item = gestore.get(message_id)
-    if email_item is None:
-        wanted_id = str(message_id or "").strip().strip("<>").casefold()
-        email_item = next(
-            (
-                item
-                for item in gestore.tutte()
-                if wanted_id in {
-                    str(getattr(item, "id", "") or "").strip().strip("<>").casefold(),
-                    str(getattr(item, "message_id", "") or "").strip().strip("<>").casefold(),
-                }
-            ),
-            None,
+    tenant_id = _tenant_runtime_label()
+    source_sha256 = ""
+    cache_key = ""
+    try:
+        audit_metadata = _read_pec_source_message_metadata(str(message_id or "").strip())
+    except sqlite3.OperationalError as exc:
+        if not _sqlite_busy_error(exc):
+            raise
+        current_app.logger.warning(
+            "Archivio PEC temporaneamente occupato durante apertura fonte message_id=%s file=%s: %s",
+            message_id,
+            requested_name,
+            exc,
         )
-    if email_item is not None:
-        attachments = list(getattr(email_item, "allegati", []) or [])
-        names = [
-            str((info or {}).get("nome") or (info or {}).get("nome_file") or "allegato").strip()
-            for info in attachments
-        ]
-        matching = matching_indices(names)
-        if len(matching) != 1:
-            return Response("L'allegato indicato non è stato trovato in modo univoco nella PEC.", status=404, mimetype="text/plain")
-        attachment_index = matching[0]
-        raw_data = gestore.leggi_allegato(email_item, attachment_index)
-        if raw_data is None:
-            return Response("L'allegato non è disponibile nello storico locale. Sincronizza nuovamente la PEC.", status=409, mimetype="text/plain")
-        info = attachments[attachment_index] or {}
-        original_name = names[attachment_index]
-        original_mime = attachment_mimetype(original_name, str(info.get("mime") or ""))
-    else:
-        repository = pec_repository_from_paths(
-            getattr(g, "data_paths", {}) or {},
-            tenant_label=_tenant_runtime_label(),
+        return Response(
+            "Archivio PEC in aggiornamento. Riprova tra pochi secondi.",
+            status=503,
+            mimetype="text/plain",
         )
-        with repository.connect() as connection:
-            row = connection.execute(
-                "SELECT original_mime, mime_sha256 FROM pec_messages WHERE tenant_id=? AND id=?",
-                (repository.tenant_id, str(message_id or "").strip()),
-            ).fetchone()
-            if row is None:
-                return Response("La PEC collegata non è disponibile nello storico dello studio.", status=404, mimetype="text/plain")
-            raw_mime_bytes = bytes(row["original_mime"] or b"")
-            repository.append_audit(
-                connection,
-                action="pec.attachment.source.opened",
-                resource_type="pec_message",
-                resource_id=str(message_id or "").strip(),
-                payload={"mime_sha256": str(row["mime_sha256"] or ""), "attachment": requested_name},
-                actor="pec-api",
+
+    if audit_metadata is not None:
+        source_sha256 = str(audit_metadata.get("mime_sha256") or "")
+        if source_sha256 and request.args.get("download") != "1":
+            cache_key = _email_source_cache_key(
+                tenant_id=tenant_id,
+                message_id=message_id,
+                requested_name=requested_name,
+                source_sha256=source_sha256,
             )
+            cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
+            if cached_response is not None:
+                return cached_response
+        try:
+            raw_mime_bytes = _read_pec_source_message_blob(str(message_id or "").strip())
+        except sqlite3.OperationalError as exc:
+            if not _sqlite_busy_error(exc):
+                raise
+            return Response(
+                "Archivio PEC in aggiornamento. Riprova tra pochi secondi.",
+                status=503,
+                mimetype="text/plain",
+            )
+        if raw_mime_bytes is None:
+            return Response("La PEC collegata non è disponibile nello storico dello studio.", status=404, mimetype="text/plain")
+        source_sha256 = source_sha256 or hashlib.sha256(raw_mime_bytes).hexdigest()
         _, _, audit_attachments = extract_message_parts(message_from_bytes(raw_mime_bytes))
         names = [attachment.filename for attachment in audit_attachments]
         matching = matching_indices(names)
@@ -12029,6 +12413,51 @@ def email_source_attachment(message_id: str):
         raw_data = audit_attachment.data
         original_name = audit_attachment.filename
         original_mime = attachment_mimetype(original_name, audit_attachment.content_type)
+    else:
+        gestore = GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+        email_item = gestore.get(message_id)
+        if email_item is None:
+            wanted_id = str(message_id or "").strip().strip("<>").casefold()
+            email_item = next(
+                (
+                    item
+                    for item in gestore.tutte()
+                    if wanted_id in {
+                        str(getattr(item, "id", "") or "").strip().strip("<>").casefold(),
+                        str(getattr(item, "message_id", "") or "").strip().strip("<>").casefold(),
+                    }
+                ),
+                None,
+            )
+        if email_item is None:
+            return Response("La PEC collegata non è disponibile nello storico dello studio.", status=404, mimetype="text/plain")
+        attachments = list(getattr(email_item, "allegati", []) or [])
+        names = [
+            str((info or {}).get("nome") or (info or {}).get("nome_file") or "allegato").strip()
+            for info in attachments
+        ]
+        matching = matching_indices(names)
+        if len(matching) != 1:
+            return Response("L'allegato indicato non è stato trovato in modo univoco nella PEC.", status=404, mimetype="text/plain")
+        attachment_index = matching[0]
+        info = attachments[attachment_index] or {}
+        original_name = names[attachment_index]
+        original_mime = attachment_mimetype(original_name, str(info.get("mime") or ""))
+        source_sha256 = str(info.get("sha256") or "").strip().casefold()
+        if source_sha256 and request.args.get("download") != "1":
+            cache_key = _email_source_cache_key(
+                tenant_id=tenant_id,
+                message_id=message_id,
+                requested_name=requested_name,
+                source_sha256=source_sha256,
+            )
+            cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
+            if cached_response is not None:
+                return cached_response
+        raw_data = gestore.leggi_allegato(email_item, attachment_index)
+        if raw_data is None:
+            return Response("L'allegato non è disponibile nello storico locale. Sincronizza nuovamente la PEC.", status=409, mimetype="text/plain")
+        source_sha256 = source_sha256 or hashlib.sha256(raw_data).hexdigest()
 
     if raw_data is None:
         return Response("L'allegato non è disponibile nello storico dello studio.", status=409, mimetype="text/plain")
@@ -12040,6 +12469,82 @@ def email_source_attachment(message_id: str):
             download_name=original_name,
             conditional=False,
         )
+
+    def serve_preview(preview_data: bytes, preview_mimetype: str, preview_name: str):
+        mime = str(preview_mimetype or "").split(";", 1)[0].strip().lower()
+        if mime == "application/pdf" and _source_pdf_viewer_requested():
+            download_url = url_for(
+                "api_v1_react.email_source_attachment",
+                message_id=message_id,
+                name=original_name,
+                download=1,
+            )
+            page_value = str(request.args.get("page") or "").strip()
+            if page_value:
+                try:
+                    page_number = int(page_value)
+                    png_payload = render_pdf_page_png(preview_data, page_number)
+                except Exception as exc:
+                    current_app.logger.warning(
+                        "Anteprima pagina fonte PEC non disponibile message_id=%s file=%s page=%s: %s",
+                        message_id,
+                        original_name,
+                        page_value,
+                        exc,
+                    )
+                    return preview_error_html(download_url)
+                response = send_file(
+                    io.BytesIO(png_payload),
+                    mimetype="image/png",
+                    as_attachment=False,
+                    download_name=f"{Path(preview_name).stem}-pagina-{page_number}.png",
+                    conditional=False,
+                )
+                response.headers["Cache-Control"] = "private, max-age=3600"
+                return response
+            try:
+                total_pages = pdf_page_count(preview_data)
+                page_urls = [
+                    url_for(
+                        "api_v1_react.email_source_attachment",
+                        message_id=message_id,
+                        name=original_name,
+                        viewer="mobile",
+                        page=page,
+                    )
+                    for page in range(1, total_pages + 1)
+                ]
+            except Exception as exc:
+                current_app.logger.warning(
+                    "Lettore PDF fonte PEC non disponibile message_id=%s file=%s: %s",
+                    message_id,
+                    original_name,
+                    exc,
+                )
+                return preview_error_html(download_url)
+            return pdf_mobile_preview_html(
+                nome_documento=preview_name or original_name,
+                page_urls=page_urls,
+                scarica_url=download_url,
+            )
+        return send_file(
+            io.BytesIO(preview_data),
+            mimetype=preview_mimetype,
+            as_attachment=False,
+            download_name=preview_name,
+            conditional=False,
+        )
+
+    if not cache_key:
+        cache_key = _email_source_cache_key(
+            tenant_id=tenant_id,
+            message_id=message_id,
+            requested_name=requested_name,
+            source_sha256=source_sha256 or hashlib.sha256(raw_data).hexdigest(),
+        )
+        cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
+        if cached_response is not None:
+            return cached_response
 
     preview = build_attachment_preview_payload(
         nome_file=original_name,
@@ -12054,13 +12559,17 @@ def email_source_attachment(message_id: str):
             download=1,
         )
         return preview_unavailable_html(original_name, download_url)
-    return send_file(
-        io.BytesIO(preview.data),
-        mimetype=preview.mimetype,
-        as_attachment=False,
-        download_name=preview.download_name,
-        conditional=False,
-    )
+    try:
+        _write_email_source_preview_cache(
+            cache_key,
+            data=preview.data,
+            mimetype=preview.mimetype,
+            download_name=preview.download_name,
+            original_name=original_name,
+        )
+    except OSError:
+        current_app.logger.exception("Cache anteprima fonte PEC non scritta")
+    return serve_preview(preview.data, preview.mimetype, preview.download_name)
 
 
 @api_v1_react.get("/agenda/importa")

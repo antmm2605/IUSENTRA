@@ -100,6 +100,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Pacchetto deposito" in source
     assert "Documenti da inviare" in source
     assert "Documenti da inviare" in source
+    assert "function mobilePreviewUrl" in source
+    assert "const viewerUrl = mobileUrl || preview.url" in source
+    assert "isMobileReader" not in source
     assert "quickorganizer_deposito_catalogo_ui.json" not in source
     assert "depositCatalog: normalizeDepositCatalog" in data
     assert "catalog={data.depositCatalog}" in source
@@ -218,7 +221,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']" in source
     assert "LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000" in source
     assert "function localSignerCandidateBaseUrls" in source
-    assert "window.setTimeout(() => controller.abort(), timeoutMs)" in source
+    assert "window.setTimeout(() => controller.abort(), probeTimeoutMs)" in source
     assert "localSignerEndpointForPayload(endpoint, '/firma', signerStatus)" in source
     assert "localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)" in source
     assert "localSignerEndpointForStatus('/firma-batch', localSigner)" in source
@@ -244,6 +247,80 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Firma e prepara prova" in source
     assert "Il software non seleziona se la classificazione non è certa." in source
     assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
+
+
+def test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin():
+    source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
+
+    probe = source[
+        source.index("async function fetchLocalSignerStatus"):
+        source.index("async function pollLocalSignerStatus")
+    ]
+    assert "const probeTimeoutMs = candidateEndpoints.length > 1" in probe
+    assert "if (!response.ok || payload?.ok !== true)" in probe
+    assert "continue" in probe
+    assert probe.index("if (!response.ok || payload?.ok !== true)") < probe.index("ok: true")
+    assert "__iusentra_base_url: candidate.baseUrl" in probe
+    assert "localSignerDetectedBaseUrl = candidate.baseUrl" in probe
+    assert "ok: response.ok ? payload.ok : false" not in probe
+
+    loopback_contract = source[
+        source.index("function isLocalSignerLoopbackBaseUrl"):
+        source.index("function localSignerLatestVersion")
+    ]
+    assert "parsed.protocol === 'http:'" in loopback_contract
+    assert "['127.0.0.1', 'localhost'].includes(parsed.hostname)" in loopback_contract
+    assert "parsed.port === '27272'" in loopback_contract
+    assert "localSignerDetectedBaseUrl" in loopback_contract
+    assert "LOCAL_SIGNER_DEFAULT_BASE_URLS[0]" in loopback_contract
+    assert "isLocalSignerLoopbackBaseUrl(configured) ? configured : ''" in loopback_contract
+    endpoint_payload = loopback_contract[
+        loopback_contract.index("function localSignerEndpointForPayload"):
+        loopback_contract.index("function localSignerProbeFailureMessage")
+    ]
+    assert endpoint_payload.count("return fallback") == 3
+    assert "return raw" not in endpoint_payload
+
+    deposit_page = source[
+        source.index("function DepositPreparePage"):
+        source.index("function DepositBatchSignaturePanel")
+    ]
+    complete_signature = deposit_page[
+        deposit_page.index("const completeDepositLocalSignature"):
+        deposit_page.index("const completeDepositLocalPec")
+    ]
+    assert "const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()" in complete_signature
+    assert "&& !reusablePinSessionId" in complete_signature
+    assert "if (signerStatus && !reusablePinSessionId)" in complete_signature
+    assert "if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus))" in complete_signature
+    assert "pin_session_id: reusablePinSessionId || undefined" in complete_signature
+    assert complete_signature.count("signatureResponse = await fetch(endpoint, requestOptions)") == 1
+    assert "if (reusablePinSessionId) batchSignaturePinSessionRef.current = ''" in complete_signature
+
+    prepare_signature = deposit_page[
+        deposit_page.index("const runBatchSignatureBeforeDeposit"):
+        deposit_page.index("const resetDepositSelectionToProposal")
+    ]
+    assert "batchSignaturePinSessionRef.current = ''" in prepare_signature
+    assert "if (!result?.pinSessionId)" in prepare_signature
+    assert "senza aprire la sessione PIN unica richiesta per DatiAtto.xml" in prepare_signature
+    assert "batchSignaturePinSessionRef.current = result.pinSessionId" in prepare_signature
+
+    batch_panel = source[
+        source.index("function DepositBatchSignaturePanel"):
+        source.index("function documentHasSignedContainerExtension")
+    ]
+    sign_all = batch_panel[batch_panel.index("const signAll = async () =>"):batch_panel.index("useEffect(() => {", batch_panel.index("const signAll = async () =>"))]
+    assert sign_all.count("signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), requestOptions)") == 1
+    assert "const pinSessionId = recordText(payload, 'pin_session_id')" in sign_all
+    assert "pinSessionId: pinSessionId || undefined" in sign_all
+
+    package_actions = deposit_page[
+        deposit_page.index('className="iu-fas-package-actions"'):
+        deposit_page.index("{packagePreview ? (")
+    ]
+    assert package_actions.count("completeLocalPec={completeDepositLocalPec}") == 1
+    assert package_actions.index("completeLocalPec={completeDepositLocalPec}") > package_actions.index('confirmTitle="Invia deposito reale"')
 
 
 def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto():
@@ -335,7 +412,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "batchSignaturePinSessionRef" in source
     assert "pin_session_id: reusablePinSessionId || undefined" in source
     assert "const pinSessionId = recordText(payload, 'pin_session_id')" in source
-    assert "if (result?.pinSessionId) batchSignaturePinSessionRef.current = result.pinSessionId" in source
+    assert "if (!result?.pinSessionId)" in source
+    assert "batchSignaturePinSessionRef.current = result.pinSessionId" in source
     assert "const unsignedCandidateDocuments = unsignedPackageDocuments.length" in deposit_page
     assert "depositCandidateDocuments.filter((doc) => !doc.signed && requiresPackageSignature(doc)).length" not in deposit_page
     assert "metadato ministeriale della busta, non un allegato da scegliere" not in deposit_page
@@ -367,7 +445,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "result.requires_local_signature && completeLocalSignature" in action_button
     assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
     assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
-    assert "if (!localSignerStatusCanSign(signerStatus))" in deposit_page
+    assert "if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus))" in deposit_page
     assert "Dispositivo non pronto per firmare i dati del deposito" in deposit_page
     assert "Local Signer non raggiungibile dal browser per firmare i dati del deposito" in deposit_page
     assert "async function parseLocalSignerResponse" in source

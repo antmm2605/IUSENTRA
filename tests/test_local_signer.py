@@ -38,6 +38,65 @@ def _load_local_ai_host_bridge():
     return module
 
 
+def _install_governed_popen_fake(monkeypatch, module, on_start):
+    """Simula Popen senza rete preservando il ciclo di vita governato del signer."""
+    processes = []
+
+    class _FakeProcess:
+        def __init__(self, cmd, **kwargs):
+            self.cmd = cmd
+            self.kwargs = kwargs
+            self.pid = 8100 + len(processes)
+            self._handle = 0
+            self.returncode = None
+            self.terminated = False
+            self.killed = False
+            self.communicate_calls = 0
+            outcome = on_start(cmd, kwargs) or {}
+            self._final_returncode = int(outcome.get("returncode", 0))
+            text_mode = bool(kwargs.get("text"))
+            self._stdout = outcome.get("stdout", "" if text_mode else b"")
+            self._stderr = outcome.get("stderr", "" if text_mode else b"")
+            self._communicate_exception = outcome.get("communicate_exception")
+            processes.append(self)
+
+        def communicate(self, input=None, timeout=None):
+            self.communicate_calls += 1
+            if self._communicate_exception is not None and self.communicate_calls == 1:
+                raise self._communicate_exception
+            if self.returncode is None:
+                self.returncode = self._final_returncode
+            return self._stdout, self._stderr
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self):
+            self.terminated = True
+            self.returncode = -15
+
+        def wait(self, timeout=None):
+            if self.returncode is None:
+                self.returncode = self._final_returncode
+            return self.returncode
+
+        def kill(self):
+            self.killed = True
+            self.returncode = -9
+
+    monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
+    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
+    monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
+    monkeypatch.setattr(module, "_windows_close_job_handle", lambda handle: None)
+    monkeypatch.setattr(module, "_windows_close_owned_pin_prompts", lambda handles: None)
+    monkeypatch.setattr(
+        module,
+        "_windows_pin_prompt_foreground_pump",
+        lambda stop_event, deadline_seconds, excluded_handles=None, owned_handles=None: None,
+    )
+    return processes
+
+
 def test_portal_assistant_pst_infofascicolo_apre_accesso_con_rientro_controllato(tmp_path, monkeypatch):
     module = _load_local_signer()
     auth_url = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
@@ -556,7 +615,9 @@ def test_pst_ricerca_snapshot_full_non_perde_allegati_master_detail():
 
     assert 'include_full_snapshot = bool(data.get("include_full_snapshot"))' in ricerca_block
     full_branch = ricerca_block.split("if _pst_namespace_qbuilder(base_url) and include_full_snapshot:", 1)[1].split("sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder", 1)[0]
-    assert "allow_cert_retry=True" in full_branch
+    assert 'cert_thumbprint=""' in full_branch
+    assert "allow_cert_retry=False" in full_branch
+    assert "allow_cert_retry=True" not in full_branch
     assert '"full_snapshot": snapshot_completo' in ricerca_block
     assert '"master_detail": snapshot_completo' in ricerca_block
     assert "not _pst_servizio_cassazione_civile(base_url)" in ricerca_block
@@ -814,18 +875,50 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "/pst/download-documenti-batch" in template
     assert "purpose: 'view'" in template
     assert "purpose: 'import'" not in template
-    assert "AW_PST_IMPORT_SESSION?.session_id" not in template
+    assert "import_session_id: AW_PST_SESSION?.session_id || ''" in template
+    assert "AW_PST_IMPORT_SESSION = AW_PST_SESSION;" in template
     assert "function awGetActivePstSession" in template
     assert "pst_session_id: activeSession?.session_id || ''" in template
     assert "`${AW_PST_LS_BASE}/pst/preflight-auth`" not in template
     assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
+    assert "function awNewPstOperationId" in template
+    assert "AW_PST_SEARCH_OPERATION_PROMISE" in template
+    assert "AW_PST_DOWNLOAD_OPERATION_PROMISE" in template
+    assert "XMLHttpRequest" not in template
+    assert "awPstSearchViaLocalSigner(query, false)" not in template
+    assert "awPstPreviewViaLocalSigner(selection, false)" not in template
+    assert "awPstDownloadSelectionViaLocalSigner(false)" not in template
+    search_fn = template[
+        template.index("async function awPstSearchViaLocalSigner"):
+        template.index("async function awPstPreviewViaLocalSigner")
+    ]
+    assert "const operationId = awNewPstOperationId('ricerca')" in search_fn
+    assert search_fn.count("operation_id: operationId") == 2
+    assert "not found" not in search_fn.lower()
+    search_guard = template[
+        template.index("async function awRunSearch()"):
+        template.index("function awRenderResults")
+    ]
+    assert "if (AW_PST_SEARCH_OPERATION_PROMISE) return AW_PST_SEARCH_OPERATION_PROMISE" in search_guard
     preview_fn = template[
         template.index("async function awPstPreviewViaLocalSigner"):
         template.index("function awMapLocalSignerSearchRows")
     ]
+    assert "operation_id: operationId" in preview_fn
     assert preview_fn.index("AW_STATE.pstSnapshot?.documenti?.length") < preview_fn.index(
         "awEnsurePstCertReady"
     )
+    download_fn = template[
+        template.index("async function awPstDownloadSelectionViaLocalSigner"):
+        template.index("function awShowDownloadProgress")
+    ]
+    assert "const operationId = awNewPstOperationId('scarico')" in download_fn
+    assert "operation_id: operationId" in download_fn
+    assert "purpose: 'view'" in download_fn
+    assert "purpose: 'import'" not in download_fn
+    assert "awGetActivePstSession(tribunale, 'view')" in download_fn
+    assert "preflight_auth: false" in download_fn
+    assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
 
 
 def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
@@ -894,15 +987,31 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
     monkeypatch.setattr(
         module,
         "_windows_pin_prompt_foreground_pump",
-        lambda stop_event, deadline_seconds: None,
+        lambda stop_event, deadline_seconds, excluded_handles=None, owned_handles=None: None,
     )
+    monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
+    monkeypatch.setattr(module, "_windows_create_kill_on_close_job", lambda process: None)
+    monkeypatch.setattr(module, "_windows_close_owned_pin_prompts", lambda handles: None)
 
-    def _fake_run(cmd, **kwargs):
+    class _FakeProcess:
+        pid = 4242
+        _handle = 0
+        returncode = 0
+
+        def communicate(self, input=None, timeout=None):
+            captured["input"] = input
+            captured["timeout"] = timeout
+            return b"", b""
+
+        def poll(self):
+            return self.returncode
+
+    def _fake_popen(cmd, **kwargs):
         captured["cmd"] = cmd
         captured["kwargs"] = kwargs
-        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+        return _FakeProcess()
 
-    monkeypatch.setattr(module.subprocess, "run", _fake_run)
+    monkeypatch.setattr(module.subprocess, "Popen", _fake_popen)
 
     result = module._run_curl_with_pin_foreground(
         ["curl.exe", "--version"],
@@ -913,14 +1022,62 @@ def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypa
 
     assert result.returncode == 0
     assert captured["cmd"][0] == "curl.exe"
-    assert captured["kwargs"]["capture_output"] is True
-    assert captured["kwargs"]["timeout"] == 7
+    assert captured["kwargs"]["stdout"] is module.subprocess.PIPE
+    assert captured["kwargs"]["stderr"] is module.subprocess.PIPE
+    assert captured["timeout"] == 7
     assert captured["kwargs"]["creationflags"] & 0x08000000
     assert captured["kwargs"]["creationflags"] & 0x00000002
     startupinfo = captured["kwargs"].get("startupinfo")
     if startupinfo is not None:
         assert getattr(startupinfo, "dwFlags", 0) & 1
         assert getattr(startupinfo, "wShowWindow", None) == 0
+
+
+def test_local_signer_cleanup_termina_operazione_governata_e_ripulisce_prompt(monkeypatch):
+    module = _load_local_signer()
+    calls = {"terminate": 0, "prompt": [], "job": []}
+
+    class _FakeProcess:
+        pid = 5151
+        returncode = None
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self):
+            calls["terminate"] += 1
+            self.returncode = 1
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def kill(self):
+            self.returncode = 1
+
+    process = _FakeProcess()
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    monkeypatch.setattr(module, "_windows_close_owned_pin_prompts", lambda handles: calls["prompt"].append(handles))
+    monkeypatch.setattr(module, "_windows_close_job_handle", lambda handle: calls["job"].append(handle))
+    with module._managed_process_lock:
+        module._managed_processes.clear()
+        module._managed_processes[process.pid] = {
+            "process": process,
+            "job_handle": None,
+            "owned_handles": {101, 102},
+        }
+
+    module._cleanup_managed_processes()
+
+    assert calls["terminate"] == 1
+    assert calls["prompt"] == [{101, 102}]
+    assert calls["job"] == [None]
+    assert module._managed_processes == {}
+
+
+def test_batch_curl_arresta_intero_lotto_al_primo_annullamento():
+    source = Path("tools/local_signer.py").read_text(encoding="utf-8")
+
+    assert source.count('[_curl_command(), "--fail-early", "-s", "-S", "-K", cfg_file]') == 3
 
 
 def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
@@ -1182,13 +1339,13 @@ def test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pron
         "_ensure_pst_session_entry",
         lambda requested_session_id, **kwargs: (
             {
-                "session_id": requested_session_id,
-                "purpose": "view",
-                "cookie_file": "C:\\temp\\pst.cookies",
+                "session_id": "SID-IMPORT",
+                "purpose": kwargs.get("purpose"),
+                "cookie_file": "C:\\temp\\pst-import.cookies",
                 "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
             },
-            False,
+            True,
         ),
     )
     monkeypatch.setattr(
@@ -1217,11 +1374,13 @@ def test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pron
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
+    assert captured["payload"]["pst_session_id"] == "SID-IMPORT"
+    assert captured["payload"]["pst_session_purpose"] == "import"
     assert calls["batch_do_preflight"] is False
     assert calls["batch_cookie_file"] == ""
 
 
-def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkeypatch):
+def test_pst_download_batch_senza_sessione_crea_import_nuova(monkeypatch):
     module = _load_local_signer()
     captured = {}
     calls = {}
@@ -1250,29 +1409,6 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
     monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
     monkeypatch.setattr(
         module,
-        "_find_view_session_for_cert",
-        lambda thumbprint, tribunale: {
-            "session_id": "SID-VIEW",
-            "purpose": "view",
-            "tribunale": tribunale,
-            "cert_thumbprint": thumbprint,
-            "auth_ready": True,
-            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
-        },
-    )
-    monkeypatch.setattr(
-        module,
-        "_resolve_pst_session_entry",
-        lambda session_id: {
-            "session_id": session_id,
-            "purpose": "view",
-            "cookie_file": "C:\\temp\\pst.cookies",
-            "auth_ready": True,
-            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
-        },
-    )
-    monkeypatch.setattr(
-        module,
         "_risolvi_base_pst_runtime",
         lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
     )
@@ -1287,14 +1423,14 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
         calls["ensure_base_url"] = kwargs.get("base_url")
         return (
             {
-                "session_id": requested_session_id,
+                "session_id": "SID-IMPORT",
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst.cookies",
-                "auth_ready": True,
+                "cookie_file": "C:\\temp\\pst-import.cookies",
+                "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
                 "base_url": kwargs.get("base_url"),
             },
-            False,
+            True,
         )
 
     monkeypatch.setattr(module, "_ensure_pst_session_entry", _fake_ensure)
@@ -1315,15 +1451,15 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
     module._Handler._pst_download_documenti_batch(_FakeHandler())
 
     assert captured["status"] == 200
-    assert captured["payload"]["pst_session_id"] == "SID-VIEW"
-    assert captured["payload"]["pst_session_purpose"] == "view"
-    assert calls["requested_session_id"] == "SID-VIEW"
-    assert calls["ensure_purpose"] == "view"
-    assert calls["ensure_base_url"].endswith("/JPW_SIL")
-    assert calls["batch_base_url"].endswith("/JPW_SIL")
+    assert captured["payload"]["pst_session_id"] == "SID-IMPORT"
+    assert captured["payload"]["pst_session_purpose"] == "import"
+    assert calls["requested_session_id"] == ""
+    assert calls["ensure_purpose"] == "import"
+    assert calls["ensure_base_url"].endswith("/JPW_SICID")
+    assert calls["batch_base_url"].endswith("/JPW_SICID")
 
 
-def test_pst_download_batch_applica_servizio_documenti_senza_perdere_sessione_view(monkeypatch):
+def test_pst_download_batch_applica_servizio_documenti_su_sessione_import(monkeypatch):
     module = _load_local_signer()
     captured = {}
     calls = {}
@@ -1367,7 +1503,6 @@ def test_pst_download_batch_applica_servizio_documenti_senza_perdere_sessione_vi
     monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
     monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
     monkeypatch.setattr(module, "_pst_session_lock_for", lambda session_entry: _NullLock())
-    monkeypatch.setattr(module, "_reuse_view_session_id_if_available", lambda session_id, *_args: session_id)
     monkeypatch.setattr(
         module,
         "_resolve_pst_session_entry",
@@ -1386,14 +1521,14 @@ def test_pst_download_batch_applica_servizio_documenti_senza_perdere_sessione_vi
         calls["ensure_base_url"] = kwargs.get("base_url")
         return (
             {
-                "session_id": requested_session_id,
+                "session_id": "SID-IMPORT",
                 "purpose": kwargs.get("purpose"),
-                "cookie_file": "C:\\temp\\pst.cookies",
-                "auth_ready": True,
+                "cookie_file": "C:\\temp\\pst-import.cookies",
+                "auth_ready": False,
                 "cf_avvocato": "RSSMRA80A01H501Z",
                 "base_url": kwargs.get("base_url"),
             },
-            False,
+            True,
         )
 
     def _fake_download_payloads(**kwargs):
@@ -1417,8 +1552,10 @@ def test_pst_download_batch_applica_servizio_documenti_senza_perdere_sessione_vi
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
-    assert calls["requested_session_id"] == "SID-VIEW"
-    assert calls["ensure_purpose"] == "view"
+    assert captured["payload"]["pst_session_id"] == "SID-IMPORT"
+    assert captured["payload"]["pst_session_purpose"] == "import"
+    assert calls["requested_session_id"] == ""
+    assert calls["ensure_purpose"] == "import"
     assert calls["ensure_base_url"].endswith("/JPW_SIECIC")
     assert calls["batch_base_url"].endswith("/JPW_SIECIC")
     assert calls["batch_do_preflight"] is False
@@ -1839,73 +1976,75 @@ def test_richiede_certificato_pst_se_nessuno_e_stato_selezionato():
     assert "PIN" in msg
 
 
-def test_preflight_auth_accetta_http_405_come_handshake_valido():
+def test_preflight_auth_accetta_http_405_come_handshake_valido(monkeypatch):
     module = _load_local_signer()
 
-    orig_run = module.subprocess.run
-    try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
-            header_file = cmd[cmd.index("--dump-header") + 1]
-            body_file = cmd[cmd.index("-o") + 1]
-            Path(header_file).write_text(
-                "HTTP/1.1 405 Method Not Allowed\r\n"
-                "Content-Type: text/html; charset=iso-8859-1\r\n\r\n",
-                encoding="utf-8",
-            )
-            Path(body_file).write_text("<html>405</html>", encoding="utf-8")
-            return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-        module.subprocess.run = _fake_run
-        esito = module._pst_preflight_auth_curl(
-            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
-            cert_thumbprint="AABBCC11",
+    def _fake_start(cmd, _kwargs):
+        header_file = cmd[cmd.index("--dump-header") + 1]
+        body_file = cmd[cmd.index("-o") + 1]
+        Path(header_file).write_text(
+            "HTTP/1.1 405 Method Not Allowed\r\n"
+            "Content-Type: text/html; charset=iso-8859-1\r\n\r\n",
+            encoding="utf-8",
         )
-    finally:
-        module.subprocess.run = orig_run
+        Path(body_file).write_text("<html>405</html>", encoding="utf-8")
+        return {"returncode": 0, "stdout": "", "stderr": ""}
+
+    _install_governed_popen_fake(monkeypatch, module, _fake_start)
+    esito = module._pst_preflight_auth_curl(
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        cert_thumbprint="AABBCC11",
+    )
 
     assert esito["ok"] is True
     assert esito["http_code"] == 405
 
 
-def test_preflight_auth_timeout_non_blocca_la_ricerca_reale():
+def test_preflight_auth_timeout_non_blocca_la_ricerca_reale(monkeypatch):
     module = _load_local_signer()
 
-    orig_run = module.subprocess.run
-    try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
-            return SimpleNamespace(returncode=28, stdout="", stderr="operation timed out")
-
-        module.subprocess.run = _fake_run
-        esito = module._pst_preflight_auth_curl(
-            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
-            cert_thumbprint="AABBCC11",
-        )
-    finally:
-        module.subprocess.run = orig_run
+    _install_governed_popen_fake(
+        monkeypatch,
+        module,
+        lambda _cmd, _kwargs: {
+            "returncode": 28,
+            "stdout": "",
+            "stderr": "operation timed out",
+        },
+    )
+    esito = module._pst_preflight_auth_curl(
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        cert_thumbprint="AABBCC11",
+    )
 
     assert esito["ok"] is True
     assert "non blocca la ricerca reale" in esito["warning"].lower()
 
 
-def test_preflight_auth_timeout_expired_non_diventa_errore_500():
+def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch):
     module = _load_local_signer()
 
-    orig_run = module.subprocess.run
-    try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
-            raise module.subprocess.TimeoutExpired(cmd, timeout)
+    processes = _install_governed_popen_fake(
+        monkeypatch,
+        module,
+        lambda cmd, _kwargs: {
+            "communicate_exception": module.subprocess.TimeoutExpired(
+                cmd,
+                module.PST_PREFLIGHT_MAX_TIME + 10,
+            ),
+        },
+    )
 
-        module.subprocess.run = _fake_run
-        esito = module._pst_preflight_auth_curl(
+    with pytest.raises(RuntimeError, match="processo locale.*chiuso"):
+        module._pst_preflight_auth_curl(
             "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
             cert_thumbprint="AABBCC11",
         )
-    finally:
-        module.subprocess.run = orig_run
 
-    assert esito["ok"] is True
-    assert esito["http_code"] is None
-    assert "non blocca la ricerca reale" in esito["warning"].lower()
+    assert len(processes) == 1
+    assert processes[0].terminated is True
+    assert processes[0].communicate_calls == 2
+    assert module._managed_processes == {}
 
 
 def test_messaggio_timeout_usa_il_timeout_reale_della_ricerca():
@@ -6680,78 +6819,71 @@ def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fal
     assert calls["downloads"][0][1]["soap_body"].find("<idCat>CAT-OK</idCat>") != -1
 
 
-def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
+def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec(monkeypatch):
     module = _load_local_signer()
 
-    orig_platform = module.sys.platform
-    orig_run = module.subprocess.run
     captured = {}
 
-    try:
-        def _fake_run(cmd, capture_output, timeout, **kwargs):
-            cfg_path = Path(cmd[-1])
-            cfg_text = cfg_path.read_text(encoding="utf-8")
-            captured["cfg"] = cfg_text
-            for line in cfg_text.splitlines():
-                if line.startswith('output = "'):
-                    Path(line.split('"')[1]).write_bytes(b"<ok/>")
-                elif line.startswith('dump-header = "'):
-                    Path(line.split('"')[1]).write_text("HTTP/1.1 200 OK\r\n", encoding="utf-8")
-            return SimpleNamespace(returncode=0, stderr=b"")
+    def _fake_start(cmd, _kwargs):
+        captured["cmd"] = cmd
+        cfg_path = Path(cmd[-1])
+        cfg_text = cfg_path.read_text(encoding="utf-8")
+        captured["cfg"] = cfg_text
+        for line in cfg_text.splitlines():
+            if line.startswith('output = "'):
+                Path(line.split('"')[1]).write_bytes(b"<ok/>")
+            elif line.startswith('dump-header = "'):
+                Path(line.split('"')[1]).write_text("HTTP/1.1 200 OK\r\n", encoding="utf-8")
+        return {"returncode": 0, "stdout": b"", "stderr": b""}
 
-        module.sys.platform = "win32"
-        module.subprocess.run = _fake_run
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    _install_governed_popen_fake(monkeypatch, module, _fake_start)
 
-        result = module._soap_call_curl_batch_raw(
-            [
-                {
-                    "url": "https://pst.example.test/one",
-                    "soap_body": "<xml/>",
-                    "soap_action": "",
-                },
-                {
-                    "url": "https://pst.example.test/two",
-                    "soap_body": "<xml/>",
-                    "soap_action": "",
-                },
-            ],
-            cert_thumbprint="AABBCC11",
-        )
-    finally:
-        module.sys.platform = orig_platform
-        module.subprocess.run = orig_run
+    result = module._soap_call_curl_batch_raw(
+        [
+            {
+                "url": "https://pst.example.test/one",
+                "soap_body": "<xml/>",
+                "soap_action": "",
+            },
+            {
+                "url": "https://pst.example.test/two",
+                "soap_body": "<xml/>",
+                "soap_action": "",
+            },
+        ],
+        cert_thumbprint="AABBCC11",
+    )
 
     assert len(result) == 2
+    assert "--fail-early" in captured["cmd"]
     assert 'cert = "CurrentUser\\\\MY\\\\AABBCC11"' in captured["cfg"]
     assert 'cert = "CurrentUser/MY/AABBCC11"' not in captured["cfg"]
     assert "ssl-no-revoke" in captured["cfg"]
 
 
-def test_soap_call_curl_raw_windows_applica_ssl_no_revoke():
+def test_soap_call_curl_raw_windows_applica_ssl_no_revoke(monkeypatch):
     module = _load_local_signer()
 
-    orig_platform = module.sys.platform
-    orig_run = module.subprocess.run
     captured = {}
 
-    try:
-        def _fake_run(cmd, capture_output, timeout, **kwargs):
-            captured["cmd"] = cmd
-            header_path = Path(cmd[cmd.index("--dump-header") + 1])
-            header_path.write_text("HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n\r\n", encoding="utf-8")
-            return SimpleNamespace(returncode=0, stdout=b"<ok/>", stderr=b"")
-
-        module.sys.platform = "win32"
-        module.subprocess.run = _fake_run
-
-        body, _headers = module._soap_call_curl_raw(
-            url="https://pst.example.test/service",
-            soap_body="<xml/>",
-            cert_thumbprint="AABBCC11",
+    def _fake_start(cmd, _kwargs):
+        captured["cmd"] = cmd
+        header_path = Path(cmd[cmd.index("--dump-header") + 1])
+        header_path.write_text(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n\r\n",
+            encoding="utf-8",
         )
-    finally:
-        module.sys.platform = orig_platform
-        module.subprocess.run = orig_run
+        return {"returncode": 0, "stdout": b"<ok/>", "stderr": b""}
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    _install_governed_popen_fake(monkeypatch, module, _fake_start)
+
+    body, _headers = module._soap_call_curl_raw(
+        url="https://pst.example.test/service",
+        soap_body="<xml/>",
+        cert_thumbprint="AABBCC11",
+    )
 
     assert body == b"<ok/>"
     assert "--ssl-no-revoke" in captured["cmd"]
@@ -6760,32 +6892,29 @@ def test_soap_call_curl_raw_windows_applica_ssl_no_revoke():
     ]
 
 
-def test_pst_preflight_windows_applica_ssl_no_revoke():
+def test_pst_preflight_windows_applica_ssl_no_revoke(monkeypatch):
     module = _load_local_signer()
 
-    orig_platform = module.sys.platform
-    orig_run = module.subprocess.run
     captured = {}
 
-    try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
-            captured["cmd"] = cmd
-            header_path = Path(cmd[cmd.index("--dump-header") + 1])
-            body_path = Path(cmd[cmd.index("-o") + 1])
-            header_path.write_text("HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\n\r\n", encoding="utf-8")
-            body_path.write_text("ok", encoding="utf-8")
-            return SimpleNamespace(returncode=0, stderr="")
-
-        module.sys.platform = "win32"
-        module.subprocess.run = _fake_run
-
-        result = module._pst_preflight_auth_curl(
-            "https://pst.example.test/service",
-            cert_thumbprint="AABBCC11",
+    def _fake_start(cmd, _kwargs):
+        captured["cmd"] = cmd
+        header_path = Path(cmd[cmd.index("--dump-header") + 1])
+        body_path = Path(cmd[cmd.index("-o") + 1])
+        header_path.write_text(
+            "HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\n\r\n",
+            encoding="utf-8",
         )
-    finally:
-        module.sys.platform = orig_platform
-        module.subprocess.run = orig_run
+        body_path.write_text("ok", encoding="utf-8")
+        return {"returncode": 0, "stdout": "", "stderr": ""}
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    _install_governed_popen_fake(monkeypatch, module, _fake_start)
+
+    result = module._pst_preflight_auth_curl(
+        "https://pst.example.test/service",
+        cert_thumbprint="AABBCC11",
+    )
 
     assert result["ok"] is True
     assert "--ssl-no-revoke" in captured["cmd"]

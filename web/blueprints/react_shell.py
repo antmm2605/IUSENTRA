@@ -532,7 +532,7 @@ def _react_bootstrap_payload() -> dict[str, Any]:
             if str(permission or "").strip()
         }
     )
-    return {
+    payload: dict[str, Any] = {
         "user": {
             "id": str(getattr(utente, "id", "") or ""),
             "username": username,
@@ -552,3 +552,29 @@ def _react_bootstrap_payload() -> dict[str, Any]:
             config=current_app.config,
         ),
     }
+    embedded_source = _embedded_source_bootstrap_payload()
+    if embedded_source:
+        payload["embeddedSourceDetail"] = embedded_source
+    return payload
+
+
+def _embedded_source_bootstrap_payload() -> dict[str, Any]:
+    if (request.args.get("embed") or "").strip().lower() != "source":
+        return {}
+    path = (request.path or "").rstrip("/").lower() or "/"
+    if path != "/email":
+        return {}
+    audit_id = (request.args.get("audit_id") or "").strip()
+    if not audit_id:
+        return {}
+    try:
+        from web.blueprints.pec_pipeline_api import _repo
+
+        return {
+            "mode": "pec",
+            "sourceId": f"pec-audit:{audit_id}",
+            "data": _repo().get_message_source_detail(audit_id),
+        }
+    except Exception as exc:  # pragma: no cover - bootstrap difensivo, la UI ha comunque fetch/errore controllato
+        current_app.logger.warning("Fonte PEC embedded non precaricata: %s", exc)
+        return {}

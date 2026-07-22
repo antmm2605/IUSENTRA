@@ -1615,10 +1615,6 @@ function mobilePreviewUrl(url: string): string {
 }
 
 function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; onClose:()=>void}) {
-  const [isMobileReader, setIsMobileReader] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
-  ))
-
   useEffect(() => {
     const objectUrl = preview?.objectUrl
     return () => {
@@ -1626,22 +1622,9 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
     }
   }, [preview?.objectUrl])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-    const media = window.matchMedia('(max-width: 900px)')
-    const update = () => setIsMobileReader(media.matches)
-    update()
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', update)
-      return () => media.removeEventListener('change', update)
-    }
-    media.addListener(update)
-    return () => media.removeListener(update)
-  }, [])
-
   if (!preview) return null
   const mobileUrl = preview.mobileUrl || mobilePreviewUrl(preview.url)
-  const viewerUrl = isMobileReader && mobileUrl ? mobileUrl : preview.url
+  const viewerUrl = mobileUrl || preview.url
   return (
     <div className="iu-fas-preview-modal" role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
       <div className="iu-fas-preview-modal__box">
@@ -2130,26 +2113,28 @@ function DepositPreparePage({ id }:{id:string}) {
     if (!signPayload || !endpoint || !recordText(signPayload, 'documento')) {
       throw new Error('Dati del deposito non disponibili per la firma. Ripeti la prova deposito.')
     }
+    const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
     let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
-    if (!signerStatus || signerStatus.ok === false) {
+    if ((!signerStatus || signerStatus.ok === false) && !reusablePinSessionId) {
       requestLocalSignerStart()
       await sleep(900)
       signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
     }
-    signerStatus = signerStatus ? await recoverLocalSignerAutomatically(signerStatus, {
-      onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
-    }) : signerStatus
+    if (signerStatus && !reusablePinSessionId) {
+      signerStatus = await recoverLocalSignerAutomatically(signerStatus, {
+        onMessage: (message) => setDepositActionNotice({ tone: 'success', message }),
+      })
+    }
     if (!signerStatus || signerStatus.ok === false) {
       throw new Error(localSignerProbeFailureMessage(signerStatus, 'firmare i dati del deposito'))
     }
-    if (!localSignerStatusCanSign(signerStatus)) {
+    if (!reusablePinSessionId && !localSignerStatusCanSign(signerStatus)) {
       const signerDetail = String(signerStatus.errore_token || signerStatus.errore_libreria || signerStatus.messaggio || signerStatus.error || '').trim()
       throw new Error(signerDetail ? `Dispositivo non pronto per firmare i dati del deposito: ${depositUserFacingMessage(signerDetail)}` : 'Dispositivo non pronto per firmare i dati del deposito. Inserisci il dispositivo fisico o seleziona un certificato Windows utilizzabile, poi ripeti la prova deposito.')
     }
     endpoint = localSignerEndpointForPayload(endpoint, '/firma', signerStatus)
     const windowsCertificate = localSignerWindowsCertificate(signerStatus)
     const token = Array.isArray(signerStatus?.token) ? signerStatus?.token?.[0] : undefined
-    const reusablePinSessionId = batchSignaturePinSessionRef.current.trim()
     const pin = reusablePinSessionId ? '' : await requestLocalSignaturePin(localSignature)
     if (!reusablePinSessionId && !pin.trim()) {
       throw new Error('PIN firma mancante. Inseriscilo per firmare i dati del deposito e proseguire.')
@@ -2173,11 +2158,13 @@ function DepositPreparePage({ id }:{id:string}) {
       }
       signatureResponse = await fetch(endpoint, requestOptions)
     } catch {
+      if (reusablePinSessionId) batchSignaturePinSessionRef.current = ''
       throw new Error('Local Signer non raggiungibile dal browser per firmare i dati del deposito. Verifica che il servizio locale sia attivo e ripeti la prova deposito.')
     }
     const signaturePayload = await parseLocalSignerResponse(signatureResponse)
     const signedB64 = recordText(signaturePayload, 'firmato_b64')
     if (!signatureResponse.ok || signaturePayload.ok === false || !signedB64) {
+      if (reusablePinSessionId) batchSignaturePinSessionRef.current = ''
       throw new Error(recordText(signaturePayload, 'errore', recordText(signaturePayload, 'messaggio', 'Firma dei dati del deposito non completata dal Local Signer.')))
     }
     const nextPinSessionId = recordText(signaturePayload, 'pin_session_id', reusablePinSessionId)
@@ -2280,8 +2267,12 @@ function DepositPreparePage({ id }:{id:string}) {
       throw signatureInputRequired('Inserisci il PIN nel riquadro firma di questa fase. Il software firmerà i documenti e poi genererà la busta.')
     }
     try {
+      batchSignaturePinSessionRef.current = ''
       const result = await batchSignatureActionRef.current()
-      if (result?.pinSessionId) batchSignaturePinSessionRef.current = result.pinSessionId
+      if (!result?.pinSessionId) {
+        throw signatureInputRequired('Local Signer ha completato la firma dei documenti senza aprire la sessione PIN unica richiesta per DatiAtto.xml. Aggiorna Local Signer e ripeti: il software non chiederà un secondo PIN nello stesso deposito.')
+      }
+      batchSignaturePinSessionRef.current = result.pinSessionId
     } catch (err) {
       setActiveDepositPanel('generazione-busta')
       window.location.hash = 'generazione-busta'
@@ -5131,6 +5122,7 @@ const LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'
 const LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000
 const LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000
 const LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']
+let localSignerDetectedBaseUrl = ''
 
 function isDesktopLocalSignerHost(): boolean {
   if (typeof navigator === 'undefined') return true
@@ -5213,9 +5205,25 @@ function normalizeLocalSignerBaseUrl(value?: string): string {
   return String(value || '').trim().replace(/\/+$/, '')
 }
 
+function isLocalSignerLoopbackBaseUrl(value?: string): boolean {
+  try {
+    const parsed = new URL(normalizeLocalSignerBaseUrl(value))
+    return parsed.protocol === 'http:'
+      && ['127.0.0.1', 'localhost'].includes(parsed.hostname)
+      && parsed.port === '27272'
+  } catch {
+    return false
+  }
+}
+
 function localSignerCandidateBaseUrls(): string[] {
   const configured = typeof window !== 'undefined' ? normalizeLocalSignerBaseUrl(window.__IUSENTRA_LOCAL_SIGNER_URL__) : ''
-  const urls = configured ? [configured, ...LOCAL_SIGNER_DEFAULT_BASE_URLS] : LOCAL_SIGNER_DEFAULT_BASE_URLS
+  const urls = [
+    localSignerDetectedBaseUrl,
+    LOCAL_SIGNER_DEFAULT_BASE_URLS[0],
+    isLocalSignerLoopbackBaseUrl(configured) ? configured : '',
+    ...LOCAL_SIGNER_DEFAULT_BASE_URLS.slice(1),
+  ]
   return Array.from(new Set(urls.map((url) => normalizeLocalSignerBaseUrl(url)).filter(Boolean)))
 }
 
@@ -5242,13 +5250,13 @@ function localSignerEndpointForPayload(endpoint: string, path: string, status?: 
   if (!raw) return fallback
   try {
     const parsed = new URL(raw)
-    if (['127.0.0.1', 'localhost'].includes(parsed.hostname) && (!parsed.port || parsed.port === '27272')) {
+    if (isLocalSignerLoopbackBaseUrl(`${parsed.protocol}//${parsed.host}`)) {
       return `${localSignerStatusBaseUrl(status)}${parsed.pathname}${parsed.search}${parsed.hash}`
     }
   } catch {
-    return raw
+    return fallback
   }
-  return raw
+  return fallback
 }
 
 function localSignerProbeFailureMessage(status: LocalSignerStatus | null | undefined, action: string): string {
@@ -5301,9 +5309,12 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
     ? candidateBaseUrls.map((baseUrl) => ({ baseUrl, endpoint: localSignerEndpoint('/ping', baseUrl) }))
     : [{ baseUrl: localSignerBaseUrl(), endpoint: localSignerEndpoint('/ping') }]
   let lastError = ''
+  const probeTimeoutMs = candidateEndpoints.length > 1
+    ? Math.max(3500, Math.ceil(timeoutMs / candidateEndpoints.length))
+    : timeoutMs
   for (const candidate of candidateEndpoints) {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+    const timeout = window.setTimeout(() => controller.abort(), probeTimeoutMs)
     try {
       const requestOptions: LocalNetworkRequestInit = {
         cache: 'no-store',
@@ -5312,10 +5323,18 @@ async function fetchLocalSignerStatus(timeoutMs = 3500): Promise<LocalSignerStat
         signal: controller.signal,
       }
       const response = await fetch(candidate.endpoint, requestOptions)
-      const payload = await response.json().catch(() => ({} as LocalSignerStatus))
+      const payload = await response.json().catch(() => null) as LocalSignerStatus | null
+      if (!response.ok || payload?.ok !== true) {
+        const detail = String(payload?.messaggio || payload?.error || '').trim()
+        lastError = detail || (response.ok
+          ? `${candidate.endpoint} non ha restituito uno stato Local Signer valido.`
+          : `${candidate.endpoint} ha risposto HTTP ${response.status}.`)
+        continue
+      }
+      localSignerDetectedBaseUrl = candidate.baseUrl
       return {
         ...payload,
-        ok: response.ok ? payload.ok : false,
+        ok: true,
         __iusentra_base_url: candidate.baseUrl,
         __iusentra_probe_urls: candidateEndpoints.map((item) => item.endpoint),
       }

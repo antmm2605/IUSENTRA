@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -12,7 +13,7 @@ from flask import Flask, g
 from lex.operational_knowledge.models import OperationalQueryContext, OperationalRoute
 from lex.operational_knowledge.response_composer import OperationalResponseComposer
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
-from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml
+from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec_eml, classify_legal
 from web.blueprints.pec_control_tower_api import pec_control_tower_api
 
 
@@ -57,6 +58,41 @@ def _sample_pa_pec() -> bytes:
         dt=datetime.now(timezone.utc),
         attachments={"richiesta-pa.pdf.txt": "Richiesta di integrazione documentale con termine espresso."},
     )
+
+
+def test_control_tower_schema_crea_indici_bounded_per_fonti_pec(tmp_path: Path) -> None:
+    db_path = tmp_path / "tower.sqlite"
+    PecControlTowerRepository(db_path, tenant_id="tenant-test")
+
+    with sqlite3.connect(str(db_path)) as conn:
+        indexes = {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='legal_communications'"
+            ).fetchall()
+        }
+
+    assert "idx_legal_communications_event_received" in indexes
+    assert "idx_legal_communications_event_received_prefix" in indexes
+
+
+def test_pec_control_tower_sentenza_cancelleria_non_diventa_provvedimento_generico():
+    legal = classify_legal(
+        {
+            "sender": "cancelleria@giustiziacert.it",
+            "subject": "POSTA CERTIFICATA: COMUNICAZIONE 1394/2026/LAV",
+            "search_text": (
+                "Tribunale di Palmi. Oggetto: SENTENZA A VERBALE (art. 127-ter c.p.c.) "
+                "Descrizione: SENTENZA A VERBALE CON NUMERO 784/2026. "
+                "Note: Notificato alla PEC / in cancelleria il 14/07/2026."
+            ),
+        },
+        {"receipt_role": ""},
+    )
+
+    assert legal["legal_event_type"] == "sentenza_da_valutare_per_notifica"
+    assert legal["label"] == "Sentenza da valutare per la notifica"
+    assert "notifica dell'avvocato" in legal["primary_task"]
 
 
 class _FakeEmailArchive:

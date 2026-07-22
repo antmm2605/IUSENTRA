@@ -91,6 +91,13 @@ SOURCE_EVENT_TYPE_LABELS: Dict[str, str] = {
     "udienza": "Udienza",
     "comunicazione": "Comunicazione",
     "documento_fascicolo": "Documento notificato nel fascicolo",
+    "legal_notification_presidio": "Presidio notifica",
+    "sentenza_da_valutare_per_notifica": "Sentenza da valutare per la notifica",
+    "provvedimento_da_esaminare": "Provvedimento giudiziario da esaminare",
+    "comunicazione_cancelleria": "Comunicazione di cancelleria",
+    "cancelleria_comunicazione": "Comunicazione di cancelleria",
+    "pec_da_classificare": "PEC da classificare",
+    "ricevuta_accettazione_da_presidiare": "Ricevuta di accettazione PEC",
 }
 
 
@@ -624,8 +631,28 @@ class Scadenza:
         return None
 
     @property
+    def e_presidio_notifica(self) -> bool:
+        """Indica un'attività ricorrente di presidio, non un termine legale."""
+
+        return self.source_event_type == "legal_notification_presidio"
+
+    @property
+    def data_calendario_obj(self) -> Optional[date]:
+        """Data da rappresentare nel calendario operativo.
+
+        Un presidio di notifica resta visibile ogni giorno finché è aperto: la
+        sua presenza non attesta un termine di legge e non deve trasformarsi in
+        una scadenza scaduta al cambio di data.
+        """
+
+        due_date = self.data_scadenza_obj
+        if self.e_presidio_notifica and self.stato == StatoTermine.APERTO and due_date and due_date < date.today():
+            return date.today()
+        return due_date
+
+    @property
     def giorni_alla_scadenza(self) -> Optional[int]:
-        ds = self.data_scadenza_obj
+        ds = self.data_calendario_obj
         return (ds - date.today()).days if ds else None
 
     @property

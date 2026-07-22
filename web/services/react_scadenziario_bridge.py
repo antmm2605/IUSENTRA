@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -44,6 +43,18 @@ from web.services.react_agenda_bridge import (
     build_agenda_display_contexts,
     build_deadline_display_event,
 )
+from web.services.pec_source_links import (
+    control_tower_source_key,
+    extract_pec_attachment_source,
+    is_generic_pec_source_label,
+    latest_control_tower_sources,
+    latest_pec_profiles,
+    pec_audit_message_id,
+    pec_profile_source_name,
+    pec_original_label,
+    pec_source_href,
+    resolve_pec_source_name,
+)
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 TECHNICAL_VISIBLE_RE = re.compile(
@@ -54,6 +65,7 @@ INTERNAL_NOTE_PREFIXES = (
     "tipo evento:",
     "decorrenza letta:",
     "fonte:",
+    "fonte documentale:",
     "scadenza:",
     "hash:",
     "id:",
@@ -69,10 +81,48 @@ PEC_SUBJECT_NOISE_RE = re.compile(
 PEC_RG_RE = re.compile(r"\b(?:N\.?\s*R\.?\s*G\.?|NRG|RG)\s*:?\s*(\d{1,8}/\d{4}(?:/[A-Z]+)?)\b", re.IGNORECASE)
 PEC_NUMBER_RE = re.compile(r"\b(\d{1,8}/20\d{2})(?:/[A-Z]+)?\b", re.IGNORECASE)
 
+DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS = {
+    "atto_di_parte_non_genera_adempimento_automatico": "atto di parte: non genera un adempimento automatico",
+    "periodo_descrittivo_o_contrattuale_non_e_termino_processuale": "periodo descrittivo o contrattuale, non termine processuale",
+    "fonte_non_qualificata_come_provvedimento_o_comunicazione_ufficio": "fonte non qualificata come provvedimento o comunicazione dell'ufficio",
+    "provvedimento_decisorio_prevale_su_termine_o_udienza_pregressa": "provvedimento decisorio: non resta un termine o un'udienza pregressa da presidiare",
+    "data_senza_ordine_processuale_esplicito": "data priva di un ordine processuale esplicito",
+}
+
+DOCUMENT_PRESIDIO_CANCEL_MARKERS = (
+    "presidio documentale automatico annullato",
+    "la fonte non contiene un adempimento dell'ufficio",
+    *DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS.keys(),
+)
+
 
 def _normalise_for_matching(value: Any) -> str:
     text = str(value or "").lower()
     return text.replace("à", "a").replace("è", "e").replace("é", "e").replace("ì", "i").replace("ò", "o").replace("ù", "u")
+
+
+def _is_generic_pec_source_label(value: Any) -> bool:
+    """Riconosce etichette tecniche interne della PEC, non nomi di allegato."""
+
+    return is_generic_pec_source_label(value)
+
+
+def _pec_original_label(source_name: str) -> str:
+    """Etichetta utente per una fonte PEC: allegato vero o PEC nel suo insieme."""
+
+    return pec_original_label(source_name)
+
+
+def _pec_source_href(message_id: str, source_name: str) -> str:
+    """Apre il documento utile nello ZIP quando il nome dell'allegato è noto."""
+
+    return pec_source_href(message_id, source_name)
+
+
+def _extract_pec_attachment_source(context: str) -> str:
+    """Trova il nome dell'allegato PEC da aprire prima della vista casella."""
+
+    return extract_pec_attachment_source(context)
 
 
 def _pec_context(scadenza: Any) -> str:
@@ -89,12 +139,7 @@ def _pec_context(scadenza: Any) -> str:
 
 
 def _pec_audit_message_id(scadenza: Any) -> str:
-    note = str(getattr(scadenza, "note", "") or "")
-    match = re.search(r"\bPEC_AUDIT:([A-Za-z0-9][A-Za-z0-9_.:-]{1,179})", note, re.IGNORECASE)
-    if not match:
-        return ""
-    message_id = match.group(1).rstrip(".,;:")
-    return "" if message_id.casefold().startswith("docpresidio:") else message_id
+    return pec_audit_message_id(scadenza)
 
 
 def _latest_pec_profiles(
@@ -105,49 +150,7 @@ def _latest_pec_profiles(
 ) -> dict[str, dict[str, Any]]:
     """Legge una sola volta i profili PEC già persistiti, senza riaprire gli allegati."""
 
-    message_ids = sorted({_pec_audit_message_id(item) for item in items} - {""})
-    db_path = Path(str(pec_audit_db or "")).resolve()
-    if not message_ids or not db_path.is_file():
-        return {}
-
-    profiles: dict[str, dict[str, Any]] = {}
-    try:
-        connection = sqlite3.connect(
-            f"file:{db_path.as_posix()}?mode=ro",
-            uri=True,
-            timeout=1.0,
-        )
-        connection.row_factory = sqlite3.Row
-        try:
-            for offset in range(0, len(message_ids), 400):
-                chunk = message_ids[offset : offset + 400]
-                placeholders = ",".join("?" for _ in chunk)
-                rows = connection.execute(
-                    f"""
-                    SELECT r.message_id, r.report_json
-                    FROM pec_validation_reports r
-                    INNER JOIN pec_messages m ON m.id = r.message_id
-                    WHERE m.tenant_id = ?
-                      AND r.message_id IN ({placeholders})
-                      AND NOT EXISTS (
-                          SELECT 1
-                          FROM pec_validation_reports newer
-                          WHERE newer.message_id = r.message_id
-                            AND newer.rowid > r.rowid
-                      )
-                    """,
-                    [str(tenant_id or "default"), *chunk],
-                ).fetchall()
-                for row in rows:
-                    report = json.loads(str(row["report_json"] or "{}"))
-                    profile = report.get("procedural_profile") if isinstance(report, dict) else None
-                    if isinstance(profile, dict):
-                        profiles[str(row["message_id"])] = profile
-        finally:
-            connection.close()
-    except (OSError, sqlite3.Error, TypeError, ValueError):
-        return {}
-    return profiles
+    return latest_pec_profiles(items, pec_audit_db=pec_audit_db, tenant_id=tenant_id)
 
 
 def _is_document_presidio_lex(scadenza: Any) -> bool:
@@ -159,7 +162,81 @@ def _is_document_presidio_lex(scadenza: Any) -> bool:
     )
 
 
-def _source_evidence(scadenza: Any, *, fascicolo_id: str = "") -> dict[str, Any]:
+def _document_presidio_cancel_reason(scadenza: Any) -> str:
+    """Motivo leggibile quando un presidio documentale è stato scartato.
+
+    La pipeline può conservare la riga in stato ``ANNULLATO`` per audit. In UI
+    non deve però restare il vecchio titolo operativo, altrimenti un ricorso o
+    un atto di parte sembra ancora un'attività da eseguire.
+    """
+
+    if not _is_document_presidio_lex(scadenza):
+        return ""
+    context = "\n".join(
+        str(value or "")
+        for value in (
+            getattr(scadenza, "titolo", ""),
+            getattr(scadenza, "descrizione", ""),
+            getattr(scadenza, "note", ""),
+            getattr(scadenza, "source_event_type", ""),
+        )
+    )
+    normalized = _normalise_for_matching(context)
+    if not any(marker in normalized for marker in DOCUMENT_PRESIDIO_CANCEL_MARKERS):
+        return ""
+    match = re.search(r"\bMotivo:\s*([^\r\n.]+)", context, re.IGNORECASE)
+    reason_code = _short_text(match.group(1).strip(), 220) if match else ""
+    normalized_reason = _normalise_for_matching(reason_code)
+    for code, label in DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS.items():
+        if code in normalized_reason or code in normalized:
+            return label
+    if reason_code:
+        return reason_code.replace("_", " ").strip()
+    return "la fonte non contiene un adempimento dell'ufficio"
+
+
+def _is_document_presidio_cancelled(scadenza: Any) -> bool:
+    return bool(_document_presidio_cancel_reason(scadenza))
+
+
+def _document_presidio_cancel_description(scadenza: Any, *, detail: bool = False) -> str:
+    reason = _document_presidio_cancel_reason(scadenza)
+    if not reason:
+        return ""
+    base = (
+        f"Presidio documentale annullato: {reason}. "
+        "La fonte resta consultabile, ma non viene trattata come scadenza operativa."
+    )
+    if detail:
+        base += (
+            " Non è richiesta un'azione automatica dell'avvocato finché non emerge "
+            "un provvedimento, una comunicazione dell'ufficio o un termine espresso."
+        )
+    return _short_text(base, 520 if detail else 260)
+
+
+def _is_legal_notification_presidio(scadenza: Any) -> bool:
+    source_event_type = str(getattr(scadenza, "source_event_type", "") or "").strip()
+    if source_event_type == "legal_notification_presidio":
+        return True
+    context = "\n".join(
+        str(value or "")
+        for value in (
+            getattr(scadenza, "note", ""),
+            getattr(scadenza, "descrizione", ""),
+            getattr(scadenza, "titolo", ""),
+        )
+    )
+    return "IUSENTRA_LEGAL_NOTIFICATION:" in context or "legal-notification-presidio" in context
+
+
+def _source_evidence(
+    scadenza: Any,
+    *,
+    fascicolo_id: str = "",
+    control_tower_source: Mapping[str, Any] | None = None,
+    pec_profile: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Espone la fonte originaria senza duplicare dati persistenti."""
 
     note = str(getattr(scadenza, "note", "") or "")
@@ -191,20 +268,29 @@ def _source_evidence(scadenza: Any, *, fascicolo_id: str = "") -> dict[str, Any]
 
     message_id = _pec_audit_message_id(scadenza)
     if message_id:
-        source_name = _short_text(
+        event_source_name = resolve_pec_source_name(
             getattr(scadenza, "remote_hearing_source", "")
             or getattr(scadenza, "hearing_mode_source", ""),
-            140,
-        ).rstrip(".")
+            context,
+            limit=140,
+        )
+        if event_source_name and not is_generic_pec_source_label(event_source_name):
+            source_name = event_source_name
+        else:
+            source_name = resolve_pec_source_name(pec_profile_source_name(pec_profile), limit=140) or event_source_name
         return {
-            "sourceHref": (
-                f"/api/v1/ui/email/source/{quote(message_id, safe='')}?name={quote(source_name, safe='')}"
-                if source_name
-                else f"/email/?audit_id={quote(message_id, safe='')}"
-            ),
-            "sourceLabel": source_name or "PEC originale",
-            "sourceKind": "documento" if source_name else "pec",
+            "sourceHref": _pec_source_href(message_id, source_name),
+            "sourceLabel": _pec_original_label(source_name),
+            "sourceKind": "pec",
             "sourceVerified": True,
+        }
+
+    if control_tower_source and control_tower_source.get("sourceHref"):
+        return {
+            "sourceHref": str(control_tower_source.get("sourceHref") or ""),
+            "sourceLabel": str(control_tower_source.get("sourceLabel") or "PEC originale"),
+            "sourceKind": str(control_tower_source.get("sourceKind") or "pec"),
+            "sourceVerified": bool(control_tower_source.get("sourceVerified")),
         }
 
     source_name = _short_text(
@@ -213,6 +299,13 @@ def _source_evidence(scadenza: Any, *, fascicolo_id: str = "") -> dict[str, Any]
         140,
     )
     source_event_type = str(getattr(scadenza, "source_event_type", "") or "").strip()
+    if _is_legal_notification_presidio(scadenza):
+        return {
+            "sourceHref": "",
+            "sourceLabel": "PEC sorgente da riallineare",
+            "sourceKind": "pec",
+            "sourceVerified": False,
+        }
     if fascicolo_id and (source_name or source_event_type):
         return {
             "sourceHref": f"/fascicoli/{quote(fascicolo_id, safe='')}#documenti",
@@ -283,6 +376,7 @@ def _visible_legal_text(value: Any, limit: int = 160) -> str:
         if not line:
             continue
         line = re.sub(r"\bPEC_AUDIT:[A-Za-z0-9_-]+", "", line).strip()
+        line = re.sub(r"\bIUSENTRA_LEGAL_NOTIFICATION:[A-Za-z0-9_.:-]+", "", line).strip()
         if not line:
             continue
         lowered = line.lower()
@@ -350,11 +444,38 @@ def _pec_profile_value(context: str, label: str, *, limit: int = 180) -> str:
     return _visible_legal_text(value, limit)
 
 
-def _legal_scadenza_title(scadenza: Any) -> str:
+def _fascicolo_rg_label(fascicolo: Any, fallback_context: str = "") -> str:
+    if fascicolo is not None:
+        rg = str(
+            getattr(fascicolo, "rg_completo", "")
+            or getattr(fascicolo, "numero_rg", "")
+            or getattr(fascicolo, "numero", "")
+            or ""
+        ).strip()
+        anno = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+        if rg:
+            if "/" not in rg and anno:
+                rg = f"{rg}/{anno}"
+            return rg if rg.upper().startswith("RG") else f"RG {rg}"
+    return _pec_rg_label(fallback_context)
+
+
+def _legal_scadenza_title(scadenza: Any, *, fascicolo: Any = None) -> str:
+    if _is_document_presidio_cancelled(scadenza):
+        return "Presidio documentale annullato"
     if _is_document_presidio_lex(scadenza):
         title = _visible_legal_text(getattr(scadenza, "titolo", ""), 112)
         if title:
             return title
+    context = _pec_context(scadenza)
+    if _is_legal_notification_presidio(scadenza):
+        cliente = _client_label(scadenza, fascicolo)
+        cliente = "" if cliente == "-" else cliente
+        rg = _fascicolo_rg_label(fascicolo, context)
+        return _short_text(
+            " - ".join(part for part in ("Sentenza da valutare per la notifica", cliente, rg) if part),
+            112,
+        )
     raw_title = _visible_legal_text(getattr(scadenza, "titolo", ""), 112)
     raw_title_normalized = _normalise_for_matching(raw_title)
     if "opposizione" in raw_title_normalized and (
@@ -362,7 +483,6 @@ def _legal_scadenza_title(scadenza: Any) -> str:
     ):
         return "Opposizione alla trattazione scritta"
     if is_scadenza_pec(scadenza):
-        context = _pec_context(scadenza)
         summary = _pec_event_summary(context)
         rg = _pec_rg_label(context)
         cliente = _pec_profile_value(context, "Cliente", limit=90)
@@ -390,6 +510,9 @@ def _legal_scadenza_title(scadenza: Any) -> str:
 
 
 def _legal_scadenza_description(scadenza: Any) -> str:
+    cancelled_document_description = _document_presidio_cancel_description(scadenza)
+    if cancelled_document_description:
+        return cancelled_document_description
     if _is_document_presidio_lex(scadenza):
         description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 220)
         if description:
@@ -399,6 +522,12 @@ def _legal_scadenza_description(scadenza: Any) -> str:
             return note
     if is_scadenza_pec(scadenza):
         context = _pec_context(scadenza)
+        if _is_legal_notification_presidio(scadenza):
+            return _short_text(
+                "Sentenza ricevuta via PEC: aprire la PEC sorgente, leggere l'allegato e valutare la notifica. "
+                "La comunicazione di cancelleria non prova la notifica dell'avvocato.",
+                260,
+            )
         summary = _pec_event_summary(context)
         rg = _pec_rg_label(context)
         profile_parts = []
@@ -434,12 +563,32 @@ def _legal_scadenza_description(scadenza: Any) -> str:
 
 
 def _legal_scadenza_detail_description(scadenza: Any) -> str:
+    cancelled_document_description = _document_presidio_cancel_description(scadenza, detail=True)
+    if cancelled_document_description:
+        return cancelled_document_description
     if _is_document_presidio_lex(scadenza):
         description = _visible_legal_text(getattr(scadenza, "descrizione", ""), 900)
         if description:
             return description
     if is_scadenza_pec(scadenza):
         context = _pec_context(scadenza)
+        if _is_legal_notification_presidio(scadenza):
+            details: list[str] = []
+            for label in ("Cliente", "Parte/soggetto", "Ufficio", "Giudice"):
+                value = _pec_profile_value(context, label, limit=220)
+                if value:
+                    details.append(f"{label}: {value}.")
+            rg = _pec_profile_value(context, "RG", limit=80) or _pec_rg_label(context).replace("RG ", "")
+            if rg:
+                rg_value = rg if str(rg).upper().startswith("RG") else f"RG {rg}"
+                details.append(f"{rg_value}.")
+            details.append(
+                "Attività per l'avvocato: aprire la PEC sorgente, leggere la sentenza allegata, "
+                "verificare destinatari e posizione processuale e decidere/preparare la notifica. "
+                "La comunicazione di cancelleria documenta il deposito o la comunicazione, ma non è la notifica dell'avvocato "
+                "e non fa decorrere da sola il termine breve."
+            )
+            return _short_text(" ".join(dict.fromkeys(details)), 620)
         details: list[str] = []
         for label in ("Cliente", "Parte/soggetto", "Ufficio", "Giudice", "Evento", "Udienza"):
             value = _pec_profile_value(context, label, limit=220)
@@ -552,6 +701,8 @@ def _source_event_label(value: Any) -> str:
 
 
 def _document_presidio_event_label(scadenza: Any) -> str:
+    if _is_document_presidio_cancelled(scadenza):
+        return "Presidio documentale annullato"
     tipo = _enum_value(getattr(scadenza, "tipo", ""))
     title_context = _normalise_for_matching(getattr(scadenza, "titolo", ""))
     context = _normalise_for_matching(
@@ -570,7 +721,7 @@ def _document_presidio_event_label(scadenza: Any) -> str:
         return "Deposito memoria"
     if "deposito atto" in title_context or "deposito atto" in context or tipo == TipoTermine.DEPOSITO_ATTO.value:
         return "Deposito atto"
-    if "notifica" in title_context or "notifica" in context or tipo == TipoTermine.NOTIFICA.value:
+    if "verifica o attivita di notifica" in title_context or tipo == TipoTermine.NOTIFICA.value:
         return "Notifica"
     if tipo == TipoTermine.UDIENZA.value or "fissazione udienza" in title_context or "udienza da remoto" in context:
         return "Udienza"
@@ -584,6 +735,8 @@ def _document_presidio_event_label(scadenza: Any) -> str:
 def _source_event_label_for_scadenza(scadenza: Any) -> str:
     if _is_document_presidio_lex(scadenza):
         return _document_presidio_event_label(scadenza)
+    if _is_legal_notification_presidio(scadenza):
+        return "Sentenza da valutare per la notifica"
     if is_scadenza_pec(scadenza):
         summary = _pec_event_summary(_pec_context(scadenza))
         if "udienza" in summary:
@@ -635,11 +788,19 @@ def _type_label(value: Any) -> str:
     return labels.get(text, text.replace("_", " ").title() if text else "Altro")
 
 
+def _type_label_for_scadenza(scadenza: Any) -> str:
+    if _is_document_presidio_cancelled(scadenza):
+        return "Presidio annullato"
+    return _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value))
+
+
 def _tone_for(priority: Any, status: Any, days: int | None) -> str:
     priority_value = _enum_value(priority)
     status_value = _enum_value(status)
     if status_value == StatoTermine.COMPLETATO.value:
         return "success"
+    if status_value == StatoTermine.ANNULLATO.value:
+        return "neutral"
     if status_value == StatoTermine.SCADUTO.value or (days is not None and days < 0):
         return "danger"
     if priority_value == PrioritaTermine.CRITICA.value:
@@ -862,9 +1023,11 @@ def _row(
     gestione_utenti: Any,
     display_event: Mapping[str, Any] | None = None,
     pec_profile: Mapping[str, Any] | None = None,
+    control_tower_source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     item_id = str(getattr(scadenza, "id", "") or "")
-    due_date = str(getattr(scadenza, "data_scadenza", "") or "")
+    calendar_date = getattr(scadenza, "data_calendario_obj", None)
+    due_date = calendar_date.isoformat() if isinstance(calendar_date, date) else str(getattr(scadenza, "data_scadenza", "") or "")
     days = getattr(scadenza, "giorni_alla_scadenza", None)
     if days is None:
         days = _days_to(due_date)
@@ -880,7 +1043,12 @@ def _row(
     if patron_name and patron_day and patron_month:
         patron_label = f"{patron_name} ({patron_day:02d}/{patron_month:02d})"
     remote_payload = _remote_hearing_payload(scadenza)
-    source_payload = _source_evidence(scadenza, fascicolo_id=fascicolo_id)
+    source_payload = _source_evidence(
+        scadenza,
+        fascicolo_id=fascicolo_id,
+        control_tower_source=control_tower_source,
+        pec_profile=pec_profile,
+    )
     context_matched = bool(display_event and display_event.get("agendaContextMatched"))
     context_description = _agenda_context_description(display_event or {}, detail=False) if context_matched else ""
     context_detail = _agenda_context_description(display_event or {}, detail=True) if context_matched else ""
@@ -889,8 +1057,17 @@ def _row(
     context_court = _visible_legal_text((display_event or {}).get("court"), 140) if context_matched else ""
     pec_court = _visible_legal_text((pec_profile or {}).get("ufficio"), 140)
     base_fascicolo_label = _fascicolo_label(fascicolo, fascicolo_id)
-    title = _legal_scadenza_title(scadenza)
+    title = _legal_scadenza_title(scadenza, fascicolo=fascicolo)
     source_event_label = _source_event_label_for_scadenza(scadenza)
+    if control_tower_source:
+        control_title = _visible_legal_text(control_tower_source.get("displayTitle"), 112)
+        if control_title:
+            title = control_title
+        source_event_label = (
+            _visible_legal_text(control_tower_source.get("legalEventTypeLabel"), 112)
+            or source_event_label
+        )
+    overdue = _is_overdue(scadenza)
     display_legal_label = _visible_legal_text((display_event or {}).get("detailTitle"), 112) if context_matched else ""
     if display_legal_label and title.startswith(("Comunicazione", "Udienza da PEC")):
         title = display_legal_label
@@ -901,10 +1078,10 @@ def _row(
         "date": due_date,
         "dateLabel": _format_date(due_date),
         "title": title,
-        "description": context_description or _legal_scadenza_description(scadenza),
-        "detailDescription": context_detail or _legal_scadenza_detail_description(scadenza),
+        "description": context_description or _visible_legal_text((control_tower_source or {}).get("description"), 260) or _legal_scadenza_description(scadenza),
+        "detailDescription": context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
         "type": _enum_value(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)) or TipoTermine.ALTRO.value,
-        "typeLabel": _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)),
+        "typeLabel": _type_label_for_scadenza(scadenza),
         "priority": priority,
         "priorityLabel": _priority_label(priority),
         "tone": _tone_for(priority, status, days),
@@ -912,14 +1089,14 @@ def _row(
         "statusLabel": _status_label(status),
         "days": days,
         "daysLabel": _days_label(days),
-        "overdue": bool(days is not None and days < 0) or status == StatoTermine.SCADUTO.value,
+        "overdue": overdue,
         "dueToday": days == 0,
         "peremptory": bool(getattr(scadenza, "perentorio", False)),
         "advanced": bool(getattr(scadenza, "ha_calcolo_avanzato", False)),
         "operative": bool(getattr(scadenza, "operational_due_at", "")),
         "operationalDueAt": str(getattr(scadenza, "operational_due_at", "") or ""),
         "operationalDueLabel": _format_date(getattr(scadenza, "operational_due_at", "")),
-        "fascicoloId": fascicolo_id,
+        "fascicoloId": fascicolo_id or str((control_tower_source or {}).get("fascicoloId") or ""),
         "fascicoloLabel": base_fascicolo_label if fascicolo else (context_matter or base_fascicolo_label),
         "clientLabel": context_client or _client_label(scadenza, fascicolo),
         "ownerLabel": _owner_label(scadenza, gestione_utenti, fascicolo),
@@ -959,6 +1136,8 @@ def _is_completed(item: Any) -> bool:
 
 def _is_overdue(item: Any) -> bool:
     status = _enum_value(getattr(item, "stato", ""))
+    if status in {StatoTermine.COMPLETATO.value, StatoTermine.ANNULLATO.value}:
+        return False
     days = getattr(item, "giorni_alla_scadenza", None)
     if days is None:
         days = _days_to(getattr(item, "data_scadenza", ""))
@@ -1048,7 +1227,12 @@ def _text_arg(args: Mapping[str, Any], *keys: str) -> str:
     return ""
 
 
-def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> tuple[list[Any], dict[str, Any]]:
+def _filtered_scadenze(
+    gestione_scadenziario: Any,
+    args: Mapping[str, Any],
+    *,
+    base_items: Iterable[Any] | None = None,
+) -> tuple[list[Any], dict[str, Any]]:
     vista = normalizza_vista_scadenziario(str(args.get("vista", "aperte") or "aperte"))
     tipo_raw = str(args.get("tipo", "") or "").strip()
     priority_raw = str(args.get("priorita", "") or "").strip()
@@ -1074,13 +1258,69 @@ def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> t
     # La ricerca testuale e' globale: una scadenza scaduta o completata deve
     # restare trovabile senza obbligare l'avvocato a cambiare prima la vista.
     search_view = "tutte" if q else vista
-    scadenze = scadenze_per_vista(
-        gestione_scadenziario,
-        vista=search_view,
-        tipo=tipo,
-        priorita=priority,
-        id_fascicolo=id_fascicolo,
-    )
+    if base_items is None:
+        scadenze = scadenze_per_vista(
+            gestione_scadenziario,
+            vista=search_view,
+            tipo=tipo,
+            priorita=priority,
+            id_fascicolo=id_fascicolo,
+        )
+    else:
+        scadenze = [
+            item
+            for item in base_items
+            if (tipo is None or getattr(item, "tipo", None) == tipo)
+            and (priority is None or getattr(item, "priorita", None) == priority)
+            and (not id_fascicolo or str(getattr(item, "id_fascicolo", "") or "") == id_fascicolo)
+        ]
+        if search_view == "completate":
+            scadenze = [item for item in scadenze if _is_completed(item)]
+        elif search_view == "scadute":
+            scadenze = [item for item in scadenze if _is_overdue(item)]
+        elif search_view == "critiche":
+            scadenze = [
+                item
+                for item in scadenze
+                if _is_open(item) and getattr(item, "priorita", None) == PrioritaTermine.CRITICA
+            ]
+        elif search_view == "alte":
+            scadenze = [
+                item
+                for item in scadenze
+                if _is_open(item) and getattr(item, "priorita", None) == PrioritaTermine.ALTA
+            ]
+        elif search_view == "imminenti":
+            scadenze = [
+                item
+                for item in scadenze
+                if _is_open(item)
+                and (days := _days_to(getattr(item, "data_scadenza", ""))) is not None
+                and 0 <= days <= 7
+            ]
+        elif search_view == "avanzate":
+            scadenze = [item for item in scadenze if bool(getattr(item, "ha_calcolo_avanzato", False))]
+        elif search_view == "operative":
+            scadenze = [item for item in scadenze if _is_open(item) and bool(getattr(item, "operational_due_at", ""))]
+        elif search_view == "pec":
+            scadenze = [item for item in scadenze if _is_open(item) and is_scadenza_pec(item)]
+        elif search_view == "da_presidiare":
+            scadenze = [
+                item
+                for item in scadenze
+                if _is_open(item)
+                and (
+                    getattr(item, "priorita", None) == PrioritaTermine.CRITICA
+                    or bool(getattr(item, "operational_due_at", ""))
+                    or bool(getattr(item, "remote_hearing_detected", False))
+                    or (
+                        (days := _days_to(getattr(item, "data_scadenza", ""))) is not None
+                        and 0 <= days <= 30
+                    )
+                )
+            ]
+        elif search_view != "tutte":
+            scadenze = [item for item in scadenze if _is_open(item)]
     if from_raw:
         scadenze = [item for item in scadenze if str(getattr(item, "data_scadenza", "") or "") >= from_raw]
     if to_raw:
@@ -1121,6 +1361,105 @@ def _filtered_scadenze(gestione_scadenziario: Any, args: Mapping[str, Any]) -> t
         "fascicoloId": id_fascicolo,
         "searchAcrossAll": bool(q),
     }
+
+
+def _query_from_args(args: Mapping[str, Any]) -> dict[str, Any]:
+    """Normalizza i filtri visibili senza caricare o filtrare l'intero scadenziario."""
+
+    vista = normalizza_vista_scadenziario(str(args.get("vista", "aperte") or "aperte"))
+    tipo_raw = str(args.get("tipo", "") or "").strip()
+    priority_raw = str(args.get("priorita", "") or "").strip()
+    try:
+        TipoTermine(tipo_raw) if tipo_raw else None
+    except ValueError:
+        tipo_raw = ""
+    try:
+        PrioritaTermine(priority_raw) if priority_raw else None
+    except ValueError:
+        priority_raw = ""
+    q = str(args.get("q", "") or "").strip()
+    return {
+        "view": vista,
+        "viewLabel": VISTA_LABEL_SCADENZIARIO.get(vista, "Scadenze"),
+        "q": q,
+        "type": tipo_raw,
+        "priority": priority_raw,
+        "from": str(args.get("dal", "") or "").strip(),
+        "to": str(args.get("al", "") or "").strip(),
+        "peremptory": _bool_arg(args, "perentorio"),
+        "advanced": _bool_arg(args, "avanzate"),
+        "operative": _bool_arg(args, "operative"),
+        "guidaPratica": _text_arg(args, "guida_pratica", "guidaPratica", "codice_guida", "codiceGuida"),
+        "fascicoloId": str(args.get("id_fascicolo", "") or "").strip(),
+        "searchAcrossAll": bool(q),
+    }
+
+
+def _date_prefix(value: Any) -> str:
+    raw = str(value or "").strip()
+    return raw[:10] if re.match(r"^\d{4}-\d{2}-\d{2}", raw) else ""
+
+
+def _agenda_raw_value(item: Any, *keys: str) -> str:
+    values: list[str] = []
+    for key in keys:
+        if isinstance(item, Mapping):
+            value = item.get(key)
+        else:
+            value = getattr(item, key, "")
+        if value:
+            values.append(str(value))
+    return " ".join(values)
+
+
+def _agenda_candidates_for_compact_deadline(agenda_items: Iterable[Any], selected_items: Iterable[Any]) -> list[Any]:
+    """Riduce il contesto Agenda alla sola scadenza aperta senza perdere cliente/RG."""
+
+    selected = list(selected_items)
+    if not selected:
+        return []
+    selected_fascicolo_ids: set[str] = set()
+    selected_rgs: set[str] = set()
+    selected_dates: set[str] = set()
+    for item in selected:
+        context = " ".join(
+            str(getattr(item, key, "") or "")
+            for key in ("titolo", "descrizione", "note", "id_fascicolo")
+        )
+        if fascicolo_id := _normalise_for_matching(getattr(item, "id_fascicolo", "")):
+            selected_fascicolo_ids.add(fascicolo_id)
+        if rg := _normalise_for_matching(_pec_rg_label(context)):
+            selected_rgs.add(rg)
+        if date_value := _date_prefix(getattr(item, "data_scadenza", "")):
+            selected_dates.add(date_value)
+    candidates: list[Any] = []
+    for agenda_item in agenda_items:
+        agenda_text = _agenda_raw_value(
+            agenda_item,
+            "id_fascicolo",
+            "fascicolo_id",
+            "procedimento",
+            "titolo",
+            "title",
+            "descrizione",
+            "description",
+            "note",
+            "cliente",
+            "tribunale",
+        )
+        agenda_norm = _normalise_for_matching(agenda_text)
+        agenda_rg = _normalise_for_matching(_pec_rg_label(agenda_text))
+        agenda_date = _date_prefix(_agenda_raw_value(agenda_item, "data_ora", "start", "inizio", "data"))
+        agenda_is_hearing = "udienza" in agenda_norm
+        if selected_fascicolo_ids and any(fascicolo_id in agenda_norm for fascicolo_id in selected_fascicolo_ids):
+            candidates.append(agenda_item)
+            continue
+        if agenda_rg and agenda_rg in selected_rgs:
+            candidates.append(agenda_item)
+            continue
+        if agenda_is_hearing and agenda_date and agenda_date in selected_dates:
+            candidates.append(agenda_item)
+    return candidates
 
 
 def _row_matches_query(row: Mapping[str, Any], query: str) -> bool:
@@ -1275,6 +1614,12 @@ def dedupe_calculator_templates(templates: Iterable[Mapping[str, Any]]) -> list[
     return _calculator_templates_with_display_names(list(unique.values()))
 
 
+def calculator_templates_for_guide(templates: list[dict[str, Any]], codice_guida: str) -> list[dict[str, Any]]:
+    """Restituisce le sole regole utili alla guida selezionata, senza duplicati UI."""
+
+    return _templates_for_guide(templates, codice_guida)
+
+
 def _template_period_label(template: Mapping[str, Any]) -> str:
     unit = "mesi" if str(template.get("period_type") or "").strip() == "months" else "giorni"
     value = int(template.get("base_value") or 0)
@@ -1345,40 +1690,65 @@ def build_react_scadenziario_payload(
     tenant_id: str = "default",
 ) -> dict[str, Any]:
     args: Mapping[str, Any] = query_args or {}
-    all_items = _all_scadenze(gestione_scadenziario)
-    summary = _summary(all_items)
-    filtered, query = _filtered_scadenze(gestione_scadenziario, args)
     focus_id = _text_arg(args, "focus_id", "focusId")
     compact = bool(focus_id) and _bool_arg(args, "compatto")
     if compact:
+        try:
+            focused_item = gestione_scadenziario.get(focus_id)
+        except Exception:
+            focused_item = None
+        all_items = [focused_item] if focused_item is not None and not is_legacy_pec_deadline(focused_item) else []
+    else:
+        all_items = _all_scadenze(gestione_scadenziario)
+    summary = _summary(all_items)
+    if compact:
         filtered = [item for item in all_items if str(getattr(item, "id", "") or "") == focus_id]
+        query = _query_from_args(args)
+    else:
+        filtered, query = _filtered_scadenze(gestione_scadenziario, args, base_items=all_items)
+    include_calculator = _text_arg(args, "calcolatore", "include_calculator") != "0"
     query = {**query, "focusId": focus_id, "compact": compact}
 
     agenda_contexts: list[dict[str, Any]] = []
-    if gestione_agenda is not None:
+    needs_agenda_context = not (
+        compact
+        and filtered
+        and all(_is_legal_notification_presidio(item) for item in filtered)
+    )
+    if gestione_agenda is not None and needs_agenda_context:
         try:
-            agenda_contexts = build_agenda_display_contexts(gestione_agenda.tutti())
+            agenda_items = list(gestione_agenda.tutti())
+            agenda_items = _agenda_candidates_for_compact_deadline(agenda_items, filtered)
+            agenda_contexts = build_agenda_display_contexts(agenda_items)
         except Exception:
             agenda_contexts = []
     display_events: dict[str, Mapping[str, Any]] = {}
+    pec_profile_items = filtered
     pec_profiles = _latest_pec_profiles(
-        all_items,
+        pec_profile_items,
+        pec_audit_db=pec_audit_db,
+        tenant_id=tenant_id,
+    )
+    control_tower_sources = latest_control_tower_sources(
+        pec_profile_items,
         pec_audit_db=pec_audit_db,
         tenant_id=tenant_id,
     )
     if agenda_contexts:
-        for item in filtered if compact else all_items:
+        for item in filtered:
             item_id = str(getattr(item, "id", "") or "")
             fascicolo_id = str(getattr(item, "id_fascicolo", "") or "")
             event = build_deadline_display_event(
                 item,
                 fascicolo=_safe_get(gestione_fascicoli, fascicolo_id),
                 agenda_contexts=agenda_contexts,
+                control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
+                pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
             )
             if item_id and event and event.get("agendaContextMatched"):
                 display_events[item_id] = event
     calculator_templates = []
-    if not compact:
+    if include_calculator and not compact:
         calculator_templates = _templates_for_guide(
             _calculator_templates(termini_processuali_db),
             str(query.get("guidaPratica") or ""),
@@ -1390,6 +1760,7 @@ def build_react_scadenziario_payload(
             gestione_utenti=gestione_utenti,
             display_event=display_events.get(str(getattr(item, "id", "") or "")),
             pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
+            control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
         )
         for item in filtered
     ]
@@ -1404,6 +1775,7 @@ def build_react_scadenziario_payload(
                 gestione_utenti=gestione_utenti,
                 display_event=display_events.get(str(getattr(item, "id", "") or "")),
                 pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
+                control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
             )
             for item in sorted(
                 [item for item in all_items if _is_overdue(item)],
@@ -1419,9 +1791,11 @@ def build_react_scadenziario_payload(
                 gestione_utenti=gestione_utenti,
                 display_event=display_events.get(str(getattr(item, "id", "") or "")),
                 pec_profile=pec_profiles.get(_pec_audit_message_id(item)),
+                control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
             )
             for item in sorted([item for item in all_items if _is_open(item) and not _is_overdue(item)], key=lambda item: str(getattr(item, "data_scadenza", "") or ""))[:5]
         ]
+    query["includeCalculator"] = include_calculator
     return {
         "generatedAt": _iso_now(),
         "source": "repository_reali",

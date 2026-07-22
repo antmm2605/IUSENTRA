@@ -268,7 +268,9 @@ BEGIN
 END;
 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_deadlines_event ON pec_legal_deadlines(tenant_id, legal_event_id);

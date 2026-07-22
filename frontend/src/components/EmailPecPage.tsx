@@ -32,6 +32,7 @@ import {
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
+import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import {
   emptyEmailOrdinariaPage,
@@ -41,6 +42,8 @@ import {
   getEmailOrdinariaDetail,
   getEmailPecPage,
   getEmailPecDetail,
+  getEmailPecEmbeddedSourceDetail,
+  getEmailPecSourceDetail,
   submitEmailBulkAction,
   type EmailFolder,
   type EmailDetailData,
@@ -1098,6 +1101,7 @@ function EmailFullDetail({
   detail: EmailDetailData | null
   loading: boolean
 }) {
+  const [attachmentSource, setAttachmentSource] = useState<SourceDocument | null>(null)
   if (!item) return null
   if (loading) {
     return <div className="iu-mail-full-detail"><strong>Caricamento messaggio completo...</strong></div>
@@ -1135,21 +1139,36 @@ function EmailFullDetail({
       ) : null}
       {detail.attachments.length ? (
         <div className="iu-mail-attachments">
-          {detail.attachments.map((attachment) => (
-            <article key={`${detail.item?.id}-${attachment.index}`}>
-              <Paperclip size={16} />
-              <div>
-                <strong>{attachment.name}</strong>
-                <span>{attachment.mime || 'file'} {attachment.sizeLabel ? `- ${attachment.sizeLabel}` : ''}</span>
-              </div>
-              {attachment.available && attachment.previewHref ? <a href={attachment.previewHref}>Apri</a> : null}
-              {attachment.available && attachment.viewHref ? <a href={attachment.viewHref} target="_blank" rel="noreferrer">Visualizza</a> : null}
-              {attachment.available && attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
-              {!attachment.available ? <span>{attachment.statusLabel || 'Da recuperare con la sincronizzazione'}</span> : null}
-            </article>
-          ))}
+          {detail.attachments.map((attachment) => {
+            const viewerHref = attachment.viewHref || attachment.previewHref
+            const viewerSource: SourceDocument | null = attachment.available && viewerHref
+              ? {
+                  href: viewerHref,
+                  label: attachment.name || 'Allegato PEC',
+                  context: `Allegato collegato a: ${detail.item?.subject || item.subject || 'messaggio'}`,
+                  kind: 'email-attachment',
+                }
+              : null
+            return (
+              <article key={`${detail.item?.id}-${attachment.index}`}>
+                <Paperclip size={16} />
+                <div>
+                  <strong>{attachment.name}</strong>
+                  <span>{attachment.mime || 'file'} {attachment.sizeLabel ? `- ${attachment.sizeLabel}` : ''}</span>
+                </div>
+                {viewerSource ? (
+                  <button type="button" onClick={() => setAttachmentSource(viewerSource)}>
+                    <Eye size={13} /> Visualizza
+                  </button>
+                ) : null}
+                {attachment.available && attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
+                {!attachment.available ? <span>{attachment.statusLabel || 'Da recuperare con la sincronizzazione'}</span> : null}
+              </article>
+            )
+          })}
         </div>
       ) : null}
+      <SourceDocumentModal source={attachmentSource} onClose={() => setAttachmentSource(null)} />
     </div>
   )
 }
@@ -1429,7 +1448,81 @@ function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMod
   )
 }
 
-function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
+function EmailSourceView({ mode }: { mode: MailboxMode }) {
+  const auditId = currentPecAuditSelectionId(mode)
+  const sourceId = currentEmailSelectionId(mode) || (auditId ? `pec-audit:${auditId}` : '')
+  const embeddedDetail = mode === 'pec' ? getEmailPecEmbeddedSourceDetail(sourceId) : null
+  const [detail, setDetail] = useState<EmailDetailData | null>(embeddedDetail)
+  const [loading, setLoading] = useState(Boolean(sourceId) && !embeddedDetail?.item)
+
+  useEffect(() => {
+    if (!sourceId) {
+      setDetail(null)
+      setLoading(false)
+      return undefined
+    }
+    const embedded = mode === 'pec' ? getEmailPecEmbeddedSourceDetail(sourceId) : null
+    if (embedded?.item) {
+      setDetail(embedded)
+      setLoading(false)
+      return undefined
+    }
+    let active = true
+    const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecSourceDetail
+    setLoading(true)
+    loader(sourceId)
+      .then((payload) => {
+        if (active) setDetail(payload.item ? payload : null)
+      })
+      .catch(() => {
+        if (active) setDetail(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [mode, sourceId])
+
+  const item = detail?.item
+  if (!sourceId) {
+    return <main className="iu-mail-source-view"><p className="iu-mail-source-empty">La fonte indicata non contiene un identificativo del messaggio.</p></main>
+  }
+  if (loading) {
+    return <main className="iu-mail-source-view"><p className="iu-mail-source-loading">Caricamento della {mode === 'pec' ? 'PEC' : 'email'} originale...</p></main>
+  }
+  if (!item) {
+    return <main className="iu-mail-source-view"><p className="iu-mail-source-empty">Il messaggio indicato come fonte non è più disponibile nella casella.</p></main>
+  }
+
+  const visibleTime = item.timeLabel || formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || '-'
+  return (
+    <main className="iu-mail-source-view" aria-label={mode === 'pec' ? 'PEC originale' : 'Email originale'}>
+      <article className="iu-mail-source-message">
+        <header>
+          <div>
+            <span>{folderIcon(item.folder)} {mode === 'pec' ? 'PEC originale' : 'Email originale'} · {folderLabel(item.folder)}</span>
+            <h1>{item.subject || '(nessun oggetto)'}</h1>
+          </div>
+          <div className="iu-mail-source-message__status">
+            {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
+            {mode === 'pec' && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+            {mode === 'pec' ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
+          </div>
+        </header>
+        <div className="iu-mail-meta iu-mail-source-message__meta">
+          <div><span>{item.folder === 'INVIATI' ? 'A' : 'Da'}</span><strong>{rowPerson(item)}</strong></div>
+          <div><span>{item.folder === 'INVIATI' ? 'Mittente' : 'Destinatari'}</span><strong>{item.folder === 'INVIATI' ? (item.sender || '-') : (item.recipients || '-')}</strong></div>
+          <div><span>Data</span><strong>{visibleTime}</strong></div>
+          <div><span>Allegati</span><strong>{item.attachmentCount || 0}</strong></div>
+        </div>
+        {!detail?.item ? <p className="iu-mail-body-preview">{item.preview || 'Nessun testo disponibile per questo messaggio.'}</p> : null}
+        <EmailFullDetail item={item} detail={detail} loading={loading} />
+      </article>
+    </main>
+  )
+}
+
+function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const copy = mailboxCopy[mode]
   const [data, setData] = useState<EmailPecPageData>(copy.emptyData)
   const [loading, setLoading] = useState(true)
@@ -1886,6 +1979,12 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       ) : null}
     </main>
   )
+}
+
+function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
+  return new URLSearchParams(window.location.search).get('embed') === 'source'
+    ? <EmailSourceView mode={mode} />
+    : <EmailMailboxWorkspace mode={mode} />
 }
 
 export function EmailPecPage() {

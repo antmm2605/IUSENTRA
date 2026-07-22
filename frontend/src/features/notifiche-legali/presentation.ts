@@ -12,7 +12,7 @@ const STATUS_LABELS: Record<PresidioStatus, string> = {
   NEEDS_REVIEW: 'Da esaminare',
   ORIGINAL_TO_ACQUIRE: 'Originale da acquisire',
   ORIGINAL_ACQUIRED: 'Originale acquisito',
-  NOTIFICATION_CONFIRMED: 'Notifica confermata',
+  NOTIFICATION_CONFIRMED: 'Notifica necessaria confermata',
   RECIPIENTS_TO_VERIFY: 'Destinatari da verificare',
   READY_FOR_RELATA: 'Relata da preparare',
   RELATA_DRAFTED: 'Relata predisposta',

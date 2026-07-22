@@ -1466,6 +1466,13 @@ export function NotificheLegaliPage() {
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
   const [relataDraftMessage, setRelataDraftMessage] = useState('')
+  const relataPreviewAbortRef = useRef<AbortController | null>(null)
+  const relataPreviewRequestIdRef = useRef(0)
+  const completedRelataPreviewKeyRef = useRef('')
+  const previousRelataInputKeyRef = useRef('')
+  const relataDraftDirtyRef = useRef(false)
+  const relataAlignmentPendingRef = useRef(false)
+  const relataDraftInvalidatedRef = useRef(false)
   const [attestationDownloading, setAttestationDownloading] = useState(false)
   const [attestationDownloadMessage, setAttestationDownloadMessage] = useState('')
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})
@@ -1917,7 +1924,7 @@ export function NotificheLegaliPage() {
 
   const documentViewHref = (documento: LegalDocumentSuggestion) => (
     selectedPracticeId && documento.id
-      ? `/fascicoli/${encodeURIComponent(selectedPracticeId)}/documenti/${encodeURIComponent(documento.id)}/visualizza`
+      ? `/fascicoli/${encodeURIComponent(selectedPracticeId)}/documenti/${encodeURIComponent(documento.id)}/visualizza?viewer=mobile`
       : ''
   )
 
@@ -2093,6 +2100,12 @@ export function NotificheLegaliPage() {
       codice_fiscale_piva: notifica.destinatario_cf,
     }]
   }
+  const notificationRecipientsForDisplay = notificationRecipientPayloads()
+  const distinctNotificationRecipientPecCount = new Set(
+    notificationRecipientsForDisplay
+      .map((recipient) => normalizePecAddress(recipient.pec))
+      .filter(Boolean),
+  ).size
 
   const currentPecVerificationSubjects = () => {
     const sender: PecVerificationSubject = {
@@ -2639,16 +2652,55 @@ export function NotificheLegaliPage() {
   }
 
   const refreshRelataPreview = async (silent = false) => {
+    const payload = buildNotificaPayload(false)
+    const requestPayloadKey = notificationControlPayloadKey(payload)
+    const requestId = relataPreviewRequestIdRef.current + 1
+    relataPreviewRequestIdRef.current = requestId
+    relataPreviewAbortRef.current?.abort()
+    const controller = new AbortController()
+    relataPreviewAbortRef.current = controller
     if (!silent) setRelataPreviewWorking(true)
-    const preview = await previewLegalRelata(buildNotificaPayload(false)).catch(() => ({
-      ...emptyRelataPreview,
-      blockers: ['Anteprima compilata non disponibile.'],
-    }))
-    setRelataPreview(preview)
-    if (preview.ok && !relataDraftDirty) {
-      setRelataDraftText(preview.previewText)
+
+    try {
+      const preview = await previewLegalRelata(payload, controller.signal)
+      if (controller.signal.aborted || requestId !== relataPreviewRequestIdRef.current) return
+      completedRelataPreviewKeyRef.current = requestPayloadKey
+      setRelataPreview(preview)
+      if (preview.ok && !relataDraftDirtyRef.current) {
+        setRelataDraftText(preview.previewText)
+      }
+      if (relataAlignmentPendingRef.current) {
+        const templateLabel = preview.templateLabel || selectedTemplate?.label || 'modello selezionato'
+        const caseLabel = selectedCaseDirective?.label || notifica.caso_notifica
+        if (preview.ok) {
+          setRelataDraftMessage(
+            relataDraftInvalidatedRef.current
+              ? `La bozza manuale precedente è stata sostituita: anteprima riallineata a ${templateLabel}, caso ${caseLabel}.`
+              : `Anteprima e bozza allineate a ${templateLabel}, caso ${caseLabel}.`,
+          )
+          relataAlignmentPendingRef.current = false
+          relataDraftInvalidatedRef.current = false
+        } else {
+          setRelataDraftMessage('I dati sono cambiati: la bozza precedente resta esclusa finché l\'anteprima non viene ricompilata senza errori.')
+        }
+      }
+    } catch (error) {
+      if ((error instanceof Error && error.name === 'AbortError') || controller.signal.aborted) return
+      if (requestId !== relataPreviewRequestIdRef.current) return
+      completedRelataPreviewKeyRef.current = requestPayloadKey
+      setRelataPreview({
+        ...emptyRelataPreview,
+        blockers: ['Anteprima compilata non disponibile.'],
+      })
+      if (relataAlignmentPendingRef.current) {
+        setRelataDraftMessage('I dati sono cambiati: la bozza precedente resta esclusa finché l\'anteprima non viene ricompilata.')
+      }
+    } finally {
+      if (requestId === relataPreviewRequestIdRef.current) {
+        relataPreviewAbortRef.current = null
+        setRelataPreviewWorking(false)
+      }
     }
-    if (!silent) setRelataPreviewWorking(false)
   }
 
   const saveRelataDraft = async () => {
@@ -2665,41 +2717,31 @@ export function NotificheLegaliPage() {
 
   const restoreRelataDraftFromModel = () => {
     setRelataDraftText(relataPreview.previewText)
+    relataDraftDirtyRef.current = false
     setRelataDraftDirty(false)
     setRelataDraftMessage('Bozza ripristinata dal modello compilato.')
   }
 
-  const previewStableNotifica = {
-    ...notifica,
-    data_verifica_pec: '',
-    data_ora_invio_pec: '',
-  }
-  const previewPayloadKey = JSON.stringify({
-    notifica: previewStableNotifica,
-    modelFields,
-    selectedNotificationDocumentIds,
-    manualNotificationDocuments,
-  })
+  const previewPayloadKey = notificationControlPayloadKey(buildNotificaPayload(false))
   const buildSignedRelataPayloadKey = (overrides: Partial<typeof notifica> = {}) => {
-    const effectiveNotifica = { ...notifica, ...overrides }
     return JSON.stringify({
-      practiceId: selectedPracticeId,
-      templateId: effectiveNotifica.template_id,
-      luogo: effectiveNotifica.luogo,
-      dataRelata: effectiveNotifica.data_relata,
-      oraRelata: effectiveNotifica.ora_relata,
+      inputPayloadKey: notificationControlPayloadKey(buildNotificaPayload(false, overrides)),
       relataText: relataDraftDirty ? relataDraftText.trim() : relataPreview.previewText,
-      documents: notificationDocumentPayloads().map((item) => ({
-        name: item.nome_file,
-        description: item.descrizione,
-        origin: item.origine,
-        sha256: item.hash_sha256,
-      })),
-      recipients: notificationRecipientPayloads(),
-      modelFields,
     })
   }
   const signedRelataPayloadKey = buildSignedRelataPayloadKey()
+  const previewIsAligned = completedRelataPreviewKeyRef.current === previewPayloadKey
+  const displayedRelataPreview = previewIsAligned ? relataPreview : emptyRelataPreview
+  const displayedRelataDraftDirty = previewIsAligned && relataDraftDirty
+  const previewAppliedTemplateLabel = (
+    previewIsAligned ? relataPreview.templateLabel : selectedTemplate?.label
+  ) || selectedTemplate?.label || 'Modello da selezionare'
+  const previewAppliedCaseLabel = selectedCaseDirective?.label || notifica.caso_notifica || 'Caso da selezionare'
+  const previewAlignmentStatus = relataPreviewWorking || !previewIsAligned
+    ? 'Ricalcolo in corso'
+    : displayedRelataPreview.previewText
+      ? 'Anteprima aggiornata'
+      : 'In attesa di compilazione'
 
   useEffect(() => {
     if (!signedRelata || signedRelata.payloadKey === signedRelataPayloadKey) return
@@ -2719,12 +2761,45 @@ export function NotificheLegaliPage() {
   }, [tab, selectedPracticeId])
 
   useEffect(() => {
-    if (loading || tab !== 'notifica') return undefined
+    const previousKey = previousRelataInputKeyRef.current
+    const inputsChanged = Boolean(previousKey && previousKey !== previewPayloadKey)
+    previousRelataInputKeyRef.current = previewPayloadKey
+
+    relataPreviewAbortRef.current?.abort()
+    relataPreviewAbortRef.current = null
+    relataPreviewRequestIdRef.current += 1
+
+    if (inputsChanged) {
+      const discardedManualDraft = relataDraftDirtyRef.current
+      relataDraftDirtyRef.current = false
+      relataAlignmentPendingRef.current = true
+      relataDraftInvalidatedRef.current = discardedManualDraft
+      completedRelataPreviewKeyRef.current = ''
+      setRelataPreview(emptyRelataPreview)
+      setRelataDraftText('')
+      setRelataDraftDirty(false)
+      setRelataDraftMessage(
+        discardedManualDraft
+          ? 'La bozza manuale precedente non è più valida: IUSENTRA la sta riallineando al nuovo modello, caso, destinatario o documento.'
+          : 'Dati della relata modificati: anteprima e bozza sono in riallineamento.',
+      )
+    }
+
+    if (loading || tab !== 'notifica') {
+      setRelataPreviewWorking(false)
+      return undefined
+    }
+    setRelataPreviewWorking(true)
     const handle = window.setTimeout(() => {
       void refreshRelataPreview(true)
-    }, 700)
+    }, 250)
     return () => window.clearTimeout(handle)
   }, [previewPayloadKey, loading, tab])
+
+  useEffect(() => () => {
+    relataPreviewAbortRef.current?.abort()
+    relataPreviewRequestIdRef.current += 1
+  }, [])
 
   const buildDepositoPayload = (): Record<string, unknown> => {
     const atti = selectedDepositDocuments.map(depositDocumentPayload)
@@ -2838,6 +2913,7 @@ export function NotificheLegaliPage() {
       if (notificationNeedsAttestazione) setAttestationPreviewOpen(true)
       if (!relataDraftText.trim() && response.relataText) {
         setRelataDraftText(response.relataText)
+        relataDraftDirtyRef.current = false
         setRelataDraftDirty(false)
       }
       setLastControlPayloadKey(notificationControlPayloadKey(payload))
@@ -3427,18 +3503,48 @@ export function NotificheLegaliPage() {
                       ) : <p>Usa la ricerca per trovare l'ufficio NEP / UNEP.</p>}
                     </div>
                   ) : null}
-                  {selectedRecipients.length ? (
-                    <div className="iu-legal-selected-recipients iu-legal-field--wide" aria-label="Destinatari scelti per la notifica">
-                      {selectedRecipients.map((item, index) => (
-                        <span key={`${item.id}-${index}`}>
-                          <UserRound size={15} />
-                          <em>{index + 1}. {item.nome || item.label}{item.pec ? ` - ${item.pec}` : ''}</em>
-                          {selectedRecipientId === item.id ? <strong>campi principali</strong> : null}
-                          <button type="button" aria-label="Rimuovi destinatario" onClick={() => removeRecipient(item.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </span>
-                      ))}
+                  {notificationRecipientsForDisplay.length ? (
+                    <div className="iu-legal-selected-recipients iu-legal-field--wide" aria-label="Destinatari e PEC inclusi nella notifica">
+                      <header className="iu-legal-selected-recipients__summary">
+                        <div>
+                          <strong>
+                            {notificationRecipientsForDisplay.length === 1
+                              ? '1 destinatario selezionato'
+                              : `${notificationRecipientsForDisplay.length} destinatari selezionati`}
+                          </strong>
+                          <small>L'elenco completo entra nella relata e nel controllo prima dell'invio.</small>
+                        </div>
+                        <b>
+                          {distinctNotificationRecipientPecCount === 1
+                            ? '1 PEC distinta'
+                            : `${distinctNotificationRecipientPecCount} PEC distinte`}
+                        </b>
+                      </header>
+                      {notificationRecipientsForDisplay.map((item, index) => {
+                        const sourceRecipient = selectedRecipients[index]
+                        const roleLabel = data.matriceNotifica.roles.find((role) => role.value === item.ruolo)?.label || item.ruolo
+                        const details = [
+                          item.pec,
+                          roleLabel,
+                          item.fonte_pec ? `Fonte PEC: ${item.fonte_pec}` : '',
+                          item.parte_rappresentata ? `Parte rappresentata: ${item.parte_rappresentata}` : '',
+                        ].filter(Boolean).join(' · ')
+                        return (
+                          <span key={`${sourceRecipient?.id || item.pec || item.nome}-${index}`}>
+                            <UserRound size={15} />
+                            <em>
+                              <b>{index + 1}. {item.nome || 'Destinatario da completare'}</b>
+                              <small>{details || 'PEC e ruolo da completare'}</small>
+                            </em>
+                            {(!sourceRecipient || selectedRecipientId === sourceRecipient.id) ? <strong>campi principali</strong> : null}
+                            {sourceRecipient ? (
+                              <button type="button" aria-label={`Rimuovi destinatario ${item.nome || index + 1}`} onClick={() => removeRecipient(sourceRecipient.id)}>
+                                <Trash2 size={14} />
+                              </button>
+                            ) : null}
+                          </span>
+                        )
+                      })}
                     </div>
                   ) : null}
                   <div className="iu-legal-document-picker iu-legal-field--wide">
@@ -3578,8 +3684,6 @@ export function NotificheLegaliPage() {
                     value={notifica.template_id}
                     onChange={(event) => {
                       changeNotifica('template_id', event.currentTarget.value)
-                      setRelataDraftDirty(false)
-                      setRelataDraftMessage('')
                     }}
                   >
                     {data.modelliRelata.map((item) => <option value={item.value} key={item.value}>{item.code ? `${item.code} - ${item.label}` : item.label}</option>)}
@@ -3620,22 +3724,25 @@ export function NotificheLegaliPage() {
                       <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                         <div>
                           <strong>Anteprima compilata</strong>
-                          <span>{relataPreview.templateLabel || selectedTemplate?.label || 'Modello selezionato'}</span>
+                          <span>Modello applicato: {previewAppliedTemplateLabel}</span>
+                          <small className="iu-legal-preview-alignment" role="status" aria-live="polite">
+                            {previewAlignmentStatus} · Caso applicato: {previewAppliedCaseLabel}
+                          </small>
                         </div>
                         <button type="button" disabled={relataPreviewWorking} onClick={() => refreshRelataPreview(false)}>
                           <RefreshCw size={14} /> {relataPreviewWorking ? 'Aggiorno...' : 'Aggiorna'}
                         </button>
                       </div>
-                      {relataPreview.blockers.length ? (
+                      {displayedRelataPreview.blockers.length ? (
                         <div className="iu-legal-list iu-legal-list--blockers">
-                          {relataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {userFacingNotice(item)}</span>)}
+                          {displayedRelataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {userFacingNotice(item)}</span>)}
                         </div>
                       ) : (
-                        <pre>{relataPreview.previewText || 'Compila i dati principali per vedere la relata con valori e dati mancanti evidenziati.'}</pre>
+                        <pre>{displayedRelataPreview.previewText || (relataPreviewWorking ? 'Ricalcolo dell’anteprima in corso…' : 'Compila i dati principali per vedere la relata con valori e dati mancanti evidenziati.')}</pre>
                       )}
-                      {relataPreview.missingFields.length ? (
+                      {displayedRelataPreview.missingFields.length ? (
                         <div className="iu-legal-missing-fields" aria-label="Dati mancanti nell'anteprima compilata">
-                          {relataPreview.missingFields.map((item) => <span key={item}>[dato mancante: {item}]</span>)}
+                          {displayedRelataPreview.missingFields.map((item) => <span key={item}>[dato mancante: {item}]</span>)}
                         </div>
                       ) : null}
                     </section>
@@ -3644,15 +3751,17 @@ export function NotificheLegaliPage() {
                     <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                       <div>
                         <strong>Modifica bozza relata</strong>
-                        <span>{relataDraftDirty ? 'Bozza modificata manualmente' : 'Testo allineato al modello compilato'}</span>
+                        <span>{displayedRelataDraftDirty ? 'Bozza modificata manualmente' : 'Testo allineato al modello compilato'}</span>
                       </div>
-                      {relataDraftDirty ? <em>Bozza modificata manualmente</em> : null}
+                      {displayedRelataDraftDirty ? <em>Bozza modificata manualmente</em> : null}
                     </div>
                     <textarea
-                      value={relataDraftText}
+                      value={previewIsAligned ? relataDraftText : ''}
                       rows={12}
+                      disabled={!previewIsAligned || relataPreviewWorking}
                       onChange={(event) => {
                         setRelataDraftText(event.currentTarget.value)
+                        relataDraftDirtyRef.current = true
                         setRelataDraftDirty(true)
                         setRelataDraftMessage('')
                       }}
@@ -3660,10 +3769,10 @@ export function NotificheLegaliPage() {
                     />
                     {relataDraftMessage ? <p className="iu-legal-template-message">{relataDraftMessage}</p> : null}
                     <div className="iu-legal-template-actions">
-                      <button type="button" disabled={relataDraftSaving || !relataDraftText.trim()} onClick={saveRelataDraft}>
+                      <button type="button" disabled={!previewIsAligned || relataDraftSaving || !relataDraftText.trim()} onClick={saveRelataDraft}>
                         <Save size={15} /> {relataDraftSaving ? 'Salvataggio...' : 'Salva bozza per questa notifica'}
                       </button>
-                      <button type="button" disabled={!relataPreview.previewText} onClick={restoreRelataDraftFromModel}>
+                      <button type="button" disabled={!previewIsAligned || !displayedRelataPreview.previewText} onClick={restoreRelataDraftFromModel}>
                         <RotateCcw size={15} /> Ripristina dal modello
                       </button>
                     </div>
@@ -4551,7 +4660,6 @@ export function NotificheLegaliPage() {
                     onClick={() => {
                       setTab('notifica')
                       changeNotifica('template_id', item.value)
-                      setRelataDraftDirty(false)
                     }}
                   >
                     <strong>{item.code ? `${item.code} - ${item.label}` : item.label}</strong>

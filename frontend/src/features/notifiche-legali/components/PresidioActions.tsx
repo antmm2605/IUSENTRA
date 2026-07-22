@@ -5,8 +5,9 @@ import { Select } from '@/ui/Select'
 import { TextArea } from '@/ui/TextArea'
 import { safeInternalHref } from '../presentation'
 import type { PresidioAvailableAction, PresidioDetail } from '../types'
+import { PresidioDecisionRevision } from './PresidioDecisionRevision'
 
-const FORM_MUTATIONS = new Set(['not-required', 'assign', 'link-document'])
+const FORM_MUTATIONS = new Set(['revise-decision', 'not-required', 'assign', 'link-document'])
 
 function availableAction(
   detail: PresidioDetail,
@@ -35,7 +36,8 @@ export function PresidioActions({
   const [reason, setReason] = useState('')
   const [assignee, setAssignee] = useState(detail.assigned_user?.value || '')
   const [documentId, setDocumentId] = useState('')
-  const notRequired = availableAction(detail, 'not-required')
+  const reviseDecision = availableAction(detail, 'revise-decision')
+  const notRequired = reviseDecision ? undefined : availableAction(detail, 'not-required')
   const assign = availableAction(detail, 'assign')
   const linkDocument = availableAction(detail, 'link-document')
   const directActions = detail.available_actions.filter(
@@ -63,7 +65,11 @@ export function PresidioActions({
   const submitDocument = async (event: FormEvent) => {
     event.preventDefault()
     if (!linkDocument || !documentId) return
-    await onAction(linkDocument, { fascicolo_document_id: documentId })
+    const selected = detail.linkable_documents.find((option) => option.value === documentId)
+    await onAction(linkDocument, {
+      fascicolo_document_id: documentId,
+      document_name: selected?.document_name || selected?.label || '',
+    })
     setDocumentId('')
   }
 
@@ -99,6 +105,15 @@ export function PresidioActions({
           })}
         </div>
       ) : <p className="nlp-muted">Nessuna azione immediata disponibile.</p>}
+
+      {reviseDecision ? (
+        <PresidioDecisionRevision
+          action={reviseDecision}
+          readOnly={readOnly}
+          busyAction={busyAction}
+          onAction={onAction}
+        />
+      ) : null}
 
       {notRequired ? (
         <details className="nlp-action-form">
@@ -153,20 +168,23 @@ export function PresidioActions({
         <details className="nlp-action-form">
           <summary>{linkDocument.label}</summary>
           <form onSubmit={submitDocument}>
+            <p className="nlp-muted">
+              Seleziona dal fascicolo l’atto da notificare, una ricevuta PEC, la relata o la prova da associare a questo presidio.
+            </p>
             <Select
-              label="Documento del fascicolo"
+              label="Prova, ricevuta o documento della notifica"
               value={documentId}
               required
               disabled={disabled(linkDocument) || !detail.linkable_documents.length}
               onChange={(event) => setDocumentId(event.target.value)}
             >
-              <option value="">Seleziona un documento</option>
+              <option value="">Seleziona dal fascicolo</option>
               {detail.linkable_documents.map((option) => (
                 <option value={option.value} key={option.value}>{option.label}</option>
               ))}
             </Select>
             <Button type="submit" disabled={disabled(linkDocument) || !documentId}>
-              {pending(linkDocument) ? 'Collegamento in corso' : 'Collega documento'}
+              {pending(linkDocument) ? 'Collegamento in corso' : 'Collega al presidio'}
             </Button>
             <DisabledReason action={linkDocument} />
           </form>

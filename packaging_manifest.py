@@ -41,7 +41,21 @@ def read_requirements(relative_path: str) -> list[str]:
 
 
 def runtime_requirements() -> list[str]:
-    return read_requirements("requirements/base.txt")
+    # PostgreSQL è un backend operativo supportato dal prodotto, non un tool
+    # facoltativo di sviluppo.  Alcuni repository tenant-aware importano il
+    # costruttore DSN anche quando lo studio corrente usa SQLite: senza il
+    # driver l'audit e i flussi PEC sensibili falliscono prima di poter
+    # dichiarare in modo esplicito il backend effettivo.  Manteniamo quindi il
+    # driver nel runtime di produzione e deduplichiamo le righe nel caso in cui
+    # un requisito sia condiviso dai due manifest.
+    values: list[str] = []
+    for requirement in (
+        *read_requirements("requirements/base.txt"),
+        *read_requirements("requirements/db.txt"),
+    ):
+        if requirement not in values:
+            values.append(requirement)
+    return values
 
 
 def dev_requirements() -> list[str]:

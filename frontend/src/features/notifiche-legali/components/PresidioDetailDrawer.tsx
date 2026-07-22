@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Download, Eye, FileText, UserRound } from 'lucide-react'
+import { Download, Eye, FileDown, FileText, UserRound } from 'lucide-react'
 import { ApiClientError } from '@/lib/apiClient'
 import { formatDateTimeIt } from '@/formatting'
 import { IusSkeletonTable } from '@/components/iusentra'
-import { ButtonLink } from '@/ui/Button'
+import { SourceDocumentModal, type SourceDocument } from '@/components/SourceDocumentModal'
+import { Button, ButtonLink } from '@/ui/Button'
 import { Drawer } from '@/ui/Drawer'
 import { ErrorState } from '@/ui/ErrorState'
 import { InlineAlert } from '@/ui/InlineAlert'
@@ -29,6 +30,7 @@ export default function PresidioDetailDrawer({
   const resource = usePresidioDetail(id)
   const [busyAction, setBusyAction] = useState('')
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const [documentSource, setDocumentSource] = useState<SourceDocument | null>(null)
   const data = resource.data
   const detail = data?.detail.presidio
   const permissions = data?.detail.permissions
@@ -81,6 +83,8 @@ export default function PresidioDetailDrawer({
                 <StatusBadge tone={priorityTone(detail.priority)}>{detail.priority}</StatusBadge>
               </div>
               <dl>
+                <div><dt>Cliente/parte</dt><dd>{detail.practice.client || 'Da completare'}</dd></div>
+                <div><dt>Pratica</dt><dd>{detail.practice.subject || detail.practice.label || 'Da completare'}</dd></div>
                 <div><dt>R.G.</dt><dd>{detail.practice.rg || 'Non indicato'}</dd></div>
                 <div><dt>Ufficio</dt><dd>{detail.practice.office || 'Non indicato'}</dd></div>
                 <div><dt>Caso</dt><dd>{detail.notification_case_label}</dd></div>
@@ -124,23 +128,47 @@ export default function PresidioDetailDrawer({
                 {detail.documents.map((document) => {
                   const viewer = safeInternalHref(document.viewer_url)
                   const download = safeInternalHref(document.download_url)
+                  const acquisition = safeInternalHref(document.original_acquisition_url)
                   return (
                     <article key={document.id}>
                       <FileText size={17} aria-hidden="true" />
                       <div>
                         <strong>{document.name}</strong>
                         <span>{document.role_label}{document.version_label ? ' · ' + document.version_label : ''}</span>
-                        {document.authoritative ? <small>Originale autorevole acquisito</small> : null}
+                        {document.authoritative ? <small>Originale autorevole acquisito dal Portale Servizi</small> : null}
+                        {document.original_acquisition_required ? (
+                          <small>Originale da acquisire dal Portale Servizi prima della relata.</small>
+                        ) : null}
                       </div>
                       <div>
-                        {viewer ? <ButtonLink tone="neutral" href={viewer}><Eye size={15} />Visualizza</ButtonLink> : null}
+                        {viewer ? (
+                          <Button
+                            type="button"
+                            tone="neutral"
+                            onClick={() => setDocumentSource({
+                              href: viewer,
+                              label: document.name,
+                              context: `${document.role_label} · ${detail.practice.client || detail.practice.label}`,
+                              kind: 'documento-presidio-notifica',
+                            })}
+                          >
+                            <Eye size={15} />Visualizza
+                          </Button>
+                        ) : null}
                         {download ? <ButtonLink tone="neutral" href={download}><Download size={15} />Scarica</ButtonLink> : null}
+                        {acquisition ? (
+                          <ButtonLink tone="primary" href={acquisition}>
+                            <FileDown size={15} />Acquisisci originale
+                          </ButtonLink>
+                        ) : null}
                       </div>
                     </article>
                   )
                 })}
               </div>
             </section>
+
+            <SourceDocumentModal source={documentSource} onClose={() => setDocumentSource(null)} />
 
             <PresidioActions detail={detail} readOnly={readOnly} busyAction={busyAction} onAction={runAction} />
             <PresidioEvidence

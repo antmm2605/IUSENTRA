@@ -3857,10 +3857,6 @@ function mobilePreviewUrl(url: string): string {
 }
 
 function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; onClose:()=>void}) {
-  const [isMobileReader, setIsMobileReader] = useState(() => (
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
-  ))
-
   useEffect(() => {
     const objectUrl = preview?.objectUrl
     return () => {
@@ -3868,22 +3864,9 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
     }
   }, [preview?.objectUrl])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-    const media = window.matchMedia('(max-width: 900px)')
-    const update = () => setIsMobileReader(media.matches)
-    update()
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', update)
-      return () => media.removeEventListener('change', update)
-    }
-    media.addListener(update)
-    return () => media.removeListener(update)
-  }, [])
-
   if (!preview) return null
   const mobileUrl = preview.mobileUrl || mobilePreviewUrl(preview.url)
-  const viewerUrl = isMobileReader && mobileUrl ? mobileUrl : preview.url
+  const viewerUrl = mobileUrl || preview.url
   return (
     <div className="iu-fas-preview-modal" role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
       <div className="iu-fas-preview-modal__box">

@@ -12,6 +12,19 @@ def test_127_ter_cinque_giorni_dalla_comunicazione():
     assert r["human_review_required"] is True
 
 
+def test_sentenza_a_verbale_429_non_diventa_opposizione_127_ter():
+    r = propose_legal_deadline(
+        "SENTENZA A VERBALE (art. 127 ter cpc). Il Giudice decide la causa con sentenza "
+        "a norma degli artt. 429 e 127ter cpc. Il Giudice, definitivamente decidendo, "
+        "condanna il Ministero alle spese con distrazione in favore del procuratore antistatario.",
+        dies_a_quo_date="2026-07-16",
+    )
+    assert r["ok"] is False
+    assert r["template_code"] == ""
+    assert "notifica sentenza" in r["azione"].lower()
+    assert "127-ter" in r["reason"]
+
+
 def test_171_ter_a_ritroso_prima_dell_udienza():
     r = propose_legal_deadline("Deposito seconda memoria ex art. 171-ter n. 2", dies_a_quo_date="2026-04-20")
     assert r["ok"] is True

@@ -53,6 +53,22 @@ def test_react_bundles_refer_to_existing_assets():
     assert not missing, "Asset React mancanti per bundle in cache: " + ", ".join(missing[:20])
 
 
+def test_vite_pruning_preserva_release_in_cache_e_limita_lo_storico():
+    source = (ROOT / "frontend" / "vite" / "pruneReactAssets.ts").read_text(encoding="utf-8")
+
+    assert "MAX_PREEXISTING_ASSETS_TO_RETAIN = 400" in source
+    assert "existingAssets.length <= MAX_PREEXISTING_ASSETS_TO_RETAIN" in source
+    assert "previousAssets.add(entry.name)" in source
+    assert "new Set([...previousAssets, ...currentAssets])" in source
+    assert "dirname(target) !== assetsDir" in source
+
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    seed = "COPY web/static/react ./web/static/react"
+    build = "pnpm --filter @iusentra/studio build:vite"
+    assert seed in dockerfile
+    assert dockerfile.index(seed) < dockerfile.index(build)
+
+
 def test_telematico_surface_bundle_contiene_copia_pst_aggiornata():
     manifest_path = ROOT / "web" / "static" / "react" / ".vite" / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

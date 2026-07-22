@@ -175,6 +175,7 @@ type AcquisitionTargetDocument = {
   idDocumento: string
   hash: string
   pecId: string
+  tipoDocumento: string
   nonDuplicare: boolean
   faseSuccessiva: string
 }
@@ -263,6 +264,12 @@ type PstSession = {
   tribunale: string
   certThumbprint: string
   expiresAt: number
+}
+
+type PstDownloadResult = {
+  files: AcquisitionFile[]
+  failures: string[]
+  selection: JsonRecord
 }
 
 type ImportProgress = {
@@ -458,6 +465,68 @@ async function localSignerBrowserJson(
     void fetchError
     throw new Error('Canale locale non raggiungibile dal browser.')
   }
+}
+
+type LocalSignerBrowserTransport = 'fetch' | 'xhr'
+type LocalSignerBrowserRoute = { baseUrl: string; transport: LocalSignerBrowserTransport }
+
+let resolvedLocalSignerBrowserRoute: LocalSignerBrowserRoute | null = null
+let pendingLocalSignerBrowserRoute: Promise<LocalSignerBrowserRoute> | null = null
+
+function localSignerBrowserRequest(
+  endpoint: string,
+  body: JsonRecord | undefined,
+  timeoutMs: number,
+  transport: LocalSignerBrowserTransport,
+): Promise<LocalSignerBrowserRequestResult> {
+  return transport === 'fetch'
+    ? localSignerFetchJson(endpoint, body, timeoutMs)
+    : localSignerXhrJson(endpoint, body, timeoutMs)
+}
+
+async function resolveLocalSignerBrowserRoute(baseUrls: string[]): Promise<LocalSignerBrowserRoute> {
+  if (resolvedLocalSignerBrowserRoute && baseUrls.includes(resolvedLocalSignerBrowserRoute.baseUrl)) {
+    return resolvedLocalSignerBrowserRoute
+  }
+  if (pendingLocalSignerBrowserRoute) return pendingLocalSignerBrowserRoute
+
+  const probe = (async () => {
+    let lastError: unknown = null
+    for (const baseUrl of baseUrls) {
+      for (const transport of ['fetch', 'xhr'] as const) {
+        try {
+          const result = await localSignerBrowserRequest(
+            localSignerEndpoint('/ping?light=1', baseUrl),
+            undefined,
+            LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS,
+            transport,
+          )
+          if (!result.ok || result.payload.ok === false) {
+            throw new Error(asText(result.payload.errore || result.payload.error, `Local Signer non pronto (${result.status}).`))
+          }
+          const route = { baseUrl, transport }
+          resolvedLocalSignerBrowserRoute = route
+          return route
+        } catch (error: unknown) {
+          lastError = error
+        }
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Canale locale non raggiungibile dal browser.')
+  })()
+  pendingLocalSignerBrowserRoute = probe
+  try {
+    return await probe
+  } finally {
+    if (pendingLocalSignerBrowserRoute === probe) pendingLocalSignerBrowserRoute = null
+  }
+}
+
+function createLocalSignerOperationId(prefix: 'pst-view' | 'pst-import'): string {
+  const suffix = typeof window.crypto?.randomUUID === 'function'
+    ? window.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `${prefix}-${suffix}`
 }
 
 function readStoredRecord(key: string): JsonRecord | null {
@@ -795,7 +864,11 @@ function parsePstSessionExpiry(value: unknown, ttlSeconds: unknown): number {
   return Date.now() + ttl * 1000
 }
 
-function coercePstSessionFromPayload(value: unknown, tribunale: string, cert: PstCertificate): PstSession | null {
+function coercePstSessionFromPayload(
+  value: unknown,
+  tribunale: string,
+  cert: PstCertificate,
+): PstSession | null {
   const record = asRecord(value)
   const sessionId = asText(
     record.sessionId
@@ -1019,6 +1092,7 @@ function acquisitionTargetDocument(): AcquisitionTargetDocument {
     idDocumento: asText(params.get('id_documento')),
     hash: asText(params.get('hash')).toLowerCase(),
     pecId: asText(params.get('pec_id')),
+    tipoDocumento: asText(params.get('tipo_documento')),
     nonDuplicare: ['1', 'true', 'si', 'sì'].includes(noDuplicateRaw),
     faseSuccessiva: asText(params.get('fase_successiva')),
   }
@@ -1032,6 +1106,7 @@ function acquisitionTargetPayload(target: AcquisitionTargetDocument): JsonRecord
     idDocumento: target.idDocumento,
     hash: target.hash,
     pecId: target.pecId,
+    tipoDocumento: target.tipoDocumento,
     nonDuplicare: target.nonDuplicare,
     faseSuccessiva: target.faseSuccessiva,
   }
@@ -3644,12 +3719,12 @@ function AcquisitionWizard({
     failures: [],
   })
   const [options, setOptions] = useState<AcquisitionOptions>({
-    scarica_originale_portale: portal !== 'pst',
+    scarica_originale_portale: portal !== 'pst' || targetDocument.singleDocument,
     mantieni_albero_originale: false,
     importa_documenti: true,
-    importa_eventi: true,
-    importa_scadenze: true,
-    importa_parti: true,
+    importa_eventi: !targetDocument.singleDocument,
+    importa_scadenze: !targetDocument.singleDocument,
+    importa_parti: !targetDocument.singleDocument,
   })
   const initialTargetFascicoloId = useMemo(() => acquisitionInitialFascicoloId(), [])
   const [mapping, setMapping] = useState<AcquisitionMapping>({
@@ -3680,6 +3755,8 @@ function AcquisitionWizard({
   const [assistantMonitoring, setAssistantMonitoring] = useState(false)
   const assistantTimerRef = useRef<number | null>(null)
   const autoPstTestStartedRef = useRef(false)
+  const pstSearchOperationRef = useRef<Promise<void> | null>(null)
+  const pstDownloadOperationRef = useRef<Promise<PstDownloadResult> | null>(null)
   const autoMatchedTargetRef = useRef('')
   const mappingTargetOptions = useMemo(() => {
     const rows: Array<{ id: string; title: string }> = []
@@ -3706,16 +3783,44 @@ function AcquisitionWizard({
     () => previewDocuments.map((doc, index) => pstDocumentSelectionKey(doc, index)),
     [previewDocuments],
   )
+  const targetedPreviewDocumentKeys = useMemo(() => {
+    if (!targetDocument.singleDocument) return []
+    const nameKey = normaliseSearch(targetDocument.documento)
+    const idKey = asText(targetDocument.idDocumento)
+    const hashKey = asText(targetDocument.hash).toLowerCase()
+    const typeKey = normaliseSearch(targetDocument.tipoDocumento)
+    return previewDocuments.flatMap((doc, index) => {
+      const identifiers = pstDocumentIdentifierValues(doc)
+      const title = normaliseSearch(previewDocumentTitle(doc, index))
+      const documentHash = asText(doc.sha256 || doc.hash_sha256).toLowerCase()
+      const searchableType = normaliseSearch([
+        asText(doc.tipo_atto || doc.tipo),
+        asText(doc.descrizione || doc.oggetto),
+        previewDocumentTitle(doc, index),
+      ].filter(Boolean).join(' '))
+      const matches = Boolean(
+        (nameKey && title === nameKey)
+        || (idKey && identifiers.includes(idKey))
+        || (hashKey && documentHash === hashKey)
+        || (typeKey && searchableType.includes(typeKey))
+      )
+      return matches ? [pstDocumentSelectionKey(doc, index)] : []
+    })
+  }, [previewDocuments, targetDocument.documento, targetDocument.hash, targetDocument.idDocumento, targetDocument.singleDocument, targetDocument.tipoDocumento])
   const previewDocumentKeySignature = previewDocumentKeys.join('\u001f')
+  const targetedPreviewDocumentKeySignature = targetedPreviewDocumentKeys.join('\u001f')
   useEffect(() => {
     setSelectedDocumentKeys((current) => {
       if (!previewDocumentKeys.length) return current.length ? [] : current
       const available = new Set(previewDocumentKeys)
       const kept = current.filter((key) => available.has(key))
       if (kept.length) return kept
+      if (targetDocument.singleDocument) {
+        return targetedPreviewDocumentKeys.length === 1 ? targetedPreviewDocumentKeys : []
+      }
       return previewDocumentKeys
     })
-  }, [previewDocumentKeySignature])
+  }, [previewDocumentKeySignature, targetDocument.singleDocument, targetedPreviewDocumentKeySignature])
   const selectedDocumentKeySet = useMemo(() => new Set(selectedDocumentKeys), [selectedDocumentKeys])
   const selectedPreviewDocuments = useMemo(
     () => previewDocuments.filter((doc, index) => selectedDocumentKeySet.has(pstDocumentSelectionKey(doc, index))),
@@ -3800,13 +3905,18 @@ function AcquisitionWizard({
       const endpoint = localSignerEndpoint('/ping?light=1', baseUrl)
       probeUrls.push(endpoint)
       try {
-        const { payload, ok } = await localSignerBrowserJson(endpoint, undefined, options.timeoutMs || 3500)
+        const { payload, ok, transport } = await localSignerBrowserJson(endpoint, undefined, options.timeoutMs || 3500)
         const version = asText(payload.versione || payload.version || payload.local_signer_version)
         const tokenList = asList(payload.token || payload.tokens)
         const firstToken = asRecord(tokenList[0])
         const tokenLabel = asText(firstToken.label || firstToken.manufacturer || firstToken.subject)
         const outdated = Boolean(data.localSigner.latestVersion && version && compareVersions(version, data.localSigner.latestVersion) < 0)
         const reachable = ok && Boolean(payload.ok !== false)
+        if (!reachable) {
+          lastError = asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.')
+          continue
+        }
+        resolvedLocalSignerBrowserRoute = { baseUrl, transport }
         const next = {
         checked: true,
         checking: false,
@@ -3819,9 +3929,7 @@ function AcquisitionWizard({
         probeUrls,
         message: outdated && reachable
           ? `Local Signer rilevato su questo PC, ma serve la versione ${data.localSigner.latestVersion}. Aggiorno prima di avviare la ricerca.`
-          : reachable
-            ? 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.'
-            : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
+            : 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.',
       }
         if (!options.silent) setLocalSigner(next)
         if (outdated && reachable && !options.silent) {
@@ -3923,34 +4031,42 @@ function AcquisitionWizard({
 
   const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS): Promise<JsonRecord> => {
     const candidateBaseUrls = localSignerCandidateBaseUrls(localSigner.baseUrl, data.localSigner.browserUrl)
-    const probeUrls: string[] = []
-    let lastError: unknown = null
-    for (const baseUrl of candidateBaseUrls) {
-      const endpoint = localSignerEndpoint(path, baseUrl)
-      probeUrls.push(endpoint)
-      try {
-        const { payload, ok, status } = await localSignerBrowserJson(endpoint, body, timeoutMs)
-        if (!ok || payload.ok === false) {
-          throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${status}).`))
-        }
-        setLocalSigner((current) => (current.baseUrl === baseUrl ? current : { ...current, baseUrl, probeUrls }))
-        return payload
-      } catch (error: unknown) {
-        lastError = error
-      }
-    }
-    {
-      const error = lastError
+    const probeUrls = candidateBaseUrls.map((baseUrl) => localSignerEndpoint('/ping?light=1', baseUrl))
+    let route: LocalSignerBrowserRoute
+    try {
+      route = await resolveLocalSignerBrowserRoute(candidateBaseUrls)
+    } catch (error: unknown) {
       if (localSignerIsTimeoutError(error)) {
-        if (path.includes('/pst/download-documenti-batch')) {
-          throw new Error('Scaricamento dal PST ancora in attesa: il portale ufficiale non ha risposto entro il tempo massimo. Il Local Signer era attivo; riprova dalla stessa schermata senza riselezionare il certificato.')
-        }
-        if (path.includes('/pst/')) {
-          throw new Error('Consultazione PST ancora in attesa: il portale ufficiale sta rispondendo lentamente. Il Local Signer era attivo; riprova dalla stessa schermata mantenendo inserito il token.')
-        }
         throw new Error(`${localSignerProbeFailureMessage(probeUrls, 'tempo massimo superato')}`)
       }
       throw new Error(localSignerProbeFailureMessage(probeUrls, localSignerErrorText(error)))
+    }
+
+    const endpoint = localSignerEndpoint(path, route.baseUrl)
+    try {
+      const { payload, ok, status } = await localSignerBrowserRequest(endpoint, body, timeoutMs, route.transport)
+      if (!ok || payload.ok === false) {
+        throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${status}).`))
+      }
+      setLocalSigner((current) => (
+        current.baseUrl === route.baseUrl
+          ? current
+          : { ...current, baseUrl: route.baseUrl, probeUrls }
+      ))
+      return payload
+    } catch (error: unknown) {
+      if (resolvedLocalSignerBrowserRoute === route) resolvedLocalSignerBrowserRoute = null
+      if (localSignerIsTimeoutError(error)) {
+        if (path.includes('/pst/download-documenti-batch')) {
+          throw new Error('Scaricamento dal PST ancora in attesa: il portale ufficiale non ha risposto entro il tempo massimo. L’operazione è stata annullata senza avviare un secondo PIN; riprova dalla stessa schermata.')
+        }
+        if (path.includes('/pst/')) {
+          throw new Error('Consultazione PST ancora in attesa: il portale ufficiale non ha risposto entro il tempo massimo. L’operazione è stata annullata senza avviare un secondo PIN; riprova dalla stessa schermata.')
+        }
+      }
+      throw error instanceof Error
+        ? error
+        : new Error(localSignerProbeFailureMessage([endpoint], localSignerErrorText(error)))
     }
   }
 
@@ -4432,7 +4548,7 @@ function AcquisitionWizard({
     target_document: targetDocumentPayload,
   })
 
-  const runSearch = async () => {
+  const executeSearch = async (operationId = '') => {
     const previousAutoTarget = autoMatchedTargetRef.current
     if (previousAutoTarget) {
       setMapping((current) => current.target_fascicolo_id === previousAutoTarget
@@ -4572,9 +4688,10 @@ function AcquisitionWizard({
               cf_avvocato: pstCfForDiagnostic,
               cert_thumbprint: cert.thumbprint || null,
               cert_key: cert.thumbprint || '',
-              purpose: REACT_PST_SESSION_PURPOSE,
+              operation_id: operationId,
+              purpose: 'view',
               pst_session_id: session?.sessionId || '',
-              include_full_snapshot: true,
+              include_full_snapshot: !targetDocument.singleDocument,
             }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
           } catch (error: unknown) {
             const message = asText(error instanceof Error ? error.message : error)
@@ -4603,7 +4720,8 @@ function AcquisitionWizard({
             cf_avvocato: pstCfForDiagnostic,
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
-            purpose: REACT_PST_SESSION_PURPOSE,
+            operation_id: operationId,
+            purpose: 'view',
             pst_session_id: session?.sessionId || '',
           }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
         }
@@ -4648,6 +4766,7 @@ function AcquisitionWizard({
               ...(searchDocumenti.length ? { documenti: searchDocumenti } : {}),
               full_snapshot: completeSearchSnapshot,
               master_detail: completeSearchSnapshot,
+              pst_view_session: pstSessionForServer(nextSession, cert),
               pst_session: pstSessionForServer(nextSession, cert),
             },
           }
@@ -4742,6 +4861,26 @@ function AcquisitionWizard({
     }
   }
 
+  const runSearch = async (): Promise<void> => {
+    if (portal !== 'pst') {
+      await executeSearch()
+      return
+    }
+    const activeOperation = pstSearchOperationRef.current
+    if (activeOperation) {
+      setMessage('Ricerca PST già in corso. Attendi il risultato senza aprire una seconda richiesta PIN.')
+      await activeOperation
+      return
+    }
+    const operation = executeSearch(createLocalSignerOperationId('pst-view'))
+    pstSearchOperationRef.current = operation
+    try {
+      await operation
+    } finally {
+      if (pstSearchOperationRef.current === operation) pstSearchOperationRef.current = null
+    }
+  }
+
   useEffect(() => {
     if (!visible || portal !== 'pst') return
     const params = new URLSearchParams(window.location.search)
@@ -4798,7 +4937,7 @@ function AcquisitionWizard({
             snapshot = { ...snapshot, documenti, catalogo: documenti }
           }
         }
-        let pstSessionPayload = asRecord(activeSelection.raw.pst_session)
+        let pstSessionPayload = asRecord(activeSelection.raw.pst_view_session || activeSelection.raw.pst_session)
         const hasSearchSnapshotPayload = Object.keys(snapshot).length > 0 && documenti.length > 0
         const hasSearchSnapshotDocuments = hasSearchSnapshotPayload && documenti.length > 0
         const hasCompleteSearchSnapshotDocuments = hasSearchSnapshotDocuments && Boolean(
@@ -4847,7 +4986,7 @@ function AcquisitionWizard({
             cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
-            purpose: REACT_PST_SESSION_PURPOSE,
+            purpose: 'view',
             pst_session_id: session?.sessionId || '',
           }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
           const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
@@ -4876,10 +5015,12 @@ function AcquisitionWizard({
           selection: {
             ...activeSelection.raw,
             snapshot,
+            pst_view_session: pstSessionPayload,
             pst_session: pstSessionPayload,
           },
           snapshot,
           documenti,
+          pst_view_session: pstSessionPayload,
           pst_session: pstSessionPayload,
           target_document: targetDocumentPayload,
         })
@@ -4942,6 +5083,11 @@ function AcquisitionWizard({
     }
     if (!selection || !Object.keys(preview).length) {
       setMessage("Carica prima l'anteprima del fascicolo.")
+      return
+    }
+    if (targetDocument.singleDocument && selectedPreviewDocuments.length !== 1) {
+      setMessage('Verifica bloccata: seleziona un solo provvedimento originale del portale.')
+      setStep(4)
       return
     }
     setBusy('analysis')
@@ -5019,10 +5165,11 @@ function AcquisitionWizard({
     setOptions((current) => ({ ...current, importa_documenti: false }))
   }
 
-  const downloadPstDocumentsFromSigner = async (
+  const executeDownloadPstDocumentsFromSigner = async (
     documentsToDownload: JsonRecord[],
     activeSelection: JsonRecord = selection?.raw || {},
-  ): Promise<{ files: AcquisitionFile[]; failures: string[]; selection: JsonRecord }> => {
+    operationId = '',
+  ): Promise<PstDownloadResult> => {
     const documenti = documentsToDownload
       .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
       .filter((item) => pstDocumentIdentifierValues(item).length)
@@ -5046,6 +5193,7 @@ function AcquisitionWizard({
       cf_avvocato: pstAttorneyFiscalCode(cert),
       cert_thumbprint: cert.thumbprint || null,
       cert_key: cert.thumbprint || '',
+      operation_id: operationId,
       purpose: REACT_PST_SESSION_PURPOSE,
       pst_session_id: session?.sessionId || '',
       preflight_auth: false,
@@ -5083,8 +5231,37 @@ function AcquisitionWizard({
     }
   }
 
+  const downloadPstDocumentsFromSigner = async (
+    documentsToDownload: JsonRecord[],
+    activeSelection: JsonRecord = selection?.raw || {},
+  ): Promise<PstDownloadResult> => {
+    if (pstDownloadOperationRef.current) {
+      throw new Error('Uno scaricamento PST è già in corso. Attendi il completamento senza aprire una seconda richiesta PIN.')
+    }
+    const operation = executeDownloadPstDocumentsFromSigner(
+      documentsToDownload,
+      activeSelection,
+      createLocalSignerOperationId('pst-import'),
+    )
+    pstDownloadOperationRef.current = operation
+    try {
+      return await operation
+    } finally {
+      if (pstDownloadOperationRef.current === operation) pstDownloadOperationRef.current = null
+    }
+  }
+
   const downloadSelectedPstDocuments = async (documentsOverride?: JsonRecord[]) => {
+    if (pstDownloadOperationRef.current) {
+      setMessage('Scaricamento PST già in corso. Attendi il completamento senza aprire una seconda richiesta PIN.')
+      return
+    }
     const docsToDownload = documentsOverride || selectedPreviewDocuments
+    if (targetDocument.singleDocument && docsToDownload.length !== 1) {
+      setMessage('Acquisizione mirata: seleziona un solo provvedimento originale del portale.')
+      setStep(4)
+      return
+    }
     if (!docsToDownload.length) {
       setMessage('Seleziona almeno un documento PST da scaricare.')
       return
@@ -5094,6 +5271,7 @@ function AcquisitionWizard({
       const downloaded = await downloadPstDocumentsFromSigner(docsToDownload)
       const merged = mergeAcquisitionFiles(files, downloaded.files)
       setFiles(merged)
+      setSelection((current) => current ? { ...current, raw: downloaded.selection } : current)
       setImportProgress((current) => ({
         ...current,
         active: false,
@@ -5126,6 +5304,10 @@ function AcquisitionWizard({
   }
 
   async function runImport(overrideFiles?: AcquisitionFile[]) {
+    if (portal === 'pst' && pstDownloadOperationRef.current) {
+      setMessage('Scaricamento PST già in corso. L’importazione riprenderà quando i documenti saranno disponibili.')
+      return
+    }
     let activeFiles = overrideFiles || files
     if (portalUsesOfficialAssistant && assistantSession?.downloaded_files?.length) {
       activeFiles = mergeAcquisitionFiles(
@@ -5135,6 +5317,11 @@ function AcquisitionWizard({
     }
     const payloadJson = authorisedPayload(activeFiles)
     const selectedDocsForImport = portal === 'pst' && options.importa_documenti ? selectedPreviewDocuments : []
+    if (targetDocument.singleDocument && selectedDocsForImport.length !== 1) {
+      setMessage('Importazione bloccata: il presidio richiede un solo provvedimento originale del portale.')
+      setStep(4)
+      return
+    }
     let downloadedFiles = activeFiles.filter((file) => !file.payload_json)
     if (portal === 'pst' && selectedDocsForImport.length) {
       downloadedFiles = filterDownloadedFilesForSelectedPstDocuments(downloadedFiles, selectedDocsForImport)
@@ -5772,7 +5959,7 @@ function AcquisitionWizard({
                   <span>
                     Tabella ministeriale applicata automaticamente:
                     {' '}
-                    <strong>{asText(pstSchemaHint.materia || query.materia || query.schema)}</strong>
+                    <strong>{asText(query.materia || pstSchemaHint.materia || query.schema)}</strong>
                   </span>
                 </div>
               ) : null}
@@ -5946,15 +6133,15 @@ function AcquisitionWizard({
                   <span>{isPatAcquisition ? 'Seleziona cosa deve entrare nel fascicolo IUSENTRA dopo la consegna SIGA.' : 'Seleziona le famiglie di dati che verranno importate dopo la verifica.'}</span>
                 </header>
                 <div className="iu-tel-acq-switches">
-                  <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => {
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.importa_documenti} onChange={(event) => {
                     const checked = event.currentTarget.checked
                     updateOption('importa_documenti', checked)
                     if (checked && previewDocumentKeys.length && !selectedDocumentKeys.length) setSelectedDocumentKeys(previewDocumentKeys)
                     if (!checked) setSelectedDocumentKeys([])
                   }}/><span><strong>{isPatAcquisition ? 'Documenti PAT ufficiali' : 'Documenti del fascicolo'}</strong><small>{isPatAcquisition ? 'Registra ricevute, modulo, riepilogo e allegati come documenti del fascicolo.' : 'Scarica e registra i file selezionati come documenti e atti.'}</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Stato deposito' : 'Eventi di cancelleria'}</strong><small>{isPatAcquisition ? 'Annota deposito inviato, depositato, rifiutato o in elaborazione se esposto dal SIGA.' : 'Porta nel fascicolo la cronologia disponibile dal portale.'}</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/><span><strong>Scadenziario</strong><small>{isPatAcquisition ? 'Crea scadenze solo da date ufficiali o documenti fonte verificati.' : 'Usa date ministeriali o documenti fonte senza creare scadenze non verificate.'}</small></span></label>
-                  <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/><span><strong>Parti</strong><small>{isPatAcquisition ? 'Collega ricorrenti, resistenti, controinteressati e difensori quando disponibili.' : 'Aggiorna assistito, controparti e dati di ruolo quando esposti.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Stato deposito' : 'Eventi di cancelleria'}</strong><small>{targetDocument.singleDocument ? 'Esclusi: il presidio acquisisce soltanto il provvedimento originale.' : isPatAcquisition ? 'Annota deposito inviato, depositato, rifiutato o in elaborazione se esposto dal SIGA.' : 'Porta nel fascicolo la cronologia disponibile dal portale.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/><span><strong>Scadenziario</strong><small>{targetDocument.singleDocument ? 'Escluso: la scadenza esistente verrà collegata all’originale senza crearne una nuova.' : isPatAcquisition ? 'Crea scadenze solo da date ufficiali o documenti fonte verificati.' : 'Usa date ministeriali o documenti fonte senza creare scadenze non verificate.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/><span><strong>Parti</strong><small>{targetDocument.singleDocument ? 'Escluse: restano valide le parti già collegate al fascicolo.' : isPatAcquisition ? 'Collega ricorrenti, resistenti, controinteressati e difensori quando disponibili.' : 'Aggiorna assistito, controparti e dati di ruolo quando esposti.'}</small></span></label>
                 </div>
               </section>
               <section className="iu-tel-acq-fieldset">
@@ -5963,8 +6150,8 @@ function AcquisitionWizard({
                   <span>{isPatAcquisition ? 'Imposta come archiviare ricevute, riepilogo e file ufficiali SIGA.' : 'Imposta come conservare i file scaricati dal portale.'}</span>
                 </header>
                 <div className="iu-tel-acq-switches iu-tel-acq-switches--compact">
-                  <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'File ufficiale SIGA' : 'Originale portale'}</strong><small>{isPatAcquisition ? 'Conserva il file prodotto dal portale quando rappresenta prova del deposito.' : 'Usa il file originale solo quando serve la copia ministeriale nativa.'}</small></span></label>
-                  <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Cartella PAT ordinata' : 'Struttura originale'}</strong><small>{isPatAcquisition ? 'Mantieni ricevute, moduli, allegati e comunicazioni in una struttura riconoscibile.' : 'Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'File ufficiale SIGA' : 'Originale portale'}</strong><small>{targetDocument.singleDocument ? 'Obbligatorio per la relata: viene acquisita la copia ministeriale nativa.' : isPatAcquisition ? 'Conserva il file prodotto dal portale quando rappresenta prova del deposito.' : 'Usa il file originale solo quando serve la copia ministeriale nativa.'}</small></span></label>
+                  <label><input type="checkbox" disabled={targetDocument.singleDocument} checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/><span><strong>{isPatAcquisition ? 'Cartella PAT ordinata' : 'Struttura originale'}</strong><small>{targetDocument.singleDocument ? 'Esclusa: viene registrato soltanto il file ministeriale originale.' : isPatAcquisition ? 'Mantieni ricevute, moduli, allegati e comunicazioni in una struttura riconoscibile.' : 'Mantieni cartelle e gruppi del PST per buste, allegati e ricevute.'}</small></span></label>
                 </div>
               </section>
               {!structuredHearingLabel && deadlineSourceDocuments.length && options.importa_scadenze ? (
@@ -5976,19 +6163,21 @@ function AcquisitionWizard({
                   <div className="iu-tel-acq-selection-toolbar">
                     <strong>Documenti da scaricare: {selectedPreviewDocuments.length}/{previewDocuments.length}</strong>
                     <span>{downloadedPstDocumentCount ? `${downloadedPstDocumentCount} già scaricati in questa sessione` : 'Scarico non ancora avviato'}</span>
-                    <button type="button" onClick={selectAllPreviewDocuments}><CheckCircle2 size={14}/> Seleziona tutti</button>
+                    {!targetDocument.singleDocument ? <button type="button" onClick={selectAllPreviewDocuments}><CheckCircle2 size={14}/> Seleziona tutti</button> : null}
                     <button type="button" onClick={clearPreviewDocumentSelection}><ClipboardCheck size={14}/> Nessuno</button>
                     {portal === 'pst' ? (
                       <>
                         <button type="button" disabled={busy === 'download' || !options.importa_documenti || !selectedPreviewDocuments.length} onClick={() => downloadSelectedPstDocuments()}>
                           <Download size={14}/> Scarica selezionati
                         </button>
-                        <button type="button" disabled={busy === 'download'} onClick={() => {
-                          selectAllPreviewDocuments()
-                          void downloadSelectedPstDocuments(previewDocuments)
-                        }}>
-                          <Download size={14}/> Scarica tutti
-                        </button>
+                        {!targetDocument.singleDocument ? (
+                          <button type="button" disabled={busy === 'download'} onClick={() => {
+                            selectAllPreviewDocuments()
+                            void downloadSelectedPstDocuments(previewDocuments)
+                          }}>
+                            <Download size={14}/> Scarica tutti
+                          </button>
+                        ) : null}
                       </>
                     ) : null}
                   </div>

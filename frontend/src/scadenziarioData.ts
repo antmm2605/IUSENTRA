@@ -203,6 +203,9 @@ export type ScadenziarioPageData = {
     operative: boolean
     guidaPratica: string
     fascicoloId: string
+    focusId: string
+    compact: boolean
+    includeCalculator: boolean
   }
   summary: ScadenziarioSummary
   items: ScadenziarioRow[]
@@ -242,6 +245,7 @@ export type ScadenziarioQuery = {
   fascicoloId?: string
   focusId?: string
   compact?: boolean
+  includeCalculator?: boolean
 }
 
 export type PdfDeadlineCandidate = {
@@ -309,6 +313,9 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     operative: false,
     guidaPratica: '',
     fascicoloId: '',
+    focusId: '',
+    compact: false,
+    includeCalculator: false,
   },
   summary: {
     total: 0,
@@ -738,6 +745,7 @@ function queryParams(query: ScadenziarioQuery): string {
   if (query.fascicoloId) params.set('id_fascicolo', query.fascicoloId)
   if (query.focusId) params.set('focus_id', query.focusId)
   if (query.compact) params.set('compatto', '1')
+  if (query.includeCalculator === false) params.set('calcolatore', '0')
   return params.toString()
 }
 
@@ -775,6 +783,9 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         operative: asBoolean(queryPayload.operative),
         guidaPratica: asString(queryPayload.guidaPratica ?? queryPayload.guida_pratica),
         fascicoloId: asString(queryPayload.fascicoloId ?? queryPayload.id_fascicolo),
+        focusId: asString(queryPayload.focusId ?? queryPayload.focus_id),
+        compact: asBoolean(queryPayload.compact),
+        includeCalculator: asBoolean(queryPayload.includeCalculator ?? queryPayload.include_calculator),
       },
       summary: normalizeSummary(payload.summary),
       items: asArray(payload.items).map(normalizeRow),
@@ -801,6 +812,23 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
     }
   } catch {
     return emptyScadenziarioPage
+  }
+}
+
+export async function getDeadlineCalculator(filters: { guidaPratica?: string } = {}): Promise<DeadlineCalculatorState> {
+  try {
+    const params = new URLSearchParams()
+    if (filters.guidaPratica) params.set('guida_pratica', filters.guidaPratica)
+    const query = params.toString()
+    const response = await fetch(`/api/v1/ui/scadenziario/termini/templates${query ? `?${query}` : ''}`, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return emptyScadenziarioPage.calculator
+    const payload = await response.json() as unknown
+    return normalizeCalculator(payload)
+  } catch {
+    return emptyScadenziarioPage.calculator
   }
 }
 

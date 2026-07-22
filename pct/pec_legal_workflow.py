@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 from typing import Any, Iterable
+from urllib.parse import urlsplit
 
 
 FORWARD_PREFIX_RE = re.compile(r"^\s*(?:fwd?|i|r|re|rif|inoltro)\s*:\s*", re.I)
@@ -23,6 +24,18 @@ GENERALE_CORTE_APPELLO_RE = re.compile(
     r"\bgenerale\s*/\s*(?P<year>\d{4})\s*/\s*0*(?P<number>\d{1,7})\s*/\s*Corte\s+di\s+Appello\b",
     re.I,
 )
+TECHNICAL_URL_HOSTS = (
+    "schemi.processotelematico.giustizia.it",
+    "www.w3.org",
+    "w3.org",
+    "uri.etsi.org",
+    "ca1.agid.gov.it",
+    "ocsp.intesigroup.com",
+    "ocsp2.infocert.it",
+    "cacert.actalis.it",
+    "ivaservizi.agenziaentrate.gov.it",
+)
+TECHNICAL_URL_MARKERS = (".dtd", ".xsd", "xmldsig", "signedproperties", "/ocsp", "ocsp0", "/crl", "fattura")
 
 
 REGISTRY_MAP: dict[str, dict[str, str]] = {
@@ -106,6 +119,49 @@ def normalizza_oggetto_pec(subject: str) -> str:
 
 def _lower(value: str) -> str:
     return str(value or "").lower()
+
+
+def _host_matches(host: str, domain: str) -> bool:
+    host = host.rstrip(".").lower()
+    domain = domain.rstrip(".").lower()
+    return host == domain or host.endswith(f".{domain}")
+
+
+def _is_technical_process_url(url: str) -> bool:
+    parsed = urlsplit(str(url or ""))
+    host = (parsed.hostname or "").lower().rstrip(".")
+    path = f"{parsed.path or ''}?{parsed.query or ''}".lower()
+    return any(_host_matches(host, domain) for domain in TECHNICAL_URL_HOSTS) or any(
+        marker in path for marker in TECHNICAL_URL_MARKERS
+    )
+
+
+def _has_remote_hearing_url(text: str) -> bool:
+    for match in re.finditer(r"https?://\S+", str(text or ""), re.I):
+        url = match.group(0).rstrip(").,;")
+        if _is_technical_process_url(url):
+            continue
+        host = (urlsplit(url).hostname or "").lower()
+        if any(_host_matches(host, domain) for domain in ("teams.microsoft.com", "zoom.us", "meet.google.com", "webex.com")):
+            return True
+    return bool(re.search(r"teams\.microsoft|zoom\.us|meet\.google|webex", str(text or ""), re.I))
+
+
+def _is_decisive_judgment_text(text: str) -> bool:
+    lower = _lower(text)
+    if not lower:
+        return False
+    if "sentenza a verbale" in lower:
+        return True
+    if "definitivamente decidendo" in lower and "sentenza" in lower:
+        return True
+    if "decide la causa con sentenza" in lower:
+        return True
+    if re.search(r"\bsentenza\b.{0,100}\bart\.?\s*429\b", lower):
+        return True
+    if re.search(r"\bart\.?\s*429\b.{0,100}\bsentenza\b", lower):
+        return True
+    return False
 
 
 def _attachment_names(attachments: Iterable[Any]) -> list[str]:
@@ -200,7 +256,7 @@ def _event_payload(
 
 def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]:
     lower = _lower(text)
-    has_video_link = bool(re.search(r"https?://\S+|teams\.microsoft|zoom\.us|meet\.google", lower))
+    has_video_link = _has_remote_hearing_url(text)
     has_place = any(token in lower for token in ("aula", "piano", "sezione", "in presenza", "tribunale"))
     if "rifiuto deposito" in lower or "deposito rifiutato" in lower:
         return _event_payload("rifiuto_deposito", "Rifiuto deposito", "rossa", "Aprire attività urgente e predisporre verifica per eventuale rideposito.")
@@ -214,6 +270,14 @@ def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]
         return _event_payload("mancata_consegna_pec", "Mancata consegna PEC", "rossa", "Creare alert immediato e coda di revisione.")
     if "sost. giudice" in lower or "sostituzione giudice" in lower:
         return _event_payload("sostituzione_giudice", "Sostituzione giudice", "media", "Aggiornare giudice del fascicolo, salvare precedente e attuale, verificare udienze future.")
+    if _is_decisive_judgment_text(text):
+        return _event_payload(
+            "sentenza_a_verbale",
+            "Sentenza a verbale / provvedimento decisorio",
+            "alta",
+            "Archiviare la sentenza, estrarre dispositivo e spese, aprire presidio per valutare o preparare la notifica; non creare opposizione 127-ter dalla sentenza.",
+            creates_deadline=True,
+        )
     if "deposito ctu" in lower or re.search(r"\bctu\b", lower):
         return _event_payload("deposito_ctu", "Deposito CTU", "alta", "Archiviare CTU, avvisare responsabile e creare attività per verificare termini osservazioni.", creates_deadline=True)
     if any(token in lower for token in ("deposito sentenza", "pubblicazione sentenza", "deposito minuta", "pubblicazione minuta")):
@@ -311,7 +375,9 @@ def _modalita_udienza(text: str) -> dict[str, str]:
     lower = _lower(text)
     link_match = re.search(r"https?://\S+", text or "")
     if link_match:
-        return {"modalita": "online", "link": link_match.group(0), "luogo": "videoconferenza"}
+        link = link_match.group(0).rstrip(").,;")
+        if not _is_technical_process_url(link) and _has_remote_hearing_url(link):
+            return {"modalita": "online", "link": link, "luogo": "videoconferenza"}
     if any(token in lower for token in ("aula", "piano", "in presenza", "tribunale")):
         aula = re.search(r"\baula\s+([A-Za-z0-9/-]+)", text or "", re.I)
         return {"modalita": "in presenza", "link": "", "luogo": f"Aula {aula.group(1)}" if aula else "ufficio giudiziario"}

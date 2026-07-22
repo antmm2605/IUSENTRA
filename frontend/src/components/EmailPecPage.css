@@ -369,6 +369,59 @@
   gap:14px;
   align-items:stretch;
 }
+.iu-mail-source-view{
+  min-height:100%;
+  padding:12px;
+  background:#f8fafc;
+}
+.iu-mail-source-message{
+  display:grid;
+  gap:12px;
+  max-width:1120px;
+  margin:0 auto;
+  padding:16px;
+  border:1px solid var(--iu-border);
+  border-radius:14px;
+  background:#fff;
+}
+.iu-mail-source-message>header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(148,163,184,.24);
+}
+.iu-mail-source-message>header>div:first-child{min-width:0}
+.iu-mail-source-message>header>div:first-child>span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--iu-blue-700);
+  font-size:12px;
+  font-weight:900;
+}
+.iu-mail-source-message h1{
+  margin:6px 0 0;
+  color:#0f172a;
+  font-size:20px;
+  line-height:1.25;
+}
+.iu-mail-source-message__status{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px;
+}
+.iu-mail-source-message__meta{margin:0}
+.iu-mail-source-loading,
+.iu-mail-source-empty{
+  margin:0;
+  padding:18px;
+  color:var(--iu-slate-600);
+  font-size:13px;
+  font-weight:750;
+}
 .iu-mail-reader-pane{
   min-width:0;
   min-height:var(--iu-mail-pane-height);
@@ -1595,11 +1648,31 @@
 .iu-mail-attachments strong,
 .iu-mail-attachments span{display:block;overflow-wrap:anywhere}
 .iu-mail-attachments span{font-size:12px;color:var(--iu-slate-500)}
-.iu-mail-attachments a{
+.iu-mail-attachments a,
+.iu-mail-attachments button{
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  padding:0 10px;
+  border:1px solid rgba(15,118,110,.18);
+  border-radius:8px;
+  background:#f8fffd;
   color:#0f766e;
   font-size:12px;
   font-weight:800;
   text-decoration:none;
+  cursor:pointer;
+}
+.iu-mail-attachments a:hover,
+.iu-mail-attachments a:focus-visible,
+.iu-mail-attachments button:hover,
+.iu-mail-attachments button:focus-visible{
+  outline:0;
+  border-color:rgba(15,118,110,.36);
+  background:#ecfdf5;
+  color:#0f766e;
 }
 .iu-pec-audit-panel{
   display:grid;
@@ -2058,7 +2131,8 @@
   .iu-mail-preview-card footer{display:grid;grid-template-columns:1fr 1fr}
   .iu-mail-preview-card footer>a,.iu-mail-preview-card footer>button{width:100%}
   .iu-mail-attachments article{grid-template-columns:auto minmax(0,1fr)}
-  .iu-mail-attachments a{grid-column:2}
+  .iu-mail-attachments a,
+  .iu-mail-attachments button{grid-column:2}
   .iu-pec-audit-grid{grid-template-columns:1fr}
   .iu-pec-profile-facts{grid-template-columns:1fr}
   .iu-pec-audit-panel>header{display:grid}

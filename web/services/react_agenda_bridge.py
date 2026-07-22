@@ -4,10 +4,22 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
+from web.services.pec_source_links import (
+    control_tower_source_key,
+    extract_pec_attachment_source,
+    is_generic_pec_source_label,
+    latest_control_tower_sources,
+    latest_pec_profiles,
+    pec_audit_message_id,
+    pec_profile_source_name,
+    pec_original_label,
+    pec_source_href,
+    resolve_pec_source_name,
+)
 
 
 RG_RE = re.compile(r"\b(?:R\.?\s*G\.?|RG|Ruolo generale)\s*(?:n\.?|numero|:)?\s*([0-9]{1,7}\s*/\s*[0-9]{4}(?:/[A-Z]+)?)", re.IGNORECASE)
@@ -33,6 +45,33 @@ TECHNICAL_VISIBLE_RE = re.compile(
 )
 NON_PARTY_RE = re.compile(r"\b(?:UDIENZA|COMUNICAZIONE|FISSATA|FISSATO|PRIMA|COMPAR|TRATT|ART\.?|DESCRIZIONE|OGGETTO)\b", re.IGNORECASE)
 REMOTE_HEARING_URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+GENERIC_PEC_SOURCE_LABELS = {
+    "corpo pec",
+    "oggetto pec",
+    "testo pec",
+    "testo/href",
+    "testo / href",
+    "href pec",
+    "pec",
+}
+DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS = {
+    "atto_di_parte_non_genera_adempimento_automatico": "atto di parte: non genera un adempimento automatico",
+    "periodo_descrittivo_o_contrattuale_non_e_termino_processuale": "periodo descrittivo o contrattuale, non termine processuale",
+    "fonte_non_qualificata_come_provvedimento_o_comunicazione_ufficio": "fonte non qualificata come provvedimento o comunicazione dell'ufficio",
+    "provvedimento_decisorio_prevale_su_termine_o_udienza_pregressa": "provvedimento decisorio: non resta un termine o un'udienza pregressa da presidiare",
+    "data_senza_ordine_processuale_esplicito": "data priva di un ordine processuale esplicito",
+}
+DOCUMENT_PRESIDIO_CANCEL_MARKERS = (
+    "presidio documentale automatico annullato",
+    "la fonte non contiene un adempimento dell'ufficio",
+    *DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS.keys(),
+)
+
+
+def _is_legal_notification_text(*values: str) -> bool:
+    text = " ".join(str(value or "") for value in values)
+    folded = text.lower()
+    return "iusentra_legal_notification:" in folded or "legal-notification-presidio" in folded
 
 
 def _enum_value(value: Any) -> str:
@@ -74,12 +113,38 @@ def _clean_text(value: Any, *, limit: int = 360) -> str:
     return text[:limit]
 
 
+def _is_generic_pec_source_label(value: Any) -> bool:
+    """Riconosce etichette tecniche interne della PEC, non nomi di allegato."""
+
+    return is_generic_pec_source_label(value)
+
+
+def _pec_original_label(source_name: str) -> str:
+    """Etichetta utente per una fonte PEC: allegato vero o PEC nel suo insieme."""
+
+    return pec_original_label(source_name)
+
+
+def _pec_source_href(message_id: str, source_name: str) -> str:
+    """Apre subito l'allegato ZIP/PDF della PEC quando è identificato."""
+
+    return pec_source_href(message_id, source_name)
+
+
+def _extract_pec_attachment_source(notes: str) -> str:
+    """Recupera il nome dell'allegato utile anche da note PEC meno recenti."""
+
+    return extract_pec_attachment_source(notes)
+
+
 def _source_evidence(
     notes: str,
     *,
     matter_id: str = "",
     external_source_url: str = "",
+    external_uid: str = "",
     source_name: str = "",
+    indexed_source_name: str = "",
 ) -> dict[str, Any]:
     """Collega ogni dato automatico alla PEC o al documento che lo ha prodotto."""
 
@@ -91,7 +156,7 @@ def _source_evidence(
     if document_match:
         source_fascicolo_id = document_match.group(1).strip()
         document_id = document_match.group(2).strip()
-        label = _extract_labeled_line(notes, "Fonte documentale", limit=140) or _clean_text(source_name, limit=140)
+        label = _extract_labeled_line(notes, "Fonte documentale", limit=140)
         return {
             "sourceHref": (
                 f"/fascicoli/{quote(source_fascicolo_id, safe='')}/documenti/"
@@ -102,28 +167,29 @@ def _source_evidence(
             "sourceVerified": True,
         }
 
-    pec_match = re.search(r"\bPEC_AUDIT:([A-Za-z0-9][A-Za-z0-9_.:-]{1,179})", notes, re.IGNORECASE)
-    if pec_match:
-        message_id = pec_match.group(1).rstrip(".,;:")
-        source_label = _clean_text(source_name, limit=140).rstrip(".")
+    event_source_name = resolve_pec_source_name(source_name, notes, limit=140)
+    if event_source_name and not is_generic_pec_source_label(event_source_name):
+        source_name = event_source_name
+    else:
+        source_name = resolve_pec_source_name(indexed_source_name, limit=140) or event_source_name
+
+    message_id = pec_audit_message_id("\n".join(part for part in (notes, external_uid) if part))
+    if message_id:
+        source_label = _clean_text(source_name, limit=120)
         return {
-            "sourceHref": (
-                f"/api/v1/ui/email/source/{quote(message_id, safe='')}?name={quote(source_label, safe='')}"
-                if source_label
-                else f"/email/?audit_id={quote(message_id, safe='')}"
-            ),
-            "sourceLabel": source_label or "PEC originale",
-            "sourceKind": "documento" if source_label else "pec",
+            "sourceHref": _pec_source_href(message_id, source_label),
+            "sourceLabel": _pec_original_label(source_label),
+            "sourceKind": "pec",
             "sourceVerified": True,
         }
 
     external_href = str(external_source_url or "").strip()
     external_match = re.fullmatch(r"/api/pec/messages/([^/]+)", external_href)
     if external_match:
-        external_href = f"/email/?audit_id={quote(external_match.group(1), safe='')}"
+        message_id = external_match.group(1)
         return {
-            "sourceHref": external_href,
-            "sourceLabel": "PEC originale",
+            "sourceHref": _pec_source_href(message_id, source_name),
+            "sourceLabel": _pec_original_label(source_name),
             "sourceKind": "pec",
             "sourceVerified": True,
         }
@@ -132,6 +198,13 @@ def _source_evidence(
             "sourceHref": external_href,
             "sourceLabel": _clean_text(source_name, limit=140) or "Calendario collegato",
             "sourceKind": "calendario",
+            "sourceVerified": False,
+        }
+    if _is_legal_notification_text(notes, source_name):
+        return {
+            "sourceHref": "",
+            "sourceLabel": "PEC sorgente da riallineare",
+            "sourceKind": "pec",
             "sourceVerified": False,
         }
     if matter_id and source_name:
@@ -199,7 +272,11 @@ def _visible_legal_text(value: Any, *, limit: int = 360) -> str:
     parts: list[str] = []
     for raw_line in str(value or "").splitlines():
         line = _clean_text(raw_line, limit=limit)
-        if not line or TECHNICAL_VISIBLE_RE.search(line):
+        if (
+            not line
+            or TECHNICAL_VISIBLE_RE.search(line)
+            or line.casefold().startswith("fonte documentale:")
+        ):
             continue
         pec_summary = _pec_body_summary(line, limit=limit)
         if pec_summary:
@@ -256,7 +333,24 @@ def _extract_party(*values: Any) -> str:
 
 def _is_pec_operational_text(*values: Any) -> bool:
     text = " ".join(str(value or "") for value in values).lower()
-    return any(token in text for token in ("posta certificata", "pec_audit", "comunicazione_cancelleria", "presidio pec", "da pec"))
+    return any(
+        token in text
+        for token in (
+            "posta certificata",
+            "pec_audit",
+            "comunicazione_cancelleria",
+            "cancelleria_comunicazione",
+            "provvedimento_da_esaminare",
+            "sentenza_da_valutare_per_notifica",
+            "ricevuta_accettazione_da_presidiare",
+            "ricevuta di accettazione pec",
+            "pec di accettazione",
+            "ricevuta di consegna pec",
+            "pec di consegna",
+            "presidio pec",
+            "da pec",
+        )
+    )
 
 
 def _is_document_presidio_lex_text(*values: Any) -> bool:
@@ -300,7 +394,12 @@ def _extract_labeled_line(text: str, label: str, *, limit: int = 220) -> str:
             if segmented:
                 return segmented
             return _clean_text(line.split(":", 1)[1], limit=limit).strip(" -:;.")
-    return _extract_docpresidio_labeled(text, label, limit=limit)
+    # Il fallback compatto serve ai vecchi record salvati su una sola riga.
+    # Sui testi multilinea potrebbe invece scambiare una label contenuta in
+    # un'altra (per esempio ``Udienza`` dentro ``Verifica link udienza``).
+    if "\n" not in str(text or "") and "\r" not in str(text or ""):
+        return _extract_docpresidio_labeled(text, label, limit=limit)
+    return ""
 
 
 def _has_structured_pec_profile(text: str) -> bool:
@@ -332,12 +431,24 @@ def _pec_agenda_visible_notes(raw_notes: str, *, client: str = "", matter: str =
         _append_detail_line(lines, f"Ufficio: {court}", limit=180)
     if client and "Cliente:" not in " ".join(lines):
         _append_detail_line(lines, f"Cliente: {client}", limit=180)
+    for label in ("Oggetto PEC", "Destinatario PEC", "Mittente PEC", "Possibile fascicolo da verificare"):
+        value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=260), limit=260)
+        if value:
+            _append_detail_line(lines, f"{label}: {value}", limit=300)
+    activity = _extract_labeled_line(raw_notes, "Attività per l'avvocato", limit=520)
+    if not activity and _is_sentence_decision_context(raw_notes):
+        activity = (
+            "esaminare la sentenza e valutare/preparare notifica, relata e prova; "
+            "la comunicazione di cancelleria non prova la notifica dell'avvocato."
+        )
+    if not activity:
+        activity = "verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti."
     _append_detail_line(
         lines,
-        "Attività per l'avvocato: verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti.",
-        limit=260,
+        f"Attività per l'avvocato: {activity}",
+        limit=540,
     )
-    return _clean_text(" ".join(lines), limit=700)
+    return _clean_text(" ".join(lines), limit=1000)
 
 
 def _append_detail_line(lines: list[str], line: str, *, limit: int = 220) -> None:
@@ -346,16 +457,119 @@ def _append_detail_line(lines: list[str], line: str, *, limit: int = 220) -> Non
         lines.append(cleaned)
 
 
+def _normalise_for_matching(value: Any) -> str:
+    text = str(value or "").casefold()
+    return (
+        text.replace("à", "a")
+        .replace("è", "e")
+        .replace("é", "e")
+        .replace("ì", "i")
+        .replace("ò", "o")
+        .replace("ù", "u")
+    )
+
+
+def _document_presidio_cancel_reason_text(*values: Any) -> str:
+    text = "\n".join(str(value or "") for value in values)
+    if not _is_document_presidio_lex_text(text):
+        return ""
+    normalized = _normalise_for_matching(text)
+    if not any(marker in normalized for marker in DOCUMENT_PRESIDIO_CANCEL_MARKERS):
+        return ""
+    match = re.search(r"\bMotivo:\s*([^\r\n.]+)", text, re.IGNORECASE)
+    reason_code = _clean_text(match.group(1).strip(), limit=220) if match else ""
+    normalized_reason = _normalise_for_matching(reason_code)
+    for code, label in DOCUMENT_PRESIDIO_CANCEL_REASON_LABELS.items():
+        if code in normalized_reason or code in normalized:
+            return label
+    if reason_code:
+        return reason_code.replace("_", " ").strip()
+    return "la fonte non contiene un adempimento dell'ufficio"
+
+
+def _is_document_presidio_cancelled_text(*values: Any) -> bool:
+    return bool(_document_presidio_cancel_reason_text(*values))
+
+
+def _document_presidio_cancel_detail(*values: Any) -> str:
+    reason = _document_presidio_cancel_reason_text(*values)
+    if not reason:
+        return ""
+    return _clean_text(
+        f"Presidio documentale annullato: {reason}. "
+        "La fonte resta consultabile, ma non viene trattata come attività operativa.",
+        limit=360,
+    )
+
+
+def _is_sentence_decision_context(value: str) -> bool:
+    text = _normalise_for_matching(value)
+    if any(
+        token in text
+        for token in (
+            "sentenza_da_valutare_per_notifica",
+            "sentenza_a_verbale",
+            "judgment_to_notify",
+            "strategic_notification_review",
+        )
+    ):
+        return True
+    if "sentenza" in text:
+        return True
+    return any(
+        token in text
+        for token in (
+            "definitivamente decidendo",
+            "sentenza a verbale",
+            "resa ex art. 429",
+            "art. 429 cpc",
+            "art. 429 c.p.c",
+            "429 cpc",
+            "429 c.p.c",
+        )
+    )
+
+
+def _is_court_registry_communication(value: str) -> bool:
+    text = _normalise_for_matching(value)
+    return "cancelleria" in text or "posta certificata: comunicazione" in text
+
+
+def _has_operational_notification_context(title: str, notes: str) -> bool:
+    title_text = _normalise_for_matching(title)
+    text = _normalise_for_matching(f"{title}\n{notes}")
+    if _is_legal_notification_text(title, notes):
+        return True
+    if "notifica sentenza" in text or "sentenza da valutare per la notifica" in text:
+        return True
+    if "notifica" in title_text or "notificazione" in title_text:
+        return True
+    if re.search(r"\b(?:ordina|dispone|autorizza|rinnova|assegna|invita)\b.{0,120}\bnotific", text):
+        return True
+    return False
+
+
 def _agenda_origin_title(raw_title: str, legal_label: str, matter: str, notes: str) -> str:
     stripped = _strip_operational_prefix(raw_title)
     if _is_document_presidio_lex_text(raw_title, notes):
+        if _is_document_presidio_cancelled_text(raw_title, notes):
+            return "Presidio documentale annullato"
+        if stripped.lower().startswith(("attività processuale da presidiare", "attivita processuale da presidiare")):
+            return f"{legal_label} - {matter}" if matter else legal_label
         return _clean_text(stripped or legal_label, limit=180)
     if not _is_pec_operational_text(raw_title, notes):
         return _clean_text(stripped or legal_label, limit=180)
     text = f"{raw_title} {notes}".lower()
-    if "udienza" in text:
+    if "ricevuta_accettazione_da_presidiare" in text:
+        clean_receipt_title = _clean_text(stripped, limit=180)
+        if clean_receipt_title and not clean_receipt_title.lower().startswith("presidio"):
+            return clean_receipt_title
+        base = "Ricevuta di accettazione PEC"
+    elif _is_sentence_decision_context(text):
+        base = "Sentenza da valutare per la notifica"
+    elif "udienza" in text:
         base = "Udienza da comunicazione di cancelleria"
-    elif "notifica" in text or "notificazione" in text:
+    elif _has_operational_notification_context(raw_title, notes):
         base = "Notifica giudiziaria da PEC"
     elif "deposito" in text:
         base = "Comunicazione sul deposito telematico"
@@ -385,15 +599,33 @@ def _extract_hearing_time(*values: Any) -> time | None:
 
 
 def _legal_label(title: str, kind: str, notes: str = "") -> str:
-    title_text = title.lower()
-    kind_text = kind.lower()
-    text = f"{title_text} {kind_text} {notes.lower()}"
+    title_text = _normalise_for_matching(title)
+    kind_text = _normalise_for_matching(kind)
+    text = _normalise_for_matching(f"{title}\n{kind}\n{notes}")
     if _is_document_presidio_lex_text(title, notes):
+        if _is_document_presidio_cancelled_text(title, notes):
+            return "Presidio documentale annullato"
+        if _is_sentence_decision_context(text):
+            return "Sentenza da valutare per la notifica"
+        if _has_operational_notification_context(title, notes):
+            return "Notifica"
         doc_kind = _docpresidio_kind(title, notes)
-        if doc_kind in {"deposito_note", "termine"}:
+        if doc_kind == "deposito_note" or "deposito note" in text or "note scritte" in text:
             return "Deposito note scritte"
         if doc_kind == "udienza":
             return "Udienza"
+        if "deposito memoria" in text:
+            return "Deposito memoria"
+        if "deposito atto" in text:
+            return "Deposito atto"
+        if doc_kind == "termine":
+            return "Provvedimento giudiziario da esaminare"
+    if "ricevuta_accettazione_da_presidiare" in text:
+        return "Ricevuta di accettazione PEC da presidiare"
+    if _is_legal_notification_text(title, notes):
+        return "Sentenza da valutare per la notifica"
+    if _is_sentence_decision_context(text):
+        return "Sentenza da valutare per la notifica"
     if "opposizione" in title_text and ("trattazione scritta" in title_text or "127-ter" in title_text):
         return "Opposizione alla trattazione scritta"
     if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
@@ -412,12 +644,20 @@ def _legal_label(title: str, kind: str, notes: str = "") -> str:
         return "Deposito accettato"
     if "deposito" in title_text or kind_text == "deposito":
         return "Deposito"
-    if "notifica" in text or "notificazione" in text:
+    if _has_operational_notification_context(title, notes):
         return "Notifica"
-    if "termine" in title_text or "scadenza" in title_text or "decorrenza" in title_text or kind_text == "scadenza":
-        return "Termine giuridico"
-    if "pec" in text or "cancelleria" in text:
-        return "Comunicazione PEC"
+    if "provvedimento_da_esaminare" in text or "provvedimento giudiziario" in text:
+        return "Provvedimento giudiziario da esaminare"
+    if _is_court_registry_communication(text):
+        return "Comunicazione di cancelleria da esaminare"
+    if "pec_da_classificare" in text:
+        return "PEC da classificare"
+    if "pec" in text:
+        return "PEC da esaminare"
+    if "termine" in title_text or "scadenza" in title_text or "decorrenza" in title_text:
+        return "Termine processuale da presidiare"
+    if kind_text == "scadenza":
+        return "Scadenza da presidiare"
     return "Adempimento"
 
 
@@ -450,6 +690,7 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
     lines: list[str] = []
     raw_notes = str(row.get("technicalNotes") or row.get("notes") or "")
     is_pec_operational = _is_pec_operational_text(original_title, raw_notes) or _has_structured_pec_profile(raw_notes)
+    is_document_presidio = _is_document_presidio_lex_text(original_title, raw_notes)
     for label, key in (
         ("Cliente/parte", "client"),
         ("Fascicolo/RG", "matter"),
@@ -461,16 +702,49 @@ def _detail_lines(row: dict[str, Any], *, original_title: str, legal_label: str)
         if value:
             lines.append(f"{label}: {value}")
     if is_pec_operational:
+        for label in ("Oggetto PEC", "Destinatario PEC", "Mittente PEC", "Possibile fascicolo da verificare"):
+            value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=260), limit=260)
+            if value:
+                _append_detail_line(lines, f"{label}: {value}", limit=300)
         for label in ("Parte/soggetto", "Giudice", "Evento", "Udienza"):
             value = _structured_detail_value(label, _extract_labeled_line(raw_notes, label, limit=220), limit=220)
             if value:
                 _append_detail_line(lines, f"{label}: {value}", limit=260)
-        _append_detail_line(
-            lines,
-            "Attività per l'avvocato: verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti.",
-            limit=260,
-        )
-    if _is_document_presidio_lex_text(original_title, raw_notes):
+        if not is_document_presidio:
+            activity = _extract_labeled_line(raw_notes, "Attività per l'avvocato", limit=520)
+            if not activity and _is_sentence_decision_context(f"{original_title}\n{raw_notes}\n{legal_label}"):
+                activity = (
+                    "esaminare la sentenza e valutare/preparare notifica, relata e prova; "
+                    "la comunicazione di cancelleria non prova la notifica dell'avvocato."
+                )
+            if not activity:
+                activity = "verificare data, ora, fascicolo e provvedimento collegato; predisporre note, atti o comunicazioni se richiesti."
+            _append_detail_line(
+                lines,
+                f"Attività per l'avvocato: {activity}",
+                limit=540,
+            )
+    if is_document_presidio:
+        cancel_detail = _document_presidio_cancel_detail(original_title, raw_notes)
+        if cancel_detail:
+            _append_detail_line(lines, cancel_detail, limit=380)
+        else:
+            activity = _extract_labeled_line(raw_notes, "Attività per l'avvocato", limit=360)
+            if not activity:
+                if legal_label == "Sentenza da valutare per la notifica":
+                    activity = (
+                        "esaminare la sentenza e valutare/preparare notifica, relata e prova; "
+                        "la comunicazione di cancelleria non prova la notifica dell'avvocato."
+                    )
+                elif legal_label == "Udienza":
+                    activity = "verificare data, ora, fascicolo, modalità di udienza e provvedimento collegato."
+                elif legal_label in {"Deposito note scritte", "Deposito memoria", "Deposito atto"}:
+                    activity = "preparare il deposito indicato dal provvedimento e controllare la fonte prima della scadenza."
+                elif legal_label == "Notifica":
+                    activity = "verificare destinatari, relata e prova della notifica sulla fonte collegata."
+                else:
+                    activity = "leggere la fonte collegata e confermare se contiene un ordine processuale espresso da lavorare."
+            _append_detail_line(lines, f"Attività per l'avvocato: {activity}", limit=380)
         party_subject = _extract_docpresidio_labeled(raw_notes, "Parte/soggetto", limit=180)
         if party_subject and party_subject.lower() not in " ".join(lines).lower():
             lines.append(f"Parte/soggetto: {party_subject}")
@@ -521,10 +795,21 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     original_title = _visible_legal_text(raw_title, limit=180) or "Appuntamento"
     notes = _visible_legal_text(raw_notes, limit=700)
     kind = _clean_text(row.get("kind"), limit=80)
-    matter = _clean_text(row.get("matter"), limit=120) or _extract_rg(raw_title, raw_notes, original_title, notes)
+    matter = _clean_text(row.get("matter"), limit=120)
+    if not matter and not row.get("disableMatterInference"):
+        matter = _extract_rg(raw_title, raw_notes, original_title, notes)
     client = _clean_text(row.get("client"), limit=120) or _extract_party(raw_notes, notes, raw_title, original_title)
-    label = _legal_label(raw_title, kind, raw_notes or notes)
-    origin_title = _agenda_origin_title(raw_title, label, matter, raw_notes or notes)
+    label_context = "\n".join(
+        part
+        for part in (
+            raw_notes or notes,
+            str(row.get("sourceEventType") or ""),
+            str(row.get("sourceEventAt") or ""),
+        )
+        if str(part or "").strip()
+    )
+    label = _legal_label(raw_title, kind, label_context)
+    origin_title = _agenda_origin_title(raw_title, label, matter, label_context)
     if _is_pec_operational_text(raw_title, raw_notes) or _has_structured_pec_profile(raw_notes):
         structured_notes = _pec_agenda_visible_notes(
             raw_notes,
@@ -636,7 +921,12 @@ def _sync_status(item: Any) -> str:
     return "locale"
 
 
-def _agenda_event(item: Any) -> dict[str, Any] | None:
+def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
+    # L'Agenda operativa non deve riproporre appuntamenti già chiusi o
+    # annullati: restano nello storico del repository, ma non sono attività
+    # da svolgere né possono riattivare un avviso derivato dalla PEC.
+    if _enum_value(getattr(item, "stato", "")) in {"COMPLETATO", "ANNULLATO"}:
+        return None
     if is_legacy_pec_agenda_item(item):
         return None
     start = getattr(item, "data_ora_dt", None)
@@ -666,7 +956,9 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         notes,
         matter_id=matter_id,
         external_source_url=str(getattr(item, "external_source_url", "") or ""),
+        external_uid=str(getattr(item, "external_uid", "") or ""),
         source_name=str(getattr(item, "remote_hearing_source", "") or ""),
+        indexed_source_name=pec_profile_source_name(pec_profile),
     )
     return _decorate_event({
         "id": item_id,
@@ -715,16 +1007,71 @@ def _appointment_in_range(item: Any, start: date, end: date) -> bool:
     return start <= parsed.date() <= end
 
 
-def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
+def _deadline_in_range(item: Any, start: date, end: date) -> bool:
+    calendar_date = getattr(item, "data_calendario_obj", None)
+    if isinstance(calendar_date, date):
+        return start <= calendar_date <= end
+    raw_date = str(
+        getattr(item, "data_scadenza", "")
+        or getattr(item, "legal_due_at", "")
+        or ""
+    ).strip()
+    try:
+        parsed = date.fromisoformat(raw_date[:10])
+    except ValueError:
+        return False
+    return start <= parsed <= end
+
+
+def _control_tower_agenda_notes(source: dict[str, Any]) -> str:
+    lines: list[str] = []
+    subject = _clean_text(source.get("subject"), limit=220)
+    if subject:
+        lines.append(f"Oggetto PEC: {subject}.")
+    recipient = _clean_text(source.get("recipient"), limit=160)
+    if recipient:
+        lines.append(f"Destinatario PEC: {recipient}.")
+    sender = _clean_text(source.get("sender"), limit=160)
+    if sender:
+        lines.append(f"Mittente PEC: {sender}.")
+    suggested = _clean_text(source.get("fascicoloSuggestedLabel"), limit=140)
+    if suggested:
+        lines.append(f"Possibile fascicolo da verificare: {suggested}.")
+    if str(source.get("legalEventType") or "") == "ricevuta_accettazione_da_presidiare":
+        lines.append(
+            "Attività per l'avvocato: verificare la ricevuta di consegna collegata, "
+            "controllare se il fascicolo proposto è corretto e collegare il cliente solo quando il match è certo."
+        )
+    detail = _clean_text(source.get("detailDescription"), limit=760)
+    if detail:
+        lines.append(detail)
+    return "\n".join(dict.fromkeys(line for line in lines if line))
+
+
+def _deadline_event(
+    item: Any,
+    fascicolo: Any = None,
+    *,
+    control_tower_source: dict[str, Any] | None = None,
+    pec_profile: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    # Come per gli appuntamenti, le scadenze annullate o completate sono
+    # consultabili nello storico, non nell'Agenda delle attività aperte.
+    if _enum_value(getattr(item, "stato", "")) in {"COMPLETATO", "ANNULLATO"}:
+        return None
     if is_legacy_pec_deadline(item):
         return None
-    due = str(getattr(item, "data_scadenza", "") or getattr(item, "legal_due_at", "") or "").strip()
-    if not due:
-        return None
-    try:
-        due_date = date.fromisoformat(due[:10])
-    except ValueError:
-        return None
+    calendar_date = getattr(item, "data_calendario_obj", None)
+    if isinstance(calendar_date, date):
+        due_date = calendar_date
+    else:
+        due = str(getattr(item, "data_scadenza", "") or getattr(item, "legal_due_at", "") or "").strip()
+        if not due:
+            return None
+        try:
+            due_date = date.fromisoformat(due[:10])
+        except ValueError:
+            return None
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
     if tipo == "UDIENZA":
@@ -741,6 +1088,11 @@ def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
         )
         if part
     )
+    source_notes = notes
+    if control_tower_source:
+        control_notes = _control_tower_agenda_notes(control_tower_source)
+        if control_notes:
+            notes = control_notes
     hearing_time = None
     if kind == "UDIENZA":
         hearing_time = _extract_hearing_time(
@@ -754,6 +1106,8 @@ def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
     time_label = start.strftime("%H:%M") if kind == "UDIENZA" else "Entro giornata"
     duration_label = "45 min" if kind == "UDIENZA" else "Scadenza"
     fascicolo_id = str(getattr(item, "id_fascicolo", "") or "")
+    source_event_type = str(getattr(item, "source_event_type", "") or "").strip()
+    source_event_at = str(getattr(item, "source_event_at", "") or "").strip()
     matter = ""
     client = ""
     client_id = str(getattr(item, "id_cliente", "") or "")
@@ -763,18 +1117,35 @@ def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
         client = _clean_text(getattr(fascicolo, "nome_cliente", ""), limit=120)
         client_id = client_id or str(getattr(fascicolo, "id_cliente", "") or "")
         court = _clean_text(getattr(fascicolo, "tribunale", ""), limit=120)
+    source_context = "\n".join(dict.fromkeys(part for part in (source_notes, notes) if part))
     source_payload = _source_evidence(
-        notes,
+        source_context,
         matter_id=fascicolo_id,
         source_name=str(
             getattr(item, "remote_hearing_source", "")
             or getattr(item, "hearing_mode_source", "")
             or ""
         ),
+        indexed_source_name=pec_profile_source_name(pec_profile),
     )
+    if (
+        not source_payload.get("sourceHref")
+        and control_tower_source
+        and control_tower_source.get("sourceHref")
+    ):
+        source_payload = {
+            "sourceHref": str(control_tower_source.get("sourceHref") or ""),
+            "sourceLabel": str(control_tower_source.get("sourceLabel") or "PEC originale"),
+            "sourceKind": str(control_tower_source.get("sourceKind") or "pec"),
+            "sourceVerified": bool(control_tower_source.get("sourceVerified")),
+        }
+    title = str(getattr(item, "titolo", "") or "Scadenza")
+    if control_tower_source:
+        title = _clean_text(control_tower_source.get("displayTitle"), limit=180) or title
+        source_event_type = str(control_tower_source.get("legalEventType") or source_event_type)
     return _decorate_event({
         "id": f"scadenza-{item_id}" if item_id else f"scadenza-{due_date.isoformat()}",
-        "title": str(getattr(item, "titolo", "") or "Scadenza"),
+        "title": title,
         "kind": kind,
         "priority": _enum_value(getattr(item, "priorita", "MEDIA")),
         "status": _enum_value(getattr(item, "stato", "APERTO")),
@@ -792,6 +1163,9 @@ def _deadline_event(item: Any, fascicolo: Any = None) -> dict[str, Any] | None:
         "source": "scadenziario",
         "syncStatus": "locale",
         "notes": notes,
+        "disableMatterInference": bool(control_tower_source and not control_tower_source.get("fascicoloId")),
+        "sourceEventType": source_event_type,
+        "sourceEventAt": source_event_at,
         **source_payload,
         "remoteHearingUrl": str(getattr(item, "remote_hearing_url", "") or ""),
         "remoteHearingMode": str(getattr(item, "remote_hearing_mode", "") or ""),
@@ -906,10 +1280,17 @@ def build_deadline_display_event(
     *,
     fascicolo: Any = None,
     agenda_contexts: Iterable[dict[str, Any]] = (),
+    control_tower_source: dict[str, Any] | None = None,
+    pec_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Applica alla scadenza la stessa lettura legale usata dall'Agenda."""
 
-    event = _deadline_event(item, fascicolo)
+    event = _deadline_event(
+        item,
+        fascicolo,
+        control_tower_source=control_tower_source,
+        pec_profile=pec_profile,
+    )
     if event is None:
         return None
     return _enrich_deadline_from_agenda(event, agenda_contexts)
@@ -982,6 +1363,8 @@ def build_react_agenda_payload(
     from_value: Any = "",
     to_value: Any = "",
     selected_id: str = "",
+    pec_audit_db: str = "",
+    tenant_id: str = "default",
 ) -> dict[str, Any]:
     """Return agenda and deadline rows normalized for the React shell."""
 
@@ -996,11 +1379,59 @@ def build_react_agenda_payload(
         for item in all_appointments
         if _appointment_in_range(item, start, end)
     ]
-    deadlines = _safe_items(lambda: deadlines_repo.tutte(solo_aperte=False))
+    all_deadlines = _safe_items(lambda: deadlines_repo.tutte(solo_aperte=False))
+    deadlines = [item for item in all_deadlines if _deadline_in_range(item, start, end)]
+    deadline_rg_keys = {
+        _normal_context_key(rg)
+        for item in deadlines
+        if (rg := _extract_rg(_deadline_context_text(item)))
+    }
+    deadline_hearing_dates = {
+        str(getattr(item, "data_scadenza", "") or "")[:10]
+        for item in deadlines
+        if _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
+        and str(getattr(item, "data_scadenza", "") or "")[:10]
+    }
+    visible_appointment_ids = {str(getattr(item, "id", "") or "") for item in appointments}
+    context_appointments: list[Any] = []
+    for item in all_appointments:
+        if str(getattr(item, "id", "") or "") in visible_appointment_ids:
+            continue
+        rg_key = _normal_context_key(
+            _extract_rg(
+                getattr(item, "procedimento", ""),
+                getattr(item, "titolo", ""),
+                getattr(item, "descrizione", ""),
+                getattr(item, "note", ""),
+            )
+        )
+        same_hearing_day = (
+            _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
+            and _appointment_date(item) in deadline_hearing_dates
+        )
+        if rg_key in deadline_rg_keys or same_hearing_day:
+            context_appointments.append(item)
+
+    selected = None
+    if selected_id:
+        try:
+            selected = agenda_repo.get(selected_id)
+        except Exception:
+            selected = None
+    control_tower_sources = latest_control_tower_sources(
+        deadlines,
+        pec_audit_db=pec_audit_db,
+        tenant_id=tenant_id,
+    )
+    pec_profiles = latest_pec_profiles(
+        [*appointments, *context_appointments, *deadlines, *([selected] if selected is not None else [])],
+        pec_audit_db=pec_audit_db,
+        tenant_id=tenant_id,
+    )
 
     events: list[dict[str, Any]] = []
     for item in appointments:
-        event = _agenda_event(item)
+        event = _agenda_event(item, pec_profile=pec_profiles.get(pec_audit_message_id(item)))
         if event:
             if fascicoli_repo is not None:
                 matter_id = _clean_text(event.get("matterId"), limit=120)
@@ -1026,49 +1457,20 @@ def build_react_agenda_payload(
                 event = _enrich_agenda_event_from_fascicolo(event, fascicolo)
             events.append(event)
     agenda_contexts = list(events)
-    deadline_rg_keys = {
-        _normal_context_key(rg)
-        for item in deadlines
-        if (rg := _extract_rg(_deadline_context_text(item)))
-    }
-    deadline_hearing_dates = {
-        str(getattr(item, "data_scadenza", "") or "")[:10]
-        for item in deadlines
-        if _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
-        and str(getattr(item, "data_scadenza", "") or "")[:10]
-    }
-    visible_appointment_ids = {str(getattr(item, "id", "") or "") for item in appointments}
-    for item in all_appointments:
-        if str(getattr(item, "id", "") or "") in visible_appointment_ids:
-            continue
-        rg_key = _normal_context_key(
-            _extract_rg(
-                getattr(item, "procedimento", ""),
-                getattr(item, "titolo", ""),
-                getattr(item, "descrizione", ""),
-                getattr(item, "note", ""),
-            )
-        )
-        same_hearing_day = (
-            _enum_value(getattr(item, "tipo", "")) == "UDIENZA"
-            and _appointment_date(item) in deadline_hearing_dates
-        )
-        if rg_key not in deadline_rg_keys and not same_hearing_day:
-            continue
-        context_event = _agenda_event(item)
+    for item in context_appointments:
+        context_event = _agenda_event(item, pec_profile=pec_profiles.get(pec_audit_message_id(item)))
         if context_event:
             agenda_contexts.append(context_event)
-    if selected_id:
-        try:
-            selected = agenda_repo.get(selected_id)
-        except Exception:
-            selected = None
-        if selected is not None:
-            event = _agenda_event(selected)
-            if event and not any(str(row.get("id") or "") == str(event.get("id") or "") for row in events):
-                events.append(event)
+    if selected is not None:
+        event = _agenda_event(selected, pec_profile=pec_profiles.get(pec_audit_message_id(selected)))
+        if event and not any(str(row.get("id") or "") == str(event.get("id") or "") for row in events):
+            events.append(event)
     for item in deadlines:
-        event = _deadline_event(item)
+        event = _deadline_event(
+            item,
+            control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
+            pec_profile=pec_profiles.get(pec_audit_message_id(item)),
+        )
         if event:
             event_date = _parse_date(event["start"], start)
             if start <= event_date <= end:
@@ -1086,7 +1488,12 @@ def build_react_agenda_payload(
                         fascicoli_cache[fascicolo_cache_key] = fascicolo
                     fascicolo = fascicoli_cache[fascicolo_cache_key]
                     if fascicolo is not None:
-                        event = _deadline_event(item, fascicolo) or event
+                        event = _deadline_event(
+                            item,
+                            fascicolo,
+                            control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
+                            pec_profile=pec_profiles.get(pec_audit_message_id(item)),
+                        ) or event
                 event = _enrich_deadline_from_agenda(event, agenda_contexts)
                 events.append(event)
 

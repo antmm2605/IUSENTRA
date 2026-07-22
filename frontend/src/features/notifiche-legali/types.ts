@@ -37,6 +37,7 @@ export type PresidioTabKey =
   | 'legacy'
 export type PresidioMutation =
   | 'confirm'
+  | 'revise-decision'
   | 'not-required'
   | 'assign'
   | 'link-document'
@@ -55,6 +56,7 @@ export type PresidioResourceStatus =
 export type PresidioOption = {
   value: string
   label: string
+  document_name?: string
 }
 
 export type PresidioWarning = {
@@ -90,6 +92,8 @@ export type PresidioListFilters = PresidioFilterControls & {
 export type PresidioPractice = {
   id: string
   label: string
+  client?: string
+  subject?: string
   rg?: string
   office?: string
   href?: string
@@ -153,6 +157,8 @@ export type PresidioDocument = {
   role_label: string
   version_label?: string
   authoritative: boolean
+  original_acquisition_required?: boolean
+  original_acquisition_url?: string
   viewer_url?: string
   download_url?: string
 }

@@ -735,21 +735,25 @@ def _session_notifications_payload(user: Any) -> dict[str, Any]:
 
 
 def _persistent_notification_items(user: Any) -> list[dict[str, Any]]:
-    generated = _notification_items(user)
+    """Legge il centro notifiche già materializzato, senza rileggere lo studio.
+
+    La topbar è consultata e aggiornata frequentemente. Qualunque scansione di
+    fascicoli, PEC o documenti in questo percorso rende il pannello lento e
+    può lasciare l'interfaccia in caricamento. La produzione delle notifiche
+    operative è responsabilità dei job/eventi a monte; qui si legge soltanto
+    il repository tenant-aware persistente.
+    """
     try:
         tenant_id = _notification_tenant_id()
         user_id = _notification_user_id(user)
         if not user_id:
-            return _dedupe_items(generated)
+            return []
         service = build_notification_service()
-        records = service.sync_operational_items(tenant_id=tenant_id, user_id=user_id, items=generated)
+        records = service.repository.list_notifications(tenant_id, user_id, limit=50)
         return _dedupe_items(_record_to_topbar_item(record) for record in records)
-    except Exception:
-        current_app.logger.info("Top bar notifiche: uso fallback in sessione", exc_info=True)
-        read_ids = _read_notification_ids()
-        for item in generated:
-            item["read"] = item["id"] in read_ids
-        return _dedupe_items(generated)
+    except Exception as exc:
+        current_app.logger.info("Top bar notifiche: repository persistente non disponibile", exc_info=True)
+        raise TopbarApiError("Centro notifiche non disponibile.", 503) from exc
 
 
 def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:

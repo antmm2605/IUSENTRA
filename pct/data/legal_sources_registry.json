@@ -1,6 +1,6 @@
 {
   "schema_version": "iusentra.legal_sources_registry.v2",
-  "generated_at": "2026-07-19T00:00:00+02:00",
+  "generated_at": "2026-07-20T22:10:00+02:00",
   "policy": {
     "principle": "Nessuna fonte viene presentata come aggiornata automaticamente se non esiste un connettore o un controllo governato.",
     "allowed_statuses": [
@@ -194,6 +194,105 @@
     }
   ],
   "notification_sources": [
+    {
+      "id": "src.it.cpc.art91",
+      "citation": "Codice di procedura civile, art. 91",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art91=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Rilevante per le spese; non attribuisce da solo il credito al difensore.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 91 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art93",
+      "citation": "Codice di procedura civile, art. 93",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art93=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "La distrazione richiede il titolo o il provvedimento che la dispone; non e' inferita dal solo importo spese.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 93 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art133",
+      "citation": "Codice di procedura civile, art. 133",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art133=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "La comunicazione di cancelleria del deposito non viene trattata come notificazione della sentenza di parte.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 133 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art285",
+      "citation": "Codice di procedura civile, art. 285",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art285=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "La notifica della sentenza e' un fatto distinto dalla comunicazione di cancelleria e richiede prova collegata al caso.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 285 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art324",
+      "citation": "Codice di procedura civile, art. 324",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art324=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "La formula decisoria non basta a dichiarare il passaggio in giudicato; occorre il controllo dei rimedi e dei termini applicabili.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 324 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art325",
+      "citation": "Codice di procedura civile, art. 325",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art325=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Il termine breve di impugnazione richiede la notificazione della sentenza; non decorre dalla sola comunicazione del deposito.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 325 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art326",
+      "citation": "Codice di procedura civile, art. 326",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art326=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Il dies a quo del termine breve richiede il fatto notificatorio corretto e la sua prova, da verificare per il singolo rimedio.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 326 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art327",
+      "citation": "Codice di procedura civile, art. 327",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art327=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Il termine lungo e' alternativo al termine breve ma richiede il controllo del rito, del testo vigente e delle eccezioni applicabili.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 327 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art429",
+      "citation": "Codice di procedura civile, art. 429",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art429=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Nel rito lavoro una sentenza resa a verbale prevale sulla sola descrizione della trattazione scritta che l'ha preceduta.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 429 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art431",
+      "citation": "Codice di procedura civile, art. 431",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art431=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "L'esecutorieta' provvisoria nel rito lavoro non viene confusa con il giudicato o con una notifica gia' perfezionata.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 431 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.l107_2015.art1c121",
+      "citation": "Legge 13 luglio 2015, n. 107, art. 1, comma 121",
+      "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=15G00122&atto.dataPubblicazioneGazzetta=2015-07-15&tipoDettaglio=vigente",
+      "legal_state": "current",
+      "effective_from": "2015-07-15",
+      "transition": "Per le sentenze Carta docente separare l'accertamento, l'adempimento dell'amministrazione e le spese di lite.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 1, comma 121, L. 107/2015 e registrarne SHA-256 completo."}
+    },
     {
       "id": "src.it.l53_1994.art3bis",
       "citation": "L. 21 gennaio 1994, n. 53, art. 3-bis",

@@ -1,22 +1,18 @@
-"""Anteprima comune per allegati e documenti firmati CAdES."""
+"""Anteprima comune e governata per documenti, archivi e firme digitali."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from email import policy
-from email.parser import BytesParser
 from html import escape
-from html.parser import HTMLParser
 import io
 import mimetypes
 from pathlib import PurePosixPath
 import zipfile
-from xml.dom import minidom
 
 from pct.firme_cades import (
     inner_signed_name,
     inspect_signed_document_bytes,
-    is_p7m_filename,
+    is_signed_container,
     payload_mime_from_bytes,
 )
 
@@ -26,16 +22,21 @@ INLINE_PREVIEW_MIME_TYPES = {
     "image/jpeg",
     "image/png",
     "image/gif",
+    "image/tiff",
     "text/plain",
     "text/html",
     "application/xml",
     "text/xml",
+    "message/rfc822",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
 MAX_ARCHIVE_FILES = 128
 MAX_ARCHIVE_MEMBER_BYTES = 40 * 1024 * 1024
 MAX_ARCHIVE_TOTAL_BYTES = 120 * 1024 * 1024
 MAX_ARCHIVE_COMPRESSION_RATIO = 250
+MAX_ARCHIVE_CENTRAL_DIRECTORY_BYTES = 4 * 1024 * 1024
 ARCHIVE_LEGAL_KEYWORDS = (
     "udienza",
     "decreto",
@@ -45,6 +46,7 @@ ARCHIVE_LEGAL_KEYWORDS = (
     "fissazione",
     "sentenza",
 )
+
 
 @dataclass(slots=True)
 class AttachmentPreviewPayload:
@@ -79,39 +81,21 @@ def _decode_text(data: bytes) -> str:
     return data.decode("utf-8", errors="replace")
 
 
-class _HTMLTextExtractor(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.parts: list[str] = []
-        self.skip_depth = 0
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.lower() in {"script", "style", "head", "meta", "link"}:
-            self.skip_depth += 1
-        if tag.lower() in {"p", "div", "br", "li", "tr", "h1", "h2", "h3"}:
-            self.parts.append("\n")
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag.lower() in {"script", "style", "head", "meta", "link"} and self.skip_depth:
-            self.skip_depth -= 1
-        if tag.lower() in {"p", "div", "li", "tr", "h1", "h2", "h3"}:
-            self.parts.append("\n")
-
-    def handle_data(self, data: str) -> None:
-        if not self.skip_depth and data.strip():
-            self.parts.append(data.strip())
-
-    def text(self) -> str:
-        return "\n".join(part.strip() for part in self.parts if part.strip())
-
-
-def _strip_html_to_text(html: str) -> str:
-    parser = _HTMLTextExtractor()
-    try:
-        parser.feed(html)
-        return parser.text()
-    except Exception:
-        return ""
+def _textual_unavailable(
+    *,
+    nome_file: str,
+    data: bytes,
+    mimetype: str,
+    signed: bool,
+    reason: str,
+) -> AttachmentPreviewPayload:
+    return AttachmentPreviewPayload(
+        data=data,
+        mimetype=mimetype,
+        download_name=nome_file,
+        extracted_from_signature=signed,
+        unavailable_reason=reason,
+    )
 
 
 def _preview_shell(*, title: str, subtitle: str, body: str) -> bytes:
@@ -130,6 +114,7 @@ def _preview_shell(*, title: str, subtitle: str, body: str) -> bytes:
         "dt{font-weight:700;color:#42526b}dd{margin:0;word-break:break-word}"
         "pre{margin:0;white-space:pre-wrap;word-break:break-word;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace;color:#111827}"
         ".body p{margin:0 0 12px}.body p:last-child{margin-bottom:0}ul{margin:0;padding-left:20px}.muted{color:var(--muted);font-size:13px}"
+        ".word-doc{font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#111827}.word-doc p{margin:0 0 12px}.word-doc table{width:100%;border-collapse:collapse;margin:14px 0}.word-doc td,.word-doc th{border:1px solid #d7dde8;padding:8px;vertical-align:top}.image-reader{display:grid;gap:18px}.image-reader figure{margin:0;display:grid;gap:8px}.image-reader img{max-width:100%;height:auto;border:1px solid #d7dde8;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.08)}"
         "@media(max-width:700px){.wrap{margin:12px auto;padding:0 12px}.card{padding:16px}dl{grid-template-columns:1fr;gap:4px}h1{font-size:19px}}"
         "</style></head><body><main class=\"wrap\">"
         '<header class="head"><div>'
@@ -142,136 +127,37 @@ def _preview_shell(*, title: str, subtitle: str, body: str) -> bytes:
     return html.encode("utf-8")
 
 
-def _paragraphs_from_text(text: str) -> str:
-    blocks = []
-    current: list[str] = []
-    for line in str(text or "").splitlines():
-        if line.strip():
-            current.append(escape(line))
-            continue
-        if current:
-            blocks.append("<p>" + "<br>".join(current) + "</p>")
-            current = []
-    if current:
-        blocks.append("<p>" + "<br>".join(current) + "</p>")
-    return "\n".join(blocks) if blocks else "<p><em>Documento senza testo leggibile.</em></p>"
+def _zip_declared_directory(data: bytes) -> tuple[int, int, int] | None:
+    """Valida la directory centrale ZIP senza costruire l'elenco dei membri."""
 
+    search_start = max(0, len(data) - (65_535 + 22))
+    eocd_offset = data.rfind(b"PK\x05\x06", search_start)
+    if eocd_offset < 0 or eocd_offset + 22 > len(data):
+        return None
+    entries = int.from_bytes(data[eocd_offset + 10 : eocd_offset + 12], "little")
+    central_size = int.from_bytes(data[eocd_offset + 12 : eocd_offset + 16], "little")
+    central_offset = int.from_bytes(data[eocd_offset + 16 : eocd_offset + 20], "little")
+    if entries == 0xFFFF or central_size == 0xFFFFFFFF or central_offset == 0xFFFFFFFF:
+        return None
+    central_end = central_offset + central_size
+    if central_end > eocd_offset:
+        return None
 
-def _format_xml_text(data: bytes) -> str:
-    text = _decode_text(data).strip()
-    if not text:
-        return ""
-    try:
-        parsed = minidom.parseString(text.encode("utf-8"))
-        return parsed.toprettyxml(indent="  ")
-    except Exception:
-        return text
-
-
-def _render_xml_preview(nome_file: str, data: bytes, *, signed: bool) -> AttachmentPreviewPayload:
-    xml_text = _format_xml_text(data)
-    subtitle = "Documento XML firmato" if signed else "Documento XML"
-    body = (
-        f'<p class="muted">{"Contenuto estratto dal file firmato e mostrato in sola lettura." if signed else "Contenuto XML mostrato in sola lettura."}</p>'
-        f"<pre>{escape(xml_text) if xml_text else 'Documento XML vuoto.'}</pre>"
-    )
-    return AttachmentPreviewPayload(
-        data=_preview_shell(title=nome_file, subtitle=subtitle, body=body),
-        mimetype="text/html; charset=utf-8",
-        download_name=nome_file,
-        extracted_from_signature=signed,
-    )
-
-
-def _render_text_preview(nome_file: str, data: bytes, *, signed: bool) -> AttachmentPreviewPayload:
-    text = _decode_text(data)
-    subtitle = "Documento di testo firmato" if signed else "Documento di testo"
-    return AttachmentPreviewPayload(
-        data=_preview_shell(
-            title=nome_file,
-            subtitle=subtitle,
-            body=f'<article class="body">{_paragraphs_from_text(text)}</article>',
-        ),
-        mimetype="text/html; charset=utf-8",
-        download_name=nome_file,
-        extracted_from_signature=signed,
-    )
-
-
-def _render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> AttachmentPreviewPayload:
-    try:
-        message = BytesParser(policy=policy.default).parsebytes(data)
-    except Exception:
-        return _render_text_preview(nome_file, data, signed=signed)
-
-    headers: list[tuple[str, str]] = []
-    for key, label in (
-        ("Subject", "Oggetto"),
-        ("From", "Mittente"),
-        ("To", "Destinatari"),
-        ("Cc", "Cc"),
-        ("Date", "Data"),
-        ("Message-ID", "Message-ID"),
-    ):
-        value = str(message.get(key, "") or "").strip()
-        if value:
-            headers.append((label, value))
-
-    plain_parts: list[str] = []
-    attachments: list[tuple[str, str, int]] = []
-    for part in message.walk():
-        if part.is_multipart():
-            continue
-        filename = str(part.get_filename() or "").strip()
-        disposition = str(part.get_content_disposition() or "").lower()
-        content_type = str(part.get_content_type() or "application/octet-stream").lower()
-        payload = part.get_payload(decode=True) or b""
-        if filename or disposition == "attachment":
-            attachments.append((filename or "allegato", content_type, len(payload)))
-            continue
-        if content_type == "text/plain":
-            try:
-                content = part.get_content()
-                if isinstance(content, str) and content.strip():
-                    plain_parts.append(content.strip())
-                    continue
-            except Exception:
-                pass
-            text = _decode_text(payload).strip()
-            if text:
-                plain_parts.append(text)
-        elif content_type == "text/html":
-            html_text = _decode_text(payload)
-            text = _strip_html_to_text(html_text)
-            if text.strip():
-                plain_parts.append(text.strip())
-
-    header_html = ""
-    if headers:
-        header_html = "<dl>" + "".join(
-            f"<dt>{escape(label)}</dt><dd>{escape(value)}</dd>" for label, value in headers
-        ) + "</dl>"
-    body_text = "\n\n".join(plain_parts).strip()
-    body_html = _paragraphs_from_text(body_text) if body_text else "<p><em>Il messaggio non contiene un corpo testuale leggibile.</em></p>"
-    attachments_html = ""
-    if attachments:
-        rows = "".join(
-            f"<li>{escape(name)} <span class=\"muted\">{escape(mime)}, {size} byte</span></li>"
-            for name, mime, size in attachments
-        )
-        attachments_html = f"<h2>Allegati indicati nel messaggio</h2><ul>{rows}</ul>"
-
-    subtitle = "Email PEC / EML firmata" if signed else "Email PEC / EML"
-    return AttachmentPreviewPayload(
-        data=_preview_shell(
-            title=nome_file,
-            subtitle=subtitle,
-            body=f"{header_html}<h2>Corpo del messaggio</h2><article class=\"body\">{body_html}</article>{attachments_html}",
-        ),
-        mimetype="text/html; charset=utf-8",
-        download_name=nome_file,
-        extracted_from_signature=signed,
-    )
+    cursor = central_offset
+    parsed_entries = 0
+    while cursor < central_end:
+        if cursor + 46 > central_end or data[cursor : cursor + 4] != b"PK\x01\x02":
+            return None
+        filename_length = int.from_bytes(data[cursor + 28 : cursor + 30], "little")
+        extra_length = int.from_bytes(data[cursor + 30 : cursor + 32], "little")
+        comment_length = int.from_bytes(data[cursor + 32 : cursor + 34], "little")
+        cursor += 46 + filename_length + extra_length + comment_length
+        parsed_entries += 1
+        if parsed_entries > entries:
+            return None
+    if cursor != central_end or parsed_entries != entries:
+        return None
+    return entries, central_size, central_offset
 
 
 def _render_supported_textual_preview(
@@ -281,15 +167,41 @@ def _render_supported_textual_preview(
     mimetype: str,
     signed: bool,
 ) -> AttachmentPreviewPayload | None:
+    from web.services.signed_attachment_preview_images import render_image_preview
+    from web.services.signed_attachment_preview_text import (
+        render_eml_preview,
+        render_html_preview,
+        render_text_preview,
+        render_xml_preview,
+    )
+    from web.services.signed_attachment_preview_word import render_doc_preview, render_docx_preview
+
     lower = str(nome_file or "").lower()
     mime = str(mimetype or "").split(";", 1)[0].strip().lower()
     sample = data.lstrip()[:80]
     if lower.endswith(".eml") or mime == "message/rfc822":
-        return _render_eml_preview(nome_file, data, signed=signed)
-    if lower.endswith(".xml") or mime in {"application/xml", "text/xml"} or sample.startswith((b"<?xml", b"<DatiAtto", b"<Segnatura")):
-        return _render_xml_preview(nome_file, data, signed=signed)
+        return render_eml_preview(nome_file, data, signed=signed)
+    if lower.endswith(".xml") or mime in {"application/xml", "text/xml"} or sample.startswith(
+        (b"<?xml", b"<DatiAtto", b"<Segnatura")
+    ):
+        return render_xml_preview(nome_file, data, signed=signed)
     if lower.endswith(".txt") or mime == "text/plain":
-        return _render_text_preview(nome_file, data, signed=signed)
+        return render_text_preview(nome_file, data, signed=signed)
+    if lower.endswith((".html", ".htm")) or mime == "text/html":
+        return render_html_preview(nome_file, data, signed=signed)
+    if lower.endswith(".docx") or mime == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ):
+        return render_docx_preview(nome_file, data, signed=signed)
+    if lower.endswith(".doc") or mime == "application/msword":
+        return render_doc_preview(nome_file, data, signed=signed)
+    if lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff")) or mime in {
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/tiff",
+    }:
+        return render_image_preview(nome_file, data, mimetype=mime, signed=signed)
     return None
 
 
@@ -297,12 +209,14 @@ def _archive_member_priority(info: zipfile.ZipInfo) -> tuple[int, int, str]:
     lower = info.filename.casefold()
     if lower.endswith(".pdf"):
         format_rank = 0
-    elif lower.endswith((".pdf.p7m", ".p7m")):
+    elif lower.endswith((".pdf.p7m", ".p7m", ".p7s")):
         format_rank = 1
-    elif lower.endswith((".png", ".jpg", ".jpeg", ".gif")):
+    elif lower.endswith((".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff")):
         format_rank = 2
     elif lower.endswith((".eml", ".xml", ".txt")):
         format_rank = 3
+    elif lower.endswith((".docx", ".doc", ".html", ".htm")):
+        format_rank = 4
     else:
         format_rank = 9
     semantic_rank = 0 if any(keyword in lower for keyword in ARCHIVE_LEGAL_KEYWORDS) else 1
@@ -328,6 +242,14 @@ def _archive_preview_payload(
         archive_stream = io.BytesIO(data)
         if not zipfile.is_zipfile(archive_stream):
             raise zipfile.BadZipFile
+        declared = _zip_declared_directory(data)
+        if declared is None:
+            raise ValueError("L'archivio ZIP non contiene una struttura valida.")
+        declared_entries, central_size, _central_offset = declared
+        if declared_entries > MAX_ARCHIVE_FILES:
+            raise ValueError("L'archivio ZIP contiene troppi file per una visualizzazione sicura.")
+        if central_size > MAX_ARCHIVE_CENTRAL_DIRECTORY_BYTES:
+            raise ValueError("La struttura dell'archivio ZIP supera il limite di sicurezza previsto.")
         archive_stream.seek(0)
         with zipfile.ZipFile(archive_stream, "r") as archive:
             members = [info for info in archive.infolist() if not info.is_dir()]
@@ -348,8 +270,13 @@ def _archive_preview_payload(
                     or (member_path.parts and ":" in member_path.parts[0])
                 ):
                     raise ValueError("L'archivio ZIP contiene un percorso non sicuro.")
+                unix_mode = (info.external_attr >> 16) & 0o170000
+                if unix_mode == 0o120000:
+                    raise ValueError("L'archivio ZIP contiene un collegamento non sicuro.")
                 if info.flag_bits & 0x1:
-                    raise ValueError("L'archivio ZIP contiene file cifrati e non può essere aperto automaticamente.")
+                    raise ValueError(
+                        "L'archivio ZIP contiene file cifrati e non può essere aperto automaticamente."
+                    )
                 if info.file_size > MAX_ARCHIVE_MEMBER_BYTES:
                     raise ValueError("Un documento nell'archivio ZIP supera il limite di visualizzazione.")
                 total_size += info.file_size
@@ -359,7 +286,9 @@ def _archive_preview_payload(
                     not info.compress_size
                     or info.file_size / info.compress_size > MAX_ARCHIVE_COMPRESSION_RATIO
                 ):
-                    raise ValueError("L'archivio ZIP presenta una compressione anomala e non viene aperto automaticamente.")
+                    raise ValueError(
+                        "L'archivio ZIP presenta una compressione anomala e non viene aperto automaticamente."
+                    )
                 if _archive_member_priority(info)[0] < 9:
                     candidates.append(info)
 
@@ -397,11 +326,7 @@ def build_attachment_preview_payload(
     mime_salvato: str = "",
     _archive_depth: int = 0,
 ) -> AttachmentPreviewPayload:
-    """Prepara il contenuto da mostrare inline.
-
-    Per un file .pdf.p7m l'originale resta invariato per il download, ma
-    l'anteprima usa il PDF interno quando il contenitore CAdES lo espone.
-    """
+    """Prepara il contenuto interno, mantenendo invariato l'originale per il download."""
 
     original_name = str(nome_file or "").strip() or "allegato"
     original_mime = attachment_mimetype(original_name, mime_salvato)
@@ -414,7 +339,7 @@ def build_attachment_preview_payload(
             data=data,
             archive_depth=_archive_depth,
         )
-    if not is_p7m_filename(original_name):
+    if not is_signed_container(original_name, original_mime):
         textual = _render_supported_textual_preview(
             nome_file=original_name,
             data=data,
@@ -432,11 +357,15 @@ def build_attachment_preview_payload(
     signed = inspect_signed_document_bytes(
         source_name=original_name,
         source_path="",
+        source_mime=original_mime,
         data=data,
     )
     if signed.status.payload_available and signed.payload_bytes:
         preview_name = signed.status.payload_name or inner_signed_name(original_name)
-        preview_mime = signed.status.payload_mime or payload_mime_from_bytes(signed.payload_bytes, preview_name)
+        preview_mime = signed.status.payload_mime or payload_mime_from_bytes(
+            signed.payload_bytes,
+            preview_name,
+        )
         textual = _render_supported_textual_preview(
             nome_file=preview_name,
             data=signed.payload_bytes,
@@ -467,7 +396,15 @@ def build_attachment_preview_payload(
         mimetype=original_mime,
         download_name=original_name,
         unavailable_reason=(
-            "Il file firmato non espone un PDF interno leggibile. Scarica il .p7m "
-            "originale e verificalo con il software di firma."
+            "Il contenitore firmato non espone un contenuto interno leggibile. "
+            "Scarica l'originale e verificalo con il software di firma."
         ),
     )
+
+
+__all__ = [
+    "AttachmentPreviewPayload",
+    "attachment_mimetype",
+    "build_attachment_preview_payload",
+    "is_inline_preview_mime",
+]

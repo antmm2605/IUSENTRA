@@ -1,5 +1,13 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-20 - Topbar e prova notifica campione
+
+La topbar non ricalcola fascicoli, PEC o documenti quando l'avvocato apre la campanella: legge esclusivamente il repository persistente tenant-aware. I job/eventi a monte materializzano i presidi e le relative notifiche; questa separazione è obbligatoria per evitare caricamenti lenti, duplicati o risultati diversi tra Presidio, Agenda e topbar.
+
+Sul tenant Studio Legale Giuseppe Montagnese sono stati verificati in produzione, come campione non esteso, Romeo Maria/R.G. 1428/2026 e Alfano Giuseppe/R.G. 1100/2026. In entrambi i casi la comunicazione di cancelleria non è stata trattata come prova della notifica dell'avvocato: il sistema mostra `Sentenza da valutare per la notifica` e non registra una notifica come eseguita.
+
+Il canale Web Push è configurato lato server, ma la prova di consegna al dispositivo richiede sottoscrizione browser e consenso dell'utente; non è stata eseguita né simulata. Prima della chiusura restano obbligatori prova locale su `127.0.0.1:8080`, eventuale prova senza invio della relata e audit dei soli residui reali.
+
 ## Aggiornamento 2026-07-20 - Presidio persistente notifiche legali
 
 Il flusso Notifiche legali introduce un presidio persistente, tenant-aware e governato da SQL per seguire ordini di notifica, originali da acquisire, relate, RAC/RdAC, mancate consegne e prova da depositare senza rileggere la casella PEC o il fascicolo durante le GET della UI.
@@ -5146,3 +5154,86 @@ Verifica browser produzione:
 - click su `Apri prova depositata` porta a `#cancelleria` senza preparare una nuova notifica e senza invio.
 
 Stato anti-regressione: coperto da `tests/test_notification_relata_fascicolo.py` e `tests/test_notification_relata_materializer.py`. Il server è stato verificato con `iusentra-app` unico/healthy e `/api/pronto` `ok=true`, fuso `Europe/Rome`. Il lavoro resta da riallineare su copia locale, commit/push branch gemelli e deploy finale da commit.
+### Aggiornamento 21/07/2026 - fonti PEC ricevute e presidio notifica
+
+Nel flusso Agenda/Scadenziario collegato a PEC e notifiche legali è stata uniformata la visualizzazione delle ricevute di accettazione/consegna:
+
+- la fonte operativa non è più la casella PEC generica, ma la PEC specifica risolta da Control Tower e `pec_audit.sqlite`;
+- `Apri origine` usa `/email/?audit_id=<PEC>&embed=source`, con vista incorporata priva di topbar operativa e widget Lex;
+- la scheda operativa mostra oggetto, mittente, destinatario, allegati e attività concreta per l'avvocato;
+- se il collegamento al fascicolo è debole, il software non forza cliente/RG e mostra solo `Possibile fascicolo da verificare`;
+- se una riga storica è tipizzata male ma l'oggetto reale indica `CONSEGNA:`, la UI mostra `PEC di consegna`, così la classificazione visibile segue la ricevuta reale.
+
+Caso reale verificato su produzione: scadenza `587c1f99-08a4-4847-8e13-c1ee372410fd`, PEC `pec_f205aa7f34c13b363f94af81`, ricevuta di accettazione della PEC inviata a `usp.vv@istruzione.it` per liquidazione spese legali relative alla sentenza n. 325/2025 del Tribunale di Vibo Valentia. Il possibile fascicolo `Contarese c. MIM` resta da verificare e non viene collegato come cliente certo.
+
+Audit server su 30 ricevute omologhe: `30/30` aprono una PEC specifica, `17` match deboli non forzano `fascicoloId`, le consegne vengono etichettate come consegne anche con flag tecnico storico incoerente.
+
+Test mirati collegati:
+
+- `tests/test_react_scadenziario_additions.py::test_scadenziario_ricevuta_accettazione_control_tower_apre_pec_specifica`;
+- `tests/test_react_scadenziario_additions.py::test_scadenziario_ricevuta_consegna_prevale_su_tipo_tecnico_storico`;
+- `tests/test_react_shell.py::test_react_agenda_ricevuta_accettazione_apre_pec_specifica_senza_cancelleria_generica`;
+- `tests/test_email_client.py::test_base_template_non_renderizza_vecchio_lex_duplicato`.
+
+Stato: verificato sul server reale; resta aperto fino a riallineamento locale `127.0.0.1:8080`, gate completi, commit/push branch gemelli e deploy finale ordinato.
+
+### Aggiornamento 21/07/2026 - sentenza ex art. 429 e notifica da valutare
+
+Caso utente: sentenza Alfano Giuseppe c. MIM, RG `1100/2026`, Tribunale di Padova, ricevuta tramite PEC di cancelleria e documento `19040620s.pdf`.
+
+Regola operativa fissata:
+
+- la comunicazione di cancelleria o il deposito della sentenza non provano la notifica dell'avvocato;
+- il termine breve di impugnazione non decorre automaticamente dalla sola comunicazione di cancelleria;
+- se il provvedimento è una sentenza a verbale o sentenza ex art. 429 c.p.c., l'evento prevalente è `sentenza_a_verbale`, anche se nel verbale compare la modalità 127-ter usata prima della decisione;
+- il presidio notifica resta aperto finché non risultano relata, invio PEC locale, RAC, RdAC completa e prova/deposito collegati al fascicolo;
+- lo stato `NOTIFICATION_CONFIRMED` viene esposto come `Notifica necessaria confermata`, per evitare che l'avvocato lo interpreti come notifica già materialmente eseguita.
+
+Audit produzione sul tenant `studio-legale-giuseppe-montagnese`:
+
+- fonte fascicoli/scadenze/agenda: `studio.db`;
+- fonte PEC/eventi/presidi: `email/pec_audit.sqlite`;
+- PEC acquisite: `1.369`;
+- PEC senza evento V2 dopo validazione: `0`;
+- presidi notifica attivi: `5`, di cui `4` `NEEDS_REVIEW` e `1` `NOTIFICATION_CONFIRMED`;
+- caso Alfano: presidio `NEEDS_REVIEW`, notifica da valutare/preparare, nessuna prova completa post-sorgente nel fascicolo.
+
+Limite ancora aperto: la prova visiva automatica non è stata completata perché gli strumenti non hanno agganciato il browser integrato né un browser di default; lo screenshot desktop ha mostrato Codex e non IUSENTRA. Prima della consegna finale servono verifica materiale della UI produzione, riallineamento locale con snapshot tenant corretto e prova su `127.0.0.1:8080`.
+
+### Aggiornamento 21/07/2026 - integrità `studio.db` e notifica affidabile
+
+Per i flussi sensibili collegati a deposito, relata, PEC e prova notifica, il database del tenant è parte della conformità: se `studio.db` non è SQLite valido, il software non può dichiarare corretti presìdi, scadenze, topbar o stati fascicolo.
+
+Sul tenant produzione `studio-legale-giuseppe-montagnese` è stato rilevato e corretto un caso bloccante:
+
+- `studio.db` conteneva JSON dello Scadenziario invece di un database SQLite;
+- il file anomalo e i relativi `-wal`/`-shm` sono stati preservati in backup forense;
+- il nuovo `studio.db` è stato ricostruito da mirror tenant-aware core, verificato con `PRAGMA quick_check=ok` e installato dopo stop breve di app e scheduler;
+- il nuovo database contiene solo dominio core e mirror leggeri, non OCR/PDF/ZIP/documenti_ai massivi;
+- `pct/cache.py` blocca ora lettura/scrittura JSON su `.db`, `.sqlite` e `.sqlite3`.
+
+Regola per chiusura futura: prima di considerare affidabile una notifica o un deposito derivato da fascicolo/PEC, verificare che la fonte SQL del tenant sia valida, leggera e coerente. Se il WAL cresce in modo anomalo o `studio.db` perde l'header SQLite, la consegna resta aperta anche se la UI sembra caricarsi.
+
+### Aggiornamento 22/07/2026 - decisione notifica modificabile prima dell'invio
+
+Il presidio notifiche consente ora di correggere una conferma selezionata per errore senza cancellare o riscrivere la storia. La mutazione `revise-decision` è disponibile soltanto da `NOTIFICATION_CONFIRMED`, richiede una motivazione di almeno 12 caratteri e può riportare il presidio a `NEEDS_REVIEW` oppure chiuderlo come `NOT_REQUIRED`.
+
+La transizione registra autore, data/ora, motivazione e metadati `previous_decision`/`target_decision` nella catena audit. La stessa mutazione viene rifiutata quando sono già presenti destinatari con invio/RAC/consegna/fallimento o documenti `sent_pec`, `rac`, `rdac`, `delivery_failure`, `proof_deposit_receipt`: una notifica già inviata o provata non può quindi essere riaperta dal semplice pannello decisionale.
+
+Guardrail aggiornati: test di dominio sulla catena hash, test API della correzione e del blocco post-invio, payload dell'azione, contratto TypeScript, stati hover/focus/disabled/loading, typecheck e UTF-8. La prova visiva reale resta obbligatoria nella campagna finale su `127.0.0.1:8080` e, dopo deploy dello stesso commit, sul tenant di produzione.
+
+### Aggiornamento 22/07/2026 - isolamento di sicurezza del lettore documenti
+
+L'audit del lettore unico ha individuato un rischio di esecuzione di HTML proveniente da nomi file PEC o dalla conversione DOCX dentro un iframe dello stesso dominio. La correzione applicata mantiene il flusso nel lettore IUSENTRA e aggiunge tre livelli coerenti: escape di nome file e URL interni nelle pagine di errore, sanitizzazione a lista consentita dell'HTML prodotto da Mammoth e CSP dedicata alle route di anteprima. Gli allegati e i documenti statici sono inoltre aperti in iframe sandbox con origine opaca; soltanto le viste React PEC/email, che devono usare le API autenticate, conservano `allow-same-origin` insieme agli script.
+
+Guardrail eseguiti: `27` test Pytest mirati superati, inclusi payload DOCX malevolo, nome file malevolo e CSP della route; `npm --prefix frontend run typecheck` senza errori; Ruff, compilazione Python e `git diff --check` senza errori. Il quality gate `ui-support` è stato lanciato ma non può validare questo sotto-perimetro isolato perché la worktree condivisa contiene migliaia di asset React e modifiche concorrenti fuori dal suo perimetro consentito. La prova con click reale su corpo PEC, ZIP/PDF e formato non-PDF nella copia effettiva `127.0.0.1:8080` non è stata eseguita in questo sotto-controllo: lo stato resta **non verificato su macchina reale** fino alla campagna finale coordinata.
+
+### Aggiornamento 22/07/2026 - ripristino Local Signer e firma multipla
+
+- Ripristinata la sessione PST logica unica `view` per ricerca, anteprima e download; il download resta batch con `preflight_auth: false` e non introduce una sessione operativa `import` separata.
+- Ripristinato il riuso della sessione `view` autenticata anche per client storici che inviano `purpose=import`, senza nuovo handshake o nuova richiesta PIN.
+- Preservato il contratto della firma multipla del deposito: un solo comando, riuso del `pin_session_id` per l'intero lotto, esito separato per documento e salvataggio dei `.p7m` nel fascicolo.
+- Blindato l'aggiornamento Windows con staging prima dello stop, lock esclusivo e rollback della versione funzionante in caso di errore.
+- Generata e installata realmente sul PC la versione `1.6.101` in `C:\Users\antmm\AppData\Roaming\IUSENTRA\LocalSigner`; `/ping?light=1` e `/support/status` rispondono correttamente e non risultano processi `curl` o finestre PIN pendenti.
+- Verifiche automatiche: `5/5` PST/firma multipla, `16/16` Local Signer/installer e `60/60` notifiche, sorgenti, tenant e lettore; typecheck e build React superati.
+- Nessuna firma reale, nessun download ministeriale e nessun invio PEC sono stati eseguiti durante questi guardrail.

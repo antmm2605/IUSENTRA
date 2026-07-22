@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileSearch } from 'lucide-react'
+import { FileSearch, Maximize2, Minimize2 } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
 
 export type SourceDocument = {
@@ -9,14 +9,16 @@ export type SourceDocument = {
   kind?: string
 }
 
-function sourceViewerHref(source: SourceDocument, mobile: boolean): string {
+function sourceViewerHref(source: SourceDocument, preview = true): string {
   try {
     const parsed = new URL(source.href, window.location.origin)
     if (parsed.origin === window.location.origin) {
-      if (source.kind === 'documento' && parsed.pathname.includes('/documenti/') && parsed.pathname.includes('/visualizza')) {
-        if (mobile) parsed.searchParams.set('viewer', 'mobile')
-      } else if (source.kind === 'pec' || parsed.pathname.startsWith('/email')) {
-        parsed.searchParams.set('embed', 'source')
+      if (parsed.pathname.startsWith('/api/v1/ui/email/source/')) {
+        if (preview) parsed.searchParams.set('viewer', 'mobile')
+      } else if (parsed.pathname.includes('/documenti/') && parsed.pathname.includes('/visualizza')) {
+        if (preview) parsed.searchParams.set('viewer', 'mobile')
+      } else if (parsed.pathname.startsWith('/email')) {
+        if (preview) parsed.searchParams.set('embed', 'source')
       }
       return `${parsed.pathname}${parsed.search}${parsed.hash}`
     }
@@ -26,33 +28,81 @@ function sourceViewerHref(source: SourceDocument, mobile: boolean): string {
   }
 }
 
+function sourceIframeSandbox(href: string): string {
+  try {
+    const parsed = new URL(href, window.location.origin)
+    const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
+    const trustedReactSource = parsed.origin === window.location.origin
+      && (normalizedPath === '/email' || normalizedPath === '/email-ordinaria')
+    return trustedReactSource
+      ? 'allow-downloads allow-same-origin allow-scripts'
+      : 'allow-downloads allow-scripts'
+  } catch {
+    return 'allow-downloads allow-scripts'
+  }
+}
+
 export function SourceDocumentModal({ source, onClose }:{source:SourceDocument | null; onClose:()=>void}) {
-  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
+  const viewerHref = source ? sourceViewerHref(source, true) : ''
+  const originalHref = source ? sourceViewerHref(source, false) : ''
 
   useEffect(() => {
-    if (!source) return undefined
-    const media = window.matchMedia('(max-width: 900px)')
-    const update = () => setMobile(media.matches)
-    update()
-    if (typeof media.addEventListener === 'function') media.addEventListener('change', update)
-    else media.addListener(update)
-    return () => {
-      if (typeof media.removeEventListener === 'function') media.removeEventListener('change', update)
-      else media.removeListener(update)
-    }
-  }, [source])
+    setFullscreen(false)
+  }, [source?.href])
+
+  useEffect(() => {
+    setLoadState(source ? 'loading' : 'idle')
+  }, [source?.href, viewerHref])
 
   return (
     <OperationalModal
       open={Boolean(source)}
-      ariaLabel={source ? `Fonte: ${source.label}` : 'Fonte dell’informazione'}
+      ariaLabel={source ? `Fonte: ${source.label}` : "Fonte dell'informazione"}
       eyebrow={<><FileSearch size={14}/> Fonte dell'informazione</>}
       title={source?.label || ''}
       subtitle={source?.context}
-      actions={source ? <a href={source.href} target="_blank" rel="noreferrer">Apri originale</a> : null}
+      actions={source ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setFullscreen((value) => !value)}
+            aria-pressed={fullscreen}
+          >
+            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {fullscreen ? 'Vista normale' : 'Tutto schermo'}
+          </button>
+          <a href={originalHref} target="_blank" rel="noreferrer">Apri originale</a>
+        </>
+      ) : null}
       onClose={onClose}
+      boxClassName={fullscreen ? 'iu-ag-source-modal__box--fullscreen' : ''}
     >
-      {source ? <iframe src={sourceViewerHref(source, mobile)} title={`Visualizzazione fonte ${source.label}`} /> : null}
+      {source ? (
+        <div className="iu-source-document-reader">
+          {loadState === 'loading' ? (
+            <div className="iu-source-document-reader__state" role="status">
+              <strong>Caricamento documento...</strong>
+              <span>Sto aprendo la fonte nel lettore interno IUSENTRA.</span>
+            </div>
+          ) : null}
+          {loadState === 'error' ? (
+            <div className="iu-source-document-reader__state iu-source-document-reader__state--error" role="alert">
+              <strong>Documento non visualizzabile nel lettore.</strong>
+              <span>Usa “Apri originale” o “Scarica” per recuperare il file, senza perdere il collegamento alla fonte.</span>
+            </div>
+          ) : null}
+          <iframe
+            src={viewerHref}
+            title={`Visualizzazione fonte ${source.label}`}
+            sandbox={sourceIframeSandbox(viewerHref)}
+            referrerPolicy="no-referrer"
+            onLoad={() => setLoadState('loaded')}
+            onError={() => setLoadState('error')}
+          />
+        </div>
+      ) : null}
     </OperationalModal>
   )
 }

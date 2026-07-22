@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from datetime import datetime, time
 from typing import Any, Mapping
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
 from web.services.notification_presidia_runtime import current_actor_id, presidio_permissions, public_permissions
@@ -17,7 +17,7 @@ STATUS_LABELS = {
     "NEEDS_REVIEW": "Da esaminare",
     "ORIGINAL_TO_ACQUIRE": "Originale da acquisire",
     "ORIGINAL_ACQUIRED": "Originale acquisito",
-    "NOTIFICATION_CONFIRMED": "Notifica confermata",
+    "NOTIFICATION_CONFIRMED": "Notifica necessaria confermata",
     "RECIPIENTS_TO_VERIFY": "Destinatari da verificare",
     "READY_FOR_RELATA": "Relata da preparare",
     "RELATA_DRAFTED": "Relata preparata",
@@ -38,8 +38,8 @@ STATUS_LABELS = {
 }
 CHANNEL_LABELS = {"pec": "PEC", "unep": "UNEP", "non_pec": "Non PEC", "nonpec": "Non PEC", "cliente": "Cliente"}
 DOCUMENT_ROLE_LABELS = {
-    "office_pec_copy": "Copia da PEC ufficio",
-    "portal_original": "Originale PST",
+    "office_pec_copy": "PEC di cancelleria · copia informativa",
+    "portal_original": "Originale acquisito dal Portale Servizi",
     "notified_act": "Atto notificato",
     "relata": "Relata",
     "attestation": "Attestazione",
@@ -54,6 +54,7 @@ NEXT_ACTIONS = {
     "DETECTED": "Esamina e conferma se la notifica è necessaria",
     "NEEDS_REVIEW": "Esamina e conferma se la notifica è necessaria",
     "ORIGINAL_TO_ACQUIRE": "Acquisisci originale dal fascicolo d’ufficio",
+    "NOTIFICATION_CONFIRMED": "Verifica destinatari e prepara relata",
     "RECIPIENTS_TO_VERIFY": "Verifica destinatari e pubblici elenchi",
     "READY_FOR_RELATA": "Prepara la relata",
     "RELATA_DRAFTED": "Controlla e firma la relata",
@@ -65,6 +66,23 @@ NEXT_ACTIONS = {
     "DELIVERY_FAILED": "Gestisci mancata consegna",
     "DELIVERY_COMPLETE": "Deposita la prova di notifica",
     "PROOF_TO_DEPOSIT": "Deposita la prova di notifica",
+}
+NOTIFICATION_CASE_LABELS = {
+    "judgment_to_notify_review": "Sentenza da valutare per la notifica",
+    "judgment_short_term_review": "Sentenza da valutare per l'impugnazione",
+    "legal_notification_review": "Notifica legale da verificare",
+    "strategic_notification_review": "Valutazione della notifica necessaria",
+}
+LEGAL_SOURCE_LABELS = {
+    "src.it.l53_1994.art3bis": "Legge 21 gennaio 1994, n. 53, art. 3-bis",
+    "src.it.cpc.arts137_149": "Codice di procedura civile, artt. 137-149",
+    "src.it.cpc.art133": "Codice di procedura civile, art. 133",
+    "src.it.cpc.art285": "Codice di procedura civile, art. 285",
+    "src.it.cpc.art325": "Codice di procedura civile, art. 325",
+    "src.it.cpc.art326": "Codice di procedura civile, art. 326",
+    "src.it.cpc.art327": "Codice di procedura civile, art. 327",
+    "src.it.cpc.art429": "Codice di procedura civile, art. 429",
+    "src.it.cpc.art431": "Codice di procedura civile, art. 431",
 }
 
 
@@ -79,9 +97,15 @@ def _json_value(value: Any, default: Any) -> Any:
         return default
 
 
-def _cursor_encode(cursor: tuple[str, str] | None) -> str | None:
+def _cursor_encode(cursor: tuple[str, str] | Mapping[str, Any] | None) -> str | None:
     if not cursor:
         return None
+    if isinstance(cursor, Mapping):
+        updated_at = str(cursor.get("updatedAt") or cursor.get("updated_at") or "")
+        cursor_id = str(cursor.get("id") or "")
+        if not updated_at or not cursor_id:
+            return None
+        cursor = (updated_at, cursor_id)
     raw = json.dumps({"updated_at": cursor[0], "id": cursor[1]}, separators=(",", ":")).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
@@ -118,9 +142,51 @@ def _bool_filter(value: Any) -> bool | None:
 
 
 def _practice_payload(fascicolo_id: str) -> dict[str, str]:
-    label = f"Fascicolo {fascicolo_id}" if fascicolo_id else "Fascicolo non indicato"
-    href = f"/fascicoli/{quote(fascicolo_id, safe='')}" if fascicolo_id else ""
-    return {"id": fascicolo_id, "label": label, "href": href}
+    """Espone la pratica in linguaggio operativo, sempre dal repository del tenant attivo."""
+
+    identifier = str(fascicolo_id or "").strip()
+    result = {
+        "id": identifier,
+        "label": "Pratica da completare",
+        "client": "",
+        "subject": "",
+        "rg": "",
+        "office": "",
+        "href": f"/fascicoli/{quote(identifier, safe='')}" if identifier else "",
+    }
+    if not identifier:
+        return result
+    try:
+        from web.helpers import get_fascicoli
+
+        fascicolo = get_fascicoli().get(identifier)
+    except Exception:
+        fascicolo = None
+    if fascicolo is None:
+        return result
+
+    client = str(getattr(fascicolo, "nome_cliente", "") or "").strip()
+    subject = str(
+        getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "") or ""
+    ).strip()
+    rg = str(getattr(fascicolo, "rg_completo", "") or "").strip()
+    if rg.casefold().startswith("rg "):
+        rg = rg[3:].strip()
+    if not rg:
+        number = str(getattr(fascicolo, "numero_rg", "") or "").strip()
+        year = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+        rg = f"{number}/{year}" if number and year else number
+    office = str(getattr(fascicolo, "tribunale", "") or "").strip()
+    result.update(
+        {
+            "label": client or subject or "Pratica da completare",
+            "client": client,
+            "subject": subject if subject != client else "",
+            "rg": rg,
+            "office": office,
+        }
+    )
+    return result
 
 
 def _option(value: str, label: str) -> dict[str, str]:
@@ -204,10 +270,18 @@ def _legal_sources(row: Mapping[str, Any]) -> list[str]:
     labels: list[str] = []
     for item in values if isinstance(values, list) else []:
         if isinstance(item, Mapping):
-            labels.append(str(item.get("label") or item.get("title") or item.get("id") or "").strip())
+            source_id = str(item.get("id") or "").strip()
+            label = str(item.get("label") or item.get("title") or "").strip()
+            labels.append(label or LEGAL_SOURCE_LABELS.get(source_id, "Fonte normativa verificata"))
         else:
-            labels.append(str(item or "").strip())
+            source_id = str(item or "").strip()
+            labels.append(LEGAL_SOURCE_LABELS.get(source_id, "Fonte normativa verificata"))
     return [label for label in labels if label][:6]
+
+
+def _notification_case_label(value: Any) -> str:
+    case = str(value or "").strip()
+    return NOTIFICATION_CASE_LABELS.get(case.casefold(), "Notifica legale da verificare")
 
 
 def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: list[Mapping[str, Any]], documents: list[Mapping[str, Any]], assignees: list[dict[str, str]]) -> dict[str, Any]:
@@ -220,7 +294,9 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "source_effective_at": str(projection.get("sourceEffectiveAt") or row.get("source_effective_at") or ""),
         "explicit_due_at": projection.get("explicitDueAt") or row.get("explicit_due_at"),
         "notification_case": str(projection.get("notificationCase") or row.get("notification_case") or ""),
-        "notification_case_label": str(row.get("notification_case") or projection.get("notificationCase") or "Notifica legale"),
+        "notification_case_label": _notification_case_label(
+            projection.get("notificationCase") or row.get("notification_case")
+        ),
         "channel": channel,
         "channel_label": CHANNEL_LABELS.get(channel, channel.upper()),
         "recipients": [{"id": str(item.get("id") or ""), "name": str(item.get("name") or item.get("pec_address") or "Destinatario"), "role": str(item.get("role") or ""), "status_label": _recipient_status_label(item), "delivery_status": str(item.get("delivery_status") or "")} for item in recipients[:4]],
@@ -229,7 +305,7 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "priority": str(projection.get("priority") or row.get("priority") or "P1"),
         "confidence": float(projection.get("confidence") or row.get("confidence") or 0.0),
         "detection_reason": str(row.get("detection_reason") or ""),
-        "rule_label": str(row.get("rulepack_version") or "Rulepack notifiche legali"),
+        "rule_label": "Valutazione guidata da fonti normative",
         "legal_sources": _legal_sources(row),
         "next_action": NEXT_ACTIONS.get(status, "Consulta il presidio"),
         "human_review_required": bool(projection.get("humanReviewRequired") or row.get("human_review_required")),
@@ -305,8 +381,32 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
     assignees = _user_options()
     projection = {"id": row["id"], "fascicoloId": row.get("fascicolo_id"), "status": row.get("status"), "priority": row.get("priority"), "confidence": row.get("confidence"), "humanReviewRequired": row.get("human_review_required"), "notificationCase": row.get("notification_case"), "channel": row.get("channel"), "assignedUserId": row.get("assigned_user_id"), "legacyAssumedHandled": row.get("legacy_assumed_handled"), "sourceEffectiveAt": row.get("source_effective_at"), "explicitDueAt": row.get("explicit_due_at"), "updatedAt": row.get("updated_at")}
     detail = _summary(projection, row, recipients, docs, assignees)
+    practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
     detail["recipients"] = [_public_recipient(item) for item in recipients]
-    detail["documents"] = [_public_document(item) for item in docs]
+    fascicolo_id = str(row.get("fascicolo_id") or "")
+    source_message_id = str(row.get("source_message_id") or "")
+    portal_context = _pec_portal_acquisition_context(
+        repo,
+        source_message_id,
+        expected_rg=str(practice.get("rg") or ""),
+    )
+    has_portal_original = any(
+        str(item.get("document_role") or "") == "portal_original"
+        and bool(item.get("fascicolo_document_id"))
+        and bool(item.get("authoritative"))
+        for item in docs
+    )
+    detail["documents"] = [
+        _public_document(
+            item,
+            fascicolo_id=fascicolo_id,
+            source_message_id=source_message_id,
+            has_portal_original=has_portal_original,
+            practice=practice,
+            portal_context=portal_context,
+        )
+        for item in docs
+    ]
     detail["assignment_options"] = assignees
     detail["linkable_documents"] = _linkable_documents(str(row.get("fascicolo_id") or ""))
     detail["available_actions"] = _available_actions(row, permissions, bool(detail["linkable_documents"]))
@@ -334,17 +434,238 @@ def _public_recipient(item: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _public_document(row: Mapping[str, Any]) -> dict[str, Any]:
+def _pec_field_value(fields: Mapping[str, Any], key: str) -> str:
+    raw = fields.get(key)
+    if isinstance(raw, Mapping):
+        raw = raw.get("value")
+    return str(raw or "").strip()
+
+
+def _pec_portal_acquisition_context(
+    repo: Any,
+    source_message_id: str,
+    *,
+    expected_rg: str = "",
+) -> dict[str, str]:
+    """Ricava dal record PEC già indicizzato i parametri ministeriali certi."""
+
+    message_id = str(source_message_id or "").strip()
+    if not message_id:
+        return {}
+    try:
+        with repo.connection() as conn:
+            row = conn.execute(
+                """
+                SELECT parsed.parsed_json
+                FROM pec_parsed_versions AS parsed
+                JOIN pec_messages AS message ON message.id=parsed.message_id
+                WHERE message.tenant_id=? AND message.id=?
+                ORDER BY parsed.version DESC
+                LIMIT 1
+                """,
+                (repo.tenant_id, message_id),
+            ).fetchone()
+        parsed = json.loads(str(row["parsed_json"] or "{}")) if row else {}
+    except Exception:
+        return {}
+    if not isinstance(parsed, Mapping):
+        return {}
+
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), Mapping) else {}
+    workflow = (
+        parsed.get("legal_workflow")
+        if isinstance(parsed.get("legal_workflow"), Mapping)
+        else {}
+    )
+    registries = workflow.get("registri") if isinstance(workflow.get("registri"), list) else []
+    expected_number, separator, expected_year = str(expected_rg or "").partition("/")
+    selected_registry: Mapping[str, Any] = {}
+    for item in registries:
+        if not isinstance(item, Mapping):
+            continue
+        if separator and (
+            str(item.get("numero") or "").lstrip("0") == expected_number.strip().lstrip("0")
+            and str(item.get("anno") or "").strip() == expected_year.strip()
+        ):
+            selected_registry = item
+            break
+        if not selected_registry:
+            selected_registry = item
+
+    registry = str(
+        selected_registry.get("registro_normalizzato")
+        or selected_registry.get("suffisso")
+        or ""
+    ).strip()
+    table = str(selected_registry.get("tabella_ministeriale") or "").strip()
+    raw_matter = str(selected_registry.get("materia") or "").strip()
+    schema = raw_matter.casefold()
+    matter = raw_matter
+    service = ""
+    normalized_profile = " ".join((registry, table, raw_matter)).upper()
+    if "LAV" in normalized_profile or "LAVORO" in normalized_profile:
+        schema = "lavoro"
+        matter = "Lavoro e previdenza"
+        registry = registry or "LAV"
+        table = table or "SICID_LAVORO"
+        service = "JPW_SIL_DISTR"
+    elif "VOLONT" in normalized_profile or "SIVG" in normalized_profile:
+        schema = "volontaria"
+        matter = "Volontaria giurisdizione"
+        service = "JPW_SIVG"
+    elif "GDP" in normalized_profile or "SIGP" in normalized_profile:
+        schema = "giudice di pace"
+        matter = "Giudice di pace"
+        service = "JPW_SIGP"
+    elif "CASS" in normalized_profile and "PEN" in normalized_profile:
+        schema = "cassazione penale"
+        matter = "Cassazione penale"
+        service = "JPW_CASSPE"
+    elif "CASS" in normalized_profile:
+        schema = "cassazione civile"
+        matter = "Cassazione civile"
+        service = "JPW_CASSCI"
+    elif "SIECIC" in normalized_profile or "ESECU" in normalized_profile:
+        schema = schema or "esecuzioni"
+        matter = matter or "Esecuzioni e concorsuali"
+        service = "JPW_SIECIC"
+    elif registry or table:
+        schema = schema or "civile"
+        matter = matter or "Civile contenzioso"
+        service = "JPW_SICID"
+
+    context = {
+        "ufficio": _pec_field_value(fields, "ufficio_giudiziario"),
+        "ufficio_codice": _pec_field_value(fields, "codice_ufficio"),
+        "numero": str(selected_registry.get("numero") or "").strip(),
+        "anno": str(selected_registry.get("anno") or "").strip(),
+        "assistito": _pec_field_value(fields, "cliente")
+        or _pec_field_value(fields, "parte_processuale"),
+        "schema": schema,
+        "materia": matter,
+        "registro": registry,
+        "tabella_ministeriale": table,
+        "servizio_pst_preferito": service,
+        "registro_portale": registry,
+    }
+    event_text = _pec_field_value(fields, "evento_processuale").casefold()
+    for document_type in ("sentenza", "ordinanza", "decreto", "verbale", "provvedimento"):
+        if document_type in event_text:
+            context["tipo_documento"] = document_type
+            break
+    return {key: value for key, value in context.items() if value}
+
+
+def _original_acquisition_href(
+    fascicolo_id: str,
+    source_message_id: str,
+    practice: Mapping[str, Any] | None = None,
+    portal_context: Mapping[str, Any] | None = None,
+) -> str:
+    """Riusa il percorso React governato del monitor fascicolo per acquisire l'originale."""
+
+    identifier = str(fascicolo_id or "").strip()
+    if not identifier:
+        return ""
+    params = {
+        "id_fasc": identifier,
+        "fascicolo_id": identifier,
+        "mode": "update_existing",
+        "focus": "documenti",
+        "single_document": "1",
+        "pec_id": str(source_message_id or "").strip(),
+        "non_duplicare_documenti": "1",
+        "fase_successiva": "relata_notifica",
+    }
+    practice_data = practice or {}
+    portal_data = portal_context or {}
+    rg = str(practice_data.get("rg") or "").strip()
+    numero, separator, anno = rg.partition("/")
+    if separator:
+        params["numero"] = numero.strip()
+        params["anno"] = anno.strip()
+    office = str(practice_data.get("office") or "").strip()
+    client = str(practice_data.get("client") or "").strip()
+    subject = str(practice_data.get("subject") or "").strip()
+    if office:
+        params["ufficio"] = office
+    if client:
+        params["assistito"] = client
+    if subject:
+        params["oggetto"] = subject
+    for key in (
+        "ufficio",
+        "ufficio_codice",
+        "numero",
+        "anno",
+        "assistito",
+        "controparte",
+        "cf",
+        "schema",
+        "materia",
+        "registro",
+        "tabella_ministeriale",
+        "servizio_pst_preferito",
+        "registro_portale",
+        "tipo_documento",
+    ):
+        value = str(portal_data.get(key) or "").strip()
+        if value:
+            params[key] = value
+    return f"/portali/pst/acquisizione?{urlencode(params)}#acquisizione-portale"
+
+
+def _public_document(
+    row: Mapping[str, Any],
+    *,
+    fascicolo_id: str = "",
+    source_message_id: str = "",
+    has_portal_original: bool = False,
+    practice: Mapping[str, Any] | None = None,
+    portal_context: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     role = str(row.get("document_role") or "")
-    doc_id = str(row.get("fascicolo_document_id") or row.get("id") or "")
+    fascicolo_document_id = str(row.get("fascicolo_document_id") or "").strip()
+    public_id = fascicolo_document_id or str(row.get("id") or "").strip()
+    name = str(row.get("original_filename") or "Documento collegato").strip()
+    viewer_url = ""
+    download_url = ""
+    if fascicolo_id and fascicolo_document_id:
+        base = (
+            f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/"
+            f"{quote(fascicolo_document_id, safe='')}"
+        )
+        viewer_url = f"{base}/visualizza"
+        download_url = f"{base}/scarica"
+    elif role == "office_pec_copy" and source_message_id and name:
+        base = f"/api/v1/ui/email/source/{quote(source_message_id, safe='')}"
+        viewer_url = f"{base}?{urlencode({'name': name})}"
+        download_url = f"{base}?{urlencode({'name': name, 'download': '1'})}"
+    authoritative = bool(
+        role == "portal_original"
+        and fascicolo_document_id
+        and row.get("authoritative")
+    )
+    acquisition_required = role == "office_pec_copy" and not has_portal_original
     return {
-        "id": doc_id,
-        "name": str(row.get("original_filename") or "Documento collegato"),
+        "id": public_id,
+        "name": name,
         "role_label": DOCUMENT_ROLE_LABELS.get(role, role or "Documento"),
         "version_label": f"Versione {row.get('document_version') or '1'}",
-        "authoritative": bool(row.get("authoritative")),
-        "viewer_url": f"/fascicoli/documenti/{quote(doc_id, safe='')}" if doc_id else "",
-        "download_url": f"/fascicoli/documenti/{quote(doc_id, safe='')}/download" if doc_id else "",
+        "authoritative": authoritative,
+        "original_acquisition_required": acquisition_required,
+        "original_acquisition_url": (
+            _original_acquisition_href(
+                fascicolo_id,
+                source_message_id,
+                practice,
+                portal_context,
+            )
+            if acquisition_required
+            else ""
+        ),
+        "viewer_url": viewer_url,
+        "download_url": download_url,
     }
 
 
@@ -353,15 +674,41 @@ def _available_actions(row: Mapping[str, Any], permissions: Mapping[str, bool], 
     can_write = bool(permissions.get("can_write"))
     can_link = bool(permissions.get("can_link_document"))
     terminal = status in {"CLOSED", "NOT_REQUIRED", "CANCELLED"}
-    return [
+    actions = [
         {"id": "open-case", "label": "Apri fascicolo", "kind": "link", "href": _practice_payload(str(row.get("fascicolo_id") or ""))["href"], "enabled": bool(row.get("fascicolo_id"))},
-        {"id": "confirm", "label": "Conferma notifica", "kind": "mutation", "mutation": "confirm", "enabled": can_write and status in {"DETECTED", "NEEDS_REVIEW", "ORIGINAL_ACQUIRED"}, "tone": "primary"},
+        {
+            "id": "confirm",
+            "label": "Conferma notifica",
+            "kind": "mutation",
+            "mutation": "confirm",
+            "enabled": can_write and status in {"DETECTED", "NEEDS_REVIEW", "ORIGINAL_ACQUIRED"},
+            "disabled_reason": (
+                "Decisione già registrata. Puoi modificarla qui sotto."
+                if status == "NOTIFICATION_CONFIRMED"
+                else ""
+            ),
+            "tone": "primary",
+        },
         {"id": "not-required", "label": "Segna non necessaria", "kind": "mutation", "mutation": "not-required", "enabled": can_write and not terminal, "tone": "neutral"},
         {"id": "assign", "label": "Assegna", "kind": "mutation", "mutation": "assign", "enabled": can_write, "tone": "neutral"},
-        {"id": "link-document", "label": "Collega documento", "kind": "mutation", "mutation": "link-document", "enabled": can_link and has_linkables, "disabled_reason": "" if has_linkables else "Nessun documento fascicolo collegabile."},
+        {"id": "link-document", "label": "Collega prova, ricevuta o documento", "kind": "mutation", "mutation": "link-document", "enabled": can_link and has_linkables, "disabled_reason": "" if has_linkables else "Nessuna prova, ricevuta o documento del fascicolo collegabile."},
         {"id": "reconcile", "label": "Riconcilia ricevute", "kind": "mutation", "mutation": "reconcile", "enabled": can_write, "tone": "warning"},
         {"id": "retry", "label": "Riprova job", "kind": "mutation", "mutation": "retry", "enabled": can_write, "tone": "neutral"},
     ]
+    if status == "NOTIFICATION_CONFIRMED":
+        actions.insert(
+            2,
+            {
+                "id": "revise-decision",
+                "label": "Modifica decisione",
+                "kind": "mutation",
+                "mutation": "revise-decision",
+                "enabled": can_write,
+                "disabled_reason": "" if can_write else "Permesso di modifica richiesto.",
+                "tone": "neutral",
+            },
+        )
+    return actions
 
 
 def _linkable_documents(fascicolo_id: str) -> list[dict[str, str]]:
@@ -376,11 +723,21 @@ def _linkable_documents(fascicolo_id: str) -> list[dict[str, str]]:
         return []
     options: list[dict[str, str]] = []
     for document in documents[:80]:
-        value = str(getattr(document, "id", "") or getattr(document, "nome_file", "") or "").strip()
+        name = str(
+            getattr(document, "nome", "")
+            or getattr(document, "nome_originale", "")
+            or ""
+        ).strip()
+        value = str(getattr(document, "id", "") or name).strip()
         if not value:
             continue
-        label = str(getattr(document, "titolo", "") or getattr(document, "nome_file", "") or value).strip()
-        options.append(_option(value, label))
+        tipo = getattr(document, "tipo", "")
+        tipo_value = str(getattr(tipo, "value", tipo) or "").strip()
+        tipo_label = tipo_value.replace("_", " ").capitalize()
+        label = name or "Documento senza nome"
+        if tipo_label and tipo_label.casefold() not in label.casefold():
+            label = f"{label} · {tipo_label}"
+        options.append({"value": value, "label": label, "document_name": name or label})
     return options
 
 

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import json
+import sqlite3
+from email import policy
+from email.message import EmailMessage
 from pathlib import Path
+
+import pytest
 
 from pct.pec_notification_presidio import (
     NotificationPresidioRepository,
@@ -11,6 +17,8 @@ from pct.pec_notification_presidio import (
     Priority,
     ReceiptKind,
 )
+from pct.pec_notification_presidio.historical_policy import classify_historical_record
+from pct.pec_pipeline import PecAuditRepository
 
 
 def _repo(tmp_path: Path) -> NotificationPresidioRepository:
@@ -82,6 +90,172 @@ def _recipient_rows(repo: NotificationPresidioRepository, presidio_id: str) -> l
             (repo.tenant_id, presidio_id),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def test_correzione_decisione_confermata_richiede_motivazione_e_resta_auditabile(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    presidio_id = _candidate(
+        NotificationPresidioService(repo),
+        recipients=[{"name": "Ministero", "role": "controparte"}],
+    )
+    repo.transition(
+        presidio_id,
+        PresidioStatus.NOTIFICATION_CONFIRMED,
+        actor="avvocato-test",
+        reason="Notifica necessaria confermata dopo la verifica.",
+        evidence={"source": "ui_presidio"},
+        idempotency_key="conferma-decisione",
+    )
+
+    with pytest.raises(ValueError, match="motivazione chiara"):
+        repo.transition(
+            presidio_id,
+            PresidioStatus.NEEDS_REVIEW,
+            actor="avvocato-test",
+            reason="errore",
+            evidence={"source": "ui_presidio", "operation": "decision_revision"},
+            idempotency_key="correzione-troppo-breve",
+            expected_status=PresidioStatus.NOTIFICATION_CONFIRMED,
+        )
+
+    repo.transition(
+        presidio_id,
+        PresidioStatus.NEEDS_REVIEW,
+        actor="avvocato-test",
+        reason="La conferma era stata selezionata per errore e richiede un nuovo esame.",
+        evidence={
+            "source": "ui_presidio",
+            "operation": "decision_revision",
+            "previous_decision": "NOTIFICATION_CONFIRMED",
+            "target_decision": "NEEDS_REVIEW",
+        },
+        idempotency_key="correzione-decisione",
+        expected_status=PresidioStatus.NOTIFICATION_CONFIRMED,
+    )
+
+    with repo.connection() as conn:
+        transition = dict(conn.execute(
+            """
+            SELECT actor, reason, evidence_json, occurred_at
+            FROM pec_legal_notification_transitions
+            WHERE tenant_id=? AND presidio_id=? AND idempotency_key=?
+            """,
+            (repo.tenant_id, presidio_id, "correzione-decisione"),
+        ).fetchone())
+    assert transition["actor"] == "avvocato-test"
+    assert transition["reason"].startswith("La conferma era stata selezionata")
+    assert json.loads(transition["evidence_json"])["operation"] == "decision_revision"
+    assert transition["occurred_at"].endswith("Z")
+    assert repo.get_presidio(presidio_id)["status"] == PresidioStatus.NEEDS_REVIEW.value
+    assert repo.verify_transition_chain(presidio_id)["ok"] is True
+
+
+def test_repository_sqlite_schema_non_viene_riallineato_senza_lock_a_ogni_lettura() -> None:
+    presidio_source = Path("pct/pec_notification_presidio/repository.py").read_text(encoding="utf-8")
+    pec_source = Path("pct/pec_pipeline.py").read_text(encoding="utf-8")
+
+    assert "_SQLITE_SCHEMA_LOCKS" in presidio_source
+    assert "_SQLITE_SCHEMA_READY" in presidio_source
+    assert "_sqlite_is_locked" in presidio_source
+    assert "for delay in (0.0, 0.2, 0.5, 1.0)" in presidio_source
+
+    assert "_PEC_AUDIT_SCHEMA_LOCKS" in pec_source
+    assert "_PEC_AUDIT_SCHEMA_READY" in pec_source
+    assert "_sqlite_is_busy" in pec_source
+    assert "for delay in (0.0, 0.2, 0.5, 1.0)" in pec_source
+
+
+def test_identita_semantica_pec_unifica_prove_documentali_della_stessa_sentenza(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    service = NotificationPresidioService(repo)
+    payload = {
+        "fascicolo_id": "FASC-001",
+        "source_message_id": "pec-sentenza-unica",
+        "source_order_or_event_id": "pec-sentenza-unica",
+        "source_effective_at": "2026-07-20T10:00:00+02:00",
+        "trigger_type": "STRATEGIC_NOTIFICATION_REVIEW",
+        "notification_case": "judgment_to_notify_review",
+        "notification_instance_document_key": "pec-sentenza-unica:FASC-001:judgment_to_notify_review",
+        "rulepack_version": "pytest",
+        "priority": "P1",
+        "confidence": 0.9,
+        "live_pec_operational_event": True,
+        "recipients": [{"name": "Ministero dell'Istruzione", "role": "controparte"}],
+    }
+    first = service.create_candidate(
+        {
+            **payload,
+            "documents": [{"content_sha256": "a" * 64, "original_filename": "sentenza.pdf"}],
+        }
+    )
+    second = service.create_candidate(
+        {
+            **payload,
+            "documents": [{"content_sha256": "b" * 64, "original_filename": "sentenza.pdf.zip"}],
+        }
+    )
+
+    assert first["created"] is True
+    assert second["created"] is False
+    with repo.connection() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM pec_legal_notification_presidia WHERE tenant_id=?",
+            (repo.tenant_id,),
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM pec_legal_notification_documents WHERE tenant_id=? AND presidio_id=?",
+            (repo.tenant_id, first["id"]),
+        ).fetchone()[0] == 2
+
+
+def test_audit_riconcilia_duplicati_della_stessa_pec_e_stesso_documento(tmp_path: Path) -> None:
+    db_path = tmp_path / "pec_audit.sqlite"
+    repo = NotificationPresidioRepository(db_path, tenant_id="tenant-notifiche-test")
+    service = NotificationPresidioService(repo)
+    base = {
+        "fascicolo_id": "FASC-001",
+        "source_message_id": "pec-duplicata",
+        "source_order_or_event_id": "pec-duplicata",
+        "source_effective_at": "2026-07-20T10:00:00+02:00",
+        "trigger_type": "STRATEGIC_NOTIFICATION_REVIEW",
+        "notification_case": "judgment_to_notify_review",
+        "rulepack_version": "pytest",
+        "priority": "P1",
+        "confidence": 0.9,
+        "live_pec_operational_event": True,
+        "documents": [{"content_sha256": "c" * 64, "original_filename": "sentenza.pdf"}],
+    }
+    first = service.create_candidate(
+        {
+            **base,
+            "recipients": [{"name": "Ministero dell'Istruzione si dà atto", "role": "controparte"}],
+        }
+    )
+    second = service.create_candidate(
+        {
+            **base,
+            "recipients": [{"name": "Ministero dell'Istruzione", "role": "controparte"}],
+        }
+    )
+    assert first["created"] is True
+    assert second["created"] is True
+    audit = PecAuditRepository(db_path, tenant_id="tenant-notifiche-test")
+
+    report = audit.reconcile_duplicate_notification_presidia(message_id="pec-duplicata", actor="pytest")
+
+    assert report["checked_groups"] == 1
+    assert report["cancelled"] == 1
+    assert len(report["cancelled_presidio_ids"]) == 1
+    with repo.connection() as conn:
+        statuses = [
+            row[0]
+            for row in conn.execute(
+                "SELECT status FROM pec_legal_notification_presidia WHERE tenant_id=? ORDER BY status",
+                (repo.tenant_id,),
+            ).fetchall()
+        ]
+    assert statuses.count(PresidioStatus.CANCELLED.value) == 1
+    assert len([status for status in statuses if status != PresidioStatus.CANCELLED.value]) == 1
 
 
 def test_presidio_mixed_rdac_and_failure_stays_partial_with_p0(tmp_path: Path) -> None:
@@ -175,3 +349,420 @@ def test_uncertain_failure_requires_review_and_late_rdac_does_not_close(tmp_path
     [row] = _recipient_rows(repo, presidio_id)
     assert row["delivery_status"] == "failed"
     assert row["failure_attribution"] == "uncertain"
+
+
+def test_cutoff_storico_non_chiude_sentenza_pec_operativa_senza_prova() -> None:
+    decision = classify_historical_record(
+        {
+            "notification_case": "judgment_to_notify_review",
+            "live_pec_operational_event": True,
+            "pec_official_delivery_at": "2026-07-16T13:01:03+02:00",
+            "complete_proof": False,
+        }
+    )
+
+    assert decision.status == PresidioStatus.DETECTED
+    assert decision.legacy_assumed_handled is False
+    assert decision.human_review_required is True
+
+
+def test_richiesta_espressa_ante_cutoff_resta_operativa_senza_prova() -> None:
+    decision = classify_historical_record(
+        {
+            "notification_case": "judgment_to_notify_review",
+            "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
+            "pec_official_delivery_at": "2026-07-16T13:01:03+02:00",
+            "complete_proof": False,
+        }
+    )
+
+    assert decision.status == PresidioStatus.DETECTED
+    assert decision.legacy_assumed_handled is False
+
+
+def test_termine_esplicito_dopo_cutoff_resta_attivo() -> None:
+    decision = classify_historical_record(
+        {
+            "notification_case": "judgment_to_notify_review",
+            "pec_official_delivery_at": "2026-07-16T13:01:03+02:00",
+            "explicit_due_at": "2026-07-20T09:00:00+02:00",
+            "complete_proof": False,
+        }
+    )
+
+    assert decision.status == PresidioStatus.DETECTED
+    assert decision.legacy_assumed_handled is False
+
+
+def test_revisione_puo_registrare_storico_gestito_con_traccia_audit(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    service = NotificationPresidioService(repo)
+    recipient = {
+        "name": "Ministero dell'Istruzione e del Merito",
+        "fiscal_id": "",
+        "pec_address": "",
+        "role": "controparte",
+    }
+    presidio_id = _candidate(service, recipients=[recipient])
+    repo.transition(
+        presidio_id,
+        PresidioStatus.NEEDS_REVIEW,
+        actor="pytest",
+        reason="Verifica storica richiesta dallo studio.",
+        evidence={"source": "audit"},
+        idempotency_key="review-history",
+    )
+    repo.transition(
+        presidio_id,
+        PresidioStatus.LEGACY_ASSUMED_HANDLED,
+        actor="pytest",
+        reason="Dichiarazione dello studio registrata nell'audit storico.",
+        evidence={"source": "tenant-declaration", "cutoff": "19/07/2026"},
+        idempotency_key="legacy-history",
+    )
+
+    assert repo.get_presidio(presidio_id)["status"] == PresidioStatus.LEGACY_ASSUMED_HANDLED.value
+
+
+def test_pipeline_materializza_sentenza_429_in_presidio_notifica(tmp_path: Path) -> None:
+    audit = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="tenant-notifiche-test")
+    msg = EmailMessage()
+    msg["Subject"] = "Tribunale Ordinario di Padova Notificazione ai sensi del D.L. 179/2012"
+    msg["From"] = "Cancelleria <tribunale.padova@giustiziacert.it>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Mon, 20 Jul 2026 13:01:03 +0200"
+    msg["Message-ID"] = "<sentenza-429-presidio@example.test>"
+    msg.set_content(
+        "SENTENZA A VERBALE (art. 127 ter cpc). Il Giudice decide la causa con sentenza "
+        "a norma degli artt. 429 e 127ter cpc. Il Giudice, definitivamente decidendo, "
+        "condanna il Ministero alle spese che liquida in € 1.030,00 con distrazione in favore "
+        "del procuratore antistatario."
+    )
+
+    ingest = audit.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="1")
+    audit.parse_and_store(ingest["id"], actor="pytest")
+    with audit.connect() as conn:
+        conn.execute(
+            "UPDATE pec_messages SET linked_fascicolo_id=?, status=? WHERE tenant_id=? AND id=?",
+            ("C3565650", "linked", audit.tenant_id, ingest["id"]),
+        )
+
+    result = audit.validate_message(ingest["id"], actor="pytest")
+    assert result["notification_presidia"]["created"] == 1
+    rerun = audit.validate_message(ingest["id"], actor="pytest-rerun")
+    assert rerun["notification_presidia"]["created"] == 0
+
+    with audit.connect() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM pec_legal_notification_presidia WHERE tenant_id=?",
+            (audit.tenant_id,),
+        ).fetchone()[0] == 1
+        presidio = conn.execute(
+            "SELECT * FROM pec_legal_notification_presidia WHERE tenant_id=?",
+            (audit.tenant_id,),
+        ).fetchone()
+        assert presidio is not None
+        assert presidio["fascicolo_id"] == "C3565650"
+        assert presidio["status"] == PresidioStatus.DETECTED.value
+        assert presidio["notification_case"] == "judgment_to_notify_review"
+        recipient = conn.execute(
+            "SELECT * FROM pec_legal_notification_recipients WHERE tenant_id=? AND presidio_id=?",
+            (audit.tenant_id, presidio["id"]),
+        ).fetchone()
+        assert recipient is not None
+        assert recipient["name"] == "Destinatario da verificare"
+
+
+def test_pipeline_chiude_sentenza_429_se_prova_notifica_gia_presente(tmp_path: Path) -> None:
+    studio_db = tmp_path / "studio.db"
+    with sqlite3.connect(str(studio_db)) as conn:
+        conn.execute(
+            """
+            CREATE TABLE fascicoli (
+                id TEXT PRIMARY KEY,
+                documenti_json TEXT,
+                attivita_json TEXT
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO fascicoli (id, documenti_json, attivita_json) VALUES (?, ?, ?)",
+            (
+                "C3565650",
+                "[]",
+                "[]",
+            ),
+        )
+
+    audit = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="tenant-notifiche-test",
+        fascicoli_db_path=studio_db,
+    )
+    msg = EmailMessage()
+    msg["Subject"] = "Tribunale Ordinario di Padova Notificazione ai sensi del D.L. 179/2012"
+    msg["From"] = "Cancelleria <tribunale.padova@giustiziacert.it>"
+    msg["To"] = "studio@example.test"
+    msg["Date"] = "Thu, 16 Jul 2026 13:01:03 +0200"
+    msg["Message-ID"] = "<sentenza-429-presidio-proof@example.test>"
+    msg.set_content(
+        "SENTENZA A VERBALE (art. 127 ter cpc). Il Giudice decide la causa con sentenza "
+        "a norma degli artt. 429 e 127ter cpc. Il Giudice, definitivamente decidendo, "
+        "condanna il Ministero alle spese con distrazione in favore del procuratore antistatario."
+    )
+
+    ingest = audit.ingest_mime(msg.as_bytes(policy=policy.SMTP), account_email="studio@example.test", folder="INBOX", imap_uid="2")
+    audit.parse_and_store(ingest["id"], actor="pytest")
+    recipient_pec = "avvocatura.padova@avvocaturastato.it"
+    notification_id = "notifica-sentenza-abc"
+    sent_message_id = "notifica-sentenza-abc@pec.example.test"
+    documents = [
+        {
+            "data_documento": "2026-07-16",
+            "document_role": "notified_act",
+            "notification_id": notification_id,
+            "notified_source_message_id": ingest["id"],
+        },
+        {
+            "data_documento": "2026-07-16",
+            "document_role": "relata",
+            "notification_id": notification_id,
+            "notified_source_message_id": ingest["id"],
+        },
+    ]
+    activities = [
+        {
+            "data": "2026-07-16",
+            "event_type": "SENT_NOTIFICATION",
+            "notification_id": notification_id,
+            "message_id": sent_message_id,
+            "recipient_pec": recipient_pec,
+            "legal_basis": "Legge 53/1994",
+        },
+        {
+            "data": "2026-07-16",
+            "receipt_kind": "RAC",
+            "notification_id": notification_id,
+            "sent_message_id": sent_message_id,
+        },
+        {
+            "data": "2026-07-16",
+            "receipt_kind": "RdAC",
+            "notification_id": notification_id,
+            "sent_message_id": sent_message_id,
+            "recipient_pec": recipient_pec,
+        },
+    ]
+    with sqlite3.connect(str(studio_db)) as conn:
+        conn.execute(
+            "UPDATE fascicoli SET documenti_json=?, attivita_json=? WHERE id=?",
+            (json.dumps(documents), json.dumps(activities), "C3565650"),
+        )
+    with audit.connect() as conn:
+        conn.execute(
+            "UPDATE pec_messages SET linked_fascicolo_id=?, status=? WHERE tenant_id=? AND id=?",
+            ("C3565650", "linked", audit.tenant_id, ingest["id"]),
+        )
+
+    result = audit.validate_message(ingest["id"], actor="pytest")
+    assert result["notification_presidia"]["created"] == 1
+
+    with audit.connect() as conn:
+        rows = conn.execute(
+            "SELECT status, notification_case, resolution_code FROM pec_legal_notification_presidia WHERE tenant_id=?",
+            (audit.tenant_id,),
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0]["status"] == PresidioStatus.CLOSED.value
+        assert rows[0]["notification_case"] == "judgment_to_notify_review"
+        assert rows[0]["resolution_code"] == "proof_already_present"
+
+
+def test_due_notifiche_indipendenti_nello_stesso_fascicolo_non_chiudono_un_terzo_atto(tmp_path: Path) -> None:
+    studio_db = tmp_path / "studio.db"
+
+    def _chain(notification_id: str, act_message_id: str, recipient: str) -> tuple[list[dict], list[dict]]:
+        sent_message_id = f"{notification_id}@pec.example.test"
+        documents = [
+            {
+                "data_documento": "2026-07-17",
+                "nome": f"Sentenza {notification_id}.pdf",
+                "document_role": "notified_act",
+                "notification_id": notification_id,
+                "notified_source_message_id": act_message_id,
+            },
+            {
+                "data_documento": "2026-07-17",
+                "nome": f"Relata {notification_id}.pdf",
+                "document_role": "relata",
+                "notification_id": notification_id,
+                "notified_source_message_id": act_message_id,
+            },
+        ]
+        activities = [
+            {
+                "data": "2026-07-17",
+                "titolo": "Notificazione ai sensi della Legge 53/1994",
+                "event_type": "SENT_NOTIFICATION",
+                "notification_id": notification_id,
+                "message_id": sent_message_id,
+                "recipient_pec": recipient,
+                "legal_basis": "Legge 53/1994",
+            },
+            {
+                "data": "2026-07-17",
+                "receipt_kind": "RAC",
+                "notification_id": notification_id,
+                "sent_message_id": sent_message_id,
+            },
+            {
+                "data": "2026-07-17",
+                "titolo": "Ricevuta completa di avvenuta consegna",
+                "receipt_kind": "RdAC",
+                "notification_id": notification_id,
+                "sent_message_id": sent_message_id,
+                "recipient_pec": recipient,
+            },
+        ]
+        return documents, activities
+
+    documents_a, activities_a = _chain("notifica-a", "atto-c-corrente", "destinatario-a@example.test")
+    documents_b, activities_b = _chain("notifica-b", "atto-c-corrente", "destinatario-b@example.test")
+    with sqlite3.connect(str(studio_db)) as conn:
+        conn.execute(
+            """
+            CREATE TABLE fascicoli (
+                id TEXT PRIMARY KEY,
+                documenti_json TEXT,
+                attivita_json TEXT
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO fascicoli (id, documenti_json, attivita_json) VALUES (?, ?, ?)",
+            (
+                "FASC-DUE-NOTIFICHE",
+                json.dumps([*documents_a, *documents_b]),
+                json.dumps([*activities_a, *activities_b]),
+            ),
+        )
+
+    audit = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="tenant-notifiche-test",
+        fascicoli_db_path=studio_db,
+    )
+    proof = audit._notification_complete_proof_from_fascicolo(
+        fascicolo_id="FASC-DUE-NOTIFICHE",
+        source_effective_at="2026-07-16T13:01:03+02:00",
+        source_message_id="atto-c-corrente",
+        candidate_documents=[],
+        candidate_recipients=[{"pec_address": "destinatario-c@example.test"}],
+    )
+
+    assert proof == {}
+
+
+def test_stessa_notifica_due_destinatari_con_una_sola_rdac_resta_aperta(tmp_path: Path) -> None:
+    studio_db = tmp_path / "studio.db"
+    source_message_id = "atto-multi-destinatario"
+    notification_id = "notifica-multi-destinatario"
+    recipient_a = "destinatario-a@example.test"
+    recipient_b = "destinatario-b@example.test"
+    documents = [
+        {
+            "data_documento": "2026-07-17",
+            "document_role": "notified_act",
+            "notification_id": notification_id,
+            "notified_source_message_id": source_message_id,
+        },
+        {
+            "data_documento": "2026-07-17",
+            "document_role": "relata",
+            "notification_id": notification_id,
+            "notified_source_message_id": source_message_id,
+        },
+    ]
+    activities = [
+        {
+            "data": "2026-07-17",
+            "event_type": "SENT_NOTIFICATION",
+            "notification_id": notification_id,
+            "message_id": "invio-a@example.test",
+            "recipient_pec": recipient_a,
+            "legal_basis": "Legge 53/1994",
+        },
+        {
+            "data": "2026-07-17",
+            "event_type": "SENT_NOTIFICATION",
+            "notification_id": notification_id,
+            "message_id": "invio-b@example.test",
+            "recipient_pec": recipient_b,
+            "legal_basis": "Legge 53/1994",
+        },
+        {
+            "data": "2026-07-17",
+            "receipt_kind": "RAC",
+            "notification_id": notification_id,
+            "sent_message_id": "invio-a@example.test",
+        },
+        {
+            "data": "2026-07-17",
+            "receipt_kind": "RAC",
+            "notification_id": notification_id,
+            "sent_message_id": "invio-b@example.test",
+        },
+        {
+            "data": "2026-07-17",
+            "receipt_kind": "RdAC",
+            "notification_id": notification_id,
+            "sent_message_id": "invio-a@example.test",
+            "recipient_pec": recipient_a,
+        },
+    ]
+    with sqlite3.connect(str(studio_db)) as conn:
+        conn.execute(
+            """
+            CREATE TABLE fascicoli (
+                id TEXT PRIMARY KEY,
+                documenti_json TEXT,
+                attivita_json TEXT
+            )
+            """
+        )
+        conn.execute(
+            "INSERT INTO fascicoli (id, documenti_json, attivita_json) VALUES (?, ?, ?)",
+            (
+                "FASC-MULTI-DESTINATARIO",
+                json.dumps(documents),
+                json.dumps(activities),
+            ),
+        )
+
+    audit = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="tenant-notifiche-test",
+        fascicoli_db_path=studio_db,
+    )
+    proof = audit._notification_complete_proof_from_fascicolo(
+        fascicolo_id="FASC-MULTI-DESTINATARIO",
+        source_effective_at="2026-07-16T13:01:03+02:00",
+        source_message_id=source_message_id,
+        candidate_documents=[],
+        candidate_recipients=[
+            {"pec_address": recipient_a},
+            {"pec_address": recipient_b},
+        ],
+    )
+    decision = classify_historical_record(
+        {
+            "source_effective_at": "2026-07-16T13:01:03+02:00",
+            "live_pec_operational_event": True,
+            "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
+            "notification_case": "judgment_to_notify_review",
+            "complete_proof": bool(proof),
+        }
+    )
+
+    assert proof == {}
+    assert decision.status == PresidioStatus.DETECTED

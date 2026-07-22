@@ -1,14 +1,27 @@
 from __future__ import annotations
 
-import io
 import mimetypes
 import shutil
 import subprocess
 import tempfile
-import zipfile
 from dataclasses import asdict, dataclass, replace
 from functools import lru_cache
 from pathlib import Path
+
+
+OPENSSL_COMMAND_TIMEOUT_SECONDS = 15.0
+MAX_OPENSSL_DIAGNOSTIC_CHARS = 4_096
+MAX_SIGNED_CONTAINER_BYTES = 96 * 1024 * 1024
+MAX_SIGNED_PAYLOAD_BYTES = 64 * 1024 * 1024
+OOXML_MARKER_SCAN_BYTES = 4 * 1024 * 1024
+SIGNED_CONTAINER_MIME_TYPES = frozenset(
+    {
+        "application/pkcs7-mime",
+        "application/x-pkcs7-mime",
+        "application/pkcs7-signature",
+        "application/x-pkcs7-signature",
+    }
+)
 
 
 @dataclass(slots=True)
@@ -51,6 +64,12 @@ def is_p7m_filename(path: str | Path) -> bool:
     return str(path or "").strip().lower().endswith(".p7m")
 
 
+def is_signed_container(path: str | Path, mime_type: str = "") -> bool:
+    lower_name = str(path or "").strip().casefold()
+    mime = str(mime_type or "").split(";", 1)[0].strip().casefold()
+    return is_p7m_filename(path) or lower_name.endswith(".p7s") or mime in SIGNED_CONTAINER_MIME_TYPES
+
+
 def inner_signed_path(path: str | Path) -> Path:
     file_path = Path(path)
     return file_path.with_suffix("") if is_p7m_filename(file_path.name) else file_path
@@ -67,13 +86,23 @@ def payload_mime_from_bytes(data: bytes, original_name: str = "") -> str:
     if sample.startswith(b"%PDF"):
         return "application/pdf"
     if sample.startswith(b"PK\x03\x04"):
-        try:
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                names = set(archive.namelist())
-            if "word/document.xml" in names or lower_name.endswith(".docx"):
-                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        except Exception:
-            pass
+        # Il riconoscimento non deve aprire l'OOXML: ZipFile costruisce in
+        # memoria l'intera directory centrale prima che il chiamante possa
+        # applicare limiti a file e membri. I nomi dei membri sono presenti
+        # in chiaro negli header ZIP, quindi basta una scansione limitata.
+        scan_head_end = min(len(data), OOXML_MARKER_SCAN_BYTES)
+        scan_tail_start = max(0, len(data) - OOXML_MARKER_SCAN_BYTES)
+
+        def _has_marker(marker: bytes) -> bool:
+            return (
+                data.find(marker, 0, scan_head_end) >= 0
+                or data.find(marker, scan_tail_start) >= 0
+            )
+
+        if lower_name.endswith((".docx", ".docx.p7m")) or (
+            _has_marker(b"[Content_Types].xml") and _has_marker(b"word/document.xml")
+        ):
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         return "application/zip"
     if sample.lstrip().startswith(b"{") or sample.lstrip().startswith(b"["):
         return "application/json"
@@ -115,15 +144,22 @@ def _unwrap_octet_string(raw: bytes) -> bytes | None:
     if not raw or raw[0] != 0x04:
         return None
     try:
-        # Calcola la lunghezza del tag+len header per trovare il payload puro
         idx = 1
-        if raw[idx] & 0x80:
-            n = raw[idx] & 0x7F
-            idx += 1 + n
+        if idx >= len(raw):
+            return None
+        length_byte = raw[idx]
+        idx += 1
+        if length_byte & 0x80:
+            length_octets = length_byte & 0x7F
+            if length_octets == 0 or length_octets > 4 or idx + length_octets > len(raw):
+                return None
+            payload_length = int.from_bytes(raw[idx : idx + length_octets], "big")
+            idx += length_octets
         else:
-            idx += 1
-        if idx < len(raw):
-            return raw[idx:]
+            payload_length = length_byte
+        end = idx + payload_length
+        if payload_length > 0 and end <= len(raw):
+            return raw[idx:end]
     except Exception:
         pass
     return None
@@ -178,16 +214,19 @@ def _extract_via_magic_bytes(data: bytes) -> bytes | None:
     idx = data.find(b"%PDF")
     if idx >= 0:
         snippet = data[idx:]
-        if len(snippet) > 64 and (b"%%EOF" in snippet or b"endobj" in snippet or b"stream" in snippet):
+        if (
+            64 < len(snippet) <= MAX_SIGNED_PAYLOAD_BYTES
+            and (b"%%EOF" in snippet or b"endobj" in snippet or b"stream" in snippet)
+        ):
             return snippet
     # ZIP / DOCX
     idx = data.find(b"PK\x03\x04")
-    if idx >= 0 and len(data) - idx > 512:
+    if idx >= 0 and 512 < len(data) - idx <= MAX_SIGNED_PAYLOAD_BYTES:
         return data[idx:]
     # XML (DatiAtto.xml e simili del PST)
     for marker in (b"<?xml", b"<DatiAtto", b"<Deposito", b"<atto", b"<Atto"):
         idx = data.find(marker)
-        if idx >= 0 and len(data) - idx > 32:
+        if idx >= 0 and 32 < len(data) - idx <= MAX_SIGNED_PAYLOAD_BYTES:
             return data[idx:]
     return None
 
@@ -201,20 +240,50 @@ def extract_signed_payload(data: bytes) -> bytes | None:
     2. ricerca diretta magic bytes nel blob ASN.1
     """
     result = _extract_via_asn1crypto(data)
-    if result:
+    if result and len(result) <= MAX_SIGNED_PAYLOAD_BYTES:
         return result
     return _extract_via_magic_bytes(data)
 
 
 def _run_command(cmd: list[str]) -> tuple[bool, str]:
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=OPENSSL_COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "Operazione OpenSSL interrotta per superamento del tempo massimo."
     except Exception as exc:
-        return False, str(exc)
+        return False, str(exc)[:MAX_OPENSSL_DIAGNOSTIC_CHARS]
     stdout = (result.stdout or "").strip()
     stderr = (result.stderr or "").strip()
     details = stderr or stdout or f"returncode={result.returncode}"
-    return result.returncode == 0, details
+    return result.returncode == 0, details[:MAX_OPENSSL_DIAGNOSTIC_CHARS]
+
+
+def _bounded_openssl_output(
+    ok: bool,
+    details: str,
+    output_path: Path,
+) -> tuple[bool, str]:
+    if not ok:
+        return False, details
+    try:
+        output_size = output_path.stat().st_size
+    except OSError:
+        return False, details or "OpenSSL non ha prodotto un contenuto leggibile."
+    if output_size <= 0:
+        return False, details or "OpenSSL ha prodotto un contenuto vuoto."
+    if output_size > MAX_SIGNED_PAYLOAD_BYTES:
+        return (
+            False,
+            "Il contenuto firmato supera il limite di sicurezza previsto per l'anteprima interna.",
+        )
+    return True, details
 
 
 @lru_cache(maxsize=1)
@@ -330,17 +399,28 @@ def inspect_signed_document_bytes(
     source_name: str,
     data: bytes,
     source_path: str = "",
+    source_mime: str = "",
     original_detached_bytes: bytes | None = None,
     original_detached_name: str | None = None,
 ) -> SignedDocumentPayload:
-    openssl_ok = _openssl_available()
+    signed_container = is_signed_container(source_name, source_mime)
+    openssl_ok = (
+        _openssl_available()
+        if signed_container and len(data) <= MAX_SIGNED_CONTAINER_BYTES
+        else False
+    )
+    normalized_mime = str(source_mime or "").split(";", 1)[0].strip().casefold()
     base_status = SignedDocumentStatus(
         source_path=str(source_path or ""),
         source_name=str(source_name or ""),
-        is_signed_container=is_p7m_filename(source_name),
-        signature_format="cades" if is_p7m_filename(source_name) else "unknown",
+        is_signed_container=signed_container,
+        signature_format=(
+            "smime"
+            if normalized_mime in SIGNED_CONTAINER_MIME_TYPES
+            else ("cades" if signed_container else "unknown")
+        ),
         openssl_available=openssl_ok,
-        extraction_attempted=is_p7m_filename(source_name),
+        extraction_attempted=signed_container,
         extraction_ok=False,
         embedded_payload=False,
         detached_signature=False,
@@ -352,10 +432,26 @@ def inspect_signed_document_bytes(
         payload_extension=None,
         payload_mime=None,
         payload_size=None,
-        message="Il file non ha estensione .p7m",
+        message="Il file non è un contenitore firmato riconosciuto.",
     )
     if not base_status.is_signed_container:
         return SignedDocumentPayload(status=base_status, payload_bytes=None)
+
+    if len(data) > MAX_SIGNED_CONTAINER_BYTES:
+        return SignedDocumentPayload(
+            status=replace(
+                base_status,
+                extraction_attempted=False,
+                message=(
+                    "Il contenitore firmato supera il limite di sicurezza previsto per "
+                    "l'anteprima interna. Scarica l'originale per verificarlo."
+                ),
+                technical_details=(
+                    f"dimensione={len(data)} limite={MAX_SIGNED_CONTAINER_BYTES}"
+                ),
+            ),
+            payload_bytes=None,
+        )
 
     details = ""
     payload_bytes: bytes | None = None
@@ -372,28 +468,49 @@ def inspect_signed_document_bytes(
 
                 extracted_path = tmp_dir / "payload.bin"
                 # Strategia A: smime DER (standard PKCS7)
-                ok, details = _extract_with_openssl_smime(p7m_path, extracted_path)
+                ok, details = _bounded_openssl_output(
+                    *_extract_with_openssl_smime(p7m_path, extracted_path),
+                    extracted_path,
+                )
                 # Strategia B: cms DER -binary (CAdES-BES binario)
                 if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
-                    ok, details = _extract_with_openssl_cms(p7m_path, extracted_path)
+                    ok, details = _bounded_openssl_output(
+                        *_extract_with_openssl_cms(p7m_path, extracted_path),
+                        extracted_path,
+                    )
                 # Strategia C: cms senza -inform (auto BER/DER/PEM)
                 if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
-                    ok, details = _extract_with_openssl_cms_auto(p7m_path, extracted_path)
+                    ok, details = _bounded_openssl_output(
+                        *_extract_with_openssl_cms_auto(p7m_path, extracted_path),
+                        extracted_path,
+                    )
                 # Strategia D: smime senza -inform (auto-detect)
                 if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
-                    ok, details = _extract_with_openssl_smime_auto(p7m_path, extracted_path)
+                    ok, details = _bounded_openssl_output(
+                        *_extract_with_openssl_smime_auto(p7m_path, extracted_path),
+                        extracted_path,
+                    )
                 if ok and extracted_path.exists() and extracted_path.stat().st_size > 0:
                     payload_bytes = extracted_path.read_bytes()
                     embedded_payload = True
                     signature_verified = True
-                elif original_detached_bytes is not None:
+                elif (
+                    original_detached_bytes is not None
+                    and len(original_detached_bytes) <= MAX_SIGNED_PAYLOAD_BYTES
+                ):
                     original_path = tmp_dir / "original.bin"
                     original_path.write_bytes(original_detached_bytes)
                     detached_path = tmp_dir / "detached.bin"
-                    ok, details = _verify_detached_with_openssl_smime(p7m_path, original_path, detached_path)
+                    ok, details = _bounded_openssl_output(
+                        *_verify_detached_with_openssl_smime(p7m_path, original_path, detached_path),
+                        detached_path,
+                    )
                     if not ok:
-                        ok, details = _verify_detached_with_openssl_cms(p7m_path, original_path, detached_path)
-                    if ok:
+                        ok, details = _bounded_openssl_output(
+                            *_verify_detached_with_openssl_cms(p7m_path, original_path, detached_path),
+                            detached_path,
+                        )
+                    if ok and len(original_detached_bytes) <= MAX_SIGNED_PAYLOAD_BYTES:
                         payload_bytes = original_detached_bytes
                         detached_signature = True
                         signature_verified = True
@@ -406,7 +523,10 @@ def inspect_signed_document_bytes(
             payload_bytes = embedded
             embedded_payload = True
             details = details or "Payload embedded estratto via parser ASN.1."
-        elif original_detached_bytes is not None:
+        elif (
+            original_detached_bytes is not None
+            and len(original_detached_bytes) <= MAX_SIGNED_PAYLOAD_BYTES
+        ):
             payload_bytes = original_detached_bytes
             detached_signature = True
             details = details or "Firma detached rilevata con documento originale associato."
@@ -463,11 +583,17 @@ def verify_and_extract_p7m(
 ) -> SignedDocumentStatus:
     source = Path(p7m_path)
     original_path = Path(original_detached_path) if original_detached_path else None
+    with source.open("rb") as source_file:
+        source_bytes = source_file.read(MAX_SIGNED_CONTAINER_BYTES + 1)
+    detached_bytes = None
+    if original_path and original_path.exists():
+        with original_path.open("rb") as detached_file:
+            detached_bytes = detached_file.read(MAX_SIGNED_PAYLOAD_BYTES + 1)
     payload = inspect_signed_document_bytes(
         source_name=source.name,
         source_path=str(source),
-        data=source.read_bytes(),
-        original_detached_bytes=original_path.read_bytes() if original_path and original_path.exists() else None,
+        data=source_bytes,
+        original_detached_bytes=detached_bytes,
         original_detached_name=original_path.name if original_path and original_path.exists() else None,
     )
     if not payload.status.payload_available or not payload.payload_bytes:
@@ -494,6 +620,7 @@ __all__ = [
     "inner_signed_path",
     "inspect_signed_document_bytes",
     "is_p7m_filename",
+    "is_signed_container",
     "payload_extension_from_mime",
     "payload_mime_from_bytes",
     "payload_name_from_source",

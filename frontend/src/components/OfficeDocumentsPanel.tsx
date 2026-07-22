@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileText, FolderSearch2, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
 import { formatDateIt } from '../formatting'
@@ -47,13 +47,20 @@ type Props = {
 }
 
 const CERT_KEY = 'iusentra.react.pst.cert.v2'
-const SESSION_KEY = 'iusentra.react.pst.session.v2'
+const LEGACY_VIEW_SESSION_KEY = 'iusentra.react.pst.session.v2'
+const VIEW_SESSION_KEY = 'iusentra.react.pst.session.view.v3'
 const LOCAL_SIGNER_BASES = ['http://127.0.0.1:27272', 'http://localhost:27272']
 const OFFICIAL_PST_BASE = 'https://servizipst.giustizia.it/PST/it'
 const OFFICIAL_PST_ACCESS_URL = 'https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp'
 const JOB_TIMEOUT_MS = 360_000
 const DOWNLOAD_TIMEOUT_MS = 480_000
 const PORTAL_OPEN_TIMEOUT_MS = 20_000
+
+type LocalSignerTransport = 'fetch' | 'xhr'
+type LocalSignerRoute = { baseUrl: string; transport: LocalSignerTransport }
+
+let localSignerRoute: LocalSignerRoute | null = null
+let localSignerRouteProbe: Promise<LocalSignerRoute> | null = null
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -241,11 +248,22 @@ function certificateFrom(value: unknown): Certificate | null {
   }
 }
 
-function sessionFrom(value: unknown, officeCode: string, cert: Certificate): PstSession | null {
+function sessionFrom(
+  value: unknown,
+  officeCode: string,
+  cert: Certificate,
+  purpose: 'view' | 'import',
+): PstSession | null {
   const row = record(value)
-  const sessionId = text(row.sessionId || row.session_id || row.pst_session_id || row.view_session_id)
+  const returnedPurpose = text(row.purpose || row.session_purpose).toLowerCase()
+  if (returnedPurpose && returnedPurpose !== purpose) return null
+  const sessionId = purpose === 'import'
+    ? text(row.import_session_id || row.download_session_id || row.sessionId || row.session_id || row.pst_session_id)
+    : text(row.view_session_id || row.sessionId || row.session_id || row.pst_session_id)
   if (!sessionId) return null
-  const rawExpiry = number(row.expiresAt || row.expires_at || row.view_expires_at)
+  const rawExpiry = purpose === 'import'
+    ? number(row.import_expires_at || row.download_expires_at || row.expiresAt || row.expires_at)
+    : number(row.view_expires_at || row.expiresAt || row.expires_at)
   const expiresAt = rawExpiry > 0 ? (rawExpiry < 100_000_000_000 ? rawExpiry * 1000 : rawExpiry) : Date.now() + 1_800_000
   const session: PstSession = {
     sessionId,
@@ -287,7 +305,7 @@ function localXhrRequest(endpoint: string, body?: JsonRecord, timeoutMs = 45_000
   })
 }
 
-async function localRequest(endpoint: string, body?: JsonRecord, timeoutMs = 45_000): Promise<JsonRecord> {
+async function localFetchRequest(endpoint: string, body?: JsonRecord, timeoutMs = 45_000): Promise<JsonRecord> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -306,28 +324,64 @@ async function localRequest(endpoint: string, body?: JsonRecord, timeoutMs = 45_
     const payload = record(await response.json().catch(() => ({})))
     if (!response.ok || payload.ok === false) throw new Error(text(payload.errore || payload.error || payload.message, 'Operazione locale non completata.'))
     return payload
-  } catch (fetchError) {
-    try {
-      return await localXhrRequest(endpoint, body, timeoutMs)
-    } catch (xhrError) {
-      throw xhrError instanceof Error ? xhrError : fetchError
-    }
   } finally {
     window.clearTimeout(timeout)
   }
 }
 
-async function localSignerJson(path: string, body?: JsonRecord, timeoutMs = 45_000): Promise<JsonRecord> {
-  let lastError: unknown = null
-  for (const base of LOCAL_SIGNER_BASES) {
-    try {
-      return await localRequest(`${base}${path}`, body, timeoutMs)
-    } catch (error) {
-      lastError = error
+function localRequest(
+  endpoint: string,
+  transport: LocalSignerTransport,
+  body?: JsonRecord,
+  timeoutMs = 45_000,
+): Promise<JsonRecord> {
+  return transport === 'fetch'
+    ? localFetchRequest(endpoint, body, timeoutMs)
+    : localXhrRequest(endpoint, body, timeoutMs)
+}
+
+async function resolveLocalSignerRoute(): Promise<LocalSignerRoute> {
+  if (localSignerRoute) return localSignerRoute
+  if (localSignerRouteProbe) return localSignerRouteProbe
+
+  const probe = (async () => {
+    let lastError: unknown = null
+    for (const baseUrl of LOCAL_SIGNER_BASES) {
+      for (const transport of ['fetch', 'xhr'] as const) {
+        try {
+          await localRequest(`${baseUrl}/ping?light=1`, transport, undefined, 3_500)
+          const resolved = { baseUrl, transport }
+          localSignerRoute = resolved
+          return resolved
+        } catch (error) {
+          lastError = error
+        }
+      }
     }
+    const reason = lastError instanceof Error && lastError.name !== 'AbortError'
+      ? lastError.message
+      : 'tempo massimo superato'
+    throw new Error(`Local Signer non raggiungibile dal browser. Verifica che sia avviato sul PC in uso e riprova. Dettaglio: ${reason}`)
+  })()
+  localSignerRouteProbe = probe
+  try {
+    return await probe
+  } finally {
+    if (localSignerRouteProbe === probe) localSignerRouteProbe = null
   }
-  const reason = lastError instanceof Error && lastError.name !== 'AbortError' ? lastError.message : 'tempo massimo superato'
-  throw new Error(`Local Signer non raggiungibile dal browser. Verifica che sia avviato sul PC in uso e riprova. Dettaglio: ${reason}`)
+}
+
+async function localSignerJson(path: string, body?: JsonRecord, timeoutMs = 45_000): Promise<JsonRecord> {
+  const route = await resolveLocalSignerRoute()
+  try {
+    // I POST operativi partono una sola volta sul trasporto già scelto con il ping GET.
+    // Un errore invalida la cache per l'azione successiva, senza ripetere questa richiesta.
+    return await localRequest(`${route.baseUrl}${path}`, route.transport, body, timeoutMs)
+  } catch (error) {
+    if (localSignerRoute === route) localSignerRoute = null
+    const reason = error instanceof Error && error.name !== 'AbortError' ? error.message : 'tempo massimo superato'
+    throw new Error(`Operazione Local Signer non completata. Dettaglio: ${reason}`)
+  }
 }
 
 async function serverJson(path: string, body?: JsonRecord): Promise<JsonRecord> {
@@ -415,11 +469,18 @@ function downloadableDocument(row: JsonRecord, mode: DocumentMode): JsonRecord {
   }
 }
 
-function sessionPayload(session: PstSession, cert: Certificate): JsonRecord {
+function pstOperationId(purpose: 'view' | 'import'): string {
+  const token = typeof window.crypto?.randomUUID === 'function'
+    ? window.crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  return `office-documents-${purpose}-${token}`
+}
+
+function sessionPayload(session: PstSession, cert: Certificate, purpose: 'view' | 'import'): JsonRecord {
   return {
     session_id: session.sessionId,
     pst_session_id: session.sessionId,
-    purpose: 'view',
+    purpose,
     cert_thumbprint: cert.thumbprint,
     cert_key: cert.thumbprint,
     expires_at: session.expiresAt,
@@ -431,10 +492,12 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
   const [modes, setModes] = useState<Record<string, DocumentMode>>({})
-  const [session, setSession] = useState<PstSession | null>(null)
+  const [viewSession, setViewSession] = useState<PstSession | null>(null)
   const [assistantSession, setAssistantSession] = useState<PortalAssistantSession | null>(null)
   const [busy, setBusy] = useState<'portal' | 'collect' | 'search' | 'import' | ''>('')
   const [message, setMessage] = useState('')
+  const searchFlight = useRef<Promise<void> | null>(null)
+  const downloadFlight = useRef<Promise<void> | null>(null)
 
   const source = data.fascicolo.sourceSnapshot
   const officeCode = source.ufficioCodice || data.depositOffice.ministerialCode || data.depositOffice.code
@@ -581,7 +644,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
     }
   }
 
-  const runSearch = async (openOfficialPortal = true) => {
+  const runSearchOperation = async (openOfficialPortal: boolean, operationId: string) => {
     if (missing.length) {
       onError(`Ricerca documenti non avviata: manca ${missing.join(', ')} nel fascicolo.`)
       return
@@ -628,8 +691,11 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
         throw new Error("Portale Servizi non aperto: consenti l'apertura della nuova scheda e riprova.")
       }
       setMessage(`${openOfficialPortal ? 'Portale Servizi aperto sulla consultazione ufficiale.' : 'Portale Servizi aperto nella nuova scheda.'} Lettura dei documenti disponibili in corso...`)
-      const storedSession = sessionFrom(readStored(SESSION_KEY), officeCode, cert)
+      const storedSession = viewSession
+        || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
+        || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
       const job = await localSignerJson('/pst/fascicolo-snapshot-job', {
+        operation_id: operationId,
         selection: {
           id_fascicolo: source.idFascicoloPortale || source.externalId,
           codice_ufficio: officeCode,
@@ -664,7 +730,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
         if (text(status.status) === 'failed') throw new Error(text(status.errore || status.error, 'Consultazione non completata.'))
         setMessage(text(status.current, 'Lettura dei documenti disponibili…'))
         await new Promise((resolve) => window.setTimeout(resolve, 2_500))
-        status = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, {}, 60_000)
+        status = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, { operation_id: operationId }, 60_000)
       }
       if (text(status.status) !== 'completed') throw new Error('Il portale non ha completato la consultazione entro il tempo massimo.')
       const result = record(status.result)
@@ -676,13 +742,14 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
       if (nextCert.thumbprint) {
         writeStored(CERT_KEY, { thumbprint: nextCert.thumbprint, codiceFiscale: nextCert.fiscalCode })
       }
-      const nextSession = sessionFrom(result, officeCode, nextCert)
-        || sessionFrom(result.pst_session, officeCode, nextCert)
-        || sessionFrom(nextSnapshot.pst_session, officeCode, nextCert)
+      const nextSession = sessionFrom(result, officeCode, nextCert, 'view')
+        || sessionFrom(result.pst_session, officeCode, nextCert, 'view')
+        || sessionFrom(nextSnapshot.pst_session, officeCode, nextCert, 'view')
         || storedSession
       if (!nextSession) throw new Error('Sessione di consultazione non inizializzata.')
-      writeStored(SESSION_KEY, {
+      writeStored(VIEW_SESSION_KEY, {
         sessionId: nextSession.sessionId,
+        purpose: 'view',
         tribunale: nextSession.officeCode,
         certThumbprint: nextSession.certThumbprint,
         expiresAt: nextSession.expiresAt,
@@ -690,7 +757,7 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
       const rows = list(nextSnapshot.documenti || nextSnapshot.catalogo || result.documenti)
       const nextDocuments = flattenDocuments(rows, data.documents)
       setSnapshot(nextSnapshot)
-      setSession(nextSession)
+      setViewSession(nextSession)
       setDocuments(nextDocuments)
       setSelection([])
       setModes({})
@@ -709,12 +776,25 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
     }
   }
 
-  const runImport = async () => {
+  const runSearch = (openOfficialPortal = true): Promise<void> => {
+    if (searchFlight.current) return searchFlight.current
+    if (downloadFlight.current) return downloadFlight.current
+    const operationId = pstOperationId('view')
+    const flight = runSearchOperation(openOfficialPortal, operationId)
+    searchFlight.current = flight
+    void flight.then(
+      () => { if (searchFlight.current === flight) searchFlight.current = null },
+      () => { if (searchFlight.current === flight) searchFlight.current = null },
+    )
+    return flight
+  }
+
+  const runImportOperation = async (operationId: string) => {
     if (!selectedDocuments.length) {
       onError('Seleziona almeno un documento da acquisire.')
       return
     }
-    if (!session) {
+    if (!viewSession) {
       onError('La sessione di consultazione è scaduta: aggiorna prima l’elenco.')
       return
     }
@@ -722,15 +802,19 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
     setMessage(`Acquisizione di ${selectedDocuments.length} documenti in corso…`)
     try {
       const cert = await ensureCertificate()
+      const storedDownloadSession = viewSession
+        || sessionFrom(readStored(VIEW_SESSION_KEY), officeCode, cert, 'view')
+        || sessionFrom(readStored(LEGACY_VIEW_SESSION_KEY), officeCode, cert, 'view')
       const selectedRows = selectedDocuments.map((doc) => downloadableDocument(doc.raw, modes[doc.key] || 'copia'))
       const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
+        operation_id: operationId,
         tribunale: officeCode,
         codice_ufficio: officeCode,
         cf_avvocato: cert.fiscalCode,
         cert_thumbprint: cert.thumbprint,
         cert_key: cert.thumbprint,
         purpose: 'view',
-        pst_session_id: session.sessionId,
+        pst_session_id: storedDownloadSession?.sessionId || '',
         preflight_auth: false,
         original: false,
         servizio_pst: source.servizioPst || text(record(snapshot.fascicolo).servizio_pst),
@@ -743,7 +827,19 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
         const firstFailure = record(list(signerPayload.failures)[0])
         throw new Error(text(firstFailure.errore || firstFailure.message, 'Nessun documento è stato ricevuto dal portale.'))
       }
-      const pstSession = sessionPayload(session, cert)
+      const nextDownloadSession = sessionFrom(signerPayload, officeCode, cert, 'view')
+        || sessionFrom(signerPayload.pst_session, officeCode, cert, 'view')
+        || storedDownloadSession
+      if (!nextDownloadSession) throw new Error('Sessione di scaricamento non inizializzata.')
+      writeStored(VIEW_SESSION_KEY, {
+        sessionId: nextDownloadSession.sessionId,
+        purpose: 'view',
+        tribunale: nextDownloadSession.officeCode,
+        certThumbprint: nextDownloadSession.certThumbprint,
+        expiresAt: nextDownloadSession.expiresAt,
+      })
+      setViewSession(nextDownloadSession)
+      const pstSession = sessionPayload(nextDownloadSession, cert, 'view')
       const selectionPayload = {
         ...record(snapshot.fascicolo),
         id_fascicolo: source.idFascicoloPortale || source.externalId,
@@ -795,6 +891,19 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
     } finally {
       setBusy('')
     }
+  }
+
+  const runImport = (): Promise<void> => {
+    if (downloadFlight.current) return downloadFlight.current
+    if (searchFlight.current) return searchFlight.current
+    const operationId = pstOperationId('import')
+    const flight = runImportOperation(operationId)
+    downloadFlight.current = flight
+    void flight.then(
+      () => { if (downloadFlight.current === flight) downloadFlight.current = null },
+      () => { if (downloadFlight.current === flight) downloadFlight.current = null },
+    )
+    return flight
   }
 
   return (

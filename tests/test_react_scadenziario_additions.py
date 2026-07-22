@@ -1,21 +1,31 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 from datetime import date, timedelta
 from email.message import EmailMessage
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pec_pipeline import PecAuditRepository
-from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
+from pct.scadenziario import GestioneScadenziario, PrioritaTermine, StatoTermine, TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.helpers import get_agenda, get_scadenziario
 from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
-from web.services.react_scadenziario_bridge import build_react_scadenziario_payload, dedupe_calculator_templates
+from web.services.react_scadenziario_bridge import (
+    _document_presidio_event_label,
+    _source_evidence,
+    _visible_legal_text,
+    build_react_scadenziario_payload,
+    calculator_templates_for_guide,
+    dedupe_calculator_templates,
+)
 
 
 def _app(tmp_path: Path):
@@ -42,6 +52,162 @@ def _remote_hearing_pdf_bytes(link: str) -> bytes:
     return buffer.getvalue()
 
 
+def _write_control_tower_receipt(email_dir: Path, *, tenant_id: str = "studio-test") -> Path:
+    email_dir.mkdir(parents=True, exist_ok=True)
+    audit_db = email_dir / "pec_audit.sqlite"
+    tower_db = email_dir / "pec_control_tower.sqlite"
+    with sqlite3.connect(audit_db) as connection:
+        connection.execute(
+            """
+            CREATE TABLE pec_messages (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT,
+                message_id_header TEXT,
+                received_at TEXT,
+                metadata_json TEXT,
+                mime_sha256 TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO pec_messages (id, tenant_id, message_id_header, received_at, metadata_json, mime_sha256)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "pec_f205aa7f34c13b363f94af81",
+                tenant_id,
+                "<jpec1329.20260716163700.49709.401.1.2@pec.aruba.it>",
+                "2026-07-16T14:37:00Z",
+                json.dumps(
+                    {
+                        "headers": {
+                            "from": "posta-certificata@pec.aruba.it",
+                            "subject": "ACCETTAZIONE: Liquidazione delle spese legali relative sentenza n.325/2025 pubblicata il 26/02/2025 Tribunale di Vibo Valentia",
+                            "to": "giuseppe.montagnese94@pec.it",
+                        }
+                    }
+                ),
+                "f205aa7f34c13b363f94af8117df82909b606a380680ca77f183f4597333cfa2",
+            ),
+        )
+    with sqlite3.connect(tower_db) as connection:
+        connection.execute(
+            """
+            CREATE TABLE legal_communications (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT,
+                message_id_header TEXT,
+                original_message_id TEXT,
+                subject TEXT,
+                sender TEXT,
+                recipients_json TEXT,
+                received_at TEXT,
+                sent_at TEXT,
+                mime_sha256 TEXT,
+                technical_type TEXT,
+                legal_category TEXT,
+                legal_event_type TEXT,
+                confidence REAL,
+                confidence_label TEXT,
+                requires_human_confirmation INTEGER,
+                status TEXT,
+                fascicolo_id TEXT,
+                fascicolo_score REAL,
+                risk_level TEXT,
+                summary TEXT,
+                extracted_json TEXT,
+                evidence_json TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO legal_communications (
+                id, tenant_id, message_id_header, original_message_id, subject, sender,
+                recipients_json, received_at, sent_at, mime_sha256, technical_type,
+                legal_category, legal_event_type, confidence, confidence_label,
+                requires_human_confirmation, status, fascicolo_id, fascicolo_score,
+                risk_level, summary, extracted_json, evidence_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "lcom_9451841b00e74febb0360758",
+                tenant_id,
+                "jpec1329.20260716163700.49709.401.1.2@pec.aruba.it",
+                "TI9V9N$0E3FCC23CD7CFC5028E721EE5F348032@pec.it",
+                "ACCETTAZIONE: Liquidazione delle spese legali relative sentenza n.325/2025 pubblicata il 26/02/2025 Tribunale di Vibo Valentia",
+                "posta-certificata@pec.aruba.it",
+                json.dumps([{"email": "giuseppe.montagnese94@pec.it", "name": ""}]),
+                "2026-07-16T14:37:00+00:00",
+                "2026-07-16T14:37:00+00:00",
+                "f205aa7f34c13b363f94af8117df82909b606a380680ca77f183f4597333cfa2",
+                "PEC_RECEIPT_ACCEPTANCE",
+                "PEC_OUTBOUND_PROOF",
+                "ricevuta_accettazione_da_presidiare",
+                0.95,
+                "alta",
+                1,
+                "open",
+                "",
+                1.5,
+                "alta",
+                "Ricevuta di accettazione senza chiusura automatica della notifica.",
+                json.dumps(
+                    {
+                        "fascicolo_match": {
+                            "fascicolo_id": "",
+                            "label": "Contarese c. MIM",
+                            "reason": "tribunale",
+                            "requires_human_match": True,
+                            "score": 1.5,
+                        },
+                        "registri": [{"anno": "2025", "numero": "325"}],
+                    }
+                ),
+                json.dumps(
+                    {
+                        "daticert": {
+                            "mittente": "giuseppe.montagnese94@pec.it",
+                            "destinatario": "usp.vv@istruzione.it",
+                            "oggetto": "Liquidazione delle spese legali relative sentenza n.325/2025 pubblicata il 26/02/2025 Tribunale di Vibo Valentia",
+                        }
+                    }
+                ),
+            ),
+        )
+    return audit_db
+
+
+def test_scadenziario_non_espone_marker_interno_del_presidio_notifica() -> None:
+    text = _visible_legal_text(
+        "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:02245673-6b37-4173-bebe-2fbb7a1f9d77:da_preparare\n"
+        "Preparare la relata di notifica."
+    )
+
+    assert text == "Preparare la relata di notifica."
+    assert "IUSENTRA_LEGAL_NOTIFICATION" not in text
+
+
+def test_evento_documentale_non_scambia_originale_notificato_per_notifica() -> None:
+    source = SimpleNamespace(
+        tipo=TipoTermine.ADEMPIMENTO,
+        titolo="Attività processuale da presidiare",
+        descrizione="Fonte documentale: Ricorso Zagari (originale notificato).pdf",
+        note="PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-08-31",
+    )
+    actual_notification = SimpleNamespace(
+        tipo=TipoTermine.ADEMPIMENTO,
+        titolo="Verifica o attività di notifica",
+        descrizione="",
+        note="",
+    )
+
+    assert _document_presidio_event_label(source) == "Attività processuale"
+    assert _document_presidio_event_label(actual_notification) == "Notifica"
+
+
 def test_react_scadenziario_page_collegata_nav_api_e_lex():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/ScadenziarioPage.tsx").read_text(encoding="utf-8")
@@ -51,8 +217,12 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
 
     assert "/scadenziario" in app_source
     assert "isScadenziarioPage?<ScadenziarioPage/>" in app_source
+    assert "/scadenziario/calcola-termini" in app_source
+    assert "isCalculatorPage?<CalcolaTerminiPage/>" in app_source
     assert "Scadenziario Legale" in page_source
     assert "Calcolatore termini processuali" in page_source
+    assert "export function CalcolaTerminiPage" in page_source
+    assert "getDeadlineCalculator" in page_source
     assert "calculateProcessDeadline" in page_source
     assert "createProcessDeadline" in page_source
     assert "Prova di controllo" in page_source
@@ -69,7 +239,7 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "Allegato udienza:" in page_source
     assert "Link verificato sull’allegato" in page_source
     assert "SourceEvidenceLink" in page_source
-    assert "Visualizza fonte" in page_source
+    assert "Apri fonte" in page_source
     assert "SourceDocumentModal" in page_source
     assert "OperationalModal" in page_source
     assert "openDeadlineDetail" in page_source
@@ -89,13 +259,20 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "FloatingLex" in page_source
     assert 'context="scadenziario"' in page_source
     assert "postDeadlineAction" in page_source
+    assert "useScadenziarioMobileLayout" in page_source
+    assert "mobileLayout ? (" in page_source
     assert "getScadenziarioPage" in data_source
     assert "focus_id" in data_source
     assert "compatto" in data_source
+    assert "calcolatore', '0" in data_source
     assert "buildQuery(true)" in page_source
-    assert "Dettaglio disponibile, aggiornamento elenco in corso..." in page_source
+    assert "if (data.query.compact)" in page_source
+    assert "const completePayload = await getScadenziarioPage(buildQuery(false))" not in page_source
+    assert "setBackgroundLoading(true)" not in page_source
     assert "DeadlineCalculatorTemplate" in data_source
     assert "DeadlineCalculatorResult" in data_source
+    assert "focusId: asString(queryPayload.focusId" in data_source
+    assert "compact: asBoolean(queryPayload.compact)" in data_source
     assert "/api/v1/ui/scadenziario" in data_source
     assert "/api/v1/ui/scadenziario/termini/calculate" in data_source
     assert "/api/v1/ui/scadenziario/termini/crea-scadenza" in data_source
@@ -111,6 +288,24 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert ".iu-scad-pdf-row-delete" in css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
+
+
+def test_calcolatore_separato_non_carica_template_nello_scadenziario_e_mantiene_guida() -> None:
+    page_source = Path("frontend/src/components/ScadenziarioPage.tsx").read_text(encoding="utf-8")
+    email_source = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
+    bridge_source = Path("web/services/react_scadenziario_bridge.py").read_text(encoding="utf-8")
+
+    assert "includeCalculator: false" in page_source
+    assert "carica solo template, regole e fonti necessarie" in page_source
+    assert "/api/v1/ui/email/source/${encoded}?name=${encodeURIComponent(name)}" in email_source
+    assert "Allegato originale disponibile per visualizzazione o scarico." in email_source
+    assert "include_calculator" in bridge_source
+
+    templates = [
+        {"code": "GUIDA-A", "name": "Termine A", "metadata": {"codice_guida": "GUIDA-A"}},
+        {"code": "GUIDA-B", "name": "Termine B", "metadata": {"codice_guida": "GUIDA-B"}},
+    ]
+    assert [template["code"] for template in calculator_templates_for_guide(templates, "GUIDA-A")] == ["GUIDA-A"]
 
 
 def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
@@ -326,9 +521,87 @@ def test_react_scadenziario_ricerca_globale_trova_scaduta_per_ufficio_pec(tmp_pa
     assert payload["query"]["searchAcrossAll"] is True
 
 
+def test_scadenziario_ricevuta_accettazione_control_tower_apre_pec_specifica(tmp_path: Path):
+    pec_db = _write_control_tower_receipt(tmp_path / "email")
+    gestione = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gestione.nuova(
+        "Presidio ricevute PEC da completare",
+        TipoTermine.ADEMPIMENTO,
+        "2026-07-17",
+        descrizione="Bozza da confermare generata da presidio PEC Control Tower.",
+        note="Termine operativo non definitivo: conferma professionale obbligatoria.",
+        source_event_type="ricevuta_accettazione_da_presidiare",
+        source_event_at="2026-07-16T14:37:00+00:00",
+    )
+
+    payload = build_react_scadenziario_payload(
+        gestione_scadenziario=gestione,
+        gestione_fascicoli=None,
+        query_args={"vista": "tutte"},
+        pec_audit_db=str(pec_db),
+        tenant_id="studio-test",
+    )
+
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    assert row["sourceHref"] == "/email/?audit_id=pec_f205aa7f34c13b363f94af81"
+    assert row["sourceLabel"] == "PEC di accettazione"
+    assert row["sourceEventTypeLabel"] == "Ricevuta di accettazione PEC da presidiare"
+    assert row["title"].startswith("PEC di accettazione: Liquidazione delle spese legali")
+    assert "usp.vv@istruzione.it" in row["detailDescription"]
+    assert "Prova parziale" in row["detailDescription"]
+    assert "Possibile fascicolo da verificare: Contarese c. MIM" in row["detailDescription"]
+    assert row["clientLabel"] != "Contarese c. MIM"
+    assert row["fascicoloLabel"] != "Contarese c. MIM"
+
+
+def test_scadenziario_ricevuta_consegna_prevale_su_tipo_tecnico_storico(tmp_path: Path):
+    pec_db = _write_control_tower_receipt(tmp_path / "email")
+    tower_db = pec_db.with_name("pec_control_tower.sqlite")
+    with sqlite3.connect(tower_db) as connection:
+        connection.execute(
+            """
+            UPDATE legal_communications
+            SET subject = ?,
+                legal_event_type = ?,
+                technical_type = ?
+            WHERE id = ?
+            """,
+            (
+                "CONSEGNA: Notificazione ai sensi della legge n. 53/1994 [JQ278-L01]",
+                "ricevuta_accettazione_da_presidiare",
+                "PEC_RECEIPT_ACCEPTANCE",
+                "lcom_9451841b00e74febb0360758",
+            ),
+        )
+
+    gestione = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gestione.nuova(
+        "Presidio ricevute PEC da completare",
+        TipoTermine.ADEMPIMENTO,
+        "2026-07-17",
+        source_event_type="ricevuta_accettazione_da_presidiare",
+        source_event_at="2026-07-16T14:37:00+00:00",
+    )
+
+    payload = build_react_scadenziario_payload(
+        gestione_scadenziario=gestione,
+        gestione_fascicoli=None,
+        query_args={"vista": "tutte"},
+        pec_audit_db=str(pec_db),
+        tenant_id="studio-test",
+    )
+
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    assert row["sourceLabel"] == "PEC di consegna"
+    assert row["sourceEventTypeLabel"] == "Ricevuta di consegna PEC da conservare"
+    assert row["title"].startswith("PEC di consegna:")
+    assert row["sourceHref"] == "/email/?audit_id=pec_f205aa7f34c13b363f94af81"
+
+
 def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
+    bridge_source = Path("web/services/react_scadenziario_bridge.py").read_text(encoding="utf-8")
     due_date = (date.today() + timedelta(days=2)).isoformat()
     with app.app_context():
         get_agenda().aggiungi(
@@ -367,6 +640,17 @@ def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo
     assert payload["calculator"]["templates"] == []
     assert payload["overduePreview"] == []
     assert payload["nextItems"] == []
+    assert "focused_item = gestione_scadenziario.get(focus_id)" in bridge_source
+    assert "if compact:" in bridge_source
+    assert "filtered = [item for item in all_items if str(getattr(item, \"id\", \"\") or \"\") == focus_id]" in bridge_source
+    assert "pec_profile_items = filtered" in bridge_source
+    assert "base_items=all_items" in bridge_source
+    assert "_agenda_candidates_for_compact_deadline" in bridge_source
+    assert "selected_rgs: set[str] = set()" in bridge_source
+    assert "needs_agenda_context = not (" in bridge_source
+    assert "all(_is_legal_notification_presidio(item) for item in filtered)" in bridge_source
+    assert "agenda_items = _agenda_candidates_for_compact_deadline(agenda_items, filtered)" in bridge_source
+    assert "for item in filtered:" in bridge_source
 
 
 def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: Path):
@@ -408,6 +692,199 @@ def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: 
     assert row["fascicoloLabel"] == "RG 274/2026 - Usucapione"
     assert row["clientLabel"] == "Azzaro Filippo"
     assert row["ownerLabel"] == "Antonella Mammola"
+
+
+def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Maria",
+            cognome="Romeo",
+        )
+        fascicoli = GestioneFascicoli(
+            db_path=app.config["FASCICOLI_DB"],
+            documents_dir=app.config["FASCICOLI_DOCS"],
+            archive_dir=app.config["FASCICOLI_ARCH"],
+        )
+        fascicolo = fascicoli.nuovo(
+            "Romeo Maria c. MIM",
+            TipoFascicolo.LAVORO,
+            id_cliente=cliente.id,
+            nome_cliente=cliente.nome_completo,
+            numero_rg="1428",
+            anno_rg=2026,
+            oggetto="Romeo Maria c. MIM",
+            tribunale="TRIBUNALE DI PALMI",
+        )
+        scadenza = get_scadenziario().nuova(
+            "ROMEO MARIA - SENTENZA A VERBALE (art. 127 ter cpc) Comunicazione di cancelleria - RG 1428/2026",
+            TipoTermine.NOTIFICA,
+            "2026-07-20",
+            id_fascicolo=fascicolo.id,
+            descrizione="Sentenza o sentenza a verbale già resa: la comunicazione di cancelleria non prova la notifica.",
+            note=(
+                "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-romeo:da_preparare\n"
+                "PEC_AUDIT:pec_romeo\n"
+                "Fonte documentale: 9732730s.pdf.zip"
+            ),
+            source_event_type="legal_notification_presidio",
+        )
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+
+    assert row["title"] == "Sentenza da valutare per la notifica - Romeo Maria - RG 1428/2026"
+    assert row["sourceEventTypeLabel"] == "Sentenza da valutare per la notifica"
+    assert row["sourceKind"] == "pec"
+    assert row["sourceHref"] == "/api/v1/ui/email/source/pec_romeo?name=9732730s.pdf.zip"
+    assert row["sourceLabel"] == "PEC originale - 9732730s.pdf.zip"
+    assert "/fascicoli/" not in row["sourceHref"]
+    assert "non fa decorrere da sola il termine breve" in row["detailDescription"]
+
+
+def test_source_evidence_presidio_notifica_senza_marker_pec_non_apre_documenti_fascicolo():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.NOTIFICA,
+        titolo="Sentenza da valutare per la notifica",
+        descrizione="Fonte documentale: 19040620s.pdf",
+        note="IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-alfano:da_preparare",
+        source_event_type="legal_notification_presidio",
+        hearing_mode_source="19040620s.pdf",
+    )
+
+    source = _source_evidence(scadenza, fascicolo_id="C3565650")
+
+    assert source == {
+        "sourceHref": "",
+        "sourceLabel": "PEC sorgente da riallineare",
+        "sourceKind": "pec",
+        "sourceVerified": False,
+    }
+
+
+def test_source_evidence_corpo_pec_apre_pec_originale_non_allegato_vuoto():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Rinvio udienza da comunicazione di cancelleria - RG 771/2025",
+        descrizione="Data processuale futura letta da corpo PEC: udienza rinviata.",
+        note="PEC_AUDIT:pec_rinvio\nFonte documentale: corpo PEC",
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="corpo PEC",
+    )
+
+    source = _source_evidence(scadenza, fascicolo_id="FASC-RINVIO")
+
+    assert source == {
+        "sourceHref": "/email/?audit_id=pec_rinvio",
+        "sourceLabel": "PEC originale",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_source_evidence_marker_strutturale_preserva_id_legacy_con_due_punti():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Udienza da PEC",
+        descrizione="Fonte documentale: corpo PEC",
+        note="PEC_AUDIT:email:03c7d9aef123:hearing:udienza-1:deadline",
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="corpo PEC",
+    )
+
+    source = _source_evidence(scadenza)
+
+    assert source["sourceHref"] == "/email/?audit_id=email%3A03c7d9aef123"
+    assert source["sourceKind"] == "pec"
+    assert source["sourceVerified"] is True
+
+
+def test_source_evidence_testo_href_apre_pec_originale_non_allegato_vuoto():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Link udienza da PEC - RG 1754/2026",
+        descrizione="Collegamento audiovisivo letto da testo/href della PEC.",
+        note="PEC_AUDIT:pec_link\nFonte documentale: testo/href",
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="testo/href",
+    )
+
+    source = _source_evidence(scadenza, fascicolo_id="FASC-LINK")
+
+    assert source == {
+        "sourceHref": "/email/?audit_id=pec_link",
+        "sourceLabel": "PEC originale",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_source_evidence_fonte_link_udienza_apre_zip_pdf_della_pec():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Fissazione udienza - RG 2780/2024",
+        descrizione="Udienza comunicata dalla cancelleria.",
+        note=(
+            "PEC_AUDIT:pec_udienza_2780\n"
+            "Fonte link udienza: Decreto fissazione udienza 8960334s.pdf.zip"
+        ),
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="",
+        remote_hearing_source="",
+    )
+
+    source = _source_evidence(scadenza, fascicolo_id="FASC-2780")
+
+    assert source == {
+        "sourceHref": "/api/v1/ui/email/source/pec_udienza_2780?name=Decreto%20fissazione%20udienza%208960334s.pdf.zip",
+        "sourceLabel": "PEC originale - Decreto fissazione udienza 8960334s.pdf.zip",
+        "sourceKind": "pec",
+        "sourceVerified": True,
+    }
+
+
+def test_source_evidence_label_generica_non_blocca_zip_nelle_note():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Fissazione udienza - RG 2780/2024",
+        descrizione="Data letta dal corpo PEC, documento nello ZIP.",
+        note=(
+            "PEC_AUDIT:pec_udienza_generica\n"
+            "Fonte documentale: Decreto fissazione udienza 2780s.pdf.zip"
+        ),
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="corpo PEC",
+        remote_hearing_source="",
+    )
+
+    source = _source_evidence(scadenza, fascicolo_id="FASC-2780")
+
+    assert source["sourceHref"] == "/api/v1/ui/email/source/pec_udienza_generica?name=Decreto%20fissazione%20udienza%202780s.pdf.zip"
+    assert source["sourceLabel"] == "PEC originale - Decreto fissazione udienza 2780s.pdf.zip"
+
+
+def test_source_evidence_fonte_evento_esatta_vince_su_altro_zip_del_profilo():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.NOTIFICA,
+        titolo="Sentenza da valutare per la notifica",
+        descrizione="Provvedimento ricevuto tramite PEC.",
+        note="PEC_AUDIT:pec_sentenza\nFonte documentale: sentenza.pdf",
+        source_event_type="sentenza_da_valutare_per_notifica",
+        hearing_mode_source="sentenza.pdf",
+        remote_hearing_source="",
+    )
+
+    source = _source_evidence(
+        scadenza,
+        fascicolo_id="FASC-SENTENZA",
+        pec_profile={"_indexed_source_name": "ricorso.pdf.zip"},
+    )
+
+    assert source["sourceHref"] == "/api/v1/ui/email/source/pec_sentenza?name=sentenza.pdf"
+    assert source["sourceLabel"] == "PEC originale - sentenza.pdf"
 
 
 def test_pdf_notificato_alimenta_scadenziario_agenda_senza_duplicare_link_audiovisivo(tmp_path: Path):
@@ -526,8 +1003,8 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingVerified"] is True
     assert exact_link in row["remoteHearingUrl"]
     assert row["sourceHref"] == "/api/v1/ui/email/source/msg-link?name=13744017s.pdf.zip"
-    assert row["sourceLabel"] == "13744017s.pdf.zip"
-    assert row["sourceKind"] == "documento"
+    assert row["sourceLabel"] == "PEC originale - 13744017s.pdf.zip"
+    assert row["sourceKind"] == "pec"
     assert row["sourceVerified"] is True
 
 
@@ -663,6 +1140,49 @@ def test_react_scadenziario_bridge_non_sintetizza_presidio_documentale_lex_come_
     assert row["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
     assert row["sourceKind"] == "documento"
     assert row["sourceVerified"] is True
+
+
+def test_react_scadenziario_presidio_documentale_annullato_non_restera_adempimento_operativo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        gestione = get_scadenziario()
+        scadenza = gestione.nuova(
+            "Attività processuale da presidiare - 31/08/2026 - RG 143/2026",
+            TipoTermine.ADEMPIMENTO,
+            "2026-08-31",
+            descrizione=(
+                "Presidio documentale Lex AI: verificare il provvedimento e predisporre "
+                "l'attività processuale rilevata. Fonte documentale: Ricorso Zagari (originale notificato).pdf"
+            ),
+            deadline_profile_code="PEC_AUTO_PRESIDIO",
+            source_event_type="fascicolo_documenti_audit",
+            note=(
+                "PEC_AUDIT:docpresidio:FASC:DOC:termine:2026-08-31\n"
+                "Tipo evento: fascicolo_documenti_audit\n"
+                "Presidio documentale automatico annullato: la fonte non contiene un adempimento dell'ufficio. "
+                "Motivo: atto_di_parte_non_genera_adempimento_automatico"
+            ),
+        )
+        gestione.aggiorna(scadenza.id, stato=StatoTermine.ANNULLATO)
+
+    response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    row = next(item for item in payload["items"] if item["id"] == scadenza.id)
+    visible = " ".join(str(row.get(key) or "") for key in ("title", "description", "detailDescription", "typeLabel", "sourceEventTypeLabel"))
+
+    assert response.status_code == 200
+    assert row["statusLabel"] == "Annullata"
+    assert row["tone"] == "neutral"
+    assert row["overdue"] is False
+    assert row["title"] == "Presidio documentale annullato"
+    assert row["typeLabel"] == "Presidio annullato"
+    assert row["sourceEventTypeLabel"] == "Presidio documentale annullato"
+    assert "atto di parte" in row["description"]
+    assert "non viene trattata come scadenza operativa" in row["detailDescription"]
+    assert "Attività processuale da presidiare" not in visible
+    assert "Adempimento" not in visible
+    assert row["sourceHref"] == "/fascicoli/FASC/documenti/DOC/visualizza"
 
 
 def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: Path):

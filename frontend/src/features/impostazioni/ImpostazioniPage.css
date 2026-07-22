@@ -176,6 +176,25 @@
   gap: 3px;
 }
 
+.iu-settings-local-signer__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.iu-settings-local-signer__head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.iu-settings-local-signer__head .ius-status-badge {
+  justify-self: end;
+  white-space: nowrap;
+}
+
 .iu-settings-actions-panel strong {
   color: var(--ius-text);
   font-size: 14px;
@@ -193,6 +212,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.iu-settings-local-signer__download-note {
+  max-width: 72ch;
+  margin: -4px 0 0;
+  color: var(--ius-muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 .iu-settings-certificate {
@@ -772,6 +800,14 @@
   .iu-settings-certificate__head,
   .iu-settings-certificate dl {
     grid-template-columns: 1fr;
+  }
+
+  .iu-settings-local-signer__head {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-settings-local-signer__head .ius-status-badge {
+    justify-self: start;
   }
 
   .iu-settings-mobile-ai__head {

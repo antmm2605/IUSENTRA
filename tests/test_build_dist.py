@@ -109,18 +109,24 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in contenuto
     assert "/polisWeb/local-signer/setup/windows" in contenuto
     assert "Copy-OrDownloadFile" not in contenuto
-    assert 'Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force' in contenuto
-    assert 'Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force' in contenuto
-    assert 'Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force' in contenuto
+    assert "function Copy-LocalSignerPackageToStage" in contenuto
+    assert 'Join-Path $StageRoot "local_signer.py"' in contenuto
+    assert 'Join-Path $StageRoot "local_ai_host_bridge.py"' in contenuto
+    assert 'Join-Path $StageRoot "lex_document_context.py"' in contenuto
     assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
     assert "support_agent.py" in contenuto
     assert "reportlab" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
-    assert "Uninstall-ExistingLocalSigner" in contenuto
-    assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in contenuto
+    assert "Uninstall-ExistingLocalSigner" not in contenuto
+    assert "Disinstallo la vecchia versione locale prima di installare quella nuova" not in contenuto
+    assert "function New-LocalSignerPreparedStage" in contenuto
+    assert "function Switch-LocalSignerStageToLive" in contenuto
+    assert "function Restore-PreviousLocalSigner" in contenuto
+    workflow = contenuto[contenuto.index("function Invoke-LocalSignerInstallWorkflow") :]
+    assert workflow.index("New-LocalSignerPreparedStage -StageRoot") < workflow.index("Stop-LocalSignerProcesses")
     assert "function Get-LocalSignerServicePython" in contenuto
     assert "function Set-LocalSignerRuntimeEnvironment" in contenuto
-    assert "$servicePythonExe = Get-LocalSignerServicePython" in contenuto
+    assert "$servicePythonExe = Get-LocalSignerServicePython -RootDir $targetDir" in contenuto
     assert "$env:PYTHONPATH" in contenuto
     assert '(Split-Path -Leaf $servicePythonExe).ToLowerInvariant() -eq "pythonw.exe"' in contenuto
     assert "pillow>=10.0.0" in contenuto
@@ -129,14 +135,14 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert '"http://127.0.0.1:27272/ping" -UseBasicParsing' not in contenuto
     assert "RedirectStandardOutput $env:OUTLOG" in contenuto
     assert '$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL' in contenuto
-    assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
-    assert '$preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")' in contenuto
-    assert "$installLockPath = Join-Path $targetDir \"installer.lock\"" in contenuto
+    assert "Unregister-ScheduledTask -TaskName $taskName" not in contenuto
+    assert "Sync-LocalSignerPreservedStateToStage" in contenuto
+    assert '$installLockPath = Join-Path $targetParentDir "LocalSigner.installer.lock"' in contenuto
     assert "Acquire-InstallerLock" in contenuto
     assert "Release-InstallerLock" in contenuto
-    assert '$venvConfig = Join-Path $venvDir "pyvenv.cfg"' in contenuto
+    assert '$stageVenvDir = Join-Path $StageRoot ".venv"' in contenuto
     assert "Write-LocalSignerStartupDiagnostics" in contenuto
-    assert "Virtualenv incompleta rilevata" in contenuto
+    assert "Ensure-LocalSignerAutostart" in contenuto
 
 
 def test_build_windows_exe_profile_resta_iexpress_1_6_35():

@@ -14,6 +14,7 @@ from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urlsplit
 
+import pytest
 from flask import Flask, g
 
 from lex.operational_knowledge.permission_guard import resolve_query_context
@@ -26,6 +27,7 @@ from pct.pec_pipeline import (
     DOCUMENT_PRESIDIO_PARSER_VERSION,
     PecAuditRepository,
     _document_presidio_activity_label,
+    _document_presidio_candidate_is_actionable,
     _extract_remote_hearing_links,
     _document_presidio_checked_resource_id,
     _document_presidio_candidate_discriminator,
@@ -53,6 +55,8 @@ from pct.pec_pipeline import (
     synthetic_pec_messages,
     verify_signature,
 )
+from pct.pec_notification_presidio import NotificationPresidioRepository, NotificationPresidioService
+from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 
 
 def test_presidio_warning_source_preserva_i_due_punti_del_nome_documento():
@@ -65,6 +69,185 @@ def test_presidio_warning_source_preserva_i_due_punti_del_nome_documento():
     )
 
     assert matched is source
+
+
+def test_pec_audit_schema_crea_indice_validation_reports_message(tmp_path: Path) -> None:
+    db_path = tmp_path / "pec_audit.sqlite"
+    PecAuditRepository(db_path, tenant_id="tenant-test")
+
+    with sqlite3.connect(str(db_path)) as conn:
+        indexes = {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='pec_validation_reports'"
+            ).fetchall()
+        }
+
+    assert "idx_pec_validation_reports_message" in indexes
+
+
+def test_presidio_documentale_esclude_ricorso_e_data_contrattuale_da_adempimenti():
+    actionable, reason = _document_presidio_candidate_is_actionable(
+        {
+            "date": "2026-08-31",
+            "label": "termine",
+            "source": "Ricorso Zagari (originale notificato).pdf",
+            "context": (
+                "La ricorrente è in servizio in virtù del contratto dal "
+                "04/09/2025 al 31/08/2026 presso l'istituto scolastico."
+            ),
+        },
+        kind="termine",
+        document_name="Ricorso Zagari (originale notificato).pdf",
+    )
+
+    assert actionable is False
+    assert reason == "atto_di_parte_non_genera_adempimento_automatico"
+
+
+def test_presidio_documentale_ammette_termine_ordinato_da_decreto():
+    actionable, reason = _document_presidio_candidate_is_actionable(
+        {
+            "date": "2026-10-06",
+            "label": "termine",
+            "source": "Decreto fissazione udienza.pdf",
+            "context": (
+                "Il Giudice assegna termine fino al 06/10/2026 per il deposito "
+                "delle note scritte."
+            ),
+        },
+        kind="termine",
+        document_name="Decreto fissazione udienza.pdf",
+    )
+
+    assert actionable is True
+    assert reason == ""
+
+
+def test_presidio_documentale_file_ricorso_e_decreto_ammette_ordine_del_giudice():
+    actionable, reason = _document_presidio_candidate_is_actionable(
+        {
+            "date": "2026-10-20",
+            "label": "udienza",
+            "source": "Ricorso e decreto di fissazione udienza.pdf",
+            "context": "Il Giudice fissa l'udienza del 20/10/2026 alle ore 09:30.",
+        },
+        kind="udienza",
+        document_name="Ricorso e decreto di fissazione udienza.pdf",
+        document_text=(
+            "Ricorso introduttivo della parte. Segue decreto di fissazione udienza. "
+            "Il Giudice fissa l'udienza del 20/10/2026 alle ore 09:30."
+        ),
+    )
+
+    assert actionable is True
+    assert reason == ""
+
+
+def test_presidio_documentale_esclude_termine_pregresso_da_sentenza_decisoria():
+    actionable, reason = _document_presidio_candidate_is_actionable(
+        {
+            "date": "2026-07-16",
+            "label": "termine",
+            "source": "Sentenza a verbale.pdf",
+            "context": "Udienza sostituita da note scritte ex art. 127-ter c.p.c.",
+        },
+        kind="termine",
+        document_name="Sentenza a verbale.pdf",
+        document_text=(
+            "Il Giudice decide la causa con sentenza. P.Q.M. definitivamente decidendo "
+            "accoglie il ricorso e definisce il giudizio."
+        ),
+    )
+
+    assert actionable is False
+    assert reason == "provvedimento_decisorio_prevale_su_termine_o_udienza_pregressa"
+
+
+def test_presidio_documentale_conserva_nuova_udienza_espressamente_fissata():
+    actionable, reason = _document_presidio_candidate_is_actionable(
+        {
+            "date": "2026-10-20",
+            "label": "udienza",
+            "source": "Decreto successivo.pdf",
+            "context": "Il Giudice fissa udienza per il 20/10/2026 alle ore 09:30.",
+        },
+        kind="udienza",
+        document_name="Decreto successivo.pdf",
+        document_text="Richiamata la sentenza precedente, il Giudice fissa udienza per la verifica dell'adempimento.",
+    )
+
+    assert actionable is True
+    assert reason == ""
+
+
+def test_presidio_documentale_chiude_solo_residui_precedenti_a_sentenza(tmp_path: Path):
+    audit_db = tmp_path / "email" / "pec_audit.sqlite"
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    notification_repo = NotificationPresidioRepository(audit_db, tenant_id="tenant-test")
+    try:
+        NotificationPresidioService(notification_repo).create_candidate(
+            {
+                "fascicolo_id": "FASC-001",
+                "source_message_id": "pec-sentenza",
+                "source_parsed_version_id": "parsed-sentenza",
+                "legal_event_id": "event-sentenza",
+                "source_effective_at": "2026-07-17T13:46:00+02:00",
+                "pec_official_delivery_at": "2026-07-17T13:46:00+02:00",
+                "event_or_order_at": "2026-07-17T13:46:00+02:00",
+                "live_pec_operational_event": True,
+                "trigger_type": "STRATEGIC_NOTIFICATION_REVIEW",
+                "notification_case": "judgment_to_notify_review",
+                "channel": "pec",
+                "priority": "P1",
+                "confidence": 0.9,
+                "human_review_required": True,
+                "detection_reason": "Sentenza da valutare per la notifica.",
+                "rulepack_version": "pytest",
+                "documents": [{"original_filename": "sentenza.pdf", "authoritative": True}],
+                "recipients": [{"name": "Controparte", "role": "controparte", "required": True}],
+            }
+        )
+    finally:
+        notification_repo.close()
+
+    scadenziario = GestioneScadenziario(db_path=str(scadenziario_db))
+    automatico = scadenziario.nuova(
+        titolo="Deposito note scritte",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-07-16",
+        id_fascicolo="FASC-001",
+        note="PEC_AUDIT:docpresidio:FASC-001:doc-1:termine:2026-07-16",
+    )
+    manuale = scadenziario.nuova(
+        titolo="Promemoria manuale",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-07-16",
+        id_fascicolo="FASC-001",
+        note="Creato manualmente dallo studio.",
+    )
+    successivo = scadenziario.nuova(
+        titolo="Udienza successiva",
+        tipo=TipoTermine.UDIENZA,
+        data_scadenza="2026-09-10",
+        id_fascicolo="FASC-001",
+        note="PEC_AUDIT:docpresidio:FASC-001:doc-2:udienza:2026-09-10",
+    )
+    repository = PecAuditRepository(
+        audit_db,
+        tenant_id="tenant-test",
+        scadenziario_db_path=scadenziario_db,
+    )
+
+    report = repository.reconcile_document_presidia_closed_by_decision(actor="pytest")
+
+    refreshed = GestioneScadenziario(db_path=str(scadenziario_db))
+    assert report["decisions"] == 1
+    assert report["completed"] == 1
+    assert refreshed.get(automatico.id).stato == StatoTermine.COMPLETATO
+    assert "provvedimento decisorio successivo" in refreshed.get(automatico.id).note
+    assert refreshed.get(manuale.id).stato == StatoTermine.APERTO
+    assert refreshed.get(successivo.id).stato == StatoTermine.APERTO
 
 
 class _User:
@@ -231,41 +414,78 @@ def test_pec_operational_matrix_rebuild_cleans_stale_queued_jobs(tmp_path):
     assert [item["job_type"] for item in second_run["jobs"]] == ["parse", "classify", "ocr", "signcheck", "validate", "link"]
 
 
-def test_pec_pipeline_recovers_stale_default_tenant_duplicate(tmp_path):
+def test_pec_pipeline_prunes_stale_running_duplicate_without_requeueing(tmp_path):
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    _label, raw_mime = synthetic_pec_messages()[0]
+    message = repo.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="stale-job")
+    with repo.connect() as conn:
+        queued = conn.execute(
+            "SELECT id FROM pec_jobs WHERE tenant_id=? AND message_id=? AND job_type='parse' AND status='queued'",
+            ("default", message["id"]),
+        ).fetchone()
+        assert queued is not None
+        conn.execute(
+            "UPDATE pec_jobs SET status='running', attempts=max_attempts, updated_at='2026-01-01T00:00:00Z' WHERE id=?",
+            (queued["id"],),
+        )
+        repo.enqueue_job(conn, "parse", message_id=message["id"], priority=20, actor="pytest")
+        terminal = conn.execute(
+            "SELECT id FROM pec_jobs WHERE tenant_id=? AND message_id=? AND job_type='parse' AND status='queued'",
+            ("default", message["id"]),
+        ).fetchone()
+        assert terminal is not None
+        conn.execute("UPDATE pec_jobs SET status='failed' WHERE id=?", (terminal["id"],))
+    result = repo.recover_stale_jobs(older_than_seconds=3600, actor="pytest")
+    assert result == {"recovered": 0, "pruned": 1, "total": 1}
+    with repo.connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM pec_jobs WHERE status='running'").fetchone()[0] == 0
+
+
+def test_pec_pipeline_non_riassegna_record_default_ad_altro_tenant(tmp_path):
     db_path = tmp_path / "pec_audit.sqlite"
     _label, raw_mime = synthetic_pec_messages()[0]
     repo_default = PecAuditRepository(db_path, tenant_id="default")
     first = repo_default.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
 
     repo_studio = PecAuditRepository(db_path, tenant_id="studio-legale-giuseppe-montagnese")
-    duplicate = repo_studio.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="2")
+    second = repo_studio.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="2")
 
-    assert duplicate["duplicate"] is True
-    assert duplicate["id"] == first["id"]
+    assert second["duplicate"] is False
+    assert second["id"] != first["id"]
     with sqlite3.connect(db_path) as conn:
-        tenant_id = conn.execute("SELECT tenant_id FROM pec_messages WHERE id=?", (first["id"],)).fetchone()[0]
-    assert tenant_id == "studio-legale-giuseppe-montagnese"
+        owners = dict(conn.execute("SELECT id, tenant_id FROM pec_messages").fetchall())
+    assert owners == {
+        first["id"]: "default",
+        second["id"]: "studio-legale-giuseppe-montagnese",
+    }
     with repo_studio.connect() as conn:
-        assert repo_studio.get_message_row(conn, first["id"])["id"] == first["id"]
+        with pytest.raises(KeyError, match="PEC non trovata"):
+            repo_studio.get_message_row(conn, first["id"])
+        assert repo_studio.get_message_row(conn, second["id"])["id"] == second["id"]
 
 
-def test_pec_pipeline_processes_jobs_for_stale_default_tenant_message(tmp_path):
+def test_pec_pipeline_processa_solo_job_del_tenant_proprietario(tmp_path):
     db_path = tmp_path / "pec_audit.sqlite"
     _label, raw_mime = synthetic_pec_messages()[0]
     repo_default = PecAuditRepository(db_path, tenant_id="default")
     first = repo_default.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="1")
     repo_studio = PecAuditRepository(db_path, tenant_id="studio-legale-giuseppe-montagnese")
-    with repo_studio.connect() as conn:
-        repo_studio.enqueue_job(conn, "parse", message_id=first["id"], priority=20, actor="pytest")
+    second = repo_studio.ingest_mime(raw_mime, account_email="studio@example.test", folder="INBOX", imap_uid="2")
 
     result = repo_studio.run_pending_jobs(limit=5, actor="pytest")
 
     assert result["processed"] >= 1
     assert result["failed"] == 0
-    assert any(item["message_id"] == first["id"] for item in result["jobs"])
+    assert all(item["message_id"] == second["id"] for item in result["jobs"])
     with sqlite3.connect(db_path) as conn:
-        tenant_id = conn.execute("SELECT tenant_id FROM pec_messages WHERE id=?", (first["id"],)).fetchone()[0]
-    assert tenant_id == "studio-legale-giuseppe-montagnese"
+        owners = dict(conn.execute("SELECT id, tenant_id FROM pec_messages").fetchall())
+        default_jobs = conn.execute(
+            "SELECT COUNT(*) FROM pec_jobs WHERE tenant_id='default' AND message_id=? AND status='queued'",
+            (first["id"],),
+        ).fetchone()[0]
+    assert owners[first["id"]] == "default"
+    assert owners[second["id"]] == "studio-legale-giuseppe-montagnese"
+    assert default_jobs == 1
 
 
 def test_pec_operational_audit_counts_latest_local_presidio_with_stale_message_tenant(tmp_path):
@@ -357,6 +577,108 @@ def test_pec_audit_header_summaries_support_lightweight_mode(tmp_path, monkeypat
     assert summaries[header]["validation_report"] == {}
     assert summaries[header]["fascicolo_link"] == {}
     assert summaries[header]["attachments"] == []
+
+
+def test_pec_source_detail_usa_testo_html_quando_body_text_vuoto(tmp_path):
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    parsed_json = {
+        "body": {
+            "text": "",
+            "html_text": "Messaggio di posta certificata. Comunicazione 393/2026/VG con udienza fissata.",
+        },
+        "attachments": [],
+    }
+    with sqlite3.connect(repo.db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO pec_messages
+            (id, tenant_id, account_email, folder, imap_uid, message_id_header, mime_sha256, mime_size,
+             original_mime, received_at, ingested_at, retention_until, metadata_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                "pec_html_only",
+                "default",
+                "studio@example.pec.it",
+                "INBOX",
+                "INBOX:UID:393",
+                "<pec-html-only@example.test>",
+                "1" * 64,
+                1,
+                sqlite3.Binary(b"x"),
+                "2026-07-16T06:27:34Z",
+                "2026-07-16T06:27:35Z",
+                "2036-07-16",
+                json.dumps({"headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 393/2026/VG"}}),
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO pec_parsed_versions
+            (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at, created_by)
+            VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (
+                "parsed-html-only",
+                "pec_html_only",
+                1,
+                "pytest",
+                json.dumps(parsed_json),
+                "2" * 64,
+                "2026-07-16T06:27:36Z",
+                "pytest",
+            ),
+        )
+
+    detail = repo.get_message_source_detail("pec_html_only")
+
+    assert detail["parsed"]["body_text"].startswith("Messaggio di posta certificata")
+    assert "udienza fissata" in detail["parsed"]["body_text"]
+    assert detail["parsed"]["body"]["html_text"].startswith("Messaggio di posta certificata")
+
+
+def test_pec_source_detail_isola_il_tenant_e_resta_sola_lettura(tmp_path, monkeypatch):
+    db_path = tmp_path / "pec_audit.sqlite"
+    proprietario = PecAuditRepository(db_path, tenant_id="studio-proprietario")
+    _label, raw_mime = synthetic_pec_messages()[0]
+    message = proprietario.ingest_mime(
+        raw_mime,
+        account_email="studio@example.test",
+        folder="INBOX",
+        imap_uid="tenant-owner",
+    )
+    altro_studio = PecAuditRepository(db_path, tenant_id="studio-estraneo")
+
+    with sqlite3.connect(db_path) as conn:
+        tenant_prima = conn.execute(
+            "SELECT tenant_id FROM pec_messages WHERE id=?",
+            (message["id"],),
+        ).fetchone()[0]
+        audit_prima = conn.execute("SELECT COUNT(*) FROM pec_audit_log").fetchone()[0]
+
+    def _connect_sola_lettura():
+        conn = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA query_only=ON")
+        return conn
+
+    monkeypatch.setattr(altro_studio, "connect", _connect_sola_lettura)
+    try:
+        altro_studio.get_message_source_detail(message["id"])
+    except KeyError as exc:
+        assert message["id"] in str(exc)
+    else:
+        raise AssertionError("Una fonte PEC di un altro tenant non deve essere leggibile.")
+
+    with sqlite3.connect(db_path) as conn:
+        tenant_dopo = conn.execute(
+            "SELECT tenant_id FROM pec_messages WHERE id=?",
+            (message["id"],),
+        ).fetchone()[0]
+        audit_dopo = conn.execute("SELECT COUNT(*) FROM pec_audit_log").fetchone()[0]
+
+    assert tenant_prima == tenant_dopo == "studio-proprietario"
+    assert audit_dopo == audit_prima
 
 
 def test_semantic_context_matrix_covers_main_legal_pec_domains():
@@ -1210,6 +1532,24 @@ def test_refresh_validation_reports_repairs_stale_binary_zip_ocr_for_remote_hear
     assert remote["links"][0]["exact_match"] is True
     assert not zip_row["ocr_text"].startswith("PK")
     assert exact_link in zip_row["ocr_text"]
+
+
+def test_refresh_validation_reports_reclassifies_without_ocr_when_requested(tmp_path, monkeypatch):
+    """Una revisione di regole non deve bloccare il tenant con OCR massivo."""
+
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    ingest_synthetic_dataset(repo)
+    monkeypatch.setattr(repo, "_stale_zip_ocr_rows", lambda *_args, **_kwargs: [object()])
+
+    def _unexpected_ocr(*_args, **_kwargs):
+        raise AssertionError("L'OCR non deve partire durante una sola riclassificazione giuridica.")
+
+    monkeypatch.setattr(repo, "_refresh_ocr_for_message_on_connection", _unexpected_ocr)
+
+    refreshed = repo.refresh_validation_reports(actor="pytest", limit=1, refresh_ocr=False, batch_size=1)
+
+    assert refreshed["ok"] is True
+    assert refreshed["updated"] == 1
 
 
 def test_scheduler_repairs_stale_zip_once_per_extraction_version(tmp_path):
@@ -2184,6 +2524,57 @@ def test_presidio_documentale_migra_identita_legacy_senza_creare_duplicati(tmp_p
     assert f"PEC_AUDIT:{current_id}" in rows[0].note.splitlines()
 
 
+def test_presidio_documentale_annulla_solo_derivato_escluso_con_audit(tmp_path):
+    from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
+    manager = GestioneScadenziario(str(scadenziario_db))
+    marker_id = _document_presidio_message_id(
+        fascicolo_id="FASC-1",
+        document_id="RICORSO-1",
+        kind="termine",
+        date_value="2026-08-31",
+    )
+    created = manager.nuova(
+        titolo="Attività processuale da presidiare",
+        tipo=TipoTermine.ADEMPIMENTO,
+        data_scadenza="2026-08-31",
+        id_fascicolo="FASC-1",
+        note=f"PEC_AUDIT:{marker_id}",
+    )
+    unrelated = manager.nuova(
+        titolo="Deposito memoria",
+        tipo=TipoTermine.DEPOSITO_MEMORIA,
+        data_scadenza="2026-08-31",
+        id_fascicolo="FASC-1",
+        note="Inserimento manuale studio",
+    )
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+
+    result = repo._reconcile_document_presidio_deadlines(
+        fascicolo_id="FASC-1",
+        document_id="RICORSO-1",
+        message_ids={marker_id},
+        actor="pytest",
+        reason="atto_di_parte_non_genera_adempimento_automatico",
+    )
+
+    rows = {item.id: item for item in GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)}
+    assert result["cancelled"] == 1
+    assert rows[created.id].stato == StatoTermine.ANNULLATO
+    assert "atto_di_parte_non_genera_adempimento_automatico" in rows[created.id].note
+    assert rows[unrelated.id].stato == StatoTermine.APERTO
+    with repo.connect() as conn:
+        audit = conn.execute(
+            "SELECT payload_json FROM pec_audit_log WHERE action='pec.document_presidio.reconciled'"
+        ).fetchone()
+    assert audit is not None
+
+
 def test_refresh_validation_reports_repairs_clickable_pdf_link_for_existing_remote_hearing(tmp_path):
     exact_link = "https://teams.microsoft.com/l/meetup-join/torino-3950?context=%7B%22Tid%22%3A%22abc%22%7D"
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
@@ -2408,6 +2799,179 @@ def test_pec_repair_removes_generic_gdp_notice_2030_deadline_and_agenda(tmp_path
     assert repaired["deleted"] == 1
     assert GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False) == []
     assert Agenda(str(agenda_db)).tutti() == []
+
+
+def test_schedule_reconciles_superseded_127ter_deadline_when_sentence_has_no_automatic_term(tmp_path):
+    """Una lettura successiva della stessa PEC deve annullare il falso 127-ter.
+
+    Regressione dei casi Alfano/Romeo: la parola ``127-ter`` presente nella
+    sentenza a verbale non basta per creare una opposizione. Il derivato
+    automatico resta auditabile ma non deve piu' apparire come attivita' aperta.
+    """
+
+    from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    agenda_db = tmp_path / "agenda.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    message_id = "pec_sentenza_127ter"
+    agenda = Agenda(str(agenda_db))
+    appointment = agenda.aggiungi(
+        "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        TipoAppuntamento.SCADENZA,
+        "2030-07-22T13:46:00",
+        allow_overlap=True,
+        external_uid=f"PEC_AUDIT:{message_id}:deadline",
+        external_provider="pec_audit",
+        external_profile_id="pec_scadenziario",
+    )
+    manager = GestioneScadenziario(str(scadenziario_db))
+    manager.nuova(
+        titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+        tipo=TipoTermine.TERMINE_PERENTORIO,
+        data_scadenza="2030-07-22",
+        id_fascicolo="FASCICOLO-SENTENZA",
+        note=f"PEC_AUDIT:{message_id}\nTermine legale proposto (Art. 127-ter c.p.c.)",
+        id_appuntamento=appointment.id,
+        deadline_profile_code="CIV_OPPOSIZIONE_127_TER",
+        perentorio=True,
+    )
+
+    scheduled = repo.schedule_deadline_from_payload(
+        message_id,
+        parsed={},
+        report={
+            "deadline_proposal": {
+                "status": "review_required",
+                "auto_create": False,
+                "due_date": "",
+                "source_event_type": "deposito_sentenza",
+                "reason": "Sentenza a verbale: nessun termine breve automatico; valutare la notifica.",
+            }
+        },
+        message={"linked_fascicolo_id": "FASCICOLO-SENTENZA"},
+        actor="pytest",
+    )
+
+    assert scheduled["ok"] is False
+    assert scheduled["reconciliation"]["cancelled"] == 1
+    assert scheduled["reconciliation"]["agenda_cancelled"] == 1
+    deadline = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)[0]
+    assert deadline.stato == StatoTermine.ANNULLATO
+    assert "elaborazione PEC piu' recente" in deadline.note
+    assert Agenda(str(agenda_db)).tutti()[0].stato == StatoAppuntamento.ANNULLATO
+
+
+def test_schedule_preserves_legal_notification_presidio_when_sentence_excludes_127ter(tmp_path):
+    """La bonifica PEC non può chiudere il presidio vero di notifica sentenza."""
+
+    from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+    )
+    message_id = "pec_sentenza_notifica_reale"
+    manager = GestioneScadenziario(str(scadenziario_db))
+    deadline = manager.nuova(
+        titolo="Sentenza da valutare per la notifica - Cliente esempio",
+        tipo=TipoTermine.NOTIFICA,
+        data_scadenza="2030-07-22",
+        note=(
+            f"PEC_AUDIT:{message_id}\n"
+            "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-esempio:da_preparare"
+        ),
+        deadline_profile_code="PEC_AUTO_PRESIDIO",
+    )
+
+    scheduled = repo.schedule_deadline_from_payload(
+        message_id,
+        parsed={},
+        report={
+            "deadline_proposal": {
+                "status": "review_required",
+                "auto_create": False,
+                "due_date": "",
+                "source_event_type": "deposito_sentenza",
+                "reason": "Sentenza a verbale: valutare la notifica.",
+            }
+        },
+        message={"linked_fascicolo_id": "FASCICOLO-SENTENZA"},
+        actor="pytest",
+    )
+
+    assert scheduled["ok"] is False
+    assert scheduled["reconciliation"]["cancelled"] == 0
+    assert GestioneScadenziario(str(scadenziario_db)).get(deadline.id).stato == StatoTermine.APERTO
+
+
+def test_pec_repair_reconciles_old_127ter_deadline_when_decision_is_reclassified(tmp_path, monkeypatch):
+    """Il job ricorrente deve applicare la riconciliazione, non solo l'ingest iniziale."""
+
+    import pct.pec_pipeline as pec_pipeline_module
+    from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+
+    scadenziario_db = tmp_path / "scadenze.json"
+    agenda_db = tmp_path / "agenda.json"
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="default",
+        scadenziario_db_path=scadenziario_db,
+        agenda_db_path=agenda_db,
+    )
+    message_id = "pec_sentenza_riletta"
+    agenda = Agenda(str(agenda_db))
+    appointment = agenda.aggiungi(
+        "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
+        TipoAppuntamento.SCADENZA,
+        "2030-07-22T13:46:00",
+        allow_overlap=True,
+        external_uid=f"PEC_AUDIT:{message_id}:deadline",
+        external_provider="pec_audit",
+        external_profile_id="pec_scadenziario",
+    )
+    manager = GestioneScadenziario(str(scadenziario_db))
+    deadline = manager.nuova(
+        titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+        tipo=TipoTermine.TERMINE_PERENTORIO,
+        data_scadenza="2030-07-22",
+        id_fascicolo="FASCICOLO-SENTENZA",
+        note=f"PEC_AUDIT:{message_id}\nTermine legale proposto (Art. 127-ter c.p.c.)",
+        id_appuntamento=appointment.id,
+        deadline_profile_code="CIV_OPPOSIZIONE_127_TER",
+        perentorio=True,
+    )
+    report = {
+        "deadline_proposal": {
+            "status": "review_required",
+            "auto_create": False,
+            "due_date": "",
+            "source_event_type": "deposito_sentenza",
+            "reason": "Sentenza a verbale: nessun termine breve automatico; valutare la notifica.",
+        }
+    }
+    monkeypatch.setattr(
+        repo,
+        "_detail_for_deadline_note",
+        lambda _note: (message_id, {"parsed": {}, "attachments": []}),
+    )
+    monkeypatch.setattr(pec_pipeline_module, "build_validation_report", lambda _parsed, _attachments: report)
+
+    repaired = repo.repair_pec_deadlines(actor="pytest")
+
+    assert repaired["ok"] is True
+    assert repaired["updated"] >= 1
+    assert GestioneScadenziario(str(scadenziario_db)).get(deadline.id).stato == StatoTermine.ANNULLATO
+    assert Agenda(str(agenda_db)).get(appointment.id).stato == StatoAppuntamento.ANNULLATO
 
 
 def test_pec_repair_and_backfill_report_missing_reference_without_unbound_local(tmp_path):
@@ -5411,6 +5975,41 @@ def test_pec_repository_quarantines_stale_sqlite_journal(tmp_path):
     assert list(tmp_path.glob("pec_audit.sqlite-journal.interrotto-*"))
     with repo.connect() as conn:
         assert conn.execute("SELECT name FROM sqlite_master WHERE name='pec_messages'").fetchone()
+
+
+def test_pec_repository_recovers_valid_database_before_quarantining_stale_journal(tmp_path):
+    db_path = tmp_path / "pec_audit.sqlite"
+    PecAuditRepository(db_path)
+    journal_path = tmp_path / "pec_audit.sqlite-journal"
+    journal_path.write_bytes(b"x" * (1024 * 1024 + 1))
+    old_time = time.time() - 300
+    os.utime(journal_path, (old_time, old_time))
+
+    repo = PecAuditRepository(db_path)
+
+    assert repo.db_path.exists()
+    assert not list(tmp_path.glob("pec_audit.sqlite.interrotto-*"))
+    assert not list(tmp_path.glob("pec_audit.sqlite-journal.interrotto-*"))
+    with repo.connect() as conn:
+        assert conn.execute("SELECT name FROM sqlite_master WHERE name='pec_messages'").fetchone()
+
+
+def test_pec_repository_non_adotta_automaticamente_righe_legacy_default(tmp_path):
+    db_path = tmp_path / "pec_audit.sqlite"
+    legacy = PecAuditRepository(db_path, tenant_id="default")
+    ingest_synthetic_dataset(legacy)
+
+    tenant_repo = PecAuditRepository(db_path, tenant_id="studio-legale-esempio")
+
+    assert tenant_repo.list_messages(limit=20, include_details=False) == []
+    with tenant_repo.connect() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM pec_messages WHERE tenant_id='default'"
+        ).fetchone()[0] == 5
+        assert conn.execute(
+            "SELECT COUNT(*) FROM pec_messages WHERE tenant_id=?",
+            ("studio-legale-esempio",),
+        ).fetchone()[0] == 0
 
 
 def test_email_search_normalizza_plurali_accenti_e_allegati(tmp_path):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -26,13 +27,21 @@ DEV_HEADER = """# requirements-dev.txt - file flat generato da requirements/dev.
 def test_versione_allineata_tra_package_docker_e_railway():
     docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
     railway_text = (REPO_ROOT / "railway.toml").read_text(encoding="utf-8")
+    frontend_package = json.loads((REPO_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
+    frontend_lock = json.loads((REPO_ROOT / "frontend" / "package-lock.json").read_text(encoding="utf-8"))
+    openapi_text = (REPO_ROOT / "docs" / "openapi.yaml").read_text(encoding="utf-8")
 
     docker_version = re.search(r'org\.opencontainers\.image\.version="([^"]+)"', docker_text)
     railway_version = re.search(r"#\s+version:\s+([0-9]+\.[0-9]+\.[0-9]+)", railway_text)
+    openapi_version = re.search(r"(?m)^\s{2}version:\s+([0-9]+\.[0-9]+\.[0-9]+)\s*$", openapi_text)
 
     assert read_version() == __version__
     assert docker_version is not None and docker_version.group(1) == __version__
     assert railway_version is not None and railway_version.group(1) == __version__
+    assert frontend_package["version"] == __version__
+    assert frontend_lock["version"] == __version__
+    assert frontend_lock["packages"][""]["version"] == __version__
+    assert openapi_version is not None and openapi_version.group(1) == __version__
 
 
 def test_setup_py_usa_manifest_governato_per_versione_e_requirements():

@@ -971,10 +971,14 @@ export async function postLegalWorkflow(endpoint: string, payload: Record<string
   return result
 }
 
-export async function previewLegalRelata(payload: Record<string, unknown>): Promise<LegalRelataPreviewResult> {
+export async function previewLegalRelata(
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<LegalRelataPreviewResult> {
   const response = await fetch('/api/v1/ui/notifiche-legali/anteprima-relata', {
     method: 'POST',
     credentials: 'same-origin',
+    signal,
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',

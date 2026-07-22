@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.101
+IUSENTRA Local Signer - v1.6.102
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -119,7 +119,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.101"
+VERSION = "1.6.102"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1065,7 +1065,7 @@ def _risolvi_ufficio_da_snapshot(codice_o_nome: str) -> Optional[dict]:
 
     uffici = _carica_snapshot_uffici()
     if not uffici:
-        return None
+        return _risolvi_ufficio_pst_pubblico_snapshot(chiave)
 
     if chiave in uffici:
         return uffici[chiave]
@@ -1096,7 +1096,7 @@ def _risolvi_ufficio_da_snapshot(codice_o_nome: str) -> Optional[dict]:
             if chiave_norm and chiave_norm in norm:
                 return ufficio
 
-    return None
+    return _risolvi_ufficio_pst_pubblico_snapshot(chiave)
 
 
 def _supporto_auto_pst_disponibile() -> bool:
@@ -1266,6 +1266,113 @@ def _risolvi_ufficio_pst_pubblico(valore: str, *, sezione: str) -> Optional[dict
             if not non_operativo:
                 best_partial = best_partial or row
     return best_partial
+
+
+def _codice_gl_da_prefisso_ministeriale(codice_ministero: str) -> str:
+    codice = str(codice_ministero or "").strip()
+    if len(codice) < 3 or not codice[:3].isdigit():
+        return ""
+    conteggi: Dict[str, int] = {}
+    for row in _carica_snapshot_uffici().values():
+        ref_codice = str(row.get("codice_ministero") or row.get("codice") or "").strip()
+        codice_gl = str(row.get("codice_gl") or "").strip()
+        if ref_codice.startswith(codice[:3]) and codice_gl:
+            conteggi[codice_gl] = conteggi.get(codice_gl, 0) + 1
+    if not conteggi:
+        return ""
+    return sorted(conteggi.items(), key=lambda item: (-item[1], item[0]))[0][0]
+
+
+def _tipo_interno_da_pst_pubblico(row: dict[str, Any]) -> str:
+    descrizione = str(row.get("descrizione") or "").casefold()
+    if "giudice di pace" in descrizione:
+        return "GDP"
+    if "procura generale" in descrizione:
+        return "PROCURA_GENERALE"
+    if "procura" in descrizione:
+        return "PROCURA"
+    if "corte d'appello" in descrizione or "corte di appello" in descrizione:
+        return "CORTE_APPELLO"
+    if "minorenni" in descrizione:
+        return "TM"
+    if "sorveglianza" in descrizione:
+        return "SORVEGLIANZA"
+    if "unep" in descrizione:
+        return "UNEP"
+    return "TRIBUNALE"
+
+
+def _servizi_da_tipo_pst_pubblico(tipo: str) -> list[str]:
+    tipo_norm = str(tipo or "").upper()
+    if tipo_norm == "GDP":
+        return ["DEPOT", "JPW_SIGP", "PAGAM_TEL"]
+    if tipo_norm == "UNEP":
+        return ["JPW_UNEP", "PAGAM_TEL"]
+    if tipo_norm in {"TRIBUNALE", "CORTE_APPELLO", "TM", "CORTE_APPELLO_SEZIONE"}:
+        return [
+            "COM_TEL_136",
+            "DEPOT",
+            "JPW_SICID",
+            "JPW_SIL_DISTR",
+            "JPW_SIL",
+            "JPW_SILP_DISTR",
+            "JPW_SILP",
+            "JPW_SIECIC",
+            "PAGAM_TEL",
+            "SICID",
+            "SIECIC",
+        ]
+    return ["PAGAM_TEL"]
+
+
+def _servizio_predefinito_da_tipo_pst_pubblico(tipo: str) -> str:
+    tipo_norm = str(tipo or "").upper()
+    if tipo_norm == "GDP":
+        return "JPW_SIGP"
+    if tipo_norm == "UNEP":
+        return "JPW_UNEP"
+    if tipo_norm in {"TRIBUNALE", "CORTE_APPELLO", "TM", "CORTE_APPELLO_SEZIONE"}:
+        return "JPW_SICID"
+    return ""
+
+
+def _nome_da_pst_pubblico(row: dict[str, Any]) -> str:
+    descrizione = str(row.get("descrizione") or "").strip()
+    descrizione_norm = descrizione.casefold()
+    if " - " in descrizione:
+        sede = descrizione.split(" - ", 1)[1].strip()
+        if descrizione_norm.startswith("tribunale ordinario"):
+            return f"Tribunale di {sede}"
+        if descrizione_norm.startswith("giudice di pace"):
+            return f"Ufficio del Giudice di Pace di {sede}"
+    return descrizione.title() if descrizione.isupper() else descrizione
+
+
+def _risolvi_ufficio_pst_pubblico_snapshot(codice_o_nome: str) -> Optional[dict[str, Any]]:
+    row = _risolvi_ufficio_pst_pubblico(codice_o_nome, sezione="civili")
+    if not row:
+        return None
+    codice = str(row.get("codice_ufficio") or "").strip()
+    if not codice:
+        return None
+    tipo = _tipo_interno_da_pst_pubblico(row)
+    nome = _nome_da_pst_pubblico(row)
+    return {
+        "codice": codice,
+        "nome": nome,
+        "codice_ministero": codice,
+        "codice_gl": _codice_gl_da_prefisso_ministeriale(codice),
+        "servizi_ministero": _servizi_da_tipo_pst_pubblico(tipo),
+        "servizio_pst_predefinito": _servizio_predefinito_da_tipo_pst_pubblico(tipo),
+        "descrizione_ministero": str(row.get("descrizione") or "").strip(),
+        "tipo_ministero_descrizione": str(row.get("descrizione") or "").strip(),
+        "comune_ministero": nome.rsplit(" di ", 1)[-1],
+        "tipo": tipo,
+        "fonte_registro": "PST pubblico",
+        "aggiunto_da_catalogo_pst_pubblico": True,
+        "stato_prudenziale": row.get("stato_prudenziale") or "",
+        "deposito_prudenziale": row.get("deposito_prudenziale"),
+    }
 
 
 def _looks_like_pat_code(valore: str) -> bool:
@@ -15101,7 +15208,8 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
-            download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
+            ensure_requested_session_id = requested_session_id
+            download_purpose = "import"
             document_payloads = [item for item in documenti if isinstance(item, dict)]
             servizio_hint = _pst_servizio_ministeriale_da_payload(data, *document_payloads)
             base_url = _risolvi_base_pst_runtime(tribunale)
@@ -15114,11 +15222,20 @@ class _Handler(BaseHTTPRequestHandler):
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                session_service = _pst_servizio_proxy(session_base_url)
                 base_url = (
                     _pst_base_url_con_servizio(session_base_url, servizio_hint)
                     if servizio_hint
                     else session_base_url
                 )
+                target_service = _pst_servizio_proxy(base_url)
+                if session_service and target_service and session_service != target_service:
+                    ensure_requested_session_id = ""
+                    download_purpose = "import"
+                elif not bool((existing_session or {}).get("auth_ready")):
+                    download_purpose = "import"
+                else:
+                    download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
             registro_hint = _pst_registro_portale_da_payload(data, *document_payloads)
             documenti = _pst_documenti_con_contesto_ministeriale(
                 documenti,
@@ -15136,7 +15253,7 @@ class _Handler(BaseHTTPRequestHandler):
             }
             try:
                 session_entry, _session_created = _ensure_pst_session_entry(
-                    requested_session_id,
+                    ensure_requested_session_id,
                     **session_kwargs,
                 )
             except RuntimeError as exc:

@@ -1,5 +1,24 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-22 - Ripristino contratto PST Locri, Local Signer 1.6.102 e sessioni download
+
+Problema reale segnalato in produzione durante acquisizione mirata da PEC dell'ufficio per `Calabrò Daniela`, R.G. `3571/2025`, `Tribunale di Locri`, tabella `SICID_LAVORO`: il wizard mostrava `Impossibile determinare codice GL/servizio PST dell'ufficio selezionato`. La causa tecnica non era il fascicolo e non era il PIN: la UI consentiva la scelta di Locri dal catalogo PST pubblico (`0800430095`), mentre il resolver usato dal Local Signer dipendeva dallo snapshot ministeriale locale e non ricostruiva il codice GL/servizio quando quell'ufficio mancava dallo snapshot.
+
+Correzione applicata:
+
+- il resolver centrale `pct/uffici_giudiziari.py` legge anche il catalogo PST pubblico governato e, quando un ufficio civile non è presente nello snapshot ministeriale interno, ricostruisce una scheda tenant-agnostica con `codice_ministero`, `codice_gl` dedotto dal prefisso ministeriale già validato e servizi PST compatibili;
+- per Tribunale/Corte d'appello/TM sono stati resi espliciti i servizi lavoro `JPW_SIL_DISTR`, `JPW_SIL`, `JPW_SILP_DISTR`, `JPW_SILP` e gli alias `LAV`, `LAVORO`, `SICID_LAVORO`, `PREVIDENZA`;
+- il Local Signer usa lo stesso criterio anche in modalità snapshot/installato, quindi non resta dipendente dal solo file `uffici_ministero.json`;
+- il batch download PST distingue ora in modo rigido tra sessione `view` e sessione `import`: riusa la sessione di visualizzazione solo se è autenticata e coerente con lo stesso servizio; se il documento richiede un servizio diverso o la sessione non è pronta, apre una sessione `import` governata senza warm-up/PIN separato;
+- versione Local Signer portata a `1.6.102` e pacchetti dist rigenerati, così l'auto-update può rilevare che la build installata `1.6.101` non contiene il contratto corretto.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_reginde.py::test_catalogo_pst_pubblico_risolve_ufficio_civile_non_presente_nello_snapshot_ministeriale tests/test_local_signer.py::test_local_signer_risolve_locri_da_catalogo_pst_pubblico_quando_snapshot_ministeriale_manca tests/test_local_signer.py::test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato tests/test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests/test_local_signer.py::test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows tests/test_local_signer.py::test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin tests/test_local_signer.py::test_local_signer_cleanup_termina_operazione_governata_e_ripulisce_prompt tests/test_local_signer.py::test_batch_curl_arresta_intero_lotto_al_primo_annullamento tests/test_local_signer.py::test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake tests/test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import tests/test_local_signer.py::test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pronti tests/test_local_signer.py::test_pst_download_batch_senza_sessione_crea_import_nuova tests/test_local_signer.py::test_pst_download_batch_applica_servizio_documenti_su_sessione_import tests/test_deposito.py::test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione tests/test_deposito.py::test_deposito_invia_pec_reale_richiede_sempre_local_signer_anche_con_smtp_server_abilitato tests/test_impostazioni_firma.py::test_script_impostazioni_firma_verifica_local_signer_sul_pc_locale tests/test_impostazioni_firma_local_signer_versione_react.py::test_impostazioni_firma_mostra_versione_e_pacchetto_windows_ufficiale tests/test_local_signer_installer_atomic.py -q` → `22 passed`;
+- `python -m py_compile tools/local_signer.py pct/uffici_giudiziari.py tools/dist/local_signer.py`.
+
+Stato operativo: la correzione è pronta per riallineamento locale/server. Prima di dichiarare chiuso restano obbligatori build locale reale `127.0.0.1:8080`, pubblicazione su `https://app.iusentra.it`, verifica `/impostazioni?tab=firma` con Local Signer aggiornabile a `1.6.102`, controllo `/api/pronto`, container Hetzner unico `iusentra-app` e prova materiale dell'acquisizione senza invio PEC reale.
+
 ## Aggiornamento 2026-07-20 - Topbar e prova notifica campione
 
 La topbar non ricalcola fascicoli, PEC o documenti quando l'avvocato apre la campanella: legge esclusivamente il repository persistente tenant-aware. I job/eventi a monte materializzano i presidi e le relative notifiche; questa separazione è obbligatoria per evitare caricamenti lenti, duplicati o risultati diversi tra Presidio, Agenda e topbar.

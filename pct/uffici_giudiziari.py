@@ -31,6 +31,7 @@ import json
 import hashlib
 import logging
 import os
+import re
 import unicodedata
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -48,15 +49,40 @@ _PST_UFFICI   = "https://pst.giustizia.it/PST/resources/rest/ricercaUfficiGiudiz
 _PST_TIMEOUT  = 12  # secondi
 _RIFERIMENTI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
 _RIFERIMENTI_MINISTERO_EXTRA_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero_extra.json"
+_RIFERIMENTI_PST_PUBBLICI_PATH = Path(__file__).resolve().parent / "data" / "uffici_pst_pubblici.json"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JPW_CASSPE")
+_PST_SERVIZI_DEFAULT = (
+    "JPW_SICID",
+    "JPW_SIL_DISTR",
+    "JPW_SIL",
+    "JPW_SILP_DISTR",
+    "JPW_SILP",
+    "JPW_SIECIC",
+    "JPW_SIGP",
+    "JPW_CASSCI",
+    "JPW_CASSPE",
+)
 _PST_SERVIZI_ALIAS = {
     "JPW_CASS": "JPW_CASSCI",
+    "SICID": "JPW_SICID",
+    "SICC": "JPW_SICID",
+    "LAV": "JPW_SIL_DISTR",
+    "LAVORO": "JPW_SIL_DISTR",
+    "SICID_LAVORO": "JPW_SIL_DISTR",
+    "LAVORO_E_PREVIDENZA": "JPW_SIL_DISTR",
+    "PREVIDENZA": "JPW_SIL_DISTR",
+    "PREVIDENZIALE": "JPW_SIL_DISTR",
+    "SIL": "JPW_SIL_DISTR",
+    "SILP": "JPW_SILP_DISTR",
 }
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIL_DISTR": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP_DISTR": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP": "urn:CONS-SIL-BE-DISTR",
     "JPW_SIECIC": "urn:CONS-SIECIC-BE",
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
@@ -368,6 +394,33 @@ def _servizi_jpw(ufficio: dict) -> set[str]:
     }
 
 
+def _servizio_pst_compatibile_con_ufficio(ufficio: dict, servizio: str, servizi_jpw: set[str]) -> bool:
+    servizio_norm = _normalizza_servizio_pst_name(servizio)
+    if not servizio_norm:
+        return False
+    if servizio_norm in servizi_jpw:
+        return True
+    if servizio_norm not in _PST_QBUILDER_NAMESPACES:
+        return False
+    tipo = str(ufficio.get("tipo") or "").upper()
+    if tipo in {"TRIBUNALE", "CORTE_APPELLO", "TM", "CORTE_APPELLO_SEZIONE"}:
+        return servizio_norm in {
+            "JPW_SICID",
+            "JPW_SIL_DISTR",
+            "JPW_SIL",
+            "JPW_SILP_DISTR",
+            "JPW_SILP",
+            "JPW_SIECIC",
+        }
+    if tipo == "GDP":
+        return servizio_norm == "JPW_SIGP"
+    if tipo == "UNEP":
+        return servizio_norm == "JPW_UNEP"
+    if tipo == "CORTE_CASSAZIONE":
+        return servizio_norm in {"JPW_CASSCI", "JPW_CASSPE"}
+    return False
+
+
 def _cache_pst_metadata_non_allineata(cache_uffici: list[dict], bundle_uffici: list[dict]) -> bool:
     """Verifica che la cache conservi i metadati ministeriali usati dal resolver PST."""
     cache_idx = {u.get("codice"): u for u in cache_uffici if u.get("codice")}
@@ -420,6 +473,187 @@ def _carica_riferimenti_ministero_extra() -> list[dict]:
     except Exception as exc:
         log.warning("Lettura snapshot ministeriale extra uffici fallita: %s", exc)
         return []
+
+
+@lru_cache(maxsize=1)
+def _carica_catalogo_pst_pubblico() -> list[dict]:
+    """Carica gli uffici civili ufficialmente selezionabili nel PST pubblico."""
+    if not _RIFERIMENTI_PST_PUBBLICI_PATH.exists():
+        return []
+    try:
+        raw = json.loads(_RIFERIMENTI_PST_PUBBLICI_PATH.read_text(encoding="utf-8"))
+        sezioni = raw.get("uffici", {}) if isinstance(raw, dict) else {}
+        civili = sezioni.get("civili", []) if isinstance(sezioni, dict) else []
+        return [row for row in civili if isinstance(row, dict)]
+    except Exception as exc:
+        log.warning("Lettura catalogo PST pubblico uffici fallita: %s", exc)
+        return []
+
+
+@lru_cache(maxsize=1)
+def _codici_gl_per_prefisso_ministeriale() -> dict[str, str]:
+    """Deduce il GL dal prefisso del codice ministeriale usando righe già validate."""
+    conteggi: dict[str, dict[str, int]] = {}
+    riferimenti = list(_carica_riferimenti_ministero().values())
+    riferimenti.extend(_carica_riferimenti_ministero_extra())
+    for ref in riferimenti:
+        codice = str(ref.get("codice_ministero") or "").strip()
+        codice_gl = str(ref.get("codice_gl") or "").strip()
+        if len(codice) < 3 or not codice[:3].isdigit() or not codice_gl:
+            continue
+        bucket = conteggi.setdefault(codice[:3], {})
+        bucket[codice_gl] = bucket.get(codice_gl, 0) + 1
+    return {
+        prefisso: sorted(gl_counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
+        for prefisso, gl_counts in conteggi.items()
+        if gl_counts
+    }
+
+
+def _catalogo_pst_pubblico_non_operativo(row: dict) -> bool:
+    if row.get("deposito_prudenziale") is False:
+        return True
+    descrizione = str(row.get("descrizione") or "")
+    return bool(
+        re.search(
+            r"(?i)\b(non\s+attiv[oa]?|ex\s+giud|ex\s+sd|ante\s+\d{2}-\d{2}-\d{4}|model office|formazione)\b",
+            descrizione,
+        )
+    )
+
+
+def _tipo_interno_da_catalogo_pst_pubblico(row: dict) -> str:
+    descrizione = str(row.get("descrizione") or "").strip().casefold()
+    if "giudice di pace" in descrizione:
+        return "GDP"
+    if "procura generale" in descrizione:
+        return "PROCURA_GENERALE"
+    if "procura" in descrizione:
+        return "PROCURA"
+    if "corte d'appello" in descrizione or "corte di appello" in descrizione:
+        return "CORTE_APPELLO"
+    if "minorenni" in descrizione:
+        return "TM"
+    if "sorveglianza" in descrizione:
+        return "SORVEGLIANZA"
+    if "unep" in descrizione:
+        return "UNEP"
+    if "tribunale" in descrizione:
+        return "TRIBUNALE"
+    return "TRIBUNALE"
+
+
+def _nome_da_catalogo_pst_pubblico(row: dict) -> str:
+    descrizione = str(row.get("descrizione") or "").strip()
+    descrizione_norm = descrizione.casefold()
+    if " - " in descrizione:
+        sede = descrizione.split(" - ", 1)[1].strip()
+        if descrizione_norm.startswith("tribunale ordinario"):
+            return f"Tribunale di {sede}"
+        if descrizione_norm.startswith("giudice di pace"):
+            return f"Ufficio del Giudice di Pace di {sede}"
+    return descrizione.title() if descrizione.isupper() else descrizione
+
+
+def _servizi_ministero_da_tipo_catalogo_pst(tipo: str) -> list[str]:
+    tipo_norm = str(tipo or "").upper()
+    if tipo_norm == "GDP":
+        return ["DEPOT", "JPW_SIGP", "PAGAM_TEL"]
+    if tipo_norm == "UNEP":
+        return ["JPW_UNEP", "PAGAM_TEL"]
+    if tipo_norm == "CORTE_CASSAZIONE":
+        return ["DEPOT", "JPW_CASSCI", "JPW_CASSPE", "PAGAM_TEL"]
+    if tipo_norm in {"TRIBUNALE", "CORTE_APPELLO", "TM", "CORTE_APPELLO_SEZIONE"}:
+        return [
+            "COM_TEL_136",
+            "DEPOT",
+            "JPW_SICID",
+            "JPW_SIL_DISTR",
+            "JPW_SIL",
+            "JPW_SILP_DISTR",
+            "JPW_SILP",
+            "JPW_SIECIC",
+            "PAGAM_TEL",
+            "SICID",
+            "SIECIC",
+        ]
+    return ["PAGAM_TEL"]
+
+
+def _servizio_predefinito_da_tipo_catalogo_pst(tipo: str) -> str:
+    tipo_norm = str(tipo or "").upper()
+    if tipo_norm == "GDP":
+        return "JPW_SIGP"
+    if tipo_norm == "UNEP":
+        return "JPW_UNEP"
+    if tipo_norm == "CORTE_CASSAZIONE":
+        return "JPW_CASSCI"
+    if tipo_norm in {"TRIBUNALE", "CORTE_APPELLO", "TM", "CORTE_APPELLO_SEZIONE"}:
+        return "JPW_SICID"
+    return ""
+
+
+def _ufficio_da_catalogo_pst_pubblico(row: dict) -> dict | None:
+    codice = str(row.get("codice_ufficio") or "").strip()
+    if not codice:
+        return None
+    codice_gl = _codici_gl_per_prefisso_ministeriale().get(codice[:3], "")
+    tipo = _tipo_interno_da_catalogo_pst_pubblico(row)
+    return {
+        "codice": codice,
+        "nome": _nome_da_catalogo_pst_pubblico(row),
+        "distretto": "",
+        "pec": "",
+        "tipo": tipo,
+        "fonte_registro": "PST pubblico",
+        "codice_interno_iusentra": "",
+        "aggiunto_da_catalogo_pst_pubblico": True,
+        "codice_ministero": codice,
+        "codice_gl": codice_gl,
+        "descrizione_ministero": str(row.get("descrizione") or "").strip(),
+        "tipo_ministero": "",
+        "tipo_ministero_descrizione": str(row.get("descrizione") or "").strip(),
+        "comune_ministero": _nome_da_catalogo_pst_pubblico(row).rsplit(" di ", 1)[-1],
+        "distretto_ministero": "",
+        "distretto_gl": codice_gl,
+        "regione_ministero": "",
+        "provincia_ministero": codice[:3],
+        "pec_ministero": "",
+        "servizi_ministero": _servizi_ministero_da_tipo_catalogo_pst(tipo),
+        "servizio_pst_predefinito": _servizio_predefinito_da_tipo_catalogo_pst(tipo),
+        "stato_prudenziale": row.get("stato_prudenziale") or "",
+        "deposito_prudenziale": row.get("deposito_prudenziale"),
+    }
+
+
+def _risolvi_ufficio_da_catalogo_pst_pubblico(codice_o_nome: str, *, tipo: str = "") -> dict | None:
+    chiave = (codice_o_nome or "").strip()
+    if not chiave:
+        return None
+    tipo_norm = (tipo or "").strip().upper()
+    chiave_alias = _slug_alias_ufficio(chiave)
+    best_partial: dict | None = None
+    for row in _carica_catalogo_pst_pubblico():
+        codice = str(row.get("codice_ufficio") or "").strip()
+        descrizione = str(row.get("descrizione") or "").strip()
+        inferred = _ufficio_da_catalogo_pst_pubblico(row)
+        if not inferred:
+            continue
+        if tipo_norm and str(inferred.get("tipo") or "").upper() != tipo_norm:
+            continue
+        if codice and codice == chiave:
+            return inferred
+        if _catalogo_pst_pubblico_non_operativo(row):
+            continue
+        aliases = {
+            _slug_alias_ufficio(descrizione),
+            _slug_alias_ufficio(inferred.get("nome", "")),
+        }
+        if chiave_alias and chiave_alias in aliases:
+            return inferred
+        if chiave_alias and any(chiave_alias in alias or alias in chiave_alias for alias in aliases if alias):
+            best_partial = best_partial or inferred
+    return best_partial
 
 
 def _nome_da_descrizione_ministeriale(ref: dict) -> str:
@@ -1960,6 +2194,10 @@ def risolvi_ufficio(
         if _ok_tipo(ufficio) and chiave == ufficio.get("codice_ministero"):
             return ufficio
 
+    pubblico = _risolvi_ufficio_da_catalogo_pst_pubblico(chiave, tipo=tipo_norm)
+    if pubblico is not None:
+        return pubblico
+
     if "@" in chiave:
         chiave_pec = chiave.casefold()
         for ufficio in uffici:
@@ -2083,8 +2321,9 @@ def risolvi_servizio_pst(
     preferenze.extend(_PST_SERVIZI_DEFAULT)
 
     if jpw:
+        servizi_set = set(jpw)
         for candidato in preferenze:
-            if candidato and candidato in jpw:
+            if candidato and _servizio_pst_compatibile_con_ufficio(ufficio, candidato, servizi_set):
                 return candidato
         return jpw[0]
 

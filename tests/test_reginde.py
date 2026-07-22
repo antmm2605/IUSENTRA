@@ -162,6 +162,22 @@ def test_snapshot_ministeriale_aggiunge_tribunali_e_gdp_ufficiali_non_presenti_n
     assert risolvi_servizio_pst("0850070152", tipo="GDP") == "JPW_SIGP"
 
 
+def test_catalogo_pst_pubblico_risolve_ufficio_civile_non_presente_nello_snapshot_ministeriale():
+    locri = risolvi_ufficio("0800430095", tipo="TRIBUNALE")
+
+    assert locri is not None
+    assert locri["codice_ministero"] == "0800430095"
+    assert locri["codice_gl"] == "GLRC"
+    assert risolvi_codice_ministero("0800430095", tipo="TRIBUNALE") == "0800430095"
+    assert risolvi_servizio_pst("0800430095", preferito="SICID_LAVORO", tipo="TRIBUNALE") == "JPW_SIL_DISTR"
+    assert risolvi_base_pst(
+        "0800430095",
+        base_url="https://ext.processotelematico.giustizia.it",
+        preferito="SICID_LAVORO",
+        tipo="TRIBUNALE",
+    ).endswith("/pda/pycons/GLRC/JPW_SIL_DISTR")
+
+
 def test_risoluzione_pst_cassazione_usa_proxy_cassci():
     assert risolvi_codice_ministero("9990000") == "80417740588"
     assert risolvi_base_pst("9990000", base_url="https://ext.processotelematico.giustizia.it") == (

@@ -1840,6 +1840,35 @@ def test_local_signer_risolve_proxy_pst_da_snapshot_quando_pct_non_e_disponibile
         module._uffici_snapshot_cache = orig_cache
 
 
+def test_local_signer_risolve_locri_da_catalogo_pst_pubblico_quando_snapshot_ministeriale_manca():
+    module = _load_local_signer()
+
+    orig_base = module._risolvi_base_pst_hacs
+    orig_code = module._risolvi_codice_ministero_hacs
+    orig_snapshot_cache = module._uffici_snapshot_cache
+    orig_pst_cache = module._uffici_pst_pubblici_cache
+    try:
+        module._risolvi_base_pst_hacs = None
+        module._risolvi_codice_ministero_hacs = None
+        module._uffici_snapshot_cache = None
+        module._uffici_pst_pubblici_cache = None
+
+        base = module._risolvi_base_pst_runtime("0800430095")
+        preferred = module._pst_base_url_con_preferenza_payload(
+            base,
+            {"tabella_ministeriale": "SICID_LAVORO", "registro": "LAV", "materia": "Lavoro e previdenza"},
+        )
+
+        assert base.endswith("/pda/pycons/GLRC/JPW_SICID")
+        assert preferred.endswith("/pda/pycons/GLRC/JPW_SIL_DISTR")
+        assert module._risolvi_codice_ufficio_pst("0800430095") == "0800430095"
+    finally:
+        module._risolvi_base_pst_hacs = orig_base
+        module._risolvi_codice_ministero_hacs = orig_code
+        module._uffici_snapshot_cache = orig_snapshot_cache
+        module._uffici_pst_pubblici_cache = orig_pst_cache
+
+
 def test_thumbprint_windows_viene_formattato_per_schannel():
     module = _load_local_signer()
 

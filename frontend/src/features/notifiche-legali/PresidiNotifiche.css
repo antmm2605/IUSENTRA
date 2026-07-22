@@ -7,10 +7,8 @@
 }
 .nlp-section-nav .iu-tabs,
 .nlp-queue-tabs .iu-tabs {
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
+  max-width: 100%; overflow-x: visible; overscroll-behavior-inline: contain; scrollbar-width: none;
+  flex-wrap: wrap; align-items: stretch; gap: 6px;
 }
 .nlp-page .iusentra-page-shell__body {
   display: grid;
@@ -26,23 +24,17 @@
 .nlp-queue-tabs .iu-tabs {
   justify-content: flex-start;
 }
+.nlp-queue-tabs .iu-tab {
+  min-height: 36px; padding: 6px 9px; flex: 0 1 auto;
+}
 .nlp-tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px;
 }
 .nlp-tab-label strong {
-  min-width: 22px;
-  min-height: 20px;
-  display: inline-grid;
-  place-items: center;
-  padding: 0 6px;
-  border: 1px solid var(--iu-border);
-  border-radius: 8px;
-  background: var(--iu-surface-muted);
-  color: var(--iu-text-subtle);
-  font-size: 11px;
+  min-width: 20px; min-height: 18px; display: inline-grid; place-items: center; padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--iu-accent) 18%, var(--iu-border));
+  border-radius: 999px; background: color-mix(in srgb, var(--iu-accent) 8%, var(--iu-surface-solid));
+  color: var(--iu-text); font-size: 10px; font-variant-numeric: tabular-nums; line-height: 1;
 }
 .nlp-filters,
 .nlp-cell-stack,
@@ -194,6 +186,13 @@
 .nlp-transition-list p {
   margin: 0;
 }
+.nlp-action-item { align-items: center; gap: 10px; }
+.nlp-action-item .iu-btn:disabled {
+  opacity: 1; color: var(--iu-text-subtle);
+  background: color-mix(in srgb, var(--iu-surface-muted) 82%, var(--iu-surface-solid));
+  border-color: var(--iu-border);
+}
+.nlp-action-disabled { color: var(--iu-text); font-weight: 750; line-height: 1.35; }
 .nlp-detail-section {
   display: grid;
   gap: 12px;

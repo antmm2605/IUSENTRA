@@ -365,6 +365,92 @@ def test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo(mon
     assert pec_copy["original_acquisition_url"] == ""
 
 
+def test_dettaglio_presidio_riconcilia_prova_notifica_depositata_dal_fascicolo(monkeypatch, tmp_path) -> None:
+    repository = NotificationPresidioRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="studio-legale-giuseppe-montagnese",
+    )
+    presidio = NotificationPresidioService(repository).create_candidate(
+        {
+            "fascicolo_id": "FB586324",
+            "source_message_id": "pec_calabro",
+            "source_order_or_event_id": "pec_calabro",
+            "source_effective_at": "2026-07-13T09:47:00+02:00",
+            "trigger_type": "STRATEGIC_NOTIFICATION_REVIEW",
+            "notification_case": "judgment_to_notify_review",
+            "rulepack_version": "pytest-proof-deposited",
+            "priority": "P1",
+            "confidence": 0.83,
+            "live_pec_operational_event": True,
+            "detection_reason": "Sentenza da valutare per la notifica.",
+            "documents": [
+                {
+                    "fascicolo_document_id": "A86F38C9",
+                    "original_filename": "SentenzaDefinitiva_35815989.pdf",
+                    "document_role": "portal_original",
+                    "authoritative": True,
+                    "content_sha256": "1" * 64,
+                }
+            ],
+            "recipients": [{"name": "Ministero dell'Istruzione e del Merito", "required": True}],
+        }
+    )
+    repository.transition(
+        str(presidio["id"]),
+        "ORIGINAL_ACQUIRED",
+        actor="pytest",
+        reason="Documento PST acquisito.",
+        evidence={"source": "pytest"},
+        idempotency_key="pytest-original-acquired",
+    )
+    fascicolo = SimpleNamespace(
+        id="FB586324",
+        nome_cliente="Calabrò Daniela",
+        titolo="Calabrò II ricorso c. MIM",
+        rg_completo="RG 3571/2025",
+        tribunale="TRIBUNALE DI LOCRI",
+        documenti=[],
+    )
+
+    import web.helpers
+    import web.services.react_fascicoli_bridge as fascicoli_bridge
+
+    monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: SimpleNamespace(get=lambda identifier: fascicolo if identifier == "FB586324" else None))
+    monkeypatch.setattr(
+        fascicoli_bridge,
+        "_notification_relata",
+        lambda _fascicolo, _office_pec_messages=None: {
+            "status": "prova_depositata",
+            "statusLabel": "Prova notifica depositata",
+            "tone": "success",
+            "proofDocuments": 3,
+            "proofDepositDocuments": 1,
+            "primaryHref": "/fascicoli/FB586324#relata-notifica",
+            "systemNotification": "Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare.",
+            "documents": [
+                {
+                    "id": "PROVA1",
+                    "name": "Prova notifica depositata.pdf",
+                    "kind": "deposito_prova",
+                    "status": "depositato",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(payloads, "presidio_permissions", lambda: {"can_read": True, "can_write": True, "can_link_document": True, "can_configure": True})
+    monkeypatch.setattr(payloads, "current_actor_id", lambda: "pytest")
+
+    detail = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
+
+    assert detail["status"] == "PROOF_DEPOSITED"
+    assert detail["status_label"] == "Prova depositata"
+    assert detail["next_action"] == "Nessuna nuova relata: verifica la prova depositata"
+    confirm = next(action for action in detail["available_actions"] if action["id"] == "confirm")
+    assert confirm["enabled"] is False
+    assert "Non preparare una nuova relata" in confirm["disabled_reason"]
+    assert repository.get_presidio(str(presidio["id"]))["status"] == "PROOF_DEPOSITED"
+
+
 def test_documenti_collegabili_espongono_nomi_leggibili_non_soli_id(monkeypatch) -> None:
     fascicolo = SimpleNamespace(
         documenti=[

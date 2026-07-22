@@ -36,6 +36,7 @@ function sourceIframeSandbox(href: string): string {
       && (
         normalizedPath === '/email'
         || normalizedPath === '/email-ordinaria'
+        || normalizedPath.startsWith('/api/v1/ui/email/source/')
         || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
       )
     return trustedInternalReader

@@ -5396,3 +5396,15 @@ Prove automatiche mirate: test React della pagina Agenda/lettore e gruppo Agenda
 ### Aggiornamento 22/07/2026 - download verificabile dall'originale collegato
 
 Il percorso Presidio notifiche → originale PST → relata richiede che l'avvocato possa anche scaricare il documento collegato senza uscire dalla pratica. Dopo il test reale, la rotta storica `/scarica` è stata mantenuta come compatibilità, ma il dettaglio Presidi ora preferisce il download dallo stesso viewer interno con `?download=1`. Questa scelta tiene unificati visualizzazione e scaricamento: il documento che si vede nel lettore è lo stesso che viene scaricato.
+
+### Aggiornamento 23/07/2026 - acquisizione originale e prova notifica già depositata
+
+Nel flusso Presidio notifiche → acquisizione originale PST → relata, l’acquisizione dell’originale non deve obbligare l’avvocato a preparare una nuova relata se il fascicolo contiene già la prova di notifica depositata. La regola operativa è:
+
+1. la copia PEC dell’ufficio resta fonte informativa dell’evento;
+2. l’originale PST acquisito resta il documento autorevole nel fascicolo;
+3. prima di proporre una nuova relata, il sistema interroga il presidio relata del fascicolo;
+4. se il fascicolo restituisce `prova_depositata`, il presidio avanzato passa a `PROOF_DEPOSITED` e viene trattato come chiuso operativamente;
+5. Agenda, Scadenziario, topbar e web push devono ricevere lo stesso stato riconciliato, non una richiesta di nuova notifica.
+
+Questa correzione è stata blindata con test backend sui payload presidi, workflow notifiche, runtime acquisizione PST e materializzatore relata, oltre a contratto frontend e build React.

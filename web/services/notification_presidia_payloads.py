@@ -66,6 +66,10 @@ NEXT_ACTIONS = {
     "DELIVERY_FAILED": "Gestisci mancata consegna",
     "DELIVERY_COMPLETE": "Deposita la prova di notifica",
     "PROOF_TO_DEPOSIT": "Deposita la prova di notifica",
+    "PROOF_DEPOSITED": "Nessuna nuova relata: verifica la prova depositata",
+    "CLOSED": "Presidio chiuso",
+    "NOT_REQUIRED": "Nessuna notifica da eseguire",
+    "CANCELLED": "Presidio annullato",
 }
 NOTIFICATION_CASE_LABELS = {
     "judgment_to_notify_review": "Sentenza da valutare per la notifica",
@@ -316,6 +320,7 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
 
 
 def _status_facets(repo: Any) -> dict[str, int]:
+    _reconcile_open_presidia_with_fascicolo_proof(repo)
     with repo.connection() as conn:
         rows = conn.execute(
             """
@@ -327,6 +332,42 @@ def _status_facets(repo: Any) -> dict[str, int]:
             (repo.tenant_id,),
         ).fetchall()
     return {str(row["status"]): int(row["count"] or 0) for row in rows}
+
+
+def _reconcile_open_presidia_with_fascicolo_proof(repo: Any, *, limit: int = 50) -> None:
+    permissions = presidio_permissions()
+    if not permissions.get("can_write"):
+        return
+    with repo.connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT id
+            FROM pec_legal_notification_presidia
+            WHERE tenant_id=?
+              AND status IN (
+                'DETECTED','NEEDS_REVIEW','ORIGINAL_TO_ACQUIRE','ORIGINAL_ACQUIRED',
+                'NOTIFICATION_CONFIRMED','RECIPIENTS_TO_VERIFY','READY_FOR_RELATA',
+                'RELATA_DRAFTED','RELATA_SIGNED','READY_TO_SEND','SENT_WAITING_RAC',
+                'RAC_RECEIVED','PARTIAL_DELIVERY','DELIVERY_COMPLETE','PROOF_TO_DEPOSIT',
+                'LEGACY_REVIEW_REQUIRED'
+              )
+            ORDER BY updated_at DESC
+            LIMIT ?
+            """,
+            (repo.tenant_id, int(limit)),
+        ).fetchall()
+    if not rows:
+        return
+    try:
+        from web.services.notification_presidia_fascicolo_reconciliation import (
+            reconcile_presidio_with_fascicolo_notification_proof,
+        )
+
+        actor = current_actor_id()
+        for row in rows:
+            reconcile_presidio_with_fascicolo_notification_proof(repo, str(row["id"]), actor=actor)
+    except Exception:
+        return
 
 
 def build_presidia_list_payload(repo: Any, filters: Mapping[str, Any]) -> dict[str, Any]:
@@ -452,6 +493,25 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
         detail["recipients"] = [_public_recipient(item) for item in recipients]
         fascicolo_id = str(row.get("fascicolo_id") or "")
         source_message_id = str(row.get("source_message_id") or "")
+    try:
+        from web.services.notification_presidia_fascicolo_reconciliation import (
+            reconcile_presidio_with_fascicolo_notification_proof,
+        )
+
+        report = reconcile_presidio_with_fascicolo_notification_proof(
+            repo,
+            presidio_id,
+            actor=current_actor_id(),
+        )
+        if report.get("status") != str(row.get("status") or ""):
+            row, docs, recipients = _detail_rows(repo, presidio_id)
+            detail = _summary(_summary_projection(row), row, recipients, docs, assignees)
+            practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
+            detail["recipients"] = [_public_recipient(item) for item in recipients]
+            fascicolo_id = str(row.get("fascicolo_id") or "")
+            source_message_id = str(row.get("source_message_id") or "")
+    except Exception:
+        pass
     has_portal_original = _has_linked_portal_document(docs)
     detail["documents"] = [
         _public_document(
@@ -742,6 +802,8 @@ def _available_actions(row: Mapping[str, Any], permissions: Mapping[str, bool], 
             "disabled_reason": (
                 "Decisione già registrata. Puoi modificarla qui sotto."
                 if status == "NOTIFICATION_CONFIRMED"
+                else "Prova notifica già depositata nel fascicolo. Non preparare una nuova relata."
+                if status == "PROOF_DEPOSITED"
                 else ""
             ),
             "tone": "primary",

@@ -267,6 +267,20 @@ def mutate_presidio(repo: Any, presidio_id: str, mutation: str, body: Mapping[st
         raise PermissionError("Permesso messaggi.scrivi richiesto.")
     actor = current_actor_id()
     if mutation == "confirm":
+        from web.services.notification_presidia_fascicolo_reconciliation import (
+            reconcile_presidio_with_fascicolo_notification_proof,
+        )
+
+        reconciled = reconcile_presidio_with_fascicolo_notification_proof(
+            repo,
+            presidio_id,
+            actor=actor,
+            idempotency_prefix=f"{idempotency_key}:proof",
+        )
+        if reconciled.get("status") == "PROOF_DEPOSITED":
+            from web.services.notification_presidia_payloads import build_presidio_detail_payload
+
+            return build_presidio_detail_payload(repo, presidio_id)
         repo.transition(presidio_id, "NOTIFICATION_CONFIRMED", actor=actor, reason=str(body.get("reason") or "Notifica necessaria confermata dall'operatore."), evidence={"source": "ui_presidio"}, idempotency_key=idempotency_key)
     elif mutation == "revise-decision":
         _revise_notification_decision(
@@ -292,6 +306,21 @@ def mutate_presidio(repo: Any, presidio_id: str, mutation: str, body: Mapping[st
         repo.upsert_document(presidio_id, {"fascicolo_document_id": document_id, "document_role": str(body.get("document_role") or "notified_act"), "original_filename": str(body.get("document_name") or document_id), "content_sha256": str(body.get("content_sha256") or "")})
         repo.append_evidence(presidio_id, {"evidence_type": "human_decision", "source_type": "document", "source_id": document_id, "text_excerpt": "Documento collegato manualmente dal pannello Notifiche Legali.", "confidence": 1.0})
     elif mutation in {"reconcile", "retry"}:
+        if mutation == "reconcile":
+            from web.services.notification_presidia_fascicolo_reconciliation import (
+                reconcile_presidio_with_fascicolo_notification_proof,
+            )
+
+            reconciled = reconcile_presidio_with_fascicolo_notification_proof(
+                repo,
+                presidio_id,
+                actor=actor,
+                idempotency_prefix=f"{idempotency_key}:proof",
+            )
+            if reconciled.get("status") == "PROOF_DEPOSITED":
+                from web.services.notification_presidia_payloads import build_presidio_detail_payload
+
+                return build_presidio_detail_payload(repo, presidio_id)
         from pct.pec_notification_presidio import NotificationPresidioWorkQueue
 
         queue = NotificationPresidioWorkQueue(repo)

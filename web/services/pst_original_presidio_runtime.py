@@ -545,6 +545,22 @@ def register_imported_pst_originals(
                 raise
             transition_status = refreshed_status
     current_status = _text(repository.get_presidio(presidio_id).get("status"))
+    try:
+        from web.services.notification_presidia_fascicolo_reconciliation import (
+            reconcile_presidio_with_fascicolo_notification_proof,
+        )
+
+        proof_report = reconcile_presidio_with_fascicolo_notification_proof(
+            repository,
+            presidio_id,
+            actor=_text(actor) or "sistema",
+            idempotency_prefix=f"pst-original-proof:{identity.key}",
+        )
+        if proof_report.get("status") == PresidioStatus.PROOF_DEPOSITED.value:
+            current_status = PresidioStatus.PROOF_DEPOSITED.value
+            report["prova_fascicolo"] = proof_report
+    except Exception as exc:
+        report["prova_fascicolo"] = {"ok": False, "error": str(exc)}
     newly_linked = existing_original is None
     report["collegati"].append(
         {

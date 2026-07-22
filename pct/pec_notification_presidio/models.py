@@ -96,6 +96,7 @@ _EARLY_ACTIVE = frozenset(
         PresidioStatus.PARTIAL_DELIVERY,
         PresidioStatus.DELIVERY_COMPLETE,
         PresidioStatus.DELIVERY_FAILED,
+        PresidioStatus.PROOF_DEPOSITED,
         PresidioStatus.NOT_REQUIRED,
         PresidioStatus.CANCELLED,
         PresidioStatus.LEGACY_ASSUMED_HANDLED,
@@ -117,6 +118,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
             PresidioStatus.PARTIAL_DELIVERY,
             PresidioStatus.DELIVERY_COMPLETE,
             PresidioStatus.DELIVERY_FAILED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
             PresidioStatus.LEGACY_ASSUMED_HANDLED,
@@ -125,6 +127,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.ORIGINAL_TO_ACQUIRE: frozenset(
         {
             PresidioStatus.ORIGINAL_ACQUIRED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
@@ -135,6 +138,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
             PresidioStatus.NOTIFICATION_CONFIRMED,
             PresidioStatus.RECIPIENTS_TO_VERIFY,
             PresidioStatus.READY_FOR_RELATA,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
@@ -144,6 +148,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
         {
             PresidioStatus.RECIPIENTS_TO_VERIFY,
             PresidioStatus.READY_FOR_RELATA,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
@@ -152,6 +157,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.RECIPIENTS_TO_VERIFY: frozenset(
         {
             PresidioStatus.READY_FOR_RELATA,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.NOT_REQUIRED,
             PresidioStatus.CANCELLED,
@@ -160,6 +166,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.READY_FOR_RELATA: frozenset(
         {
             PresidioStatus.RELATA_DRAFTED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.CANCELLED,
         }
@@ -167,6 +174,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.RELATA_DRAFTED: frozenset(
         {
             PresidioStatus.RELATA_SIGNED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.CANCELLED,
         }
@@ -174,6 +182,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.RELATA_SIGNED: frozenset(
         {
             PresidioStatus.READY_TO_SEND,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.CANCELLED,
         }
@@ -181,6 +190,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.READY_TO_SEND: frozenset(
         {
             PresidioStatus.SENT_WAITING_RAC,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.DELIVERY_FAILED,
             PresidioStatus.NEEDS_REVIEW,
             PresidioStatus.CANCELLED,
@@ -192,6 +202,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
             PresidioStatus.PARTIAL_DELIVERY,
             PresidioStatus.DELIVERY_COMPLETE,
             PresidioStatus.DELIVERY_FAILED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.CANCELLED,
         }
     ),
@@ -200,12 +211,14 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
             PresidioStatus.PARTIAL_DELIVERY,
             PresidioStatus.DELIVERY_COMPLETE,
             PresidioStatus.DELIVERY_FAILED,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.CANCELLED,
         }
     ),
     PresidioStatus.PARTIAL_DELIVERY: frozenset(
         {
             PresidioStatus.DELIVERY_COMPLETE,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.CANCELLED,
         }
     ),
@@ -217,6 +230,7 @@ ALLOWED_TRANSITIONS: dict[PresidioStatus, frozenset[PresidioStatus]] = {
     PresidioStatus.DELIVERY_COMPLETE: frozenset(
         {
             PresidioStatus.PROOF_TO_DEPOSIT,
+            PresidioStatus.PROOF_DEPOSITED,
             PresidioStatus.CLOSED,
         }
     ),

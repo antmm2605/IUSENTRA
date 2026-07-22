@@ -1230,3 +1230,31 @@ Correzione generale applicata:
 - il fallback alla vecchia rotta resta solo se non esiste un viewer interno sicuro.
 
 Guardrail aggiunti: test backend sul download da `visualizza?download=1` e test React sul contratto del drawer Presidi.
+
+### Aggiornamento 23/07/2026 - riconciliazione prova notifica già depositata dal fascicolo
+
+Problema reale emerso sul caso Calabrò Daniela, fascicolo `FB586324`, R.G. `3571/2025`, `TRIBUNALE DI LOCRI`: dopo l’acquisizione dell’originale PST `SentenzaDefinitiva_35815989.pdf`, il presidio avanzato restava nello stato `ORIGINAL_ACQUIRED`, quindi nella coda UI `Relata da preparare`. Il fascicolo, però, mostrava già il presidio relata come `Prova notifica depositata` con messaggio operativo: nessuna nuova notifica da preparare.
+
+Correzione generale applicata:
+
+- introdotta la riconciliazione `presidio notifiche ↔ fascicolo` tramite la stessa logica `_notification_relata` già usata dal fascicolo;
+- quando il fascicolo restituisce `prova_depositata`, il presidio passa automaticamente a `PROOF_DEPOSITED`;
+- `PROOF_DEPOSITED` viene conteggiato nella tab `Chiuse`, quindi non resta più dentro `Relata da preparare`;
+- il pulsante `Conferma notifica` non conferma una nuova notifica se trova prima una prova già depositata nel fascicolo;
+- dopo l’acquisizione PST, il runtime prova subito la stessa riconciliazione prima di materializzare Agenda, Scadenziario, topbar e web push;
+- viene salvata un’evidenza auditabile di tipo `document` con fonte `fascicolo`, testo “Notifica già eseguita e prova già depositata nel fascicolo: nessuna nuova notifica da preparare.” e attendibilità `100%`.
+
+Correzione UI collegata:
+
+- le tab dei presidi notifiche non usano più lo scroll orizzontale come comportamento primario;
+- i contatori sono chip compatti, a capo quando serve, con numero leggibile vicino all’etichetta;
+- i pulsanti disabilitati restano leggibili e il motivo `Decisione già registrata. Puoi modificarla qui sotto.` non appare più come testo fantasma.
+
+Guardrail eseguiti:
+
+- `python -m pytest tests/test_notification_presidia_payloads.py -q` → `12 passed`;
+- `python -m pytest tests/test_notification_workflow.py tests/test_pst_original_presidio_runtime.py tests/test_notification_relata_materializer.py -q` → `27 passed`;
+- `pnpm --filter @iusentra/studio test:notifiche-legali-presidi` → superato, CSS presidi `438` righe entro budget `440`;
+- `pnpm --filter @iusentra/studio build` → superato.
+
+Stato: da verificare materialmente in produzione e nella copia locale reale `127.0.0.1:8080` dopo rebuild/deploy sullo stesso commit. La correzione non effettua invii PEC e non prepara relazioni nuove: riconcilia soltanto una prova già presente nel fascicolo.

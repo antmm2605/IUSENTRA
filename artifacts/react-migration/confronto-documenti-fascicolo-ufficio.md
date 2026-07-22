@@ -435,3 +435,16 @@ Correzione collegata: il sandbox della modale fonte ora consente `allow-same-ori
 ### Aggiornamento 22/07/2026 - scaricamento dal viewer interno
 
 Per i documenti PST già acquisiti e collegati al presidio, lo scaricamento operativo non deve spostare l'avvocato fuori dal drawer e non deve dipendere dalla sola rotta `/scarica` se il browser la blocca. Il viewer interno `/documenti/.../visualizza` ora accetta `download=1` e viene usato dal dettaglio Presidi come canale primario di scaricamento quando il viewer è disponibile.
+
+### Aggiornamento 23/07/2026 - prova notifica depositata prevale sulla preparazione relata
+
+Il confronto con il fascicolo d’ufficio è stato esteso al caso in cui il documento PST originale è già acquisito ma il fascicolo contiene anche la prova della notifica già depositata. In questo scenario il documento PST non basta a determinare “relata da preparare”: la fonte decisiva per la fase successiva diventa la catena documentale del fascicolo.
+
+Regola aggiornata:
+
+- se il fascicolo espone `Prova notifica depositata`, il presidio avanzato deve registrare `PROOF_DEPOSITED`;
+- la copia PEC e l’originale PST restano documenti collegati e visualizzabili, ma non generano una nuova notifica;
+- la riconciliazione deve essere tenant-aware e limitata al fascicolo del presidio, senza scansioni ricorsive runtime;
+- il click errato su `Conferma notifica` deve prima rieseguire questa verifica, evitando duplicazioni operative.
+
+Caso guida: Calabrò Daniela, fascicolo `FB586324`, R.G. `3571/2025`, originale PST `SentenzaDefinitiva_35815989.pdf`, copia PEC `21295227s.pdf.zip`.

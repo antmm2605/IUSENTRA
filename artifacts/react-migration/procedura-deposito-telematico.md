@@ -5368,3 +5368,15 @@ Prova locale eseguita:
 Limite della prova locale: il click finale `Cerca fascicolo` nella copia locale è stato bloccato dalla policy di sicurezza del browser integrato. Non è stato aggirato con CDP, richieste indirette o altri canali. La prova server sullo stesso commit resta valida fino al timeout ministeriale governato: nessun `Failed to fetch`, nessuna “sessione PST non inizializzata”, Local Signer rilevato.
 
 Igiene: la password temporanea usata solo per entrare nel tenant locale di test è stata ripristinata al valore hash originale prima dei gate e del report.
+
+### Aggiornamento 22/07/2026 - criterio PST rigoroso per presidi e relata
+
+Il flusso Presidio notifiche → acquisizione originale → relata non deve considerare come originale PST un documento storico interno solo perché contiene “sentenza” nel nome. Il caso Romeo Maria ha confermato che nel fascicolo possono convivere:
+
+- copie PEC di cancelleria, utili come fonte dell’evento ma non come originale da notificare;
+- documenti QuickOrganizer/testi o import storici, utili nel fascicolo ma non autorevoli per la riconciliazione PST automatica;
+- documenti PolisWeb/PST veri, con origine ministeriale e identificativo portale numerico o metadati `pst`/`polisweb`.
+
+Regola anti-regressione: la relata può proporre automaticamente l’originale già acquisito solo quando il documento proviene da PST/PolisWeb o da un identificativo portale ministeriale coerente. Sono escluse fonti `quickorganizer:`, `documenti_ai:`, `manual:` e `upload:`. In caso di ambiguità reale, il software non deve scegliere un documento casuale: deve mantenere il presidio aperto e guidare l’avvocato verso acquisizione/collegamento verificabile.
+
+Test collegati: `tests/test_pst_original_presidio_runtime.py::test_presidio_riconosce_provvedimento_pst_gia_presente_nel_fascicolo` include espressamente due false sentenze QuickOrganizer nello stesso fascicolo e verifica che venga collegata solo `SentenzaDefinitiva_35882174.pdf`.

@@ -51,6 +51,12 @@ _NON_DECISIVE_DOCUMENT_MARKERS = (
     "ricevuta",
     "conferma pagamento",
 )
+_NON_PST_SOURCE_MARKERS = (
+    "quickorganizer:",
+    "documenti_ai:",
+    "manual:",
+    "upload:",
+)
 
 
 def _text(value: Any) -> str:
@@ -99,17 +105,11 @@ def _joined_tags(document: Any) -> str:
 
 
 def _is_pst_fascicolo_document(document: Any) -> bool:
-    if _text(_field(document, "id_documento_portale", "portal_document_id", "id_documento")):
-        return True
-    if _text(_field(document, "id_cat_portale", "id_cat", "msg_id_portale", "msg_id")):
-        return True
-    if _text(_field(document, "servizio_portale", "fonte_documento")).casefold() in {
-        "pst",
-        "polisweb",
-        "portale_telematico",
-        "portale telematico",
-    }:
-        return True
+    portal_document_id = _text(
+        _field(document, "id_documento_portale", "portal_document_id", "id_documento")
+    )
+    portal_reference = _text(_field(document, "id_cat_portale", "id_cat", "msg_id_portale", "msg_id"))
+    service = _text(_field(document, "servizio_portale", "fonte_documento")).casefold()
     haystack = " ".join(
         _text(_field(document, key))
         for key in (
@@ -120,9 +120,24 @@ def _is_pst_fascicolo_document(document: Any) -> bool:
             "nome_portale",
             "classificazione_portale",
             "tipo_atto_portale",
+            "id_documento_portale",
+            "id_cat_portale",
         )
     ).casefold()
-    return any(marker in haystack for marker in _PST_SOURCE_MARKERS)
+    if any(marker in haystack for marker in _NON_PST_SOURCE_MARKERS):
+        return False
+    if service in {
+        "pst",
+        "polisweb",
+        "portale_telematico",
+        "portale telematico",
+    }:
+        return True
+    if any(marker in haystack for marker in _PST_SOURCE_MARKERS):
+        return True
+    if portal_document_id.isdigit() or portal_reference.isdigit():
+        return True
+    return False
 
 
 def _is_decisive_pst_document(

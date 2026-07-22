@@ -1174,3 +1174,25 @@ Guardrail eseguiti:
 - `python -m pct.cli utf8-integrity --check-only ... --json` → `ok=true`.
 
 Stato ancora aperto: eseguire gate più ampi, build, deploy della correzione, prova reale dal presidio in produzione e riallineamento della copia locale reale.
+
+### Aggiornamento 22/07/2026 - blindatura contro falsi documenti PST da QuickOrganizer
+
+Durante il test reale sul presidio Romeo Maria, R.G. `1428/2026`, il dettaglio non collegava automaticamente `SentenzaDefinitiva_35882174.pdf` anche se il documento era già presente nel fascicolo `78D6022C`. La diagnosi sul DB reale del tenant `studio-legale-giuseppe-montagnese` ha mostrato la causa: nello stesso fascicolo erano presenti anche due vecchi documenti QuickOrganizer con `id_documento_portale` nel formato `quickorganizer:testi:*` e nome contenente “Sentenza”. Il codice li considerava erroneamente candidati PST perché bastava un qualsiasi identificativo portale.
+
+Correzione generale applicata nel codice:
+
+- un documento del fascicolo è considerato PST/PolisWeb solo se proviene da `pst`, `polisweb`, `portale servizi`, `portale telematico` oppure ha identificativi portale numerici coerenti;
+- fonti interne o storiche come `quickorganizer:`, `documenti_ai:`, `manual:` e `upload:` sono escluse dalla riconciliazione automatica PST;
+- la presenza della parola “sentenza” nel nome non basta più a collegare un documento come originale ministeriale;
+- se resta un solo candidato PST decisorio, il presidio può collegarlo come `Documento PST acquisito nel fascicolo`;
+- se i candidati sono realmente ambigui, il software non sceglie a caso e lascia il caso da presidiare.
+
+Guardrail eseguiti:
+
+- `python -m py_compile web/services/pst_original_presidio_runtime.py web/services/notification_presidia_payloads.py`;
+- `python -m pytest tests/test_pst_original_presidio_runtime.py::test_presidio_riconosce_provvedimento_pst_gia_presente_nel_fascicolo tests/test_notification_presidia_payloads.py::test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo -q` → `2 passed`;
+- `python -m pytest tests/test_pst_original_presidio_runtime.py tests/test_notification_presidia_payloads.py -q` → `17 passed`;
+- `python -m pytest tests/test_notification_relata_materializer.py tests/test_notification_presidia_rollout_api.py -q --tb=short` → `25 passed`;
+- `pnpm --dir frontend build` superato.
+
+Stato: da committare, pushare, deployare e riprovare materialmente sul presidio di produzione. La chiusura resta vietata finché il click reale su `https://app.iusentra.it/notifiche-legali?section=presidi&coda=review&presidio=f5480e4d-5fc1-498f-8259-078dcc17fe84` non mostra il documento PST corretto collegato.

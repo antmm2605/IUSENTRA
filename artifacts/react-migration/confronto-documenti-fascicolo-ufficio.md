@@ -31,6 +31,16 @@ La riconciliazione è stata trasformata in regola generale:
 
 Questa regola evita che l'avvocato debba ricontrollare manualmente tutti i documenti del fascicolo e impedisce che una copia PEC venga scambiata per originale notificabile.
 
+### Blindatura 22/07/2026 - QuickOrganizer/testi non è PST
+
+La prova sul tenant reale ha evidenziato che un vecchio `id_documento_portale` interno nel formato `quickorganizer:testi:*` non può essere trattato come identificativo ministeriale. La nuova regola distingue quindi tre famiglie:
+
+1. documenti PST/PolisWeb veri: origine o servizio `pst`, `polisweb`, `portale servizi`, `portale telematico`, oppure identificativo portale numerico coerente;
+2. copie PEC d’ufficio: fonte dell’evento, evidenza e documento informativo, ma non originale autorevole per la relata;
+3. import interni/storici: QuickOrganizer, documenti AI, upload manuali o altri mirror, da non usare per riconciliazione automatica PST.
+
+Effetto operativo: nel fascicolo Romeo Maria, R.G. `1428/2026`, le due vecchie sentenze QuickOrganizer non rendono più ambigua la riconciliazione; il candidato PST collegabile resta il documento `DE29EE7F`, `SentenzaDefinitiva_35882174.pdf`, origine `pst:JPW_SIL_DISTR:35882174`.
+
 ## Obiettivo
 
 Dal fascicolo IUSENTRA l'avvocato deve poter:

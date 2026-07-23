@@ -1,0 +1,87 @@
+{
+  "area_id": "penale",
+  "nome": "Diritto penale",
+  "descrizione": "Difesa penale, procedimenti speciali, misure cautelari e impugnazioni nel processo penale come riformato dal D.Lgs. 150/2022 (riforma Cartabia).",
+  "voci": [
+    {
+      "voce_id": "nomina_difensore_fiducia",
+      "nome": "Nomina del difensore di fiducia",
+      "descrizione": "Atto di nomina del difensore di fiducia da parte dell'indagato o imputato, con dichiarazione o elezione di domicilio e deposito presso l'autorità procedente.",
+      "riferimenti": ["art. 96 c.p.p.", "art. 161 c.p.p."],
+      "tags": ["difesa", "nomina", "procedura penale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "querela",
+      "nome": "Atto di querela",
+      "descrizione": "Redazione e presentazione della querela per i reati procedibili a istanza di parte, con verifica del termine trimestrale e della legittimazione, anche alla luce dell'ampliamento della procedibilità a querela operato dalla riforma Cartabia.",
+      "riferimenti": ["art. 120 c.p.", "artt. 336-340 c.p.p.", "D.Lgs. 10 ottobre 2022, n. 150"],
+      "tags": ["querela", "procedibilita", "persona offesa"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "richiesta_patteggiamento",
+      "nome": "Richiesta di applicazione della pena su richiesta (patteggiamento)",
+      "descrizione": "Richiesta di applicazione della pena concordata con il pubblico ministero, con valutazione dei limiti edittali, dei benefici e degli effetti extrapenali della sentenza.",
+      "riferimenti": ["artt. 444-448 c.p.p.", "D.Lgs. 10 ottobre 2022, n. 150"],
+      "tags": ["riti alternativi", "patteggiamento", "pena"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "giudizio_abbreviato",
+      "nome": "Richiesta di giudizio abbreviato",
+      "descrizione": "Richiesta di definizione del processo allo stato degli atti con riduzione della pena, anche subordinata a integrazione probatoria, con valutazione di convenienza rispetto al rito ordinario.",
+      "riferimenti": ["artt. 438-443 c.p.p.", "D.Lgs. 10 ottobre 2022, n. 150"],
+      "tags": ["riti alternativi", "abbreviato", "udienza preliminare"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "opposizione_decreto_penale",
+      "nome": "Opposizione a decreto penale di condanna",
+      "descrizione": "Atto di opposizione nel termine di quindici giorni dalla notifica del decreto penale, con eventuale contestuale richiesta di rito alternativo o di oblazione.",
+      "riferimenti": ["art. 461 c.p.p.", "art. 459 c.p.p."],
+      "tags": ["decreto penale", "opposizione", "riti alternativi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "istanza_riesame",
+      "nome": "Richiesta di riesame delle misure cautelari",
+      "descrizione": "Impugnazione davanti al tribunale del riesame delle ordinanze applicative di misure cautelari personali o dei provvedimenti di sequestro, con verifica dei termini perentori.",
+      "riferimenti": ["art. 309 c.p.p.", "art. 324 c.p.p."],
+      "tags": ["cautelari", "riesame", "impugnazioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "messa_alla_prova",
+      "nome": "Richiesta di sospensione del procedimento con messa alla prova",
+      "descrizione": "Istanza di messa alla prova con programma di trattamento e lavoro di pubblica utilità, causa di estinzione del reato in caso di esito positivo, estesa dalla riforma Cartabia anche su proposta del pubblico ministero.",
+      "riferimenti": ["art. 168-bis c.p.", "artt. 464-bis ss. c.p.p.", "D.Lgs. 10 ottobre 2022, n. 150"],
+      "tags": ["messa alla prova", "estinzione reato", "riti alternativi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "costituzione_parte_civile",
+      "nome": "Costituzione di parte civile",
+      "descrizione": "Atto di costituzione di parte civile per l'esercizio dell'azione risarcitoria e restitutoria nel processo penale, con verifica di legittimazione, termini e formalità.",
+      "riferimenti": ["artt. 74-79 c.p.p.", "art. 185 c.p."],
+      "tags": ["parte civile", "risarcimento", "persona offesa"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "istanza_oblazione",
+      "nome": "Domanda di oblazione",
+      "descrizione": "Domanda di ammissione all'oblazione per contravvenzioni punite con la sola ammenda o con pena alternativa, con pagamento estintivo del reato prima dell'apertura del dibattimento.",
+      "riferimenti": ["art. 162 c.p.", "art. 162-bis c.p.", "art. 141 disp. att. c.p.p."],
+      "tags": ["oblazione", "contravvenzioni", "estinzione reato"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "appello_penale",
+      "nome": "Atto di appello penale",
+      "descrizione": "Impugnazione di merito della sentenza di primo grado con enunciazione specifica dei motivi a pena di inammissibilità, secondo i requisiti di forma rafforzati dalla riforma Cartabia.",
+      "riferimenti": ["art. 581 c.p.p.", "art. 593 c.p.p.", "D.Lgs. 10 ottobre 2022, n. 150"],
+      "tags": ["impugnazioni", "appello", "motivi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

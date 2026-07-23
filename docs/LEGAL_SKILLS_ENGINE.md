@@ -30,6 +30,36 @@ Seed pack integrati:
 - `litigation_legal`: cronologia fascicolo e preparazione udienza.
 - `regulatory_legal`: monitor normativo e controllo gap policy.
 
+## Libreria Prompt — LegalSkills Italia
+
+`lex/legal_skills/prompt_library/` aggiunge al motore un catalogo read-only
+di **1.303 prompt operativi in 26 aree del diritto italiano**, ciascuno
+derivato da una voce con base normativa dichiarata (principio delle fonti
+certe) e composto in una delle 5 forme della prassi forense:
+`redazione_atto`, `parere`, `checklist`, `lettera`, `ricerca`.
+
+- `prompt_library/models.py`: dataclass `AreaPrompt` e `VocePrompt`.
+- `prompt_library/composer.py`: template per forma; ogni testo impone la
+  revisione obbligatoria dell'avvocato e vieta l'invenzione di fonti.
+- `prompt_library/library.py`: caricamento fail-closed del catalogo,
+  ricerca su tutto il contenuto (testo, area, forma, riferimenti, tag),
+  singleton `get_prompt_library()`.
+- `prompt_library/catalog/`: 26 file JSON versionati (una area per file,
+  263 voci totali con riferimenti normativi).
+
+API: `/api/v1/legal-skills/prompt-library` (`/aree`, `/prompts`,
+`/prompts/<id>`), blueprint `web/blueprints/api_v1_prompt_library.py`,
+stesse guardie del motore (auth, flag `lex.legalSkills.enabled`, permesso
+`legal_skills.leggi`, blocco parametri riservati).
+
+UI: pagina `PromptLibraryPage` su `/legal-skills/prompt` (flag
+`routes.appV2.legalSkills.promptLibrary`, attivo di default), con ricerca
+full-catalog, filtri area/forma, dettaglio con riferimenti e copia negli
+appunti.
+
+Gate dedicato: `python -m pytest tests/test_prompt_library.py -q` (contratto
+1.303 prompt / 26 aree, composizione per ogni forma, ricerca, API governate).
+
 ## Feature flag
 
 Il catalogo operativo e le pagine React Legal Skills sono attivi di default:

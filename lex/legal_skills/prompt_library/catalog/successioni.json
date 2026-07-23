@@ -1,0 +1,87 @@
+{
+  "area_id": "successioni",
+  "nome": "Successioni e donazioni",
+  "descrizione": "Pianificazione successoria, devoluzione dell'eredità, tutela dei legittimari e liberalità tra vivi nella consulenza e nel contenzioso ereditario.",
+  "voci": [
+    {
+      "voce_id": "testamento_redazione_forme",
+      "nome": "Testamento: forme e redazione",
+      "descrizione": "Assistenza nella scelta tra testamento olografo, pubblico e segreto, verifica dei requisiti di forma e della capacità di testare.",
+      "riferimenti": ["art. 601 c.c.", "art. 602 c.c.", "art. 603 c.c."],
+      "tags": ["testamento", "forme", "pianificazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "successione_legittima",
+      "nome": "Successione legittima",
+      "descrizione": "Individuazione degli eredi e delle quote di devoluzione in assenza di testamento, secondo l'ordine dei successibili previsto dal codice.",
+      "riferimenti": ["art. 565 c.c.", "art. 581 c.c."],
+      "tags": ["eredita", "quote", "devoluzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_di_riduzione",
+      "nome": "Azione di riduzione a tutela dei legittimari",
+      "descrizione": "Riunione fittizia, calcolo della quota di legittima lesa e azione di riduzione delle disposizioni testamentarie e delle donazioni, previo tentativo di mediazione obbligatoria.",
+      "riferimenti": ["art. 536 c.c.", "art. 553 c.c.", "art. 564 c.c."],
+      "tags": ["legittima", "riduzione", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "accettazione_beneficio_inventario",
+      "nome": "Accettazione con beneficio d'inventario",
+      "descrizione": "Dichiarazione di accettazione beneficiata, redazione dell'inventario nei termini e limitazione della responsabilità dell'erede intra vires hereditatis.",
+      "riferimenti": ["art. 484 c.c.", "art. 485 c.c.", "art. 490 c.c."],
+      "tags": ["accettazione", "inventario", "debiti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "rinuncia_eredita",
+      "nome": "Rinuncia all'eredità",
+      "descrizione": "Dichiarazione di rinuncia ricevuta da notaio o cancelliere, effetti sulla devoluzione per rappresentazione e tutela dei creditori del rinunciante.",
+      "riferimenti": ["art. 519 c.c.", "art. 521 c.c.", "art. 524 c.c."],
+      "tags": ["rinuncia", "eredita", "devoluzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "divisione_ereditaria",
+      "nome": "Divisione ereditaria",
+      "descrizione": "Scioglimento della comunione ereditaria in via contrattuale o giudiziale, collazione delle donazioni e formazione delle porzioni tra coeredi.",
+      "riferimenti": ["art. 713 c.c.", "art. 737 c.c.", "art. 784 c.p.c."],
+      "tags": ["divisione", "comunione", "coeredi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_testamento",
+      "nome": "Impugnazione del testamento",
+      "descrizione": "Azioni di nullità e annullamento del testamento per difetto di forma, incapacità del testatore o vizi della volontà, con profili probatori e termini.",
+      "riferimenti": ["art. 591 c.c.", "art. 606 c.c."],
+      "tags": ["testamento", "impugnazione", "invalidita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "donazione",
+      "nome": "Donazione e liberalità",
+      "descrizione": "Struttura e forma dell'atto di donazione, donazioni indirette e di modico valore, revocazione e riflessi sulla circolazione degli immobili di provenienza donativa.",
+      "riferimenti": ["art. 769 c.c.", "art. 782 c.c.", "art. 800 c.c."],
+      "tags": ["donazione", "liberalita", "immobiliare"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "patto_di_famiglia",
+      "nome": "Patto di famiglia",
+      "descrizione": "Trasferimento dell'azienda o delle partecipazioni societarie ai discendenti con liquidazione dei legittimari non assegnatari, in deroga al divieto dei patti successori.",
+      "riferimenti": ["art. 768-bis c.c.", "art. 458 c.c."],
+      "tags": ["impresa", "passaggio generazionale", "legittimari"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "dichiarazione_di_successione",
+      "nome": "Dichiarazione di successione e adempimenti fiscali",
+      "descrizione": "Presentazione telematica della dichiarazione di successione, liquidazione dell'imposta con franchigie per parenti in linea retta e volture catastali.",
+      "riferimenti": ["D.Lgs. 31 ottobre 1990, n. 346"],
+      "tags": ["fisco", "successione", "adempimenti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

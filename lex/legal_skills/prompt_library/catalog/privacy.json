@@ -1,0 +1,87 @@
+{
+  "area_id": "privacy",
+  "nome": "Privacy e protezione dati",
+  "descrizione": "Adempimenti e tutele in materia di protezione dei dati personali ai sensi del GDPR e del Codice privacy, dalla compliance documentale alla gestione di violazioni e contenzioso con il Garante.",
+  "voci": [
+    {
+      "voce_id": "informativa_privacy",
+      "nome": "Informativa agli interessati",
+      "descrizione": "Redazione e revisione delle informative sul trattamento dei dati personali per clienti, dipendenti, utenti web e fornitori del titolare.",
+      "riferimenti": ["artt. 13-14 Reg. UE 2016/679", "art. 12 Reg. UE 2016/679"],
+      "tags": ["gdpr", "informativa", "trasparenza"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "dpia_valutazione_impatto",
+      "nome": "Valutazione d'impatto (DPIA)",
+      "descrizione": "Predisposizione della valutazione d'impatto sulla protezione dei dati per trattamenti che presentano un rischio elevato per i diritti e le libertà degli interessati.",
+      "riferimenti": ["art. 35 Reg. UE 2016/679", "art. 36 Reg. UE 2016/679"],
+      "tags": ["gdpr", "dpia", "rischio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "data_breach",
+      "nome": "Gestione violazione dei dati (data breach)",
+      "descrizione": "Assistenza nella gestione di una violazione di dati personali: valutazione del rischio, notifica al Garante entro 72 ore e comunicazione agli interessati.",
+      "riferimenti": ["artt. 33-34 Reg. UE 2016/679"],
+      "tags": ["gdpr", "data breach", "notifica"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "nomina_responsabile_trattamento",
+      "nome": "Nomina del responsabile del trattamento (art. 28)",
+      "descrizione": "Redazione e negoziazione dell'accordo di nomina a responsabile del trattamento con fornitori e outsourcer, incluse le istruzioni documentate e i sub-responsabili.",
+      "riferimenti": ["art. 28 Reg. UE 2016/679", "art. 29 Reg. UE 2016/679"],
+      "tags": ["gdpr", "responsabile", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "riscontro_istanze_interessati",
+      "nome": "Riscontro alle istanze degli interessati",
+      "descrizione": "Gestione delle richieste di accesso, rettifica, cancellazione, portabilità e opposizione, con riscontro motivato entro i termini di legge.",
+      "riferimenti": ["artt. 15-22 Reg. UE 2016/679", "art. 12 Reg. UE 2016/679"],
+      "tags": ["gdpr", "diritti", "accesso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "trasferimenti_extra_ue",
+      "nome": "Trasferimenti di dati extra-UE",
+      "descrizione": "Valutazione delle basi di trasferimento verso paesi terzi: decisioni di adeguatezza, clausole contrattuali standard, valutazioni di impatto sul trasferimento e misure supplementari.",
+      "riferimenti": ["artt. 44-49 Reg. UE 2016/679"],
+      "tags": ["gdpr", "trasferimenti", "extra-ue"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "registro_trattamenti",
+      "nome": "Registro delle attività di trattamento",
+      "descrizione": "Impostazione e aggiornamento del registro dei trattamenti del titolare e del responsabile, con mappatura di finalità, categorie di dati e misure di sicurezza.",
+      "riferimenti": ["art. 30 Reg. UE 2016/679"],
+      "tags": ["gdpr", "registro", "accountability"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "nomina_dpo",
+      "nome": "Designazione del responsabile della protezione dei dati (DPO)",
+      "descrizione": "Valutazione dell'obbligo di designazione del DPO, atto di nomina, comunicazione al Garante e verifica dei requisiti di indipendenza e assenza di conflitti.",
+      "riferimenti": ["artt. 37-39 Reg. UE 2016/679"],
+      "tags": ["gdpr", "dpo", "governance"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "consenso_marketing",
+      "nome": "Consenso e comunicazioni promozionali",
+      "descrizione": "Verifica delle basi giuridiche per marketing diretto, profilazione e comunicazioni elettroniche indesiderate, con impostazione di consensi validi e revocabili.",
+      "riferimenti": ["art. 7 Reg. UE 2016/679", "art. 130 D.Lgs. 196/2003"],
+      "tags": ["consenso", "marketing", "profilazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "controlli_lavoratori_videosorveglianza",
+      "nome": "Controlli sui lavoratori e videosorveglianza",
+      "descrizione": "Assistenza su impianti di videosorveglianza e strumenti di controllo a distanza dei lavoratori, inclusi accordo sindacale o autorizzazione ispettiva e cartellonistica.",
+      "riferimenti": ["art. 4 L. 300/1970", "art. 114 D.Lgs. 196/2003", "art. 88 Reg. UE 2016/679"],
+      "tags": ["lavoro", "videosorveglianza", "controlli"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

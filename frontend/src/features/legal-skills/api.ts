@@ -5,6 +5,10 @@ import type {
   LegalSkillProfile,
   LegalSkillRunResult,
   LegalSkillsPayload,
+  PromptLibraryArea,
+  PromptLibraryDetail,
+  PromptLibraryEntry,
+  PromptLibraryForma,
   ScheduledLegalSkillAgent,
 } from './types'
 
@@ -80,4 +84,39 @@ export async function exportLegalSkillRun(runId: string) {
 
 export async function fetchScheduledLegalSkillAgents(signal?: AbortSignal) {
   return apiJson(`${API_BASE}/scheduled`, emptyAgents, { signal })
+}
+
+const PROMPT_LIBRARY_BASE = `${API_BASE}/prompt-library`
+
+export async function fetchPromptLibraryAree(signal?: AbortSignal) {
+  return apiJson<LegalSkillsPayload<{ totale_prompt: number; aree: PromptLibraryArea[]; forme: PromptLibraryForma[] }>>(
+    `${PROMPT_LIBRARY_BASE}/aree`,
+    { ok: false, totale_prompt: 0, aree: [], forme: [] },
+    { signal },
+  )
+}
+
+export async function searchPromptLibrary(
+  params: { q?: string; area?: string; forma?: string; limit?: number },
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams()
+  if (params.q) query.set('q', params.q)
+  if (params.area) query.set('area', params.area)
+  if (params.forma) query.set('forma', params.forma)
+  if (params.limit) query.set('limit', String(params.limit))
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return apiJson<LegalSkillsPayload<{ totale: number; prompts: PromptLibraryEntry[] }>>(
+    `${PROMPT_LIBRARY_BASE}/prompts${suffix}`,
+    { ok: false, totale: 0, prompts: [] },
+    { signal },
+  )
+}
+
+export async function fetchPromptLibraryPrompt(promptId: string, signal?: AbortSignal) {
+  return apiJson<LegalSkillsPayload<{ prompt: PromptLibraryDetail | null }>>(
+    `${PROMPT_LIBRARY_BASE}/prompts/${encodeURIComponent(promptId)}`,
+    { ok: false, prompt: null },
+    { signal },
+  )
 }

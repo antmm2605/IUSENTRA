@@ -102,3 +102,35 @@ export type LegalSkillsPayload<T> = {
   code?: string
   message?: string
 } & T
+
+export type PromptLibraryArea = {
+  area_id: string
+  nome: string
+  descrizione: string
+  numero_voci: number
+  numero_prompt: number
+}
+
+export type PromptLibraryForma = {
+  forma_id: string
+  label: string
+  descrizione: string
+}
+
+export type PromptLibraryEntry = {
+  prompt_id: string
+  titolo: string
+  area_id: string
+  area_nome: string
+  voce_id: string
+  forma: string
+  forma_label: string
+  descrizione: string
+  riferimenti: string[]
+  tags: string[]
+}
+
+export type PromptLibraryDetail = PromptLibraryEntry & {
+  testo: string
+  forma_descrizione: string
+}

@@ -1,0 +1,87 @@
+{
+  "area_id": "assicurativo",
+  "nome": "Diritto delle assicurazioni",
+  "descrizione": "Consulenza e contenzioso in materia di contratti assicurativi e risarcimento danni da circolazione stradale, secondo il codice civile e il Codice delle assicurazioni private (D.Lgs. 209/2005).",
+  "voci": [
+    {
+      "voce_id": "sinistro_rca_gestione",
+      "nome": "Gestione stragiudiziale del sinistro RCA",
+      "descrizione": "Redazione della richiesta di risarcimento all'impresa assicuratrice con i contenuti prescritti e gestione dei termini per l'offerta.",
+      "riferimenti": ["art. 145 D.Lgs. 209/2005", "art. 148 D.Lgs. 209/2005"],
+      "tags": ["rca", "sinistro", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_diretta_assicuratore",
+      "nome": "Azione diretta contro l'assicuratore",
+      "descrizione": "Promozione dell'azione risarcitoria del danneggiato direttamente nei confronti dell'impresa di assicurazione del responsabile civile.",
+      "riferimenti": ["art. 144 D.Lgs. 209/2005"],
+      "tags": ["azione diretta", "rca", "danneggiato"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "indennizzo_diretto",
+      "nome": "Procedura di risarcimento diretto",
+      "descrizione": "Attivazione della procedura di risarcimento diretto verso la propria compagnia nei sinistri tra due veicoli immatricolati in Italia.",
+      "riferimenti": ["art. 149 D.Lgs. 209/2005", "D.P.R. 254/2006"],
+      "tags": ["risarcimento diretto", "rca", "compagnia"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "terzo_trasportato",
+      "nome": "Risarcimento del terzo trasportato",
+      "descrizione": "Tutela del trasportato danneggiato mediante azione verso l'assicuratore del veicolo su cui viaggiava, a prescindere dall'accertamento di responsabilità.",
+      "riferimenti": ["art. 141 D.Lgs. 209/2005"],
+      "tags": ["trasportato", "rca", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "danno_biologico_lesioni",
+      "nome": "Danno biologico da lesioni di lieve e non lieve entità",
+      "descrizione": "Quantificazione del danno non patrimoniale alla persona secondo le tabelle di legge per micropermanenti e macropermanenti.",
+      "riferimenti": ["art. 138 D.Lgs. 209/2005", "art. 139 D.Lgs. 209/2005"],
+      "tags": ["danno biologico", "lesioni", "tabelle"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "fondo_garanzia_vittime_strada",
+      "nome": "Fondo di garanzia per le vittime della strada",
+      "descrizione": "Richiesta di risarcimento al Fondo di garanzia per sinistri causati da veicoli non identificati, non assicurati o assicurati con imprese in liquidazione.",
+      "riferimenti": ["art. 283 D.Lgs. 209/2005", "art. 286 D.Lgs. 209/2005"],
+      "tags": ["fondo garanzia", "veicolo non assicurato", "consap"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "dichiarazioni_inesatte_reticenze",
+      "nome": "Dichiarazioni inesatte e reticenze dell'assicurato",
+      "descrizione": "Difesa o contestazione in caso di annullamento del contratto o riduzione dell'indennizzo per dichiarazioni precontrattuali inesatte o reticenti.",
+      "riferimenti": ["art. 1892 c.c.", "art. 1893 c.c."],
+      "tags": ["reticenze", "annullamento", "indennizzo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "prescrizione_assicurativa",
+      "nome": "Prescrizione dei diritti derivanti dal contratto di assicurazione",
+      "descrizione": "Verifica dei termini di prescrizione dei diritti verso l'assicuratore e predisposizione di idonei atti interruttivi.",
+      "riferimenti": ["art. 2952 c.c.", "art. 2943 c.c."],
+      "tags": ["prescrizione", "termini", "interruzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "polizza_vita_beneficiari",
+      "nome": "Polizza vita e diritti dei beneficiari",
+      "descrizione": "Assistenza su designazione e revoca del beneficiario e sui diritti propri del beneficiario nella polizza vita a favore di terzo.",
+      "riferimenti": ["art. 1920 c.c.", "art. 1921 c.c.", "art. 1923 c.c."],
+      "tags": ["polizza vita", "beneficiario", "terzo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "rc_professionale",
+      "nome": "Assicurazione della responsabilità civile professionale",
+      "descrizione": "Consulenza su polizze di responsabilità civile del professionista, operatività della copertura e obbligo assicurativo delle professioni regolamentate.",
+      "riferimenti": ["art. 1917 c.c.", "art. 5 D.P.R. 137/2012"],
+      "tags": ["rc professionale", "polizza", "professionisti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "area_id": "internazionale",
+  "nome": "Diritto internazionale e dell'Unione europea",
+  "descrizione": "Assistenza nelle controversie e nei rapporti transfrontalieri: giurisdizione, legge applicabile, circolazione delle decisioni, notifiche all'estero e arbitrato internazionale.",
+  "voci": [
+    {
+      "voce_id": "giurisdizione_transfrontaliera",
+      "nome": "Giurisdizione nelle controversie transfrontaliere",
+      "descrizione": "Individuazione del giudice competente nelle liti civili e commerciali con elementi di internazionalità, incluse clausole di proroga della giurisdizione ed eccezioni di difetto di giurisdizione.",
+      "riferimenti": ["Reg. UE 1215/2012", "L. 218/1995"],
+      "tags": ["giurisdizione", "bruxelles i-bis", "competenza"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "legge_applicabile_contratti",
+      "nome": "Legge applicabile alle obbligazioni contrattuali",
+      "descrizione": "Determinazione della legge regolatrice del contratto internazionale, redazione della clausola di scelta di legge e verifica delle norme di applicazione necessaria.",
+      "riferimenti": ["Reg. CE 593/2008", "L. 218/1995"],
+      "tags": ["roma i", "legge applicabile", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "obbligazioni_extracontrattuali",
+      "nome": "Obbligazioni extracontrattuali transfrontaliere",
+      "descrizione": "Individuazione della legge applicabile a illeciti civili, responsabilità da prodotto e concorrenza sleale con elementi transnazionali.",
+      "riferimenti": ["Reg. CE 864/2007"],
+      "tags": ["roma ii", "illecito", "responsabilita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "riconoscimento_esecuzione_sentenze",
+      "nome": "Riconoscimento ed esecuzione di sentenze straniere",
+      "descrizione": "Circolazione delle decisioni nello spazio giudiziario europeo e riconoscimento delle sentenze extra-UE in Italia, con eventuale giudizio di accertamento dei requisiti.",
+      "riferimenti": ["artt. 36 ss. Reg. UE 1215/2012", "artt. 64-67 L. 218/1995"],
+      "tags": ["exequatur", "sentenze", "esecuzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "arbitrato_internazionale",
+      "nome": "Arbitrato internazionale",
+      "descrizione": "Redazione di clausole compromissorie, assistenza nei procedimenti arbitrali internazionali e riconoscimento dei lodi stranieri in Italia.",
+      "riferimenti": ["Convenzione di New York 10/06/1958", "artt. 839-840 c.p.c."],
+      "tags": ["arbitrato", "lodo", "clausola compromissoria"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "notifiche_estero",
+      "nome": "Notificazioni all'estero",
+      "descrizione": "Notifica di atti giudiziari e stragiudiziali a destinatari in altri Stati membri UE o in paesi terzi, con scelta del canale e verifica del perfezionamento.",
+      "riferimenti": ["Reg. UE 2020/1784", "Convenzione dell'Aja 15/11/1965"],
+      "tags": ["notifiche", "estero", "atti giudiziari"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "assunzione_prove_estero",
+      "nome": "Assunzione di prove all'estero",
+      "descrizione": "Richieste di assunzione di prove in altri Stati membri e cooperazione tra autorità giudiziarie nelle istruttorie transfrontaliere.",
+      "riferimenti": ["Reg. UE 2020/1783", "Convenzione dell'Aja 18/03/1970"],
+      "tags": ["prove", "rogatorie", "istruttoria"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "vendita_internazionale_beni",
+      "nome": "Vendita internazionale di beni mobili (CISG)",
+      "descrizione": "Applicazione della Convenzione di Vienna ai contratti di compravendita internazionale: formazione del contratto, conformità dei beni e rimedi per inadempimento.",
+      "riferimenti": ["Convenzione di Vienna 11/04/1980 (CISG)", "L. 765/1985"],
+      "tags": ["cisg", "vendita", "commercio internazionale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "successioni_transfrontaliere",
+      "nome": "Successioni transfrontaliere",
+      "descrizione": "Pianificazione e gestione di successioni con elementi di internazionalità: legge applicabile, scelta di legge del de cuius e certificato successorio europeo.",
+      "riferimenti": ["Reg. UE 650/2012"],
+      "tags": ["successioni", "certificato successorio", "eredita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "famiglia_transfrontaliera",
+      "nome": "Famiglia e minori nei rapporti transfrontalieri",
+      "descrizione": "Controversie familiari transnazionali: responsabilità genitoriale, riconoscimento delle decisioni matrimoniali e sottrazione internazionale di minori.",
+      "riferimenti": ["Reg. UE 2019/1111", "Convenzione dell'Aja 25/10/1980"],
+      "tags": ["famiglia", "minori", "sottrazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

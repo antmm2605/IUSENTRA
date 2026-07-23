@@ -145,6 +145,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/template-atti", "src/components/TemplateAttiPage.tsx"),
     ("/redazione-atti", "src/components/RedazioneAttiPage.tsx"),
     ("/statistiche", "src/components/StatistichePage.tsx"),
+    ("/legal-skills/prompt", "src/features/legal-skills/pages/PromptLibraryPage.tsx"),
     ("/legal-skills", "src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx"),
     ("/lex-apprendimento", "src/components/LexLearningPage.tsx"),
     ("/procedure-completion", "src/features/procedure-completion/ProcedureCompletionPage.tsx"),

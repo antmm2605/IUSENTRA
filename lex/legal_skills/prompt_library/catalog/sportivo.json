@@ -1,0 +1,87 @@
+{
+  "area_id": "sportivo",
+  "nome": "Diritto sportivo",
+  "descrizione": "Assistenza a società, associazioni, atleti e tecnici su lavoro sportivo, tesseramento, giustizia sportiva, agenti, sponsorizzazioni e responsabilità nell'ordinamento sportivo riformato.",
+  "voci": [
+    {
+      "voce_id": "contratto_lavoro_sportivo",
+      "nome": "Contratto di lavoro sportivo",
+      "descrizione": "Redazione e verifica dei contratti di lavoro sportivo subordinato, autonomo e in forma di collaborazione coordinata, nel settore professionistico e dilettantistico.",
+      "riferimenti": ["D.Lgs. 36/2021", "artt. 25-28 D.Lgs. 36/2021"],
+      "tags": ["lavoro sportivo", "contratto", "atleti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "lavoro_sportivo_dilettanti",
+      "nome": "Lavoro sportivo nell'area del dilettantismo",
+      "descrizione": "Inquadramento di compensi, collaborazioni e adempimenti contributivi per atleti, tecnici e collaboratori dell'area dilettantistica dopo la riforma dello sport.",
+      "riferimenti": ["artt. 25-37 D.Lgs. 36/2021"],
+      "tags": ["dilettanti", "compensi", "contributi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "tesseramento",
+      "nome": "Tesseramento e rapporti federali",
+      "descrizione": "Assistenza nelle procedure di tesseramento, trasferimento e svincolo degli atleti presso federazioni sportive nazionali ed enti di promozione sportiva.",
+      "riferimenti": ["D.Lgs. 36/2021", "art. 16 D.Lgs. 242/1999"],
+      "tags": ["tesseramento", "federazioni", "trasferimenti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "abolizione_vincolo_sportivo",
+      "nome": "Svincolo e abolizione del vincolo sportivo",
+      "descrizione": "Applicazione della disciplina sull'abolizione del vincolo sportivo e sul premio di formazione tecnica, con gestione delle posizioni degli atleti in essere.",
+      "riferimenti": ["art. 31 D.Lgs. 36/2021"],
+      "tags": ["vincolo", "svincolo", "premio formazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "giustizia_sportiva",
+      "nome": "Giustizia sportiva e ricorsi endofederali",
+      "descrizione": "Difesa dinanzi agli organi di giustizia sportiva federali e al Collegio di Garanzia dello Sport, con redazione di ricorsi, reclami e memorie difensive.",
+      "riferimenti": ["Codice della Giustizia Sportiva CONI", "art. 12-bis D.Lgs. 242/1999"],
+      "tags": ["giustizia sportiva", "ricorsi", "coni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "agenti_sportivi",
+      "nome": "Agenti sportivi e mandati di rappresentanza",
+      "descrizione": "Redazione dei contratti di mandato sportivo, verifica dei requisiti di iscrizione al registro e gestione dei conflitti di interesse degli agenti.",
+      "riferimenti": ["D.Lgs. 37/2021"],
+      "tags": ["agenti", "mandato", "registro"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "costituzione_enti_sportivi",
+      "nome": "Costituzione di ASD e SSD",
+      "descrizione": "Costituzione e adeguamento statutario di associazioni e società sportive dilettantistiche, iscrizione al Registro nazionale delle attività sportive dilettantistiche.",
+      "riferimenti": ["artt. 6-12 D.Lgs. 36/2021", "D.Lgs. 39/2021"],
+      "tags": ["asd", "ssd", "statuto"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_infortuni_sportivi",
+      "nome": "Responsabilità civile e infortuni sportivi",
+      "descrizione": "Azioni risarcitorie e difese per infortuni durante l'attività sportiva, responsabilità di organizzatori, gestori di impianti, istruttori e sodalizi.",
+      "riferimenti": ["art. 2043 c.c.", "art. 2050 c.c.", "art. 33 D.Lgs. 36/2021"],
+      "tags": ["responsabilita", "infortuni", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "doping_procedimenti",
+      "nome": "Procedimenti antidoping",
+      "descrizione": "Difesa di atleti e tecnici nei procedimenti disciplinari antidoping dinanzi agli organi competenti e nei correlati procedimenti penali.",
+      "riferimenti": ["L. 376/2000", "art. 586-bis c.p."],
+      "tags": ["doping", "disciplinare", "nado"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sponsorizzazioni_diritti_immagine",
+      "nome": "Sponsorizzazioni e diritti di immagine",
+      "descrizione": "Redazione di contratti di sponsorizzazione, endorsement e sfruttamento dell'immagine di atleti e società sportive, con tutela contro gli usi non autorizzati.",
+      "riferimenti": ["art. 10 c.c.", "artt. 96-97 L. 633/1941", "art. 1322 c.c."],
+      "tags": ["sponsorizzazione", "immagine", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

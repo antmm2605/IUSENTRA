@@ -1,0 +1,87 @@
+{
+  "area_id": "consumatori",
+  "nome": "Tutela dei consumatori",
+  "descrizione": "Tutela individuale e collettiva del consumatore nei rapporti con i professionisti, secondo il Codice del consumo (D.Lgs. 206/2005) e la disciplina processuale delle azioni collettive.",
+  "voci": [
+    {
+      "voce_id": "clausole_vessatorie",
+      "nome": "Clausole vessatorie nei contratti del consumatore",
+      "descrizione": "Verifica del significativo squilibrio delle clausole nei contratti tra professionista e consumatore e azionamento della nullità di protezione.",
+      "riferimenti": ["art. 33 D.Lgs. 206/2005", "art. 36 D.Lgs. 206/2005", "art. 1341 c.c."],
+      "tags": ["clausole vessatorie", "nullita", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "garanzia_legale_conformita",
+      "nome": "Garanzia legale di conformità dei beni",
+      "descrizione": "Attivazione dei rimedi di riparazione, sostituzione, riduzione del prezzo e risoluzione per difetto di conformità del bene venduto al consumatore.",
+      "riferimenti": ["art. 128 D.Lgs. 206/2005", "art. 133 D.Lgs. 206/2005", "art. 135 D.Lgs. 206/2005"],
+      "tags": ["garanzia", "conformita", "vendita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "pratiche_commerciali_scorrette",
+      "nome": "Pratiche commerciali scorrette",
+      "descrizione": "Contestazione di pratiche ingannevoli e aggressive del professionista, con segnalazione all'AGCM e tutela risarcitoria individuale.",
+      "riferimenti": ["art. 18 D.Lgs. 206/2005", "art. 20 D.Lgs. 206/2005", "art. 27 D.Lgs. 206/2005"],
+      "tags": ["pratiche scorrette", "agcm", "ingannevoli"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "recesso_contratti_distanza",
+      "nome": "Diritto di recesso nei contratti a distanza",
+      "descrizione": "Esercizio del diritto di ripensamento nei contratti a distanza e negoziati fuori dei locali commerciali, con verifica di termini e obblighi informativi.",
+      "riferimenti": ["art. 49 D.Lgs. 206/2005", "art. 52 D.Lgs. 206/2005", "art. 54 D.Lgs. 206/2005"],
+      "tags": ["recesso", "e-commerce", "distanza"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_di_classe",
+      "nome": "Azione di classe",
+      "descrizione": "Promozione o adesione all'azione di classe per la tutela risarcitoria di diritti individuali omogenei lesi da condotte plurioffensive.",
+      "riferimenti": ["art. 840-bis c.p.c.", "L. 31/2019"],
+      "tags": ["class action", "collettiva", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_inibitoria_collettiva",
+      "nome": "Azione inibitoria collettiva",
+      "descrizione": "Ricorso inibitorio contro atti e comportamenti del professionista lesivi degli interessi collettivi dei consumatori.",
+      "riferimenti": ["art. 840-sexiesdecies c.p.c.", "art. 37 D.Lgs. 206/2005"],
+      "tags": ["inibitoria", "collettiva", "associazioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_prodotto_difettoso",
+      "nome": "Responsabilità per danno da prodotto difettoso",
+      "descrizione": "Azione risarcitoria contro il produttore per danni cagionati da difetti del prodotto, con riparto dell'onere probatorio previsto dal codice.",
+      "riferimenti": ["art. 114 D.Lgs. 206/2005", "art. 117 D.Lgs. 206/2005", "art. 120 D.Lgs. 206/2005"],
+      "tags": ["prodotto difettoso", "produttore", "danno"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "pacchetti_turistici",
+      "nome": "Pacchetti turistici e vacanza rovinata",
+      "descrizione": "Tutela del viaggiatore per inadempimenti dell'organizzatore o del venditore del pacchetto turistico e risarcimento del danno da vacanza rovinata.",
+      "riferimenti": ["art. 32 D.Lgs. 79/2011", "art. 42 D.Lgs. 79/2011", "art. 46 D.Lgs. 79/2011"],
+      "tags": ["turismo", "pacchetti", "vacanza rovinata"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "commercio_elettronico",
+      "nome": "Commercio elettronico e obblighi informativi",
+      "descrizione": "Verifica degli obblighi informativi e delle regole di conclusione del contratto nei servizi della società dell'informazione e nelle vendite online.",
+      "riferimenti": ["D.Lgs. 70/2003", "art. 49 D.Lgs. 206/2005"],
+      "tags": ["e-commerce", "online", "informazioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "adr_consumatori",
+      "nome": "Risoluzione stragiudiziale delle controversie di consumo",
+      "descrizione": "Attivazione delle procedure ADR e degli organismi di conciliazione per le controversie tra consumatori e professionisti.",
+      "riferimenti": ["art. 141 D.Lgs. 206/2005", "D.Lgs. 130/2015"],
+      "tags": ["adr", "conciliazione", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

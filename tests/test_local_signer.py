@@ -45,6 +45,7 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
     class _FakeProcess:
         def __init__(self, cmd, **kwargs):
             self.cmd = cmd
+            self.args = cmd
             self.kwargs = kwargs
             self.pid = 8100 + len(processes)
             self._handle = 0
@@ -83,6 +84,16 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
         def kill(self):
             self.killed = True
             self.returncode = -9
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            # subprocess.run usa Popen come context manager: senza questo
+            # protocollo i test falliscono con TypeError su ogni Python.
+            if self.returncode is None:
+                self.returncode = self._final_returncode
+            return False
 
     monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
     monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
@@ -2053,6 +2064,9 @@ def test_preflight_auth_timeout_non_blocca_la_ricerca_reale(monkeypatch):
 def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch):
     module = _load_local_signer()
 
+    # Il ciclo di vita governato (terminate + seconda communicate) vive solo
+    # nel ramo win32: senza questa simulazione il test dipende dall'OS host.
+    monkeypatch.setattr(module.sys, "platform", "win32")
     processes = _install_governed_popen_fake(
         monkeypatch,
         module,

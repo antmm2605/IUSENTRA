@@ -1,0 +1,87 @@
+{
+  "area_id": "amministrativo",
+  "nome": "Diritto amministrativo",
+  "descrizione": "Tutela del cittadino e dell'impresa nei confronti della pubblica amministrazione: procedimento, accesso, appalti e contenzioso davanti al giudice amministrativo secondo il codice del processo amministrativo.",
+  "voci": [
+    {
+      "voce_id": "ricorso_tar",
+      "nome": "Ricorso al TAR per annullamento",
+      "descrizione": "Redazione del ricorso per l'annullamento del provvedimento amministrativo entro il termine di decadenza di 60 giorni, con articolazione dei vizi di violazione di legge, incompetenza ed eccesso di potere.",
+      "riferimenti": ["artt. 29 e 40 ss. D.Lgs. 104/2010", "art. 21-octies L. 241/1990"],
+      "tags": ["tar", "annullamento", "vizi", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "accesso_agli_atti",
+      "nome": "Accesso agli atti amministrativi",
+      "descrizione": "Istanza di accesso documentale, civico semplice o generalizzato e ricorso al TAR con rito speciale in caso di diniego o silenzio sull'istanza.",
+      "riferimenti": ["artt. 22 ss. L. 241/1990", "D.Lgs. 33/2013", "art. 116 D.Lgs. 104/2010"],
+      "tags": ["accesso", "trasparenza", "foia"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "silenzio_pa",
+      "nome": "Silenzio della pubblica amministrazione",
+      "descrizione": "Azione avverso il silenzio-inadempimento per ottenere la condanna della PA a provvedere entro un termine, con eventuale nomina di un commissario ad acta.",
+      "riferimenti": ["art. 2 L. 241/1990", "artt. 31 e 117 D.Lgs. 104/2010"],
+      "tags": ["silenzio", "inadempimento", "commissario ad acta"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "contenzioso_appalti",
+      "nome": "Contenzioso sugli appalti pubblici",
+      "descrizione": "Impugnazione di bandi, esclusioni e aggiudicazioni con il rito accelerato in materia di contratti pubblici, valutando termini dimezzati, standstill e domanda di subentro nel contratto.",
+      "riferimenti": ["D.Lgs. 36/2023", "art. 120 D.Lgs. 104/2010"],
+      "tags": ["appalti", "aggiudicazione", "rito accelerato"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "tutela_cautelare_amministrativa",
+      "nome": "Tutela cautelare nel processo amministrativo",
+      "descrizione": "Domanda di misure cautelari collegiali, monocratiche o ante causam per sospendere l'efficacia del provvedimento impugnato in presenza di pregiudizio grave e irreparabile.",
+      "riferimenti": ["artt. 55, 56 e 61 D.Lgs. 104/2010"],
+      "tags": ["cautelare", "sospensiva", "periculum"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricorso_straordinario_capo_stato",
+      "nome": "Ricorso straordinario al Presidente della Repubblica",
+      "descrizione": "Rimedio giustiziale alternativo al ricorso giurisdizionale, proponibile entro 120 giorni contro provvedimenti definitivi, con valutazione di convenienza rispetto al ricorso al TAR.",
+      "riferimenti": ["D.P.R. 1199/1971", "art. 7 D.Lgs. 104/2010"],
+      "tags": ["ricorso straordinario", "rimedi giustiziali"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "giudizio_ottemperanza",
+      "nome": "Giudizio di ottemperanza",
+      "descrizione": "Azione per l'esecuzione del giudicato amministrativo o civile nei confronti della PA inadempiente, con richiesta di commissario ad acta e penalità di mora.",
+      "riferimenti": ["artt. 112 ss. D.Lgs. 104/2010", "art. 114 D.Lgs. 104/2010"],
+      "tags": ["ottemperanza", "giudicato", "esecuzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "risarcimento_danno_provvedimento",
+      "nome": "Risarcimento del danno da provvedimento illegittimo",
+      "descrizione": "Azione di condanna per lesione di interessi legittimi, proponibile anche in via autonoma nel termine di decadenza di 120 giorni, con prova del danno e del nesso causale.",
+      "riferimenti": ["art. 30 D.Lgs. 104/2010", "art. 2043 c.c."],
+      "tags": ["risarcimento", "interesse legittimo", "danno"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "annullamento_ufficio_autotutela",
+      "nome": "Autotutela amministrativa e annullamento d'ufficio",
+      "descrizione": "Sollecitazione o contestazione dell'annullamento d'ufficio e della revoca del provvedimento, verificando il termine ragionevole di 12 mesi e la tutela dell'affidamento del privato.",
+      "riferimenti": ["art. 21-nonies L. 241/1990", "art. 21-quinquies L. 241/1990"],
+      "tags": ["autotutela", "annullamento", "affidamento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "scia_segnalazione_certificata",
+      "nome": "SCIA e tutela del terzo",
+      "descrizione": "Assistenza nella presentazione della segnalazione certificata di inizio attività, nei poteri inibitori e di controllo della PA e nella tutela del terzo che si assume leso dall'attività segnalata.",
+      "riferimenti": ["art. 19 L. 241/1990", "art. 19, comma 6-ter, L. 241/1990"],
+      "tags": ["scia", "liberalizzazione", "tutela del terzo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "area_id": "tributario",
+  "nome": "Diritto tributario",
+  "descrizione": "Difesa del contribuente nelle fasi di accertamento, riscossione e contenzioso davanti alle Corti di giustizia tributaria, come ridisegnate dalla riforma della L. 130/2022.",
+  "voci": [
+    {
+      "voce_id": "ricorso_corte_giustizia_tributaria",
+      "nome": "Ricorso alla Corte di giustizia tributaria di primo grado",
+      "descrizione": "Redazione e notifica del ricorso introduttivo entro 60 giorni dalla notifica dell'atto impositivo, con costituzione in giudizio telematica e formulazione dei motivi di impugnazione.",
+      "riferimenti": ["artt. 18 ss. D.Lgs. 546/1992", "L. 130/2022"],
+      "tags": ["ricorso", "contenzioso tributario", "processo telematico"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_avviso_accertamento",
+      "nome": "Impugnazione dell'avviso di accertamento",
+      "descrizione": "Analisi dei vizi formali e sostanziali dell'avviso di accertamento (motivazione, sottoscrizione, contraddittorio preventivo, decadenza) e impugnazione davanti alla Corte di giustizia tributaria.",
+      "riferimenti": ["art. 42 D.P.R. 600/1973", "art. 19 D.Lgs. 546/1992", "L. 212/2000"],
+      "tags": ["accertamento", "impugnazione", "vizi", "motivazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "accertamento_con_adesione",
+      "nome": "Accertamento con adesione",
+      "descrizione": "Istanza di adesione con sospensione dei termini di impugnazione, gestione del contraddittorio con l'ufficio e definizione concordata della pretesa con riduzione delle sanzioni.",
+      "riferimenti": ["D.Lgs. 218/1997"],
+      "tags": ["adesione", "deflattivo", "sanzioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "autotutela_tributaria",
+      "nome": "Istanza di autotutela tributaria",
+      "descrizione": "Richiesta di annullamento d'ufficio dell'atto impositivo illegittimo o infondato, distinguendo i casi di autotutela obbligatoria e facoltativa previsti dallo Statuto del contribuente.",
+      "riferimenti": ["artt. 10-quater e 10-quinquies L. 212/2000"],
+      "tags": ["autotutela", "annullamento", "statuto contribuente"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sospensione_atto_impugnato",
+      "nome": "Sospensione dell'atto impugnato",
+      "descrizione": "Istanza cautelare di sospensione dell'esecuzione dell'atto impositivo per danno grave e irreparabile, con trattazione accelerata secondo le regole introdotte dalla riforma del processo tributario.",
+      "riferimenti": ["art. 47 D.Lgs. 546/1992", "L. 130/2022"],
+      "tags": ["cautelare", "sospensione", "fumus", "periculum"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_cartella_pagamento",
+      "nome": "Impugnazione della cartella di pagamento",
+      "descrizione": "Contestazione della cartella e degli atti della riscossione per vizi propri o per omessa notifica dell'atto presupposto, con individuazione del giudice competente e dei termini.",
+      "riferimenti": ["D.P.R. 602/1973", "art. 19 D.Lgs. 546/1992"],
+      "tags": ["riscossione", "cartella", "notifica"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "rimborso_imposte",
+      "nome": "Istanza di rimborso e ricorso avverso il diniego",
+      "descrizione": "Presentazione dell'istanza di rimborso di imposte indebitamente versate nei termini di decadenza e impugnazione del diniego espresso o del silenzio-rifiuto dell'amministrazione finanziaria.",
+      "riferimenti": ["art. 38 D.P.R. 602/1973", "art. 21 D.Lgs. 546/1992"],
+      "tags": ["rimborso", "indebito", "silenzio rifiuto"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "interpello",
+      "nome": "Interpello del contribuente",
+      "descrizione": "Predisposizione dell'istanza di interpello per ottenere una risposta preventiva dell'amministrazione su casi concreti e personali di incerta interpretazione normativa.",
+      "riferimenti": ["art. 11 L. 212/2000"],
+      "tags": ["interpello", "compliance", "statuto contribuente"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "conciliazione_giudiziale_tributaria",
+      "nome": "Conciliazione giudiziale tributaria",
+      "descrizione": "Definizione della controversia in corso di giudizio, in udienza o fuori udienza, con riduzione delle sanzioni secondo il grado in cui interviene l'accordo, anche su proposta della Corte.",
+      "riferimenti": ["artt. 48 ss. D.Lgs. 546/1992", "L. 130/2022"],
+      "tags": ["conciliazione", "deflattivo", "sanzioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "appello_tributario",
+      "nome": "Appello alla Corte di giustizia tributaria di secondo grado",
+      "descrizione": "Redazione dell'atto di appello con motivi specifici avverso la sentenza di primo grado, nel rispetto del divieto di nuove domande e dei limiti alle nuove prove.",
+      "riferimenti": ["artt. 52 ss. D.Lgs. 546/1992", "art. 58 D.Lgs. 546/1992"],
+      "tags": ["appello", "impugnazioni", "secondo grado"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

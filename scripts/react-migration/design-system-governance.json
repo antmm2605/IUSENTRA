@@ -27,8 +27,8 @@
     "frontend/src/components/CompensiForensiPage.css",
     "frontend/src/components/DocumentEditorPage.css",
     "frontend/src/components/DocumentiAIPage.css",
-    "frontend/src/components/EmailPecPage.css",
     "frontend/src/components/EditorProfessionalePage.css",
+    "frontend/src/components/EmailPecPage.css",
     "frontend/src/components/FascicoliPage.css",
     "frontend/src/components/FatturazionePage.css",
     "frontend/src/components/GiurisprudenzaPage.css",
@@ -73,6 +73,7 @@
     "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
     "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",
     "frontend/src/features/notifiche-legali/PresidiNotifiche.css",
+    "frontend/src/features/notifiche-legali/components/PresidioEvidenceModal.css",
     "frontend/src/features/procedure-completion/procedure-completion.css",
     "frontend/src/index.css",
     "frontend/src/shell/shell.css",
@@ -176,6 +177,11 @@
       "file": "frontend/src/components/SitoStudioBuilderPage.css",
       "count": 2,
       "reason": "Builder sito studio escluso dal preset pagina e governato come superficie creativa."
+    },
+    {
+      "file": "frontend/src/features/notifiche-legali/components/PresidioEvidenceModal.css",
+      "count": 1,
+      "reason": "Overlay del lettore evidenze presidi sopra la superficie notifiche."
     }
   ],
   "forbiddenCssPatterns": [

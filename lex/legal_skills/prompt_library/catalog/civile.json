@@ -1,0 +1,95 @@
+{
+  "area_id": "civile",
+  "nome": "Diritto civile",
+  "descrizione": "Contratti, obbligazioni, responsabilità civile e tutela dei diritti patrimoniali nella prassi contenziosa e stragiudiziale dello studio legale.",
+  "voci": [
+    {
+      "voce_id": "diffida_ad_adempiere",
+      "nome": "Diffida ad adempiere",
+      "descrizione": "Intimazione scritta al contraente inadempiente con assegnazione di un termine congruo, decorso il quale il contratto si intende risolto di diritto.",
+      "riferimenti": ["art. 1454 c.c."],
+      "tags": ["contratti", "inadempimento", "risoluzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "contratto_preliminare",
+      "nome": "Contratto preliminare di compravendita",
+      "descrizione": "Redazione e verifica del preliminare immobiliare, trascrizione e tutela in caso di rifiuto di stipula del definitivo mediante esecuzione in forma specifica.",
+      "riferimenti": ["art. 1351 c.c.", "art. 2932 c.c.", "art. 2645-bis c.c."],
+      "tags": ["contratti", "immobiliare", "preliminare"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "risoluzione_per_inadempimento",
+      "nome": "Risoluzione del contratto per inadempimento",
+      "descrizione": "Azione di risoluzione giudiziale per inadempimento di non scarsa importanza, con domanda di risarcimento del danno e valutazione delle alternative stragiudiziali.",
+      "riferimenti": ["art. 1453 c.c.", "art. 1455 c.c.", "art. 1458 c.c."],
+      "tags": ["contratti", "inadempimento", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_extracontrattuale",
+      "nome": "Responsabilità extracontrattuale (fatto illecito)",
+      "descrizione": "Azione risarcitoria per danno ingiusto da fatto illecito, con inquadramento del nesso causale, dell'elemento soggettivo e delle voci di danno patrimoniale e non patrimoniale.",
+      "riferimenti": ["art. 2043 c.c.", "art. 2059 c.c.", "art. 2947 c.c."],
+      "tags": ["responsabilita", "risarcimento", "danno"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "garanzia_vizi_vendita",
+      "nome": "Garanzia per vizi nella vendita",
+      "descrizione": "Tutela del compratore per vizi della cosa venduta: denuncia nei termini di decadenza, azioni edilizie e coordinamento con la garanzia di conformità nelle vendite di beni di consumo.",
+      "riferimenti": ["art. 1490 c.c.", "art. 1495 c.c.", "D.Lgs. 6 settembre 2005, n. 206"],
+      "tags": ["vendita", "vizi", "garanzia"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "recupero_crediti_decreto_ingiuntivo",
+      "nome": "Recupero crediti e ricorso per decreto ingiuntivo",
+      "descrizione": "Fase stragiudiziale di messa in mora e successivo ricorso monitorio su prova scritta del credito, con eventuale richiesta di provvisoria esecuzione.",
+      "riferimenti": ["art. 633 c.p.c.", "art. 642 c.p.c.", "art. 1219 c.c."],
+      "tags": ["crediti", "monitorio", "recupero"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "appalto_privato_vizi_difformita",
+      "nome": "Appalto privato: vizi e difformità dell'opera",
+      "descrizione": "Contestazione di vizi e difformità dell'opera appaltata, denuncia nei termini e responsabilità del costruttore per rovina e gravi difetti di immobili.",
+      "riferimenti": ["art. 1667 c.c.", "art. 1668 c.c.", "art. 1669 c.c."],
+      "tags": ["appalto", "vizi", "immobiliare"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "procedimento_semplificato_cognizione",
+      "nome": "Procedimento semplificato di cognizione",
+      "descrizione": "Introduzione della causa con rito semplificato post riforma Cartabia, valutazione dei presupposti e gestione delle memorie integrative nei casi non complessi.",
+      "riferimenti": ["art. 281-decies c.p.c.", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["procedura", "cartabia", "rito"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "mediazione_civile_obbligatoria",
+      "nome": "Mediazione civile obbligatoria",
+      "descrizione": "Attivazione e gestione della mediazione quale condizione di procedibilità nelle materie previste, come ampliate dalla riforma Cartabia, con assistenza della parte agli incontri.",
+      "riferimenti": ["D.Lgs. 4 marzo 2010, n. 28", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["adr", "mediazione", "procedibilita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "negoziazione_assistita",
+      "nome": "Negoziazione assistita da avvocati",
+      "descrizione": "Invito alla stipula della convenzione di negoziazione assistita e redazione dell'accordo conclusivo, anche quale condizione di procedibilità per le domande di pagamento fino a 50.000 euro.",
+      "riferimenti": ["D.L. 12 settembre 2014, n. 132", "L. 10 novembre 2014, n. 162"],
+      "tags": ["adr", "negoziazione", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "prescrizione_e_decadenza",
+      "nome": "Prescrizione e decadenza dei diritti",
+      "descrizione": "Verifica dei termini di prescrizione ordinaria e breve, degli atti interruttivi e delle ipotesi di decadenza rilevanti prima di ogni iniziativa giudiziale.",
+      "riferimenti": ["art. 2934 c.c.", "art. 2946 c.c.", "art. 2964 c.c."],
+      "tags": ["prescrizione", "decadenza", "termini"],
+      "forme": ["parere", "checklist", "ricerca"]
+    }
+  ]
+}

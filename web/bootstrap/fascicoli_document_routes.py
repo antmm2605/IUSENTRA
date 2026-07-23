@@ -29,10 +29,7 @@ from web.bootstrap.fascicoli_document_helpers import (
 )
 from web.services.fascicoli_document_rename import rinomina_documento_response
 from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
-from web.services.signed_document_runtime import (
-    build_document_signed_snapshot_from_bytes,
-    build_document_version_candidates,
-)
+from web.services.signed_document_runtime import build_document_signed_snapshot_from_bytes, build_document_version_candidates
 
 
 def register_fascicoli_document_routes(

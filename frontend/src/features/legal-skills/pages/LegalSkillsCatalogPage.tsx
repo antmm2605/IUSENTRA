@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpenCheck, FileSearch, PlayCircle, ShieldCheck } from 'lucide-react'
+import { BookOpenCheck, FileSearch, Library, PlayCircle, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,7 +48,12 @@ export function LegalSkillsCatalogPage() {
       description="Pack operativi Lex per revisioni guidate, fonti e risultati da approvare."
       icon={BookOpenCheck}
       area="lex"
-      actions={<Button asChild><a href="/legal-skills/profile"><ShieldCheck aria-hidden="true" /> Profilo</a></Button>}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline"><a href="/legal-skills/prompt"><Library aria-hidden="true" /> Libreria Prompt</a></Button>
+          <Button asChild><a href="/legal-skills/profile"><ShieldCheck aria-hidden="true" /> Profilo</a></Button>
+        </div>
+      }
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

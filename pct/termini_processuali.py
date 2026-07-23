@@ -270,6 +270,164 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"source_event": "comunicazione"},
     ),
     DeadlineTemplate(
+        code="CIV_NOTE_CONCLUSIONI_189",
+        name="Note di precisazione delle conclusioni",
+        base_value=60,
+        direction="backward",
+        free_term=True,
+        reference_law="Art. 189, comma 1, c.p.c.",
+        metadata={"source_event": "udienza_rimessione"},
+    ),
+    DeadlineTemplate(
+        code="CIV_CONCLUSIONALI_189",
+        name="Comparse conclusionali",
+        base_value=30,
+        direction="backward",
+        free_term=True,
+        reference_law="Art. 189, comma 1, c.p.c.",
+        metadata={"source_event": "udienza_rimessione"},
+    ),
+    DeadlineTemplate(
+        code="CIV_REPLICHE_189",
+        name="Memorie di replica",
+        base_value=15,
+        direction="backward",
+        free_term=True,
+        reference_law="Art. 189, comma 1, c.p.c.",
+        metadata={"source_event": "udienza_rimessione"},
+    ),
+    DeadlineTemplate(
+        code="FAM_473BIS_COSTITUZIONE",
+        name="Costituzione del convenuto - rito famiglia",
+        base_value=30,
+        direction="backward",
+        free_term=True,
+        reference_law="Art. 473-bis.16 c.p.c.",
+        metadata={"source_event": "udienza_comparizione"},
+    ),
+    DeadlineTemplate(
+        code="VR_MEMORIA_183_6_N1",
+        name="Vecchio rito - memoria art. 183 co. 6 n. 1",
+        base_value=30,
+        reference_law="Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+        cartabia_compliant=False,
+        metadata={"source_event": "concessione_termini", "rito": "ante_cartabia"},
+    ),
+    DeadlineTemplate(
+        code="VR_MEMORIA_183_6_N2",
+        name="Vecchio rito - memoria art. 183 co. 6 n. 2",
+        base_value=30,
+        reference_law="Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+        cartabia_compliant=False,
+        metadata={"source_event": "scadenza_memoria_precedente", "rito": "ante_cartabia"},
+    ),
+    DeadlineTemplate(
+        code="VR_MEMORIA_183_6_N3",
+        name="Vecchio rito - memoria art. 183 co. 6 n. 3",
+        base_value=20,
+        reference_law="Art. 183, comma 6, c.p.c. (testo ante D.Lgs. 149/2022)",
+        cartabia_compliant=False,
+        metadata={"source_event": "scadenza_memoria_precedente", "rito": "ante_cartabia"},
+    ),
+    DeadlineTemplate(
+        code="VR_CONCLUSIONALI_190",
+        name="Vecchio rito - comparse conclusionali",
+        base_value=60,
+        reference_law="Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
+        cartabia_compliant=False,
+        metadata={"source_event": "rimessione_al_collegio", "rito": "ante_cartabia"},
+    ),
+    DeadlineTemplate(
+        code="VR_REPLICHE_190",
+        name="Vecchio rito - memorie di replica",
+        base_value=20,
+        reference_law="Art. 190 c.p.c. (testo ante D.Lgs. 149/2022)",
+        cartabia_compliant=False,
+        metadata={"source_event": "scadenza_conclusionali", "rito": "ante_cartabia"},
+    ),
+    DeadlineTemplate(
+        code="CDS_PAGAMENTO_RIDOTTO_5GG",
+        name="Verbale CdS - pagamento in misura ridotta (-30%)",
+        base_value=5,
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        reference_law="Art. 202, comma 1, D.Lgs. 285/1992",
+        metadata={"source_event": "notifica_verbale"},
+    ),
+    DeadlineTemplate(
+        code="CDS_PAGAMENTO_60GG",
+        name="Verbale CdS - pagamento in misura ordinaria",
+        base_value=60,
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        reference_law="Art. 202, comma 1, D.Lgs. 285/1992",
+        metadata={"source_event": "notifica_verbale"},
+    ),
+    DeadlineTemplate(
+        code="CDS_RICORSO_PREFETTO_60GG",
+        name="Verbale CdS - ricorso al Prefetto",
+        base_value=60,
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        reference_law="Art. 203, comma 1, D.Lgs. 285/1992",
+        metadata={"source_event": "notifica_verbale"},
+    ),
+    DeadlineTemplate(
+        code="CDS_RICORSO_GDP_30GG",
+        name="Verbale CdS - ricorso al Giudice di Pace",
+        base_value=30,
+        reference_law="Art. 204-bis D.Lgs. 285/1992; art. 7 D.Lgs. 150/2011",
+        metadata={"source_event": "notifica_verbale"},
+    ),
+    DeadlineTemplate(
+        code="ESE_PRECETTO_ADEMPIMENTO_10GG",
+        name="Precetto - termine per l'adempimento",
+        base_value=10,
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        reference_law="Art. 480, comma 1, c.p.c.",
+        metadata={"source_event": "notifica_precetto"},
+    ),
+    DeadlineTemplate(
+        code="ESE_PRECETTO_EFFICACIA_90GG",
+        name="Precetto - perdita di efficacia",
+        base_value=90,
+        suspend_august=False,
+        ferial_suspension_policy="not_applicable",
+        extend_saturday=False,
+        extend_holiday=False,
+        reference_law="Art. 481, comma 1, c.p.c.",
+        metadata={"source_event": "notifica_precetto"},
+    ),
+    DeadlineTemplate(
+        code="ESE_OPPOSIZIONE_ATTI_617",
+        name="Opposizione agli atti esecutivi",
+        base_value=20,
+        reference_law="Art. 617 c.p.c.",
+        metadata={"source_event": "compimento_atto"},
+    ),
+    DeadlineTemplate(
+        code="ESE_ISCRIZIONE_RUOLO_MOBILIARE",
+        name="Iscrizione a ruolo - pignoramento mobiliare",
+        base_value=15,
+        reference_law="Art. 518, comma 6, c.p.c.",
+        metadata={"source_event": "consegna_verbale_pignoramento"},
+    ),
+    DeadlineTemplate(
+        code="ESE_ISCRIZIONE_RUOLO_PRESSO_TERZI",
+        name="Iscrizione a ruolo - pignoramento presso terzi",
+        base_value=30,
+        reference_law="Art. 543, comma 4, c.p.c.",
+        metadata={"source_event": "consegna_atto_notificato"},
+    ),
+    DeadlineTemplate(
+        code="ESE_ISCRIZIONE_RUOLO_IMMOBILIARE",
+        name="Iscrizione a ruolo - pignoramento immobiliare",
+        base_value=15,
+        reference_law="Art. 557, comma 2, c.p.c.",
+        metadata={"source_event": "consegna_atto_notificato"},
+    ),
+    DeadlineTemplate(
         code="CUSTOM_PROCESSUALE",
         name="Termine processuale personalizzato",
         base_value=30,
@@ -540,6 +698,14 @@ class DeadlinePracticeRepository:
             payload = {}
         if not payload.get("templates"):
             payload["templates"] = [template.to_dict() for template in DEFAULT_TEMPLATES]
+        else:
+            # Auto-upgrade: le installazioni esistenti ricevono i template di
+            # default aggiunti nelle release successive, senza toccare
+            # personalizzazioni o template già presenti.
+            existing_codes = {str(item.get("code", "")) for item in payload["templates"]}
+            for template in DEFAULT_TEMPLATES:
+                if template.code not in existing_codes:
+                    payload["templates"].append(template.to_dict())
         payload.setdefault("audit_logs", [])
         payload.setdefault("notification_logs", [])
         payload.setdefault("calendar_versions", [{"version": CALENDAR_VERSION, "source": "builtin", "imported_at": _utc_now()}])
@@ -549,9 +715,9 @@ class DeadlinePracticeRepository:
     def _init_sqlite(self) -> None:
         with sqlite3.connect(self.path) as conn:
             conn.executescript(SQLITE_SCHEMA)
-            count = conn.execute("SELECT COUNT(*) FROM deadline_templates").fetchone()[0]
-            if not count:
-                for template in DEFAULT_TEMPLATES:
+            existing = {row[0] for row in conn.execute("SELECT code FROM deadline_templates").fetchall()}
+            for template in DEFAULT_TEMPLATES:
+                if template.code not in existing:
                     self._insert_template_sqlite(conn, template)
             conn.commit()
 

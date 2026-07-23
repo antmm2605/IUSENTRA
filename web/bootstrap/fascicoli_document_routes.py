@@ -637,12 +637,7 @@ def register_fascicoli_document_routes(
 
         if rimossi:
             clear_react_fascicoli_list_cache()
-            audit(
-                "fascicoli.documento.elimina_multipla",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"{rimossi} documenti",
-            )
+            audit("fascicoli.documento.elimina_multipla", "fascicolo", id_fasc, dettagli=f"{rimossi} documenti")
             flash(
                 f"{rimossi} document{'o' if rimossi == 1 else 'i'} eliminat{'o' if rimossi == 1 else 'i'} dal fascicolo.",
                 "success",

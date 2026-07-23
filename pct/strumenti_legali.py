@@ -9,6 +9,14 @@ from datetime import date, timedelta
 from textwrap import dedent
 from typing import Any, Dict, List, Mapping, Optional
 
+from pct.calcolatori import (
+    assegno_mantenimento as calc_assegno_mantenimento,
+    danno_parentale as calc_danno_parentale,
+    interessi_acconti as calc_interessi_acconti,
+    maggior_danno as calc_maggior_danno,
+    quote_riserva as calc_quote_riserva,
+    usufrutto as calc_usufrutto,
+)
 from pct.normative_tables import (
     FONTI_OPERATIVE,
     GestioneTabelleNormative,
@@ -154,6 +162,12 @@ class GestioneStrumentiLegali:
             {"id": "cedolare_secca", "title": "Cedolare Secca", "subtitle": "Imposta annua, costo pluriennale e confronto operativo con il registro ordinario.", "icon": "bi-house-check", "categoria": "Fiscale"},
             {"id": "indennita_licenziamento", "title": "Indennita Licenziamento", "subtitle": "Tutele crescenti, piccole imprese e stima mensilita riconoscibili.", "icon": "bi-person-x", "categoria": "Lavoro"},
             {"id": "piano_ammortamento", "title": "Piano di Ammortamento", "subtitle": "Metodo francese o italiano, rata, interessi e sviluppo rateale completo.", "icon": "bi-table", "categoria": "Finanza"},
+            {"id": "interessi_acconti", "title": "Interessi con acconti", "subtitle": "Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.", "icon": "bi-cash-coin", "categoria": "Credito"},
+            {"id": "maggior_danno", "title": "Maggior danno da svalutazione", "subtitle": "Art. 1224 co. 2 c.c.: capitale rivalutato ISTAT più interessi legali del periodo.", "icon": "bi-graph-down-arrow", "categoria": "Credito"},
+            {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.", "icon": "bi-people", "categoria": "Danni"},
+            {"id": "usufrutto", "title": "Usufrutto e nuda proprietà", "subtitle": "Valore fiscale con le fasce d'età del D.P.R. 131/1986 e il tasso legale corrente.", "icon": "bi-house-heart", "categoria": "Patrimonio"},
+            {"id": "quote_riserva", "title": "Quote di riserva legittimari", "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.", "icon": "bi-shield-check", "categoria": "Patrimonio"},
+            {"id": "assegno_mantenimento", "title": "Assegno di mantenimento", "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.", "icon": "bi-house-down", "categoria": "Famiglia"},
         ]
 
     def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -358,6 +372,46 @@ class GestioneStrumentiLegali:
             "amm_rate_anno": "12",
             "amm_tipo": "francese",
             "amm_data_prima_rata": today,
+            # Interessi con acconti
+            "acc_tipo": "legali",
+            "acc_capitale": prefill.get("valore_causa", ""),
+            "acc_data_inizio": today,
+            "acc_data_fine": today,
+            "acc_acconti": "",
+            # Maggior danno da svalutazione
+            "md_importo": prefill.get("valore_causa", ""),
+            "md_tipo_indice": "foi",
+            "md_base_interessi": "rivalutato_annuale",
+            "md_anno_base": "",
+            "md_mese_base": "",
+            "md_anno_fine": "",
+            "md_mese_fine": "",
+            # Danno parentale
+            "dp_categoria": "nucleo_primario",
+            "dp_eta_vittima": "",
+            "dp_eta_congiunto": "",
+            "dp_convivenza": "1",
+            "dp_unico_superstite": "0",
+            "dp_qualita_relazione": "ordinaria",
+            # Usufrutto e nuda proprieta
+            "usu_valore_piena": "",
+            "usu_eta": "",
+            "usu_quota_perc": "100",
+            # Quote di riserva
+            "ris_patrimonio": "",
+            "ris_debiti": "",
+            "ris_donazioni": "",
+            "ris_coniuge": "1",
+            "ris_figli": "0",
+            "ris_ascendenti": "0",
+            # Assegno di mantenimento
+            "man_tipo": "figli",
+            "man_reddito_obbligato": "",
+            "man_reddito_beneficiario": "",
+            "man_figli": "1",
+            "man_collocamento_paritetico": "0",
+            "man_casa_assegnata": "0",
+            "man_durata_matrimonio": "",
         }
         if posted:
             for key in defaults:
@@ -925,6 +979,26 @@ class GestioneStrumentiLegali:
             "warnings": warnings,
             "sources": sources,
         }
+
+    # ── Calcolatori modulari (pct/calcolatori/) ──────────────────────────────
+
+    def calcola_interessi_acconti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_interessi_acconti.calcola(payload, self.norme)
+
+    def calcola_maggior_danno(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_maggior_danno.calcola(payload, self.norme)
+
+    def calcola_danno_parentale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_danno_parentale.calcola(payload)
+
+    def calcola_usufrutto(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_usufrutto.calcola(payload, self.norme)
+
+    def calcola_quote_riserva(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_quote_riserva.calcola(payload)
+
+    def stima_assegno_mantenimento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return calc_assegno_mantenimento.calcola(payload)
 
     # ── Nuovi strumenti intelligenti ─────────────────────────────────────────
 

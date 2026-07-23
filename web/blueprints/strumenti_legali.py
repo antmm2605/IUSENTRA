@@ -31,6 +31,12 @@ TOOL_METHODS = {
     "prescrizione": "calcola_prescrizione",
     "danno_biologico": "calcola_danno_biologico",
     "imposta_registro": "calcola_imposta_registro",
+    "interessi_acconti": "calcola_interessi_acconti",
+    "maggior_danno": "calcola_maggior_danno",
+    "danno_parentale": "calcola_danno_parentale",
+    "usufrutto": "calcola_usufrutto",
+    "quote_riserva": "calcola_quote_riserva",
+    "assegno_mantenimento": "stima_assegno_mantenimento",
 }
 
 
@@ -294,6 +300,42 @@ def api_danno_biologico():
 @_richiedi_login
 def api_imposta_registro():
     return _json_result("calcola_imposta_registro")
+
+
+@strumenti_legali.route("/api/interessi-acconti", methods=["POST"])
+@_richiedi_login
+def api_interessi_acconti():
+    return _json_result("calcola_interessi_acconti")
+
+
+@strumenti_legali.route("/api/maggior-danno", methods=["POST"])
+@_richiedi_login
+def api_maggior_danno():
+    return _json_result("calcola_maggior_danno")
+
+
+@strumenti_legali.route("/api/danno-parentale", methods=["POST"])
+@_richiedi_login
+def api_danno_parentale():
+    return _json_result("calcola_danno_parentale")
+
+
+@strumenti_legali.route("/api/usufrutto", methods=["POST"])
+@_richiedi_login
+def api_usufrutto():
+    return _json_result("calcola_usufrutto")
+
+
+@strumenti_legali.route("/api/quote-riserva", methods=["POST"])
+@_richiedi_login
+def api_quote_riserva():
+    return _json_result("calcola_quote_riserva")
+
+
+@strumenti_legali.route("/api/assegno-mantenimento", methods=["POST"])
+@_richiedi_login
+def api_assegno_mantenimento():
+    return _json_result("stima_assegno_mantenimento")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

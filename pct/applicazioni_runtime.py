@@ -538,6 +538,189 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
             {"name": "amm_data_prima_rata", "label": "Prima rata", "type": "date"},
         ],
     },
+    "interessi_acconti": {
+        "title": "Interessi con acconti",
+        "subtitle": "Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.",
+        "submit_label": "Calcola residuo",
+        "method": "calcola_interessi_acconti",
+        "fields": [
+            {
+                "name": "acc_tipo",
+                "label": "Regime",
+                "type": "select",
+                "options": [
+                    {"value": "legali", "label": "Interessi legali (art. 1284 c.c.)"},
+                    {"value": "mora_commerciale", "label": "Mora commerciale (D.Lgs. 231/2002)"},
+                    {"value": "legali_1284_4", "label": "Art. 1284, comma 4, c.c."},
+                ],
+            },
+            {"name": "acc_capitale", "label": "Capitale", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "acc_data_inizio", "label": "Decorrenza", "type": "date"},
+            {"name": "acc_data_fine", "label": "Data finale", "type": "date"},
+            {"name": "acc_acconti", "label": "Acconti (una riga: data importo)", "type": "textarea"},
+        ],
+    },
+    "maggior_danno": {
+        "title": "Maggior danno da svalutazione",
+        "subtitle": "Art. 1224 co. 2 c.c.: rivalutazione ISTAT più interessi legali sulla base scelta.",
+        "submit_label": "Calcola maggior danno",
+        "method": "calcola_maggior_danno",
+        "fields": [
+            {"name": "md_importo", "label": "Importo", "type": "number", "step": "0.01", "min": "0"},
+            {
+                "name": "md_tipo_indice",
+                "label": "Indice ISTAT",
+                "type": "select",
+                "options": [
+                    {"value": "foi", "label": "FOI (netto tabacchi)"},
+                    {"value": "nic", "label": "NIC"},
+                ],
+            },
+            {
+                "name": "md_base_interessi",
+                "label": "Base interessi",
+                "type": "select",
+                "options": [
+                    {"value": "rivalutato_annuale", "label": "Capitale rivalutato anno per anno"},
+                    {"value": "semisomma", "label": "Semisomma"},
+                    {"value": "originario", "label": "Capitale originario"},
+                ],
+            },
+            {"name": "md_anno_base", "label": "Anno iniziale", "type": "number", "step": "1", "min": "1900"},
+            {"name": "md_mese_base", "label": "Mese iniziale", "type": "number", "step": "1", "min": "1", "max": "12"},
+            {"name": "md_anno_fine", "label": "Anno finale", "type": "number", "step": "1", "min": "1900"},
+            {"name": "md_mese_fine", "label": "Mese finale", "type": "number", "step": "1", "min": "1", "max": "12"},
+        ],
+    },
+    "danno_parentale": {
+        "title": "Danno da perdita parentale",
+        "subtitle": "Tabella a punti Milano 2024 con i cinque parametri della Cassazione.",
+        "submit_label": "Calcola danno",
+        "method": "calcola_danno_parentale",
+        "fields": [
+            {
+                "name": "dp_categoria",
+                "label": "Rapporto",
+                "type": "select",
+                "options": [
+                    {"value": "nucleo_primario", "label": "Genitore, figlio o coniuge"},
+                    {"value": "altri_congiunti", "label": "Fratello, sorella, nonno o nipote"},
+                ],
+            },
+            {"name": "dp_eta_vittima", "label": "Età della vittima", "type": "number", "step": "1", "min": "0"},
+            {"name": "dp_eta_congiunto", "label": "Età del congiunto", "type": "number", "step": "1", "min": "0"},
+            {
+                "name": "dp_convivenza",
+                "label": "Convivenza",
+                "type": "select",
+                "options": [
+                    {"value": "1", "label": "Sì"},
+                    {"value": "0", "label": "No"},
+                ],
+            },
+            {
+                "name": "dp_unico_superstite",
+                "label": "Unico superstite del nucleo",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
+                ],
+            },
+            {
+                "name": "dp_qualita_relazione",
+                "label": "Qualità della relazione",
+                "type": "select",
+                "options": [
+                    {"value": "eccezionale", "label": "Eccezionale"},
+                    {"value": "intensa", "label": "Intensa"},
+                    {"value": "ordinaria", "label": "Ordinaria"},
+                    {"value": "ridotta", "label": "Ridotta"},
+                    {"value": "assente", "label": "Assente o conflittuale"},
+                ],
+            },
+        ],
+    },
+    "usufrutto": {
+        "title": "Usufrutto e nuda proprietà",
+        "subtitle": "Valore fiscale per fasce d'età (D.P.R. 131/1986) con il tasso legale corrente.",
+        "submit_label": "Calcola valori",
+        "method": "calcola_usufrutto",
+        "fields": [
+            {"name": "usu_valore_piena", "label": "Valore piena proprietà", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "usu_eta", "label": "Età usufruttuario", "type": "number", "step": "1", "min": "1"},
+            {"name": "usu_quota_perc", "label": "Quota %", "type": "number", "step": "0.01", "min": "1", "max": "100"},
+        ],
+    },
+    "quote_riserva": {
+        "title": "Quote di riserva legittimari",
+        "subtitle": "Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.",
+        "submit_label": "Calcola riserva",
+        "method": "calcola_quote_riserva",
+        "fields": [
+            {"name": "ris_patrimonio", "label": "Patrimonio relitto", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "ris_debiti", "label": "Debiti", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "ris_donazioni", "label": "Donazioni (donatum)", "type": "number", "step": "0.01", "min": "0"},
+            {
+                "name": "ris_coniuge",
+                "label": "Coniuge",
+                "type": "select",
+                "options": [
+                    {"value": "1", "label": "Sì"},
+                    {"value": "0", "label": "No"},
+                ],
+            },
+            {"name": "ris_figli", "label": "Numero figli", "type": "number", "step": "1", "min": "0"},
+            {
+                "name": "ris_ascendenti",
+                "label": "Ascendenti",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
+                ],
+            },
+        ],
+    },
+    "assegno_mantenimento": {
+        "title": "Assegno di mantenimento",
+        "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.",
+        "submit_label": "Stima assegno",
+        "method": "stima_assegno_mantenimento",
+        "fields": [
+            {
+                "name": "man_tipo",
+                "label": "Tipo di assegno",
+                "type": "select",
+                "options": [
+                    {"value": "figli", "label": "Mantenimento figli"},
+                    {"value": "coniuge", "label": "Assegno al coniuge"},
+                ],
+            },
+            {"name": "man_reddito_obbligato", "label": "Reddito mensile obbligato", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "man_reddito_beneficiario", "label": "Reddito mensile beneficiario", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "man_figli", "label": "Numero figli", "type": "number", "step": "1", "min": "0"},
+            {
+                "name": "man_collocamento_paritetico",
+                "label": "Collocamento paritetico",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
+                ],
+            },
+            {
+                "name": "man_casa_assegnata",
+                "label": "Casa familiare assegnata",
+                "type": "select",
+                "options": [
+                    {"value": "0", "label": "No"},
+                    {"value": "1", "label": "Sì"},
+                ],
+            },
+            {"name": "man_durata_matrimonio", "label": "Durata matrimonio (anni)", "type": "number", "step": "1", "min": "0"},
+        ],
+    },
 }
 
 
@@ -890,6 +1073,123 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                         f"{_fmt_money(row.get('residuo'))}",
                     ]
                     for row in preview
+                ],
+            }
+        )
+
+    elif tool_id == "interessi_acconti":
+        metrics = [
+            _metric("Regime", str(result.get("label") or "")),
+            _metric("Acconti imputati", f"{_fmt_money(result.get('acconti_totali'))}", f"{result.get('numero_acconti', 0)} versamenti"),
+            _metric("Residuo capitale", f"{_fmt_money(result.get('residuo_capitale'))}"),
+            _metric("Residuo complessivo", f"{_fmt_money(result.get('totale_residuo'))}", f"interessi {_fmt_money(result.get('residuo_interessi'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Imputazione degli acconti",
+                "headers": ["Data", "Acconto", "A interessi", "A capitale", "Capitale residuo"],
+                "rows": [
+                    [
+                        _fmt_date_it(row.get("data")),
+                        f"{_fmt_money(row.get('importo'))}",
+                        f"{_fmt_money(row.get('quota_interessi'))}",
+                        f"{_fmt_money(row.get('quota_capitale'))}",
+                        f"{_fmt_money(row.get('residuo_capitale'))}",
+                    ]
+                    for row in list(result.get("imputazioni") or [])
+                ],
+            }
+        )
+    elif tool_id == "maggior_danno":
+        metrics = [
+            _metric("Importo rivalutato", f"{_fmt_money(result.get('importo_rivalutato'))}", f"da {_fmt_money(result.get('importo_originale'))}"),
+            _metric("Rivalutazione", f"{_fmt_money(result.get('rivalutazione'))}"),
+            _metric("Interessi legali", f"{_fmt_money(result.get('totale_interessi'))}"),
+            _metric("Totale dovuto", f"{_fmt_money(result.get('totale'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Segmenti interessi",
+                "headers": ["Periodo", "Giorni", "Tasso", "Base", "Interessi"],
+                "rows": [
+                    [
+                        f"{_fmt_date_it(row.get('from'))} - {_fmt_date_it(row.get('to'))}",
+                        str(row.get("days") or 0),
+                        f"{_fmt_percent(row.get('rate'))}%",
+                        f"{_fmt_money(row.get('base'))}",
+                        f"{_fmt_money(row.get('interest'))}",
+                    ]
+                    for row in list(result.get("segments") or [])
+                ],
+            }
+        )
+    elif tool_id == "danno_parentale":
+        metrics = [
+            _metric("Categoria", str(result.get("categoria_label") or "")),
+            _metric("Punti liquidati", f"{result.get('punti_liquidati', 0)}", f"massimo {result.get('punti_max', 0)}"),
+            _metric("Valore punto", f"{_fmt_money(result.get('valore_punto'))}"),
+            _metric("Importo", f"{_fmt_money(result.get('importo'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Parametri della tabella a punti",
+                "headers": ["Parametro", "Dato", "Punti", "Massimo"],
+                "rows": [
+                    [
+                        str(row.get("label") or ""),
+                        str(row.get("detail") or ""),
+                        str(row.get("punti") or 0),
+                        str(row.get("max") or 0),
+                    ]
+                    for row in list(result.get("parametri") or [])
+                ],
+            }
+        )
+    elif tool_id == "usufrutto":
+        metrics = [
+            _metric("Usufrutto", f"{_fmt_money(result.get('valore_usufrutto'))}", f"{result.get('percentuale_usufrutto', 0)}%"),
+            _metric("Nuda proprietà", f"{_fmt_money(result.get('valore_nuda_proprieta'))}", f"{result.get('percentuale_nuda', 0)}%"),
+            _metric("Coefficiente", str(result.get("coefficiente") or "")),
+            _metric("Tasso legale", f"{_fmt_percent(result.get('tasso_legale'))}%"),
+        ]
+    elif tool_id == "quote_riserva":
+        metrics = [
+            _metric("Massa ex art. 556 c.c.", f"{_fmt_money(result.get('massa'))}"),
+            _metric("Quota riservata", f"{result.get('quota_riservata_percent', 0)}%"),
+            _metric("Disponibile", f"{_fmt_money(result.get('disponibile'))}", f"{result.get('disponibile_percent', 0)}%"),
+        ]
+        tables.append(
+            {
+                "title": "Quote di riserva",
+                "headers": ["Legittimario", "% massa", "Importo", "Riferimento"],
+                "rows": [
+                    [
+                        str(row.get("label") or ""),
+                        f"{row.get('quota_percent', 0)}%",
+                        f"{_fmt_money(row.get('importo'))}",
+                        str(row.get("riferimento") or ""),
+                    ]
+                    for row in list(result.get("rows") or [])
+                ],
+            }
+        )
+    elif tool_id == "assegno_mantenimento":
+        metrics = [
+            _metric("Tipo", str(result.get("label") or "")),
+            _metric("Stima mensile", f"{_fmt_money(result.get('stima_mensile'))}"),
+            _metric("Stima annua", f"{_fmt_money(result.get('stima_annua'))}"),
+        ]
+        tables.append(
+            {
+                "title": "Criteri applicati",
+                "headers": ["Criterio", "Dettaglio", "Importo progressivo"],
+                "rows": [
+                    [
+                        str(row.get("label") or ""),
+                        str(row.get("detail") or ""),
+                        f"{_fmt_money(row.get('importo'))}",
+                    ]
+                    for row in list(result.get("criteri") or [])
                 ],
             }
         )

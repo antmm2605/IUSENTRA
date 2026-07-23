@@ -829,6 +829,151 @@
       {{ render_sources(risultato_amm.sources) }}
       {% endif %}
     {% endcall %}
+
+    {% set risultato_acc = results.get('interessi_acconti') %}
+    {% call tool_section('interessi_acconti', 'Interessi con acconti', 'bi-cash-coin', 'Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('interessi_acconti', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Regime</label><select name="acc_tipo" class="form-select"><option value="legali" {{ 'selected' if form_state.acc_tipo == 'legali' }}>Interessi legali (art. 1284 c.c.)</option><option value="mora_commerciale" {{ 'selected' if form_state.acc_tipo == 'mora_commerciale' }}>Mora commerciale (D.Lgs. 231/2002)</option><option value="legali_1284_4" {{ 'selected' if form_state.acc_tipo == 'legali_1284_4' }}>Art. 1284, comma 4, c.c.</option></select></div>
+        <div class="col-md-3"><label class="form-label">Capitale</label><input type="number" step="0.01" min="0" name="acc_capitale" class="form-control" value="{{ form_state.acc_capitale }}"></div>
+        <div class="col-md-2"><label class="form-label">Decorrenza</label><input type="date" name="acc_data_inizio" class="form-control" value="{{ form_state.acc_data_inizio }}"></div>
+        <div class="col-md-3"><label class="form-label">Data finale</label><input type="date" name="acc_data_fine" class="form-control" value="{{ form_state.acc_data_fine }}"></div>
+        <div class="col-12"><label class="form-label">Acconti versati (una riga per acconto: data e importo)</label><textarea name="acc_acconti" class="form-control" rows="3" placeholder="15/03/2025 500,00&#10;30/06/2025 1.000,00">{{ form_state.acc_acconti }}</textarea></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-cash-coin me-2"></i>Calcola residuo</button></div>
+      </form>
+      {% if risultato_acc %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Acconti imputati', risultato_acc.acconti_totali|euro, risultato_acc.numero_acconti ~ ' versamenti') }}
+        {{ metric_box('Residuo capitale', risultato_acc.residuo_capitale|euro) }}
+        {{ metric_box('Interessi residui', risultato_acc.residuo_interessi|euro) }}
+        {{ metric_box('Residuo complessivo', risultato_acc.totale_residuo|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Data</th><th class="text-end">Acconto</th><th class="text-end">A interessi</th><th class="text-end">A capitale</th><th class="text-end">Capitale residuo</th></tr></thead><tbody>{% for row in risultato_acc.imputazioni %}<tr><td class="fw-semibold">{{ row.data|data_it }}</td><td class="text-end">{{ row.importo|euro }}</td><td class="text-end">{{ row.quota_interessi|euro }}</td><td class="text-end">{{ row.quota_capitale|euro }}</td><td class="text-end">{{ row.residuo_capitale|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_acc.notes, risultato_acc.warnings) }}
+      {{ render_sources(risultato_acc.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_md = results.get('maggior_danno') %}
+    {% call tool_section('maggior_danno', 'Maggior danno da svalutazione', 'bi-graph-down-arrow', 'Art. 1224 co. 2 c.c.: rivalutazione ISTAT più interessi legali sulla base scelta.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('maggior_danno', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Importo</label><input type="number" step="0.01" min="0" name="md_importo" class="form-control" value="{{ form_state.md_importo }}"></div>
+        <div class="col-md-3"><label class="form-label">Indice ISTAT</label><select name="md_tipo_indice" class="form-select"><option value="foi" {{ 'selected' if form_state.md_tipo_indice == 'foi' }}>FOI (netto tabacchi)</option><option value="nic" {{ 'selected' if form_state.md_tipo_indice == 'nic' }}>NIC</option></select></div>
+        <div class="col-md-6"><label class="form-label">Base degli interessi</label><select name="md_base_interessi" class="form-select"><option value="rivalutato_annuale" {{ 'selected' if form_state.md_base_interessi == 'rivalutato_annuale' }}>Capitale rivalutato anno per anno (Cass. SS.UU. 1712/1995)</option><option value="semisomma" {{ 'selected' if form_state.md_base_interessi == 'semisomma' }}>Semisomma tra capitale originario e rivalutato</option><option value="originario" {{ 'selected' if form_state.md_base_interessi == 'originario' }}>Capitale originario</option></select></div>
+        <div class="col-md-3"><label class="form-label">Anno iniziale</label><input type="number" min="1900" name="md_anno_base" class="form-control" value="{{ form_state.md_anno_base }}"></div>
+        <div class="col-md-3"><label class="form-label">Mese iniziale</label><input type="number" min="1" max="12" name="md_mese_base" class="form-control" value="{{ form_state.md_mese_base }}"></div>
+        <div class="col-md-3"><label class="form-label">Anno finale</label><input type="number" min="1900" name="md_anno_fine" class="form-control" value="{{ form_state.md_anno_fine }}"></div>
+        <div class="col-md-3"><label class="form-label">Mese finale</label><input type="number" min="1" max="12" name="md_mese_fine" class="form-control" value="{{ form_state.md_mese_fine }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola maggior danno</button></div>
+      </form>
+      {% if risultato_md %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Importo rivalutato', risultato_md.importo_rivalutato|euro, 'da ' ~ risultato_md.importo_originale|euro) }}
+        {{ metric_box('Rivalutazione', risultato_md.rivalutazione|euro) }}
+        {{ metric_box('Interessi legali', risultato_md.totale_interessi|euro) }}
+        {{ metric_box('Totale dovuto', risultato_md.totale|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Periodo</th><th class="text-end">Giorni</th><th class="text-end">Tasso</th><th class="text-end">Base</th><th class="text-end">Interessi</th></tr></thead><tbody>{% for row in risultato_md.segments %}<tr><td class="fw-semibold">{{ row['from']|data_it }} – {{ row['to']|data_it }}</td><td class="text-end">{{ row.days }}</td><td class="text-end">{{ row.rate }}%</td><td class="text-end">{{ row.base|euro }}</td><td class="text-end">{{ row.interest|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_md.notes, risultato_md.warnings) }}
+      {{ render_sources(risultato_md.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_dp = results.get('danno_parentale') %}
+    {% call tool_section('danno_parentale', 'Danno da perdita parentale', 'bi-people', 'Tabella a punti Milano 2024 con i cinque parametri della Cassazione.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('danno_parentale', fascicolo_sel) }}
+        <div class="col-md-6"><label class="form-label">Rapporto con la vittima</label><select name="dp_categoria" class="form-select"><option value="nucleo_primario" {{ 'selected' if form_state.dp_categoria == 'nucleo_primario' }}>Genitore, figlio o coniuge</option><option value="altri_congiunti" {{ 'selected' if form_state.dp_categoria == 'altri_congiunti' }}>Fratello, sorella, nonno o nipote</option></select></div>
+        <div class="col-md-3"><label class="form-label">Età della vittima</label><input type="number" min="0" name="dp_eta_vittima" class="form-control" value="{{ form_state.dp_eta_vittima }}"></div>
+        <div class="col-md-3"><label class="form-label">Età del congiunto</label><input type="number" min="0" name="dp_eta_congiunto" class="form-control" value="{{ form_state.dp_eta_congiunto }}"></div>
+        <div class="col-md-3"><label class="form-label">Convivenza</label><select name="dp_convivenza" class="form-select"><option value="1" {{ 'selected' if form_state.dp_convivenza == '1' }}>Sì</option><option value="0" {{ 'selected' if form_state.dp_convivenza != '1' }}>No</option></select></div>
+        <div class="col-md-4"><label class="form-label">Unico superstite del nucleo</label><select name="dp_unico_superstite" class="form-select"><option value="0" {{ 'selected' if form_state.dp_unico_superstite != '1' }}>No</option><option value="1" {{ 'selected' if form_state.dp_unico_superstite == '1' }}>Sì</option></select></div>
+        <div class="col-md-5"><label class="form-label">Qualità della relazione</label><select name="dp_qualita_relazione" class="form-select">{% for value, label in [('eccezionale','Eccezionale'),('intensa','Intensa'),('ordinaria','Ordinaria'),('ridotta','Ridotta'),('assente','Assente o conflittuale')] %}<option value="{{ value }}" {{ 'selected' if form_state.dp_qualita_relazione == value }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-people me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_dp %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Punti liquidati', risultato_dp.punti_liquidati, 'massimo ' ~ risultato_dp.punti_max) }}
+        {{ metric_box('Valore punto', risultato_dp.valore_punto|euro) }}
+        {{ metric_box('Importo liquidabile', risultato_dp.importo|euro) }}
+        {{ metric_box('Tetto categoria', risultato_dp.massimale_categoria|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Parametro</th><th>Dato</th><th class="text-end">Punti</th><th class="text-end">Massimo</th></tr></thead><tbody>{% for row in risultato_dp.parametri %}<tr><td class="fw-semibold">{{ row.label }}</td><td>{{ row.detail }}</td><td class="text-end">{{ row.punti }}</td><td class="text-end">{{ row.max }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_dp.notes, risultato_dp.warnings) }}
+      {{ render_sources(risultato_dp.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_usu = results.get('usufrutto') %}
+    {% call tool_section('usufrutto', 'Usufrutto e nuda proprietà', 'bi-house-heart', 'Valore fiscale per fasce d\'età (D.P.R. 131/1986) con il tasso legale corrente.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('usufrutto', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Valore piena proprietà</label><input type="number" step="0.01" min="0" name="usu_valore_piena" class="form-control" value="{{ form_state.usu_valore_piena }}"></div>
+        <div class="col-md-4"><label class="form-label">Età dell'usufruttuario</label><input type="number" min="1" name="usu_eta" class="form-control" value="{{ form_state.usu_eta }}"></div>
+        <div class="col-md-4"><label class="form-label">Quota %</label><input type="number" step="0.01" min="1" max="100" name="usu_quota_perc" class="form-control" value="{{ form_state.usu_quota_perc }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola valori</button></div>
+      </form>
+      {% if risultato_usu %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Usufrutto', risultato_usu.valore_usufrutto|euro, risultato_usu.percentuale_usufrutto ~ '%') }}
+        {{ metric_box('Nuda proprietà', risultato_usu.valore_nuda_proprieta|euro, risultato_usu.percentuale_nuda ~ '%') }}
+        {{ metric_box('Coefficiente', risultato_usu.coefficiente) }}
+        {{ metric_box('Tasso legale', risultato_usu.tasso_legale ~ '%') }}
+      </div>
+      {{ render_messages(risultato_usu.notes, risultato_usu.warnings) }}
+      {{ render_sources(risultato_usu.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_ris = results.get('quote_riserva') %}
+    {% call tool_section('quote_riserva', 'Quote di riserva legittimari', 'bi-shield-check', 'Riserva di coniuge, figli e ascendenti con riunione fittizia ex art. 556 c.c.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('quote_riserva', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Patrimonio relitto</label><input type="number" step="0.01" min="0" name="ris_patrimonio" class="form-control" value="{{ form_state.ris_patrimonio }}"></div>
+        <div class="col-md-3"><label class="form-label">Debiti</label><input type="number" step="0.01" min="0" name="ris_debiti" class="form-control" value="{{ form_state.ris_debiti }}"></div>
+        <div class="col-md-3"><label class="form-label">Donazioni (donatum)</label><input type="number" step="0.01" min="0" name="ris_donazioni" class="form-control" value="{{ form_state.ris_donazioni }}"></div>
+        <div class="col-md-3"><label class="form-label">Coniuge</label><select name="ris_coniuge" class="form-select"><option value="1" {{ 'selected' if form_state.ris_coniuge == '1' }}>Sì</option><option value="0" {{ 'selected' if form_state.ris_coniuge != '1' }}>No</option></select></div>
+        <div class="col-md-3"><label class="form-label">Numero figli</label><input type="number" min="0" name="ris_figli" class="form-control" value="{{ form_state.ris_figli }}"></div>
+        <div class="col-md-3"><label class="form-label">Ascendenti</label><select name="ris_ascendenti" class="form-select"><option value="0" {{ 'selected' if form_state.ris_ascendenti != '1' }}>No</option><option value="1" {{ 'selected' if form_state.ris_ascendenti == '1' }}>Sì</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-shield-check me-2"></i>Calcola riserva</button></div>
+      </form>
+      {% if risultato_ris %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Massa ex art. 556 c.c.', risultato_ris.massa|euro) }}
+        {{ metric_box('Quota riservata', risultato_ris.quota_riservata_percent ~ '%') }}
+        {{ metric_box('Disponibile', risultato_ris.disponibile|euro, risultato_ris.disponibile_percent ~ '%') }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Legittimario</th><th class="text-end">% massa</th><th class="text-end">Importo</th><th class="text-end">Per testa</th><th>Riferimento</th></tr></thead><tbody>{% for row in risultato_ris.rows %}<tr><td class="fw-semibold">{{ row.label }}</td><td class="text-end">{{ "%.2f"|format(row.quota_percent) }}%</td><td class="text-end">{{ row.importo|euro }}</td><td class="text-end">{{ row.per_testa|euro }}</td><td class="small text-muted">{{ row.riferimento }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_ris.notes, risultato_ris.warnings) }}
+      {{ render_sources(risultato_ris.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_man = results.get('assegno_mantenimento') %}
+    {% call tool_section('assegno_mantenimento', 'Assegno di mantenimento', 'bi-house-down', 'Stima orientativa per figli e coniuge su criteri di prassi dichiarati.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('assegno_mantenimento', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Tipo di assegno</label><select name="man_tipo" class="form-select"><option value="figli" {{ 'selected' if form_state.man_tipo == 'figli' }}>Mantenimento figli</option><option value="coniuge" {{ 'selected' if form_state.man_tipo == 'coniuge' }}>Assegno al coniuge</option></select></div>
+        <div class="col-md-4"><label class="form-label">Reddito mensile obbligato</label><input type="number" step="0.01" min="0" name="man_reddito_obbligato" class="form-control" value="{{ form_state.man_reddito_obbligato }}"></div>
+        <div class="col-md-4"><label class="form-label">Reddito mensile beneficiario</label><input type="number" step="0.01" min="0" name="man_reddito_beneficiario" class="form-control" value="{{ form_state.man_reddito_beneficiario }}"></div>
+        <div class="col-md-3"><label class="form-label">Numero figli</label><input type="number" min="0" name="man_figli" class="form-control" value="{{ form_state.man_figli }}"></div>
+        <div class="col-md-3"><label class="form-label">Collocamento paritetico</label><select name="man_collocamento_paritetico" class="form-select"><option value="0" {{ 'selected' if form_state.man_collocamento_paritetico != '1' }}>No</option><option value="1" {{ 'selected' if form_state.man_collocamento_paritetico == '1' }}>Sì</option></select></div>
+        <div class="col-md-3"><label class="form-label">Casa familiare assegnata</label><select name="man_casa_assegnata" class="form-select"><option value="0" {{ 'selected' if form_state.man_casa_assegnata != '1' }}>No</option><option value="1" {{ 'selected' if form_state.man_casa_assegnata == '1' }}>Sì</option></select></div>
+        <div class="col-md-3"><label class="form-label">Durata matrimonio (anni)</label><input type="number" min="0" name="man_durata_matrimonio" class="form-control" value="{{ form_state.man_durata_matrimonio }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Stima assegno</button></div>
+      </form>
+      {% if risultato_man %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Tipo', risultato_man.label) }}
+        {{ metric_box('Stima mensile', risultato_man.stima_mensile|euro) }}
+        {{ metric_box('Stima annua', risultato_man.stima_annua|euro) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Criterio</th><th>Dettaglio</th><th class="text-end">Importo progressivo</th></tr></thead><tbody>{% for row in risultato_man.criteri %}<tr><td class="fw-semibold">{{ row.label }}</td><td>{{ row.detail }}</td><td class="text-end">{{ row.importo|euro }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_man.notes, risultato_man.warnings) }}
+      {{ render_sources(risultato_man.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

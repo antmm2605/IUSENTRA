@@ -45,6 +45,7 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
     class _FakeProcess:
         def __init__(self, cmd, **kwargs):
             self.cmd = cmd
+            self.args = cmd
             self.kwargs = kwargs
             self.pid = 8100 + len(processes)
             self._handle = 0
@@ -83,6 +84,15 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
         def kill(self):
             self.killed = True
             self.returncode = -9
+
+        def __enter__(self):
+            # subprocess.run (percorso non-Windows) usa Popen come context manager.
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            if self.returncode is None:
+                self.returncode = self._final_returncode
+            return False
 
     monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
     monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
@@ -2071,8 +2081,11 @@ def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch
         )
 
     assert len(processes) == 1
-    assert processes[0].terminated is True
-    assert processes[0].communicate_calls == 2
+    # Windows chiude via terminate e rilegge l'output (communicate x2); su POSIX
+    # subprocess.run chiude via kill e attende con wait: in entrambi i casi il
+    # processo non resta vivo.
+    assert processes[0].terminated or processes[0].killed
+    assert processes[0].communicate_calls in (1, 2)
     assert module._managed_processes == {}
 
 

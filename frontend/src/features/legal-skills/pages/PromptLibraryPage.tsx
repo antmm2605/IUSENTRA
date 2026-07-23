@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookMarked, ClipboardCopy, FolderOpen, Library, PlayCircle, Scale, Search, Star, X } from 'lucide-react'
+import { BookMarked, ClipboardCopy, Library, PlayCircle, Route, Scale, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,19 +12,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
-import { getFascicoliPage, type FascicoloRow } from '../../../fascicoliData'
 import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, runPromptLibraryPrompt, searchPromptLibrary } from '../api'
+import { FascicoloPicker, fascicoloDaUrl, type FascicoloSelezionato } from '../components/FascicoloPicker'
 import { can } from '../permissions'
 import type { PromptLibraryArea, PromptLibraryDetail, PromptLibraryEntry, PromptLibraryForma } from '../types'
 
 const TUTTE = '__tutte__'
 const RISULTATI_VISIBILI = 60
 
-type FascicoloSelezionato = { id: string; etichetta: string }
-
-function fascicoloIniziale(): FascicoloSelezionato | null {
-  const id = new URLSearchParams(window.location.search).get('fascicolo')?.trim()
-  return id ? { id, etichetta: '' } : null
+function promptIniziale(): string {
+  return new URLSearchParams(window.location.search).get('prompt')?.trim() || ''
 }
 
 export function PromptLibraryPage() {
@@ -38,9 +35,7 @@ export function PromptLibraryPage() {
   const [risultati, setRisultati] = useState<PromptLibraryEntry[]>([])
   const [totaleRisultati, setTotaleRisultati] = useState(0)
   const [dettaglio, setDettaglio] = useState<PromptLibraryDetail | null>(null)
-  const [fascicolo, setFascicolo] = useState<FascicoloSelezionato | null>(fascicoloIniziale)
-  const [ricercaFascicolo, setRicercaFascicolo] = useState('')
-  const [opzioniFascicolo, setOpzioniFascicolo] = useState<FascicoloRow[]>([])
+  const [fascicolo, setFascicolo] = useState<FascicoloSelezionato | null>(fascicoloDaUrl)
   const [copiato, setCopiato] = useState(false)
   const [eseguendo, setEseguendo] = useState(false)
   const [erroreEsecuzione, setErroreEsecuzione] = useState('')
@@ -90,19 +85,6 @@ export function PromptLibraryPage() {
     }
   }, [query, areaFiltro, formaFiltro])
 
-  useEffect(() => {
-    if (!ricercaFascicolo.trim()) {
-      setOpzioniFascicolo([])
-      return
-    }
-    const timer = window.setTimeout(() => {
-      getFascicoliPage({ q: ricercaFascicolo.trim(), pageSize: 8 }).then((pagina) => {
-        setOpzioniFascicolo(pagina.items || [])
-      })
-    }, 300)
-    return () => window.clearTimeout(timer)
-  }, [ricercaFascicolo])
-
   const apriDettaglio = useCallback(
     (promptId: string) => {
       setCopiato(false)
@@ -127,10 +109,10 @@ export function PromptLibraryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fascicolo?.id])
 
-  const selezionaFascicolo = useCallback((riga: FascicoloRow) => {
-    setFascicolo({ id: riga.id, etichetta: [riga.ref || riga.internalRef, riga.title].filter(Boolean).join(' — ') })
-    setRicercaFascicolo('')
-    setOpzioniFascicolo([])
+  useEffect(() => {
+    const promptId = promptIniziale()
+    if (promptId) apriDettaglio(promptId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const copiaTesto = useCallback(() => {
@@ -180,7 +162,12 @@ export function PromptLibraryPage() {
       description={`${totalePrompt} prompt operativi in ${aree.length} aree del diritto, con riferimenti normativi e forme di lavoro della prassi forense.`}
       icon={Library}
       area="lex"
-      actions={<Button asChild variant="outline"><a href="/legal-skills"><BookMarked aria-hidden="true" /> Catalogo skill</a></Button>}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline"><a href="/legal-skills/percorsi"><Route aria-hidden="true" /> Percorsi guidati</a></Button>
+          <Button asChild variant="outline"><a href="/legal-skills"><BookMarked aria-hidden="true" /> Catalogo skill</a></Button>
+        </div>
+      }
     >
       <div className="grid gap-4">
         <Card size="sm">
@@ -240,46 +227,12 @@ export function PromptLibraryPage() {
               </div>
             ) : null}
 
-            <div className="grid gap-2">
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="flex items-center gap-1 text-muted-foreground"><FolderOpen aria-hidden="true" className="size-4" /> Precompila dal fascicolo:</span>
-                {fascicolo ? (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {fascicolo.etichetta || `Fascicolo ${fascicolo.id}`}
-                    <button type="button" aria-label="Rimuovi fascicolo" onClick={() => setFascicolo(null)}>
-                      <X aria-hidden="true" className="size-3" />
-                    </button>
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">nessun fascicolo collegato — i prompt restano generici.</span>
-                )}
-              </div>
-              {!fascicolo ? (
-                <div className="relative md:max-w-md">
-                  <Input
-                    value={ricercaFascicolo}
-                    onChange={(event) => setRicercaFascicolo(event.target.value)}
-                    placeholder="Cerca fascicolo per titolo, cliente o RG…"
-                    aria-label="Cerca fascicolo da collegare"
-                  />
-                  {opzioniFascicolo.length ? (
-                    <div className="mt-2 grid gap-1">
-                      {opzioniFascicolo.map((riga) => (
-                        <Button
-                          key={riga.id}
-                          size="sm"
-                          variant="outline"
-                          className="justify-start"
-                          onClick={() => selezionaFascicolo(riga)}
-                        >
-                          {[riga.ref || riga.internalRef, riga.title, riga.client].filter(Boolean).join(' — ')}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            <FascicoloPicker
+              fascicolo={fascicolo}
+              onSelect={setFascicolo}
+              onClear={() => setFascicolo(null)}
+              etichettaVuota="nessun fascicolo collegato — i prompt restano generici."
+            />
           </CardContent>
         </Card>
 
@@ -335,7 +288,7 @@ export function PromptLibraryPage() {
                   </div>
                   {contesto ? (
                     <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2 text-sm">
-                      <FolderOpen aria-hidden="true" className="size-4 text-muted-foreground" />
+                      <BookMarked aria-hidden="true" className="size-4 text-muted-foreground" />
                       <span>
                         Precompilato dal fascicolo {[contesto.numero, contesto.titolo].filter(Boolean).join(' — ')}
                         {contesto.rg ? ` (${contesto.rg})` : ''}

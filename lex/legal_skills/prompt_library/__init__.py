@@ -10,6 +10,8 @@ from .case_context import ContestoFascicolo
 from .composer import FORME, componi_testo, forme_public, titolo_prompt
 from .library import CATALOG_DIR, LegalPromptLibrary, get_prompt_library
 from .models import AreaPrompt, VocePrompt
+from .pathway_progress import PathwayProgressStore
+from .pathways import PATHWAYS_DIR, PassoPercorso, PathwayCatalog, Percorso, get_pathway_catalog
 from .profile_matching import aree_preferite_da_profilo
 from .runner import PROMPT_PACK_ID, prepara_esecuzione_prompt
 
@@ -19,9 +21,15 @@ __all__ = [
     "ContestoFascicolo",
     "FORME",
     "LegalPromptLibrary",
+    "PATHWAYS_DIR",
     "PROMPT_PACK_ID",
+    "PassoPercorso",
+    "PathwayCatalog",
+    "PathwayProgressStore",
+    "Percorso",
     "VocePrompt",
     "aree_preferite_da_profilo",
+    "get_pathway_catalog",
     "prepara_esecuzione_prompt",
     "componi_testo",
     "forme_public",

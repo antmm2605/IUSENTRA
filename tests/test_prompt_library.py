@@ -17,7 +17,9 @@ from lex.legal_skills.prompt_library import (
     PROMPT_PACK_ID,
     ContestoFascicolo,
     LegalPromptLibrary,
+    PathwayProgressStore,
     aree_preferite_da_profilo,
+    get_pathway_catalog,
     get_prompt_library,
     prepara_esecuzione_prompt,
 )
@@ -361,6 +363,86 @@ def test_api_esegui_prompt_con_lex_pipeline_governata(tmp_path: Path):
             "/api/v1/legal-skills/prompt-library/run", json={"prompt_id": "area.voce.parere"}, headers=headers
         )
         assert inesistente.status_code == 404
+
+
+def test_catalogo_percorsi_valido_e_ancorato_al_catalogo_prompt(library: LegalPromptLibrary):
+    percorsi = get_pathway_catalog().percorsi()
+    assert len(percorsi) >= 10
+    prompt_ids = {entry["prompt_id"] for entry in library.search()}
+    for percorso in percorsi:
+        assert percorso.riferimenti, f"Percorso senza base normativa: {percorso.percorso_id}"
+        assert len({passo.passo_id for passo in percorso.passi}) == len(percorso.passi)
+        for passo in percorso.passi:
+            assert passo.prompt_ref in prompt_ids
+            assert passo.riferimenti, f"Passo senza base normativa: {percorso.percorso_id}/{passo.passo_id}"
+
+
+def test_avanzamento_percorso_segna_e_riapre(tmp_path: Path):
+    store = PathwayProgressStore(tmp_path / "progress.json")
+
+    assert store.stato("recupero_credito_monitorio", "F1") == {}
+    passi = store.segna("recupero_credito_monitorio", "F1", "diffida", completato=True, actor="pytest")
+    assert "diffida" in passi
+    assert store.stato("recupero_credito_monitorio", "F1")["diffida"]["operatore"] == "pytest"
+    # Fascicoli diversi non si mescolano.
+    assert store.stato("recupero_credito_monitorio", "F2") == {}
+    passi = store.segna("recupero_credito_monitorio", "F1", "diffida", completato=False)
+    assert passi == {}
+
+
+def test_api_percorsi_lista_dettaglio_e_avanzamento(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "prompt-library-test-key"}
+
+    gestione = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gestione.nuovo(titolo="Recupero credito Rossi", tipo=TipoFascicolo.CIVILE, nome_cliente="Mario Rossi")
+
+    with app.test_client() as client:
+        lista = client.get("/api/v1/legal-skills/prompt-library/percorsi", headers=headers)
+        assert lista.status_code == 200
+        assert lista.get_json()["totale"] >= 10
+
+        dettaglio = client.get(
+            f"/api/v1/legal-skills/prompt-library/percorsi/recupero_credito_monitorio?fascicolo={fascicolo.id}",
+            headers=headers,
+        )
+        assert dettaglio.status_code == 200
+        percorso = dettaglio.get_json()["percorso"]
+        assert percorso["prossimo_passo"] == "diffida"
+        assert percorso["passi"][0]["prompt_titolo"]
+        assert percorso["passi"][0]["termini"]
+
+        segnato = client.post(
+            "/api/v1/legal-skills/prompt-library/percorsi/recupero_credito_monitorio/passi/diffida/stato",
+            json={"fascicolo": fascicolo.id, "completato": True},
+            headers=headers,
+        )
+        assert segnato.status_code == 200
+        aggiornato = segnato.get_json()["percorso"]
+        assert aggiornato["passi"][0]["completato"] is True
+        assert aggiornato["prossimo_passo"] == "ricorso_decreto"
+
+        senza_fascicolo = client.post(
+            "/api/v1/legal-skills/prompt-library/percorsi/recupero_credito_monitorio/passi/diffida/stato",
+            json={"completato": True},
+            headers=headers,
+        )
+        assert senza_fascicolo.status_code == 400
+        assert senza_fascicolo.get_json()["code"] == "fascicolo_required"
+
+        mancante = client.get("/api/v1/legal-skills/prompt-library/percorsi/inesistente", headers=headers)
+        assert mancante.status_code == 404
+
+        passo_mancante = client.post(
+            "/api/v1/legal-skills/prompt-library/percorsi/recupero_credito_monitorio/passi/inesistente/stato",
+            json={"fascicolo": fascicolo.id},
+            headers=headers,
+        )
+        assert passo_mancante.status_code == 404
 
 
 def test_api_prompt_library_feature_flag_off(tmp_path: Path):

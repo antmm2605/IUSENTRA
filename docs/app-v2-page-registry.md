@@ -518,6 +518,7 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Esecuzione Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione risultati Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.promptLibrary | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROMPTLIBRARY | Libreria prompt LegalSkills Italia nella shell App V2. | on |
+| routes.appV2.legalSkills.pathways | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PATHWAYS | Percorsi guidati per procedimento nella shell App V2. | on |
 | routes.appV2.workflowAgents.home | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_HOME | Regia Agentica Studio nella shell App V2. | on |
 | routes.appV2.workflowAgents.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_REVIEWQUEUE | Coda approvazioni agentiche nella shell App V2. | on |
 | routes.appV2.dailyPlan.home | IUSENTRA_FF_ROUTES_APPV2_DAILYPLAN_HOME | Pagina Oggi (piano del giorno) nella shell App V2. | on |

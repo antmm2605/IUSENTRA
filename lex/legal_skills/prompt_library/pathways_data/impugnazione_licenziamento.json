@@ -1,0 +1,41 @@
+{
+  "percorso_id": "impugnazione_licenziamento",
+  "nome": "Impugnazione del licenziamento",
+  "area_id": "lavoro",
+  "descrizione": "Dal parere sulla legittimità al ricorso giudiziale: la doppia decadenza dell'impugnazione stragiudiziale e del deposito in tribunale.",
+  "riferimenti": ["art. 6 L. 15 luglio 1966, n. 604", "art. 18 L. 300/1970", "D.Lgs. 23/2015"],
+  "passi": [
+    {
+      "passo_id": "parere_legittimita",
+      "nome": "Parere sulla legittimità del licenziamento",
+      "descrizione": "Analisi di forma, motivazione e regime sanzionatorio applicabile (tutele crescenti o art. 18).",
+      "prompt_ref": "lavoro.impugnazione_licenziamento.parere",
+      "termini": ["Verificare subito la data di ricezione della lettera: da lì decorrono le decadenze"],
+      "riferimenti": ["L. 604/1966", "D.Lgs. 23/2015"]
+    },
+    {
+      "passo_id": "impugnazione_stragiudiziale",
+      "nome": "Impugnazione stragiudiziale",
+      "descrizione": "Contestazione scritta del licenziamento idonea a impedire la decadenza.",
+      "prompt_ref": "lavoro.impugnazione_licenziamento.lettera",
+      "termini": ["60 giorni dalla comunicazione del licenziamento, a pena di decadenza (art. 6 L. 604/1966)"],
+      "riferimenti": ["art. 6 L. 604/1966"]
+    },
+    {
+      "passo_id": "conciliazione",
+      "nome": "Tentativo di conciliazione",
+      "descrizione": "Valutazione della conciliazione in sede protetta e dell'offerta conciliativa agevolata.",
+      "prompt_ref": "lavoro.conciliazione_lavoro.checklist",
+      "termini": ["Offerta conciliativa agevolata entro i termini di impugnazione stragiudiziale (art. 6 D.Lgs. 23/2015)"],
+      "riferimenti": ["art. 410 c.p.c.", "art. 6 D.Lgs. 23/2015"]
+    },
+    {
+      "passo_id": "ricorso_giudiziale",
+      "nome": "Ricorso al giudice del lavoro",
+      "descrizione": "Deposito del ricorso ex art. 414 c.p.c. per l'impugnativa del licenziamento.",
+      "prompt_ref": "lavoro.ricorso_lavoro_414_cpc.redazione_atto",
+      "termini": ["Deposito entro 180 giorni dall'impugnazione stragiudiziale, a pena di inefficacia (art. 6 L. 604/1966)"],
+      "riferimenti": ["art. 6 L. 604/1966", "art. 414 c.p.c."]
+    }
+  ]
+}

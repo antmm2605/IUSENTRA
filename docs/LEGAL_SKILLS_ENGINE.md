@@ -71,6 +71,20 @@ Specializzazione per studio e fascicolo:
   `practice_areas` del `PracticeProfile` con il catalogo
   (`prompt_library/profile_matching.py`) e propone per prime le aree
   praticate dallo studio (`preferita: true`, chip dedicate in UI).
+- **Percorsi guidati per procedimento**: catalogo versionato in
+  `prompt_library/pathways_data/` (10 percorsi: monitorio, sfratto,
+  separazione consensuale, impugnazione licenziamento, sinistro RC auto,
+  opposizione a decreto ingiuntivo, ricorso TAR, responsabilità
+  sanitaria, mediazione civile, data breach). Ogni passo richiama un
+  prompt reale del catalogo (validazione fail-closed in
+  `prompt_library/pathways.py`) e dichiara termini e riferimenti
+  normativi. Avanzamento per fascicolo tenant-aware
+  (`prompt_library/pathway_progress.py`, `LEGAL_SKILLS_PATHWAYS_DB`).
+  API: `/api/v1/legal-skills/prompt-library/percorsi` (lista, dettaglio
+  con `prossimo_passo`, `POST .../passi/<id>/stato`). UI: pagina
+  `/legal-skills/percorsi` (flag `routes.appV2.legalSkills.pathways`)
+  con timeline dei passi, termini da presidiare, "Apri prompt" con
+  deep-link `?prompt=` e avanzamento per fascicolo.
 - **Esecuzione governata ("Esegui con Lex")**: `POST /run`
   (permesso `legal_skills.esegui`) trasforma il prompt — precompilato dal
   fascicolo se indicato — in una skill sintetica read-only

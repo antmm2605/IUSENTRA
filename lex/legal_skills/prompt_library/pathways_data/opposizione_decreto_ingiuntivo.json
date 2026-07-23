@@ -1,0 +1,41 @@
+{
+  "percorso_id": "opposizione_decreto_ingiuntivo",
+  "nome": "Opposizione a decreto ingiuntivo",
+  "area_id": "recupero_crediti",
+  "descrizione": "Difesa del debitore ingiunto: dall'analisi del decreto alla citazione in opposizione con istanza di sospensione.",
+  "riferimenti": ["artt. 645-649 c.p.c.", "art. 5-bis D.Lgs. 28/2010"],
+  "passi": [
+    {
+      "passo_id": "analisi_decreto",
+      "nome": "Analisi del decreto e strategia",
+      "descrizione": "Verifica di vizi, prova scritta, competenza e convenienza dell'opposizione rispetto all'adempimento.",
+      "prompt_ref": "recupero_crediti.opposizione_decreto_ingiuntivo.parere",
+      "termini": ["Opposizione entro 40 giorni dalla notifica del decreto (art. 641 c.p.c.)"],
+      "riferimenti": ["art. 641 c.p.c.", "art. 645 c.p.c."]
+    },
+    {
+      "passo_id": "citazione_opposizione",
+      "nome": "Atto di citazione in opposizione",
+      "descrizione": "Redazione e notifica della citazione davanti all'ufficio giudiziario che ha emesso il decreto.",
+      "prompt_ref": "recupero_crediti.opposizione_decreto_ingiuntivo.redazione_atto",
+      "termini": ["Iscrizione a ruolo nei termini ordinari; verificare i termini a comparire ex art. 163-bis c.p.c."],
+      "riferimenti": ["art. 645 c.p.c.", "art. 163-bis c.p.c."]
+    },
+    {
+      "passo_id": "sospensione_esecutorieta",
+      "nome": "Sospensione della provvisoria esecutorietà",
+      "descrizione": "Istanza ex art. 649 c.p.c. quando il decreto è provvisoriamente esecutivo e l'esecuzione è imminente.",
+      "prompt_ref": "recupero_crediti.opposizione_decreto_ingiuntivo.checklist",
+      "termini": ["Istanza alla prima udienza o con la citazione; gravi motivi da documentare (art. 649 c.p.c.)"],
+      "riferimenti": ["art. 649 c.p.c."]
+    },
+    {
+      "passo_id": "mediazione",
+      "nome": "Mediazione nelle materie obbligatorie",
+      "descrizione": "Attivazione della mediazione dopo la pronuncia sulle istanze ex artt. 648-649 c.p.c., quando la materia lo richiede.",
+      "prompt_ref": "mediazione_adr.mediazione_obbligatoria.checklist",
+      "termini": ["Onere di attivazione nei 15 giorni dalla pronuncia sulle istanze di esecutorietà (art. 5-bis D.Lgs. 28/2010)"],
+      "riferimenti": ["art. 5-bis D.Lgs. 28/2010"]
+    }
+  ]
+}

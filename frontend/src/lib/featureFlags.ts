@@ -83,6 +83,7 @@ export type FeatureFlagKey =
   | 'routes.appV2.legalSkills.run'
   | 'routes.appV2.legalSkills.reviewQueue'
   | 'routes.appV2.legalSkills.promptLibrary'
+  | 'routes.appV2.legalSkills.pathways'
   | 'routes.appV2.workflowAgents.home'
   | 'routes.appV2.workflowAgents.reviewQueue'
   | 'routes.appV2.dailyPlan.home'
@@ -181,6 +182,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/(?:preventivi|preventivi\/wizard)(?:\/|$)/, 'routes.appV2.billing.quotes'],
   [/^\/compensi-forensi(?:\/|$)/, 'routes.appV2.billing.compensi'],
   [/^\/tariffario(?:\/|$)/, 'routes.appV2.billing.tariffario'],
+  [/^\/legal-skills\/percorsi(?:\/|$)/, 'routes.appV2.legalSkills.pathways'],
   [/^\/legal-skills\/prompt(?:\/|$)/, 'routes.appV2.legalSkills.promptLibrary'],
   [/^\/legal-skills\/profile(?:\/|$)/, 'routes.appV2.legalSkills.profile'],
   [/^\/legal-skills\/(?:run|packs\/[^/]+\/skills\/[^/]+\/run)(?:\/|$)/, 'routes.appV2.legalSkills.run'],

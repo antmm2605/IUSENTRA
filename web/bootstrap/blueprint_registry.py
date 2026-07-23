@@ -82,6 +82,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "api_v1_prompt_library",
         "/api/v1/legal-skills/prompt-library",
     ),
+    BlueprintRegistration(
+        "api_v1_prompt_pathways",
+        "web.blueprints.api_v1_prompt_pathways",
+        "api_v1_prompt_pathways",
+        "/api/v1/legal-skills/prompt-library/percorsi",
+    ),
     BlueprintRegistration("api_v1_documenti_ai", "web.blueprints.api_v1_documenti_ai", "api_v1_documenti_ai", "/api/v1/ui"),
     BlueprintRegistration("api_v1_editor_ai", "web.blueprints.api_v1_editor_ai", "api_v1_editor_ai", "/api/v1/ui"),
     BlueprintRegistration("api_v1_lex_learning", "web.blueprints.api_v1_lex_learning", "api_v1_lex_learning", "/api/v1/ui"),

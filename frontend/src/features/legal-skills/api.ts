@@ -5,6 +5,7 @@ import type {
   LegalSkillProfile,
   LegalSkillRunResult,
   LegalSkillsPayload,
+  Pathway,
   PromptLibraryArea,
   PromptLibraryDetail,
   PromptLibraryEntry,
@@ -135,5 +136,36 @@ export async function runPromptLibraryPrompt(payload: {
     `${PROMPT_LIBRARY_BASE}/run`,
     payload,
     { ok: false, result: null },
+  )
+}
+
+const PATHWAYS_BASE = `${PROMPT_LIBRARY_BASE}/percorsi`
+
+export async function fetchPathways(signal?: AbortSignal) {
+  return apiJson<LegalSkillsPayload<{ percorsi: Pathway[]; totale: number }>>(
+    PATHWAYS_BASE,
+    { ok: false, percorsi: [], totale: 0 },
+    { signal },
+  )
+}
+
+export async function fetchPathway(percorsoId: string, fascicoloId?: string, signal?: AbortSignal) {
+  const suffix = fascicoloId ? `?fascicolo=${encodeURIComponent(fascicoloId)}` : ''
+  return apiJson<LegalSkillsPayload<{ percorso: Pathway | null }>>(
+    `${PATHWAYS_BASE}/${encodeURIComponent(percorsoId)}${suffix}`,
+    { ok: false, percorso: null },
+    { signal },
+  )
+}
+
+export async function setPathwayStepState(
+  percorsoId: string,
+  passoId: string,
+  payload: { fascicolo: string; completato: boolean },
+) {
+  return apiPostJson<LegalSkillsPayload<{ percorso: Pathway | null }>>(
+    `${PATHWAYS_BASE}/${encodeURIComponent(percorsoId)}/passi/${encodeURIComponent(passoId)}/stato`,
+    payload,
+    { ok: false, percorso: null },
   )
 }

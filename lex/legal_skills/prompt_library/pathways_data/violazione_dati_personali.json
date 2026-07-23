@@ -1,0 +1,41 @@
+{
+  "percorso_id": "violazione_dati_personali",
+  "nome": "Data breach — violazione dei dati personali",
+  "area_id": "privacy",
+  "descrizione": "Dalla scoperta della violazione alla chiusura documentale: valutazione, notifica al Garante nelle 72 ore, comunicazione agli interessati e registro.",
+  "riferimenti": ["artt. 33-34 Reg. UE 2016/679", "art. 30 Reg. UE 2016/679"],
+  "passi": [
+    {
+      "passo_id": "valutazione_violazione",
+      "nome": "Valutazione della violazione",
+      "descrizione": "Qualificazione dell'incidente, perimetro dei dati coinvolti e valutazione del rischio per gli interessati.",
+      "prompt_ref": "privacy.data_breach.checklist",
+      "termini": ["Il termine di 72 ore decorre dal momento in cui il titolare viene a conoscenza della violazione (art. 33 GDPR)"],
+      "riferimenti": ["art. 33 Reg. UE 2016/679"]
+    },
+    {
+      "passo_id": "notifica_garante",
+      "nome": "Notifica al Garante",
+      "descrizione": "Predisposizione della notifica con natura della violazione, categorie e numero di interessati, misure adottate.",
+      "prompt_ref": "privacy.data_breach.redazione_atto",
+      "termini": ["Notifica entro 72 ore, salvo improbabile rischio per i diritti degli interessati; oltre le 72 ore va motivato il ritardo (art. 33 GDPR)"],
+      "riferimenti": ["art. 33 Reg. UE 2016/679"]
+    },
+    {
+      "passo_id": "comunicazione_interessati",
+      "nome": "Comunicazione agli interessati",
+      "descrizione": "Comunicazione senza ingiustificato ritardo quando la violazione comporta un rischio elevato per diritti e libertà.",
+      "prompt_ref": "privacy.data_breach.lettera",
+      "termini": ["Obbligatoria in caso di rischio elevato, con linguaggio semplice e chiaro (art. 34 GDPR)"],
+      "riferimenti": ["art. 34 Reg. UE 2016/679"]
+    },
+    {
+      "passo_id": "registro_chiusura",
+      "nome": "Registro delle violazioni e chiusura",
+      "descrizione": "Documentazione della violazione, delle conseguenze e dei rimedi nel registro interno, anche se non notificata.",
+      "prompt_ref": "privacy.registro_trattamenti.checklist",
+      "termini": ["Obbligo di documentare qualsiasi violazione, comprese quelle non notificate (art. 33, par. 5, GDPR)"],
+      "riferimenti": ["art. 33 Reg. UE 2016/679", "art. 30 Reg. UE 2016/679"]
+    }
+  ]
+}

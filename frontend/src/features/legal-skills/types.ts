@@ -149,3 +149,28 @@ export type PromptLibraryDetail = PromptLibraryEntry & {
   forma_descrizione: string
   contesto_fascicolo?: PromptLibraryCaseContext
 }
+
+export type PathwayStep = {
+  passo_id: string
+  nome: string
+  descrizione: string
+  prompt_ref: string
+  termini: string[]
+  riferimenti: string[]
+  prompt_titolo?: string
+  prompt_forma?: string
+  completato?: boolean
+  completato_il?: string
+}
+
+export type Pathway = {
+  percorso_id: string
+  nome: string
+  area_id: string
+  descrizione: string
+  riferimenti: string[]
+  numero_passi: number
+  passi?: PathwayStep[]
+  fascicolo_id?: string
+  prossimo_passo?: string
+}

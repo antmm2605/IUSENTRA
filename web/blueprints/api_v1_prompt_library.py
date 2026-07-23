@@ -11,10 +11,12 @@ from __future__ import annotations
 from flask import Blueprint, g, jsonify, request
 
 from lex.legal_skills.exceptions import LegalSkillsError
-from lex.legal_skills.prompt_library import get_prompt_library
+from lex.legal_skills.prompt_library import aree_preferite_da_profilo, get_prompt_library
 from web.blueprints.api_v1_legal_skills import (
     _api_key_valida,
     _audit_event,
+    _has_permission,
+    _profile_store,
     _require_auth,
     _require_feature,
     _require_permission,
@@ -23,6 +25,7 @@ from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
 )
+from web.services.prompt_library_fascicolo_bridge import costruisci_contesto_fascicolo
 
 api_v1_prompt_library = Blueprint(
     "api_v1_prompt_library", __name__, url_prefix="/api/v1/legal-skills/prompt-library"
@@ -61,18 +64,37 @@ def _limit_param() -> int:
     return limit
 
 
+def _aree_preferite_studio(aree_disponibili: set[str]) -> list[str]:
+    """Aree praticate dallo studio secondo il PracticeProfile; vuoto se non configurato."""
+    try:
+        profile = _profile_store().load()
+    except Exception:
+        return []
+    practice_areas = list(getattr(profile, "practice_areas", []) or [])
+    return aree_preferite_da_profilo(practice_areas, aree_disponibili)
+
+
 @api_v1_prompt_library.get("/aree")
 @_require_auth
 @_require_feature("lex.legalSkills.enabled")
 @_require_permission("legal_skills.leggi")
 def list_aree():
     library = get_prompt_library()
+    aree = library.aree()
+    preferite = _aree_preferite_studio({area.area_id for area in aree})
+    payload_aree = []
+    for area in aree:
+        dati = area.to_public_dict()
+        dati["preferita"] = area.area_id in preferite
+        payload_aree.append(dati)
+    payload_aree.sort(key=lambda dati: (not dati["preferita"], dati["nome"].lower()))
     return jsonify(
         {
             "ok": True,
             "totale_prompt": library.totale_prompt(),
-            "aree": [area.to_public_dict() for area in library.aree()],
+            "aree": payload_aree,
             "forme": library.forme(),
+            "aree_preferite": preferite,
         }
     )
 
@@ -97,7 +119,18 @@ def search_prompts():
 @_require_feature("lex.legalSkills.enabled")
 @_require_permission("legal_skills.leggi")
 def get_prompt(prompt_id: str):
-    prompt = get_prompt_library().get_prompt(prompt_id)
+    contesto = None
+    fascicolo_id = str(request.args.get("fascicolo", "") or "").strip()
+    if fascicolo_id:
+        if not _has_permission("fascicoli.leggi"):
+            _audit_event(
+                "policy_denied.legal_skills", "permission", "fascicoli.leggi", "Contesto fascicolo prompt negato."
+            )
+            return jsonify({"ok": False, "code": "permission_denied", "message": "Permesso fascicoli mancante."}), 403
+        contesto = costruisci_contesto_fascicolo(fascicolo_id)
+        if contesto is None:
+            return jsonify({"ok": False, "code": "fascicolo_not_found", "message": "Fascicolo non trovato."}), 404
+    prompt = get_prompt_library().get_prompt(prompt_id, contesto=contesto)
     _audit_event("legal_skills_prompt_letto", "prompt_library", prompt_id, "Prompt LegalSkills Italia consultato.")
     return jsonify({"ok": True, "prompt": prompt})
 

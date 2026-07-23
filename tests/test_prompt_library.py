@@ -12,7 +12,14 @@ from pathlib import Path
 import pytest
 
 from lex.legal_skills.exceptions import LegalSkillsError
-from lex.legal_skills.prompt_library import FORME, LegalPromptLibrary, get_prompt_library
+from lex.legal_skills.prompt_library import (
+    FORME,
+    ContestoFascicolo,
+    LegalPromptLibrary,
+    aree_preferite_da_profilo,
+    get_prompt_library,
+)
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
@@ -83,6 +90,60 @@ def test_ricerca_per_area_forma_testo_e_riferimento(library: LegalPromptLibrary)
     assert len(library.search(limit=5)) == 5
 
 
+def test_composizione_precompilata_dal_contesto_fascicolo(library: LegalPromptLibrary):
+    entry = library.search(area="civile", forma="redazione_atto")[0]
+    contesto = ContestoFascicolo(
+        fascicolo_id="F1",
+        numero="2026/001",
+        titolo="Rossi contro Bianchi",
+        cliente="Mario Rossi",
+        controparte="Bianchi Srl",
+        ufficio="Tribunale di Milano",
+        numero_rg="1428",
+        anno_rg="2026",
+        oggetto="Inadempimento del contratto di fornitura",
+        documenti=["Contratto di fornitura.pdf", "Diffida 12-05-2026.pdf"],
+        scadenze=["10/09/2026 — Udienza di prima comparizione"],
+    )
+
+    dettaglio = library.get_prompt(entry["prompt_id"], contesto=contesto)
+    testo = dettaglio["testo"]
+
+    assert "assistito Mario Rossi contro Bianchi Srl" in testo
+    assert "Tribunale di Milano" in testo
+    assert "RG 1428/2026" in testo
+    assert "Contesto del fascicolo" in testo
+    assert "Contratto di fornitura.pdf" in testo
+    assert "10/09/2026 — Udienza di prima comparizione" in testo
+    assert "senza inventarlo" in testo
+    assert "[PARTI]" not in testo
+    assert "[AUTORITÀ O UFFICIO COMPETENTE]" not in testo
+    assert dettaglio["contesto_fascicolo"]["rg"] == "RG 1428/2026"
+
+
+def test_contesto_parziale_conserva_i_segnaposto_mancanti(library: LegalPromptLibrary):
+    entry = library.search(area="civile", forma="lettera")[0]
+    contesto = ContestoFascicolo(fascicolo_id="F2", cliente="Mario Rossi")
+
+    testo = library.get_prompt(entry["prompt_id"], contesto=contesto)["testo"]
+
+    # Nessuna controparte nota: il destinatario resta da chiedere all'avvocato.
+    assert "[DESTINATARIO]" in testo
+    assert "[FATTI]" in testo
+    assert "assistito Mario Rossi" in testo
+
+
+def test_aree_preferite_da_profilo_studio(library: LegalPromptLibrary):
+    disponibili = {area.area_id for area in library.aree()}
+
+    preferite = aree_preferite_da_profilo(
+        ["Diritto del Lavoro", "Privacy e GDPR", "recupero crediti", "astrofisica"], disponibili
+    )
+
+    assert preferite == ["lavoro", "privacy", "recupero_crediti"]
+    assert aree_preferite_da_profilo([], disponibili) == []
+
+
 def test_prompt_inesistente_solleva_errore_404(library: LegalPromptLibrary):
     with pytest.raises(LegalSkillsError) as errore:
         library.get_prompt("civile.voce_inesistente.parere")
@@ -145,6 +206,80 @@ def test_api_prompt_library_auth_guardie_e_ricerca(tmp_path: Path):
 
         mancante = client.get("/api/v1/legal-skills/prompt-library/prompts/area.voce.parere", headers=headers)
         assert mancante.status_code == 404
+
+
+def test_api_aree_ordina_per_profilo_studio(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "prompt-library-test-key"}
+
+    with app.test_client() as client:
+        senza_profilo = client.get("/api/v1/legal-skills/prompt-library/aree", headers=headers)
+        assert senza_profilo.status_code == 200
+        assert senza_profilo.get_json()["aree_preferite"] == []
+
+        profilo = client.post(
+            "/api/v1/legal-skills/profile/cold-start",
+            json={
+                "firm_name": "Studio Test",
+                "jurisdictions": ["IT"],
+                "practice_areas": ["diritto del lavoro", "privacy"],
+            },
+            headers=headers,
+        )
+        assert profilo.status_code == 200
+
+        con_profilo = client.get("/api/v1/legal-skills/prompt-library/aree", headers=headers)
+        assert con_profilo.status_code == 200
+        payload = con_profilo.get_json()
+        assert payload["aree_preferite"] == ["lavoro", "privacy"]
+        preferite = [area["area_id"] for area in payload["aree"] if area["preferita"]]
+        assert set(preferite) == {"lavoro", "privacy"}
+        # Le aree preferite vengono proposte per prime.
+        assert {area["area_id"] for area in payload["aree"][:2]} == {"lavoro", "privacy"}
+
+
+def test_api_prompt_precompilato_dal_fascicolo(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "prompt-library-test-key"}
+
+    gestione = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gestione.nuovo(
+        titolo="Rossi contro Bianchi",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Mario Rossi",
+        controparte="Bianchi Srl",
+        tribunale="Tribunale di Milano",
+        numero_rg="1428",
+        anno_rg=2026,
+        oggetto="Inadempimento del contratto di fornitura",
+    )
+
+    with app.test_client() as client:
+        entry = client.get(
+            "/api/v1/legal-skills/prompt-library/prompts?area=civile&forma=redazione_atto&limit=1", headers=headers
+        ).get_json()["prompts"][0]
+
+        precompilato = client.get(
+            f"/api/v1/legal-skills/prompt-library/prompts/{entry['prompt_id']}?fascicolo={fascicolo.id}",
+            headers=headers,
+        )
+        assert precompilato.status_code == 200
+        prompt = precompilato.get_json()["prompt"]
+        assert "Mario Rossi" in prompt["testo"]
+        assert "Tribunale di Milano" in prompt["testo"]
+        assert prompt["contesto_fascicolo"]["fascicolo_id"] == fascicolo.id
+        assert prompt["contesto_fascicolo"]["rg"] == "RG 1428/2026"
+
+        mancante = client.get(
+            f"/api/v1/legal-skills/prompt-library/prompts/{entry['prompt_id']}?fascicolo=INESISTENTE",
+            headers=headers,
+        )
+        assert mancante.status_code == 404
+        assert mancante.get_json()["code"] == "fascicolo_not_found"
 
 
 def test_api_prompt_library_feature_flag_off(tmp_path: Path):

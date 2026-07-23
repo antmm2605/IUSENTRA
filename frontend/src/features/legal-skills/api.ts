@@ -89,11 +89,14 @@ export async function fetchScheduledLegalSkillAgents(signal?: AbortSignal) {
 const PROMPT_LIBRARY_BASE = `${API_BASE}/prompt-library`
 
 export async function fetchPromptLibraryAree(signal?: AbortSignal) {
-  return apiJson<LegalSkillsPayload<{ totale_prompt: number; aree: PromptLibraryArea[]; forme: PromptLibraryForma[] }>>(
-    `${PROMPT_LIBRARY_BASE}/aree`,
-    { ok: false, totale_prompt: 0, aree: [], forme: [] },
-    { signal },
-  )
+  return apiJson<
+    LegalSkillsPayload<{
+      totale_prompt: number
+      aree: PromptLibraryArea[]
+      forme: PromptLibraryForma[]
+      aree_preferite: string[]
+    }>
+  >(`${PROMPT_LIBRARY_BASE}/aree`, { ok: false, totale_prompt: 0, aree: [], forme: [], aree_preferite: [] }, { signal })
 }
 
 export async function searchPromptLibrary(
@@ -113,9 +116,10 @@ export async function searchPromptLibrary(
   )
 }
 
-export async function fetchPromptLibraryPrompt(promptId: string, signal?: AbortSignal) {
+export async function fetchPromptLibraryPrompt(promptId: string, fascicoloId?: string, signal?: AbortSignal) {
+  const suffix = fascicoloId ? `?fascicolo=${encodeURIComponent(fascicoloId)}` : ''
   return apiJson<LegalSkillsPayload<{ prompt: PromptLibraryDetail | null }>>(
-    `${PROMPT_LIBRARY_BASE}/prompts/${encodeURIComponent(promptId)}`,
+    `${PROMPT_LIBRARY_BASE}/prompts/${encodeURIComponent(promptId)}${suffix}`,
     { ok: false, prompt: null },
     { signal },
   )

@@ -57,6 +57,21 @@ UI: pagina `PromptLibraryPage` su `/legal-skills/prompt` (flag
 full-catalog, filtri area/forma, dettaglio con riferimenti e copia negli
 appunti.
 
+Specializzazione per studio e fascicolo:
+
+- **Precompilazione dal fascicolo**: `GET /prompts/<id>?fascicolo=<id>`
+  (permesso aggiuntivo `fascicoli.leggi`) sostituisce i segnaposto
+  `[PARTI]`, `[FATTI]`, `[DOCUMENTI…]`, `[DESTINATARIO]`, ecc. con i dati
+  reali del fascicolo (parti, RG, ufficio, documenti, prossime scadenze)
+  tramite `prompt_library/case_context.py` e il bridge
+  `web/services/prompt_library_fascicolo_bridge.py`. I dati assenti
+  restano segnaposto: niente viene inventato. In UI il fascicolo si
+  collega dal selettore della pagina o con `?fascicolo=` nell'URL.
+- **Aree preferite dal profilo studio**: `GET /aree` incrocia le
+  `practice_areas` del `PracticeProfile` con il catalogo
+  (`prompt_library/profile_matching.py`) e propone per prime le aree
+  praticate dallo studio (`preferita: true`, chip dedicate in UI).
+
 Gate dedicato: `python -m pytest tests/test_prompt_library.py -q` (contratto
 1.303 prompt / 26 aree, composizione per ogni forma, ricerca, API governate).
 

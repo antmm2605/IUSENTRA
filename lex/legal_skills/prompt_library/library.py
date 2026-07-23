@@ -14,6 +14,7 @@ from threading import RLock
 from typing import Any
 
 from ..exceptions import LegalSkillsError
+from .case_context import ContestoFascicolo
 from .composer import FORME, componi_testo, forme_public, titolo_prompt
 from .models import AreaPrompt, VocePrompt
 
@@ -138,8 +139,8 @@ class LegalPromptLibrary:
                         return risultati
         return risultati
 
-    def get_prompt(self, prompt_id: str) -> dict[str, Any]:
-        """Restituisce il prompt completo di testo composto per la forma richiesta."""
+    def get_prompt(self, prompt_id: str, contesto: ContestoFascicolo | None = None) -> dict[str, Any]:
+        """Restituisce il prompt completo, precompilato se c'è un contesto fascicolo."""
         parti = str(prompt_id or "").strip().split(".")
         if len(parti) != 3:
             raise LegalSkillsError("Identificativo prompt non valido.", code="prompt_not_found", status_code=404)
@@ -149,8 +150,10 @@ class LegalPromptLibrary:
         if voce is None or forma not in voce.forme:
             raise LegalSkillsError("Prompt non trovato nel catalogo.", code="prompt_not_found", status_code=404)
         entry = self._entry(area, voce, forma)
-        entry["testo"] = componi_testo(area, voce, forma)
+        entry["testo"] = componi_testo(area, voce, forma, contesto=contesto)
         entry["forma_descrizione"] = FORME[forma]["descrizione"]
+        if contesto is not None:
+            entry["contesto_fascicolo"] = contesto.to_public_dict()
         return entry
 
 

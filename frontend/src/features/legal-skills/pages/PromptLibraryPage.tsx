@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookMarked, ClipboardCopy, Library, Scale, Search } from 'lucide-react'
+import { BookMarked, ClipboardCopy, FolderOpen, Library, Scale, Search, Star, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,14 +12,23 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
+import { getFascicoliPage, type FascicoloRow } from '../../../fascicoliData'
 import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, searchPromptLibrary } from '../api'
 import type { PromptLibraryArea, PromptLibraryDetail, PromptLibraryEntry, PromptLibraryForma } from '../types'
 
 const TUTTE = '__tutte__'
 const RISULTATI_VISIBILI = 60
 
+type FascicoloSelezionato = { id: string; etichetta: string }
+
+function fascicoloIniziale(): FascicoloSelezionato | null {
+  const id = new URLSearchParams(window.location.search).get('fascicolo')?.trim()
+  return id ? { id, etichetta: '' } : null
+}
+
 export function PromptLibraryPage() {
   const [aree, setAree] = useState<PromptLibraryArea[]>([])
+  const [areePreferite, setAreePreferite] = useState<string[]>([])
   const [forme, setForme] = useState<PromptLibraryForma[]>([])
   const [totalePrompt, setTotalePrompt] = useState(0)
   const [query, setQuery] = useState('')
@@ -28,6 +37,9 @@ export function PromptLibraryPage() {
   const [risultati, setRisultati] = useState<PromptLibraryEntry[]>([])
   const [totaleRisultati, setTotaleRisultati] = useState(0)
   const [dettaglio, setDettaglio] = useState<PromptLibraryDetail | null>(null)
+  const [fascicolo, setFascicolo] = useState<FascicoloSelezionato | null>(fascicoloIniziale)
+  const [ricercaFascicolo, setRicercaFascicolo] = useState('')
+  const [opzioniFascicolo, setOpzioniFascicolo] = useState<FascicoloRow[]>([])
   const [copiato, setCopiato] = useState(false)
   const [loading, setLoading] = useState(true)
   const [ricercaInCorso, setRicercaInCorso] = useState(false)
@@ -42,6 +54,7 @@ export function PromptLibraryPage() {
           return
         }
         setAree(payload.aree || [])
+        setAreePreferite(payload.aree_preferite || [])
         setForme(payload.forme || [])
         setTotalePrompt(payload.totale_prompt || 0)
       })
@@ -74,11 +87,47 @@ export function PromptLibraryPage() {
     }
   }, [query, areaFiltro, formaFiltro])
 
-  const apriDettaglio = useCallback((promptId: string) => {
-    setCopiato(false)
-    fetchPromptLibraryPrompt(promptId).then((payload) => {
-      if (payload.ok && payload.prompt) setDettaglio(payload.prompt)
-    })
+  useEffect(() => {
+    if (!ricercaFascicolo.trim()) {
+      setOpzioniFascicolo([])
+      return
+    }
+    const timer = window.setTimeout(() => {
+      getFascicoliPage({ q: ricercaFascicolo.trim(), pageSize: 8 }).then((pagina) => {
+        setOpzioniFascicolo(pagina.items || [])
+      })
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [ricercaFascicolo])
+
+  const apriDettaglio = useCallback(
+    (promptId: string) => {
+      setCopiato(false)
+      fetchPromptLibraryPrompt(promptId, fascicolo?.id).then((payload) => {
+        if (payload.ok && payload.prompt) {
+          setDettaglio(payload.prompt)
+          const contesto = payload.prompt.contesto_fascicolo
+          if (contesto && fascicolo && !fascicolo.etichetta) {
+            setFascicolo({ id: fascicolo.id, etichetta: [contesto.numero, contesto.titolo].filter(Boolean).join(' — ') })
+          }
+        } else if (payload.code === 'fascicolo_not_found') {
+          setFascicolo(null)
+          setError('Fascicolo indicato non trovato: il prompt resta generico.')
+        }
+      })
+    },
+    [fascicolo],
+  )
+
+  useEffect(() => {
+    if (dettaglio) apriDettaglio(dettaglio.prompt_id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fascicolo?.id])
+
+  const selezionaFascicolo = useCallback((riga: FascicoloRow) => {
+    setFascicolo({ id: riga.id, etichetta: [riga.ref || riga.internalRef, riga.title].filter(Boolean).join(' — ') })
+    setRicercaFascicolo('')
+    setOpzioniFascicolo([])
   }, [])
 
   const copiaTesto = useCallback(() => {
@@ -90,6 +139,11 @@ export function PromptLibraryPage() {
   }, [dettaglio])
 
   const risultatiVisibili = useMemo(() => risultati.slice(0, RISULTATI_VISIBILI), [risultati])
+  const areePreferiteDettaglio = useMemo(
+    () => aree.filter((area) => area.preferita),
+    [aree],
+  )
+  const contesto = dettaglio?.contesto_fascicolo
 
   if (loading) return <IusLoadingState title="Caricamento libreria prompt" message="Recupero aree e catalogo LegalSkills Italia." />
   if (error && !aree.length) return <IusErrorState title="Libreria prompt non attiva" message={error} />
@@ -104,43 +158,102 @@ export function PromptLibraryPage() {
     >
       <div className="grid gap-4">
         <Card size="sm">
-          <CardContent className="grid gap-3 pt-4 md:grid-cols-[minmax(0,1fr)_14rem_14rem]">
-            <div className="relative">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cerca in tutta la libreria: istituto, norma, tag (es. licenziamento, art. 1454 c.c.)"
-                className="pl-9"
-                aria-label="Cerca prompt"
-              />
+          <CardContent className="grid gap-3 pt-4">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem_14rem]">
+              <div className="relative">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Cerca in tutta la libreria: istituto, norma, tag (es. licenziamento, art. 1454 c.c.)"
+                  className="pl-9"
+                  aria-label="Cerca prompt"
+                />
+              </div>
+              <Select value={areaFiltro} onValueChange={setAreaFiltro}>
+                <SelectTrigger aria-label="Filtra per area">
+                  <SelectValue placeholder="Tutte le aree" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TUTTE}>Tutte le aree ({aree.length})</SelectItem>
+                  {aree.map((area) => (
+                    <SelectItem key={area.area_id} value={area.area_id}>
+                      {area.preferita ? '★ ' : ''}{area.nome} ({area.numero_prompt})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={formaFiltro} onValueChange={setFormaFiltro}>
+                <SelectTrigger aria-label="Filtra per forma">
+                  <SelectValue placeholder="Tutte le forme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TUTTE}>Tutte le forme</SelectItem>
+                  {forme.map((forma) => (
+                    <SelectItem key={forma.forma_id} value={forma.forma_id}>
+                      {forma.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={areaFiltro} onValueChange={setAreaFiltro}>
-              <SelectTrigger aria-label="Filtra per area">
-                <SelectValue placeholder="Tutte le aree" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TUTTE}>Tutte le aree ({aree.length})</SelectItem>
-                {aree.map((area) => (
-                  <SelectItem key={area.area_id} value={area.area_id}>
-                    {area.nome} ({area.numero_prompt})
-                  </SelectItem>
+
+            {areePreferiteDettaglio.length ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="flex items-center gap-1 text-muted-foreground"><Star aria-hidden="true" className="size-4" /> Aree del tuo studio:</span>
+                {areePreferiteDettaglio.map((area) => (
+                  <Button
+                    key={area.area_id}
+                    size="sm"
+                    variant={areaFiltro === area.area_id ? 'default' : 'outline'}
+                    onClick={() => setAreaFiltro(areaFiltro === area.area_id ? TUTTE : area.area_id)}
+                  >
+                    {area.nome}
+                  </Button>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={formaFiltro} onValueChange={setFormaFiltro}>
-              <SelectTrigger aria-label="Filtra per forma">
-                <SelectValue placeholder="Tutte le forme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TUTTE}>Tutte le forme</SelectItem>
-                {forme.map((forma) => (
-                  <SelectItem key={forma.forma_id} value={forma.forma_id}>
-                    {forma.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              </div>
+            ) : null}
+
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="flex items-center gap-1 text-muted-foreground"><FolderOpen aria-hidden="true" className="size-4" /> Precompila dal fascicolo:</span>
+                {fascicolo ? (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {fascicolo.etichetta || `Fascicolo ${fascicolo.id}`}
+                    <button type="button" aria-label="Rimuovi fascicolo" onClick={() => setFascicolo(null)}>
+                      <X aria-hidden="true" className="size-3" />
+                    </button>
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">nessun fascicolo collegato — i prompt restano generici.</span>
+                )}
+              </div>
+              {!fascicolo ? (
+                <div className="relative md:max-w-md">
+                  <Input
+                    value={ricercaFascicolo}
+                    onChange={(event) => setRicercaFascicolo(event.target.value)}
+                    placeholder="Cerca fascicolo per titolo, cliente o RG…"
+                    aria-label="Cerca fascicolo da collegare"
+                  />
+                  {opzioniFascicolo.length ? (
+                    <div className="mt-2 grid gap-1">
+                      {opzioniFascicolo.map((riga) => (
+                        <Button
+                          key={riga.id}
+                          size="sm"
+                          variant="outline"
+                          className="justify-start"
+                          onClick={() => selezionaFascicolo(riga)}
+                        >
+                          {[riga.ref || riga.internalRef, riga.title, riga.client].filter(Boolean).join(' — ')}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
@@ -194,6 +307,15 @@ export function PromptLibraryPage() {
                       <Badge key={tag} variant="outline">{tag}</Badge>
                     ))}
                   </div>
+                  {contesto ? (
+                    <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2 text-sm">
+                      <FolderOpen aria-hidden="true" className="size-4 text-muted-foreground" />
+                      <span>
+                        Precompilato dal fascicolo {[contesto.numero, contesto.titolo].filter(Boolean).join(' — ')}
+                        {contesto.rg ? ` (${contesto.rg})` : ''}
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="grid gap-1 text-sm">
                     <span className="font-medium">Riferimenti normativi</span>
                     <ul className="list-inside list-disc text-muted-foreground">
@@ -216,7 +338,7 @@ export function PromptLibraryPage() {
             ) : (
               <IusEmptyState
                 title="Seleziona un prompt"
-                message="Apri un prompt dai risultati per leggere il testo completo, i riferimenti normativi e copiarlo negli appunti."
+                message="Apri un prompt dai risultati per leggere il testo completo, i riferimenti normativi e copiarlo negli appunti. Collega un fascicolo per averlo già precompilato con i dati reali."
                 icon={Library}
               />
             )}

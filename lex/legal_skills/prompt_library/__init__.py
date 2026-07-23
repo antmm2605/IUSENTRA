@@ -6,16 +6,20 @@ fonti certe); i prompt composti impongono sempre la revisione
 dell'avvocato e vietano l'invenzione di norme o precedenti.
 """
 
+from .case_context import ContestoFascicolo
 from .composer import FORME, componi_testo, forme_public, titolo_prompt
 from .library import CATALOG_DIR, LegalPromptLibrary, get_prompt_library
 from .models import AreaPrompt, VocePrompt
+from .profile_matching import aree_preferite_da_profilo
 
 __all__ = [
     "AreaPrompt",
     "CATALOG_DIR",
+    "ContestoFascicolo",
     "FORME",
     "LegalPromptLibrary",
     "VocePrompt",
+    "aree_preferite_da_profilo",
     "componi_testo",
     "forme_public",
     "get_prompt_library",

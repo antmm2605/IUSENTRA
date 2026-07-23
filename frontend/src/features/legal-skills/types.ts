@@ -109,6 +109,20 @@ export type PromptLibraryArea = {
   descrizione: string
   numero_voci: number
   numero_prompt: number
+  preferita?: boolean
+}
+
+export type PromptLibraryCaseContext = {
+  fascicolo_id: string
+  numero: string
+  titolo: string
+  cliente: string
+  controparte: string
+  ufficio: string
+  rg: string
+  oggetto: string
+  documenti: string[]
+  scadenze: string[]
 }
 
 export type PromptLibraryForma = {
@@ -133,4 +147,5 @@ export type PromptLibraryEntry = {
 export type PromptLibraryDetail = PromptLibraryEntry & {
   testo: string
   forma_descrizione: string
+  contesto_fascicolo?: PromptLibraryCaseContext
 }

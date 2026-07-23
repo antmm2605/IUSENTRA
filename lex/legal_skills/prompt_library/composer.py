@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .case_context import ContestoFascicolo
 from .models import AreaPrompt, VocePrompt
 
 
@@ -90,11 +91,70 @@ def _corpo(forma: str, voce: VocePrompt) -> str:
     )
 
 
-def componi_testo(area: AreaPrompt, voce: VocePrompt, forma: str) -> str:
-    """Compone il testo integrale del prompt per la forma richiesta."""
+def _sostituzioni_contesto(contesto: ContestoFascicolo) -> dict[str, str]:
+    """Mappa segnaposto → dato reale; i segnaposto senza dato restano intatti."""
+    documenti = "; ".join(contesto.documenti[:10])
+    scadenze = "; ".join(contesto.scadenze[:5])
+    incarico = contesto.tipo_procedimento or contesto.oggetto
+    valori = {
+        "[PARTI]": contesto.etichetta_parti(),
+        "[FATTI]": contesto.oggetto,
+        "[DOCUMENTI]": documenti,
+        "[DOCUMENTI DISPONIBILI]": documenti,
+        "[DOCUMENTI GIÀ ACQUISITI]": documenti,
+        "[AUTORITÀ O UFFICIO COMPETENTE]": contesto.ufficio,
+        "[DESTINATARIO]": contesto.controparte,
+        "[SCADENZE NOTE]": scadenze,
+        "[TIPO DI INCARICO]": incarico,
+    }
+    return {segnaposto: valore for segnaposto, valore in valori.items() if valore}
+
+
+def _sezione_contesto(contesto: ContestoFascicolo) -> str:
+    righe = ["Contesto del fascicolo (dati reali dal gestionale IUSENTRA):"]
+    intestazione = " — ".join(parte for parte in (contesto.numero, contesto.titolo) if parte)
+    if intestazione:
+        righe.append(f"- Fascicolo: {intestazione}")
+    processo = " — ".join(
+        parte
+        for parte in (
+            contesto.etichetta_rg(),
+            contesto.ufficio,
+            f"Sez. {contesto.sezione}" if contesto.sezione else "",
+            f"Giudice {contesto.giudice}" if contesto.giudice else "",
+        )
+        if parte
+    )
+    if processo:
+        righe.append(f"- Procedimento: {processo}")
+    if contesto.etichetta_parti():
+        righe.append(f"- Parti: {contesto.etichetta_parti()}")
+    if contesto.oggetto:
+        righe.append(f"- Oggetto: {contesto.oggetto}")
+    if contesto.valore_causa:
+        righe.append(f"- Valore della causa: {contesto.valore_causa}")
+    if contesto.documenti:
+        righe.append(f"- Documenti in fascicolo: {'; '.join(contesto.documenti[:10])}")
+    if contesto.scadenze:
+        righe.append(f"- Prossime scadenze: {'; '.join(contesto.scadenze[:5])}")
+    righe.append(
+        "Usa esclusivamente i dati sopra riportati; se un dato manca, segnalalo tra parentesi quadre "
+        "come informazione da chiedere all'avvocato, senza inventarlo."
+    )
+    return "\n".join(righe)
+
+
+def componi_testo(area: AreaPrompt, voce: VocePrompt, forma: str, contesto: ContestoFascicolo | None = None) -> str:
+    """Compone il testo integrale del prompt, precompilato se c'è un fascicolo."""
     if forma not in FORME:
         raise KeyError(f"Forma prompt sconosciuta: {forma}")
-    return "\n\n".join([_intestazione(area, voce), _corpo(forma, voce), _AVVERTENZA])
+    corpo = _corpo(forma, voce)
+    blocchi = [_intestazione(area, voce), corpo, _AVVERTENZA]
+    if contesto is not None:
+        for segnaposto, valore in _sostituzioni_contesto(contesto).items():
+            corpo = corpo.replace(segnaposto, valore)
+        blocchi = [_intestazione(area, voce), _sezione_contesto(contesto), corpo, _AVVERTENZA]
+    return "\n\n".join(blocchi)
 
 
 def titolo_prompt(voce: VocePrompt, forma: str) -> str:

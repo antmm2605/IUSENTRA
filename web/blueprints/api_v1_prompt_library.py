@@ -11,15 +11,24 @@ from __future__ import annotations
 from flask import Blueprint, g, jsonify, request
 
 from lex.legal_skills.exceptions import LegalSkillsError
-from lex.legal_skills.prompt_library import aree_preferite_da_profilo, get_prompt_library
+from lex.legal_skills.prompt_library import (
+    aree_preferite_da_profilo,
+    get_prompt_library,
+    prepara_esecuzione_prompt,
+)
 from web.blueprints.api_v1_legal_skills import (
+    _actor_label,
     _api_key_valida,
     _audit_event,
     _has_permission,
+    _json_payload,
     _profile_store,
     _require_auth,
     _require_feature,
     _require_permission,
+    _runs_storage,
+    _user_roles,
+    _workflow,
 )
 from web.services.backend_security import (
     backend_control_violations_for_request,
@@ -114,25 +123,63 @@ def search_prompts():
     return jsonify({"ok": True, "totale": len(risultati), "prompts": risultati})
 
 
+def _risolvi_contesto(fascicolo_id: str):
+    """Contesto dal fascicolo o risposta d'errore governata (tupla Flask)."""
+    if not fascicolo_id:
+        return None
+    if not _has_permission("fascicoli.leggi"):
+        _audit_event("policy_denied.legal_skills", "permission", "fascicoli.leggi", "Contesto fascicolo prompt negato.")
+        return jsonify({"ok": False, "code": "permission_denied", "message": "Permesso fascicoli mancante."}), 403
+    contesto = costruisci_contesto_fascicolo(fascicolo_id)
+    if contesto is None:
+        return jsonify({"ok": False, "code": "fascicolo_not_found", "message": "Fascicolo non trovato."}), 404
+    return contesto
+
+
 @api_v1_prompt_library.get("/prompts/<prompt_id>")
 @_require_auth
 @_require_feature("lex.legalSkills.enabled")
 @_require_permission("legal_skills.leggi")
 def get_prompt(prompt_id: str):
-    contesto = None
-    fascicolo_id = str(request.args.get("fascicolo", "") or "").strip()
-    if fascicolo_id:
-        if not _has_permission("fascicoli.leggi"):
-            _audit_event(
-                "policy_denied.legal_skills", "permission", "fascicoli.leggi", "Contesto fascicolo prompt negato."
-            )
-            return jsonify({"ok": False, "code": "permission_denied", "message": "Permesso fascicoli mancante."}), 403
-        contesto = costruisci_contesto_fascicolo(fascicolo_id)
-        if contesto is None:
-            return jsonify({"ok": False, "code": "fascicolo_not_found", "message": "Fascicolo non trovato."}), 404
+    contesto = _risolvi_contesto(str(request.args.get("fascicolo", "") or "").strip())
+    if isinstance(contesto, tuple):
+        return contesto
     prompt = get_prompt_library().get_prompt(prompt_id, contesto=contesto)
     _audit_event("legal_skills_prompt_letto", "prompt_library", prompt_id, "Prompt LegalSkills Italia consultato.")
     return jsonify({"ok": True, "prompt": prompt})
+
+
+@api_v1_prompt_library.post("/run")
+@_require_auth
+@_require_feature("lex.legalSkills.enabled")
+@_require_permission("legal_skills.esegui")
+def run_prompt():
+    payload = _json_payload()
+    prompt_id = str(payload.get("prompt_id") or "").strip()
+    contesto = _risolvi_contesto(str(payload.get("fascicolo") or payload.get("fascicolo_id") or "").strip())
+    if isinstance(contesto, tuple):
+        return contesto
+    dettaglio = get_prompt_library().get_prompt(prompt_id, contesto=contesto)
+    documents = payload.get("documents") if isinstance(payload.get("documents"), list) else []
+    skill, richiesta = prepara_esecuzione_prompt(
+        dettaglio,
+        nota=str(payload.get("nota") or payload.get("question") or ""),
+        documents=documents,
+        source_mode=str(payload.get("source_mode") or ""),
+    )
+    result = _workflow().run(richiesta, actor=_actor_label(), user_roles=_user_roles(), skill=skill)
+    aggiornato = _runs_storage().update(
+        result.run_id,
+        {
+            "prompt_id": prompt_id,
+            "prompt_titolo": dettaglio.get("titolo", ""),
+            "fascicolo_id": contesto.fascicolo_id if contesto else "",
+        },
+    )
+    _audit_event(
+        "legal_skills_prompt_eseguito", "prompt_library", prompt_id, f"Prompt eseguito con Lex (run {result.run_id})."
+    )
+    return jsonify({"ok": True, "result": aggiornato})
 
 
 __all__ = ["api_v1_prompt_library"]

@@ -14,10 +14,12 @@ import pytest
 from lex.legal_skills.exceptions import LegalSkillsError
 from lex.legal_skills.prompt_library import (
     FORME,
+    PROMPT_PACK_ID,
     ContestoFascicolo,
     LegalPromptLibrary,
     aree_preferite_da_profilo,
     get_prompt_library,
+    prepara_esecuzione_prompt,
 )
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
@@ -280,6 +282,85 @@ def test_api_prompt_precompilato_dal_fascicolo(tmp_path: Path):
         )
         assert mancante.status_code == 404
         assert mancante.get_json()["code"] == "fascicolo_not_found"
+
+
+def test_runner_costruisce_skill_sintetica_e_richiesta(library: LegalPromptLibrary):
+    dettaglio = library.get_prompt(library.search(area="lavoro", forma="parere")[0]["prompt_id"])
+
+    skill, richiesta = prepara_esecuzione_prompt(dettaglio, nota="Priorità alta per udienza imminente.")
+
+    assert skill.pack_id == PROMPT_PACK_ID
+    assert skill.skill_id == dettaglio["prompt_id"]
+    assert skill.read_only is True
+    assert skill.references == dettaglio["riferimenti"]
+    assert richiesta.question.startswith(dettaglio["testo"])
+    assert "Nota dell'avvocato: Priorità alta per udienza imminente." in richiesta.question
+    assert richiesta.context["prompt_id"] == dettaglio["prompt_id"]
+
+
+def test_api_esegui_prompt_con_lex_pipeline_governata(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "prompt-library-test-key"}
+
+    gestione = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gestione.nuovo(
+        titolo="Rossi contro Bianchi",
+        tipo=TipoFascicolo.CIVILE,
+        nome_cliente="Mario Rossi",
+        controparte="Bianchi Srl",
+        tribunale="Tribunale di Milano",
+        oggetto="Inadempimento del contratto di fornitura",
+    )
+
+    with app.test_client() as client:
+        entry = client.get(
+            "/api/v1/legal-skills/prompt-library/prompts?area=civile&forma=parere&limit=1", headers=headers
+        ).get_json()["prompts"][0]
+
+        # Senza profilo studio la pipeline resta chiusa.
+        bloccato = client.post(
+            "/api/v1/legal-skills/prompt-library/run", json={"prompt_id": entry["prompt_id"]}, headers=headers
+        )
+        assert bloccato.status_code == 409
+        assert bloccato.get_json()["code"] == "profile_incomplete"
+
+        profilo = client.post(
+            "/api/v1/legal-skills/profile/cold-start",
+            json={"firm_name": "Studio Test", "jurisdictions": ["IT"], "practice_areas": ["civile"]},
+            headers=headers,
+        )
+        assert profilo.status_code == 200
+
+        eseguito = client.post(
+            "/api/v1/legal-skills/prompt-library/run",
+            json={"prompt_id": entry["prompt_id"], "fascicolo": fascicolo.id, "nota": "Preparare entro venerdì."},
+            headers=headers,
+        )
+        assert eseguito.status_code == 200
+        result = eseguito.get_json()["result"]
+        assert result["pack_id"] == PROMPT_PACK_ID
+        assert result["prompt_id"] == entry["prompt_id"]
+        assert result["fascicolo_id"] == fascicolo.id
+        assert result["needs_review"] is True
+        assert result["citations"]
+        assert "Mario Rossi" in result["question"]
+        assert "Nota dell'avvocato: Preparare entro venerdì." in result["question"]
+
+        # Il risultato entra nella coda di revisione esistente ed è approvabile.
+        salvato = client.get(f"/api/v1/legal-skills/runs/{result['run_id']}", headers=headers)
+        assert salvato.status_code == 200
+        approvato = client.post(f"/api/v1/legal-skills/runs/{result['run_id']}/approve", headers=headers)
+        assert approvato.status_code == 200
+        assert approvato.get_json()["result"]["needs_review"] is False
+
+        inesistente = client.post(
+            "/api/v1/legal-skills/prompt-library/run", json={"prompt_id": "area.voce.parere"}, headers=headers
+        )
+        assert inesistente.status_code == 404
 
 
 def test_api_prompt_library_feature_flag_off(tmp_path: Path):

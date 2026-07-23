@@ -124,3 +124,16 @@ export async function fetchPromptLibraryPrompt(promptId: string, fascicoloId?: s
     { signal },
   )
 }
+
+export async function runPromptLibraryPrompt(payload: {
+  prompt_id: string
+  fascicolo?: string
+  nota?: string
+  source_mode?: string
+}) {
+  return apiPostJson<LegalSkillsPayload<{ result: (LegalSkillRunResult & { prompt_id?: string }) | null }>>(
+    `${PROMPT_LIBRARY_BASE}/run`,
+    payload,
+    { ok: false, result: null },
+  )
+}

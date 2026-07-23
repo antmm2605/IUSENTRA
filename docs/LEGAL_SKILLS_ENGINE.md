@@ -71,6 +71,15 @@ Specializzazione per studio e fascicolo:
   `practice_areas` del `PracticeProfile` con il catalogo
   (`prompt_library/profile_matching.py`) e propone per prime le aree
   praticate dallo studio (`preferita: true`, chip dedicate in UI).
+- **Esecuzione governata ("Esegui con Lex")**: `POST /run`
+  (permesso `legal_skills.esegui`) trasforma il prompt — precompilato dal
+  fascicolo se indicato — in una skill sintetica read-only
+  (`prompt_library/runner.py`, pack `prompt_library`) e la esegue nel
+  `LegalSkillWorkflowEngine`: profilo studio obbligatorio (409 se
+  incompleto), fonti di policy, guardrail, nota di revisione, salvataggio
+  nella coda runs esistente con `prompt_id`/`fascicolo_id` tracciati.
+  L'esito si rivede e approva su `/legal-skills/runs/<run_id>` con i
+  flussi approve/export già governati.
 
 Gate dedicato: `python -m pytest tests/test_prompt_library.py -q` (contratto
 1.303 prompt / 26 aree, composizione per ogni forma, ricerca, API governate).

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookMarked, ClipboardCopy, FolderOpen, Library, Scale, Search, Star, X } from 'lucide-react'
+import { BookMarked, ClipboardCopy, FolderOpen, Library, PlayCircle, Scale, Search, Star, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/select'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
 import { getFascicoliPage, type FascicoloRow } from '../../../fascicoliData'
-import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, searchPromptLibrary } from '../api'
+import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, runPromptLibraryPrompt, searchPromptLibrary } from '../api'
+import { can } from '../permissions'
 import type { PromptLibraryArea, PromptLibraryDetail, PromptLibraryEntry, PromptLibraryForma } from '../types'
 
 const TUTTE = '__tutte__'
@@ -41,6 +42,8 @@ export function PromptLibraryPage() {
   const [ricercaFascicolo, setRicercaFascicolo] = useState('')
   const [opzioniFascicolo, setOpzioniFascicolo] = useState<FascicoloRow[]>([])
   const [copiato, setCopiato] = useState(false)
+  const [eseguendo, setEseguendo] = useState(false)
+  const [erroreEsecuzione, setErroreEsecuzione] = useState('')
   const [loading, setLoading] = useState(true)
   const [ricercaInCorso, setRicercaInCorso] = useState(false)
   const [error, setError] = useState('')
@@ -137,6 +140,29 @@ export function PromptLibraryPage() {
       window.setTimeout(() => setCopiato(false), 2500)
     })
   }, [dettaglio])
+
+  const eseguiConLex = useCallback(() => {
+    if (!dettaglio || eseguendo) return
+    setEseguendo(true)
+    setErroreEsecuzione('')
+    runPromptLibraryPrompt({ prompt_id: dettaglio.prompt_id, fascicolo: fascicolo?.id })
+      .then((payload) => {
+        if (payload.ok && payload.result?.run_id) {
+          window.location.assign(`/legal-skills/runs/${payload.result.run_id}`)
+          return
+        }
+        if (payload.code === 'profile_incomplete') {
+          setErroreEsecuzione('Completa prima il profilo studio Legal Skills: serve per generare bozze governate.')
+        } else {
+          setErroreEsecuzione(payload.message || 'Esecuzione non disponibile in questo momento.')
+        }
+        setEseguendo(false)
+      })
+      .catch(() => {
+        setErroreEsecuzione('Esecuzione non disponibile in questo momento.')
+        setEseguendo(false)
+      })
+  }, [dettaglio, eseguendo, fascicolo])
 
   const risultatiVisibili = useMemo(() => risultati.slice(0, RISULTATI_VISIBILI), [risultati])
   const areePreferiteDettaglio = useMemo(
@@ -327,12 +353,25 @@ export function PromptLibraryPage() {
                   <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-sm">
                     {dettaglio.testo}
                   </pre>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" onClick={copiaTesto}>
                       <ClipboardCopy aria-hidden="true" /> {copiato ? 'Copiato negli appunti' : 'Copia prompt'}
                     </Button>
+                    {can('legal_skills.esegui') ? (
+                      <Button size="sm" variant="outline" onClick={eseguiConLex} disabled={eseguendo}>
+                        <PlayCircle aria-hidden="true" /> {eseguendo ? 'Esecuzione in corso…' : 'Esegui con Lex'}
+                      </Button>
+                    ) : null}
                     <span className="text-xs text-muted-foreground">Bozza per revisione: l'output va sempre verificato dall'avvocato.</span>
                   </div>
+                  {erroreEsecuzione ? (
+                    <p className="text-sm text-destructive" role="alert">
+                      {erroreEsecuzione}{' '}
+                      {erroreEsecuzione.startsWith('Completa') ? (
+                        <a className="underline" href="/legal-skills/profile/cold-start">Configura il profilo</a>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
             ) : (

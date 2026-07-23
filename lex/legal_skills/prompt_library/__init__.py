@@ -11,6 +11,7 @@ from .composer import FORME, componi_testo, forme_public, titolo_prompt
 from .library import CATALOG_DIR, LegalPromptLibrary, get_prompt_library
 from .models import AreaPrompt, VocePrompt
 from .profile_matching import aree_preferite_da_profilo
+from .runner import PROMPT_PACK_ID, prepara_esecuzione_prompt
 
 __all__ = [
     "AreaPrompt",
@@ -18,8 +19,10 @@ __all__ = [
     "ContestoFascicolo",
     "FORME",
     "LegalPromptLibrary",
+    "PROMPT_PACK_ID",
     "VocePrompt",
     "aree_preferite_da_profilo",
+    "prepara_esecuzione_prompt",
     "componi_testo",
     "forme_public",
     "get_prompt_library",

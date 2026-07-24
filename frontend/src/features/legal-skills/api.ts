@@ -7,6 +7,7 @@ import type {
   LegalSkillsPayload,
   Pathway,
   PromptLibraryArea,
+  PromptRevision,
   PromptLibraryDetail,
   PromptLibraryEntry,
   PromptLibraryForma,
@@ -167,5 +168,28 @@ export async function setPathwayStepState(
     `${PATHWAYS_BASE}/${encodeURIComponent(percorsoId)}/passi/${encodeURIComponent(passoId)}/stato`,
     payload,
     { ok: false, percorso: null },
+  )
+}
+
+export async function fetchPromptLibraryRevisioni(signal?: AbortSignal) {
+  return apiJson<
+    LegalSkillsPayload<{
+      totale: number
+      revisioni: PromptRevision[]
+      voci_da_rivedere: Array<{ area_id: string; voce_id: string }>
+      fonte_disponibile: boolean
+    }>
+  >(
+    `${PROMPT_LIBRARY_BASE}/revisioni`,
+    { ok: false, totale: 0, revisioni: [], voci_da_rivedere: [], fonte_disponibile: false },
+    { signal },
+  )
+}
+
+export async function importDraftToEditor(fascicoloId: string, payload: { answer: string; title?: string }) {
+  return apiPostJson<LegalSkillsPayload<{ document_id?: string; open_url?: string; message?: string }>>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/editor-ai/importa-bozza`,
+    payload,
+    { ok: false },
   )
 }

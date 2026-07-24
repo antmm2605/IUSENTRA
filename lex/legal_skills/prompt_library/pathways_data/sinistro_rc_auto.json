@@ -3,39 +3,74 @@
   "nome": "Risarcimento sinistro RC auto",
   "area_id": "circolazione_stradale",
   "descrizione": "Dalla richiesta risarcitoria all'azione giudiziale: termini di proponibilità e negoziazione assistita obbligatoria.",
-  "riferimenti": ["artt. 145-149 D.Lgs. 209/2005", "art. 3 D.L. 132/2014"],
+  "riferimenti": [
+    "artt. 145-149 D.Lgs. 209/2005",
+    "art. 3 D.L. 132/2014"
+  ],
   "passi": [
     {
       "passo_id": "richiesta_risarcitoria",
       "nome": "Richiesta risarcitoria all'assicuratore",
       "descrizione": "Denuncia del sinistro e richiesta danni con la documentazione prevista dal Codice delle assicurazioni.",
       "prompt_ref": "circolazione_stradale.richiesta_risarcimento_sinistro.lettera",
-      "termini": ["Offerta o diniego dell'assicuratore entro 60 giorni per danni a cose, 90 per lesioni (art. 148 D.Lgs. 209/2005)", "30 giorni con modulo di constatazione amichevole a doppia firma"],
-      "riferimenti": ["art. 148 D.Lgs. 209/2005"]
+      "termini": [
+        "Offerta o diniego dell'assicuratore entro 60 giorni per danni a cose, 90 per lesioni (art. 148 D.Lgs. 209/2005)",
+        "30 giorni con modulo di constatazione amichevole a doppia firma"
+      ],
+      "riferimenti": [
+        "art. 148 D.Lgs. 209/2005"
+      ],
+      "template_refs": [
+        "RCD_001",
+        "RCD_015"
+      ]
     },
     {
       "passo_id": "valutazione_indennizzo",
       "nome": "Valutazione dell'indennizzo diretto",
       "descrizione": "Verifica dei presupposti della procedura di risarcimento diretto verso il proprio assicuratore.",
       "prompt_ref": "circolazione_stradale.indennizzo_diretto.parere",
-      "termini": ["Procedura applicabile solo tra due veicoli immatricolati in Italia, assicurati, senza responsabilità concorsuali complesse (art. 149 D.Lgs. 209/2005)"],
-      "riferimenti": ["art. 149 D.Lgs. 209/2005", "D.P.R. 254/2006"]
+      "termini": [
+        "Procedura applicabile solo tra due veicoli immatricolati in Italia, assicurati, senza responsabilità concorsuali complesse (art. 149 D.Lgs. 209/2005)"
+      ],
+      "riferimenti": [
+        "art. 149 D.Lgs. 209/2005",
+        "D.P.R. 254/2006"
+      ],
+      "template_refs": []
     },
     {
       "passo_id": "negoziazione_assistita",
       "nome": "Negoziazione assistita obbligatoria",
       "descrizione": "Invito alla stipula della convenzione: condizione di procedibilità dell'azione risarcitoria.",
       "prompt_ref": "circolazione_stradale.negoziazione_assistita_sinistri.redazione_atto",
-      "termini": ["Risposta all'invito entro 30 giorni; il mancato riscontro consente l'azione (art. 3 D.L. 132/2014)"],
-      "riferimenti": ["art. 3 D.L. 132/2014"]
+      "termini": [
+        "Risposta all'invito entro 30 giorni; il mancato riscontro consente l'azione (art. 3 D.L. 132/2014)"
+      ],
+      "riferimenti": [
+        "art. 3 D.L. 132/2014"
+      ],
+      "template_refs": [
+        "ADR_006",
+        "STR_017"
+      ]
     },
     {
       "passo_id": "azione_giudiziale",
       "nome": "Azione giudiziale",
       "descrizione": "Citazione davanti al Giudice di pace o al Tribunale per il risarcimento integrale.",
       "prompt_ref": "circolazione_stradale.richiesta_risarcimento_sinistro.redazione_atto",
-      "termini": ["Azione proponibile solo decorsi i termini di attesa ex art. 145 D.Lgs. 209/2005", "Prescrizione biennale del danno da circolazione (art. 2947 c.c.)"],
-      "riferimenti": ["art. 145 D.Lgs. 209/2005", "art. 2947 c.c."]
+      "termini": [
+        "Azione proponibile solo decorsi i termini di attesa ex art. 145 D.Lgs. 209/2005",
+        "Prescrizione biennale del danno da circolazione (art. 2947 c.c.)"
+      ],
+      "riferimenti": [
+        "art. 145 D.Lgs. 209/2005",
+        "art. 2947 c.c."
+      ],
+      "template_refs": [
+        "RCD_003"
+      ]
     }
   ]
 }

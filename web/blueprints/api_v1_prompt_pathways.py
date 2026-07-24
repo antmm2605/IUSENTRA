@@ -32,6 +32,7 @@ from web.services.backend_security import (
     backend_security_error_response,
 )
 from web.services.prompt_library_fascicolo_bridge import costruisci_contesto_fascicolo
+from web.services.prompt_pathway_templates import templates_per_refs
 from web.services.tenant_paths import tenant_data_path
 
 api_v1_prompt_pathways = Blueprint(
@@ -99,6 +100,7 @@ def _dettaglio_percorso(percorso: Percorso, fascicolo_id: str) -> dict[str, obje
         dati = passo.to_public_dict()
         dati["prompt_titolo"] = titoli.get(passo.prompt_ref, {}).get("titolo", "")
         dati["prompt_forma"] = titoli.get(passo.prompt_ref, {}).get("forma_label", "")
+        dati["templates"] = templates_per_refs(passo.template_refs)
         dati["completato"] = completato
         dati["completato_il"] = str((passi_stato.get(passo.passo_id) or {}).get("completato_il", ""))
         passi_payload.append(dati)

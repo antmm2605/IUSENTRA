@@ -3,39 +3,74 @@
   "nome": "Responsabilità sanitaria",
   "area_id": "responsabilita_medica",
   "descrizione": "Dalla cartella clinica all'azione di merito: il percorso Gelli-Bianco con condizione di procedibilità e termini dall'ATP.",
-  "riferimenti": ["L. 8 marzo 2017, n. 24", "art. 696-bis c.p.c."],
+  "riferimenti": [
+    "L. 8 marzo 2017, n. 24",
+    "art. 696-bis c.p.c."
+  ],
   "passi": [
     {
       "passo_id": "cartella_clinica",
       "nome": "Acquisizione della documentazione sanitaria",
       "descrizione": "Richiesta della cartella clinica completa e della documentazione del percorso di cura.",
       "prompt_ref": "responsabilita_medica.richiesta_cartella_clinica.lettera",
-      "termini": ["La struttura fornisce la documentazione entro 7 giorni dalla richiesta, integrazioni entro 30 (art. 4 L. 24/2017)"],
-      "riferimenti": ["art. 4 L. 24/2017"]
+      "termini": [
+        "La struttura fornisce la documentazione entro 7 giorni dalla richiesta, integrazioni entro 30 (art. 4 L. 24/2017)"
+      ],
+      "riferimenti": [
+        "art. 4 L. 24/2017"
+      ],
+      "template_refs": [
+        "RCD_005"
+      ]
     },
     {
       "passo_id": "parere_responsabilita",
       "nome": "Parere medico-legale e inquadramento",
       "descrizione": "Valutazione con consulente di parte del nesso causale e dei profili contrattuali verso la struttura.",
       "prompt_ref": "responsabilita_medica.azione_contro_struttura.parere",
-      "termini": ["Responsabilità contrattuale della struttura: prescrizione decennale; extracontrattuale del sanitario: quinquennale (art. 7 L. 24/2017)"],
-      "riferimenti": ["art. 7 L. 24/2017", "art. 1218 c.c."]
+      "termini": [
+        "Responsabilità contrattuale della struttura: prescrizione decennale; extracontrattuale del sanitario: quinquennale (art. 7 L. 24/2017)"
+      ],
+      "riferimenti": [
+        "art. 7 L. 24/2017",
+        "art. 1218 c.c."
+      ],
+      "template_refs": [
+        "RCD_004"
+      ]
     },
     {
       "passo_id": "atp_conciliativo",
       "nome": "ATP conciliativo o mediazione",
       "descrizione": "Consulenza tecnica preventiva ex art. 696-bis c.p.c. (o mediazione) come condizione di procedibilità.",
       "prompt_ref": "responsabilita_medica.atp_conciliativo_696bis.redazione_atto",
-      "termini": ["Condizione di procedibilità dell'azione risarcitoria (art. 8 L. 24/2017)", "Partecipazione obbligatoria delle imprese di assicurazione"],
-      "riferimenti": ["art. 8 L. 24/2017", "art. 696-bis c.p.c."]
+      "termini": [
+        "Condizione di procedibilità dell'azione risarcitoria (art. 8 L. 24/2017)",
+        "Partecipazione obbligatoria delle imprese di assicurazione"
+      ],
+      "riferimenti": [
+        "art. 8 L. 24/2017",
+        "art. 696-bis c.p.c."
+      ],
+      "template_refs": [
+        "CAU_008",
+        "RCD_013"
+      ]
     },
     {
       "passo_id": "azione_merito",
       "nome": "Azione di merito",
       "descrizione": "Ricorso o citazione contro struttura e/o sanitario dopo l'esito dell'ATP.",
       "prompt_ref": "responsabilita_medica.azione_contro_struttura.redazione_atto",
-      "termini": ["Deposito del ricorso entro 90 giorni dal deposito della relazione o dalla scadenza del termine perentorio (art. 8, comma 3, L. 24/2017)"],
-      "riferimenti": ["art. 8 L. 24/2017"]
+      "termini": [
+        "Deposito del ricorso entro 90 giorni dal deposito della relazione o dalla scadenza del termine perentorio (art. 8, comma 3, L. 24/2017)"
+      ],
+      "riferimenti": [
+        "art. 8 L. 24/2017"
+      ],
+      "template_refs": [
+        "RCD_002"
+      ]
     }
   ]
 }

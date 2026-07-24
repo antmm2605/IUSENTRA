@@ -3,47 +3,92 @@
   "nome": "Sfratto per morosità",
   "area_id": "locazioni",
   "descrizione": "Dal sollecito bonario alla riconsegna dell'immobile: il procedimento speciale di convalida per il conduttore moroso.",
-  "riferimenti": ["artt. 657-669 c.p.c.", "art. 55 L. 27 luglio 1978, n. 392"],
+  "riferimenti": [
+    "artt. 657-669 c.p.c.",
+    "art. 55 L. 27 luglio 1978, n. 392"
+  ],
   "passi": [
     {
       "passo_id": "sollecito",
       "nome": "Sollecito e diffida al pagamento",
       "descrizione": "Richiesta formale dei canoni scaduti con riserva di agire per la risoluzione.",
       "prompt_ref": "locazioni.sfratto_per_morosita.lettera",
-      "termini": ["La diffida non è condizione dell'azione ma documenta la morosità e interrompe la prescrizione (art. 2943 c.c.)"],
-      "riferimenti": ["art. 1587 c.c.", "art. 2943 c.c."]
+      "termini": [
+        "La diffida non è condizione dell'azione ma documenta la morosità e interrompe la prescrizione (art. 2943 c.c.)"
+      ],
+      "riferimenti": [
+        "art. 1587 c.c.",
+        "art. 2943 c.c."
+      ],
+      "template_refs": [
+        "LOC_008"
+      ]
     },
     {
       "passo_id": "intimazione",
       "nome": "Intimazione di sfratto e citazione per convalida",
       "descrizione": "Atto introduttivo del procedimento speciale con contestuale citazione per l'udienza di convalida.",
       "prompt_ref": "locazioni.sfratto_per_morosita.redazione_atto",
-      "termini": ["Tra notifica e udienza devono decorrere i termini liberi ex art. 660 c.p.c."],
-      "riferimenti": ["artt. 657-660 c.p.c."]
+      "termini": [
+        "Tra notifica e udienza devono decorrere i termini liberi ex art. 660 c.p.c."
+      ],
+      "riferimenti": [
+        "artt. 657-660 c.p.c."
+      ],
+      "template_refs": [
+        "LOC_001",
+        "LOC_002"
+      ]
     },
     {
       "passo_id": "udienza_convalida",
       "nome": "Udienza di convalida",
       "descrizione": "Preparazione dell'udienza: convalida, ordinanza di rilascio, opposizione del conduttore o termine di grazia.",
       "prompt_ref": "locazioni.sfratto_per_morosita.checklist",
-      "termini": ["Nelle locazioni abitative il conduttore può chiedere il termine di grazia fino a 90 giorni (art. 55 L. 392/1978)", "Ingiunzione di pagamento dei canoni ex art. 664 c.p.c."],
-      "riferimenti": ["art. 55 L. 392/1978", "artt. 663-665 c.p.c."]
+      "termini": [
+        "Nelle locazioni abitative il conduttore può chiedere il termine di grazia fino a 90 giorni (art. 55 L. 392/1978)",
+        "Ingiunzione di pagamento dei canoni ex art. 664 c.p.c."
+      ],
+      "riferimenti": [
+        "art. 55 L. 392/1978",
+        "artt. 663-665 c.p.c."
+      ],
+      "template_refs": [
+        "LOC_006"
+      ]
     },
     {
       "passo_id": "precetto_rilascio",
       "nome": "Precetto di rilascio",
       "descrizione": "Intimazione a rilasciare l'immobile sulla base del titolo di convalida.",
       "prompt_ref": "recupero_crediti.atto_di_precetto.redazione_atto",
-      "termini": ["Il precetto perde efficacia decorsi 90 giorni senza inizio dell'esecuzione (art. 481 c.p.c.)", "Esecuzione per rilascio con preavviso ex art. 608 c.p.c."],
-      "riferimenti": ["artt. 480-481 c.p.c.", "art. 608 c.p.c."]
+      "termini": [
+        "Il precetto perde efficacia decorsi 90 giorni senza inizio dell'esecuzione (art. 481 c.p.c.)",
+        "Esecuzione per rilascio con preavviso ex art. 608 c.p.c."
+      ],
+      "riferimenti": [
+        "artt. 480-481 c.p.c.",
+        "art. 608 c.p.c."
+      ],
+      "template_refs": [
+        "ESE_001",
+        "LOC_009"
+      ]
     },
     {
       "passo_id": "riconsegna_danni",
       "nome": "Riconsegna e recupero dei danni",
       "descrizione": "Verbale di riconsegna, contestazione dei danni e recupero di canoni e indennità di occupazione.",
       "prompt_ref": "locazioni.riconsegna_immobile_danni.parere",
-      "termini": ["Azione per i danni da ritardata restituzione ex art. 1591 c.c."],
-      "riferimenti": ["artt. 1590-1591 c.c."]
+      "termini": [
+        "Azione per i danni da ritardata restituzione ex art. 1591 c.c."
+      ],
+      "riferimenti": [
+        "artt. 1590-1591 c.c."
+      ],
+      "template_refs": [
+        "RCD_001"
+      ]
     }
   ]
 }

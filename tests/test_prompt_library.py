@@ -19,9 +19,12 @@ from lex.legal_skills.prompt_library import (
     LegalPromptLibrary,
     PathwayProgressStore,
     aree_preferite_da_profilo,
+    estrai_estremi,
     get_pathway_catalog,
     get_prompt_library,
     prepara_esecuzione_prompt,
+    revisioni_da_normative,
+    voci_da_rivedere,
 )
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
@@ -443,6 +446,102 @@ def test_api_percorsi_lista_dettaglio_e_avanzamento(tmp_path: Path):
             headers=headers,
         )
         assert passo_mancante.status_code == 404
+
+
+def test_template_refs_dei_percorsi_esistono_nel_catalogo_master():
+    from pct.template_atti_master_catalog import load_master_templates
+
+    master_ids = {str(item.get("id")) for item in load_master_templates()}
+    con_template = 0
+    for percorso in get_pathway_catalog().percorsi():
+        for passo in percorso.passi:
+            for ref in passo.template_refs:
+                assert ref in master_ids, f"Template inesistente: {percorso.percorso_id}/{passo.passo_id} → {ref}"
+                con_template += 1
+    assert con_template >= 40, "La fusione percorsi-template deve coprire la maggior parte dei passi"
+
+
+def test_estrazione_estremi_riferimenti_normativi():
+    assert estrai_estremi("art. 6 L. 604/1966") == {("604", "1966")}
+    assert estrai_estremi("D.Lgs. 28/2010") == {("28", "2010")}
+    assert estrai_estremi("L. 8 marzo 2017, n. 24") == {("24", "2017")}
+    assert estrai_estremi("art. 33 Reg. UE 2016/679") == {("679", "2016")}
+    assert estrai_estremi("art. 55 L. 27 luglio 1978, n. 392") == {("392", "1978")}
+    assert estrai_estremi("art. 641 c.p.c.") == set()
+
+
+def test_revisioni_da_normative_marca_voci_e_passi():
+    aggiornamenti = [
+        {
+            "title": "Modifiche alla legge 15 luglio 1966, n. 604 in materia di licenziamenti",
+            "norm_number": "604",
+            "norm_year": "1966",
+            "status": "vigente",
+            "publication_date": "2026-07-01",
+            "source_url": "https://www.normattiva.it/esempio",
+        }
+    ]
+
+    revisioni = revisioni_da_normative(aggiornamenti)
+
+    voci = voci_da_rivedere(revisioni)
+    assert any(area_id == "lavoro" for area_id, _ in voci)
+    passi = [voce for voce in revisioni if voce["tipo"] == "passo"]
+    assert any(voce["percorso_id"] == "impugnazione_licenziamento" for voce in passi)
+    assert all(voce["aggiornamento"]["url"] for voce in revisioni)
+
+    assert revisioni_da_normative([]) == []
+    assert revisioni_da_normative([{"title": "Norma non citata", "norm_number": "99", "norm_year": "1801"}]) == []
+
+
+def test_api_revisioni_e_dettaglio_percorso_con_template(tmp_path: Path):
+    from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "prompt-library-test-key"}
+
+    repo_cfg = LegalUpdateDbConfig.from_anchor(str(tmp_path / "intelligence" / "motori.json"))
+    repository = LegalUpdateRepository(repo_cfg.db_path, json_path=repo_cfg.json_path)
+    repository.create_or_update_normative(
+        {
+            "title": "Modifiche alla legge 604/1966 sui licenziamenti individuali",
+            "norm_type": "legge",
+            "norm_number": "604",
+            "norm_year": "1966",
+            "status": "vigente",
+            "publication_date": "2026-07-01",
+            "source_url": "https://www.normattiva.it/esempio",
+        },
+        performed_by="pytest",
+    )
+
+    with app.test_client() as client:
+        revisioni = client.get("/api/v1/legal-skills/prompt-library/revisioni", headers=headers)
+        assert revisioni.status_code == 200
+        payload = revisioni.get_json()
+        assert payload["fonte_disponibile"] is True
+        assert payload["totale"] >= 1
+        assert any(voce["area_id"] == "lavoro" for voce in payload["voci_da_rivedere"])
+
+        prompt_id = next(
+            voce for voce in payload["revisioni"] if voce["tipo"] == "voce" and voce["area_id"] == "lavoro"
+        )
+        dettaglio = client.get(
+            f"/api/v1/legal-skills/prompt-library/prompts/lavoro.{prompt_id['voce_id']}.parere", headers=headers
+        )
+        assert dettaglio.status_code == 200
+        corpo = dettaglio.get_json()["prompt"]
+        assert corpo["da_rivedere"] is True
+        assert corpo["revisioni"]
+
+        percorso = client.get(
+            "/api/v1/legal-skills/prompt-library/percorsi/recupero_credito_monitorio", headers=headers
+        )
+        assert percorso.status_code == 200
+        passi = percorso.get_json()["percorso"]["passi"]
+        ricorso = next(passo for passo in passi if passo["passo_id"] == "ricorso_decreto")
+        assert any(template["id"] == "MON_001" for template in ricorso["templates"])
+        assert all(template["url"].startswith("/template-atti/catalogo?scheda=") for template in ricorso["templates"])
 
 
 def test_api_prompt_library_feature_flag_off(tmp_path: Path):

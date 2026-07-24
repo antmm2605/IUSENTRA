@@ -85,6 +85,29 @@ Specializzazione per studio e fascicolo:
   `/legal-skills/percorsi` (flag `routes.appV2.legalSkills.pathways`)
   con timeline dei passi, termini da presidiare, "Apri prompt" con
   deep-link `?prompt=` e avanzamento per fascicolo.
+- **Fusione con il catalogo template**: ogni passo dei percorsi può
+  dichiarare `template_refs` (id del catalogo master di
+  `pct/template_atti_catalogo_data/`, es. `MON_001`): il dettaglio
+  percorso li risolve in schede con titolo e link
+  `/template-atti/catalogo?scheda=<id>` (contesto fascicolo propagato
+  con `id_fascicolo`/`case_id`). Risoluzione in
+  `web/services/prompt_pathway_templates.py` (fail-soft sui ref
+  sconosciuti); l'esistenza degli id è verificata dai test.
+- **Bozza nell'editor professionale**: dalla pagina di revisione di un
+  run con fascicolo collegato, "Apri nell'editor professionale" invia la
+  bozza a `POST /api/v1/ui/fascicoli/<id>/editor-ai/importa-bozza`
+  (endpoint già governato dell'Editor AI) e apre il documento creato per
+  la revisione dell'avvocato.
+- **Riferimenti normativi vivi**: `prompt_library/reference_watch.py`
+  estrae gli estremi (numero/anno) dai riferimenti di voci e passi e li
+  incrocia con le normative pubblicate dalla pipeline quotidiana
+  (`LegalUpdateRepository.list_published_normative`, runtime fail-soft
+  con cache breve in
+  `web/services/prompt_reference_watch_runtime.py`). API
+  `GET /prompt-library/revisioni`; il dettaglio prompt espone
+  `da_rivedere` + `revisioni` e la UI mostra l'avviso "Da rivedere" con
+  invito a verificare la vigenza su fonti ufficiali. Nessuna modifica
+  automatica al catalogo.
 - **Esecuzione governata ("Esegui con Lex")**: `POST /run`
   (permesso `legal_skills.esegui`) trasforma il prompt — precompilato dal
   fascicolo se indicato — in una skill sintetica read-only

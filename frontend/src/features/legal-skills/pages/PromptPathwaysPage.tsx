@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BookMarked, CheckCircle2, Circle, Clock, Library, Route, Scale } from 'lucide-react'
+import { ArrowRight, BookMarked, CheckCircle2, Circle, Clock, FileText, Library, Route, Scale } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -167,6 +167,13 @@ export function PromptPathwaysPage() {
                               <BookMarked aria-hidden="true" /> Apri prompt
                             </a>
                           </Button>
+                          {(passo.templates || []).map((template) => (
+                            <Button key={template.id} asChild size="sm" variant="outline">
+                              <a href={`${template.url}${fascicolo ? `&id_fascicolo=${encodeURIComponent(fascicolo.id)}&case_id=${encodeURIComponent(fascicolo.id)}` : ''}`}>
+                                <FileText aria-hidden="true" /> {template.titolo}
+                              </a>
+                            </Button>
+                          ))}
                           {fascicolo && puoTracciare ? (
                             <Button
                               size="sm"

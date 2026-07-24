@@ -86,6 +86,9 @@ export type LegalSkillRunResult = {
   approved_at?: string
   approved_by?: string
   created_at: string
+  prompt_id?: string
+  prompt_titolo?: string
+  fascicolo_id?: string
 }
 
 export type ScheduledLegalSkillAgent = {
@@ -148,6 +151,14 @@ export type PromptLibraryDetail = PromptLibraryEntry & {
   testo: string
   forma_descrizione: string
   contesto_fascicolo?: PromptLibraryCaseContext
+  da_rivedere?: boolean
+  revisioni?: PromptRevision[]
+}
+
+export type PathwayTemplate = {
+  id: string
+  titolo: string
+  url: string
 }
 
 export type PathwayStep = {
@@ -159,8 +170,27 @@ export type PathwayStep = {
   riferimenti: string[]
   prompt_titolo?: string
   prompt_forma?: string
+  templates?: PathwayTemplate[]
   completato?: boolean
   completato_il?: string
+}
+
+export type PromptRevision = {
+  tipo: 'voce' | 'passo' | string
+  area_id?: string
+  voce_id?: string
+  percorso_id?: string
+  passo_id?: string
+  nome: string
+  riferimento: string
+  aggiornamento: {
+    titolo: string
+    numero: string
+    anno: string
+    stato: string
+    data: string
+    url: string
+  }
 }
 
 export type Pathway = {

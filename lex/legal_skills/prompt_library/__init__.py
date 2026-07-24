@@ -13,6 +13,7 @@ from .models import AreaPrompt, VocePrompt
 from .pathway_progress import PathwayProgressStore
 from .pathways import PATHWAYS_DIR, PassoPercorso, PathwayCatalog, Percorso, get_pathway_catalog
 from .profile_matching import aree_preferite_da_profilo
+from .reference_watch import estrai_estremi, revisioni_da_normative, voci_da_rivedere
 from .runner import PROMPT_PACK_ID, prepara_esecuzione_prompt
 
 __all__ = [
@@ -29,8 +30,11 @@ __all__ = [
     "Percorso",
     "VocePrompt",
     "aree_preferite_da_profilo",
+    "estrai_estremi",
     "get_pathway_catalog",
     "prepara_esecuzione_prompt",
+    "revisioni_da_normative",
+    "voci_da_rivedere",
     "componi_testo",
     "forme_public",
     "get_prompt_library",

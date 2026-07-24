@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookMarked, ClipboardCopy, Library, PlayCircle, Route, Scale, Search, Star } from 'lucide-react'
+import { AlertTriangle, BookMarked, ClipboardCopy, Library, PlayCircle, Route, Scale, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
-import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, runPromptLibraryPrompt, searchPromptLibrary } from '../api'
+import { fetchPromptLibraryAree, fetchPromptLibraryPrompt, fetchPromptLibraryRevisioni, runPromptLibraryPrompt, searchPromptLibrary } from '../api'
 import { FascicoloPicker, fascicoloDaUrl, type FascicoloSelezionato } from '../components/FascicoloPicker'
 import { can } from '../permissions'
 import type { PromptLibraryArea, PromptLibraryDetail, PromptLibraryEntry, PromptLibraryForma } from '../types'
@@ -41,7 +41,16 @@ export function PromptLibraryPage() {
   const [erroreEsecuzione, setErroreEsecuzione] = useState('')
   const [loading, setLoading] = useState(true)
   const [ricercaInCorso, setRicercaInCorso] = useState(false)
+  const [revisioniTotale, setRevisioniTotale] = useState(0)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchPromptLibraryRevisioni(controller.signal).then((payload) => {
+      if (payload.ok) setRevisioniTotale(payload.totale || 0)
+    })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -241,6 +250,12 @@ export function PromptLibraryPage() {
             ? 'Ricerca in corso…'
             : `${totaleRisultati} prompt trovati${totaleRisultati > RISULTATI_VISIBILI ? ` (mostrati i primi ${RISULTATI_VISIBILI}: restringi con filtri o ricerca)` : ''}.`}
         </p>
+        {revisioniTotale > 0 ? (
+          <p className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+            <AlertTriangle aria-hidden="true" className="size-4 shrink-0" />
+            {revisioniTotale} segnalazioni da aggiornamenti normativi recenti: i prompt interessati mostrano l'avviso "Da rivedere" nel dettaglio.
+          </p>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <section className="grid content-start gap-2" aria-label="Risultati ricerca prompt">
@@ -293,6 +308,18 @@ export function PromptLibraryPage() {
                         Precompilato dal fascicolo {[contesto.numero, contesto.titolo].filter(Boolean).join(' — ')}
                         {contesto.rg ? ` (${contesto.rg})` : ''}
                       </span>
+                    </div>
+                  ) : null}
+                  {dettaglio.da_rivedere ? (
+                    <div className="grid gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">
+                      <span className="flex items-center gap-1 font-medium"><AlertTriangle aria-hidden="true" className="size-4" /> Da rivedere: aggiornamenti normativi rilevati</span>
+                      {(dettaglio.revisioni || []).map((revisione) => (
+                        <span key={`${revisione.riferimento}-${revisione.aggiornamento.titolo}`}>
+                          {revisione.riferimento} — {revisione.aggiornamento.titolo}
+                          {revisione.aggiornamento.data ? ` (${revisione.aggiornamento.data})` : ''}
+                        </span>
+                      ))}
+                      <span className="text-muted-foreground">Verifica la vigenza su fonti ufficiali prima di usare il prompt.</span>
                     </div>
                   ) : null}
                   <div className="grid gap-1 text-sm">

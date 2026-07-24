@@ -39,6 +39,7 @@ class PassoPercorso:
     prompt_ref: str
     termini: list[str] = field(default_factory=list)
     riferimenti: list[str] = field(default_factory=list)
+    template_refs: list[str] = field(default_factory=list)
 
     def to_public_dict(self) -> dict[str, Any]:
         return {
@@ -48,6 +49,7 @@ class PassoPercorso:
             "prompt_ref": self.prompt_ref,
             "termini": list(self.termini),
             "riferimenti": list(self.riferimenti),
+            "template_refs": list(self.template_refs),
         }
 
 
@@ -101,6 +103,7 @@ def _load_percorso(path: Path, prompt_ids: set[str]) -> Percorso:
             prompt_ref=_clean(voce.get("prompt_ref")),
             termini=_clean_list(voce.get("termini")),
             riferimenti=_clean_list(voce.get("riferimenti")),
+            template_refs=_clean_list(voce.get("template_refs")),
         )
         if not passo.passo_id or passo.passo_id in visti:
             raise LegalSkillsError(

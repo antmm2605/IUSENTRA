@@ -35,6 +35,7 @@ from web.services.backend_security import (
     backend_security_error_response,
 )
 from web.services.prompt_library_fascicolo_bridge import costruisci_contesto_fascicolo
+from web.services.prompt_reference_watch_runtime import revisioni_per_voce, revisioni_prompt_library
 
 api_v1_prompt_library = Blueprint(
     "api_v1_prompt_library", __name__, url_prefix="/api/v1/legal-skills/prompt-library"
@@ -145,8 +146,20 @@ def get_prompt(prompt_id: str):
     if isinstance(contesto, tuple):
         return contesto
     prompt = get_prompt_library().get_prompt(prompt_id, contesto=contesto)
+    revisioni = revisioni_per_voce(prompt.get("area_id", ""), prompt.get("voce_id", ""))
+    prompt["da_rivedere"] = bool(revisioni)
+    prompt["revisioni"] = revisioni
     _audit_event("legal_skills_prompt_letto", "prompt_library", prompt_id, "Prompt LegalSkills Italia consultato.")
     return jsonify({"ok": True, "prompt": prompt})
+
+
+@api_v1_prompt_library.get("/revisioni")
+@_require_auth
+@_require_feature("lex.legalSkills.enabled")
+@_require_permission("legal_skills.leggi")
+def list_revisioni():
+    payload = revisioni_prompt_library()
+    return jsonify({"ok": True, **payload})
 
 
 @api_v1_prompt_library.post("/run")

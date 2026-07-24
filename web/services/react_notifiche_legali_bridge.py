@@ -518,6 +518,149 @@ def _legacy_import_content_label(documento: Any) -> str:
     return _derive_document_title_from_text(_extract_first_page_text(path))
 
 
+def _document_inline_text(documento: Any) -> str:
+    for attr in (
+        "testo_estratto",
+        "testoEstratto",
+        "extracted_text",
+        "extractedText",
+        "ocr_text",
+        "ocrText",
+        "testo_ocr",
+        "contenuto_testuale",
+        "document_text",
+        "text",
+    ):
+        value = _text(getattr(documento, attr, ""))
+        if value:
+            return value
+    return ""
+
+
+def _document_content_text(documento: Any, *, allow_physical_read: bool = False) -> str:
+    inline = _document_inline_text(documento)
+    if inline:
+        return inline
+    if not allow_physical_read:
+        return ""
+    path = _resolve_document_path(documento)
+    if path is None:
+        return ""
+    return _extract_first_page_text(path)
+
+
+def _document_ai_texts_for_fascicolo(fascicolo: Any, documents: list[Any]) -> dict[str, str]:
+    fascicolo_id = _text(getattr(fascicolo, "id", ""))
+    if not fascicolo_id or not documents:
+        return {}
+    try:
+        from flask import current_app, g
+        from pct.fascicolo_document_catalog import document_ai_texts_for_catalog
+
+        paths = getattr(g, "data_paths", {}) or {}
+        fascicoli_db = paths.get("FASCICOLI_DB") or current_app.config.get("FASCICOLI_DB")
+        storage_root = paths.get("DOCUMENTI_AI_DIR") or current_app.config.get("DOCUMENTI_AI_DIR")
+        tenant_slug = _text(getattr(g, "tenant_slug", "") or getattr(g, "tenant", ""))
+        tenant_ids = [tenant_slug] if tenant_slug else None
+        return document_ai_texts_for_catalog(
+            tenant_ids=tenant_ids,
+            fascicolo_id=fascicolo_id,
+            documents=documents,
+            fascicoli_db_path=fascicoli_db,
+            storage_root=storage_root,
+            allow_extracted_files_fallback=False,
+        )
+    except Exception:
+        return {}
+
+
+def _kind_from_evidence(value: Any, *, content: bool = False) -> str:
+    raw = _text(value).casefold()
+    if not raw:
+        return ""
+    haystack = re.sub(r"\s+", " ", raw)
+    compact = re.sub(r"[^a-z0-9]+", "", haystack)
+    if content:
+        head = haystack[:8000]
+        if (
+            re.search(r"\bsentenza\s*(?:n\.?|numero)?\b", head)
+            or ("sentenza" in head and ("repubblica italiana" in head or "in nome del popolo italiano" in head or "p.q.m" in head or "pqm" in compact))
+        ):
+            return "sentenza"
+        if (
+            re.search(r"\bdecreto\s+(?:di\s+)?fissazione\b", head)
+            or re.search(r"\bfissa(?:ta|to|re)?\s+l[' ]?udienza\b", head)
+            or "fissazione udienza" in head
+        ):
+            return "decreto_fissazione_udienza"
+        if "decreto ingiuntivo" in head or "decretoingiuntivo" in compact or "ingiunzion" in head:
+            return "decreto_ingiuntivo"
+        if re.search(r"\bordinanza\b", head):
+            return "ordinanza"
+        if re.search(r"\bprovvedimento\b", head):
+            return "provvedimento"
+        if re.search(r"\bdecreto\b", head):
+            return "decreto"
+        return ""
+    if "sentenza" in haystack:
+        return "sentenza"
+    if "decreto ingiuntivo" in haystack or "decretoingiuntivo" in compact or "ingiunzion" in haystack:
+        return "decreto_ingiuntivo"
+    if "decreto fissazione" in haystack or "decreto di fissazione" in haystack or "fissazione udienza" in haystack:
+        return "decreto_fissazione_udienza"
+    if "ordinanza" in haystack:
+        return "ordinanza"
+    if "provvedimento" in haystack:
+        return "provvedimento"
+    if "decreto" in haystack:
+        return "decreto"
+    return ""
+
+
+def _notification_suggestion_from_kind(kind: str, source: str) -> dict[str, str]:
+    if kind == "sentenza":
+        return {
+            "casoNotificaSuggerito": "sentenza_termine_breve",
+            "modelloRelataSuggerito": "relata_sentenza_attestazione_conformita",
+            "provvedimentoTipo": "Sentenza",
+            "criterioTipoDocumento": source,
+        }
+    if kind == "decreto_ingiuntivo":
+        return {
+            "casoNotificaSuggerito": "decreto_ingiuntivo",
+            "modelloRelataSuggerito": "relata_decreto_ingiuntivo",
+            "provvedimentoTipo": "Decreto ingiuntivo",
+            "criterioTipoDocumento": source,
+        }
+    if kind == "decreto_fissazione_udienza":
+        return {
+            "casoNotificaSuggerito": "provvedimento_giudice",
+            "modelloRelataSuggerito": "relata_provvedimento_giudice",
+            "provvedimentoTipo": "Decreto fissazione udienza",
+            "criterioTipoDocumento": source,
+        }
+    if kind == "ordinanza":
+        return {
+            "casoNotificaSuggerito": "provvedimento_giudice",
+            "modelloRelataSuggerito": "relata_provvedimento_giudice",
+            "provvedimentoTipo": "Ordinanza",
+            "criterioTipoDocumento": source,
+        }
+    if kind in {"provvedimento", "decreto"}:
+        return {
+            "casoNotificaSuggerito": "provvedimento_giudice",
+            "modelloRelataSuggerito": "relata_provvedimento_giudice",
+            "provvedimentoTipo": "Decreto" if kind == "decreto" else "Provvedimento",
+            "criterioTipoDocumento": source,
+        }
+    return {
+        "casoNotificaSuggerito": "",
+        "modelloRelataSuggerito": "",
+        "provvedimentoTipo": "",
+        "criterioTipoDocumento": "",
+    }
+
+
 def _infer_fallback_recipient_role(name: str) -> str:
     text = _text(name).lower()
     if "avvocatura" in text and "stato" in text:
@@ -811,12 +954,44 @@ def _notification_proof_kind(documento: Any, *, origin: str) -> str:
     return ""
 
 
+def _document_notification_suggestion(
+    documento: Any,
+    *,
+    origin: str,
+    name: str,
+    label: str,
+    description: str,
+    content_text: str = "",
+) -> dict[str, str]:
+    portal_metadata = " ".join(
+        _text(value)
+        for value in (
+            getattr(documento, "tipo", ""),
+            getattr(documento, "tipo_atto_portale", ""),
+            getattr(documento, "classificazione_portale", ""),
+            description if description != name else "",
+            " ".join(str(item) for item in (getattr(documento, "tags", []) or [])),
+        )
+    )
+    for value, source, content in (
+        (portal_metadata, "metadati portale/fascicolo", False),
+        (content_text, "testo documento letto", True),
+    ):
+        kind = _kind_from_evidence(value, content=content)
+        if kind:
+            return _notification_suggestion_from_kind(kind, source)
+    if origin in {"comunicazione_cancelleria", "copia_fascicolo_informatico"} and bool(getattr(documento, "notifica_richiesta", False)):
+        return _notification_suggestion_from_kind("provvedimento", "segnale notifica da fascicolo")
+    return _notification_suggestion_from_kind("", "")
+
+
 def _document_from_fascicolo(
     documento: Any,
     *,
     office_names: set[str] | None = None,
     office_hashes: set[str] | None = None,
     resolve_content_label: bool = False,
+    extracted_text: str = "",
 ) -> dict[str, Any]:
     origin = normalise_document_origin(_infer_document_origin(documento))
     name = _first_attr(documento, "nome", "titolo", "nome_portale", "nome_originale", "percorso")
@@ -825,7 +1000,10 @@ def _document_from_fascicolo(
     raw_description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note")
     if operational_name and (_is_timestamp_filename(name) or _is_import_pratiche_marker(raw_description)):
         name = operational_name
-    content_label = _legacy_import_content_label(documento) if resolve_content_label and not operational_name else ""
+    content_text = _text(extracted_text) or _document_content_text(documento, allow_physical_read=resolve_content_label)
+    content_label = _derive_document_title_from_text(content_text) if content_text else ""
+    if not content_label and resolve_content_label and not operational_name:
+        content_label = _legacy_import_content_label(documento)
     label = content_label or _document_label(documento) or _display_text(name)
     description = raw_description or name
     if operational_name and _is_import_pratiche_marker(description):
@@ -845,6 +1023,15 @@ def _document_from_fascicolo(
     pec_evidence = bool((name_key and name_key in (office_names or set())) or (sha_key and sha_key in (office_hashes or set())))
     notification_proof_kind = _notification_proof_kind(documento, origin=origin)
     notification_required = pec_evidence or _document_notification_required(documento, origin=origin)
+    notification_suggestion = _document_notification_suggestion(
+        documento,
+        origin=origin,
+        name=name,
+        label=label,
+        description=description,
+        content_text=content_text,
+    )
+    provision_date = _text(getattr(documento, "data_documento", "")) or _text(getattr(documento, "data_deposito_portale", ""))
     office_document = (
         pec_evidence
         or bool(getattr(documento, "documento_ufficio", False))
@@ -870,6 +1057,13 @@ def _document_from_fascicolo(
         "tipoProvaNotifica": notification_proof_kind,
         "dataRilascioPortale": _text(getattr(documento, "data_deposito_portale", "")) or _text(getattr(documento, "data_documento", "")),
         "necessitaAttestazione": origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria", "scansione_analogico"},
+        "casoNotificaSuggerito": notification_suggestion["casoNotificaSuggerito"],
+        "modelloRelataSuggerito": notification_suggestion["modelloRelataSuggerito"],
+        "provvedimentoTipo": notification_suggestion["provvedimentoTipo"],
+        "criterioTipoDocumento": notification_suggestion["criterioTipoDocumento"],
+        "testoDocumentoDisponibile": bool(content_text),
+        "provvedimentoData": provision_date,
+        "provvedimentoDataDeposito": _text(getattr(documento, "data_deposito_portale", "")) or provision_date,
     }
 
 
@@ -972,9 +1166,16 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         for item in pec_evidence
         if item.get("acquisito") and _text(item.get("hashSha256"))
     }
+    raw_documents = list(getattr(fascicolo, "documenti", []) or [])[:60]
+    document_texts = _document_ai_texts_for_fascicolo(fascicolo, raw_documents)
     documents = [
-        _document_from_fascicolo(documento, office_names=office_names, office_hashes=office_hashes)
-        for documento in (getattr(fascicolo, "documenti", []) or [])[:60]
+        _document_from_fascicolo(
+            documento,
+            office_names=office_names,
+            office_hashes=office_hashes,
+            extracted_text=document_texts.get(_text(getattr(documento, "id", "")), ""),
+        )
+        for documento in raw_documents
     ]
     client_name = (
         _text(getattr(cliente, "nome_completo", ""))
@@ -1176,8 +1377,13 @@ def build_react_notifiche_legali_practice_documents_payload(
         raw_documents = [documento for documento in raw_documents if _matches_requested_document(documento)]
     else:
         raw_documents = raw_documents[:40]
+    document_texts = _document_ai_texts_for_fascicolo(fascicolo, raw_documents)
     documents = [
-        _document_from_fascicolo(documento, resolve_content_label=True)
+        _document_from_fascicolo(
+            documento,
+            resolve_content_label=True,
+            extracted_text=document_texts.get(_text(getattr(documento, "id", "")), ""),
+        )
         for documento in raw_documents
     ]
     return _sanitize_ui_payload({

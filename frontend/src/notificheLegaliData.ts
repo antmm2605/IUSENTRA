@@ -86,6 +86,13 @@ export type LegalDocumentSuggestion = {
   tipoProvaNotifica: string
   dataRilascioPortale: string
   necessitaAttestazione: boolean
+  casoNotificaSuggerito: string
+  modelloRelataSuggerito: string
+  provvedimentoTipo: string
+  criterioTipoDocumento: string
+  testoDocumentoDisponibile: boolean
+  provvedimentoData: string
+  provvedimentoDataDeposito: string
 }
 
 export type LegalOfficeRelease = {
@@ -618,6 +625,13 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       tipoProvaNotifica: text(row.tipoProvaNotifica),
       dataRilascioPortale: text(row.dataRilascioPortale),
       necessitaAttestazione: bool(row.necessitaAttestazione),
+      casoNotificaSuggerito: text(row.casoNotificaSuggerito),
+      modelloRelataSuggerito: text(row.modelloRelataSuggerito),
+      provvedimentoTipo: text(row.provvedimentoTipo),
+      criterioTipoDocumento: text(row.criterioTipoDocumento),
+      testoDocumentoDisponibile: bool(row.testoDocumentoDisponibile),
+      provvedimentoData: text(row.provvedimentoData),
+      provvedimentoDataDeposito: text(row.provvedimentoDataDeposito),
     }
   }).filter((item) => item.id && item.label)
 }

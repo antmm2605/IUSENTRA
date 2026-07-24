@@ -5408,3 +5408,75 @@ Nel flusso Presidio notifiche → acquisizione originale PST → relata, l’acq
 5. Agenda, Scadenziario, topbar e web push devono ricevere lo stesso stato riconciliato, non una richiesta di nuova notifica.
 
 Questa correzione è stata blindata con test backend sui payload presidi, workflow notifiche, runtime acquisizione PST e materializzatore relata, oltre a contratto frontend e build React.
+
+### Aggiornamento 24/07/2026 - automatismo RAC/RdAC notifiche L. 53/1994
+
+Richiesta utente: completare il generatore notifiche legali con comportamento allineato al decompilato Studio Telematico/QuickOrganizer, senza usare il nome file per decidere il tipo documento, e agganciare automaticamente accettazione e consegna PEC al fascicolo e ai `Presidi notifiche`.
+
+Fonte tecnica controllata sul decompilato locale: `%TEMP%\quickorganizer_decompiled_full\FormSentMailBee.cs`.
+
+Comportamento implementato:
+
+- il piano di invio usa l'oggetto Studio Telematico `Notificazione ai sensi della legge n. 53 - 1994 e succ. mod.` con riferimento pratica `[JQ...]` e `[Notifica_ID:...]`;
+- la UI mostra le ricevute attese `ACCETTAZIONE:`, `CONSEGNA:` e `AVVISO DI MANCATA CONSEGNA:` con lo stesso oggetto della PEC inviata;
+- dopo l'invio locale il piano prevede archiviazione degli atti notificati con suffisso `(originale notificato)`, lasciando la relata come relata;
+- la pipeline PEC legge da header/XML `Message-ID` originario, destinatario e tipo ricevuta, riconcilia RAC/RdAC/mancata consegna nel repository `pec_legal_notification_*`, aggiorna lo stato del presidio e salva l'EML originale nel fascicolo come documento `NOTIFICA`;
+- nel fascicolo vengono create attività `NOTIFICA` standard con marcatori in nota, senza aggiungere campi arbitrari ai JSON storici; il controllo prova completa sa leggere quei marcatori;
+- l'invio effettivo resta sempre dal PC dell'avvocato tramite canale locale/Local Signer: nessuna rotta abilita SMTP server-side per notifiche legali.
+
+Guardrail eseguiti in questa fase:
+
+- `python -m py_compile pct\notifiche_legali.py pct\pec_pipeline.py pct\pec_notification_presidio\repository_receipts.py`;
+- `python -m pytest -q tests\test_notifiche_legali.py tests\test_pec_notification_presidio.py`.
+
+Stato da chiudere prima del report finale: typecheck/build React, integrità UTF-8, rebuild Docker locale, prova visiva reale su `http://127.0.0.1:8080/notifiche-legali` e successivo commit/push/deploy. Nessuna PEC reale è stata inviata durante questi test.
+### Aggiornamento 24/07/2026 - prova visuale simulata e blocco anti-race registro PEC
+
+Completata la parte UI collegata all'automatismo RAC/RdAC:
+
+- il controllo relata restituisce il piano di invio anche quando il flusso resta bloccato, marcandolo come simulazione visibile e non come invio pronto;
+- il pannello risultato mostra `Invio PEC previsto`, oggetto Studio Telematico con `[JQ...]` e `[Notifica_ID:...]`, ricevute attese `ACCETTAZIONE:`, `CONSEGNA:` e `AVVISO DI MANCATA CONSEGNA:`, archivio automatico nel fascicolo e `Presidio notifiche collegato`;
+- il documento notificato viene mostrato come `decreto_fissazione_udienza (originale notificato).pdf`, mentre la relata resta `relata_notifica.pdf.p7m`;
+- durante `Conferma soggetto e PEC`, i comandi `Controlla relata` e `Invia PEC` restano disabilitati finche' la prova del pubblico elenco non e' salvata, evitando che il payload parta senza data/ora destinatario;
+- il blocco finale rimasto nella prova reale e' solo `Il controllo automatico non ha verificato la PEC del notificante nel pubblico elenco`, perche' la verifica ReGIndE/firma dipende dal dispositivo locale e non e' stata completata in questa simulazione senza invio.
+
+Prova reale locale eseguita su `http://127.0.0.1:8080/notifiche-legali` dopo rebuild Docker:
+
+- container `iusentra-app` healthy e `/api/pronto` `ok=true`, timezone `Europe/Rome`, versione `2.258.1`;
+- selezionata pratica `2026/010 - Collaudo automatico post deposito RG 771/2025`;
+- selezionato destinatario `Ministero dell'Istruzione e del Merito` con PEC `dgosv@postacert.istruzione.it`;
+- compilato allegato manuale `decreto_fissazione_udienza.pdf` con descrizione `Decreto di fissazione udienza da notificare`;
+- aperto `Registro PP.AA.`, confermata la consultazione e verificato messaggio di prova salvata nel fascicolo;
+- controllata la relata: presente `RELATA DI NOTIFICA EX ART. 3-BIS L. 53/1994 E SUCC. MOD.`, assente il vecchio titolo `RELAZIONE DI NOTIFICAZIONE A MEZZO POSTA ELETTRONICA CERTIFICATA`;
+- verificato pannello `Invio PEC previsto` con `Notifica_ID`, ricevute attese, archiviazione `(originale notificato)`, presidio notifiche e avviso `Invio effettivo sempre dal PC dell'avvocato`;
+- responsive controllato con viewport desktop, tablet `820x1100` e mobile `390x844`: le sezioni `Invio PEC previsto`, `Ricevute attese dal presidio PEC` e `Presidio notifiche collegato` restano nel viewport senza overflow documentale.
+
+Guardrail aggiuntivi eseguiti:
+
+- `python -m pytest -q tests\test_notifiche_legali.py tests\test_pec_notification_presidio.py tests\test_notifiche_legali_preview_ui.py`;
+- `npm --prefix frontend run typecheck`;
+- `python -m py_compile pct\notifiche_legali.py pct\pec_pipeline.py pct\pec_notification_presidio\repository_receipts.py`;
+- `npm --prefix frontend run build`;
+- `docker compose build app && docker compose up -d`;
+- `Invoke-RestMethod http://127.0.0.1:8080/api/pronto`.
+
+Nessuna PEC reale e' stata inviata e nessuna firma valida e' stata prodotta in questa simulazione: il software ha mostrato correttamente il blocco sul notificante finche' la verifica ReGIndE/firma locale non viene completata sul PC dell'avvocato.
+Confronto esempi DOCX utente:
+
+- `modello da seguire realata.docx` usa lo stesso impianto ora generato: titolo `RELATA DI NOTIFICA EX ART. 3-BIS L. 53/1994 E SUCC. MOD.`, blocco `HO NOTIFICATO A`, elenco atti con `Natura del documento` e `Contenuto del documento`, chiusura `DICHIARO`/`ATTESTO`, riferimento `[JQ...] [Notifica_ID:...]`;
+- `Attestazione di conformità decreto fissazione .docx` conferma che l'attestazione deve essere unica e includere nello stesso testo tutti i documenti conformi estratti dal fascicolo informatico, come ricorso, procura e decreto di fissazione udienza.
+
+### Aggiornamento 24/07/2026 - controllo finale post rebuild RAC/RdAC
+
+Dopo la normalizzazione del fallback data ricevuta PEC e la rimozione dei tag vuoti sui documenti salvati nel fascicolo, la copia Docker locale è stata ricostruita e riavviata su `127.0.0.1:8080`.
+
+Prova visuale reale sulla pagina `Notifiche legali`:
+
+- selezionata la pratica `2026/010 - Collaudo automatico post deposito RG 771/2025`;
+- selezionato il destinatario `Ministero dell'Istruzione e del Merito` con PEC `dgosv@postacert.istruzione.it`;
+- confermata la verifica su `Registro PP.AA. / PST`, con messaggio visibile di prova salvata nel fascicolo il 24/07/2026 alle ore 16:28;
+- ricontrollata la relata: non sono più presenti `Data verifica PEC` o `Ora verifica PEC` mancanti per il destinatario;
+- il blocco residuo è solo sulla PEC del notificante/firma locale, perché la verifica ReGIndE del notificante richiede dispositivo/PIN e non è stata completata nella simulazione senza invio;
+- portate in viewport e lette le sezioni `Ricevute attese dal presidio PEC`, `Archivio automatico nel fascicolo` e `Presidio notifiche collegato`, con oggetti `ACCETTAZIONE:`, `CONSEGNA:`, `AVVISO DI MANCATA CONSEGNA:`, suffisso `(originale notificato)` e avviso `Invio effettivo sempre dal PC dell'avvocato`.
+
+Guardrail finale eseguito nello stesso giro: py_compile dei moduli notifiche/PEC, pytest mirati notifiche-presidi-UTF8, test confine Local Signer/PEC locale, build React, rebuild Docker locale, `/api/pronto` `ok=true` con timezone `Europe/Rome`.

@@ -211,10 +211,11 @@ def test_notifica_l53_genera_relata_solo_con_controlli_completi():
 
     assert result.ok is True
     assert result.subject == LEGAL_NOTIFICATION_SUBJECT
-    assert "RELAZIONE DI NOTIFICAZIONE" in result.relata_text
-    assert "ricorso.pdf - Ricorso notificato" in result.relata_text
+    assert "RELATA DI NOTIFICA EX ART. 3-BIS L. 53/1994 E SUCC. MOD." in result.relata_text
+    assert "A) - Ricorso notificato (File: ricorso.pdf)" in result.relata_text
+    assert "B) - Relata di notifica." in result.relata_text
     assert "Registro Imprese" in result.relata_text
-    assert "R.G. n. 1234/2026" in result.relata_text
+    assert "RG: 1234/2026" in result.relata_text
     assert "Via Roma 1, CAP 00100" in result.relata_text
     assert "Roma (RM)" in result.relata_text
 
@@ -279,6 +280,11 @@ def test_notifica_rifiuta_impronta_prova_pubblico_elenco_manomessa():
 
     assert result.ok is False
     assert any("PEC_MITTENTE_VALIDATA_REQUIRED" in item for item in result.blockers)
+    assert result.output_plan is not None
+    assert result.output_plan["blockedSimulation"] is True
+    assert result.output_plan["deliveryPlan"]["ready"] is False
+    assert result.output_plan["deliveryPlan"]["expectedReceiptSubjects"]["acceptance"].startswith("ACCETTAZIONE:")
+    assert "RELATA DI NOTIFICA EX ART. 3-BIS" in result.relata_text
 
 
 def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
@@ -388,10 +394,10 @@ def test_notifica_l53_normalizza_avvocato_e_blocco_procedimento():
     result = validate_legal_notification(payload)
 
     assert result.ok is True
-    assert "Io sottoscritto Avv. Giuseppe Montagnese," in result.relata_text
+    assert "Io sottoscritto Avv. Giuseppe Montagnese C.F:" in result.relata_text
     assert "Avv. Avv." not in result.relata_text
     assert "Sezione ," not in result.relata_text
-    assert "R.G. n. 466/2023." in result.relata_text
+    assert "RG: 466/2023" in result.relata_text
 
 
 def test_notifica_l53_attestazione_automatica_cumulativa_per_documenti_multipli():
@@ -442,7 +448,7 @@ def test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto():
     result = validate_legal_notification(payload)
 
     assert result.ok is True
-    assert "richiesta_pagamento.eml - PEC richiesta pagamento allegata" in result.relata_text
+    assert "B) - PEC richiesta pagamento allegata (File: richiesta_pagamento.eml)" in result.relata_text
 
     blocked = _legal_payload()
     blocked["documenti"] = [
@@ -504,9 +510,10 @@ def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
     result = validate_legal_notification(payload)
 
     assert result.ok is True
-    assert "1. ricorso.pdf - Ricorso" in result.relata_text
-    assert "2. procura.pdf - Procura alle liti" in result.relata_text
-    assert "3. provvedimento.pdf - Provvedimento" in result.relata_text
+    assert "A) - Ricorso (File: ricorso.pdf)" in result.relata_text
+    assert "B) - Procura alle liti (File: procura.pdf)" in result.relata_text
+    assert "C) - Provvedimento (File: provvedimento.pdf)" in result.relata_text
+    assert "D) - Relata di notifica." in result.relata_text
 
 
 def test_attestazione_conformita_autocompila_fascicolo_cliente_e_documenti():
@@ -678,8 +685,38 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
     assert model["campi_database"]["avvocato"]["firma_digitale_dicitura"] == "Firmato digitalmente"
     assert result.ok is True
     assert result.template_id == "relata_sentenza_attestazione_conformita"
-    assert "ATTESTAZIONE DI CONFORMITÀ" in result.relata_text
+    assert "ATTESTO" in result.relata_text
     assert "Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 05/06/2026" in result.relata_text
+
+
+def test_relata_deriva_decreto_fissazione_da_suggerimento_documento_non_dal_nome_file():
+    payload = _legal_payload()
+    payload.pop("caso_notifica", None)
+    payload.update({
+        "provvedimento_tipo": "",
+        "provvedimento_data": "",
+        "documenti": [
+            {
+                "nome_file": "decreto_ingiuntivo_nome_sbagliato.pdf",
+                "descrizione": "Documento letto dal fascicolo",
+                "origine": "copia_fascicolo_informatico",
+                "data_documento": "2026-05-18",
+                "casoNotificaSuggerito": "provvedimento_giudice",
+                "modelloRelataSuggerito": "relata_provvedimento_giudice",
+                "provvedimentoTipo": "Decreto fissazione udienza",
+                "criterioTipoDocumento": "testo documento letto",
+            }
+        ],
+        "attestazione_multipla": True,
+    })
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert result.template_id == "relata_provvedimento_giudice"
+    assert result.output_plan["notificationDirective"]["caseId"] == "provvedimento_giudice"
+    assert "Decreto ingiuntivo" not in result.template_label
+    assert "Decreto fissazione udienza" in result.relata_text
 
 
 def test_notifica_l53_audit_automatico_include_normativa_e_piu_allegati():
@@ -951,7 +988,12 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     delivery = result.output_plan["deliveryPlan"]
     signature = result.output_plan["signaturePlan"]
     assert delivery["ready"] is True
-    assert delivery["subject"] == LEGAL_NOTIFICATION_SUBJECT
+    assert delivery["legalSubject"] == LEGAL_NOTIFICATION_SUBJECT
+    assert delivery["studioTelematicoSubject"].startswith("Notificazione ai sensi della legge n. 53 - 1994")
+    assert "[Notifica_ID:" in delivery["studioTelematicoSubject"]
+    assert delivery["expectedReceiptSubjects"]["acceptance"].startswith("ACCETTAZIONE:")
+    assert delivery["expectedReceiptSubjects"]["delivery"].startswith("CONSEGNA:")
+    assert delivery["receiptCorrelation"]["subjectContains"].startswith("[Notifica_ID:")
     assert delivery["recipients"][0]["role"] == "difensore"
     assert any(item["id"] == "relata_firmata" for item in delivery["attachments"])
     assert signature["requiredBeforeSend"][0]["id"] == "relata_notifica"
@@ -959,6 +1001,11 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     assert signature["requiredBeforeSend"][0]["signedFile"] == "relata_notifica.pdf.p7m"
     assert delivery["signaturePlan"]["requiredBeforeSend"][0]["id"] == "relata_notifica"
     assert any(item["id"] == "allegati_pec" and item["status"] == "superato" for item in delivery["sendChecks"])
+    assert any(
+        item["sourceFilename"] == "ricorso.pdf" and item["archiveFilename"] == "ricorso (originale notificato).pdf"
+        for item in delivery["postSendDocumentArchive"]
+    )
+    assert delivery["presidioPecAutomation"]["archiveTargets"] == ["fascicolo", "presidi_notifiche"]
 
 
 def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
@@ -993,6 +1040,12 @@ def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
     assert any(item["filename"] == "relata_notifica.pdf.p7m" for item in plan["attachments"])
     assert any(item["filename"] == "ordinanza.pdf" for item in plan["attachments"])
     assert "RAC per ogni destinatario" in plan["postSendEvidenceRequired"]
+    assert all("[Notifica_ID:" in item["subject"] for item in plan["messages"])
+    assert plan["expectedReceiptSubjects"]["failedDelivery"].startswith("AVVISO DI MANCATA CONSEGNA:")
+    assert any(
+        item["sourceFilename"] == "ordinanza.pdf" and item["archiveFilename"] == "ordinanza (originale notificato).pdf"
+        for item in plan["postSendDocumentArchive"]
+    )
 
 
 def test_relata_due_destinatari_usa_anteprima_testo_e_timestamp_individuali(
@@ -1014,7 +1067,7 @@ def test_relata_due_destinatari_usa_anteprima_testo_e_timestamp_individuali(
 
     for rendered in (preview["previewText"], result.relata_text):
         avvocatura_start = rendered.index("Avvocatura Distrettuale dello Stato di Reggio Calabria")
-        ministero_start = rendered.index("\n2. Ministero dell'Istruzione e del Merito", avvocatura_start + 1)
+        ministero_start = rendered.index("\n2) - Ministero dell'Istruzione e del Merito", avvocatura_start + 1)
         avvocatura_block = rendered[avvocatura_start:ministero_start]
         ministero_block = rendered[ministero_start:]
         assert "21/07/2026" in avvocatura_block
@@ -1419,8 +1472,8 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
     assert result.ok is True
     assert "RELAZIONE PERSONALIZZATA" in result.relata_text
     assert "Avv. Mario Rossi per Cliente S.r.l." in result.relata_text
-    assert "1. ricorso.pdf - Ricorso notificato" in result.relata_text
-    assert "R.G. n. 1234/2026" in result.relata_text
+    assert "A) - Ricorso notificato (File: ricorso.pdf)" in result.relata_text
+    assert "RG: 1234/2026" in result.relata_text
     assert "INTEGRAZIONE DELL'AVVOCATO" in result.relata_text
     assert "Precisazione finale aggiunta dall'avvocato." in result.relata_text
     assert "TAURIANOVA RC, 14/05/2026 alle ore 16:40" in result.relata_text
@@ -1480,7 +1533,7 @@ def test_modelli_standard_restano_renderizzabili():
     result = validate_legal_notification(payload)
 
     assert result.ok is True
-    assert "RELAZIONE DI NOTIFICAZIONE" in result.relata_text
+    assert "RELATA DI NOTIFICA" in result.relata_text
 
 
 def test_anteprima_relata_compilata_con_placeholder():
@@ -1979,7 +2032,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert invalid_payload["ok"] is False
     assert valid_response.status_code == 200
     assert valid_payload["ok"] is True
-    assert "RELAZIONE DI NOTIFICAZIONE" in valid_payload["relataText"]
+    assert "RELATA DI NOTIFICA" in valid_payload["relataText"]
     assert valid_payload["outputPlan"]["workflowSteps"]
     assert valid_payload["outputPlan"]["auditTrail"]["documentsCount"] == 1
     assert attestation_response.status_code == 200
@@ -2308,6 +2361,10 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert documento_payload["nomeFile"] == "Ordinanza udienza 10 maggio 2026.pdf"
     assert documento_payload["label"].startswith("Ordinanza udienza 10 maggio 2026.pdf")
     assert "20260510185021337.PDF" not in documento_payload["label"]
+    assert documento_payload["casoNotificaSuggerito"] == "provvedimento_giudice"
+    assert documento_payload["modelloRelataSuggerito"] == "relata_provvedimento_giudice"
+    assert documento_payload["provvedimentoTipo"] == "Ordinanza"
+    assert documento_payload["criterioTipoDocumento"] == "metadati portale/fascicolo"
     assert documento_payload["origine"] == "copia_fascicolo_informatico"
     assert documento_payload["riferimentoPortale"] == "pst-doc-1"
     assert documento_payload["servizioPortale"] == "PST"
@@ -2320,6 +2377,115 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert payload["precompilazione"]["pratiche"] == []
     assert payload["precompilazione"]["indicePratiche"][0]["id"] == "fascicolo-1"
     assert payload["azioni"]["firmaDigitale"] == "/guida/firma-digitale"
+
+
+def test_payload_react_documento_legge_testo_prima_del_nome_file_fuorviante():
+    documento = SimpleNamespace(
+        id="doc-testo",
+        nome_originale="decreto_ingiuntivo_nome_errato.pdf",
+        nome_portale="",
+        nome="decreto_ingiuntivo_nome_errato.pdf",
+        percorso="decreto_ingiuntivo_nome_errato.pdf",
+        tipo_atto_portale="",
+        classificazione_portale="",
+        note="",
+        fonte_documento="PORTALE_TELEMATICO",
+        servizio_portale="PST",
+        hash_sha256="d" * 64,
+        data_documento="2026-05-18",
+        data_deposito_portale="",
+        id_documento_portale="pst-doc-testo",
+        tags=[],
+        extracted_text=(
+            "TRIBUNALE DI PALMI\n"
+            "DECRETO DI FISSAZIONE UDIENZA\n"
+            "Il Giudice fissa l'udienza del procedimento e assegna termine per la notifica."
+        ),
+    )
+    fascicolo = SimpleNamespace(
+        id="fascicolo-testo",
+        numero="2026/010",
+        titolo="Cliente / Ministero",
+        id_cliente="",
+        nome_cliente="Cliente",
+        controparte="Ministero dell'Istruzione e del Merito",
+        cf_controparte="",
+        tribunale="Tribunale di Palmi",
+        sezione="Lavoro",
+        numero_rg="1477",
+        anno_rg=2026,
+        giudice="",
+        tipo_procedimento="lavoro",
+        documenti=[documento],
+        depositi_pct=[],
+    )
+
+    payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-testo",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda _id: fascicolo),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
+
+    documento_payload = payload["pratica"]["documenti"][0]
+    assert documento_payload["nomeFile"] == "decreto_ingiuntivo_nome_errato.pdf"
+    assert documento_payload["casoNotificaSuggerito"] == "provvedimento_giudice"
+    assert documento_payload["modelloRelataSuggerito"] == "relata_provvedimento_giudice"
+    assert documento_payload["provvedimentoTipo"] == "Decreto fissazione udienza"
+    assert documento_payload["criterioTipoDocumento"] == "testo documento letto"
+    assert documento_payload["testoDocumentoDisponibile"] is True
+
+
+def test_payload_react_non_classifica_notifica_solo_dal_nome_file():
+    documento = SimpleNamespace(
+        id="doc-nome",
+        nome_originale="decreto_ingiuntivo_nome_errato.pdf",
+        nome_portale="",
+        nome="decreto_ingiuntivo_nome_errato.pdf",
+        percorso="decreto_ingiuntivo_nome_errato.pdf",
+        tipo_atto_portale="",
+        classificazione_portale="",
+        note="",
+        fonte_documento="PORTALE_TELEMATICO",
+        servizio_portale="PST",
+        hash_sha256="e" * 64,
+        data_documento="",
+        data_deposito_portale="",
+        id_documento_portale="pst-doc-nome",
+        tags=[],
+        extracted_text="",
+    )
+    fascicolo = SimpleNamespace(
+        id="fascicolo-nome",
+        numero="2026/011",
+        titolo="Cliente / Controparte",
+        id_cliente="",
+        nome_cliente="Cliente",
+        controparte="Controparte",
+        cf_controparte="",
+        tribunale="Tribunale di Palmi",
+        sezione="Lavoro",
+        numero_rg="1477",
+        anno_rg=2026,
+        giudice="",
+        tipo_procedimento="lavoro",
+        documenti=[documento],
+        depositi_pct=[],
+    )
+
+    payload = react_notifiche_legali_bridge.build_react_notifiche_legali_practice_payload(
+        "fascicolo-nome",
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [], get=lambda _id: None),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda _id: fascicolo),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
+
+    documento_payload = payload["pratica"]["documenti"][0]
+    assert documento_payload["nomeFile"] == "decreto_ingiuntivo_nome_errato.pdf"
+    assert documento_payload["casoNotificaSuggerito"] == ""
+    assert documento_payload["modelloRelataSuggerito"] == ""
+    assert documento_payload["provvedimentoTipo"] == ""
+    assert documento_payload["criterioTipoDocumento"] == ""
 
 
 def test_destinatario_avvocatura_usa_reginde_e_parte_rappresentata_del_fascicolo():
@@ -2881,6 +3047,9 @@ def test_ui_notifiche_legali_allinea_caso_modello_e_mostra_il_blocco_locale_real
 
     assert "item.templateId === practice.modelloSuggerito" in page
     assert "caso_notifica: suggestedCase?.value || current.caso_notifica" in page
+    assert "syncNotificaFromNotificationDocuments(rows)" in page
+    assert "documento.casoNotificaSuggerito" in page
+    assert "Tipo letto da {documento.criterioTipoDocumento}" in page
     assert "pecVerificationMessage(raw)" in page
     assert "Il certificato di autenticazione del dispositivo non è disponibile." in page
 

@@ -354,6 +354,29 @@ def test_audit_tenant_data_structure_blocca_json_operativo_nascosto(tmp_path: Pa
     assert any("JSON operativo non censito in studio.db" in error for error in report["errors"])
 
 
+def test_audit_tenant_data_structure_tratta_preview_cache_email_come_cache(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Preview Cache", "studio-preview-cache", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+    preview = Path(paths["EMAIL_CASELLA_DB"]).parent / ".preview-cache" / "pec-source" / "source.json"
+    preview.parent.mkdir(parents=True, exist_ok=True)
+    preview.write_text(
+        json.dumps({"download_name": "4548015s.pdf", "mimetype": "application/pdf"}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
+
+    assert report["ok"] is True
+    assert report["studios"][studio.slug]["hidden_json_summary"]["operational_untracked"] == 0
+    assert any(
+        item["relative"] == "email/.preview-cache/pec-source/source.json"
+        and item["role"] == "cache_rigenerabile"
+        for item in report["studios"][studio.slug]["hidden_json"]
+    )
+
+
 def test_audit_tenant_data_structure_non_duplica_repository_verticali_pesanti(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))

@@ -162,12 +162,17 @@ def register_fascicoli_management_routes(
 
         if request.method == "POST":
             form = request.form
-            id_cliente = form.get("id_cliente", fascicolo.id_cliente)
+            id_cliente = form.get("id_cliente", fascicolo.id_cliente).strip()
             nome_cliente = fascicolo.nome_cliente
-            if id_cliente:
-                cliente = gc.get(id_cliente)
-                nome_cliente = cliente.nome_completo if cliente else nome_cliente
             try:
+                if id_cliente:
+                    cliente = gc.get(id_cliente)
+                    if not cliente:
+                        raise ValueError(
+                            "Il cliente selezionato non è presente nell'anagrafica dello studio. "
+                            "Ricarica l'elenco clienti o crea la scheda cliente prima di salvare il fascicolo."
+                        )
+                    nome_cliente = cliente.nome_completo
                 avvocato_referente = (
                     form.get("avvocato_referente", "").strip()
                     or _avvocato_titolare_studio()
@@ -221,7 +226,8 @@ def register_fascicoli_management_routes(
                 return redirect(redirect_to)
             except (ValueError, KeyError) as exc:
                 app.logger.info("Validazione modifica_fascicolo %s non superata: %s", id_fasc, exc)
-                result = _form_result("Dati fascicolo non validi.", status=400)
+                message = str(exc).strip() or "Dati fascicolo non validi."
+                result = _form_result(message, status=400)
                 if result is not None:
                     return result
             except sqlite3.OperationalError as exc:

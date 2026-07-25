@@ -21,6 +21,7 @@ from pct.fascicoli import (
     stato_fascicolo_da_descrizione_portale,
     _normalizza_esito_controlli,
 )
+from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicolo_document_presidio import duplicate_practice_groups, normalise_practice_duplicate_key
 from pct.storage import StudioDB
 
@@ -119,6 +120,89 @@ def test_numerazione_progressiva(gf):
 def test_titolo_vuoto_errore(gf):
     with pytest.raises(ValueError, match="obbligatorio"):
         gf.nuovo(titolo="  ", tipo=TipoFascicolo.CIVILE)
+
+
+def test_nuovo_sql_blocca_cliente_mancante_nel_tenant(tmp_path):
+    studio_db = StudioDB(str(tmp_path / "studio.db"))
+    gestore = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+
+    with pytest.raises(ValueError, match="tenant corrente"):
+        gestore.nuovo(
+            titolo="Martorano Mara c. MIM",
+            tipo=TipoFascicolo.LAVORO,
+            id_cliente="BA82D89F",
+            nome_cliente="",
+        )
+
+    assert gestore.tutti() == []
+
+
+def test_nuovo_sql_riallinea_nome_cliente_da_anagrafica_tenant(tmp_path):
+    studio_db = StudioDB(str(tmp_path / "studio.db"))
+    clienti = GestioneClienti(
+        db_path=str(tmp_path / "clienti" / "anagrafica.json"),
+        studio_db=studio_db,
+    )
+    cliente = clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Mara",
+        cognome="Martorano",
+    )
+    gestore = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+
+    fascicolo = gestore.nuovo(
+        titolo="Martorano Mara c. MIM",
+        tipo=TipoFascicolo.LAVORO,
+        id_cliente=cliente.id,
+        nome_cliente="Nome non allineato",
+    )
+
+    assert fascicolo.id_cliente == cliente.id
+    assert fascicolo.nome_cliente == "Martorano Mara"
+
+
+def test_aggiorna_sql_blocca_cambio_su_cliente_mancante(tmp_path):
+    studio_db = StudioDB(str(tmp_path / "studio.db"))
+    clienti = GestioneClienti(
+        db_path=str(tmp_path / "clienti" / "anagrafica.json"),
+        studio_db=studio_db,
+    )
+    cliente = clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+    )
+    gestore = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+    fascicolo = gestore.nuovo(
+        titolo="Rossi c/ Bianchi",
+        tipo=TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+    )
+
+    with pytest.raises(ValueError, match="tenant corrente"):
+        gestore.aggiorna(
+            fascicolo.id,
+            id_cliente="CLIENTE_NO",
+            nome_cliente="Cliente inesistente",
+        )
+
+    assert gestore.get(fascicolo.id).id_cliente == cliente.id
 
 
 def test_nuovo_blocca_doppione_cliente_rg(gf):

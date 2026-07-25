@@ -67,7 +67,7 @@ import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
-import { formatEuroInput, formatEuroIt, parseItalianAmount } from '../formatting'
+import { formatEuroInput, parseItalianAmount } from '../formatting'
 import './FatturazionePage.css'
 
 type VoiceRow = FatturazioneVoiceDefault & {
@@ -375,20 +375,16 @@ function buildPayload(formState: FormState): CreateFatturaPayload {
   }
 }
 
-function currency(value: number): string {
-  return formatEuroIt(value)
-}
-
 function currencyInputValue(value: string | number): string {
   return formatEuroInput(value)
 }
 
 function machineAmountValue(value: string | number): string {
-  return numericInputValue(value, 0).toFixed(2)
-}
-
-function lineTotal(row: VoiceRow): number {
-  return numericInputValue(row.quantita, 1) * numericInputValue(row.prezzo_unitario, 0)
+  return new Intl.NumberFormat('it-IT', {
+    useGrouping: false,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericInputValue(value, 0))
 }
 
 function mergeParty(current: FatturazionePersonalizedParty, incoming?: FatturazionePersonalizedParty): FatturazionePersonalizedParty {
@@ -410,44 +406,6 @@ function isValidIban(value: string): boolean {
     for (const digit of digits) remainder = (remainder * 10 + Number(digit)) % 97
   }
   return remainder === 1
-}
-
-function computePreview(formState: FormState) {
-  const ivaLocked = isVatExcludedRegime(formState.dati_personalizzati.document.regime_fiscale)
-  const competenze = formState.voci
-    .filter((row) => (row.tipo || 'ONORARIO') !== 'SPESE' && (row.tipo || 'ONORARIO') !== 'ANTICIPO')
-    .reduce((sum, row) => sum + lineTotal(row), 0)
-  const speseImponibili = formState.voci
-    .filter((row) => row.tipo === 'SPESE')
-    .reduce((sum, row) => sum + lineTotal(row), 0)
-  const anticipazioni = formState.voci
-    .filter((row) => row.tipo === 'ANTICIPO')
-    .reduce((sum, row) => sum + lineTotal(row), 0)
-  const percSpeseGenerali = numericInputValue(formState.percentuale_spese_generali, 0)
-  const speseGenerali = Math.max(0, competenze * (percSpeseGenerali / 100))
-  const imponibile = competenze + speseImponibili + speseGenerali
-  const cassa = formState.opzioni_fiscali.applica_cassa ? imponibile * 0.04 : 0
-  const baseIva = imponibile + cassa
-  const iva = formState.opzioni_fiscali.applica_iva && !ivaLocked ? baseIva * 0.22 : 0
-  const bollo = formState.opzioni_fiscali.applica_bollo ? 2 : 0
-  const ritenutaBase = competenze + speseGenerali
-  const ritenuta = formState.opzioni_fiscali.applica_ritenuta ? ritenutaBase * 0.2 : 0
-  const totaleDocumento = baseIva + iva + bollo + anticipazioni
-  const totale = totaleDocumento - ritenuta
-  return {
-    competenze,
-    speseImponibili,
-    anticipazioni,
-    speseGenerali,
-    imponibile,
-    cassa,
-    baseIva,
-    iva,
-    bollo,
-    ritenuta,
-    totaleDocumento,
-    totale,
-  }
 }
 
 function normalizeFilterValue(value: string | number | null | undefined) {
@@ -959,7 +917,6 @@ function NewInvoiceForm({
     () => data.matters.filter((matter) => !formState.id_cliente || matter.idCliente === formState.id_cliente),
     [data.matters, formState.id_cliente],
   )
-  const preview = useMemo(() => computePreview(formState), [formState])
   const canSave = form?.enabled !== false
   const noClients = data.clients.length === 0
   const clientProfile = data.clientProfiles[formState.id_cliente]
@@ -1674,25 +1631,15 @@ function NewInvoiceForm({
         <section className="iu-fatt-preview-card">
           <div className="iu-fatt-section-head">
             <div>
-              <span className="iu-fatt-kicker">Anteprima</span>
+              <span className="iu-fatt-kicker">Riepilogo</span>
               <h3>Riepilogo economico della {documentKindLabel}</h3>
             </div>
             <Badge tone="warning">Conferma finale al salvataggio</Badge>
           </div>
-          <div className="iu-fatt-preview-grid">
-            <div><span>Totale competenze</span><strong>{currency(preview.competenze)}</strong></div>
-            <div><span>Spese imponibili</span><strong>{currency(preview.speseImponibili)}</strong></div>
-            <div><span>Anticipazioni</span><strong>{currency(preview.anticipazioni)}</strong></div>
-            <div><span>Spese generali</span><strong>{currency(preview.speseGenerali)}</strong></div>
-            <div><span>CPA 4%</span><strong>{currency(preview.cassa)}</strong></div>
-            <div><span>IVA 22%</span><strong>{currency(preview.iva)}</strong></div>
-            <div><span>Ritenuta 20%</span><strong>{currency(preview.ritenuta)}</strong></div>
-            <div><span>Totale documento</span><strong>{currency(preview.totaleDocumento)}</strong></div>
-          </div>
-          <div className="iu-fatt-preview-total">
-            <span>Totale generale</span>
-            <strong>{currency(preview.totale)}</strong>
-          </div>
+          <EmptyState
+            title="Importi definitivi calcolati dal server"
+            message="La pagina raccoglie voci, opzioni fiscali e dati del cliente; numerazione, imponibile, CPA, IVA, ritenuta e totale vengono verificati e salvati dal backend tenant-aware."
+          />
         </section>
 
         <section className="iu-fatt-form-note" aria-label="Calcolo definitivo">

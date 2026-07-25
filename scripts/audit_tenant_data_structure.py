@@ -205,7 +205,7 @@ def _untracked_json_role(relative: str) -> str:
         return "archivio_backup"
     if "demo_calendar" in parts or "demo" in parts:
         return "cache_demo"
-    if "downloads" in parts or "models" in parts:
+    if "downloads" in parts or "models" in parts or ".preview-cache" in parts or "preview-cache" in parts:
         return "cache_rigenerabile"
     if name.startswith(("pre_migration_", "storage_migration_", "operational_backup_")):
         return "archivio_backup"

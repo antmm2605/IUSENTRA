@@ -4,9 +4,15 @@ import { failIf, fullRoutes, read } from './full-react-check-utils.mjs'
 execFileSync(process.execPath, ['scripts/react-migration/audit-anti-mascheramento.mjs'], { stdio: 'inherit' })
 execFileSync(process.execPath, ['scripts/react-migration/check-no-fake-react-full.mjs'], { stdio: 'inherit' })
 
-const api = read('web/blueprints/api_v1_react.py')
+const api = [
+  read('web/blueprints/api_v1_react.py'),
+  read('web/blueprints/api_v1_client_portal.py'),
+  read('web/blueprints/api_v1_daily_plan.py'),
+  read('web/blueprints/api_v1_legal_skills.py'),
+].join('\n')
 const violations = []
 const apiAliasMarkers = new Map([
+  ['/app/portale-clienti', ['@api_v1_client_portal.get("/dashboard")', '@api_v1_client_portal.get("/studio/dashboard")']],
   ['/workspace-intelligente', ['("/dashboard")', "('/dashboard')"]],
   ['/regia-operativa', ['("/dashboard")', "('/dashboard')"]],
   ['/ricerca-studio', ['("/global-search")', "('/global-search')"]],
@@ -19,6 +25,7 @@ const apiAliasMarkers = new Map([
   ['/importa-pratiche-studio-telematico', ['("/import/quickorganizer")', "('/import/quickorganizer')"]],
   ['/scadenziario/:id', ['("/scadenziario")', "('/scadenziario')"]],
   ['/scadenziario/:id/modifica', ['("/scadenziario/nuova")', "('/scadenziario/nuova')"]],
+  ['/fascicoli/:id/deposito/prepara', ['@api_v1_react.get("/fascicoli/<id_fasc>")']],
   ['/impostazioni/calendario', ['("/impostazioni")', "('/impostazioni')"]],
   ['/impostazioni/pagamenti', ['("/impostazioni")', "('/impostazioni')"]],
   ['/impostazioni/sdi', ['("/impostazioni")', "('/impostazioni')"]],
@@ -42,15 +49,24 @@ const apiAliasMarkers = new Map([
   ['/portali/sigit/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
   ['/servizi-telematici', ['("/telematico")', "('/telematico')"]],
   ['/preventivi/conferimento/:id', ['("/preventivi/conferimento/<id_conferimento>")', "('/preventivi/conferimento/<id_conferimento>')"]],
+  ['/legal-skills', ['@api_v1_legal_skills.get("/packs")', '@api_v1_legal_skills.get("/profile")']],
+  ['/portale-cliente', ['@api_v1_client_portal.get("/public/dashboard")', '@api_v1_client_portal.get("/public/invites/<path:token>")']],
+  ['/oggi', ['@api_v1_daily_plan.get("/daily-plan")']],
   ['/sito-studio/articoli/:id/modifica', ['("/sito-studio/articoli/<int:article_id>/modifica")', "('/sito-studio/articoli/<int:article_id>/modifica')"]],
 ])
 
 for (const route of fullRoutes()) {
+  const isStaticReactHub = route.targetBridge === 'web/blueprints/react_shell.py'
+    && route.targetData === route.targetComponent
+    && !/\bapiJson\b|\bapiPostJson\b|\bfetch\s*\(/.test(read(route.targetComponent || ''))
+  if (isStaticReactHub) {
+    continue
+  }
   const clean = route.route.replace(/\*$/, '').replace(/\/+$/, '') || '/'
   const apiPart = clean === '/' ? '/bootstrap' : clean
   const markers = apiAliasMarkers.get(route.route) || [`("${apiPart}")`, `('${apiPart}')`]
   if (!markers.some((marker) => api.includes(marker))) {
-    violations.push(`${route.route}: endpoint GET JSON non rilevato in api_v1_react.py.`)
+    violations.push(`${route.route}: endpoint GET JSON non rilevato nei blueprint API React.`)
   }
 }
 

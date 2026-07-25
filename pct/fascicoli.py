@@ -1061,6 +1061,65 @@ class GestioneFascicoli:
         except Exception:
             pass
 
+    @staticmethod
+    def _nome_cliente_da_record_sql(record: dict[str, Any]) -> str:
+        payload: dict[str, Any] = {}
+        raw_payload = record.get("dati_json")
+        if raw_payload:
+            try:
+                loaded = json.loads(raw_payload)
+                if isinstance(loaded, dict):
+                    payload = loaded
+            except Exception:
+                payload = {}
+        tipo = str(payload.get("tipo") or record.get("tipo") or "").strip()
+        ragione_sociale = str(
+            payload.get("ragione_sociale") or record.get("ragione_sociale") or ""
+        ).strip()
+        if tipo == "PERSONA_GIURIDICA" and ragione_sociale:
+            return ragione_sociale
+        cognome = str(payload.get("cognome") or record.get("cognome") or "").strip()
+        nome = str(payload.get("nome") or record.get("nome") or "").strip()
+        return " ".join(part for part in (cognome, nome) if part).strip() or ragione_sociale
+
+    def _normalizza_link_cliente_tenant(
+        self,
+        id_cliente: str,
+        nome_cliente: str,
+    ) -> tuple[str, str]:
+        id_clean = str(id_cliente or "").strip()
+        nome_clean = str(nome_cliente or "").strip()
+        if not id_clean or self._studio_db is None:
+            return id_clean, nome_clean
+        try:
+            rows = self._studio_db.fetchall_readonly(
+                """
+                SELECT id, tipo, cognome, nome, ragione_sociale, dati_json
+                FROM clienti
+                WHERE id = ?
+                LIMIT 1
+                """,
+                (id_clean,),
+            )
+        except Exception as exc:
+            raise ValueError(
+                "Non è stato possibile verificare il cliente selezionato nel tenant corrente."
+            ) from exc
+        if not rows:
+            raise ValueError(
+                "Il cliente selezionato non è presente nell'anagrafica del tenant corrente. "
+                "Ricarica l'elenco clienti o crea la scheda cliente prima di salvare il fascicolo."
+            )
+        nome_da_sql = self._nome_cliente_da_record_sql(dict(rows[0]))
+        if nome_da_sql:
+            return id_clean, nome_da_sql
+        if nome_clean:
+            return id_clean, nome_clean
+        raise ValueError(
+            "Il cliente selezionato non ha un nome leggibile nell'anagrafica del tenant corrente. "
+            "Completa la scheda cliente prima di salvare il fascicolo."
+        )
+
     def _salva_fascicoli_parziale(
         self,
         fascicoli: Iterable["Fascicolo"],
@@ -1930,6 +1989,10 @@ class GestioneFascicoli:
         """Crea un nuovo fascicolo."""
         if not titolo.strip():
             raise ValueError("Il titolo del fascicolo è obbligatorio.")
+        id_cliente, nome_cliente = self._normalizza_link_cliente_tenant(
+            id_cliente,
+            nome_cliente,
+        )
         f = Fascicolo(
             id=uuid.uuid4().hex[:8].upper(),
             numero=self._prossimo_numero(),
@@ -1967,6 +2030,13 @@ class GestioneFascicoli:
 
     def aggiorna(self, id_fasc: str, **campi) -> Fascicolo:
         f = self._get_o_errore(id_fasc)
+        if "id_cliente" in campi or "nome_cliente" in campi:
+            id_cliente, nome_cliente = self._normalizza_link_cliente_tenant(
+                campi.get("id_cliente", f.id_cliente),
+                campi.get("nome_cliente", f.nome_cliente),
+            )
+            campi["id_cliente"] = id_cliente
+            campi["nome_cliente"] = nome_cliente
         tocchi_profilo = False
         for k, v in campi.items():
             if hasattr(f, k):

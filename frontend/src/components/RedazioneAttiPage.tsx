@@ -115,11 +115,22 @@ function Records({ data }: { data: RedazioneAttiPageData }) {
 export function RedazioneAttiPage() {
   const [data, setData] = useState<RedazioneAttiPageData>(emptyRedazioneAttiPage)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [loadSuccess, setLoadSuccess] = useState(false)
 
   function load() {
     setLoading(true)
+    setLoadError('')
+    setLoadSuccess(false)
     getRedazioneAttiPage()
-      .then(setData)
+      .then((payload) => {
+        setData(payload)
+        setLoadSuccess(true)
+      })
+      .catch(() => {
+        setData(emptyRedazioneAttiPage)
+        setLoadError('Redazione atti non disponibile: aggiorna la pagina o riprova tra poco.')
+      })
       .finally(() => setLoading(false))
   }
 
@@ -152,6 +163,16 @@ export function RedazioneAttiPage() {
     >
       <div className="iu-redazione-page iu-od-stack">
         <ContractStrip data={data} />
+        {loadError ? (
+          <p className="iu-redazione-warning iu-od-warning" role="alert">
+            {loadError}
+          </p>
+        ) : null}
+        {loadSuccess ? (
+          <p className="iu-redazione-warning iu-od-success" role="status">
+            Aggiornamento riuscito: dati della redazione caricati dal tenant corrente.
+          </p>
+        ) : null}
         <WarningList data={data} />
         <RedazioneGuidataWizard />
         <Metrics data={data} />

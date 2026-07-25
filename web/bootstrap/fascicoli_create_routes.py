@@ -242,14 +242,19 @@ def register_fascicoli_create_routes(
 
         if request.method == "POST":
             form = request.form
-            id_cliente = form.get("id_cliente", "")
+            id_cliente = form.get("id_cliente", "").strip()
             source_preventivo = form.get("source_preventivo", "").strip()
             source_conferimento = form.get("source_conferimento", "").strip()
             nome_cliente = ""
-            if id_cliente:
-                cliente = gestore_clienti.get(id_cliente)
-                nome_cliente = cliente.nome_completo if cliente else ""
             try:
+                if id_cliente:
+                    cliente = gestore_clienti.get(id_cliente)
+                    if not cliente:
+                        raise ValueError(
+                            "Il cliente selezionato non è presente nell'anagrafica dello studio. "
+                            "Ricarica l'elenco clienti o crea la scheda cliente prima di salvare il fascicolo."
+                        )
+                    nome_cliente = cliente.nome_completo
                 avvocato_referente = form.get("avvocato_referente", "").strip() or _avvocato_titolare_studio()
                 fascicolo_veloce = _form_bool(form, "fascicolo_veloce")
                 titolo = form.get("titolo", "").strip()

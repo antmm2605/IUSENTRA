@@ -113,8 +113,8 @@ function routeProblems(entry, facts) {
   if ((entry.status === 'react_full' || entry.status === 'react_operational_full') && facts.blockingLegacyLinks > 0) problems.push('full con link legacy primario')
   if ((entry.status === 'react_full' || entry.status === 'react_operational_full') && facts.hasLegacyPostForm) problems.push('full con LegacyPostForm')
   if (facts.requiresWriteApi && !facts.hasJsonWrite) problems.push('API JSON di salvataggio mancante')
-  if (facts.componentExists && !facts.hasErrorHandling) problems.push('gestione errori non rilevata')
-  if (facts.componentExists && !facts.hasSuccessHandling) problems.push('gestione successo non rilevata')
+  if (facts.componentDoesAsyncWork && !facts.hasErrorHandling) problems.push('gestione errori non rilevata')
+  if (facts.hasJsonWrite && !facts.hasSuccessHandling) problems.push('gestione successo non rilevata')
   if (entry.unlockFromGate === true && facts.realLevel === 'react_shell') problems.push('gate sbloccato ma solo shell')
   return problems
 }
@@ -162,6 +162,14 @@ const rows = [...routeMap.values()].map((entry) => {
     componentExists: Boolean(entry.targetComponent && existsSync(resolve(root, entry.targetComponent))),
     hasJsonRead: hasJsonRead(entry.route, sources),
     hasJsonWrite: hasJsonWrite(entry.route, sources),
+    componentDoesAsyncWork: includesAny(`${sources.component}\n${sources.data}`, [
+      /\bapiJson\b/,
+      /\bapiPostJson\b/,
+      /\bfetch\s*\(/,
+      /\.then\s*\(/,
+      /\basync\s+function\b/,
+      /\bawait\b/,
+    ]),
     legacyLinks: count(combined, /\?_legacy=1/g),
     hasLegacyPostForm: /\bLegacyPostForm\b/.test(sources.component),
     hasReactPostForm: includesAny(sources.component, [
@@ -197,8 +205,8 @@ const rows = [...routeMap.values()].map((entry) => {
     blockingLegacyLinks: facts.blockingLegacyLinks,
     technicalRollback: facts.technicalRollback,
     missingWriteApi: facts.requiresWriteApi && !facts.hasJsonWrite,
-    missingErrorHandling: facts.componentExists && !facts.hasErrorHandling,
-    missingSuccessHandling: facts.componentExists && !facts.hasSuccessHandling,
+    missingErrorHandling: facts.componentDoesAsyncWork && !facts.hasErrorHandling,
+    missingSuccessHandling: facts.hasJsonWrite && !facts.hasSuccessHandling,
     problems,
     realLevel: facts.realLevel,
   }

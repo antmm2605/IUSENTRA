@@ -35,6 +35,7 @@ TOOLS_DIR      = Path(__file__).resolve().parent
 REPO_DIR       = TOOLS_DIR.parent
 DIST_DIR       = TOOLS_DIR / "dist"
 LS_PY          = TOOLS_DIR / "local_signer.py"
+WINDOWS_HTTP_PS1 = TOOLS_DIR / "local_signer_windows_http.ps1"
 AI_BRIDGE_PY   = TOOLS_DIR / "local_ai_host_bridge.py"
 LEX_CONTEXT_PY = TOOLS_DIR / "lex_document_context.py"
 REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
@@ -451,6 +452,7 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
     copied: list[Path] = []
     for source, target_name in (
         (LS_PY, "local_signer.py"),
+        (WINDOWS_HTTP_PS1, "local_signer_windows_http.ps1"),
         (AI_BRIDGE_PY, "local_ai_host_bridge.py"),
         (LEX_CONTEXT_PY, "lex_document_context.py"),
         (VISIBLE_SIGNATURE_PY, "visible_signature.py"),
@@ -498,7 +500,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    for path in [LS_PY, REQS_TXT, INSTALL_PS1, UFFICI_JSON, VISIBLE_SIGNATURE_PY, LOCAL_SIGNER_MOD_DIR]:
+    for path in [LS_PY, WINDOWS_HTTP_PS1, REQS_TXT, INSTALL_PS1, UFFICI_JSON, VISIBLE_SIGNATURE_PY, LOCAL_SIGNER_MOD_DIR]:
         if not path.exists():
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)

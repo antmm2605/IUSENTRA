@@ -473,6 +473,125 @@ def test_pipeline_materializza_sentenza_429_in_presidio_notifica(tmp_path: Path)
         assert recipient["name"] == "Destinatario da verificare"
 
 
+def test_pipeline_importa_accettazione_e_consegna_notifica_in_fascicolo_e_presidio(tmp_path: Path) -> None:
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    tenant_id = "tenant-notifiche-test"
+    audit_db = tmp_path / "pec_audit.sqlite"
+    fascicoli_db = tmp_path / "fascicoli.json"
+    fascicoli_docs = tmp_path / "documenti"
+    fascicoli = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs))
+    fascicolo = fascicoli.nuovo("Notifica PEC L. 53/1994", TipoFascicolo.CIVILE, numero_rg="203", anno_rg=2026)
+    repo = NotificationPresidioRepository(audit_db, tenant_id=tenant_id)
+    service = NotificationPresidioService(repo)
+    recipient = {
+        "name": "Avvocatura distrettuale di Stato di Milano",
+        "role": "controparte",
+        "pec_address": "ads.mi@mailcert.avvocaturastato.it",
+        "fiscal_id": "97021490152",
+    }
+    presidio_id = str(service.create_candidate({
+        "fascicolo_id": fascicolo.id,
+        "source_message_id": "provvedimento-da-notificare",
+        "source_effective_at": "2026-07-24T14:20:00+02:00",
+        "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
+        "notification_case": "decreto_fissazione",
+        "rulepack_version": "pytest",
+        "priority": "P1",
+        "confidence": 1,
+        "detection_reason": "Procedura notifica L. 53/1994 generata dal software.",
+        "documents": [{"content_sha256": "a" * 64, "original_filename": "decreto.pdf"}],
+        "recipients": [recipient],
+    })["id"])
+    sent_message_id = "<sent-notifica-jkobkrqc@example.test>"
+    _sent(
+        PecNotificationReconciler(repo),
+        presidio_id=presidio_id,
+        message_id=sent_message_id,
+        recipient=recipient,
+    )
+    audit = PecAuditRepository(
+        audit_db,
+        tenant_id=tenant_id,
+        fascicoli_db_path=fascicoli_db,
+        fascicoli_docs_path=fascicoli_docs,
+    )
+
+    def _receipt(kind: str, message_id: str) -> str:
+        label = "ACCETTAZIONE" if kind == "accettazione" else "CONSEGNA"
+        msg = EmailMessage()
+        msg["Subject"] = (
+            f"{label}: Notificazione ai sensi della legge n. 53 - 1994 e succ. mod. "
+            "[JQ203-L01] [Notifica_ID:JkObKrQc]"
+        )
+        msg["From"] = "postacert <postacert@pec.example.test>"
+        msg["To"] = "studio@example.test"
+        msg["Date"] = "Fri, 24 Jul 2026 14:31:00 +0200"
+        msg["Message-ID"] = message_id
+        msg["X-Riferimento-Message-ID"] = sent_message_id
+        msg.set_content(f"Ricevuta di {kind} per la notificazione ai sensi della legge n. 53/1994.")
+        msg.add_attachment(
+            (
+                "<postacert>"
+                f"<tipo>{kind}</tipo>"
+                "<msgid>sent-notifica-jkobkrqc@example.test</msgid>"
+                "<destinatario>ads.mi@mailcert.avvocaturastato.it</destinatario>"
+                "<data>2026-07-24T14:31:00+02:00</data>"
+                "</postacert>"
+            ),
+            subtype="xml",
+            filename="daticert.xml",
+        )
+        ingested = audit.ingest_mime(
+            msg.as_bytes(policy=policy.SMTP),
+            account_email="studio@example.test",
+            folder="INBOX",
+            imap_uid=message_id.strip("<>"),
+        )
+        audit.parse_and_store(ingested["id"], actor="pytest")
+        result = audit.validate_message(ingested["id"], actor="pytest")
+        assert result["notification_receipt_automation"]["matched"] is True
+        assert result["notification_receipt_automation"]["fascicolo"]["ok"] is True
+        return ingested["id"]
+
+    rac_audit_id = _receipt("accettazione", "<rac-jkobkrqc@example.test>")
+    rdac_audit_id = _receipt("avvenuta_consegna", "<rdac-jkobkrqc@example.test>")
+
+    presidio = repo.get_presidio(presidio_id)
+    assert presidio["status"] == PresidioStatus.DELIVERY_COMPLETE.value
+    [recipient_row] = _recipient_rows(repo, presidio_id)
+    assert recipient_row["sent_message_id"] == sent_message_id
+    assert recipient_row["rac_message_id"] == "<rac-jkobkrqc@example.test>"
+    assert recipient_row["rdac_message_id"] == "<rdac-jkobkrqc@example.test>"
+    with repo.connection() as conn:
+        roles = {
+            row["document_role"]: row["fascicolo_document_id"]
+            for row in conn.execute(
+                """
+                SELECT document_role, fascicolo_document_id
+                FROM pec_legal_notification_documents
+                WHERE tenant_id=? AND presidio_id=? AND document_role IN ('rac', 'rdac')
+                """,
+                (tenant_id, presidio_id),
+            ).fetchall()
+        }
+    assert set(roles) == {"rac", "rdac"}
+    saved = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved is not None
+    assert sum("IUSENTRA_LEGAL_NOTIFICATION_RECEIPT" in doc.note for doc in saved.documenti) == 2
+    assert sum("IUSENTRA_LEGAL_NOTIFICATION_RECEIPT" in activity.note for activity in saved.attivita) == 2
+    assert any("receipt_kind: RAC" in doc.note for doc in saved.documenti)
+    assert any("receipt_kind: RdAC" in doc.note for doc in saved.documenti)
+
+    repeat = audit.validate_message(rdac_audit_id, actor="pytest-repeat")
+    assert repeat["notification_receipt_automation"]["matched"] is True
+    saved_repeat = GestioneFascicoli(str(fascicoli_db), documents_dir=str(fascicoli_docs)).get(fascicolo.id)
+    assert saved_repeat is not None
+    assert sum("IUSENTRA_LEGAL_NOTIFICATION_RECEIPT" in doc.note for doc in saved_repeat.documenti) == 2
+    assert sum("IUSENTRA_LEGAL_NOTIFICATION_RECEIPT" in activity.note for activity in saved_repeat.attivita) == 2
+    assert rac_audit_id != rdac_audit_id
+
+
 def test_pipeline_chiude_sentenza_429_se_prova_notifica_gia_presente(tmp_path: Path) -> None:
     studio_db = tmp_path / "studio.db"
     with sqlite3.connect(str(studio_db)) as conn:

@@ -6,7 +6,6 @@
   place-items: center;
   padding: 24px;
   background: rgba(15, 23, 42, .48);
-  backdrop-filter: blur(4px);
 }
 
 .nlp-evidence-modal__box {
@@ -16,7 +15,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--iu-border);
-  border-radius: 20px;
+  border-radius: var(--iu-radius-panel);
   background: var(--iu-surface-solid);
   box-shadow: var(--iu-shadow-xl, 0 24px 70px rgba(15, 23, 42, .26));
 }
@@ -73,10 +72,11 @@
   line-height: 1.65;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 560px) {
   .nlp-evidence-modal {
     padding: 12px;
   }
+
   .nlp-evidence-modal__box header,
   .nlp-evidence-modal__box footer {
     align-items: stretch;

@@ -293,15 +293,8 @@
       "recipient_roles": [
         "difensore"
       ],
-      "required_fields": [
-        "destinatario.parte_rappresentata"
-      ],
-      "fields": [
-        {
-          "name": "destinatario_parte_rappresentata",
-          "label": "Parte rappresentata"
-        }
-      ],
+      "required_fields": [],
+      "fields": [],
       "purpose_lines": [
         "{% if destinatario.parte_rappresentata %}Il destinatario e' indicato quale difensore di {{ destinatario.parte_rappresentata }}.{% endif %}"
       ],

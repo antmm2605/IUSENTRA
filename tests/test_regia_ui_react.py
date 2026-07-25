@@ -543,12 +543,14 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "hasSendableNotificationAttachmentExtension" in source
     assert "hasEmailEvidenceExtension" in source
     assert "automaticAttestationDocument" not in source
-    assert "Attestazione_conformita_" not in source
-    assert "Attestazione unica nella relata" in source
+    assert "Elenco finale atti della relata" in source
+    assert "finalRelataRows" in source
+    assert "Relata di notifica.pdf" in source
+    assert "Attestazione di conformità.pdf" in source
+    assert "Attestazione unica nella relata" not in source
     assert "Una sola dichiarazione comprende" in source
-    assert "Scarica attestazione unica" in source
+    assert "Scarica PDF" in source
     assert "downloadLegalAttestation" in source
-    assert "Attestazione_conformita_" not in source
     assert "attestazione_multipla: notificationNeedsAttestazione" in source
     assert "deriveProceedingRg" in source
     apply_practice = source[source.index("const applyPractice"):source.index("const buildNotificaPayload")]
@@ -561,13 +563,17 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "manualNotificationDocument()" not in notification_payloads
     toggle_notification = source[source.index("const toggleNotificationDocument"):source.index("const toggleDepositDocument")]
     assert "setNotifica" not in toggle_notification
-    assert "entrano nella relata solo dopo la scelta dell'avvocato" in source
+    assert "solo quelli spuntati entrano nella relata" in source
     assert "currentNotificationDocuments.every(isNotifiablePayloadDocument)" in source
     assert "hasPassingNotificationControl" in source
     assert "disabled={!canPrepareNotificationSend}" in source
     assert "Invio PEC bloccato" in source
     assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
-    assert "Tutti notificabili" in source
+    assert "Tutti notificabili" not in source
+    assert "Scegli i documenti del fascicolo: solo quelli spuntati entrano nella relata." in source
+    assert "<em>Fascicolo</em>" in source
+    assert "<em>Presidio</em>" in source
+    assert "<em>Manuale</em>" in source
 
 
 def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():
@@ -602,6 +608,8 @@ def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
     assert "DocumentFlowSelectionModal" in source
     assert "appendSelectedDocumentsToHref" in source
     assert "parsed.searchParams.set('documenti', documentIds.join(','))" in source
+    assert 'href={targetHref}' in source
+    assert 'href={baseHref}>Apri senza selezione' in source
     assert "openDocumentFlow('notifica')" in source
     assert "openDocumentFlow('deposito')" in source
     assert "compareDocumentFlowByRecentDate" in source

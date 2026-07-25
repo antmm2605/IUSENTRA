@@ -251,3 +251,113 @@ Indirizzo/sede e data/ora della consultazione dell'elenco sono mantenuti come id
 - `git diff --check` -> superato sul perimetro dei test.
 
 La prova browser reale in produzione e locale, la generazione/apertura PDF e il blocco precedente all'invio restano obbligatori prima della chiusura. Nessuna PEC reale è stata inviata.
+
+## Riesame ReGIndE silenzioso, PP.AA. e ricevute - 24/07/2026
+
+Il riesame successivo è stato eseguito direttamente sul decompilato locale indicato dall'utente, senza aggiungere scorciatoie non presenti in Studio Telematico.
+
+### Esito del decompilato
+
+- ReGIndE: `PCT.RicercaSoggettoExRegInde(codiceFiscale, _WebCertificate)` effettua la chiamata SOAP ministeriale con certificato già disponibile e restituisce la PEC; nel wizard PolisWeb la PEC viene salvata in anagrafica insieme a `PubblicoElenco = RegInde`.
+- Registro PP.AA.: Studio Telematico apre l'area PST autenticata e, dopo login, naviga verso la pagina del registro PP.AA.; nel generatore notifica usa poi i campi anagrafici `PEC` e `PubblicoElenco`.
+- Generatore notifica: se `PEC`, `PubblicoElenco` o `QUALIFICA` mancano, il flusso si ferma e chiede di correggere la scheda anagrafica.
+- Relata: viene generato `Relata di notifica.pdf`, firmato digitalmente e allegato.
+- Oggetto e ricevute: l'oggetto contiene `Notifica_ID`; il caricamento ricevute cerca `ACCETTAZIONE:`, `CONSEGNA:` e `AVVISO DI MANCATA CONSEGNA:` sullo stesso identificativo.
+- Post invio: gli allegati salvati in fascicolo ricevono `(originale notificato)` salvo la relata.
+
+### Adeguamento IUSENTRA
+
+- La verifica ReGIndE nel Local Signer ora può partire senza PIN precompilato, usando il certificato Windows/PST selezionato; il PIN resta richiesto dal middleware quando serve o dal comando firma quando si deve firmare la relata.
+- La UI Notifiche legali non presenta più ReGIndE come fase manuale di conferma prima della chiamata: chiama `/pst/reginde` e registra esito solo se il pubblico elenco restituisce associazione valida PEC/codice fiscale.
+- PP.AA. non è stato trasformato in scraping o automatismo inventato: resta consultazione PST/anagrafica, coerente col decompilato.
+- Il piano di invio IUSENTRA conserva oggetto Studio Telematico, ricevute attese, salvataggio `(originale notificato)` e aggiornamento Presidi notifiche/fascicolo tramite `Notifica_ID`.
+- I quattro DOCX di esempio forniti dall'utente sono stati letti strutturalmente dal contenuto OOXML: le due relate usano lo stesso testo decompilato `RELATA DI NOTIFICA EX ART. 3-BIS...`, destinatari numerati, atti A/B/C, attestazioni per natura del documento, `DICHIARO`, `ATTESTO` e riferimento `[JQ...] [Notifica_ID:...]`; le due attestazioni confermano la generazione unica quando più documenti sono conformi e la variante singola per sentenza. Il render visuale dei DOCX non è stato completato perché manca LibreOffice/soffice nella macchina, quindi il DOCX è stato usato come confronto testuale/strutturale.
+
+### Guardrail
+
+- `python -m pytest -q tests\test_local_signer.py -k reginde`;
+- `python -m pytest -q tests\test_notifiche_legali.py tests\test_pec_notification_presidio.py tests\test_local_signer.py -k "notifiche or notifica or reginde or receipt or ricevut or originale or attestazione or relata"`;
+- `npm --prefix frontend run build`;
+- `python tools\build_dist.py`, con Local Signer `1.6.103`.
+
+Nessun invio PEC reale è stato effettuato. La firma effettiva della relata resta da provare materialmente con dispositivo/PIN reale nella copia locale o produzione prima di dichiarare completata una notifica reale.
+
+## Riesame matrice documento, DB e attestazione PDF - 24/07/2026
+
+Il riesame richiesto dall'utente ha incrociato decompilato, database Montagnese e fonti ufficiali per evitare che il generatore scelga il testo della relata o dell'attestazione dal solo nome file.
+
+### Decompilato
+
+In `%TEMP%\quickorganizer_decompiled_full\FormSentMailBee.cs` la natura del documento notificato è codificata con quattro valori:
+
+- `OriginalePredispostoAvvocato`;
+- `DuplicatoInformatico`;
+- `AcquisizioneScanner`;
+- `CopiaEstrattaFascicoloInformatico`.
+
+Il metodo `GetAttestazione()` varia il testo in base a quei valori. La relata viene generata come `Relata di notifica.pdf`, firmata digitalmente e allegata alla PEC; l'oggetto contiene `[Notifica_ID:...]`; dopo invio gli allegati non relata vengono salvati con `(originale notificato)` e le ricevute vengono ricercate come `ACCETTAZIONE:`, `CONSEGNA:` e `AVVISO DI MANCATA CONSEGNA:` sullo stesso identificativo.
+
+### Database Montagnese
+
+Il database locale non è il campione completo: contiene `10` fascicoli. Il tenant di produzione corretto è `/opt/iusentra/data/tenants/studio-legale-giuseppe-montagnese` e contiene `334` fascicoli, `1.377` PEC, `4.690` allegati e `66` gruppi `[Notifica_ID:...]`.
+
+I casi storici confermano:
+
+- attestazione sentenza autonoma quando si notifica una sentenza estratta dal fascicolo;
+- attestazione unica con ricorso, procura e decreto fissazione udienza nello stesso PDF;
+- suffisso `(originale notificato)` sugli atti notificati;
+- ricevute ACCETTAZIONE/CONSEGNA salvate con oggetto Studio Telematico e `Notifica_ID`.
+
+### Adeguamento applicativo
+
+- Il classificatore legge contenuto/metadati del documento; il nome file è solo fallback.
+- La UI mostra `Documenti prodotti dal software` con `Relata di notifica.pdf` e, quando dovuta, `Attestazione di conformità.pdf`.
+- L'endpoint React `/notifiche-legali/attestazione-conformita` restituisce PDF, non più DOCX.
+- L'attestazione PDF è unica per tutti i documenti conformi della stessa notifica.
+- La relata continua a contenere le clausole di natura documento secondo il modello decompilato e il catalogo modelli IUSENTRA.
+- L'elenco `I seguenti atti` viene ricostruito con tutti i documenti selezionati e aggiunti manualmente, poi `Attestazione di conformità` quando prodotta e infine `Relata di notifica`; la firma finale non ripete più `Firmato digitalmente` dopo `F.to digitalmente da`.
+
+Dettaglio completo della matrice: `artifacts/notifiche-legali/matrice-casi-notifica-montagnese-2026-07-24.md`.
+
+## Distill finale controlli utili - 24/07/2026
+
+Nuovo riesame sul decompilato locale `%TEMP%\quickorganizer_decompiled_full\FormSentMailBee.cs` dopo segnalazione utente: nel generatore Studio Telematico il flusso ordinario blocca su dati essenziali di invio e compilazione, non su controlli inventati di verifica live PEC per ogni destinatario.
+
+Allineamento IUSENTRA:
+
+- nessun blocco per verifica automatica PEC destinatari non registrata;
+- nessun blocco per verifica automatica PEC notificante non registrata;
+- nessun blocco per ufficio, numero RG o anno RG assenti nella relata ordinaria;
+- nessun blocco per `Parte rappresentata` assente nel modello `A difensore costituito`;
+- `Parte rappresentata` viene stampata solo quando il dato esiste;
+- il riquadro React `Verifica automatica delle PEC` è stato rimosso dal percorso principale;
+- l'anteprima mostra la relata compilata, non il template tecnico con segnaposto;
+- il PIN visibile è collegato soltanto alla firma della relata.
+
+Regola anti-regressione: questi controlli possono restare come presidi tecnici o audit interni solo se non bloccano e non appesantiscono la procedura dell'avvocato. Nel percorso ordinario devono restare visibili relata, attestazione di conformità PDF quando dovuta, destinatari, documenti allegati, firma relata e conferma prima dell'invio.
+
+## Tre ingressi documenti per relata - 25/07/2026
+
+Nuovo chiarimento utente: il generatore non deve inventare un percorso unico complicato. Deve rispettare tre ingressi operativi:
+
+- `Fascicolo`: quando l'avvocato parte dal fascicolo con documenti selezionati, quei documenti vengono riportati in Notifiche legali e sono già inclusi nella relata;
+- `Presidio`: quando l'avvocato parte da `Presidio notifiche`, il presidio porta il documento da notificare con `ingresso=presidio`, senza farlo sembrare una scelta manuale;
+- `Manuale`: quando non arriva alcuna selezione, la pagina mostra i documenti del fascicolo e lascia all'avvocato la spunta di ciò che vuole importare.
+
+Allineamento con decompilato Studio Telematico:
+
+- `FormSentMailBee.cs` aggiunge al messaggio solo gli allegati scelti o collegati al contesto operativo, non tutto il fascicolo;
+- la natura documento guida relata e attestazione tramite le proprietà dell'allegato, non tramite una regola globale o il solo nome file;
+- la relata resta l'atto finale firmato digitalmente, mentre l'eventuale attestazione è un PDF autonomo incluso nell'elenco degli atti;
+- gli automatismi post-invio restano agganciati a `Notifica_ID`, RAC/RdAC e salvataggio degli allegati come `(originale notificato)`.
+
+Verifica materiale locale su `127.0.0.1:8080`, dopo rebuild Docker/React:
+
+- dal fascicolo `DD242366` con `documenti=BB94330C`: modalità `Fascicolo documenti selezionati`, `Ordinanza_32473463.pdf` inclusa, `Attestazione di conformità.pdf` unica e `Relata di notifica.pdf`;
+- dal presidio con `DD242366&documenti=BB94330C&ingresso=presidio`: modalità `Presidio porta il documento`, documento incluso automaticamente dal presidio notifiche;
+- manuale su `DD242366`: modalità `Manuale vedi e spunta`, 13 documenti visibili, zero documenti iniziali, inclusione solo dopo spunta reale di `Ordinanza_32473463.pdf`;
+- `Vedi attestazione` mostra l'anteprima dell'`Attestazione di conformità.pdf`;
+- `Controlla relata` simula senza inviare PEC; `Invio PEC` resta bloccato finché firma relata e approvazione finale non sono acquisite;
+- nessun invio PEC, nessun uso del PIN, campo PIN svuotato nella sessione browser e pulizia completa del dato temporaneo `CODXPRSD` da SQLite, JSON, documenti, scadenziario, audit tecnico e OCR/AI.
+
+Regola anti-regressione: se l'URL contiene `documenti=` senza `ingresso=presidio`, la UI deve indicare `Fascicolo documenti selezionati`; se contiene `ingresso=presidio`, deve indicare `Presidio porta il documento`; se non contiene documenti, deve restare manuale e non preselezionare allegati.

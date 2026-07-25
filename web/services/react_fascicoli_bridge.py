@@ -401,6 +401,41 @@ def _empty_notification_relata() -> dict[str, Any]:
     }
 
 
+def _notifiche_legali_operation_href(
+    fid: str,
+    *,
+    phase: str,
+    documents: Iterable[Any] | None = None,
+    entry_source: str = "",
+) -> str:
+    anchor = "deposito" if phase == "deposito" else "notifica"
+    params: list[str] = []
+    if fid:
+        params.append(f"id_fascicolo={quote(fid)}")
+    params.append(f"fase={quote(phase)}")
+    document_ids: list[str] = []
+    seen: set[str] = set()
+    for document in documents or []:
+        if isinstance(document, dict):
+            document_id = _text(
+                document.get("documentoLocaleId")
+                or document.get("documentoId")
+                or document.get("id")
+            )
+        else:
+            document_id = _text(getattr(document, "id", ""))
+        if not document_id or document_id in seen:
+            continue
+        seen.add(document_id)
+        document_ids.append(document_id)
+    if document_ids:
+        params.append(f"documenti={quote(','.join(document_ids), safe=',')}")
+    if _text(entry_source):
+        params.append(f"ingresso={quote(_text(entry_source))}")
+    query = f"?{'&'.join(params)}" if params else ""
+    return f"/notifiche-legali{query}#{anchor}"
+
+
 def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str, str]:
     mode = "laterale"
     place = ""
@@ -4952,12 +4987,18 @@ def _item_light(
                 "relataCount": len(pending_releases),
             }
         elif acquired_releases:
+            acquired_prepare_href = _notifiche_legali_operation_href(
+                fid,
+                phase="notifica",
+                documents=acquired_releases,
+                entry_source="presidio",
+            )
             relata_summary = {
                 "relataStatus": "da_preparare",
                 "relataStatusLabel": "Relata da preparare",
                 "relataTone": "warning",
                 "relataHref": f"/fascicoli/{fid_for_relata}#relata-notifica",
-                "relataPrimaryHref": f"/notifiche-legali?id_fascicolo={fid_for_relata}&fase=notifica#notifica",
+                "relataPrimaryHref": acquired_prepare_href,
                 "relataPrimaryLabel": "Prepara relata",
                 "relataReleaseDetected": False,
                 "relataCount": len(acquired_releases),
@@ -6230,8 +6271,13 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     legacy_assumed_handled = bool(legacy_assessment["legacyAssumedHandled"])
     first_release = pending_releases[0] if pending_releases else {}
     acquisition_href = _notifica_portal_acquisition_href(fascicolo, first_release)
-    prepare_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=notifica#notifica" if fid else "/notifiche-legali#notifica"
-    deposit_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=deposito#deposito" if fid else "/notifiche-legali#deposito"
+    prepare_href = _notifiche_legali_operation_href(
+        fid,
+        phase="notifica",
+        documents=office_documents,
+        entry_source="presidio" if office_documents else "",
+    )
+    deposit_href = _notifiche_legali_operation_href(fid, phase="deposito")
     if pending_releases:
         status = "da_acquisire"
         status_label = "Provvedimento da scaricare dal portale"

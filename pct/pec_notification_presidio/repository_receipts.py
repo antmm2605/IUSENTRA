@@ -20,12 +20,20 @@ class NotificationPresidioReceiptMixin:
         self, *, original_message_id: str, pec_address: str = ""
     ) -> dict[str, Any] | None:
         message_id = required_text(original_message_id, "original_message_id")
+        stripped_message_id = message_id.strip("<> ")
+        variants = {
+            message_id,
+            stripped_message_id,
+            f"<{stripped_message_id}>" if stripped_message_id else "",
+        }
+        variants = {item for item in variants if item}
         normalized_pec = normalize_pec(pec_address)
         sql = """
             SELECT * FROM pec_legal_notification_recipients
-            WHERE tenant_id=? AND sent_message_id=?
+            WHERE tenant_id=? AND sent_message_id IN ({placeholders})
         """
-        params: list[Any] = [self.tenant_id, message_id]
+        sql = sql.format(placeholders=",".join("?" for _ in variants))
+        params: list[Any] = [self.tenant_id, *sorted(variants)]
         if normalized_pec:
             sql += " AND pec_address=?"
             params.append(normalized_pec)

@@ -86,6 +86,13 @@ export type LegalDocumentSuggestion = {
   tipoProvaNotifica: string
   dataRilascioPortale: string
   necessitaAttestazione: boolean
+  casoNotificaSuggerito: string
+  modelloRelataSuggerito: string
+  provvedimentoTipo: string
+  criterioTipoDocumento: string
+  testoDocumentoDisponibile: boolean
+  provvedimentoData: string
+  provvedimentoDataDeposito: string
 }
 
 export type LegalOfficeRelease = {
@@ -618,6 +625,13 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       tipoProvaNotifica: text(row.tipoProvaNotifica),
       dataRilascioPortale: text(row.dataRilascioPortale),
       necessitaAttestazione: bool(row.necessitaAttestazione),
+      casoNotificaSuggerito: text(row.casoNotificaSuggerito),
+      modelloRelataSuggerito: text(row.modelloRelataSuggerito),
+      provvedimentoTipo: text(row.provvedimentoTipo),
+      criterioTipoDocumento: text(row.criterioTipoDocumento),
+      testoDocumentoDisponibile: bool(row.testoDocumentoDisponibile),
+      provvedimentoData: text(row.provvedimentoData),
+      provvedimentoDataDeposito: text(row.provvedimentoDataDeposito),
     }
   }).filter((item) => item.id && item.label)
 }
@@ -1001,7 +1015,7 @@ export async function downloadLegalAttestation(
     method: 'POST',
     credentials: 'same-origin',
     headers: {
-      Accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/json',
+      Accept: 'application/pdf, application/json',
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
     },
@@ -1025,7 +1039,7 @@ export async function downloadLegalAttestation(
   const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1]
   const filename = encodedName
     ? decodeURIComponent(encodedName)
-    : (plainName || 'Attestazione_di_conformita.docx')
+    : (plainName || 'Attestazione_di_conformita.pdf')
   const href = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = href
@@ -1034,7 +1048,7 @@ export async function downloadLegalAttestation(
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(href), 1000)
-  return { ok: true, message: 'Attestazione unica scaricata.' }
+  return { ok: true, message: 'Attestazione di conformità PDF scaricata.' }
 }
 
 export async function saveLegalRelataDraft(payload: {

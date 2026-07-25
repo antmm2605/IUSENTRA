@@ -50,3 +50,20 @@ def test_relata_ui_names_applied_model_case_and_all_recipient_pecs() -> None:
     assert "distinctNotificationRecipientPecCount" in source
     assert "PEC distinte" in source
     assert "L'elenco completo entra nella relata e nel controllo prima dell'invio." in source
+
+
+def test_result_panel_marks_blocked_delivery_plan_as_visible_simulation() -> None:
+    source = PAGE.read_text(encoding="utf-8")
+
+    assert "function blockedSimulation(outputPlan: Record<string, unknown>)" in source
+    assert "result.ok ? 'Passaggi effettuati' : 'Passaggi previsti'" in source
+    assert "result.ok ? 'Invio PEC controllato' : 'Invio PEC previsto'" in source
+    assert "Simulazione visibile: invio e registrazione effettiva restano bloccati" in source
+
+
+def test_notification_control_waits_for_public_register_confirmation() -> None:
+    source = PAGE.read_text(encoding="utf-8")
+
+    assert "const notificationControlBusy = working || publicRegisterConfirmationWorking || pecVerificationWorking" in source
+    assert "disabled={notificationControlBusy}" in source
+    assert "const canPrepareNotificationSend = !notificationControlBusy && sendDisabledReasons.length === 0" in source

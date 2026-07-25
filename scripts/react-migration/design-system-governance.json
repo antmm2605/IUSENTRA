@@ -177,11 +177,6 @@
       "file": "frontend/src/components/SitoStudioBuilderPage.css",
       "count": 2,
       "reason": "Builder sito studio escluso dal preset pagina e governato come superficie creativa."
-    },
-    {
-      "file": "frontend/src/features/notifiche-legali/components/PresidioEvidenceModal.css",
-      "count": 1,
-      "reason": "Overlay del lettore evidenze presidi sopra il contenuto della pagina."
     }
   ],
   "forbiddenCssPatterns": [

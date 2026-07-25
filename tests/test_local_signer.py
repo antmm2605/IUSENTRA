@@ -487,16 +487,34 @@ def test_reginde_windows_usa_client_certificati_nativo_con_pin_solo_su_stdin(mon
     assert result[0]["error"] == ""
 
 
-def test_reginde_windows_richiede_pin_prima_di_aprire_il_middleware(monkeypatch):
+def test_reginde_windows_usa_sessione_certificato_senza_pin_obbligatorio(monkeypatch):
     module = _load_local_signer()
     monkeypatch.setattr(module.sys, "platform", "win32")
+    response_xml = (
+        b"<Envelope><Body><return><soggetto>"
+        b"<codiceFiscale>RSSMRA80A01H501U</codiceFiscale>"
+        b"<pec>studio@example.pec.it</pec>"
+        b"</soggetto></return></Body></Envelope>"
+    )
+    captured = {}
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
 
-    with pytest.raises(ValueError, match="Inserisci il PIN"):
-        module._reginde_verify_subjects([{
-            "key": "notificante",
-            "codice_fiscale": "RSSMRA80A01H501U",
-            "pec_attesa": "studio@example.pec.it",
-        }])
+    def fake_native_batch(requests_batch, *, cert_thumbprint, pin):
+        captured["pin"] = pin
+        captured["cert_thumbprint"] = cert_thumbprint
+        return [{"body_bytes": response_xml, "error": ""}]
+
+    monkeypatch.setattr(module, "_reginde_windows_native_batch", fake_native_batch)
+
+    result = module._reginde_verify_subjects([{
+        "key": "notificante",
+        "codice_fiscale": "RSSMRA80A01H501U",
+        "pec_attesa": "studio@example.pec.it",
+    }])
+
+    assert captured["pin"] == ""
+    assert captured["cert_thumbprint"] == "AABBCC11"
+    assert result["results"][0]["found"] is True
 
 
 def test_ipa_verifica_pec_attiva_e_codice_fiscale(monkeypatch):

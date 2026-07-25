@@ -5480,3 +5480,138 @@ Prova visuale reale sulla pagina `Notifiche legali`:
 - portate in viewport e lette le sezioni `Ricevute attese dal presidio PEC`, `Archivio automatico nel fascicolo` e `Presidio notifiche collegato`, con oggetti `ACCETTAZIONE:`, `CONSEGNA:`, `AVVISO DI MANCATA CONSEGNA:`, suffisso `(originale notificato)` e avviso `Invio effettivo sempre dal PC dell'avvocato`.
 
 Guardrail finale eseguito nello stesso giro: py_compile dei moduli notifiche/PEC, pytest mirati notifiche-presidi-UTF8, test confine Local Signer/PEC locale, build React, rebuild Docker locale, `/api/pronto` `ok=true` con timezone `Europe/Rome`.
+
+### Aggiornamento 24/07/2026 - riallineamento ReGIndE silenzioso da decompilato
+
+Richiesta utente: ricontrollare senza inventare passaggi se Studio Telematico esegue la verifica ReGIndE in silenzio e se IUSENTRA deve comportarsi allo stesso modo nel generatore notifiche.
+
+Fonti decompilate controllate in `%TEMP%\quickorganizer_decompiled_full`:
+
+- `QuickOrganizer\PCT.cs`, metodo `RicercaSoggettoExRegInde`: costruisce SOAP `ricercaSoggettoEx` con `codiceFiscale`, chiama `ServiziInterrogazioneRegindeExt/ServiziInterrogazioneSoggetto` con `_WebCertificate` e restituisce la prima PEC trovata;
+- `QuickOrganizer\WizardImportaPraticheDaPolisWeb.cs`: durante l'import PolisWeb, se l'avvocato ha codice fiscale e non è già in anagrafica, richiama `RicercaSoggettoExRegInde`, salva `PEC` e `PubblicoElenco = RegInde`;
+- `QuickOrganizer\SchedaAnagrafica.cs`: il campo `PubblicoElenco` è anagrafico e contiene `INIPEC-professionisti`, `RegistroImprese`, `RegInde`, `IPA`, `altro`;
+- `QuickOrganizer\FormMain.cs` e `QuickOrganizer\BrowserForm.cs`: i comandi ReGIndE e Registro PP.AA. aprono l'area PST autenticata e poi navigano rispettivamente verso `pst_2_2.wp` e `pst_2_8.wp`;
+- `FormSentMailBee.cs`: prima della notifica blocca se destinatario, PEC o pubblico elenco mancano; compone ogni destinatario con commento `codice fiscale: ... pubblico elenco: ...`; genera `Relata di notifica.pdf`, la firma con `PCT.SignPDF_WithDigitalSignatureSoftware`, imposta l'oggetto della notifica, salva gli allegati non relata come `(originale notificato)` e carica RAC/RdAC/MDC cercando `Notifica_ID` negli oggetti email.
+
+Correzione applicata solo sul punto divergente:
+
+- IUSENTRA non blocca più la verifica ReGIndE solo perché il campo PIN della firma relata è vuoto;
+- il Local Signer prova la chiamata ReGIndE con il certificato Windows/PST selezionato, lasciando al middleware/certificato la richiesta del PIN se necessaria;
+- se l'avvocato inserisce il PIN nel comando firma, il wrapper Windows continua a usarlo per autenticare esplicitamente il CSP;
+- la firma della relata resta separata e obbligatoria: questa modifica riguarda solo la verifica ReGIndE, non autorizza invio PEC senza relata firmata;
+- Registro PP.AA. resta flusso PST/anagrafica come da decompilato: nessuno scraping o conferma inventata viene introdotta nel generatore.
+
+Guardrail eseguiti:
+
+- `python -m py_compile tools\local_signer.py`;
+- `python -m pytest -q tests\test_local_signer.py -k reginde`;
+- `python -m py_compile pct\notifiche_legali.py pct\pec_pipeline.py pct\pec_notification_presidio\repository_receipts.py tools\local_signer.py`;
+- `python -m pytest -q tests\test_notifiche_legali.py tests\test_pec_notification_presidio.py tests\test_local_signer.py -k "notifiche or notifica or reginde or receipt or ricevut or originale or attestazione or relata"`;
+- `npm --prefix frontend run build`;
+- `python tools\build_dist.py`, con pacchetti Local Signer `1.6.103` Windows/macOS/Linux rigenerati e wrapper `local_signer_windows_http.ps1` incluso nei file di supporto.
+
+Esempi DOCX utente controllati leggendo il contenuto OOXML dei file, non il nome file:
+
+- `Attestazione di conformità decreto fissazione .docx`: attestazione unica con ricorso, procura e decreto di fissazione udienza nello stesso attestato;
+- `Attestazione di conformità sentenza.docx`: attestazione singola per sentenza estratta dal fascicolo informatico;
+- `modello da seguire realata.docx` e `modello da seguire realata sentenza.docx`: stesso impianto Studio Telematico `RELATA DI NOTIFICA EX ART. 3-BIS...`, destinatari numerati, atti A/B/C, attestazioni per natura del documento, `DICHIARO`, `ATTESTO`, riferimento `[JQ...] [Notifica_ID:...]`.
+
+Nota QA DOCX: il render PNG dei DOCX con la skill documenti non è stato completato perché in questa macchina manca l'eseguibile di conversione LibreOffice/soffice richiesto; il confronto è quindi testuale/strutturale sul contenuto OOXML, mentre la prova visuale finale riguarda la UI IUSENTRA reale.
+
+Stato prova reale: da ripetere sulla copia Docker reale `127.0.0.1:8080` dopo rebuild del commit corrente. Nessuna PEC reale è stata inviata in questa fase.
+
+### Aggiornamento 24/07/2026 - matrice casi notifica e attestazione PDF
+
+Richiesta utente: confrontare tutti i casi di notifica in base al documento da notificare con decompilato Studio Telematico, database reale Montagnese e fonti, senza decidere dal solo nome file.
+
+Fonti incrociate:
+
+- decompilato `%TEMP%\quickorganizer_decompiled_full\FormSentMailBee.cs`: natura documento `OriginalePredispostoAvvocato`, `DuplicatoInformatico`, `AcquisizioneScanner`, `CopiaEstrattaFascicoloInformatico`, generazione `Relata di notifica.pdf`, firma digitale della relata, oggetto con `[Notifica_ID:...]`, archiviazione `(originale notificato)` e recupero `ACCETTAZIONE`/`CONSEGNA`/`AVVISO DI MANCATA CONSEGNA`;
+- DB reale produzione Montagnese: `/opt/iusentra/data/tenants/studio-legale-giuseppe-montagnese/studio.db` con `334` fascicoli e `pec_audit.sqlite` con `1.377` PEC e `4.690` allegati; il DB locale `tenant-8bf98719c459` contiene solo `10` fascicoli e non è il campione completo dello studio;
+- fascicoli produzione: `11.645` documenti censiti, `1.948` con `(originale notificato)`, `66` gruppi `[Notifica_ID:...]`;
+- esempi DOCX utente: relata con titolo `RELATA DI NOTIFICA EX ART. 3-BIS L. 53/1994 E SUCC. MOD.` e attestazione unica con ricorso, procura e decreto nello stesso attestato;
+- fonti: L. 53/1994 art. 3-bis, DM 48/2013 art. 18/DM 44/2011, specifiche PST 7 agosto 2024 e artt. 196-octies/196-undecies disp. att. c.p.c.
+
+Decisione tecnica applicata:
+
+- il tipo di notifica è guidato da contenuto/metadati del documento; il nome file resta solo recupero debole quando non è disponibile testo leggibile;
+- la relata conserva il testo Studio Telematico e cambia per caso processuale tramite il catalogo modelli già presente;
+- l'attestazione non viene più prodotta come DOCX finale: l'endpoint React genera `Attestazione_di_conformita.pdf`;
+- la UI mostra materialmente `Relata di notifica.pdf` e, quando dovuta, `Attestazione di conformità.pdf`, con pulsante `Scarica PDF`;
+- il PDF dell'attestazione è unico per tutti i documenti conformi allegati alla stessa notifica, come da modello Montagnese ricorso/procura/decreto;
+- la matrice completa è stata salvata in `artifacts/notifiche-legali/matrice-casi-notifica-montagnese-2026-07-24.md`.
+
+Guardrail mirati eseguiti prima di questa annotazione:
+
+- `python -m py_compile pct\notifiche_legali.py web\services\react_notifiche_legali_bridge.py web\blueprints\api_v1_react.py`;
+- `python -m pytest -q tests\test_notifiche_legali.py -k "attestazione_conformita_pdf or matrice_casi_notifica or api_react_notifiche_legali"`;
+- `python -m pytest -q tests\test_regia_ui_react.py -k notifiche`.
+
+Stato da chiudere prima del report finale: render visuale del PDF prodotto, build React completa, rebuild Docker reale su `127.0.0.1:8080`, prova visiva materiale in UI, commit/push dei branch gemelli e deploy Hetzner. Nessuna PEC reale è stata inviata.
+
+### Aggiornamento 24/07/2026 - correzione elenco atti relata e firma finale
+
+Durante la revisione utente è emerso un difetto concreto nella relata: l'attestazione PDF prodotta dal software non compariva nell'elenco `I seguenti atti`, gli allegati aggiunti dovevano essere visibili nello stesso elenco finale e la chiusura mostrava una doppia formula `F.to digitalmente da` / `Firmato digitalmente`.
+
+Correzione applicata:
+
+- `_document_rows()` ora elenca tutti i documenti selezionati o aggiunti manualmente;
+- se almeno un documento richiede conformità, aggiunge `Attestazione di conformità` come atto autonomo prima della relata;
+- `Relata di notifica` resta l'ultima voce dell'elenco;
+- la relata renderizzata e la preview modello non aggiungono più la riga `Firmato digitalmente` dopo il nome avvocato;
+- la UI mostra un unico `Elenco finale atti della relata`, con lettere A/B/C, così l'avvocato vede subito se l'allegato manuale entrerà nel testo;
+- il vecchio riquadro separato `Documenti prodotti dal software` è stato rimosso per ridurre complessità e doppioni.
+
+Guardrail aggiunto:
+
+- `test_relata_elenca_tutti_documenti_attestazione_e_relata_senza_firma_doppia` verifica allegati multipli, attestazione autonoma, ordine dell'elenco e assenza del doppione `Firmato digitalmente` nella relata.
+
+Nessuna PEC reale è stata inviata. Il PIN del certificato comunicato dall'utente deve essere usato solo nell'eventuale prova di firma reale tramite Local Signer, senza salvarlo in file, log o report.
+
+### Aggiornamento 24/07/2026 - distill UI e controlli non inventati
+
+Riesame effettuato sul decompilato `%TEMP%\quickorganizer_decompiled_full\FormSentMailBee.cs`: Studio Telematico non blocca la preparazione della notifica per assenza di una verifica live automatica di ogni PEC, né pretende nel generatore ordinario campi come `Parte rappresentata`, ufficio, numero RG o anno RG quando non sono già disponibili.
+
+Correzione applicata:
+
+- la validazione IUSENTRA non genera più blocker o avvisi visibili per verifica PEC live mancante, dati procedimento vuoti o `Parte rappresentata` non compilata;
+- il modello `A difensore costituito` usa `Parte rappresentata` solo se presente, senza renderla campo obbligatorio;
+- l'anteprima non elenca più `Data verifica PEC` e `Ora verifica PEC` come dati mancanti;
+- la UI Notifiche legali rimuove dal percorso principale il riquadro `Verifica automatica delle PEC`;
+- il PIN viene presentato solo come PIN di firma della relata, non come verifica PEC;
+- l'avvocato vede subito relata prodotta, elenco atti, attestazione PDF quando dovuta e comando di firma/invio, con la modifica manuale della bozza chiusa in un dettaglio opzionale.
+
+Guardrail mirati eseguiti:
+
+- `python -m py_compile pct\notifiche_legali.py`;
+- `npm --prefix frontend run typecheck`;
+- `python -m pytest -q tests\test_notifiche_legali.py -k "pec_coerenti or pubblico_elenco_manomessa or studio_telematico_non_blocca or attestazione_automatica or api_react_notifiche_legali or automatici_i_controlli"`.
+
+La prova browser reale su `127.0.0.1:8080`, il rebuild Docker, commit/push e deploy Hetzner restano da completare prima del report finale.
+
+### Aggiornamento 25/07/2026 - tre ingressi documenti per relata/notifica
+
+Chiarimento utente: il flusso Notifiche legali deve gestire solo i tre casi utili all'avvocato, senza wizard o controlli non presenti nel decompilato Studio Telematico:
+
+1. apertura dal fascicolo con documenti già selezionati;
+2. apertura dal presidio notifiche, che porta automaticamente il documento da notificare;
+3. apertura manuale, in cui l'avvocato vede i documenti del fascicolo e spunta quali importare.
+
+Correzione applicata:
+
+- i link del presidio relata prodotti dal fascicolo ora passano anche `documenti=<id_documento>` e `ingresso=presidio`;
+- la pagina `/notifiche-legali` distingue la provenienza dal parametro `ingresso`: `Fascicolo/documenti selezionati`, `Presidio/porta il documento`, `Manuale/vedi e spunta`;
+- l'ingresso manuale non seleziona nulla in automatico, ma mostra i documenti del fascicolo e inserisce in relata solo quelli spuntati;
+- l'attestazione di conformità PDF viene generata solo se uno dei documenti inclusi la richiede, ed è una sola attestazione cumulativa per tutti i documenti conformi;
+- l'elenco finale atti resta unico: documenti selezionati, eventuale `Attestazione di conformità.pdf`, poi `Relata di notifica.pdf`;
+- il vecchio presidio visibile di verifica automatica PEC non è stato reintrodotto.
+
+Prova reale locale eseguita su Docker `127.0.0.1:8080`, container `iusentra-app` healthy, `/api/pronto` `ok=true`, `versione=2.258.2`, fuso `Europe/Rome`, dopo rebuild completo del bundle React:
+
+- caso fascicolo: `DD242366` aperto con `documenti=BB94330C`; modalità visibile `Fascicolo documenti selezionati`, `Ordinanza_32473463.pdf` spuntata, elenco finale con documento, `Attestazione di conformità.pdf` e `Relata di notifica.pdf`;
+- caso presidio: `DD242366` aperto con `documenti=BB94330C&ingresso=presidio`; modalità visibile `Presidio porta il documento`, documento già incluso dal presidio notifiche, stesso elenco finale conforme;
+- caso manuale: `DD242366` aperto senza `documenti`; modalità visibile `Manuale vedi e spunta`, 13 documenti del fascicolo visibili, zero selezioni iniziali, poi `Ordinanza_32473463.pdf` inserita solo dopo click reale sulla spunta;
+- `Vedi attestazione` apre l'anteprima dell'`Attestazione di conformità.pdf`; `Scarica PDF` resta disponibile;
+- `Controlla relata` esegue la simulazione senza invio; `Invio PEC` resta bloccato perché firma relata e approvazione finale non sono state acquisite.
+
+Il fascicolo temporaneo `CODXPRSD` della prova intermedia è stato rimosso da SQLite, mirror JSON, scadenziario, audit tecnico, documenti fisici e dati OCR/AI; il controllo finale non trova più quel marker nel tenant locale. Nessuna PEC reale è stata inviata, nessun PIN è stato usato o salvato e il campo PIN visibile nella sessione browser è stato svuotato.

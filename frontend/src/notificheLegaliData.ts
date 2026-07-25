@@ -1015,7 +1015,7 @@ export async function downloadLegalAttestation(
     method: 'POST',
     credentials: 'same-origin',
     headers: {
-      Accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/json',
+      Accept: 'application/pdf, application/json',
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
     },
@@ -1039,7 +1039,7 @@ export async function downloadLegalAttestation(
   const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1]
   const filename = encodedName
     ? decodeURIComponent(encodedName)
-    : (plainName || 'Attestazione_di_conformita.docx')
+    : (plainName || 'Attestazione_di_conformita.pdf')
   const href = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = href
@@ -1048,7 +1048,7 @@ export async function downloadLegalAttestation(
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(href), 1000)
-  return { ok: true, message: 'Attestazione unica scaricata.' }
+  return { ok: true, message: 'Attestazione di conformità PDF scaricata.' }
 }
 
 export async function saveLegalRelataDraft(payload: {

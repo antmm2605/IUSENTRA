@@ -580,11 +580,68 @@ def _kind_from_evidence(value: Any, *, content: bool = False) -> str:
         return ""
     haystack = re.sub(r"\s+", " ", raw)
     compact = re.sub(r"[^a-z0-9]+", "", haystack)
+    if "opposizione" in haystack and ("decreto ingiuntivo" in haystack or "decretoingiuntivo" in compact):
+        return "opposizione_decreto_ingiuntivo"
+    if "opposizione" in haystack and any(token in haystack for token in ("esecuzione", "atti esecutivi", "precetto", "pignoramento")):
+        return "opposizione_esecutiva"
+    if "pignoramento presso terzi" in haystack or "pignoramentopressoterzi" in compact:
+        return "pignoramento_presso_terzi"
+    if "atto di precetto" in haystack or "precetto" in haystack or "titolo esecutivo" in haystack:
+        return "titolo_esecutivo_precetto"
+    if "sfratto" in haystack or "convalida" in haystack:
+        return "sfratto_convalida"
+    if "riassunzione" in haystack or "riassume" in haystack:
+        return "riassunzione"
+    if "chiamata in causa" in haystack and "terz" in haystack:
+        return "chiamata_terzo"
+    if "integrazione del contraddittorio" in haystack or "integrare il contraddittorio" in haystack:
+        return "integrazione_contraddittorio"
+    if "rinnovo" in haystack and ("notifica" in haystack or "notificazione" in haystack):
+        return "rinnovo_notifica"
+    if re.search(r"\b(?:atto\s+di\s+)?appello\b", haystack) or "impugnazione" in haystack:
+        return "appello_impugnazione"
+    if "reclamo" in haystack and ("cautelar" in haystack or "provvedimento" in haystack):
+        return "reclamo_cautelare"
+    if "cautelar" in haystack or "provvedimento urgente" in haystack:
+        return "provvedimento_urgente"
+    if any(token in haystack for token in ("separazione", "divorzio", "affidamento", "minore", "minori", "responsabilità genitoriale", "responsabilita genitoriale")):
+        return "famiglia_persone_minori"
+    if any(token in haystack for token in ("transazione", "accordo transattivo", "scrittura privata", "diffida", "messa in mora")):
+        return "accordo_transazione_stragiudiziale"
     if content:
         head = haystack[:8000]
+        head_compact = re.sub(r"[^a-z0-9]+", "", head)
+        if "opposizione" in head and ("decreto ingiuntivo" in head or "decretoingiuntivo" in head_compact):
+            return "opposizione_decreto_ingiuntivo"
+        if "opposizione" in head and any(token in head for token in ("esecuzione", "atti esecutivi", "precetto", "pignoramento")):
+            return "opposizione_esecutiva"
+        if "pignoramento presso terzi" in head or "pignoramentopressoterzi" in head_compact:
+            return "pignoramento_presso_terzi"
+        if "atto di precetto" in head or "precetto" in head or "titolo esecutivo" in head:
+            return "titolo_esecutivo_precetto"
+        if "sfratto" in head or "convalida" in head:
+            return "sfratto_convalida"
+        if "riassunzione" in head or "riassume" in head:
+            return "riassunzione"
+        if "chiamata in causa" in head and "terz" in head:
+            return "chiamata_terzo"
+        if "integrazione del contraddittorio" in head or "integrare il contraddittorio" in head:
+            return "integrazione_contraddittorio"
+        if "rinnovo" in head and ("notifica" in head or "notificazione" in head):
+            return "rinnovo_notifica"
+        if re.search(r"\b(?:atto\s+di\s+)?appello\b", head) or "impugnazione" in head:
+            return "appello_impugnazione"
+        if "reclamo" in head and ("cautelar" in head or "provvedimento" in head):
+            return "reclamo_cautelare"
+        if "cautelar" in head or "provvedimento urgente" in head:
+            return "provvedimento_urgente"
+        if any(token in head for token in ("separazione", "divorzio", "affidamento", "minore", "minori", "responsabilità genitoriale", "responsabilita genitoriale")):
+            return "famiglia_persone_minori"
+        if any(token in head for token in ("transazione", "accordo transattivo", "scrittura privata", "diffida", "messa in mora")):
+            return "accordo_transazione_stragiudiziale"
         if (
             re.search(r"\bsentenza\s*(?:n\.?|numero)?\b", head)
-            or ("sentenza" in head and ("repubblica italiana" in head or "in nome del popolo italiano" in head or "p.q.m" in head or "pqm" in compact))
+            or ("sentenza" in head and ("repubblica italiana" in head or "in nome del popolo italiano" in head or "p.q.m" in head or "pqm" in head_compact))
         ):
             return "sentenza"
         if (
@@ -601,6 +658,8 @@ def _kind_from_evidence(value: Any, *, content: bool = False) -> str:
             return "provvedimento"
         if re.search(r"\bdecreto\b", head):
             return "decreto"
+        if any(token in head for token in ("ricorso", "atto di citazione", "comparsa", "memoria", "istanza")):
+            return "atto_processuale"
         return ""
     if "sentenza" in haystack:
         return "sentenza"
@@ -614,10 +673,42 @@ def _kind_from_evidence(value: Any, *, content: bool = False) -> str:
         return "provvedimento"
     if "decreto" in haystack:
         return "decreto"
+    if any(token in haystack for token in ("ricorso", "atto di citazione", "comparsa", "memoria", "istanza")):
+        return "atto_processuale"
     return ""
 
 
 def _notification_suggestion_from_kind(kind: str, source: str) -> dict[str, str]:
+    mapped_cases: dict[str, tuple[str, str, str]] = {
+        "atto_processuale": ("in_corso_di_causa", "relata_pec_in_corso_di_causa", "Atto processuale"),
+        "titolo_esecutivo_precetto": ("titolo_esecutivo_precetto", "relata_titolo_esecutivo_precetto", "Titolo esecutivo e precetto"),
+        "atto_stragiudiziale": ("atto_stragiudiziale", "relata_atto_stragiudiziale", "Atto stragiudiziale"),
+        "rinnovo_notifica": ("rinnovo_notifica", "relata_rinnovo_notifica", "Rinnovo notificazione"),
+        "integrazione_contraddittorio": ("integrazione_contraddittorio", "relata_integrazione_contraddittorio", "Integrazione del contraddittorio"),
+        "chiamata_terzo": ("chiamata_terzo", "relata_chiamata_terzo", "Chiamata del terzo"),
+        "riassunzione": ("riassunzione", "relata_riassunzione", "Riassunzione"),
+        "appello_impugnazione": ("appello_impugnazione", "relata_appello_impugnazione", "Appello o impugnazione"),
+        "reclamo_cautelare": ("reclamo_cautelare", "relata_reclamo_cautelare", "Reclamo cautelare"),
+        "sfratto_convalida": ("sfratto_convalida", "relata_sfratto_convalida", "Sfratto e convalida"),
+        "pignoramento_presso_terzi": ("pignoramento_presso_terzi", "relata_pignoramento_presso_terzi", "Pignoramento presso terzi"),
+        "opposizione_decreto_ingiuntivo": ("opposizione_decreto_ingiuntivo", "relata_opposizione_decreto_ingiuntivo", "Opposizione a decreto ingiuntivo"),
+        "opposizione_esecutiva": ("opposizione_esecutiva", "relata_opposizione_esecutiva", "Opposizione esecutiva"),
+        "famiglia_persone_minori": ("famiglia_persone_minori", "relata_famiglia_persone_minori", "Famiglia, persone e minori"),
+        "provvedimento_urgente": ("provvedimento_urgente", "relata_provvedimento_urgente", "Provvedimento urgente o cautelare"),
+        "accordo_transazione_stragiudiziale": (
+            "accordo_transazione_stragiudiziale",
+            "relata_accordo_transazione_stragiudiziale",
+            "Accordo o transazione stragiudiziale",
+        ),
+    }
+    if kind in mapped_cases:
+        case_id, template_id, provision_type = mapped_cases[kind]
+        return {
+            "casoNotificaSuggerito": case_id,
+            "modelloRelataSuggerito": template_id,
+            "provvedimentoTipo": provision_type,
+            "criterioTipoDocumento": source,
+        }
     if kind == "sentenza":
         return {
             "casoNotificaSuggerito": "sentenza_termine_breve",

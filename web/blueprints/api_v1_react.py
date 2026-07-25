@@ -47,7 +47,7 @@ from pct.notifiche_legali import (
     build_public_register_confirmation_evidence,
     build_attestazione_conformita_payload,
     build_client_communication,
-    generate_attestazione_conformita_docx,
+    generate_attestazione_conformita_pdf_bytes,
     generate_relata_pdf_bytes,
     normalise_custom_template,
     prepare_pst_failed_notification_workflow,
@@ -3325,25 +3325,22 @@ def notifiche_legali_attestazione_conformita():
             "missingFields": model.get("missing_fields") or [],
         }), 400
 
-    with tempfile.TemporaryDirectory(prefix="iusentra-attestazione-") as tmp_dir:
-        output = Path(tmp_dir) / "attestazione_conformita.docx"
-        generate_attestazione_conformita_docx(payload, output)
-        content = output.read_bytes()
+    content = generate_attestazione_conformita_pdf_bytes(payload)
 
     proceeding = model.get("campi_database", {}).get("procedimento", {})
     rg = re.sub(r"[^0-9]+", "", str(proceeding.get("numero_rg") or ""))
     year = re.sub(r"[^0-9]+", "", str(proceeding.get("anno_rg") or ""))
     suffix = f"_{rg}_{year}" if rg and year else ""
-    filename = f"Attestazione_di_conformita{suffix}.docx"
+    filename = f"Attestazione_di_conformita{suffix}.pdf"
     _audit_event(
         "notifiche_legali.attestazione_conformita",
         "notifica_legale",
         str(payload.get("pratica_codice") or payload.get("practice_id") or ""),
-        "Attestazione unica compilata sul modello dello studio.",
+        "Attestazione di conformità PDF compilata sul modello dello studio.",
     )
     return send_file(
         io.BytesIO(content),
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mimetype="application/pdf",
         as_attachment=True,
         download_name=filename,
         max_age=0,

@@ -76,10 +76,25 @@ type NotificaDocumentPayload = {
   data_rilascio_portale?: string
   attestazione_conformita?: string
   attestazione_conformita_presente?: boolean
+  casoNotificaSuggerito?: string
+  modelloRelataSuggerito?: string
+  provvedimentoTipo?: string
+  provvedimentoData?: string
+  provvedimentoDataDeposito?: string
+  criterioTipoDocumento?: string
+  testoDocumentoDisponibile?: boolean
 }
 
 type ManualNotificationDocument = NotificaDocumentPayload & {
   id: string
+}
+
+type FinalRelataRow = {
+  letter: string
+  title: string
+  detail: string
+  removableId?: string
+  muted?: boolean
 }
 
 type EvidenceDocumentPayload = {
@@ -227,8 +242,34 @@ function documentSelectionTokensFromUrl(): string[] {
   return Array.from(new Set(tokens))
 }
 
+function documentEntrySourceFromUrl(): 'presidio' | 'fascicolo' | '' {
+  if (typeof window === 'undefined') return ''
+  const params = new URLSearchParams(window.location.search)
+  const raw = [
+    params.get('ingresso'),
+    params.get('origine_ingresso'),
+    params.get('fonte_ingresso'),
+    params.get('source'),
+  ].filter(Boolean).join(' ')
+  const normalized = practiceSearchText(raw)
+  if (normalized.includes('presidio') || params.get('presidio') === '1') return 'presidio'
+  if (normalized.includes('fascicolo')) return 'fascicolo'
+  return ''
+}
+
 function compactDocumentToken(value: string): string {
   return String(value || '').trim().toLocaleLowerCase('it-IT')
+}
+
+function alphaListLabel(index: number): string {
+  let value = Math.max(0, index) + 1
+  let label = ''
+  while (value > 0) {
+    value -= 1
+    label = String.fromCharCode(65 + (value % 26)) + label
+    value = Math.floor(value / 26)
+  }
+  return label
 }
 
 function documentMatchesSelectionTokens(documento: LegalDocumentSuggestion, tokens: string[]): boolean {
@@ -242,6 +283,116 @@ function documentMatchesSelectionTokens(documento: LegalDocumentSuggestion, toke
     documento.label,
     documento.riferimentoPortale,
   ].some((value) => wanted.has(compactDocumentToken(value)))
+}
+
+function documentNotificationHaystack(documento: LegalDocumentSuggestion): string {
+  return practiceSearchText([
+    documento.casoNotificaSuggerito,
+    documento.modelloRelataSuggerito,
+    documento.provvedimentoTipo,
+    documento.criterioTipoDocumento,
+  ].join(' '))
+}
+
+function documentNotificationCaseSuggestion(documento: LegalDocumentSuggestion): string {
+  if (documento.casoNotificaSuggerito) return documento.casoNotificaSuggerito
+  const haystack = documentNotificationHaystack(documento)
+  if (
+    haystack.includes('ricorso in opposizione')
+    || haystack.includes('opposizione a decreto ingiuntivo')
+    || haystack.includes('opposizione decreto ingiuntivo')
+    || haystack.includes('opposizione_decreto_ingiuntivo')
+    || (haystack.includes('ricorso') && haystack.includes('decreto ingiuntivo'))
+  ) return 'opposizione_decreto_ingiuntivo'
+  if (haystack.includes('opposizione esecutiva') || haystack.includes('opposizione_esecutiva')) return 'opposizione_esecutiva'
+  if (haystack.includes('pignoramento presso terzi') || haystack.includes('pignoramento_presso_terzi')) return 'pignoramento_presso_terzi'
+  if (haystack.includes('precetto') || haystack.includes('titolo esecutivo') || haystack.includes('titolo_esecutivo_precetto')) return 'titolo_esecutivo_precetto'
+  if (haystack.includes('sfratto') || haystack.includes('convalida') || haystack.includes('sfratto_convalida')) return 'sfratto_convalida'
+  if (haystack.includes('riassunzione')) return 'riassunzione'
+  if (haystack.includes('chiamata terzo') || haystack.includes('chiamata_terzo')) return 'chiamata_terzo'
+  if (haystack.includes('integrazione contraddittorio') || haystack.includes('integrazione_contraddittorio')) return 'integrazione_contraddittorio'
+  if (haystack.includes('rinnovo notifica') || haystack.includes('rinnovo_notifica')) return 'rinnovo_notifica'
+  if (haystack.includes('appello') || haystack.includes('impugnazione') || haystack.includes('appello_impugnazione')) return 'appello_impugnazione'
+  if (haystack.includes('reclamo cautelare') || haystack.includes('reclamo_cautelare')) return 'reclamo_cautelare'
+  if (haystack.includes('famiglia') || haystack.includes('minori') || haystack.includes('famiglia_persone_minori')) return 'famiglia_persone_minori'
+  if (haystack.includes('provvedimento urgente') || haystack.includes('provvedimento_urgente') || haystack.includes('cautelare')) return 'provvedimento_urgente'
+  if (haystack.includes('accordo') || haystack.includes('transazione') || haystack.includes('diffida') || haystack.includes('accordo_transazione_stragiudiziale')) return 'accordo_transazione_stragiudiziale'
+  if (haystack.includes('sentenza')) return 'sentenza_termine_breve'
+  if (haystack.includes('decreto ingiuntivo') || haystack.includes('decretoingiuntivo') || haystack.includes('ingiunzion')) return 'decreto_ingiuntivo'
+  if (
+    haystack.includes('decreto fissazione')
+    || haystack.includes('decreto di fissazione')
+    || haystack.includes('fissazione udienza')
+    || haystack.includes('ordinanza')
+    || haystack.includes('provvedimento')
+    || haystack.includes('decreto')
+  ) return 'provvedimento_giudice'
+  return ''
+}
+
+function documentProvisionTypeSuggestion(documento: LegalDocumentSuggestion): string {
+  const haystack = documentNotificationHaystack(documento)
+  if (
+    documento.provvedimentoTipo
+    && documento.provvedimentoTipo.toLocaleLowerCase('it-IT').includes('opposizione a decreto ingiuntivo')
+    && haystack.includes('ricorso')
+  ) return 'Ricorso'
+  if (documento.provvedimentoTipo) return documento.provvedimentoTipo
+  if (
+    haystack.includes('ricorso in opposizione')
+    || haystack.includes('opposizione a decreto ingiuntivo')
+    || haystack.includes('opposizione decreto ingiuntivo')
+    || (haystack.includes('ricorso') && haystack.includes('decreto ingiuntivo'))
+  ) return 'Ricorso'
+  if (haystack.includes('opposizione_decreto_ingiuntivo')) return 'Opposizione a decreto ingiuntivo'
+  if (haystack.includes('opposizione_esecutiva')) return 'Opposizione esecutiva'
+  if (haystack.includes('pignoramento_presso_terzi')) return 'Pignoramento presso terzi'
+  if (haystack.includes('titolo_esecutivo_precetto') || haystack.includes('precetto')) return 'Titolo esecutivo e precetto'
+  if (haystack.includes('sfratto_convalida') || haystack.includes('sfratto')) return 'Sfratto e convalida'
+  if (haystack.includes('riassunzione')) return 'Riassunzione'
+  if (haystack.includes('chiamata_terzo')) return 'Chiamata del terzo'
+  if (haystack.includes('integrazione_contraddittorio')) return 'Integrazione del contraddittorio'
+  if (haystack.includes('rinnovo_notifica')) return 'Rinnovo notificazione'
+  if (haystack.includes('appello_impugnazione') || haystack.includes('appello') || haystack.includes('impugnazione')) return 'Appello o impugnazione'
+  if (haystack.includes('reclamo_cautelare')) return 'Reclamo cautelare'
+  if (haystack.includes('famiglia_persone_minori')) return 'Famiglia, persone e minori'
+  if (haystack.includes('provvedimento_urgente') || haystack.includes('cautelare')) return 'Provvedimento urgente o cautelare'
+  if (haystack.includes('accordo_transazione_stragiudiziale') || haystack.includes('transazione') || haystack.includes('diffida')) return 'Accordo o transazione stragiudiziale'
+  if (haystack.includes('sentenza')) return 'Sentenza'
+  if (haystack.includes('decreto ingiuntivo') || haystack.includes('decretoingiuntivo') || haystack.includes('ingiunzion')) return 'Decreto ingiuntivo'
+  if (haystack.includes('decreto fissazione') || haystack.includes('decreto di fissazione') || haystack.includes('fissazione udienza')) return 'Decreto fissazione udienza'
+  if (haystack.includes('ordinanza')) return 'Ordinanza'
+  if (haystack.includes('decreto')) return 'Decreto'
+  if (haystack.includes('provvedimento')) return 'Provvedimento'
+  return ''
+}
+
+function documentProvisionDateSuggestion(documento: LegalDocumentSuggestion): string {
+  return documento.provvedimentoData || documento.dataDocumento || documento.dataRilascioPortale
+}
+
+function documentProvisionDepositDateSuggestion(documento: LegalDocumentSuggestion): string {
+  return documento.provvedimentoDataDeposito || documento.dataRilascioPortale || documentProvisionDateSuggestion(documento)
+}
+
+function documentRelataTemplateFromOrigin(origin: string): string {
+  if (origin === 'copia_fascicolo_informatico') return 'relata_pec_con_attestazione_fascicolo'
+  if (origin === 'comunicazione_cancelleria') return 'relata_provvedimento_giudice'
+  if (origin === 'scansione_analogico') return 'relata_pec_con_attestazione_scansione_analogica'
+  return ''
+}
+
+function notificationDocumentPriority(documento: LegalDocumentSuggestion): number {
+  const caseId = documentNotificationCaseSuggestion(documento)
+  if (caseId === 'sentenza_termine_breve') return 0
+  if (caseId === 'decreto_ingiuntivo') return 1
+  if (caseId === 'provvedimento_giudice') return 2
+  if (documento.necessitaAttestazione) return 3
+  return 4
+}
+
+function primaryNotificationDocumentForCase(rows: LegalDocumentSuggestion[]): LegalDocumentSuggestion | null {
+  return [...rows].sort((left, right) => notificationDocumentPriority(left) - notificationDocumentPriority(right))[0] || null
 }
 
 function PracticePicker({
@@ -1075,6 +1226,10 @@ function timingPlan(outputPlan: Record<string, unknown>) {
   return isRecord(delivery?.timingPlan) ? delivery.timingPlan : null
 }
 
+function blockedSimulation(outputPlan: Record<string, unknown>) {
+  return outputPlan.blockedSimulation === true
+}
+
 function timingBasis(plan: Record<string, unknown> | null) {
   const rows = plan && Array.isArray(plan.legalBasis) ? plan.legalBasis : []
   return rows.map((item) => {
@@ -1161,6 +1316,45 @@ function deliveryChecks(plan: Record<string, unknown> | null) {
   }).filter((item) => item.id && item.label)
 }
 
+function deliveryReceiptSubjects(plan: Record<string, unknown> | null) {
+  const subjects = plan && isRecord(plan.expectedReceiptSubjects) ? plan.expectedReceiptSubjects : {}
+  return [
+    { id: 'acceptance', label: 'Accettazione', subject: subjects.acceptance },
+    { id: 'delivery', label: 'Consegna', subject: subjects.delivery },
+    { id: 'failedDelivery', label: 'Mancata consegna', subject: subjects.failedDelivery },
+  ].map((item) => ({
+    id: item.id,
+    label: item.label,
+    subject: String(item.subject || '').trim(),
+  })).filter((item) => item.subject)
+}
+
+function deliveryPostSendArchive(plan: Record<string, unknown> | null) {
+  const rows = plan && Array.isArray(plan.postSendDocumentArchive) ? plan.postSendDocumentArchive : []
+  return rows.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: String(row.id || row.archiveFilename || '').trim(),
+      sourceFilename: String(row.sourceFilename || '').trim(),
+      archiveFilename: String(row.archiveFilename || '').trim(),
+      role: String(row.documentRole || '').trim(),
+    }
+  }).filter((item) => item.id && item.archiveFilename)
+}
+
+function deliveryPresidioAutomation(plan: Record<string, unknown> | null) {
+  const automation = plan && isRecord(plan.presidioPecAutomation) ? plan.presidioPecAutomation : null
+  if (!automation || automation.enabled !== true) return null
+  const targets = Array.isArray(automation.archiveTargets)
+    ? automation.archiveTargets.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+  return {
+    correlationField: String(automation.correlationField || '').trim(),
+    archiveTargets: targets,
+    localSendOnly: automation.localSendOnly === true,
+  }
+}
+
 function ResultPanel({ result }: { result: LegalWorkflowResult }) {
   if (!result.message && !result.blockers.length && !result.warnings.length && !result.relataText && !result.body) {
     return (
@@ -1210,7 +1404,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
       ) : null}
       {workflowSteps(result.outputPlan).length ? (
         <div className="iu-legal-output">
-          <span>Passaggi effettuati</span>
+          <span>{result.ok ? 'Passaggi effettuati' : 'Passaggi previsti'}</span>
           <div className="iu-legal-automation-list">
             {workflowSteps(result.outputPlan).map((item, index) => (
               <article key={`${item.id}-${index}`}>
@@ -1278,10 +1472,15 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
       ) : null}
       {deliveryPlan(result.outputPlan) ? (
         <div className="iu-legal-output">
-          <span>Invio PEC controllato</span>
+          <span>{result.ok ? 'Invio PEC controllato' : 'Invio PEC previsto'}</span>
           <div className="iu-legal-delivery-summary">
             <strong>{auditText(deliveryPlan(result.outputPlan)?.subject) || 'notificazione ai sensi della legge n. 53 del 1994'}</strong>
             <small>{deliveryRecipients(deliveryPlan(result.outputPlan)).length} PEC distinta/e da preparare</small>
+            {blockedSimulation(result.outputPlan) ? (
+              <small className="iu-legal-delivery-summary__blocked">
+                Simulazione visibile: invio e registrazione effettiva restano bloccati finché PEC del notificante, firma, documenti e conferma finale non sono completi.
+              </small>
+            ) : null}
             {timingPlan(result.outputPlan) ? (
               <div className="iu-legal-timing-summary">
                 <strong>Orario PEC e perfezionamento</strong>
@@ -1304,6 +1503,37 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
                 <strong key={`${item.label}-${item.filename}`}>{item.label}{item.filename ? ` - ${item.filename}` : ''}</strong>
               ))}
             </div>
+            {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).length ? (
+              <div className="iu-legal-delivery-section">
+                <strong>Ricevute attese dal presidio PEC</strong>
+                <div className="iu-legal-evidence-grid">
+                  {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).map((item) => (
+                    <strong key={item.id}>{item.label} - {item.subject}</strong>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {deliveryPostSendArchive(deliveryPlan(result.outputPlan)).length ? (
+              <div className="iu-legal-delivery-section">
+                <strong>Archivio automatico nel fascicolo</strong>
+                <div className="iu-legal-evidence-grid">
+                  {deliveryPostSendArchive(deliveryPlan(result.outputPlan)).map((item) => (
+                    <strong key={item.id}>
+                      {item.sourceFilename ? `${item.sourceFilename} -> ` : ''}{item.archiveFilename}
+                    </strong>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {deliveryPresidioAutomation(deliveryPlan(result.outputPlan)) ? (
+              <div className="iu-legal-delivery-section iu-legal-delivery-section--presidio">
+                <strong>Presidio notifiche collegato</strong>
+                <small>
+                  RAC e RdAC vengono agganciate con {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.correlationField || 'identificativo notifica'} e Message-ID originario; archivio su {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.archiveTargets.join(' e ') || 'fascicolo'}.
+                </small>
+                {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.localSendOnly ? <small>Invio effettivo sempre dal PC dell'avvocato.</small> : null}
+              </div>
+            ) : null}
             <div className="iu-legal-check-grid">
               {deliveryChecks(deliveryPlan(result.outputPlan)).map((item) => (
                 <article className={`is-${item.status.replace(/\s+/g, '-')}`} key={item.id}>
@@ -1423,6 +1653,9 @@ export function NotificheLegaliPage() {
     data_comunicazione_cancelleria: '',
     attestazione_conformita: '',
     note_integrative_relata: '',
+    provvedimento_tipo: '',
+    provvedimento_data: '',
+    provvedimento_data_deposito: '',
     procedimento_pendente: false,
     ufficio_giudiziario: '',
     sezione: '',
@@ -1447,7 +1680,9 @@ export function NotificheLegaliPage() {
   const [notificationFilesMessage, setNotificationFilesMessage] = useState('')
   const [selectedDepositDocumentIds, setSelectedDepositDocumentIds] = useState<string[]>([])
   const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
+  const requestedDocumentEntrySource = useMemo(() => documentEntrySourceFromUrl(), [])
   const documentSelectionAppliedRef = useRef('')
+  const presidioDocumentSelectionAppliedRef = useRef('')
   const [selectedClientId, setSelectedClientId] = useState('')
   const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false)
@@ -1705,8 +1940,7 @@ export function NotificheLegaliPage() {
     || ['copia_fascicolo_informatico', 'comunicazione_cancelleria', 'scansione_analogico'].includes(origin),
   )
   const notificationNeedsAttestazione = Boolean(
-    selectedOrigin?.needsAttestazione
-    || selectedNotificationDocuments.some((item) => item.necessitaAttestazione)
+    selectedNotificationDocuments.some((item) => item.necessitaAttestazione)
     || manualNotificationDocuments.some((item) => originNeedsAttestazione(item.origine)),
   )
   const guidedAutomationSteps = tab === 'notifica'
@@ -1880,6 +2114,47 @@ export function NotificheLegaliPage() {
     return documento.riferimentoPortale || name
   }
 
+  function relataTemplateForDocument(documento: LegalDocumentSuggestion): string {
+    const documentCase = documentNotificationCaseSuggestion(documento)
+    const directive = data.matriceNotifica.cases.find((item) => item.value === documentCase)
+    return documento.modelloRelataSuggerito || directive?.templateId || documentRelataTemplateFromOrigin(documento.origine)
+  }
+
+  function syncNotificaFromNotificationDocuments(rows: LegalDocumentSuggestion[]) {
+    const primary = primaryNotificationDocumentForCase(rows)
+    if (!primary) return
+    const documentCase = documentNotificationCaseSuggestion(primary)
+    const directive = data.matriceNotifica.cases.find((item) => item.value === documentCase)
+    const templateId = relataTemplateForDocument(primary)
+    const provisionType = documentProvisionTypeSuggestion(primary)
+    const provisionDate = documentProvisionDateSuggestion(primary)
+    const provisionDepositDate = documentProvisionDepositDateSuggestion(primary)
+    setNotifica((current) => ({
+      ...current,
+      nome_file: documentPrimaryName(primary) || current.nome_file,
+      descrizione_documento: primary.descrizione || current.descrizione_documento,
+      origine_documento: primary.origine || current.origine_documento,
+      hash_sha256: primary.hashSha256 || current.hash_sha256,
+      template_id: templateId || current.template_id,
+      caso_notifica: documentCase || current.caso_notifica,
+      procedimento_pendente: directive?.proceedingRequired || primary.origine === 'copia_fascicolo_informatico' || current.procedimento_pendente,
+      data_comunicazione_cancelleria: primary.origine === 'comunicazione_cancelleria'
+        ? provisionDate || current.data_comunicazione_cancelleria
+        : current.data_comunicazione_cancelleria,
+      provvedimento_tipo: provisionType || current.provvedimento_tipo,
+      provvedimento_data: provisionDate || current.provvedimento_data,
+      provvedimento_data_deposito: provisionDepositDate || current.provvedimento_data_deposito,
+    }))
+    setModelFields((current) => ({
+      ...current,
+      provvedimento_tipo: provisionType || current.provvedimento_tipo || '',
+      provvedimento_data: provisionDate || current.provvedimento_data || '',
+      provvedimento_data_deposito: provisionDepositDate || current.provvedimento_data_deposito || '',
+    }))
+    setLastControlPayloadKey('')
+    setLastControlLabel('')
+  }
+
   const depositEvidenceKindFromDocument = (documento: LegalDocumentSuggestion): DepositEvidenceKind => {
     const proofKind = documento.tipoProvaNotifica.toLowerCase()
     if (proofKind === 'relata') return 'relata'
@@ -1945,6 +2220,9 @@ export function NotificheLegaliPage() {
     || hasNotifiableExtension(documento.nomeFile)
     || hasNotifiableExtension(documento.nomeOriginale)
   )
+  const isPresidioNotificationDocument = (documento: LegalDocumentSuggestion) => (
+    (documento.notificaRichiesta || documento.documentoUfficio) && isNotifiableNotificationDocument(documento)
+  )
   const isNotifiablePayloadDocument = (documento: NotificaDocumentPayload) => (
     hasSendableNotificationAttachmentExtension(documento.nome_file)
     || hasSendableNotificationAttachmentExtension(documento.file_originale || '')
@@ -1990,8 +2268,9 @@ export function NotificheLegaliPage() {
 
   useEffect(() => {
     if (!requestedDocumentSelectionTokens.length || !selectedPracticeId || !documentSuggestions.length) return
-    const matchedIds = documentSuggestions
+    const matchedDocuments = documentSuggestions
       .filter((documento) => documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens))
+    const matchedIds = matchedDocuments
       .map((documento) => documento.id)
       .filter(Boolean)
     if (!matchedIds.length) return
@@ -2003,9 +2282,28 @@ export function NotificheLegaliPage() {
       setSelectedDepositDocumentIds(matchedIds)
     } else {
       setSelectedNotificationDocumentIds(matchedIds)
+      syncNotificaFromNotificationDocuments(matchedDocuments)
     }
-    setPracticeSelectionMessage(`${matchedIds.length === 1 ? '1 documento preselezionato' : `${matchedIds.length} documenti preselezionati`} dal fascicolo.`)
-  }, [documentSuggestions, requestedDocumentSelectionTokens, selectedPracticeId, tab])
+    const sourceIsPresidio = requestedDocumentEntrySource === 'presidio'
+    setPracticeSelectionMessage(sourceIsPresidio
+      ? `${matchedIds.length === 1 ? '1 documento importato' : `${matchedIds.length} documenti importati`} dal presidio notifiche.`
+      : `${matchedIds.length === 1 ? '1 documento preselezionato' : `${matchedIds.length} documenti preselezionati`} dal fascicolo.`
+    )
+  }, [documentSuggestions, requestedDocumentEntrySource, requestedDocumentSelectionTokens, selectedPracticeId, tab])
+
+  useEffect(() => {
+    if (!selectedPracticeId || requestedDocumentSelectionTokens.length || selectedNotificationDocumentIds.length || manualNotificationDocuments.length) return
+    const rows = documentSuggestions.filter(isPresidioNotificationDocument)
+    const matchedIds = rows.map((documento) => documento.id).filter(Boolean)
+    if (!matchedIds.length) return
+    const signature = `${selectedPracticeId}:${matchedIds.join('|')}`
+    if (presidioDocumentSelectionAppliedRef.current === signature) return
+    presidioDocumentSelectionAppliedRef.current = signature
+    setSelectedDocumentId(matchedIds[0] || '')
+    setSelectedNotificationDocumentIds(matchedIds)
+    syncNotificaFromNotificationDocuments(rows)
+    setPracticeSelectionMessage(`${matchedIds.length === 1 ? '1 documento importato' : `${matchedIds.length} documenti importati`} dal presidio notifiche.`)
+  }, [documentSuggestions, manualNotificationDocuments.length, requestedDocumentSelectionTokens.length, selectedNotificationDocumentIds.length, selectedPracticeId])
 
   const depositDocumentPayload = (documento: LegalDocumentSuggestion): EvidenceDocumentPayload => ({
     nome_file: documentEvidenceName(documento),
@@ -2026,19 +2324,7 @@ export function NotificheLegaliPage() {
   const applyDocument = (documento: LegalDocumentSuggestion) => {
     setSelectedDocumentId(documento.id)
     setSelectedDepositDocumentIds([documento.id])
-    setNotifica((current) => ({
-      ...current,
-      nome_file: documentPrimaryName(documento) || current.nome_file,
-      descrizione_documento: documento.descrizione || current.descrizione_documento,
-      origine_documento: documento.origine || current.origine_documento,
-      hash_sha256: documento.hashSha256 || current.hash_sha256,
-      template_id: documento.origine === 'copia_fascicolo_informatico'
-        ? 'relata_pec_con_attestazione_fascicolo'
-        : documento.origine === 'scansione_analogico'
-          ? 'relata_pec_con_attestazione_scansione_analogica'
-          : current.template_id,
-      procedimento_pendente: documento.origine === 'copia_fascicolo_informatico' ? true : current.procedimento_pendente,
-    }))
+    syncNotificaFromNotificationDocuments([documento])
     setDeposito((current) => syncDepositDraftFromRows([documento], current))
     setUnep((current) => ({
       ...current,
@@ -2073,6 +2359,13 @@ export function NotificheLegaliPage() {
       data_rilascio_portale: documento.dataRilascioPortale,
       attestazione_conformita: '',
       attestazione_conformita_presente: false,
+      casoNotificaSuggerito: documento.casoNotificaSuggerito,
+      modelloRelataSuggerito: documento.modelloRelataSuggerito,
+      provvedimentoTipo: documentProvisionTypeSuggestion(documento),
+      provvedimentoData: documentProvisionDateSuggestion(documento),
+      provvedimentoDataDeposito: documentProvisionDepositDateSuggestion(documento),
+      criterioTipoDocumento: documento.criterioTipoDocumento,
+      testoDocumentoDisponibile: documento.testoDocumentoDisponibile,
     }
   }
 
@@ -2181,53 +2474,46 @@ export function NotificheLegaliPage() {
     const regindeSubjects = pending.filter((subject) => subject.source === 'reginde')
     if (regindeSubjects.length) {
       const verificationPin = signaturePin.trim()
-      if (!verificationPin) {
-        regindeSubjects.forEach((subject) => markFailed(
-          subject,
-          'Inserisci il PIN nel riquadro Firma relata: lo stesso comando verificherà le PEC e firmerà il documento.',
-        ))
-      } else {
-        const controller = new AbortController()
-        const timeout = window.setTimeout(() => controller.abort(), 80000)
-        try {
-          const requestOptions: LocalNetworkRequestInit = {
-            method: 'POST',
-            mode: 'cors',
-            targetAddressSpace: 'loopback',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              pin: verificationPin,
-              soggetti: regindeSubjects.map((subject) => ({
-                key: subject.key,
-                codice_fiscale: subject.taxCode,
-                pec_attesa: subject.address,
-                descrizione: subject.label,
-                entity_hint: subject.kind === 'recipient' && (
-                  /@mailcert\.avvocaturastato\.it$/i.test(subject.address)
-                  || /\b(?:avvocatura|ordine\s+degli?\s+avvocati|consiglio\s+nazionale\s+forense)\b/i.test(subject.label)
-                ),
-              })),
-            }),
-          }
-          const response = await fetch(relataLocalSignerEndpoint('/pst/reginde'), requestOptions)
-          const payload = await response.json().catch(() => ({})) as Record<string, unknown>
-          const rows = Array.isArray(payload.results) ? payload.results.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : []
-          regindeSubjects.forEach((subject) => {
-            const row = rows.find((item) => String(item.key || '') === subject.key)
-            if (response.ok && row) {
-              nextByKey[subject.key] = pecEvidenceFromResponse({ ...row, key: subject.key, source: 'reginde' }, subject)
-            }
-            else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'))
-          })
-        } catch (error) {
-          const message = error instanceof DOMException && error.name === 'AbortError'
-            ? 'Verifica della PEC non completata entro il tempo previsto. Controlla il dispositivo e riprova.'
-            : 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'
-          regindeSubjects.forEach((subject) => markFailed(subject, message))
-        } finally {
-          window.clearTimeout(timeout)
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 80000)
+      try {
+        const requestOptions: LocalNetworkRequestInit = {
+          method: 'POST',
+          mode: 'cors',
+          targetAddressSpace: 'loopback',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            pin: verificationPin,
+            soggetti: regindeSubjects.map((subject) => ({
+              key: subject.key,
+              codice_fiscale: subject.taxCode,
+              pec_attesa: subject.address,
+              descrizione: subject.label,
+              entity_hint: subject.kind === 'recipient' && (
+                /@mailcert\.avvocaturastato\.it$/i.test(subject.address)
+                || /\b(?:avvocatura|ordine\s+degli?\s+avvocati|consiglio\s+nazionale\s+forense)\b/i.test(subject.label)
+              ),
+            })),
+          }),
         }
+        const response = await fetch(relataLocalSignerEndpoint('/pst/reginde'), requestOptions)
+        const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+        const rows = Array.isArray(payload.results) ? payload.results.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : []
+        regindeSubjects.forEach((subject) => {
+          const row = rows.find((item) => String(item.key || '') === subject.key)
+          if (response.ok && row) {
+            nextByKey[subject.key] = pecEvidenceFromResponse({ ...row, key: subject.key, source: 'reginde' }, subject)
+          }
+          else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'))
+        })
+      } catch (error) {
+        const message = error instanceof DOMException && error.name === 'AbortError'
+          ? 'Verifica della PEC non completata entro il tempo previsto. Controlla il dispositivo e riprova.'
+          : 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'
+        regindeSubjects.forEach((subject) => markFailed(subject, message))
+      } finally {
+        window.clearTimeout(timeout)
       }
     }
 
@@ -2440,12 +2726,15 @@ export function NotificheLegaliPage() {
   }
 
   const toggleNotificationDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
-    setSelectedNotificationDocumentIds((current) => {
-      const next = checked
-        ? Array.from(new Set([...current, documento.id]))
-        : current.filter((id) => id !== documento.id)
-      return next
-    })
+    const next = checked
+      ? Array.from(new Set([...selectedNotificationDocumentIds, documento.id]))
+      : selectedNotificationDocumentIds.filter((id) => id !== documento.id)
+    setSelectedNotificationDocumentIds(next)
+    if (checked) setSelectedDocumentId(documento.id)
+    const rows = next
+      .map((id) => documentSuggestions.find((item) => item.id === id))
+      .filter((item): item is LegalDocumentSuggestion => Boolean(item))
+    if (rows.length) syncNotificaFromNotificationDocuments(rows)
   }
 
   const toggleDepositDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
@@ -2637,7 +2926,7 @@ export function NotificheLegaliPage() {
 
   const downloadAttestation = async () => {
     setAttestationDownloading(true)
-    setAttestationDownloadMessage('Preparo l’attestazione unica...')
+    setAttestationDownloadMessage('Preparo l’attestazione di conformità PDF...')
     try {
       const result = await downloadLegalAttestation(
         data.azioni.attestazioneConformita,
@@ -3240,7 +3529,15 @@ export function NotificheLegaliPage() {
     !notifica.approvazione_avvocato ? 'approvazione finale avvocato mancante' : '',
     !currentNotificationDocumentsReady ? 'seleziona almeno un documento notificabile' : '',
   ].filter(Boolean)
-  const canPrepareNotificationSend = !working && sendDisabledReasons.length === 0
+  const notificationControlBusy = working || publicRegisterConfirmationWorking || pecVerificationWorking
+  const notificationControlLabel = publicRegisterConfirmationWorking
+    ? 'Registro PEC...'
+    : pecVerificationWorking
+      ? 'Verifica PEC...'
+      : working
+        ? 'Controllo...'
+        : 'Controlla relata'
+  const canPrepareNotificationSend = !notificationControlBusy && sendDisabledReasons.length === 0
   const sendNotificationTitle = canPrepareNotificationSend
     ? 'Prepara invio PEC dal PC locale dopo controllo positivo.'
     : `Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`
@@ -3305,6 +3602,33 @@ export function NotificheLegaliPage() {
           { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
         ]
   const attestationDocuments = currentNotificationDocuments.filter((documento) => originNeedsAttestazione(documento.origine))
+  const notificationDocumentEntryMode = requestedDocumentEntrySource === 'presidio'
+    ? 'presidio'
+    : requestedDocumentSelectionTokens.length && selectedNotificationDocuments.length
+      ? 'fascicolo'
+      : selectedNotificationDocuments.some(isPresidioNotificationDocument)
+        ? 'presidio'
+        : 'manuale'
+  const finalRelataRows: FinalRelataRow[] = [
+    ...currentNotificationDocuments.map((documento, index): FinalRelataRow => ({
+      letter: alphaListLabel(index),
+      title: documento.descrizione || documento.nome_file || 'Documento allegato',
+      detail: documento.nome_file,
+      removableId: 'id' in documento ? String(documento.id) : undefined,
+    })),
+    ...(notificationNeedsAttestazione
+      ? [{
+          letter: alphaListLabel(currentNotificationDocuments.length),
+          title: 'Attestazione di conformità.pdf',
+          detail: `Un solo attestato per ${attestationDocuments.length} ${attestationDocuments.length === 1 ? 'documento conforme' : 'documenti conformi'}.`,
+        }]
+      : []),
+    {
+      letter: alphaListLabel(currentNotificationDocuments.length + (notificationNeedsAttestazione ? 1 : 0)),
+      title: 'Relata di notifica.pdf',
+      detail: 'Documento separato da firmare digitalmente.',
+    },
+  ]
   const attestationLawyerName = /^(?:avv\.?|avvocato)\s+/i.test(notifica.avvocato_nome.trim())
     ? notifica.avvocato_nome.trim()
     : `Avv. ${notifica.avvocato_nome.trim() || 'Avvocato notificante'}`
@@ -3551,37 +3875,34 @@ export function NotificheLegaliPage() {
                     <div className="iu-legal-template-preview__header">
                       <div>
                         <strong>Documenti da notificare</strong>
-                        <span>{documentSuggestions.length ? "I documenti della pratica sono proposti, ma entrano nella relata solo dopo la scelta dell'avvocato." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
+                        <span>{documentSuggestions.length ? "Scegli i documenti del fascicolo: solo quelli spuntati entrano nella relata." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
                       </div>
-                      {documentSuggestions.length ? (
+                      {selectedNotificationDocumentIds.length ? (
                         <div className="iu-legal-picker-actions">
-                          <button type="button" onClick={() => setSelectedNotificationDocumentIds(documentSuggestions.filter(isNotifiableNotificationDocument).map((item) => item.id).filter(Boolean))}>
-                            <CheckCircle2 size={14} /> Tutti notificabili
-                          </button>
                           <button type="button" onClick={() => setSelectedNotificationDocumentIds([])}>
-                            <Trash2 size={14} /> Svuota
+                            <Trash2 size={14} /> Svuota selezione
                           </button>
                         </div>
                       ) : null}
                     </div>
-                    <div className="iu-legal-evidence-uploader iu-legal-evidence-uploader--compact">
-                      <div className="iu-legal-evidence-uploader__text">
-                        <strong>Allegati esterni alla pratica</strong>
-                        <span>PDF/PDF-A/P7M sono i documenti notificabili proposti; EML/MSG entrano nell'invio solo se scelti manualmente.</span>
-                        {notificationFilesMessage ? <small>{notificationFilesMessage}</small> : null}
-                        {documentHydrationMessage ? <small>{documentHydrationMessage}</small> : null}
-                      </div>
-                      <label className="iu-legal-evidence-uploader__button">
-                        <Paperclip size={17} />
-                        Scegli allegati
-                        <input
-                          type="file"
-                          multiple
-                          accept=".pdf,.pdfa,.p7m,.eml,.msg"
-                          onChange={(event) => void handleNotificationFiles(event.currentTarget.files)}
-                        />
-                      </label>
+                    <div className="iu-legal-document-entry-modes" aria-label="Origine documenti notifica">
+                      <span className={notificationDocumentEntryMode === 'fascicolo' ? 'is-active' : ''}>
+                        <FolderOpen size={15} />
+                        <em>Fascicolo</em>
+                        <small>{requestedDocumentSelectionTokens.length ? 'documenti selezionati' : 'scelta dal fascicolo'}</small>
+                      </span>
+                      <span className={notificationDocumentEntryMode === 'presidio' ? 'is-active' : ''}>
+                        <Inbox size={15} />
+                        <em>Presidio</em>
+                        <small>porta il documento</small>
+                      </span>
+                      <span className={notificationDocumentEntryMode === 'manuale' ? 'is-active' : ''}>
+                        <Eye size={15} />
+                        <em>Manuale</em>
+                        <small>vedi e spunta</small>
+                      </span>
                     </div>
+                    {documentHydrationMessage ? <p className="iu-legal-document-picker__status">{documentHydrationMessage}</p> : null}
                     {documentSuggestions.length ? (
                       <div className="iu-legal-document-picker__grid">
                         {documentSuggestions.map((documento) => {
@@ -3598,7 +3919,8 @@ export function NotificheLegaliPage() {
                                   <strong>{documentPrimaryName(documento)}</strong>
                                   {documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
                                   {hasEmailEvidenceExtension(documentPrimaryName(documento)) ? <em>EML/MSG selezionabile manualmente</em> : null}
-                                  {documento.necessitaAttestazione ? <em>Incluso nell’attestazione unica in relata</em> : null}
+                                  {documento.necessitaAttestazione ? <em>Incluso nell’attestazione di conformità PDF e nella relata</em> : null}
+                                  {documento.criterioTipoDocumento ? <em>Tipo letto da {documento.criterioTipoDocumento}</em> : null}
                                 </span>
                               </label>
                               {viewHref ? (
@@ -3621,16 +3943,16 @@ export function NotificheLegaliPage() {
                       </div>
                     ) : <p className="iu-legal-empty">Nessun documento disponibile per la pratica selezionata.</p>}
                     {currentNotificationDocuments.length ? (
-                      <div className="iu-legal-selected-documents" aria-label="Elenco documenti allegati alla relata">
-                        {currentNotificationDocuments.map((documento, index) => (
-                          <span key={`${documento.nome_file}-${index}`}>
-                            <FileText size={15} />
+                      <div className="iu-legal-selected-documents iu-legal-selected-documents--final" aria-label="Elenco finale atti della relata">
+                        {finalRelataRows.map((row) => (
+                          <span key={`${row.letter}-${row.title}`} className={row.muted ? 'is-muted' : ''}>
+                            {row.title.includes('Attestazione') ? <FileCheck2 size={15} /> : <FileText size={15} />}
                             <em>
-                              <strong>{index + 1}. {documento.nome_file || 'Documento senza nome'}</strong>
-                              {documento.descrizione ? <small>{documento.descrizione}</small> : null}
+                              <strong>{row.letter}) {row.title}</strong>
+                              {row.detail ? <small>{row.detail}</small> : null}
                             </em>
-                            {'id' in documento ? (
-                              <button type="button" aria-label="Rimuovi allegato" onClick={() => removeManualNotificationDocument(String(documento.id))}>
+                            {row.removableId ? (
+                              <button type="button" aria-label="Rimuovi allegato" onClick={() => removeManualNotificationDocument(row.removableId || '')}>
                                 <Trash2 size={14} />
                               </button>
                             ) : null}
@@ -3638,6 +3960,23 @@ export function NotificheLegaliPage() {
                         ))}
                       </div>
                     ) : null}
+                    <div className="iu-legal-evidence-uploader iu-legal-evidence-uploader--compact">
+                      <div className="iu-legal-evidence-uploader__text">
+                        <strong>Allegati esterni alla pratica</strong>
+                        <span>Usali solo quando il documento non è già nel fascicolo.</span>
+                        {notificationFilesMessage ? <small>{notificationFilesMessage}</small> : null}
+                      </div>
+                      <label className="iu-legal-evidence-uploader__button">
+                        <Paperclip size={17} />
+                        Scegli allegati
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.pdfa,.p7m,.eml,.msg"
+                          onChange={(event) => void handleNotificationFiles(event.currentTarget.files)}
+                        />
+                      </label>
+                    </div>
                   </div>
                   <div className={`iu-legal-office-monitor iu-legal-office-monitor--${officeMonitor?.stato || 'monitoraggio'} iu-legal-field--wide`}>
                     <div className="iu-legal-office-monitor__head">
@@ -3707,23 +4046,16 @@ export function NotificheLegaliPage() {
                 <div className="iu-legal-template-preview iu-legal-field--wide">
                   <div className="iu-legal-template-preview__header">
                     <div>
-                      <strong>Anteprima modello relata</strong>
+                      <strong>Relata di notifica</strong>
                       <span>{selectedTemplate ? `${selectedTemplate.code ? `${selectedTemplate.code} - ` : ''}${selectedTemplate.label}` : 'Seleziona un modello'}</span>
                     </div>
                     {selectedTemplate?.custom ? <em>Personalizzato</em> : null}
                   </div>
                   <div className="iu-legal-preview-stack">
                     <section>
-                      <div className="iu-legal-preview-stack__title">
-                        <strong>Testo modello</strong>
-                        <span>Campi automatici visibili prima della compilazione.</span>
-                      </div>
-                      <pre>{selectedTemplate?.previewText || 'Il testo del modello sarà visibile qui prima del controllo.'}</pre>
-                    </section>
-                    <section>
                       <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                         <div>
-                          <strong>Anteprima compilata</strong>
+                          <strong>Anteprima modello relata</strong>
                           <span>Modello applicato: {previewAppliedTemplateLabel}</span>
                           <small className="iu-legal-preview-alignment" role="status" aria-live="polite">
                             {previewAlignmentStatus} · Caso applicato: {previewAppliedCaseLabel}
@@ -3747,7 +4079,9 @@ export function NotificheLegaliPage() {
                       ) : null}
                     </section>
                   </div>
-                  <div className="iu-legal-draft-editor">
+                  <details className="iu-legal-draft-editor">
+                    <summary>Modifica bozza relata</summary>
+                    <div className="iu-legal-draft-editor__content">
                     <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                       <div>
                         <strong>Modifica bozza relata</strong>
@@ -3776,7 +4110,8 @@ export function NotificheLegaliPage() {
                         <RotateCcw size={15} /> Ripristina dal modello
                       </button>
                     </div>
-                  </div>
+                    </div>
+                  </details>
                   <div className="iu-legal-template-actions">
                     <button type="button" onClick={() => startTemplateEdit('copy')}><PencilLine size={15} /> Personalizza modello</button>
                     <button type="button" onClick={() => startTemplateEdit('new')}><PlusCircle size={15} /> Nuovo modello su misura</button>
@@ -3858,61 +4193,7 @@ export function NotificheLegaliPage() {
                     {data.registriPec.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </Field>
-                <Field label="Parte rappresentata"><input value={notifica.destinatario_parte_rappresentata} onChange={(event) => changeNotifica('destinatario_parte_rappresentata', event.currentTarget.value)} /></Field>
-                <div className="iu-legal-pec-verification iu-legal-field--wide" aria-live="polite">
-                  <div className="iu-legal-pec-verification__header">
-                    <div>
-                      <strong>Verifica automatica delle PEC</strong>
-                      <span>Il sistema controlla indirizzo, soggetto ed elenco prima di preparare la relata.</span>
-                    </div>
-                    <button type="button" onClick={() => void verifyNotificationPec()} disabled={pecVerificationWorking || working}>
-                      <RefreshCw size={15} className={pecVerificationWorking ? 'is-spinning' : ''} />
-                      {pecVerificationWorking ? 'Verifica...' : 'Verifica di nuovo'}
-                    </button>
-                  </div>
-                  {selectedRecipientRegister?.requiresUserConfirmation ? (
-                    <div className="iu-legal-register-actions">
-                      <button type="button" onClick={openSelectedPublicRegister} disabled={pecVerificationWorking || publicRegisterConfirmationWorking}>
-                        <ExternalLink size={15} /> {selectedRecipientRegister.actionLabel}
-                      </button>
-                      <button
-                        type="button"
-                        className="is-primary"
-                        onClick={() => void confirmSelectedPublicRegister()}
-                        disabled={!selectedRegisterConsulted || !selectedPracticeId || publicRegisterConfirmationWorking || pecVerificationWorking}
-                      >
-                        <ShieldCheck size={15} /> {publicRegisterConfirmationWorking ? 'Registrazione...' : 'Conferma soggetto e PEC'}
-                      </button>
-                      <span>
-                        {selectedRegisterConsulted
-                          ? 'Confronta soggetto, codice fiscale e PEC visualizzati, poi conferma.'
-                          : 'Apri la fonte selezionata per cercare il soggetto.'}
-                      </span>
-                    </div>
-                  ) : selectedRecipientRegister && !selectedRecipientRegister.validForNotification ? (
-                    <div className="iu-legal-register-warning">
-                      <AlertTriangle size={16} />
-                      <span>{selectedRecipientRegister.label} non certifica indirizzi PEC utilizzabili per questa notifica.</span>
-                    </div>
-                  ) : null}
-                  <div className={`iu-legal-pec-verification__row ${currentSenderPecEvidence?.verified ? 'is-ok' : currentSenderPecEvidence ? 'is-error' : ''}`}>
-                    {currentSenderPecEvidence?.verified ? <CheckCircle2 size={17} /> : <ShieldCheck size={17} />}
-                    <div>
-                      <strong>Notificante</strong>
-                      <span>{currentSenderPecEvidence?.verified
-                        ? `PEC verificata${currentSenderPecEvidence.checkedAt ? ` il ${localClockLabel(currentSenderPecEvidence.checkedAt)}` : ''}.`
-                        : currentSenderPecEvidence?.message || 'La verifica parte automaticamente con il controllo.'}</span>
-                    </div>
-                  </div>
-                  <div className={`iu-legal-pec-verification__row ${recipientPecStatusOk ? 'is-ok' : currentRecipientPecEvidence.some(Boolean) ? 'is-error' : ''}`}>
-                    {recipientPecStatusOk ? <CheckCircle2 size={17} /> : <ShieldCheck size={17} />}
-                    <div>
-                      <strong>{currentPecSubjects.recipients.length === 1 ? 'Destinatario' : 'Destinatari'}</strong>
-                      <span>{recipientPecStatusMessage}</span>
-                    </div>
-                  </div>
-                  {pecVerificationMessage ? <small>{pecVerificationMessage}</small> : null}
-                </div>
+                <Field label="Parte rappresentata" hint="Facoltativa: se presente viene riportata nella relata."><input value={notifica.destinatario_parte_rappresentata} onChange={(event) => changeNotifica('destinatario_parte_rappresentata', event.currentTarget.value)} /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Nome file aggiuntivo' : 'Nome file atto'}><input value={notifica.nome_file} onChange={(event) => changeNotifica('nome_file', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Descrizione aggiuntiva' : 'Descrizione documento'}><input value={notifica.descrizione_documento} onChange={(event) => changeNotifica('descrizione_documento', event.currentTarget.value)} /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Origine documento aggiuntivo' : 'Origine documento'}>
@@ -3935,15 +4216,15 @@ export function NotificheLegaliPage() {
                   <div className="iu-legal-action-panel iu-legal-field--wide">
                     <div className="iu-legal-action-panel__head">
                       <div>
-                        <strong>Attestazione unica nella relata</strong>
-                        <span>Una sola dichiarazione comprende {attestationDocuments.length} {attestationDocuments.length === 1 ? 'documento' : 'documenti'}.</span>
+                        <strong>Attestazione di conformità.pdf</strong>
+                        <span>Una sola dichiarazione comprende {attestationDocuments.length} {attestationDocuments.length === 1 ? 'documento' : 'documenti'} e viene richiamata anche nella relata.</span>
                       </div>
                       <div className="iu-legal-action-panel__actions">
                         <button type="button" onClick={() => setAttestationPreviewOpen((current) => !current)}>
-                          <ClipboardCheck size={15} /> {attestationPreviewOpen ? 'Nascondi testo unico' : 'Vedi testo unico'}
+                          <ClipboardCheck size={15} /> {attestationPreviewOpen ? 'Nascondi attestazione' : 'Vedi attestazione'}
                         </button>
                         <button type="button" disabled={attestationDownloading} onClick={downloadAttestation}>
-                          <FileDown size={15} /> {attestationDownloading ? 'Preparazione...' : 'Scarica attestazione unica'}
+                          <FileDown size={15} /> {attestationDownloading ? 'Preparazione...' : 'Scarica PDF'}
                         </button>
                       </div>
                     </div>
@@ -4010,7 +4291,7 @@ export function NotificheLegaliPage() {
                       </button>
                     </div>
                   </div>
-                  <small id="relata-signature-privacy" className="iu-legal-signature-privacy"><LockKeyhole size={13} /> Il PIN resta su questo PC e viene cancellato dopo la firma. Lo stesso PIN verifica le PEC e firma la relata.</small>
+                  <small id="relata-signature-privacy" className="iu-legal-signature-privacy"><LockKeyhole size={13} /> Il PIN resta su questo PC e viene cancellato dopo la firma della relata.</small>
                   {signatureMessage ? <small id="relata-signature-status" role="status" aria-live="polite">{signatureMessage}</small> : null}
                   {signedRelata?.previewUrl ? (
                     <a className="iu-legal-signature-evidence" href={signedRelata.previewUrl} target="_blank" rel="noreferrer">
@@ -4029,7 +4310,7 @@ export function NotificheLegaliPage() {
                 <label className="iu-legal-check iu-legal-field--wide"><input type="checkbox" checked={notifica.approvazione_avvocato} onChange={(event) => changeNotifica('approvazione_avvocato', event.currentTarget.checked)} /><span>Approvazione finale dell'avvocato prima dell'invio</span></label>
               </div>
               <div className="iu-legal-submit-row">
-                <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('notifica')}><ShieldCheck size={16} /> {working ? 'Controllo...' : 'Controlla relata'}</button>
+                <button className="iu-legal-submit" type="button" disabled={notificationControlBusy} onClick={() => run('notifica')}><ShieldCheck size={16} /> {notificationControlLabel}</button>
                 <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={!canPrepareNotificationSend} title={sendNotificationTitle} onClick={sendNotification}><Send size={16} /> {working ? 'Preparazione...' : 'Invia PEC'}</button>
                 <span className="iu-legal-control-status">{lastControlLabel || sendNotificationTitle || 'Il controllo aggiorna anteprima, blocchi, attestazione e piano firma.'}</span>
               </div>

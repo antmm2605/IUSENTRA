@@ -19,6 +19,7 @@ from .guardrails import (
     sanitize_untrusted_document_text,
 )
 from .models import (
+    LegalSkill,
     LegalSkillCitation,
     LegalSkillFinding,
     LegalSkillProfile,
@@ -181,9 +182,18 @@ class LegalSkillWorkflowEngine:
             )
         return findings[:6]
 
-    def run(self, request: SkillRunRequest, *, actor: str = "", user_roles: list[str] | None = None) -> SkillRunResult:
+    def run(
+        self,
+        request: SkillRunRequest,
+        *,
+        actor: str = "",
+        user_roles: list[str] | None = None,
+        skill: LegalSkill | None = None,
+    ) -> SkillRunResult:
+        # `skill` pre-risolta: usata dalla libreria prompt per eseguire una
+        # skill sintetica read-only senza passare dal registry dei pack.
         profile = self.profile_store.require_ready()
-        skill = self.registry.get_skill(request.pack_id, request.skill_id)
+        skill = skill or self.registry.get_skill(request.pack_id, request.skill_id)
         requested_mode = request.requested_source_mode or skill.source_mode or profile.preferred_source_mode
         request_profile = classify_request(request.question or skill.description, requested_mode=requested_mode)
         source_mode = request_profile.source_mode or requested_mode or "balanced"

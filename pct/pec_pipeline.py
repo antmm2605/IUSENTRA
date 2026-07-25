@@ -35,7 +35,14 @@ from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
-from pct.pec_notification_presidio import NotificationPresidioRepository, NotificationPresidioService
+from pct.pec_notification_presidio import (
+    DocumentRole,
+    NotificationPresidioRepository,
+    NotificationPresidioService,
+    NotificationReceiptEnvelope,
+    PecNotificationReconciler,
+    ReceiptKind,
+)
 from pct.fascicolo_registry_document import apply_fascicolo_registry_automation
 
 SCHEMA_VERSION = "2026-06-06.pec-audit-pipeline.v3"
@@ -733,6 +740,57 @@ def xml_tag_value(xml_text: str, names: Iterable[str]) -> str:
             content = str(match.group(1) or "").replace("<![CDATA[", " ").replace("]]>", " ")
             return clean_text(re.sub(r"<[^>]+>", " ", content))
     return ""
+
+
+def _canonical_message_id_value(value: Any) -> str:
+    return clean_text(value, 320).strip("<> ")
+
+
+def _receipt_original_message_id(msg: Message, xml_text: str) -> str:
+    for header in (
+        "X-Riferimento-Message-ID",
+        "X-Riferimento-Message-Id",
+        "X-Riferimento-MessageID",
+        "X-PEC-Riferimento-Message-ID",
+        "In-Reply-To",
+        "References",
+    ):
+        value = _canonical_message_id_value(msg.get(header, ""))
+        if value:
+            return value
+    value = xml_tag_value(
+        xml_text,
+        (
+            "msgid",
+            "msgId",
+            "messageId",
+            "messageID",
+            "message-id",
+            "idMessaggio",
+            "idmessaggio",
+            "identificativoMessaggio",
+            "identificativo",
+            "riferimentoMessageId",
+            "riferimentoMessageID",
+        ),
+    )
+    return _canonical_message_id_value(value)
+
+
+def _receipt_recipient_address(xml_text: str, fallback_text: str = "") -> str:
+    selected = xml_tag_value(
+        xml_text,
+        (
+            "destinatario",
+            "destinatari",
+            "ricevente",
+            "consegnata",
+            "destinatarioOriginale",
+        ),
+    )
+    haystack = " ".join(part for part in (selected, fallback_text) if part)
+    match = re.search(r"\b[a-z0-9._%+\-']+@[a-z0-9.\-]+\.[a-z]{2,}\b", haystack, flags=re.I)
+    return clean_text(match.group(0).lower() if match else "", 240)
 
 
 def _pct_token(value: Any, limit: int = 180) -> str:
@@ -3575,6 +3633,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     receipt_xml_type = xml_tag_value(xml_joined, ("tipo", "tipoRicevuta", "ricevuta"))
     receipt_text_type, receipt_features = receipt_type_from_text(body_all)
     receipt_type = clean_text(receipt_xml_type).lower().replace(" ", "_") or receipt_text_type
+    receipt_original_message_id = _receipt_original_message_id(msg, xml_joined)
+    receipt_recipient = _receipt_recipient_address(xml_joined, body_all)
     rg_values = extract_rg_candidates(body_all)
     delivery_date = (
         parsedate_iso(xml_tag_value(xml_joined, ("data", "dataOraConsegna", "dataConsegna")))
@@ -3780,6 +3840,12 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "procedural_profile": procedural_profile,
         "pct_deposit_correlation": pct_deposit_correlation,
         "pct_deposit_receipt": pct_deposit_receipt,
+        "pec_receipt": {
+            "type": receipt_type,
+            "original_message_id": receipt_original_message_id,
+            "recipient_address": receipt_recipient,
+            "source": "daticert/postacert" if xml_joined else "headers/body",
+        },
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
@@ -6974,6 +7040,52 @@ class PecAuditRepository:
 
         nested_containers = ("notification", "notifica", "correlation", "receipt", "evidence")
 
+        def _marker_payload(item: dict[str, Any]) -> dict[str, Any]:
+            raw = "\n".join(
+                clean_text(item.get(key), 1200)
+                for key in ("note", "descrizione", "titolo", "email_oggetto", "nome", "nome_originale")
+                if item.get(key)
+            )
+            if not raw:
+                return {}
+            payload: dict[str, Any] = {}
+            marker_map = {
+                "notification_id": (
+                    r"\bnotification_id\s*:\s*([^\r\n]+)",
+                    r"\bnotifica_id\s*:\s*([^\r\n]+)",
+                    r"\[Notifica_ID:([^\]]+)\]",
+                ),
+                "sent_message_id": (
+                    r"\bsent_message_id\s*:\s*([^\r\n]+)",
+                    r"\bmessage_id_originario\s*:\s*([^\r\n]+)",
+                    r"\boriginal_message_id\s*:\s*([^\r\n]+)",
+                ),
+                "recipient_pec": (
+                    r"\brecipient_pec\s*:\s*([^\r\n]+)",
+                    r"\bdestinatario_pec\s*:\s*([^\r\n]+)",
+                ),
+                "receipt_kind": (
+                    r"\breceipt_kind\s*:\s*([^\r\n]+)",
+                    r"\btipo_ricevuta\s*:\s*([^\r\n]+)",
+                ),
+            }
+            for key, patterns in marker_map.items():
+                for pattern in patterns:
+                    match = re.search(pattern, raw, flags=re.I)
+                    if match:
+                        payload[key] = clean_text(match.group(1), 240)
+                        break
+            lowered = raw.casefold()
+            if "avviso di mancata consegna:" in lowered or "mancata_consegna" in lowered:
+                payload.setdefault("receipt_kind", "MANCATA_CONSEGNA")
+            elif "consegna:" in lowered or "rdac" in lowered or "ricevuta completa di avvenuta consegna" in lowered:
+                payload.setdefault("receipt_kind", "RdAC")
+            elif "accettazione:" in lowered or "rac" in lowered or "ricevuta di accettazione" in lowered:
+                payload.setdefault("receipt_kind", "RAC")
+            if "legge 53/1994" in lowered or "l. 53/1994" in lowered:
+                payload.setdefault("legal_basis", "Legge 53/1994")
+            return {key: value for key, value in payload.items() if value}
+
         def _values(item: dict[str, Any], *keys: str) -> list[Any]:
             containers = [item]
             containers.extend(
@@ -6982,6 +7094,9 @@ class PecAuditRepository:
                 for nested in [item.get(key)]
                 if isinstance(nested, dict)
             )
+            marker_payload = _marker_payload(item)
+            if marker_payload:
+                containers.append(marker_payload)
             return [
                 value
                 for container in containers
@@ -7818,6 +7933,294 @@ class PecAuditRepository:
             rows.append(item)
         return rows
 
+    @staticmethod
+    def _notification_receipt_profile(parsed: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
+        headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+        fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else {}
+        legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
+        receipt = parsed.get("pec_receipt") if isinstance(parsed.get("pec_receipt"), dict) else {}
+        subject = clean_text(headers.get("subject") or "", 500)
+        receipt_type = clean_text(
+            receipt.get("type")
+            or (((fields.get("tipo_ricevuta") or {}).get("value")) if isinstance(fields.get("tipo_ricevuta"), dict) else ""),
+            120,
+        ).casefold()
+        event_type = clean_text(report.get("event_type") or legal_workflow.get("event_type") or "", 120).casefold()
+        haystack = " ".join([subject, receipt_type, event_type]).casefold()
+        kind: ReceiptKind | None = None
+        if any(token in haystack for token in ("mancata_consegna", "mancata consegna", "non_accettazione", "non accettazione")):
+            kind = ReceiptKind.FAILURE
+        elif any(token in haystack for token in ("avvenuta_consegna", "avvenuta consegna", "ricevuta_consegna_pec", "consegna:")):
+            kind = ReceiptKind.RDAC
+        elif any(token in haystack for token in ("accettazione", "ricevuta_accettazione_pec", "accettazione:")):
+            kind = ReceiptKind.RAC
+        if kind is None:
+            return {"skipped": True, "reason": "messaggio_non_ricevuta_notifica"}
+
+        notification_match = re.search(r"\[Notifica_ID:([^\]]+)\]", subject, flags=re.I)
+        notification_id = clean_text(notification_match.group(1) if notification_match else "", 120)
+        original_message_id = _canonical_message_id_value(receipt.get("original_message_id"))
+        recipient_address = clean_text(receipt.get("recipient_address") or "", 240)
+        date_field = "data_consegna" if kind in {ReceiptKind.RDAC, ReceiptKind.FAILURE} else "data_invio"
+        occurred_at = ""
+        field_row = fields.get(date_field)
+        if isinstance(field_row, dict):
+            occurred_at = clean_text(field_row.get("value"), 80)
+        if not occurred_at:
+            for key in ("data_consegna", "data_invio"):
+                field_row = fields.get(key)
+                if isinstance(field_row, dict) and clean_text(field_row.get("value"), 80):
+                    occurred_at = clean_text(field_row.get("value"), 80)
+                    break
+        if not occurred_at:
+            occurred_at = parsedate_iso(headers.get("date")) or iso_now()
+        return {
+            "skipped": False,
+            "kind": kind,
+            "subject": subject,
+            "notification_id": notification_id,
+            "original_message_id": original_message_id,
+            "recipient_address": recipient_address,
+            "occurred_at": occurred_at,
+            "message_id_header": clean_text(headers.get("message_id") or "", 320),
+            "receipt_type": receipt_type,
+            "event_type": event_type,
+        }
+
+    @staticmethod
+    def _safe_eml_archive_name(value: str) -> str:
+        base = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", clean_text(value, 220)).strip(" ._")
+        if not base:
+            base = "ricevuta-notifica"
+        if base.casefold().endswith(".eml"):
+            base = base[:-4].strip(" ._")
+        return f"{base[:236]}.eml"
+
+    @staticmethod
+    def _notification_receipt_display_subject(profile: dict[str, Any]) -> str:
+        subject = clean_text(profile.get("subject"), 500)
+        if subject:
+            return subject
+        labels = {
+            ReceiptKind.RAC: "ACCETTAZIONE",
+            ReceiptKind.RDAC: "CONSEGNA",
+            ReceiptKind.FAILURE: "AVVISO DI MANCATA CONSEGNA",
+        }
+        kind = profile.get("kind")
+        label = labels.get(kind, "RICEVUTA")
+        notification_id = clean_text(profile.get("notification_id"), 120)
+        suffix = f" [Notifica_ID:{notification_id}]" if notification_id else ""
+        return f"{label}: Notificazione ai sensi della legge n. 53 - 1994 e succ. mod.{suffix}"
+
+    def _save_notification_receipt_to_fascicolo(
+        self,
+        *,
+        message_id: str,
+        presidio: dict[str, Any],
+        profile: dict[str, Any],
+        actor: str,
+    ) -> dict[str, Any]:
+        fascicolo_id = clean_text(presidio.get("fascicolo_id"), 120)
+        if not self.fascicoli_db_path or not fascicolo_id:
+            return {"ok": False, "skipped": True, "reason": "fascicolo_non_collegato"}
+        raw, row = self.original_mime(message_id)
+        try:
+            from pct.fascicoli import EsitoAttivita, GestioneFascicoli, TipoAttivita, TipoDocumento
+
+            manager = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
+            fascicolo = manager.get(fascicolo_id)
+        except Exception as exc:
+            return {"ok": False, "skipped": True, "reason": f"fascicoli_non_disponibili: {exc}"}
+        if not fascicolo:
+            return {"ok": False, "skipped": True, "reason": "fascicolo_non_trovato"}
+
+        marker = f"IUSENTRA_LEGAL_NOTIFICATION_RECEIPT:{message_id}"
+        kind = profile["kind"]
+        kind_label = {
+            ReceiptKind.RAC: "RAC",
+            ReceiptKind.RDAC: "RdAC",
+            ReceiptKind.FAILURE: "MANCATA_CONSEGNA",
+        }.get(kind, str(kind.value))
+        notification_id = clean_text(profile.get("notification_id"), 120)
+        original_message_id = _canonical_message_id_value(profile.get("original_message_id"))
+        recipient_pec = clean_text(profile.get("recipient_address"), 240)
+        subject = self._notification_receipt_display_subject(profile)
+        note_lines = [
+            marker,
+            "Fonte: presidio PEC audit-grade IUSENTRA.",
+            f"receipt_kind: {kind_label}",
+            f"notification_id: {notification_id}",
+            f"sent_message_id: {original_message_id}",
+            f"recipient_pec: {recipient_pec}",
+            f"pec_audit_message_id: {message_id}",
+        ]
+        note = "\n".join(line for line in note_lines if line and not line.endswith(": "))
+        existing_doc = next(
+            (
+                doc
+                for doc in list(getattr(fascicolo, "documenti", []) or [])
+                if marker in str(getattr(doc, "note", "") or "")
+                or clean_text(getattr(doc, "msg_id_portale", ""), 240) == clean_text(message_id, 240)
+            ),
+            None,
+        )
+        if existing_doc is None:
+            document = manager.aggiungi_documento(
+                fascicolo_id,
+                f"{subject}.eml" if not subject.casefold().endswith(".eml") else subject,
+                TipoDocumento.NOTIFICA,
+                raw,
+                note=note,
+                tags=[
+                    tag
+                    for tag in [
+                        "notifica-legale",
+                        "pec",
+                        kind_label.casefold(),
+                        f"notifica-id:{notification_id}" if notification_id else "",
+                    ]
+                    if tag
+                ],
+                data_documento=clean_text(profile.get("occurred_at"), 40)[:10] or date.today().isoformat(),
+                caricato_da=actor,
+                fonte_documento="PEC_AUDIT_NOTIFICATION_RECEIPT",
+                nome_originale=f"{subject}.eml" if not subject.casefold().endswith(".eml") else subject,
+                nome_archivio=self._safe_eml_archive_name(subject),
+                hash_contenuto_sha256=clean_text(row.get("mime_sha256"), 80),
+                msg_id_portale=message_id,
+            )
+        else:
+            document = existing_doc
+
+        document_id = clean_text(getattr(document, "id", ""), 80)
+        activity_exists = any(marker in str(getattr(activity, "note", "") or "") for activity in list(getattr(fascicolo, "attivita", []) or []))
+        if not activity_exists:
+            title = {
+                ReceiptKind.RAC: "Ricevuta di accettazione notifica L. 53/1994",
+                ReceiptKind.RDAC: "Ricevuta completa di avvenuta consegna notifica L. 53/1994",
+                ReceiptKind.FAILURE: "Mancata consegna notifica L. 53/1994",
+            }.get(kind, "Ricevuta notifica L. 53/1994")
+            manager.aggiungi_attivita(
+                fascicolo_id,
+                TipoAttivita.NOTIFICA,
+                clean_text(profile.get("occurred_at"), 40)[:10] or date.today().isoformat(),
+                title,
+                descrizione=subject,
+                note=note,
+                email_oggetto=subject,
+                id_documento=document_id,
+                esito=EsitoAttivita.SFAVOREVOLE if kind == ReceiptKind.FAILURE else EsitoAttivita.FAVOREVOLE,
+                avvocato=actor,
+            )
+        return {
+            "ok": True,
+            "fascicolo_id": fascicolo_id,
+            "document_id": document_id,
+            "document_name": clean_text(getattr(document, "nome", ""), 500),
+            "activity_created": not activity_exists,
+        }
+
+    def reconcile_legal_notification_receipt(
+        self,
+        message_id: str,
+        *,
+        actor: str = "pec-notification-receipt",
+    ) -> dict[str, Any]:
+        try:
+            with self.connect() as conn:
+                row = self.get_message_row(conn, message_id)
+                parsed_row = self.latest_parsed_row(conn, message_id)
+                report = self.latest_report(conn, message_id)
+            if parsed_row is None or not report:
+                return {"ok": True, "skipped": True, "reason": "report_non_disponibile"}
+            parsed = json.loads(str(parsed_row["parsed_json"] or "{}"))
+            profile = self._notification_receipt_profile(parsed, report)
+            if profile.get("skipped"):
+                return {"ok": True, "skipped": True, "reason": profile.get("reason") or "ricevuta_non_notifica"}
+            if not profile.get("original_message_id"):
+                return {"ok": False, "skipped": True, "reason": "message_id_originario_ricevuta_mancante", "profile": profile}
+
+            repo = NotificationPresidioRepository(self.db_path, tenant_id=self.tenant_id)
+            try:
+                reconciler = PecNotificationReconciler(repo)
+                envelope = NotificationReceiptEnvelope(
+                    kind=profile["kind"],
+                    message_id=profile.get("message_id_header") or message_id,
+                    original_message_id=profile["original_message_id"],
+                    recipient_address=profile.get("recipient_address") or "",
+                    occurred_at=profile.get("occurred_at") or iso_now(),
+                    eml_sha256=clean_text(row["mime_sha256"], 80),
+                    source_id=message_id,
+                    source_locator=f"PEC_AUDIT:{message_id}",
+                    failure_reason=profile.get("subject") or "",
+                    metadata={
+                        "notification_id": profile.get("notification_id") or "",
+                        "subject": profile.get("subject") or "",
+                        "receipt_type": profile.get("receipt_type") or "",
+                        "event_type": profile.get("event_type") or "",
+                    },
+                )
+                reconciliation = reconciler.process(envelope, actor=actor)
+                if not reconciliation.get("matched"):
+                    return {"ok": True, "matched": False, "reconciliation": reconciliation, "profile": profile}
+                presidio = repo.get_presidio(str(reconciliation.get("presidioId") or ""))
+                fascicolo_result = self._save_notification_receipt_to_fascicolo(
+                    message_id=message_id,
+                    presidio=presidio,
+                    profile=profile,
+                    actor=actor,
+                )
+                document_role = {
+                    ReceiptKind.RAC: DocumentRole.RAC,
+                    ReceiptKind.RDAC: DocumentRole.RDAC,
+                    ReceiptKind.FAILURE: DocumentRole.DELIVERY_FAILURE,
+                }.get(profile["kind"], DocumentRole.RAC)
+                if fascicolo_result.get("document_id"):
+                    repo.upsert_document(
+                        str(reconciliation.get("presidioId") or ""),
+                        {
+                            "document_role": document_role.value,
+                            "fascicolo_document_id": fascicolo_result["document_id"],
+                            "content_sha256": clean_text(row["mime_sha256"], 80),
+                            "outer_sha256": clean_text(row["mime_sha256"], 80),
+                            "original_filename": self._notification_receipt_display_subject(profile) + ".eml",
+                            "authoritative": True,
+                        },
+                    )
+                with self.connect() as audit_conn:
+                    self.append_audit(
+                        audit_conn,
+                        action="pec.notification_receipt.reconciled",
+                        resource_type="pec_message",
+                        resource_id=message_id,
+                        payload={
+                            "presidio_id": reconciliation.get("presidioId"),
+                            "recipient_id": reconciliation.get("recipientId"),
+                            "kind": profile["kind"].value,
+                            "notification_id": profile.get("notification_id") or "",
+                            "fascicolo": fascicolo_result,
+                        },
+                        actor=actor,
+                    )
+                return {
+                    "ok": True,
+                    "matched": True,
+                    "reconciliation": reconciliation,
+                    "fascicolo": fascicolo_result,
+                    "profile": {
+                        key: (value.value if isinstance(value, ReceiptKind) else value)
+                        for key, value in profile.items()
+                    },
+                }
+            finally:
+                repo.close()
+        except Exception as exc:
+            return {"ok": False, "skipped": False, "reason": clean_text(exc, 500)}
+
     def validate_message(self, message_id: str, *, actor: str = "pec-validator") -> dict[str, Any]:
         with self.connect() as conn:
             parsed_row = self.latest_parsed_row(conn, message_id)
@@ -7845,6 +8248,10 @@ class PecAuditRepository:
             self.enqueue_job(conn, "link", message_id=message_id, priority=45, actor=actor)
         result["notification_presidia"] = self.materialize_legal_notification_candidates(
             message_id=message_id,
+            actor=actor,
+        )
+        result["notification_receipt_automation"] = self.reconcile_legal_notification_receipt(
+            message_id,
             actor=actor,
         )
         return result

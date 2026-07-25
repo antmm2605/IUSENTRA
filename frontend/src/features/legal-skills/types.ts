@@ -86,6 +86,9 @@ export type LegalSkillRunResult = {
   approved_at?: string
   approved_by?: string
   created_at: string
+  prompt_id?: string
+  prompt_titolo?: string
+  fascicolo_id?: string
 }
 
 export type ScheduledLegalSkillAgent = {
@@ -102,3 +105,102 @@ export type LegalSkillsPayload<T> = {
   code?: string
   message?: string
 } & T
+
+export type PromptLibraryArea = {
+  area_id: string
+  nome: string
+  descrizione: string
+  numero_voci: number
+  numero_prompt: number
+  preferita?: boolean
+}
+
+export type PromptLibraryCaseContext = {
+  fascicolo_id: string
+  numero: string
+  titolo: string
+  cliente: string
+  controparte: string
+  ufficio: string
+  rg: string
+  oggetto: string
+  documenti: string[]
+  scadenze: string[]
+}
+
+export type PromptLibraryForma = {
+  forma_id: string
+  label: string
+  descrizione: string
+}
+
+export type PromptLibraryEntry = {
+  prompt_id: string
+  titolo: string
+  area_id: string
+  area_nome: string
+  voce_id: string
+  forma: string
+  forma_label: string
+  descrizione: string
+  riferimenti: string[]
+  tags: string[]
+}
+
+export type PromptLibraryDetail = PromptLibraryEntry & {
+  testo: string
+  forma_descrizione: string
+  contesto_fascicolo?: PromptLibraryCaseContext
+  da_rivedere?: boolean
+  revisioni?: PromptRevision[]
+}
+
+export type PathwayTemplate = {
+  id: string
+  titolo: string
+  url: string
+}
+
+export type PathwayStep = {
+  passo_id: string
+  nome: string
+  descrizione: string
+  prompt_ref: string
+  termini: string[]
+  riferimenti: string[]
+  prompt_titolo?: string
+  prompt_forma?: string
+  templates?: PathwayTemplate[]
+  completato?: boolean
+  completato_il?: string
+}
+
+export type PromptRevision = {
+  tipo: 'voce' | 'passo' | string
+  area_id?: string
+  voce_id?: string
+  percorso_id?: string
+  passo_id?: string
+  nome: string
+  riferimento: string
+  aggiornamento: {
+    titolo: string
+    numero: string
+    anno: string
+    stato: string
+    data: string
+    url: string
+  }
+}
+
+export type Pathway = {
+  percorso_id: string
+  nome: string
+  area_id: string
+  descrizione: string
+  riferimenti: string[]
+  numero_passi: number
+  passi?: PathwayStep[]
+  fascicolo_id?: string
+  prossimo_passo?: string
+}

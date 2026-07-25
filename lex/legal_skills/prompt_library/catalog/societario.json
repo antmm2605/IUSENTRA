@@ -1,0 +1,87 @@
+{
+  "area_id": "societario",
+  "nome": "Diritto societario e commerciale",
+  "descrizione": "Consulenza e contenzioso in materia di società di capitali e di persone, governance, operazioni sul capitale e operazioni straordinarie disciplinate dal Libro V del codice civile.",
+  "voci": [
+    {
+      "voce_id": "costituzione_srl",
+      "nome": "Costituzione di società a responsabilità limitata",
+      "descrizione": "Assistenza nella redazione di atto costitutivo e statuto di SRL, con definizione di conferimenti, quote e regole di governance.",
+      "riferimenti": ["art. 2463 c.c.", "art. 2464 c.c.", "art. 2475 c.c."],
+      "tags": ["srl", "statuto", "costituzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_delibera_assembleare",
+      "nome": "Impugnazione di delibera assembleare",
+      "descrizione": "Contestazione giudiziale di deliberazioni assembleari annullabili o nulle nelle società di capitali, con verifica di legittimazione e termini di decadenza.",
+      "riferimenti": ["art. 2377 c.c.", "art. 2379 c.c.", "art. 2479-ter c.c."],
+      "tags": ["assemblea", "delibere", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "patti_parasociali",
+      "nome": "Patti parasociali",
+      "descrizione": "Redazione e revisione di sindacati di voto, di blocco e di consultazione tra soci, con controllo di durata e obblighi di pubblicità.",
+      "riferimenti": ["art. 2341-bis c.c.", "art. 2341-ter c.c."],
+      "tags": ["soci", "patti", "governance"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_amministratori",
+      "nome": "Azione di responsabilità contro gli amministratori",
+      "descrizione": "Valutazione e promozione dell'azione sociale o dei creditori sociali per mala gestio, con ricostruzione dei doveri di diligenza e del danno risarcibile.",
+      "riferimenti": ["art. 2392 c.c.", "art. 2393 c.c.", "art. 2476 c.c."],
+      "tags": ["amministratori", "responsabilita", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "cessione_quote_srl",
+      "nome": "Cessione di quote di SRL",
+      "descrizione": "Assistenza nel trasferimento di partecipazioni di SRL, con verifica di clausole di prelazione e gradimento e degli adempimenti presso il registro delle imprese.",
+      "riferimenti": ["art. 2469 c.c.", "art. 2470 c.c."],
+      "tags": ["quote", "cessione", "srl"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "recesso_socio",
+      "nome": "Recesso del socio",
+      "descrizione": "Gestione dell'exit del socio da società di capitali, dalla verifica delle cause legittimanti alla liquidazione della partecipazione.",
+      "riferimenti": ["art. 2437 c.c.", "art. 2437-ter c.c.", "art. 2473 c.c."],
+      "tags": ["recesso", "soci", "liquidazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "esclusione_socio_srl",
+      "nome": "Esclusione del socio di SRL",
+      "descrizione": "Attivazione o contestazione dell'esclusione del socio per giusta causa prevista dall'atto costitutivo di SRL.",
+      "riferimenti": ["art. 2473-bis c.c."],
+      "tags": ["esclusione", "soci", "srl"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "aumento_capitale_sociale",
+      "nome": "Aumento di capitale sociale",
+      "descrizione": "Assistenza nelle operazioni di aumento di capitale a pagamento o gratuito, con tutela del diritto di opzione e di sottoscrizione dei soci.",
+      "riferimenti": ["art. 2438 c.c.", "art. 2441 c.c.", "art. 2481-bis c.c."],
+      "tags": ["capitale", "aumento", "opzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "denuncia_gravi_irregolarita",
+      "nome": "Denuncia al tribunale per gravi irregolarità gestorie",
+      "descrizione": "Ricorso ex art. 2409 c.c. per il controllo giudiziario sulla gestione in presenza di fondato sospetto di gravi irregolarità degli amministratori.",
+      "riferimenti": ["art. 2409 c.c."],
+      "tags": ["controllo", "irregolarita", "tribunale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "fusione_scissione",
+      "nome": "Fusione e scissione societaria",
+      "descrizione": "Assistenza nelle operazioni straordinarie di fusione e scissione, dalla redazione del progetto alla tutela di soci e creditori opponenti.",
+      "riferimenti": ["art. 2501 c.c.", "art. 2503 c.c.", "art. 2506 c.c."],
+      "tags": ["fusione", "scissione", "straordinarie"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

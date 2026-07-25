@@ -1,0 +1,87 @@
+{
+  "area_id": "proprieta_intellettuale",
+  "nome": "Proprietà intellettuale e industriale",
+  "descrizione": "Tutela e valorizzazione di marchi, brevetti, design, segreti commerciali e opere dell'ingegno, dalla registrazione al contenzioso per contraffazione.",
+  "voci": [
+    {
+      "voce_id": "registrazione_marchio",
+      "nome": "Registrazione di marchio",
+      "descrizione": "Verifica di anteriorità, valutazione dei requisiti di registrabilità e deposito della domanda di marchio nazionale, dell'Unione europea o internazionale.",
+      "riferimenti": ["artt. 7-15 D.Lgs. 30/2005", "Reg. UE 2017/1001"],
+      "tags": ["marchio", "registrazione", "uibm"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "opposizione_marchio",
+      "nome": "Opposizione alla registrazione di marchio",
+      "descrizione": "Predisposizione dell'atto di opposizione avverso domande di marchio confliggenti e difesa nelle procedure di opposizione dinanzi a UIBM ed EUIPO.",
+      "riferimenti": ["artt. 176-184 D.Lgs. 30/2005", "Reg. UE 2017/1001"],
+      "tags": ["marchio", "opposizione", "euipo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_contraffazione",
+      "nome": "Azione di contraffazione",
+      "descrizione": "Impostazione dell'azione di contraffazione di titoli di proprietà industriale, con richieste di inibitoria, ritiro dal commercio, risarcimento del danno e pubblicazione della sentenza.",
+      "riferimenti": ["artt. 124-126 D.Lgs. 30/2005", "art. 120 D.Lgs. 30/2005"],
+      "tags": ["contraffazione", "contenzioso", "inibitoria"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "misure_cautelari_pi",
+      "nome": "Misure cautelari industrialistiche (descrizione e sequestro)",
+      "descrizione": "Ricorso per descrizione, sequestro e inibitoria cautelare a tutela urgente dei diritti di proprietà industriale, anche ante causam.",
+      "riferimenti": ["artt. 128-132 D.Lgs. 30/2005"],
+      "tags": ["cautelare", "descrizione", "sequestro"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "tutela_know_how",
+      "nome": "Tutela del know-how e dei segreti commerciali",
+      "descrizione": "Protezione delle informazioni aziendali riservate mediante misure di segretezza, accordi di riservatezza e azioni contro l'acquisizione o l'uso illecito.",
+      "riferimenti": ["artt. 98-99 D.Lgs. 30/2005", "D.Lgs. 63/2018"],
+      "tags": ["know-how", "segreti", "nda"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "brevetto_invenzione",
+      "nome": "Brevetto per invenzione industriale",
+      "descrizione": "Assistenza su requisiti di brevettabilità, deposito della domanda, invenzioni dei dipendenti e gestione della vita del brevetto.",
+      "riferimenti": ["artt. 45-81 D.Lgs. 30/2005", "art. 64 D.Lgs. 30/2005"],
+      "tags": ["brevetto", "invenzione", "deposito"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "design_modelli",
+      "nome": "Disegni e modelli",
+      "descrizione": "Registrazione e tutela di disegni e modelli nazionali e comunitari, inclusa la protezione del design non registrato e il cumulo con il diritto d'autore.",
+      "riferimenti": ["artt. 31-44 D.Lgs. 30/2005", "Reg. CE 6/2002"],
+      "tags": ["design", "modelli", "registrazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "diritto_autore_online",
+      "nome": "Diritto d'autore e tutela online",
+      "descrizione": "Tutela delle opere dell'ingegno diffuse in rete: diffide per utilizzi abusivi, responsabilità delle piattaforme e rimozione dei contenuti illeciti.",
+      "riferimenti": ["L. 633/1941", "D.Lgs. 177/2021"],
+      "tags": ["diritto d'autore", "online", "piattaforme"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "licenze_cessioni_pi",
+      "nome": "Licenze e cessioni di diritti IP",
+      "descrizione": "Redazione e negoziazione di contratti di licenza, cessione e merchandising di marchi, brevetti, software e opere protette.",
+      "riferimenti": ["art. 23 D.Lgs. 30/2005", "artt. 107 ss. L. 633/1941"],
+      "tags": ["licenza", "cessione", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "nomi_dominio",
+      "nome": "Nomi a dominio e segni distintivi in rete",
+      "descrizione": "Tutela del marchio contro registrazioni abusive di nomi a dominio, procedure di riassegnazione e conflitti tra segni distintivi online.",
+      "riferimenti": ["art. 22 D.Lgs. 30/2005", "art. 118 D.Lgs. 30/2005"],
+      "tags": ["domini", "cybersquatting", "riassegnazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

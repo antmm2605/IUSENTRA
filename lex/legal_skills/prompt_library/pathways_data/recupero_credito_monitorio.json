@@ -1,0 +1,115 @@
+{
+  "percorso_id": "recupero_credito_monitorio",
+  "nome": "Recupero credito in via monitoria",
+  "area_id": "recupero_crediti",
+  "descrizione": "Dalla diffida al pignoramento presso terzi: la sequenza operativa del recupero giudiziale di un credito documentato.",
+  "riferimenti": [
+    "artt. 633-656 c.p.c.",
+    "artt. 480-481 c.p.c.",
+    "art. 543 c.p.c."
+  ],
+  "passi": [
+    {
+      "passo_id": "diffida",
+      "nome": "Diffida e messa in mora",
+      "descrizione": "Intimazione stragiudiziale di pagamento con costituzione in mora del debitore.",
+      "prompt_ref": "recupero_crediti.diffida_messa_in_mora.lettera",
+      "termini": [
+        "Assegnare un termine congruo per l'adempimento (10-15 giorni nella prassi)",
+        "La costituzione in mora interrompe la prescrizione (art. 2943 c.c.)"
+      ],
+      "riferimenti": [
+        "art. 1219 c.c.",
+        "art. 2943 c.c."
+      ],
+      "template_refs": [
+        "STR_005",
+        "STR_004"
+      ]
+    },
+    {
+      "passo_id": "ricorso_decreto",
+      "nome": "Ricorso per decreto ingiuntivo",
+      "descrizione": "Deposito del ricorso monitorio con la prova scritta del credito.",
+      "prompt_ref": "recupero_crediti.ricorso_decreto_ingiuntivo.redazione_atto",
+      "termini": [
+        "Il giudice provvede di regola entro 30 giorni dal deposito (art. 641 c.p.c.)"
+      ],
+      "riferimenti": [
+        "artt. 633-641 c.p.c."
+      ],
+      "template_refs": [
+        "MON_001",
+        "MON_002"
+      ]
+    },
+    {
+      "passo_id": "notifica_decreto",
+      "nome": "Notifica del decreto e attesa opposizione",
+      "descrizione": "Notifica del decreto ingiuntivo al debitore e presidio del termine di opposizione.",
+      "prompt_ref": "recupero_crediti.ricorso_decreto_ingiuntivo.checklist",
+      "termini": [
+        "Notifica entro 60 giorni dalla pronuncia, pena inefficacia (art. 644 c.p.c.)",
+        "Opposizione del debitore entro 40 giorni dalla notifica (art. 641 c.p.c.)"
+      ],
+      "riferimenti": [
+        "art. 644 c.p.c.",
+        "art. 641 c.p.c."
+      ],
+      "template_refs": [
+        "MON_010"
+      ]
+    },
+    {
+      "passo_id": "precetto",
+      "nome": "Atto di precetto",
+      "descrizione": "Intimazione ad adempiere sul titolo esecutivo (decreto non opposto o provvisoriamente esecutivo).",
+      "prompt_ref": "recupero_crediti.atto_di_precetto.redazione_atto",
+      "termini": [
+        "Termine per l'adempimento non inferiore a 10 giorni (art. 480 c.p.c.)",
+        "Il precetto perde efficacia decorsi 90 giorni senza inizio dell'esecuzione (art. 481 c.p.c.)"
+      ],
+      "riferimenti": [
+        "artt. 480-481 c.p.c."
+      ],
+      "template_refs": [
+        "MON_018",
+        "ESE_001"
+      ]
+    },
+    {
+      "passo_id": "ricerca_beni",
+      "nome": "Ricerca telematica dei beni",
+      "descrizione": "Individuazione di rapporti e beni aggredibili tramite istanza ex art. 492-bis c.p.c.",
+      "prompt_ref": "recupero_crediti.ricerca_beni_telematica.checklist",
+      "termini": [
+        "Istanza proponibile dopo il decorso del termine del precetto"
+      ],
+      "riferimenti": [
+        "art. 492-bis c.p.c."
+      ],
+      "template_refs": [
+        "ESE_013"
+      ]
+    },
+    {
+      "passo_id": "pignoramento",
+      "nome": "Pignoramento presso terzi",
+      "descrizione": "Aggressione di crediti e conti del debitore presso banche o datori di lavoro.",
+      "prompt_ref": "recupero_crediti.pignoramento_presso_terzi.redazione_atto",
+      "termini": [
+        "Iniziare l'esecuzione entro 90 giorni dal precetto (art. 481 c.p.c.)",
+        "Iscrizione a ruolo e udienza di dichiarazione del terzo nei termini dell'art. 543 c.p.c."
+      ],
+      "riferimenti": [
+        "art. 543 c.p.c.",
+        "art. 546 c.p.c."
+      ],
+      "template_refs": [
+        "ESE_007",
+        "ESE_008",
+        "ESE_009"
+      ]
+    }
+  ]
+}

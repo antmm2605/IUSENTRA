@@ -1,0 +1,87 @@
+{
+  "area_id": "famiglia",
+  "nome": "Diritto di famiglia",
+  "descrizione": "Crisi della coppia, rapporti genitoriali e tutele della persona nel rito unificato per le persone, i minorenni e le famiglie introdotto dalla riforma Cartabia.",
+  "voci": [
+    {
+      "voce_id": "separazione_consensuale",
+      "nome": "Separazione consensuale dei coniugi",
+      "descrizione": "Predisposizione del ricorso congiunto con le condizioni patrimoniali e di affidamento, nel procedimento su domanda congiunta del rito unificato famiglia.",
+      "riferimenti": ["art. 158 c.c.", "art. 473-bis.51 c.p.c."],
+      "tags": ["separazione", "coniugi", "consensuale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "separazione_giudiziale",
+      "nome": "Separazione giudiziale e addebito",
+      "descrizione": "Ricorso per separazione giudiziale con eventuale domanda di addebito, provvedimenti temporanei e urgenti e possibile cumulo con la domanda di divorzio.",
+      "riferimenti": ["art. 151 c.c.", "art. 473-bis.49 c.p.c."],
+      "tags": ["separazione", "addebito", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "divorzio",
+      "nome": "Divorzio (scioglimento e cessazione degli effetti civili del matrimonio)",
+      "descrizione": "Domanda congiunta o contenziosa di divorzio, verifica dei presupposti temporali post L. 55/2015 e definizione dei rapporti patrimoniali tra gli ex coniugi.",
+      "riferimenti": ["L. 1 dicembre 1970, n. 898", "L. 6 maggio 2015, n. 55"],
+      "tags": ["divorzio", "matrimonio", "coniugi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "assegno_mantenimento_figli",
+      "nome": "Mantenimento dei figli",
+      "descrizione": "Determinazione e revisione del contributo al mantenimento dei figli minori e maggiorenni non autosufficienti, spese ordinarie e straordinarie.",
+      "riferimenti": ["art. 337-ter c.c.", "art. 316-bis c.c."],
+      "tags": ["mantenimento", "figli", "minori"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "assegno_divorzile",
+      "nome": "Assegno divorzile",
+      "descrizione": "Domanda, quantificazione e revisione dell'assegno divorzile secondo i criteri compositi assistenziale, compensativo e perequativo elaborati dalla giurisprudenza di legittimità.",
+      "riferimenti": ["art. 5, comma 6, L. 1 dicembre 1970, n. 898", "art. 9 L. 1 dicembre 1970, n. 898"],
+      "tags": ["divorzio", "assegno", "mantenimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "affidamento_responsabilita_genitoriale",
+      "nome": "Affidamento dei figli e responsabilità genitoriale",
+      "descrizione": "Regolamentazione dell'affidamento condiviso o esclusivo, del collocamento e del diritto di visita, anche per figli nati fuori dal matrimonio.",
+      "riferimenti": ["art. 337-bis c.c.", "art. 337-quater c.c.", "art. 316 c.c."],
+      "tags": ["affidamento", "minori", "genitori"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ordini_di_protezione",
+      "nome": "Ordini di protezione contro gli abusi familiari",
+      "descrizione": "Ricorso per l'allontanamento dalla casa familiare e il divieto di avvicinamento in caso di condotte pregiudizievoli, con raccordo con la tutela penale (codice rosso).",
+      "riferimenti": ["art. 342-bis c.c.", "art. 342-ter c.c.", "art. 473-bis.69 c.p.c."],
+      "tags": ["violenza", "protezione", "urgenza"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "unioni_civili_convivenze",
+      "nome": "Unioni civili e convivenze di fatto",
+      "descrizione": "Costituzione e scioglimento dell'unione civile, contratti di convivenza e diritti dei conviventi di fatto secondo la legge Cirinnà.",
+      "riferimenti": ["L. 20 maggio 2016, n. 76"],
+      "tags": ["unioni civili", "convivenza", "coppia"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "negoziazione_assistita_famiglia",
+      "nome": "Negoziazione assistita in materia familiare",
+      "descrizione": "Convenzione di negoziazione assistita per separazione, divorzio e modifica delle condizioni, con nulla osta o autorizzazione del pubblico ministero.",
+      "riferimenti": ["art. 6 D.L. 12 settembre 2014, n. 132", "L. 10 novembre 2014, n. 162"],
+      "tags": ["negoziazione", "separazione", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "rito_unificato_famiglia",
+      "nome": "Rito unificato persone, minorenni e famiglie",
+      "descrizione": "Gestione del procedimento unitario ex artt. 473-bis ss. c.p.c.: ricorso completo, piano genitoriale, difese e istruttoria nel processo di famiglia riformato.",
+      "riferimenti": ["art. 473-bis c.p.c.", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["cartabia", "rito", "procedura"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

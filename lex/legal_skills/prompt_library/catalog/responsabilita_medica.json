@@ -1,0 +1,87 @@
+{
+  "area_id": "responsabilita_medica",
+  "nome": "Responsabilità sanitaria",
+  "descrizione": "Responsabilità civile e penale in ambito sanitario secondo la legge Gelli-Bianco, con i relativi strumenti stragiudiziali, assicurativi e processuali.",
+  "voci": [
+    {
+      "voce_id": "richiesta_cartella_clinica",
+      "nome": "Richiesta di cartella clinica e documentazione sanitaria",
+      "descrizione": "Istanza di accesso alla documentazione sanitaria che la struttura deve fornire entro sette giorni dalla richiesta, presupposto istruttorio di ogni valutazione medico-legale.",
+      "riferimenti": ["art. 4 L. 8 marzo 2017, n. 24", "Reg. (UE) 2016/679 art. 15"],
+      "tags": ["cartella clinica", "accesso", "istruttoria"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "atp_conciliativo_696bis",
+      "nome": "Accertamento tecnico preventivo conciliativo",
+      "descrizione": "Ricorso per consulenza tecnica preventiva ai fini della composizione della lite, condizione di procedibilità alternativa alla mediazione nelle controversie di responsabilità sanitaria.",
+      "riferimenti": ["art. 8 L. 8 marzo 2017, n. 24", "art. 696-bis c.p.c."],
+      "tags": ["atp", "procedibilita", "consulenza tecnica"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "mediazione_sanitaria",
+      "nome": "Mediazione in materia di responsabilità sanitaria",
+      "descrizione": "Attivazione del procedimento di mediazione quale condizione di procedibilità della domanda risarcitoria contro strutture ed esercenti la professione sanitaria, in alternativa all'accertamento tecnico preventivo.",
+      "riferimenti": ["art. 5 D.Lgs. 4 marzo 2010, n. 28", "art. 8 L. 8 marzo 2017, n. 24"],
+      "tags": ["mediazione", "procedibilita", "sanitario"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_contro_struttura",
+      "nome": "Azione risarcitoria contro la struttura sanitaria",
+      "descrizione": "Azione per responsabilità contrattuale della struttura sanitaria o sociosanitaria per l'inadempimento delle prestazioni, con onere probatorio e prescrizione decennale propri del regime contrattuale.",
+      "riferimenti": ["art. 7 L. 8 marzo 2017, n. 24", "art. 1218 c.c.", "art. 1228 c.c."],
+      "tags": ["struttura sanitaria", "responsabilita contrattuale", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_contro_sanitario",
+      "nome": "Azione risarcitoria contro l'esercente la professione sanitaria",
+      "descrizione": "Azione extracontrattuale nei confronti del singolo sanitario che ha operato nella struttura senza obbligazione contrattuale diretta con il paziente, con prescrizione quinquennale.",
+      "riferimenti": ["art. 7, comma 3, L. 8 marzo 2017, n. 24", "art. 2043 c.c."],
+      "tags": ["medico", "responsabilita extracontrattuale", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_diretta_assicuratore",
+      "nome": "Azione diretta verso l'impresa di assicurazione",
+      "descrizione": "Azione risarcitoria esperibile dal danneggiato direttamente contro l'assicuratore della struttura o del sanitario, nei limiti del massimale, secondo il regime della legge Gelli-Bianco.",
+      "riferimenti": ["art. 12 L. 8 marzo 2017, n. 24", "art. 10 L. 8 marzo 2017, n. 24"],
+      "tags": ["assicurazione", "azione diretta", "massimale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azione_rivalsa_struttura",
+      "nome": "Azione di rivalsa e responsabilità amministrativa verso il sanitario",
+      "descrizione": "Difesa dell'esercente la professione sanitaria nell'azione di rivalsa della struttura o di responsabilità amministrativa, esperibile solo in caso di dolo o colpa grave e nei limiti quantitativi di legge.",
+      "riferimenti": ["art. 9 L. 8 marzo 2017, n. 24"],
+      "tags": ["rivalsa", "colpa grave", "difesa sanitario"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "consenso_informato",
+      "nome": "Consenso informato e disposizioni anticipate di trattamento",
+      "descrizione": "Verifica della validità del consenso informato al trattamento sanitario e consulenza su DAT e pianificazione condivisa delle cure, con profili risarcitori autonomi in caso di omessa informazione.",
+      "riferimenti": ["L. 22 dicembre 2017, n. 219", "art. 32 Cost."],
+      "tags": ["consenso informato", "autodeterminazione", "dat"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_penale_sanitario",
+      "nome": "Difesa penale dell'esercente la professione sanitaria",
+      "descrizione": "Difesa nel procedimento per lesioni o omicidio colposo in ambito sanitario, con applicazione della causa di non punibilità per imperizia nel rispetto delle linee guida accreditate.",
+      "riferimenti": ["art. 590-sexies c.p.", "art. 6 L. 8 marzo 2017, n. 24", "art. 5 L. 8 marzo 2017, n. 24"],
+      "tags": ["colpa medica", "linee guida", "difesa penale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ctu_medico_legale",
+      "nome": "Consulenza tecnica medico-legale e nomina del CTP",
+      "descrizione": "Gestione della fase peritale nel contenzioso sanitario: nomina del consulente di parte, osservazioni alla CTU collegiale medico-legale e specialistica, verifica dei requisiti dei consulenti.",
+      "riferimenti": ["art. 15 L. 8 marzo 2017, n. 24", "artt. 61-64 c.p.c.", "art. 201 c.p.c."],
+      "tags": ["ctu", "ctp", "medicina legale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

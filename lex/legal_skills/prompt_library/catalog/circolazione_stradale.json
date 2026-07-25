@@ -1,0 +1,87 @@
+{
+  "area_id": "circolazione_stradale",
+  "nome": "Circolazione stradale e RC auto",
+  "descrizione": "Sanzioni amministrative del Codice della Strada, reati stradali e risarcimento dei danni da sinistro nel sistema dell'assicurazione obbligatoria RC auto.",
+  "voci": [
+    {
+      "voce_id": "opposizione_verbale_gdp",
+      "nome": "Opposizione a verbale di accertamento davanti al Giudice di Pace",
+      "descrizione": "Ricorso giurisdizionale avverso il verbale di violazione del Codice della Strada nel termine di trenta giorni dalla notifica, con il rito dell'opposizione a sanzione amministrativa.",
+      "riferimenti": ["art. 204-bis D.Lgs. 30 aprile 1992, n. 285", "art. 7 D.Lgs. 1 settembre 2011, n. 150"],
+      "tags": ["sanzioni", "giudice di pace", "opposizione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricorso_prefetto",
+      "nome": "Ricorso al Prefetto avverso verbale",
+      "descrizione": "Ricorso amministrativo al Prefetto entro sessanta giorni dalla contestazione o notificazione del verbale, alternativo al ricorso al Giudice di Pace, con effetto di raddoppio della sanzione in caso di rigetto.",
+      "riferimenti": ["art. 203 D.Lgs. 30 aprile 1992, n. 285", "art. 204 D.Lgs. 30 aprile 1992, n. 285"],
+      "tags": ["sanzioni", "prefetto", "ricorso amministrativo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "richiesta_risarcimento_sinistro",
+      "nome": "Richiesta di risarcimento danni da sinistro stradale",
+      "descrizione": "Lettera di messa in mora all'impresa assicuratrice del responsabile, condizione di proponibilità dell'azione risarcitoria, con rispetto dei termini di offerta previsti dal Codice delle assicurazioni.",
+      "riferimenti": ["art. 148 D.Lgs. 7 settembre 2005, n. 209", "art. 145 D.Lgs. 7 settembre 2005, n. 209", "art. 2054 c.c."],
+      "tags": ["rc auto", "risarcimento", "sinistro"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "indennizzo_diretto",
+      "nome": "Procedura di risarcimento diretto",
+      "descrizione": "Richiesta di indennizzo rivolta alla propria compagnia assicuratrice nei sinistri tra due veicoli immatricolati in Italia con danni al veicolo e lesioni di lieve entità.",
+      "riferimenti": ["art. 149 D.Lgs. 7 settembre 2005, n. 209", "D.P.R. 18 luglio 2006, n. 254"],
+      "tags": ["rc auto", "indennizzo diretto", "assicurazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "negoziazione_assistita_sinistri",
+      "nome": "Negoziazione assistita per danni da circolazione",
+      "descrizione": "Invito alla stipula della convenzione di negoziazione assistita, condizione di procedibilità della domanda di risarcimento del danno da circolazione di veicoli e natanti.",
+      "riferimenti": ["art. 3 D.L. 12 settembre 2014, n. 132, conv. L. 10 novembre 2014, n. 162"],
+      "tags": ["negoziazione assistita", "procedibilita", "sinistro"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "fondo_garanzia_vittime_strada",
+      "nome": "Azione verso il Fondo di garanzia per le vittime della strada",
+      "descrizione": "Richiesta risarcitoria nei casi di sinistro causato da veicolo non identificato, non assicurato o assicurato con impresa in liquidazione coatta, tramite l'impresa designata.",
+      "riferimenti": ["artt. 283-287 D.Lgs. 7 settembre 2005, n. 209"],
+      "tags": ["fondo garanzia", "veicolo non assicurato", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "guida_stato_ebbrezza",
+      "nome": "Difesa per guida in stato di ebbrezza",
+      "descrizione": "Assistenza nel procedimento per guida in stato di ebbrezza, con verifica delle soglie alcolemiche, delle garanzie difensive nell'accertamento e dell'accesso al lavoro di pubblica utilità sostitutivo.",
+      "riferimenti": ["art. 186 D.Lgs. 30 aprile 1992, n. 285", "art. 187 D.Lgs. 30 aprile 1992, n. 285"],
+      "tags": ["ebbrezza", "reati stradali", "patente"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "omicidio_stradale",
+      "nome": "Difesa nel procedimento per omicidio stradale",
+      "descrizione": "Assistenza dell'indagato o della persona offesa nel procedimento per omicidio stradale, con valutazione delle aggravanti, delle sanzioni accessorie sulla patente e dei profili risarcitori.",
+      "riferimenti": ["art. 589-bis c.p.", "L. 23 marzo 2016, n. 41"],
+      "tags": ["omicidio stradale", "reati stradali", "difesa penale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "lesioni_personali_stradali",
+      "nome": "Difesa nel procedimento per lesioni personali stradali",
+      "descrizione": "Assistenza nel procedimento per lesioni personali stradali gravi o gravissime, con analisi del regime di procedibilità, delle aggravanti e del coordinamento con l'azione civile risarcitoria.",
+      "riferimenti": ["art. 590-bis c.p.", "L. 23 marzo 2016, n. 41"],
+      "tags": ["lesioni stradali", "reati stradali", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "opposizione_sospensione_patente",
+      "nome": "Tutela avverso sospensione o revoca della patente",
+      "descrizione": "Opposizione avverso i provvedimenti di sospensione o revoca della patente di guida, con distinzione tra rimedi davanti al giudice ordinario e ricorsi amministrativi secondo la natura del provvedimento.",
+      "riferimenti": ["art. 218 D.Lgs. 30 aprile 1992, n. 285", "art. 219 D.Lgs. 30 aprile 1992, n. 285", "art. 7 D.Lgs. 1 settembre 2011, n. 150"],
+      "tags": ["patente", "sospensione", "opposizione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

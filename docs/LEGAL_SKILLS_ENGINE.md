@@ -30,6 +30,97 @@ Seed pack integrati:
 - `litigation_legal`: cronologia fascicolo e preparazione udienza.
 - `regulatory_legal`: monitor normativo e controllo gap policy.
 
+## Libreria Prompt — LegalSkills Italia
+
+`lex/legal_skills/prompt_library/` aggiunge al motore un catalogo read-only
+di **1.303 prompt operativi in 26 aree del diritto italiano**, ciascuno
+derivato da una voce con base normativa dichiarata (principio delle fonti
+certe) e composto in una delle 5 forme della prassi forense:
+`redazione_atto`, `parere`, `checklist`, `lettera`, `ricerca`.
+
+- `prompt_library/models.py`: dataclass `AreaPrompt` e `VocePrompt`.
+- `prompt_library/composer.py`: template per forma; ogni testo impone la
+  revisione obbligatoria dell'avvocato e vieta l'invenzione di fonti.
+- `prompt_library/library.py`: caricamento fail-closed del catalogo,
+  ricerca su tutto il contenuto (testo, area, forma, riferimenti, tag),
+  singleton `get_prompt_library()`.
+- `prompt_library/catalog/`: 26 file JSON versionati (una area per file,
+  263 voci totali con riferimenti normativi).
+
+API: `/api/v1/legal-skills/prompt-library` (`/aree`, `/prompts`,
+`/prompts/<id>`), blueprint `web/blueprints/api_v1_prompt_library.py`,
+stesse guardie del motore (auth, flag `lex.legalSkills.enabled`, permesso
+`legal_skills.leggi`, blocco parametri riservati).
+
+UI: pagina `PromptLibraryPage` su `/legal-skills/prompt` (flag
+`routes.appV2.legalSkills.promptLibrary`, attivo di default), con ricerca
+full-catalog, filtri area/forma, dettaglio con riferimenti e copia negli
+appunti.
+
+Specializzazione per studio e fascicolo:
+
+- **Precompilazione dal fascicolo**: `GET /prompts/<id>?fascicolo=<id>`
+  (permesso aggiuntivo `fascicoli.leggi`) sostituisce i segnaposto
+  `[PARTI]`, `[FATTI]`, `[DOCUMENTI…]`, `[DESTINATARIO]`, ecc. con i dati
+  reali del fascicolo (parti, RG, ufficio, documenti, prossime scadenze)
+  tramite `prompt_library/case_context.py` e il bridge
+  `web/services/prompt_library_fascicolo_bridge.py`. I dati assenti
+  restano segnaposto: niente viene inventato. In UI il fascicolo si
+  collega dal selettore della pagina o con `?fascicolo=` nell'URL.
+- **Aree preferite dal profilo studio**: `GET /aree` incrocia le
+  `practice_areas` del `PracticeProfile` con il catalogo
+  (`prompt_library/profile_matching.py`) e propone per prime le aree
+  praticate dallo studio (`preferita: true`, chip dedicate in UI).
+- **Percorsi guidati per procedimento**: catalogo versionato in
+  `prompt_library/pathways_data/` (10 percorsi: monitorio, sfratto,
+  separazione consensuale, impugnazione licenziamento, sinistro RC auto,
+  opposizione a decreto ingiuntivo, ricorso TAR, responsabilità
+  sanitaria, mediazione civile, data breach). Ogni passo richiama un
+  prompt reale del catalogo (validazione fail-closed in
+  `prompt_library/pathways.py`) e dichiara termini e riferimenti
+  normativi. Avanzamento per fascicolo tenant-aware
+  (`prompt_library/pathway_progress.py`, `LEGAL_SKILLS_PATHWAYS_DB`).
+  API: `/api/v1/legal-skills/prompt-library/percorsi` (lista, dettaglio
+  con `prossimo_passo`, `POST .../passi/<id>/stato`). UI: pagina
+  `/legal-skills/percorsi` (flag `routes.appV2.legalSkills.pathways`)
+  con timeline dei passi, termini da presidiare, "Apri prompt" con
+  deep-link `?prompt=` e avanzamento per fascicolo.
+- **Fusione con il catalogo template**: ogni passo dei percorsi può
+  dichiarare `template_refs` (id del catalogo master di
+  `pct/template_atti_catalogo_data/`, es. `MON_001`): il dettaglio
+  percorso li risolve in schede con titolo e link
+  `/template-atti/catalogo?scheda=<id>` (contesto fascicolo propagato
+  con `id_fascicolo`/`case_id`). Risoluzione in
+  `web/services/prompt_pathway_templates.py` (fail-soft sui ref
+  sconosciuti); l'esistenza degli id è verificata dai test.
+- **Bozza nell'editor professionale**: dalla pagina di revisione di un
+  run con fascicolo collegato, "Apri nell'editor professionale" invia la
+  bozza a `POST /api/v1/ui/fascicoli/<id>/editor-ai/importa-bozza`
+  (endpoint già governato dell'Editor AI) e apre il documento creato per
+  la revisione dell'avvocato.
+- **Riferimenti normativi vivi**: `prompt_library/reference_watch.py`
+  estrae gli estremi (numero/anno) dai riferimenti di voci e passi e li
+  incrocia con le normative pubblicate dalla pipeline quotidiana
+  (`LegalUpdateRepository.list_published_normative`, runtime fail-soft
+  con cache breve in
+  `web/services/prompt_reference_watch_runtime.py`). API
+  `GET /prompt-library/revisioni`; il dettaglio prompt espone
+  `da_rivedere` + `revisioni` e la UI mostra l'avviso "Da rivedere" con
+  invito a verificare la vigenza su fonti ufficiali. Nessuna modifica
+  automatica al catalogo.
+- **Esecuzione governata ("Esegui con Lex")**: `POST /run`
+  (permesso `legal_skills.esegui`) trasforma il prompt — precompilato dal
+  fascicolo se indicato — in una skill sintetica read-only
+  (`prompt_library/runner.py`, pack `prompt_library`) e la esegue nel
+  `LegalSkillWorkflowEngine`: profilo studio obbligatorio (409 se
+  incompleto), fonti di policy, guardrail, nota di revisione, salvataggio
+  nella coda runs esistente con `prompt_id`/`fascicolo_id` tracciati.
+  L'esito si rivede e approva su `/legal-skills/runs/<run_id>` con i
+  flussi approve/export già governati.
+
+Gate dedicato: `python -m pytest tests/test_prompt_library.py -q` (contratto
+1.303 prompt / 26 aree, composizione per ogni forma, ricerca, API governate).
+
 ## Feature flag
 
 Il catalogo operativo e le pagine React Legal Skills sono attivi di default:

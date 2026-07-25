@@ -210,6 +210,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     ai_bridge = tmp_path / "local_ai_host_bridge.py"
     lex_context = tmp_path / "lex_document_context.py"
     visible_signature = tmp_path / "visible_signature.py"
+    windows_http = tmp_path / "local_signer_windows_http.ps1"
     reqs = tmp_path / "requirements_local_signer.txt"
     uffici = tmp_path / "uffici_ministero.json"
     uffici_pst_pubblici = tmp_path / "uffici_pst_pubblici.json"
@@ -221,6 +222,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     ai_bridge.write_text("def bridge():\n    return 'ok'\n", encoding="utf-8")
     lex_context.write_text("def parse_document():\n    return []\n", encoding="utf-8")
     visible_signature.write_text("def apply_visible_signature_stamp(data):\n    return data\n", encoding="utf-8")
+    windows_http.write_text("Write-Output 'ok'\n", encoding="utf-8")
     reqs.write_text("cryptography\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
     uffici_pst_pubblici.write_text('{"uffici":{"civili":[],"penali":[]}}', encoding="utf-8")
@@ -239,6 +241,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     monkeypatch.setattr(build_dist, "AI_BRIDGE_PY", ai_bridge)
     monkeypatch.setattr(build_dist, "LEX_CONTEXT_PY", lex_context)
     monkeypatch.setattr(build_dist, "VISIBLE_SIGNATURE_PY", visible_signature)
+    monkeypatch.setattr(build_dist, "WINDOWS_HTTP_PS1", windows_http)
     monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
     monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
     monkeypatch.setattr(build_dist, "UFFICI_PST_PUBBLICI_JSON", uffici_pst_pubblici)
@@ -246,8 +249,9 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
 
     copied = build_dist.write_windows_support_files(dist)
 
-    assert [path.name for path in copied[:7]] == [
+    assert [path.name for path in copied[:8]] == [
         "local_signer.py",
+        "local_signer_windows_http.ps1",
         "local_ai_host_bridge.py",
         "lex_document_context.py",
         "visible_signature.py",
@@ -255,7 +259,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "uffici_ministero.json",
         "uffici_pst_pubblici.json",
     ]
-    assert {path.name for path in copied[7:]} == {
+    assert {path.name for path in copied[8:]} == {
         "__init__.py",
         "ai_cache.py",
         "ai_handlers.py",
@@ -265,6 +269,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "support_agent.py",
     }
     assert (dist / "local_signer.py").read_text(encoding="utf-8") == "VERSION = '1.5.16'\n"
+    assert (dist / "local_signer_windows_http.ps1").read_text(encoding="utf-8") == "Write-Output 'ok'\n"
     assert (dist / "local_ai_host_bridge.py").read_text(encoding="utf-8") == "def bridge():\n    return 'ok'\n"
     assert (dist / "lex_document_context.py").read_text(encoding="utf-8") == "def parse_document():\n    return []\n"
     assert (dist / "visible_signature.py").read_text(encoding="utf-8") == "def apply_visible_signature_stamp(data):\n    return data\n"

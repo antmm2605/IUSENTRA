@@ -1,0 +1,87 @@
+{
+  "area_id": "bancario",
+  "nome": "Diritto bancario e finanziario",
+  "descrizione": "Contenzioso e consulenza nei rapporti tra clienti e intermediari bancari e finanziari, secondo il Testo unico bancario (D.Lgs. 385/1993) e il Testo unico della finanza (D.Lgs. 58/1998).",
+  "voci": [
+    {
+      "voce_id": "anatocismo_bancario",
+      "nome": "Anatocismo bancario",
+      "descrizione": "Verifica della capitalizzazione degli interessi nei rapporti di conto corrente e mutuo e recupero delle somme illegittimamente addebitate.",
+      "riferimenti": ["art. 1283 c.c.", "art. 120 D.Lgs. 385/1993"],
+      "tags": ["anatocismo", "interessi", "conto corrente"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "usura_bancaria",
+      "nome": "Usura bancaria",
+      "descrizione": "Verifica del superamento del tasso soglia nei finanziamenti e azionamento della sanzione di gratuità degli interessi usurari.",
+      "riferimenti": ["L. 108/1996", "art. 644 c.p.", "art. 1815 c.c."],
+      "tags": ["usura", "tasso soglia", "finanziamenti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "contenzioso_mutui",
+      "nome": "Contenzioso sui contratti di mutuo",
+      "descrizione": "Contestazione di clausole del mutuo bancario e fondiario, dal piano di ammortamento all'indicizzazione, con verifica dei limiti di finanziabilità.",
+      "riferimenti": ["art. 1813 c.c.", "art. 38 D.Lgs. 385/1993", "art. 117 D.Lgs. 385/1993"],
+      "tags": ["mutuo", "fondiario", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "segnalazione_centrale_rischi",
+      "nome": "Segnalazione illegittima in Centrale dei rischi",
+      "descrizione": "Contestazione delle segnalazioni a sofferenza prive di presupposti e richiesta di cancellazione, anche in via d'urgenza, con domanda risarcitoria.",
+      "riferimenti": ["Circolare Banca d'Italia n. 139/1991", "art. 2043 c.c.", "art. 700 c.p.c."],
+      "tags": ["centrale rischi", "sofferenza", "segnalazioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ripetizione_indebito_conto_corrente",
+      "nome": "Ripetizione di indebito su conto corrente",
+      "descrizione": "Azione di restituzione delle competenze non dovute addebitate in conto corrente, con ricostruzione del saldo e gestione di prescrizione e rimesse.",
+      "riferimenti": ["art. 2033 c.c.", "art. 1832 c.c.", "art. 2935 c.c."],
+      "tags": ["indebito", "conto corrente", "restituzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "trasparenza_bancaria",
+      "nome": "Trasparenza bancaria e nullità di protezione",
+      "descrizione": "Verifica di forma, contenuto e pubblicità delle condizioni contrattuali bancarie e azionamento delle nullità rilevabili solo a vantaggio del cliente.",
+      "riferimenti": ["art. 117 D.Lgs. 385/1993", "art. 127 D.Lgs. 385/1993"],
+      "tags": ["trasparenza", "nullita", "condizioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "fideiussioni_omnibus",
+      "nome": "Fideiussioni omnibus e nullità antitrust",
+      "descrizione": "Contestazione delle fideiussioni conformi allo schema ABI per violazione della disciplina antitrust e verifica della decadenza del creditore.",
+      "riferimenti": ["art. 2 L. 287/1990", "art. 1938 c.c.", "art. 1957 c.c."],
+      "tags": ["fideiussione", "antitrust", "garanzie"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "responsabilita_intermediario_finanziario",
+      "nome": "Responsabilità dell'intermediario finanziario",
+      "descrizione": "Azioni risarcitorie e restitutorie per violazione degli obblighi informativi e di adeguatezza nella prestazione dei servizi di investimento.",
+      "riferimenti": ["art. 21 D.Lgs. 58/1998", "art. 23 D.Lgs. 58/1998"],
+      "tags": ["investimenti", "intermediario", "obblighi informativi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "credito_ai_consumatori",
+      "nome": "Credito ai consumatori",
+      "descrizione": "Tutela del consumatore nei contratti di credito, inclusa la riduzione del costo totale in caso di rimborso anticipato del finanziamento.",
+      "riferimenti": ["art. 121 D.Lgs. 385/1993", "art. 125-sexies D.Lgs. 385/1993"],
+      "tags": ["credito", "consumatori", "rimborso anticipato"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricorso_abf_acf",
+      "nome": "Ricorso all'ABF e all'ACF",
+      "descrizione": "Predisposizione del reclamo e del ricorso agli organismi di risoluzione stragiudiziale delle controversie bancarie e finanziarie.",
+      "riferimenti": ["art. 128-bis D.Lgs. 385/1993", "art. 32-ter D.Lgs. 58/1998"],
+      "tags": ["abf", "acf", "adr"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

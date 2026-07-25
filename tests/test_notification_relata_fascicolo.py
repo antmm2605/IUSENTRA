@@ -166,3 +166,7 @@ def test_provvedimento_successivo_al_cutoff_resta_da_notificare() -> None:
     assert payload["legacyAssumedHandled"] is False
     assert payload["strictNotificationSignals"] >= 1
     assert payload["primaryLabel"] == "Prepara relata"
+    assert "id_fascicolo=FNEW" in payload["prepareHref"]
+    assert "documenti=9" in payload["prepareHref"]
+    assert "ingresso=presidio" in payload["prepareHref"]
+    assert payload["primaryHref"] == payload["prepareHref"]

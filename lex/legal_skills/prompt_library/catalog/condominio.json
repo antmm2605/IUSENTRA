@@ -1,0 +1,87 @@
+{
+  "area_id": "condominio",
+  "nome": "Condominio",
+  "descrizione": "Gestione delle parti comuni, rapporti tra condomini e amministratore e contenzioso condominiale secondo la disciplina codicistica riformata dalla L. 220/2012.",
+  "voci": [
+    {
+      "voce_id": "impugnazione_delibera_assembleare",
+      "nome": "Impugnazione di delibera assembleare",
+      "descrizione": "Impugnazione delle deliberazioni annullabili nel termine di trenta giorni e rilievo della nullità, previa mediazione obbligatoria in materia condominiale.",
+      "riferimenti": ["art. 1137 c.c.", "art. 71-quater disp. att. c.c."],
+      "tags": ["assemblea", "delibera", "impugnazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "recupero_oneri_condominiali",
+      "nome": "Recupero degli oneri condominiali",
+      "descrizione": "Decreto ingiuntivo immediatamente esecutivo contro il condomino moroso sulla base dello stato di ripartizione approvato dall'assemblea.",
+      "riferimenti": ["art. 63 disp. att. c.c.", "art. 1123 c.c."],
+      "tags": ["morosita", "spese", "monitorio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "tabelle_millesimali",
+      "nome": "Tabelle millesimali: formazione e revisione",
+      "descrizione": "Approvazione, rettifica e revisione giudiziale delle tabelle millesimali in caso di errore o mutamento delle condizioni dell'edificio.",
+      "riferimenti": ["art. 68 disp. att. c.c.", "art. 69 disp. att. c.c."],
+      "tags": ["millesimi", "tabelle", "ripartizione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "nomina_revoca_amministratore",
+      "nome": "Nomina e revoca dell'amministratore",
+      "descrizione": "Nomina assembleare o giudiziale dell'amministratore, obblighi gestori, rendiconto e revoca per gravi irregolarità anche su ricorso del singolo condomino.",
+      "riferimenti": ["art. 1129 c.c.", "art. 1130 c.c."],
+      "tags": ["amministratore", "revoca", "gestione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "parti_comuni_uso",
+      "nome": "Parti comuni e uso della cosa comune",
+      "descrizione": "Individuazione delle parti comuni ex art. 1117 c.c. e limiti all'uso più intenso del singolo condomino senza alterarne la destinazione.",
+      "riferimenti": ["art. 1117 c.c.", "art. 1102 c.c."],
+      "tags": ["parti comuni", "uso", "condomini"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "innovazioni",
+      "nome": "Innovazioni e opere sulle parti comuni",
+      "descrizione": "Deliberazione delle innovazioni con le maggioranze qualificate, innovazioni agevolate (barriere architettoniche, efficienza energetica) e innovazioni vietate.",
+      "riferimenti": ["art. 1120 c.c.", "art. 1121 c.c."],
+      "tags": ["innovazioni", "lavori", "maggioranze"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "regolamento_condominiale",
+      "nome": "Regolamento di condominio",
+      "descrizione": "Redazione e interpretazione del regolamento assembleare o contrattuale, opponibilità delle clausole limitative dei diritti sulle unità di proprietà esclusiva.",
+      "riferimenti": ["art. 1138 c.c.", "art. 70 disp. att. c.c."],
+      "tags": ["regolamento", "clausole", "divieti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "distacco_riscaldamento_centralizzato",
+      "nome": "Distacco dall'impianto centralizzato di riscaldamento",
+      "descrizione": "Rinuncia del condomino all'impianto centralizzato con verifica dell'assenza di squilibri e permanenza degli obblighi per le spese di manutenzione straordinaria.",
+      "riferimenti": ["art. 1118 c.c."],
+      "tags": ["riscaldamento", "distacco", "spese"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sopraelevazione",
+      "nome": "Sopraelevazione e indennità",
+      "descrizione": "Diritto di sopraelevazione del proprietario dell'ultimo piano, limiti statici e architettonici e corresponsione dell'indennità agli altri condomini.",
+      "riferimenti": ["art. 1127 c.c."],
+      "tags": ["sopraelevazione", "indennita", "edificio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "immissioni_e_rapporti_vicinato",
+      "nome": "Immissioni e rapporti di vicinato nel condominio",
+      "descrizione": "Tutela contro immissioni di rumori, fumi e odori oltre la normale tollerabilità tra unità immobiliari, con azione inibitoria e risarcitoria.",
+      "riferimenti": ["art. 844 c.c.", "art. 2043 c.c."],
+      "tags": ["immissioni", "rumori", "vicinato"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

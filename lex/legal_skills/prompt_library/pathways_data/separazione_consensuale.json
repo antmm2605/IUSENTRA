@@ -1,0 +1,76 @@
+{
+  "percorso_id": "separazione_consensuale",
+  "nome": "Separazione consensuale",
+  "area_id": "famiglia",
+  "descrizione": "Dal primo colloquio all'udienza nel rito unificato: la separazione concordata tra i coniugi, con l'alternativa della negoziazione assistita.",
+  "riferimenti": [
+    "art. 473-bis.51 c.p.c.",
+    "art. 6 D.L. 132/2014",
+    "art. 158 c.c."
+  ],
+  "passi": [
+    {
+      "passo_id": "parere_iniziale",
+      "nome": "Inquadramento e parere iniziale",
+      "descrizione": "Analisi delle condizioni economiche e genitoriali da concordare e dei presupposti della separazione.",
+      "prompt_ref": "famiglia.separazione_consensuale.parere",
+      "termini": [
+        "Valutare da subito mantenimento, assegnazione della casa e affidamento per evitare rinegoziazioni in udienza"
+      ],
+      "riferimenti": [
+        "art. 158 c.c.",
+        "art. 337-ter c.c."
+      ],
+      "template_refs": []
+    },
+    {
+      "passo_id": "negoziazione_assistita",
+      "nome": "Alternativa: negoziazione assistita familiare",
+      "descrizione": "Accordo raggiunto con l'assistenza degli avvocati, senza udienza, trasmesso al Procuratore della Repubblica.",
+      "prompt_ref": "famiglia.negoziazione_assistita_famiglia.checklist",
+      "termini": [
+        "Trasmissione dell'accordo al PM per nullaosta o autorizzazione (art. 6 D.L. 132/2014)",
+        "Trasmissione all'ufficiale di stato civile entro 10 giorni"
+      ],
+      "riferimenti": [
+        "art. 6 D.L. 132/2014"
+      ],
+      "template_refs": [
+        "FAM_022",
+        "ADR_006"
+      ]
+    },
+    {
+      "passo_id": "ricorso_congiunto",
+      "nome": "Ricorso congiunto",
+      "descrizione": "Redazione e deposito del ricorso congiunto con le condizioni concordate e i piani genitoriali.",
+      "prompt_ref": "famiglia.separazione_consensuale.redazione_atto",
+      "termini": [
+        "Possibile cumulo con la domanda di divorzio (art. 473-bis.49 c.p.c.)",
+        "Le parti possono chiedere la decisione senza udienza (art. 473-bis.51 c.p.c.)"
+      ],
+      "riferimenti": [
+        "art. 473-bis.51 c.p.c."
+      ],
+      "template_refs": [
+        "FAM_001"
+      ]
+    },
+    {
+      "passo_id": "udienza_omologa",
+      "nome": "Udienza e provvedimento",
+      "descrizione": "Preparazione dell'udienza nel rito unificato e verifica del decreto che rende efficaci le condizioni.",
+      "prompt_ref": "famiglia.rito_unificato_famiglia.checklist",
+      "termini": [
+        "Dalla separazione, la domanda di divorzio è proponibile decorsi 6 mesi (L. 55/2015)"
+      ],
+      "riferimenti": [
+        "artt. 473-bis ss. c.p.c.",
+        "L. 6 maggio 2015, n. 55"
+      ],
+      "template_refs": [
+        "FAM_016"
+      ]
+    }
+  ]
+}

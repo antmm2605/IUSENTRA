@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, FileCheck2 } from 'lucide-react'
+import { CheckCircle2, FileCheck2, PenSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
-import { approveLegalSkillRun, exportLegalSkillRun, fetchLegalSkillRun } from '../api'
+import { approveLegalSkillRun, exportLegalSkillRun, fetchLegalSkillRun, importDraftToEditor } from '../api'
 import type { LegalSkillRunResult } from '../types'
 import { CitationList } from '../components/CitationList'
 import { ReviewerNoteBox } from '../components/ReviewerNoteBox'
@@ -49,6 +49,22 @@ export function LegalSkillsReviewPage() {
     else setError(payload.message || 'Esportazione bloccata.')
   }
 
+  const [openingEditor, setOpeningEditor] = useState(false)
+  const openInEditor = async () => {
+    if (!result?.fascicolo_id || !result.answer || openingEditor) return
+    setOpeningEditor(true)
+    const payload = await importDraftToEditor(result.fascicolo_id, {
+      answer: result.answer,
+      title: result.prompt_titolo || 'Bozza Legal Skills',
+    })
+    if (payload.ok && payload.open_url) {
+      window.location.assign(payload.open_url)
+      return
+    }
+    setError(payload.message || 'Apertura nell’editor professionale non riuscita.')
+    setOpeningEditor(false)
+  }
+
   if (!runId) {
     return (
       <IusPageShell title="Revisione Legal Skills" description="Apri un risultato dalla pagina di esecuzione." icon={FileCheck2} area="lex">
@@ -83,6 +99,12 @@ export function LegalSkillsReviewPage() {
             <CitationList citations={result.citations || []} />
             {exportMessage ? <p className="rounded-lg border bg-muted p-3 text-sm">{exportMessage}</p> : null}
             <div className="flex flex-wrap justify-end gap-2">
+              {result.fascicolo_id ? (
+                <Button type="button" variant="outline" onClick={openInEditor} disabled={openingEditor}>
+                  <PenSquare aria-hidden="true" />
+                  {openingEditor ? 'Apertura in corso…' : "Apri nell'editor professionale"}
+                </Button>
+              ) : null}
               {can('legal_skills.approva') ? (
                 <Button type="button" onClick={approve} disabled={!result.needs_review} variant="outline">
                   <CheckCircle2 aria-hidden="true" />

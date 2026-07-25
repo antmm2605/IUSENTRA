@@ -1,0 +1,87 @@
+{
+  "area_id": "immobiliare",
+  "nome": "Diritto immobiliare",
+  "descrizione": "Consulenza e contenzioso in materia di proprietà, compravendite, locazioni, condominio e diritti reali su beni immobili.",
+  "voci": [
+    {
+      "voce_id": "preliminare_compravendita",
+      "nome": "Contratto preliminare di compravendita immobiliare",
+      "descrizione": "Redazione e verifica del preliminare di vendita, con valutazione della trascrizione a tutela del promissario acquirente e della caparra.",
+      "riferimenti": ["art. 1351 c.c.", "art. 2645-bis c.c.", "art. 1385 c.c."],
+      "tags": ["preliminare", "compravendita", "trascrizione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "vizi_immobile_venduto",
+      "nome": "Vizi e difetti dell'immobile venduto",
+      "descrizione": "Azioni edilizie per vizi e mancanza di qualità dell'immobile compravenduto, con verifica dei termini di decadenza e prescrizione.",
+      "riferimenti": ["art. 1490 c.c.", "art. 1495 c.c.", "art. 1497 c.c."],
+      "tags": ["vizi", "garanzia", "compravendita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "rovina_gravi_difetti_costruzione",
+      "nome": "Gravi difetti di costruzione e responsabilità dell'appaltatore",
+      "descrizione": "Azione contro appaltatore e costruttore per rovina e gravi difetti dell'immobile, con denuncia nei termini di legge.",
+      "riferimenti": ["art. 1667 c.c.", "art. 1669 c.c."],
+      "tags": ["appalto", "difetti", "costruttore"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "locazione_abitativa",
+      "nome": "Locazione ad uso abitativo",
+      "descrizione": "Redazione e gestione dei contratti di locazione abitativa a canone libero o concordato, con relativi obblighi di registrazione.",
+      "riferimenti": ["L. 431/1998", "art. 1571 c.c."],
+      "tags": ["locazione", "abitativo", "canone"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "locazione_commerciale",
+      "nome": "Locazione ad uso diverso dall'abitativo",
+      "descrizione": "Assistenza su durata, recesso, indennità di avviamento e prelazione nelle locazioni commerciali.",
+      "riferimenti": ["L. 392/1978", "art. 27 L. 392/1978", "art. 34 L. 392/1978"],
+      "tags": ["locazione", "commerciale", "avviamento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sfratto_morosita",
+      "nome": "Sfratto per morosità e convalida",
+      "descrizione": "Intimazione di sfratto per morosità o finita locazione con citazione per la convalida e richiesta di decreto ingiuntivo per i canoni.",
+      "riferimenti": ["art. 658 c.p.c.", "art. 663 c.p.c.", "art. 55 L. 392/1978"],
+      "tags": ["sfratto", "morosita", "convalida"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_delibera_condominiale",
+      "nome": "Impugnazione di delibera condominiale",
+      "descrizione": "Contestazione delle deliberazioni assembleari condominiali annullabili o nulle nel termine di trenta giorni, previa mediazione obbligatoria.",
+      "riferimenti": ["art. 1137 c.c.", "art. 5 D.Lgs. 28/2010"],
+      "tags": ["condominio", "delibere", "assemblea"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "usucapione",
+      "nome": "Usucapione di beni immobili",
+      "descrizione": "Azione di accertamento dell'acquisto della proprietà per possesso continuato, con prova del possesso utile ventennale o abbreviato.",
+      "riferimenti": ["art. 1158 c.c.", "art. 1159 c.c.", "art. 1165 c.c."],
+      "tags": ["usucapione", "possesso", "proprieta"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azioni_difesa_proprieta_possesso",
+      "nome": "Azioni a difesa della proprietà e del possesso",
+      "descrizione": "Rivendicazione, negatoria e azioni possessorie di reintegrazione e manutenzione a tutela del titolare o del possessore dell'immobile.",
+      "riferimenti": ["art. 948 c.c.", "art. 949 c.c.", "art. 1168 c.c."],
+      "tags": ["rivendicazione", "possesso", "spoglio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "servitu_distanze",
+      "nome": "Servitù prediali e distanze tra costruzioni",
+      "descrizione": "Costituzione e tutela delle servitù prediali e contenzioso sulle distanze legali tra costruzioni, vedute e luci.",
+      "riferimenti": ["art. 873 c.c.", "art. 1027 c.c.", "art. 905 c.c."],
+      "tags": ["servitu", "distanze", "vedute"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

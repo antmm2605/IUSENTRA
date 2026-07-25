@@ -1,0 +1,87 @@
+{
+  "area_id": "ambiente",
+  "nome": "Diritto dell'ambiente",
+  "descrizione": "Autorizzazioni e valutazioni ambientali, bonifiche, rifiuti, emissioni e responsabilità per danno ambientale secondo il Testo unico ambientale e la normativa speciale di settore.",
+  "voci": [
+    {
+      "voce_id": "valutazione_impatto_ambientale",
+      "nome": "Valutazione di impatto ambientale (VIA)",
+      "descrizione": "Assistenza nei procedimenti di verifica di assoggettabilità e di VIA per progetti pubblici e privati, presentazione di osservazioni e impugnazione dei provvedimenti conclusivi.",
+      "riferimenti": ["artt. 19 ss. D.Lgs. 152/2006", "art. 27 D.Lgs. 152/2006"],
+      "tags": ["via", "screening", "valutazioni ambientali"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "autorizzazione_integrata_ambientale",
+      "nome": "Autorizzazione integrata ambientale (AIA)",
+      "descrizione": "Procedimento di rilascio, riesame e modifica dell'AIA per installazioni industriali, verifica delle prescrizioni e difesa avverso diffide e provvedimenti di sospensione dell'attività.",
+      "riferimenti": ["artt. 29-bis ss. D.Lgs. 152/2006"],
+      "tags": ["aia", "installazioni", "prescrizioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "autorizzazione_unica_ambientale",
+      "nome": "Autorizzazione unica ambientale (AUA)",
+      "descrizione": "Istanza di AUA per piccole e medie imprese in sostituzione dei titoli ambientali di settore, con gestione dei rapporti con SUAP e autorità competente.",
+      "riferimenti": ["D.P.R. 59/2013"],
+      "tags": ["aua", "pmi", "suap"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "bonifica_siti_contaminati",
+      "nome": "Bonifica dei siti contaminati",
+      "descrizione": "Procedura di caratterizzazione, analisi di rischio e bonifica, posizione del proprietario incolpevole e riparto di responsabilità tra responsabile della contaminazione e altri soggetti.",
+      "riferimenti": ["artt. 239 ss. D.Lgs. 152/2006", "art. 253 D.Lgs. 152/2006"],
+      "tags": ["bonifiche", "contaminazione", "proprietario incolpevole"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "danno_ambientale",
+      "nome": "Responsabilità per danno ambientale",
+      "descrizione": "Difesa nei procedimenti ministeriali di riparazione del danno ambientale e nelle azioni risarcitorie, con applicazione dei criteri di riparazione primaria, complementare e compensativa.",
+      "riferimenti": ["artt. 300 ss. D.Lgs. 152/2006", "direttiva 2004/35/CE"],
+      "tags": ["danno ambientale", "riparazione", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "gestione_rifiuti",
+      "nome": "Gestione dei rifiuti",
+      "descrizione": "Consulenza su classificazione dei rifiuti, deposito temporaneo, tracciabilità e responsabilità del produttore, con difesa avverso sanzioni amministrative e contestazioni di abbandono.",
+      "riferimenti": ["artt. 177 ss. D.Lgs. 152/2006", "art. 192 D.Lgs. 152/2006"],
+      "tags": ["rifiuti", "classificazione", "tracciabilita", "sanzioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "scarichi_idrici",
+      "nome": "Scarichi idrici e tutela delle acque",
+      "descrizione": "Autorizzazione agli scarichi di acque reflue industriali e urbane, rispetto dei valori limite di emissione e difesa nei procedimenti sanzionatori per superamento dei limiti.",
+      "riferimenti": ["artt. 100 ss. D.Lgs. 152/2006", "art. 124 D.Lgs. 152/2006"],
+      "tags": ["scarichi", "acque", "valori limite"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "emissioni_atmosfera",
+      "nome": "Emissioni in atmosfera",
+      "descrizione": "Autorizzazione alle emissioni in atmosfera per stabilimenti e attività in deroga, adeguamento alle prescrizioni e contestazione dei provvedimenti di diffida e revoca.",
+      "riferimenti": ["artt. 267 ss. D.Lgs. 152/2006", "art. 269 D.Lgs. 152/2006"],
+      "tags": ["emissioni", "atmosfera", "stabilimenti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "inquinamento_acustico",
+      "nome": "Inquinamento acustico",
+      "descrizione": "Tutela contro immissioni sonore intollerabili in ambito civilistico e rispetto dei limiti della zonizzazione acustica comunale, con azioni inibitorie e risarcitorie.",
+      "riferimenti": ["L. 447/1995", "art. 844 c.c."],
+      "tags": ["rumore", "immissioni", "zonizzazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "reati_ambientali",
+      "nome": "Reati ambientali ed ecoreati",
+      "descrizione": "Difesa penale per contravvenzioni ambientali del Testo unico e delitti contro l'ambiente, con valutazione delle procedure estintive mediante prescrizioni asseverate.",
+      "riferimenti": ["artt. 452-bis ss. c.p.", "L. 68/2015", "D.Lgs. 152/2006"],
+      "tags": ["ecoreati", "penale ambientale", "prescrizioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

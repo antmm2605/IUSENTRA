@@ -1,0 +1,78 @@
+{
+  "percorso_id": "mediazione_civile",
+  "nome": "Mediazione civile obbligatoria",
+  "area_id": "mediazione_adr",
+  "descrizione": "Dalla verifica di obbligatorietà all'accordo o all'azione giudiziale: la condizione di procedibilità nelle materie del D.Lgs. 28/2010.",
+  "riferimenti": [
+    "D.Lgs. 4 marzo 2010, n. 28",
+    "D.Lgs. 149/2022"
+  ],
+  "passi": [
+    {
+      "passo_id": "verifica_obbligatorieta",
+      "nome": "Verifica dell'obbligatorietà",
+      "descrizione": "Controllo se la materia rientra tra quelle a mediazione obbligatoria e scelta dell'organismo competente.",
+      "prompt_ref": "mediazione_adr.mediazione_obbligatoria.parere",
+      "termini": [
+        "Materie obbligatorie ampliate dalla riforma Cartabia (art. 5 D.Lgs. 28/2010)"
+      ],
+      "riferimenti": [
+        "art. 5 D.Lgs. 28/2010"
+      ],
+      "template_refs": []
+    },
+    {
+      "passo_id": "istanza",
+      "nome": "Istanza di mediazione",
+      "descrizione": "Deposito dell'istanza presso l'organismo nel luogo del giudice territorialmente competente.",
+      "prompt_ref": "mediazione_adr.istanza_mediazione.redazione_atto",
+      "termini": [
+        "Il primo incontro si tiene tra 20 e 40 giorni dal deposito (art. 8 D.Lgs. 28/2010)",
+        "L'istanza produce sulla prescrizione gli effetti della domanda giudiziale"
+      ],
+      "riferimenti": [
+        "art. 4 D.Lgs. 28/2010",
+        "art. 8 D.Lgs. 28/2010"
+      ],
+      "template_refs": [
+        "ADR_002"
+      ]
+    },
+    {
+      "passo_id": "primo_incontro",
+      "nome": "Primo incontro effettivo",
+      "descrizione": "Partecipazione personale delle parti con gli avvocati; il primo incontro è ormai sede effettiva di mediazione.",
+      "prompt_ref": "mediazione_adr.primo_incontro_partecipazione.checklist",
+      "termini": [
+        "Partecipazione personale obbligatoria, delega solo per giustificati motivi (art. 8 D.Lgs. 28/2010)",
+        "Conseguenze processuali della mancata partecipazione (art. 12-bis D.Lgs. 28/2010)"
+      ],
+      "riferimenti": [
+        "art. 8 D.Lgs. 28/2010",
+        "art. 12-bis D.Lgs. 28/2010"
+      ],
+      "template_refs": [
+        "ADR_003"
+      ]
+    },
+    {
+      "passo_id": "accordo_o_azione",
+      "nome": "Accordo di conciliazione o azione giudiziale",
+      "descrizione": "Formalizzazione dell'accordo con efficacia esecutiva, oppure verbale negativo e avvio del giudizio.",
+      "prompt_ref": "mediazione_adr.accordo_conciliazione.parere",
+      "termini": [
+        "L'accordo sottoscritto da parti e avvocati è titolo esecutivo (art. 12 D.Lgs. 28/2010)",
+        "Durata massima del procedimento: 3 mesi, prorogabile di 3 (art. 6 D.Lgs. 28/2010)"
+      ],
+      "riferimenti": [
+        "art. 12 D.Lgs. 28/2010",
+        "art. 6 D.Lgs. 28/2010"
+      ],
+      "template_refs": [
+        "ADR_004",
+        "ADR_005",
+        "ADR_014"
+      ]
+    }
+  ]
+}

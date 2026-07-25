@@ -1,0 +1,87 @@
+{
+  "area_id": "lavoro",
+  "nome": "Diritto del lavoro",
+  "descrizione": "Rapporti di lavoro subordinato e parasubordinato, licenziamenti, retribuzione, sicurezza e contenzioso davanti al giudice del lavoro secondo il rito speciale.",
+  "voci": [
+    {
+      "voce_id": "impugnazione_licenziamento",
+      "nome": "Impugnazione del licenziamento",
+      "descrizione": "Impugnazione stragiudiziale entro 60 giorni e successivo deposito del ricorso entro 180 giorni, con inquadramento del regime di tutela applicabile (reintegratoria o indennitaria) in base alla data di assunzione e alle dimensioni del datore.",
+      "riferimenti": ["art. 18 L. 300/1970", "D.Lgs. 23/2015", "art. 6 L. 604/1966"],
+      "tags": ["licenziamento", "impugnazione", "tutele", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricorso_lavoro_414_cpc",
+      "nome": "Ricorso al giudice del lavoro ex art. 414 c.p.c.",
+      "descrizione": "Redazione del ricorso introduttivo nel rito del lavoro, con esposizione dei fatti, conclusioni e indicazione specifica dei mezzi di prova a pena di decadenza.",
+      "riferimenti": ["art. 414 c.p.c.", "art. 409 c.p.c.", "art. 415 c.p.c."],
+      "tags": ["rito lavoro", "ricorso", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "licenziamento_collettivo",
+      "nome": "Licenziamento collettivo e mobilità",
+      "descrizione": "Assistenza nella procedura di riduzione del personale: comunicazione di avvio, esame congiunto, criteri di scelta e impugnazione per violazione delle regole procedurali o dei criteri.",
+      "riferimenti": ["artt. 4 e 24 L. 223/1991", "art. 10 D.Lgs. 23/2015"],
+      "tags": ["licenziamento", "collettivo", "criteri di scelta"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "mobbing_demansionamento",
+      "nome": "Mobbing e demansionamento",
+      "descrizione": "Tutela del lavoratore contro condotte vessatorie e assegnazione a mansioni inferiori, con azione risarcitoria per danno professionale, biologico e alla dignità fondata sull'obbligo di sicurezza del datore.",
+      "riferimenti": ["art. 2103 c.c.", "art. 2087 c.c."],
+      "tags": ["mobbing", "demansionamento", "risarcimento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "differenze_retributive",
+      "nome": "Differenze retributive e inquadramento",
+      "descrizione": "Azione per il pagamento di differenze retributive da errato inquadramento contrattuale, lavoro straordinario o mancata applicazione del CCNL, con conteggi analitici e condanna anche a rivalutazione e interessi.",
+      "riferimenti": ["art. 36 Cost.", "art. 2099 c.c.", "art. 429 c.p.c."],
+      "tags": ["retribuzione", "inquadramento", "ccnl", "conteggi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "conciliazione_lavoro",
+      "nome": "Conciliazione in materia di lavoro",
+      "descrizione": "Gestione del tentativo di conciliazione in sede sindacale o davanti all'Ispettorato del lavoro e redazione di verbali di rinuncia e transazione non impugnabili ai sensi dell'art. 2113 c.c.",
+      "riferimenti": ["artt. 410 e 411 c.p.c.", "art. 2113 c.c."],
+      "tags": ["conciliazione", "transazione", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "qualificazione_rapporto_lavoro",
+      "nome": "Qualificazione del rapporto di lavoro",
+      "descrizione": "Accertamento della natura subordinata del rapporto formalmente autonomo o a partita IVA, incluse le collaborazioni etero-organizzate, con domande retributive e contributive conseguenti.",
+      "riferimenti": ["art. 2094 c.c.", "art. 2 D.Lgs. 81/2015"],
+      "tags": ["subordinazione", "collaborazioni", "qualificazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "trasferimento_azienda",
+      "nome": "Trasferimento d'azienda e tutela dei lavoratori",
+      "descrizione": "Assistenza nella cessione o affitto d'azienda: continuità dei rapporti di lavoro, solidarietà tra cedente e cessionario per i crediti e procedura sindacale obbligatoria nelle imprese maggiori.",
+      "riferimenti": ["art. 2112 c.c.", "art. 47 L. 428/1990"],
+      "tags": ["trasferimento", "azienda", "solidarieta"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "infortunio_malattia_professionale",
+      "nome": "Infortunio sul lavoro e malattia professionale",
+      "descrizione": "Azione di responsabilità contro il datore per violazione dell'obbligo di sicurezza, coordinamento con la tutela INAIL e richiesta del danno differenziale.",
+      "riferimenti": ["art. 2087 c.c.", "D.P.R. 1124/1965", "D.Lgs. 81/2008"],
+      "tags": ["infortunio", "sicurezza", "inail", "danno differenziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "contratto_a_termine",
+      "nome": "Contratto a termine e conversione",
+      "descrizione": "Verifica di causali, durata massima e proroghe del contratto a tempo determinato, con impugnazione del termine illegittimo e domanda di conversione a tempo indeterminato oltre all'indennità risarcitoria.",
+      "riferimenti": ["artt. 19 ss. D.Lgs. 81/2015", "art. 28 D.Lgs. 81/2015"],
+      "tags": ["contratto a termine", "conversione", "causali"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "area_id": "recupero_crediti",
+  "nome": "Recupero crediti ed esecuzioni",
+  "descrizione": "Tutela stragiudiziale e giudiziale del credito: fase monitoria, titolo esecutivo, espropriazione forzata e rimedi oppositivi, secondo il codice di rito riformato dal D.Lgs. 149/2022.",
+  "voci": [
+    {
+      "voce_id": "diffida_messa_in_mora",
+      "nome": "Lettera di diffida e costituzione in mora",
+      "descrizione": "Intimazione stragiudiziale di pagamento con costituzione in mora del debitore, interruzione della prescrizione e decorrenza degli interessi moratori.",
+      "riferimenti": ["art. 1219 c.c.", "art. 2943 c.c.", "art. 1224 c.c."],
+      "tags": ["diffida", "mora", "stragiudiziale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricorso_decreto_ingiuntivo",
+      "nome": "Ricorso per decreto ingiuntivo",
+      "descrizione": "Ricorso monitorio per crediti certi, liquidi ed esigibili fondati su prova scritta, con eventuale richiesta di provvisoria esecutorietà.",
+      "riferimenti": ["artt. 633-642 c.p.c."],
+      "tags": ["monitorio", "decreto ingiuntivo", "prova scritta"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "opposizione_decreto_ingiuntivo",
+      "nome": "Opposizione a decreto ingiuntivo",
+      "descrizione": "Citazione in opposizione nel termine di quaranta giorni dalla notifica del decreto, con eventuale istanza di sospensione della provvisoria esecuzione.",
+      "riferimenti": ["art. 645 c.p.c.", "art. 649 c.p.c."],
+      "tags": ["opposizione", "decreto ingiuntivo", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "atto_di_precetto",
+      "nome": "Atto di precetto",
+      "descrizione": "Intimazione ad adempiere entro dieci giorni sulla base del titolo esecutivo, con verifica dell'efficacia novantagiornaliera e degli avvertimenti obbligatori al debitore.",
+      "riferimenti": ["artt. 479-482 c.p.c.", "art. 480 c.p.c."],
+      "tags": ["precetto", "titolo esecutivo", "esecuzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ricerca_beni_telematica",
+      "nome": "Ricerca telematica dei beni da pignorare",
+      "descrizione": "Istanza di autorizzazione alla ricerca con modalità telematiche dei beni del debitore nelle banche dati pubbliche, propedeutica alla scelta della forma di espropriazione più efficace.",
+      "riferimenti": ["art. 492-bis c.p.c.", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["ricerca beni", "pignoramento", "banche dati"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "pignoramento_presso_terzi",
+      "nome": "Pignoramento presso terzi",
+      "descrizione": "Espropriazione di crediti del debitore verso terzi, tipicamente stipendi e conti correnti, con citazione del terzo, dichiarazione ex art. 547 c.p.c. e udienza di assegnazione.",
+      "riferimenti": ["artt. 543-553 c.p.c.", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["pignoramento", "terzi", "assegnazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "pignoramento_immobiliare",
+      "nome": "Pignoramento immobiliare",
+      "descrizione": "Espropriazione immobiliare con trascrizione del pignoramento, iscrizione a ruolo con documentazione ipocatastale e successiva istanza di vendita nei termini di legge.",
+      "riferimenti": ["artt. 555-569 c.p.c.", "art. 567 c.p.c."],
+      "tags": ["pignoramento", "immobiliare", "vendita forzata"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "intervento_creditori",
+      "nome": "Intervento dei creditori nell'esecuzione",
+      "descrizione": "Ricorso per intervento nel processo esecutivo promosso da altro creditore, con verifica dei presupposti del titolo e della tempestività rispetto all'udienza di distribuzione.",
+      "riferimenti": ["artt. 499-500 c.p.c.", "art. 510 c.p.c."],
+      "tags": ["intervento", "concorso creditori", "distribuzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "opposizione_esecuzione",
+      "nome": "Opposizione all'esecuzione e agli atti esecutivi",
+      "descrizione": "Difesa del debitore o del terzo con contestazione del diritto di procedere a esecuzione forzata o della regolarità formale dei singoli atti, con eventuale istanza di sospensione.",
+      "riferimenti": ["art. 615 c.p.c.", "art. 617 c.p.c.", "art. 624 c.p.c."],
+      "tags": ["opposizione", "esecuzione", "sospensione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "insinuazione_al_passivo",
+      "nome": "Domanda di ammissione al passivo",
+      "descrizione": "Insinuazione del credito nella liquidazione giudiziale del debitore, con trasmissione telematica della domanda al curatore e documentazione del titolo e delle cause di prelazione.",
+      "riferimenti": ["art. 201 D.Lgs. 12 gennaio 2019, n. 14", "art. 207 D.Lgs. 12 gennaio 2019, n. 14"],
+      "tags": ["passivo", "liquidazione giudiziale", "crisi impresa"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

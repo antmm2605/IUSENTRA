@@ -61,6 +61,12 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
             self._communicate_exception = outcome.get("communicate_exception")
             processes.append(self)
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
         def communicate(self, input=None, timeout=None):
             self.communicate_calls += 1
             if self._communicate_exception is not None and self.communicate_calls == 1:
@@ -83,16 +89,8 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
 
         def kill(self):
             self.killed = True
+            self.terminated = True
             self.returncode = -9
-
-        def __enter__(self):
-            # subprocess.run (percorso non-Windows) usa Popen come context manager.
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            if self.returncode is None:
-                self.returncode = self._final_returncode
-            return False
 
     monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
     monkeypatch.setattr(module, "_windows_visible_top_level_window_handles", lambda: set())
@@ -497,16 +495,34 @@ def test_reginde_windows_usa_client_certificati_nativo_con_pin_solo_su_stdin(mon
     assert result[0]["error"] == ""
 
 
-def test_reginde_windows_richiede_pin_prima_di_aprire_il_middleware(monkeypatch):
+def test_reginde_windows_usa_sessione_certificato_senza_pin_obbligatorio(monkeypatch):
     module = _load_local_signer()
     monkeypatch.setattr(module.sys, "platform", "win32")
+    response_xml = (
+        b"<Envelope><Body><return><soggetto>"
+        b"<codiceFiscale>RSSMRA80A01H501U</codiceFiscale>"
+        b"<pec>studio@example.pec.it</pec>"
+        b"</soggetto></return></Body></Envelope>"
+    )
+    captured = {}
+    monkeypatch.setattr(module, "_reginde_cert_thumbprint", lambda requested, prefer_cf: "AABBCC11")
 
-    with pytest.raises(ValueError, match="Inserisci il PIN"):
-        module._reginde_verify_subjects([{
-            "key": "notificante",
-            "codice_fiscale": "RSSMRA80A01H501U",
-            "pec_attesa": "studio@example.pec.it",
-        }])
+    def fake_native_batch(requests_batch, *, cert_thumbprint, pin):
+        captured["pin"] = pin
+        captured["cert_thumbprint"] = cert_thumbprint
+        return [{"body_bytes": response_xml, "error": ""}]
+
+    monkeypatch.setattr(module, "_reginde_windows_native_batch", fake_native_batch)
+
+    result = module._reginde_verify_subjects([{
+        "key": "notificante",
+        "codice_fiscale": "RSSMRA80A01H501U",
+        "pec_attesa": "studio@example.pec.it",
+    }])
+
+    assert captured["pin"] == ""
+    assert captured["cert_thumbprint"] == "AABBCC11"
+    assert result["results"][0]["found"] is True
 
 
 def test_ipa_verifica_pec_attiva_e_codice_fiscale(monkeypatch):
@@ -2063,6 +2079,9 @@ def test_preflight_auth_timeout_non_blocca_la_ricerca_reale(monkeypatch):
 def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch):
     module = _load_local_signer()
 
+    # Il ciclo di vita governato (terminate + seconda communicate) vive solo
+    # nel ramo win32: senza questa simulazione il test dipende dall'OS host.
+    monkeypatch.setattr(module.sys, "platform", "win32")
     processes = _install_governed_popen_fake(
         monkeypatch,
         module,
@@ -2081,11 +2100,9 @@ def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch
         )
 
     assert len(processes) == 1
-    # Windows chiude via terminate e rilegge l'output (communicate x2); su POSIX
-    # subprocess.run chiude via kill e attende con wait: in entrambi i casi il
-    # processo non resta vivo.
-    assert processes[0].terminated or processes[0].killed
-    assert processes[0].communicate_calls in (1, 2)
+    assert processes[0].terminated is True
+    expected_communicate_calls = 2 if module.sys.platform == "win32" else 1
+    assert processes[0].communicate_calls == expected_communicate_calls
     assert module._managed_processes == {}
 
 

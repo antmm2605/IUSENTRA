@@ -1,0 +1,87 @@
+{
+  "area_id": "locazioni",
+  "nome": "Locazioni",
+  "descrizione": "Locazioni abitative e commerciali, procedimenti di sfratto e tutele di locatore e conduttore secondo il codice civile e le leggi speciali di settore.",
+  "voci": [
+    {
+      "voce_id": "contratto_locazione_abitativa",
+      "nome": "Contratto di locazione abitativa",
+      "descrizione": "Redazione del contratto a canone libero 4+4 o concordato 3+2, obbligo di forma scritta e attestazione di prestazione energetica.",
+      "riferimenti": ["L. 9 dicembre 1998, n. 431", "art. 1571 c.c."],
+      "tags": ["abitativa", "contratto", "canone"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "locazione_uso_commerciale",
+      "nome": "Locazione a uso commerciale",
+      "descrizione": "Contratto di locazione di immobili a uso diverso dall'abitativo: durata minima 6+6, tutele del conduttore e deroghe per le grandi locazioni.",
+      "riferimenti": ["L. 27 luglio 1978, n. 392", "art. 27 L. 27 luglio 1978, n. 392"],
+      "tags": ["commerciale", "impresa", "durata"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sfratto_per_morosita",
+      "nome": "Sfratto per morosità",
+      "descrizione": "Intimazione di sfratto per morosità con citazione per la convalida, termine di grazia nelle locazioni abitative e passaggio al rito ordinario in caso di opposizione.",
+      "riferimenti": ["art. 658 c.p.c.", "art. 55 L. 27 luglio 1978, n. 392"],
+      "tags": ["sfratto", "morosita", "convalida"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sfratto_finita_locazione",
+      "nome": "Sfratto per finita locazione e licenza",
+      "descrizione": "Licenza per finita locazione prima della scadenza e intimazione di sfratto alla cessazione del contratto, con esecuzione per rilascio dell'immobile.",
+      "riferimenti": ["art. 657 c.p.c.", "art. 608 c.p.c."],
+      "tags": ["sfratto", "scadenza", "rilascio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "disdetta_e_recesso",
+      "nome": "Disdetta e recesso dal contratto di locazione",
+      "descrizione": "Disdetta motivata del locatore alla prima scadenza, recesso del conduttore per gravi motivi e gestione dei termini di preavviso.",
+      "riferimenti": ["art. 3 L. 9 dicembre 1998, n. 431", "art. 27 L. 27 luglio 1978, n. 392"],
+      "tags": ["disdetta", "recesso", "preavviso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "indennita_avviamento",
+      "nome": "Indennità per la perdita dell'avviamento commerciale",
+      "descrizione": "Diritto del conduttore commerciale all'indennità di avviamento alla cessazione non imputabile del rapporto e diritto di ritenzione fino al pagamento.",
+      "riferimenti": ["art. 34 L. 27 luglio 1978, n. 392", "art. 69 L. 27 luglio 1978, n. 392"],
+      "tags": ["avviamento", "indennita", "commerciale"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "aggiornamento_canone_istat",
+      "nome": "Aggiornamento del canone e adeguamento ISTAT",
+      "descrizione": "Clausole di aggiornamento del canone agli indici ISTAT, limiti legali e richiesta scritta di adeguamento nelle locazioni commerciali.",
+      "riferimenti": ["art. 32 L. 27 luglio 1978, n. 392"],
+      "tags": ["canone", "istat", "aggiornamento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "registrazione_cedolare_secca",
+      "nome": "Registrazione del contratto e cedolare secca",
+      "descrizione": "Obbligo di registrazione del contratto, conseguenze civilistiche della mancata registrazione e opzione per il regime della cedolare secca sugli affitti abitativi.",
+      "riferimenti": ["art. 3 D.Lgs. 14 marzo 2011, n. 23", "art. 1, comma 346, L. 30 dicembre 2004, n. 311"],
+      "tags": ["registrazione", "fisco", "cedolare"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "deposito_cauzionale",
+      "nome": "Deposito cauzionale e garanzie",
+      "descrizione": "Limiti legali del deposito cauzionale, obbligo di corresponsione degli interessi al conduttore e restituzione alla riconsegna dell'immobile.",
+      "riferimenti": ["art. 11 L. 27 luglio 1978, n. 392"],
+      "tags": ["cauzione", "garanzie", "restituzione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "riconsegna_immobile_danni",
+      "nome": "Riconsegna dell'immobile e danni da ritardata restituzione",
+      "descrizione": "Verbale di riconsegna, responsabilità del conduttore per deterioramenti oltre il normale uso e indennità di occupazione per la ritardata restituzione.",
+      "riferimenti": ["art. 1590 c.c.", "art. 1591 c.c."],
+      "tags": ["riconsegna", "danni", "occupazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

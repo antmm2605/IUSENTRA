@@ -1,0 +1,87 @@
+{
+  "area_id": "mediazione_adr",
+  "nome": "Mediazione e ADR",
+  "descrizione": "Strumenti di risoluzione alternativa delle controversie: mediazione civile e commerciale riformata dalla Cartabia, negoziazione assistita e arbitrato.",
+  "voci": [
+    {
+      "voce_id": "istanza_mediazione",
+      "nome": "Istanza di mediazione",
+      "descrizione": "Deposito della domanda di mediazione presso un organismo accreditato territorialmente competente, con effetti sulla prescrizione e sulla decadenza dalla comunicazione alle altre parti.",
+      "riferimenti": ["art. 4 D.Lgs. 4 marzo 2010, n. 28", "art. 8 D.Lgs. 4 marzo 2010, n. 28"],
+      "tags": ["mediazione", "istanza", "organismo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "mediazione_obbligatoria",
+      "nome": "Mediazione obbligatoria come condizione di procedibilità",
+      "descrizione": "Verifica delle materie soggette a mediazione obbligatoria, ampliate dalla riforma Cartabia, e gestione dell'eccezione di improcedibilità della domanda giudiziale.",
+      "riferimenti": ["art. 5 D.Lgs. 4 marzo 2010, n. 28", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["procedibilita", "mediazione obbligatoria", "cartabia"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "mediazione_demandata",
+      "nome": "Mediazione demandata dal giudice",
+      "descrizione": "Gestione della mediazione disposta dal giudice in corso di causa, con valutazione dello stato dell'istruzione e del comportamento delle parti, quale condizione di procedibilità sopravvenuta.",
+      "riferimenti": ["art. 5-quater D.Lgs. 4 marzo 2010, n. 28", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["mediazione demandata", "giudice", "procedibilita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "primo_incontro_partecipazione",
+      "nome": "Partecipazione al primo incontro di mediazione",
+      "descrizione": "Preparazione e assistenza della parte al primo incontro effettivo di mediazione, con procura sostanziale in caso di delega e valutazione delle conseguenze della mancata partecipazione.",
+      "riferimenti": ["art. 8 D.Lgs. 4 marzo 2010, n. 28", "art. 12-bis D.Lgs. 4 marzo 2010, n. 28"],
+      "tags": ["primo incontro", "partecipazione", "sanzioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "accordo_conciliazione",
+      "nome": "Accordo di conciliazione ed esecutività",
+      "descrizione": "Redazione dell'accordo conclusivo della mediazione, titolo esecutivo se sottoscritto da parti e avvocati, con verifica della trascrivibilità e degli adempimenti fiscali.",
+      "riferimenti": ["art. 11 D.Lgs. 4 marzo 2010, n. 28", "art. 12 D.Lgs. 4 marzo 2010, n. 28"],
+      "tags": ["accordo", "titolo esecutivo", "conciliazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "incentivi_fiscali_mediazione",
+      "nome": "Incentivi fiscali e credito d'imposta in mediazione",
+      "descrizione": "Consulenza sulle agevolazioni fiscali della mediazione: esenzioni da imposte, credito d'imposta per indennità e compenso dell'avvocato secondo il regime potenziato dalla riforma Cartabia.",
+      "riferimenti": ["art. 17 D.Lgs. 4 marzo 2010, n. 28", "art. 20 D.Lgs. 4 marzo 2010, n. 28"],
+      "tags": ["credito imposta", "agevolazioni", "mediazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "patrocinio_stato_mediazione",
+      "nome": "Patrocinio a spese dello Stato in mediazione",
+      "descrizione": "Ammissione al patrocinio a spese dello Stato per l'assistenza nella mediazione obbligatoria conclusa con accordo, istituto introdotto dalla riforma Cartabia.",
+      "riferimenti": ["artt. 15-bis ss. D.Lgs. 4 marzo 2010, n. 28", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["patrocinio stato", "non abbienti", "mediazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "negoziazione_assistita",
+      "nome": "Convenzione di negoziazione assistita",
+      "descrizione": "Invito e stipula della convenzione di negoziazione assistita da avvocati, condizione di procedibilità per le domande di pagamento fino a cinquantamila euro, con accordo che costituisce titolo esecutivo.",
+      "riferimenti": ["artt. 2-5 D.L. 12 settembre 2014, n. 132, conv. L. 10 novembre 2014, n. 162"],
+      "tags": ["negoziazione assistita", "procedibilita", "titolo esecutivo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "negoziazione_assistita_familiare",
+      "nome": "Negoziazione assistita in materia familiare",
+      "descrizione": "Soluzione consensuale di separazione, divorzio e modifica delle relative condizioni mediante negoziazione assistita, con nulla osta o autorizzazione del procuratore della Repubblica.",
+      "riferimenti": ["art. 6 D.L. 12 settembre 2014, n. 132, conv. L. 10 novembre 2014, n. 162"],
+      "tags": ["famiglia", "separazione", "divorzio"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "arbitrato_rituale",
+      "nome": "Arbitrato rituale e convenzione arbitrale",
+      "descrizione": "Redazione della clausola compromissoria o del compromesso e gestione del procedimento arbitrale, con i poteri cautelari degli arbitri riconosciuti dalla riforma Cartabia.",
+      "riferimenti": ["artt. 806-840 c.p.c.", "art. 818 c.p.c.", "D.Lgs. 10 ottobre 2022, n. 149"],
+      "tags": ["arbitrato", "clausola compromissoria", "lodo"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

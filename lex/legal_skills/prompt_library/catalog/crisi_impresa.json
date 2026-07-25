@@ -1,0 +1,87 @@
+{
+  "area_id": "crisi_impresa",
+  "nome": "Crisi d'impresa e insolvenza",
+  "descrizione": "Strumenti di regolazione della crisi e dell'insolvenza previsti dal Codice della crisi d'impresa e dell'insolvenza (D.Lgs. 14/2019), dalla prevenzione alla liquidazione giudiziale.",
+  "voci": [
+    {
+      "voce_id": "composizione_negoziata",
+      "nome": "Composizione negoziata della crisi",
+      "descrizione": "Accesso alla piattaforma telematica e conduzione delle trattative assistite dall'esperto per il risanamento dell'impresa in squilibrio.",
+      "riferimenti": ["art. 12 D.Lgs. 14/2019", "art. 17 D.Lgs. 14/2019", "art. 18 D.Lgs. 14/2019"],
+      "tags": ["composizione", "risanamento", "esperto"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "concordato_preventivo",
+      "nome": "Concordato preventivo",
+      "descrizione": "Predisposizione della domanda e del piano di concordato in continuità o liquidatorio, con gestione delle classi di creditori e del voto.",
+      "riferimenti": ["art. 84 D.Lgs. 14/2019", "art. 85 D.Lgs. 14/2019", "art. 87 D.Lgs. 14/2019"],
+      "tags": ["concordato", "piano", "creditori"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "liquidazione_giudiziale",
+      "nome": "Liquidazione giudiziale",
+      "descrizione": "Assistenza al debitore o al creditore istante nel procedimento di apertura della liquidazione giudiziale e nei rapporti con il curatore.",
+      "riferimenti": ["art. 121 D.Lgs. 14/2019", "art. 37 D.Lgs. 14/2019"],
+      "tags": ["liquidazione", "insolvenza", "curatore"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "insinuazione_al_passivo",
+      "nome": "Insinuazione al passivo",
+      "descrizione": "Redazione della domanda di ammissione al passivo tempestiva o tardiva, con prova del credito e delle cause di prelazione.",
+      "riferimenti": ["art. 200 D.Lgs. 14/2019", "art. 201 D.Lgs. 14/2019", "art. 208 D.Lgs. 14/2019"],
+      "tags": ["passivo", "crediti", "prelazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "accordi_ristrutturazione",
+      "nome": "Accordi di ristrutturazione dei debiti",
+      "descrizione": "Negoziazione e omologazione di accordi di ristrutturazione ordinari, agevolati o ad efficacia estesa con i creditori rappresentativi.",
+      "riferimenti": ["art. 57 D.Lgs. 14/2019", "art. 60 D.Lgs. 14/2019", "art. 61 D.Lgs. 14/2019"],
+      "tags": ["accordi", "ristrutturazione", "omologazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "piano_attestato_risanamento",
+      "nome": "Piano attestato di risanamento",
+      "descrizione": "Predisposizione del piano di risanamento con attestazione del professionista indipendente ed esenzione da revocatoria degli atti esecutivi.",
+      "riferimenti": ["art. 56 D.Lgs. 14/2019"],
+      "tags": ["piano", "attestazione", "risanamento"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "concordato_minore",
+      "nome": "Concordato minore",
+      "descrizione": "Procedura di sovraindebitamento riservata a professionisti e imprenditori minori per la ristrutturazione dei debiti con i creditori.",
+      "riferimenti": ["art. 74 D.Lgs. 14/2019", "art. 76 D.Lgs. 14/2019"],
+      "tags": ["sovraindebitamento", "concordato", "minore"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ristrutturazione_debiti_consumatore",
+      "nome": "Ristrutturazione dei debiti del consumatore",
+      "descrizione": "Predisposizione del piano di ristrutturazione dei debiti della persona fisica consumatore con l'ausilio dell'OCC.",
+      "riferimenti": ["art. 67 D.Lgs. 14/2019", "art. 68 D.Lgs. 14/2019"],
+      "tags": ["consumatore", "sovraindebitamento", "occ"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "esdebitazione",
+      "nome": "Esdebitazione",
+      "descrizione": "Istanza di liberazione dai debiti residui del debitore persona fisica, inclusa l'esdebitazione del debitore incapiente.",
+      "riferimenti": ["art. 278 D.Lgs. 14/2019", "art. 282 D.Lgs. 14/2019", "art. 283 D.Lgs. 14/2019"],
+      "tags": ["esdebitazione", "debiti", "incapiente"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "azioni_revocatorie",
+      "nome": "Azioni revocatorie nella liquidazione giudiziale",
+      "descrizione": "Promozione o difesa nelle azioni revocatorie degli atti a titolo gratuito e degli atti a titolo oneroso compiuti nel periodo sospetto.",
+      "riferimenti": ["art. 163 D.Lgs. 14/2019", "art. 166 D.Lgs. 14/2019", "art. 2901 c.c."],
+      "tags": ["revocatoria", "periodo sospetto", "contenzioso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

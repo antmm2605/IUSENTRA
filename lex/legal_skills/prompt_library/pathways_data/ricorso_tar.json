@@ -1,0 +1,76 @@
+{
+  "percorso_id": "ricorso_tar",
+  "nome": "Ricorso al TAR",
+  "area_id": "amministrativo",
+  "descrizione": "Dall'accesso agli atti alla tutela cautelare: impugnazione del provvedimento amministrativo lesivo nei termini di decadenza.",
+  "riferimenti": [
+    "D.Lgs. 104/2010",
+    "L. 241/1990"
+  ],
+  "passi": [
+    {
+      "passo_id": "accesso_atti",
+      "nome": "Accesso agli atti",
+      "descrizione": "Istanza di accesso per acquisire il provvedimento e gli atti del procedimento da impugnare.",
+      "prompt_ref": "amministrativo.accesso_agli_atti.redazione_atto",
+      "termini": [
+        "La PA provvede entro 30 giorni (art. 25 L. 241/1990)",
+        "L'istanza di accesso non sospende il termine di impugnazione: valutare il ricorso al buio"
+      ],
+      "riferimenti": [
+        "artt. 22-25 L. 241/1990",
+        "art. 116 D.Lgs. 104/2010"
+      ],
+      "template_refs": [
+        "AMM_009"
+      ]
+    },
+    {
+      "passo_id": "parere_impugnabilita",
+      "nome": "Parere su impugnabilità e termini",
+      "descrizione": "Verifica di lesività, interesse a ricorrere, vizi deducibili e decorrenza del termine.",
+      "prompt_ref": "amministrativo.ricorso_tar.parere",
+      "termini": [
+        "Ricorso entro 60 giorni dalla notifica o piena conoscenza del provvedimento (art. 29 D.Lgs. 104/2010)",
+        "Riti abbreviati con termini dimezzati per le materie ex art. 119 D.Lgs. 104/2010"
+      ],
+      "riferimenti": [
+        "art. 29 D.Lgs. 104/2010",
+        "art. 41 D.Lgs. 104/2010"
+      ],
+      "template_refs": []
+    },
+    {
+      "passo_id": "ricorso",
+      "nome": "Ricorso al TAR",
+      "descrizione": "Redazione, notifica e deposito del ricorso con i motivi di illegittimità.",
+      "prompt_ref": "amministrativo.ricorso_tar.redazione_atto",
+      "termini": [
+        "Deposito entro 30 giorni dall'ultima notifica (art. 45 D.Lgs. 104/2010)"
+      ],
+      "riferimenti": [
+        "artt. 40-45 D.Lgs. 104/2010"
+      ],
+      "template_refs": [
+        "AMM_001",
+        "AMM_002"
+      ]
+    },
+    {
+      "passo_id": "cautelare",
+      "nome": "Tutela cautelare",
+      "descrizione": "Istanza di sospensione del provvedimento quando l'esecuzione produce un pregiudizio grave e irreparabile.",
+      "prompt_ref": "amministrativo.tutela_cautelare_amministrativa.redazione_atto",
+      "termini": [
+        "Misure cautelari collegiali, monocratiche o ante causam ex artt. 55-56 e 61 D.Lgs. 104/2010"
+      ],
+      "riferimenti": [
+        "artt. 55-56 D.Lgs. 104/2010",
+        "art. 61 D.Lgs. 104/2010"
+      ],
+      "template_refs": [
+        "AMM_004"
+      ]
+    }
+  ]
+}

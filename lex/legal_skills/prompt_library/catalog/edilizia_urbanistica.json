@@ -1,0 +1,87 @@
+{
+  "area_id": "edilizia_urbanistica",
+  "nome": "Edilizia e urbanistica",
+  "descrizione": "Titoli abilitativi edilizi, repressione degli abusi, pianificazione urbanistica, espropriazione e vincoli paesaggistici secondo il Testo unico dell'edilizia e la disciplina di settore.",
+  "voci": [
+    {
+      "voce_id": "permesso_di_costruire",
+      "nome": "Permesso di costruire",
+      "descrizione": "Assistenza nel procedimento di rilascio del permesso di costruire, verifica della conformità urbanistica ed edilizia dell'intervento e rimedi contro il diniego o l'inerzia dello sportello unico.",
+      "riferimenti": ["artt. 10 ss. D.P.R. 380/2001", "art. 20 D.P.R. 380/2001"],
+      "tags": ["permesso di costruire", "titoli abilitativi", "sportello unico"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "scia_edilizia",
+      "nome": "SCIA edilizia e CILA",
+      "descrizione": "Individuazione del corretto titolo abilitativo per l'intervento (attività libera, CILA, SCIA, SCIA alternativa al permesso) e gestione dei poteri di controllo e inibitori del Comune.",
+      "riferimenti": ["artt. 22 e 23 D.P.R. 380/2001", "art. 6-bis D.P.R. 380/2001", "art. 19 L. 241/1990"],
+      "tags": ["scia", "cila", "titoli abilitativi"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "abusi_edilizi_demolizione",
+      "nome": "Abusi edilizi e ordine di demolizione",
+      "descrizione": "Difesa avverso ordinanze di demolizione, acquisizione gratuita al patrimonio comunale e sanzioni pecuniarie per interventi eseguiti in assenza o difformità dal titolo edilizio.",
+      "riferimenti": ["artt. 27 e 31 D.P.R. 380/2001", "artt. 33 e 34 D.P.R. 380/2001"],
+      "tags": ["abusi", "demolizione", "sanzioni"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sanatoria_accertamento_conformita",
+      "nome": "Sanatoria e accertamento di conformità",
+      "descrizione": "Istanza di permesso in sanatoria per interventi abusivi, anche alla luce delle novità sulle parziali difformità e sullo stato legittimo introdotte dal decreto Salva Casa.",
+      "riferimenti": ["art. 36 D.P.R. 380/2001", "D.L. 69/2024 conv. L. 105/2024"],
+      "tags": ["sanatoria", "conformita", "salva casa"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "impugnazione_titolo_edilizio_terzo",
+      "nome": "Impugnazione del titolo edilizio del vicino",
+      "descrizione": "Ricorso al TAR del terzo confinante contro permesso di costruire o SCIA altrui, con verifica di legittimazione, vicinitas e decorrenza del termine dalla piena conoscenza dell'intervento.",
+      "riferimenti": ["art. 29 D.Lgs. 104/2010", "D.P.R. 380/2001"],
+      "tags": ["impugnazione", "vicinitas", "tar"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "contributo_di_costruzione",
+      "nome": "Contributo di costruzione e oneri di urbanizzazione",
+      "descrizione": "Verifica della quantificazione di oneri di urbanizzazione e costo di costruzione, richieste di rimborso per mancata realizzazione dell'intervento e contestazione delle sanzioni per ritardato pagamento.",
+      "riferimenti": ["art. 16 D.P.R. 380/2001", "art. 42 D.P.R. 380/2001"],
+      "tags": ["oneri", "contributo", "urbanizzazione"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "autorizzazione_paesaggistica",
+      "nome": "Autorizzazione paesaggistica",
+      "descrizione": "Procedimento di autorizzazione paesaggistica ordinaria e semplificata per interventi in aree vincolate, compatibilità paesaggistica postuma nei casi consentiti e impugnazione dei pareri negativi della Soprintendenza.",
+      "riferimenti": ["art. 146 D.Lgs. 42/2004", "art. 167 D.Lgs. 42/2004", "D.P.R. 31/2017"],
+      "tags": ["paesaggio", "vincoli", "soprintendenza"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "espropriazione_pubblica_utilita",
+      "nome": "Espropriazione per pubblica utilità",
+      "descrizione": "Assistenza al proprietario nel procedimento espropriativo: osservazioni, contestazione della dichiarazione di pubblica utilità, determinazione e opposizione alla stima dell'indennità.",
+      "riferimenti": ["D.P.R. 327/2001"],
+      "tags": ["esproprio", "indennita", "pubblica utilita"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "distanze_costruzioni",
+      "nome": "Distanze tra costruzioni",
+      "descrizione": "Contenzioso civile e amministrativo sulle distanze legali tra edifici e dai confini, con coordinamento tra codice civile, standard urbanistici statali e strumenti urbanistici locali.",
+      "riferimenti": ["artt. 873 ss. c.c.", "art. 9 D.M. 1444/1968"],
+      "tags": ["distanze", "confini", "standard urbanistici"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "agibilita_immobile",
+      "nome": "Agibilità dell'immobile",
+      "descrizione": "Segnalazione certificata di agibilità, conseguenze della sua mancanza nella circolazione immobiliare e responsabilità del venditore per immobile privo dei requisiti igienico-sanitari.",
+      "riferimenti": ["art. 24 D.P.R. 380/2001"],
+      "tags": ["agibilita", "compravendita", "requisiti igienico-sanitari"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

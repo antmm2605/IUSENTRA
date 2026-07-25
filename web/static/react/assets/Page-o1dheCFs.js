@@ -1,0 +1,5 @@
+<<<<<<<< HEAD:web/static/react/assets/Page-o1dheCFs.js
+import{j as s}from"./vendor-react-DCA3L5Xq.js";import{k as a}from"./index-Cdr2yszt.js";/* empty css           */function o({title:e,subtitle:i,actions:r}){return s.jsx(a,{title:e,description:i,actions:r,level:1,className:"iu-page-heading"})}function m({title:e,subtitle:i,actions:r,children:t,className:n}){return s.jsxs("main",{className:`iu-content iu-page ius-page-shell iusentra-route-sequence${n?` ${n}`:""}`,children:[s.jsx(o,{title:e,subtitle:i,actions:r}),t]})}export{m as P};
+========
+import{j as s}from"./vendor-react-BLQXznre.js";import{k as a}from"./index-BAo3hbSV.js";/* empty css           */function o({title:e,subtitle:i,actions:r}){return s.jsx(a,{title:e,description:i,actions:r,level:1,className:"iu-page-heading"})}function m({title:e,subtitle:i,actions:r,children:t,className:n}){return s.jsxs("main",{className:`iu-content iu-page ius-page-shell iusentra-route-sequence${n?` ${n}`:""}`,children:[s.jsx(o,{title:e,subtitle:i,actions:r}),t]})}export{m as P};
+>>>>>>>> origin/claude/legal-electronic-filing-kIxcV:web/static/react/assets/Page-BwCEpTtE.js

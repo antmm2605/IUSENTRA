@@ -1,0 +1,87 @@
+{
+  "area_id": "nuove_tecnologie",
+  "nome": "Diritto delle nuove tecnologie",
+  "descrizione": "Consulenza su contratti informatici, servizi digitali, identità e firma elettronica, intelligenza artificiale e cybersicurezza nel quadro normativo europeo e nazionale.",
+  "voci": [
+    {
+      "voce_id": "contratti_saas_cloud",
+      "nome": "Contratti SaaS e cloud",
+      "descrizione": "Redazione e negoziazione di contratti di software as a service e servizi cloud: livelli di servizio, responsabilità, reversibilità dei dati e trattamento dei dati personali.",
+      "riferimenti": ["art. 1322 c.c.", "art. 28 Reg. UE 2016/679", "Reg. UE 2018/1807"],
+      "tags": ["saas", "cloud", "contratti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ecommerce_condizioni_vendita",
+      "nome": "E-commerce e condizioni generali di vendita online",
+      "descrizione": "Predisposizione di termini e condizioni per la vendita online a consumatori e imprese, con obblighi informativi, diritto di recesso e garanzie legali.",
+      "riferimenti": ["D.Lgs. 70/2003", "D.Lgs. 206/2005"],
+      "tags": ["e-commerce", "consumatori", "recesso"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "firma_elettronica_identita_digitale",
+      "nome": "Firma elettronica e identità digitale",
+      "descrizione": "Valutazione del valore probatorio delle firme elettroniche semplici, avanzate e qualificate e impostazione di processi di sottoscrizione e identificazione digitale.",
+      "riferimenti": ["Reg. UE 910/2014", "D.Lgs. 82/2005"],
+      "tags": ["firma elettronica", "eidas", "cad"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "ai_act_compliance",
+      "nome": "Compliance AI Act",
+      "descrizione": "Classificazione dei sistemi di intelligenza artificiale per livello di rischio e adeguamento agli obblighi di fornitori e utilizzatori previsti dal regolamento europeo.",
+      "riferimenti": ["Reg. UE 2024/1689"],
+      "tags": ["intelligenza artificiale", "ai act", "compliance"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "cybersecurity_nis2",
+      "nome": "Cybersicurezza e adempimenti NIS 2",
+      "descrizione": "Verifica dell'ambito soggettivo NIS 2, misure di gestione del rischio informatico, obblighi di notifica degli incidenti e responsabilità degli organi di amministrazione.",
+      "riferimenti": ["Direttiva (UE) 2022/2555", "D.Lgs. 138/2024"],
+      "tags": ["cybersecurity", "nis2", "incidenti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "servizi_digitali_dsa",
+      "nome": "Piattaforme e servizi digitali (DSA)",
+      "descrizione": "Assistenza a piattaforme e servizi intermediari su moderazione dei contenuti, segnalazioni, motivazioni delle decisioni e obblighi di trasparenza del Digital Services Act.",
+      "riferimenti": ["Reg. UE 2022/2065"],
+      "tags": ["dsa", "piattaforme", "contenuti"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "data_act_condivisione_dati",
+      "nome": "Data Act e condivisione dei dati",
+      "descrizione": "Adeguamento contrattuale agli obblighi di accesso e condivisione dei dati generati da prodotti connessi e servizi correlati, incluso il cambio di fornitore cloud.",
+      "riferimenti": ["Reg. UE 2023/2854"],
+      "tags": ["data act", "dati", "iot"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "blockchain_smart_contract",
+      "nome": "Blockchain e smart contract",
+      "descrizione": "Inquadramento giuridico di registri distribuiti e smart contract, validazione temporale degli atti e profili contrattuali delle soluzioni basate su blockchain.",
+      "riferimenti": ["art. 8-ter D.L. 135/2018 (conv. L. 12/2019)"],
+      "tags": ["blockchain", "smart contract", "dlt"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "cookie_tracciamento",
+      "nome": "Cookie e strumenti di tracciamento",
+      "descrizione": "Impostazione di cookie policy e banner conformi, gestione del consenso ai tracciatori e verifica degli strumenti di analisi e profilazione sul sito web.",
+      "riferimenti": ["art. 122 D.Lgs. 196/2003", "artt. 4 e 7 Reg. UE 2016/679"],
+      "tags": ["cookie", "consenso", "web"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    },
+    {
+      "voce_id": "sviluppo_software_contratto",
+      "nome": "Contratti di sviluppo software",
+      "descrizione": "Redazione di contratti di sviluppo, manutenzione ed evoluzione del software, con disciplina della titolarità dei diritti, del codice sorgente e dei collaudi.",
+      "riferimenti": ["art. 64-bis L. 633/1941", "artt. 1655 ss. c.c."],
+      "tags": ["software", "sviluppo", "appalto"],
+      "forme": ["redazione_atto", "parere", "checklist", "lettera", "ricerca"]
+    }
+  ]
+}

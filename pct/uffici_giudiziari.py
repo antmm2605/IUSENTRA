@@ -476,6 +476,22 @@ def _carica_riferimenti_ministero_extra() -> list[dict]:
 
 
 @lru_cache(maxsize=1)
+def _indice_riferimenti_ministero_per_codice() -> dict[str, dict]:
+    """Indicizza i riferimenti PST sia per codice interno sia per codice ministeriale."""
+    indice: dict[str, dict] = {}
+    for codice_interno, ref in _carica_riferimenti_ministero().items():
+        for codice in (codice_interno, ref.get("codice_ministero")):
+            codice_norm = str(codice or "").strip()
+            if codice_norm:
+                indice.setdefault(codice_norm, ref)
+    for ref in _carica_riferimenti_ministero_extra():
+        codice_norm = str(ref.get("codice_ministero") or "").strip()
+        if codice_norm:
+            indice.setdefault(codice_norm, ref)
+    return indice
+
+
+@lru_cache(maxsize=1)
 def _carica_catalogo_pst_pubblico() -> list[dict]:
     """Carica gli uffici civili ufficialmente selezionabili nel PST pubblico."""
     if not _RIFERIMENTI_PST_PUBBLICI_PATH.exists():
@@ -639,6 +655,7 @@ def _risolvi_ufficio_da_catalogo_pst_pubblico(codice_o_nome: str, *, tipo: str =
         inferred = _ufficio_da_catalogo_pst_pubblico(row)
         if not inferred:
             continue
+        inferred = _applica_riferimenti_ministero([inferred])[0]
         if tipo_norm and str(inferred.get("tipo") or "").upper() != tipo_norm:
             continue
         if codice and codice == chiave:
@@ -734,12 +751,17 @@ def _ufficio_extra_da_riferimento_ministeriale(ref: dict) -> dict:
 
 def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
     """Sovrascrive distretto/PEC con il riferimento ministeriale e aggiunge metadati PST."""
-    riferimenti = _carica_riferimenti_ministero()
+    riferimenti = _indice_riferimenti_ministero_per_codice()
     if not riferimenti:
         return uffici
     arricchiti: list[dict] = []
     for ufficio in uffici:
-        ref = riferimenti.get(ufficio.get("codice", ""))
+        ref = None
+        for codice in (ufficio.get("codice"), ufficio.get("codice_ministero")):
+            codice_norm = str(codice or "").strip()
+            if codice_norm and codice_norm in riferimenti:
+                ref = riferimenti[codice_norm]
+                break
         if not ref:
             arricchiti.append(ufficio)
             continue

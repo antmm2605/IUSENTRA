@@ -4055,7 +4055,7 @@ export function NotificheLegaliPage() {
                     <section>
                       <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                         <div>
-                          <strong>Testo prodotto</strong>
+                          <strong>Anteprima modello relata</strong>
                           <span>Modello applicato: {previewAppliedTemplateLabel}</span>
                           <small className="iu-legal-preview-alignment" role="status" aria-live="polite">
                             {previewAlignmentStatus} · Caso applicato: {previewAppliedCaseLabel}

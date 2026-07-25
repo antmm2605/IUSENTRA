@@ -34,7 +34,6 @@ from web.services.signed_document_runtime import (
     build_document_version_candidates,
 )
 
-
 def register_fascicoli_document_routes(
     app: Flask,
     *,
@@ -58,7 +57,6 @@ def register_fascicoli_document_routes(
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
-
     def _indicizza_documento_lex(
         *,
         id_fasc: str,

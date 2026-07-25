@@ -45,6 +45,7 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
     class _FakeProcess:
         def __init__(self, cmd, **kwargs):
             self.cmd = cmd
+            self.args = cmd
             self.kwargs = kwargs
             self.pid = 8100 + len(processes)
             self._handle = 0
@@ -59,6 +60,12 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
             self._stderr = outcome.get("stderr", "" if text_mode else b"")
             self._communicate_exception = outcome.get("communicate_exception")
             processes.append(self)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
 
         def communicate(self, input=None, timeout=None):
             self.communicate_calls += 1
@@ -82,6 +89,7 @@ def _install_governed_popen_fake(monkeypatch, module, on_start):
 
         def kill(self):
             self.killed = True
+            self.terminated = True
             self.returncode = -9
 
     monkeypatch.setattr(module.subprocess, "Popen", _FakeProcess)
@@ -2090,7 +2098,8 @@ def test_preflight_auth_timeout_expired_chiude_il_processo_governato(monkeypatch
 
     assert len(processes) == 1
     assert processes[0].terminated is True
-    assert processes[0].communicate_calls == 2
+    expected_communicate_calls = 2 if module.sys.platform == "win32" else 1
+    assert processes[0].communicate_calls == expected_communicate_calls
     assert module._managed_processes == {}
 
 

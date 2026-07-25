@@ -5615,3 +5615,22 @@ Prova reale locale eseguita su Docker `127.0.0.1:8080`, container `iusentra-app`
 - `Controlla relata` esegue la simulazione senza invio; `Invio PEC` resta bloccato perché firma relata e approvazione finale non sono state acquisite.
 
 Il fascicolo temporaneo `CODXPRSD` della prova intermedia è stato rimosso da SQLite, mirror JSON, scadenziario, audit tecnico, documenti fisici e dati OCR/AI; il controllo finale non trova più quel marker nel tenant locale. Nessuna PEC reale è stata inviata, nessun PIN è stato usato o salvato e il campo PIN visibile nella sessione browser è stato svuotato.
+
+### Aggiornamento 25/07/2026 - PEC ministeriale nel profilo deposito
+
+Durante la chiusura CI del commit notifiche è emerso nel gate remoto `Coverage moduli critici parte 11/12` un difetto nel backfill del profilo deposito: il catalogo PST pubblico risolveva correttamente `Tribunale di Vicenza` e il codice `0241160092`, ma non ereditava la PEC già presente nel riferimento ministeriale versionato `pct/data/uffici_ministero.json`.
+
+Correzione applicata:
+
+- `pct/uffici_giudiziari.py` indicizza i riferimenti ministeriali sia per codice interno IUSENTRA sia per `codice_ministero`;
+- gli uffici inferiti dal catalogo PST pubblico vengono arricchiti con PEC, distretto, codice GL, servizi JPW e certificato ministeriale quando la stessa fonte locale ufficiale contiene quei dati;
+- il profilo deposito SQLite/PostgreSQL torna a salvare anche `ufficio.pec`, non solo `ufficio.codice_pst`.
+
+Guardrail eseguiti:
+
+- `python -m pytest -q tests\test_storage_strategy.py::test_studio_db_ensure_schema_backfill_profilo_deposito_record_esistenti tests\test_reginde.py::test_catalogo_pst_pubblico_arricchito_con_pec_ministeriale --tb=short`;
+- `python scripts\run_pytest_phases.py --suite coverage-critical --suite-shard 11 --suite-total-shards 12 --suite-subdivide-items --timeout-minutes 5 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=`;
+- `python scripts\react-migration\generate_app_v2_test_docs.py --check`;
+- `python scripts\smoke_app_v2_all.py --subset inventory`;
+- `python tools\check_repo_governance.py`;
+- `python -m py_compile pct/uffici_giudiziari.py`.

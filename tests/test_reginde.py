@@ -93,6 +93,15 @@ def test_riferimenti_ministeriali_ufficio_milano():
     assert ufficio["pec"].endswith("@civile.ptel.giustiziacert.it")
 
 
+def test_catalogo_pst_pubblico_arricchito_con_pec_ministeriale():
+    ufficio = risolvi_ufficio("Tribunale di Vicenza", tipo="TRIBUNALE")
+    assert ufficio is not None
+    assert ufficio["codice_ministero"] == "0241160092"
+    assert ufficio["codice_gl"] == "GLVE"
+    assert ufficio["pec"] == "tribunale.vicenza@civile.ptel.giustiziacert.it"
+    assert ufficio["pec_ministero"] == "tribunale.vicenza@civile.ptel.giustiziacert.it"
+
+
 def test_risoluzione_pst_palmi_usa_gl_e_servizio():
     assert risolvi_codice_ministero("0910011") == "0800570094"
     assert risolvi_base_pst("0910011", base_url="https://ext.processotelematico.giustizia.it") == (

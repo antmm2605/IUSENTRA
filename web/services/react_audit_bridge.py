@@ -150,8 +150,24 @@ def _contracts(route: str) -> dict[str, Any]:
     }
 
 
-def _action(aid: str, label: str, href: str, tone: str = "neutral", *, enabled: bool = True) -> dict[str, Any]:
-    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone, "enabled": enabled}
+def _action(
+    aid: str,
+    label: str,
+    href: str,
+    tone: str = "neutral",
+    *,
+    enabled: bool = True,
+    legacy_fallback: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": aid,
+        "label": label,
+        "href": href,
+        "method": "GET",
+        "tone": tone,
+        "enabled": enabled,
+        "legacy_fallback": legacy_fallback,
+    }
 
 
 def _base_actions(route: str) -> dict[str, Any]:
@@ -165,7 +181,7 @@ def _base_actions(route: str) -> dict[str, Any]:
             _action("export_csv", "Esporta CSV", "/audit/esporta.csv", "neutral"),
             _action("audit", "Apri audit", "/audit", "neutral"),
             _action("registro", "Apri registro attivita", "/registro-attivita", "neutral"),
-            _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning"),
+            _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning", legacy_fallback=True),
         ],
     }
 

@@ -29,8 +29,24 @@ def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty
     return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
 
 
-def _action(aid: str, label: str, href: str, tone: str = "neutral", *, enabled: bool = True) -> dict[str, Any]:
-    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone, "enabled": enabled}
+def _action(
+    aid: str,
+    label: str,
+    href: str,
+    tone: str = "neutral",
+    *,
+    enabled: bool = True,
+    legacy_fallback: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": aid,
+        "label": label,
+        "href": href,
+        "method": "GET",
+        "tone": tone,
+        "enabled": enabled,
+        "legacy_fallback": legacy_fallback,
+    }
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -188,7 +204,7 @@ def build_react_compensi_forensi_payload(
             "links": [
                 _action("tariffario", "Apri tariffario", "/tariffario", "primary"),
                 _action("preventivi", "Archivio preventivi", "/preventivi", "neutral"),
-                _action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning"),
+                _action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning", legacy_fallback=True),
             ],
         },
         "metrics": [
@@ -323,7 +339,7 @@ def build_react_compensi_forensi_error_payload(message: str = "Compensi forensi 
         "last_results": [],
         "actions": {
             **_permissions(None),
-            "links": [_action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning", enabled=False)],
+            "links": [_action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning", enabled=False, legacy_fallback=True)],
         },
         "metrics": [],
         "sections": [],

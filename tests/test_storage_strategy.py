@@ -246,14 +246,29 @@ def test_audit_tenant_data_structure_verifica_json_sqlite_postgres(tmp_path: Pat
     tm = GestioneTenant(str(registry))
     studio = tm.crea("Studio Audit Dati", "studio-audit-dati", db_config={"mode": "SQLITE"})
     tm.ensure_runtime_baseline(studio.slug, force=True)
+    paths = tm.percorsi_dati(studio.slug, reconcile_aliases=False)
+
+    assert json.loads(Path(paths["CONDIVISIONI_DB"]).read_text(encoding="utf-8")) == {
+        "cartelle": {},
+        "fascicoli": {},
+        "link": {},
+    }
+    assert json.loads(Path(paths["VALIDATION_RUNS_DB"]).read_text(encoding="utf-8")) == {"runs": []}
 
     report = audit_tenant_data_structure(registry=registry, tenant=studio.slug)
 
     assert report["ok"] is True
+    assert report["warnings"] == []
     assert report["postgres_schema"]["ok"] is True
     assert report["studios"][studio.slug]["json"]["scadenziario/scadenze.json"]["module"] == "scadenze"
     assert report["studios"][studio.slug]["json"]["agenda/calendar_sync_engine.json"]["module"] == "calendar_sync_engine"
     assert report["studios"][studio.slug]["json"]["agenda/calendar_conflicts.json"]["module"] == "calendar_conflicts"
+    condivisioni = report["studios"][studio.slug]["json"]["clienti/condivisioni.json"]
+    validation_runs = report["studios"][studio.slug]["json"]["intelligence/validation_runs.json"]
+    assert condivisioni["entries"] == 3
+    assert condivisioni["sqlite_records"] == 3
+    assert validation_runs["entries"] == 1
+    assert validation_runs["sqlite_records"] == 1
 
 
 def test_audit_tenant_data_structure_segnala_mirror_json_sql_non_autorevole(tmp_path: Path):

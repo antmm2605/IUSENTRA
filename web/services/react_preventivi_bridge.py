@@ -202,8 +202,25 @@ def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty
     return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
 
 
-def _action(aid: str, label: str, href: str, tone: str = "neutral", *, method: str = "GET", enabled: bool = True) -> dict[str, Any]:
-    return {"id": aid, "label": label, "href": href, "method": method, "tone": tone, "enabled": enabled}
+def _action(
+    aid: str,
+    label: str,
+    href: str,
+    tone: str = "neutral",
+    *,
+    method: str = "GET",
+    enabled: bool = True,
+    legacy_fallback: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": aid,
+        "label": label,
+        "href": href,
+        "method": method,
+        "tone": tone,
+        "enabled": enabled,
+        "legacy_fallback": legacy_fallback,
+    }
 
 
 def _safe_all(loader: Callable[[], Any], method: str, warnings: list[dict[str, str]], label: str) -> list[Any]:
@@ -537,7 +554,7 @@ def build_react_preventivi_payload(
                 _action("nuovo_preventivo", "Nuovo preventivo", "/preventivi/nuovo", "primary"),
                 _action("nuovo_conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "primary"),
                 _action("percorso_guidato", "Percorso preventivi", "/preventivi/wizard", "neutral"),
-                _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning"),
+                _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning", legacy_fallback=True),
             ],
         },
         "warnings": warnings,

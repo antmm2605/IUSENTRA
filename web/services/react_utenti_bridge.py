@@ -148,6 +148,7 @@ def _actions(can_read: bool, can_write: bool) -> dict[str, Any]:
             "label": "Percorso di recupero",
             "href": "/utenti?_legacy=1",
             "method": "GET",
+            "legacy_fallback": True,
         },
     }
 

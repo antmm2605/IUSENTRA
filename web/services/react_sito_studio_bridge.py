@@ -90,6 +90,7 @@ def _action(action_id: str, label: str, href: str, tone: str = "neutral", *, pro
         "method": "GET",
         "tone": tone,
         "protected": protected,
+        "legacy_fallback": protected and "_legacy=1" in href,
     }
 
 
@@ -455,7 +456,12 @@ def build_react_sito_contatti_payload(
         "canLinkMatter": False,
         "canUpdateBookingStatus": can_manage,
         "unsupportedReason": "Sono abilitate le azioni sicure gia collegate: creazione cliente, collegamento cliente e approvazione o rifiuto prenotazioni.",
-        "rollback": {"label": "Percorso di recupero", "href": "/sito-studio/contatti?_legacy=1", "method": "GET"},
+        "rollback": {
+            "label": "Percorso di recupero",
+            "href": "/sito-studio/contatti?_legacy=1",
+            "method": "GET",
+            "legacy_fallback": True,
+        },
     }
     return {
         "ok": True,
@@ -608,7 +614,12 @@ def build_react_sito_articolo_modifica_payload(article_id: int) -> dict[str, Any
                 "redazioneAi": "/sito-studio/redazione-ai",
                 "saveEndpoint": "",
                 "publicPreview": "",
-                "rollback": {"label": "Percorso di recupero", "href": f"{_article_route(article_id)}?_legacy=1", "method": "GET"},
+                "rollback": {
+                    "label": "Percorso di recupero",
+                    "href": f"{_article_route(article_id)}?_legacy=1",
+                    "method": "GET",
+                    "legacy_fallback": True,
+                },
             },
             "warnings": [{"code": "articolo", "message": "Articolo non trovato nel sito dello studio corrente."}],
         }
@@ -631,7 +642,12 @@ def build_react_sito_articolo_modifica_payload(article_id: int) -> dict[str, Any
             "redazioneAi": "/sito-studio/redazione-ai",
             "saveEndpoint": f"/api/v1/ui/sito-studio/articoli/{int(article_id)}/modifica",
             "publicPreview": public_href,
-            "rollback": {"label": "Percorso di recupero", "href": f"{_article_route(article_id)}?_legacy=1", "method": "GET"},
+            "rollback": {
+                "label": "Percorso di recupero",
+                "href": f"{_article_route(article_id)}?_legacy=1",
+                "method": "GET",
+                "legacy_fallback": True,
+            },
         },
         "warnings": [],
     }

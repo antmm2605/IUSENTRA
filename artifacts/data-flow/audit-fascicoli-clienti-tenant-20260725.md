@@ -165,6 +165,8 @@ Difetto trovato e corretto durante il controllo: il fallback tecnico `/clienti/<
 Guardrail aggiunto:
 
 - `tests/test_react_shell.py::test_manifest_react_full_blocca_post_html_primari_nei_salvataggi` legge il manifest React e blocca ogni route `react_operational_full` con salvataggio JSON se il componente torna a `LegacyPostForm` o a un form POST HTML primario.
+- Il gate `check-no-primary-legacy-links` ha trovato 13 link `?_legacy=1` non abbastanza confinati. Erano percorsi di recupero, non salvataggi primari; i bridge React ora li marcano nei payload come `legacy_fallback`, così restano paracadute tecnici e non CTA operative.
+- Durante l'audit a freddo locale è emerso un disallineamento dei mirror vuoti `condivisioni` e `validation_runs`: il baseline tenant usava payload minimi diversi dal bootstrap SQL. `pct/tenant.py` ora usa gli stessi default governati (`cartelle/fascicoli/link` e `runs`), e `tests/test_storage_strategy.py::test_audit_tenant_data_structure_verifica_json_sqlite_postgres` blocca warning o conteggi SQL/JSON divergenti su questi mirror.
 
 Test mirati eseguiti per questa verifica:
 

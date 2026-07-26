@@ -56,4 +56,14 @@ Su `http://127.0.0.1:8080/soggetti` è stato verificato nel browser integrato au
 
 ## Stato produzione
 
-Da completare dopo commit e deploy Hetzner sullo stesso commit `2.265.5`: verifica container unico `iusentra-app`, `https://app.iusentra.it/api/pronto`, e controllo read-only che il payload soggetti filtri i clienti storici del tenant Montagnese.
+Deploy Hetzner eseguito sul commit `f77e0f9037af59b4864391e4237d74c531a90653`, versione `2.265.5`.
+
+- `https://app.iusentra.it/api/pronto`: `ok=true`, `timezone=Europe/Rome`, `versione=2.265.5`.
+- Container applicativo unico: `iusentra-app`, healthy; nessun container applicativo parallelo `iusentra-app-1` o `repo`.
+- Tenant produzione verificato: `/data/tenants/studio-legale-giuseppe-montagnese`, `source_of_truth=sqlite`, `studio.db` presente.
+- Controllo read-only payload soggetti produzione: `clienti_count=265`, `soggetti_payload_count=34`, `clients_excluded_from_subjects=238`.
+- `Martorano Mara`, `Contarese Cristina`, `Merdini Manjola` e `Romeo Letizia Anna Maria` risultano in `clienti` e non risultano nel payload `Soggetti e Parti`.
+- Cache pubbliche caricate sul server:
+  - `/data/local/reginde/reginde_cache.sqlite`, SHA256 `d7dce964b0e613e1292c7db469adb78da74cdaf63a9a9a17dff60d6010c6382b`;
+  - `/data/local/registro_ppaa/registro_ppaa_cache.sqlite`, SHA256 `54212818f619d200b4c63848ecdbcb2347172af6b3abeccda07362212d827ce5`.
+- Ricerca produzione `Avvocatura Milano`: `Registro PP.AA.` disponibile, risultato `AVVOCATURA DELLO STATO DI MILANO`, PEC `ads.mi@mailcert.avvocaturastato.it`, patch soggetto `tipo=PUBBLICA_AMMINISTRAZIONE`, `qualifica=CONTROPARTE`.

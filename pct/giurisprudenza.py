@@ -13,7 +13,7 @@ from html import escape as _html_escape
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional
-from urllib.parse import urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from lxml import etree as lxml_etree
@@ -92,6 +92,19 @@ def _validated_official_fetch_url(url: str) -> str:
     ):
         raise ValueError("Fonte ufficiale non inclusa nel catalogo giurisprudenza.")
     return raw
+
+
+def _title_from_official_url(url: str, source: Optional["FonteGiurisprudenziale"]) -> str:
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    numero = _clean_spaces((query.get("numero") or [""])[0])
+    anno = _clean_spaces((query.get("anno") or [""])[0])
+    if source and source.id == "corte_costituzionale" and numero and anno:
+        return f"Corte costituzionale n. {numero}/{anno}"
+    tail = _clean_spaces(parsed.path.rstrip("/").rsplit("/", 1)[-1])
+    if tail:
+        return tail.replace("-", " ").replace("_", " ").strip().title()
+    return source.nome if source else parsed.hostname or url
 
 
 def _slug(value: str) -> str:
@@ -1424,59 +1437,38 @@ class GestioneGiurisprudenza:
         url: str,
         *,
         source_id: str = "",
-        request_get: Optional[Callable[..., Any]] = None,
     ) -> Dict[str, Any]:
         cleaned_url = str(url or "").strip()
         if not cleaned_url:
             raise ValueError("URL ufficiale mancante.")
-        detected_source = source_id or self._detect_source_from_url(cleaned_url) or "manuale_interno"
+        official_url = _validated_official_fetch_url(cleaned_url)
+        detected_source = source_id or self._detect_source_from_url(official_url) or "manuale_interno"
         source = self._source(detected_source)
-        title = cleaned_url
-        abstract = ""
-        ecli = ""
+        title = _title_from_official_url(official_url, source)
+        abstract = "URL ufficiale registrato. Importa il testo o usa la sincronizzazione fonte per completare i metadati."
+        ecli = _extract_ecli(official_url)
         text = ""
-        if source and source.access_mode == "pubblico":
-            response = self._fetch(cleaned_url, request_get=request_get)
-            text = response.get("text", "")
-            title = response.get("title") or title
-            abstract = _truncate(response.get("summary") or text, 320)
-            ecli = _extract_ecli(text)
-        elif source and source.access_mode == "open_data":
-            response = self._fetch(cleaned_url, request_get=request_get)
-            text = response.get("text", "")
-            title = response.get("title") or title
-            abstract = _truncate(response.get("summary") or text, 320)
-            ecli = _extract_ecli(text)
-        mime_type = str((response or {}).get("content_type") or "text/html")
-        raw_json: Any = {}
-        if "json" in mime_type and text:
-            try:
-                raw_json = json.loads(text)
-            except Exception:
-                raw_json = {}
+        mime_type = "text/uri-list"
+        raw_json: Any = {"source_url": official_url, "server_fetch": "disabled"}
         payload = self.empty_record(detected_source)
         payload.update(
             {
                 "titolo": title,
-                "url_origine": cleaned_url,
+                "url_origine": official_url,
                 "abstract": abstract,
                 "massima": abstract if len(abstract) <= 220 else "",
                 "ecli": ecli,
                 "numero_provvedimento": _extract_case_reference(text or title) or _extract_number(text or title),
                 "data_deposito": _extract_date(text or title),
                 "data_decisione": _extract_date(title),
-                "identificatore_stabile": ecli or f"{detected_source}:{_sha1(cleaned_url)}",
+                "identificatore_stabile": ecli or f"{detected_source}:{_sha1(official_url)}",
                 "text_original": text,
                 "raw_text": text,
                 "raw_json": raw_json,
                 "mime_type": mime_type,
                 "note_redazionali": (
-                    "Scheda creata da recupero URL ufficiale. "
-                    + (
-                        "La classificazione automatica e stata proposta dal motore; verifica solo gli affinamenti redazionali."
-                        if source and source.access_mode in {"pubblico", "open_data"}
-                        else "Completare classificazione e metadati processuali."
-                    )
+                    "Scheda creata da URL ufficiale validato senza download server-side. "
+                    "Completare classificazione e metadati con import materiale o sincronizzazione fonte."
                 ).strip(),
             }
         )
@@ -1983,7 +1975,6 @@ class GestioneGiurisprudenza:
     def _fetch(self, url: str, *, request_get: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
         safe_url = _validated_official_fetch_url(url)
         getter = request_get or requests.get
-        # lgtm[py/full-ssrf] URL limitato a HTTPS, host ufficiali esatti, porta standard e redirect finale rivalidato.
         response = getter(
             safe_url,
             headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},

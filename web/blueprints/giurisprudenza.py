@@ -286,7 +286,7 @@ def importa_url():
     gestore = get_giurisprudenza()
     try:
         record = gestore.importa_da_url(source_url, source_id=source_id)
-        flash("Recupero da URL ufficiale completato. Completa ora la classificazione della sentenza.", "success")
+        flash("URL ufficiale registrato. Completa ora classificazione e testo della sentenza.", "success")
         return redirect(url_for("giurisprudenza.modifica", judgment_id=record["id"]))
     except Exception as exc:
         current_app.logger.exception("Errore import URL giurisprudenza: %s", exc)

@@ -641,25 +641,27 @@ def test_react_giurisprudenza_espone_presidio_dati_per_rag(tmp_path: Path):
     assert any(item["label"] == "Testo da completare" and item["tone"] == "warning" for item in data_section["items"])
 
 
-def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):
+def test_importa_da_url_pubblico_registra_fonte_senza_fetch_server_side(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
-    html = b"""
-    <html><head><title>Sentenza n. 77 del 09/04/2026</title></head>
-    <body><main>ECLI:IT:COST:2026:77 Massima di prova.</main></body></html>
-    """
 
     record = gestore.importa_da_url(
         "https://www.cortecostituzionale.it/actionSchedaPronuncia.do?anno=2026&numero=77",
-        request_get=lambda *args, **kwargs: DummyResponse(
-            html,
-            url="https://www.cortecostituzionale.it/actionSchedaPronuncia.do?anno=2026&numero=77",
-        ),
     )
 
     assert record["source_system"] == "corte_costituzionale"
-    assert record["ecli"] == "ECLI:IT:COST:2026:77"
-    assert record["data_deposito"] == "2026-04-09"
-    assert gestore.get(record["id"])["raw_documents_count"] == 1
+    assert record["titolo"] == "Corte costituzionale n. 77/2026"
+    assert record["url_origine"] == "https://www.cortecostituzionale.it/actionSchedaPronuncia.do?anno=2026&numero=77"
+    assert "senza download server-side" in record["note_redazionali"]
+    raw_documents = gestore._data["raw_documents"]
+    assert len(raw_documents) == 1
+    assert json.loads(raw_documents[0]["raw_json"])["server_fetch"] == "disabled"
+
+
+def test_importa_da_url_blocca_host_non_catalogato(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+
+    with pytest.raises(ValueError):
+        gestore.importa_da_url("https://evilgiustizia.it/actionSchedaPronuncia.do?anno=2026&numero=77")
 
 
 def test_importa_da_materiale_simpliciter_crea_e_aggiorna_schede(tmp_path: Path):

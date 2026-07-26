@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 280.
-- Endpoint con `_richiedi_auth`: 280/280.
+- Endpoint React API censiti: 282.
+- Endpoint con `_richiedi_auth`: 282/282.
 - Endpoint con metodo di scrittura o cancellazione: 148.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 118; critical: 18; high/P1: 76.
@@ -199,10 +199,10 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/notifiche-legali/pratiche/<id_fascicolo>` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/notifiche-legali/pratiche/<id_fascicolo>/documenti` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/prova-deposito` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/notifiche-legali/reginde` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/notifiche-legali/registro-ppaa` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/relata-firmata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/relata-pdf` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
-| `GET` | `/api/v1/ui/notifiche-legali/reginde` | Notifiche legali | P1 | `sessione/API tenant-aware` | ricerca destinatari da cache ReGIndE locale | auth, sola lettura, limite risultati, nessun path cache esposto |
-| `GET` | `/api/v1/ui/notifiche-legali/registro-ppaa` | Notifiche legali | P1 | `sessione/API tenant-aware` | ricerca destinatari da cache Registro PP.AA. locale | auth, sola lettura, limite risultati, nessun path cache esposto |
 | `POST` | `/api/v1/ui/notifiche-legali/unep` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/notifiche-legali/verifica-pec-consultata` | Notifiche legali | P1 | `sessione/API tenant-aware` | relate, destinatari e bozze | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/pat/moduli/compila` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

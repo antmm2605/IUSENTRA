@@ -87,6 +87,7 @@ def _validated_official_fetch_url(url: str) -> str:
         or not host
         or parsed.username
         or parsed.password
+        or parsed.port not in {None, 443}
         or host not in _ALLOWED_GIURISPRUDENZA_FETCH_HOSTS
     ):
         raise ValueError("Fonte ufficiale non inclusa nel catalogo giurisprudenza.")
@@ -1982,6 +1983,7 @@ class GestioneGiurisprudenza:
     def _fetch(self, url: str, *, request_get: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
         safe_url = _validated_official_fetch_url(url)
         getter = request_get or requests.get
+        # lgtm[py/full-ssrf] URL limitato a HTTPS, host ufficiali esatti, porta standard e redirect finale rivalidato.
         response = getter(
             safe_url,
             headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},

@@ -95,6 +95,20 @@ def test_fetch_giurisprudenza_blocca_host_non_catalogato_prima_della_rete(tmp_pa
     assert calls == []
 
 
+def test_fetch_giurisprudenza_blocca_porta_non_standard_prima_della_rete(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    calls: list[str] = []
+
+    def fake_get(url, *args, **kwargs):
+        calls.append(url)
+        return DummyResponse(b"non deve essere chiamato", url=url)
+
+    with pytest.raises(ValueError):
+        gestore._fetch("https://www.cortecostituzionale.it:444/sentenza.html", request_get=fake_get)
+
+    assert calls == []
+
+
 def test_fetch_giurisprudenza_blocca_redirect_finale_fuori_catalogo(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
     requested: list[str] = []

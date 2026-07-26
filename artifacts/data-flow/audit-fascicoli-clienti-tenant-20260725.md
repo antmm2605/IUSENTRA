@@ -146,3 +146,29 @@ Correzione codice:
 - `tests/test_fascicoli_clienti_links_audit.py`: aggiunta copertura che una scheda cliente riparata resta visibile da `GestioneClienti` anche se `dati_json.documento` contiene la chiave storica extra `file_path`.
 
 Questa correzione evita che un cliente presente e collegato nel tenant venga nascosto dalla UI per payload documento legacy o arricchito.
+
+## Follow-up 26/07/2026 - verifica superfici operative React/Jinja per salvataggi principali
+
+Dopo la richiesta esplicita di ricontrollare tutto il perimetro operativo lato studio, la verifica non si è fermata alla riparazione dei quattro clienti. Sono stati controllati insieme:
+
+- route map Flask/React;
+- manifest governato `tools/react-migration/route-manifest.json`;
+- gate React `web/bootstrap/react_route_gate.py`;
+- test React già presenti su route ufficiali, route profonde, matrice API e contratti `repository_reali`;
+- componenti React che eseguono salvataggi principali;
+- helper `submitFormJson`, che rifiuta una risposta HTML come salvataggio riuscito.
+
+Esito strutturale: le superfici dichiarate `react_operational_full` con salvataggio JSON o divieto di POST HTML non contengono `LegacyPostForm` e non contengono form React primari con `<form method="post">`. I salvataggi principali restano su chiamate JSON/XHR verso endpoint operativi tenant-aware; i POST Flask storici ammessi sono backend repository reali e non pagine Jinja usate come superficie primaria.
+
+Difetto trovato e corretto durante il controllo: il fallback tecnico `/clienti/<id>/cartella?_legacy=1&tab=timeline` rimuoveva il parametro `tab`. Non era la causa della scomparsa dei clienti, ma rendeva non deterministico un percorso tecnico di verifica. La route ora elimina solo `_legacy` e preserva gli altri parametri della query.
+
+Guardrail aggiunto:
+
+- `tests/test_react_shell.py::test_manifest_react_full_blocca_post_html_primari_nei_salvataggi` legge il manifest React e blocca ogni route `react_operational_full` con salvataggio JSON se il componente torna a `LegacyPostForm` o a un form POST HTML primario.
+
+Test mirati eseguiti per questa verifica:
+
+- `python -m pytest tests/test_react_shell.py::test_manifest_react_full_blocca_post_html_primari_nei_salvataggi tests/test_react_shell.py::test_submit_form_json_non_accetta_html_come_successo tests/test_react_shell.py::test_route_ufficiali_clienti_e_soggetti_servono_react_con_vista_classica_tecnica tests/test_react_shell.py::test_route_post_clienti_e_soggetti_restano_su_backend_operativo tests/test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative -q`
+- `python -m compileall web/bootstrap/clienti_workspace_routes.py tests/test_react_shell.py`
+
+Esito UI produzione già verificato su `https://app.iusentra.it/clienti`: `Martorano Mara`, `Contarese Cristina`, `Merdini Manjola` e `Romeo Letizia Anna Maria` risultano presenti nella tabella `Clienti e Anagrafiche`; dalla riga di `Martorano Mara` il pulsante `Apri cartella cliente` apre `/clienti/BA82D89F/cartella` con il fascicolo `Martorano Mara c. MIM` e senza stato `Cliente non disponibile`.

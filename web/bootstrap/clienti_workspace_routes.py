@@ -23,6 +23,10 @@ def _richiede_vista_legacy() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
+def _query_senza_legacy() -> dict[str, str]:
+    return {key: value for key, value in request.args.items() if key != "_legacy"}
+
+
 def _get_portale_mgr(app: Flask):
     from pct.portale import GestionePortale
 
@@ -68,7 +72,7 @@ def register_clienti_workspace_routes(
             "bi-folder2-open",
         )
         if _richiede_vista_legacy():
-            return redirect(url_for("cartella_cliente", id_cliente=id_cliente), code=302)
+            return redirect(url_for("cartella_cliente", id_cliente=id_cliente, **_query_senza_legacy()), code=302)
         return render_react_shell_response(f"clienti/{id_cliente}/cartella")
 
     @app.route("/clienti/<id_cliente>/faldone")

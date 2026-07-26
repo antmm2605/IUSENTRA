@@ -1051,7 +1051,8 @@ def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
     assert '@api_v1_react.get("/clienti/<id_cliente>/cartella")' in api_source
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}/cartella")' in route_source
-    assert 'return redirect(url_for("cartella_cliente", id_cliente=id_cliente), code=302)' in route_source
+    assert "def _query_senza_legacy()" in route_source
+    assert 'return redirect(url_for("cartella_cliente", id_cliente=id_cliente, **_query_senza_legacy()), code=302)' in route_source
     assert "redirect(target" not in route_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}")' in clienti_routes
     assert 'render_react_shell_response(f"clienti/{id_cliente}/modifica")' in clienti_routes
@@ -8760,6 +8761,55 @@ def test_submit_form_json_non_accetta_html_come_successo():
     assert "if (!contentType.includes('application/json'))" in source
     assert "Sessione scaduta" in source
     assert "Il server non ha confermato il salvataggio in formato JSON" in source
+
+
+def test_manifest_react_full_blocca_post_html_primari_nei_salvataggi():
+    manifest = json.loads(Path("tools/react-migration/route-manifest.json").read_text(encoding="utf-8"))
+    keywords = (
+        "azioni principali JSON",
+        "nessun POST HTML",
+        "salvataggio JSON",
+        "salvataggi JSON",
+    )
+    post_form_pattern = re.compile(
+        r"<form\b[^>]*\bmethod\s*=\s*([\"']post[\"']|\{\s*[\"']POST[\"']\s*\})",
+        re.IGNORECASE,
+    )
+    checked: list[str] = []
+
+    for entry in manifest["routes"]:
+        must_preserve = " ".join(entry.get("mustPreserve") or [])
+        if entry.get("status") != "react_operational_full":
+            continue
+        if not any(keyword.lower() in must_preserve.lower() for keyword in keywords):
+            continue
+
+        route = entry["route"]
+        component_path = Path(entry["targetComponent"])
+        assert entry.get("unlockFromGate") is True, route
+        assert component_path.exists(), route
+        component_source = component_path.read_text(encoding="utf-8")
+        assert "LegacyPostForm" not in component_source, route
+        assert not post_form_pattern.search(component_source), route
+        checked.append(route)
+
+    assert checked == [
+        "/agenda/nuovo",
+        "/clienti/nuovo",
+        "/giurisprudenza/nuova",
+        "/messaggi/nuovo",
+        "/preventivi/conferimento/nuovo",
+        "/preventivi/nuovo",
+        "/privacy/registro",
+        "/privacy/registro/nuovo",
+        "/profili",
+        "/scadenziario/:id/modifica",
+        "/scadenziario/nuova",
+        "/sito-studio/articoli/:id/modifica",
+        "/sito-studio/builder",
+        "/soggetti/nuovo",
+        "/utenti",
+    ]
 
 
 def test_post_modifica_cliente_json_normalizza_comune_e_persiste(tmp_path: Path):

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import unicodedata
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
@@ -21,6 +23,59 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pct.clienti import Indirizzo, Recapiti
+
+
+def normalizza_identificativo_anagrafico(value: Any) -> str:
+    """Normalizza C.F./P.IVA per confronti tra anagrafiche."""
+
+    return re.sub(r"[^A-Za-z0-9]", "", str(value or "")).upper()
+
+
+def normalizza_nome_anagrafico(value: Any) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[^A-Za-z0-9]+", " ", text).casefold()
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _record_name(value: Any) -> str:
+    direct = str(getattr(value, "nome_completo", "") or "").strip()
+    if direct:
+        return direct
+    ragione = str(getattr(value, "ragione_sociale", "") or "").strip()
+    if ragione:
+        return ragione
+    parts = [str(getattr(value, field, "") or "").strip() for field in ("cognome", "nome")]
+    return " ".join(part for part in parts if part).strip()
+
+
+def chiavi_anagrafiche_record(value: Any) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for field in ("codice_fiscale", "partita_iva", "identificativo", "identificativo_fiscale"):
+        normalized = normalizza_identificativo_anagrafico(getattr(value, field, ""))
+        if normalized:
+            keys.add(("identificativo", normalized))
+    name = normalizza_nome_anagrafico(_record_name(value))
+    if name:
+        keys.add(("nome", name))
+    return keys
+
+
+def chiavi_anagrafiche_clienti(clienti: list[Any]) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for cliente in clienti:
+        keys.update(chiavi_anagrafiche_record(cliente))
+    return keys
+
+
+def soggetto_coincide_con_cliente(soggetto: Any, clienti: list[Any]) -> bool:
+    id_cliente = str(getattr(soggetto, "id_cliente", "") or "").strip()
+    if id_cliente and any(str(getattr(cliente, "id", "") or "").strip() == id_cliente for cliente in clienti):
+        return True
+    subject_keys = chiavi_anagrafiche_record(soggetto)
+    if not subject_keys:
+        return False
+    return bool(subject_keys & chiavi_anagrafiche_clienti(clienti))
 
 
 # ── Enumerazioni ────────────────────────────────────────────────────────────

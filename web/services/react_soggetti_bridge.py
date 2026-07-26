@@ -10,7 +10,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from pct.soggetti import TipoSoggetto
+from pct.soggetti import TipoSoggetto, soggetto_coincide_con_cliente
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -65,6 +65,8 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
     clienti_by_id = _client_index(clienti)
     rows: list[dict[str, Any]] = []
     for index, soggetto in enumerate(soggetti):
+        if soggetto_coincide_con_cliente(soggetto, clienti):
+            continue
         item_id = _text(getattr(soggetto, "id", "")) or f"soggetto-{index}"
         tipo = _enum_value(getattr(soggetto, "tipo", TipoSoggetto.PERSONA_FISICA))
         recapiti = getattr(soggetto, "recapiti", None)
@@ -142,6 +144,9 @@ def build_react_soggetti_payload(
     soggetti = _safe(lambda: soggetti_repo.tutti(), [])
     clienti = _safe(lambda: get_clienti().tutti(), [])
     items = _subject_items(soggetti_repo, soggetti, clienti)
+    clienti_esclusi = sum(1 for soggetto in soggetti if soggetto_coincide_con_cliente(soggetto, clienti))
+    summary = _summary(items)
+    summary["clientsExcluded"] = clienti_esclusi
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
@@ -150,8 +155,9 @@ def build_react_soggetti_payload(
             "read_only": False,
             "writes": "operational_routes",
             "route_owner": "react_shell",
+            "clients_excluded_from_subjects": clienti_esclusi,
         },
-        "summary": _summary(items),
+        "summary": summary,
         "items": items,
         "facets": _facets(items),
     }

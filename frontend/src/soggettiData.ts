@@ -40,6 +40,7 @@ export type SoggettiPageData = {
     withMatters: number
     incomplete: number
     withoutContacts: number
+    clientsExcluded: number
   }
   items: SoggettoRow[]
   facets: {
@@ -57,6 +58,7 @@ const emptySummary = {
   withMatters: 0,
   incomplete: 0,
   withoutContacts: 0,
+  clientsExcluded: 0,
 }
 
 export const emptySoggettiPage: SoggettiPageData = {
@@ -158,6 +160,7 @@ function normalizePayload(payload: unknown): SoggettiPageData {
       withMatters: number(summary.withMatters ?? summary.with_matters),
       incomplete: number(summary.incomplete),
       withoutContacts: number(summary.withoutContacts ?? summary.without_contacts),
+      clientsExcluded: number(summary.clientsExcluded ?? summary.clients_excluded),
     },
     items,
     facets: isRecord(payload.facets) && Array.isArray(payload.facets.types) && Array.isArray(payload.facets.roles)

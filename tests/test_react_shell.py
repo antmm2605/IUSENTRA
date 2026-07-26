@@ -7876,7 +7876,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert "visibleSignaturePlace" in detail["signature"]
     assert detail["signature"]["visibleSignatureDatetimeMode"] == "data_ora"
     assert any(party["name"] == "Zurich Ass.ni" and party["role"] == "Controparte" for party in detail["parties"])
-    assert any(party["name"] == "Moscato Marco" and party["role"] == "Cliente / assistito" for party in detail["parties"])
+    assert not any(party["name"] == "Moscato Marco" for party in detail["parties"])
     assert any(item["label"] == "Parti" and item["value"] == f"{len(detail['parties'])} soggetti" for item in detail["quality"])
     fatturapa = next(item for item in detail["economics"] if item["id"] == "fatturapa")
     assert fatturapa["value"] == "Da creare"
@@ -8812,6 +8812,85 @@ def test_manifest_react_full_blocca_post_html_primari_nei_salvataggi():
     ]
 
 
+def test_route_map_salvataggi_principali_studio_restano_react_json(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+
+    route_methods = {
+        rule.rule: sorted((rule.methods or set()) & {"GET", "POST"})
+        for rule in app.url_map.iter_rules()
+    }
+    assert route_methods["/clienti/nuovo"] == ["GET", "POST"]
+    assert route_methods["/soggetti/nuovo"] == ["GET", "POST"]
+    assert route_methods["/fascicoli/nuovo"] == ["GET", "POST"]
+
+    with app.test_client() as client:
+        _login(client)
+
+        for route in ("/clienti/nuovo", "/soggetti/nuovo", "/fascicoli/nuovo"):
+            response = client.get(route)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, route
+            assert '<html lang="it" class="react-shell-document">' in html, route
+            assert 'id="root"' in html, route
+            assert "_legacy=1" not in html, route
+
+        clienti_api = client.get("/api/v1/ui/clienti/nuovo", headers=headers)
+        soggetti_api = client.get("/api/v1/ui/soggetti", headers=headers)
+        fascicoli_api = client.get("/api/v1/ui/fascicoli/nuovo", headers=headers)
+
+        assert clienti_api.status_code == 200
+        assert clienti_api.get_json()["contracts"]["writes"] == "operational_routes"
+        assert soggetti_api.status_code == 200
+        assert soggetti_api.get_json()["contracts"]["route_owner"] == "react_shell"
+        assert fascicoli_api.status_code == 200
+        fascicoli_payload = fascicoli_api.get_json()
+        assert fascicoli_payload["source"] == "repository_reali"
+        assert fascicoli_payload["action"] == "/fascicoli/nuovo"
+
+        cliente_response = client.post(
+            "/clienti/nuovo",
+            data={
+                "tipo": TipoCliente.PERSONA_FISICA.value,
+                "nome": "Route",
+                "cognome": "React",
+                "codice_fiscale": "RTERCT80A01H501Q",
+            },
+            headers=headers,
+        )
+        soggetto_response = client.post(
+            "/soggetti/nuovo",
+            data={
+                "tipo": TipoSoggetto.PERSONA_FISICA.value,
+                "nome": "Parte",
+                "cognome": "JSON",
+                "codice_fiscale": "PRTJSN80A01H501Z",
+                "qualifica": RuoloSoggetto.CONTROPARTE.value,
+            },
+            headers=headers,
+        )
+        fascicolo_response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Apertura incompleta",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "fascicolo_veloce": "1",
+            },
+            headers=headers,
+        )
+
+    for response in (cliente_response, soggetto_response, fascicolo_response):
+        assert response.content_type.startswith("application/json")
+        assert "<html" not in response.get_data(as_text=True).lower()
+    assert cliente_response.status_code == 200
+    assert cliente_response.get_json()["ok"] is True
+    assert soggetto_response.status_code == 200
+    assert soggetto_response.get_json()["ok"] is True
+    assert fascicolo_response.status_code == 400
+    assert fascicolo_response.get_json()["ok"] is False
+
+
 def test_post_modifica_cliente_json_normalizza_comune_e_persiste(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -8922,6 +9001,13 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
         codice_fiscale="BNCLGU80A01H501B",
         provincia_nascita="RM",
         qualifica="CONTROPARTE",
+    )
+    soggetto_cliente = soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+        qualifica="ASSISTITO",
         id_cliente=cliente.id,
     )
     soggetti.aggiungi_parte("fas-test", soggetto.id, RuoloSoggetto.CONTROPARTE)
@@ -8944,10 +9030,127 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
     assert subjects_payload["contracts"]["read_only"] is False
     assert subjects_payload["contracts"]["writes"] == "operational_routes"
     assert subjects_payload["contracts"]["route_owner"] == "react_shell"
+    assert subjects_payload["contracts"]["clients_excluded_from_subjects"] == 1
     assert subjects_payload["summary"]["total"] == 1
+    assert subjects_payload["summary"]["clientsExcluded"] == 1
     assert subjects_payload["items"][0]["id"] == soggetto.id
-    assert subjects_payload["items"][0]["clientName"] == cliente.nome_completo
     assert subjects_payload["items"][0]["matterIds"] == ["fas-test"]
+    assert all(item["id"] != soggetto_cliente.id for item in subjects_payload["items"])
+
+
+def test_soggetti_post_blocca_identita_cliente_esistente(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/soggetti/nuovo",
+            data={
+                "tipo": "PERSONA_FISICA",
+                "nome": "Mario",
+                "cognome": "Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "qualifica": "CONTROPARTE",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert response.status_code == 409
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["code"] == "subject_is_existing_client"
+    assert "anagrafica clienti" in payload["message"]
+    assert GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"]).tutti() == []
+
+
+def test_soggetti_registri_pubblici_riusa_cache_reginde_e_ppaa(tmp_path: Path):
+    def create_cache(path: Path, *, source: str) -> None:
+        import sqlite3
+
+        conn = sqlite3.connect(str(path))
+        conn.execute(
+            """
+            CREATE TABLE records (
+                record_key TEXT PRIMARY KEY,
+                denominazione TEXT,
+                nome_completo TEXT,
+                codici_fiscali_json TEXT NOT NULL,
+                partite_iva_json TEXT NOT NULL,
+                pec_json TEXT NOT NULL,
+                ruolo TEXT,
+                stato TEXT,
+                visibile INTEGER NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                first_page_start INTEGER NOT NULL,
+                last_page_start INTEGER NOT NULL,
+                response_sha256 TEXT NOT NULL,
+                record_json TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO records (
+                record_key, denominazione, nome_completo, codici_fiscali_json,
+                partite_iva_json, pec_json, ruolo, stato, visibile,
+                first_seen_at, last_seen_at, first_page_start, last_page_start,
+                response_sha256, record_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"{source}-avvocatura-milano",
+                "AVVOCATURA DELLO STATO DI MILANO",
+                "",
+                json.dumps(["97021490152"]),
+                json.dumps([]),
+                json.dumps(["ads.mi@mailcert.avvocaturastato.it"]),
+                "ente",
+                "attivo",
+                1,
+                "2026-07-25T22:29:27+02:00",
+                "2026-07-25T22:29:27+02:00",
+                1,
+                1,
+                "hash",
+                json.dumps({"source": source}, ensure_ascii=False),
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    reginde_db = tmp_path / "reginde_cache.sqlite"
+    ppaa_db = tmp_path / "registro_ppaa_cache.sqlite"
+    create_cache(reginde_db, source="reginde")
+    create_cache(ppaa_db, source="registro_ppaa")
+    app.config["REGINDE_CACHE_DB"] = str(reginde_db)
+    app.config["REGISTRO_PPAA_CACHE_DB"] = str(ppaa_db)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/api/v1/ui/soggetti/registri-pubblici?q=Avvocatura%20Milano")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["available"] is True
+    registries = {item["id"]: item for item in payload["registries"]}
+    assert registries["reginde"]["records"] == 1
+    assert registries["registro_ppaa"]["records"] == 1
+    assert {item["registry"] for item in payload["results"]} == {"reginde", "registro_ppaa"}
+    ppaa = next(item for item in payload["results"] if item["registry"] == "registro_ppaa")
+    assert ppaa["subjectPatch"]["tipo"] == "PUBBLICA_AMMINISTRAZIONE"
+    assert ppaa["subjectPatch"]["qualifica"] == "CONTROPARTE"
+    assert ppaa["subjectPatch"]["pec"] == "ads.mi@mailcert.avvocaturastato.it"
 
 
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):

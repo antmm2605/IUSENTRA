@@ -315,7 +315,7 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert analysis["canImportComplete"] is True
     assert result["summary"]["mattersCreated"] == 1
     assert result["summary"]["clientsCreated"] == 1
-    assert result["summary"]["subjectsCreated"] == 2
+    assert result["summary"]["subjectsCreated"] == 1
     assert result["summary"]["documentsImported"] == 1
     assert result["summary"]["emailsImported"] == 1
     assert result["summary"]["activitiesImported"] == 1
@@ -341,7 +341,7 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert email.nome_portale == "Invio documenti da tabella.eml"
     assert email.tipo_atto_portale == "Invio documenti da tabella.eml"
     assert Path(email.percorso).name == "MSG000088.eml"
-    assert len(parti) == 2
+    assert len(parti) == 1
     cliente = clienti.tutti()[0]
     assert fascicolo.id_cliente == cliente.id
     assert fascicolo.nome_cliente == "Rossi Mario"
@@ -349,9 +349,9 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert cliente.cognome == "Rossi"
     assert cliente.recapiti.email == "mario.rossi@example.it"
     soggetti_by_name = {(s.cognome, s.nome): s for s in soggetti.tutti()}
-    assert set(soggetti_by_name) == {("Rossi", "Mario"), ("Bianchi", "Luigi")}
+    assert set(soggetti_by_name) == {("Bianchi", "Luigi")}
     ruoli = {(soggetto.cognome, soggetto.nome): parte.ruolo.value for parte, soggetto in parti}
-    assert ruoli == {("Rossi", "Mario"): "ASSISTITO", ("Bianchi", "Luigi"): "CONTROPARTE"}
+    assert ruoli == {("Bianchi", "Luigi"): "CONTROPARTE"}
 
     second = import_quickorganizer_package(
         package,
@@ -367,7 +367,7 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert second["summary"]["duplicatesSkipped"] >= 3
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
-    assert len(soggetti.tutti()) == 2
+    assert len(soggetti.tutti()) == 1
 
 
 def test_import_studio_telematico_reimport_riallinea_nomi_documenti_esistenti(tmp_path: Path):
@@ -659,9 +659,9 @@ def test_import_studio_telematico_sqlite_scrive_tabelle_core_con_json_solo_mirro
     assert audit["ok"] is True
     assert studio_db.conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone()[0] == 1
     assert studio_db.conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0] == 1
-    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti").fetchone()[0] == 2
-    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti").fetchone()[0] == 2
-    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti WHERE id_fascicolo IS NOT NULL").fetchone()[0] == 2
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti WHERE id_fascicolo IS NOT NULL").fetchone()[0] == 1
     fascicoli_mirror = tmp_path / "tenant" / "fascicoli" / "fascicoli.json"
     assert fascicoli_mirror.exists()
     assert len(json.loads(fascicoli_mirror.read_text(encoding="utf-8"))) == 1

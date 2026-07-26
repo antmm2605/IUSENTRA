@@ -2773,6 +2773,129 @@ def soggetti_react_list():
     ))
 
 
+def _soggetti_public_register_db(kind: str) -> Path:
+    if kind == "registro_ppaa":
+        configured_path = (
+            current_app.config.get("REGISTRO_PPAA_CACHE_DB")
+            or os.environ.get("IUSENTRA_REGISTRO_PPAA_CACHE_DB")
+            or ""
+        )
+        return Path(configured_path) if str(configured_path).strip() else default_registro_ppaa_cache_db_path()
+    configured_path = (
+        current_app.config.get("REGINDE_CACHE_DB")
+        or os.environ.get("IUSENTRA_REGINDE_CACHE_DB")
+        or ""
+    )
+    return Path(configured_path) if str(configured_path).strip() else default_reginde_cache_db_path()
+
+
+def _split_register_person_name(item: Mapping[str, Any]) -> tuple[str, str]:
+    nome = str(item.get("nomeAnagrafico") or "").strip()
+    cognome = str(item.get("cognomeAnagrafico") or "").strip()
+    if nome or cognome:
+        return nome, cognome
+    label = str(item.get("nome") or item.get("label") or "").strip()
+    parts = [part for part in label.split() if part]
+    if len(parts) >= 2:
+        return parts[0].title(), " ".join(parts[1:]).title()
+    return label.title(), ""
+
+
+def _soggetti_register_result(item: Mapping[str, Any]) -> dict[str, Any]:
+    source = str(item.get("fontePecSuggerita") or "").strip()
+    role = str(item.get("ruolo") or "").strip().casefold()
+    label = str(item.get("nome") or item.get("label") or item.get("pec") or "").strip()
+    identity = str(item.get("codiceFiscalePiva") or "").strip().upper()
+    is_pa = source == "registro_ppaa" or role == "pa" or "avvocatura" in label.casefold()
+    tipo = "PUBBLICA_AMMINISTRAZIONE" if is_pa else "PROFESSIONISTA"
+    nome, cognome = _split_register_person_name(item)
+    subject_patch = {
+        "tipo": tipo,
+        "nome": "" if is_pa else nome,
+        "cognome": "" if is_pa else cognome,
+        "ragione_sociale": label if is_pa else "",
+        "codice_fiscale": identity,
+        "partita_iva": identity if is_pa and identity.isdigit() and len(identity) == 11 else "",
+        "qualifica": "CONTROPARTE" if is_pa else "DIFENSORE_CONTROPARTE",
+        "pec": str(item.get("pec") or "").strip().lower(),
+        "email": "",
+        "telefono": "",
+        "ordine": "ReGIndE" if source == "reginde" and not is_pa else "",
+        "note": f"Importato da {'Registro PP.AA.' if source == 'registro_ppaa' else 'ReGIndE'} locale certificato.",
+        "tag": "registro-ppaa" if source == "registro_ppaa" else "reginde",
+    }
+    return {
+        "id": str(item.get("id") or ""),
+        "label": label,
+        "registry": source,
+        "registryLabel": "Registro PP.AA." if source == "registro_ppaa" else "ReGIndE",
+        "taxCode": identity,
+        "pec": str(item.get("pec") or "").strip().lower(),
+        "role": str(item.get("ruolo") or ""),
+        "updatedAt": str(item.get("aggiornatoIl") or ""),
+        "cacheSource": str(item.get("cacheSource") or ""),
+        "subjectPatch": subject_patch,
+    }
+
+
+@api_v1_react.get("/soggetti/registri-pubblici")
+@_richiedi_auth
+def soggetti_registri_pubblici_cache():
+    query = str(request.args.get("q") or request.args.get("query") or "").strip()
+    try:
+        limit = int(request.args.get("limit") or 12)
+    except (TypeError, ValueError):
+        limit = 12
+    safe_limit = max(1, min(limit, 20))
+    reginde = search_reginde_cache(_soggetti_public_register_db("reginde"), query, limit=safe_limit)
+    ppaa = search_registro_ppaa_cache(_soggetti_public_register_db("registro_ppaa"), query, limit=safe_limit)
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for payload in (reginde, ppaa):
+        for item in payload.get("results") or []:
+            row = _soggetti_register_result(item)
+            key = "|".join([row["registry"], row["taxCode"], row["pec"], row["label"]]).casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(row)
+            if len(results) >= safe_limit:
+                break
+        if len(results) >= safe_limit:
+            break
+    message = ""
+    if len(query) < 3:
+        message = "Digita almeno 3 caratteri per cercare in ReGIndE e Registro PP.AA."
+    elif not results:
+        message = "Nessun soggetto trovato nelle cache locali ReGIndE e Registro PP.AA."
+    return jsonify({
+        "ok": True,
+        "source": "registri_pubblici_cache_locale",
+        "available": bool(reginde.get("available") or ppaa.get("available")),
+        "complete": bool(reginde.get("complete") and ppaa.get("complete")),
+        "message": message,
+        "registries": [
+            {
+                "id": "reginde",
+                "label": "ReGIndE",
+                "available": bool(reginde.get("available")),
+                "complete": bool(reginde.get("complete")),
+                "records": int(reginde.get("records") or 0),
+                "updatedAt": str(reginde.get("updatedAt") or ""),
+            },
+            {
+                "id": "registro_ppaa",
+                "label": "Registro PP.AA.",
+                "available": bool(ppaa.get("available")),
+                "complete": bool(ppaa.get("complete")),
+                "records": int(ppaa.get("records") or 0),
+                "updatedAt": str(ppaa.get("updatedAt") or ""),
+            },
+        ],
+        "results": results,
+    })
+
+
 @api_v1_react.post("/soggetti/delete")
 @_richiedi_auth
 def soggetti_react_delete():

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+from types import SimpleNamespace
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-from pct.soggetti import RuoloSoggetto, TipoSoggetto
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.territorio_forms import address_fields_from_form
 
@@ -21,6 +22,31 @@ def _richiede_json() -> bool:
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or "application/json" in (request.headers.get("Accept") or "")
     )
+
+
+def _soggetto_form_probe(form) -> SimpleNamespace:
+    return SimpleNamespace(
+        id_cliente=str(form.get("id_cliente", "") or "").strip(),
+        nome=str(form.get("nome", "") or "").strip(),
+        cognome=str(form.get("cognome", "") or "").strip(),
+        ragione_sociale=str(form.get("ragione_sociale", "") or "").strip(),
+        codice_fiscale=str(form.get("codice_fiscale", "") or "").strip(),
+        partita_iva=str(form.get("partita_iva", "") or "").strip(),
+    )
+
+
+def _reject_soggetto_cliente_if_needed(clienti: list[object]):
+    probe = _soggetto_form_probe(request.form)
+    if probe.id_cliente or soggetto_coincide_con_cliente(probe, clienti):
+        message = (
+            "Questo nominativo risulta già nell'anagrafica clienti dello studio. "
+            "I clienti restano in Clienti e anagrafiche; Soggetti e Parti contiene solo controparti, difensori, enti e altri soggetti processuali."
+        )
+        if _richiede_json():
+            return jsonify({"ok": False, "message": message, "code": "subject_is_existing_client"}), 409
+        flash(message, "warning")
+        return redirect(url_for("nuovo_soggetto"))
+    return None
 
 
 def register_soggetti_routes(
@@ -62,6 +88,9 @@ def register_soggetti_routes(
                 tipo = TipoSoggetto(tipo_val)
             except ValueError:
                 tipo = TipoSoggetto.PERSONA_FISICA
+            rejected = _reject_soggetto_cliente_if_needed(clienti)
+            if rejected is not None:
+                return rejected
             from pct.clienti import Indirizzo, Recapiti
 
             indirizzo = Indirizzo(**address_fields_from_form(request.form))
@@ -92,7 +121,7 @@ def register_soggetti_routes(
                 numero_iscrizione=request.form.get("numero_iscrizione", ""),
                 indirizzo=indirizzo,
                 recapiti=recapiti,
-                id_cliente=request.form.get("id_cliente", ""),
+                id_cliente="",
                 note=request.form.get("note", ""),
                 tag=tag,
             )
@@ -163,6 +192,9 @@ def register_soggetti_routes(
                 tipo = TipoSoggetto(tipo_val)
             except ValueError:
                 tipo = soggetto.tipo
+            rejected = _reject_soggetto_cliente_if_needed(clienti)
+            if rejected is not None:
+                return rejected
             from pct.clienti import Indirizzo, Recapiti
 
             indirizzo = Indirizzo(**address_fields_from_form(request.form))
@@ -194,7 +226,7 @@ def register_soggetti_routes(
                 numero_iscrizione=request.form.get("numero_iscrizione", ""),
                 indirizzo=indirizzo,
                 recapiti=recapiti,
-                id_cliente=request.form.get("id_cliente", ""),
+                id_cliente="",
                 note=request.form.get("note", ""),
                 tag=tag,
             )

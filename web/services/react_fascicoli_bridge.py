@@ -50,6 +50,7 @@ from pct.presidio_documentale_state import (
     marker_state as presidio_marker_state,
 )
 from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
+from pct.soggetti import soggetto_coincide_con_cliente
 from pct.document_signature_state import (
     document_bytes_have_real_digital_signature,
     document_has_real_digital_signature,
@@ -5565,12 +5566,18 @@ def _soggetto_label(soggetto: Any) -> str:
     return _text(getattr(soggetto, "nome_completo", "")) or "Soggetto"
 
 
-def _subject_options(get_soggetti: Callable[[], Any] | None) -> list[dict[str, str]]:
+def _subject_options(
+    get_soggetti: Callable[[], Any] | None,
+    get_clienti: Callable[[], Any] | None = None,
+) -> list[dict[str, str]]:
     if not callable(get_soggetti):
         return []
     soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
+    clienti = _safe("clienti", lambda: get_clienti().tutti(), []) if callable(get_clienti) else []
     out: list[dict[str, str]] = []
     for soggetto in soggetti:
+        if soggetto_coincide_con_cliente(soggetto, clienti):
+            continue
         recapiti = getattr(soggetto, "recapiti", None)
         identificativo = _text(getattr(soggetto, "identificativo", ""))
         out.append(
@@ -6046,7 +6053,7 @@ def build_react_fascicolo_form_payload(
         "detailHref": detail,
         "query": query,
         "clients": _client_options(get_clienti),
-        "subjects": _subject_options(get_soggetti),
+        "subjects": _subject_options(get_soggetti, get_clienti),
         "judicialOffices": _judicial_office_options(),
         "types": _select_options(TipoFascicolo),
         "states": _select_options(StatoFascicolo),
@@ -7252,13 +7259,35 @@ def _party_role_label(value: Any) -> str:
     return raw.replace("_", " ").title() if raw else ""
 
 
-def _parties(parti: Iterable[Any], *, fascicolo: Any | None = None, cliente: Any | None = None) -> list[dict[str, str]]:
+def _parties(
+    parti: Iterable[Any],
+    *,
+    fascicolo: Any | None = None,
+    cliente: Any | None = None,
+    clienti: list[Any] | None = None,
+) -> list[dict[str, str]]:
     out = []
     seen_ids: set[str] = set()
     seen_names: set[str] = set()
+    clienti_lookup = list(clienti or ([] if cliente is None else [cliente]))
+
+    def is_client_identity(*, name: str, tax_code: str = "", soggetto: Any | None = None) -> bool:
+        if not clienti_lookup:
+            return False
+        probe = soggetto or SimpleNamespace(
+            id_cliente="",
+            nome="",
+            cognome="",
+            ragione_sociale=name,
+            codice_fiscale=tax_code,
+            partita_iva=tax_code,
+        )
+        return soggetto_coincide_con_cliente(probe, clienti_lookup)
 
     def add_party(*, sid: str, name: str, role: str, tax_code: str = "", email: str = "", pec: str = "", phone: str = "", href: str = "") -> None:
         clean_name = _text(name)
+        if is_client_identity(name=clean_name, tax_code=tax_code):
+            return
         if not clean_name or clean_name in {"-", "—"}:
             return
         clean_sid = _text(sid, f"soggetto-{len(out)}")
@@ -7287,29 +7316,18 @@ def _parties(parti: Iterable[Any], *, fascicolo: Any | None = None, cliente: Any
             parte, soggetto = item[0], item[1]
         sid = _text(getattr(soggetto, "id", ""), getattr(parte, "id_soggetto", "") if parte else f"soggetto-{len(out)}")
         recapiti = getattr(soggetto, "recapiti", None)
+        tax_code = _text(getattr(soggetto, "codice_fiscale", "") or getattr(soggetto, "identificativo", "") or getattr(soggetto, "partita_iva", ""))
+        if is_client_identity(name=_text(getattr(soggetto, "nome_completo", "")), tax_code=tax_code, soggetto=soggetto):
+            continue
         add_party(
             sid=sid,
             name=_text(getattr(soggetto, "nome_completo", "")),
             role=_party_role_label(getattr(parte, "ruolo", "")) if parte else _party_role_label(getattr(soggetto, "ruolo", "")),
-            tax_code=_text(getattr(soggetto, "codice_fiscale", "") or getattr(soggetto, "identificativo", "") or getattr(soggetto, "partita_iva", "")),
+            tax_code=tax_code,
             email=_text(getattr(recapiti, "email", "") or getattr(soggetto, "email", "")),
             pec=_text(getattr(recapiti, "pec", "") or getattr(soggetto, "pec", "")),
             phone=_text(getattr(recapiti, "telefono", "") or getattr(soggetto, "telefono", "")),
             href=f"/soggetti/{sid}",
-        )
-
-    if cliente is not None:
-        client_id = _text(getattr(cliente, "id", ""))
-        recapiti = getattr(cliente, "recapiti", None)
-        add_party(
-            sid=f"cliente-{client_id}" if client_id else "cliente-fascicolo",
-            name=_text(getattr(cliente, "nome_completo", "") or getattr(fascicolo, "nome_cliente", "")),
-            role="Cliente / assistito",
-            tax_code=_text(getattr(cliente, "codice_fiscale", "") or getattr(cliente, "partita_iva", "")),
-            email=_text(getattr(recapiti, "email", "") or getattr(cliente, "email", "")),
-            pec=_text(getattr(recapiti, "pec", "") or getattr(cliente, "pec", "")),
-            phone=_text(getattr(recapiti, "telefono", "") or getattr(cliente, "telefono", "")),
-            href=f"/clienti/{client_id}/cartella" if client_id else "/clienti",
         )
 
     counterparty = _text(getattr(fascicolo, "controparte", "") if fascicolo is not None else "")
@@ -7673,11 +7691,12 @@ def build_react_fascicolo_detail_payload(
     load_relata = include_all or "relata" in include or "relata_notifica" in include
     load_audit = include_all or "audit" in include
     load_lex = include_all or load_documents or "lex" in include or "lex_indexing" in include
+    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
     apps = _safe("agenda", lambda: _agenda_for_fascicolo(get_agenda, fascicolo), [])
     scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
     parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(fid), [])
-    parties = _parties(parti, fascicolo=fascicolo, cliente=cliente)
+    parties = _parties(parti, fascicolo=fascicolo, cliente=cliente, clienti=clienti if isinstance(clienti, list) else [])
     preventivi_repo = _safe("preventivi_repo", lambda: get_preventivi(), None)
     preventivi = _safe("preventivi", lambda: preventivi_repo.preventivi_per_fascicolo(fid), []) if preventivi_repo else []
     conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(fid), []) if preventivi_repo else []

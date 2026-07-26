@@ -774,7 +774,8 @@ def _deferred_repository_saves(
         originals.append((obj, method_name, original))
         setattr(obj, method_name, lambda *args, **kwargs: None)
 
-    _defer(clienti, "_salva")
+    if getattr(clienti, "_studio_db", None) is None:
+        _defer(clienti, "_salva")
     _defer(soggetti, "_salva")
     _defer(soggetti, "_salva_parti")
     _defer(fascicoli, "_salva")
@@ -790,6 +791,24 @@ def _deferred_repository_saves(
     finally:
         for obj, method_name, original in originals:
             setattr(obj, method_name, original)
+
+
+def _align_repositories_to_matter_tenant(
+    *,
+    fascicoli: GestioneFascicoli,
+    clienti: GestioneClienti,
+    soggetti: GestioneSoggetti,
+) -> None:
+    studio_db = getattr(fascicoli, "_studio_db", None)
+    if studio_db is None:
+        return
+    if getattr(clienti, "_studio_db", None) is not studio_db:
+        clienti._studio_db = studio_db
+        clienti._carica()
+    if getattr(soggetti, "_studio_db", None) is not studio_db:
+        soggetti._studio_db = studio_db
+        soggetti._soggetti = None
+        soggetti._parti = None
 
 
 def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, Any]:
@@ -1859,6 +1878,7 @@ def import_quickorganizer_package(
         raise QuickOrganizerImportError(
             "Il pacchetto non contiene tutti i file collegati. Completa le cartelle del cliente o abilita l'import dei soli dati disponibili."
         )
+    _align_repositories_to_matter_tenant(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)
 
     nomi = package.table("NOMI")
     pratiche = package.table("PRATICHE")
@@ -1916,6 +1936,14 @@ def import_quickorganizer_package(
     read_package_file = reader_guard.__enter__()
 
     for num, row in nomi_by_id.items():
+        if _is_client_control(row):
+            try:
+                client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
+                client_ids_by_num[num] = client.id
+                counters["clientsCreated"] += 1 if created else 0
+            except Exception:
+                errors.append(f"Cliente nominativo {num}: import non completato per dati non coerenti.")
+            continue
         identity = _subject_identity(row)
         subject_id = subject_index.get(identity)
         if not subject_id:
@@ -1926,13 +1954,6 @@ def import_quickorganizer_package(
             subject_index[identity] = subject_id
             counters["subjectsCreated"] += 1
         subject_ids_by_num[num] = subject_id
-        if _is_client_control(row):
-            try:
-                client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
-                client_ids_by_num[num] = client.id
-                counters["clientsCreated"] += 1 if created else 0
-            except Exception:
-                errors.append(f"Cliente nominativo {num}: import non completato per dati non coerenti.")
 
     matters_by_number: dict[int, Any] = {}
     matter_id_by_number: dict[int, str] = {}
@@ -2254,6 +2275,7 @@ def audit_quickorganizer_import(
     soggetti: GestioneSoggetti,
     agenda_repo: Agenda | None = None,
 ) -> dict[str, Any]:
+    _align_repositories_to_matter_tenant(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)
     pratiche = package.table("PRATICHE")
     nomi = package.table("NOMI")
     tavola = package.table("TAVOLA")
@@ -2288,9 +2310,10 @@ def audit_quickorganizer_import(
     client_rows_by_identity: dict[str, Mapping[str, Any]] = {}
     for row in nomi:
         identity = _subject_identity(row)
-        subject_rows_by_identity.setdefault(identity, row)
         if _is_client_control(row):
             client_rows_by_identity.setdefault(identity, row)
+        else:
+            subject_rows_by_identity.setdefault(identity, row)
 
     for identity, row in subject_rows_by_identity.items():
         expected["subjects"] += 1
@@ -2370,6 +2393,8 @@ def audit_quickorganizer_import(
         matter_id = matter_id_by_number.get(matter_number)
         subject_row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM")))
         if not matter_id or not subject_row:
+            continue
+        if _is_client_control(subject_row):
             continue
         expected["partyLinks"] += 1
         subject_id = subject_index.get(_subject_identity(subject_row))

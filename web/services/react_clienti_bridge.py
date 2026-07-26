@@ -17,7 +17,7 @@ from typing import Any, Callable, Mapping
 from pct.clienti import StatoCliente, TipoCliente, TipoDocumento
 from pct.fascicoli import StatoFascicolo
 from pct.scadenziario import StatoTermine
-from pct.soggetti import RuoloSoggetto, TipoSoggetto
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 
 
 def _enum_value(value: Any) -> str:
@@ -580,6 +580,7 @@ def _client_options(clienti: list[Any]) -> list[dict[str, str]]:
 
 
 def _clienti_nuovo_stats(clienti: list[Any], soggetti: list[Any]) -> dict[str, int]:
+    soggetti_operativi = [item for item in soggetti if not soggetto_coincide_con_cliente(item, clienti)]
     return {
         "totalClients": len(clienti),
         "physicalClients": sum(1 for item in clienti if getattr(item, "tipo", None) == TipoCliente.PERSONA_FISICA),
@@ -588,8 +589,8 @@ def _clienti_nuovo_stats(clienti: list[Any], soggetti: list[Any]) -> dict[str, i
         "potentialClients": sum(1 for item in clienti if getattr(item, "stato", None) == StatoCliente.POTENZIALE),
         "missingRegistry": sum(1 for item in clienti if _missing_fields(item)),
         "expiredDocuments": sum(1 for item in clienti if _document_expired(item)),
-        "totalSubjects": len(soggetti),
-        "subjectsWithoutClient": sum(1 for item in soggetti if not _text(getattr(item, "id_cliente", ""))),
+        "totalSubjects": len(soggetti_operativi),
+        "subjectsWithoutClient": sum(1 for item in soggetti_operativi if not _text(getattr(item, "id_cliente", ""))),
     }
 
 
@@ -710,7 +711,7 @@ def build_react_clienti_nuovo_payload(
         "options": {
             "clientTypes": [
                 _option(TipoCliente.PERSONA_FISICA, label="Persona fisica", subtitle="Privato, professionista o assistito", tone="primary"),
-                _option(TipoCliente.PERSONA_GIURIDICA, label="Persona giuridica", subtitle="Societa, ente o organizzazione", tone="purple"),
+                _option(TipoCliente.PERSONA_GIURIDICA, label="Persona giuridica", subtitle="Società, ente o organizzazione", tone="purple"),
             ],
             "clientStatuses": [_option(item, tone={"ATTIVO": "success", "POTENZIALE": "warning", "INATTIVO": "orange"}.get(item.value, "neutral")) for item in StatoCliente],
             "documentTypes": [_option(item) for item in TipoDocumento],
@@ -745,7 +746,7 @@ def build_react_clienti_nuovo_payload(
         "insights": [
             "Prima del salvataggio controlla CF/P.IVA per prevenire duplicati.",
             "Per il conferimento incarico servono dati fiscali, recapiti e indirizzo.",
-            "Il soggetto processuale usa il campo qualifica per restare compatibile con il modello soggetti e parti.",
+            "Il soggetto processuale resta separato dai clienti: assistiti e clienti si gestiscono in Clienti e anagrafiche.",
         ],
     }
     return payload

@@ -6,13 +6,14 @@ from collections.abc import Callable
 from datetime import date
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from flask import Flask, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
-from pct.soggetti import RuoloSoggetto, TipoSoggetto
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from pct.uffici_giudiziari import risolvi_ufficio
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_create_helpers import (
@@ -114,12 +115,25 @@ def register_fascicoli_create_routes(
                 return soggetto
         return None
 
+    def _controparte_coincide_con_cliente(nome: str, identificativo: str) -> bool:
+        probe = SimpleNamespace(
+            id_cliente="",
+            nome="",
+            cognome="",
+            ragione_sociale=str(nome or "").strip(),
+            codice_fiscale=str(identificativo or "").strip(),
+            partita_iva=str(identificativo or "").strip(),
+        )
+        return soggetto_coincide_con_cliente(probe, get_clienti().tutti())
+
     def _crea_o_riusa_controparte(gestore_soggetti: Any, form: Any, *, nome_base: str, identificativo_base: str):
         id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
         if id_soggetto:
             soggetto = gestore_soggetti.get(id_soggetto)
             if not soggetto:
                 raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
+            if soggetto_coincide_con_cliente(soggetto, get_clienti().tutti()):
+                return None
             return soggetto
 
         nome_completo = str(form.get("nuovo_soggetto_nome_completo", "") or "").strip() or nome_base
@@ -129,6 +143,8 @@ def register_fascicoli_create_routes(
 
         esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
         if esistente:
+            if soggetto_coincide_con_cliente(esistente, get_clienti().tutti()):
+                return None
             return esistente
 
         tipo = _tipo_soggetto_da_form(form.get("nuovo_soggetto_tipo", "PERSONA_GIURIDICA"))
@@ -367,12 +383,13 @@ def register_fascicoli_create_routes(
                 )
                 soggetto_controparte = None
                 if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte") or (controparte and cf_controparte):
-                    soggetto_controparte = _crea_o_riusa_controparte(
-                        gestore_soggetti,
-                        form,
-                        nome_base=controparte,
-                        identificativo_base=cf_controparte,
-                    )
+                    if not _controparte_coincide_con_cliente(controparte, cf_controparte):
+                        soggetto_controparte = _crea_o_riusa_controparte(
+                            gestore_soggetti,
+                            form,
+                            nome_base=controparte,
+                            identificativo_base=cf_controparte,
+                        )
                 if soggetto_controparte:
                     gestore_soggetti.aggiungi_parte(
                         fascicolo.id,

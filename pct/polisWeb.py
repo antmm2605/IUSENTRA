@@ -1293,9 +1293,10 @@ def riconcilia_soggetti_pst(
     Riconcilia una lista di nominativi (parti/imputati/ricorrenti) con
     l'anagrafica clienti del gestionale.
 
-    Per ogni nominativo:
-      - Se esiste un cliente con nome corrispondente → riutilizza
-      - Se non esiste → crea automaticamente un nuovo cliente POTENZIALE
+    Solo il primo nominativo valido diventa cliente principale del fascicolo.
+    Le altre parti processuali non vengono create come clienti: sono gestite
+    dal repository Soggetti e Parti, così la rubrica clienti non duplica
+    controparti o altri soggetti processuali.
 
     Args:
         nomi:             Lista di nominativi (stringhe) restituiti dal portale.
@@ -1314,9 +1315,11 @@ def riconcilia_soggetti_pst(
     avvisi: List[str] = []
     clienti_cache = gestione_clienti.tutti()
 
-    for i, nome_raw in enumerate(nomi):
+    for nome_raw in nomi:
         nome_raw = (nome_raw or "").strip()
         if not nome_raw:
+            continue
+        if id_principale:
             continue
 
         nome_up = nome_raw.upper()
@@ -1353,7 +1356,7 @@ def riconcilia_soggetti_pst(
                 # Aggiorna cache locale per evitare duplicati nelle iterazioni successive
                 clienti_cache = gestione_clienti.tutti()
                 avvisi.append(
-                    f"Nuovo soggetto creato in anagrafica: "
+                    f"Nuovo cliente creato in anagrafica: "
                     f"«{trovato.nome_completo}» (stato: Potenziale)."
                 )
             except Exception as e_crea:
@@ -1361,8 +1364,7 @@ def riconcilia_soggetti_pst(
                     f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
                 )
 
-        # Il primo soggetto elaborato con successo → cliente principale del fascicolo
-        if i == 0 and trovato:
+        if trovato:
             id_principale   = trovato.id
             nome_principale = trovato.nome_completo
 
@@ -1379,7 +1381,9 @@ def _riconcilia_parti_dettaglio_polisweb(
     nome_principale = ""
     avvisi: List[str] = []
 
-    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+    for parte in _iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio):
+        if id_principale:
+            continue
         nome_raw = parte["nome"]
         codice_fiscale = parte.get("codice_fiscale", "")
         trovato = _cerca_cliente_pst(gestione_clienti, nome_raw, codice_fiscale)
@@ -1409,7 +1413,7 @@ def _riconcilia_parti_dettaglio_polisweb(
                     nome_hint=parte.get("nome_proprio", ""),
                 )
                 avvisi.append(
-                    f"Nuovo soggetto creato in anagrafica: "
+                    f"Nuovo cliente creato in anagrafica: "
                     f"«{trovato.nome_completo}» (stato: Potenziale)."
                 )
             except Exception as e_crea:
@@ -1417,7 +1421,7 @@ def _riconcilia_parti_dettaglio_polisweb(
                     f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
                 )
 
-        if idx == 0 and trovato:
+        if trovato:
             id_principale = trovato.id
             nome_principale = trovato.nome_completo
 
@@ -1438,6 +1442,7 @@ def _sincronizza_parti_pst_su_fascicolo(
     avvisi: List[str] = []
     controparte = ""
     cf_controparte = ""
+    clienti_non_duplicati = 0
 
     if not gestione_soggetti:
         return controparte, cf_controparte, avvisi
@@ -1467,6 +1472,33 @@ def _sincronizza_parti_pst_su_fascicolo(
                     f"Anagrafica cliente riallineata ai dati PST: «{cliente.nome_completo}»."
                 )
         id_cliente_assoc = cliente.id if cliente else (id_cliente_principale if idx == 0 else "")
+        tipo_parte_norm = _nome_normalizzato(parte.get("tipo", ""))
+        if id_cliente_assoc:
+            soggetto_storico = _cerca_soggetto_pst(
+                gestione_soggetti=gestione_soggetti,
+                nome=nome,
+                codice_fiscale=codice_fiscale,
+                id_cliente=id_cliente_assoc,
+            )
+            if soggetto_storico is not None:
+                soggetto_storico, aggiornato_soggetto = _allinea_soggetto_pst(
+                    gestione_soggetti,
+                    soggetto_storico,
+                    nome=nome,
+                    codice_fiscale=codice_fiscale,
+                    cognome_hint=parte.get("cognome", ""),
+                    nome_hint=parte.get("nome_proprio", ""),
+                    id_cliente=id_cliente_assoc,
+                )
+                if aggiornato_soggetto:
+                    avvisi.append(
+                        f"Anagrafica soggetto storica riallineata ai dati PST: «{soggetto_storico.nome_completo}»."
+                    )
+            if tipo_parte_norm in {"AS", "CP", "CONVENUTO", "RESISTENTE", "CONTROPARTE"} and not controparte:
+                controparte = getattr(cliente, "nome_completo", "") if cliente else nome
+                cf_controparte = codice_fiscale
+            clienti_non_duplicati += 1
+            continue
         soggetto = _cerca_soggetto_pst(
             gestione_soggetti=gestione_soggetti,
             nome=nome,
@@ -1518,6 +1550,11 @@ def _sincronizza_parti_pst_su_fascicolo(
         if ruolo.value == "CONTROPARTE" and not controparte:
             controparte = soggetto.nome_completo
             cf_controparte = codice_fiscale
+
+    if clienti_non_duplicati:
+        avvisi.append(
+            f"{clienti_non_duplicati} parti coincidenti con clienti sono state mantenute in Clienti e anagrafiche senza duplicarle in Soggetti e Parti."
+        )
 
     if id_cliente_principale:
         cliente_principale = gestione_clienti.get(id_cliente_principale)

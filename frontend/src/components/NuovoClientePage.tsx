@@ -16,6 +16,7 @@ import {
   Mail,
   Phone,
   ScanLine,
+  Search,
   ShieldCheck,
   Sparkles,
   UploadCloud,
@@ -29,7 +30,9 @@ import { FloatingLex } from './FloatingLex'
 import {
   emptyClientiNuovoData,
   getClientiNuovoData,
+  searchPublicSubjectRegisters,
   type ClientiNuovoData,
+  type PublicRegistrySubjectResult,
   type RegistryOption,
 } from '../clientiNuovoData'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
@@ -866,7 +869,7 @@ function StatsStrip({ data }:{data: ClientiNuovoData}) {
     <section className="iu-cln-stats" aria-label="Stato anagrafiche">
       <article><UsersRound size={20}/><span>Clienti</span><strong>{data.stats.totalClients}</strong><small>{data.stats.activeClients} attivi</small></article>
       <article><UserRound size={20}/><span>Persone fisiche</span><strong>{data.stats.physicalClients}</strong><small>PF in archivio</small></article>
-      <article><Building2 size={20}/><span>Persone giuridiche</span><strong>{data.stats.legalClients}</strong><small>Societa ed enti</small></article>
+      <article><Building2 size={20}/><span>Persone giuridiche</span><strong>{data.stats.legalClients}</strong><small>Società ed enti</small></article>
       <article><ClipboardCheck size={20}/><span>Da completare</span><strong>{data.stats.missingRegistry}</strong><small>{data.stats.expiredDocuments} documenti scaduti</small></article>
     </section>
   )
@@ -1272,6 +1275,11 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
   const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
   const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
+  const [registryQuery, setRegistryQuery] = useState('')
+  const [registryResults, setRegistryResults] = useState<PublicRegistrySubjectResult[]>([])
+  const [registryLoading, setRegistryLoading] = useState(false)
+  const [registryMessage, setRegistryMessage] = useState('')
+  const [registryError, setRegistryError] = useState('')
   const valuesRef = useRef(values)
   const touchedFieldsRef = useRef(touchedFields)
   const documentFileInputRef = useRef<HTMLInputElement | null>(null)
@@ -1292,8 +1300,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
       setTouchedFields(new Set())
       return
     }
-    if (data.query.idCliente) setValues((current) => ({...current, id_cliente: data.query.idCliente}))
-  }, [data.mode, data.initialSubject, data.query.idCliente])
+  }, [data.mode, data.initialSubject])
 
   useEffect(() => {
     const code = text(values.codice_fiscale).replace(/\s/g, '').toUpperCase()
@@ -1515,6 +1522,50 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     })
   }
 
+  const searchRegistries = async () => {
+    const query = text(registryQuery)
+    setRegistryError('')
+    setRegistryMessage('')
+    if (query.length < 3) {
+      setRegistryResults([])
+      setRegistryMessage('Digita almeno 3 caratteri.')
+      return
+    }
+    setRegistryLoading(true)
+    try {
+      const payload = await searchPublicSubjectRegisters(query)
+      setRegistryResults(payload.results)
+      setRegistryMessage(payload.message || `${payload.results.length} risultati dai registri pubblici.`)
+    } catch (error) {
+      setRegistryResults([])
+      setRegistryError(error instanceof Error ? error.message : 'Ricerca nei registri pubblici non riuscita.')
+    } finally {
+      setRegistryLoading(false)
+    }
+  }
+
+  const applyRegistryResult = (item: PublicRegistrySubjectResult) => {
+    const patch = item.subjectPatch
+    setValues((current) => {
+      const next = {...current}
+      Object.entries(patch).forEach(([key, value]) => {
+        if (key in initialSubject && text(value)) {
+          next[key] = key.includes('codice') || key.includes('partita') || key.includes('provincia') ? value.toUpperCase() : value
+        }
+      })
+      next.id_cliente = ''
+      return next
+    })
+    setTouchedFields((current) => {
+      const next = new Set(current)
+      Object.keys(patch).forEach((key) => next.add(key))
+      next.delete('id_cliente')
+      return next
+    })
+    setRegistryMessage(`Dati ${item.registryLabel} applicati: verifica prima del salvataggio.`)
+    setRegistryError('')
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
@@ -1529,6 +1580,47 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   return (
     <form className="iu-cln-form" onSubmit={handleSubmit}>
+      <Card title="Registri pubblici" icon={<ShieldCheck size={18}/>} note="ReGIndE e Registro PP.AA. locali">
+        <div className="iu-cln-registry">
+          <label className="iu-cln-registry__search">
+            <span>Cerca nel registro</span>
+            <div>
+              <Search size={16}/>
+              <input
+                value={registryQuery}
+                onChange={(event) => setRegistryQuery(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    searchRegistries()
+                  }
+                }}
+                placeholder="Nome, C.F., P.IVA o PEC"
+              />
+              <button type="button" onClick={searchRegistries} disabled={registryLoading}>
+                {registryLoading ? <Loader2 className="iu-spin" size={15}/> : <Search size={15}/>}
+                {registryLoading ? 'Ricerca...' : 'Cerca'}
+              </button>
+            </div>
+          </label>
+          <div className="iu-cln-registry__status" aria-live="polite">
+            {registryError ? <span className="is-error">{registryError}</span> : <span>{registryMessage || 'Elenchi locali pronti per la ricerca autenticata.'}</span>}
+          </div>
+          {registryResults.length ? (
+            <div className="iu-cln-registry__results">
+              {registryResults.map((item) => (
+                <button type="button" key={item.id} onClick={() => applyRegistryResult(item)}>
+                  <span>
+                    <strong>{item.label}</strong>
+                    <small>{item.taxCode || 'Identificativo non presente'} - {item.pec || 'PEC non presente'}</small>
+                  </span>
+                  <Badge tone={item.registry === 'registro_ppaa' ? 'info' : 'primary'}>{item.registryLabel}</Badge>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Card>
       <Card title="Tipo soggetto" icon={<UsersRound size={18}/>} note={data.mode === 'edit_subject' ? 'Aggiornamento soggetto processuale esistente' : 'Anagrafica soggetto processuale'}>
         <ChoiceGrid name="tipo" value={values.tipo} options={data.options.subjectTypes} columns="subject" onChange={change}/>
       </Card>
@@ -1570,15 +1662,8 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
         <ChoiceGrid name="qualifica" value={values.qualifica} options={data.options.subjectRoles} columns="role" onChange={change}/>
       </Card>
 
-      <Card title="Collegamenti e qualifica" icon={<UserCheck size={18}/>} note="Cliente collegato e dati professionali">
+      <Card title="Qualifica professionale" icon={<UserCheck size={18}/>} note="Dati professionali, ordine e tag">
         <div className="iu-cln-grid">
-          <label className="iu-cln-field is-wide">
-            <span>Cliente collegato</span>
-            <select name="id_cliente" value={values.id_cliente} onChange={(event) => change('id_cliente', event.currentTarget.value)}>
-              <option value="">Nessun cliente collegato</option>
-              {data.clientOptions.map((cliente) => <option value={cliente.id} key={cliente.id}>{cliente.label}{cliente.taxCode ? ` - ${cliente.taxCode}` : ''}</option>)}
-            </select>
-          </label>
           <Field label="Ordine professionale" name="ordine" value={values.ordine} onChange={change}/>
           <Field label="Numero iscrizione" name="numero_iscrizione" value={values.numero_iscrizione} onChange={change}/>
           <Field label="Tag" name="tag" value={values.tag} placeholder="controparte, assicurazione" onChange={change}/>
@@ -1620,11 +1705,11 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
 function QualityRail({ data, activeTab }:{data: ClientiNuovoData; activeTab: Tab}) {
   const checkItems = activeTab === 'cliente'
-    ? ['Dati fiscali verificati', 'Almeno un recapito presente', 'Indirizzo utile al conferimento', 'Documento identita controllato']
-    : ['Ruolo processuale assegnato', 'Cliente collegato se pertinente', 'Recapiti della parte completi', 'Qualifica coerente con il fascicolo']
+    ? ['Dati fiscali verificati', 'Almeno un recapito presente', 'Indirizzo utile al conferimento', 'Documento identità controllato']
+    : ['Ruolo processuale assegnato', 'Anagrafica distinta dai clienti', 'Recapiti della parte completi', 'Qualifica coerente con il fascicolo']
   return (
     <aside className="iu-cln-rail">
-      <Panel title="Qualita anagrafica" icon={<BadgeCheck size={17}/>} count={checkItems.length}>
+      <Panel title="Qualità anagrafica" icon={<BadgeCheck size={17}/>} count={checkItems.length}>
         <div className="iu-cln-checklist">
           {checkItems.map((item) => <span key={item}><CheckCircle2 size={15}/>{item}</span>)}
         </div>
@@ -1672,7 +1757,7 @@ export function NuovoClientePage() {
     if (data.mode === 'edit_subject') return 'Modifica soggetto o parte processuale mantenendo invariati collegamenti a cliente e fascicoli.'
     return tab === 'cliente'
       ? 'Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo.'
-      : 'Nuovo soggetto o parte processuale con ruolo, collegamento cliente e dati anagrafici completi.'
+      : 'Nuovo soggetto o parte processuale distinto dai clienti, con ruolo, fonte pubblica e dati anagrafici completi.'
   }, [data.mode, tab])
 
   return (
@@ -1698,7 +1783,7 @@ export function NuovoClientePage() {
         <span>{loading ? 'Caricamento dati...' : 'Salvataggio sicuro attivo'}</span>
       </div>
 
-      {data.query.idCliente ? (
+      {data.query.idCliente && tab === 'cliente' ? (
         <section className="iu-cln-flow-alert">
           <UserCheck size={18}/>
           <div><strong>Cliente precompilato dal contesto</strong><span>Il collegamento resta modificabile prima del salvataggio.</span></div>

@@ -37,7 +37,7 @@ type SortKey = 'nome' | 'fascicoli' | 'completezza'
 
 const sortLabels: Record<SortKey, string> = {
   nome: 'Nome',
-  fascicoli: 'Piu fascicoli',
+  fascicoli: 'Più fascicoli',
   completezza: 'Da completare',
 }
 
@@ -178,9 +178,8 @@ function SoggettiTable({
               <th>Ruolo / qualifica</th>
               <th>Identificativo</th>
               <th>Contatti</th>
-              <th>Cliente collegato</th>
               <th>Fascicoli</th>
-              <th>Qualita</th>
+              <th>Qualità</th>
             </tr>
           </thead>
           <tbody>
@@ -198,7 +197,6 @@ function SoggettiTable({
                 <td>{item.role.replaceAll('_', ' ')}</td>
                 <td>{item.identifier || '-'}</td>
                 <td><ContactBlock item={item}/></td>
-                <td>{item.clientName || <span className="iu-sogg-muted">Non collegato</span>}</td>
                 <td>{item.matters}</td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
               </tr>
@@ -234,7 +232,6 @@ function SoggettoMobileCard({
       </header>
       <p>{item.role.replaceAll('_', ' ')} - {item.identifier || 'Identificativo assente'}</p>
       <dl>
-        <div><dt>Cliente</dt><dd>{item.clientName || '-'}</dd></div>
         <div><dt>Fascicoli</dt><dd>{item.matters}</dd></div>
         <div><dt>Sede</dt><dd>{item.city || '-'}</dd></div>
       </dl>
@@ -269,13 +266,11 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
       </div>
       <dl>
         <div><dt>Tipo</dt><dd>{item.typeLabel}</dd></div>
-        <div><dt>Cliente collegato</dt><dd>{item.clientName || 'Non collegato'}</dd></div>
         <div><dt>Fascicoli</dt><dd>{item.matters}</dd></div>
         <div><dt>Qualità</dt><dd><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></dd></div>
       </dl>
       <div className="iu-sogg-focus__actions">
         <a href={item.editHref}><PencilLine size={16}/>Modifica dati</a>
-        {item.clientId ? <a href={`/clienti/${encodeURIComponent(item.clientId)}/cartella`}><UsersRound size={16}/>Apri cliente</a> : <a href={`/clienti/nuovo?from_soggetto=${encodeURIComponent(item.id)}`}><UserPlus size={16}/>Crea cliente</a>}
         <a href={`/messaggi/nuovo?destinatario=${encodeURIComponent(item.email || item.phone || item.pec || '')}`}><Mail size={16}/>Scrivi comunicazione</a>
         <a href={`/fascicoli/nuovo?id_soggetto=${encodeURIComponent(item.id)}`}><BriefcaseBusiness size={16}/>Nuovo fascicolo</a>
       </div>
@@ -410,12 +405,12 @@ export function SoggettiPage() {
       <section className="iu-sogg-stats" aria-label="Indicatori soggetti">
         <StatCard icon={<UsersRound size={20}/>} label="Soggetti" value={data.summary.total} note={`${data.summary.withMatters} con fascicoli`}/>
         <StatCard icon={<UserRound size={20}/>} label="Persone fisiche" value={data.summary.physical} note="incluse parti e testimoni"/>
-        <StatCard icon={<Building2 size={20}/>} label="Enti e societa" value={data.summary.legal} note="PG, PA, enti e condomini"/>
-        <StatCard icon={<AlertTriangle size={20}/>} label="Da completare" value={data.summary.incomplete + data.summary.withoutContacts} note="qualita anagrafica"/>
+        <StatCard icon={<Building2 size={20}/>} label="Enti e società" value={data.summary.legal} note="PG, PA, enti e condomini"/>
+        <StatCard icon={<AlertTriangle size={20}/>} label="Da completare" value={data.summary.incomplete + data.summary.withoutContacts} note="qualità anagrafica"/>
       </section>
 
       <section className="iu-sogg-toolbar">
-        <label className="iu-sogg-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca soggetto, ruolo, CF, cliente collegato..."/></label>
+        <label className="iu-sogg-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca soggetto, ruolo, CF, PEC o fascicolo..."/></label>
         <label><Filter size={15}/><select value={typeFilter} onChange={(event) => setTypeFilter(event.currentTarget.value as SoggettoTipo)}>{data.facets.types.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
         <label><BriefcaseBusiness size={15}/><select value={roleFilter} onChange={(event) => setRoleFilter(event.currentTarget.value)}>{data.facets.roles.map((item) => <option value={item.value} key={item.value}>{item.label} ({item.count})</option>)}</select></label>
         <label><BadgeCheck size={15}/><select value={sort} onChange={(event) => setSort(event.currentTarget.value as SortKey)}>{Object.entries(sortLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
@@ -468,10 +463,10 @@ export function SoggettiPage() {
           </div>
         </div>
         <aside className="iu-sogg-rail">
-          <Panel title="Qualita dati" icon={<ShieldCheck size={17}/>} count={data.summary.incomplete}>
+          <Panel title="Qualità dati" icon={<ShieldCheck size={17}/>} count={data.summary.incomplete}>
             <div className="iu-sogg-insights">
               <span><AlertTriangle size={14}/>{data.summary.withoutContacts} soggetti senza recapiti</span>
-              <span><BadgeCheck size={14}/>{data.summary.linkedClients} collegati a clienti</span>
+              <span><BadgeCheck size={14}/>{data.summary.clientsExcluded} clienti esclusi dalla rubrica parti</span>
               <span><BriefcaseBusiness size={14}/>{data.summary.withMatters} presenti in fascicoli</span>
             </div>
           </Panel>
@@ -490,7 +485,7 @@ export function SoggettiPage() {
       <FloatingLex
         context="soggetti"
         title="Lex AI soggetti"
-        body="Posso aiutarti a individuare duplicati, ruoli processuali incoerenti, soggetti senza cliente collegato e dati fiscali mancanti."
+        body="Posso aiutarti a individuare duplicati, ruoli processuali incoerenti, soggetti senza recapiti e dati fiscali mancanti."
         primaryHref="#lex"
         primaryLabel="Apri Lex soggetti"
         secondaryHref="/soggetti/nuovo"

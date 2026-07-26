@@ -40,6 +40,16 @@ def _json_list(value: Any) -> list[str]:
     return [str(item).strip() for item in payload if str(item).strip()]
 
 
+def _json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    try:
+        payload = json.loads(str(value or "{}"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def _normalise_search_text(value: str) -> str:
     text = unicodedata.normalize("NFKD", value or "")
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
@@ -83,6 +93,7 @@ def _row_to_recipients(
         "stato": row["stato"] or "",
         "last_seen_at": row["last_seen_at"] or "",
     }
+    record_payload = _json_object(row["record_json"])
     nome = record["nome_completo"] or record["denominazione"]
     role = _recipient_role(record, register_value=register_value)
     recipients: list[dict[str, Any]] = []
@@ -105,6 +116,10 @@ def _row_to_recipients(
             "cacheSource": cache_source,
             "aggiornatoIl": record["last_seen_at"],
             "stato": record["stato"],
+            "nomeAnagrafico": str(record_payload.get("nome") or "").strip(),
+            "cognomeAnagrafico": str(record_payload.get("cognome") or "").strip(),
+            "denominazione": record["denominazione"],
+            "recordKey": str(row["record_key"] or ""),
         })
     return recipients
 

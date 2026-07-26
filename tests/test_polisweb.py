@@ -741,9 +741,9 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     ruoli = {parte.ruolo.value for parte, _ in parti}
     nomi = {soggetto.nome_completo for _, soggetto in parti}
 
-    assert "ASSISTITO" in ruoli
+    assert "ASSISTITO" not in ruoli
     assert "CONTROPARTE" in ruoli
-    assert "Stillitano Francesco" in nomi
+    assert "Stillitano Francesco" not in nomi
     assert "BANCA ALFA S.P.A." in nomi
 
 
@@ -842,7 +842,9 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
     assert fascicolo.depositi_pct[0].documenti_portale
 
     soggetti = gestione_soggetti.tutti()
-    assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+    nomi_soggetti = {s.nome_completo for s in soggetti}
+    assert "Stillitano Francesco" not in nomi_soggetti
+    assert "BANCA ALFA S.P.A." in nomi_soggetti
 
 
 def test_importa_fascicolo_esistente_crea_parti_da_cliente_locale_se_pst_non_espone_parti(tmp_path):
@@ -902,7 +904,7 @@ def test_importa_fascicolo_esistente_crea_parti_da_cliente_locale_se_pst_non_esp
     assert risultato.successo is True
     parti = gestione_soggetti.parti_fascicolo(fascicolo_locale.id)
     by_name = {soggetto.nome_completo: parte.ruolo.value for parte, soggetto in parti}
-    assert by_name["Loprete Domenico"] == "ASSISTITO"
+    assert "Loprete Domenico" not in by_name
     assert by_name["Princi Concetta"] == "CONTROPARTE"
 
 
@@ -2304,7 +2306,9 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PST"
     assert fascicolo_reload.depositi_pct[0].documenti_portale
     assert gestione_clienti_reload.get(fascicolo_reload.id_cliente) is not None
-    assert {s.nome_completo for s in gestione_soggetti_reload.tutti()} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+    nomi_soggetti = {s.nome_completo for s in gestione_soggetti_reload.tutti()}
+    assert "Stillitano Francesco" not in nomi_soggetti
+    assert "BANCA ALFA S.P.A." in nomi_soggetti
 
 
 def test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):

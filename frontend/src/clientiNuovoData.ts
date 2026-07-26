@@ -16,6 +16,29 @@ export type ClientOption = {
   type?: string
 }
 
+export type PublicRegistrySubjectResult = {
+  id: string
+  label: string
+  registry: string
+  registryLabel: string
+  taxCode: string
+  pec: string
+  role: string
+  updatedAt: string
+  cacheSource: string
+  subjectPatch: Record<string, string>
+}
+
+export type PublicRegistrySubjectLookup = {
+  ok: boolean
+  source: string
+  available: boolean
+  complete: boolean
+  message: string
+  registries: Array<{ id: string; label: string; available: boolean; complete: boolean; records: number; updatedAt: string }>
+  results: PublicRegistrySubjectResult[]
+}
+
 export type ClientiNuovoData = {
   source: string
   generatedAt: string
@@ -69,7 +92,7 @@ export type ClientiNuovoData = {
 
 const clientTypes: RegistryOption[] = [
   { value: 'PERSONA_FISICA', label: 'Persona fisica', subtitle: 'Privato, professionista o assistito', tone: 'primary' },
-  { value: 'PERSONA_GIURIDICA', label: 'Persona giuridica', subtitle: 'Societa, ente o organizzazione', tone: 'purple' },
+  { value: 'PERSONA_GIURIDICA', label: 'Persona giuridica', subtitle: 'Società, ente o organizzazione', tone: 'purple' },
 ]
 
 const clientStatuses: RegistryOption[] = [
@@ -80,7 +103,7 @@ const clientStatuses: RegistryOption[] = [
 ]
 
 const documentTypes: RegistryOption[] = [
-  { value: 'CARTA_IDENTITA', label: "Carta d'identita" },
+  { value: 'CARTA_IDENTITA', label: "Carta d'identità" },
   { value: 'PASSAPORTO', label: 'Passaporto' },
   { value: 'PATENTE', label: 'Patente' },
   { value: 'PERMESSO_SOGGIORNO', label: 'Permesso di soggiorno' },
@@ -321,5 +344,54 @@ export async function getClientiNuovoData(): Promise<ClientiNuovoData> {
     return mergePayload(await response.json())
   } catch {
     return emptyClientiNuovoData
+  }
+}
+
+function publicRegistryResultFrom(value: unknown, index: number): PublicRegistrySubjectResult {
+  const item = isRecord(value) ? value : {}
+  const patch = isRecord(item.subjectPatch ?? item.subject_patch)
+    ? Object.fromEntries(Object.entries((item.subjectPatch ?? item.subject_patch) as Record<string, unknown>).map(([key, value]) => [key, text(value)]))
+    : {}
+  return {
+    id: text(item.id, `registro-${index}`),
+    label: text(item.label, 'Soggetto da registro pubblico'),
+    registry: text(item.registry),
+    registryLabel: text(item.registryLabel ?? item.registry_label, 'Registro pubblico'),
+    taxCode: text(item.taxCode ?? item.tax_code),
+    pec: text(item.pec),
+    role: text(item.role),
+    updatedAt: text(item.updatedAt ?? item.updated_at),
+    cacheSource: text(item.cacheSource ?? item.cache_source),
+    subjectPatch: patch,
+  }
+}
+
+export async function searchPublicSubjectRegisters(query: string, limit = 12): Promise<PublicRegistrySubjectLookup> {
+  const params = new URLSearchParams({ q: query, limit: String(limit) })
+  const response = await fetch(`/api/v1/ui/soggetti/registri-pubblici?${params.toString()}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !isRecord(payload)) {
+    throw new Error('Ricerca nei registri pubblici non disponibile.')
+  }
+  return {
+    ok: payload.ok === true,
+    source: text(payload.source),
+    available: payload.available === true,
+    complete: payload.complete === true,
+    message: text(payload.message),
+    registries: Array.isArray(payload.registries)
+      ? payload.registries.filter(isRecord).map((item) => ({
+        id: text(item.id),
+        label: text(item.label),
+        available: item.available === true,
+        complete: item.complete === true,
+        records: number(item.records),
+        updatedAt: text(item.updatedAt ?? item.updated_at),
+      }))
+      : [],
+    results: Array.isArray(payload.results) ? payload.results.map(publicRegistryResultFrom) : [],
   }
 }

@@ -91,7 +91,9 @@ COPY packages/ui/package.json packages/ui/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
 RUN corepack enable \
     && corepack prepare pnpm@11.1.2 --activate \
-    && pnpm install --frozen-lockfile
+    && pnpm config set fetch-retries 5 \
+    && pnpm config set fetch-timeout 600000 \
+    && pnpm install --frozen-lockfile --prod
 
 # Sorgenti del frontend + alias che puntano fuori da frontend/
 COPY packages ./packages

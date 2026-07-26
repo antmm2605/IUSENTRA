@@ -23,6 +23,23 @@ def test_parse_attachment_payloads_supporta_testo_base64():
     assert "Promemoria" in attachments[0]["text_excerpt"]
 
 
+def test_parse_attachment_payloads_html_rimuove_script_e_style():
+    html = "<html><body><main>Contenuto utile</main><script>alert('x')</script><style>.x{}</style></body></html>"
+    payload = [
+        {
+            "name": "pagina.html",
+            "mime_type": "text/html",
+            "content_base64": base64.b64encode(html.encode("utf-8")).decode("ascii"),
+        }
+    ]
+
+    attachments, errors = parse_attachment_payloads(payload)
+
+    assert errors == []
+    assert "Contenuto utile" in attachments[0]["text_excerpt"]
+    assert "alert" not in attachments[0]["text_excerpt"]
+
+
 def test_build_attachment_prompt_block_contiene_metadati_documento():
     block = build_attachment_prompt_block(
         [

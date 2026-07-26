@@ -11,6 +11,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, TipoDocumento as TipoDocumentoCliente
 from pct.condivisione import RuoloCondivisione
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.app_v2_routing import is_safe_internal_path
 from web.services.territorio_forms import address_fields_from_form
 
 
@@ -166,7 +167,7 @@ def register_clienti_routes(
         if request.method == "POST":
             form = request.form
             next_url = form.get("next_url", "").strip()
-            if next_url and not next_url.startswith("/"):
+            if next_url and not is_safe_internal_path(next_url):
                 next_url = ""
             tipo = TipoCliente(form["tipo"])
             try:
@@ -215,7 +216,7 @@ def register_clienti_routes(
                 if next_url:
                     if _richiede_json():
                         return jsonify({"ok": True, "id": cliente.id, "message": f"Cliente '{cliente.nome_completo}' aggiunto.", "redirect": next_url})
-                    return redirect(next_url)
+                    return redirect(url_for("dettaglio_cliente", id_cliente=cliente.id))
                 if "1" in form.getlist("crea_preventivo_iniziale"):
                     target = url_for(
                         "preventivi.wizard",
@@ -311,7 +312,7 @@ def register_clienti_routes(
         if request.method == "POST":
             form = request.form
             next_url = form.get("next_url", "").strip()
-            if next_url and not next_url.startswith("/"):
+            if next_url and not is_safe_internal_path(next_url):
                 next_url = ""
             try:
                 gc.aggiorna(
@@ -359,7 +360,7 @@ def register_clienti_routes(
                 if next_url:
                     if _richiede_json():
                         return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": next_url})
-                    return redirect(next_url)
+                    return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
                 target = url_for("dettaglio_cliente", id_cliente=id_cliente)
                 if _richiede_json():
                     return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": target})

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import json
-import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -268,10 +267,14 @@ def _pick(*mappings: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 def _split_rg(value: Any) -> tuple[str, str]:
     text = _text(value)
-    match = re.search(r"(\d+)\s*/\s*(\d{4})", text)
-    if not match:
+    if "/" not in text:
         return "", ""
-    return match.group(1), match.group(2)
+    left, right = text.split("/", 1)
+    numero = "".join(ch for ch in left if ch.isdigit())
+    anno = "".join(ch for ch in right[:8] if ch.isdigit())[:4]
+    if not numero or len(anno) != 4:
+        return "", ""
+    return numero, anno
 
 
 def _normalize_cf(value: Any) -> str:

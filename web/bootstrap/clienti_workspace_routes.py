@@ -10,7 +10,6 @@ from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 
@@ -22,13 +21,6 @@ from web.services.clienti_faldone_runtime import carica_note_faldone, salva_note
 
 def _richiede_vista_legacy() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
-
-
-def _url_senza_vista_legacy() -> str:
-    query = request.args.to_dict(flat=True)
-    query.pop("_legacy", None)
-    suffix = f"?{urlencode(query)}" if query else ""
-    return f"{request.path}{suffix}"
 
 
 def _get_portale_mgr(app: Flask):
@@ -76,7 +68,7 @@ def register_clienti_workspace_routes(
             "bi-folder2-open",
         )
         if _richiede_vista_legacy():
-            return redirect(_url_senza_vista_legacy(), code=302)
+            return redirect(url_for("cartella_cliente", id_cliente=id_cliente), code=302)
         return render_react_shell_response(f"clienti/{id_cliente}/cartella")
 
     @app.route("/clienti/<id_cliente>/faldone")

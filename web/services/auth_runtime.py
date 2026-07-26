@@ -79,6 +79,12 @@ def register_auth_runtime(
         candidate = str(value or "").strip()
         return candidate if is_safe_internal_path(candidate) else ""
 
+    def _redirect_to_login_target(value: str, fallback: str):
+        target = _safe_login_next(value) or fallback
+        response = make_response("", 302)
+        response.headers["Location"] = target
+        return response
+
     def _tenant_user_manager(tenant_slug: str, *, include_studio_db: bool = True) -> GestioneUtenti:
         from pct.tenant import GestioneTenant
 
@@ -714,14 +720,12 @@ def register_auth_runtime(
                         "warning",
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
-                next_url = _safe_login_next(request.args.get("next", ""))
-                if not next_url:
-                    next_url = (
-                        url_for("admin.dashboard")
-                        if utente.is_superadmin and not session.get("superadmin_user_id")
-                        else url_for("dashboard")
-                    )
-                return redirect(next_url)
+                default_next_url = (
+                    url_for("admin.dashboard")
+                    if utente.is_superadmin and not session.get("superadmin_user_id")
+                    else url_for("dashboard")
+                )
+                return _redirect_to_login_target(request.args.get("next", ""), default_next_url)
 
             if not errore:
                 errore = "Credenziali non valide o utente disabilitato."
@@ -849,7 +853,7 @@ def register_auth_runtime(
                         "warning",
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
-                return redirect(next_url)
+                return _redirect_to_login_target(next_url, url_for("dashboard"))
 
             errore = "Codice non valido. Riprova."
             manager.registra_evento(

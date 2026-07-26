@@ -1051,7 +1051,8 @@ def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
     assert '@api_v1_react.get("/clienti/<id_cliente>/cartella")' in api_source
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}/cartella")' in route_source
-    assert 'redirect(_url_senza_vista_legacy(), code=302)' in route_source
+    assert 'return redirect(url_for("cartella_cliente", id_cliente=id_cliente), code=302)' in route_source
+    assert "redirect(target" not in route_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}")' in clienti_routes
     assert 'render_react_shell_response(f"clienti/{id_cliente}/modifica")' in clienti_routes
     assert "data.actions.newDeadline" in page_source

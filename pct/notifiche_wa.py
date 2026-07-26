@@ -126,6 +126,24 @@ def wa_link(numero: str, messaggio: str) -> str:
     return f"https://wa.me/{numero}?text={encoded}"
 
 
+def safe_wa_link(value: str) -> str:
+    """Restituisce solo link WhatsApp Web generati sul dominio ufficiale wa.me."""
+
+    raw = str(value or "").strip()
+    if not raw or "\\" in raw:
+        return ""
+    parsed = urllib.parse.urlsplit(raw)
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc.lower() != "wa.me"
+        or parsed.username
+        or parsed.password
+        or parsed.fragment
+    ):
+        return ""
+    return urllib.parse.urlunsplit(("https", "wa.me", parsed.path, parsed.query, ""))
+
+
 def invia_twilio(
     numero_dest: str,
     messaggio: str,

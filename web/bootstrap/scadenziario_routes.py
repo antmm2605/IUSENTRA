@@ -8,6 +8,7 @@ from typing import Any
 
 from web.blueprints.react_shell import render_react_shell_response
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
+from markupsafe import escape
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -417,11 +418,11 @@ def register_scadenziario_routes(
             if richiede_json():
                 return jsonify({"ok": False, "message": str(e), "errore": str(e)}), 400
             if request.headers.get("HX-Request"):
-                return f'<tr id="sc-{id_sc}"><td colspan="7" class="text-danger small p-2">{e}</td></tr>', 422
+                return f'<tr id="sc-{escape(id_sc)}"><td colspan="7" class="text-danger small p-2">{escape(str(e))}</td></tr>', 422
             flash(str(e), "danger")
             return redirect(url_for("scadenziario"))
         if request.headers.get("HX-Request"):
-            return f'<tr id="sc-{id_sc}" class="sc-completed"><td colspan="7"></td></tr>', 200
+            return f'<tr id="sc-{escape(id_sc)}" class="sc-completed"><td colspan="7"></td></tr>', 200
         if richiede_json():
             return jsonify({"ok": True, "message": "Scadenza segnata come completata.", "messaggio": "Scadenza segnata come completata."})
         flash("Scadenza segnata come completata.", "success")
@@ -620,7 +621,6 @@ def register_scadenziario_routes(
     @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
     def elimina_scadenza(id_sc):
         gs = get_scadenziario()
-        next_url = str(request.form.get("next") or "").strip()
         try:
             gs.elimina(id_sc)
             audit("scadenziario.elimina", "scadenza", id_sc)
@@ -632,8 +632,6 @@ def register_scadenziario_routes(
             flash(str(e), "danger")
         if richiede_json():
             return jsonify({"ok": True, "message": "Scadenza eliminata.", "messaggio": "Scadenza eliminata."})
-        if next_url:
-            return redirect(next_url)
         return redirect(url_for("scadenziario"))
     @app.route("/scadenziario/calcola-termine", methods=["POST"])
     def calcola_termine_route():

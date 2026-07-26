@@ -3,6 +3,8 @@ import json
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.giurisprudenza import GIURISPRUDENZA_STORAGE_VERSION, GestioneGiurisprudenza
 from web.app import create_app
@@ -77,6 +79,71 @@ def _cfg_web(tmp_path: Path) -> dict:
         "NORMATIVE_TABLES_DB": str(tmp_path / "tabelle_normative.json"),
         "GIURISPRUDENZA_DB": str(tmp_path / "giurisprudenza.json"),
     }
+
+
+def test_fetch_giurisprudenza_blocca_host_non_catalogato_prima_della_rete(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    calls: list[str] = []
+
+    def fake_get(url, *args, **kwargs):
+        calls.append(url)
+        return DummyResponse(b"non deve essere chiamato", url=url)
+
+    with pytest.raises(ValueError):
+        gestore._fetch("https://evilgiustizia.it/sentenza.html", request_get=fake_get)
+
+    assert calls == []
+
+
+def test_fetch_giurisprudenza_blocca_redirect_finale_fuori_catalogo(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    requested: list[str] = []
+
+    def fake_get(url, *args, **kwargs):
+        requested.append(url)
+        return DummyResponse(
+            b"<html><head><title>Sentenza</title></head><body>testo</body></html>",
+            url="https://evilgiustizia.it/sentenza.html",
+        )
+
+    with pytest.raises(ValueError):
+        gestore._fetch("https://www.cortecostituzionale.it/", request_get=fake_get)
+
+    assert requested == ["https://www.cortecostituzionale.it/"]
+
+
+def test_fetch_giurisprudenza_xml_non_risolve_entita_esterne(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    url = "https://hudoc.echr.coe.int/app/transform/rss"
+    xml = b"""<?xml version="1.0"?>
+    <!DOCTYPE rss [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+    <rss version="2.0">
+      <channel>
+        <title>&xxe;</title>
+        <description>Feed pubblico HUDOC</description>
+      </channel>
+    </rss>
+    """
+
+    result = gestore._fetch(
+        url,
+        request_get=lambda *args, **kwargs: DummyResponse(
+            xml,
+            url=url,
+            content_type="text/xml; charset=utf-8",
+        ),
+    )
+
+    assert result["summary"] == "Feed pubblico HUDOC"
+    assert "root:" not in result["text"]
+
+
+def test_estrazione_massima_e_principio_usa_parser_lineare(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    testo = "Massima: la prova deve essere specifica. Principio di diritto: vale l'onere probatorio."
+
+    assert gestore._extract_massima(testo) == "la prova deve essere specifica."
+    assert gestore._extract_principio(testo) == "vale l'onere probatorio."
 
 
 def _login_admin(cfg: dict) -> None:

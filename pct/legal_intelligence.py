@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import re
 import uuid
@@ -214,6 +215,14 @@ def _parse_iso_date(value: str) -> Optional[datetime]:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data or b"").hexdigest()
+
+
+def _stable_registry_record_id(value: str) -> str:
+    return hmac.new(
+        b"iusentra-registro-mediazione-record-id-v1",
+        str(value or "").encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:16]
 
 
 def _looks_like_html(content_type: str, url: str) -> bool:
@@ -1968,7 +1977,7 @@ class GestioneLegalIntelligence:
             f"{payload['name']}|{payload['tax_code']}|{payload['vat_number']}|"
             f"{payload['birth_date']}|{payload['city']}|{payload['pec']}"
         )
-        record_id = hashlib.sha1(record_base.encode("utf-8")).hexdigest()[:16]
+        record_id = _stable_registry_record_id(record_base)
         if record_id in seen_ids:
             return None
         seen_ids.add(record_id)
@@ -2572,9 +2581,9 @@ class GestioneLegalIntelligence:
                     row["registry_kind"] = registry_kind
                     row["registry_section"] = registry_label
                     row["official_registry_url"] = registry_url
-                    row["record_id"] = hashlib.sha1(
-                        f"{registry_kind}|{row.get('record_id') or row.get('registration_number') or row.get('name')}".encode("utf-8")
-                    ).hexdigest()[:16]
+                    row["record_id"] = _stable_registry_record_id(
+                        f"{registry_kind}|{row.get('record_id') or row.get('registration_number') or row.get('name')}"
+                    )
                     row["search_text"] = _clean_spaces(
                         f"{row.get('search_text', '')} {registry_kind} {registry_label}"
                     ).lower()

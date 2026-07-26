@@ -5,6 +5,8 @@ from pathlib import Path
 
 from flask import Flask
 
+from pct.global_search.normalizer import clean_text
+from pct.notifiche_wa import safe_wa_link
 from web.blueprints.api_v1_react import (
     _PUBLIC_JSON_RESERVED_DETAIL,
     _jsonify_public_payload,
@@ -16,6 +18,22 @@ from web.services.server_maintenance_surface import (
     _tenant_context_from_record,
 )
 from scripts.audit_quickorganizer_import import _console_output, _public_output
+
+
+def test_safe_wa_link_accetta_solo_host_ufficiale_esatto() -> None:
+    valid = safe_wa_link("https://wa.me/393331234567?text=Promemoria")
+
+    assert valid == "https://wa.me/393331234567?text=Promemoria"
+    assert safe_wa_link("https://wa.me.evil.example/393331234567") == ""
+    assert safe_wa_link("https://evil.example/https://wa.me/393331234567") == ""
+    assert safe_wa_link("http://wa.me/393331234567") == ""
+
+
+def test_clean_text_html_rimuove_script_senza_regex_su_tag() -> None:
+    cleaned = clean_text("<main>Testo utile</main><script>alert('x')</script><style>.x{}</style>")
+
+    assert cleaned == "Testo utile"
+    assert "alert" not in cleaned
 
 
 def test_tenant_context_rifiuta_storage_key_con_traversal(tmp_path: Path) -> None:

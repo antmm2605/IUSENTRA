@@ -67,3 +67,7 @@ def test_resolve_comune_accetta_label_autocomplete():
     assert comune is not None
     assert comune.nome == "Maddaloni"
     assert comune.sigla_provincia == "CE"
+
+
+def test_resolve_comune_ignora_parentesi_non_provincia():
+    assert resolve_comune_italiano("Maddaloni (Centro)") is None

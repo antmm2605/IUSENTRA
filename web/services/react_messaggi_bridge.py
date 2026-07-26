@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from pct.messaggi import CanaleMsggio, StatoMessaggio
+from pct.notifiche_wa import safe_wa_link
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 
@@ -145,7 +146,8 @@ def _message_item(message: Any, clienti_by_id: dict[str, Any]) -> dict[str, Any]
     subject = _text(getattr(message, "oggetto", ""))
     body = _text(getattr(message, "corpo", ""))
     sid = _text(getattr(message, "sid_esterno", ""))
-    manual_whatsapp = canale == CanaleMsggio.WHATSAPP.value and sid.startswith("https://wa.me")
+    whatsapp_link = safe_wa_link(sid)
+    manual_whatsapp = canale == CanaleMsggio.WHATSAPP.value and bool(whatsapp_link)
     item_id = _text(getattr(message, "id", ""))
     return {
         "id": item_id,
@@ -167,7 +169,7 @@ def _message_item(message: Any, clienti_by_id: dict[str, Any]) -> dict[str, Any]
         "clientLabel": client_label,
         "clientHref": f"/clienti/{id_cliente}/cartella" if id_cliente else "",
         "detailHref": f"/messaggi/{item_id}",
-        "whatsappLink": sid if sid.startswith("https://wa.me") else "",
+        "whatsappLink": whatsapp_link,
         "error": _text(getattr(message, "errore", "")),
         "note": _text(getattr(message, "note", "")),
         "initials": _initials(recipient),

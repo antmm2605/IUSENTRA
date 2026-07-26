@@ -25,6 +25,18 @@ def _get_gp():
     return get_preventivi()
 
 
+def _redirect_nuovo_preventivo(id_cliente: str = ""):
+    if id_cliente:
+        return redirect(url_for("preventivi.nuovo_preventivo", id_cliente=id_cliente))
+    return redirect(url_for("preventivi.nuovo_preventivo"))
+
+
+def _redirect_nuovo_conferimento(id_cliente: str = ""):
+    if id_cliente:
+        return redirect(url_for("preventivi.nuovo_conferimento", id_cliente=id_cliente))
+    return redirect(url_for("preventivi.nuovo_conferimento"))
+
+
 def _richiedi_login(f):
     from functools import wraps
     @wraps(f)
@@ -99,12 +111,12 @@ def nuovo_preventivo(id_cliente: str = ""):
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_preventivo()
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
             flash("Inserisci l'oggetto del preventivo.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_preventivo(id_cliente)
 
         # Raccogli voci
         descrizioni = f.getlist("voce_descr[]")
@@ -126,7 +138,7 @@ def nuovo_preventivo(id_cliente: str = ""):
 
         if not voci:
             flash("Aggiungi almeno una voce.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_preventivo(id_cliente)
 
         from pct.preventivi import TipoCompensoPrevisto, TipoProcedimento
         cfg = current_app.config
@@ -286,17 +298,17 @@ def nuovo_conferimento(id_cliente: str = ""):
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_conferimento()
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
             flash("Inserisci l'oggetto dell'incarico.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_conferimento(id_cliente)
 
         avvocato = f.get("avvocato_referente", "").strip()
         if not avvocato:
             flash("Inserisci il nome dell'avvocato referente.", "danger")
-            return redirect(request.url)
+            return _redirect_nuovo_conferimento(id_cliente)
 
         try:
             compenso = float(f.get("compenso_pattuito", 0) or 0)

@@ -50,6 +50,22 @@ MAX_SYNC_ITEMS = 12
 MAX_SYNC_RUNS = 300
 GIURISPRUDENZA_STORAGE_VERSION = 2
 MAX_TEXT_VERSIONS = 8
+_SAFE_XML_PARSER = lxml_etree.XMLParser(resolve_entities=False, no_network=True, recover=False)
+_ALLOWED_GIURISPRUDENZA_FETCH_HOSTS = frozenset(
+    {
+        "openga.giustizia-amministrativa.it",
+        "www.cortedicassazione.it",
+        "pst.giustizia.it",
+        "www.cortecostituzionale.it",
+        "dati.cortecostituzionale.it",
+        "www.giustizia-amministrativa.it",
+        "www.giustiziatributaria.gov.it",
+        "curia.europa.eu",
+        "hudoc.echr.coe.int",
+        "www.corteconti.it",
+        "simpliciter.ai",
+    }
+)
 
 
 def _now_iso() -> str:
@@ -58,6 +74,23 @@ def _now_iso() -> str:
 
 def _clean_spaces(value: str) -> str:
     return re.sub(r"\s+", " ", value or "").strip()
+
+
+def _validated_official_fetch_url(url: str) -> str:
+    raw = _clean_spaces(str(url or ""))
+    if not raw or "\\" in raw or any(ord(ch) < 32 or ord(ch) == 127 for ch in raw):
+        raise ValueError("URL ufficiale non valido.")
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").lower()
+    if (
+        parsed.scheme.lower() != "https"
+        or not host
+        or parsed.username
+        or parsed.password
+        or host not in _ALLOWED_GIURISPRUDENZA_FETCH_HOSTS
+    ):
+        raise ValueError("Fonte ufficiale non inclusa nel catalogo giurisprudenza.")
+    return raw
 
 
 def _slug(value: str) -> str:
@@ -191,9 +224,17 @@ def _extract_case_reference(text: str) -> str:
     if eu_refs:
         unique_refs = list(dict.fromkeys(ref.strip() for ref in eu_refs if ref.strip()))
         return "; ".join(unique_refs[:4])
-    application_ref = re.search(r"\b(\d{3,6}/\d{2,4}(?:\s*;\s*\d{3,6}/\d{2,4})*)\b", raw)
-    if application_ref:
-        return re.sub(r"\s*;\s*", "; ", application_ref.group(1))
+    application_refs: list[str] = []
+    for token in raw.replace(";", " ").split():
+        candidate = token.strip(".,;:()[]{}")
+        if "/" not in candidate:
+            continue
+        left, right = candidate.split("/", 1)
+        year = "".join(ch for ch in right[:4] if ch.isdigit())
+        if left.isdigit() and 3 <= len(left) <= 6 and 2 <= len(year) <= 4:
+            application_refs.append(f"{left}/{year}")
+    if application_refs:
+        return "; ".join(list(dict.fromkeys(application_refs))[:4])
     return ""
 
 
@@ -1757,9 +1798,10 @@ class GestioneGiurisprudenza:
         *,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> Any:
+        safe_url = _validated_official_fetch_url(url)
         getter = request_get or requests.get
         response = getter(
-            url,
+            safe_url,
             headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},
             timeout=self.timeout,
             allow_redirects=True,
@@ -1767,6 +1809,7 @@ class GestioneGiurisprudenza:
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code >= 400:
             raise RuntimeError(f"Fonte ufficiale non raggiungibile ({status_code}).")
+        _validated_official_fetch_url(str(getattr(response, "url", safe_url) or safe_url))
         return json.loads(bytes(getattr(response, "content", b"") or b"").decode("utf-8", errors="ignore") or "{}")
 
     def _fetch_binary(
@@ -1775,9 +1818,10 @@ class GestioneGiurisprudenza:
         *,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> bytes:
+        safe_url = _validated_official_fetch_url(url)
         getter = request_get or requests.get
         response = getter(
-            url,
+            safe_url,
             headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},
             timeout=max(self.timeout, 40),
             allow_redirects=True,
@@ -1785,6 +1829,7 @@ class GestioneGiurisprudenza:
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code >= 400:
             raise RuntimeError(f"Download ufficiale non riuscito ({status_code}).")
+        _validated_official_fetch_url(str(getattr(response, "url", safe_url) or safe_url))
         return bytes(getattr(response, "content", b"") or b"")
 
     def _fetch_openga_candidates(
@@ -1935,9 +1980,10 @@ class GestioneGiurisprudenza:
         return mapping.get(_clean_spaces(value).upper(), _clean_spaces(value).title() or "Pronuncia")
 
     def _fetch(self, url: str, *, request_get: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
+        safe_url = _validated_official_fetch_url(url)
         getter = request_get or requests.get
         response = getter(
-            url,
+            safe_url,
             headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},
             timeout=self.timeout,
             allow_redirects=True,
@@ -1945,7 +1991,7 @@ class GestioneGiurisprudenza:
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code >= 400:
             raise RuntimeError(f"Fonte ufficiale non raggiungibile ({status_code}).")
-        final_url = str(getattr(response, "url", url) or url)
+        final_url = _validated_official_fetch_url(str(getattr(response, "url", safe_url) or safe_url))
         content = bytes(getattr(response, "content", b"") or b"")
         content_type = str(getattr(response, "headers", {}).get("content-type", "") or "").lower()
         if "pdf" in content_type or final_url.lower().endswith(".pdf"):
@@ -1989,7 +2035,7 @@ class GestioneGiurisprudenza:
             }
         if "xml" in content_type or final_url.lower().endswith(".xml") or content.lstrip().startswith(b"<rss"):
             try:
-                document = lxml_etree.fromstring(content)
+                document = lxml_etree.fromstring(content, parser=_SAFE_XML_PARSER)
             except Exception as exc:
                 raise RuntimeError(f"Feed ufficiale non leggibile: {exc}") from exc
             title = _clean_spaces(" ".join(document.xpath("//channel/title/text()") or document.xpath("//title/text()"))) or final_url
@@ -2278,16 +2324,32 @@ class GestioneGiurisprudenza:
         return f"{source_name} - scheda importata {ordinal}"
 
     def _extract_massima(self, text: str, fallback: str = "") -> str:
-        match = re.search(r"massima[:\s-]+(.+?)(?:principio di diritto[:\s-]+|$)", text or "", re.IGNORECASE | re.DOTALL)
-        if match:
-            return _truncate(match.group(1), 220)
+        extracted = self._extract_labeled_section(text, "massima", ("principio di diritto",))
+        if extracted:
+            return _truncate(extracted, 220)
         return _truncate(fallback or text, 220)
 
     def _extract_principio(self, text: str) -> str:
-        match = re.search(r"principio di diritto[:\s-]+(.+?)(?:massima[:\s-]+|$)", text or "", re.IGNORECASE | re.DOTALL)
-        if match:
-            return _truncate(match.group(1), 260)
+        extracted = self._extract_labeled_section(text, "principio di diritto", ("massima",))
+        if extracted:
+            return _truncate(extracted, 260)
         return ""
+
+    def _extract_labeled_section(self, text: str, label: str, stop_labels: tuple[str, ...]) -> str:
+        raw = str(text or "")
+        lowered = raw.lower()
+        start = lowered.find(label.lower())
+        if start < 0:
+            return ""
+        start += len(label)
+        while start < len(raw) and raw[start] in ": \t\r\n-":
+            start += 1
+        stop = len(raw)
+        for stop_label in stop_labels:
+            index = lowered.find(stop_label.lower(), start)
+            if index >= 0:
+                stop = min(stop, index)
+        return _clean_spaces(raw[start:stop])
 
     def _extract_organo(self, text: str, source: Optional[FonteGiurisprudenziale]) -> str:
         lowered = (text or "").lower()

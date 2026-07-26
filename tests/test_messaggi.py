@@ -92,8 +92,9 @@ def test_invia_email_imposta_message_id_per_deduplica_inviati(gm):
         def login(self, username, password):
             sent["login"] = (username, password)
 
-        def send_message(self, mime):
+        def send_message(self, mime, *args, **kwargs):
             sent["mime"] = mime
+            sent["send_args"] = (args, kwargs)
 
         def quit(self):
             sent["quit"] = True

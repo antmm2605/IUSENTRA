@@ -6,6 +6,7 @@ import json
 import mimetypes
 import re
 import uuid
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
@@ -42,17 +43,33 @@ def _normalize_text(value: str) -> str:
     return text.strip()
 
 
+class _PlainTextHTMLParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style"}:
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style"} and self._skip_depth:
+            self._skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip_depth and data:
+            self.parts.append(data)
+
+
 def _strip_html(value: str) -> str:
-    text = re.sub(r"<script[\s\S]*?</script>", " ", value, flags=re.IGNORECASE)
-    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = (
-        text.replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-    )
-    return _normalize_text(text)
+    parser = _PlainTextHTMLParser()
+    try:
+        parser.feed(str(value or ""))
+        parser.close()
+        return _normalize_text(" ".join(parser.parts))
+    except Exception:
+        return _normalize_text(str(value or ""))
 
 
 def _guess_mime_type(name: str, explicit: str | None = None) -> str:

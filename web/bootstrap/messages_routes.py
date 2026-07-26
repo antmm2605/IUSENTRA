@@ -8,6 +8,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 
 from pct.clienti import GestioneClienti
 from pct.messaggi import CanaleMsggio, StatoMessaggio, TipoAutomazione
+from pct.notifiche_wa import safe_wa_link
 from web.blueprints.react_shell import render_react_shell_response
 
 
@@ -102,10 +103,11 @@ def register_messages_routes(
                         testo=testo,
                         id_cliente=id_cliente,
                     )
-                    if msg_wa.sid_esterno and msg_wa.sid_esterno.startswith("https://wa.me"):
+                    wa_link = safe_wa_link(msg_wa.sid_esterno)
+                    if wa_link:
                         if _richiede_json():
                             target = url_for("cartella_cliente", id_cliente=from_cliente) if from_cliente else url_for("lista_messaggi")
-                            return jsonify({"ok": True, "id": msg_wa.id, "message": "Messaggio WhatsApp preparato.", "redirect": target, "whatsappLink": msg_wa.sid_esterno})
+                            return jsonify({"ok": True, "id": msg_wa.id, "message": "Messaggio WhatsApp preparato.", "redirect": target, "whatsappLink": wa_link})
                         return render_template(
                             "messaggi/form.html",
                             clienti=clienti,
@@ -116,7 +118,7 @@ def register_messages_routes(
                             from_cliente=from_cliente,
                             cliente_presel=gc.get(id_cliente) if id_cliente else None,
                             ha_wa_api=ha_wa_api,
-                            wa_link=msg_wa.sid_esterno,
+                            wa_link=wa_link,
                         )
                 flash("Messaggio inviato.", "success")
                 if from_cliente:

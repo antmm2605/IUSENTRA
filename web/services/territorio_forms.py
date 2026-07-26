@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any, Mapping
 
 from pct.territorio_italia import ComuneItalia, get_comune, normalize_comune_key, search_comuni
@@ -19,7 +18,13 @@ def _looks_italian(value: str) -> bool:
 
 def _query_from_comune(value: str) -> str:
     # Accetta anche valori scelti dalla UI come "Maddaloni (CE)".
-    return re.sub(r"\s*\([A-Z]{2}\)\s*$", "", _text(value), flags=re.IGNORECASE).strip()
+    text = _text(value)
+    if text.endswith(")") and "(" in text:
+        name, suffix = text.rsplit("(", 1)
+        province = suffix[:-1].strip()
+        if len(province) == 2 and province.isalpha():
+            return name.strip()
+    return text
 
 
 def resolve_comune_italiano(value: str) -> ComuneItalia | None:

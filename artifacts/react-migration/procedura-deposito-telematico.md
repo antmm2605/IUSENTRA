@@ -1,5 +1,13 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-26 - Menu contestuale del fascicolo per deposito e notifica
+
+Nel dettaglio fascicolo React è stato aggiunto un menu contestuale attivabile con il tasto destro del mouse. La voce `Deposito telematico` apre lo stesso selettore documenti già presente nel fascicolo, carica il pannello `Documenti e atti` quando serve e non modifica la logica di firma, busta, PEC o invio reale.
+
+La voce `Notifica` usa lo stesso flusso documentale governato per preparare relata, allegati e prova, senza registrare notifiche effettive e senza inviare PEC dal server. La voce `Apri Portale Servizi` rimanda alla sessione assistita del pannello fascicolo d'ufficio esistente, mantenendo certificato, Local Signer, acquisizione documenti e vincoli tenant-aware nel percorso già presidiato.
+
+Stato anti-regressione: il menu è solo un ingresso rapido a funzioni esistenti. Non abilita deposito reale, notifica reale o invio PEC se mancano i requisiti obbligatori; eventuali blocchi devono continuare a essere mostrati dai pannelli primari con motivazione puntuale. La prova reale su `127.0.0.1:8080` deve verificare apertura menu, avvio del selettore deposito, avvio del selettore notifica e apertura del Portale Servizi senza sessioni parallele.
+
 ## Aggiornamento 2026-07-22 - Presidio notifica e acquisizione PST senza riavvio del Local Signer
 
 Caso reale controllato dal presidio notifiche in produzione, tenant Studio Legale Giuseppe Montagnese: `Romeo Maria`, R.G. `1428/2026`, `Tribunale di Palmi`, presidio `f5480e4d-5fc1-498f-8259-078dcc17fe84`, PEC sorgente `pec_d23c133a4ef8ada88ecb8c08`, documento da PEC ufficio `9732730s.pdf.zip`.

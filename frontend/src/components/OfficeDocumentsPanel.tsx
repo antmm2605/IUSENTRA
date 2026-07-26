@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileText, FolderSearch2, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
 import { formatDateIt } from '../formatting'
@@ -44,6 +44,7 @@ type Props = {
   data: FascicoloDetailData
   onDone: (message?: string) => void
   onError: (message: string) => void
+  openPortalRequest?: number
 }
 
 const CERT_KEY = 'iusentra.react.pst.cert.v2'
@@ -487,7 +488,7 @@ function sessionPayload(session: PstSession, cert: Certificate, purpose: 'view' 
   }
 }
 
-export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
+export function OfficeDocumentsPanel({ data, onDone, onError, openPortalRequest = 0 }: Props) {
   const [documents, setDocuments] = useState<OfficeDocument[]>([])
   const [snapshot, setSnapshot] = useState<JsonRecord>({})
   const [selection, setSelection] = useState<string[]>([])
@@ -589,6 +590,13 @@ export function OfficeDocumentsPanel({ data, onDone, onError }: Props) {
       setBusy('')
     }
   }
+
+  const lastOpenPortalRequest = useRef(0)
+  useEffect(() => {
+    if (!openPortalRequest || openPortalRequest === lastOpenPortalRequest.current) return
+    lastOpenPortalRequest.current = openPortalRequest
+    void openAssistedPortal()
+  }, [openPortalRequest])
 
   const collectAssistedDownloads = async () => {
     if (!assistantSession) {

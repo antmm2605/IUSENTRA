@@ -624,6 +624,51 @@ def test_ui_fascicolo_notifica_e_deposito_partono_da_documenti_scelti():
     assert ".iu-fas-document-flow-modal" in css
 
 
+def test_ui_fascicolo_menu_contestuale_azioni_reali():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    office_source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    assert "FascicoloContextMenu" in source
+    assert 'onContextMenu={openFascicoloContextMenu}' in source
+    assert "shouldUseNativeContextMenu(event.target)" in source
+    assert "const menuHeight = Math.min(620, window.innerHeight * 0.86)" in source
+    assert "const menuRef = useRef<HTMLElement | null>(null)" in source
+    assert "firstItem?.focus({ preventScroll: true })" in source
+    assert "Escape" in source
+    assert "const onScroll = (event: Event)" in source
+    assert "event.target instanceof Element && event.target.closest('.iu-fas-context-menu')" in source
+    assert "Deposito telematico" in source
+    assert "Modifica anagrafica cliente" in source
+    assert "Soggetti" in source
+    assert "Fascicolo d’ufficio" in source
+    assert "Apri Portale Servizi" in source
+    assert "Notifica" in source
+    assert "PagoPA" in source
+    assert "Controllo economico" in source
+    assert "Nuova scadenza" in source
+    assert "Nuovo appuntamento" in source
+    assert "openDocumentFlow('deposito')" in source
+    assert "openDocumentFlow('notifica')" in source
+    assert "openOfficePortalFromContext" in source
+    assert "setOfficePortalOpenRequest((current) => current + 1)" in source
+    assert "openPortalRequest={officePortalOpenRequest}" in source
+    assert "setEmbeddedRecord({ kind: 'cliente', title: 'Modifica anagrafica cliente'" in source
+    assert "setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti'" in source
+    assert "setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST'" in source
+    assert "onSection('economia')" in source
+    assert "onSection('documenti', 'documenti')" in source
+
+    assert "openPortalRequest?: number" in office_source
+    assert "openPortalRequest = 0" in office_source
+    assert "lastOpenPortalRequest" in office_source
+    assert "void openAssistedPortal()" in office_source
+
+    assert ".iu-fas-context-menu" in css
+    assert ".iu-fas-context-menu__item" in css
+    assert "@media(max-width:900px)" in css and ".iu-fas-context-menu{left:8px!important" in css
+
+
 def test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo():
     source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
 

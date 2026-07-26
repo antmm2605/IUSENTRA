@@ -1,5 +1,11 @@
 # Confronto documenti del fascicolo d'ufficio
 
+## Aggiornamento 2026-07-26 - Ingresso rapido Apri Portale Servizi dal menu contestuale
+
+Nel dettaglio fascicolo React il tasto destro apre un pannello di azioni rapide. La voce `Apri Portale Servizi` non crea un percorso alternativo: porta alla sezione `Documenti e atti`, carica `OfficeDocumentsPanel` se necessario e richiama lo stesso comando `openAssistedPortal()` già usato dal pannello del fascicolo d'ufficio.
+
+Il comportamento da preservare resta quello definito in questo dossier: sessione assistita, Local Signer sul PC dell'avvocato, dati fascicolo tenant-aware, nessun deep link esterno come soluzione primaria e nessuna scansione runtime ricorsiva. Se il portale non è apribile per mancanza di certificato, canale locale o dati ufficio, deve rispondere il pannello esistente con un messaggio esplicito e non il menu contestuale con un silenzio operativo.
+
 Aggiornato il 22/07/2026. Questo documento conserva l'analisi del flusso osservato nel materiale decompilato e la sua traduzione operativa per IUSENTRA. È una memoria di progetto: non deve essere trasformata in riferimenti tecnici visibili nella UI.
 
 ## Aggiornamento 2026-07-22 - Acquisizione mirata da presidio notifiche

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.265.6 - 2026-07-26
+
+- Fascicoli React: aggiunto il menu contestuale con tasto destro dentro il dettaglio fascicolo, con accessi rapidi a deposito telematico, notifica, anagrafica cliente, soggetti, modifica fascicolo, Portale Servizi, PagoPA, controllo economico, scadenze, Agenda, documenti, compilatore atti, PDF/ZIP e audit.
+- Portale Servizi: la voce `Apri Portale Servizi` riusa il pannello `Documenti e atti` e la sessione assistita esistente, senza introdurre invii PEC server-side, nuove sessioni parallele o scorciatoie fuori dal flusso governato.
+- UX e accessibilità: il menu evita i campi editabili, si chiude con `Esc`, click esterno, scroll pagina o resize, resta dentro il viewport e mantiene lo scroll interno per raggiungere tutte le azioni anche su tablet e smartphone.
+- Guardrail: aggiunto test React statico per presidiare etichette, azioni reali, apertura Portale Servizi dal menu e CSS responsive.
+
 ## 2.258.1 - 2026-07-22
 
 - Corregge il contratto Chrome Local Network Access del Local Signer: tutte le chiamate React verso `127.0.0.1`/`localhost` usano `targetAddressSpace: loopback`, evitando falsi negativi su Impostazioni firma, PST, download documenti, deposito, firma multipla, notifiche legali e relata.

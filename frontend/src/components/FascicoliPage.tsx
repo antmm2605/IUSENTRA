@@ -27,6 +27,7 @@ import {
   FileText,
   Fingerprint,
   Filter,
+  FolderSearch2,
   FolderOpen,
   FolderPlus,
   Gauge,
@@ -3800,6 +3801,23 @@ type PreviewDocument = { name: string; url: string; downloadUrl: string; objectU
 type LazySectionStatus = 'idle' | 'loading' | 'loaded' | 'error'
 type EmbeddedRecordKind = 'cliente' | 'soggetti' | 'pagopa'
 type EmbeddedRecordState = { kind: EmbeddedRecordKind; title: string; href: string; externalHref?: string }
+type FascicoloContextMenuState = { x: number; y: number }
+
+function shouldUseNativeContextMenu(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], .iu-fas-preview-modal, .iu-fas-document-flow-modal, .iu-fas-context-menu'))
+}
+
+function clampFascicoloContextMenuPosition(x: number, y: number): FascicoloContextMenuState {
+  if (typeof window === 'undefined') return { x, y }
+  const menuWidth = 348
+  const menuHeight = Math.min(620, window.innerHeight * 0.86)
+  const margin = 12
+  return {
+    x: Math.max(margin, Math.min(x, window.innerWidth - menuWidth - margin)),
+    y: Math.max(margin, Math.min(y, window.innerHeight - Math.min(menuHeight, window.innerHeight - margin * 2) - margin)),
+  }
+}
 
 const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   documenti: 'idle',
@@ -3904,6 +3922,145 @@ function RecordOverlayButton({ onClick, icon, label, title }:{onClick:()=>void; 
       {icon}
       {label}
     </button>
+  )
+}
+
+function FascicoloContextMenuItem({
+  icon,
+  label,
+  note,
+  href,
+  primary = false,
+  disabled = false,
+  onSelect,
+}:{
+  icon: ReactNode
+  label: string
+  note: string
+  href?: string
+  primary?: boolean
+  disabled?: boolean
+  onSelect?: () => void
+}) {
+  const className = `iu-fas-context-menu__item${primary ? ' is-primary' : ''}`
+  const content = (
+    <>
+      <span className="iu-fas-context-menu__icon">{icon}</span>
+      <span>
+        <strong>{label}</strong>
+        <small>{note}</small>
+      </span>
+    </>
+  )
+  if (href && !disabled) {
+    return <a className={className} href={href} role="menuitem" onClick={onSelect}>{content}</a>
+  }
+  return (
+    <button className={className} type="button" role="menuitem" disabled={disabled} onClick={onSelect}>
+      {content}
+    </button>
+  )
+}
+
+function FascicoloContextMenu({
+  position,
+  title,
+  reference,
+  fascicoloId,
+  clientName,
+  editHref,
+  compilerHref,
+  exportPdfHref,
+  archiveZipHref,
+  auditBundleHref,
+  onClose,
+  onDeposit,
+  onClient,
+  onParties,
+  onOfficePortal,
+  onNotification,
+  onPagoPa,
+  onSection,
+}:{
+  position: FascicoloContextMenuState | null
+  title: string
+  reference: string
+  fascicoloId: string
+  clientName: string
+  editHref: string
+  compilerHref: string
+  exportPdfHref: string
+  archiveZipHref: string
+  auditBundleHref: string
+  onClose: () => void
+  onDeposit: () => void
+  onClient: () => void
+  onParties: () => void
+  onOfficePortal: () => void
+  onNotification: () => void
+  onPagoPa: () => void
+  onSection: (sectionId: string, lazySection?: FascicoloDetailSection) => void
+}) {
+  const menuRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!position) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      const firstItem = menuRef.current?.querySelector<HTMLElement>('button.iu-fas-context-menu__item:not(:disabled), a.iu-fas-context-menu__item[href]')
+      firstItem?.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [position])
+
+  if (!position) return null
+  return (
+    <aside
+      ref={menuRef}
+      className="iu-fas-context-menu"
+      style={{ left: position.x, top: position.y }}
+      role="menu"
+      aria-label="Azioni rapide del fascicolo"
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <header>
+        <span><FolderOpen size={15}/> Azioni fascicolo</span>
+        <button type="button" onClick={onClose} aria-label="Chiudi menu azioni"><X size={15}/></button>
+      </header>
+      <div className="iu-fas-context-menu__summary">
+        <strong>{title}</strong>
+        <span>{[reference, clientName].filter(Boolean).join(' · ')}</span>
+      </div>
+
+      <div className="iu-fas-context-menu__group">
+        <FascicoloContextMenuItem primary icon={<Send size={16}/>} label="Deposito telematico" note="Scegli documenti, firma e prepara la busta" onSelect={onDeposit}/>
+        <FascicoloContextMenuItem icon={<Bell size={16}/>} label="Notifica" note="Prepara relata, allegati e prova" onSelect={onNotification}/>
+        <FascicoloContextMenuItem icon={<FolderSearch2 size={16}/>} label="Apri Portale Servizi" note="Fascicolo d’ufficio con sessione assistita" onSelect={onOfficePortal}/>
+      </div>
+
+      <div className="iu-fas-context-menu__group" aria-label="Anagrafiche">
+        <span className="iu-fas-context-menu__group-title">Anagrafiche</span>
+        <FascicoloContextMenuItem icon={<UserRound size={16}/>} label="Modifica anagrafica cliente" note="Apri la scheda cliente collegata" onSelect={onClient}/>
+        <FascicoloContextMenuItem icon={<UsersRound size={16}/>} label="Soggetti" note="Assistiti, controparti e parti del fascicolo" onSelect={onParties}/>
+        <FascicoloContextMenuItem icon={<Edit3 size={16}/>} label="Modifica" note="Dati principali e profilo del fascicolo" href={editHref} onSelect={onClose}/>
+      </div>
+
+      <div className="iu-fas-context-menu__group" aria-label="Economia e calendario">
+        <span className="iu-fas-context-menu__group-title">Economia e calendario</span>
+        <FascicoloContextMenuItem icon={<Euro size={16}/>} label="PagoPA" note="Contributo, ricevute e pagamenti PST" onSelect={onPagoPa}/>
+        <FascicoloContextMenuItem icon={<WalletCards size={16}/>} label="Controllo economico" note="Parcelle, fondo spese, liquidazioni e incassi" onSelect={() => onSection('economia')}/>
+        <FascicoloContextMenuItem icon={<CalendarDays size={16}/>} label="Nuova scadenza" note="Aggiungi un termine collegato al fascicolo" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(fascicoloId)}`} onSelect={onClose}/>
+        <FascicoloContextMenuItem icon={<Clock3 size={16}/>} label="Nuovo appuntamento" note="Crea udienza o attività in Agenda" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(fascicoloId)}`} onSelect={onClose}/>
+      </div>
+
+      <div className="iu-fas-context-menu__group" aria-label="Documenti e verifiche">
+        <span className="iu-fas-context-menu__group-title">Documenti e verifiche</span>
+        <FascicoloContextMenuItem icon={<FileText size={16}/>} label="Documenti e atti" note="Carica, visualizza, classifica e firma" onSelect={() => onSection('documenti', 'documenti')}/>
+        <FascicoloContextMenuItem icon={<ClipboardCheck size={16}/>} label="Compilatore atti" note="Modelli e bozze dal fascicolo" href={compilerHref} onSelect={onClose}/>
+        <FascicoloContextMenuItem icon={<FileDown size={16}/>} label="PDF fascicolo" note={exportPdfHref ? "Scarica il fascicolo in PDF" : "PDF non disponibile"} href={exportPdfHref} disabled={!exportPdfHref} onSelect={onClose}/>
+        <FascicoloContextMenuItem icon={<FileArchive size={16}/>} label="Scarica ZIP" note={archiveZipHref ? "Archivio documenti del fascicolo" : "ZIP non ancora disponibile"} href={archiveZipHref} disabled={!archiveZipHref} onSelect={onClose}/>
+        <FascicoloContextMenuItem icon={<Fingerprint size={16}/>} label="Audit" note={auditBundleHref ? 'Scarica bundle eventi e prove' : 'Apri eventi e prove del fascicolo'} href={auditBundleHref} onSelect={auditBundleHref ? onClose : () => onSection('audit', 'audit')}/>
+      </div>
+    </aside>
   )
 }
 
@@ -6460,6 +6617,8 @@ function DetailPage({ id }:{id:string}) {
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
+  const [contextMenu, setContextMenu] = useState<FascicoloContextMenuState | null>(null)
+  const [officePortalOpenRequest, setOfficePortalOpenRequest] = useState(0)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
   useEffect(() => {
@@ -6552,9 +6711,47 @@ function DetailPage({ id }:{id:string}) {
       })
   }
   const openDocumentFlow = (mode: DocumentFlowMode) => {
+    setContextMenu(null)
     setDocumentFlowMode(mode)
     if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
   }
+  const openSectionFromContext = (sectionId: string, lazySection?: FascicoloDetailSection) => {
+    setContextMenu(null)
+    if (lazySection) loadLazySection(lazySection)
+    openDetailSectionById(sectionId)
+  }
+  const openOfficePortalFromContext = () => {
+    setContextMenu(null)
+    if (lazyStatus.documenti === 'idle') loadLazySection('documenti')
+    openDetailSectionById('documenti')
+    setOfficePortalOpenRequest((current) => current + 1)
+  }
+  const openFascicoloContextMenu = (event: MouseEvent<HTMLElement>) => {
+    if (shouldUseNativeContextMenu(event.target)) return
+    event.preventDefault()
+    setContextMenu(clampFascicoloContextMenuPosition(event.clientX, event.clientY))
+  }
+  useEffect(() => {
+    if (!contextMenu) return undefined
+    const close = () => setContextMenu(null)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close()
+    }
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('.iu-fas-context-menu')) return
+      close()
+    }
+    window.addEventListener('click', close)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [contextMenu])
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -6599,7 +6796,7 @@ function DetailPage({ id }:{id:string}) {
   if (loading && !data.fascicolo.id) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Caricamento fascicolo">Lettura dei dati e dei documenti in corso.</EmptyState></main>
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprirlo.'}</EmptyState></main>
   return (
-    <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
+    <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
         <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
@@ -6651,7 +6848,7 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
             <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
-              <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail}/>
+              <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openPortalRequest={officePortalOpenRequest}/>
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
@@ -6760,6 +6957,35 @@ function DetailPage({ id }:{id:string}) {
         </aside>
         </div>
       </section>
+      <FascicoloContextMenu
+        position={contextMenu}
+        title={f.title}
+        reference={f.ref}
+        fascicoloId={f.id || id}
+        clientName={data.client?.name || f.client}
+        editHref={f.editHref}
+        compilerHref={compilerHref}
+        exportPdfHref={exportPdfHref}
+        archiveZipHref={data.actions.archiveZip || f.archiveZipHref}
+        auditBundleHref={data.actions.auditBundle}
+        onClose={() => setContextMenu(null)}
+        onDeposit={() => openDocumentFlow('deposito')}
+        onClient={() => {
+          setContextMenu(null)
+          setEmbeddedRecord({ kind: 'cliente', title: 'Modifica anagrafica cliente', href: clientRecordHref })
+        }}
+        onParties={() => {
+          setContextMenu(null)
+          setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })
+        }}
+        onOfficePortal={openOfficePortalFromContext}
+        onNotification={() => openDocumentFlow('notifica')}
+        onPagoPa={() => {
+          setContextMenu(null)
+          setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })
+        }}
+        onSection={openSectionFromContext}
+      />
       {documentFlowMode ? (
         <DocumentFlowSelectionModal
           mode={documentFlowMode}

@@ -262,7 +262,9 @@ class Cliente:
         if isinstance(d.get("documento"), dict):
             doc = dict(d["documento"])
             doc["tipo"] = TipoDocumento(doc["tipo"])
-            d["documento"] = DocumentoIdentita(**doc)
+            d["documento"] = DocumentoIdentita(
+                **{k: v for k, v in doc.items() if k in DocumentoIdentita.__dataclass_fields__}
+            )
 
         if isinstance(d.get("procedimenti"), list):
             d["procedimenti"] = [

@@ -123,3 +123,26 @@ Dopo rebuild Docker locale senza cache, container `iusentra-app` healthy e `/api
 - audit post-salvataggio: `source_of_truth=sqlite`, `json_authoritative=false`, `orphans=[]`.
 
 I record controllati `906A1FCB` e `184A5F99` sono stati eliminati con `GestioneFascicoli.elimina()` e `GestioneClienti.elimina()`. Verifica post-pulizia: record assenti, `PRAGMA quick_check=ok`, audit anti-orfani ancora `orphans=[]`, struttura tenant senza mancanze.
+
+## Follow-up 26/07/2026 - clienti presenti in SQL ma non visibili in UI
+
+Dopo la segnalazione dell'utente ("non li vedo in Clienti e Anagrafiche") è stata verificata la fonte reale Hetzner usata dal runtime: `IUSENTRA_DATA_DIR=/opt/iusentra/data`.
+
+Controlli eseguiti sul tenant produzione reale:
+
+- `studio.db`: `/opt/iusentra/data/tenants/studio-legale-giuseppe-montagnese/studio.db`;
+- `PRAGMA quick_check=ok`;
+- tabella `clienti` presente;
+- tabella `fascicoli` presente;
+- i clienti `13985944`, `9EDEB3C2`, `A70B2974`, `BA82D89F` risultavano presenti in SQL e nel mirror `clienti/anagrafica.json`;
+- la join `fascicoli -> clienti` risultava corretta per `2026/337`, `2026/340`, `2026/342`, `2026/344`;
+- non c'erano più link fascicolo-cliente orfani.
+
+Il problema residuo non era più un orfano SQL: i record venivano scartati dal repository applicativo in lettura. Causa tecnica: il payload storico `dati_json.documento` conteneva la chiave extra `file_path`; `Cliente.from_dict()` non filtrava le chiavi non supportate di `DocumentoIdentita` e quindi sollevava `TypeError`, poi `GestioneClienti._carica()` saltava la scheda.
+
+Correzione codice:
+
+- `pct/clienti.py`: `Cliente.from_dict()` filtra ora il payload `documento` sulle sole chiavi supportate da `DocumentoIdentita`, come già avveniva per i recapiti.
+- `tests/test_fascicoli_clienti_links_audit.py`: aggiunta copertura che una scheda cliente riparata resta visibile da `GestioneClienti` anche se `dati_json.documento` contiene la chiave storica extra `file_path`.
+
+Questa correzione evita che un cliente presente e collegato nel tenant venga nascosto dalla UI per payload documento legacy o arricchito.

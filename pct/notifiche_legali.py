@@ -84,13 +84,13 @@ PUBLIC_PEC_REGISTER_CAPABILITIES: dict[str, dict[str, Any]] = {
         "action_label": "Verifica con il dispositivo di firma",
     },
     "registro_ppaa": {
-        "verification_mode": "assisted_browser",
-        "official_url": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
-        "automatic": False,
+        "verification_mode": "authenticated_service",
+        "official_url": "https://servizipst.giustizia.it/PST/it/pst_2_8.wp",
+        "automatic": True,
         "requires_pin": True,
-        "requires_user_confirmation": True,
+        "requires_user_confirmation": False,
         "valid_for_notification": True,
-        "action_label": "Apri Registro PP.AA.",
+        "action_label": "Verifica con il dispositivo di firma",
     },
     "ini_pec": {
         "verification_mode": "assisted_browser",

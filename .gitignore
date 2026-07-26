@@ -94,6 +94,8 @@ indexes/normattiva/
 /email/
 /timesheet/
 /data/
+/data/local/reginde/
+/data/local/registro_ppaa/
 /clienti/anagrafica.json
 /fascicoli/
 /scadenziario/
@@ -153,6 +155,20 @@ indexes/normattiva/
 /data/search/*.db
 /data/tenants/*/sql/*.db
 /performance-smoke.json
+
+# ReGIndE local certified sync cache: contains registry data, never commit.
+artifacts/reginde/*.json
+artifacts/reginde/*.jsonl
+artifacts/reginde/*.html
+artifacts/reginde/*.txt
+artifacts/reginde/pages/
+
+# Registro PP.AA. local certified sync cache: contains registry data, never commit.
+artifacts/registro_ppaa/*.json
+artifacts/registro_ppaa/*.jsonl
+artifacts/registro_ppaa/*.html
+artifacts/registro_ppaa/*.txt
+artifacts/registro_ppaa/pages/
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

@@ -347,6 +347,8 @@ export type NotificheLegaliData = {
     comunicazioneCliente: string
     provaDeposito: string
     verificaPecConsultata: string
+    regindeSearch: string
+    registroPpaaSearch: string
     unep: string
     nonPec: string
     areaWebPst: string
@@ -465,6 +467,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
+    regindeSearch: '/api/v1/ui/notifiche-legali/reginde',
+    registroPpaaSearch: '/api/v1/ui/notifiche-legali/registro-ppaa',
     unep: '/api/v1/ui/notifiche-legali/unep',
     nonPec: '/api/v1/ui/notifiche-legali/non-pec',
     areaWebPst: '/api/v1/ui/notifiche-legali/area-web-pst',
@@ -919,6 +923,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),
+      regindeSearch: text(azioni.regindeSearch, emptyNotificheLegaliData.azioni.regindeSearch),
+      registroPpaaSearch: text(azioni.registroPpaaSearch, emptyNotificheLegaliData.azioni.registroPpaaSearch),
       unep: text(azioni.unep, emptyNotificheLegaliData.azioni.unep),
       nonPec: text(azioni.nonPec, emptyNotificheLegaliData.azioni.nonPec),
       areaWebPst: text(azioni.areaWebPst, emptyNotificheLegaliData.azioni.areaWebPst),
@@ -967,6 +973,62 @@ export async function getNotificheLegaliPracticeDocuments(practiceId: string, do
   const body = await response.json().catch(() => ({}))
   if (!isRecord(body) || !bool(body.ok)) return []
   return documentSuggestions(body.documenti)
+}
+
+export async function searchLegalRegindeRecipients(endpoint: string, query: string, limit = 20): Promise<{
+  results: LegalRecipientSuggestion[]
+  message: string
+  records: number
+  complete: boolean
+}> {
+  const trimmed = query.trim()
+  if (trimmed.length < 3) return { results: [], message: '', records: 0, complete: false }
+  const params = new URLSearchParams({ q: trimmed, limit: String(limit) })
+  const response = await fetch(`${endpoint}?${params.toString()}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) {
+    return { results: [], message: 'Ricerca ReGIndE locale non disponibile.', records: 0, complete: false }
+  }
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body) || !bool(body.ok)) {
+    return { results: [], message: text(isRecord(body) ? body.message : '', 'Ricerca ReGIndE locale non disponibile.'), records: 0, complete: false }
+  }
+  return {
+    results: recipientSuggestions(body.results),
+    message: text(body.message),
+    records: Number(body.records || 0),
+    complete: bool(body.complete),
+  }
+}
+
+export async function searchLegalRegistroPpaaRecipients(endpoint: string, query: string, limit = 20): Promise<{
+  results: LegalRecipientSuggestion[]
+  message: string
+  records: number
+  complete: boolean
+}> {
+  const trimmed = query.trim()
+  if (trimmed.length < 3) return { results: [], message: '', records: 0, complete: false }
+  const params = new URLSearchParams({ q: trimmed, limit: String(limit) })
+  const response = await fetch(`${endpoint}?${params.toString()}`, {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) {
+    return { results: [], message: 'Ricerca Registro PP.AA. locale non disponibile.', records: 0, complete: false }
+  }
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body) || !bool(body.ok)) {
+    return { results: [], message: text(isRecord(body) ? body.message : '', 'Ricerca Registro PP.AA. locale non disponibile.'), records: 0, complete: false }
+  }
+  return {
+    results: recipientSuggestions(body.results),
+    message: text(body.message),
+    records: Number(body.records || 0),
+    complete: bool(body.complete),
+  }
 }
 
 export async function postLegalWorkflow(endpoint: string, payload: Record<string, unknown>): Promise<LegalWorkflowResult> {

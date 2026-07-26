@@ -5634,3 +5634,63 @@ Guardrail eseguiti:
 - `python scripts\smoke_app_v2_all.py --subset inventory`;
 - `python tools\check_repo_governance.py`;
 - `python -m py_compile pct/uffici_giudiziari.py`.
+
+### Aggiornamento 25/07/2026 - ReGIndE locale consultabile in Notifiche legali
+
+È stata aggiunta la base governata per avere ReGIndE utilizzabile dentro IUSENTRA senza copiare dati nel repository o sul server pubblico:
+
+- `tools/reginde_sync_cache.py` sincronizza i soggetti ReGIndE tramite Local Signer/certificato, pagina per pagina, in `data/local/reginde/`;
+- la cache locale produce pagine JSONL, SQLite deduplicato, stato di ripresa e manifest, tutti esclusi da Git;
+- il tool crea, quando disponibile, un indice FTS5 per ricerca rapida sul registro completo;
+- `GET /api/v1/ui/notifiche-legali/reginde` legge la cache in sola lettura e restituisce al massimo i destinatari richiesti dalla ricerca;
+- la pagina React `/notifiche-legali` usa lo stesso campo `Cerca indirizzo o soggetto` per includere anche risultati ReGIndE locali con badge dedicato;
+- la verifica finale utile alla notifica resta quella puntuale e certificata tramite Local Signer/PST, salvata nel fascicolo con data/ora ed evidenza.
+
+Prove eseguite senza invio PEC:
+
+- esportazione pagina PST `pst_2_2.wp`: 11.726 enti e 7 ruoli;
+- prova certificata ReGIndE su Avvocatura dello Stato di Milano: PEC `ads.mi@mailcert.avvocaturastato.it`, `verified=true`;
+- metodo WSDL `elencoPaginatoSoggetti`: `da=1,count=1` HTTP 200;
+- prima tranche reale sync: 5 pagine, 250 soggetti distinti, prossimo indice 251;
+- prova reale UI locale su `127.0.0.1:8080`: login tenant `studio-montagnese`, ricerca `Marta Barsotti`, risultato `MARTA BARSOTTI` con PEC `barsotti.marta@ordineavvocatiasti.eu`, badge `ReGIndE`, selezione con click reale e riepilogo `Fonte PEC: reginde`;
+- verifica API autenticata `GET /api/v1/ui/notifiche-legali/reginde?q=Marta%20Barsotti&limit=5`: HTTP 200, `ok=true`, primo risultato ReGIndE coerente;
+- verifica visiva pagina Notifiche: focus ricerca, hover card selezionata, scroll completo, responsive desktop/tablet/mobile senza overflow orizzontale di pagina;
+- `python -m pytest tests\test_reginde.py tests\test_reginde_cache_search.py tests\test_reginde_sync_cache.py -q`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`.
+
+Nota operativa: la cache completa può essere popolata progressivamente con `--full` o a tranche controllate. Il PIN del certificato non viene scritto in file, stato, manifest, log o report.
+
+### Aggiornamento 25/07/2026 - Registro PP.AA. locale per notifiche
+
+È stato verificato sul PST il percorso `Registro PP.AA.`: la pagina ufficiale `pst_2_8.wp` apre il modulo `pst_2_8_2.wp`, con ricerca per `denominazione`, `pec` e `codFiscale`. Non è emerso un export JSON completo o una paginazione totale del registro; il dato utile va quindi acquisito tramite consultazioni puntuali/autenticate e salvato in cache locale governata.
+
+Correzione applicata:
+
+- aggiunto `tools/registro_ppaa_sync_cache.py` per alimentare `data/local/registro_ppaa/registro_ppaa_cache.sqlite`;
+- aggiunto `GET /api/v1/ui/notifiche-legali/registro-ppaa`, autenticato e read-only;
+- la pagina React `/notifiche-legali` cerca nello stesso campo sia ReGIndE sia Registro PP.AA.;
+- i risultati PP.AA. entrano come destinatari selezionabili con `fontePecSuggerita=registro_ppaa`, ruolo `pa` e badge `Registro PP.AA.`;
+- la verifica automatica tramite Local Signer tratta `registro_ppaa` come servizio autenticato con certificato, senza conferma manuale inventata;
+- i file SQLite, manifest e pagine importate restano runtime locali ed esclusi da Git.
+
+Guardrail eseguiti senza invio PEC:
+
+- `python -m pytest tests\test_reginde_cache_search.py tests\test_reginde_sync_cache.py tests\test_registro_ppaa_sync_cache.py tests\test_notifiche_legali.py -q`;
+- `python -m compileall tools\reginde_sync_cache.py tools\registro_ppaa_sync_cache.py web\services\reginde_cache_search.py web\blueprints\api_v1_react.py pct\notifiche_legali.py`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`.
+
+### Aggiornamento 26/07/2026 - Registro PP.AA. provato nella UI reale
+
+Dopo rebuild Docker locale della copia reale `127.0.0.1:8080`, container `iusentra-app` healthy e `/api/pronto` `ok=true`, è stata ripetuta la prova materiale della pagina React `/notifiche-legali`:
+
+- record PP.AA. locale usato: `AVVOCATURA DELLO STATO DI MILANO`, CF `97021490152`, PEC `ads.mi@mailcert.avvocaturastato.it`;
+- ricerca `Avvocatura Milano`: risultato PP.AA. visibile con badge `Registro PP.AA.`;
+- click reale sul risultato: destinatario selezionato e riepilogo con `Fonte PEC: registro_ppaa`;
+- click su stato selezionato e secondo click di ripristino: il controllo resta coerente e la fonte non viene persa;
+- scroll fino al fondo pagina: restano presenti `Invia PEC`, `Fonti operative`, `Presidi` e `Relata`;
+- mobile `390x844` e tablet `768x1024`: risultato cliccabile, riepilogo leggibile e nessun overflow orizzontale;
+- nessun invio PEC, nessun PIN usato, nessuna ricevuta artificiale registrata.
+
+È stato corretto anche il microcopy del motore di ricerca registri: la UI non espone più frasi del tipo `nella elenco locale`, ma usa testi operativi come `Ricerca nel Registro PP.AA. locale...` e `Nessun soggetto trovato in ReGIndE locale.`.

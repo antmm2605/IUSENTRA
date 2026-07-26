@@ -1609,6 +1609,8 @@ def build_react_notifiche_legali_payload(
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
             "verificaPecConsultata": "/api/v1/ui/notifiche-legali/verifica-pec-consultata",
+            "regindeSearch": "/api/v1/ui/notifiche-legali/reginde",
+            "registroPpaaSearch": "/api/v1/ui/notifiche-legali/registro-ppaa",
             "unep": "/api/v1/ui/notifiche-legali/unep",
             "nonPec": "/api/v1/ui/notifiche-legali/non-pec",
             "areaWebPst": "/api/v1/ui/notifiche-legali/area-web-pst",

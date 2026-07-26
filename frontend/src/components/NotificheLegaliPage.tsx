@@ -43,6 +43,8 @@ import {
   previewLegalRelata,
   saveLegalRelataDraft,
   saveLegalRelataTemplate,
+  searchLegalRegindeRecipients,
+  searchLegalRegistroPpaaRecipients,
   type LegalAutomationStep,
   type LegalDocumentSuggestion,
   type LegalNotificationDirective,
@@ -765,6 +767,7 @@ type PecVerificationSubject = {
   address: string
   taxCode: string
   label: string
+  entityHint?: boolean
 }
 
 function normalizePecSource(value: unknown): string {
@@ -1674,6 +1677,12 @@ export function NotificheLegaliPage() {
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
   const [recipientSearch, setRecipientSearch] = useState('')
+  const [regindeRecipients, setRegindeRecipients] = useState<LegalRecipientSuggestion[]>([])
+  const [registroPpaaRecipients, setRegistroPpaaRecipients] = useState<LegalRecipientSuggestion[]>([])
+  const [regindeSearchLoading, setRegindeSearchLoading] = useState(false)
+  const [regindeSearchMessage, setRegindeSearchMessage] = useState('')
+  const [registroPpaaSearchLoading, setRegistroPpaaSearchLoading] = useState(false)
+  const [registroPpaaSearchMessage, setRegistroPpaaSearchMessage] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
   const [manualNotificationDocuments, setManualNotificationDocuments] = useState<ManualNotificationDocument[]>([])
@@ -1846,15 +1855,79 @@ export function NotificheLegaliPage() {
     [data.precompilazione.pratiche, practiceDetailsById, selectedPracticeId],
   )
   const practiceRecipientSuggestions = selectedPractice?.destinatari || []
+  useEffect(() => {
+    const query = recipientSearch.trim()
+    if (query.length < 3 || !data.azioni.regindeSearch) {
+      setRegindeRecipients([])
+      setRegindeSearchMessage('')
+      setRegindeSearchLoading(false)
+      return
+    }
+    let active = true
+    setRegindeSearchLoading(true)
+    const timer = window.setTimeout(() => {
+      searchLegalRegindeRecipients(data.azioni.regindeSearch, query, 20)
+        .then((payload) => {
+          if (!active) return
+          setRegindeRecipients(payload.results)
+          setRegindeSearchMessage(payload.message || (payload.records && !payload.complete ? `ReGIndE locale in corso: ${payload.records} soggetti già indicizzati.` : ''))
+        })
+        .catch(() => {
+          if (active) {
+            setRegindeRecipients([])
+            setRegindeSearchMessage('Ricerca ReGIndE locale non disponibile.')
+          }
+        })
+        .finally(() => { if (active) setRegindeSearchLoading(false) })
+    }, 280)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [data.azioni.regindeSearch, recipientSearch])
+  useEffect(() => {
+    const query = recipientSearch.trim()
+    if (query.length < 3 || !data.azioni.registroPpaaSearch) {
+      setRegistroPpaaRecipients([])
+      setRegistroPpaaSearchMessage('')
+      setRegistroPpaaSearchLoading(false)
+      return
+    }
+    let active = true
+    setRegistroPpaaSearchLoading(true)
+    const timer = window.setTimeout(() => {
+      searchLegalRegistroPpaaRecipients(data.azioni.registroPpaaSearch, query, 20)
+        .then((payload) => {
+          if (!active) return
+          setRegistroPpaaRecipients(payload.results)
+          setRegistroPpaaSearchMessage(payload.message || (payload.records && !payload.complete ? `Registro PP.AA. locale in corso: ${payload.records} enti già indicizzati.` : ''))
+        })
+        .catch(() => {
+          if (active) {
+            setRegistroPpaaRecipients([])
+            setRegistroPpaaSearchMessage('Ricerca Registro PP.AA. locale non disponibile.')
+          }
+        })
+        .finally(() => { if (active) setRegistroPpaaSearchLoading(false) })
+    }, 280)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [data.azioni.registroPpaaSearch, recipientSearch])
   const recipientSuggestions = useMemo(() => {
     const seen = new Set<string>()
-    return [...practiceRecipientSuggestions, ...data.precompilazione.destinatari].filter((item) => {
+    const registrySearchActive = recipientSearch.trim().length >= 3
+    const ordered = registrySearchActive
+      ? [...practiceRecipientSuggestions, ...regindeRecipients, ...registroPpaaRecipients, ...data.precompilazione.destinatari]
+      : [...practiceRecipientSuggestions, ...data.precompilazione.destinatari, ...regindeRecipients, ...registroPpaaRecipients]
+    return ordered.filter((item) => {
       const key = (item.pec || item.id || item.nome || item.label).trim().toLocaleLowerCase('it-IT')
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [data.precompilazione.destinatari, practiceRecipientSuggestions])
+  }, [data.precompilazione.destinatari, practiceRecipientSuggestions, recipientSearch, regindeRecipients, registroPpaaRecipients])
   const practiceRecipientSuggestionKeys = useMemo(
     () => new Set(practiceRecipientSuggestions.map((item) => item.id).filter(Boolean)),
     [practiceRecipientSuggestions],
@@ -2416,6 +2489,7 @@ export function NotificheLegaliPage() {
       address: normalizePecAddress(recipient.pec),
       taxCode: normalizePecIdentity(recipient.codice_fiscale_piva),
       label: recipient.nome || `Destinatario ${index + 1}`,
+      entityHint: normalizePecSource(recipient.fonte_pec) === 'registro_ppaa' || recipient.ruolo === 'pa',
     }))
     return { sender, recipients }
   }
@@ -2471,7 +2545,7 @@ export function NotificheLegaliPage() {
       nextByKey[subject.key] = pecEvidenceFromResponse({ verified: false, message }, subject)
     }
 
-    const regindeSubjects = pending.filter((subject) => subject.source === 'reginde')
+    const regindeSubjects = pending.filter((subject) => subject.source === 'reginde' || subject.source === 'registro_ppaa')
     if (regindeSubjects.length) {
       const verificationPin = signaturePin.trim()
       const controller = new AbortController()
@@ -2490,10 +2564,10 @@ export function NotificheLegaliPage() {
               codice_fiscale: subject.taxCode,
               pec_attesa: subject.address,
               descrizione: subject.label,
-              entity_hint: subject.kind === 'recipient' && (
+              entity_hint: subject.source === 'registro_ppaa' || subject.entityHint || (subject.kind === 'recipient' && (
                 /@mailcert\.avvocaturastato\.it$/i.test(subject.address)
                 || /\b(?:avvocatura|ordine\s+degli?\s+avvocati|consiglio\s+nazionale\s+forense)\b/i.test(subject.label)
-              ),
+              )),
             })),
           }),
         }
@@ -2503,7 +2577,7 @@ export function NotificheLegaliPage() {
         regindeSubjects.forEach((subject) => {
           const row = rows.find((item) => String(item.key || '') === subject.key)
           if (response.ok && row) {
-            nextByKey[subject.key] = pecEvidenceFromResponse({ ...row, key: subject.key, source: 'reginde' }, subject)
+            nextByKey[subject.key] = pecEvidenceFromResponse({ ...row, key: subject.key, source: subject.source }, subject)
           }
           else markFailed(subject, String(payload.errore || 'Verifica della PEC non completata. Controlla il dispositivo e riprova.'))
         })
@@ -2518,7 +2592,7 @@ export function NotificheLegaliPage() {
     }
 
     pending
-      .filter((subject) => subject.source !== 'reginde')
+      .filter((subject) => subject.source !== 'reginde' && subject.source !== 'registro_ppaa')
       .forEach((subject) => {
         const capability = data.registriPec.find((item) => item.value === subject.source)
         markFailed(
@@ -3768,37 +3842,47 @@ export function NotificheLegaliPage() {
                       ))}
                     </select>
                   </Field>
-                  {recipientSuggestions.length ? (
-                    <Field label="Cerca indirizzo o soggetto" hint={selectedPractice ? 'I destinatari della pratica restano in evidenza; la ricerca include anche gli altri indirizzi disponibili.' : 'Filtra rubrica, parti e indirizzi disponibili.'}>
-                      <input
-                        type="search"
-                        value={recipientSearch}
-                        onChange={(event) => setRecipientSearch(event.currentTarget.value)}
-                        placeholder="Nome, PEC, parte, registro o ufficio"
-                      />
-                    </Field>
-                  ) : null}
+                  <Field label="Cerca indirizzo o soggetto" hint={selectedPractice ? 'I destinatari della pratica restano in evidenza; la ricerca include ReGIndE e Registro PP.AA. locali.' : 'Cerca in ReGIndE, Registro PP.AA. e indirizzi disponibili.'}>
+                    <input
+                      type="search"
+                      value={recipientSearch}
+                      onChange={(event) => setRecipientSearch(event.currentTarget.value)}
+                      placeholder="Nome, PEC, parte, registro o ufficio"
+                    />
+                  </Field>
                   {visibleRecipientSuggestions.length ? (
                     <div className="iu-legal-recipient-picker iu-legal-field--wide" aria-label="Destinatari suggeriti">
                       {visibleRecipientSuggestions.map((item) => {
                         const selected = selectedRecipientIds.includes(item.id)
                         const practiceRecipient = practiceRecipientSuggestionKeys.has(item.id)
+                        const regindeRecipient = item.ruoloPratica === 'ReGIndE'
+                        const registroPpaaRecipient = item.ruoloPratica === 'Registro PP.AA.'
                         return (
                           <button
                             type="button"
                             key={`${item.id}-${item.ruolo}-choice`}
-                            className={`${selected ? 'is-selected' : ''} ${practiceRecipient ? 'is-practice' : ''}`.trim()}
+                            className={`${selected ? 'is-selected' : ''} ${practiceRecipient ? 'is-practice' : ''} ${regindeRecipient ? 'is-reginde' : ''} ${registroPpaaRecipient ? 'is-registro-ppaa' : ''}`.trim()}
                             onClick={() => selected ? removeRecipient(item.id) : applyRecipient(item)}
                           >
                             <strong>{item.label || item.nome}</strong>
                             <span>{[item.ruoloPratica || item.ruolo, item.pec, item.parteRappresentata ? `parte: ${item.parteRappresentata}` : ''].filter(Boolean).join(' · ')}</span>
                             {practiceRecipient ? <small>pratica</small> : null}
+                            {regindeRecipient ? <small>ReGIndE</small> : null}
+                            {registroPpaaRecipient ? <small>Registro PP.AA.</small> : null}
                           </button>
                         )
                       })}
                     </div>
-                  ) : recipientSearch ? (
+                  ) : recipientSearch.trim().length >= 3 && !regindeSearchLoading && !registroPpaaSearchLoading ? (
                     <p className="iu-legal-empty iu-legal-field--wide">Nessun indirizzo corrisponde alla ricerca.</p>
+                  ) : null}
+                  {(regindeSearchLoading || regindeSearchMessage || registroPpaaSearchLoading || registroPpaaSearchMessage) && recipientSearch.trim().length >= 3 ? (
+                    <p className="iu-legal-reginde-status iu-legal-field--wide">
+                      {[
+                        regindeSearchLoading ? 'Ricerca nel ReGIndE locale...' : regindeSearchMessage,
+                        registroPpaaSearchLoading ? 'Ricerca nel Registro PP.AA. locale...' : registroPpaaSearchMessage,
+                      ].filter(Boolean).join(' ')}
+                    </p>
                   ) : null}
                   {selectedPractice && data.ufficiUnep.length ? (
                     <div className="iu-legal-unep-quick iu-legal-field--wide">

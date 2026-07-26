@@ -60,7 +60,7 @@ def _app(tmp_path: Path):
 
 
 def _pec_evidence(source: str, pec: str, tax_code: str, checked_at: str) -> dict[str, object]:
-    confirmation = source != "reginde"
+    confirmation = source not in {"reginde", "registro_ppaa"}
     capability = public_register_capability(source)
     document = {
         "source": source,
@@ -365,7 +365,7 @@ def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
 def test_pubblici_elenchi_distinguono_servizio_autenticato_consultazione_e_fonti_non_valide():
     expected = {
         "reginde": ("authenticated_service", True, True),
-        "registro_ppaa": ("assisted_browser", False, True),
+        "registro_ppaa": ("authenticated_service", True, True),
         "ini_pec": ("assisted_browser", False, True),
         "registro_imprese": ("assisted_browser", False, True),
         "inad": ("assisted_browser", False, True),
@@ -431,8 +431,10 @@ def test_payload_react_espone_modalita_e_azione_di_verifica_per_ogni_fonte():
     sources = {item["value"]: item for item in payload["registriPec"]}
 
     assert sources["reginde"]["automatic"] is True
-    assert sources["registro_ppaa"]["verificationMode"] == "assisted_browser"
-    assert sources["registro_ppaa"]["officialUrl"].startswith("https://servizipst.giustizia.it/")
+    assert sources["registro_ppaa"]["verificationMode"] == "authenticated_service"
+    assert sources["registro_ppaa"]["automatic"] is True
+    assert sources["registro_ppaa"]["requiresUserConfirmation"] is False
+    assert sources["registro_ppaa"]["officialUrl"].endswith("/PST/it/pst_2_8.wp")
     assert sources["ini_pec"]["requiresUserConfirmation"] is True
     assert sources["anpr"]["validForNotification"] is False
     assert "non certifica PEC" in sources["anpr"]["label"]

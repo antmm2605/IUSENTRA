@@ -6,7 +6,11 @@
 }
 .iu-topbar-op__actions{
   position:relative;
-  flex:0 0 auto;
+  flex:1 1 auto;
+  min-width:0;
+  max-width:max-content;
+  flex-wrap:wrap;
+  justify-content:flex-end;
   overflow:visible;
   z-index:361;
 }
@@ -18,6 +22,8 @@
 }
 .iu-topbar-search-trigger{
   width:min(620px,46vw);
+  min-width:0;
+  flex:1 1 280px;
   justify-content:flex-start;
   cursor:pointer;
   text-align:left;
@@ -1487,7 +1493,7 @@ textarea[data-iusentra-voice-preview="ascolto"]{
 }
 @media(max-width:1180px){
   .iu-topbar-search-trigger{width:min(560px,56vw)}
-  .iu-topbar-op__actions{gap:7px}
+  .iu-topbar-op__actions{gap:7px;flex:0 1 auto}
 }
 @media(max-width:1600px){
   .iu-topbar-op{

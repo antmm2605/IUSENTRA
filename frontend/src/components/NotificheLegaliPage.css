@@ -1713,6 +1713,16 @@
   background: rgba(240, 253, 244, .72);
 }
 
+.iu-legal-recipient-picker button.is-reginde {
+  border-color: rgba(31, 93, 153, .28);
+  background: rgba(248, 250, 252, .94);
+}
+
+.iu-legal-recipient-picker button.is-registro-ppaa {
+  border-color: rgba(20, 120, 84, .3);
+  background: rgba(240, 253, 244, .6);
+}
+
 .iu-legal-recipient-picker strong {
   font-size: .86rem;
 }
@@ -1731,6 +1741,22 @@
   color: var(--iu-success-700, #15803d);
   font-size: .68rem;
   font-weight: 850;
+}
+
+.iu-legal-recipient-picker button.is-reginde small {
+  background: rgba(31, 93, 153, .1);
+  color: var(--iu-blue-700, #173a67);
+}
+
+.iu-legal-recipient-picker button.is-registro-ppaa small {
+  background: rgba(20, 120, 84, .12);
+  color: #166534;
+}
+
+.iu-legal-reginde-status {
+  margin: -2px 0 0;
+  color: var(--iu-slate-600, #475569);
+  font-size: .76rem;
 }
 
 .iu-legal-unep-quick {

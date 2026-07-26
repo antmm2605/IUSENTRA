@@ -2216,10 +2216,6 @@ def risolvi_ufficio(
         if _ok_tipo(ufficio) and chiave == ufficio.get("codice_ministero"):
             return ufficio
 
-    pubblico = _risolvi_ufficio_da_catalogo_pst_pubblico(chiave, tipo=tipo_norm)
-    if pubblico is not None:
-        return pubblico
-
     if "@" in chiave:
         chiave_pec = chiave.casefold()
         for ufficio in uffici:
@@ -2290,6 +2286,10 @@ def risolvi_ufficio(
     )
     if match is not None:
         return match
+
+    pubblico = _risolvi_ufficio_da_catalogo_pst_pubblico(chiave, tipo=tipo_norm)
+    if pubblico is not None:
+        return pubblico
 
     return None
 

@@ -118,6 +118,12 @@ from web.services.react_dashboard_cache import (
     clear_dashboard_payload_cache,
     get_dashboard_payload_cached,
 )
+from web.services.reginde_cache_search import (
+    default_reginde_cache_db_path,
+    default_registro_ppaa_cache_db_path,
+    search_reginde_cache,
+    search_registro_ppaa_cache,
+)
 from web.services.react_payload_cache import ReactPayloadTTLCache
 from web.services.security_redaction import redacted_json_response
 from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
@@ -3191,6 +3197,62 @@ def notifiche_legali_pratica(id_fascicolo: str):
         get_fascicoli=get_fascicoli,
         get_soggetti=get_soggetti,
     ))
+
+
+@api_v1_react.get("/notifiche-legali/reginde")
+@_richiedi_auth
+def notifiche_legali_reginde_cache():
+    query = str(request.args.get("q") or request.args.get("query") or "").strip()
+    try:
+        limit = int(request.args.get("limit") or 25)
+    except (TypeError, ValueError):
+        limit = 25
+    configured_path = (
+        current_app.config.get("REGINDE_CACHE_DB")
+        or os.environ.get("IUSENTRA_REGINDE_CACHE_DB")
+        or ""
+    )
+    db_path = Path(configured_path) if str(configured_path).strip() else default_reginde_cache_db_path()
+    payload = search_reginde_cache(db_path, query, limit=limit)
+    return jsonify({
+        "ok": True,
+        "source": "reginde_cache_locale",
+        "available": payload["available"],
+        "complete": payload["complete"],
+        "records": payload["records"],
+        "nextStart": payload["nextStart"],
+        "updatedAt": payload.get("updatedAt", ""),
+        "message": payload["message"],
+        "results": payload["results"],
+    })
+
+
+@api_v1_react.get("/notifiche-legali/registro-ppaa")
+@_richiedi_auth
+def notifiche_legali_registro_ppaa_cache():
+    query = str(request.args.get("q") or request.args.get("query") or "").strip()
+    try:
+        limit = int(request.args.get("limit") or 25)
+    except (TypeError, ValueError):
+        limit = 25
+    configured_path = (
+        current_app.config.get("REGISTRO_PPAA_CACHE_DB")
+        or os.environ.get("IUSENTRA_REGISTRO_PPAA_CACHE_DB")
+        or ""
+    )
+    db_path = Path(configured_path) if str(configured_path).strip() else default_registro_ppaa_cache_db_path()
+    payload = search_registro_ppaa_cache(db_path, query, limit=limit)
+    return jsonify({
+        "ok": True,
+        "source": "registro_ppaa_cache_locale",
+        "available": payload["available"],
+        "complete": payload["complete"],
+        "records": payload["records"],
+        "nextStart": payload["nextStart"],
+        "updatedAt": payload.get("updatedAt", ""),
+        "message": payload["message"],
+        "results": payload["results"],
+    })
 
 
 @api_v1_react.post("/notifiche-legali/verifica-pec-consultata")

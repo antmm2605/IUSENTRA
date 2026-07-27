@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 282.
-- Endpoint con `_richiedi_auth`: 282/282.
+- Endpoint React API censiti: 283.
+- Endpoint con `_richiedi_auth`: 283/283.
 - Endpoint con metodo di scrittura o cancellazione: 148.
 - Endpoint con superficie file/upload/download/export/evidence: 14.
 - Route manifest censite: 118; critical: 18; high/P1: 76.
@@ -289,6 +289,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/soggetti` | Soggetti e parti | P1 | `sessione/API tenant-aware` | anagrafiche parti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/soggetti/<id_soggetto>/modifica` | Soggetti e parti | P1 | `sessione/API tenant-aware` | anagrafiche parti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/soggetti/delete` | Soggetti e parti | P1 | `sessione/API tenant-aware` | anagrafiche parti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/soggetti/registri-pubblici` | Soggetti e parti | P1 | `sessione/API tenant-aware` | anagrafiche parti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/statistiche` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/strumenti-legali/<tool_id>` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/studio` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

@@ -5768,3 +5768,12 @@ Guardrail eseguiti:
 - `python -m pytest tests/test_fascicoli_pagination.py::test_fascicoli_frontend_contratto_query_params_e_lazy_tab -q`;
 - `python -m pytest tests/test_fascicoli_pagination.py -q`;
 - `pnpm --filter @iusentra/studio build`.
+
+Prove reali eseguite dopo deploy e rebuild locale:
+
+- produzione `https://app.iusentra.it/fascicoli?vista=operativa`, versione `2.265.11`: la card mostra `Scadenze urgenti 77` con nota `74 scadute, 3 entro 7 giorni`; il riquadro è `Scadenze scadute e prossimi 7 giorni` e conserva le voci del `15/05/2026`/`24/05/2026` come scadute, non come entro 7 giorni;
+- server Hetzner sul commit `5972fe346`, container unico `iusentra-app` healthy e `/api/pronto` `ok=true`, versione `2.265.11`;
+- copia locale reale `http://127.0.0.1:8080`, rebuild Docker `--no-cache`, container `iusentra-app` healthy e `/api/pronto` `ok=true`, versione `2.265.11`;
+- browser integrato autenticato su `http://127.0.0.1:8080/fascicoli?vista=operativa`: card `Scadenze urgenti 3` con nota `3 scadute, 0 entro 7 giorni`, riquadro `Scadenze scadute`, vecchia etichetta `Scadenze 7g` assente;
+- responsive locale verificato su desktop `1280x720`, tablet `900x900` e mobile `390x844`: dati reali caricati, nessun overflow orizzontale, scroll fino ai blocchi finali `Cabina fascicoli` e `Integrazioni pronte`;
+- hover/focus sulla card `#scadenze-urgenti`: link unico, focus tastiera mantenuto, nessun overflow e nessun ritorno alla vecchia etichetta.

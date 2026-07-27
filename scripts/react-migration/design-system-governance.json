@@ -124,6 +124,13 @@
       "reason": "Scrollbar superiore sincronizzata con larghezza reale del contenuto."
     },
     {
+      "file": "frontend/src/components/FascicoliPage.tsx",
+      "snippets": [
+        "style={{ left: position.x, top: position.y }}"
+      ],
+      "reason": "Menu contestuale fascicolo: il popover deve seguire le coordinate del click reale restando clamped nel viewport."
+    },
+    {
       "file": "frontend/src/components/SitoStudioBuilderPage.tsx",
       "snippets": [
         "'--site-primary': primary",

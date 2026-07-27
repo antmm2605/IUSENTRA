@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.265.7 - 2026-07-27
+
+- Fascicoli React: aggiunta nel menu contestuale la voce `Calcola contributo unificato`, con finestra sovrapposta interna al dettaglio fascicolo, precompilazione dal fascicolo e calcolo tramite l'API già presente negli Strumenti Forensi.
+- PagoPA: il risultato del calcolo può essere copiato negli appunti e salvato in memoria di sessione; quando si apre PagoPA dal fascicolo, IUSENTRA mostra sopra il portale il totale e il testo copiabile da usare nella compilazione.
+- Presidio operativo: la memoria del calcolo non registra un pagamento e non sostituisce la ricevuta PagoPA, F23/F24 o l'esenzione documentata nel fascicolo.
+- Guardrail: esteso il test React del menu contestuale per coprire voce CU, chiamata API, copia appunti, memoria di sessione, pannello riepilogo PagoPA e responsive della modale.
+
 ## 2.265.6 - 2026-07-26
 
 - Fascicoli React: aggiunto il menu contestuale con tasto destro dentro il dettaglio fascicolo, con accessi rapidi a deposito telematico, notifica, anagrafica cliente, soggetti, modifica fascicolo, Portale Servizi, PagoPA, controllo economico, scadenze, Agenda, documenti, compilatore atti, PDF/ZIP e audit.

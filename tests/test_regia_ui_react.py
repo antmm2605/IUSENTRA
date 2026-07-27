@@ -646,6 +646,19 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Notifica" in source
     assert "PagoPA" in source
     assert "Controllo economico" in source
+    assert "Calcola contributo unificato" in source
+    assert "ContributoUnificatoModal" in source
+    assert "onContributoUnificato" in source
+    assert "openContributoUnificatoFromContext" in source
+    assert "fetch('/strumenti-legali/api/contributo-unificato'" in source
+    assert "fetch(`/strumenti-legali/api/prefill/${encodeURIComponent(fascicolo.id)}`" in source
+    assert "CONTRIBUTION_MEMORY_STORAGE_PREFIX" in source
+    assert "sessionStorage.setItem(contributionStorageKey(memory.fascicoloId)" in source
+    assert "copyTextForUser(memory.copyText)" in source
+    assert "Copia e apri PagoPA" in source
+    assert "Calcolo contributo in memoria" in source
+    assert "iu-fas-embedded-modal--pagopa-memory" in source
+    assert "Totale da usare per PagoPA" in source
     assert "Nuova scadenza" in source
     assert "Nuovo appuntamento" in source
     assert "openDocumentFlow('deposito')" in source
@@ -666,7 +679,12 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
 
     assert ".iu-fas-context-menu" in css
     assert ".iu-fas-context-menu__item" in css
+    assert ".iu-fas-contributo-modal" in css
+    assert ".iu-fas-contributo-result__metrics" in css
+    assert ".iu-fas-pagopa-memory" in css
+    assert ".iu-fas-embedded-modal--pagopa-memory .iu-fas-embedded-modal__body{grid-template-rows:auto auto minmax(0,1fr)}" in css
     assert "@media(max-width:900px)" in css and ".iu-fas-context-menu{left:8px!important" in css
+    assert ".iu-fas-contributo-form{grid-template-columns:1fr}" in css
 
 
 def test_ui_deposito_accetta_documenti_preselezionati_da_query_fascicolo():

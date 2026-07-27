@@ -8,6 +8,7 @@ import {
   BrainCircuit,
   BriefcaseBusiness,
   Building2,
+  Calculator,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
@@ -3802,10 +3803,81 @@ type LazySectionStatus = 'idle' | 'loading' | 'loaded' | 'error'
 type EmbeddedRecordKind = 'cliente' | 'soggetti' | 'pagopa'
 type EmbeddedRecordState = { kind: EmbeddedRecordKind; title: string; href: string; externalHref?: string }
 type FascicoloContextMenuState = { x: number; y: number }
+type ContributoUnificatoFormState = {
+  cu_categoria: string
+  cu_grado: string
+  cu_valore_tipo: string
+  cu_valore: string
+  cu_anticipazione_forfettaria: string
+  cu_numero_parti_ricorrenti: string
+  cu_sezione_specializzata_impresa: string
+  cu_dati_obbligatori_mancanti: string
+}
+type ContributoUnificatoResult = {
+  categoria?: string
+  categoria_label?: string
+  grado?: string
+  grado_label?: string
+  valore_tipo?: string
+  valore_tipo_label?: string
+  valore?: number | string | null
+  numero_parti_ricorrenti?: number
+  base?: number | string | null
+  anticipazione_forfettaria?: number | string | null
+  totale?: number | string | null
+  sezione_specializzata_impresa?: boolean
+  dati_obbligatori_mancanti?: boolean
+  regole_applicate?: Array<Record<string, unknown>>
+  notes?: string[]
+  warnings?: string[]
+  sources?: Array<Record<string, unknown>>
+}
+type ContributoUnificatoMemory = {
+  fascicoloId: string
+  title: string
+  reference: string
+  totalLabel: string
+  createdAt: string
+  copyText: string
+  result: ContributoUnificatoResult
+}
+
+const CONTRIBUTION_MEMORY_STORAGE_PREFIX = 'iusentra.fascicolo.contributoUnificato.'
+const CONTRIBUTION_CATEGORIES = [
+  { value: 'civile_ordinario', label: 'Civile ordinario' },
+  { value: 'decreto_ingiuntivo', label: 'Ricorso per decreto ingiuntivo' },
+  { value: 'lavoro', label: 'Lavoro / pubblico impiego' },
+  { value: 'processo_speciale_libro_iv', label: 'Procedimento speciale civile' },
+  { value: 'volontaria_giurisdizione', label: 'Volontaria giurisdizione' },
+  { value: 'separazione_consensuale', label: 'Separazione / divorzio congiunto' },
+  { value: 'ricerca_beni_492bis', label: 'Ricerca beni ex art. 492-bis c.p.c.' },
+  { value: 'cittadinanza_italiana', label: 'Accertamento cittadinanza italiana' },
+  { value: 'esecuzione_immobiliare', label: 'Esecuzione immobiliare' },
+  { value: 'altri_processi_esecutivi', label: 'Altra esecuzione' },
+  { value: 'esecuzione_mobiliare_sotto_2500', label: 'Esecuzione mobiliare sotto € 2.500,00' },
+  { value: 'opposizione_atti_esecutivi', label: 'Opposizione agli atti esecutivi' },
+  { value: 'procedura_fallimentare', label: 'Procedura fallimentare' },
+  { value: 'tributario', label: 'Ricorso tributario' },
+  { value: 'amministrativo_accesso_soggiorno_cittadinanza', label: 'Accesso, soggiorno, cittadinanza e ottemperanza' },
+  { value: 'amministrativo_ordinario', label: 'Ricorso amministrativo ordinario' },
+  { value: 'amministrativo_rito_abbreviato', label: 'Rito abbreviato amministrativo' },
+  { value: 'amministrativo_appalti', label: 'Appalti pubblici (art. 119 c.p.a.)' },
+  { value: 'amministrativo_ottemperanza', label: 'Ottemperanza con contestuale risarcitoria' },
+]
+const CONTRIBUTION_DEGREES = [
+  { value: 'primo_grado', label: 'Primo grado' },
+  { value: 'appello', label: 'Appello' },
+  { value: 'cassazione', label: 'Cassazione' },
+]
+const CONTRIBUTION_VALUE_MODES = [
+  { value: 'determinato', label: 'Valore determinato' },
+  { value: 'indeterminabile', label: 'Valore indeterminabile' },
+  { value: 'non_indicato', label: 'Valore non indicato' },
+]
 
 function shouldUseNativeContextMenu(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false
-  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], .iu-fas-preview-modal, .iu-fas-document-flow-modal, .iu-fas-context-menu'))
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], .iu-fas-preview-modal, .iu-fas-document-flow-modal, .iu-fas-context-menu, .iu-fas-contributo-modal'))
 }
 
 function clampFascicoloContextMenuPosition(x: number, y: number): FascicoloContextMenuState {
@@ -3925,6 +3997,112 @@ function RecordOverlayButton({ onClick, icon, label, title }:{onClick:()=>void; 
   )
 }
 
+function contributionStorageKey(fascicoloId: string): string {
+  return `${CONTRIBUTION_MEMORY_STORAGE_PREFIX}${fascicoloId || 'corrente'}`
+}
+
+function readContributionMemory(fascicoloId: string): ContributoUnificatoMemory | null {
+  if (typeof window === 'undefined' || !fascicoloId) return null
+  try {
+    const raw = window.sessionStorage.getItem(contributionStorageKey(fascicoloId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ContributoUnificatoMemory
+    return parsed && parsed.fascicoloId === fascicoloId && parsed.copyText ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function saveContributionMemory(memory: ContributoUnificatoMemory): void {
+  if (typeof window === 'undefined' || !memory.fascicoloId) return
+  try {
+    window.sessionStorage.setItem(contributionStorageKey(memory.fascicoloId), JSON.stringify(memory))
+  } catch {
+    // La memoria PagoPA resta disponibile nello stato React anche se il browser blocca sessionStorage.
+  }
+}
+
+async function copyTextForUser(value: string): Promise<void> {
+  if (!value) return
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+  if (typeof document === 'undefined') return
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.setAttribute('readonly', 'true')
+  textarea.className = 'iu-fas-clipboard-buffer'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  textarea.remove()
+}
+
+function defaultContributoUnificatoForm(fascicolo: FascicoloFull, prefill?: Record<string, unknown>): ContributoUnificatoFormState {
+  const value = String(prefill?.valore_causa ?? fascicolo.valueRaw ?? fascicolo.value ?? '').trim()
+  return {
+    cu_categoria: 'civile_ordinario',
+    cu_grado: 'primo_grado',
+    cu_valore_tipo: value ? 'determinato' : 'indeterminabile',
+    cu_valore: value,
+    cu_anticipazione_forfettaria: '1',
+    cu_numero_parti_ricorrenti: '1',
+    cu_sezione_specializzata_impresa: '0',
+    cu_dati_obbligatori_mancanti: '0',
+  }
+}
+
+function buildContributoUnificatoCopyText({
+  fascicolo,
+  clientName,
+  result,
+}:{
+  fascicolo: FascicoloFull
+  clientName: string
+  result: ContributoUnificatoResult
+}): string {
+  const notes = Array.isArray(result.notes) ? result.notes.filter(Boolean) : []
+  const warnings = Array.isArray(result.warnings) ? result.warnings.filter(Boolean) : []
+  const lines = [
+    'Calcolo contributo unificato',
+    `Fascicolo: ${fascicolo.title || fascicolo.ref || fascicolo.id}`,
+    fascicolo.ref ? `Riferimento: ${fascicolo.ref}` : '',
+    clientName ? `Cliente: ${clientName}` : '',
+    `Tipologia: ${result.categoria_label || result.categoria || 'Non indicata'}`,
+    `Grado: ${result.grado_label || result.grado || 'Primo grado'}`,
+    `Tipo valore: ${result.valore_tipo_label || result.valore_tipo || 'Non indicato'}`,
+    result.valore ? `Valore causa: ${formatEuroIt(result.valore)}` : '',
+    `Contributo base: ${formatEuroIt(result.base)}`,
+    `Anticipazione forfettaria: ${formatEuroIt(result.anticipazione_forfettaria)}`,
+    `Totale da usare per PagoPA: ${formatEuroIt(result.totale)}`,
+    notes.length ? `Note: ${notes.join(' ')}` : '',
+    warnings.length ? `Avvisi: ${warnings.join(' ')}` : '',
+  ].filter(Boolean)
+  return lines.join('\n')
+}
+
+function buildContributoUnificatoMemory({
+  fascicolo,
+  clientName,
+  result,
+}:{
+  fascicolo: FascicoloFull
+  clientName: string
+  result: ContributoUnificatoResult
+}): ContributoUnificatoMemory {
+  const copyText = buildContributoUnificatoCopyText({ fascicolo, clientName, result })
+  return {
+    fascicoloId: fascicolo.id,
+    title: fascicolo.title,
+    reference: fascicolo.ref,
+    totalLabel: formatEuroIt(result.totale),
+    createdAt: new Date().toISOString(),
+    copyText,
+    result,
+  }
+}
+
 function FascicoloContextMenuItem({
   icon,
   label,
@@ -3979,6 +4157,7 @@ function FascicoloContextMenu({
   onParties,
   onOfficePortal,
   onNotification,
+  onContributoUnificato,
   onPagoPa,
   onSection,
 }:{
@@ -3998,6 +4177,7 @@ function FascicoloContextMenu({
   onParties: () => void
   onOfficePortal: () => void
   onNotification: () => void
+  onContributoUnificato: () => void
   onPagoPa: () => void
   onSection: (sectionId: string, lazySection?: FascicoloDetailSection) => void
 }) {
@@ -4046,6 +4226,7 @@ function FascicoloContextMenu({
 
       <div className="iu-fas-context-menu__group" aria-label="Economia e calendario">
         <span className="iu-fas-context-menu__group-title">Economia e calendario</span>
+        <FascicoloContextMenuItem icon={<Calculator size={16}/>} label="Calcola contributo unificato" note="Calcolo rapido e memoria per PagoPA" onSelect={onContributoUnificato}/>
         <FascicoloContextMenuItem icon={<Euro size={16}/>} label="PagoPA" note="Contributo, ricevute e pagamenti PST" onSelect={onPagoPa}/>
         <FascicoloContextMenuItem icon={<WalletCards size={16}/>} label="Controllo economico" note="Parcelle, fondo spese, liquidazioni e incassi" onSelect={() => onSection('economia')}/>
         <FascicoloContextMenuItem icon={<CalendarDays size={16}/>} label="Nuova scadenza" note="Aggiungi un termine collegato al fascicolo" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(fascicoloId)}`} onSelect={onClose}/>
@@ -4070,7 +4251,238 @@ function embeddedRecordIcon(kind: EmbeddedRecordKind) {
   return <img src={PAGOPA_LOGO_URL} alt="" aria-hidden="true"/>
 }
 
-function EmbeddedRecordModal({ record, onClose }:{record:EmbeddedRecordState | null; onClose:()=>void}) {
+function ContributoUnificatoModal({
+  open,
+  fascicolo,
+  clientName,
+  onClose,
+  onMemory,
+  onOpenPagoPa,
+}:{
+  open: boolean
+  fascicolo: FascicoloFull
+  clientName: string
+  onClose: () => void
+  onMemory: (memory: ContributoUnificatoMemory, message?: string) => void
+  onOpenPagoPa: () => void
+}) {
+  const [form, setForm] = useState<ContributoUnificatoFormState>(() => defaultContributoUnificatoForm(fascicolo))
+  const [result, setResult] = useState<ContributoUnificatoResult | null>(null)
+  const [loadingPrefill, setLoadingPrefill] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!open) return undefined
+    let active = true
+    setResult(null)
+    setError('')
+    setCopyState('idle')
+    setForm(defaultContributoUnificatoForm(fascicolo))
+    setLoadingPrefill(true)
+    fetch(`/strumenti-legali/api/prefill/${encodeURIComponent(fascicolo.id)}`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!active) return
+        if (payload?.ok && payload.prefill && typeof payload.prefill === 'object') {
+          setForm(defaultContributoUnificatoForm(fascicolo, payload.prefill as Record<string, unknown>))
+        }
+      })
+      .catch(() => {
+        if (active) setError('Precompilazione non disponibile: puoi completare i campi manualmente.')
+      })
+      .finally(() => {
+        if (active) setLoadingPrefill(false)
+      })
+    return () => { active = false }
+  }, [open, fascicolo.id])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  const updateField = (field: keyof ContributoUnificatoFormState, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    setCopyState('idle')
+  }
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setError('')
+    setCopyState('idle')
+    try {
+      const response = await fetch('/strumenti-legali/api/contributo-unificato', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(form),
+      })
+      const payload = await response.json()
+      if (!payload?.ok) throw new Error(String(payload?.errore || 'Calcolo non riuscito.'))
+      const nextResult = payload.result as ContributoUnificatoResult
+      setResult(nextResult)
+      const memory = buildContributoUnificatoMemory({ fascicolo, clientName, result: nextResult })
+      saveContributionMemory(memory)
+      onMemory(memory, 'Calcolo contributo unificato salvato in memoria per PagoPA.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Calcolo non riuscito.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  const copyCurrentResult = async (openPagoPa = false) => {
+    if (!result) return
+    const memory = buildContributoUnificatoMemory({ fascicolo, clientName, result })
+    try {
+      await copyTextForUser(memory.copyText)
+      saveContributionMemory(memory)
+      onMemory(memory, 'Calcolo copiato e pronto per PagoPA.')
+      setCopyState('copied')
+      if (openPagoPa) {
+        onClose()
+        onOpenPagoPa()
+      }
+    } catch {
+      saveContributionMemory(memory)
+      onMemory(memory, 'Calcolo salvato in memoria per PagoPA, ma la copia negli appunti è stata bloccata dal browser.')
+      setCopyState('error')
+      if (openPagoPa) {
+        onClose()
+        onOpenPagoPa()
+      }
+    }
+  }
+  const notes = Array.isArray(result?.notes) ? result?.notes || [] : []
+  const warnings = Array.isArray(result?.warnings) ? result?.warnings || [] : []
+  const rules = Array.isArray(result?.regole_applicate) ? result?.regole_applicate || [] : []
+  return (
+    <div className="iu-fas-contributo-modal" role="dialog" aria-modal="true" aria-label="Calcola contributo unificato">
+      <div className="iu-fas-contributo-modal__box">
+        <header>
+          <div>
+            <span><Calculator size={15}/> Calcolo contributo unificato</span>
+            <strong>{fascicolo.title || fascicolo.ref}</strong>
+          </div>
+          <nav>
+            <button type="button" onClick={onClose} aria-label="Chiudi calcolo contributo unificato">Chiudi</button>
+          </nav>
+        </header>
+        <form onSubmit={submit} className="iu-fas-contributo-form">
+          <label>
+            <span>Tipologia</span>
+            <select value={form.cu_categoria} onChange={(event) => updateField('cu_categoria', event.target.value)}>
+              {CONTRIBUTION_CATEGORIES.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Grado</span>
+            <select value={form.cu_grado} onChange={(event) => updateField('cu_grado', event.target.value)}>
+              {CONTRIBUTION_DEGREES.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Tipo valore</span>
+            <select value={form.cu_valore_tipo} onChange={(event) => updateField('cu_valore_tipo', event.target.value)}>
+              {CONTRIBUTION_VALUE_MODES.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Valore causa</span>
+            <input type="number" min="0" step="0.01" value={form.cu_valore} onChange={(event) => updateField('cu_valore', event.target.value)} placeholder="0,00"/>
+          </label>
+          <label>
+            <span>Anticipazione forfettaria</span>
+            <select value={form.cu_anticipazione_forfettaria} onChange={(event) => updateField('cu_anticipazione_forfettaria', event.target.value)}>
+              <option value="1">Sì</option>
+              <option value="0">No</option>
+            </select>
+          </label>
+          <label>
+            <span>Parti ricorrenti</span>
+            <input type="number" min="1" step="1" value={form.cu_numero_parti_ricorrenti} onChange={(event) => updateField('cu_numero_parti_ricorrenti', event.target.value)}/>
+          </label>
+          <label>
+            <span>Sezione impresa</span>
+            <select value={form.cu_sezione_specializzata_impresa} onChange={(event) => updateField('cu_sezione_specializzata_impresa', event.target.value)}>
+              <option value="0">No</option>
+              <option value="1">Sì</option>
+            </select>
+          </label>
+          <label>
+            <span>Dati obbligatori mancanti</span>
+            <select value={form.cu_dati_obbligatori_mancanti} onChange={(event) => updateField('cu_dati_obbligatori_mancanti', event.target.value)}>
+              <option value="0">No</option>
+              <option value="1">Sì</option>
+            </select>
+          </label>
+          <footer>
+            {loadingPrefill ? <span>Precompilazione dal fascicolo in corso...</span> : <span>Il calcolo usa l’API interna già presente negli strumenti forensi.</span>}
+            <button type="submit" disabled={submitting}>{submitting ? 'Calcolo...' : 'Calcola contributo'}</button>
+          </footer>
+        </form>
+        {error ? <p className="iu-fas-contributo-alert is-danger"><AlertTriangle size={15}/> {error}</p> : null}
+        {result ? (
+          <section className="iu-fas-contributo-result" aria-label="Risultato contributo unificato">
+            <div className="iu-fas-contributo-result__metrics">
+              <span><small>Contributo base</small><strong>{formatEuroIt(result.base)}</strong></span>
+              <span><small>Anticipazione</small><strong>{formatEuroIt(result.anticipazione_forfettaria)}</strong></span>
+              <span className="is-total"><small>Totale PagoPA</small><strong>{formatEuroIt(result.totale)}</strong></span>
+            </div>
+            {rules.length ? (
+              <div className="iu-fas-contributo-result__rules">
+                {rules.map((rule, index) => <span key={`${String(rule.code || rule.label || 'regola')}-${index}`}>{String(rule.label || rule.code || 'Regola applicata')}</span>)}
+              </div>
+            ) : null}
+            {[...notes, ...warnings].length ? (
+              <ul>
+                {notes.map((note, index) => <li key={`note-${index}`}>{note}</li>)}
+                {warnings.map((warning, index) => <li className="is-warning" key={`warning-${index}`}>{warning}</li>)}
+              </ul>
+            ) : null}
+            <div className="iu-fas-contributo-result__actions">
+              <button type="button" onClick={() => copyCurrentResult(false)}><Copy size={15}/> Copia calcolo</button>
+              <button type="button" className="is-primary" onClick={() => copyCurrentResult(true)}><Euro size={15}/> Copia e apri PagoPA</button>
+              {copyState === 'copied' ? <span>Calcolo copiato negli appunti e salvato in memoria.</span> : null}
+              {copyState === 'error' ? <span>Memoria salvata; gli appunti sono stati bloccati dal browser.</span> : null}
+            </div>
+          </section>
+        ) : (
+          <section className="iu-fas-contributo-empty">
+            <strong>Calcolo non ancora eseguito</strong>
+            <p>Inserisci valore e categoria, poi salva il risultato in memoria per usarlo durante la compilazione PagoPA.</p>
+          </section>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EmbeddedRecordModal({
+  record,
+  contributoMemory,
+  onCopyContributoMemory,
+  onClose,
+}:{
+  record:EmbeddedRecordState | null
+  contributoMemory: ContributoUnificatoMemory | null
+  onCopyContributoMemory: (memory: ContributoUnificatoMemory) => void
+  onClose:()=>void
+}) {
   useEffect(() => {
     if (!record) return undefined
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4083,7 +4495,7 @@ function EmbeddedRecordModal({ record, onClose }:{record:EmbeddedRecordState | n
   if (!record) return null
   const isPagoPa = record.kind === 'pagopa'
   return (
-    <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
+    <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}${isPagoPa && contributoMemory ? ' iu-fas-embedded-modal--pagopa-memory' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
       <div className="iu-fas-preview-modal__box">
         <header>
           <div>{embeddedRecordIcon(record.kind)}<strong>{record.title}</strong></div>
@@ -4094,6 +4506,16 @@ function EmbeddedRecordModal({ record, onClose }:{record:EmbeddedRecordState | n
         </header>
         <div className="iu-fas-embedded-modal__body">
           {isPagoPa ? <p className="iu-fas-pagopa-proxy-note">Compila qui il pagamento PagoPA PST. Quando richiedi la ricevuta PDF, IUSENTRA la intercetta e la collega ai documenti del fascicolo.</p> : null}
+          {isPagoPa && contributoMemory ? (
+            <section className="iu-fas-pagopa-memory" aria-label="Calcolo contributo unificato in memoria">
+              <div>
+                <span>Calcolo contributo in memoria</span>
+                <strong>{contributoMemory.totalLabel}</strong>
+                <small>{[contributoMemory.reference, contributoMemory.title].filter(Boolean).join(' · ')}</small>
+              </div>
+              <button type="button" onClick={() => onCopyContributoMemory(contributoMemory)}><Copy size={15}/> Copia calcolo</button>
+            </section>
+          ) : null}
           <iframe
             src={record.href}
             title={record.title}
@@ -6618,6 +7040,8 @@ function DetailPage({ id }:{id:string}) {
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
   const [contextMenu, setContextMenu] = useState<FascicoloContextMenuState | null>(null)
+  const [contributoModalOpen, setContributoModalOpen] = useState(false)
+  const [contributoMemory, setContributoMemory] = useState<ContributoUnificatoMemory | null>(null)
   const [officePortalOpenRequest, setOfficePortalOpenRequest] = useState(0)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
   const [activeHashSection, setActiveHashSection] = useState(() => currentDetailHashSectionId())
@@ -6660,6 +7084,7 @@ function DetailPage({ id }:{id:string}) {
   const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const pagoPaEmbeddedHref = `${PAGOPA_PROXY_URL}?iusentra_fascicolo=${encodedId}`
+  const openPagoPaModal = () => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
@@ -6726,6 +7151,19 @@ function DetailPage({ id }:{id:string}) {
     openDetailSectionById('documenti')
     setOfficePortalOpenRequest((current) => current + 1)
   }
+  const openContributoUnificatoFromContext = () => {
+    setContextMenu(null)
+    setContributoModalOpen(true)
+  }
+  const rememberContributoUnificato = (memory: ContributoUnificatoMemory, message?: string) => {
+    setContributoMemory(memory)
+    if (message) setToast({ tone: 'success', message })
+  }
+  const copyContributionMemory = (memory: ContributoUnificatoMemory) => {
+    void copyTextForUser(memory.copyText)
+      .then(() => setToast({ tone: 'success', message: 'Calcolo contributo copiato negli appunti.' }))
+      .catch(() => setToast({ tone: 'danger', message: 'Il browser ha bloccato la copia negli appunti.' }))
+  }
   const openFascicoloContextMenu = (event: MouseEvent<HTMLElement>) => {
     if (shouldUseNativeContextMenu(event.target)) return
     event.preventDefault()
@@ -6752,6 +7190,10 @@ function DetailPage({ id }:{id:string}) {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [contextMenu])
+  useEffect(() => {
+    const currentId = f.id || id
+    setContributoMemory(readContributionMemory(currentId))
+  }, [f.id, id])
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -6799,7 +7241,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button><RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
@@ -6945,7 +7387,7 @@ function DetailPage({ id }:{id:string}) {
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
-            <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={() => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
+            <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Contesto economico" icon={<WalletCards size={17}/>} count={data.economics.length} defaultOpen={activeHashSection === 'economia'}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} onClick={item.href.startsWith('#') ? openSection(item.href.slice(1)) : undefined} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
           <SentenzeEconomicheSection data={data.sentenzeEconomiche} onOpenDocuments={openSection('documenti', 'documenti')} onOpenEconomia={openSection('economia')} defaultOpen={activeHashSection === 'sentenze-economiche'}/>
@@ -6980,9 +7422,10 @@ function DetailPage({ id }:{id:string}) {
         }}
         onOfficePortal={openOfficePortalFromContext}
         onNotification={() => openDocumentFlow('notifica')}
+        onContributoUnificato={openContributoUnificatoFromContext}
         onPagoPa={() => {
           setContextMenu(null)
-          setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })
+          openPagoPaModal()
         }}
         onSection={openSectionFromContext}
       />
@@ -6995,8 +7438,21 @@ function DetailPage({ id }:{id:string}) {
           onClose={() => setDocumentFlowMode(null)}
         />
       ) : null}
+      <ContributoUnificatoModal
+        open={contributoModalOpen}
+        fascicolo={f}
+        clientName={data.client?.name || f.client}
+        onClose={() => setContributoModalOpen(false)}
+        onMemory={rememberContributoUnificato}
+        onOpenPagoPa={openPagoPaModal}
+      />
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
-      <EmbeddedRecordModal record={embeddedRecord} onClose={() => setEmbeddedRecord(null)}/>
+      <EmbeddedRecordModal
+        record={embeddedRecord}
+        contributoMemory={contributoMemory}
+        onCopyContributoMemory={copyContributionMemory}
+        onClose={() => setEmbeddedRecord(null)}
+      />
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
       <FloatingLex
         context="fascicolo-dettaglio"

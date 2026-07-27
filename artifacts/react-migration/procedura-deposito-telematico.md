@@ -1,5 +1,13 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-27 - Calcolo contributo unificato dal menu fascicolo
+
+Nel menu contestuale del dettaglio fascicolo React è stata aggiunta la voce `Calcola contributo unificato`. L'azione apre una finestra sovrapposta interna al fascicolo, precompila il valore causa quando disponibile e richiama l'API già esistente degli Strumenti Forensi (`/strumenti-legali/api/contributo-unificato`) per categoria, grado, tipo valore, anticipazione forfettaria, parti ricorrenti, sezione impresa e maggiorazione per dati obbligatori mancanti.
+
+Il risultato mostra contributo base, anticipazione e totale in formato italiano, con note, avvisi e regole applicate. Il comando `Copia calcolo` scrive negli appunti un riepilogo utilizzabile durante la compilazione PagoPA e salva lo stesso riepilogo nella memoria di sessione del browser per il fascicolo corrente. Il comando `Copia e apri PagoPA` chiude il calcolatore, apre la modale PagoPA esistente e mostra sopra il portale il totale memorizzato con un pulsante di copia.
+
+Stato anti-regressione: questa funzione non registra un pagamento, non crea ricevute e non abilita deposito o invio. Il pagamento resta provato solo da ricevuta PagoPA/F23/F24, documento di esenzione o evidenza equivalente collegata al fascicolo. Il calcolo è un appunto operativo di compilazione e non sostituisce i controlli primari del deposito, della busta, del fascicolo economico o del presidio ricevute.
+
 ## Aggiornamento 2026-07-26 - Menu contestuale del fascicolo per deposito e notifica
 
 Nel dettaglio fascicolo React è stato aggiunto un menu contestuale attivabile con il tasto destro del mouse. La voce `Deposito telematico` apre lo stesso selettore documenti già presente nel fascicolo, carica il pannello `Documenti e atti` quando serve e non modifica la logica di firma, busta, PEC o invio reale.

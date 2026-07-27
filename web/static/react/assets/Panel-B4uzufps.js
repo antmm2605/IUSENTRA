@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:web/static/react/assets/Panel-B4uzufps.js
-import{j as e}from"./vendor-react-DCA3L5Xq.js";import{C as i,e as l,k as c}from"./index-Cdr2yszt.js";/* empty css           */function p({title:a,subtitle:s,actions:n,children:r}){return e.jsx(i,{className:"iu-panel ius-panel-card",children:e.jsxs(l,{className:"ius-panel-card__content",children:[e.jsx(c,{title:a,description:s,actions:n,level:2,className:"iu-panel__header",sequence:!1}),e.jsx("div",{className:"iu-panel__body ius-panel-card__body",children:r})]})})}export{p as P};
-========
-import{j as e}from"./vendor-react-BLQXznre.js";import{C as i,e as l,k as c}from"./index-BAo3hbSV.js";/* empty css           */function p({title:a,subtitle:s,actions:n,children:r}){return e.jsx(i,{className:"iu-panel ius-panel-card",children:e.jsxs(l,{className:"ius-panel-card__content",children:[e.jsx(c,{title:a,description:s,actions:n,level:2,className:"iu-panel__header",sequence:!1}),e.jsx("div",{className:"iu-panel__body ius-panel-card__body",children:r})]})})}export{p as P};
->>>>>>>> origin/claude/legal-electronic-filing-kIxcV:web/static/react/assets/Panel-Jkyam_Y9.js

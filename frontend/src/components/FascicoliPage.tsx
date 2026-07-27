@@ -37,6 +37,8 @@ import {
   ListChecks,
   Mail,
   MapPin,
+  Maximize2,
+  Minimize2,
   PackageCheck,
   PencilLine,
   Phone,
@@ -140,7 +142,9 @@ const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then(
 const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((module) => ({ default: module.OfficeDocumentsPanel })))
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
+const PAGOPA_PST_NEW_PAYMENT_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp'
 const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'
+const PAGOPA_PROXY_NEW_PAYMENT_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp'
 const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'
 
 type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti'
@@ -1659,7 +1663,7 @@ function economicAnalysisMessage(analysis: FascicoloPaymentSummary['analysis']):
     return 'Il sistema ha letto i documenti disponibili e segnala solo le informazioni utili.'
   }
   if (analysis.status === 'aggiornato_con_rilievi') {
-    return analysis.reason || 'Presidio eseguito: alcuni dati non risultano dai documenti correnti.'
+    return analysis.reason || 'Presidio eseguito: alcuni dati non risultano dai documenti del fascicolo o dai documenti indicizzati in archivio centrale.'
   }
   if (analysis.relatedDuplicateFascicoli) {
     const suffix = analysis.relatedDuplicateFascicoli === 1 ? 'pratica collegata' : 'pratiche collegate'
@@ -3836,10 +3840,18 @@ type ContributoUnificatoMemory = {
   fascicoloId: string
   title: string
   reference: string
+  objectLabel: string
+  clientName: string
   totalLabel: string
+  totalValue: number | null
   createdAt: string
   copyText: string
   result: ContributoUnificatoResult
+}
+
+type PagoPaPrefillOutcome = {
+  status: 'idle' | 'waiting' | 'filled' | 'partial' | 'blocked'
+  message: string
 }
 
 const CONTRIBUTION_MEMORY_STORAGE_PREFIX = 'iusentra.fascicolo.contributoUnificato.'
@@ -3877,7 +3889,7 @@ const CONTRIBUTION_VALUE_MODES = [
 
 function shouldUseNativeContextMenu(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false
-  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], .iu-fas-preview-modal, .iu-fas-document-flow-modal, .iu-fas-context-menu, .iu-fas-contributo-modal'))
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], .iu-fas-preview-modal, .iu-fas-document-flow-modal, .iu-fas-context-menu, .iu-fas-contributo-modal, .iu-fas-economic-control-modal'))
 }
 
 function clampFascicoloContextMenuPosition(x: number, y: number): FascicoloContextMenuState {
@@ -4022,6 +4034,115 @@ function saveContributionMemory(memory: ContributoUnificatoMemory): void {
   }
 }
 
+function cleanDisplayText(value: unknown): string {
+  return String(value ?? '').replace(/\s+/g, ' ').trim()
+}
+
+function contributoAmountNumber(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  let normalized = raw.replace(/€/g, '').replace(/EUR/gi, '').replace(/\s+/g, '')
+  if (normalized.includes(',')) normalized = normalized.replace(/\./g, '').replace(',', '.')
+  normalized = normalized.replace(/[^0-9.-]/g, '')
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function fascicoloOggettoRicorso(fascicolo: FascicoloFull): string {
+  const snapshot = fascicolo.sourceSnapshot
+  const candidates = [
+    fascicolo.object,
+    snapshot?.oggetto,
+    fascicolo.subtitle,
+    fascicolo.procedureType,
+    fascicolo.title,
+  ]
+  return candidates.map(cleanDisplayText).find(Boolean) || ''
+}
+
+function pagoPaAmountInput(memory: ContributoUnificatoMemory): string {
+  const amount = memory.totalValue ?? contributoAmountNumber(memory.result?.totale) ?? contributoAmountNumber(memory.totalLabel)
+  return amount === null ? '' : formatEuroIt(amount).replace(/^€\s*/, '')
+}
+
+function normalizePagoPaText(value: unknown): string {
+  return cleanDisplayText(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function controlIdentity(control: HTMLInputElement | HTMLTextAreaElement, doc: Document): string {
+  const direct = [
+    control.name,
+    control.id,
+    control.getAttribute('placeholder'),
+    control.getAttribute('aria-label'),
+    control.getAttribute('title'),
+  ]
+  const labels: string[] = []
+  if (control.id) {
+    try {
+      doc.querySelectorAll<HTMLLabelElement>(`label[for="${control.id.replace(/"/g, '\\"')}"]`).forEach((label) => labels.push(label.textContent || ''))
+    } catch {
+      // Alcuni portali usano id non validi per i selettori CSS: in quel caso bastano name e placeholder.
+    }
+  }
+  const wrapperText = control.closest('label')?.textContent || control.closest('tr')?.textContent || ''
+  return normalizePagoPaText([...direct, ...labels, wrapperText].filter(Boolean).join(' '))
+}
+
+function setPagoPaControlValue(control: HTMLInputElement | HTMLTextAreaElement, value: string): boolean {
+  if (!value || control.disabled || control.readOnly) return false
+  const type = control instanceof HTMLInputElement ? normalizePagoPaText(control.type) : 'textarea'
+  if (['button', 'checkbox', 'file', 'hidden', 'image', 'radio', 'reset', 'submit'].includes(type)) return false
+  const current = cleanDisplayText(control.value)
+  if (current && current !== '0' && current !== '0,00') return false
+  control.focus({ preventScroll: true })
+  control.value = value
+  control.dispatchEvent(new Event('input', { bubbles: true }))
+  control.dispatchEvent(new Event('change', { bubbles: true }))
+  return true
+}
+
+function tryPrefillPagoPaFrame(iframe: HTMLIFrameElement | null, memory: ContributoUnificatoMemory | null): PagoPaPrefillOutcome {
+  if (!memory) {
+    return { status: 'waiting', message: 'Esegui o copia un calcolo del contributo per preparare i dati PagoPA.' }
+  }
+  const amount = pagoPaAmountInput(memory)
+  const subject = cleanDisplayText(memory.objectLabel || memory.title)
+  const reference = cleanDisplayText(memory.reference || memory.fascicoloId)
+  const client = cleanDisplayText(memory.clientName)
+  if (!amount && !subject && !reference && !client) {
+    return { status: 'waiting', message: 'Calcolo disponibile, ma mancano dati compilabili per il portale PagoPA.' }
+  }
+  try {
+    const doc = iframe?.contentDocument || iframe?.contentWindow?.document || null
+    if (!doc) return { status: 'waiting', message: 'PagoPA è in caricamento: i dati restano in memoria.' }
+    const controls = Array.from(doc.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea'))
+    const filled: string[] = []
+    const fill = (label: string, patterns: RegExp[], value: string) => {
+      if (!value || filled.includes(label)) return
+      const target = controls.find((control) => patterns.some((pattern) => pattern.test(controlIdentity(control, doc))))
+      if (target && setPagoPaControlValue(target, value)) filled.push(label)
+    }
+    fill('importo', [/\b(importo|totale|ammontare|somma|euro)\b/], amount)
+    fill('oggetto', [/\b(oggetto|causale|descrizione|note|annotazioni)\b/], subject)
+    fill('riferimento', [/\b(riferimento|rg|r\.g\.|ruolo|procedimento|fascicolo)\b/], reference)
+    fill('cliente', [/\b(cliente|debitore|versante|contribuente|soggetto|nominativo|nome)\b/], client)
+    if (filled.length >= 2) {
+      return { status: 'filled', message: `Dati inseriti nei campi PagoPA visibili: ${filled.join(', ')}.` }
+    }
+    if (filled.length === 1) {
+      return { status: 'partial', message: `Inserito ${filled[0]}; gli altri dati restano copiabili dal riepilogo.` }
+    }
+    return { status: 'waiting', message: 'Nuovo pagamento aperto. Il riepilogo resta pronto se il portale non espone campi compilabili in questa schermata.' }
+  } catch {
+    return { status: 'blocked', message: 'PagoPA ha isolato la pagina: il calcolo resta disponibile per copia manuale.' }
+  }
+}
+
 async function copyTextForUser(value: string): Promise<void> {
   if (!value) return
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -4064,11 +4185,13 @@ function buildContributoUnificatoCopyText({
 }): string {
   const notes = Array.isArray(result.notes) ? result.notes.filter(Boolean) : []
   const warnings = Array.isArray(result.warnings) ? result.warnings.filter(Boolean) : []
+  const objectLabel = fascicoloOggettoRicorso(fascicolo)
   const lines = [
     'Calcolo contributo unificato',
     `Fascicolo: ${fascicolo.title || fascicolo.ref || fascicolo.id}`,
     fascicolo.ref ? `Riferimento: ${fascicolo.ref}` : '',
     clientName ? `Cliente: ${clientName}` : '',
+    objectLabel ? `Oggetto del ricorso: ${objectLabel}` : '',
     `Tipologia: ${result.categoria_label || result.categoria || 'Non indicata'}`,
     `Grado: ${result.grado_label || result.grado || 'Primo grado'}`,
     `Tipo valore: ${result.valore_tipo_label || result.valore_tipo || 'Non indicato'}`,
@@ -4092,11 +4215,15 @@ function buildContributoUnificatoMemory({
   result: ContributoUnificatoResult
 }): ContributoUnificatoMemory {
   const copyText = buildContributoUnificatoCopyText({ fascicolo, clientName, result })
+  const totalValue = contributoAmountNumber(result.totale)
   return {
     fascicoloId: fascicolo.id,
     title: fascicolo.title,
     reference: fascicolo.ref,
+    objectLabel: fascicoloOggettoRicorso(fascicolo),
+    clientName,
     totalLabel: formatEuroIt(result.totale),
+    totalValue,
     createdAt: new Date().toISOString(),
     copyText,
     result,
@@ -4159,6 +4286,7 @@ function FascicoloContextMenu({
   onNotification,
   onContributoUnificato,
   onPagoPa,
+  onEconomicControl,
   onSection,
 }:{
   position: FascicoloContextMenuState | null
@@ -4179,6 +4307,7 @@ function FascicoloContextMenu({
   onNotification: () => void
   onContributoUnificato: () => void
   onPagoPa: () => void
+  onEconomicControl: () => void
   onSection: (sectionId: string, lazySection?: FascicoloDetailSection) => void
 }) {
   const menuRef = useRef<HTMLElement | null>(null)
@@ -4228,7 +4357,7 @@ function FascicoloContextMenu({
         <span className="iu-fas-context-menu__group-title">Economia e calendario</span>
         <FascicoloContextMenuItem icon={<Calculator size={16}/>} label="Calcola contributo unificato" note="Calcolo rapido e memoria per PagoPA" onSelect={onContributoUnificato}/>
         <FascicoloContextMenuItem icon={<Euro size={16}/>} label="PagoPA" note="Contributo, ricevute e pagamenti PST" onSelect={onPagoPa}/>
-        <FascicoloContextMenuItem icon={<WalletCards size={16}/>} label="Controllo economico" note="Parcelle, fondo spese, liquidazioni e incassi" onSelect={() => onSection('economia')}/>
+        <FascicoloContextMenuItem icon={<WalletCards size={16}/>} label="Controllo economico" note="Contributo, ricevute, liquidazioni e parcella" onSelect={onEconomicControl}/>
         <FascicoloContextMenuItem icon={<CalendarDays size={16}/>} label="Nuova scadenza" note="Aggiungi un termine collegato al fascicolo" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(fascicoloId)}`} onSelect={onClose}/>
         <FascicoloContextMenuItem icon={<Clock3 size={16}/>} label="Nuovo appuntamento" note="Crea udienza o attività in Agenda" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(fascicoloId)}`} onSelect={onClose}/>
       </div>
@@ -4431,7 +4560,7 @@ function ContributoUnificatoModal({
             </select>
           </label>
           <footer>
-            {loadingPrefill ? <span>Precompilazione dal fascicolo in corso...</span> : <span>Il calcolo usa l’API interna già presente negli strumenti forensi.</span>}
+            {loadingPrefill ? <span>Precompilazione dal fascicolo in corso...</span> : <span>Il calcolo usa il servizio interno già presente negli strumenti forensi.</span>}
             <button type="submit" disabled={submitting}>{submitting ? 'Calcolo...' : 'Calcola contributo'}</button>
           </footer>
         </form>
@@ -4483,6 +4612,11 @@ function EmbeddedRecordModal({
   onCopyContributoMemory: (memory: ContributoUnificatoMemory) => void
   onClose:()=>void
 }) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [fullScreen, setFullScreen] = useState(false)
+  const [prefillOutcome, setPrefillOutcome] = useState<PagoPaPrefillOutcome>({ status: 'idle', message: '' })
+  const isPagoPa = record?.kind === 'pagopa'
+
   useEffect(() => {
     if (!record) return undefined
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4492,37 +4626,250 @@ function EmbeddedRecordModal({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [record, onClose])
 
+  useEffect(() => {
+    setFullScreen(false)
+    setPrefillOutcome({ status: 'idle', message: '' })
+  }, [record?.href])
+
+  const runPagoPaPrefill = useCallback(() => {
+    if (!isPagoPa) return
+    setPrefillOutcome(tryPrefillPagoPaFrame(iframeRef.current, contributoMemory))
+  }, [isPagoPa, contributoMemory])
+
+  useEffect(() => {
+    if (!isPagoPa || !contributoMemory) return undefined
+    const timer = window.setTimeout(runPagoPaPrefill, 250)
+    return () => window.clearTimeout(timer)
+  }, [isPagoPa, contributoMemory, runPagoPaPrefill])
+
   if (!record) return null
-  const isPagoPa = record.kind === 'pagopa'
   return (
-    <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}${isPagoPa && contributoMemory ? ' iu-fas-embedded-modal--pagopa-memory' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
+    <div className={`iu-fas-preview-modal iu-fas-embedded-modal${isPagoPa ? ' iu-fas-embedded-modal--pagopa' : ''}${isPagoPa && contributoMemory ? ' iu-fas-embedded-modal--pagopa-memory' : ''}${isPagoPa && prefillOutcome.message ? ' iu-fas-embedded-modal--pagopa-prefill' : ''}${fullScreen ? ' iu-fas-embedded-modal--fullscreen' : ''}`} role="dialog" aria-modal="true" aria-label={record.title}>
       <div className="iu-fas-preview-modal__box">
         <header>
           <div>{embeddedRecordIcon(record.kind)}<strong>{record.title}</strong></div>
           <nav>
+            {isPagoPa ? (
+              <button type="button" onClick={() => setFullScreen((current) => !current)} aria-pressed={fullScreen}>
+                {fullScreen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}
+                {fullScreen ? 'Riduci' : 'Tutto schermo'}
+              </button>
+            ) : null}
             <a href={record.externalHref || record.href} target="_blank" rel="noopener noreferrer">Apri fuori</a>
             <button type="button" onClick={onClose} aria-label={`Chiudi ${record.title}`}>Chiudi</button>
           </nav>
         </header>
         <div className="iu-fas-embedded-modal__body">
-          {isPagoPa ? <p className="iu-fas-pagopa-proxy-note">Compila qui il pagamento PagoPA PST. Quando richiedi la ricevuta PDF, IUSENTRA la intercetta e la collega ai documenti del fascicolo.</p> : null}
+          {isPagoPa ? <p className="iu-fas-pagopa-proxy-note">Nuovo pagamento PagoPA PST: importo, RG, oggetto del ricorso e cliente restano pronti qui. IUSENTRA prova a compilare i campi visibili, senza inviare nulla.</p> : null}
           {isPagoPa && contributoMemory ? (
             <section className="iu-fas-pagopa-memory" aria-label="Calcolo contributo unificato in memoria">
               <div>
                 <span>Calcolo contributo in memoria</span>
                 <strong>{contributoMemory.totalLabel}</strong>
-                <small>{[contributoMemory.reference, contributoMemory.title].filter(Boolean).join(' · ')}</small>
+                <small>{[contributoMemory.reference, contributoMemory.clientName, contributoMemory.objectLabel].filter(Boolean).join(' · ')}</small>
               </div>
               <button type="button" onClick={() => onCopyContributoMemory(contributoMemory)}><Copy size={15}/> Copia calcolo</button>
             </section>
           ) : null}
+          {isPagoPa && prefillOutcome.message ? (
+            <p className={`iu-fas-pagopa-prefill iu-fas-pagopa-prefill--${prefillOutcome.status}`} aria-live="polite">
+              {prefillOutcome.message}
+            </p>
+          ) : null}
           <iframe
+            ref={iframeRef}
             src={record.href}
             title={record.title}
+            onLoad={isPagoPa ? runPagoPaPrefill : undefined}
             sandbox={isPagoPa ? 'allow-same-origin allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation' : undefined}
             referrerPolicy={isPagoPa ? 'same-origin' : undefined}
           />
         </div>
+      </div>
+    </div>
+  )
+}
+
+function italianDateOrRaw(value: string): string {
+  const raw = cleanDisplayText(value)
+  if (!raw) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw
+  return formatDateIt(raw, raw)
+}
+
+function paymentValueLabel(item: FascicoloPaymentItem, fallback = 'n.d.'): string {
+  return cleanDisplayText(item.importoLabel) || fallback
+}
+
+function paymentNote(item: FascicoloPaymentItem): string {
+  return [item.metodo, item.documentoFonte, item.note, item.updatedAtLabel].map(cleanDisplayText).filter(Boolean).join(' · ')
+}
+
+function economicControlPaymentRow(item: FascicoloPaymentItem, label = item.displayLabel, fallback = 'n.d.') {
+  return {
+    key: item.kind,
+    label,
+    value: paymentValueLabel(item, fallback),
+    status: item.statusLabel,
+    tone: item.tone,
+    note: paymentNote(item) || (item.previsto ? 'Importo da confermare nel fascicolo.' : 'Non previsto per il fascicolo.'),
+  }
+}
+
+function EconomicControlModal({
+  open,
+  data,
+  contributoMemory,
+  onClose,
+  onPaymentSaved,
+  onError,
+  onOpenPagoPa,
+}:{
+  open: boolean
+  data: FascicoloDetailData
+  contributoMemory: ContributoUnificatoMemory | null
+  onClose: () => void
+  onPaymentSaved: (id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string) => void
+  onError: (message:string) => void
+  onOpenPagoPa: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  useEffect(() => {
+    if (!open) setEditing(false)
+  }, [open])
+  useEffect(() => {
+    if (!open) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
+
+  if (!open) return null
+  const f = data.fascicolo
+  const summary = f.paymentSummary
+  const items = summary.items
+  const contribution = items.contributo_unificato
+  const expenses = items.spese_esborsi.importo !== null || items.spese_esborsi.status !== 'non_previsto'
+    ? items.spese_esborsi
+    : items.fondo_spese
+  const proformaNeedsConfirmation = summary.proformaPresidio.status === 'importi_da_confermare' || (f.status === 'definito' && !summary.proformaPresidio.total)
+  const proformaStatus = proformaNeedsConfirmation ? 'Importi da confermare' : summary.proformaPresidio.statusLabel
+  const proformaMessage = summary.proformaPresidio.message
+    || (f.status === 'definito'
+      ? 'Fascicolo definito: documento economico letto, ma importo da confermare prima della proforma.'
+      : 'Controlla documenti economici, ricevute e importi prima di emettere la proforma.')
+  const proformaEditorStatus = proformaNeedsConfirmation
+    ? 'Proforma da preparare'
+    : summary.proformaPresidio.status === 'presente'
+      ? 'Proforma già collegata'
+      : summary.proformaPresidio.statusLabel || 'Proforma da generare'
+  const proformaEditorMessage = proformaNeedsConfirmation
+    ? 'Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma.'
+    : proformaMessage
+  const contributionStatusLabel = contribution.status === 'non_previsto'
+    ? 'Contributo non dovuto o esente'
+    : contribution.statusLabel
+  const receiptStatus = contribution.status === 'pagato'
+    ? 'Ricevuta presente'
+    : contribution.status === 'non_previsto'
+      ? 'Non prevista'
+      : 'Da allegare'
+  const rows = [
+    { ...economicControlPaymentRow(contribution, 'Contributo'), status: contributionStatusLabel },
+    {
+      key: 'ricevuta_pagopa',
+      label: 'Ricevuta pagoPA',
+      value: cleanDisplayText(contribution.documentoFonte) || 'n.d.',
+      status: receiptStatus,
+      tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning',
+      note: contribution.origine || contribution.note || 'Collega ricevuta PagoPA, F23/F24 o documento di esenzione quando disponibile.',
+    },
+    economicControlPaymentRow(expenses, 'Spese/esborsi'),
+    economicControlPaymentRow(items.liquidazione_giudice, 'Liquidazione'),
+    economicControlPaymentRow(items.parcella, 'Parcella', items.parcella.status === 'da_emettere' ? 'Da calcolare' : 'n.d.'),
+    {
+      key: 'controllo_documenti',
+      label: 'Controllo documenti',
+      value: proformaStatus,
+      status: summary.analysis.statusLabel || summary.statoLabel,
+      tone: summary.proformaPresidio.tone || summary.analysis.tone || summary.tone,
+      note: proformaMessage,
+    },
+  ]
+  const importHref = `/importa-pratiche-studio-telematico?fascicolo=${encodeURIComponent(f.id)}`
+  const caseDate = italianDateOrRaw(f.sourceSnapshot.dataIscrizione || f.openedAt || f.dataAperturaIso)
+  const objectLabel = fascicoloOggettoRicorso(f)
+  const chips = [
+    { label: contributionStatusLabel, tone: contribution.status === 'non_previsto' ? 'neutral' : contribution.tone },
+    { label: 'Ricevuta pagoPA', tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning' },
+    { label: items.parcella.status === 'da_emettere' || summary.parcelleDaEmettere ? 'Parcella da emettere' : items.parcella.statusLabel, tone: items.parcella.tone },
+    { label: proformaStatus, tone: proformaNeedsConfirmation ? 'warning' : summary.proformaPresidio.tone },
+  ]
+  return (
+    <div className="iu-fas-economic-control-modal" role="dialog" aria-modal="true" aria-label="Controllo economico fascicolo">
+      <div className="iu-fas-economic-control-modal__box">
+        <header>
+          <div>
+            <span><WalletCards size={15}/> Controllo economico fascicolo</span>
+            <strong>{f.ref || f.rg || f.id}</strong>
+            <small>{[f.title, data.client?.name || f.client].filter(Boolean).join(' · ')}</small>
+          </div>
+          <nav>
+            <button type="button" onClick={() => setEditing((current) => !current)} aria-pressed={editing}>
+              {editing ? <ListChecks size={15}/> : <PencilLine size={15}/>}
+              {editing ? 'Riepilogo controllo' : 'Modifica controllo economico'}
+            </button>
+            <button type="button" onClick={onClose} aria-label="Chiudi controllo economico">Chiudi</button>
+          </nav>
+        </header>
+        <section className="iu-fas-economic-control-modal__summary" aria-label="Riepilogo pratica">
+          <span><strong>RG</strong>{f.ref || f.rg || 'n.d.'}</span>
+          <span><strong>Cliente</strong>{data.client?.name || f.client || 'n.d.'}</span>
+          <span><strong>Data</strong>{caseDate || 'n.d.'}</span>
+          <span><strong>Stato</strong>{formatFascicoloStatus(f.status)}</span>
+          <span className="is-wide"><strong>Oggetto del ricorso</strong>{objectLabel || 'Oggetto non indicato'}</span>
+        </section>
+        {editing ? (
+          <section className="iu-fas-economic-control-modal__editor" aria-label="Modifica controllo economico">
+            <div className="iu-fas-economic-control-modal__editor-head">
+              <Badge tone={summary.tone}>{summary.statoLabel}</Badge>
+              <strong>Modifica controllo economico</strong>
+              <span>{proformaEditorStatus}</span>
+              <p>{proformaEditorMessage}</p>
+            </div>
+            <EconomicEditorPanel row={f} onSaved={onPaymentSaved} onError={onError}/>
+          </section>
+        ) : (
+          <>
+            <section className="iu-fas-economic-control-modal__rows" aria-label="Voci economiche">
+              {rows.map((row) => (
+                <article key={row.key}>
+                  <div>
+                    <span>{row.label}</span>
+                    <strong>{row.value}</strong>
+                    <small>{row.note}</small>
+                  </div>
+                  <Badge tone={row.tone as FascicoloRow['tone']}>{row.status}</Badge>
+                </article>
+              ))}
+            </section>
+            <aside className="iu-fas-economic-control-modal__presidio" aria-label="Presidio economico">
+              <Badge tone={summary.tone}>{summary.statoLabel}</Badge>
+              <strong>{proformaStatus}</strong>
+              <p>{proformaMessage}</p>
+              <div>
+                {chips.map((chip, index) => <Badge tone={chip.tone as FascicoloRow['tone']} key={`${chip.label}-${index}`}>{chip.label}</Badge>)}
+              </div>
+              {contributoMemory ? <small>Calcolo CU in memoria per PagoPA: {contributoMemory.totalLabel}</small> : null}
+            </aside>
+          </>
+        )}
+        <footer>
+          <button type="button" onClick={onOpenPagoPa}><Euro size={15}/> PagoPA nuovo pagamento</button>
+          <a href={importHref}><UploadCloud size={15}/> Import pratiche</a>
+        </footer>
       </div>
     </div>
   )
@@ -6848,6 +7195,7 @@ function operationalSectorIcon(sectorId: string): ReactNode {
 function OperationalPresidioPanel({ data, onOpenSector }:{data:FascicoloDetailData; onOpenSector:(href:string, lazySection?:FascicoloDetailSection)=>void}) {
   const presidio = data.operationalPresidio
   const next = presidio.nextAction || presidio.actions[0]
+  const remainingActions = presidio.actions.filter((action) => action.id !== next?.id)
   const sectors = presidio.sectors.length ? presidio.sectors : []
   const sectorTargets: Record<string, FascicoloDetailSection | undefined> = {
     pec: 'depositi',
@@ -6894,7 +7242,7 @@ function OperationalPresidioPanel({ data, onOpenSector }:{data:FascicoloDetailDa
         ))}
       </div>
       <div className="iu-fas-operational-actions">
-        {presidio.actions.slice(0, 5).map((action) => (
+        {remainingActions.slice(0, 5).map((action) => (
           <article key={action.id}>
             <Badge tone={action.tone}>{action.priority}</Badge>
             <div>
@@ -7041,6 +7389,7 @@ function DetailPage({ id }:{id:string}) {
   const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
   const [contextMenu, setContextMenu] = useState<FascicoloContextMenuState | null>(null)
   const [contributoModalOpen, setContributoModalOpen] = useState(false)
+  const [economicControlOpen, setEconomicControlOpen] = useState(false)
   const [contributoMemory, setContributoMemory] = useState<ContributoUnificatoMemory | null>(null)
   const [officePortalOpenRequest, setOfficePortalOpenRequest] = useState(0)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
@@ -7083,8 +7432,8 @@ function DetailPage({ id }:{id:string}) {
   const clientId = data.client?.id || f.clientId
   const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
-  const pagoPaEmbeddedHref = `${PAGOPA_PROXY_URL}?iusentra_fascicolo=${encodedId}`
-  const openPagoPaModal = () => setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_URL })
+  const pagoPaEmbeddedHref = `${PAGOPA_PROXY_NEW_PAYMENT_URL}?iusentra_fascicolo=${encodedId}`
+  const openPagoPaModal = () => setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST', href: pagoPaEmbeddedHref, externalHref: PAGOPA_PST_NEW_PAYMENT_URL })
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
@@ -7102,7 +7451,12 @@ function DetailPage({ id }:{id:string}) {
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
   const displayedCommunicationTotal = communicationTotal || data.quickCounts.comunicazioni || 0
   const operationalPresidio = data.operationalPresidio
-  const prossimaAzione = operationalPresidio.nextAction?.title || nextDeadline?.title || nextAppointment?.title || (qualityIssues ? 'Controlli qualità da verificare' : 'Nessuna urgenza critica rilevata')
+  const contributionContext = f.paymentSummary.items.contributo_unificato
+  const contributionContextLabel = contributionContext.status === 'non_previsto'
+    ? 'Contributo non dovuto o esente dal presidio economico'
+    : contributionContext.status === 'pagato'
+      ? 'Ricevuta contributo acquisita dal presidio economico'
+      : 'Contributo da verificare dal presidio economico'
   const loadLazySection = (section: FascicoloDetailSection) => {
     if (lazyStatus[section] === 'loaded' || lazyStatus[section] === 'loading') return
     setLazyStatus((current) => ({ ...current, [section]: 'loading' }))
@@ -7154,6 +7508,10 @@ function DetailPage({ id }:{id:string}) {
   const openContributoUnificatoFromContext = () => {
     setContextMenu(null)
     setContributoModalOpen(true)
+  }
+  const openEconomicControlFromContext = () => {
+    setContextMenu(null)
+    setEconomicControlOpen(true)
   }
   const rememberContributoUnificato = (memory: ContributoUnificatoMemory, message?: string) => {
     setContributoMemory(memory)
@@ -7230,6 +7588,20 @@ function DetailPage({ id }:{id:string}) {
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento documenti non riuscito.' }))
   }
   const failDetail = (message: string) => setToast({ tone: 'danger', message })
+  const handleDetailPaymentSaved = useCallback((savedId: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
+    setData((current) => {
+      const currentId = current.fascicolo.id || id
+      if (savedId && currentId && savedId !== currentId) return current
+      return {
+        ...current,
+        fascicolo: {
+          ...current.fascicolo,
+          paymentSummary,
+        },
+      }
+    })
+    setToast({ tone: 'success', message: message || 'Controllo economico aggiornato.' })
+  }, [id])
   const openSection = (sectionId: string, lazySection?: FascicoloDetailSection) => (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
     if (lazySection) loadLazySection(lazySection)
@@ -7253,7 +7625,7 @@ function DetailPage({ id }:{id:string}) {
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
       <section className="iu-fas-ai-board" aria-label="Quadro intelligente AI del fascicolo">
-        <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>{prossimaAzione}</strong><p>Analisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
+        <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>Presidio operativo aggiornato</strong><p>{contributionContextLabel}. Analisi di documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
         <div className="iu-fas-ai-actions">
           <a href={quadroHref}><Gauge size={15}/> Quadro completo</a>
           <a href="#documenti"><FileText size={15}/> Documenti e atti</a>
@@ -7264,7 +7636,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-smart-board" aria-label="Quadro intelligente del fascicolo">
         <header>
-          <div><span><Gauge size={16}/> Quadro intelligente</span><strong>{prossimaAzione}</strong></div>
+          <div><span><Gauge size={16}/> Quadro intelligente</span><strong>Sintesi fascicolo</strong></div>
           <a href={quadroHref}>Apri quadro completo</a>
         </header>
         <div>
@@ -7427,6 +7799,7 @@ function DetailPage({ id }:{id:string}) {
           setContextMenu(null)
           openPagoPaModal()
         }}
+        onEconomicControl={openEconomicControlFromContext}
         onSection={openSectionFromContext}
       />
       {documentFlowMode ? (
@@ -7452,6 +7825,18 @@ function DetailPage({ id }:{id:string}) {
         contributoMemory={contributoMemory}
         onCopyContributoMemory={copyContributionMemory}
         onClose={() => setEmbeddedRecord(null)}
+      />
+      <EconomicControlModal
+        open={economicControlOpen}
+        data={data}
+        contributoMemory={contributoMemory}
+        onClose={() => setEconomicControlOpen(false)}
+        onPaymentSaved={handleDetailPaymentSaved}
+        onError={failDetail}
+        onOpenPagoPa={() => {
+          setEconomicControlOpen(false)
+          openPagoPaModal()
+        }}
       />
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
       <FloatingLex

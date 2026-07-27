@@ -658,7 +658,12 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "Copia e apri PagoPA" in source
     assert "Calcolo contributo in memoria" in source
     assert "iu-fas-embedded-modal--pagopa-memory" in source
+    assert "iu-fas-embedded-modal--fullscreen" in source
+    assert "Tutto schermo" in source
+    assert "tryPrefillPagoPaFrame" in source
+    assert "Oggetto del ricorso" in source
     assert "Totale da usare per PagoPA" in source
+    assert "Nuovo pagamento PagoPA PST" in source
     assert "Nuova scadenza" in source
     assert "Nuovo appuntamento" in source
     assert "openDocumentFlow('deposito')" in source
@@ -668,8 +673,19 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert "openPortalRequest={officePortalOpenRequest}" in source
     assert "setEmbeddedRecord({ kind: 'cliente', title: 'Modifica anagrafica cliente'" in source
     assert "setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti'" in source
-    assert "setEmbeddedRecord({ kind: 'pagopa', title: 'PagoPA PST'" in source
-    assert "onSection('economia')" in source
+    assert "setEmbeddedRecord({ kind: 'pagopa', title: 'Nuovo pagamento PagoPA PST'" in source
+    assert "onEconomicControl" in source
+    assert "EconomicControlModal" in source
+    assert "Modifica controllo economico" in source
+    assert "EconomicEditorPanel row={f}" in source
+    assert "Riepilogo controllo" in source
+    assert "Proforma da preparare" in source
+    assert "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma." in source
+    assert "Presidio operativo aggiornato" in source
+    assert "remainingActions.slice(0, 5)" in source
+    assert "Ricevuta pagoPA" in source
+    assert "Parcella da emettere" in source
+    assert "Import pratiche" in source
     assert "onSection('documenti', 'documenti')" in source
 
     assert "openPortalRequest?: number" in office_source
@@ -683,6 +699,12 @@ def test_ui_fascicolo_menu_contestuale_azioni_reali():
     assert ".iu-fas-contributo-result__metrics" in css
     assert ".iu-fas-pagopa-memory" in css
     assert ".iu-fas-embedded-modal--pagopa-memory .iu-fas-embedded-modal__body{grid-template-rows:auto auto minmax(0,1fr)}" in css
+    assert ".iu-fas-embedded-modal--fullscreen" in css
+    assert ".iu-fas-pagopa-prefill" in css
+    assert ".iu-fas-economic-control-modal" in css
+    assert ".iu-fas-economic-control-modal__rows" in css
+    assert ".iu-fas-economic-control-modal__editor" in css
+    assert ".iu-fas-economic-control-modal__editor-head span,.iu-fas-economic-control-modal__editor-head p" in css
     assert "@media(max-width:900px)" in css and ".iu-fas-context-menu{left:8px!important" in css
     assert ".iu-fas-contributo-form{grid-template-columns:1fr}" in css
 

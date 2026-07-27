@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import yaml
+
 from packaging_manifest import (
     dev_requirements,
     extras_requirements,
@@ -28,7 +30,7 @@ def test_versione_allineata_tra_package_docker_e_railway():
     docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
     railway_text = (REPO_ROOT / "railway.toml").read_text(encoding="utf-8")
     frontend_package = json.loads((REPO_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
-    frontend_lock = json.loads((REPO_ROOT / "frontend" / "package-lock.json").read_text(encoding="utf-8"))
+    pnpm_lock = yaml.safe_load((REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8"))
     openapi_text = (REPO_ROOT / "docs" / "openapi.yaml").read_text(encoding="utf-8")
 
     docker_version = re.search(r'org\.opencontainers\.image\.version="([^"]+)"', docker_text)
@@ -39,8 +41,7 @@ def test_versione_allineata_tra_package_docker_e_railway():
     assert docker_version is not None and docker_version.group(1) == __version__
     assert railway_version is not None and railway_version.group(1) == __version__
     assert frontend_package["version"] == __version__
-    assert frontend_lock["version"] == __version__
-    assert frontend_lock["packages"][""]["version"] == __version__
+    assert "frontend" in pnpm_lock["importers"]
     assert openapi_version is not None and openapi_version.group(1) == __version__
 
 

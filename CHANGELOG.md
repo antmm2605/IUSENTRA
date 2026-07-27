@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.265.9 - 2026-07-27
+
+- Fascicoli React: il menu contestuale apre il contributo unificato con memoria completa di RG, cliente, oggetto del ricorso, base, anticipazione e totale.
+- PagoPA: l'azione `Copia e apri PagoPA` apre direttamente `Nuovo pagamento`, offre la vista a tutto schermo e tenta la compilazione assistita dei campi visibili senza inviare o sovrascrivere dati.
+- Controllo economico: aggiunta finestra contestuale con RG, parti, cliente, stato del fascicolo, righe economiche, ricevuta PagoPA, parcella, controllo documenti, editor `Modifica controllo economico` e accesso a import pratiche.
+- Presidio documentale: il controllo del contributo unificato ora legge anche i documenti già indicizzati sul server Document AI, evitando falsi `Non trovato` quando ricevuta o esenzione non sono nel catalogo locale del fascicolo.
+- Guardrail: estesi test React, build e documentazione operativa del deposito per presidiare PagoPA nuovo pagamento, memoria del calcolo, tutto schermo, controllo economico contestuale e fonte economica server-side.
+
 ## 2.265.7 - 2026-07-27
 
 - Fascicoli React: aggiunta nel menu contestuale la voce `Calcola contributo unificato`, con finestra sovrapposta interna al dettaglio fascicolo, precompilazione dal fascicolo e calcolo tramite l'API già presente negli Strumenti Forensi.

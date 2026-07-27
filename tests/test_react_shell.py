@@ -6641,6 +6641,140 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
     assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
 
 
+def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_documenti_locali(tmp_path: Path):
+    from pct.document_intelligence.models import DocumentAIRecord, DocumentAIText, DocumentAIVersion
+    from web.services.document_intelligence_runtime import (
+        build_document_ai_service,
+        document_ai_tenant_id,
+    )
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    client = app.test_client()
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Server docs c. MIM",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Server",
+        tribunale="Tribunale di Palmi",
+        numero_rg="4104",
+        anno_rg=2026,
+        oggetto="222050 - Retribuzione",
+    )
+    fascicoli.aggiorna(
+        fascicolo.id,
+        pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
+    )
+    digest = hashlib.sha256(b"autocertificazione-server").hexdigest()
+    with app.app_context():
+        tenant_id = document_ai_tenant_id()
+        repo = build_document_ai_service().repository
+        repo.create_document(
+            DocumentAIRecord(
+                id="docai-esenzione-server",
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo.id,
+                original_filename="Autocertificazione esenzione contributo server.pdf",
+                safe_filename="Autocertificazione_esenzione_contributo_server.pdf",
+                file_type="pdf",
+                mime_type="application/pdf",
+                size_bytes=123,
+                sha256=digest,
+                status="ready",
+                current_version_id="v1",
+                page_count=1,
+                created_by="test",
+                created_at="2026-07-05T10:00:00Z",
+                updated_at="2026-07-05T10:00:00Z",
+            )
+        )
+        repo.create_version(
+            DocumentAIVersion(
+                id="v1",
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo.id,
+                document_id="docai-esenzione-server",
+                version_number=1,
+                source="import",
+                storage_path=f"{tenant_id}/fascicoli/{fascicolo.id}/documenti_ai/docai-esenzione-server/v1/source.pdf",
+                extracted_text_path=None,
+                pdf_preview_path=None,
+                sha256=digest,
+                created_by="test",
+                created_at="2026-07-05T10:00:00Z",
+            )
+        )
+        repo.save_extracted_text(
+            DocumentAIText(
+                document_id="docai-esenzione-server",
+                version_id="v1",
+                tenant_id=tenant_id,
+                fascicolo_id=fascicolo.id,
+                text=(
+                    "DICHIARAZIONE SOSTITUTIVA DI CERTIFICAZIONE. "
+                    "AUTOCERTIFICAZIONE DELLA SITUAZIONE REDDITUALE. "
+                    "La parte dichiara l'esenzione dal contributo unificato ai sensi del D.P.R. 115/2002."
+                ),
+                pages=[],
+                extraction_engine="test",
+                created_at="2026-07-05T10:00:00Z",
+            )
+        )
+
+    presidio = client.post(
+        "/api/v1/ui/fascicoli/presidio-economico/proforme",
+        json={"limit": 1000},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    item = next(row for row in payload["items"] if row["id"] == fascicolo.id)
+    contributo = item["paymentSummary"]["items"]["contributo_unificato"]
+
+    assert fascicoli.get(fascicolo.id).documenti == []
+    assert presidio.status_code == 200
+    assert presidio.get_json()["contributiUpdatedCount"] == 1
+    assert response.status_code == 200
+    assert contributo["status"] == "non_previsto"
+    assert contributo["previsto"] is False
+    assert contributo["importo"] is None
+    assert contributo["documentoFonte"] == "Autocertificazione esenzione contributo server.pdf"
+    assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
+
+
+def test_react_fascicoli_economia_sostituisce_nota_storica_documenti_correnti() -> None:
+    import web.services.react_fascicoli_bridge as bridge
+
+    items = {
+        "contributo_unificato": {
+            "status": "da_registrare",
+            "importo": None,
+            "note": (
+                "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
+                "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+            ),
+        }
+    }
+
+    bridge._apply_document_analysis_to_payment_items(
+        items,
+        {
+            "unresolvedKinds": ["contributo_unificato"],
+            "reason": (
+                "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
+                "non risulta una ricevuta leggibile."
+            ),
+        },
+    )
+
+    assert "documenti indicizzati in archivio centrale" in items["contributo_unificato"]["note"]
+    assert "documenti correnti" not in items["contributo_unificato"]["note"]
+
+
 def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 
@@ -7322,6 +7456,14 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}" in data_source
     assert "updateFascicoloPayment" in data_source
     assert "EconomicPaymentCell" in page_source
+    assert "EconomicEditorPanel row={f}" in page_source
+    assert "Riepilogo controllo" in page_source
+    assert "Proforma da preparare" in page_source
+    assert "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma." in page_source
+    assert "remainingActions.slice(0, 5)" in page_source
+    assert "Presidio operativo aggiornato" in page_source
+    assert "Sintesi fascicolo" in page_source
+    assert "prossimaAzione" not in page_source
     assert "EconomicTotalSummary" not in page_source
     assert "Totale registrato" not in page_source
     assert "Stato fascicolo" in page_source
@@ -7331,6 +7473,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-economic-matrix{display:grid" not in css
     assert ".iu-fas-economic-editor{display:grid;gap:10px;width:min(100%,calc(100vw - 400px));max-width:100%" in css
     assert ".iu-fas-economic-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))" in css
+    assert ".iu-fas-economic-control-modal__editor{min-height:0;overflow:auto" in css
     assert ".iu-fas-economic-cell__details" in css
     for service_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert service_action in bridge
@@ -7434,24 +7577,30 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-preview-modal__title" in css
     assert ".iu-fas-preview-modal__box nav a,.iu-fas-preview-modal__box nav button" in css
     assert "const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'" in page_source
+    assert "const PAGOPA_PST_NEW_PAYMENT_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp'" in page_source
     assert "const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'" in page_source
+    assert "const PAGOPA_PROXY_NEW_PAYMENT_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp'" in page_source
     assert "const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'" in page_source
     assert "function EmbeddedRecordModal" in page_source
     assert "function RecordOverlayButton" in page_source
     assert "function PagoPaActionButton" in page_source
     assert "pagoPaEmbeddedHref" in page_source
-    assert "externalHref: PAGOPA_PST_URL" in page_source
+    assert "externalHref: PAGOPA_PST_NEW_PAYMENT_URL" in page_source
     assert "src={record.href}" in page_source
+    assert "onLoad={isPagoPa ? runPagoPaPrefill : undefined}" in page_source
     assert "sandbox={isPagoPa ?" in page_source
     assert "allow-same-origin allow-forms allow-scripts allow-popups" in page_source
     assert "referrerPolicy={isPagoPa ? 'same-origin' : undefined}" in page_source
     assert "Visualizza cliente nel fascicolo" in page_source
     assert "Visualizza soggetti e parti nel fascicolo" in page_source
-    assert "Quando richiedi la ricevuta PDF" in page_source
+    assert "Nuovo pagamento PagoPA PST" in page_source
+    assert "senza inviare nulla" in page_source
     assert "Apri fuori" in page_source
     assert Path("frontend/public/pagopa-removebg-preview.png").exists()
     assert ".iu-fas-pagopa-button" in css
     assert ".iu-fas-embedded-modal" in css
+    assert ".iu-fas-embedded-modal--fullscreen" in css
+    assert ".iu-fas-pagopa-prefill" in css
     assert ".iu-fas-pagopa-proxy-note" in css
     assert ".iu-fas-editor-board" in css
     assert ".iu-fas-action-stack .iu-fas-post" in css

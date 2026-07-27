@@ -12,6 +12,13 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 
+UNRESOLVED_CU_REASON = (
+    "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
+    "non risulta una ricevuta, un'autocertificazione di esenzione o un invito al pagamento "
+    "del contributo unificato leggibile."
+)
+
+
 def _text(value: Any, default: str = "") -> str:
     value = str(value or "").strip()
     return value or default
@@ -74,7 +81,7 @@ def marker_state(
     else:
         status = "da_analizzare"
         label = "Da analizzare"
-        reason = "Nessuna impronta di analisi consolidata sui documenti correnti."
+        reason = "Nessuna impronta di analisi consolidata sui documenti del fascicolo e sui documenti indicizzati in archivio centrale."
     return {
         "status": status,
         "statusLabel": label,
@@ -99,13 +106,10 @@ def _normalise_unresolved_kinds(value: Any) -> list[str]:
 
 def _unresolved_reason(marker: Mapping[str, Any], unresolved_kinds: list[str]) -> str:
     if "contributo_unificato" in unresolved_kinds:
-        return (
-            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
-            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
-        )
+        return UNRESOLVED_CU_REASON
     return _text(
         marker.get("reason"),
-        "Presidio documentale eseguito: alcuni dati non risultano dai documenti correnti.",
+        "Presidio documentale eseguito: alcuni dati non risultano dai documenti del fascicolo o dai documenti indicizzati in archivio centrale.",
     )
 
 

@@ -63,7 +63,12 @@ MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "
 ROME_TZ = ZoneInfo("Europe/Rome")
 NOTIFICATION_HISTORICAL_CUTOFF = HISTORICAL_CUTOFF.astimezone(ROME_TZ).replace(tzinfo=None)
 NOTIFICATION_STRICT_TRACKING_FROM = STRICT_TRACKING_FROM.astimezone(ROME_TZ).replace(tzinfo=None)
-ECONOMIC_DOCUMENT_ANALYSIS_VERSION = "2026-07-13-cu-all-indexed-v5"
+ECONOMIC_DOCUMENT_ANALYSIS_VERSION = "2026-07-27-cu-server-indexed-v6"
+ECONOMIC_DOCUMENT_UNRESOLVED_CU_REASON = (
+    "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
+    "non risulta una ricevuta, un'autocertificazione di esenzione o un invito al pagamento "
+    "del contributo unificato leggibile."
+)
 
 _FASCICOLI_LIST_BASE_TTL_SECONDS = max(
     0.0,
@@ -1560,6 +1565,123 @@ def _document_id(doc: Any) -> str:
     return _text(getattr(doc, "id", "") or getattr(doc, "document_id", "") or getattr(doc, "documento_id", ""))
 
 
+def _document_display_name(doc: Any) -> str:
+    return _text(
+        getattr(doc, "nome_portale", "")
+        or getattr(doc, "nome", "")
+        or getattr(doc, "nome_originale", "")
+        or getattr(doc, "filename", "")
+        or getattr(doc, "safe_filename", "")
+        or getattr(doc, "original_filename", "")
+        or _document_id(doc)
+    )
+
+
+def _document_identity_keys(doc: Any) -> set[str]:
+    keys = {_text(_document_id(doc)).casefold()}
+    digest = _text(
+        getattr(doc, "hash_sha256", "")
+        or getattr(doc, "hash_contenuto_sha256", "")
+        or getattr(doc, "sha256", "")
+    ).casefold()
+    if digest:
+        keys.add(f"sha:{digest}")
+    for value in (
+        getattr(doc, "nome", ""),
+        getattr(doc, "nome_originale", ""),
+        getattr(doc, "nome_portale", ""),
+        getattr(doc, "filename", ""),
+        getattr(doc, "safe_filename", ""),
+        getattr(doc, "original_filename", ""),
+    ):
+        name = Path(_text(value)).name.casefold()
+        if name:
+            keys.add(f"name:{name}")
+    return {key for key in keys if key}
+
+
+def _server_document_ai_documents_for_fascicolo(fascicolo: Any) -> list[Any]:
+    """Documenti già indicizzati sul server, usati solo come fonte del presidio."""
+
+    fid = _text(getattr(fascicolo, "id", ""))
+    if not fid or not has_app_context():
+        return []
+    cache = _request_cache("_react_fascicoli_server_document_ai_docs")
+    if cache is not None and fid in cache:
+        return list(cache[fid])
+    try:
+        from web.services.document_intelligence_runtime import (
+            build_document_ai_service,
+            document_ai_tenant_id,
+            document_ai_user_context,
+        )
+
+        tenant_id = document_ai_tenant_id()
+        service = build_document_ai_service()
+        records = service.repository.list_documents(tenant_id, fid, document_ai_user_context())
+    except Exception:
+        records = []
+    seen: set[str] = set()
+    for doc in list(getattr(fascicolo, "documenti", []) or []):
+        seen.update(_document_identity_keys(doc))
+    out: list[Any] = []
+    for record in records or []:
+        if _text(getattr(record, "status", "")).casefold() != "ready":
+            continue
+        document_id = _text(getattr(record, "id", ""))
+        filename = _text(getattr(record, "original_filename", "") or getattr(record, "safe_filename", "") or document_id)
+        if not document_id or not filename:
+            continue
+        doc = SimpleNamespace(
+            id=document_id,
+            document_id=document_id,
+            documento_id=document_id,
+            nome=_text(getattr(record, "safe_filename", "")) or filename,
+            nome_originale=filename,
+            nome_portale=filename,
+            filename=filename,
+            safe_filename=_text(getattr(record, "safe_filename", "")) or filename,
+            original_filename=filename,
+            tipo=TipoDocumento.ALLEGATO,
+            classificazione_portale="Document AI server",
+            fonte_documento="DOCUMENTI_AI_SERVER",
+            hash_sha256=_text(getattr(record, "sha256", "")),
+            hash_contenuto_sha256=_text(getattr(record, "sha256", "")),
+            dimensione_bytes=int(getattr(record, "size_bytes", 0) or 0),
+            data_caricamento=_text(getattr(record, "updated_at", "") or getattr(record, "created_at", "")),
+            data_documento=_text(getattr(record, "updated_at", "") or getattr(record, "created_at", "")),
+            percorso="",
+            file_type=_text(getattr(record, "file_type", "")),
+            mime_type=_text(getattr(record, "mime_type", "")),
+            document_ai_status=_text(getattr(record, "status", "")),
+            _iusentra_document_ai_server=True,
+        )
+        keys = _document_identity_keys(doc)
+        if seen.intersection(keys):
+            continue
+        seen.update(keys)
+        out.append(doc)
+    if cache is not None:
+        cache[fid] = list(out)
+    return out
+
+
+def _economic_analysis_documents_for_fascicolo(fascicolo: Any) -> list[Any]:
+    local_documents = list(getattr(fascicolo, "documenti", []) or [])
+    server_documents = _server_document_ai_documents_for_fascicolo(fascicolo)
+    if not server_documents:
+        return local_documents
+    seen: set[str] = set()
+    out: list[Any] = []
+    for doc in [*local_documents, *server_documents]:
+        keys = _document_identity_keys(doc)
+        if keys and seen.intersection(keys):
+            continue
+        seen.update(keys)
+        out.append(doc)
+    return out
+
+
 def _readable_document_source(value: Any, *, default: str = "Documento indicizzato del fascicolo") -> str:
     source = _text(value)
     if not source:
@@ -1822,17 +1944,12 @@ def _ensure_deadline_document_ai_texts_for_fascicolo(
 
 def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str]:
     wanted = _text(document_id)
-    for doc in getattr(fascicolo, "documenti", []) or []:
+    for doc in _economic_analysis_documents_for_fascicolo(fascicolo):
         did = _text(getattr(doc, "id", ""))
         if did != wanted:
             continue
-        filename = _text(
-            getattr(doc, "nome_portale", "")
-            or getattr(doc, "nome", "")
-            or getattr(doc, "nome_originale", "")
-            or getattr(doc, "filename", "")
-        )
-        return {
+        filename = _document_display_name(doc)
+        metadata = {
             "document_id": did,
             "documento_id": did,
             "filename": filename,
@@ -1846,7 +1963,19 @@ def _document_metadata_for_id(fascicolo: Any, document_id: str) -> dict[str, str
             "data_caricamento": _text(getattr(doc, "data_caricamento", "")),
             "data_deposito_portale": _text(getattr(doc, "data_deposito_portale", "")),
             "storage_path": _text(getattr(doc, "percorso", "")),
+            "file_type": _text(getattr(doc, "file_type", "")),
+            "mime_type": _text(getattr(doc, "mime_type", "")),
+            "fonte_documento": _text(getattr(doc, "fonte_documento", "")),
         }
+        if getattr(doc, "_iusentra_document_ai_server", False):
+            metadata.update(
+                {
+                    "source_type": "documenti_ai_server",
+                    "document_ai_status": _text(getattr(doc, "document_ai_status", "")),
+                    "classification": _text(getattr(doc, "classificazione_portale", "Document AI server")),
+                }
+            )
+        return metadata
     return {"document_id": wanted, "documento_id": wanted, "fascicolo_id": _text(getattr(fascicolo, "id", ""))}
 
 
@@ -1969,7 +2098,7 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
     rows: list[dict[str, Any]] = []
     for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
         source_id = _text(getattr(source, "id", ""))
-        for doc in list(getattr(source, "documenti", []) or []):
+        for doc in _economic_analysis_documents_for_fascicolo(source):
             rows.append(
                 {
                     "fascicolo": source_id,
@@ -1981,6 +2110,7 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
                     "size": int(getattr(doc, "dimensione_bytes", 0) or 0),
                     "loaded": _text(getattr(doc, "data_caricamento", "")),
                     "portal": _text(getattr(doc, "id_documento_portale", "")),
+                    "server_ai": bool(getattr(doc, "_iusentra_document_ai_server", False)),
                 }
             )
     payload = json.dumps(
@@ -1997,12 +2127,13 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
 def _document_analysis_unresolved_reason(marker: dict[str, Any], unresolved_kinds: list[str]) -> str:
     if "contributo_unificato" in unresolved_kinds:
         return (
-            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
-            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+            "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
+            "non risulta una ricevuta, un'autocertificazione di esenzione o un invito al pagamento "
+            "del contributo unificato leggibile."
         )
     return _text(
         marker.get("reason"),
-        "Presidio documentale eseguito: alcuni dati non risultano dai documenti correnti.",
+        "Presidio documentale eseguito: alcuni dati non risultano dai documenti del fascicolo o dai documenti indicizzati in archivio centrale.",
     )
 
 
@@ -2038,7 +2169,7 @@ def _document_analysis_state(
     else:
         status = "da_analizzare"
         label = "Da analizzare"
-        reason = "Nessuna impronta di analisi consolidata sui documenti correnti."
+        reason = "Nessuna impronta di analisi consolidata sui documenti del fascicolo e sui documenti indicizzati in archivio centrale."
     return {
         "status": status,
         "statusLabel": label,
@@ -2107,7 +2238,7 @@ def _presidio_documentale_has_unresolved_kind(marker: Any, kind: str) -> bool:
 
 def _presidio_documentale_metadata_rows(fascicolo: Any) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for doc in list(getattr(fascicolo, "documenti", []) or []):
+    for doc in _economic_analysis_documents_for_fascicolo(fascicolo):
         document_id = _document_id(doc)
         if document_id:
             rows.append(_document_metadata_for_id(fascicolo, document_id))
@@ -2125,7 +2256,7 @@ def _build_presidio_documentale_marker(
     marker = build_presidio_documentale_marker(
         fingerprint=_document_analysis_fingerprint(fascicolo),
         actor=actor,
-        document_count=len(list(getattr(fascicolo, "documenti", []) or [])),
+        document_count=len(_economic_analysis_documents_for_fascicolo(fascicolo)),
         metadata_rows=_presidio_documentale_metadata_rows(fascicolo),
         automatic_sources=automatic_sources,
         readable_source=_readable_document_source,
@@ -2795,7 +2926,7 @@ def _automatic_payment_sources_for_fascicolo(
     scoped_texts: list[tuple[Any, str, str]] = []
     for source_fascicolo in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
         payment_documents = (
-            list(getattr(source_fascicolo, "documenti", []) or [])
+            _economic_analysis_documents_for_fascicolo(source_fascicolo)
             if allow_full_document_scan
             else _document_candidates_for_hints(
                 source_fascicolo,
@@ -3166,11 +3297,10 @@ def _apply_document_analysis_to_payment_items(items: dict[str, dict[str, Any]], 
     if contributo.get("importo") is not None or contributo.get("status") != "da_registrare":
         return
     contributo["importoLabel"] = "Non trovato"
-    if not _text(contributo.get("note")):
-        contributo["note"] = _text(
-            analysis.get("reason"),
-            "Presidio documentale eseguito: ricevuta, autocertificazione o invito al pagamento non risultano leggibili nei documenti correnti.",
-        )
+    current_note = _text(contributo.get("note"))
+    next_note = _text(analysis.get("reason"), ECONOMIC_DOCUMENT_UNRESOLVED_CU_REASON)
+    if not current_note or "documenti correnti" in current_note.casefold():
+        contributo["note"] = next_note
 
 
 def payment_summary_for_fascicolo(
@@ -4155,8 +4285,9 @@ def _ensure_contributo_unificato_for_fascicolo(
     if unresolved_kinds:
         marker["unresolvedKinds"] = unresolved_kinds
         marker["reason"] = (
-            "Presidio documentale eseguito: nei documenti correnti non risulta una ricevuta, "
-            "un'autocertificazione di esenzione o un invito al pagamento del contributo unificato leggibile."
+            "Presidio documentale eseguito: nei documenti del fascicolo e nei documenti indicizzati in archivio centrale "
+            "non risulta una ricevuta, un'autocertificazione di esenzione o un invito al pagamento "
+            "del contributo unificato leggibile."
         )
     payments["_presidio_documentale"] = marker
     updater = getattr(fascicoli_repository, "aggiorna", None)
@@ -5408,10 +5539,12 @@ def build_react_fascicoli_payload(
         and any(_text(value).strip().lower() not in {"", "tutti"} for value in payment_filters.values())
     )
     sort_key = _text(sort, "rg")
+    view_key = _text(view).strip().lower()
     automatic_for_all = bool(
         payments_only
         or payment_filters_active
         or sort_key == "scadenza"
+        or view_key == "economica"
     )
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
@@ -5504,6 +5637,30 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
+    if view_key == "economica" and items:
+        gf = get_fascicoli()
+        fascicoli_for_summary = _safe("fascicoli_economica_summary", lambda: gf.tutti(archiviati=False), [])
+        fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli_for_summary}
+        duplicate_groups = duplicate_practice_groups(fascicoli_for_summary)
+        duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
+        parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+        enriched_items: list[dict[str, Any]] = []
+        for item in items:
+            fid = _text(item.get("id"))
+            fascicolo = fascicoli_by_id.get(fid)
+            if fascicolo is None:
+                enriched_items.append(item)
+                continue
+            enriched = dict(item)
+            enriched["paymentSummary"] = payment_summary_for_fascicolo(
+                fascicolo,
+                automatic=True,
+                related_fascicoli=_related_duplicate_fascicoli(fascicoli_for_summary, fascicolo),
+                parcelle=parcelle_by_fasc.get(fid, []),
+                duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
+            )
+            enriched_items.append(enriched)
+        items = enriched_items
     return {
         "source": "repository_reali",
         "generatedAt": _now(),

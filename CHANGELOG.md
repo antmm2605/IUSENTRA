@@ -1,9 +1,16 @@
 # Changelog
 
+## 2.265.11 - 2026-07-27
+
+- Fascicoli React: corretto il KPI scadenze, distinguendo `Scadenze urgenti`, scadenze già scadute e scadenze realmente entro 7 giorni.
+- Backend fascicoli: `summary.deadlines7` ora conta solo le date tra oggi e i prossimi 7 giorni; le scadenze aperte pregresse restano presidiate in `overdueDeadlines` e nella lista urgente.
+- UI: rimosso il testo ambiguo `Scadenze 7g` quando la lista contiene arretrati come le voci del `15/05/2026`.
+- Guardrail: aggiornato il test di regressione per impedire che scadenze scadute rientrino nel conteggio `entro 7 giorni`.
+
 ## 2.265.10 - 2026-07-27
 
 - Fascicoli React: ripristinato il caricamento rapido della lista su produzione evitando letture massive Document AI e presidi automatici completi durante la paginazione.
-- Scadenze: `Scadenze 7g` ora usa la stessa fonte del riquadro operativo e conta anche le scadenze aperte già scadute o non collegate, come le voci PEC/diffida del `15/05/2026`.
+- Scadenze: ripristinata la fonte delle scadenze aperte del riquadro operativo, includendo anche scadenze già scadute o non collegate, come le voci PEC/diffida del `15/05/2026`.
 - Economia fascicoli: il riepilogo leggero usa il calcolo parcella già presente, cacheando solo l'aliquota Cassa Forense per evitare ricalcoli normativi ripetuti senza cambiare gli importi.
 - Guardrail: aggiunti test anti-regressione per lista operativa senza Document AI server, scadenze aperte scadute non collegate e cache Cassa Forense delle parcelle.
 

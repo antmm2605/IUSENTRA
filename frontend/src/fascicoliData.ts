@@ -196,6 +196,8 @@ export type FascicoliSummary = {
   suspended: number
   deadlines7: number
   deadlines30: number
+  overdueDeadlines: number
+  urgentDeadlines: number
   documents: number
   documentsToClassify: number
   unreadCommunications: number
@@ -1050,6 +1052,8 @@ const emptySummary: FascicoliSummary = {
   suspended: 0,
   deadlines7: 0,
   deadlines30: 0,
+  overdueDeadlines: 0,
+  urgentDeadlines: 0,
   documents: 0,
   documentsToClassify: 0,
   unreadCommunications: 0,
@@ -1657,6 +1661,8 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
 
 function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSummary {
   if (isRecord(value)) {
+    const deadlines7 = number(value.deadlines7 ?? value.scadenze_7)
+    const overdueDeadlines = number(value.overdueDeadlines ?? value.overdue_deadlines ?? value.scadenze_scadute)
     return {
       total: number(value.total ?? items.length),
       active: number(value.active ?? value.attivi),
@@ -1664,8 +1670,10 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       toArchive: number(value.toArchive ?? value.da_archiviare),
       archived: number(value.archived ?? value.archiviati),
       suspended: number(value.suspended ?? value.sospesi),
-      deadlines7: number(value.deadlines7 ?? value.scadenze_7),
+      deadlines7,
       deadlines30: number(value.deadlines30 ?? value.scadenze_30),
+      overdueDeadlines,
+      urgentDeadlines: number(value.urgentDeadlines ?? value.urgent_deadlines ?? value.scadenze_urgenti) || deadlines7 + overdueDeadlines,
       documents: number(value.documents ?? value.documenti),
       documentsToClassify: number(value.documentsToClassify ?? value.documenti_da_classificare),
       unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
@@ -1700,6 +1708,8 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     suspended: items.filter((item) => item.status === 'sospeso').length,
     deadlines7: items.filter((item) => item.nextDeadlineIso).length,
     deadlines30: items.filter((item) => item.nextDeadlineIso).length,
+    overdueDeadlines: 0,
+    urgentDeadlines: items.filter((item) => item.nextDeadlineIso).length,
     documents: items.reduce((total, item) => total + item.documents, 0),
     documentsToClassify: items.reduce((total, item) => total + item.alerts, 0),
     unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),

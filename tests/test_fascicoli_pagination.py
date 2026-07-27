@@ -157,7 +157,7 @@ def test_fascicoli_vista_operativa_non_legge_document_ai_server_in_lista(tmp_pat
     assert len(payload["items"]) == 25
 
 
-def test_fascicoli_scadenze7_conta_aperte_scadute_non_collegate(tmp_path):
+def test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni(tmp_path):
     app = _app(tmp_path)
     _seed_fascicoli(app, 1)
     api_v1_react._clear_fascicoli_list_payload_cache()
@@ -167,6 +167,11 @@ def test_fascicoli_scadenze7_conta_aperte_scadute_non_collegate(tmp_path):
             "Presidio ricevute PEC da completare",
             TipoTermine.NOTIFICA,
             (date.today() - timedelta(days=30)).isoformat(),
+        )
+        get_scadenziario().nuova(
+            "Termine entro 7 giorni",
+            TipoTermine.NOTIFICA,
+            (date.today() + timedelta(days=3)).isoformat(),
         )
         get_scadenziario().nuova(
             "Fuori orizzonte operativo",
@@ -183,7 +188,13 @@ def test_fascicoli_scadenze7_conta_aperte_scadute_non_collegate(tmp_path):
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["summary"]["deadlines7"] == 1
-    assert [item["title"] for item in payload["deadlines"]] == ["Presidio ricevute PEC da completare"]
+    assert payload["summary"]["overdueDeadlines"] == 1
+    assert payload["summary"]["urgentDeadlines"] == 2
+    assert payload["summary"]["deadlines30"] == 2
+    assert [item["title"] for item in payload["deadlines"]] == [
+        "Presidio ricevute PEC da completare",
+        "Termine entro 7 giorni",
+    ]
     assert payload["deadlines"][0]["matterId"] == ""
 
 
@@ -1104,6 +1115,9 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "Salva vista" in page_source
     assert "preferencesState === 'saved' ? 'Vista salvata'" in page_source
     assert ".iu-fas-filter-save" in css_source
+    assert "Scadenze urgenti" in page_source
+    assert "Scadenze 7g" not in page_source
+    assert "Scadenze scadute" in page_source
     assert "data.summary.economicAnalysisDue" in page_source
     assert "const presidioDue = Number(data.summary.economicAnalysisDue || 0)" in page_source
     assert "data.summary.invoicesToIssue || 0) + Number(data.summary.economicAnalysisDue" not in page_source

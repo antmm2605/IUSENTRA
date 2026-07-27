@@ -5332,6 +5332,8 @@ def _summary(
     archived_count: int = 0,
     deadlines30: int = 0,
     deadlines7: int | None = None,
+    overdue_deadlines: int | None = None,
+    urgent_deadlines: int | None = None,
 ) -> dict[str, Any]:
     economic_to_review = sum(1 for item in items if (item.get("paymentSummary") or {}).get("stato") in {"da_presidiare", "parziale"})
     economic_analysis_due = sum(
@@ -5353,6 +5355,24 @@ def _summary(
     duplicate_keys = {_text(item.get("duplicateKey")) for item in items if int(item.get("duplicateCount") or 0) > 1 and _text(item.get("duplicateKey"))}
     today = date.today()
     soon_limit = today + timedelta(days=7)
+    fallback_deadline_dates = [
+        parsed
+        for item in items
+        if (parsed := _parse_date(item.get("nextDeadlineIso", "")))
+    ]
+    fallback_deadlines7 = sum(1 for parsed in fallback_deadline_dates if today <= parsed <= soon_limit)
+    fallback_overdue_deadlines = sum(1 for parsed in fallback_deadline_dates if parsed < today)
+    resolved_deadlines7 = int(deadlines7) if deadlines7 is not None else fallback_deadlines7
+    resolved_overdue_deadlines = (
+        int(overdue_deadlines)
+        if overdue_deadlines is not None
+        else fallback_overdue_deadlines
+    )
+    resolved_urgent_deadlines = (
+        int(urgent_deadlines)
+        if urgent_deadlines is not None
+        else resolved_deadlines7 + resolved_overdue_deadlines
+    )
     return {
         "total": len(items) + archived_count,
         "active": sum(1 for item in items if item["status"] != "archiviato"),
@@ -5360,16 +5380,10 @@ def _summary(
         "toArchive": sum(1 for item in items if item["status"] in {"definito", "da_archiviare"}),
         "archived": archived_count + sum(1 for item in items if item["status"] == "archiviato"),
         "suspended": sum(1 for item in items if item["status"] == "sospeso"),
-        "deadlines7": (
-            int(deadlines7)
-            if deadlines7 is not None
-            else sum(
-                1
-                for item in items
-                if (parsed := _parse_date(item.get("nextDeadlineIso", ""))) and parsed <= soon_limit
-            )
-        ),
+        "deadlines7": resolved_deadlines7,
         "deadlines30": deadlines30,
+        "overdueDeadlines": resolved_overdue_deadlines,
+        "urgentDeadlines": resolved_urgent_deadlines,
         "documents": sum(int(item.get("documents") or 0) for item in items),
         "documentsToClassify": sum(int(item.get("alerts") or 0) for item in items),
         "unreadCommunications": sum(int(item.get("unreadCommunications") or 0) for item in items),
@@ -5432,12 +5446,14 @@ def _deadline_rows_from_scadenze(
     days: int = 7,
     *,
     resolved_matter_ids: dict[str, str] | None = None,
+    include_overdue: bool = True,
 ) -> list[dict[str, Any]]:
-    horizon = date.today() + timedelta(days=days)
+    today = date.today()
+    horizon = today + timedelta(days=days)
     out: list[dict[str, Any]] = []
     for scadenza in scadenze:
         due = _parse_date(getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", ""))
-        if not due or due > horizon:
+        if not due or due > horizon or (not include_overdue and due < today):
             continue
         fid = _resolved_scadenza_fascicolo_id(scadenza, resolved_matter_ids)
         matter = items_by_id.get(fid, {})
@@ -5660,24 +5676,41 @@ def build_react_fascicoli_payload(
         ]
         sorted_items = _sort_list_items(filtered, sort)
         items_by_id = {item["id"]: item for item in light_items}
+        urgent_deadlines = _deadline_rows_from_scadenze(
+            scadenze_rows,
+            items_by_id,
+            days=7,
+            resolved_matter_ids=resolved_scadenze,
+            include_overdue=True,
+        )
+        upcoming_deadlines7 = _deadline_rows_from_scadenze(
+            scadenze_rows,
+            items_by_id,
+            days=7,
+            resolved_matter_ids=resolved_scadenze,
+            include_overdue=False,
+        )
+        upcoming_deadlines30 = _deadline_rows_from_scadenze(
+            scadenze_rows,
+            items_by_id,
+            days=30,
+            resolved_matter_ids=resolved_scadenze,
+            include_overdue=False,
+        )
+        today = date.today()
         base = {
             "items": sorted_items,
             "lightItems": light_items,
             "archivedCount": len(archived),
-            "deadlines30": len(
-                _deadline_rows_from_scadenze(
-                    scadenze_rows,
-                    items_by_id,
-                    days=30,
-                    resolved_matter_ids=resolved_scadenze,
-                )
+            "deadlines": urgent_deadlines,
+            "deadlines30": len(upcoming_deadlines30),
+            "deadlines7": upcoming_deadlines7,
+            "overdueDeadlines": sum(
+                1
+                for item in urgent_deadlines
+                if (parsed := _parse_date(item.get("dateIso", ""))) and parsed < today
             ),
-            "deadlines7": _deadline_rows_from_scadenze(
-                scadenze_rows,
-                items_by_id,
-                days=7,
-                resolved_matter_ids=resolved_scadenze,
-            ),
+            "urgentDeadlines": len(urgent_deadlines),
         }
         _fascicoli_base_cache_set(base_cache_key, base)
     sorted_items = list(base.get("items") or [])
@@ -5719,11 +5752,13 @@ def build_react_fascicoli_payload(
             archived_count=int(base.get("archivedCount") or 0),
             deadlines30=int(base.get("deadlines30") or 0),
             deadlines7=len(list(base.get("deadlines7") or [])),
+            overdue_deadlines=int(base.get("overdueDeadlines") or 0),
+            urgent_deadlines=int(base.get("urgentDeadlines") or 0),
         ),
         "items": items,
         "pagination": pagination,
         "facets": _facets(light_items),
-        "deadlines": list(base.get("deadlines7") or []),
+        "deadlines": list(base.get("deadlines") or base.get("deadlines7") or []),
         "actions": _list_actions(),
     }
 
@@ -5740,7 +5775,7 @@ def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scaden
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "summary": _summary(items, archived_count=0, deadlines30=0, deadlines7=0),
+        "summary": _summary(items, archived_count=0, deadlines30=0, deadlines7=0, overdue_deadlines=0, urgent_deadlines=0),
         "items": items,
         "facets": _facets(items),
         "deadlines": [],

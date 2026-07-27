@@ -475,11 +475,29 @@ const statCardContextHref: Record<string, string> = {
   Economico: '?vista=economica&payments_only=1',
   Registrato: '?vista=economica',
   Parcelle: '?vista=economica&parcella=da_emettere',
-  'Scadenze 7g': '#scadenze-entro-7-giorni',
+  'Scadenze urgenti': '#scadenze-urgenti',
   Doppioni: '?duplicates_only=1',
   'RG da acquisire': '?missing_rg_only=1',
   Documenti: '?sort=documenti',
   Comunicazioni: '?alerts_only=1',
+}
+
+function countIt(value: number, singular: string, plural: string): string {
+  return `${value} ${value === 1 ? singular : plural}`
+}
+
+function deadlineUrgencyCopy(summary: FascicoliPageData['summary']) {
+  const overdue = Number(summary.overdueDeadlines || 0)
+  const upcoming7 = Number(summary.deadlines7 || 0)
+  const urgent = Number(summary.urgentDeadlines || 0) || overdue + upcoming7
+  const note = `${countIt(overdue, 'scaduta', 'scadute')}, ${countIt(upcoming7, 'entro 7 giorni', 'entro 7 giorni')}`
+  const title = overdue && upcoming7
+    ? 'Scadenze scadute e prossimi 7 giorni'
+    : overdue
+      ? 'Scadenze scadute'
+      : 'Scadenze entro 7 giorni'
+  const tone: FascicoloRow['tone'] = overdue ? 'danger' : urgent ? 'warning' : 'success'
+  return { overdue, upcoming7, urgent, note, title, tone }
 }
 
 function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void}) {
@@ -2244,14 +2262,15 @@ function ListFilters({ data, query, setQuery, type, setType, status, setStatus, 
 function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:FascicoloRow[]}) {
   const urgent = visible.filter((item) => item.alerts > 0 || item.unreadCommunications > 0).slice(0, 4)
   const withoutDeadline = visible.filter((item) => item.status !== 'archiviato' && !item.nextDeadlineIso && item.nextDeadline === 'n.d.').length
+  const deadlineCopy = deadlineUrgencyCopy(data.summary)
   return (
     <IusentraSupportRail className="iu-fas-insights">
       <IusentraPanelCard title="Cabina fascicoli" subtitle="Controlli che conviene avere subito" icon={Gauge}>
         <div className="iu-fas-briefing">
           <article>
             <span>Da governare ora</span>
-            <strong>{data.summary.deadlines30} scadenze nei prossimi 30 giorni</strong>
-            <small>{data.summary.deadlines7} entro 7 giorni.</small>
+            <strong>{deadlineCopy.overdue ? countIt(deadlineCopy.overdue, 'scadenza scaduta', 'scadenze scadute') : countIt(data.summary.deadlines30, 'scadenza nei prossimi 30 giorni', 'scadenze nei prossimi 30 giorni')}</strong>
+            <small>{deadlineCopy.urgent ? `${countIt(deadlineCopy.urgent, 'scadenza urgente', 'scadenze urgenti')}: ${deadlineCopy.note}.` : 'Nessuna scadenza urgente aperta.'}</small>
           </article>
           <article>
             <span>Qualità archivio</span>
@@ -2725,6 +2744,7 @@ function FascicoliListPage() {
       </button>
     </div>
   )
+  const deadlineCopy = deadlineUrgencyCopy(data.summary)
 
   return (
     <main className="iu-content iu-fascicoli-page">
@@ -2749,7 +2769,7 @@ function FascicoliListPage() {
           <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="controlli da completare" tone="warning" href="?vista=economica&payments_only=1" onClick={applyStatContext({ view: 'economica', paymentsOnly: true })}/>
           <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success" onClick={applyStatContext({ view: 'economica' })}/>
           <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple" onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
-          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger" onClick={applyStatContext({ hash: '#scadenze-entro-7-giorni' })}/>
+          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze urgenti" value={deadlineCopy.urgent} note={deadlineCopy.note} tone={deadlineCopy.tone} onClick={applyStatContext({ hash: '#scadenze-urgenti' })}/>
           <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'} onClick={applyStatContext({ duplicatesOnly: true })}/>
           <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" value={data.summary.missingRg} note={data.summary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.summary.missingRg ? 'warning' : 'success'} onClick={applyStatContext({ missingRgOnly: true })}/>
           <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple" onClick={applyStatContext({ sort: 'documenti' })}/>
@@ -2757,10 +2777,10 @@ function FascicoliListPage() {
         </section>
 
         {data.deadlines.length ? (
-          <section className="iu-fas-deadline-alert" id="scadenze-entro-7-giorni">
+          <section className="iu-fas-deadline-alert" id="scadenze-urgenti">
             <AlertIcon />
             <div>
-              <strong>Scadenze entro 7 giorni</strong>
+              <strong>{deadlineCopy.title}</strong>
               <div>{data.deadlines.slice(0, 4).map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
             </div>
           </section>

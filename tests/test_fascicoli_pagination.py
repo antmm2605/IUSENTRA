@@ -3,10 +3,11 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from datetime import date
+from datetime import date, timedelta
 
 from pct.agenda import TipoAppuntamento
 from pct.fascicoli import StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.fatturazione import Parcella, VoceParcella
 from pct.pec_pipeline import PecAuditRepository
 from pct.scadenziario import TipoTermine
 from tests.test_applicazioni import _crea_operatore, _login
@@ -117,6 +118,8 @@ def test_fascicoli_vista_economica_legge_dato_consolidato_senza_presidio_massivo
         raise AssertionError("La lista fascicoli non deve avviare la lettura documentale massiva.")
 
     monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_automatic_scan)
+    monkeypatch.setattr(react_fascicoli_bridge, "_server_document_ai_documents_for_fascicolo", fail_automatic_scan)
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_next_deadline_from_documents", fail_automatic_scan)
 
     with app.test_client() as client:
         response = client.get(
@@ -128,6 +131,95 @@ def test_fascicoli_vista_economica_legge_dato_consolidato_senza_presidio_massivo
     assert response.status_code == 200
     assert payload["pagination"] == {"page": 1, "pageSize": 25, "total": 31, "pages": 2}
     assert payload["items"][0]["paymentSummary"]["analysis"]["status"] in {"da_analizzare", "aggiornato", "da_rianalizzare"}
+
+
+def test_fascicoli_vista_operativa_non_legge_document_ai_server_in_lista(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 31)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+
+    def fail_massive_document_work(*args, **kwargs):
+        raise AssertionError("La vista operativa deve caricare la lista senza letture massive dei documenti.")
+
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_payment_sources_for_fascicolo", fail_massive_document_work)
+    monkeypatch.setattr(react_fascicoli_bridge, "_server_document_ai_documents_for_fascicolo", fail_massive_document_work)
+    monkeypatch.setattr(react_fascicoli_bridge, "_automatic_next_deadline_from_documents", fail_massive_document_work)
+
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/fascicoli?page=1&page_size=25&sort=cliente&view=operativa",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["pagination"] == {"page": 1, "pageSize": 25, "total": 31, "pages": 2}
+    assert len(payload["items"]) == 25
+
+
+def test_fascicoli_scadenze7_conta_aperte_scadute_non_collegate(tmp_path):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 1)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+
+    with app.app_context():
+        get_scadenziario().nuova(
+            "Presidio ricevute PEC da completare",
+            TipoTermine.NOTIFICA,
+            (date.today() - timedelta(days=30)).isoformat(),
+        )
+        get_scadenziario().nuova(
+            "Fuori orizzonte operativo",
+            TipoTermine.NOTIFICA,
+            (date.today() + timedelta(days=8)).isoformat(),
+        )
+
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/fascicoli?page=1&page_size=25&sort=cliente&view=operativa",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["summary"]["deadlines7"] == 1
+    assert [item["title"] for item in payload["deadlines"]] == ["Presidio ricevute PEC da completare"]
+    assert payload["deadlines"][0]["matterId"] == ""
+
+
+def test_importo_parcella_lista_usa_aliquota_cassa_in_cache(monkeypatch):
+    react_fascicoli_bridge._PARCELLA_CASSA_ALIQUOTA_CACHE.clear()
+    calls = {"count": 0}
+
+    class FakeNormativeTables:
+        def cassa_forense_aliquota_integrativa(self, year):
+            calls["count"] += 1
+            assert year == 2026
+            return 4.0
+
+    monkeypatch.setattr("pct.normative_tables.GestioneTabelleNormative", FakeNormativeTables)
+    parcella = Parcella(
+        id="parcella-cache",
+        numero="2026/001",
+        id_cliente="cliente-cache",
+        id_fascicolo="fascicolo-cache",
+        data_emissione="2026-07-27",
+        data_scadenza=None,
+        voci=[
+            VoceParcella("Competenze", quantita=1, prezzo_unitario=100.0, tipo="ONORARIO"),
+            VoceParcella("Spese imponibili", quantita=1, prezzo_unitario=20.0, tipo="SPESE"),
+            VoceParcella("Anticipazione", quantita=1, prezzo_unitario=10.0, tipo="ANTICIPO"),
+        ],
+        percentuale_spese_generali=15.0,
+        applica_iva=True,
+        applica_cassa=True,
+        applica_ritenuta=True,
+        applica_bollo=True,
+    )
+
+    assert react_fascicoli_bridge._parcella_amount(parcella) == 160.29
+    assert react_fascicoli_bridge._parcella_amount(parcella) == 160.29
+    assert calls["count"] == 1
 
 
 def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monkeypatch):

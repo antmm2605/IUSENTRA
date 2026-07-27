@@ -2188,9 +2188,12 @@ def _document_analysis_marker_state(
 ) -> dict[str, Any]:
     payments = getattr(fascicolo, "pagamenti", {}) if fascicolo is not None else {}
     marker = dict((payments or {}).get("_presidio_documentale") or {}) if isinstance(payments, dict) else {}
-    fingerprint = _document_analysis_fingerprint(fascicolo, related_fascicoli)
+    cached_fingerprint = _text(marker.get("fingerprint") or marker.get("documentFingerprint"))
     related_count = len(list(related_fascicoli or []))
-    return presidio_marker_state(marker, fingerprint, related_count=related_count)
+    # La lista fascicoli deve restare una lettura leggera: l'impronta corrente
+    # può richiedere i documenti indicizzati sul server e va calcolata solo nei
+    # presidi espliciti o nel dettaglio governato.
+    return presidio_marker_state(marker, cached_fingerprint, related_count=related_count)
 
 
 def _presidio_documentale_marker_is_current(
@@ -3485,15 +3488,68 @@ def _parcella_is_active(parcella: Any) -> bool:
     return _enum_upper(getattr(parcella, "stato", "")) != "ANNULLATA"
 
 
+_PARCELLA_CASSA_ALIQUOTA_CACHE: dict[tuple[str, int | None], float] = {}
+
+
+def _parcella_cassa_aliquota(parcella: Any) -> float:
+    emitted = _parse_date(getattr(parcella, "data_emissione", ""))
+    year = emitted.year if emitted else None
+    cache_key = (_current_cache_scope(), year)
+    cached = _PARCELLA_CASSA_ALIQUOTA_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from pct.normative_tables import GestioneTabelleNormative
+
+        value = float(GestioneTabelleNormative().cassa_forense_aliquota_integrativa(year) or 4.0) / 100.0
+    except Exception:
+        value = 0.04
+    _PARCELLA_CASSA_ALIQUOTA_CACHE[cache_key] = value
+    return value
+
+
 def _parcella_amount(parcella: Any) -> float:
-    for attr in ("netto_a_pagare", "totale", "imponibile"):
+    for attr in ("netto_a_pagare_importo", "totale_importo", "importo_totale"):
         try:
             value = float(getattr(parcella, attr, 0.0) or 0.0)
         except (TypeError, ValueError):
             value = 0.0
         if value:
             return value
-    return 0.0
+    competenze = spese_imponibili = anticipazioni = 0.0
+    for voce in list(getattr(parcella, "voci", []) or []):
+        try:
+            amount = float(getattr(voce, "quantita", 1.0) or 0.0) * float(getattr(voce, "prezzo_unitario", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            amount = 0.0
+        tipo = _text(getattr(voce, "tipo", "ONORARIO")).upper() or "ONORARIO"
+        if tipo in {"ONORARIO", "ALTRO"}:
+            competenze += amount
+        elif tipo == "SPESE":
+            spese_imponibili += amount
+        elif tipo == "ANTICIPO":
+            anticipazioni += amount
+    spese_generali = 0.0
+    try:
+        aliquota_spese = max(float(getattr(parcella, "percentuale_spese_generali", 0.0) or 0.0), 0.0)
+    except (TypeError, ValueError):
+        aliquota_spese = 0.0
+    if aliquota_spese > 0:
+        spese_generali = round(competenze * (aliquota_spese / 100.0), 2)
+    imponibile = round(competenze + spese_imponibili + spese_generali, 2)
+    cassa = round(imponibile * _parcella_cassa_aliquota(parcella), 2) if bool(getattr(parcella, "applica_cassa", False)) else 0.0
+    regime = _text(getattr(parcella, "regime_fiscale", "")).upper()
+    iva_applicabile = bool(getattr(parcella, "applica_iva", False)) and regime not in {"RF19", "RF02"}
+    try:
+        aliquota_iva = float(getattr(parcella, "aliquota_iva", 22.0) or 22.0)
+    except (TypeError, ValueError):
+        aliquota_iva = 22.0
+    base_iva = round(imponibile + cassa, 2)
+    iva = round(base_iva * (aliquota_iva / 100.0), 2) if iva_applicabile else 0.0
+    bollo = 2.0 if bool(getattr(parcella, "applica_bollo", False)) else 0.0
+    ritenuta_base = round(competenze + spese_generali, 2)
+    ritenuta = round(ritenuta_base * 0.20, 2) if bool(getattr(parcella, "applica_ritenuta", False)) else 0.0
+    return round(base_iva + iva + bollo + anticipazioni - ritenuta, 2)
 
 
 def _parcella_document_label(parcelle: list[Any]) -> str:
@@ -5271,7 +5327,12 @@ def _all_scadenze_by_fasc(get_scadenziario: Callable[[], Any], fascicoli: Iterab
     return _group_scadenze_by_fasc(_open_scadenze(get_scadenziario), fascicoli)
 
 
-def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: int = 0) -> dict[str, Any]:
+def _summary(
+    items: list[dict[str, Any]],
+    archived_count: int = 0,
+    deadlines30: int = 0,
+    deadlines7: int | None = None,
+) -> dict[str, Any]:
     economic_to_review = sum(1 for item in items if (item.get("paymentSummary") or {}).get("stato") in {"da_presidiare", "parziale"})
     economic_analysis_due = sum(
         1
@@ -5299,10 +5360,14 @@ def _summary(items: list[dict[str, Any]], archived_count: int = 0, deadlines30: 
         "toArchive": sum(1 for item in items if item["status"] in {"definito", "da_archiviare"}),
         "archived": archived_count + sum(1 for item in items if item["status"] == "archiviato"),
         "suspended": sum(1 for item in items if item["status"] == "sospeso"),
-        "deadlines7": sum(
-            1
-            for item in items
-            if (parsed := _parse_date(item.get("nextDeadlineIso", ""))) and today <= parsed <= soon_limit
+        "deadlines7": (
+            int(deadlines7)
+            if deadlines7 is not None
+            else sum(
+                1
+                for item in items
+                if (parsed := _parse_date(item.get("nextDeadlineIso", ""))) and parsed <= soon_limit
+            )
         ),
         "deadlines30": deadlines30,
         "documents": sum(int(item.get("documents") or 0) for item in items),
@@ -5534,18 +5599,7 @@ def build_react_fascicoli_payload(
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    payment_filters_active = bool(
-        payment_filters
-        and any(_text(value).strip().lower() not in {"", "tutti"} for value in payment_filters.values())
-    )
-    sort_key = _text(sort, "rg")
     view_key = _text(view).strip().lower()
-    automatic_for_all = bool(
-        payments_only
-        or payment_filters_active
-        or sort_key == "scadenza"
-        or view_key == "economica"
-    )
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
         client_filter=client_filter,
@@ -5573,17 +5627,13 @@ def build_react_fascicoli_payload(
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
 
-        def _related_for_list_row(fascicolo: Any) -> list[Any]:
-            return _related_duplicate_fascicoli(fascicoli, fascicolo)
-
         light_items = _annotate_duplicate_items(
             [
                 _item_light(
                     fascicolo,
                     scadenze_by_fasc=scadenze_by_fasc,
-                    automatic_evidence=automatic_for_all,
+                    automatic_evidence=False,
                     full_payment_summary=False,
-                    related_fascicoli=_related_for_list_row(fascicolo) if automatic_for_all else None,
                     parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
                     duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
                 )
@@ -5652,9 +5702,8 @@ def build_react_fascicoli_payload(
                 enriched_items.append(item)
                 continue
             enriched = dict(item)
-            enriched["paymentSummary"] = payment_summary_for_fascicolo(
+            enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
                 fascicolo,
-                automatic=True,
                 related_fascicoli=_related_duplicate_fascicoli(fascicoli_for_summary, fascicolo),
                 parcelle=parcelle_by_fasc.get(fid, []),
                 duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
@@ -5665,7 +5714,12 @@ def build_react_fascicoli_payload(
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "summary": _summary(sorted_items, archived_count=int(base.get("archivedCount") or 0), deadlines30=int(base.get("deadlines30") or 0)),
+        "summary": _summary(
+            sorted_items,
+            archived_count=int(base.get("archivedCount") or 0),
+            deadlines30=int(base.get("deadlines30") or 0),
+            deadlines7=len(list(base.get("deadlines7") or [])),
+        ),
         "items": items,
         "pagination": pagination,
         "facets": _facets(light_items),
@@ -5686,7 +5740,7 @@ def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scaden
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "summary": _summary(items, archived_count=0, deadlines30=0),
+        "summary": _summary(items, archived_count=0, deadlines30=0, deadlines7=0),
         "items": items,
         "facets": _facets(items),
         "deadlines": [],

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.265.10 - 2026-07-27
+
+- Fascicoli React: ripristinato il caricamento rapido della lista su produzione evitando letture massive Document AI e presidi automatici completi durante la paginazione.
+- Scadenze: `Scadenze 7g` ora usa la stessa fonte del riquadro operativo e conta anche le scadenze aperte già scadute o non collegate, come le voci PEC/diffida del `15/05/2026`.
+- Economia fascicoli: il riepilogo leggero usa il calcolo parcella già presente, cacheando solo l'aliquota Cassa Forense per evitare ricalcoli normativi ripetuti senza cambiare gli importi.
+- Guardrail: aggiunti test anti-regressione per lista operativa senza Document AI server, scadenze aperte scadute non collegate e cache Cassa Forense delle parcelle.
+
 ## 2.265.9 - 2026-07-27
 
 - Fascicoli React: il menu contestuale apre il contributo unificato con memoria completa di RG, cliente, oggetto del ricorso, base, anticipazione e totale.

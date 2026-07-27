@@ -5722,3 +5722,31 @@ Dopo rebuild Docker locale della copia reale `127.0.0.1:8080`, container `iusent
 - nessun invio PEC, nessun PIN usato, nessuna ricevuta artificiale registrata.
 
 È stato corretto anche il microcopy del motore di ricerca registri: la UI non espone più frasi del tipo `nella elenco locale`, ma usa testi operativi come `Ricerca nel Registro PP.AA. locale...` e `Nessun soggetto trovato in ReGIndE locale.`.
+
+### Aggiornamento 27/07/2026 - Fascicoli: caricamento lista e scadenze 7 giorni
+
+Difetto segnalato su produzione `https://app.iusentra.it/fascicoli`: la pagina restava ferma su `Sincronizzazione fascicoli...` e il riepilogo `Scadenze 7g` non riportava più correttamente le scadenze aperte già scadute, incluse le voci del `15/05/2026` `Presidio ricevute PEC da completare` e `Valuta risposta a diffida`.
+
+Cause accertate:
+
+- la lista fascicoli calcolava l'impronta documentale corrente dentro il riepilogo economico veloce, innescando letture massive dei documenti indicizzati sul server;
+- la vista economica della lista usava ancora il riepilogo automatico completo con presidio documentale, invece del riepilogo consolidato e leggero;
+- il contatore `deadlines7` era ricavato dalle prossime scadenze dei fascicoli in pagina e filtrava solo da oggi in avanti, mentre il riquadro `Scadenze entro 7 giorni` usa correttamente le scadenze aperte con data entro l'orizzonte, comprese quelle già scadute e non ancora collegate a un fascicolo.
+
+Correzione applicata:
+
+- `_document_analysis_marker_state()` legge solo l'impronta già salvata nel marker di presidio; l'impronta corrente resta riservata ai presidi espliciti e al dettaglio governato;
+- `build_react_fascicoli_payload()` costruisce la lista con `automatic_evidence=False` e arricchisce la vista economica con `payment_summary_for_fascicolo_fast()`;
+- il calcolo importo parcella in lista replica `Parcella.netto_a_pagare` senza costruire a ogni riga le tabelle normative, cacheando l'aliquota Cassa Forense per tenant/anno;
+- `summary.deadlines7` viene alimentato dalla stessa lista scadenze aperte del riquadro, così include anche scadenze scadute e non collegate.
+
+Prove eseguite:
+
+- test mirati: `python -m pytest tests/test_fascicoli_pagination.py::test_fascicoli_scadenze7_conta_aperte_scadute_non_collegate tests/test_fascicoli_pagination.py::test_fascicoli_vista_operativa_non_legge_document_ai_server_in_lista tests/test_fascicoli_pagination.py::test_fascicoli_vista_economica_legge_dato_consolidato_senza_presidio_massivo tests/test_fascicoli_pagination.py::test_importo_parcella_lista_usa_aliquota_cassa_in_cache -q`;
+- test completo perimetro fascicoli: `python -m pytest tests/test_fascicoli_pagination.py -q` con `26 passed`;
+- `python -m py_compile web/services/react_fascicoli_bridge.py`;
+- hotfix server Hetzner con rebuild `iusentra-app` e `/api/pronto` `ok=true`;
+- prova API tenant reale su produzione: `/api/v1/ui/fascicoli?page=1&page_size=25&sort=cliente&view=operativa` restituisce `deadlines7=77`, `deadlines_count=77` e prime voci `15/05/2026`;
+- misure produzione dopo hotfix: primo caricamento endpoint circa `723,5 ms`, richieste successive circa `24,8 ms` e `22,4 ms`;
+- controllo visuale nel browser integrato su `https://app.iusentra.it/fascicoli`: pagina renderizzata con `SCADENZE 7G 77` e riquadro `Scadenze entro 7 giorni` contenente `Presidio ricevute PEC da completare` e `Valuta risposta a diffida` del `15/05/2026`;
+- confronto economico server su 302 fascicoli: riepilogo veloce e riepilogo completo coincidono (`totaleRegistrato € 33.337,60`, `anticipazioniDaRecuperare € 959,50`) e 75 parcelle reali hanno zero differenze tra formula veloce e `Parcella.netto_a_pagare`.

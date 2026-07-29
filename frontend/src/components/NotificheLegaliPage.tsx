@@ -96,6 +96,7 @@ type FinalRelataRow = {
   title: string
   detail: string
   removableId?: string
+  removableKind?: 'fascicolo' | 'manuale'
   muted?: boolean
 }
 
@@ -799,6 +800,14 @@ function normalizePecIdentity(value: unknown): string {
 
 function normalizePecAddress(value: unknown): string {
   return String(value || '').trim().toLowerCase()
+}
+
+function firstEmailAddress(value: unknown): string {
+  return String(value || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
+}
+
+function looksLikeEmailAddress(value: unknown): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizePecAddress(value))
 }
 
 function pecVerificationKey(source: unknown, taxCode: unknown, address: unknown): string {
@@ -1679,6 +1688,7 @@ export function NotificheLegaliPage() {
   const [recipientSearch, setRecipientSearch] = useState('')
   const [regindeRecipients, setRegindeRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [registroPpaaRecipients, setRegistroPpaaRecipients] = useState<LegalRecipientSuggestion[]>([])
+  const [manualRecipientSuggestions, setManualRecipientSuggestions] = useState<LegalRecipientSuggestion[]>([])
   const [regindeSearchLoading, setRegindeSearchLoading] = useState(false)
   const [regindeSearchMessage, setRegindeSearchMessage] = useState('')
   const [registroPpaaSearchLoading, setRegistroPpaaSearchLoading] = useState(false)
@@ -1919,15 +1929,15 @@ export function NotificheLegaliPage() {
     const seen = new Set<string>()
     const registrySearchActive = recipientSearch.trim().length >= 3
     const ordered = registrySearchActive
-      ? [...practiceRecipientSuggestions, ...regindeRecipients, ...registroPpaaRecipients, ...data.precompilazione.destinatari]
-      : [...practiceRecipientSuggestions, ...data.precompilazione.destinatari, ...regindeRecipients, ...registroPpaaRecipients]
+      ? [...practiceRecipientSuggestions, ...regindeRecipients, ...registroPpaaRecipients, ...manualRecipientSuggestions, ...data.precompilazione.destinatari]
+      : [...practiceRecipientSuggestions, ...manualRecipientSuggestions, ...data.precompilazione.destinatari, ...regindeRecipients, ...registroPpaaRecipients]
     return ordered.filter((item) => {
-      const key = (item.pec || item.id || item.nome || item.label).trim().toLocaleLowerCase('it-IT')
+      const key = (item.ruoloPratica === 'Inserito manualmente' ? item.id : item.pec || item.id || item.nome || item.label).trim().toLocaleLowerCase('it-IT')
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [data.precompilazione.destinatari, practiceRecipientSuggestions, recipientSearch, regindeRecipients, registroPpaaRecipients])
+  }, [data.precompilazione.destinatari, manualRecipientSuggestions, practiceRecipientSuggestions, recipientSearch, regindeRecipients, registroPpaaRecipients])
   const practiceRecipientSuggestionKeys = useMemo(
     () => new Set(practiceRecipientSuggestions.map((item) => item.id).filter(Boolean)),
     [practiceRecipientSuggestions],
@@ -2156,6 +2166,42 @@ export function NotificheLegaliPage() {
     }))
   }
 
+  const manualRecipientFromFields = (): LegalRecipientSuggestion | null => {
+    const searchPec = firstEmailAddress(recipientSearch)
+    const pec = normalizePecAddress(notifica.destinatario_pec || searchPec)
+    if (!looksLikeEmailAddress(pec)) {
+      setPecVerificationMessage('Inserisci una PEC valida nel campo PEC destinatario oppure nella ricerca.')
+      return null
+    }
+    const nameFromSearch = recipientSearch.replace(searchPec, '').trim()
+    const nome = (notifica.destinatario_nome || nameFromSearch || pec).trim()
+    const fonte = normalizePecSource(notifica.fonte_pec_destinatario || 'reginde') || 'reginde'
+    return {
+      id: `manuale:${pec}`,
+      label: nome,
+      nome,
+      codiceFiscalePiva: notifica.destinatario_cf.trim().toUpperCase(),
+      pec,
+      ruolo: notifica.ruolo_destinatario || 'controparte',
+      ruoloPratica: 'Inserito manualmente',
+      fontePecSuggerita: fonte,
+      parteRappresentata: notifica.destinatario_parte_rappresentata,
+      verificaRichiesta: true,
+    }
+  }
+
+  const addManualRecipient = () => {
+    const recipient = manualRecipientFromFields()
+    if (!recipient) return
+    setManualRecipientSuggestions((current) => [
+      recipient,
+      ...current.filter((item) => item.id !== recipient.id && normalizePecAddress(item.pec) !== recipient.pec),
+    ])
+    applyRecipient(recipient)
+    setRecipientSearch('')
+    setPecVerificationMessage(`Destinatario PEC manuale aggiunto alla notifica: ${recipient.pec}.`)
+  }
+
   const removeRecipient = (recipientId: string) => {
     setSelectedRecipientIds((current) => {
       const nextIds = current.filter((id) => id !== recipientId)
@@ -2223,6 +2269,27 @@ export function NotificheLegaliPage() {
       provvedimento_tipo: provisionType || current.provvedimento_tipo || '',
       provvedimento_data: provisionDate || current.provvedimento_data || '',
       provvedimento_data_deposito: provisionDepositDate || current.provvedimento_data_deposito || '',
+    }))
+    setLastControlPayloadKey('')
+    setLastControlLabel('')
+  }
+
+  const clearNotificationDocumentFields = () => {
+    setNotifica((current) => ({
+      ...current,
+      nome_file: '',
+      descrizione_documento: '',
+      hash_sha256: '',
+      data_comunicazione_cancelleria: '',
+      provvedimento_tipo: '',
+      provvedimento_data: '',
+      provvedimento_data_deposito: '',
+    }))
+    setModelFields((current) => ({
+      ...current,
+      provvedimento_tipo: '',
+      provvedimento_data: '',
+      provvedimento_data_deposito: '',
     }))
     setLastControlPayloadKey('')
     setLastControlLabel('')
@@ -2764,6 +2831,30 @@ export function NotificheLegaliPage() {
 
   const removeManualNotificationDocument = (id: string) => {
     setManualNotificationDocuments((current) => current.filter((item) => item.id !== id))
+    setNotificationFilesMessage('Allegato rimosso dalla relata.')
+    setLastControlPayloadKey('')
+    setLastControlLabel('')
+  }
+
+  const removeFinalRelataRow = (row: FinalRelataRow) => {
+    if (!row.removableId) return
+    if (row.removableKind === 'manuale') {
+      removeManualNotificationDocument(row.removableId)
+      return
+    }
+    if (row.removableKind !== 'fascicolo') return
+    const next = selectedNotificationDocumentIds.filter((id) => id !== row.removableId)
+    setSelectedNotificationDocumentIds(next)
+    if (selectedDocumentId === row.removableId) setSelectedDocumentId(next[0] || '')
+    const rows = next
+      .map((id) => documentSuggestions.find((item) => item.id === id))
+      .filter((item): item is LegalDocumentSuggestion => Boolean(item))
+    if (rows.length) {
+      syncNotificaFromNotificationDocuments(rows)
+    } else {
+      clearNotificationDocumentFields()
+    }
+    setNotificationFilesMessage('Documento rimosso dalla relata.')
   }
 
   const handleNotificationFiles = async (files: FileList | null) => {
@@ -2808,7 +2899,11 @@ export function NotificheLegaliPage() {
     const rows = next
       .map((id) => documentSuggestions.find((item) => item.id === id))
       .filter((item): item is LegalDocumentSuggestion => Boolean(item))
-    if (rows.length) syncNotificaFromNotificationDocuments(rows)
+    if (rows.length) {
+      syncNotificaFromNotificationDocuments(rows)
+    } else {
+      clearNotificationDocumentFields()
+    }
   }
 
   const toggleDepositDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
@@ -3287,6 +3382,14 @@ export function NotificheLegaliPage() {
   }
 
   const sendNotification = async () => {
+    if (sendDisabledReasons.length) {
+      setResult({
+        ...emptyResult,
+        blockers: [`Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`],
+        message: 'Completa i requisiti finali indicati prima di preparare la PEC.',
+      })
+      return
+    }
     const invioPec = localDateTime()
     setWorking(true)
     setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
@@ -3320,6 +3423,7 @@ export function NotificheLegaliPage() {
     setPracticeSelectionMessage('')
     setSelectedRecipientId('')
     setSelectedRecipientIds([])
+    setManualRecipientSuggestions([])
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
     setSelectedDepositDocumentIds([])
@@ -3672,7 +3776,7 @@ export function NotificheLegaliPage() {
           { icon: <ShieldCheck size={15} />, text: 'PEC mittente e destinatario da pubblico elenco.' },
           { icon: <FileDown size={15} />, text: "Documento d'ufficio rilasciato acquisito dal Portale Servizi prima della relata." },
           { icon: <FileSignature size={15} />, text: 'Relata separata e firmata digitalmente.' },
-          { icon: <Inbox size={15} />, text: 'Ricevuta completa e originali digitali conservati.' },
+          { icon: <Inbox size={15} />, text: "RAC, RdAC o mancata consegna si raccolgono dopo l'invio." },
           { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
         ]
   const attestationDocuments = currentNotificationDocuments.filter((documento) => originNeedsAttestazione(documento.origine))
@@ -3683,22 +3787,42 @@ export function NotificheLegaliPage() {
       : selectedNotificationDocuments.some(isPresidioNotificationDocument)
         ? 'presidio'
         : 'manuale'
-  const finalRelataRows: FinalRelataRow[] = [
-    ...currentNotificationDocuments.map((documento, index): FinalRelataRow => ({
+  const finalDocumentRelataRows = (() => {
+    const seen = new Set<string>()
+    return [
+      ...selectedNotificationDocuments.map((documento) => ({
+        title: documento.descrizione || documento.label || documentPrimaryName(documento) || 'Documento allegato',
+        detail: documentPrimaryName(documento),
+        removableId: documento.id,
+        removableKind: 'fascicolo' as const,
+      })),
+      ...manualNotificationDocuments.map((documento) => ({
+        title: documento.descrizione || documento.nome_file || 'Documento allegato',
+        detail: documento.nome_file,
+        removableId: documento.id,
+        removableKind: 'manuale' as const,
+      })),
+    ].filter((row) => {
+      const key = `${row.title.trim().toLowerCase()}|${row.detail.trim().toLowerCase()}`
+      if (!key.trim() || seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).map((row, index): FinalRelataRow => ({
+      ...row,
       letter: alphaListLabel(index),
-      title: documento.descrizione || documento.nome_file || 'Documento allegato',
-      detail: documento.nome_file,
-      removableId: 'id' in documento ? String(documento.id) : undefined,
-    })),
+    }))
+  })()
+  const finalRelataRows: FinalRelataRow[] = [
+    ...finalDocumentRelataRows,
     ...(notificationNeedsAttestazione
       ? [{
-          letter: alphaListLabel(currentNotificationDocuments.length),
+          letter: alphaListLabel(finalDocumentRelataRows.length),
           title: 'Attestazione di conformità.pdf',
           detail: `Un solo attestato per ${attestationDocuments.length} ${attestationDocuments.length === 1 ? 'documento conforme' : 'documenti conformi'}.`,
         }]
       : []),
     {
-      letter: alphaListLabel(currentNotificationDocuments.length + (notificationNeedsAttestazione ? 1 : 0)),
+      letter: alphaListLabel(finalDocumentRelataRows.length + (notificationNeedsAttestazione ? 1 : 0)),
       title: 'Relata di notifica.pdf',
       detail: 'Documento separato da firmare digitalmente.',
     },
@@ -3874,7 +3998,12 @@ export function NotificheLegaliPage() {
                       })}
                     </div>
                   ) : recipientSearch.trim().length >= 3 && !regindeSearchLoading && !registroPpaaSearchLoading ? (
-                    <p className="iu-legal-empty iu-legal-field--wide">Nessun indirizzo corrisponde alla ricerca.</p>
+                    <div className="iu-legal-empty iu-legal-empty--action iu-legal-field--wide">
+                      <span>Nessun indirizzo corrisponde alla ricerca.</span>
+                      <button type="button" onClick={addManualRecipient}>
+                        <PlusCircle size={14} /> Aggiungi PEC manuale
+                      </button>
+                    </div>
                   ) : null}
                   {(regindeSearchLoading || regindeSearchMessage || registroPpaaSearchLoading || registroPpaaSearchMessage) && recipientSearch.trim().length >= 3 ? (
                     <p className="iu-legal-reginde-status iu-legal-field--wide">
@@ -3963,7 +4092,7 @@ export function NotificheLegaliPage() {
                       </div>
                       {selectedNotificationDocumentIds.length ? (
                         <div className="iu-legal-picker-actions">
-                          <button type="button" onClick={() => setSelectedNotificationDocumentIds([])}>
+                          <button type="button" onClick={() => { setSelectedNotificationDocumentIds([]); clearNotificationDocumentFields(); setNotificationFilesMessage('Documenti del fascicolo rimossi dalla relata.') }}>
                             <Trash2 size={14} /> Svuota selezione
                           </button>
                         </div>
@@ -4036,7 +4165,7 @@ export function NotificheLegaliPage() {
                               {row.detail ? <small>{row.detail}</small> : null}
                             </em>
                             {row.removableId ? (
-                              <button type="button" aria-label="Rimuovi allegato" onClick={() => removeManualNotificationDocument(row.removableId || '')}>
+                              <button type="button" aria-label="Rimuovi allegato dalla relata" onClick={() => removeFinalRelataRow(row)}>
                                 <Trash2 size={14} />
                               </button>
                             ) : null}
@@ -4277,6 +4406,12 @@ export function NotificheLegaliPage() {
                     {data.registriPec.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </Field>
+                <div className="iu-legal-template-actions iu-legal-field--wide">
+                  <button type="button" onClick={addManualRecipient}>
+                    <PlusCircle size={15} /> Aggiungi PEC manuale alla notifica
+                  </button>
+                  <span className="iu-legal-template-actions__hint">Usa i campi Destinatario, PEC destinatario ed Elenco pubblico PEC quando il soggetto non compare nei suggerimenti.</span>
+                </div>
                 <Field label="Parte rappresentata" hint="Facoltativa: se presente viene riportata nella relata."><input value={notifica.destinatario_parte_rappresentata} onChange={(event) => changeNotifica('destinatario_parte_rappresentata', event.currentTarget.value)} /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Nome file aggiuntivo' : 'Nome file atto'}><input value={notifica.nome_file} onChange={(event) => changeNotifica('nome_file', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Descrizione aggiuntiva' : 'Descrizione documento'}><input value={notifica.descrizione_documento} onChange={(event) => changeNotifica('descrizione_documento', event.currentTarget.value)} /></Field>

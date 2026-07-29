@@ -1,5 +1,31 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-29 - Notifiche L. 53: allegati pre-invio, PEC manuale e approvazione
+
+Fonte ufficiale riesaminata: scheda PST Ministero della Giustizia `Notificazioni per via telematica eseguite dagli avvocati e dai procuratori legali (legge 53/94)`, https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC432&modelId=12. La scheda distingue la composizione della PEC di notifica, con atto/documento da notificare, eventuale procura e relazione di notificazione separata firmata digitalmente, dalla fase successiva di deposito delle ricevute RAC/RdAC.
+
+Correzione applicata:
+
+- `Allegati PEC di notifica` non viene più emesso nel piano di preparazione della relata: in questa fase la UI mostra solo i controlli coerenti con la notifica da inviare, mentre il controllo sugli allegati PEC resta limitato all'operazione di invio finale;
+- `Conferma dell'avvocato` resta requisito finale dell'invio PEC, ma nel controllo preparatorio non lascia più un vecchio blocco rosso se l'avvocato la spunta dopo il controllo della relata;
+- il piano file pre-invio mostra solo documenti da notificare, eventuale `Attestazione di conformità.pdf`, `Relata di notifica.pdf`, relata firmata e `log_notifica.json`; `pec_inviata.eml`, `ricevuta_accettazione.eml`, `ricevuta_consegna_completa.eml`, eventuali avvisi di mancata consegna, distinta prova e scheda esito sono ora separati in `postSendFiles`;
+- la pagina React `/notifiche-legali` permette di aggiungere nello stesso flusso un destinatario PEC manuale quando il soggetto non compare nei suggerimenti, conservando ruolo e fonte del pubblico elenco per il controllo ordinario;
+- l'elenco finale atti della relata è ora agganciato agli id dei documenti selezionati dal fascicolo e agli allegati manuali: quando un documento viene tolto con il cestino o con `Svuota selezione`, esce anche dalla relata e dall'attestazione cumulativa.
+
+Guardrail eseguiti senza invio PEC reale:
+
+- `python -m py_compile pct\notifiche_legali.py web\blueprints\api_v1_react.py web\services\react_notifiche_legali_bridge.py`;
+- `python -m pytest tests\test_notifiche_legali.py -k "preparazione_non_blocca or invio_finale_notifica_blocca or pec_manuale_e_rimozione_documenti_relata" -q`;
+- `python -m pytest tests\test_notifiche_legali.py -q`;
+- `python -m pytest tests\test_notifiche_legali_preview_ui.py -q`;
+- `pnpm --filter @iusentra/studio typecheck`;
+- `pnpm --filter @iusentra/studio build`;
+- `docker compose build --no-cache app`, `docker compose up -d app`, `http://127.0.0.1:8080/api/pronto` versione `2.265.12`.
+
+Prova reale locale su `127.0.0.1:8080`, browser integrato Codex visibile, fascicolo `DD242366` / `2026/002`: aggiunta PEC manuale `manuale.codex.20260729@pec.it`; selezionato `Documento_33584995.pdf`; verificata lista finale relata con `Documento_33584995.pdf`, `Attestazione di conformità.pdf` e `Relata di notifica.pdf`; rimosso il documento dalla lista finale e osservato azzeramento checkbox/lista; spuntata approvazione finale e verificato che il titolo `Invia PEC` non riporti più `approvazione finale avvocato mancante`; eseguito `Controlla relata` e osservato che `Allegati PEC di notifica` e il testo RAC/RdAC come allegati pre-invio non compaiono più. Il pannello mantiene `Ricevute post invio` come presidio non bloccante: RAC, RdAC o mancata consegna si raccolgono dopo l'invio. Controllo responsive desktop `1365x900`, tablet `900x1024`, mobile `390x844` senza overflow nella zona documenti/relata; hover su documento, rimozione relata e approvazione, focus sul checkbox approvazione.
+
+Stato anti-regressione: nessuna PEC reale è stata inviata. L'invio effettivo resta bloccato finché mancano relata firmata e prove PEC coerenti; non è più bloccato da ricevute RAC/RdAC/mancata consegna pre-invio né dalla conferma avvocato già spuntata.
+
 ## Aggiornamento 2026-07-27 - PagoPA nuovo pagamento e controllo economico contestuale
 
 Il menu contestuale del dettaglio fascicolo React ora apre `Controllo economico` come finestra sovrapposta interna, non solo come salto alla sezione laterale. La finestra usa i dati già normalizzati del fascicolo (`paymentSummary`, presidio proforma e stati documentali) e mostra RG, parti/cliente, data, stato, oggetto del ricorso, contributo, ricevuta PagoPA, spese/esborsi, liquidazione, parcella e controllo documenti. Le azioni disponibili sono `Modifica controllo economico`, che porta alla sezione editabile reale del fascicolo, `PagoPA nuovo pagamento` e `Import pratiche`.

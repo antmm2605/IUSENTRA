@@ -2860,6 +2860,15 @@ def _has_procura_document(documents: list[dict[str, Any]]) -> bool:
     return False
 
 
+def _notification_is_send_phase(payload: dict[str, Any]) -> bool:
+    operation = text(payload.get("operazione") or _deep_get(payload, "notifica.operazione"))
+    return (
+        operation == LEGAL_NOTIFICATION_SEND_OPERATION
+        or boolish(payload.get("invio_finale"))
+        or boolish(payload.get("conferma_invio_pec"))
+    )
+
+
 def build_notification_attachment_manifest(
     payload: dict[str, Any],
     *,
@@ -3218,6 +3227,8 @@ def build_notification_send_plan(
     attachment_manifest = build_notification_attachment_manifest(payload, context=context)
     signature_plan = build_notification_signature_plan(payload, context=context)
     timing_plan = build_notification_timing_plan(payload)
+    send_phase = _notification_is_send_phase(payload)
+    relata_signed = boolish(_first(payload, "notifica.relata_firmata", "relata_firmata"))
     signed_relata = text(
         next(
             (item.get("signedFile") for item in signature_plan.get("requiredBeforeSend", []) if item.get("id") == "relata_notifica"),
@@ -3325,15 +3336,21 @@ def build_notification_send_plan(
             passed=True,
             detail="Il sistema prepara un messaggio separato per ciascun destinatario, evitando commistioni tra destinatari.",
         ),
-        _check_row(
-            id="allegati_pec",
-            label="Allegati PEC di notifica",
-            source="L. 53/1994, art. 3-bis; D.M. 44/2011, art. 18",
-            passed=bool(documents)
-            and all(item.get("filename") for item in pec_attachments if item.get("required"))
-            and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
-            detail="La PEC contiene relata firmata e documenti da notificare; RAC/RdAC si raccolgono dopo l'invio.",
-        ),
+    ]
+    if send_phase:
+        checks.append(
+            _check_row(
+                id="allegati_pec",
+                label="Allegati PEC di notifica",
+                source="L. 53/1994, art. 3-bis; D.M. 44/2011, art. 18",
+                passed=bool(documents)
+                and all(item.get("filename") for item in pec_attachments if item.get("required"))
+                and relata_signed,
+                blocking=True,
+                detail="La PEC contiene relata firmata e documenti da notificare; RAC, RdAC o mancata consegna si raccolgono dopo l'invio e non sono allegati alla PEC.",
+            )
+        )
+    checks.extend([
         _check_row(
             id="orario_notifica",
             label="Orario notifica PEC",
@@ -3346,9 +3363,10 @@ def build_notification_send_plan(
             label="Conferma dell'avvocato",
             source="Controllo operativo IUSENTRA",
             passed=boolish(payload.get("approvazione_avvocato")),
+            blocking=send_phase,
             detail="Nessun invio parte senza conferma professionale finale.",
         ),
-    ]
+    ])
     return {
         "mode": "pec_l53_controllata",
         "subject": outbound_subject,
@@ -3399,6 +3417,7 @@ def build_notification_send_plan(
             "archiveTargets": ["fascicolo", "presidi_notifiche"],
             "localSendOnly": True,
         },
+        "sendPhase": "invio_finale" if send_phase else "preparazione",
         "ready": all(item["status"] == "superato" for item in checks),
     }
 
@@ -4986,8 +5005,8 @@ def validate_legal_notification(
         blockers.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
     if require_signed_relata and not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
         blockers.append(block("RELATA_FIRMATA_REQUIRED", "La relata deve essere firmata digitalmente."))
-    if not boolish(payload.get("ricevuta_completa")) or text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
-        blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La notifica PEC L. 53/1994 richiede ricevuta di avvenuta consegna completa."))
+    if text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
+        warnings.append("Al momento dell'invio richiedi RdAC completa; RAC, RdAC o mancata consegna si raccolgono dopo la trasmissione.")
     if office_acquisition["blocking"]:
         blockers.append(block(
             "DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED",
@@ -5345,6 +5364,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
 
     context = context or _build_context(payload, template=select_relata_template(payload))
     documents = context["documenti"]
+    send_phase = _notification_is_send_phase(payload)
     office_acquisition = _office_document_acquisition_state(payload, context)
     office_pec_eml = _office_pec_eml_state(payload)
     directive = resolve_legal_notification_directive(payload, context)
@@ -5395,6 +5415,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="Allegati della notifica",
             source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
             passed=all(item.get("present") for item in attachment_manifest if item.get("phase") == "pec_notifica" and item.get("required")),
+            blocking=send_phase,
             detail="; ".join(f"{item['label']}: {'presente' if item.get('present') else 'mancante'}" for item in attachment_manifest if item.get("phase") == "pec_notifica"),
         ),
         _check_row(
@@ -5440,14 +5461,16 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             source="L. 53/1994, art. 3-bis, comma 5",
             passed=boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
             and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
-            detail="La relata deve essere documento informatico separato e firmato digitalmente.",
+            blocking=send_phase,
+            detail="La relata deve essere documento informatico separato; la firma digitale viene acquisita prima dell'invio finale.",
         ),
         _check_row(
             id="ricevuta_completa",
-            label="RdAC completa",
+            label="Ricevute post invio",
             source="D.M. 44/2011, art. 18, comma 6",
-            passed=boolish(payload.get("ricevuta_completa")) and text(payload.get("ricevuta_tipo")).lower() not in {"breve", "sintetica", "assente"},
-            detail="La ricevuta di avvenuta consegna deve essere completa.",
+            passed=True,
+            blocking=False,
+            detail="La RdAC completa va richiesta al momento dell'invio; RAC, RdAC o mancata consegna si raccolgono dopo e non sono allegati alla PEC di notifica.",
         ),
     ]
 
@@ -5527,17 +5550,20 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
         *attestazione_files,
         "Relata di notifica.pdf",
         "relata_notifica_firmata.pdf oppure relata_notifica.pdf.p7m",
+        "log_notifica.json",
+    ]
+    post_send_files = [
         "pec_inviata.eml",
         "ricevuta_accettazione.eml",
         "ricevuta_consegna_completa.eml",
         "eventuali_avvisi_errore.eml",
-        "log_notifica.json",
         "distinta_prova_notifica.pdf",
         "scheda_esito_notifica.pdf",
     ]
     return {
         "folder": folder,
         "files": files,
+        "postSendFiles": post_send_files,
         "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
         "attachmentRules": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
         "attachmentManifest": build_notification_attachment_manifest(payload, context=context),

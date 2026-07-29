@@ -1175,7 +1175,8 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     assert signature["requiredBeforeSend"][0]["sourceFile"] == "relata_notifica.pdf"
     assert signature["requiredBeforeSend"][0]["signedFile"] == "relata_notifica.pdf.p7m"
     assert delivery["signaturePlan"]["requiredBeforeSend"][0]["id"] == "relata_notifica"
-    assert any(item["id"] == "allegati_pec" and item["status"] == "superato" for item in delivery["sendChecks"])
+    assert delivery["sendPhase"] == "preparazione"
+    assert not any(item["id"] == "allegati_pec" for item in delivery["sendChecks"])
     assert any(
         item["sourceFilename"] == "ricorso.pdf" and item["archiveFilename"] == "ricorso (originale notificato).pdf"
         for item in delivery["postSendDocumentArchive"]
@@ -1238,6 +1239,59 @@ def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
         item["sourceFilename"] == "ordinanza.pdf" and item["archiveFilename"] == "ordinanza (originale notificato).pdf"
         for item in plan["postSendDocumentArchive"]
     )
+
+
+def test_notifica_l53_preparazione_non_blocca_ricevute_o_approvazione_finale():
+    payload = _legal_payload()
+    payload.update({
+        "ricevuta_completa": False,
+        "relata_firmata": False,
+        "approvazione_avvocato": False,
+    })
+
+    result = validate_legal_notification(payload, require_signed_relata=False)
+
+    assert result.ok is True
+    assert not any("RICEVUTA_COMPLETA_REQUIRED" in item for item in result.blockers)
+    assert "ricevuta_accettazione.eml" not in result.output_plan["files"]
+    assert "ricevuta_consegna_completa.eml" not in result.output_plan["files"]
+    assert "eventuali_avvisi_errore.eml" not in result.output_plan["files"]
+    assert "ricevuta_accettazione.eml" in result.output_plan["postSendFiles"]
+    delivery = result.output_plan["deliveryPlan"]
+    assert delivery["sendPhase"] == "preparazione"
+    send_checks = {item["id"]: item for item in delivery["sendChecks"]}
+    assert "allegati_pec" not in send_checks
+    assert send_checks["approvazione_avvocato"]["status"] == "da completare"
+    assert send_checks["approvazione_avvocato"]["blocking"] is False
+    normative = {item["id"]: item for item in result.output_plan["normativeChecks"]}
+    assert normative["ricevuta_completa"]["label"] == "Ricevute post invio"
+    assert normative["ricevuta_completa"]["blocking"] is False
+
+
+def test_invio_finale_notifica_blocca_firma_relata_e_approvazione_avvocato():
+    payload = _legal_payload()
+    payload.update({
+        "operazione": "invio_pec_l53",
+        "conferma_invio_pec": True,
+        "invio_finale": True,
+        "ricevuta_completa": False,
+        "relata_firmata": False,
+        "approvazione_avvocato": False,
+    })
+
+    result = validate_legal_notification(payload, require_signed_relata=True)
+
+    assert result.ok is False
+    assert any("RELATA_FIRMATA_REQUIRED" in item for item in result.blockers)
+    assert any("approvazione finale dell'avvocato" in item for item in result.blockers)
+    assert not any("RICEVUTA_COMPLETA_REQUIRED" in item for item in result.blockers)
+    delivery = result.output_plan["deliveryPlan"]
+    assert delivery["sendPhase"] == "invio_finale"
+    send_checks = {item["id"]: item for item in delivery["sendChecks"]}
+    assert send_checks["allegati_pec"]["status"] == "bloccante"
+    assert send_checks["allegati_pec"]["blocking"] is True
+    assert send_checks["approvazione_avvocato"]["status"] == "bloccante"
+    assert send_checks["approvazione_avvocato"]["blocking"] is True
 
 
 def test_relata_due_destinatari_usa_anteprima_testo_e_timestamp_individuali(
@@ -3317,6 +3371,21 @@ def test_ui_notifiche_legali_attestazione_solo_da_documenti_inclusi():
     assert "selectedOrigin?.needsAttestazione" not in block
     assert "selectedNotificationDocuments.some((item) => item.necessitaAttestazione)" in block
     assert "manualNotificationDocuments.some((item) => originNeedsAttestazione(item.origine))" in block
+
+
+def test_ui_notifiche_legali_pec_manuale_e_rimozione_documenti_relata():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+
+    assert "const [manualRecipientSuggestions, setManualRecipientSuggestions]" in page
+    assert "ruoloPratica: 'Inserito manualmente'" in page
+    assert "item.ruoloPratica === 'Inserito manualmente' ? item.id" in page
+    assert "Aggiungi PEC manuale alla notifica" in page
+    assert "const removeFinalRelataRow = (row: FinalRelataRow)" in page
+    assert "removableKind: 'fascicolo' as const" in page
+    assert "removableKind: 'manuale' as const" in page
+    assert "onClick={() => removeFinalRelataRow(row)}" in page
+    assert "setSelectedNotificationDocumentIds([]); clearNotificationDocumentFields()" in page
+    assert "delete controlled.approvazione_avvocato" in page
 
 
 def test_ui_notifiche_legali_verifica_i_dati_visibili_del_destinatario_attivo():

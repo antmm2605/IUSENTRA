@@ -1222,6 +1222,30 @@
   color: var(--iu-slate-600, #526173);
 }
 
+.iu-legal-empty--action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.iu-legal-empty--action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(31, 93, 153, .28);
+  border-radius: 8px;
+  background: var(--iu-surface, #fbfcfe);
+  color: var(--iu-blue-700, #173a67);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
 .iu-legal-list {
   display: flex;
   flex-direction: column;
@@ -1672,6 +1696,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   min-height: 32px;
   border: 1px solid rgba(31, 93, 153, .24);
   border-radius: 8px;
@@ -1680,6 +1705,7 @@
   font-size: .78rem;
   font-weight: 750;
   padding: 0 10px;
+  white-space: normal;
   cursor: pointer;
 }
 
@@ -1798,6 +1824,7 @@
 }
 
 .iu-legal-unep-quick button {
+  min-width: 0;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -1810,6 +1837,8 @@
   padding: 8px 11px;
   font-size: .76rem;
   font-weight: 900;
+  overflow-wrap: anywhere;
+  white-space: normal;
   cursor: pointer;
 }
 
@@ -1817,6 +1846,12 @@
   display: grid;
   justify-content: stretch;
   text-align: left;
+}
+
+.iu-legal-unep-quick > div button strong,
+.iu-legal-unep-quick > div button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .iu-legal-selected-documents {
@@ -2190,6 +2225,14 @@
   cursor: wait;
 }
 
+.iu-legal-template-actions__hint {
+  align-self: center;
+  color: var(--iu-slate-600, #526173);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .iu-legal-field-palette {
   display: grid;
   gap: 10px;
@@ -2482,9 +2525,20 @@
   .iu-legal-evidence-uploader,
   .iu-legal-action-panel__head,
   .iu-legal-office-monitor__head,
-  .iu-legal-picker-actions,
   .iu-legal-auto-notes {
     grid-template-columns: 1fr;
+  }
+
+  .iu-legal-picker-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .iu-legal-picker-actions button {
+    justify-content: center;
+    width: 100%;
   }
 
   .iu-legal-unep-quick header {

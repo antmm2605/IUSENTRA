@@ -13,6 +13,9 @@ from typing import Any, Callable
 from pct.soggetti import TipoSoggetto, soggetto_coincide_con_cliente
 
 
+_NOTIFICHE_MANUAL_RECIPIENT_TAG = "notifiche-legali-manuale"
+
+
 def _text(value: Any, fallback: str = "") -> str:
     return " ".join(str(value or fallback).split())
 
@@ -41,6 +44,13 @@ def _is_legal_type(value: Any) -> bool:
     return tipo in {"PERSONA_GIURIDICA", "PUBBLICA_AMMINISTRAZIONE", "ENTE", "CONDOMINIO", "ASSOCIAZIONE"}
 
 
+def _is_manual_notification_subject(soggetto: Any) -> bool:
+    return any(
+        _text(tag).casefold() == _NOTIFICHE_MANUAL_RECIPIENT_TAG
+        for tag in (getattr(soggetto, "tag", []) or [])
+    )
+
+
 def _tone(value: str) -> str:
     return {
         "PERSONA_FISICA": "primary",
@@ -65,7 +75,7 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
     clienti_by_id = _client_index(clienti)
     rows: list[dict[str, Any]] = []
     for index, soggetto in enumerate(soggetti):
-        if soggetto_coincide_con_cliente(soggetto, clienti):
+        if soggetto_coincide_con_cliente(soggetto, clienti) and not _is_manual_notification_subject(soggetto):
             continue
         item_id = _text(getattr(soggetto, "id", "")) or f"soggetto-{index}"
         tipo = _enum_value(getattr(soggetto, "tipo", TipoSoggetto.PERSONA_FISICA))
@@ -144,7 +154,12 @@ def build_react_soggetti_payload(
     soggetti = _safe(lambda: soggetti_repo.tutti(), [])
     clienti = _safe(lambda: get_clienti().tutti(), [])
     items = _subject_items(soggetti_repo, soggetti, clienti)
-    clienti_esclusi = sum(1 for soggetto in soggetti if soggetto_coincide_con_cliente(soggetto, clienti))
+    clienti_esclusi = sum(
+        1
+        for soggetto in soggetti
+        if soggetto_coincide_con_cliente(soggetto, clienti)
+        and not _is_manual_notification_subject(soggetto)
+    )
     summary = _summary(items)
     summary["clientsExcluded"] = clienti_esclusi
     return {

@@ -36,7 +36,7 @@ from werkzeug.exceptions import HTTPException
 from pct import __version__ as APP_VERSION
 from pct.applicazioni_runtime import TOOL_SCHEMAS, build_tool_result
 from pct.auth import RuoloUtente, totp_uri
-from pct.clienti import TipoCliente
+from pct.clienti import Indirizzo, Recapiti, TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.fascicolo_document_catalog import classify_fascicolo_document
@@ -44,11 +44,15 @@ from pct.deposito_telematico_catalogo import build_deposit_catalog_payload, reso
 from pct.fascicoli import TipoDocumento
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
+    LEGAL_RECIPIENT_ROLES,
+    PUBLIC_PEC_REGISTERS,
     build_public_register_confirmation_evidence,
     build_attestazione_conformita_payload,
     build_client_communication,
     generate_attestazione_conformita_pdf_bytes,
     generate_relata_pdf_bytes,
+    is_plausible_pec_address,
+    normalise_public_register,
     normalise_custom_template,
     prepare_pst_failed_notification_workflow,
     preview_legal_relata,
@@ -74,6 +78,12 @@ from pct.pratiche_collegate_catalog import (
 )
 from pct.runtime_env import is_managed_cloud_runtime
 from pct.scadenziario import PrioritaTermine, TipoTermine
+from pct.soggetti import (
+    RuoloSoggetto,
+    TipoSoggetto,
+    normalizza_identificativo_anagrafico,
+    normalizza_nome_anagrafico,
+)
 from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
@@ -3136,11 +3146,249 @@ _NOTIFICHE_MODEL_BODY_MAX = 24000
 _NOTIFICHE_DRAFT_BODY_MAX = 30000
 _NOTIFICHE_CLIENT_BODY_MAX = 20000
 _NOTIFICHE_SIGNED_RELATA_MAX_BYTES = 20 * 1024 * 1024
+_NOTIFICHE_MANUAL_RECIPIENT_TAG = "notifiche-legali-manuale"
 
 
 def _json_payload_or_error() -> tuple[dict[str, Any] | None, Any | None]:
     payload, error = _request_json_object()
     return payload, error
+
+
+def _notifiche_text(value: Any) -> str:
+    return " ".join(str(value or "").split()).strip()
+
+
+def _notifiche_pec(value: Any) -> str:
+    return _notifiche_text(value).lower()
+
+
+def _notifiche_manual_source(value: Any) -> str:
+    source = normalise_public_register(value or "ini_pec")
+    if source == "ipa":
+        source = "registro_ppaa"
+    return source if source in PUBLIC_PEC_REGISTERS else "ini_pec"
+
+
+def _notifiche_manual_role(value: Any, source: str) -> str:
+    raw = _notifiche_text(value).lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "pubblica_amministrazione": "pa",
+        "p_a": "pa",
+        "difensore_avversario": "difensore",
+        "difensore_controparte": "difensore",
+    }
+    role = aliases.get(raw, raw)
+    if role in LEGAL_RECIPIENT_ROLES:
+        return role
+    if source == "registro_ppaa":
+        return "pa"
+    if source == "reginde":
+        return "difensore"
+    return "controparte"
+
+
+def _notifiche_subject_type(role: str, source: str, identity: str, label: str) -> TipoSoggetto:
+    normalized_label = normalizza_nome_anagrafico(label)
+    if role == "pa" or source == "registro_ppaa":
+        return TipoSoggetto.PUBBLICA_AMMINISTRAZIONE
+    if role in {"difensore", "professionista"}:
+        return TipoSoggetto.PROFESSIONISTA
+    if role == "impresa" or (identity.isdigit() and len(identity) == 11):
+        return TipoSoggetto.PERSONA_GIURIDICA
+    if any(token in normalized_label for token in ("srl", "spa", "societa", "ministero", "comune", "agenzia", "ufficio")):
+        return TipoSoggetto.PERSONA_GIURIDICA
+    if len(identity) == 16:
+        return TipoSoggetto.PERSONA_FISICA
+    return TipoSoggetto.PERSONA_GIURIDICA
+
+
+def _notifiche_subject_qualifica(role: str) -> str:
+    return {
+        "pa": RuoloSoggetto.CONTROPARTE.value,
+        "controparte": RuoloSoggetto.CONTROPARTE.value,
+        "difensore": RuoloSoggetto.DIFENSORE_CONTROPARTE.value,
+        "impresa": RuoloSoggetto.CONTROPARTE.value,
+        "professionista": RuoloSoggetto.ALTRO.value,
+        "terzo": RuoloSoggetto.ALTRO.value,
+    }.get(role, RuoloSoggetto.ALTRO.value)
+
+
+def _notifiche_party_role(role: str) -> RuoloSoggetto:
+    if role == "difensore":
+        return RuoloSoggetto.DIFENSORE_CONTROPARTE
+    if role in {"controparte", "impresa", "pa"}:
+        return RuoloSoggetto.CONTROPARTE
+    return RuoloSoggetto.ALTRO
+
+
+def _notifiche_person_fields(label: str) -> dict[str, str]:
+    parts = [part for part in _notifiche_text(label).split(" ") if part]
+    if len(parts) >= 2:
+        return {"cognome": parts[0], "nome": " ".join(parts[1:])}
+    return {"cognome": "", "nome": label}
+
+
+def _notifiche_subject_payload_fields(
+    *,
+    tipo: TipoSoggetto,
+    label: str,
+    identity: str,
+) -> dict[str, Any]:
+    fields: dict[str, Any] = {
+        "codice_fiscale": identity,
+        "partita_iva": identity if identity.isdigit() and len(identity) == 11 else "",
+    }
+    if tipo in {
+        TipoSoggetto.PERSONA_GIURIDICA,
+        TipoSoggetto.PUBBLICA_AMMINISTRAZIONE,
+        TipoSoggetto.ENTE,
+        TipoSoggetto.CONDOMINIO,
+        TipoSoggetto.ASSOCIAZIONE,
+    }:
+        fields["ragione_sociale"] = label
+        return fields
+    fields.update(_notifiche_person_fields(label))
+    return fields
+
+
+def _notifiche_subject_name_missing(soggetto: Any) -> bool:
+    current = _notifiche_text(getattr(soggetto, "nome_completo", ""))
+    normalized = current.replace("-", "").replace("—", "").strip()
+    return not normalized
+
+
+def _notifiche_manual_tags(source: str) -> list[str]:
+    return [
+        _NOTIFICHE_MANUAL_RECIPIENT_TAG,
+        "notifiche-legali",
+        f"pubblico-elenco:{source}",
+    ]
+
+
+def _notifiche_merge_tags(existing: Iterable[Any], source: str) -> list[str]:
+    tags: list[str] = []
+    seen: set[str] = set()
+    for value in list(existing or []) + _notifiche_manual_tags(source):
+        text_value = _notifiche_text(value)
+        if not text_value or text_value.casefold() in seen:
+            continue
+        seen.add(text_value.casefold())
+        tags.append(text_value)
+    return tags
+
+
+def _notifiche_manual_note(*, source: str, represented: str) -> str:
+    source_label = PUBLIC_PEC_REGISTERS.get(source, source)
+    note = f"Inserito manualmente da Notifiche legali. Fonte PEC dichiarata: {source_label}."
+    if represented:
+        note += f" Parte rappresentata: {represented}."
+    return note
+
+
+def _notifiche_find_manual_subject(repo: Any, *, pec: str, identity: str, label: str) -> Any | None:
+    subjects = list(_safe("soggetti", lambda: repo.tutti(), []))
+    for soggetto in subjects:
+        current_pec = _notifiche_pec(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
+        if current_pec and current_pec == pec:
+            return soggetto
+    if identity:
+        for soggetto in subjects:
+            values = {
+                normalizza_identificativo_anagrafico(getattr(soggetto, "codice_fiscale", "")),
+                normalizza_identificativo_anagrafico(getattr(soggetto, "partita_iva", "")),
+                normalizza_identificativo_anagrafico(getattr(soggetto, "identificativo", "")),
+            }
+            if identity in values:
+                return soggetto
+    label_key = normalizza_nome_anagrafico(label)
+    if label_key:
+        for soggetto in subjects:
+            current_pec = _notifiche_pec(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
+            if current_pec:
+                continue
+            if normalizza_nome_anagrafico(getattr(soggetto, "nome_completo", "")) == label_key:
+                return soggetto
+    return None
+
+
+def _notifiche_update_manual_subject(
+    repo: Any,
+    soggetto: Any,
+    *,
+    label: str,
+    pec: str,
+    identity: str,
+    role: str,
+    source: str,
+    represented: str,
+) -> Any:
+    tipo = getattr(soggetto, "tipo", None) or _notifiche_subject_type(role, source, identity, label)
+    recapiti = getattr(soggetto, "recapiti", None) or Recapiti()
+    recapiti.pec = pec
+    fields: dict[str, Any] = {
+        "recapiti": recapiti,
+        "tag": _notifiche_merge_tags(getattr(soggetto, "tag", []) or [], source),
+    }
+    if not _notifiche_text(getattr(soggetto, "qualifica", "")):
+        fields["qualifica"] = _notifiche_subject_qualifica(role)
+    if identity and not _notifiche_text(getattr(soggetto, "codice_fiscale", "")) and not _notifiche_text(getattr(soggetto, "partita_iva", "")):
+        if identity.isdigit() and len(identity) == 11 and tipo != TipoSoggetto.PERSONA_FISICA:
+            fields["partita_iva"] = identity
+        else:
+            fields["codice_fiscale"] = identity
+    if _notifiche_subject_name_missing(soggetto):
+        fields.update(_notifiche_subject_payload_fields(tipo=tipo, label=label, identity=identity))
+    note = _notifiche_manual_note(source=source, represented=represented)
+    current_note = _notifiche_text(getattr(soggetto, "note", ""))
+    if note not in current_note:
+        fields["note"] = "\n".join(part for part in (current_note, note) if part)
+    return repo.aggiorna(getattr(soggetto, "id", ""), **fields)
+
+
+def _notifiche_create_manual_subject(
+    repo: Any,
+    *,
+    label: str,
+    pec: str,
+    identity: str,
+    role: str,
+    source: str,
+    represented: str,
+) -> Any:
+    tipo = _notifiche_subject_type(role, source, identity, label)
+    return repo.crea(
+        tipo,
+        **_notifiche_subject_payload_fields(tipo=tipo, label=label, identity=identity),
+        qualifica=_notifiche_subject_qualifica(role),
+        indirizzo=Indirizzo(),
+        recapiti=Recapiti(pec=pec),
+        id_cliente="",
+        note=_notifiche_manual_note(source=source, represented=represented),
+        tag=_notifiche_manual_tags(source),
+    )
+
+
+def _notifiche_recipient_from_subject(
+    soggetto: Any,
+    *,
+    role: str,
+    source: str,
+    represented: str,
+) -> dict[str, Any]:
+    recapiti = getattr(soggetto, "recapiti", None)
+    label = _notifiche_text(getattr(soggetto, "nome_completo", "")) or _notifiche_text(getattr(soggetto, "ragione_sociale", ""))
+    return {
+        "id": _notifiche_text(getattr(soggetto, "id", "")),
+        "label": label,
+        "nome": label,
+        "codiceFiscalePiva": _notifiche_text(getattr(soggetto, "identificativo", "")),
+        "pec": _notifiche_pec(getattr(recapiti, "pec", "")),
+        "ruolo": role,
+        "ruoloPratica": "Inserito manualmente",
+        "fontePecSuggerita": source,
+        "parteRappresentata": represented,
+        "verificaRichiesta": True,
+    }
 
 
 def _normalise_relata_text_for_comparison(value: str) -> str:
@@ -3430,6 +3678,111 @@ def notifiche_legali_verifica_pec_consultata():
         f"Consultazione {evidence['source']} registrata con soggetto, data, ora e prova verificabile.",
     )
     return jsonify({**evidence, "fascicolo_id": fascicolo_id, "saved_in_practice": True})
+
+
+@api_v1_react.post("/notifiche-legali/destinatari-manuali")
+@_richiedi_auth
+def notifiche_legali_salva_destinatario_manuale():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+
+    pec = _notifiche_pec(payload.get("pec") or payload.get("destinatario_pec"))
+    if not pec or not is_plausible_pec_address(pec):
+        return jsonify({"ok": False, "message": "Inserisci un indirizzo PEC valido per salvare il destinatario."}), 400
+
+    label = _notifiche_text(
+        payload.get("nome")
+        or payload.get("label")
+        or payload.get("destinatario_nome")
+        or pec
+    )
+    source = _notifiche_manual_source(payload.get("fontePecSuggerita") or payload.get("fonte_pec") or payload.get("fontePec"))
+    role = _notifiche_manual_role(payload.get("ruolo"), source)
+    identity = normalizza_identificativo_anagrafico(
+        payload.get("codiceFiscalePiva")
+        or payload.get("codice_fiscale")
+        or payload.get("partita_iva")
+    )
+    represented = _notifiche_text(payload.get("parteRappresentata") or payload.get("parte_rappresentata"))
+    practice_id = _notifiche_text(payload.get("practiceId") or payload.get("practice_id") or payload.get("fascicolo_id"))
+
+    soggetti_repo = get_soggetti()
+    existing = _notifiche_find_manual_subject(
+        soggetti_repo,
+        pec=pec,
+        identity=identity,
+        label=label,
+    )
+    if existing is not None:
+        soggetto = _notifiche_update_manual_subject(
+            soggetti_repo,
+            existing,
+            label=label,
+            pec=pec,
+            identity=identity,
+            role=role,
+            source=source,
+            represented=represented,
+        )
+        created = False
+    else:
+        soggetto = _notifiche_create_manual_subject(
+            soggetti_repo,
+            label=label,
+            pec=pec,
+            identity=identity,
+            role=role,
+            source=source,
+            represented=represented,
+        )
+        created = True
+
+    linked_to_practice = False
+    if practice_id:
+        fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(practice_id), None)
+        fascicolo_id = (_notifiche_text(getattr(fascicolo, "id", "")) or practice_id) if fascicolo is not None else ""
+        if fascicolo_id:
+            try:
+                soggetti_repo.aggiungi_parte(
+                    fascicolo_id,
+                    _notifiche_text(getattr(soggetto, "id", "")),
+                    _notifiche_party_role(role),
+                    represented or label,
+                )
+                linked_to_practice = True
+                _sync_event("modifica", "fascicoli", fascicolo_id)
+            except Exception:
+                current_app.logger.exception("Destinatario manuale salvato ma non collegato alla pratica %s.", fascicolo_id)
+
+    subject_id = _notifiche_text(getattr(soggetto, "id", ""))
+    _sync_event("modifica", "soggetti", subject_id)
+    _audit_event(
+        "notifiche_legali.destinatario_manuale",
+        "soggetto",
+        subject_id,
+        f"Destinatario PEC manuale {'creato' if created else 'aggiornato'} da Notifiche legali.",
+    )
+    message = (
+        "Destinatario salvato nel database dello studio e aggiunto alla pratica."
+        if linked_to_practice
+        else "Destinatario salvato nel database dello studio e disponibile nelle prossime notifiche."
+    )
+    return jsonify({
+        "ok": True,
+        "message": message,
+        "created": created,
+        "updated": not created,
+        "linkedToPractice": linked_to_practice,
+        "subjectId": subject_id,
+        "recipient": _notifiche_recipient_from_subject(
+            soggetto,
+            role=role,
+            source=source,
+            represented=represented,
+        ),
+    }), 201 if created else 200
 
 
 @api_v1_react.post("/notifiche-legali/modelli-relata")

@@ -271,6 +271,16 @@ export type LegalRelataDraftResult = {
   savedAt: string
 }
 
+export type LegalManualRecipientSaveResult = {
+  ok: boolean
+  message: string
+  created: boolean
+  updated: boolean
+  linkedToPractice: boolean
+  subjectId: string
+  recipient: LegalRecipientSuggestion | null
+}
+
 export type NotificheLegaliData = {
   source: string
   generatedAt: string
@@ -347,6 +357,7 @@ export type NotificheLegaliData = {
     comunicazioneCliente: string
     provaDeposito: string
     verificaPecConsultata: string
+    salvaDestinatarioManuale: string
     regindeSearch: string
     registroPpaaSearch: string
     unep: string
@@ -467,6 +478,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
+    salvaDestinatarioManuale: '/api/v1/ui/notifiche-legali/destinatari-manuali',
     regindeSearch: '/api/v1/ui/notifiche-legali/reginde',
     registroPpaaSearch: '/api/v1/ui/notifiche-legali/registro-ppaa',
     unep: '/api/v1/ui/notifiche-legali/unep',
@@ -923,6 +935,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),
+      salvaDestinatarioManuale: text(azioni.salvaDestinatarioManuale, emptyNotificheLegaliData.azioni.salvaDestinatarioManuale),
       regindeSearch: text(azioni.regindeSearch, emptyNotificheLegaliData.azioni.regindeSearch),
       registroPpaaSearch: text(azioni.registroPpaaSearch, emptyNotificheLegaliData.azioni.registroPpaaSearch),
       unep: text(azioni.unep, emptyNotificheLegaliData.azioni.unep),
@@ -973,6 +986,53 @@ export async function getNotificheLegaliPracticeDocuments(practiceId: string, do
   const body = await response.json().catch(() => ({}))
   if (!isRecord(body) || !bool(body.ok)) return []
   return documentSuggestions(body.documenti)
+}
+
+export async function saveLegalManualRecipient(
+  endpoint: string,
+  payload: {
+    practiceId?: string
+    nome: string
+    codiceFiscalePiva: string
+    pec: string
+    ruolo: string
+    fontePecSuggerita: string
+    parteRappresentata: string
+  },
+): Promise<LegalManualRecipientSaveResult> {
+  const target = endpoint || '/api/v1/ui/notifiche-legali/destinatari-manuali'
+  const response = await fetch(target, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body)) {
+    return {
+      ok: false,
+      message: 'Salvataggio destinatario non completato.',
+      created: false,
+      updated: false,
+      linkedToPractice: false,
+      subjectId: '',
+      recipient: null,
+    }
+  }
+  const savedRecipient = recipientSuggestions([body.recipient])[0] || null
+  return {
+    ok: bool(body.ok) && response.ok && Boolean(savedRecipient),
+    message: text(body.message, response.ok ? 'Destinatario salvato.' : 'Salvataggio destinatario non completato.'),
+    created: bool(body.created),
+    updated: bool(body.updated),
+    linkedToPractice: bool(body.linkedToPractice),
+    subjectId: text(body.subjectId),
+    recipient: savedRecipient,
+  }
 }
 
 export async function searchLegalRegindeRecipients(endpoint: string, query: string, limit = 20): Promise<{

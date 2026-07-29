@@ -1,5 +1,36 @@
 # Procedura deposito telematico IUSENTRA
 
+## Aggiornamento 2026-07-29 - Notifiche L. 53: attestazione per tipo documento e impronta hash
+
+Richiesta utente: nella relata e nell'attestazione di conformità la selezione mista `SentenzaDefinitiva_33581101.pdf` + `VerbaleUdienza_33393309.pdf` non deve produrre due righe `Sentenza`; ogni documento deve mantenere il proprio tipo, la propria data, l'ufficio/sezione, il riferimento R.G. e la formula completa di conformità. L'impronta hash deve indicare la provenienza del dato.
+
+Fonte ufficiale riesaminata: Provvedimento DGSIA 7 agosto 2024, Specifiche tecniche ex art. 34 D.M. 44/2011, pubblicato sul PST Ministero della Giustizia, art. 27 commi 1 e 3. La regola richiede descrizione sintetica del documento, nome file e, per le notifiche ex art. 3-bis L. 53/1994, inserimento degli elementi nella relazione di notificazione.
+
+Correzione applicata:
+
+- la normalizzazione del titolo documento riconosce `VerbaleUdienza`, `Verbale udienza`, `Verbale d'udienza` e `Verbale di udienza` prima di usare il tipo provvedimento globale della notifica;
+- la relata usa il tipo specifico del singolo documento e non copia più `Sentenza` su ogni allegato quando il caso applicato è una sentenza;
+- per ogni documento estratto dal fascicolo informatico la riga `Contenuto del documento` include la formula completa: tipo, ufficio, sezione, data, R.G. e frase `è conforme alla copia informatica presente nel fascicolo informatico del relativo procedimento ... dal quale è estratta`;
+- l'attestazione cumulativa distingue `Sentenza, emessa dal ...` da `Verbale di udienza, estratto dal fascicolo informatico del ...`;
+- la riga `Impronta Hash (256)` espone anche la fonte: `metadato del fascicolo/portale` per documenti acquisiti dal fascicolo o dal portale, `calcolata sul file caricato` per allegati manuali caricati nel browser.
+
+Prova reale locale eseguita su `127.0.0.1:8080`, browser integrato Codex, fascicolo `DD242366` / `2026/002`, container Docker reale `iusentra-app` healthy, `/api/pronto` `ok=true`, versione `2.265.13`:
+
+- selezionati con click reale `SentenzaDefinitiva_33581101.pdf` e `VerbaleUdienza_33393309.pdf`;
+- nella relata il primo allegato è `A) - Sentenza (File: SentenzaDefinitiva_33581101.pdf)`;
+- nella relata il secondo allegato è `B) - Verbale di udienza (File: VerbaleUdienza_33393309.pdf)`;
+- assente la vecchia riga errata `B) - Sentenza (File: VerbaleUdienza_33393309.pdf)`;
+- per la sentenza compare `Sentenza, emessa dal Tribunale di Palmi Sez. CIVILE in data 08/01/2026 è conforme alla copia informatica presente nel fascicolo informatico del relativo procedimento R.G. n. 1025/2026 dal quale è estratta`;
+- per il verbale compare `Verbale di udienza, estratto dal fascicolo informatico del Tribunale di Palmi Sez. CIVILE in data 16/12/2025 è conforme alla copia informatica presente nel fascicolo informatico del relativo procedimento R.G. n. 1025/2026 dal quale è estratta`;
+- le impronte hash sono mostrate come `Impronta Hash (256) - metadato del fascicolo/portale: ...`;
+- aperta `Vedi attestazione`: l'attestazione contiene una riga `Sentenza` e una riga `Verbale di udienza`, senza seconda `Sentenza` errata;
+- tolto il verbale dalla selezione: il relativo blocco scompare dalla relata; rimesso il verbale: torna nell'elenco con il tipo corretto;
+- verificato che `Pacchetto prova e deposito` non compare nella fase `Notifica ex L. 53/1994` e compare invece nella fase `Deposito prova notifica`;
+- spuntata `Approvazione finale dell'avvocato prima dell'invio`: la mancanza di approvazione non resta tra i blocchi, mentre l'invio continua correttamente a richiedere controllo relata e relata firmata;
+- verificato su `/soggetti` che il destinatario manuale salvato dal flusso notifiche è visibile anche in Soggetti e Parti.
+
+Stato anti-regressione: nessuna PEC reale è stata inviata e nessuna firma digitale è stata prodotta durante il controllo. L'invio effettivo resta vincolato ai requisiti obbligatori reali, non a ricevute successive all'invio né a tipi documento derivati in modo errato.
+
 ## Aggiornamento 2026-07-29 - Notifiche L. 53: allegati pre-invio, PEC manuale e approvazione
 
 Fonte ufficiale riesaminata: scheda PST Ministero della Giustizia `Notificazioni per via telematica eseguite dagli avvocati e dai procuratori legali (legge 53/94)`, https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC432&modelId=12. La scheda distingue la composizione della PEC di notifica, con atto/documento da notificare, eventuale procura e relazione di notificazione separata firmata digitalmente, dalla fase successiva di deposito delle ricevute RAC/RdAC.
@@ -7,9 +38,12 @@ Fonte ufficiale riesaminata: scheda PST Ministero della Giustizia `Notificazioni
 Correzione applicata:
 
 - `Allegati PEC di notifica` non viene più emesso nel piano di preparazione della relata: in questa fase la UI mostra solo i controlli coerenti con la notifica da inviare, mentre il controllo sugli allegati PEC resta limitato all'operazione di invio finale;
+- `Allegati della notifica` considera solo ciò che va effettivamente allegato alla PEC da inviare: atto/provvedimento, eventuale procura solo se necessaria e non già in atti, eventuale attestazione di conformità. La relata separata firmata resta requisito autonomo della fase firma/invio, non un allegato mancante nella checklist preparatoria;
+- le ricevute `ACCETTAZIONE`, `CONSEGNA` e `AVVISO DI MANCATA CONSEGNA` sono mostrate come presidio successivo all'invio e non come allegati o requisiti pre-invio;
 - `Conferma dell'avvocato` resta requisito finale dell'invio PEC, ma nel controllo preparatorio non lascia più un vecchio blocco rosso se l'avvocato la spunta dopo il controllo della relata;
 - il piano file pre-invio mostra solo documenti da notificare, eventuale `Attestazione di conformità.pdf`, `Relata di notifica.pdf`, relata firmata e `log_notifica.json`; `pec_inviata.eml`, `ricevuta_accettazione.eml`, `ricevuta_consegna_completa.eml`, eventuali avvisi di mancata consegna, distinta prova e scheda esito sono ora separati in `postSendFiles`;
-- la pagina React `/notifiche-legali` permette di aggiungere nello stesso flusso un destinatario PEC manuale quando il soggetto non compare nei suggerimenti, conservando ruolo e fonte del pubblico elenco per il controllo ordinario;
+- la pagina React `/notifiche-legali` mostra sempre nello stesso flusso il riquadro `Inserimento manuale destinatario`, anche quando i registri locali propongono risultati, conservando ruolo e fonte del pubblico elenco per il controllo ordinario;
+- `Salva bozza per questa notifica` applica davvero il testo modificato all'anteprima corrente e al payload della firma/invio; se cambiano modello, caso, destinatario o documenti, la bozza salvata viene scartata e ricompilata dal modello coerente;
 - l'elenco finale atti della relata è ora agganciato agli id dei documenti selezionati dal fascicolo e agli allegati manuali: quando un documento viene tolto con il cestino o con `Svuota selezione`, esce anche dalla relata e dall'attestazione cumulativa.
 
 Guardrail eseguiti senza invio PEC reale:

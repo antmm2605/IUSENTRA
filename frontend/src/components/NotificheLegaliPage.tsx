@@ -41,6 +41,7 @@ import {
   getNotificheLegaliPracticeDocuments,
   postLegalWorkflow,
   previewLegalRelata,
+  saveLegalManualRecipient,
   saveLegalRelataDraft,
   saveLegalRelataTemplate,
   searchLegalRegindeRecipients,
@@ -67,6 +68,7 @@ type NotificaDocumentPayload = {
   descrizione: string
   origine: string
   hash_sha256: string
+  data_documento?: string
   data_comunicazione_cancelleria: string
   fonte_documento?: string
   riferimento_portale?: string
@@ -297,6 +299,37 @@ function documentNotificationHaystack(documento: LegalDocumentSuggestion): strin
   ].join(' '))
 }
 
+function canonicalProvisionTitle(value: string): string {
+  const haystack = practiceSearchText(String(value || '').replace(/[_-]+/g, ' '))
+  if (!haystack) return ''
+  if (haystack.includes('ricorso') && haystack.includes('opposizione')) return 'Ricorso'
+  if (haystack.includes('atto di citazione')) return 'Atto di citazione'
+  if (
+    haystack.includes('verbaleudienza')
+    || haystack.includes('verbale udienza')
+    || haystack.includes("verbale d'udienza")
+    || haystack.includes('verbale di udienza')
+  ) return 'Verbale di udienza'
+  if (haystack.includes('verbale')) return 'Verbale'
+  if (haystack.includes('sentenza')) return 'Sentenza'
+  if (haystack.includes('ordinanza')) return 'Ordinanza'
+  if (haystack.includes('decreto ingiuntivo') || haystack.includes('decretoingiuntivo') || haystack.includes('ingiunzion')) return 'Decreto ingiuntivo'
+  if (haystack.includes('decreto fissazione') || haystack.includes('decreto di fissazione') || haystack.includes('fissazione udienza')) return 'Decreto fissazione udienza'
+  if (haystack.includes('decreto')) return 'Decreto'
+  if (haystack.includes('provvedimento')) return 'Provvedimento'
+  if (haystack.includes('memoria')) return 'Memoria'
+  if (haystack.includes('istanza')) return 'Istanza'
+  return ''
+}
+
+function technicalDocumentTitle(value: string): string {
+  const compact = practiceSearchText(String(value || '').replace(/[_-]+/g, ' ')).replace(/[^a-z0-9]+/g, '')
+  if (!compact) return ''
+  if (compact.includes('verbaleudienza')) return 'Verbale di udienza'
+  if (compact.includes('sentenzadefinitiva')) return 'Sentenza'
+  return ''
+}
+
 function documentNotificationCaseSuggestion(documento: LegalDocumentSuggestion): string {
   if (documento.casoNotificaSuggerito) return documento.casoNotificaSuggerito
   const haystack = documentNotificationHaystack(documento)
@@ -335,12 +368,19 @@ function documentNotificationCaseSuggestion(documento: LegalDocumentSuggestion):
 
 function documentProvisionTypeSuggestion(documento: LegalDocumentSuggestion): string {
   const haystack = documentNotificationHaystack(documento)
+  const ownDocumentTitle = technicalDocumentTitle([
+    documento.nomeFile,
+    documento.nomeOriginale,
+    documento.provvedimentoTipo,
+    documento.label,
+  ].join(' '))
+  if (ownDocumentTitle) return ownDocumentTitle
   if (
     documento.provvedimentoTipo
     && documento.provvedimentoTipo.toLocaleLowerCase('it-IT').includes('opposizione a decreto ingiuntivo')
     && haystack.includes('ricorso')
   ) return 'Ricorso'
-  if (documento.provvedimentoTipo) return documento.provvedimentoTipo
+  if (documento.provvedimentoTipo) return canonicalProvisionTitle(documento.provvedimentoTipo) || documento.provvedimentoTipo
   if (
     haystack.includes('ricorso in opposizione')
     || haystack.includes('opposizione a decreto ingiuntivo')
@@ -365,6 +405,7 @@ function documentProvisionTypeSuggestion(documento: LegalDocumentSuggestion): st
   if (haystack.includes('decreto ingiuntivo') || haystack.includes('decretoingiuntivo') || haystack.includes('ingiunzion')) return 'Decreto ingiuntivo'
   if (haystack.includes('decreto fissazione') || haystack.includes('decreto di fissazione') || haystack.includes('fissazione udienza')) return 'Decreto fissazione udienza'
   if (haystack.includes('ordinanza')) return 'Ordinanza'
+  if (haystack.includes('verbale')) return 'Verbale'
   if (haystack.includes('decreto')) return 'Decreto'
   if (haystack.includes('provvedimento')) return 'Provvedimento'
   return ''
@@ -376,6 +417,22 @@ function documentProvisionDateSuggestion(documento: LegalDocumentSuggestion): st
 
 function documentProvisionDepositDateSuggestion(documento: LegalDocumentSuggestion): string {
   return documento.provvedimentoDataDeposito || documento.dataRilascioPortale || documentProvisionDateSuggestion(documento)
+}
+
+function formatAttestationDateLabel(value: string): string {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw
+  return formatDateIt(raw, raw)
+}
+
+function attestationOfficeIntro(office: string): string {
+  const clean = String(office || '').trim()
+  if (!clean) return "dall'ufficio giudiziario indicato nel fascicolo"
+  const lower = clean.toLocaleLowerCase('it-IT')
+  if (lower.startsWith('corte') || lower.startsWith('sezione')) return `dalla ${clean}`
+  if (lower.startsWith('ufficio') || lower.startsWith('autorità')) return `dall'${clean}`
+  return `dal ${clean}`
 }
 
 function documentRelataTemplateFromOrigin(origin: string): string {
@@ -1517,7 +1574,8 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
             </div>
             {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).length ? (
               <div className="iu-legal-delivery-section">
-                <strong>Ricevute attese dal presidio PEC</strong>
+                <strong>Dopo l’invio: ricevute attese dal presidio PEC</strong>
+                <small>Accettazione, consegna o mancata consegna non sono allegati da preparare: verranno agganciati alla notifica dopo la trasmissione.</small>
                 <div className="iu-legal-evidence-grid">
                   {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).map((item) => (
                     <strong key={item.id}>{item.label} - {item.subject}</strong>
@@ -1689,6 +1747,15 @@ export function NotificheLegaliPage() {
   const [regindeRecipients, setRegindeRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [registroPpaaRecipients, setRegistroPpaaRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [manualRecipientSuggestions, setManualRecipientSuggestions] = useState<LegalRecipientSuggestion[]>([])
+  const [manualRecipientSaving, setManualRecipientSaving] = useState(false)
+  const [manualRecipientDraft, setManualRecipientDraft] = useState({
+    nome: '',
+    codiceFiscalePiva: '',
+    pec: '',
+    ruolo: 'controparte',
+    fontePec: 'reginde',
+    parteRappresentata: '',
+  })
   const [regindeSearchLoading, setRegindeSearchLoading] = useState(false)
   const [regindeSearchMessage, setRegindeSearchMessage] = useState('')
   const [registroPpaaSearchLoading, setRegistroPpaaSearchLoading] = useState(false)
@@ -1717,6 +1784,7 @@ export function NotificheLegaliPage() {
   const [relataPreview, setRelataPreview] = useState<LegalRelataPreviewResult>(emptyRelataPreview)
   const [relataPreviewWorking, setRelataPreviewWorking] = useState(false)
   const [relataDraftText, setRelataDraftText] = useState('')
+  const [savedRelataDraftText, setSavedRelataDraftText] = useState('')
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
   const [relataDraftMessage, setRelataDraftMessage] = useState('')
@@ -2109,6 +2177,10 @@ export function NotificheLegaliPage() {
     }, 0)
   }
 
+  const changeManualRecipientDraft = (key: keyof typeof manualRecipientDraft, value: string) => {
+    setManualRecipientDraft((current) => ({ ...current, [key]: value }))
+  }
+
   const saveTemplate = async () => {
     setTemplateSaving(true)
     setTemplateMessage('Salvataggio modello in corso...')
@@ -2132,74 +2204,141 @@ export function NotificheLegaliPage() {
       ...current,
       ruolo_destinatario: recipient.ruolo || current.ruolo_destinatario,
       destinatario_nome: recipient.nome || current.destinatario_nome,
-      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
-      destinatario_pec: recipient.pec || current.destinatario_pec,
-      destinatario_parte_rappresentata: recipient.parteRappresentata || current.destinatario_parte_rappresentata,
-      fonte_pec_destinatario: recipient.fontePecSuggerita || current.fonte_pec_destinatario,
+      destinatario_cf: recipient.codiceFiscalePiva || '',
+      destinatario_pec: recipient.pec || '',
+      destinatario_parte_rappresentata: recipient.parteRappresentata || '',
+      fonte_pec_destinatario: recipient.fontePecSuggerita || '',
       template_id: recipient.ruolo === 'difensore' ? 'relata_pec_a_difensore_costituito' : current.template_id,
     }))
-    if (recipient.parteRappresentata) {
-      setModelFields((current) => ({
-        ...current,
-        destinatario_parte_rappresentata: recipient.parteRappresentata,
-        parte_rappresentata: recipient.parteRappresentata,
-      }))
-    }
+    setModelFields((current) => ({
+      ...current,
+      destinatario_parte_rappresentata: recipient.parteRappresentata || '',
+      parte_rappresentata: recipient.parteRappresentata || '',
+    }))
     setDeposito((current) => ({
       ...current,
       destinatario_nome: recipient.nome || current.destinatario_nome,
-      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
-      destinatario_pec: recipient.pec || current.destinatario_pec,
-      fonte_pec_destinatario: recipient.fontePecSuggerita || current.fonte_pec_destinatario,
+      destinatario_cf: recipient.codiceFiscalePiva || '',
+      destinatario_pec: recipient.pec || '',
+      fonte_pec_destinatario: recipient.fontePecSuggerita || '',
     }))
     setUnep((current) => ({
       ...current,
       destinatario_nome: recipient.nome || current.destinatario_nome,
-      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
-      destinatario_pec: recipient.pec || current.destinatario_pec,
-      fonte_pec_destinatario: recipient.fontePecSuggerita || current.fonte_pec_destinatario,
+      destinatario_cf: recipient.codiceFiscalePiva || '',
+      destinatario_pec: recipient.pec || '',
+      fonte_pec_destinatario: recipient.fontePecSuggerita || '',
     }))
     setNonPec((current) => ({
       ...current,
       destinatario_nome: recipient.nome || current.destinatario_nome,
-      destinatario_cf: recipient.codiceFiscalePiva || current.destinatario_cf,
+      destinatario_cf: recipient.codiceFiscalePiva || '',
     }))
   }
 
   const manualRecipientFromFields = (): LegalRecipientSuggestion | null => {
+    const draftPec = firstEmailAddress(manualRecipientDraft.pec)
     const searchPec = firstEmailAddress(recipientSearch)
-    const pec = normalizePecAddress(notifica.destinatario_pec || searchPec)
+    const pec = normalizePecAddress(draftPec || notifica.destinatario_pec || searchPec)
     if (!looksLikeEmailAddress(pec)) {
-      setPecVerificationMessage('Inserisci una PEC valida nel campo PEC destinatario oppure nella ricerca.')
+      setPecVerificationMessage('Inserisci una PEC valida nel riquadro manuale, nel campo PEC destinatario oppure nella ricerca.')
       return null
     }
     const nameFromSearch = recipientSearch.replace(searchPec, '').trim()
-    const nome = (notifica.destinatario_nome || nameFromSearch || pec).trim()
-    const fonte = normalizePecSource(notifica.fonte_pec_destinatario || 'reginde') || 'reginde'
+    const manualNameTyped = manualRecipientDraft.nome.trim()
+    const nome = (manualNameTyped || notifica.destinatario_nome || nameFromSearch || pec).trim()
+    const fonte = normalizePecSource(manualRecipientDraft.fontePec || notifica.fonte_pec_destinatario || 'reginde') || 'reginde'
+    const codiceFiscalePiva = (
+      manualNameTyped
+        ? manualRecipientDraft.codiceFiscalePiva
+        : manualRecipientDraft.codiceFiscalePiva || notifica.destinatario_cf
+    ).trim().toUpperCase()
+    const parteRappresentata = (
+      manualNameTyped
+        ? manualRecipientDraft.parteRappresentata
+        : manualRecipientDraft.parteRappresentata || notifica.destinatario_parte_rappresentata
+    ).trim()
     return {
       id: `manuale:${pec}`,
       label: nome,
       nome,
-      codiceFiscalePiva: notifica.destinatario_cf.trim().toUpperCase(),
+      codiceFiscalePiva,
       pec,
-      ruolo: notifica.ruolo_destinatario || 'controparte',
+      ruolo: manualRecipientDraft.ruolo || notifica.ruolo_destinatario || 'controparte',
       ruoloPratica: 'Inserito manualmente',
       fontePecSuggerita: fonte,
-      parteRappresentata: notifica.destinatario_parte_rappresentata,
+      parteRappresentata,
       verificaRichiesta: true,
     }
   }
 
-  const addManualRecipient = () => {
+  const addManualRecipient = async () => {
+    if (manualRecipientSaving) return
     const recipient = manualRecipientFromFields()
     if (!recipient) return
-    setManualRecipientSuggestions((current) => [
-      recipient,
-      ...current.filter((item) => item.id !== recipient.id && normalizePecAddress(item.pec) !== recipient.pec),
-    ])
-    applyRecipient(recipient)
-    setRecipientSearch('')
-    setPecVerificationMessage(`Destinatario PEC manuale aggiunto alla notifica: ${recipient.pec}.`)
+    setManualRecipientSaving(true)
+    setPecVerificationMessage('Salvataggio destinatario manuale nello studio in corso...')
+    try {
+      const saved = await saveLegalManualRecipient(data.azioni.salvaDestinatarioManuale, {
+        practiceId: selectedPracticeId,
+        nome: recipient.nome,
+        codiceFiscalePiva: recipient.codiceFiscalePiva,
+        pec: recipient.pec,
+        ruolo: recipient.ruolo,
+        fontePecSuggerita: recipient.fontePecSuggerita,
+        parteRappresentata: recipient.parteRappresentata,
+      })
+      if (!saved.ok || !saved.recipient) {
+        setPecVerificationMessage(saved.message || 'Il destinatario non è stato salvato nel database dello studio.')
+        return
+      }
+      const savedRecipient = saved.recipient
+      setManualRecipientSuggestions((current) => [
+        savedRecipient,
+        ...current.filter((item) => item.id !== savedRecipient.id && normalizePecAddress(item.pec) !== savedRecipient.pec),
+      ])
+      setData((current) => ({
+        ...current,
+        precompilazione: {
+          ...current.precompilazione,
+          destinatari: [
+            savedRecipient,
+            ...current.precompilazione.destinatari.filter((item) => item.id !== savedRecipient.id && normalizePecAddress(item.pec) !== savedRecipient.pec),
+          ],
+        },
+      }))
+      applyRecipient(savedRecipient)
+      setManualRecipientDraft((current) => ({
+        ...current,
+        nome: '',
+        codiceFiscalePiva: '',
+        pec: '',
+        parteRappresentata: '',
+      }))
+      setRecipientSearch('')
+      setPecVerificationMessage(saved.message)
+      getNotificheLegaliData()
+        .then((payload) => {
+          setData((current) => ({
+            ...payload,
+            precompilazione: {
+              ...payload.precompilazione,
+              destinatari: [
+                savedRecipient,
+                ...payload.precompilazione.destinatari.filter((item) => item.id !== savedRecipient.id && normalizePecAddress(item.pec) !== savedRecipient.pec),
+              ],
+            },
+          }))
+        })
+        .catch(() => undefined)
+      return
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Salvataggio destinatario non completato.'
+      setPecVerificationMessage(message)
+      return
+    } finally {
+      setManualRecipientSaving(false)
+    }
   }
 
   const removeRecipient = (recipientId: string) => {
@@ -2488,6 +2627,7 @@ export function NotificheLegaliPage() {
       descrizione: documento.descrizione || documento.label,
       origine: documento.origine || 'nativo_digitale',
       hash_sha256: documento.hashSha256,
+      data_documento: documentProvisionDateSuggestion(documento),
       data_comunicazione_cancelleria: documento.origine === 'comunicazione_cancelleria' ? documento.dataDocumento : '',
       fonte_documento: documento.fonte,
       riferimento_portale: documento.riferimentoPortale,
@@ -2512,12 +2652,12 @@ export function NotificheLegaliPage() {
   const recipientPayload = (recipient: LegalRecipientSuggestion) => {
     const isActive = recipient.id === selectedRecipientId
     return {
-      nome: isActive ? notifica.destinatario_nome || recipient.nome : recipient.nome,
+      nome: isActive ? notifica.destinatario_nome : recipient.nome,
       pec: isActive ? notifica.destinatario_pec || recipient.pec : recipient.pec,
-      ruolo: isActive ? notifica.ruolo_destinatario || recipient.ruolo : recipient.ruolo || notifica.ruolo_destinatario,
+      ruolo: isActive ? notifica.ruolo_destinatario : recipient.ruolo || notifica.ruolo_destinatario,
       fonte_pec: isActive ? notifica.fonte_pec_destinatario || recipient.fontePecSuggerita : recipient.fontePecSuggerita,
-      parte_rappresentata: isActive ? notifica.destinatario_parte_rappresentata || recipient.parteRappresentata : recipient.parteRappresentata,
-      codice_fiscale_piva: isActive ? notifica.destinatario_cf || recipient.codiceFiscalePiva : recipient.codiceFiscalePiva,
+      parte_rappresentata: isActive ? notifica.destinatario_parte_rappresentata : recipient.parteRappresentata,
+      codice_fiscale_piva: isActive ? notifica.destinatario_cf : recipient.codiceFiscalePiva,
     }
   }
 
@@ -3087,8 +3227,11 @@ export function NotificheLegaliPage() {
       pec_ufficio_eml_sha256: officeProofRelease?.pecEmlSha256 || '',
       pec_ufficio_message_id: officeProofRelease?.pecMessageId || officeProofRelease?.pecId || '',
     }
-    if (includeDraft && relataDraftDirty && relataDraftText.trim()) {
-      payload.relata_override_text = relataDraftText.trim()
+    const effectiveRelataDraftText = relataDraftDirty
+      ? relataDraftText.trim()
+      : savedRelataDraftText.trim()
+    if (includeDraft && effectiveRelataDraftText) {
+      payload.relata_override_text = effectiveRelataDraftText
     }
     return payload
   }
@@ -3109,9 +3252,13 @@ export function NotificheLegaliPage() {
     }
   }
 
-  const refreshRelataPreview = async (silent = false) => {
+  const refreshRelataPreview = async (
+    silent = false,
+    options: { useSavedDraft?: boolean } = {},
+  ) => {
     const payload = buildNotificaPayload(false)
     const requestPayloadKey = notificationControlPayloadKey(payload)
+    const savedDraftForPreview = options.useSavedDraft === false ? '' : savedRelataDraftText.trim()
     const requestId = relataPreviewRequestIdRef.current + 1
     relataPreviewRequestIdRef.current = requestId
     relataPreviewAbortRef.current?.abort()
@@ -3122,10 +3269,19 @@ export function NotificheLegaliPage() {
     try {
       const preview = await previewLegalRelata(payload, controller.signal)
       if (controller.signal.aborted || requestId !== relataPreviewRequestIdRef.current) return
+      const displayPreview = savedDraftForPreview
+        ? {
+            ...preview,
+            ok: true,
+            previewText: savedDraftForPreview,
+            missingFields: [],
+            blockers: [],
+          }
+        : preview
       completedRelataPreviewKeyRef.current = requestPayloadKey
-      setRelataPreview(preview)
-      if (preview.ok && !relataDraftDirtyRef.current) {
-        setRelataDraftText(preview.previewText)
+      setRelataPreview(displayPreview)
+      if (displayPreview.previewText && !relataDraftDirtyRef.current) {
+        setRelataDraftText(displayPreview.previewText)
       }
       if (relataAlignmentPendingRef.current) {
         const templateLabel = preview.templateLabel || selectedTemplate?.label || 'modello selezionato'
@@ -3164,33 +3320,54 @@ export function NotificheLegaliPage() {
   const saveRelataDraft = async () => {
     setRelataDraftSaving(true)
     setRelataDraftMessage('Salvataggio bozza in corso...')
+    const draftText = relataDraftText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
     const saved = await saveLegalRelataDraft({
       practiceId: selectedPracticeId,
       templateId: notifica.template_id,
-      relataText: relataDraftText,
+      relataText: draftText,
     }).catch(() => ({ ok: false, message: 'Salvataggio bozza non completato.', draftId: '', savedAt: '' }))
-    setRelataDraftMessage(saved.message)
+    if (saved.ok) {
+      setSavedRelataDraftText(draftText)
+      setRelataPreview((current) => ({
+        ...current,
+        ok: true,
+        previewText: draftText,
+        missingFields: [],
+        blockers: [],
+      }))
+      setRelataDraftText(draftText)
+      relataDraftDirtyRef.current = false
+      setRelataDraftDirty(false)
+      setRelataDraftMessage('Bozza relata salvata e applicata all’anteprima di questa notifica.')
+    } else {
+      setRelataDraftMessage(saved.message)
+    }
     setRelataDraftSaving(false)
   }
 
   const restoreRelataDraftFromModel = () => {
-    setRelataDraftText(relataPreview.previewText)
+    setSavedRelataDraftText('')
+    setRelataDraftText('')
     relataDraftDirtyRef.current = false
     setRelataDraftDirty(false)
+    setRelataPreview(emptyRelataPreview)
+    completedRelataPreviewKeyRef.current = ''
     setRelataDraftMessage('Bozza ripristinata dal modello compilato.')
+    void refreshRelataPreview(false, { useSavedDraft: false })
   }
 
   const previewPayloadKey = notificationControlPayloadKey(buildNotificaPayload(false))
   const buildSignedRelataPayloadKey = (overrides: Partial<typeof notifica> = {}) => {
     return JSON.stringify({
       inputPayloadKey: notificationControlPayloadKey(buildNotificaPayload(false, overrides)),
-      relataText: relataDraftDirty ? relataDraftText.trim() : relataPreview.previewText,
+      relataText: relataDraftDirty ? relataDraftText.trim() : savedRelataDraftText.trim() || relataPreview.previewText,
     })
   }
   const signedRelataPayloadKey = buildSignedRelataPayloadKey()
   const previewIsAligned = completedRelataPreviewKeyRef.current === previewPayloadKey
   const displayedRelataPreview = previewIsAligned ? relataPreview : emptyRelataPreview
   const displayedRelataDraftDirty = previewIsAligned && relataDraftDirty
+  const displayedRelataDraftSaved = previewIsAligned && !relataDraftDirty && Boolean(savedRelataDraftText.trim())
   const previewAppliedTemplateLabel = (
     previewIsAligned ? relataPreview.templateLabel : selectedTemplate?.label
   ) || selectedTemplate?.label || 'Modello da selezionare'
@@ -3228,12 +3405,13 @@ export function NotificheLegaliPage() {
     relataPreviewRequestIdRef.current += 1
 
     if (inputsChanged) {
-      const discardedManualDraft = relataDraftDirtyRef.current
+      const discardedManualDraft = relataDraftDirtyRef.current || Boolean(savedRelataDraftText.trim())
       relataDraftDirtyRef.current = false
       relataAlignmentPendingRef.current = true
       relataDraftInvalidatedRef.current = discardedManualDraft
       completedRelataPreviewKeyRef.current = ''
       setRelataPreview(emptyRelataPreview)
+      setSavedRelataDraftText('')
       setRelataDraftText('')
       setRelataDraftDirty(false)
       setRelataDraftMessage(
@@ -3249,7 +3427,7 @@ export function NotificheLegaliPage() {
     }
     setRelataPreviewWorking(true)
     const handle = window.setTimeout(() => {
-      void refreshRelataPreview(true)
+      void refreshRelataPreview(true, { useSavedDraft: !inputsChanged })
     }, 250)
     return () => window.clearTimeout(handle)
   }, [previewPayloadKey, loading, tab])
@@ -3408,7 +3586,7 @@ export function NotificheLegaliPage() {
     const response = await postLegalWorkflow(data.azioni.notifica, payload).catch(() => ({ ...emptyResult, blockers: ['Preparazione invio PEC non completata. Riprova tra poco.'] }))
     setResult(response.ok ? {
       ...response,
-      message: response.message || 'Piano di invio PEC pronto: verifica allegati, relata firmata e ricevute attese prima della trasmissione.',
+      message: response.message || 'Piano di invio PEC pronto: verifica allegati e relata firmata; il presidio raccoglierà le ricevute dopo l’invio.',
     } : response)
     setWorking(false)
   }
@@ -3424,6 +3602,13 @@ export function NotificheLegaliPage() {
     setSelectedRecipientId('')
     setSelectedRecipientIds([])
     setManualRecipientSuggestions([])
+    setManualRecipientDraft((current) => ({
+      ...current,
+      nome: '',
+      codiceFiscalePiva: '',
+      pec: '',
+      parteRappresentata: '',
+    }))
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
     setSelectedDepositDocumentIds([])
@@ -3693,6 +3878,22 @@ export function NotificheLegaliPage() {
   const currentNotificationDocumentsReady = currentNotificationDocuments.length > 0
     && currentNotificationDocuments.every(isNotifiablePayloadDocument)
   const currentNotificationControlPayloadKey = notificationControlPayloadKey(buildNotificaPayload(true))
+  const resultHasVisibleOutput = Boolean(
+    result.message
+    || result.blockers.length
+    || result.warnings.length
+    || result.relataText
+    || result.body
+    || Object.keys(result.outputPlan || {}).length,
+  )
+
+  useEffect(() => {
+    if (tab !== 'notifica' || working || !resultHasVisibleOutput) return
+    if (lastControlPayloadKey && lastControlPayloadKey === currentNotificationControlPayloadKey) return
+    setResult(emptyResult)
+    setLastControlLabel('Dati della notifica modificati: riesegui il controllo relata per aggiornare i requisiti.')
+  }, [currentNotificationControlPayloadKey, lastControlPayloadKey, resultHasVisibleOutput, tab, working])
+
   const hasPassingNotificationControl = result.ok === true
     && Array.isArray(result.blockers)
     && result.blockers.length === 0
@@ -3833,21 +4034,55 @@ export function NotificheLegaliPage() {
   const attestationRg = notifica.numero_rg && notifica.anno_rg
     ? `R.G. n. ${notifica.numero_rg}/${notifica.anno_rg}`
     : ''
-  const attestationPreviewRows = attestationDocuments.map((documento) => {
-    const description = (documento.descrizione || documento.nome_file || 'Documento')
-      .replace(/\.(?:pdf|p7m|docx?|eml|msg)$/i, '')
+  const attestationDocumentTitleDetail = (documento: NotificaDocumentPayload) => {
+    const filename = (documento.nome_file || '').replace(/\.(?:pdf|p7m|docx?|eml|msg)$/i, '')
+    const source = (documento.provvedimentoTipo || documento.descrizione || filename || 'Documento')
+      .replace(/[_-]+/g, ' ')
+      .replace(/([a-zàèéìòù])([A-Z])/g, '$1 $2')
       .trim()
-    const match = description.match(/^(Decreto fissazione udienza|Atto di citazione|Sentenza|Ordinanza|Provvedimento|Ricorso|Procura|Memoria|Verbale|Istanza)\b\s*,?\s*(.*)$/i)
-    if (!match) return `- ${description};`
-    const title = match[1].replace(/^./, (value) => value.toUpperCase())
-    let detail = match[2].trim().replace(/^[-,:;\s]+/, '')
-    if (title === 'Procura' && (!detail || detail.toLowerCase() === 'alle liti')) {
-      detail = 'mandato alle liti'
-    }
-    if (!detail && ['Sentenza', 'Ordinanza', 'Provvedimento', 'Decreto', 'Decreto fissazione udienza'].includes(title)) {
+    const haystack = practiceSearchText(source)
+    const title = canonicalProvisionTitle(source)
+      || (source.match(/^[^,;:-]+/)?.[0] || 'Documento').trim()
+    let detail = ''
+    if (['Sentenza', 'Ordinanza', 'Provvedimento', 'Decreto', 'Decreto ingiuntivo', 'Decreto fissazione udienza'].includes(title)) {
       const participle = ['Sentenza', 'Ordinanza'].includes(title) ? 'emessa' : 'emesso'
-      detail = `${participle} dal ${notifica.ufficio_giudiziario || 'ufficio giudiziario indicato'}${notifica.sezione ? ` Sez. ${notifica.sezione}` : ''}`
+      const documentDate = formatAttestationDateLabel(
+        documento.provvedimentoDataDeposito
+        || documento.provvedimentoData
+        || notifica.provvedimento_data_deposito
+        || notifica.provvedimento_data
+        || documento.data_rilascio_portale
+        || documento.data_comunicazione_cancelleria,
+      )
+      detail = `${participle} ${attestationOfficeIntro(notifica.ufficio_giudiziario)}`
+      if (notifica.sezione) detail += ` Sez. ${notifica.sezione}`
+      if (documentDate) detail += ` in data ${documentDate}`
+    } else if (title === 'Procura') {
+      detail = 'mandato alle liti'
+    } else if (title === 'Ricorso') {
+      const documentDate = formatAttestationDateLabel(documento.provvedimentoData || documento.data_comunicazione_cancelleria)
+      detail = 'atto introduttivo'
+      if (documentDate) detail += `, depositato in data ${documentDate}`
+    } else if (title === 'Verbale di udienza') {
+      const documentDate = formatAttestationDateLabel(
+        documento.provvedimentoData
+        || documento.data_documento
+        || documento.data_rilascio_portale
+        || documento.data_comunicazione_cancelleria,
+      )
+      detail = 'estratto dal fascicolo informatico'
+      if (notifica.ufficio_giudiziario) detail += ` del ${notifica.ufficio_giudiziario}`
+      if (notifica.sezione) detail += ` Sez. ${notifica.sezione}`
+      if (documentDate) detail += ` in data ${documentDate}`
+    } else if (haystack !== practiceSearchText(title)) {
+      detail = source.toLocaleLowerCase('it-IT').startsWith(title.toLocaleLowerCase('it-IT'))
+        ? source.slice(title.length).replace(/^[-,:;\s]+/, '').trim()
+        : source
     }
+    return { title, detail }
+  }
+  const attestationPreviewRows = attestationDocuments.map((documento) => {
+    const { title, detail } = attestationDocumentTitleDetail(documento)
     return `- ${title}${detail ? `, ${detail}` : ''};`
   })
   const allAttestationsFromFile = attestationDocuments.every((documento) => documento.origine === 'copia_fascicolo_informatico')
@@ -3974,6 +4209,65 @@ export function NotificheLegaliPage() {
                       placeholder="Nome, PEC, parte, registro o ufficio"
                     />
                   </Field>
+                  <div className="iu-legal-manual-recipient iu-legal-field--wide">
+                    <header>
+                      <div>
+                        <strong>Inserimento manuale destinatario</strong>
+                        <span>Usalo quando il soggetto o la PEC non compaiono nei registri locali o nei soggetti della pratica.</span>
+                      </div>
+                      <button type="button" onClick={() => { void addManualRecipient() }} disabled={manualRecipientSaving}>
+                        {manualRecipientSaving ? <RefreshCw className="is-spinning" size={15} /> : <PlusCircle size={15} />}
+                        {manualRecipientSaving ? 'Salvataggio...' : 'Aggiungi destinatario manuale'}
+                      </button>
+                    </header>
+                    <div>
+                      <label>
+                        <span>Nome o denominazione</span>
+                        <input
+                          value={manualRecipientDraft.nome}
+                          onChange={(event) => changeManualRecipientDraft('nome', event.currentTarget.value)}
+                          placeholder="Es. Ufficio Scolastico Regionale"
+                        />
+                      </label>
+                      <label>
+                        <span>PEC manuale</span>
+                        <input
+                          type="email"
+                          value={manualRecipientDraft.pec}
+                          onChange={(event) => changeManualRecipientDraft('pec', event.currentTarget.value)}
+                          placeholder="indirizzo@pec.it"
+                        />
+                      </label>
+                      <label>
+                        <span>Ruolo</span>
+                        <select value={manualRecipientDraft.ruolo} onChange={(event) => changeManualRecipientDraft('ruolo', event.currentTarget.value)}>
+                          {data.ruoliDestinatario.map((item) => <option value={item.value} key={`manual-role-${item.value}`}>{item.label}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Elenco pubblico PEC</span>
+                        <select value={manualRecipientDraft.fontePec} onChange={(event) => changeManualRecipientDraft('fontePec', event.currentTarget.value)}>
+                          {data.registriPec.map((item) => <option value={item.value} key={`manual-source-${item.value}`}>{item.label}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>C.F. / P. IVA</span>
+                        <input
+                          value={manualRecipientDraft.codiceFiscalePiva}
+                          onChange={(event) => changeManualRecipientDraft('codiceFiscalePiva', event.currentTarget.value.toUpperCase())}
+                          placeholder="Facoltativo"
+                        />
+                      </label>
+                      <label>
+                        <span>Parte rappresentata</span>
+                        <input
+                          value={manualRecipientDraft.parteRappresentata}
+                          onChange={(event) => changeManualRecipientDraft('parteRappresentata', event.currentTarget.value)}
+                          placeholder="Facoltativa"
+                        />
+                      </label>
+                    </div>
+                  </div>
                   {visibleRecipientSuggestions.length ? (
                     <div className="iu-legal-recipient-picker iu-legal-field--wide" aria-label="Destinatari suggeriti">
                       {visibleRecipientSuggestions.map((item) => {
@@ -4000,8 +4294,9 @@ export function NotificheLegaliPage() {
                   ) : recipientSearch.trim().length >= 3 && !regindeSearchLoading && !registroPpaaSearchLoading ? (
                     <div className="iu-legal-empty iu-legal-empty--action iu-legal-field--wide">
                       <span>Nessun indirizzo corrisponde alla ricerca.</span>
-                      <button type="button" onClick={addManualRecipient}>
-                        <PlusCircle size={14} /> Aggiungi PEC manuale
+                      <button type="button" onClick={() => { void addManualRecipient() }} disabled={manualRecipientSaving}>
+                        {manualRecipientSaving ? <RefreshCw className="is-spinning" size={14} /> : <PlusCircle size={14} />}
+                        {manualRecipientSaving ? 'Salvataggio...' : 'Aggiungi PEC manuale'}
                       </button>
                     </div>
                   ) : null}
@@ -4298,9 +4593,16 @@ export function NotificheLegaliPage() {
                     <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
                       <div>
                         <strong>Modifica bozza relata</strong>
-                        <span>{displayedRelataDraftDirty ? 'Bozza modificata manualmente' : 'Testo allineato al modello compilato'}</span>
+                        <span>
+                          {displayedRelataDraftDirty
+                            ? 'Bozza modificata manualmente'
+                            : displayedRelataDraftSaved
+                              ? 'Bozza salvata applicata all’anteprima'
+                              : 'Testo allineato al modello compilato'}
+                        </span>
                       </div>
                       {displayedRelataDraftDirty ? <em>Bozza modificata manualmente</em> : null}
+                      {displayedRelataDraftSaved ? <em>Bozza salvata per questa notifica</em> : null}
                     </div>
                     <textarea
                       value={previewIsAligned ? relataDraftText : ''}
@@ -4407,8 +4709,9 @@ export function NotificheLegaliPage() {
                   </select>
                 </Field>
                 <div className="iu-legal-template-actions iu-legal-field--wide">
-                  <button type="button" onClick={addManualRecipient}>
-                    <PlusCircle size={15} /> Aggiungi PEC manuale alla notifica
+                  <button type="button" onClick={() => { void addManualRecipient() }} disabled={manualRecipientSaving}>
+                    {manualRecipientSaving ? <RefreshCw className="is-spinning" size={15} /> : <PlusCircle size={15} />}
+                    {manualRecipientSaving ? 'Salvataggio...' : 'Aggiungi PEC manuale alla notifica'}
                   </button>
                   <span className="iu-legal-template-actions__hint">Usa i campi Destinatario, PEC destinatario ed Elenco pubblico PEC quando il soggetto non compare nei suggerimenti.</span>
                 </div>

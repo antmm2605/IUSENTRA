@@ -803,15 +803,15 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
         "body": "L'oggetto è fissato alla formula prevista e la ricevuta richiesta resta completa.",
         "source": "L. 53/1994, art. 3-bis, commi 3 e 4; D.M. 44/2011, art. 18, comma 6",
     },
+)
+
+LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
     {
-        "id": "prova",
+        "id": "pacchetto_prova_deposito",
         "title": "Pacchetto prova e deposito",
         "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
         "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
     },
-)
-
-LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "atti",
         "title": "Raccolta atti notificati",
@@ -859,7 +859,7 @@ LEGAL_NOTIFICATION_ATTACHMENT_RULES: tuple[dict[str, str], ...] = (
     },
     {
         "id": "attestazione_conformita",
-        "label": "Attestazione di conformita', quando richiesta",
+        "label": "Attestazione di conformità, quando richiesta",
         "source": "L. 53/1994, art. 3-bis, comma 2; D.M. 44/2011, art. 18",
         "rule": "Per copie da fascicolo, comunicazioni di cancelleria o scansioni analogiche l'attestazione deve essere presente, normalmente nella relata.",
     },
@@ -2682,13 +2682,15 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
     else:
         source = []
     if not source:
+        single_name = text(payload.get("nome_file") or payload.get("atto_file"))
+        single_description = text(payload.get("descrizione_documento") or payload.get("atto_descrizione"))
         single = {
-            "nome_file": payload.get("nome_file") or payload.get("atto_file"),
-            "descrizione": payload.get("descrizione_documento") or payload.get("atto_descrizione"),
+            "nome_file": single_name,
+            "descrizione": single_description,
             "descrizione_breve_privacy": payload.get("descrizione_breve_privacy"),
             "origine": payload.get("origine_documento") or payload.get("origine"),
             "hash_sha256": payload.get("hash_sha256"),
-            "data_documento": payload.get("data_documento") or payload.get("dataDocumento"),
+            "data_documento": payload.get("data_documento") or payload.get("dataDocumento") or payload.get("provvedimento_data") or payload.get("provvedimentoData"),
             "data_comunicazione_cancelleria": payload.get("data_comunicazione_cancelleria"),
             "attestazione_conformita": payload.get("attestazione_conformita"),
             "attestazione_conformita_presente": payload.get("attestazione_conformita_presente"),
@@ -2707,7 +2709,7 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "requiresSignature": payload.get("requiresSignature"),
             "firmato_digitalmente": payload.get("firmato_digitalmente"),
         }
-        if any(text(value) for value in single.values()):
+        if single_name or single_description:
             source = [single]
 
     documents: list[dict[str, Any]] = []
@@ -2725,6 +2727,14 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
         )
         portal_source = source_name.upper() in PORTAL_DOCUMENT_SOURCES or portal_service.upper() in PORTAL_DOCUMENT_SOURCES
         acquired_from_portal = boolish(item.get("acquisito_da_portale") or item.get("acquisitoDaPortale")) or bool(portal_reference or portal_source)
+        hash_source = text(item.get("hash_source") or item.get("hashSource") or item.get("fonte_hash") or item.get("fonteHash"))
+        if not hash_source:
+            if source_name.upper() == "IMPORT_ESTERNO":
+                hash_source = "calcolata sul file caricato"
+            elif acquired_from_portal:
+                hash_source = "metadato del fascicolo/portale"
+            else:
+                hash_source = "metadato del fascicolo"
         notification_required = boolish(item.get("notifica_richiesta") or item.get("notificaRichiesta"))
         signature_required = boolish(
             item.get("firma_digitale_richiesta")
@@ -2747,7 +2757,13 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine_label": DOCUMENT_ORIGIN_LABELS.get(origin, text(item.get("origine"))),
             "necessita_attestazione": boolish(item.get("necessita_attestazione")) or origin in ORIGINS_REQUIRING_ATTESTATION,
             "hash_sha256": text(item.get("hash_sha256")),
-            "data_documento": _format_italian_date(item.get("data_documento") or item.get("dataDocumento")),
+            "hash_source": hash_source,
+            "data_documento": _format_italian_date(
+                item.get("data_documento")
+                or item.get("dataDocumento")
+                or item.get("provvedimento_data")
+                or item.get("provvedimentoData")
+            ),
             "fonte_documento": source_name,
             "riferimento_portale": portal_reference,
             "servizio_portale": portal_service,
@@ -2880,6 +2896,22 @@ def build_notification_attachment_manifest(
     procura_required = boolish(_first(payload, "procura_necessaria", "procura.necessaria", fallback=False))
     procura_in_atti = boolish(_first(payload, "procura_in_atti", "procura.in_atti", fallback=False))
     procura_attached = _has_procura_document(documents) or boolish(_first(payload, "procura_allegata", "procura.allegata", fallback=False))
+    office_pec_state = _office_pec_eml_state(payload)
+    procura_missing = procura_required and not procura_in_atti and not procura_attached
+    procura_status = (
+        "presente in atti"
+        if procura_in_atti
+        else "allegata"
+        if procura_attached
+        else "mancante"
+        if procura_missing
+        else "non richiesta"
+    )
+    attestation_present = not attestation_required or all(
+        _document_attestation_text_present(document, payload)
+        for document in documents
+        if document["necessita_attestazione"]
+    )
     return [
         {
             "id": "atto_o_provvedimento",
@@ -2887,16 +2919,23 @@ def build_notification_attachment_manifest(
             "phase": "pec_notifica",
             "required": True,
             "present": bool(documents),
+            "statusLabel": "presente" if documents else "mancante",
             "detail": f"{len(documents)} documento/i selezionati.",
             "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
         },
         {
             "id": "relata_separata_firmata",
-            "label": "Relata separata firmata digitalmente",
-            "phase": "pec_notifica",
+            "label": "Relata separata da firmare digitalmente",
+            "phase": "firma_relata",
             "required": True,
             "present": boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
             and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
+            "statusLabel": (
+                "presente"
+                if boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
+                and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata"))
+                else "da firmare"
+            ),
             "detail": "Documento informatico separato, firmato prima dell'invio.",
             "source": "L. 53/1994, art. 3-bis, comma 5",
         },
@@ -2905,17 +2944,24 @@ def build_notification_attachment_manifest(
             "label": "Procura alle liti",
             "phase": "pec_notifica",
             "required": procura_required and not procura_in_atti,
-            "present": (not procura_required) or procura_in_atti or procura_attached,
-            "detail": "Da allegare se necessaria e non gia' presente in atti.",
-            "source": "D.M. 44/2011, art. 18, comma 5",
+            "present": not procura_missing,
+            "statusLabel": procura_status,
+            "detail": "Eventuale: si allega solo quando necessaria e non gia' presente in atti.",
+            "source": "Art. 83 c.p.c.; D.M. 44/2011, art. 18",
         },
         {
             "id": "attestazione_conformita",
-            "label": "Attestazione di conformita'",
+            "label": "Attestazione di conformità",
             "phase": "pec_notifica",
             "required": attestation_required,
-            "present": not attestation_required
-            or all(_document_attestation_text_present(document, payload) for document in documents if document["necessita_attestazione"]),
+            "present": attestation_present,
+            "statusLabel": (
+                "presente"
+                if attestation_present and attestation_required
+                else "mancante"
+                if attestation_required
+                else "non richiesta"
+            ),
             "detail": "Documento informatico separato in PDF e richiamo nella relata quando la copia lo richiede.",
             "source": "L. 53/1994, art. 3-bis, comma 2",
         },
@@ -2923,20 +2969,31 @@ def build_notification_attachment_manifest(
             "id": "eml_ufficio",
             "label": "EML PEC ufficio che comunica il rilascio",
             "phase": "evidenza_pre_notifica",
-            **_office_pec_eml_state(payload),
+            **office_pec_state,
+            "statusLabel": "presente" if office_pec_state.get("present") else "mancante",
             "detail": "Serve a certificare il trigger PEC e il documento comunicato dall'ufficio.",
             "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
         },
         {
             "id": "ricevute_deposito",
-            "label": "PEC inviata, RAC e RdAC completa",
+            "label": "RAC, RdAC completa o mancata consegna",
             "phase": "deposito_prova",
             "required": False,
             "present": boolish(payload.get("ricevuta_completa")),
-            "detail": "Si generano dopo l'invio e non vanno allegati alla PEC di notifica.",
+            "statusLabel": "fase successiva all'invio",
+            "detail": "Fase successiva: si raccolgono dopo l'invio e non vanno allegati alla PEC di notifica.",
             "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
         },
     ]
+
+
+def _attachment_manifest_status_label(item: dict[str, Any]) -> str:
+    status_label = text(item.get("statusLabel"))
+    if status_label:
+        return status_label
+    if not item.get("required"):
+        return "non richiesto"
+    return "presente" if item.get("present") else "mancante"
 
 
 def _delivery_recipients_from_payload(payload: dict[str, Any], context: dict[str, Any]) -> list[dict[str, Any]]:
@@ -3557,7 +3614,7 @@ def _provision_type_hint_from_documents(
             raw_fields = _raw_document_case_fields(item).lower()
             if "opposizione a decreto ingiuntivo" in provision_hint.lower() and "ricorso" in raw_fields:
                 return "Ricorso"
-            return provision_hint
+            return _canonical_provision_title(provision_hint) or provision_hint
     haystacks = _payload_document_case_haystacks(payload)
     haystacks.extend(
         re.sub(
@@ -3664,6 +3721,7 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             fallback=provision_type_hint,
         )
     )
+    provvedimento_tipo = _canonical_provision_title(provvedimento_tipo) or provvedimento_tipo
 
     context = {
         "catalog_version": template_catalog_version(),
@@ -3893,8 +3951,49 @@ def _warn_required_context(template: dict[str, Any], context: dict[str, Any], wa
 
 
 def _sentence_case_label(value: Any, fallback: str = "Sentenza") -> str:
-    raw = text(value, fallback)
+    raw = _canonical_provision_title(value) or text(value, fallback)
     return raw[:1].upper() + raw[1:] if raw else fallback
+
+
+def _canonical_provision_title(value: Any) -> str:
+    raw = text(value)
+    if not raw:
+        return ""
+    haystack = re.sub(r"[_-]+", " ", raw).lower()
+    if "ricorso" in haystack and "opposizione" in haystack:
+        return "Ricorso"
+    if "atto di citazione" in haystack:
+        return "Atto di citazione"
+    if (
+        "verbaleudienza" in haystack
+        or "verbale udienza" in haystack
+        or "verbale d'udienza" in haystack
+        or "verbale di udienza" in haystack
+    ):
+        return "Verbale di udienza"
+    if "sentenza" in haystack:
+        return "Sentenza"
+    if "ordinanza" in haystack:
+        return "Ordinanza"
+    if "decreto ingiuntivo" in haystack or "decretoingiuntivo" in haystack or "ingiunzion" in haystack:
+        return "Decreto ingiuntivo"
+    if "decreto fissazione" in haystack or "decreto di fissazione" in haystack or "fissazione udienza" in haystack:
+        return "Decreto fissazione udienza"
+    if "decreto" in haystack:
+        return "Decreto"
+    if "provvedimento" in haystack:
+        return "Provvedimento"
+    if "verbale" in haystack:
+        return "Verbale"
+    if "procura" in haystack:
+        return "Procura"
+    if "ricorso" in haystack:
+        return "Ricorso"
+    if "memoria" in haystack:
+        return "Memoria"
+    if "istanza" in haystack:
+        return "Istanza"
+    return ""
 
 
 def _rg_reference(proceeding: dict[str, Any]) -> str:
@@ -3917,8 +4016,33 @@ def _sentence_office_intro(office: str) -> str:
     return f"dal {clean}"
 
 
+def _document_specific_title(document: dict[str, Any]) -> str:
+    filename = text(document.get("nome_file"))
+    stem = Path(filename).name
+    while Path(stem).suffix.lower() in {".p7m", ".pdf", ".doc", ".docx"}:
+        stem = Path(stem).stem
+    for value in (
+        stem,
+        filename,
+        document.get("provvedimento_tipo"),
+        document.get("tipo_documento"),
+        document.get("tipo"),
+    ):
+        compact = re.sub(r"[^a-z0-9]+", "", text(value).lower())
+        if "verbaleudienza" in compact:
+            return "Verbale di udienza"
+        if "sentenzadefinitiva" in compact:
+            return "Sentenza"
+    return ""
+
+
 def _is_sentence_attestation_document(document: dict[str, Any], context: dict[str, Any]) -> bool:
     template = context.get("template") or {}
+    specific_title = _document_specific_title(document)
+    if specific_title and specific_title != "Sentenza":
+        return False
+    if specific_title == "Sentenza":
+        return True
     document_haystack = " ".join(
         text(value).lower()
         for value in (
@@ -4002,6 +4126,8 @@ def _attestation_document_title_detail(
 ) -> tuple[str, str]:
     description = text(document.get("descrizione")).strip(" ,;:")
     provision_type_hint = text(document.get("provvedimento_tipo")).strip(" ,;:")
+    canonical_provision_hint = _canonical_provision_title(provision_type_hint)
+    specific_title = _document_specific_title(document)
     filename = text(document.get("nome_file"))
     stem = Path(filename).name
     while Path(stem).suffix.lower() in {".p7m", ".pdf", ".doc", ".docx"}:
@@ -4014,43 +4140,43 @@ def _attestation_document_title_detail(
     )
     if ricorso_opposizione and "opposizione a decreto ingiuntivo" in provision_type_hint.lower():
         provision_type_hint = "Ricorso"
-    known_titles = (
-        ("ricorso in opposizione", "Ricorso"),
-        ("opposizione a decreto ingiuntivo", "Ricorso"),
-        ("opposizione decreto ingiuntivo", "Ricorso"),
-        ("ricorso", "Ricorso"),
-        ("atto di citazione", "Atto di citazione"),
-        ("procura", "Procura"),
-        ("sentenza", "Sentenza"),
-        ("ordinanza", "Ordinanza"),
-        ("provvedimento", "Provvedimento"),
-        ("decreto ingiuntivo", "Decreto ingiuntivo"),
-        ("decreto fissazione udienza", "Decreto fissazione udienza"),
-        ("decreto", "Decreto"),
-        ("memoria", "Memoria"),
-        ("verbale", "Verbale"),
-        ("istanza", "Istanza"),
-    )
-    title = provision_type_hint or next((label for token, label in known_titles if token in haystack), "")
+    title = specific_title or canonical_provision_hint or provision_type_hint
 
-    if provision_type_hint:
+    if provision_type_hint and not canonical_provision_hint:
         detail = ""
     elif title and source.lower().startswith(title.lower()):
         detail = source[len(title) :].strip(" ,;:-")
+    elif not title and _canonical_provision_title(source) in {"Ricorso", "Procura"}:
+        source_title = _canonical_provision_title(source)
+        if source.lower().startswith(source_title.lower()):
+            title = source_title
+            detail = source[len(source_title) :].strip(" ,;:-")
+        else:
+            detail = source
     elif "," in source:
         source_title, source_detail = source.split(",", 1)
         if not title:
             title = source_title.strip()
         detail = source_detail.strip(" ,;:")
     else:
-        detail = "" if title else source
+        source_title = _canonical_provision_title(source)
+        if not title and source_title:
+            source_compact = re.sub(r"[^a-z0-9]+", "", source.lower())
+            title_compact = re.sub(r"[^a-z0-9]+", "", source_title.lower())
+            if source_compact == title_compact:
+                title = source_title
+                detail = ""
+            else:
+                detail = source
+        else:
+            detail = "" if title else source
     title = title or source
 
     proceeding = context["procedimento"]
     document_date = _format_italian_date(
         document.get("data_documento") or document.get("data_comunicazione_cancelleria")
     )
-    if title in {"Sentenza", "Ordinanza", "Provvedimento", "Decreto", "Decreto ingiuntivo", "Decreto fissazione udienza"} and not detail:
+    if title in {"Sentenza", "Ordinanza", "Provvedimento", "Decreto", "Decreto ingiuntivo", "Decreto fissazione udienza"}:
         office = text(context["provvedimento"].get("ufficio_origine") or proceeding.get("ufficio"))
         section = text(proceeding.get("sezione"))
         date_label = _format_italian_date(
@@ -4064,6 +4190,16 @@ def _attestation_document_title_detail(
             detail += f" Sez. {section}"
         if date_label:
             detail += f" in data {date_label}"
+    elif title == "Verbale di udienza":
+        office = text(proceeding.get("ufficio"))
+        section = text(proceeding.get("sezione"))
+        detail = "estratto dal fascicolo informatico"
+        if office:
+            detail += f" del {office}"
+        if section:
+            detail += f" Sez. {section}"
+        if document_date:
+            detail += f" in data {document_date}"
     elif title == "Procura" and detail.lower() in {"", "alle liti"}:
         detail = "mandato alle liti"
     elif title == "Ricorso":
@@ -4474,8 +4610,11 @@ def _document_content_label(document: dict[str, Any], *, privacy: bool = False) 
     description = document["descrizione_breve_privacy"] if privacy else document["descrizione"]
     filename = text(document.get("nome_file"))
     fallback_title = Path(filename).stem if filename else ""
+    specific_title = _document_specific_title(document)
     return text(
-        document.get("provvedimento_tipo")
+        specific_title
+        or _canonical_provision_title(document.get("provvedimento_tipo"))
+        or document.get("provvedimento_tipo")
         or description
         or fallback_title
         or "documento allegato"
@@ -4499,20 +4638,32 @@ def _document_nature_label(document: dict[str, Any]) -> str:
     return text(document.get("origine_label"), "Documento informatico allegato")
 
 
-def _document_attestation_sentence(document: dict[str, Any]) -> str:
+def _document_attestation_sentence(document: dict[str, Any], context: dict[str, Any]) -> str:
     manual = multiline_text(document.get("attestazione_conformita"))
     if manual:
         return manual.rstrip(" .;") + "."
     if not document.get("necessita_attestazione"):
         return ""
     origin = text(document.get("origine"))
+    proceeding = context["procedimento"]
+    rg = _rg_reference(proceeding)
+    proceeding_reference = f" del relativo procedimento R.G. n. {rg}" if rg else " del relativo procedimento"
+    title, detail = _attestation_document_title_detail(document, context)
+    subject = f"{title}, {detail}" if detail else title
     if origin == "copia_fascicolo_informatico":
-        return "Attesto che il documento è conforme alla copia informatica estratta dal fascicolo informatico."
+        return (
+            f"{subject} è conforme alla copia informatica presente nel fascicolo informatico"
+            f"{proceeding_reference} dal quale è estratta."
+        )
     if origin == "comunicazione_cancelleria":
-        return "Attesto che il documento è conforme alla copia informatica allegata alla comunicazione telematica di cancelleria."
+        date_part = f" del {document['data_comunicazione_cancelleria']}" if document["data_comunicazione_cancelleria"] else ""
+        return (
+            f"{subject} è conforme alla copia informatica allegata alla comunicazione telematica "
+            f"di cancelleria{date_part} relativa al procedimento{f' R.G. n. {rg}' if rg else ''}."
+        )
     if origin == "scansione_analogico":
-        return "Attesto che il documento è conforme all'originale analogico in possesso del sottoscritto difensore."
-    return "Attesto che il documento è conforme alla rispettiva fonte indicata."
+        return f"{subject} è conforme all'originale analogico in possesso del sottoscritto difensore."
+    return f"{subject} è conforme alla rispettiva fonte indicata."
 
 
 def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[str]:
@@ -4527,12 +4678,16 @@ def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[st
         rows.append(first_line)
         rows.append(f"Natura del documento: {_document_nature_label(document)}")
         content_line = f"Contenuto del documento: {content};"
-        attestation = _document_attestation_sentence(document)
+        attestation = _document_attestation_sentence(document, context)
         if attestation:
             content_line = f"{content_line} {attestation}"
         rows.append(content_line)
         if document["hash_sha256"]:
-            rows.append(f"Impronta Hash (256): {document['hash_sha256']}")
+            hash_source = text(document.get("hash_source"))
+            hash_label = "Impronta Hash (256)"
+            if hash_source:
+                hash_label += f" - {hash_source}"
+            rows.append(f"{hash_label}: {document['hash_sha256']}")
         rows.append("")
     current_index = len(context["documenti"])
     if any(document["necessita_attestazione"] for document in context["documenti"]):
@@ -5416,7 +5571,11 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
             passed=all(item.get("present") for item in attachment_manifest if item.get("phase") == "pec_notifica" and item.get("required")),
             blocking=send_phase,
-            detail="; ".join(f"{item['label']}: {'presente' if item.get('present') else 'mancante'}" for item in attachment_manifest if item.get("phase") == "pec_notifica"),
+            detail="; ".join(
+                f"{item['label']}: {_attachment_manifest_status_label(item)}"
+                for item in attachment_manifest
+                if item.get("phase") == "pec_notifica"
+            ),
         ),
         _check_row(
             id="eml_pec_ufficio",
@@ -5470,7 +5629,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             source="D.M. 44/2011, art. 18, comma 6",
             passed=True,
             blocking=False,
-            detail="La RdAC completa va richiesta al momento dell'invio; RAC, RdAC o mancata consegna si raccolgono dopo e non sono allegati alla PEC di notifica.",
+            detail="Fase successiva all'invio: il presidio attende accettazione, consegna o mancata consegna e le archivia nel fascicolo.",
         ),
     ]
 

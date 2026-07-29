@@ -11,7 +11,7 @@
   align-items: end;
   padding: 24px;
   border: 1px solid var(--iu-border, #d8dee8);
-  border-radius: 10px;
+  border-radius: 8px;
   background: linear-gradient(135deg, rgba(246, 249, 252, .96), rgba(255, 250, 235, .86));
 }
 
@@ -1715,6 +1715,93 @@
   gap: 8px;
 }
 
+.iu-legal-manual-recipient {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(31, 93, 153, .18);
+  border-radius: 10px;
+  background: rgba(248, 251, 255, .86);
+}
+
+.iu-legal-manual-recipient header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-legal-manual-recipient header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.iu-legal-manual-recipient strong {
+  color: var(--iu-slate-900, #0f172a);
+  font-size: .9rem;
+}
+
+.iu-legal-manual-recipient span {
+  color: var(--iu-slate-600, #526173);
+  font-size: .76rem;
+  line-height: 1.35;
+}
+
+.iu-legal-manual-recipient header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid rgba(31, 93, 153, .28);
+  border-radius: 8px;
+  background: var(--iu-surface, #fbfcfe);
+  color: var(--iu-blue-700, #173a67);
+  font: inherit;
+  font-size: .83rem;
+  font-weight: 750;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.iu-legal-manual-recipient header button:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.iu-legal-manual-recipient > div:last-child {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.iu-legal-manual-recipient label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.iu-legal-manual-recipient label > span {
+  color: var(--iu-slate-700, #334155);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.iu-legal-manual-recipient input,
+.iu-legal-manual-recipient select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(31, 93, 153, .18);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--iu-slate-900, #0f172a);
+  font: inherit;
+  font-size: .84rem;
+}
+
 .iu-legal-recipient-picker button {
   display: grid;
   gap: 3px;
@@ -2526,6 +2613,19 @@
   .iu-legal-action-panel__head,
   .iu-legal-office-monitor__head,
   .iu-legal-auto-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-legal-manual-recipient header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .iu-legal-manual-recipient header button {
+    width: 100%;
+  }
+
+  .iu-legal-manual-recipient > div:last-child {
     grid-template-columns: 1fr;
   }
 

@@ -44,10 +44,11 @@ from pct.notifiche_legali import (
     validate_non_pec_notification_tracking,
     validate_unep_notification_request,
 )
+from pct.clienti import TipoCliente
 from pct.fascicoli import TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
-from web.helpers import get_fascicoli
+from web.helpers import get_clienti, get_fascicoli, get_soggetti
 from web.services import react_notifiche_legali_bridge
 from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
 
@@ -745,7 +746,7 @@ def test_attestazione_pdf_non_tratta_ricorso_come_sentenza_per_caso_globale():
     payload = _legal_payload()
     payload.update({
         "caso_notifica": "sentenza_termine_breve",
-        "provvedimento_tipo": "Sentenza",
+        "provvedimento_tipo": "SentenzaDefinitiva",
         "ufficio_giudiziario": "",
         "sezione": "",
         "provvedimento_data": "",
@@ -831,7 +832,7 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
         "sezione": "Lavoro",
         "numero_rg": "704",
         "anno_rg": "2026",
-        "provvedimento_tipo": "Sentenza",
+        "provvedimento_tipo": "SentenzaDefinitiva",
         "provvedimento_data_deposito": "2026-06-05",
         "documenti": [
             {
@@ -839,6 +840,7 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
                 "descrizione": "Sentenza",
                 "origine": "copia_fascicolo_informatico",
                 "data_documento": "2026-06-05",
+                "provvedimentoTipo": "SentenzaDefinitiva",
             }
         ],
         "attestazione_multipla": True,
@@ -853,6 +855,8 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
     assert model["ok"] is True
     assert "Il sottoscritto Avv. Giuseppe Montagnese C. F. MNTGPP94L01G791A, del Foro di Palmi," in model["text"]
     assert "Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 05/06/2026" in model["text"]
+    assert "SentenzaDefinitiva" not in model["text"]
+    assert "Sentenza, Definitiva" not in model["text"]
     assert "R.G. n. 704/2026 dal quale è estratta." in model["text"]
     assert "Avv. Giuseppe Montagnese" in model["text"]
     assert "Firmato digitalmente" in model["text"]
@@ -862,6 +866,49 @@ def test_attestazione_sentenza_autocompila_modello_word_e_firma():
     assert result.template_id == "relata_sentenza_attestazione_conformita"
     assert "ATTESTO" in result.relata_text
     assert "Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 05/06/2026" in result.relata_text
+    assert "SentenzaDefinitiva" not in result.relata_text
+    assert "Sentenza, Definitiva" not in result.relata_text
+
+
+def test_relata_non_trascrive_sentenza_su_verbale_udienza_nello_stesso_elenco():
+    payload = _legal_payload()
+    payload.update({
+        "caso_notifica": "sentenza_termine_breve",
+        "ufficio_giudiziario": "Tribunale di Palmi",
+        "sezione": "Lavoro",
+        "numero_rg": "704",
+        "anno_rg": "2026",
+        "provvedimento_tipo": "SentenzaDefinitiva",
+        "provvedimento_data_deposito": "2026-06-05",
+        "documenti": [
+            {
+                "nome_file": "SentenzaDefinitiva_33581101.pdf",
+                "descrizione": "Sentenza",
+                "origine": "copia_fascicolo_informatico",
+                "hash_sha256": "a" * 64,
+                "provvedimentoTipo": "SentenzaDefinitiva",
+            },
+            {
+                "nome_file": "VerbaleUdienza_33393309.pdf",
+                "descrizione": "Sentenza",
+                "origine": "copia_fascicolo_informatico",
+                "hash_sha256": "b" * 64,
+                "provvedimentoTipo": "SentenzaDefinitiva",
+                "provvedimentoData": "2025-12-16",
+            },
+        ],
+    })
+
+    result = validate_legal_notification(payload)
+    model = build_attestazione_conformita_payload(payload)
+
+    assert result.ok is True
+    assert "A) - Sentenza (File: SentenzaDefinitiva_33581101.pdf)" in result.relata_text
+    assert "B) - Verbale di udienza (File: VerbaleUdienza_33393309.pdf)" in result.relata_text
+    assert "B) - Sentenza (File: VerbaleUdienza_33393309.pdf)" not in result.relata_text
+    assert "- Verbale di udienza, estratto dal fascicolo informatico del Tribunale di Palmi Sez. Lavoro in data 16/12/2025;" in model["text"]
+    assert "- Sentenza, emessa dal Tribunale di Palmi Sez. Lavoro in data 16/12/2025;" not in model["text"]
+    assert "- Sentenza, emessa dal Tribunale di Palmi" in model["text"]
 
 
 def test_relata_deriva_decreto_fissazione_da_suggerimento_documento_non_dal_nome_file():
@@ -1264,8 +1311,41 @@ def test_notifica_l53_preparazione_non_blocca_ricevute_o_approvazione_finale():
     assert send_checks["approvazione_avvocato"]["status"] == "da completare"
     assert send_checks["approvazione_avvocato"]["blocking"] is False
     normative = {item["id"]: item for item in result.output_plan["normativeChecks"]}
+    assert normative["allegati"]["status"] == "superato"
+    assert "Relata separata" not in normative["allegati"]["detail"]
+    assert "RAC" not in normative["allegati"]["detail"]
+    assert "RdAC" not in normative["allegati"]["detail"]
+    assert "Procura alle liti: non richiesta" in normative["allegati"]["detail"]
+    assert "Attestazione di conformità: presente" in normative["allegati"]["detail"]
     assert normative["ricevuta_completa"]["label"] == "Ricevute post invio"
     assert normative["ricevuta_completa"]["blocking"] is False
+
+
+def test_notifica_l53_senza_documenti_non_inventa_allegato_generico():
+    payload = _legal_payload()
+    payload.update({
+        "documenti": [],
+        "nome_file": "",
+        "descrizione_documento": "",
+        "origine_documento": "copia_fascicolo_informatico",
+        "attestazione_conformita": "Attestazione residua da ignorare se nessun documento e selezionato.",
+        "relata_firmata": False,
+    })
+
+    preview = preview_legal_relata(payload)
+    result = validate_legal_notification(payload, require_signed_relata=False)
+    normative = {item["id"]: item for item in build_notification_normative_checks(payload)}
+
+    assert preview["ok"] is True
+    assert "documento allegato" not in preview["previewText"]
+    assert "Attestazione di conform" not in preview["previewText"]
+    assert "A) - Relata di notifica." in preview["previewText"]
+    assert result.ok is False
+    assert result.blockers == ["Seleziona almeno un documento da notificare."]
+    assert normative["allegati"]["status"] == "da completare"
+    assert "Atto, provvedimento o documento da notificare: mancante" in normative["allegati"]["detail"]
+    assert "Procura alle liti: non richiesta" in normative["allegati"]["detail"]
+    assert "Attestazione di conformità: non richiesta" in normative["allegati"]["detail"]
 
 
 def test_invio_finale_notifica_blocca_firma_relata_e_approvazione_avvocato():
@@ -1972,7 +2052,8 @@ def test_prova_deposito_richiede_rac_rdac_originali():
     assert blocked.ok is False
     assert any("originale digitale .eml o .msg" in item for item in blocked.blockers)
     assert ok.ok is True
-    assert ok.output_plan["workflowSteps"][0]["id"] == "atti"
+    assert ok.output_plan["workflowSteps"][0]["id"] == "pacchetto_prova_deposito"
+    assert any(item["id"] == "atti" for item in ok.output_plan["workflowSteps"])
     assert any(item["id"] == "rac_rdac" and item["status"] == "superato" for item in ok.output_plan["normativeChecks"])
 
 
@@ -2281,7 +2362,10 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["contracts"]["clientCommunicationWithoutRelata"] is True
     assert payload["modelliRelata"][0]["previewText"]
     assert payload["automazioneGuidata"]["notifica"][0]["source"].startswith("L. 53/1994")
-    assert payload["automazioneGuidata"]["deposito"][0]["id"] == "atti"
+    assert all(item["id"] != "prova" for item in payload["automazioneGuidata"]["notifica"])
+    assert not any(item["title"] == "Pacchetto prova e deposito" for item in payload["automazioneGuidata"]["notifica"])
+    assert payload["automazioneGuidata"]["deposito"][0]["id"] == "pacchetto_prova_deposito"
+    assert any(item["id"] == "atti" for item in payload["automazioneGuidata"]["deposito"])
     assert payload["automazioneGuidata"]["unep"][0]["id"] == "unep_canale"
     assert payload["automazioneGuidata"]["nonPec"][0]["id"] == "nonpec_tipo"
     assert any(item["id"] == "eml_ufficio" for item in payload["automazioneGuidata"]["allegati"])
@@ -2377,6 +2461,84 @@ def test_api_consultazione_pubblico_elenco_salva_la_prova_nel_fascicolo(tmp_path
     assert len(rows) == 1
     assert rows[0]["source"] == "ini_pec"
     assert rows[0]["evidence_sha256"] == body["evidence_sha256"]
+
+
+def test_api_notifiche_legali_destinatario_manuale_salva_soggetto_e_ricarica(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Pratica destinatario manuale",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Manuale",
+        )
+        get_clienti().nuovo(
+            TipoCliente.PERSONA_FISICA,
+            nome="Destinatario",
+            cognome="Manuale",
+            codice_fiscale="DMNFNL26L29H224Z",
+        )
+
+    response = app.test_client().post(
+        "/api/v1/ui/notifiche-legali/destinatari-manuali",
+        json={
+            "practiceId": fascicolo.id,
+            "nome": "Destinatario Manuale",
+            "codiceFiscalePiva": "DMNFNL26L29H224Z",
+            "pec": "destinatario.manuale.test@pec.it",
+            "ruolo": "controparte",
+            "fontePecSuggerita": "ini_pec",
+            "parteRappresentata": "Parte manuale",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    body = response.get_json()
+    assert body["ok"] is True
+    assert body["created"] is True
+    assert body["linkedToPractice"] is True
+    assert body["recipient"]["pec"] == "destinatario.manuale.test@pec.it"
+    assert body["recipient"]["ruoloPratica"] == "Inserito manualmente"
+
+    payload_response = app.test_client().get("/api/v1/ui/notifiche-legali", headers=headers)
+    soggetti_response = app.test_client().get("/api/v1/ui/soggetti", headers=headers)
+    payload = payload_response.get_json()
+    soggetti_payload = soggetti_response.get_json()
+
+    assert any(
+        item["pec"] == "destinatario.manuale.test@pec.it"
+        and item["id"] == body["subjectId"]
+        for item in payload["precompilazione"]["destinatari"]
+    )
+    assert any(
+        item["pec"] == "destinatario.manuale.test@pec.it"
+        and item["id"] == body["subjectId"]
+        for item in soggetti_payload["items"]
+    )
+    with app.app_context():
+        saved = get_soggetti().get(body["subjectId"])
+        parts = get_soggetti().parti_fascicolo(fascicolo.id)
+    assert saved is not None
+    assert "notifiche-legali-manuale" in saved.tag
+    assert saved.recapiti.pec == "destinatario.manuale.test@pec.it"
+    assert any(soggetto.id == body["subjectId"] for _, soggetto in parts)
+
+    update_response = app.test_client().post(
+        "/api/v1/ui/notifiche-legali/destinatari-manuali",
+        json={
+            "nome": "Destinatario Manuale Aggiornato",
+            "codiceFiscalePiva": "DMNFNL26L29H224Z",
+            "pec": "destinatario.manuale.test@pec.it",
+            "ruolo": "controparte",
+            "fontePecSuggerita": "ini_pec",
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.get_json()["subjectId"] == body["subjectId"]
+    with app.app_context():
+        assert len(get_soggetti().tutti()) == 1
 
 
 def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):
@@ -3377,15 +3539,28 @@ def test_ui_notifiche_legali_pec_manuale_e_rimozione_documenti_relata():
     page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
 
     assert "const [manualRecipientSuggestions, setManualRecipientSuggestions]" in page
+    assert "const [manualRecipientSaving, setManualRecipientSaving]" in page
+    assert "const [manualRecipientDraft, setManualRecipientDraft]" in page
+    assert "saveLegalManualRecipient(data.azioni.salvaDestinatarioManuale" in page
+    assert "Salvataggio destinatario manuale nello studio in corso" in page
+    assert "Destinatario PEC manuale aggiunto alla notifica" not in page
+    assert 'className="iu-legal-manual-recipient iu-legal-field--wide"' in page
+    assert "Inserimento manuale destinatario" in page
+    assert "Aggiungi destinatario manuale" in page
+    assert "changeManualRecipientDraft('pec'" in page
     assert "ruoloPratica: 'Inserito manualmente'" in page
     assert "item.ruoloPratica === 'Inserito manualmente' ? item.id" in page
     assert "Aggiungi PEC manuale alla notifica" in page
+    assert "Dopo l’invio: ricevute attese dal presidio PEC" in page
     assert "const removeFinalRelataRow = (row: FinalRelataRow)" in page
     assert "removableKind: 'fascicolo' as const" in page
     assert "removableKind: 'manuale' as const" in page
     assert "onClick={() => removeFinalRelataRow(row)}" in page
     assert "setSelectedNotificationDocumentIds([]); clearNotificationDocumentFields()" in page
     assert "delete controlled.approvazione_avvocato" in page
+    data_client = Path("frontend/src/notificheLegaliData.ts").read_text(encoding="utf-8")
+    assert "salvaDestinatarioManuale" in data_client
+    assert "/api/v1/ui/notifiche-legali/destinatari-manuali" in data_client
 
 
 def test_ui_notifiche_legali_verifica_i_dati_visibili_del_destinatario_attivo():

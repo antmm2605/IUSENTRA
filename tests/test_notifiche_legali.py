@@ -43,6 +43,7 @@ from pct.notifiche_legali import (
     validate_legal_notification,
     validate_non_pec_notification_tracking,
     validate_unep_notification_request,
+    _pec_verification_matches,
 )
 from pct.clienti import TipoCliente
 from pct.fascicoli import TipoFascicolo
@@ -255,7 +256,7 @@ def test_payload_notifiche_legali_completa_cap_dal_comune_dello_studio():
     assert payload["defaults"]["studioProvincia"] == "RC"
 
 
-def test_notifica_accetta_solo_verifiche_pec_coerenti_con_soggetti_correnti():
+def test_notifica_non_blocca_la_preparazione_per_prova_pec_storica_non_coerente():
     payload = _legal_payload()
     payload["destinatario_cf"] = "01234567890"
     payload["verifica_pec_mittente"] = _pec_evidence(
@@ -270,11 +271,12 @@ def test_notifica_accetta_solo_verifiche_pec_coerenti_con_soggetti_correnti():
     payload["destinatario_pec"] = "pec-diversa@example.pec.it"
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert any("PEC_DESTINATARIO_PROVA_NON_VALIDA" in item for item in result.blockers)
+    assert result.ok is True
+    assert not any("PEC_DESTINATARIO_PROVA_NON_VALIDA" in item for item in result.blockers)
+    assert not any("PEC_DESTINATARIO_PROVA_NON_VALIDA" in item for item in result.warnings)
 
 
-def test_notifica_rifiuta_impronta_prova_pubblico_elenco_manomessa():
+def test_notifica_relata_ignora_prova_pubblico_elenco_manomessa():
     payload = _legal_payload()
     sender = dict(payload["verifica_pec_mittente"])
     sender["evidence_sha256"] = "f" * 64
@@ -282,12 +284,11 @@ def test_notifica_rifiuta_impronta_prova_pubblico_elenco_manomessa():
 
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert any("PEC_MITTENTE_PROVA_NON_VALIDA" in item for item in result.blockers)
+    assert result.ok is True
+    assert not any("PEC_MITTENTE_PROVA_INTEGRA_REQUIRED" in item for item in result.blockers)
     assert result.output_plan is not None
-    assert result.output_plan["blockedSimulation"] is True
-    assert result.output_plan["deliveryPlan"]["ready"] is False
-    assert result.output_plan["deliveryPlan"]["expectedReceiptSubjects"]["acceptance"].startswith("ACCETTAZIONE:")
+    assert "expectedReceiptSubjects" not in result.output_plan["deliveryPlan"]
+    assert result.output_plan["deliveryPlan"]["presidioPecAutomation"]["phase"] == "post_invio_reale"
     assert "RELATA DI NOTIFICA EX ART. 3-BIS" in result.relata_text
 
 
@@ -341,6 +342,38 @@ def test_notifica_l53_studio_telematico_non_blocca_verifica_live_rg_o_parte_rapp
     assert attestazione["document_rows"][0]["title"] == "Ricorso"
     assert "Ricorso, in opposizione a decreto ingiuntivo con decreto di fissazione udienza;" in attestazione["text"]
     assert "Decreto, emesso" not in attestazione["text"]
+
+
+def test_notifica_non_blocca_modello_con_origine_documento_da_verificare():
+    payload = _legal_payload()
+    payload.update({
+        "template_id": "relata_pec_con_attestazione_scansione_analogica",
+        "caso_notifica": "in_corso_di_causa",
+        "documenti": [
+            {
+                "nome_file": "SentenzaDefinitiva_33581101.pdf",
+                "descrizione": "Sentenza",
+                "origine": "copia_fascicolo_informatico",
+                "hash_sha256": "a" * 64,
+            },
+            {
+                "nome_file": "VerbaleUdienza_33393309.pdf",
+                "descrizione": "Verbale di udienza",
+                "origine": "copia_fascicolo_informatico",
+                "hash_sha256": "b" * 64,
+            },
+        ],
+    })
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert not any("MODELLO_DOCUMENTO_INCOERENTE" in item for item in result.blockers)
+    assert not any("MODELLO_DOCUMENTO_DA_VERIFICARE" in item for item in result.warnings)
+    assert "A) - Sentenza" in result.relata_text
+    assert "B) - Verbale di udienza" in result.relata_text
+    assert "in data ," not in result.relata_text
+    assert "è conforme alla copia informatica presente nel fascicolo informatico del relativo procedimento" in result.relata_text
 
 
 def test_notifica_l53_normalizza_alias_studio_telematico_pubblici_elenchi():
@@ -413,7 +446,13 @@ def test_consultazione_pubblico_elenco_produce_prova_verificabile_per_la_relata(
         "evidence_body_b64": base64.b64encode(tampered_body).decode("ascii"),
     }
     payload["verifiche_pec_destinatari"] = [tampered]
-    assert validate_legal_notification(payload).ok is False
+    assert not _pec_verification_matches(
+        tampered,
+        expected_pec="controparte@example.pec.it",
+        expected_cf="01234567890",
+        expected_source="ini_pec",
+    )
+    assert validate_legal_notification(payload).ok is True
 
 
 def test_anpr_non_puo_essere_registrato_come_prova_pec_di_notifica():
@@ -516,11 +555,12 @@ def test_notifica_l53_accetta_eml_scelto_come_allegato_non_autoproposto():
 
     blocked_result = validate_legal_notification(blocked)
 
-    assert blocked_result.ok is False
-    assert any("PDF/PDF-A, file firmato, EML o MSG" in item for item in blocked_result.blockers)
+    assert blocked_result.ok is True
+    assert not any("PDF/PDF-A, file firmato, EML o MSG" in item for item in blocked_result.blockers)
+    assert any("PDF/PDF-A, file firmato, EML o MSG" in item for item in blocked_result.warnings)
 
 
-def test_notifica_l53_blocca_cliente_e_attestazione_mancante():
+def test_notifica_l53_segnala_cliente_senza_bloccare_relata():
     payload = _legal_payload()
     payload["ruolo_destinatario"] = "cliente"
     payload["documenti"] = [{"nome_file": "scansione.pdf", "descrizione": "Provvedimento", "origine": "scansione"}]
@@ -528,9 +568,10 @@ def test_notifica_l53_blocca_cliente_e_attestazione_mancante():
 
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert any("Comunicazione al cliente" in item for item in result.blockers)
-    assert result.relata_text == ""
+    assert result.ok is True
+    assert not any("Comunicazione al cliente" in item for item in result.blockers)
+    assert any("Comunicazione al cliente" in item for item in result.warnings)
+    assert "RELATA DI NOTIFICA" in result.relata_text
 
 
 def test_notifica_l53_genera_attestazione_automatica_da_origine_documento():
@@ -960,7 +1001,7 @@ def test_notifica_l53_audit_automatico_include_normativa_e_piu_allegati():
     assert any(item["id"] == "attestazioni" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
 
 
-def test_notifica_l53_blocca_documento_ufficio_rilasciato_non_acquisito():
+def test_notifica_l53_segnala_documento_ufficio_rilasciato_non_acquisito():
     payload = _legal_payload()
     payload["documento_ufficio_rilasciato"] = True
     payload["acquisizione_portale_richiesta"] = True
@@ -969,9 +1010,10 @@ def test_notifica_l53_blocca_documento_ufficio_rilasciato_non_acquisito():
     result = validate_legal_notification(payload)
     checks = build_notification_normative_checks(payload)
 
-    assert result.ok is False
-    assert any("DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED" in item for item in result.blockers)
-    assert any(item["id"] == "documento_ufficio_acquisito" and item["status"] == "bloccante" for item in checks)
+    assert result.ok is True
+    assert not any("DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED" in item for item in result.blockers)
+    assert any("DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED" in item for item in result.warnings)
+    assert any(item["id"] == "documento_ufficio_acquisito" and item["status"] == "da completare" for item in checks)
 
 
 def test_notifica_l53_documento_ufficio_acquisito_dal_portale_supera_controllo():
@@ -1161,7 +1203,7 @@ def test_monitor_documenti_ufficio_deduplica_copie_pec_ma_non_documenti_distinti
     assert {item["hashSha256"] for item in evidence} == {"a" * 64, "b" * 64}
 
 
-def test_matrice_notifica_blocca_registro_incoerente_per_destinatario():
+def test_matrice_notifica_segnala_registro_incoerente_senza_bloccare_invio():
     payload = _legal_payload()
     payload.update({
         "ruolo_destinatario": "difensore",
@@ -1174,8 +1216,9 @@ def test_matrice_notifica_blocca_registro_incoerente_per_destinatario():
 
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert any("PEC_DESTINATARIO_REGISTRO_INCOERENTE" in item for item in result.blockers)
+    assert result.ok is True
+    assert not any("PEC_DESTINATARIO_REGISTRO_INCOERENTE" in item for item in result.blockers)
+    assert any("PEC_DESTINATARIO_REGISTRO_INCOERENTE" in item for item in result.warnings)
 
 
 def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
@@ -1213,9 +1256,8 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     assert delivery["legalSubject"] == LEGAL_NOTIFICATION_SUBJECT
     assert delivery["studioTelematicoSubject"].startswith("Notificazione ai sensi della legge n. 53 - 1994")
     assert "[Notifica_ID:" in delivery["studioTelematicoSubject"]
-    assert delivery["expectedReceiptSubjects"]["acceptance"].startswith("ACCETTAZIONE:")
-    assert delivery["expectedReceiptSubjects"]["delivery"].startswith("CONSEGNA:")
-    assert delivery["receiptCorrelation"]["subjectContains"].startswith("[Notifica_ID:")
+    assert "expectedReceiptSubjects" not in delivery
+    assert "receiptCorrelation" not in delivery
     assert delivery["recipients"][0]["role"] == "difensore"
     assert any(item["id"] == "relata_firmata" for item in delivery["attachments"])
     assert signature["requiredBeforeSend"][0]["id"] == "relata_notifica"
@@ -1224,11 +1266,11 @@ def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
     assert delivery["signaturePlan"]["requiredBeforeSend"][0]["id"] == "relata_notifica"
     assert delivery["sendPhase"] == "preparazione"
     assert not any(item["id"] == "allegati_pec" for item in delivery["sendChecks"])
-    assert any(
-        item["sourceFilename"] == "ricorso.pdf" and item["archiveFilename"] == "ricorso (originale notificato).pdf"
-        for item in delivery["postSendDocumentArchive"]
-    )
+    assert "postSendDocumentArchive" not in delivery
     assert delivery["presidioPecAutomation"]["archiveTargets"] == ["fascicolo", "presidi_notifiche"]
+    assert delivery["presidioPecAutomation"]["enabled"] is False
+    assert delivery["localSendOnly"] is True
+    assert delivery["presidioPecAutomation"]["localSendOnly"] is True
 
 
 def test_relata_non_qualifica_pa_come_difensore_di_parte_rappresentata():
@@ -1276,16 +1318,16 @@ def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
     assert plan["ready"] is True
     assert plan["separatePecRequired"] is True
     assert plan["messagesCount"] == 2
+    assert plan["localSendOnly"] is True
     assert {item["pec"] for item in plan["recipients"]} == {"controparte@example.pec.it", "laura.bianchi@example.pec.it"}
     assert any(item["filename"] == "relata_notifica.pdf.p7m" for item in plan["attachments"])
     assert any(item["filename"] == "ordinanza.pdf" for item in plan["attachments"])
-    assert "RAC per ogni destinatario" in plan["postSendEvidenceRequired"]
     assert all("[Notifica_ID:" in item["subject"] for item in plan["messages"])
-    assert plan["expectedReceiptSubjects"]["failedDelivery"].startswith("AVVISO DI MANCATA CONSEGNA:")
-    assert any(
-        item["sourceFilename"] == "ordinanza.pdf" and item["archiveFilename"] == "ordinanza (originale notificato).pdf"
-        for item in plan["postSendDocumentArchive"]
-    )
+    assert all(item["localSendOnly"] is True for item in plan["messages"])
+    assert "postSendEvidenceRequired" not in plan
+    assert "expectedReceiptSubjects" not in plan
+    assert "postSendDocumentArchive" not in plan
+    assert plan["presidioPecAutomation"]["phase"] == "post_invio_reale"
 
 
 def test_notifica_l53_preparazione_non_blocca_ricevute_o_approvazione_finale():
@@ -1303,13 +1345,12 @@ def test_notifica_l53_preparazione_non_blocca_ricevute_o_approvazione_finale():
     assert "ricevuta_accettazione.eml" not in result.output_plan["files"]
     assert "ricevuta_consegna_completa.eml" not in result.output_plan["files"]
     assert "eventuali_avvisi_errore.eml" not in result.output_plan["files"]
-    assert "ricevuta_accettazione.eml" in result.output_plan["postSendFiles"]
+    assert "postSendFiles" not in result.output_plan
     delivery = result.output_plan["deliveryPlan"]
     assert delivery["sendPhase"] == "preparazione"
     send_checks = {item["id"]: item for item in delivery["sendChecks"]}
     assert "allegati_pec" not in send_checks
-    assert send_checks["approvazione_avvocato"]["status"] == "da completare"
-    assert send_checks["approvazione_avvocato"]["blocking"] is False
+    assert "approvazione_avvocato" not in send_checks
     normative = {item["id"]: item for item in result.output_plan["normativeChecks"]}
     assert normative["allegati"]["status"] == "superato"
     assert "Relata separata" not in normative["allegati"]["detail"]
@@ -1317,8 +1358,7 @@ def test_notifica_l53_preparazione_non_blocca_ricevute_o_approvazione_finale():
     assert "RdAC" not in normative["allegati"]["detail"]
     assert "Procura alle liti: non richiesta" in normative["allegati"]["detail"]
     assert "Attestazione di conformità: presente" in normative["allegati"]["detail"]
-    assert normative["ricevuta_completa"]["label"] == "Ricevute post invio"
-    assert normative["ricevuta_completa"]["blocking"] is False
+    assert "ricevuta_completa" not in normative
 
 
 def test_notifica_l53_senza_documenti_non_inventa_allegato_generico():
@@ -1340,15 +1380,16 @@ def test_notifica_l53_senza_documenti_non_inventa_allegato_generico():
     assert "documento allegato" not in preview["previewText"]
     assert "Attestazione di conform" not in preview["previewText"]
     assert "A) - Relata di notifica." in preview["previewText"]
-    assert result.ok is False
-    assert result.blockers == ["Seleziona almeno un documento da notificare."]
+    assert result.ok is True
+    assert result.blockers == []
+    assert result.warnings == ["Seleziona almeno un documento da notificare."]
     assert normative["allegati"]["status"] == "da completare"
     assert "Atto, provvedimento o documento da notificare: mancante" in normative["allegati"]["detail"]
     assert "Procura alle liti: non richiesta" in normative["allegati"]["detail"]
     assert "Attestazione di conformità: non richiesta" in normative["allegati"]["detail"]
 
 
-def test_invio_finale_notifica_blocca_firma_relata_e_approvazione_avvocato():
+def test_invio_finale_notifica_prepara_piano_senza_bloccare_firma_relata_e_approvazione_avvocato():
     payload = _legal_payload()
     payload.update({
         "operazione": "invio_pec_l53",
@@ -1361,17 +1402,29 @@ def test_invio_finale_notifica_blocca_firma_relata_e_approvazione_avvocato():
 
     result = validate_legal_notification(payload, require_signed_relata=True)
 
-    assert result.ok is False
-    assert any("RELATA_FIRMATA_REQUIRED" in item for item in result.blockers)
-    assert any("approvazione finale dell'avvocato" in item for item in result.blockers)
+    assert result.ok is True
+    assert not any("RELATA_FIRMATA_REQUIRED" in item for item in result.blockers)
+    assert not any("approvazione finale dell'avvocato" in item for item in result.blockers)
+    assert any("RELATA_FIRMATA_DA_COMPLETARE" in item for item in result.warnings)
+    assert not any("Approvazione finale dell'avvocato" in item for item in result.warnings)
     assert not any("RICEVUTA_COMPLETA_REQUIRED" in item for item in result.blockers)
     delivery = result.output_plan["deliveryPlan"]
     assert delivery["sendPhase"] == "invio_finale"
     send_checks = {item["id"]: item for item in delivery["sendChecks"]}
-    assert send_checks["allegati_pec"]["status"] == "bloccante"
-    assert send_checks["allegati_pec"]["blocking"] is True
-    assert send_checks["approvazione_avvocato"]["status"] == "bloccante"
-    assert send_checks["approvazione_avvocato"]["blocking"] is True
+    assert "allegati_pec" not in send_checks
+    assert send_checks["documenti_notifica"]["status"] == "superato"
+    assert send_checks["documenti_notifica"]["blocking"] is False
+    assert send_checks["orario_notifica"]["status"] == "superato"
+    assert send_checks["orario_notifica"]["blocking"] is False
+    assert "automaticamente" in send_checks["orario_notifica"]["detail"]
+    assert "Data del procedimento da confermare" not in send_checks["orario_notifica"]["detail"]
+    assert "RAC" not in send_checks["orario_notifica"]["detail"]
+    assert "RdAC" not in send_checks["orario_notifica"]["detail"]
+    assert "approvazione_avvocato" not in send_checks
+    signature_checks = {item["id"]: item for item in delivery["signaturePlan"]["checks"]}
+    assert signature_checks["relata_firmata"]["status"] == "da completare"
+    assert signature_checks["relata_firmata"]["blocking"] is False
+    assert "inviabile" not in signature_checks["relata_firmata"]["detail"]
 
 
 def test_relata_due_destinatari_usa_anteprima_testo_e_timestamp_individuali(
@@ -1422,14 +1475,16 @@ def test_relata_due_destinatari_blocca_secondo_incompleto_o_registro_incoerente(
 
     result = validate_legal_notification(legal_payload_due_destinatari)
     blockers = "\n".join(result.blockers)
+    warnings = "\n".join(result.warnings)
 
-    assert result.ok is False
-    assert "Destinatario 2" in blockers
+    assert result.ok is True
+    assert blockers == ""
+    assert "Destinatario 2" in warnings
     if difetto == "pec_mancante":
-        assert "PEC" in blockers
+        assert "PEC" in warnings
     else:
-        assert "PEC_DESTINATARIO_REGISTRO_INCOERENTE" in blockers
-        assert "Ministero dell'Istruzione e del Merito" in blockers
+        assert "PEC_DESTINATARIO_REGISTRO_INCOERENTE" in warnings
+        assert "Ministero dell'Istruzione e del Merito" in warnings
 
 
 def test_override_relata_non_puo_eliminare_il_secondo_destinatario(
@@ -1658,7 +1713,7 @@ def test_area_web_pst_mancata_notifica_salva_art_3ter_e_avviso_eml():
     assert "Carica avviso di mancata consegna in formato EML" in result.output_plan["portalSteps"]
 
 
-def test_matrice_notifica_blocca_destinatario_incoerente_con_caso():
+def test_matrice_notifica_segnala_destinatario_incoerente_con_caso_senza_bloccare():
     payload = _legal_payload()
     payload.update({
         "ruolo_destinatario": "controparte",
@@ -1669,8 +1724,9 @@ def test_matrice_notifica_blocca_destinatario_incoerente_con_caso():
 
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert any("DESTINATARIO_CASO_INCOERENTE" in item for item in result.blockers)
+    assert result.ok is True
+    assert not any("DESTINATARIO_CASO_INCOERENTE" in item for item in result.blockers)
+    assert any("DESTINATARIO_CASO_INCOERENTE" in item for item in result.warnings)
 
     payload.update({
         "ruolo_destinatario": "terzo",
@@ -1749,8 +1805,9 @@ def test_allegati_notifica_ed_eml_pec_ufficio_sono_controllati():
     payload.pop("pec_ufficio_eml_sha256")
     blocked = validate_legal_notification(payload)
 
-    assert blocked.ok is False
-    assert any("PEC_UFFICIO_EML_REQUIRED" in item for item in blocked.blockers)
+    assert blocked.ok is True
+    assert not any("PEC_UFFICIO_EML_REQUIRED" in item for item in blocked.blockers)
+    assert any("PEC_UFFICIO_EML_REQUIRED" in item for item in blocked.warnings)
 
 
 def test_notifica_l53_controllo_attestazioni_non_basta_per_un_solo_allegato():
@@ -1768,7 +1825,7 @@ def test_notifica_l53_controllo_attestazioni_non_basta_per_un_solo_allegato():
 
     checks = build_notification_normative_checks(payload)
 
-    assert any(item["id"] == "attestazioni" and item["status"] == "bloccante" for item in checks)
+    assert any(item["id"] == "attestazioni" and item["status"] == "da completare" for item in checks)
 
 
 def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato():
@@ -2404,13 +2461,30 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert valid_payload["outputPlan"]["auditTrail"]["documentsCount"] == 1
     assert "Relata di notifica.pdf" in valid_payload["outputPlan"]["files"]
     assert "Attestazione di conformità.pdf" in valid_payload["outputPlan"]["files"]
+    assert "Ricevuta completa richiesta" not in valid_payload["checklistText"]
+    assert "Avvocato ha verificato e autorizzato" not in valid_payload["checklistText"]
+    assert "RAC" not in "\n".join(valid_payload["nextActions"])
+    assert "RdAC" not in "\n".join(valid_payload["nextActions"])
     assert attestation_response.status_code == 200
     assert attestation_response.mimetype == "application/pdf"
     assert attestation_response.data.startswith(b"%PDF")
     assert send_response.status_code == 200
     assert send_result["ok"] is True
-    assert send_result["message"] == "Piano di invio PEC pronto per la conferma dell'avvocato."
+    assert send_result["message"] == "Piano PEC preparato dal PC locale per la notifica corrente."
     assert len(send_result["outputPlan"]["timingPlan"]["plannedAt"].split(":")) == 3
+    send_delivery = send_result["outputPlan"]["deliveryPlan"]
+    assert send_delivery["localSendOnly"] is True
+    assert send_delivery["presidioPecAutomation"]["localSendOnly"] is True
+    assert send_delivery["presidioPecAutomation"]["enabled"] is False
+    assert send_delivery["presidioPecAutomation"]["phase"] == "post_invio_reale"
+    assert send_delivery["mode"] == "pec_l53_controllata"
+    assert send_delivery["sendPhase"] == "invio_finale"
+    send_output_json = json.dumps(send_result["outputPlan"], ensure_ascii=False)
+    assert "expectedReceiptSubjects" not in send_delivery
+    assert "postSendEvidenceRequired" not in send_delivery
+    assert "postSendDocumentArchive" not in send_delivery
+    assert "In attesa della RAC effettiva" not in send_output_json
+    assert "In attesa della RdAC effettiva" not in send_output_json
     assert unverified_send_response.status_code == 200
     assert unverified_send_result["ok"] is True
     assert not any("PEC_DESTINATARIO_VERIFICA_REQUIRED" in item for item in unverified_send_result["blockers"])
@@ -2643,9 +2717,10 @@ def test_notifica_richiede_data_e_ora_relata_esplicite():
 
     result = validate_legal_notification(payload)
 
-    assert result.ok is False
-    assert "Indica la data della relata." in result.blockers
-    assert "Indica l'ora italiana della relata." in result.blockers
+    assert result.ok is True
+    assert result.blockers == []
+    assert "Indica la data della relata." in result.warnings
+    assert "Indica l'ora italiana della relata." in result.warnings
 
 
 def test_api_react_notifiche_legali_robustezza_json_e_limiti(tmp_path: Path):
@@ -3496,8 +3571,10 @@ def test_ui_notifiche_legali_rende_automatici_i_controlli_non_decisionali():
 
     assert "Verifica automatica delle PEC" not in page
     assert "Relata separata predisposta automaticamente" in page
-    assert "Ricevuta completa prevista automaticamente" in page
-    assert "Approvazione finale dell'avvocato prima dell'invio" in page
+    assert "Attestazione di conformità prodotta quando richiesta" in page
+    assert "Ricevuta completa prevista automaticamente" not in page
+    assert "Approvazione finale dell'avvocato prima dell'invio" not in page
+    assert "Conferma avvocato registrata" not in page
     assert "Lo stesso PIN verifica le PEC" not in page
     assert "Avvocato abilitato alla notifica in proprio" not in page
     assert "Data e ora verifica PEC" not in page
@@ -3551,7 +3628,9 @@ def test_ui_notifiche_legali_pec_manuale_e_rimozione_documenti_relata():
     assert "ruoloPratica: 'Inserito manualmente'" in page
     assert "item.ruoloPratica === 'Inserito manualmente' ? item.id" in page
     assert "Aggiungi PEC manuale alla notifica" in page
-    assert "Dopo l’invio: ricevute attese dal presidio PEC" in page
+    assert "Dopo l’invio: ricevute attese dal presidio PEC" not in page
+    assert "Presidio notifiche collegato" not in page
+    assert "Archivio automatico nel fascicolo" not in page
     assert "const removeFinalRelataRow = (row: FinalRelataRow)" in page
     assert "removableKind: 'fascicolo' as const" in page
     assert "removableKind: 'manuale' as const" in page

@@ -1791,7 +1791,7 @@
       "code": "28",
       "kind": "control_document",
       "label": "Checklist pre-invio",
-      "description": "Controllo operativo prima di firma e invio.",
+      "description": "Controllo operativo per relata, attestazione e preparazione PEC locale.",
       "content_lines": [
         "CHECKLIST PRE-INVIO NOTIFICA PEC EX L. 53/1994",
         "",
@@ -1813,9 +1813,8 @@
         "[ ] Relata firmata digitalmente",
         "[ ] Attestazione presente se necessaria",
         "[ ] Oggetto PEC corretto",
-        "[ ] Ricevuta completa richiesta",
-        "[ ] Allegati controllati",
-        "[ ] Avvocato ha verificato e autorizzato l'invio"
+        "[ ] Documenti scelti allegati alla PEC locale",
+        "[ ] Invio demandato al PC locale dell'avvocato"
       ],
       "category": "controllo_prova",
       "required_fields": [],
@@ -1825,7 +1824,6 @@
       "validation_rules": [
         "operazione_notifica_pec_l53",
         "oggetto_l53_obbligatorio",
-        "ricevuta_completa_required",
         "relata_separata_firmata",
         "attestazione_required"
       ],

@@ -526,7 +526,7 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "signatureHref" not in source
     assert "Apri firma digitale" not in source
     assert "Apri la firma digitale" not in source
-    assert "IUSENTRA genera la relata corrente, la firma sul PC e la salva automaticamente nel fascicolo." in source
+    assert "IUSENTRA genera la relata corrente e la salva nel fascicolo dopo la firma sul PC." in source
     assert "PIN dispositivo" in source
     assert "ensureRelataSignerReady()" in signature_block
     assert "relataLocalSignerEndpoint('/firma')" in signature_block
@@ -536,11 +536,12 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "Relata firmata non verificabile." in source
     assert "non contiene una busta CAdES/PKCS#7 riconoscibile" not in source
     assert "setNotifica((current) => ({ ...current, relata_firmata: false }))" in signature_block
-    assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" in source
+    assert "<input type=\"checkbox\" checked={notifica.relata_firmata} readOnly disabled />" not in source
+    assert "Relata da firmare" not in source
+    assert "Conferma avvocato registrata" not in source
     assert "Relata firmata e salvata nel fascicolo" in source
     assert ".iu-legal-signature-button" in css
     assert "hasNotifiableExtension" in source
-    assert "hasSendableNotificationAttachmentExtension" in source
     assert "hasEmailEvidenceExtension" in source
     assert "automaticAttestationDocument" not in source
     assert "Elenco finale atti della relata" in source
@@ -564,10 +565,10 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     toggle_notification = source[source.index("const toggleNotificationDocument"):source.index("const toggleDepositDocument")]
     assert "setNotifica" not in toggle_notification
     assert "solo quelli spuntati entrano nella relata" in source
-    assert "currentNotificationDocuments.every(isNotifiablePayloadDocument)" in source
-    assert "hasPassingNotificationControl" in source
     assert "disabled={!canPrepareNotificationSend}" in source
-    assert "Invio PEC bloccato" in source
+    assert "const canPrepareNotificationSend = !notificationControlBusy" in source
+    assert "Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente." in source
+    assert "Invio PEC bloccato" not in source
     assert 'accept=".pdf,.pdfa,.p7m,.eml,.msg"' in source
     assert "Tutti notificabili" not in source
     assert "Scegli i documenti del fascicolo: solo quelli spuntati entrano nella relata." in source

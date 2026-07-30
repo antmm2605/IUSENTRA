@@ -105,8 +105,9 @@ def test_result_panel_marks_blocked_delivery_plan_as_visible_simulation() -> Non
 
     assert "function blockedSimulation(outputPlan: Record<string, unknown>)" in source
     assert "result.ok ? 'Passaggi effettuati' : 'Passaggi previsti'" in source
-    assert "result.ok ? 'Invio PEC controllato' : 'Invio PEC previsto'" in source
-    assert "Simulazione visibile: invio e registrazione effettiva restano bloccati" in source
+    assert "result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'" in source
+    assert "Orario PEC e perfezionamento" not in source
+    assert "Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato." in source
 
 
 def test_notification_control_waits_for_public_register_confirmation() -> None:
@@ -114,4 +115,5 @@ def test_notification_control_waits_for_public_register_confirmation() -> None:
 
     assert "const notificationControlBusy = working || publicRegisterConfirmationWorking || pecVerificationWorking" in source
     assert "disabled={notificationControlBusy}" in source
-    assert "const canPrepareNotificationSend = !notificationControlBusy && sendDisabledReasons.length === 0" in source
+    assert "const canPrepareNotificationSend = !notificationControlBusy" in source
+    assert "sendDisabledReasons" not in source

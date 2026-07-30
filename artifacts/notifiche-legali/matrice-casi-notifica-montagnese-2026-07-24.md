@@ -85,7 +85,7 @@ La regola IUSENTRA è: prima leggere contenuto e metadati del documento; il nome
 ## Limiti e blocchi corretti
 
 - Nessuna PEC reale è stata inviata in questa fase.
-- La firma digitale effettiva della relata richiede prova materiale con dispositivo/PIN reale: il software deve bloccare l'invio finché la relata non risulta firmata.
+- La firma digitale effettiva della relata si esegue dal PC dell'avvocato prima della trasmissione PEC; nella fase di creazione notifica non deve generare un blocco di preparazione o anteprima.
 - La verifica ReGIndE può partire senza PIN precompilato, come Studio Telematico; il middleware/certificato o il comando firma chiedono il PIN quando serve.
 - Registro PP.AA. resta consultazione PST/anagrafica: non è stato introdotto scraping inventato.
 
@@ -105,6 +105,39 @@ Prova reale locale su Docker `127.0.0.1:8080`, dopo rebuild completo del bundle 
 - `DD242366&documenti=BB94330C&ingresso=presidio`: modalità `Presidio porta il documento`, lo stesso documento viene portato automaticamente dal presidio notifiche e resta incluso nella relata;
 - `DD242366` senza `documenti`: modalità `Manuale vedi e spunta`, 13 documenti del fascicolo visibili e zero selezioni iniziali; dopo click reale sulla spunta di `Ordinanza_32473463.pdf`, il documento entra nell'elenco finale con attestazione unica e relata;
 - `Vedi attestazione`: la pagina apre l'anteprima `Attestazione di conformità.pdf` con testo `ATTESTAZIONE DI CONFORMITÀ`;
-- `Controlla relata`: simulazione eseguita senza invio PEC; `Invio PEC` resta bloccato finché mancano firma/approvazione finale.
+- `Controlla relata`: simulazione eseguita senza invio PEC; il controllo resta nel perimetro relata/attestazione e non usa blocchi di approvazione finale o ricevute post-invio.
 
 Il fascicolo temporaneo `CODXPRSD` usato nella prova intermedia è stato rimosso da SQLite, mirror JSON, scadenziario, audit tecnico, documenti fisici e OCR/AI; il controllo finale non trova più quel marker nel tenant locale. Nessuna PEC reale è stata inviata, il PIN non è stato usato e il campo PIN visibile nella sessione browser è stato svuotato.
+
+## Riallineamento relata e attestazione - 30/07/2026
+
+Perimetro mantenuto: creazione relata di notifica L. 53/1994 e attestazione di conformità. Restano fuori da questa fase deposito, pacchetto prova, RAC/RdAC, accettazione, consegna e mancata consegna, che appartengono al post-invio.
+
+- Rimossi dalla fase di creazione notifica i blocchi inventati su compatibilità modello/origine documento, prova PEC storica non coincidente, relata firmata non acquisita e approvazione finale avvocato.
+- Destinatario, PEC, fonte PEC e campi del caso restano controlli visibili nella relata/checklist, ma non bloccano la preparazione o l'invio dal PC locale: se mancano, la bozza mostra il dato mancante e l'avvocato può completarlo o inserirlo manualmente.
+- `Procura alle liti` resta documento eventuale: se presente viene elencata, se assente non blocca automaticamente la relata o l'attestazione.
+- Il blocco `Allegati PEC di notifica` è stato sostituito da `Documenti scelti per la notifica`; il dettaglio chiarisce che le ricevute si agganciano dopo la trasmissione.
+- La UI React in fase `notifica` mostra solo `Relata di notifica e attestazione di conformità`, senza card o controlli di deposito.
+- L'inserimento manuale del destinatario PEC resta disponibile nello stesso flusso e salva il soggetto nel database tenant-aware per ritrovarlo nelle notifiche successive.
+- La relata aggiorna `I seguenti atti` in tempo reale: un documento spuntato entra nell'elenco; se viene tolto, sparisce anche dalla relata e dall'attestazione.
+- L'attestazione separata `Attestazione di conformità.pdf` viene prodotta quando almeno un documento selezionato richiede conformità e usa il tipo del singolo documento, non un'etichetta globale.
+
+Prova reale locale su Docker `127.0.0.1:8080`, versione `2.265.14`, tenant `studio-montagnese`, fascicolo `DD242366`:
+
+- selezionati `SentenzaDefinitiva_33581101.pdf` e `VerbaleUdienza_33393309.pdf`;
+- la relata riporta `A) - Sentenza` e `B) - Verbale di udienza`, con frase di conformità al fascicolo informatico e hash indicato come `metadato del fascicolo/portale`;
+- l'attestazione aperta da `Vedi attestazione` riporta:
+  - `Sentenza, emessa dal Tribunale di Palmi Sez. CIVILE in data 08/01/2026`;
+  - `Verbale di udienza, estratto dal fascicolo informatico del Tribunale di Palmi Sez. CIVILE in data 16/12/2025`;
+  - conclusione sul procedimento `R.G. n. 1025/2026`;
+- togliendo il verbale, il documento sparisce sia dalla relata sia dall'attestazione; riselezionandolo rientra in entrambi;
+- `Controlla relata` restituisce controllo superato; `Invia PEC` resta abilitato come preparazione locale con titolo `Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente.`;
+- prova reale successiva sul browser integrato, stessa pagina `127.0.0.1:8080/notifiche-legali?id_fascicolo=DD242366&fase=notifica`: dopo `Controlla relata` e `Invia PEC` compare `Piano PEC preparato dal PC locale per la notifica corrente.` e il riepilogo `PIANO PEC LOCALE PRONTO` con due PEC distinte da preparare;
+- non compaiono `Invio PEC bloccato`, incompatibilità modello/origine, prova PEC non coincidente, relata firmata non acquisita, approvazione finale mancante, ricevute post-invio o testi di deposito.
+- La firma della relata è governata dal comando `Firma relata` e non viene presentata come blocco inventato della preparazione; quando il file firmato viene acquisito, lo stato passa a `superato`.
+- L'orario di notifica PEC viene impostato automaticamente al click su `Invia PEC` dal PC locale e non blocca la preparazione; RAC, RdAC e mancata consegna restano controlli successivi all'invio reale della PEC.
+- La checklist pre-invio non richiede più `Ricevuta completa richiesta`, non chiede un'approvazione finale inventata e non istruisce a conservare RAC/RdAC prima dell'invio reale; il riepilogo predispone relata, attestazione, documenti e PEC locale.
+- Il payload pre-invio della notifica non espone più `expectedReceiptSubjects`, `receiptCorrelation`, `postSendEvidenceRequired`, `postSendDocumentArchive`, `postSendFiles` o `ricevute_deposito`: la preparazione contiene solo destinatari, oggetto, corpo, relata, attestazione, documenti e vincolo `localSendOnly`.
+- Le righe modello senza data del provvedimento non lasciano più residui come `in data ,`; il tipo documento resta calcolato per singolo allegato (`Sentenza`, `Verbale di udienza`, ecc.).
+
+Nessuna PEC reale è stata inviata durante la prova e non è stato usato alcun PIN di firma.

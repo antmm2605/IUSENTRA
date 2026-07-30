@@ -951,7 +951,7 @@ function pecEvidenceTargets(evidence: PecVerificationEvidence | null | undefined
 }
 
 function pecEvidencePayload(evidence: PecVerificationEvidence | null | undefined): Record<string, unknown> {
-  if (!evidence) return {}
+  if (!evidence?.verified) return {}
   return {
     source: evidence.source,
     verified: evidence.verified,
@@ -1289,22 +1289,8 @@ function signaturePlan(outputPlan: Record<string, unknown>) {
   return isRecord(delivery?.signaturePlan) ? delivery.signaturePlan : null
 }
 
-function timingPlan(outputPlan: Record<string, unknown>) {
-  if (isRecord(outputPlan.timingPlan)) return outputPlan.timingPlan
-  const delivery = deliveryPlan(outputPlan)
-  return isRecord(delivery?.timingPlan) ? delivery.timingPlan : null
-}
-
 function blockedSimulation(outputPlan: Record<string, unknown>) {
   return outputPlan.blockedSimulation === true
-}
-
-function timingBasis(plan: Record<string, unknown> | null) {
-  const rows = plan && Array.isArray(plan.legalBasis) ? plan.legalBasis : []
-  return rows.map((item) => {
-    const row = isRecord(item) ? item : {}
-    return String(row.label || '').trim()
-  }).filter(Boolean)
 }
 
 function signatureRequired(plan: Record<string, unknown> | null) {
@@ -1385,50 +1371,11 @@ function deliveryChecks(plan: Record<string, unknown> | null) {
   }).filter((item) => item.id && item.label)
 }
 
-function deliveryReceiptSubjects(plan: Record<string, unknown> | null) {
-  const subjects = plan && isRecord(plan.expectedReceiptSubjects) ? plan.expectedReceiptSubjects : {}
-  return [
-    { id: 'acceptance', label: 'Accettazione', subject: subjects.acceptance },
-    { id: 'delivery', label: 'Consegna', subject: subjects.delivery },
-    { id: 'failedDelivery', label: 'Mancata consegna', subject: subjects.failedDelivery },
-  ].map((item) => ({
-    id: item.id,
-    label: item.label,
-    subject: String(item.subject || '').trim(),
-  })).filter((item) => item.subject)
-}
-
-function deliveryPostSendArchive(plan: Record<string, unknown> | null) {
-  const rows = plan && Array.isArray(plan.postSendDocumentArchive) ? plan.postSendDocumentArchive : []
-  return rows.map((item) => {
-    const row = isRecord(item) ? item : {}
-    return {
-      id: String(row.id || row.archiveFilename || '').trim(),
-      sourceFilename: String(row.sourceFilename || '').trim(),
-      archiveFilename: String(row.archiveFilename || '').trim(),
-      role: String(row.documentRole || '').trim(),
-    }
-  }).filter((item) => item.id && item.archiveFilename)
-}
-
-function deliveryPresidioAutomation(plan: Record<string, unknown> | null) {
-  const automation = plan && isRecord(plan.presidioPecAutomation) ? plan.presidioPecAutomation : null
-  if (!automation || automation.enabled !== true) return null
-  const targets = Array.isArray(automation.archiveTargets)
-    ? automation.archiveTargets.map((item) => String(item || '').trim()).filter(Boolean)
-    : []
-  return {
-    correlationField: String(automation.correlationField || '').trim(),
-    archiveTargets: targets,
-    localSendOnly: automation.localSendOnly === true,
-  }
-}
-
 function ResultPanel({ result }: { result: LegalWorkflowResult }) {
   if (!result.message && !result.blockers.length && !result.warnings.length && !result.relataText && !result.body) {
     return (
       <Panel title="Esito controllo" subtitle="Compila i dati e avvia la verifica" icon={<ShieldCheck size={17} />}>
-        <p className="iu-legal-empty">IUSENTRA prepara il testo e segnala i blocchi, poi l'avvocato controlla, firma e invia.</p>
+        <p className="iu-legal-empty">IUSENTRA prepara il testo e segnala eventuali dati da rivedere, poi l'avvocato controlla, firma e invia.</p>
       </Panel>
     )
   }
@@ -1506,7 +1453,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           <div className="iu-legal-signature-summary">
             <div className="iu-legal-signature-summary__heading">
               <FileSignature size={17} />
-              <strong>Relata da firmare prima dell'invio PEC</strong>
+              <strong>Firma relata dal PC locale</strong>
             </div>
             <div className="iu-legal-evidence-grid">
               {signatureRequired(signaturePlan(result.outputPlan)).map((item) => (
@@ -1541,26 +1488,14 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
       ) : null}
       {deliveryPlan(result.outputPlan) ? (
         <div className="iu-legal-output">
-          <span>{result.ok ? 'Invio PEC controllato' : 'Invio PEC previsto'}</span>
+          <span>{result.ok ? 'Piano PEC locale pronto' : 'Piano PEC locale previsto'}</span>
           <div className="iu-legal-delivery-summary">
             <strong>{auditText(deliveryPlan(result.outputPlan)?.subject) || 'notificazione ai sensi della legge n. 53 del 1994'}</strong>
             <small>{deliveryRecipients(deliveryPlan(result.outputPlan)).length} PEC distinta/e da preparare</small>
             {blockedSimulation(result.outputPlan) ? (
               <small className="iu-legal-delivery-summary__blocked">
-                Simulazione visibile: invio e registrazione effettiva restano bloccati finché PEC del notificante, firma, documenti e conferma finale non sono completi.
+                Piano PEC preparato: la trasmissione resta sul PC locale dell'avvocato.
               </small>
-            ) : null}
-            {timingPlan(result.outputPlan) ? (
-              <div className="iu-legal-timing-summary">
-                <strong>Orario PEC e perfezionamento</strong>
-                <small>{auditText(timingPlan(result.outputPlan)?.plannedAt) || 'Da pianificare'}</small>
-                <small>{auditText(timingPlan(result.outputPlan)?.senderEffect)}</small>
-                <small>{auditText(timingPlan(result.outputPlan)?.recipientEffect)}</small>
-                {auditText(timingPlan(result.outputPlan)?.warning) ? <small>{auditText(timingPlan(result.outputPlan)?.warning)}</small> : null}
-                {timingBasis(timingPlan(result.outputPlan)).length ? (
-                  <small>Fonti: {timingBasis(timingPlan(result.outputPlan)).join('; ')}</small>
-                ) : null}
-              </div>
             ) : null}
             <div className="iu-legal-evidence-grid">
               {deliveryRecipients(deliveryPlan(result.outputPlan)).map((item) => (
@@ -1572,38 +1507,6 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
                 <strong key={`${item.label}-${item.filename}`}>{item.label}{item.filename ? ` - ${item.filename}` : ''}</strong>
               ))}
             </div>
-            {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).length ? (
-              <div className="iu-legal-delivery-section">
-                <strong>Dopo l’invio: ricevute attese dal presidio PEC</strong>
-                <small>Accettazione, consegna o mancata consegna non sono allegati da preparare: verranno agganciati alla notifica dopo la trasmissione.</small>
-                <div className="iu-legal-evidence-grid">
-                  {deliveryReceiptSubjects(deliveryPlan(result.outputPlan)).map((item) => (
-                    <strong key={item.id}>{item.label} - {item.subject}</strong>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {deliveryPostSendArchive(deliveryPlan(result.outputPlan)).length ? (
-              <div className="iu-legal-delivery-section">
-                <strong>Archivio automatico nel fascicolo</strong>
-                <div className="iu-legal-evidence-grid">
-                  {deliveryPostSendArchive(deliveryPlan(result.outputPlan)).map((item) => (
-                    <strong key={item.id}>
-                      {item.sourceFilename ? `${item.sourceFilename} -> ` : ''}{item.archiveFilename}
-                    </strong>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {deliveryPresidioAutomation(deliveryPlan(result.outputPlan)) ? (
-              <div className="iu-legal-delivery-section iu-legal-delivery-section--presidio">
-                <strong>Presidio notifiche collegato</strong>
-                <small>
-                  RAC e RdAC vengono agganciate con {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.correlationField || 'identificativo notifica'} e Message-ID originario; archivio su {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.archiveTargets.join(' e ') || 'fascicolo'}.
-                </small>
-                {deliveryPresidioAutomation(deliveryPlan(result.outputPlan))?.localSendOnly ? <small>Invio effettivo sempre dal PC dell'avvocato.</small> : null}
-              </div>
-            ) : null}
             <div className="iu-legal-check-grid">
               {deliveryChecks(deliveryPlan(result.outputPlan)).map((item) => (
                 <article className={`is-${item.status.replace(/\s+/g, '-')}`} key={item.id}>
@@ -2492,7 +2395,6 @@ export function NotificheLegaliPage() {
   }
 
   const hasNotifiableExtension = (value: string) => /\.(?:pdf|pdfa|p7m)$/i.test((value || '').trim())
-  const hasSendableNotificationAttachmentExtension = (value: string) => /\.(?:pdf|pdfa|p7m|eml|msg)$/i.test((value || '').trim())
   const hasEmailEvidenceExtension = (value: string) => /\.(?:eml|msg)$/i.test((value || '').trim())
   const isNotifiableNotificationDocument = (documento: LegalDocumentSuggestion) => (
     hasNotifiableExtension(documentPrimaryName(documento))
@@ -2501,10 +2403,6 @@ export function NotificheLegaliPage() {
   )
   const isPresidioNotificationDocument = (documento: LegalDocumentSuggestion) => (
     (documento.notificaRichiesta || documento.documentoUfficio) && isNotifiableNotificationDocument(documento)
-  )
-  const isNotifiablePayloadDocument = (documento: NotificaDocumentPayload) => (
-    hasSendableNotificationAttachmentExtension(documento.nome_file)
-    || hasSendableNotificationAttachmentExtension(documento.file_originale || '')
   )
   const deriveProceedingRg = (...values: string[]) => {
     for (const value of values) {
@@ -3560,14 +3458,6 @@ export function NotificheLegaliPage() {
   }
 
   const sendNotification = async () => {
-    if (sendDisabledReasons.length) {
-      setResult({
-        ...emptyResult,
-        blockers: [`Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`],
-        message: 'Completa i requisiti finali indicati prima di preparare la PEC.',
-      })
-      return
-    }
     const invioPec = localDateTime()
     setWorking(true)
     setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
@@ -3586,7 +3476,7 @@ export function NotificheLegaliPage() {
     const response = await postLegalWorkflow(data.azioni.notifica, payload).catch(() => ({ ...emptyResult, blockers: ['Preparazione invio PEC non completata. Riprova tra poco.'] }))
     setResult(response.ok ? {
       ...response,
-      message: response.message || 'Piano di invio PEC pronto: verifica allegati e relata firmata; il presidio raccoglierà le ricevute dopo l’invio.',
+      message: response.message || 'Piano PEC preparato dal PC locale per la notifica corrente.',
     } : response)
     setWorking(false)
   }
@@ -3875,8 +3765,6 @@ export function NotificheLegaliPage() {
   const changeModelField = (key: string, value: string) => setModelFields((current) => ({ ...current, [key]: value }))
 
   const currentNotificationDocuments = notificationDocumentPayloads()
-  const currentNotificationDocumentsReady = currentNotificationDocuments.length > 0
-    && currentNotificationDocuments.every(isNotifiablePayloadDocument)
   const currentNotificationControlPayloadKey = notificationControlPayloadKey(buildNotificaPayload(true))
   const resultHasVisibleOutput = Boolean(
     result.message
@@ -3894,20 +3782,6 @@ export function NotificheLegaliPage() {
     setLastControlLabel('Dati della notifica modificati: riesegui il controllo relata per aggiornare i requisiti.')
   }, [currentNotificationControlPayloadKey, lastControlPayloadKey, resultHasVisibleOutput, tab, working])
 
-  const hasPassingNotificationControl = result.ok === true
-    && Array.isArray(result.blockers)
-    && result.blockers.length === 0
-    && lastControlLabel.toLowerCase().includes('superato')
-    && lastControlPayloadKey === currentNotificationControlPayloadKey
-  const controlBlockers = Array.isArray(result.blockers)
-    ? result.blockers.map((item) => userFacingNotice(item)).filter(Boolean)
-    : []
-  const sendDisabledReasons = [
-    !hasPassingNotificationControl ? (controlBlockers.join(' ') || 'esegui il controllo automatico della relata') : '',
-    !notifica.relata_firmata ? 'relata firmata non acquisita' : '',
-    !notifica.approvazione_avvocato ? 'approvazione finale avvocato mancante' : '',
-    !currentNotificationDocumentsReady ? 'seleziona almeno un documento notificabile' : '',
-  ].filter(Boolean)
   const notificationControlBusy = working || publicRegisterConfirmationWorking || pecVerificationWorking
   const notificationControlLabel = publicRegisterConfirmationWorking
     ? 'Registro PEC...'
@@ -3916,10 +3790,8 @@ export function NotificheLegaliPage() {
       : working
         ? 'Controllo...'
         : 'Controlla relata'
-  const canPrepareNotificationSend = !notificationControlBusy && sendDisabledReasons.length === 0
-  const sendNotificationTitle = canPrepareNotificationSend
-    ? 'Prepara invio PEC dal PC locale dopo controllo positivo.'
-    : `Invio PEC bloccato: ${sendDisabledReasons.join('; ')}.`
+  const canPrepareNotificationSend = !notificationControlBusy
+  const sendNotificationTitle = 'Prepara invio PEC dal PC locale; il riepilogo resta nella notifica corrente.'
   const currentPecSubjects = currentPecVerificationSubjects()
   const selectedRecipientRegister = data.registriPec.find(
     (item) => item.value === normalizePecSource(notifica.fonte_pec_destinatario),
@@ -3977,7 +3849,7 @@ export function NotificheLegaliPage() {
           { icon: <ShieldCheck size={15} />, text: 'PEC mittente e destinatario da pubblico elenco.' },
           { icon: <FileDown size={15} />, text: "Documento d'ufficio rilasciato acquisito dal Portale Servizi prima della relata." },
           { icon: <FileSignature size={15} />, text: 'Relata separata e firmata digitalmente.' },
-          { icon: <Inbox size={15} />, text: "RAC, RdAC o mancata consegna si raccolgono dopo l'invio." },
+          { icon: <Inbox size={15} />, text: 'La schermata prepara soltanto relata, attestazione e PEC locale.' },
           { icon: <UserRound size={15} />, text: 'Il cliente resta nel percorso informativo.' },
         ]
   const attestationDocuments = currentNotificationDocuments.filter((documento) => originNeedsAttestazione(documento.origine))
@@ -4111,19 +3983,25 @@ export function NotificheLegaliPage() {
       <section className="iu-legal-hero">
         <div>
           <span className="iu-legal-eyebrow"><Scale size={16} /> Notifiche e comunicazioni</span>
-          <h1>Notifica, prova e canali separati</h1>
-          <p>PEC L. 53, deposito prova, UNEP, notifiche non PEC e comunicazioni cliente restano distinti. Ogni canale mostra solo i dati necessari e blocca ciò che non è documentato.</p>
+          <h1>{tab === 'notifica' ? 'Relata di notifica e attestazione di conformità' : 'Notifiche e canali separati'}</h1>
+          <p>
+            {tab === 'notifica'
+              ? 'Scegli destinatari e documenti, genera la relata L. 53/1994 e l’attestazione di conformità senza mescolare ricevute o deposito.'
+              : 'PEC L. 53, UNEP, notifiche non PEC e comunicazioni cliente restano distinti. Ogni canale mostra solo i dati necessari.'}
+          </p>
         </div>
-        <div className="iu-legal-hero__actions">
-          <Button href={data.azioni.pecCompose}><Send size={15} /> PEC studio</Button>
-          <Button href={data.azioni.clientCompose}><Mail size={15} /> Comunica al cliente</Button>
-          <Button variant="primary" href={data.azioni.depositoChecklist}><UploadCloud size={15} /> Controlli deposito</Button>
-        </div>
+        {tab !== 'notifica' ? (
+          <div className="iu-legal-hero__actions">
+            <Button href={data.azioni.pecCompose}><Send size={15} /> PEC studio</Button>
+            <Button href={data.azioni.clientCompose}><Mail size={15} /> Comunica al cliente</Button>
+          </div>
+        ) : null}
       </section>
 
+      {tab !== 'notifica' ? (
       <section className="iu-legal-flows" aria-label="Percorsi distinti">
         <WorkflowCard
-          active={tab === 'notifica'}
+          active={false}
           icon={<FileSignature size={21} />}
           title="Notifica ex L. 53/1994"
           text="Controparte, difensori, PA, imprese, professionisti o terzi."
@@ -4158,16 +4036,17 @@ export function NotificheLegaliPage() {
           onClick={() => { setTab('cliente'); setResult(emptyResult) }}
         />
       </section>
+      ) : null}
 
       <section className="iu-legal-status-line">
-        <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento dati studio...' : 'Percorsi separati pronti'}</span>
-        <small><LockKeyhole size={14} /> Nessun invio automatico: firma, invio e deposito restano confermati dall'avvocato.</small>
+        <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento dati studio...' : tab === 'notifica' ? 'Relata e attestazione pronte' : 'Percorsi separati pronti'}</span>
+        <small><LockKeyhole size={14} /> Nessun invio automatico: la trasmissione PEC resta sul PC dell'avvocato.</small>
       </section>
 
       <section className="iu-legal-layout">
         <div className="iu-legal-form-column">
           {tab === 'notifica' ? (
-            <Panel title="Relata e invio controllato" subtitle="Percorso per destinatari esterni allo studio" icon={<FileSignature size={17} />}>
+            <Panel title="Relata e attestazione" subtitle="Creazione notifica L. 53/1994" icon={<FileSignature size={17} />}>
               <div className="iu-legal-auto-box">
                 <div className="iu-legal-auto-box__title">
                   <WandSparkles size={17} />
@@ -4789,8 +4668,8 @@ export function NotificheLegaliPage() {
                 <div className="iu-legal-action-panel iu-legal-field--wide" aria-busy={signatureChecking}>
                   <div className="iu-legal-action-panel__head">
                     <div>
-                      <strong>Relata firmata digitalmente</strong>
-                      <span>IUSENTRA genera la relata corrente, la firma sul PC e la salva automaticamente nel fascicolo.</span>
+                      <strong>Firma digitale della relata</strong>
+                      <span>IUSENTRA genera la relata corrente e la salva nel fascicolo dopo la firma sul PC.</span>
                     </div>
                     <div className="iu-legal-signature-actions">
                       <label className="iu-legal-signature-pin">
@@ -4820,16 +4699,11 @@ export function NotificheLegaliPage() {
                       <FileText size={14} /> Visualizza relata firmata
                     </a>
                   ) : null}
-                  <label className="iu-legal-check">
-                    <input type="checkbox" checked={notifica.relata_firmata} readOnly disabled />
-                    <span>{notifica.relata_firmata ? 'Relata firmata e salvata nel fascicolo' : 'Relata da firmare'}</span>
-                  </label>
                   <div className="iu-legal-automatic-rules">
                     <span><CheckCircle2 size={14} /> Relata separata predisposta automaticamente</span>
-                    <span><CheckCircle2 size={14} /> Ricevuta completa prevista automaticamente</span>
+                    <span><CheckCircle2 size={14} /> Attestazione di conformità prodotta quando richiesta</span>
                   </div>
                 </div>
-                <label className="iu-legal-check iu-legal-field--wide"><input type="checkbox" checked={notifica.approvazione_avvocato} onChange={(event) => changeNotifica('approvazione_avvocato', event.currentTarget.checked)} /><span>Approvazione finale dell'avvocato prima dell'invio</span></label>
               </div>
               <div className="iu-legal-submit-row">
                 <button className="iu-legal-submit" type="button" disabled={notificationControlBusy} onClick={() => run('notifica')}><ShieldCheck size={16} /> {notificationControlLabel}</button>
@@ -5402,7 +5276,7 @@ export function NotificheLegaliPage() {
         </div>
 
         <aside className="iu-legal-side">
-          {guidedAutomationSteps.length ? (
+          {tab !== 'notifica' && guidedAutomationSteps.length ? (
             <Panel title="Passaggi automatici" subtitle={automationSubtitle} icon={<ClipboardCheck size={17} />}>
               <div className="iu-legal-automation-list">
                 {guidedAutomationSteps.map((item, index) => (
@@ -5418,11 +5292,13 @@ export function NotificheLegaliPage() {
           <div ref={resultPanelRef}>
             <ResultPanel result={result} />
           </div>
-          <Panel title="Regole di blocco" subtitle="Controlli prima di firma e invio" icon={<AlertTriangle size={17} />}>
-            <div className="iu-legal-list">
-              {blockingRules.map((item) => <span key={item.text}>{item.icon} {item.text}</span>)}
-            </div>
-          </Panel>
+          {tab !== 'notifica' ? (
+            <Panel title="Regole di blocco" subtitle="Controlli prima di firma e invio" icon={<AlertTriangle size={17} />}>
+              <div className="iu-legal-list">
+                {blockingRules.map((item) => <span key={item.text}>{item.icon} {item.text}</span>)}
+              </div>
+            </Panel>
+          ) : null}
           {tab === 'cliente' ? (
             <Panel title="Modelli cliente" subtitle={data.clientCommunicationTemplateVersion || 'Comunicazioni informative'} icon={<Mail size={17} />}>
               <div className="iu-legal-list">
@@ -5452,7 +5328,7 @@ export function NotificheLegaliPage() {
               <div className="iu-legal-list">
                 <span><FileCheck2 size={15} /> {data.modelliRelata.length} modelli relata disponibili.</span>
                 <span><ShieldCheck size={15} /> Attestazioni scelte in base all'origine del documento.</span>
-                <span><LockKeyhole size={15} /> Nessun invio automatico senza firma e conferma finale.</span>
+                <span><LockKeyhole size={15} /> Relata separata e attestazione restano verificabili prima della PEC.</span>
               </div>
               <div className="iu-legal-template-catalog">
                 {data.modelliRelata.slice(0, templateCatalogExpanded ? data.modelliRelata.length : 8).map((item) => (

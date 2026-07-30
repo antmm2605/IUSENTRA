@@ -4095,12 +4095,12 @@ def notifiche_legali_preview():
     is_send = str(payload.get("operazione") or "").strip() == "invio_pec_l53"
     result = validate_legal_notification(
         _augment_custom_relata_payload(payload),
-        require_signed_relata=is_send,
+        require_signed_relata=False,
     )
     return _notifiche_legali_result_response(
         result,
         success_message=(
-            "Piano di invio PEC pronto per la conferma dell'avvocato."
+            "Piano PEC preparato dal PC locale per la notifica corrente."
             if is_send
             else "Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato."
         ),

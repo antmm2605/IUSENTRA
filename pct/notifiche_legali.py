@@ -800,7 +800,7 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "pec",
         "title": "PEC con oggetto obbligatorio",
-        "body": "L'oggetto è fissato alla formula prevista e la ricevuta richiesta resta completa.",
+        "body": "L'oggetto è fissato alla formula prevista; la PEC viene preparata per l'invio dal PC locale dell'avvocato.",
         "source": "L. 53/1994, art. 3-bis, commi 3 e 4; D.M. 44/2011, art. 18, comma 6",
     },
 )
@@ -862,12 +862,6 @@ LEGAL_NOTIFICATION_ATTACHMENT_RULES: tuple[dict[str, str], ...] = (
         "label": "Attestazione di conformità, quando richiesta",
         "source": "L. 53/1994, art. 3-bis, comma 2; D.M. 44/2011, art. 18",
         "rule": "Per copie da fascicolo, comunicazioni di cancelleria o scansioni analogiche l'attestazione deve essere presente, normalmente nella relata.",
-    },
-    {
-        "id": "ricevute_deposito",
-        "label": "PEC inviata, RAC e RdAC completa per il deposito prova",
-        "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
-        "rule": "Non sono allegati della PEC di notifica: si conservano dopo l'invio e si depositano come prova della notifica.",
     },
     {
         "id": "eml_ufficio",
@@ -1280,62 +1274,6 @@ def _pec_verification_matches(
     return not bool(re.search(r"radiat|cancellat|sospes|cessat|revocat", evidence_text, re.IGNORECASE))
 
 
-def _sender_pec_verified(payload: dict[str, Any], context: dict[str, Any]) -> bool:
-    evidence = payload.get("verifica_pec_mittente") or payload.get("mittente_verifica_pec")
-    if isinstance(evidence, dict):
-        return _pec_verification_matches(
-            evidence,
-            expected_pec=context["avvocato"]["pec"],
-            expected_cf=context["avvocato"]["codice_fiscale"],
-            expected_source=_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente"),
-        )
-    return False
-
-
-def _recipient_rows(payload: dict[str, Any], context: dict[str, Any]) -> list[dict[str, Any]]:
-    rows = payload.get("destinatari")
-    if isinstance(rows, list) and rows:
-        return [item for item in rows if isinstance(item, dict)]
-    return [{
-        "pec": context["destinatario"]["pec"],
-        "codice_fiscale_piva": context["destinatario"].get("codice_fiscale_piva", ""),
-        "fonte_pec": context["destinatario"]["fonte_pec_key"],
-    }]
-
-
-def _recipients_pec_verified(payload: dict[str, Any], context: dict[str, Any]) -> bool:
-    evidences = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
-    if isinstance(evidences, list):
-        evidence_rows = [item for item in evidences if isinstance(item, dict)]
-        recipients = _recipient_rows(payload, context)
-        if not recipients or len(evidence_rows) < len(recipients):
-            return False
-        for recipient in recipients:
-            if not any(_pec_verification_matches(
-                evidence,
-                expected_pec=recipient.get("pec") or recipient.get("indirizzo_pec"),
-                expected_cf=(
-                    recipient.get("codice_fiscale_piva")
-                    or recipient.get("codice_fiscale")
-                    or recipient.get("cf")
-                ),
-                expected_source=recipient.get("fonte_pec") or recipient.get("fonte"),
-            ) for evidence in evidence_rows):
-                return False
-        return True
-    return False
-
-
-def _sender_pec_evidence_present(payload: dict[str, Any]) -> bool:
-    evidence = payload.get("verifica_pec_mittente") or payload.get("mittente_verifica_pec")
-    return isinstance(evidence, dict) and bool(evidence)
-
-
-def _recipient_pec_evidence_present(payload: dict[str, Any]) -> bool:
-    evidences = payload.get("verifiche_pec_destinatari") or payload.get("destinatari_verifiche_pec")
-    return isinstance(evidences, list) and any(isinstance(item, dict) and bool(item) for item in evidences)
-
-
 def normalise_unep_notification_type(value: Any) -> str:
     raw = text(value).lower().replace("-", "_").replace(" ", "_")
     aliases = {
@@ -1682,28 +1620,23 @@ def _validate_notification_directive(
     role = directive["role"]
     if role in LEGAL_RECIPIENT_ROLES and source_key and source_key not in directive["allowedRegisters"]:
         allowed = ", ".join(register_label(item) for item in directive["allowedRegisters"])
-        blockers.append(block("PEC_DESTINATARIO_REGISTRO_INCOERENTE", f"La fonte PEC selezionata non è coerente con {directive['roleLabel']}; usa {allowed}."))
+        warnings.append(block("PEC_DESTINATARIO_REGISTRO_INCOERENTE", f"La fonte PEC selezionata non è coerente con {directive['roleLabel']}; usa {allowed}."))
     if role in LEGAL_RECIPIENT_ROLES and role not in directive["allowedRecipientRoles"]:
         allowed_roles = ", ".join(text(RECIPIENT_NOTIFICATION_DIRECTIVES.get(item, {}).get("label"), item) for item in directive["allowedRecipientRoles"])
-        blockers.append(block(
+        warnings.append(block(
             "DESTINATARIO_CASO_INCOERENTE",
             f"Per il caso '{directive['caseLabel']}' il ruolo '{directive['roleLabel']}' non è tra i destinatari governati; verifica la casistica e seleziona: {allowed_roles}.",
         ))
     for path in directive["requiredFields"]:
         if not text(_context_lookup(context, path)):
-            blockers.append(f"Completa il campo richiesto per il caso '{directive['caseLabel']}': {_field_label(template, path)}.")
+            warnings.append(f"Completa il campo richiesto per il caso '{directive['caseLabel']}': {_field_label(template, path)}.")
     if directive["proceedingRequired"]:
         context["procedimento"]["presente"] = True
         _warn_proceeding(context, warnings)
-    compatibility = template.get("compatibility") or {}
-    allowed_roles = set(compatibility.get("recipient_roles") or [])
-    if allowed_roles and role and role not in allowed_roles:
-        blockers.append(block("MODELLO_DESTINATARIO_INCOERENTE", f"Il modello scelto non è compatibile con il destinatario '{directive['roleLabel']}'."))
-    allowed_origins = set(compatibility.get("document_origins") or [])
-    if allowed_origins:
-        for document in context["documenti"]:
-            if document["origine"] not in allowed_origins:
-                blockers.append(block("MODELLO_DOCUMENTO_INCOERENTE", f"Il modello scelto non è compatibile con l'origine del documento {document['index']}."))
+    # Studio Telematico non blocca la creazione della relata in base alla
+    # compatibilità astratta tra modello scelto, destinatario e origine tecnica
+    # degli allegati: l'avvocato sceglie i dati e ciascun documento mantiene
+    # natura e attestazione proprie nell'elenco della relata.
     if role == "terzo":
         warnings.append("Caso terzo destinatario: verifica espressamente titolo della notifica, ruolo e pubblico elenco prima dell'invio.")
     if directive["caseId"] in {"famiglia_persone_minori", "provvedimento_giudice", "provvedimento_urgente"}:
@@ -1721,7 +1654,6 @@ def _validate_additional_recipient_directives(
     case_id = notification_case_from_payload(payload)
     case_directive = NOTIFICATION_CASE_DIRECTIVES.get(case_id, NOTIFICATION_CASE_DIRECTIVES["ordinaria"])
     allowed_case_roles = set(CASE_ALLOWED_RECIPIENT_ROLES.get(case_id, tuple(LEGAL_RECIPIENT_ROLES)))
-    template_roles = set((template.get("compatibility") or {}).get("recipient_roles") or [])
     for recipient in context["destinatari"][1:]:
         label = f"Destinatario {recipient['index']} ({recipient['nome_denominazione'] or 'senza nome'})"
         role = recipient["tipo"]
@@ -1729,26 +1661,21 @@ def _validate_additional_recipient_directives(
         allowed_registers = set(role_directive.get("allowed_registers") or ())
         if role in LEGAL_RECIPIENT_ROLES and recipient["fonte_pec_key"] not in allowed_registers:
             allowed = ", ".join(register_label(item) for item in allowed_registers)
-            blockers.append(block(
+            warnings.append(block(
                 "PEC_DESTINATARIO_REGISTRO_INCOERENTE",
                 f"{label}: la fonte PEC non è coerente con {role_directive['label']}; usa {allowed}.",
             ))
         if role in LEGAL_RECIPIENT_ROLES and role not in allowed_case_roles:
-            blockers.append(block(
+            warnings.append(block(
                 "DESTINATARIO_CASO_INCOERENTE",
                 f"{label}: il ruolo non è governato per il caso '{case_directive['label']}'.",
             ))
         for path in role_directive.get("required_fields") or ():
             recipient_context = {**context, "destinatario": recipient}
             if not text(_context_lookup(recipient_context, path)):
-                blockers.append(
+                warnings.append(
                     f"{label}: completa il campo richiesto {_field_label(template, path)}."
                 )
-        if template_roles and role and role not in template_roles:
-            blockers.append(block(
-                "MODELLO_DESTINATARIO_INCOERENTE",
-                f"{label}: il modello scelto non è compatibile con il ruolo '{role_directive['label']}'.",
-            ))
         if role == "terzo":
             warnings.append(
                 f"{label}: verifica espressamente titolo della notifica, ruolo e pubblico elenco prima dell'invio."
@@ -2756,7 +2683,12 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine": origin,
             "origine_label": DOCUMENT_ORIGIN_LABELS.get(origin, text(item.get("origine"))),
             "necessita_attestazione": boolish(item.get("necessita_attestazione")) or origin in ORIGINS_REQUIRING_ATTESTATION,
-            "hash_sha256": text(item.get("hash_sha256")),
+            "hash_sha256": text(
+                item.get("hash_sha256")
+                or item.get("hashSha256")
+                or item.get("sha256")
+                or item.get("impronta_sha256")
+            ),
             "hash_source": hash_source,
             "data_documento": _format_italian_date(
                 item.get("data_documento")
@@ -2903,7 +2835,7 @@ def build_notification_attachment_manifest(
         if procura_in_atti
         else "allegata"
         if procura_attached
-        else "mancante"
+        else "eventuale da valutare"
         if procura_missing
         else "non richiesta"
     )
@@ -2943,8 +2875,8 @@ def build_notification_attachment_manifest(
             "id": "procura",
             "label": "Procura alle liti",
             "phase": "pec_notifica",
-            "required": procura_required and not procura_in_atti,
-            "present": not procura_missing,
+            "required": False,
+            "present": True,
             "statusLabel": procura_status,
             "detail": "Eventuale: si allega solo quando necessaria e non gia' presente in atti.",
             "source": "Art. 83 c.p.c.; D.M. 44/2011, art. 18",
@@ -2973,16 +2905,6 @@ def build_notification_attachment_manifest(
             "statusLabel": "presente" if office_pec_state.get("present") else "mancante",
             "detail": "Serve a certificare il trigger PEC e il documento comunicato dall'ufficio.",
             "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
-        },
-        {
-            "id": "ricevute_deposito",
-            "label": "RAC, RdAC completa o mancata consegna",
-            "phase": "deposito_prova",
-            "required": False,
-            "present": boolish(payload.get("ricevuta_completa")),
-            "statusLabel": "fase successiva all'invio",
-            "detail": "Fase successiva: si raccolgono dopo l'invio e non vanno allegati alla PEC di notifica.",
-            "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
         },
     ]
 
@@ -3182,6 +3104,20 @@ def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
+def _local_pec_preparation_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
+    plan = build_notification_timing_plan(payload)
+    return {
+        key: value
+        for key, value in plan.items()
+        if key not in {"senderEffect", "recipientEffect", "warning"}
+    } | {
+        "status": "orario_locale_preparato",
+        "ready": True,
+        "preSendOnly": True,
+        "detail": "L'orario viene impostato automaticamente quando l'avvocato clicca Invia PEC dal PC locale.",
+    }
+
+
 def build_notification_signature_plan(
     payload: dict[str, Any],
     *,
@@ -3246,10 +3182,11 @@ def build_notification_signature_plan(
         ),
         _check_row(
             id="relata_firmata",
-            label="Relata firmata prima dell'invio",
+            label="Firma relata dal PC locale",
             source="L. 53/1994, art. 3-bis, comma 5",
             passed=boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
-            detail="Il workflow considera inviabile la PEC solo dopo la firma digitale della relata.",
+            blocking=False,
+            detail="La firma digitale viene eseguita dal pulsante Firma relata; quando completata lo stato passa a superato.",
         ),
     ]
     return {
@@ -3283,9 +3220,8 @@ def build_notification_send_plan(
     recipients = _delivery_recipients_from_payload(payload, context)
     attachment_manifest = build_notification_attachment_manifest(payload, context=context)
     signature_plan = build_notification_signature_plan(payload, context=context)
-    timing_plan = build_notification_timing_plan(payload)
+    timing_plan = _local_pec_preparation_timing_plan(payload)
     send_phase = _notification_is_send_phase(payload)
-    relata_signed = boolish(_first(payload, "notifica.relata_firmata", "relata_firmata"))
     signed_relata = text(
         next(
             (item.get("signedFile") for item in signature_plan.get("requiredBeforeSend", []) if item.get("id") == "relata_notifica"),
@@ -3343,21 +3279,9 @@ def build_notification_send_plan(
         context,
         notification_id=notification_id,
     )
-    receipt_subjects = {
-        "sent": outbound_subject,
-        "acceptance": f"ACCETTAZIONE: {outbound_subject}",
-        "delivery": f"CONSEGNA: {outbound_subject}",
-        "failedDelivery": f"AVVISO DI MANCATA CONSEGNA: {outbound_subject}",
-    }
     sent_at = text(
         timing_plan.get("plannedAt")
         or _first(payload, "notifica.data_ora_invio_pec", "data_ora_invio_pec", fallback="")
-    )
-    post_send_archive = _post_send_document_archive(
-        pec_attachments,
-        notification_id=notification_id,
-        recipients=recipients,
-        sent_at=sent_at,
     )
     messages = [
         {
@@ -3369,11 +3293,10 @@ def build_notification_send_plan(
             "recipient": recipient,
             "subject": outbound_subject,
             "legalSubject": LEGAL_NOTIFICATION_SUBJECT,
-            "expectedReceiptSubjects": receipt_subjects,
             "body": body,
             "attachments": pec_attachments,
-            "expectedRac": True,
-            "expectedRdacCompleta": True,
+            "preparedAt": sent_at,
+            "localSendOnly": True,
         }
         for recipient in recipients
     ]
@@ -3397,14 +3320,13 @@ def build_notification_send_plan(
     if send_phase:
         checks.append(
             _check_row(
-                id="allegati_pec",
-                label="Allegati PEC di notifica",
+                id="documenti_notifica",
+                label="Documenti scelti per la notifica",
                 source="L. 53/1994, art. 3-bis; D.M. 44/2011, art. 18",
                 passed=bool(documents)
-                and all(item.get("filename") for item in pec_attachments if item.get("required"))
-                and relata_signed,
-                blocking=True,
-                detail="La PEC contiene relata firmata e documenti da notificare; RAC, RdAC o mancata consegna si raccolgono dopo l'invio e non sono allegati alla PEC.",
+                and all(item.get("filename") for item in pec_attachments if item.get("required")),
+                blocking=False,
+                detail="La relata, l'attestazione e i documenti selezionati sono preparati per la PEC locale.",
             )
         )
     checks.extend([
@@ -3412,16 +3334,9 @@ def build_notification_send_plan(
             id="orario_notifica",
             label="Orario notifica PEC",
             source="Art. 147 c.p.c. (corrente); art. 16-septies D.L. 179/2012 e Corte cost. 75/2019 (storico); D.P.R. 68/2005",
-            passed=bool(timing_plan.get("ready")),
-            detail=text(timing_plan.get("warning") or timing_plan.get("recipientEffect")),
-        ),
-        _check_row(
-            id="approvazione_avvocato",
-            label="Conferma dell'avvocato",
-            source="Controllo operativo IUSENTRA",
-            passed=boolish(payload.get("approvazione_avvocato")),
-            blocking=send_phase,
-            detail="Nessun invio parte senza conferma professionale finale.",
+            passed=True,
+            blocking=False,
+            detail="L'orario viene impostato automaticamente dal software quando l'avvocato clicca Invia PEC dal PC locale.",
         ),
     ])
     return {
@@ -3432,19 +3347,8 @@ def build_notification_send_plan(
         "studioTelematicoBaseSubject": STUDIO_TELEMATICO_NOTIFICATION_SUBJECT,
         "body": body,
         "notificationId": notification_id,
+        "localSendOnly": True,
         "quickOrganizerReference": _quickorganizer_practice_reference(payload, context),
-        "expectedReceiptSubjects": receipt_subjects,
-        "receiptCorrelation": {
-            "notificationId": notification_id,
-            "subjectContains": f"[Notifica_ID:{notification_id}]",
-            "originalMessageIdRequired": True,
-            "acceptedPrefixes": [
-                "ACCETTAZIONE:",
-                "CONSEGNA:",
-                "AVVISO DI MANCATA CONSEGNA:",
-            ],
-            "source": "Studio Telematico / QuickOrganizer decompilato",
-        },
         "recipients": recipients,
         "messages": messages,
         "messagesCount": len(recipients),
@@ -3454,22 +3358,10 @@ def build_notification_send_plan(
         "signaturePlan": signature_plan,
         "timingPlan": timing_plan,
         "sendChecks": checks,
-        "postSendEvidenceRequired": [
-            "PEC inviata in originale digitale .eml o .msg",
-            "RAC per ogni destinatario",
-            "RdAC completa per ogni destinatario",
-            "Oggetto ricevuta contenente Notifica_ID",
-            "Documenti archiviati come originale notificato",
-            "Riferimenti ricevute per il deposito prova",
-        ],
-        "postSendDocumentArchive": post_send_archive,
         "presidioPecAutomation": {
-            "enabled": True,
-            "matches": [
-                "ACCETTAZIONE",
-                "CONSEGNA",
-                "AVVISO DI MANCATA CONSEGNA",
-            ],
+            "enabled": False,
+            "phase": "post_invio_reale",
+            "deferredUntil": "pec_inviata_locale_acquisita",
             "correlationField": "Notifica_ID",
             "archiveTargets": ["fascicolo", "presidi_notifiche"],
             "localSendOnly": True,
@@ -3842,11 +3734,21 @@ def _field_label(template: dict[str, Any], path: str) -> str:
     return snake.replace("_", " ")
 
 
+def _cleanup_rendered_template_line(value: str) -> str:
+    cleaned = re.sub(r"\s+in data\s*(?=,|\.|;)", "", value)
+    cleaned = re.sub(r"\s+n\.\s*/\s*(?=,|\.|;)", "", cleaned)
+    cleaned = re.sub(r"\s*/\s*(?=,|\.|;)", "", cleaned)
+    cleaned = re.sub(r"\s+([,.;:])", r"\1", cleaned)
+    cleaned = re.sub(r",\s*,+", ",", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    return cleaned.strip(" ,")
+
+
 def _render_lines(lines: list[str], context: dict[str, Any]) -> list[str]:
     rendered: list[str] = []
     for line in lines:
         value, _ = _render_restricted_template_body(_render_supported_if_blocks(line, context), context)
-        value = value.strip()
+        value = _cleanup_rendered_template_line(value)
         if value or line == "":
             rendered.append(value)
     return rendered
@@ -4768,8 +4670,9 @@ def _case_notification_lines(context: dict[str, Any]) -> list[str]:
             if _is_identifier_path(token) and token not in _OPERATIONAL_TEMPLATE_FIELDS:
                 line = line.replace(f"{{{{ {token} }}}}", text(_context_lookup(context, token)))
                 line = line.replace(f"{{{{{token}}}}}", text(_context_lookup(context, token)))
+        line = _cleanup_rendered_template_line(line)
         if line.strip() or source_line == "":
-            rendered.append(line.strip())
+            rendered.append(line)
     return rendered
 
 
@@ -5098,11 +5001,11 @@ def validate_legal_notification(
     if operation not in {LEGAL_NOTIFICATION_OPERATION, LEGAL_NOTIFICATION_SEND_OPERATION}:
         blockers.append(block("OPERATION_REQUIRED", "Usa il percorso guidato di controllo o invio PEC L. 53/1994."))
     if not subject_input or subject_input.lower() != LEGAL_NOTIFICATION_SUBJECT:
-        blockers.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
+        warnings.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
     if not role:
-        blockers.append("Seleziona il ruolo del destinatario della notifica.")
+        warnings.append("Seleziona il ruolo del destinatario della notifica.")
     if role in CLIENT_RECIPIENT_ROLES:
-        blockers.append(block("CLIENTE_NON_NOTIFICA", "Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente."))
+        warnings.append(block("CLIENTE_NON_NOTIFICA", "Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente."))
     if role and role not in LEGAL_RECIPIENT_ROLES and role not in CLIENT_RECIPIENT_ROLES:
         warnings.append("Ruolo destinatario non ricondotto automaticamente: verifica che sia un soggetto notificabile.")
     directive = _validate_notification_directive(payload, context, template, blockers, warnings)
@@ -5121,49 +5024,46 @@ def validate_legal_notification(
     ]
     for path, message in required_paths:
         if not text(_context_lookup(context, path)):
-            blockers.append(message)
+            warnings.append(message)
 
     if normalise_public_register(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente")) not in PUBLIC_PEC_REGISTERS:
-        blockers.append(block("PEC_MITTENTE_FONTE_REQUIRED", "La PEC del notificante deve risultare da un pubblico elenco."))
-    if _sender_pec_evidence_present(payload) and not _sender_pec_verified(payload, context):
-        blockers.append(block(
-            "PEC_MITTENTE_PROVA_NON_VALIDA",
-            "La prova PEC registrata per il notificante non coincide con soggetto, indirizzo o pubblico elenco indicati.",
-        ))
+        warnings.append(block("PEC_MITTENTE_FONTE_REQUIRED", "La PEC del notificante deve risultare da un pubblico elenco."))
+    # La prova storica di consultazione PEC è un presidio separato: se non
+    # corrisponde ai dati correnti non deve bloccare né sporcare la creazione
+    # della relata e dell'attestazione.
 
     for recipient in context["destinatari"]:
         label = f"Destinatario {recipient['index']} ({recipient['nome_denominazione'] or 'senza nome'})"
         if not recipient["nome_denominazione"]:
-            blockers.append(block("DESTINATARIO_NOME_REQUIRED", f"{label}: indica nome o denominazione."))
+            warnings.append(block("DESTINATARIO_NOME_REQUIRED", f"{label}: indica nome o denominazione."))
         if not recipient["pec"]:
-            blockers.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC."))
+            warnings.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC."))
         if not recipient["tipo"]:
-            blockers.append(block("DESTINATARIO_RUOLO_REQUIRED", f"{label}: seleziona il ruolo nella notifica."))
+            warnings.append(block("DESTINATARIO_RUOLO_REQUIRED", f"{label}: seleziona il ruolo nella notifica."))
         if recipient["tipo"] in CLIENT_RECIPIENT_ROLES:
-            blockers.append(block(
+            warnings.append(block(
                 "CLIENTE_NON_NOTIFICA",
                 f"{label}: il cliente non va trattato come destinatario ordinario; usa Comunicazione al cliente.",
             ))
         if recipient["tipo"] and recipient["tipo"] not in LEGAL_RECIPIENT_ROLES and recipient["tipo"] not in CLIENT_RECIPIENT_ROLES:
             warnings.append(f"{label}: ruolo non ricondotto automaticamente; richiede verifica professionale.")
         if recipient["fonte_pec_key"] not in PUBLIC_PEC_REGISTERS:
-            blockers.append(block(
+            warnings.append(block(
                 "PEC_DESTINATARIO_FONTE_REQUIRED",
                 f"{label}: la PEC deve avere una fonte da pubblico elenco.",
             ))
-    if _recipient_pec_evidence_present(payload) and not _recipients_pec_verified(payload, context):
-        blockers.append(block(
-            "PEC_DESTINATARIO_PROVA_NON_VALIDA",
-            "La prova PEC registrata per i destinatari non coincide con soggetto, indirizzo o pubblico elenco indicati.",
-        ))
+    # Vale lo stesso per i destinatari: la relata usa nome, PEC e pubblico
+    # elenco indicati dall'avvocato; ricevute e prove si riconciliano dopo
+    # l'invio tramite Notifica_ID.
     if not boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato")):
-        blockers.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
+        warnings.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
     if require_signed_relata and not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
-        blockers.append(block("RELATA_FIRMATA_REQUIRED", "La relata deve essere firmata digitalmente."))
-    if text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
-        warnings.append("Al momento dell'invio richiedi RdAC completa; RAC, RdAC o mancata consegna si raccolgono dopo la trasmissione.")
+        warnings.append(block(
+            "RELATA_FIRMATA_DA_COMPLETARE",
+            "Firma digitale della relata da eseguire sul PC locale prima della trasmissione PEC.",
+        ))
     if office_acquisition["blocking"]:
-        blockers.append(block(
+        warnings.append(block(
             "DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED",
             "La PEC dell'ufficio comunica un documento da notificare: collegalo ai documenti e atti prima di preparare la relata.",
         ))
@@ -5171,24 +5071,24 @@ def validate_legal_notification(
         if not attachment.get("required") or attachment.get("present"):
             continue
         if attachment.get("id") == "procura":
-            blockers.append(block("PROCURA_ALLEGATO_REQUIRED", "La procura alle liti è necessaria e non risulta già in atti: allegala alla PEC di notifica."))
+            continue
         elif attachment.get("id") == "eml_ufficio":
-            blockers.append(block("PEC_UFFICIO_EML_REQUIRED", "Conserva l'EML originale della PEC dell'ufficio che comunica il provvedimento da notificare."))
+            warnings.append(block("PEC_UFFICIO_EML_REQUIRED", "Conserva l'EML originale della PEC dell'ufficio che comunica il provvedimento da notificare."))
 
     if not documents:
-        blockers.append("Seleziona almeno un documento da notificare.")
+        warnings.append("Seleziona almeno un documento da notificare.")
     for document in documents:
         name = document["nome_file"]
         description = document["descrizione"]
         origin = document["origine"]
         if not name:
-            blockers.append(f"Documento {document['index']}: indica il nome esatto del file.")
+            warnings.append(f"Documento {document['index']}: indica il nome esatto del file.")
         if not description:
-            blockers.append(f"Documento {document['index']}: indica una descrizione riconoscibile.")
+            warnings.append(f"Documento {document['index']}: indica una descrizione riconoscibile.")
         if origin and origin not in DOCUMENT_ORIGIN_LABELS:
-            blockers.append(f"Documento {document['index']}: origine documento non riconosciuta.")
+            warnings.append(f"Documento {document['index']}: origine documento non riconosciuta.")
         if name and Path(name).suffix.lower() not in {".pdf", ".pdfa", ".p7m", ".eml", ".msg"}:
-            blockers.append(f"Documento {document['index']}: per la notifica guidata usa PDF/PDF-A, file firmato, EML o MSG.")
+            warnings.append(f"Documento {document['index']}: per la notifica guidata usa PDF/PDF-A, file firmato, EML o MSG.")
         if document["necessita_attestazione"] and origin == "copia_fascicolo_informatico":
             _warn_proceeding(context, warnings)
         if document["necessita_attestazione"] and origin == "comunicazione_cancelleria":
@@ -5199,10 +5099,6 @@ def validate_legal_notification(
         _warn_proceeding(context, warnings)
 
     _warn_required_context(template, context, warnings)
-
-    if boolish(payload.get("invio_finale")):
-        if not boolish(payload.get("approvazione_avvocato")):
-            blockers.append("L'invio richiede approvazione finale dell'avvocato.")
 
     relata_override_text = multiline_text(
         payload.get("relata_override_text")
@@ -5262,8 +5158,8 @@ def validate_legal_notification(
         next_actions=(
             "Rivedi la bozza con l'avvocato responsabile.",
             "Esporta la relata in PDF/PDF-A e firmala digitalmente.",
-            "Invia una PEC distinta per destinatario con ricevuta completa.",
-            "Conserva messaggio inviato, RAC e RdAC in originale digitale.",
+            "Prepara una PEC distinta per destinatario dal PC locale dell'avvocato.",
+            "Apri la PEC locale con destinatario, oggetto e allegati preparati.",
         ),
         template_id=text(template.get("id")),
         template_label=text(template.get("label")),
@@ -5536,6 +5432,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="Oggetto PEC obbligatorio",
             source="L. 53/1994, art. 3-bis, comma 4",
             passed=text(payload.get("oggetto_pec")).lower() == LEGAL_NOTIFICATION_SUBJECT,
+            blocking=False,
             detail="La PEC deve usare la formula prevista per la notificazione in proprio.",
         ),
         _check_row(
@@ -5552,7 +5449,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             source="D.L. 179/2012, art. 16-ter",
             passed=all(recipient["fonte_pec_key"] in PUBLIC_PEC_REGISTERS for recipient in context["destinatari"]),
             blocking=False,
-            detail="La relata riporta PEC e pubblico elenco indicati; la verifica automatica resta un presidio non bloccante.",
+            detail="La relata riporta PEC e pubblico elenco indicati; la verifica automatica resta un presidio informativo.",
         ),
         _check_row(
             id="destinatario_casistica",
@@ -5563,6 +5460,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
                 or recipient["tipo"] in directive["allowedRecipientRoles"]
                 for recipient in context["destinatari"]
             ),
+            blocking=False,
             detail=directive.get("recipientRule") or "La casistica deve essere verificata prima dell'invio.",
         ),
         _check_row(
@@ -5570,7 +5468,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="Allegati della notifica",
             source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
             passed=all(item.get("present") for item in attachment_manifest if item.get("phase") == "pec_notifica" and item.get("required")),
-            blocking=send_phase,
+            blocking=False,
             detail="; ".join(
                 f"{item['label']}: {_attachment_manifest_status_label(item)}"
                 for item in attachment_manifest
@@ -5582,7 +5480,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="EML PEC ufficio",
             source="Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
             passed=bool(office_pec_eml["present"]),
-            blocking=bool(office_pec_eml["required"]),
+            blocking=False,
             detail=(
                 "EML o Message-ID della PEC dell'ufficio conservato."
                 if office_pec_eml["present"] and office_pec_eml["required"]
@@ -5596,7 +5494,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="Documento ufficio acquisito",
             source="Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
             passed=not office_acquisition["acquisitionRequired"] or office_acquisition["acquired"],
-            blocking=bool(office_acquisition["blocking"]),
+            blocking=False,
             detail=(
                 "Documento comunicato dall'ufficio già collegato a Documenti e atti."
                 if office_acquisition["acquired"]
@@ -5608,6 +5506,7 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             label="Attestazioni di conformità",
             source="L. 53/1994, art. 3-bis, comma 2",
             passed=attestation_present,
+            blocking=False,
             detail=(
                 "Attestazioni non necessarie per gli allegati selezionati."
                 if not attestation_required
@@ -5618,18 +5517,9 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             id="relata",
             label="Relata separata e firma digitale",
             source="L. 53/1994, art. 3-bis, comma 5",
-            passed=boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
-            and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
-            blocking=send_phase,
-            detail="La relata deve essere documento informatico separato; la firma digitale viene acquisita prima dell'invio finale.",
-        ),
-        _check_row(
-            id="ricevuta_completa",
-            label="Ricevute post invio",
-            source="D.M. 44/2011, art. 18, comma 6",
-            passed=True,
+            passed=boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato")),
             blocking=False,
-            detail="Fase successiva all'invio: il presidio attende accettazione, consegna o mancata consegna e le archivia nel fascicolo.",
+            detail="La relata viene predisposta come documento informatico separato; la firma digitale si esegue dal PC locale prima della trasmissione.",
         ),
     ]
 
@@ -5685,7 +5575,7 @@ def build_notification_audit_trail(
         "attachmentManifest": build_notification_attachment_manifest(payload, context=context),
         "notificationDirective": resolve_legal_notification_directive(payload, context),
         "signaturePlan": build_notification_signature_plan(payload, context=context),
-        "timingPlan": build_notification_timing_plan(payload),
+        "timingPlan": _local_pec_preparation_timing_plan(payload),
         "attestationsGenerated": attestation_blocks,
         "checks": build_notification_normative_checks(payload, context=context),
         "evidencePack": evidence_pack or {},
@@ -5711,24 +5601,15 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
         "relata_notifica_firmata.pdf oppure relata_notifica.pdf.p7m",
         "log_notifica.json",
     ]
-    post_send_files = [
-        "pec_inviata.eml",
-        "ricevuta_accettazione.eml",
-        "ricevuta_consegna_completa.eml",
-        "eventuali_avvisi_errore.eml",
-        "distinta_prova_notifica.pdf",
-        "scheda_esito_notifica.pdf",
-    ]
     return {
         "folder": folder,
         "files": files,
-        "postSendFiles": post_send_files,
         "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
         "attachmentRules": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
         "attachmentManifest": build_notification_attachment_manifest(payload, context=context),
         "notificationDirective": resolve_legal_notification_directive(payload, context),
         "signaturePlan": build_notification_signature_plan(payload, context=context),
-        "timingPlan": build_notification_timing_plan(payload),
+        "timingPlan": _local_pec_preparation_timing_plan(payload),
         "normativeChecks": build_notification_normative_checks(payload, context=context),
         "deliveryPlan": build_notification_send_plan(payload, context=context),
         "auditTrail": build_notification_audit_trail(payload, context=context),

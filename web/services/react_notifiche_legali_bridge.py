@@ -1624,7 +1624,7 @@ def build_react_notifiche_legali_payload(
         "fontiOperative": [
             "Portale Servizi Telematici: notificazioni via PEC degli avvocati, L. 53/1994.",
             "Art. 16-ter D.L. 179/2012: pubblici elenchi rilevanti per notificazioni e comunicazioni.",
-            "Controllo ricevute e documenti collegati al fascicolo prima dell'invio.",
+            "Relata separata, attestazione di conformità e documenti selezionati prima della PEC locale.",
         ],
     })
 

@@ -1,7 +1,7 @@
 {
   "name": "@iusentra/studio",
   "private": true,
-  "version": "2.265.13",
+  "version": "2.265.15",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",

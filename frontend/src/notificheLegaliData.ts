@@ -351,9 +351,11 @@ export type NotificheLegaliData = {
     notifica: string
     anteprimaRelata: string
     attestazioneConformita: string
+    attestazioneConformitaFascicolo: string
     relataPdf: string
     relataFirmata: string
     bozzaRelata: string
+    bozzaAttestazione: string
     comunicazioneCliente: string
     provaDeposito: string
     verificaPecConsultata: string
@@ -472,9 +474,11 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     notifica: '/api/v1/ui/notifiche-legali/notifica',
     anteprimaRelata: '/api/v1/ui/notifiche-legali/anteprima-relata',
     attestazioneConformita: '/api/v1/ui/notifiche-legali/attestazione-conformita',
+    attestazioneConformitaFascicolo: '/api/v1/ui/notifiche-legali/attestazione-conformita-fascicolo',
     relataPdf: '/api/v1/ui/notifiche-legali/relata-pdf',
     relataFirmata: '/api/v1/ui/notifiche-legali/relata-firmata',
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
+    bozzaAttestazione: '/api/v1/ui/notifiche-legali/bozze-attestazione',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     verificaPecConsultata: '/api/v1/ui/notifiche-legali/verifica-pec-consultata',
@@ -929,9 +933,11 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       notifica: text(azioni.notifica, emptyNotificheLegaliData.azioni.notifica),
       anteprimaRelata: text(azioni.anteprimaRelata, emptyNotificheLegaliData.azioni.anteprimaRelata),
       attestazioneConformita: text(azioni.attestazioneConformita, emptyNotificheLegaliData.azioni.attestazioneConformita),
+      attestazioneConformitaFascicolo: text(azioni.attestazioneConformitaFascicolo, emptyNotificheLegaliData.azioni.attestazioneConformitaFascicolo),
       relataPdf: text(azioni.relataPdf, emptyNotificheLegaliData.azioni.relataPdf),
       relataFirmata: text(azioni.relataFirmata, emptyNotificheLegaliData.azioni.relataFirmata),
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
+      bozzaAttestazione: text(azioni.bozzaAttestazione, emptyNotificheLegaliData.azioni.bozzaAttestazione),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       verificaPecConsultata: text(azioni.verificaPecConsultata, emptyNotificheLegaliData.azioni.verificaPecConsultata),
@@ -1173,6 +1179,51 @@ export async function downloadLegalAttestation(
   return { ok: true, message: 'Attestazione di conformità PDF scaricata.' }
 }
 
+export async function saveLegalAttestationPdfToFile(
+  endpoint: string,
+  payload: Record<string, unknown>,
+): Promise<{
+  ok: boolean
+  message: string
+  documentId: string
+  fileName: string
+  sha256: string
+  previewUrl: string
+  downloadUrl: string
+}> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body)) {
+    return {
+      ok: false,
+      message: 'Salvataggio attestazione nel fascicolo non completato.',
+      documentId: '',
+      fileName: '',
+      sha256: '',
+      previewUrl: '',
+      downloadUrl: '',
+    }
+  }
+  return {
+    ok: bool(body.ok) && response.ok,
+    message: text(body.message, response.ok ? 'Attestazione salvata nel fascicolo.' : 'Salvataggio attestazione nel fascicolo non completato.'),
+    documentId: text(body.documentId),
+    fileName: text(body.fileName),
+    sha256: text(body.sha256),
+    previewUrl: text(body.previewUrl),
+    downloadUrl: text(body.downloadUrl),
+  }
+}
+
 export async function saveLegalRelataDraft(payload: {
   practiceId?: string
   templateId: string
@@ -1194,6 +1245,32 @@ export async function saveLegalRelataDraft(payload: {
   return {
     ok: bool(body.ok) && response.ok,
     message: text(body.message, response.ok ? 'Bozza salvata.' : 'Salvataggio bozza non completato.'),
+    draftId: text(body.draftId),
+    savedAt: text(body.savedAt),
+  }
+}
+
+export async function saveLegalAttestationDraft(payload: {
+  practiceId?: string
+  templateId: string
+  attestationText: string
+  payloadHash?: string
+}): Promise<LegalRelataDraftResult> {
+  const response = await fetch('/api/v1/ui/notifiche-legali/bozze-attestazione', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body)) return { ok: false, message: 'Salvataggio attestazione non completato.', draftId: '', savedAt: '' }
+  return {
+    ok: bool(body.ok) && response.ok,
+    message: text(body.message, response.ok ? 'Attestazione salvata.' : 'Salvataggio attestazione non completato.'),
     draftId: text(body.draftId),
     savedAt: text(body.savedAt),
   }

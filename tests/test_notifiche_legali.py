@@ -818,6 +818,56 @@ def test_attestazione_pdf_non_tratta_ricorso_come_sentenza_per_caso_globale():
     assert pdf.startswith(b"%PDF")
 
 
+def test_attestazione_modificata_dall_avvocato_alimenta_testo_e_pdf():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "verbale_udienza.pdf",
+            "descrizione": "Verbale di udienza",
+            "origine": "copia_fascicolo_informatico",
+            "data_documento": "2026-06-05",
+        }
+    ]
+    override = (
+        "ATTESTAZIONE DI CONFORMITÀ\n\n"
+        "Il sottoscritto Avv. Mario Rossi attesta il testo modificato dall'avvocato.\n\n"
+        "Mario Rossi\n"
+        "Firmato digitalmente"
+    )
+    payload["attestazione_override_text"] = override
+
+    model = build_attestazione_conformita_payload(payload)
+    pdf = generate_attestazione_conformita_pdf_bytes(payload)
+
+    from pypdf import PdfReader
+
+    extracted = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(pdf)).pages)
+    assert model["text"] == override + "\n"
+    assert "testo modificato dall'avvocato" in extracted
+    assert pdf.startswith(b"%PDF")
+
+
+def test_piano_pec_allega_automaticamente_attestazione_salvata():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "verbale_udienza.pdf",
+            "descrizione": "Verbale di udienza",
+            "origine": "copia_fascicolo_informatico",
+            "hash_sha256": "a" * 64,
+        }
+    ]
+    payload["attestazione_conformita_file"] = "Attestazione_di_conformita_1234_2026.pdf"
+    payload["attestazione_conformita_sha256"] = "b" * 64
+
+    plan = build_notification_send_plan(payload)
+    attestation = next(item for item in plan["attachments"] if item["id"] == "attestazione_conformita")
+
+    assert attestation["filename"] == "Attestazione_di_conformita_1234_2026.pdf"
+    assert attestation["sha256"] == "b" * 64
+    assert attestation["required"] is True
+
+
 def test_relata_elenca_tutti_documenti_attestazione_e_relata_senza_firma_doppia():
     payload = _legal_payload()
     payload["caso_notifica"] = "in_corso_di_causa"
@@ -2701,6 +2751,82 @@ def test_api_react_notifiche_legali_salva_bozza_relata_e_non_modello(tmp_path: P
     assert (tmp_path / "notifiche" / "bozze_relata.json").exists()
 
 
+def test_api_react_notifiche_legali_salva_attestazione_pdf_nel_fascicolo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    with app.app_context():
+        fascicolo = get_fascicoli().nuovo(
+            "Pratica attestazione notifica",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente attestazione",
+        )
+    payload = _legal_payload()
+    payload.update({
+        "practice_id": fascicolo.id,
+        "fascicolo_id": fascicolo.id,
+        "documenti": [
+            {
+                "nome_file": "verbale_udienza.pdf",
+                "descrizione": "Verbale di udienza",
+                "origine": "copia_fascicolo_informatico",
+                "hash_sha256": "c" * 64,
+            }
+        ],
+        "attestazione_override_text": (
+            "ATTESTAZIONE DI CONFORMITÀ\n\n"
+            "Testo attestazione modificato e salvato dall'avvocato.\n\n"
+            "Mario Rossi\n"
+            "Firmato digitalmente"
+        ),
+    })
+
+    response = client.post(
+        "/api/v1/ui/notifiche-legali/attestazione-conformita-fascicolo",
+        json=payload,
+        headers=headers,
+    )
+    body = response.get_json()
+
+    assert response.status_code == 200
+    assert body["ok"] is True
+    assert body["documentId"]
+    assert body["fileName"].startswith("Attestazione_di_conformita")
+    with app.app_context():
+        saved = get_fascicoli().get(fascicolo.id)
+        documents = list(getattr(saved, "documenti", []) or [])
+    assert any("attestazione-conformita" in list(getattr(document, "tags", []) or []) for document in documents)
+
+
+def test_api_react_notifiche_legali_salva_bozza_attestazione_e_non_modello(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    draft_response = client.post(
+        "/api/v1/ui/notifiche-legali/bozze-attestazione",
+        json={
+            "practiceId": "fascicolo-1",
+            "templateId": "relata_pec_base_l53",
+            "attestationText": "Bozza attestazione modificata per questa notifica.",
+        },
+        headers=headers,
+    )
+    empty_response = client.post(
+        "/api/v1/ui/notifiche-legali/bozze-attestazione",
+        json={"templateId": "relata_pec_base_l53", "attestationText": ""},
+        headers=headers,
+    )
+    catalog = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    draft_payload = draft_response.get_json()
+
+    assert draft_response.status_code == 200
+    assert draft_payload["ok"] is True
+    assert draft_payload["draftId"]
+    assert empty_response.status_code == 400
+    assert not any("Bozza attestazione modificata" in item["previewText"] for item in catalog["modelliRelata"])
+    assert (tmp_path / "notifiche" / "bozze_attestazione.json").exists()
+
+
 def test_bozza_relata_override_non_puo_eliminare_i_dati_obbligatori():
     payload = _legal_payload()
     payload["relata_override_text"] = "TESTO MANUALE DELLA RELATA"
@@ -3566,12 +3692,25 @@ def test_ui_notifiche_legali_mostra_data_catalogo_in_formato_italiano():
     assert "` - ${result.templateVersion}`" not in page
 
 
+def test_ui_notifiche_legali_mostra_audit_in_ora_italiana():
+    page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
+    audit_block = page[page.index("function auditDateTimeText"):page.index("function deliveryPlan")]
+    result_block = page[page.index("<span>Audit</span>"):page.index("{result.body ?")]
+
+    assert "formatDateTimeIt(raw, raw)" in audit_block
+    assert "auditDateTimeText(auditTrail(result.outputPlan)?.generatedAt)" in result_block
+    assert "auditText(auditTrail(result.outputPlan)?.generatedAt)" not in result_block
+
+
 def test_ui_notifiche_legali_rende_automatici_i_controlli_non_decisionali():
     page = Path("frontend/src/components/NotificheLegaliPage.tsx").read_text(encoding="utf-8")
 
     assert "Verifica automatica delle PEC" not in page
     assert "Relata separata predisposta automaticamente" in page
     assert "Attestazione di conformità prodotta quando richiesta" in page
+    assert "Modifica attestazione di conformità" in page
+    assert "Salva attestazione per questa notifica" in page
+    assert "Precisazione facoltativa dell'avvocato" not in page
     assert "Ricevuta completa prevista automaticamente" not in page
     assert "Approvazione finale dell'avvocato prima dell'invio" not in page
     assert "Conferma avvocato registrata" not in page

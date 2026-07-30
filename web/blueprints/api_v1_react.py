@@ -3435,6 +3435,15 @@ def _notifiche_relata_drafts_path() -> Path:
     return log_path.parent / "bozze_relata.json"
 
 
+def _notifiche_attestation_drafts_path() -> Path:
+    log_path = Path(tenant_data_path(
+        "NOTIFICHE_LOG",
+        current_app.config.get("NOTIFICHE_LOG", "./notifiche/log.json"),
+        require_tenant=True,
+    ))
+    return log_path.parent / "bozze_attestazione.json"
+
+
 def _load_custom_relata_templates() -> list[dict[str, Any]]:
     path = _notifiche_custom_templates_path()
     if not path.exists():
@@ -3478,6 +3487,29 @@ def _load_relata_drafts() -> list[dict[str, Any]]:
 
 def _write_relata_drafts(drafts: list[dict[str, Any]]) -> None:
     path = _notifiche_relata_drafts_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "updatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "drafts": drafts,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _load_attestation_drafts() -> list[dict[str, Any]]:
+    path = _notifiche_attestation_drafts_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    rows = payload.get("drafts") if isinstance(payload, dict) else []
+    return [item for item in rows if isinstance(item, dict)]
+
+
+def _write_attestation_drafts(drafts: list[dict[str, Any]]) -> None:
+    path = _notifiche_attestation_drafts_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
@@ -3854,6 +3886,13 @@ def notifiche_legali_attestazione_conformita():
     if error is not None:
         return error
     assert payload is not None
+    override_text = str(payload.get("attestazione_override_text") or payload.get("attestation_override_text") or "").strip()
+    if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({
+            "ok": False,
+            "message": "L'attestazione di conformità modificata è troppo lunga.",
+            "missingFields": [],
+        }), 400
     payload = _augment_custom_relata_payload(payload)
     model = build_attestazione_conformita_payload(payload)
     if not model.get("ok"):
@@ -3883,6 +3922,94 @@ def notifiche_legali_attestazione_conformita():
         download_name=filename,
         max_age=0,
     )
+
+
+@api_v1_react.post("/notifiche-legali/attestazione-conformita-fascicolo")
+@_richiedi_auth
+def notifiche_legali_attestazione_conformita_fascicolo():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    override_text = str(payload.get("attestazione_override_text") or payload.get("attestation_override_text") or "").strip()
+    if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({"ok": False, "message": "L'attestazione di conformità modificata è troppo lunga."}), 400
+    fascicolo_id = str(payload.get("fascicolo_id") or payload.get("practice_id") or "").strip()
+    if not fascicolo_id:
+        return jsonify({"ok": False, "message": "Seleziona la pratica prima di salvare l'attestazione."}), 400
+    fascicolo = get_fascicoli().get(fascicolo_id)
+    if fascicolo is None:
+        return jsonify({"ok": False, "message": "La pratica selezionata non è disponibile nello studio corrente."}), 404
+
+    payload = _augment_custom_relata_payload(payload)
+    model = build_attestazione_conformita_payload(payload)
+    if not model.get("ok"):
+        return jsonify({
+            "ok": False,
+            "message": "Completa i dati indicati prima di salvare l'attestazione.",
+            "missingFields": model.get("missing_fields") or [],
+        }), 400
+    content = generate_attestazione_conformita_pdf_bytes(payload)
+    text_hash = hashlib.sha256(str(model.get("text") or "").encode("utf-8")).hexdigest()
+    evidence_tag = f"attestazione-conformita-text-sha256:{text_hash}"
+    existing = next(
+        (
+            document
+            for document in list(getattr(fascicolo, "documenti", []) or [])
+            if evidence_tag in list(getattr(document, "tags", []) or [])
+        ),
+        None,
+    )
+    if existing is not None:
+        return jsonify({
+            "ok": True,
+            "message": "Attestazione di conformità già salvata nel fascicolo.",
+            "documentId": str(getattr(existing, "id", "")),
+            "fileName": str(getattr(existing, "nome", "")),
+            "sha256": str(getattr(existing, "hash_contenuto_sha256", "") or getattr(existing, "hash_sha256", "")),
+            "previewUrl": f"/fascicoli/{fascicolo_id}/documenti/{getattr(existing, 'id', '')}/visualizza",
+            "downloadUrl": f"/fascicoli/{fascicolo_id}/documenti/{getattr(existing, 'id', '')}/scarica",
+        })
+
+    proceeding = model.get("campi_database", {}).get("procedimento", {})
+    rg = re.sub(r"[^0-9]+", "", str(proceeding.get("numero_rg") or ""))
+    year = re.sub(r"[^0-9]+", "", str(proceeding.get("anno_rg") or ""))
+    suffix = f"_{rg}_{year}" if rg and year else ""
+    filename = f"Attestazione_di_conformita{suffix}.pdf"
+    save_document = _fascicoli_runtime_func("salva_documento_fascicolo")
+    document = save_document(
+        gf=get_fascicoli(),
+        id_fasc=fascicolo_id,
+        nome_file=filename,
+        raw=content,
+        tipo_doc=TipoDocumento.NOTIFICA,
+        note="Attestazione di conformità generata per la notifica e allegata alla PEC.",
+        tags=["attestazione-conformita", "notifica-legale", evidence_tag],
+        data_documento=str(payload.get("data_relata") or date.today().isoformat()),
+        firmato=False,
+        caricato_da=_actor_label(),
+        fonte_documento="NOTIFICA_LEGALE",
+        nome_originale=filename,
+    )
+    document_id = str(getattr(document, "id", ""))
+    sha256 = str(getattr(document, "hash_contenuto_sha256", "") or hashlib.sha256(content).hexdigest())
+    clear_react_fascicoli_base_cache()
+    _sync_event("modifica", "fascicoli", fascicolo_id)
+    _audit_event(
+        "notifiche_legali.attestazione_conformita_fascicolo",
+        "fascicolo",
+        fascicolo_id,
+        f"Attestazione di conformità salvata come documento {document_id}.",
+    )
+    return jsonify({
+        "ok": True,
+        "message": "Attestazione di conformità salvata nel fascicolo e pronta come allegato PEC.",
+        "documentId": document_id,
+        "fileName": str(getattr(document, "nome", filename)),
+        "sha256": sha256,
+        "previewUrl": f"/fascicoli/{fascicolo_id}/documenti/{document_id}/visualizza",
+        "downloadUrl": f"/fascicoli/{fascicolo_id}/documenti/{document_id}/scarica",
+    })
 
 
 @api_v1_react.post("/notifiche-legali/relata-pdf")
@@ -4081,6 +4208,65 @@ def notifiche_legali_salva_bozza_relata():
     return jsonify({"ok": True, "message": "Bozza relata salvata per questa notifica.", "draftId": draft_id, "savedAt": saved_at})
 
 
+@api_v1_react.post("/notifiche-legali/bozze-attestazione")
+@_richiedi_auth
+def notifiche_legali_salva_bozza_attestazione():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    attestation_text = str(
+        payload.get("attestationText")
+        or payload.get("attestazioneText")
+        or payload.get("attestazione_text")
+        or payload.get("testo")
+        or ""
+    ).replace("\r\n", "\n").replace("\r", "\n").strip()
+    template_id = str(payload.get("templateId") or payload.get("template_id") or "").strip()
+    practice_id = str(payload.get("practiceId") or payload.get("practice_id") or "").strip()
+    payload_hash = str(payload.get("payloadHash") or payload.get("payload_hash") or "").strip()
+    if not attestation_text:
+        return jsonify({"ok": False, "message": "L'attestazione di conformità non può essere vuota."}), 400
+    if len(attestation_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({"ok": False, "message": "L'attestazione di conformità è troppo lunga."}), 400
+    if not template_id:
+        return jsonify({"ok": False, "message": "Seleziona il modello di riferimento dell'attestazione."}), 400
+    saved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    if not payload_hash:
+        payload_hash = hashlib.sha256(
+            json.dumps(
+                {"practiceId": practice_id, "templateId": template_id, "attestationText": attestation_text},
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+    draft_id = f"bozza_attestazione_{saved_at.replace(':', '').replace('-', '')}_{payload_hash[:10]}"
+    draft = {
+        "id": draft_id,
+        "practiceId": practice_id,
+        "templateId": template_id,
+        "attestationText": attestation_text,
+        "payloadHash": payload_hash,
+        "savedAt": saved_at,
+        "savedBy": _actor_label(),
+    }
+    drafts = [item for item in _load_attestation_drafts() if item.get("id") != draft_id]
+    drafts.append(draft)
+    _write_attestation_drafts(drafts[-100:])
+    _audit_event(
+        "notifiche_legali.bozza_attestazione",
+        "bozza_attestazione",
+        draft_id,
+        "Bozza attestazione di conformità salvata per la notifica corrente.",
+    )
+    return jsonify({
+        "ok": True,
+        "message": "Attestazione di conformità salvata per questa notifica.",
+        "draftId": draft_id,
+        "savedAt": saved_at,
+    })
+
+
 @api_v1_react.post("/notifiche-legali/notifica")
 @_richiedi_auth
 def notifiche_legali_preview():
@@ -4091,6 +4277,13 @@ def notifiche_legali_preview():
     override_text = str(payload.get("relata_override_text") or "").strip()
     if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
         return jsonify({"ok": False, "message": "La bozza relata modificata e' troppo lunga.", "blockers": ["La bozza relata modificata e' troppo lunga."]}), 400
+    attestation_override_text = str(payload.get("attestazione_override_text") or payload.get("attestation_override_text") or "").strip()
+    if len(attestation_override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({
+            "ok": False,
+            "message": "L'attestazione di conformità modificata è troppo lunga.",
+            "blockers": ["L'attestazione di conformità modificata è troppo lunga."],
+        }), 400
     payload = _stamp_notifica_pec_times(payload)
     is_send = str(payload.get("operazione") or "").strip() == "invio_pec_l53"
     result = validate_legal_notification(

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.265.15 - 2026-07-30
+
+- Notifiche legali React: l'attestazione di conformità può essere modificata e salvata per la notifica corrente, con anteprima aggiornata.
+- Fascicolo: il PDF dell'attestazione viene salvato automaticamente nei documenti del fascicolo e riusato come allegato della PEC locale.
+- Invio PEC L. 53/1994: il click `Invia PEC` prepara solo il piano dal PC locale, allegando relata firmata, documenti selezionati e attestazione, senza invio SMTP server-side.
+- Modello relata: i campi già coperti dalla compilazione guidata vengono nascosti e filtrati dal payload, evitando che valori vuoti o duplicati sovrascrivano fascicolo, RG, tipo documento o dati avvocato.
+- Guardrail: verificato su `127.0.0.1:8080` con destinatari manuali Codex, sentenza e verbale udienza, più test mirati notifiche/React e build frontend.
+
 ## 2.265.11 - 2026-07-27
 
 - Fascicoli React: corretto il KPI scadenze, distinguendo `Scadenze urgenti`, scadenze già scadute e scadenze realmente entro 7 giorni.

@@ -35,13 +35,14 @@ import { FloatingLex } from './FloatingLex'
 import {
   emptyNotificheLegaliData,
   confirmLegalPublicRegister,
-  downloadLegalAttestation,
   getNotificheLegaliData,
   getNotificheLegaliPractice,
   getNotificheLegaliPracticeDocuments,
   postLegalWorkflow,
   previewLegalRelata,
   saveLegalManualRecipient,
+  saveLegalAttestationDraft,
+  saveLegalAttestationPdfToFile,
   saveLegalRelataDraft,
   saveLegalRelataTemplate,
   searchLegalRegindeRecipients,
@@ -50,6 +51,7 @@ import {
   type LegalDocumentSuggestion,
   type LegalNotificationDirective,
   type LegalRelataPreviewResult,
+  type LegalTemplateField,
   type LegalPracticeIndexItem,
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
@@ -58,7 +60,7 @@ import {
   type LegalWorkflowResult,
   type NotificheLegaliData,
 } from '../notificheLegaliData'
-import { formatDateIt } from '../formatting'
+import { formatDateIt, formatDateTimeIt } from '../formatting'
 import './NotificheLegaliPage.css'
 
 type TabKey = 'notifica' | 'deposito' | 'unep' | 'nonpec' | 'cliente'
@@ -174,6 +176,47 @@ function localClockLabel(value: string) {
     minute: '2-digit',
     second: '2-digit',
   }).format(parsed)
+}
+
+const MODEL_FIELDS_COVERED_BY_GUIDED_NOTIFICATION = new Set([
+  'avvocato.full.name',
+  'avvocato.codice.fiscale',
+  'avvocato.foro',
+  'avvocato.pec',
+  'avvocato.studio',
+  'avvocato.studio.completo',
+  'avvocato.studio.cap',
+  'avvocato.studio.citta',
+  'avvocato.studio.provincia',
+  'avvocato.firma.in.calce',
+  'avvocato.firma.digitale.dicitura',
+  'cliente.nome.denominazione',
+  'cliente.codice.fiscale.piva',
+  'procedimento.ufficio',
+  'procedimento.sezione',
+  'procedimento.numero.rg',
+  'procedimento.anno.rg',
+  'provvedimento.tipo',
+  'provvedimento.numero',
+  'provvedimento.anno',
+  'provvedimento.data',
+  'provvedimento.data.deposito',
+  'notifica.luogo',
+  'notifica.data',
+  'notifica.ora',
+  'notifica.oggetto.pec',
+])
+
+function normalizeModelFieldPath(value: string) {
+  return value.trim().replace(/_/g, '.')
+}
+
+function modelFieldNameIsCoveredByGuidedNotification(name: string) {
+  return MODEL_FIELDS_COVERED_BY_GUIDED_NOTIFICATION.has(normalizeModelFieldPath(name))
+}
+
+function modelFieldIsCoveredByGuidedNotification(field: LegalTemplateField) {
+  return modelFieldNameIsCoveredByGuidedNotification(field.name)
 }
 
 function templateVersionDate(value: string) {
@@ -798,6 +841,14 @@ type SignedRelataRecord = {
   payloadKey: string
 }
 
+type SavedAttestationRecord = {
+  documentId: string
+  fileName: string
+  sha256: string
+  previewUrl: string
+  downloadUrl: string
+}
+
 type PecVerificationEvidence = {
   key: string
   source: string
@@ -1279,6 +1330,11 @@ function auditText(value: unknown) {
   return String(value || '').trim()
 }
 
+function auditDateTimeText(value: unknown) {
+  const raw = auditText(value)
+  return raw ? formatDateTimeIt(raw, raw) : ''
+}
+
 function deliveryPlan(outputPlan: Record<string, unknown>) {
   return isRecord(outputPlan.deliveryPlan) ? outputPlan.deliveryPlan : null
 }
@@ -1524,7 +1580,7 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           <span>Audit</span>
           <div className="iu-legal-audit-summary">
             <strong>{auditText(auditTrail(result.outputPlan)?.phase) || 'controllo'}</strong>
-            <small>{auditText(auditTrail(result.outputPlan)?.generatedAt)}</small>
+            <small>{auditDateTimeText(auditTrail(result.outputPlan)?.generatedAt)}</small>
             {auditText(auditTrail(result.outputPlan)?.practice) ? <small>Pratica: {auditText(auditTrail(result.outputPlan)?.practice)}</small> : null}
             {auditText(auditTrail(result.outputPlan)?.recipient) ? <small>Destinatario: {auditText(auditTrail(result.outputPlan)?.recipient)}</small> : null}
             {auditTrail(result.outputPlan)?.documentsCount !== undefined ? <small>Allegati controllati: {String(auditTrail(result.outputPlan)?.documentsCount)}</small> : null}
@@ -1698,8 +1754,14 @@ export function NotificheLegaliPage() {
   const relataDraftDirtyRef = useRef(false)
   const relataAlignmentPendingRef = useRef(false)
   const relataDraftInvalidatedRef = useRef(false)
-  const [attestationDownloading, setAttestationDownloading] = useState(false)
-  const [attestationDownloadMessage, setAttestationDownloadMessage] = useState('')
+  const [attestationDraftText, setAttestationDraftText] = useState('')
+  const [savedAttestationDraftText, setSavedAttestationDraftText] = useState('')
+  const [attestationDraftDirty, setAttestationDraftDirty] = useState(false)
+  const [attestationDraftSaving, setAttestationDraftSaving] = useState(false)
+  const [attestationDraftMessage, setAttestationDraftMessage] = useState('')
+  const [attestationFileSaving, setAttestationFileSaving] = useState(false)
+  const [attestationFileMessage, setAttestationFileMessage] = useState('')
+  const [savedAttestationFile, setSavedAttestationFile] = useState<SavedAttestationRecord | null>(null)
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})
   const [documentHydrationMessage, setDocumentHydrationMessage] = useState('')
   const [documentPreview, setDocumentPreview] = useState<{ href: string; title: string } | null>(null)
@@ -1814,6 +1876,15 @@ export function NotificheLegaliPage() {
   }, [])
 
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
+  const visibleModelFields = useMemo(() => (
+    (selectedTemplate?.fields || []).filter((field) => !modelFieldIsCoveredByGuidedNotification(field))
+  ), [selectedTemplate])
+  const modelFieldsForPayload = useMemo(() => Object.fromEntries(
+    Object.entries(modelFields).filter(([name, value]) => (
+      String(value || '').trim()
+      && !modelFieldNameIsCoveredByGuidedNotification(name)
+    )),
+  ), [modelFields])
   const selectedClientTemplate = useMemo(() => data.modelliComunicazioneCliente.find((item) => item.value === cliente.template_id), [data.modelliComunicazioneCliente, cliente.template_id])
   const selectedCaseDirective = useMemo<LegalNotificationDirective | undefined>(
     () => data.matriceNotifica.cases.find((item) => item.value === notifica.caso_notifica),
@@ -3109,7 +3180,7 @@ export function NotificheLegaliPage() {
       ricevuta_completa: true,
       verifica_pec_mittente: pecEvidencePayload(senderEvidence),
       verifiche_pec_destinatari: recipients.map((subject) => pecEvidencePayload(recipientEvidence[subject.key])),
-      template_fields: modelFields,
+      template_fields: modelFieldsForPayload,
       oggetto_pec: data.mandatorySubject,
       documenti: notificationDocumentPayloads(),
       destinatari: notificationRecipientPayloads(),
@@ -3131,22 +3202,60 @@ export function NotificheLegaliPage() {
     if (includeDraft && effectiveRelataDraftText) {
       payload.relata_override_text = effectiveRelataDraftText
     }
+    const effectiveAttestationDraftText = attestationDraftDirty
+      ? attestationDraftText.trim()
+      : savedAttestationDraftText.trim()
+    if (effectiveAttestationDraftText) {
+      payload.attestazione_override_text = effectiveAttestationDraftText
+    }
+    if (savedAttestationFile?.fileName) {
+      payload.attestazione_conformita_file = savedAttestationFile.fileName
+      payload.attestazione_conformita_sha256 = savedAttestationFile.sha256
+      payload.attestazione_conformita_document_id = savedAttestationFile.documentId
+    }
     return payload
   }
 
-  const downloadAttestation = async () => {
-    setAttestationDownloading(true)
-    setAttestationDownloadMessage('Preparo l’attestazione di conformità PDF...')
+  const saveAttestationPdfToFascicolo = async (
+    overrideText = '',
+    options: { silent?: boolean } = {},
+  ): Promise<SavedAttestationRecord | null> => {
+    if (!selectedPracticeId) {
+      setAttestationFileMessage('Seleziona prima la pratica della notifica.')
+      return null
+    }
+    setAttestationFileSaving(true)
+    if (!options.silent) {
+      setAttestationFileMessage('Salvataggio attestazione nel fascicolo in corso...')
+    }
     try {
-      const result = await downloadLegalAttestation(
-        data.azioni.attestazioneConformita,
-        buildNotificaPayload(false),
+      const payload = overrideText.trim()
+        ? { ...buildNotificaPayload(false), attestazione_override_text: overrideText.trim() }
+        : buildNotificaPayload(false)
+      const result = await saveLegalAttestationPdfToFile(
+        data.azioni.attestazioneConformitaFascicolo,
+        payload,
       )
-      setAttestationDownloadMessage(result.message)
+      if (!result.ok) {
+        setAttestationFileMessage(result.message)
+        return null
+      }
+      const record: SavedAttestationRecord = {
+        documentId: result.documentId,
+        fileName: result.fileName,
+        sha256: result.sha256,
+        previewUrl: result.previewUrl,
+        downloadUrl: result.downloadUrl,
+      }
+      setSavedAttestationFile(record)
+      setAttestationPreviewOpen(true)
+      if (!options.silent) setAttestationFileMessage(result.message)
+      return record
     } catch {
-      setAttestationDownloadMessage('Attestazione non generata. Riprova dopo aver controllato i dati indicati.')
+      setAttestationFileMessage('Attestazione non salvata nel fascicolo. Riprova dopo aver controllato i dati indicati.')
+      return null
     } finally {
-      setAttestationDownloading(false)
+      setAttestationFileSaving(false)
     }
   }
 
@@ -3462,12 +3571,33 @@ export function NotificheLegaliPage() {
     setWorking(true)
     setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
     await ensureAutomaticPecVerification()
+    let attestationAttachment = savedAttestationFile
+    if (notificationNeedsAttestazione) {
+      const savedFile = await saveAttestationPdfToFascicolo('', { silent: true })
+      if (!savedFile) {
+        setResult({
+          ...emptyResult,
+          blockers: ['Attestazione di conformità non salvata nel fascicolo: la PEC non viene preparata senza l’allegato richiesto.'],
+        })
+        setWorking(false)
+        return
+      }
+      attestationAttachment = savedFile
+      setAttestationFileMessage('Attestazione di conformità salvata nel fascicolo e pronta come allegato PEC.')
+    }
     setNotifica((current) => ({
       ...current,
       data_ora_invio_pec: invioPec,
     }))
     const payload = {
       ...buildNotificaPayload(true),
+      ...(attestationAttachment?.fileName
+        ? {
+            attestazione_conformita_file: attestationAttachment.fileName,
+            attestazione_conformita_sha256: attestationAttachment.sha256,
+            attestazione_conformita_document_id: attestationAttachment.documentId,
+          }
+        : {}),
       operazione: 'invio_pec_l53',
       conferma_invio_pec: true,
       invio_finale: true,
@@ -3961,7 +4091,7 @@ export function NotificheLegaliPage() {
   const attestationConclusion = allAttestationsFromFile
     ? `${attestationDocuments.length === 1 ? 'è conforme alla copia informatica presente' : 'sono conformi alle copie informatiche presenti'} nel fascicolo informatico${attestationRg ? ` del relativo procedimento ${attestationRg}` : ''} dal quale ${attestationDocuments.length === 1 ? 'è estratta' : 'sono estratte'}.`
     : `${attestationDocuments.length === 1 ? 'è conforme alla rispettiva fonte indicata' : 'sono conformi alle rispettive fonti indicate'} nella relazione di notificazione.`
-  const attestationPreviewText = [
+  const generatedAttestationPreviewText = [
     'ATTESTAZIONE DI CONFORMITÀ',
     '',
     `Il sottoscritto ${attestationLawyerName}${notifica.avvocato_cf ? ` C. F. ${notifica.avvocato_cf}` : ''}${notifica.avvocato_foro ? `, del Foro di ${notifica.avvocato_foro}` : ''},`,
@@ -3978,6 +4108,49 @@ export function NotificheLegaliPage() {
     attestationLawyerName,
     'Firmato digitalmente',
   ].join('\n')
+  const effectiveAttestationDraftText = attestationDraftDirty
+    ? attestationDraftText.trim()
+    : savedAttestationDraftText.trim()
+  const displayedAttestationText = effectiveAttestationDraftText || generatedAttestationPreviewText
+  const attestationEditorText = attestationDraftDirty || savedAttestationDraftText.trim()
+    ? attestationDraftText
+    : generatedAttestationPreviewText
+
+  const saveAttestationDraft = async () => {
+    setAttestationDraftSaving(true)
+    setAttestationDraftMessage('Salvataggio attestazione in corso...')
+    const draftText = attestationEditorText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+    const saved = await saveLegalAttestationDraft({
+      practiceId: selectedPracticeId,
+      templateId: notifica.template_id,
+      attestationText: draftText,
+    }).catch(() => ({ ok: false, message: 'Salvataggio attestazione non completato.', draftId: '', savedAt: '' }))
+    if (saved.ok) {
+      setSavedAttestationDraftText(draftText)
+      setAttestationDraftText(draftText)
+      setAttestationDraftDirty(false)
+      setAttestationPreviewOpen(true)
+      const record = await saveAttestationPdfToFascicolo(draftText, { silent: true })
+      setAttestationDraftMessage(record
+        ? 'Attestazione di conformità salvata nel fascicolo e visualizzata per questa notifica.'
+        : 'Testo attestazione salvato; PDF non salvato nel fascicolo. Controlla i dati indicati e riprova.'
+      )
+      setAttestationFileMessage(record ? 'Attestazione di conformità pronta come allegato PEC.' : '')
+    } else {
+      setAttestationDraftMessage(saved.message)
+    }
+    setAttestationDraftSaving(false)
+  }
+
+  const restoreAttestationDraftFromModel = () => {
+    setSavedAttestationDraftText('')
+    setAttestationDraftText('')
+    setAttestationDraftDirty(false)
+    setSavedAttestationFile(null)
+    setAttestationPreviewOpen(true)
+    setAttestationDraftMessage('Attestazione automatica ripristinata e visualizzata.')
+    setAttestationFileMessage('')
+  }
   return (
     <main className="iu-content iu-legal-notice-page">
       <section className="iu-legal-hero">
@@ -4624,18 +4797,50 @@ export function NotificheLegaliPage() {
                         <button type="button" onClick={() => setAttestationPreviewOpen((current) => !current)}>
                           <ClipboardCheck size={15} /> {attestationPreviewOpen ? 'Nascondi attestazione' : 'Vedi attestazione'}
                         </button>
-                        <button type="button" disabled={attestationDownloading} onClick={downloadAttestation}>
-                          <FileDown size={15} /> {attestationDownloading ? 'Preparazione...' : 'Scarica PDF'}
+                        <button type="button" disabled={attestationFileSaving} onClick={() => void saveAttestationPdfToFascicolo()}>
+                          <FileCheck2 size={15} /> {attestationFileSaving ? 'Salvataggio...' : 'Salva nel fascicolo'}
                         </button>
                       </div>
                     </div>
                     {attestationPreviewOpen ? (
-                      <pre>{attestationPreviewText}</pre>
+                      <pre>{displayedAttestationText}</pre>
                     ) : null}
-                    {attestationDownloadMessage ? <p className="iu-legal-template-message" role="status">{attestationDownloadMessage}</p> : null}
-                    <Field label="Precisazione facoltativa dell'avvocato" wide hint="Il sistema inserisce già la dichiarazione cumulativa nella relata. Usa questo campo solo per una precisazione, senza ripetere l’attestazione.">
-                      <textarea value={notifica.attestazione_conformita} rows={4} onChange={(event) => changeNotifica('attestazione_conformita', event.currentTarget.value)} />
-                    </Field>
+                    {attestationFileMessage ? <p className="iu-legal-template-message" role="status">{attestationFileMessage}</p> : null}
+                    {savedAttestationFile?.previewUrl ? (
+                      <a className="iu-legal-signature-evidence" href={savedAttestationFile.previewUrl} target="_blank" rel="noreferrer">
+                        <FolderOpen size={14} /> Apri attestazione nel fascicolo
+                      </a>
+                    ) : null}
+                    <details className="iu-legal-draft-editor" open={Boolean(savedAttestationDraftText.trim() || attestationDraftDirty)}>
+                      <summary>
+                        <span>Modifica attestazione di conformità</span>
+                        {savedAttestationDraftText.trim() ? <em>Bozza salvata dall’avvocato</em> : null}
+                        {attestationDraftDirty ? <em>Modifiche non salvate</em> : null}
+                      </summary>
+                      <div className="iu-legal-draft-editor__content">
+                        <textarea
+                          aria-label="Testo attestazione di conformità modificabile"
+                          value={attestationEditorText}
+                          rows={12}
+                          onChange={(event) => {
+                            setAttestationDraftText(event.currentTarget.value)
+                            setAttestationDraftDirty(true)
+                            setSavedAttestationFile(null)
+                            setAttestationDraftMessage('')
+                            setAttestationFileMessage('')
+                          }}
+                        />
+                        <div className="iu-legal-template-actions">
+                          <button type="button" disabled={attestationDraftSaving || !attestationEditorText.trim()} onClick={saveAttestationDraft}>
+                            <Save size={15} /> {attestationDraftSaving ? 'Salvataggio...' : 'Salva attestazione per questa notifica'}
+                          </button>
+                          <button type="button" onClick={restoreAttestationDraftFromModel}>
+                            <RotateCcw size={15} /> Ripristina attestazione automatica
+                          </button>
+                        </div>
+                        {attestationDraftMessage ? <p className="iu-legal-template-message" role="status">{attestationDraftMessage}</p> : null}
+                      </div>
+                    </details>
                   </div>
                 ) : null}
                 <Field label="Integrazione libera dell'avvocato" wide hint="Facoltativa: il testo viene aggiunto alla relata generata senza sostituire i controlli automatici.">
@@ -4653,11 +4858,11 @@ export function NotificheLegaliPage() {
                     <Field label="Anno RG"><input value={notifica.anno_rg} onChange={(event) => changeNotifica('anno_rg', event.currentTarget.value)} /></Field>
                   </>
                 ) : null}
-                {selectedTemplate?.fields.length ? (
+                {visibleModelFields.length ? (
                   <div className="iu-legal-model-fields iu-legal-field--wide">
                     <strong>Dati del modello scelto</strong>
                     <div className="iu-legal-form-grid">
-                      {selectedTemplate.fields.map((field) => (
+                      {visibleModelFields.map((field) => (
                         <Field label={field.label} key={field.name}>
                           <input value={modelFields[field.name] || ''} onChange={(event) => changeModelField(field.name, event.currentTarget.value)} />
                         </Field>

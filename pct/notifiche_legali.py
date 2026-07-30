@@ -3251,6 +3251,22 @@ def build_notification_send_plan(
                 "source": "D.M. 44/2011, art. 18",
             }
         )
+    if any(document["necessita_attestazione"] for document in documents):
+        pec_attachments.append(
+            {
+                "id": "attestazione_conformita",
+                "label": "Attestazione di conformità",
+                "filename": text(
+                    payload.get("attestazione_conformita_file")
+                    or payload.get("attestazione_file")
+                    or "Attestazione di conformità.pdf"
+                ),
+                "sha256": text(payload.get("attestazione_conformita_sha256") or payload.get("attestazione_sha256")),
+                "required": True,
+                "phase": "pec_notifica",
+                "source": "art. 196-undecies disp. att. c.p.c.; L. 53/1994, art. 3-bis",
+            }
+        )
     if any(item.get("id") == "procura" and item.get("required") for item in attachment_manifest):
         pec_attachments.append(
             {
@@ -4243,12 +4259,19 @@ def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, 
         context["avvocato"]["firma_in_calce"],
         context["avvocato"]["firma_digitale_dicitura"],
     ]
+    override_text = str(
+        payload.get("attestazione_override_text")
+        or payload.get("attestation_override_text")
+        or payload.get("bozza_attestazione_testo")
+        or ""
+    ).replace("\r\n", "\n").replace("\r", "\n").strip()
+    rendered_text = override_text or "\n".join(line for line in lines if line is not None).strip()
     return {
         "schema": "iusentra.attestazione_conformita.v1",
         "ok": not missing,
         "missing_fields": list(dict.fromkeys(missing)),
         "title": "Attestazione di conformità",
-        "text": "\n".join(line for line in lines if line is not None).strip() + "\n",
+        "text": rendered_text + "\n",
         "documenti": [
             {
                 "nome_file": document["nome_file"],
@@ -4348,9 +4371,14 @@ def generate_attestazione_conformita_pdf_bytes(payload: dict[str, Any]) -> bytes
         spaceBefore=14,
     )
 
-    story = [Paragraph("ATTESTAZIONE DI CONFORMITÀ", title_style)]
     lines = str(attestation.get("text") or "").splitlines()
-    for index, line in enumerate(lines[2:], start=2):
+    if lines and lines[0].strip().upper().startswith("ATTESTAZIONE"):
+        story = [Paragraph(escape(lines[0].strip()), title_style)]
+        body_lines = lines[1:]
+    else:
+        story = [Paragraph("ATTESTAZIONE DI CONFORMITÀ", title_style)]
+        body_lines = lines
+    for index, line in enumerate(body_lines):
         value = line.strip()
         if not value:
             story.append(Spacer(1, 5))
@@ -4358,7 +4386,7 @@ def generate_attestazione_conformita_pdf_bytes(payload: dict[str, Any]) -> bytes
         if value.lower() == "attesta":
             story.append(Paragraph("Attesta", center_style))
             continue
-        style = signature_style if index >= len(lines) - 2 else body_style
+        style = signature_style if index >= len(body_lines) - 2 else body_style
         story.append(Paragraph(escape(value), style))
     doc.build(story)
     return buffer.getvalue()

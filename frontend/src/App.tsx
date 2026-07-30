@@ -1386,6 +1386,13 @@ export default function App() {
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   const [mobileNavCollapsed,setMobileNavCollapsed]=useState(false)
   useEffect(()=>{
+    if(mobileNavCollapsed||embeddedViewer)return
+    const frame=window.requestAnimationFrame(()=>{
+      document.querySelector('#iu-mobile-links a.active')?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    })
+    return()=>window.cancelAnimationFrame(frame)
+  },[embeddedViewer,mobileNavCollapsed,routeKey])
+  useEffect(()=>{
     const onGuidePanel = (event: Event) => {
       const detail = (event as CustomEvent<{ expanded?: boolean }>).detail
       setGuidePanelExpanded(Boolean(detail?.expanded))

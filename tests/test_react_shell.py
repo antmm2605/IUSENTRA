@@ -215,6 +215,7 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     template = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
 
     assert '<html lang="it" class="react-shell-document">' in template
     assert "window.__IUSENTRA_INLINE_REACT_ENTRY__ = true;" in template
@@ -239,6 +240,8 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     assert "overflow-y:auto!important" in css
     assert ".iu-metrics{\n    grid-template-columns:repeat(2,minmax(0,1fr));" in css
     assert ".iu-metric{\n    min-height:74px;" in css
+    assert "document.querySelector('#iu-mobile-links a.active')?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })" in app_source
+    assert "},[embeddedViewer,mobileNavCollapsed,routeKey])" in app_source
 
 
 def test_react_sidebar_contiene_navigazione_enterprise_completa():

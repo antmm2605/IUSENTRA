@@ -550,8 +550,10 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "Attestazione di conformità.pdf" in source
     assert "Attestazione unica nella relata" not in source
     assert "Una sola dichiarazione comprende" in source
-    assert "Scarica PDF" in source
-    assert "downloadLegalAttestation" in source
+    assert "Salva nel fascicolo" in source
+    assert "Scarica PDF" not in source
+    assert "saveLegalAttestationPdfToFile" in source
+    assert "attestazione_conformita_file" in source
     assert "attestazione_multipla: notificationNeedsAttestazione" in source
     assert "deriveProceedingRg" in source
     apply_practice = source[source.index("const applyPractice"):source.index("const buildNotificaPayload")]
@@ -575,6 +577,18 @@ def test_ui_notifiche_relata_firma_solo_con_prova_tecnica():
     assert "<em>Fascicolo</em>" in source
     assert "<em>Presidio</em>" in source
     assert "<em>Manuale</em>" in source
+    assert "const visibleModelFields = useMemo" in source
+    assert "modelFieldIsCoveredByGuidedNotification" in source
+    assert "'avvocato.full.name'" in source
+    assert "'procedimento.numero.rg'" in source
+    assert "'procedimento.anno.rg'" in source
+    assert "'provvedimento.tipo'" in source
+    assert "{visibleModelFields.length ? (" in source
+    assert "selectedTemplate?.fields.length ? (" not in source
+    assert "const modelFieldsForPayload = useMemo" in source
+    assert "String(value || '').trim()" in source
+    assert "template_fields: modelFieldsForPayload" in source
+    assert "template_fields: modelFields," not in source
 
 
 def test_ui_notifiche_mantiene_indirizzi_generali_e_preselezione_documenti():

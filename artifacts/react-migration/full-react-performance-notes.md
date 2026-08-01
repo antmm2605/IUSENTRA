@@ -4,6 +4,27 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-08-01: rientro nel budget Performance Nightly 2.265.17. Il job `Benchmark runtime leggero` era rosso dal 29/07 (ultimo verde il 28/07 su `ede30425`) con `startup_ms` 3279 su budget 3200 e `health_ms` 857 su budget 800. Le soglie di `tools/performance_smoke.py` non sono state modificate.
+
+  Cause rimosse, misurate sul payload reale:
+
+  | Causa | Prima | Dopo |
+  |---|---|---|
+  | Scrittura `normative_tables` (5,15 MB) via `json.dump` sul file | 136,9 ms | 43,5 ms (`json.dumps` + una `write`, byte identici) |
+  | Creazione schema SQLite in journal DELETE | 617,9 ms | 11,8 ms (journal WAL, `synchronous` invariato) |
+  | Snapshot sorgenti calcolato due volte per migrazione | 2 calcoli | 1 calcolo + riuso su firma `(percorso, mtime, dimensione)` |
+
+  Effetto sul benchmark, mediana di 5 esecuzioni locali (macchina con I/O più lento del runner GitHub, quindi i valori assoluti non sono confrontabili con quelli CI):
+
+  | Metrica | Prima | Dopo | Budget |
+  |---|---|---|---|
+  | `health_ms` | 2055,3 | 690,0 | 800 |
+  | `startup_ms` | 1495,3 | 1381,2 | 3200 |
+
+  `json.dump` non attiva mai l'encoder C di `json` (usa `iterencode` in Python e scrive a pezzi), mentre `json.dumps` con `indent=None` lo attiva: la sostituzione vale per ogni archivio JSON tenant-aware, non solo per l'avvio. La politica journal è ora in un'unica funzione governata condivisa fra runtime e migrazione, così la migrazione non può più divergere da quello che `StudioDB` applicherà allo stesso file subito dopo.
+
+  Resta non verificato su macchina reale: la misura è lato server (benchmark + profiling), senza Docker locale `127.0.0.1:8080` in questa sessione.
+
 - 2026-08-01: ottimizzazione trasversale richiesta/asset 2.265.16. Misura ripetibile con client Flask autenticato su studio SQLITE appena creato (mediana di 12 richieste calde per percorso, stessa sessione, stesso processo):
 
   | Percorso | Prima | Dopo | Delta |

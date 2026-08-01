@@ -1614,3 +1614,83 @@ def test_admin_database_export_zip(client_admin):
     r = client_admin.get("/admin/database/export")
     assert r.status_code == 200
     assert r.content_type == "application/zip"
+
+
+# ================================================================ prestazioni migrazione
+
+def test_snapshot_sorgenti_riusa_il_calcolo_finche_i_json_non_cambiano(percorsi):
+    """Il precheck anti-perdita e la validazione non devono rileggere due volte gli stessi JSON."""
+
+    gestore = GestioneDatabase(percorsi)
+    letture: list[str] = []
+    originale = GestioneDatabase._source_summary_for_module
+
+    def _conta(chiave, raw):
+        letture.append(chiave)
+        return originale(chiave, raw)
+
+    GestioneDatabase._source_summary_for_module = staticmethod(_conta)
+    try:
+        primo = gestore._source_migration_snapshot()
+        moduli_primo = len(letture)
+        secondo = gestore._source_migration_snapshot()
+        assert len(letture) == moduli_primo
+    finally:
+        GestioneDatabase._source_summary_for_module = classmethod(originale.__func__)
+
+    assert primo == secondo
+    assert moduli_primo > 0
+
+
+def test_snapshot_sorgenti_si_ricalcola_se_un_json_cambia(percorsi, tmp_path):
+    """Se un JSON sorgente cambia durante la migrazione la validazione deve vedere il nuovo stato."""
+
+    gestore = GestioneDatabase(percorsi)
+    primo = gestore._source_migration_snapshot()
+    conteggio_iniziale = int(primo["clienti"]["count"])
+
+    clienti_path = Path(percorsi["clienti"])
+    dati = json.loads(clienti_path.read_text(encoding="utf-8"))
+    dati.append({"id": "c3", "nome": "Nuovo", "cognome": "Cliente", "codice_fiscale": "NVOCLN90A01H501C"})
+    _scrivi_json(clienti_path, dati)
+
+    secondo = gestore._source_migration_snapshot()
+
+    assert int(secondo["clienti"]["count"]) == conteggio_iniziale + 1
+
+
+def test_snapshot_sorgenti_non_espone_i_contenitori_della_cache(percorsi):
+    """Chi consuma lo snapshot non deve poter corrompere la copia memorizzata."""
+
+    gestore = GestioneDatabase(percorsi)
+    primo = gestore._source_migration_snapshot()
+    primo["clienti"]["ids"].add("id-fittizio")
+    primo["clienti"]["payloads"]["id-fittizio"] = "{}"
+
+    secondo = gestore._source_migration_snapshot()
+
+    assert "id-fittizio" not in secondo["clienti"]["ids"]
+    assert "id-fittizio" not in secondo["clienti"]["payloads"]
+
+
+def test_migrazione_sqlite_usa_la_politica_journal_dello_studio(percorsi, tmp_path):
+    """La migrazione apre studio.db con lo stesso journal che userà StudioDB.
+
+    In modalità DELETE ogni statement DDL paga un fsync di journal e la sola
+    creazione dello schema costa centinaia di ms su ogni primo avvio tenant.
+    """
+
+    from pct.storage import _requires_delete_journal_for_mount
+
+    target = tmp_path / "studio.db"
+    GestioneDatabase(percorsi).migra_verso_sqlite(str(target))
+
+    assert target.exists()
+    conn = sqlite3.connect(str(target))
+    try:
+        modalita = str(conn.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+    finally:
+        conn.close()
+
+    atteso = "delete" if _requires_delete_journal_for_mount(target) else "wal"
+    assert modalita == atteso

@@ -47,3 +47,42 @@ def test_cache_blocca_letture_json_da_percorsi_sqlite_anche_se_contengono_json(t
         assert "percorso SQLite" in str(exc)
     else:  # pragma: no cover - esplicita il contratto anti-corruzione
         raise AssertionError("cache.load ha interpretato un database SQLite come JSON")
+
+
+def test_save_produce_byte_identici_a_json_dump(tmp_path):
+    """La scrittura via `json.dumps` + write deve dare gli stessi byte di `json.dump`."""
+
+    import json
+
+    from pct import cache as _cache
+
+    payload = {
+        "tables": {f"t{i}": {"rows": list(range(20)), "note": "àèìòù \"quotato\""} for i in range(50)},
+        "sync_runs": [{"id": i, "status": "bootstrap"} for i in range(30)],
+        "misto": [1, 2.5, None, True, {"nested": {"deep": ["a", "b"]}}],
+    }
+
+    for indent in (None, 2):
+        atteso = tmp_path / f"atteso-{indent}.json"
+        with atteso.open("w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=indent, default=str)
+
+        prodotto = tmp_path / f"prodotto-{indent}.json"
+        _cache.save(prodotto, payload, indent=indent)
+
+        assert prodotto.read_bytes() == atteso.read_bytes()
+        assert json.loads(prodotto.read_text(encoding="utf-8")) == payload
+
+
+def test_save_serializza_valori_non_json_con_default_str(tmp_path):
+    """`default=str` resta attivo: date e oggetti non serializzabili non fanno esplodere il salvataggio."""
+
+    import json
+    from datetime import date
+
+    from pct import cache as _cache
+
+    percorso = tmp_path / "con-date.json"
+    _cache.save(percorso, {"quando": date(2026, 8, 1)})
+
+    assert json.loads(percorso.read_text(encoding="utf-8")) == {"quando": "2026-08-01"}

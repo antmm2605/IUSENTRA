@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.265.17 - 2026-08-01
+
+- Performance Nightly: rientrate nel budget le due metriche fuori soglia dal 29/07 (`startup_ms` 3279 su 3200, `health_ms` 857 su 800). Le soglie non sono state toccate.
+- Scrittura JSON (`pct/cache.py`): la serializzazione passa da `json.dump` sul file a `json.dumps` più una sola `write`. `json.dump` non attiva mai l'encoder C e scrive a pezzi; su `normative_tables` (5,15 MB) si passa da 136,9 ms a 43,5 ms con byte prodotti identici. Vale per ogni archivio JSON tenant-aware, non solo per l'avvio.
+- Migrazione JSON→SQLite: le connessioni di bootstrap e migrazione applicano la stessa politica journal che `StudioDB` usa sullo stesso file (WAL dove è sicuro, DELETE su Windows e sui bind mount 9p/drvfs). Aprivano `studio.db` con `sqlite3.connect` nudo, quindi in journal DELETE ogni statement DDL pagava un fsync: la sola creazione dello schema passa da 617,9 ms a 11,8 ms. La durabilità non cambia, `synchronous` resta quello dichiarato dallo schema.
+- Migrazione JSON→SQLite: lo snapshot delle sorgenti, richiesto sia dal precheck anti-perdita sia dalla validazione post-migrazione, viene ricalcolato solo se cambia la firma `(percorso, mtime, dimensione)` di un JSON sorgente. La validazione resta quindi confrontata con la sorgente corrente e non con una copia stantia.
+- Politica journal SQLite ora in un'unica funzione governata (`pct.storage.configura_journal_mode_governato`), condivisa fra runtime e migrazione.
+- Guardrail: nuovi test su byte identici della scrittura JSON, `default=str` conservato, memoizzazione dello snapshot sorgenti, ricalcolo alla modifica di un JSON, non condivisione dei contenitori in cache e modalità journal attesa dopo la migrazione.
+
 ## 2.265.16 - 2026-08-01
 
 - Isolamento tenant: la radice dati dello studio viene risolta una sola volta per richiesta invece che per ognuna delle 73 chiavi sensibili. Il controllo fail-closed resta identico (ogni percorso continua a essere risolto e verificato), ma il registry studi non viene più riletto decine di volte per richiesta.

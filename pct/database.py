@@ -991,7 +991,41 @@ class GestioneDatabase:
                 if str(section or "").strip()
             }
 
+    def _monitored_sources_signature(self) -> Tuple[Tuple[str, int, int], ...]:
+        """Firma (percorso, mtime_ns, dimensione) dei JSON sorgente monitorati."""
+
+        firma: List[Tuple[str, int, int]] = []
+        for chiave in self._moduli_monitorati():
+            if chiave not in self.MODULI_SQLITE:
+                continue
+            path = self.percorsi.get(chiave)
+            if not path:
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                firma.append((str(path), -1, -1))
+                continue
+            firma.append((str(path), stat.st_mtime_ns, stat.st_size))
+        return tuple(firma)
+
     def _source_migration_snapshot(self) -> Dict[str, Dict[str, Any]]:
+        """Snapshot dei JSON sorgente, ricalcolato solo se i file sono cambiati.
+
+        `migra_verso_sqlite` lo richiede due volte sullo stesso stato: prima nel
+        precheck anti-perdita e poi nella validazione post-migrazione. La
+        costruzione rilegge e riserializza in forma canonica ogni modulo (con
+        `normative_tables` da 5 MB il costo e' quasi tutto qui). La firma
+        include mtime e dimensione di ogni sorgente: se un JSON cambia durante
+        la migrazione lo snapshot viene ricalcolato, quindi la validazione resta
+        confrontata con la sorgente corrente e non con una copia stantia.
+        """
+
+        firma = self._monitored_sources_signature()
+        cached = getattr(self, "_source_snapshot_cache", None)
+        if cached is not None and cached[0] == firma:
+            return self._copia_snapshot(cached[1])
+
         snapshot: Dict[str, Dict[str, Any]] = {}
         for chiave in self._moduli_monitorati():
             if chiave not in self.MODULI_SQLITE:
@@ -1001,7 +1035,21 @@ class GestioneDatabase:
                 snapshot[chiave] = {"count": 0, "ids": set(), "payloads": {}, "errore": err}
                 continue
             snapshot[chiave] = self._source_summary_for_module(chiave, raw)
-        return snapshot
+        self._source_snapshot_cache = (firma, snapshot)
+        return self._copia_snapshot(snapshot)
+
+    @staticmethod
+    def _copia_snapshot(snapshot: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Copia i contenitori mutabili: i chiamanti non devono toccare la cache."""
+
+        return {
+            chiave: {
+                **info,
+                "ids": set(info.get("ids") or set()),
+                "payloads": dict(info.get("payloads") or {}),
+            }
+            for chiave, info in snapshot.items()
+        }
 
     @staticmethod
     def _sqlite_has_table(conn: sqlite3.Connection, table_name: str) -> bool:
@@ -1678,6 +1726,11 @@ class GestioneDatabase:
         now = datetime.now().isoformat()
 
         with sqlite3.connect(str(target_db_path)) as conn:
+            from pct.storage import configura_journal_mode_governato
+
+            # Stessa politica journal che StudioDB applicherà allo stesso file:
+            # senza WAL ogni statement DDL paga un fsync di journal.
+            configura_journal_mode_governato(conn, target_db_path)
             conn.execute("PRAGMA foreign_keys=ON")
             conn.executescript(SCHEMA_SQL)
             for chiave in self._moduli_monitorati():
@@ -2536,6 +2589,11 @@ class GestioneDatabase:
                     pass
 
         conn = sqlite3.connect(str(work_db_path))
+        from pct.storage import configura_journal_mode_governato
+
+        # Stessa politica journal che StudioDB applicherà allo stesso file:
+        # in modalità DELETE la sola creazione dello schema costa ~600 ms.
+        configura_journal_mode_governato(conn, work_db_path)
         conn.row_factory = sqlite3.Row
         errori: List[str] = []
         avvisi: List[str] = []

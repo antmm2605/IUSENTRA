@@ -92,6 +92,52 @@ def _requires_delete_journal_for_mount(db_path: Path) -> bool:
         return False
 
 
+def configura_journal_mode_governato(conn: sqlite3.Connection, db_path: Path) -> None:
+    """Applica la politica journal dello studio a una connessione SQLite.
+
+    Unica sede della regola: WAL dove e' sicuro, DELETE su Windows e sui bind
+    mount 9p/drvfs dove il file e' condiviso con il container. Va usata anche
+    dai percorsi di migrazione e bootstrap, che aprono `studio.db` con
+    `sqlite3.connect` nudo: in journal DELETE ogni statement DDL paga la
+    creazione/rimozione del journal con fsync, e la sola creazione dello schema
+    passa da 11,8 ms (WAL) a 617,9 ms. La durabilita' non cambia: `synchronous`
+    resta quello dichiarato dallo schema.
+    """
+
+    if _requires_delete_journal_for_mount(db_path):
+        try:
+            conn.execute("PRAGMA journal_mode=DELETE")
+        except sqlite3.OperationalError as exc:
+            if not (_is_locked_error(exc) or "unable to open database file" in str(exc).lower()):
+                raise
+            logger.warning(
+                "SQLite tenant %s: journal DELETE temporaneamente occupato, "
+                "proseguo con la modalita' gia' attiva (%s)",
+                db_path,
+                exc,
+            )
+        return
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except sqlite3.OperationalError as exc:
+        logger.warning(
+            "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
+            db_path,
+            exc,
+        )
+        try:
+            conn.execute("PRAGMA journal_mode=DELETE")
+        except sqlite3.OperationalError as delete_exc:
+            if not _is_locked_error(delete_exc):
+                raise
+            logger.warning(
+                "SQLite tenant %s: fallback DELETE temporaneamente occupato, "
+                "proseguo con la modalita' gia' attiva (%s)",
+                db_path,
+                delete_exc,
+            )
+
+
 # ------------------------------------------------------------------ helpers I/O
 
 def _j(value: Any) -> str:
@@ -255,38 +301,7 @@ class StudioDB:
     def _configure_journal_mode(self, conn: sqlite3.Connection) -> None:
         """Configura il journal senza trasformare un lock temporaneo in 500."""
 
-        if _requires_delete_journal_for_mount(self.db_path):
-            try:
-                conn.execute("PRAGMA journal_mode=DELETE")
-            except sqlite3.OperationalError as exc:
-                if not (_is_locked_error(exc) or "unable to open database file" in str(exc).lower()):
-                    raise
-                logger.warning(
-                    "SQLite tenant %s: journal DELETE temporaneamente occupato, "
-                    "proseguo con la modalita' gia' attiva (%s)",
-                    self.db_path,
-                    exc,
-                )
-            return
-        try:
-            conn.execute("PRAGMA journal_mode=WAL")
-        except sqlite3.OperationalError as exc:
-            logger.warning(
-                "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
-                self.db_path,
-                exc,
-            )
-            try:
-                conn.execute("PRAGMA journal_mode=DELETE")
-            except sqlite3.OperationalError as delete_exc:
-                if not _is_locked_error(delete_exc):
-                    raise
-                logger.warning(
-                    "SQLite tenant %s: fallback DELETE temporaneamente occupato, "
-                    "proseguo con la modalita' gia' attiva (%s)",
-                    self.db_path,
-                    delete_exc,
-                )
+        configura_journal_mode_governato(conn, self.db_path)
 
     def _connect_readonly_immutable(self) -> sqlite3.Connection:
         db_uri = f"file:{self.db_path.resolve().as_posix()}?mode=ro&immutable=1"

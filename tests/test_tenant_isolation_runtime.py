@@ -174,3 +174,69 @@ def test_api_react_api_key_helper_accepts_only_matching_tenant_key(tmp_path: Pat
     ):
         g.multi_tenant_enabled = True
         assert _api_key_valida() is False
+
+
+def test_expected_tenant_root_memoizzato_per_richiesta(tmp_path: Path, monkeypatch):
+    """La radice studio si risolve una volta sola: il registry non va riletto per ogni chiave."""
+
+    app = _app(tmp_path, multi_tenant=True)
+    studio, paths = _tenant(app, "Studio A", "studio-a", "studio-a-key")
+
+    import web.services.tenant_isolation_runtime as isolation
+
+    chiamate: list[str] = []
+    originale = isolation._resolve_expected_tenant_root
+
+    def _conta(slug, request_paths):
+        chiamate.append(slug)
+        return originale(slug, request_paths)
+
+    monkeypatch.setattr(isolation, "_resolve_expected_tenant_root", _conta)
+
+    with app.test_request_context("/api/v1/clienti"):
+        g.multi_tenant_enabled = True
+        g.tenant = studio
+        g.tenant_context_slug = "studio-a"
+        g.data_paths = paths
+
+        for _ in range(5):
+            assert_tenant_data_path(paths["CLIENTI_DB"], key="CLIENTI_DB")
+
+    assert chiamate == ["studio-a"]
+
+
+def test_cache_radice_studio_non_perde_isolamento_tra_studi(tmp_path: Path):
+    """Cambiare studio nella stessa richiesta ricalcola la radice e blocca il percorso altrui."""
+
+    app = _app(tmp_path, multi_tenant=True)
+    studio_a, paths_a = _tenant(app, "Studio A", "studio-a", "studio-a-key")
+    studio_b, paths_b = _tenant(app, "Studio B", "studio-b", "studio-b-key")
+
+    with app.test_request_context("/api/v1/clienti"):
+        g.multi_tenant_enabled = True
+        g.tenant = studio_a
+        g.tenant_context_slug = "studio-a"
+        g.data_paths = paths_a
+        assert_tenant_data_path(paths_a["CLIENTI_DB"], key="CLIENTI_DB")
+
+        g.tenant = studio_b
+        g.tenant_context_slug = "studio-b"
+        g.data_paths = paths_b
+        assert_tenant_data_path(paths_b["CLIENTI_DB"], key="CLIENTI_DB")
+
+        with pytest.raises(TenantIsolationError) as excinfo:
+            assert_tenant_data_path(paths_a["CLIENTI_DB"], key="CLIENTI_DB")
+
+    assert excinfo.value.status_code == 403
+
+
+def test_confronto_contenimento_percorsi_non_confonde_prefissi_omonimi(tmp_path: Path):
+    """`/dati/studio-a-bis` non deve risultare interno a `/dati/studio-a`."""
+
+    from web.services.tenant_isolation_runtime import _path_is_relative_to
+
+    radice = tmp_path / "studio-a"
+    assert _path_is_relative_to(radice, radice) is True
+    assert _path_is_relative_to(radice / "clienti" / "anagrafica.json", radice) is True
+    assert _path_is_relative_to(tmp_path / "studio-a-bis" / "clienti.json", radice) is False
+    assert _path_is_relative_to(tmp_path / "studio-b", radice) is False

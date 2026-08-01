@@ -10,8 +10,10 @@ def register_pwa_routes(app: Flask) -> None:
 
     @app.route("/favicon.ico")
     def favicon():
+        # Icona applicativa dedicata: il browser la richiede su ogni pagina,
+        # quindi va servito l'asset piccolo e non il logo a piena risoluzione.
         return send_file(
-            app.root_path + "/static/img/logo-iusentra.png",
+            app.root_path + "/static/icons/icon-192.png",
             mimetype="image/png",
         )
 

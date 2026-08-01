@@ -24,6 +24,10 @@ from web.services.notification_presidia_runtime import (
 
 react_shell = Blueprint("react_shell", __name__)
 _INLINE_ENTRY_CACHE: dict[str, tuple[int, str]] = {}
+# Manifest Vite e grafo asset per route: invariati fino alla build successiva,
+# quindi memorizzati per firma (mtime_ns, size) del manifest.
+_MANIFEST_CACHE: dict[str, tuple[tuple[int, int], dict[str, Any]]] = {}
+_ROUTE_ASSETS_CACHE: dict[tuple[str, tuple[int, int], str], dict[str, list[str]]] = {}
 
 
 _LEGACY_FIRST_PREFIXES = (
@@ -276,6 +280,49 @@ def _inline_react_entry_code(file_name: str) -> str:
     return rewritten
 
 
+def _load_manifest(manifest_path: Path) -> dict[str, Any] | None:
+    """Manifest Vite parsato una sola volta per build, invalidato sull'mtime.
+
+    Il manifest supera i 45 kB e veniva riletto e riparsato ad ogni render della
+    shell, cioe' ad ogni cambio pagina. Il file cambia solo con una nuova build
+    frontend, quindi la chiave di cache e' `(mtime_ns, size)` come per l'entry
+    inline: dopo un deploy la prima richiesta ricarica, le successive no.
+    """
+
+    try:
+        stat = manifest_path.stat()
+    except OSError:
+        return None
+    signature = (stat.st_mtime_ns, stat.st_size)
+    cached = _MANIFEST_CACHE.get(str(manifest_path))
+    if cached and cached[0] == signature:
+        return cached[1]
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        current_app.logger.exception("Manifest React non leggibile: %s", exc)
+        return None
+    _MANIFEST_CACHE[str(manifest_path)] = (signature, manifest)
+    return manifest
+
+
+def _cached_route_assets(manifest_path: Path, manifest: dict[str, Any], key: str) -> dict[str, list[str]]:
+    """Grafo import per route, calcolato una volta per (build, componente)."""
+
+    cached_manifest = _MANIFEST_CACHE.get(str(manifest_path))
+    if cached_manifest is None:
+        return _collect_manifest_assets(manifest, key)
+    cache_key = (str(manifest_path), cached_manifest[0], key)
+    assets = _ROUTE_ASSETS_CACHE.get(cache_key)
+    if assets is None:
+        assets = _collect_manifest_assets(manifest, key)
+        # Le route sono un insieme chiuso e piccolo: si azzera solo al cambio build.
+        if len(_ROUTE_ASSETS_CACHE) > 512:
+            _ROUTE_ASSETS_CACHE.clear()
+        _ROUTE_ASSETS_CACHE[cache_key] = assets
+    return {"js": list(assets["js"]), "css": list(assets["css"])}
+
+
 def _vite_entry(current_path: str = "") -> dict[str, Any]:
     manifest_path = _react_static_dir() / ".vite" / "manifest.json"
     if not manifest_path.exists():
@@ -288,10 +335,8 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
             "error": "Build React non trovata. Esegui: cd frontend; npm ci; npm run build",
         }
 
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        current_app.logger.exception("Manifest React non leggibile: %s", exc)
+    manifest = _load_manifest(manifest_path)
+    if manifest is None:
         return {
             "ready": False,
             "js": [],
@@ -315,7 +360,7 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
             "error": "Manifest Vite presente ma entry src/main.tsx non trovata.",
         }
 
-    route_assets = _collect_manifest_assets(manifest, _route_component_key(current_path))
+    route_assets = _cached_route_assets(manifest_path, manifest, _route_component_key(current_path))
     entry_file = f"/static/react/{entry['file']}"
     return {
         "ready": True,

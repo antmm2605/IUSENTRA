@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.265.16 - 2026-08-01
+
+- Isolamento tenant: la radice dati dello studio viene risolta una sola volta per richiesta invece che per ognuna delle 73 chiavi sensibili. Il controllo fail-closed resta identico (ogni percorso continua a essere risolto e verificato), ma il registry studi non viene più riletto decine di volte per richiesta.
+- Isolamento tenant: il confronto di contenimento dei percorsi usa il separatore di percorso invece di `Path.relative_to`, con la stessa semantica (inclusa l'insensibilità alle maiuscole su Windows) e senza costruzione di oggetti path per ogni chiave.
+- Shell React: il manifest Vite (45 kB) e il grafo asset per route vengono parsati una volta per build e invalidati su `(mtime, size)`, non più a ogni cambio pagina.
+- Asset: `logo-iusentra.png` passa da 2.086 kB a 78 kB (1024×683, nessuna riduzione di colori); la risoluzione resta oltre 4× la dimensione massima con cui il logo viene mostrato in UI (248 px).
+- Favicon: `/favicon.ico` e il `<link rel="icon">` della shell React servono l'icona applicativa da 3 kB invece del logo a piena risoluzione.
+- Rete: aggiunto `preconnect` verso `cdn.jsdelivr.net` nella shell React e in `base.html`, dove Bootstrap e Bootstrap Icons sono già richiesti in blocco al rendering.
+- Guardrail: aggiunti test anti-regressione su memoizzazione radice studio, isolamento tra studi nella stessa richiesta, prefissi omonimi nel confronto percorsi, cache manifest Vite e immutabilità delle liste asset restituite.
+
 ## 2.265.15 - 2026-07-30
 
 - Notifiche legali React: l'attestazione di conformità può essere modificata e salvata per la notifica corrente, con anteprima aggiornata.

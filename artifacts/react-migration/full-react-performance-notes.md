@@ -4,6 +4,22 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-08-01: ottimizzazione trasversale richiesta/asset 2.265.16. Misura ripetibile con client Flask autenticato su studio SQLITE appena creato (mediana di 12 richieste calde per percorso, stessa sessione, stesso processo):
+
+  | Percorso | Prima | Dopo | Delta |
+  |---|---|---|---|
+  | `/fascicoli` (shell React) | 20,7 ms | 7,0 ms | −66% |
+  | `/agenda` (shell React) | 19,9 ms | 6,3 ms | −68% |
+  | `/clienti` (shell React) | 21,2 ms | 7,3 ms | −66% |
+  | `/api/v1/ui/dashboard` | 20,6 ms | 5,6 ms | −73% |
+  | `_vite_entry()` per render | 0,331 ms | 0,035 ms | −89% |
+
+  Causa principale rimossa: `enforce_tenant_isolation_runtime` occupava l'85% del tempo di ogni richiesta non pubblica perché `_expected_tenant_root()` veniva rieseguita per ognuna delle 73 chiavi sensibili, ricaricando il registry studi (152 letture per richiesta) e rifacendo la `realpath` della radice. Ora la radice è memoizzata per richiesta su chiave `(slug, registry, STUDIO_DB)`; il controllo fail-closed non è indebolito, ogni percorso continua a essere risolto e verificato singolarmente. Secondo contributo: `_path_is_relative_to` non costruisce più oggetti path per confronto. Terzo: manifest Vite e grafo asset per route memoizzati per firma `(mtime_ns, size)` invece che riletti a ogni cambio pagina.
+
+  Lato rete: `logo-iusentra.png` 2.086 kB → 78 kB (1024×683, nessuna quantizzazione colore; il logo è mostrato al massimo a 248 px), `/favicon.ico` e l'icona della shell React passano all'icona applicativa da 3 kB, aggiunto `preconnect` verso `cdn.jsdelivr.net`. La misura browser reale su Docker `127.0.0.1:8080` non è stata eseguita in questa sessione: resta da registrare prima di dichiarare chiusa la tranche lato utente.
+
+  Non affrontati in questa tranche, restano debito aperto: entry React inline da 276 kB in ogni documento `no-store` (annulla la cache browser del bundle principale a ogni cambio pagina), stack `lex-tts` da ~250 kB caricato su ogni pagina anche senza aprire l'assistente, `preload_app` non attivo su Gunicorn con `max_requests=1000` (ogni riciclo worker ripaga ~5,5 s di `create_app`).
+
 - 2026-06-13: hotfix ascolto persistente assistente Studio 2.253.3. La modifica resta nel chunk lazy `StudioVoiceAssistant`, senza nuove dipendenze frontend e senza spostare logica nel bootstrap principale. Build Vite completata in 14.98s: `index-DuHM_IT3.js` 503.51 kB (146.37 kB gzip), `StudioVoiceAssistant-BGM7uoVN.js` 83.17 kB (23.89 kB gzip), `DocumentEditorPage-C7Tm77xN.js` 39.33 kB (11.66 kB gzip). Aggiunti persistenza ascolto nella sessione della scheda, prompt PIN parlato prima della lettura del codice e comandi modifica cliente/soggetto. Il warning chunk principale sopra 500 kB resta aperto come debito di code splitting e non è considerato risolto da questa tranche.
 
 - 2026-06-13: dettatura unica assistente Studio 2.253.3. La modifica aggiunge un servizio JS leggero gia' caricato con gli script Lex (`IusentraVoiceInput`) e collega l'editor React al chunk lazy `DocumentEditorPage`; nessuna nuova dipendenza frontend. Build Vite finale completata in 16.11s: `index-DZOcZZuX.js` 503.52 kB (146.37 kB gzip), `StudioVoiceAssistant-CIWyN6nn.js` 80.21 kB (23.14 kB gzip), `DocumentEditorPage-BrZPrvcm.js` 39.33 kB (11.66 kB gzip). Docker reale `127.0.0.1:8080` ricostruito con `--no-cache`, container healthy e `/api/pronto` su versione `2.253.3`; microfono confermato funzionante dall'utente sulla macchina reale. Il warning chunk principale sopra 500 kB resta aperto come debito di code splitting e non e' considerato risolto da questa tranche.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -123,11 +124,21 @@ def _multi_tenant_enabled() -> bool:
 
 
 def _path_is_relative_to(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
+    """Verifica di contenimento su percorsi gia' assoluti e normalizzati.
+
+    `Path.relative_to` costruisce nuovi oggetti path ad ogni confronto e viene
+    invocata per ogni chiave sensibile ad ogni richiesta. Entrambi gli argomenti
+    arrivano qui gia' passati da `resolve()`, quindi il confronto testuale sul
+    separatore di percorso e' equivalente; `normcase` conserva la semantica
+    case-insensitive di Windows applicata da pathlib.
+    """
+
+    path_text = os.path.normcase(str(path))
+    root_text = os.path.normcase(str(root))
+    if path_text == root_text:
         return True
-    except ValueError:
-        return False
+    prefix = root_text if root_text.endswith(os.sep) else root_text + os.sep
+    return path_text.startswith(prefix)
 
 
 def _request_wants_json() -> bool:
@@ -232,8 +243,33 @@ def _tenant_slug_from_context() -> str:
 
 
 def _expected_tenant_root() -> Path:
+    """Radice dati attesa per lo studio corrente, risolta una sola volta per richiesta.
+
+    La validazione fail-closed dei percorsi sensibili chiama questa funzione una
+    volta per chiave (decine per richiesta): senza memoizzazione ogni chiamata
+    ricarica il registry studi e rifà la `realpath` della radice. Il risultato
+    dipende solo da (slug, registry, STUDIO_DB di richiesta), quindi la cache è
+    valida per tutta la richiesta e viene ricalcolata se uno di quei valori cambia.
+    """
+
     slug = _tenant_slug_from_context()
     request_paths = (getattr(g, "data_paths", {}) or {}) if has_request_context() else {}
+    cache_key = (
+        slug,
+        _text(current_app.config.get("TENANTS_REGISTRY")) if has_app_context() else "",
+        _text(request_paths.get("STUDIO_DB")),
+    )
+    if has_request_context():
+        cached = getattr(g, "_tenant_isolation_root_cache", None)
+        if cached is not None and cached[0] == cache_key:
+            return cached[1]
+    root = _resolve_expected_tenant_root(slug, request_paths)
+    if has_request_context():
+        g._tenant_isolation_root_cache = (cache_key, root)
+    return root
+
+
+def _resolve_expected_tenant_root(slug: str, request_paths: dict[str, Any]) -> Path:
     if not slug:
         studio_db = _text(request_paths.get("STUDIO_DB"))
         if studio_db:

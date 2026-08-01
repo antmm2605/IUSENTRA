@@ -894,7 +894,7 @@ assertContains(notificheLegali, 'Campi automatici disponibili', 'NotificheLegali
 assertContains(notificheLegali, 'Compilazione da pratica IUSENTRA', 'Deposito prova notifica precompilato da pratica')
 assertContains(notificheLegali, 'Compilazione informativa da IUSENTRA', 'Comunicazione cliente precompilata da pratica')
 assertContains(notificheLegali, 'data.mandatorySubject', 'NotificheLegaliPage blocca oggetto L53 via payload')
-assertContains(notificheLegali, 'Ricevuta completa', 'NotificheLegaliPage presidia ricevuta completa')
+assertContains(notificheLegali, 'Ricevuta di consegna completa', 'NotificheLegaliPage presidia ricevuta completa')
 assertContains(notificheLegali, 'Relata firmata', 'NotificheLegaliPage presidia relata firmata')
 assertContains(notificheLegaliData, 'saveLegalRelataTemplate', 'NotificheLegaliData salva modelli relata personalizzati')
 assertContains(notificheLegaliData, 'previewLegalRelata', 'NotificheLegaliData anteprima relata compilata')

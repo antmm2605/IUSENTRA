@@ -9474,3 +9474,70 @@ def test_react_fascicolo_documenti_non_duplica_chiamata_lex_lazy():
     assert "loadLazySection('documenti'); loadLazySection('lex')" not in page_source
     assert "lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing" in page_source
     assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source
+
+
+def test_manifest_vite_riletto_solo_quando_cambia_la_build(tmp_path: Path, monkeypatch):
+    """Il manifest React resta in cache tra i render e si ricarica al cambio build."""
+
+    from web.blueprints import react_shell as shell
+
+    app = _app(tmp_path)
+    manifest_path = Path(app.static_folder) / "react" / ".vite" / "manifest.json"
+    if not manifest_path.exists():
+        import pytest
+
+        pytest.skip("Build React non presente: manifest Vite non disponibile.")
+
+    shell._MANIFEST_CACHE.clear()
+    shell._ROUTE_ASSETS_CACHE.clear()
+
+    letture: list[str] = []
+    read_text_originale = Path.read_text
+
+    def _conta_letture(self, *args, **kwargs):
+        if self == manifest_path:
+            letture.append(str(self))
+        return read_text_originale(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", _conta_letture)
+
+    with app.test_request_context("/fascicoli"):
+        primo = shell._vite_entry("/fascicoli")
+        for _ in range(4):
+            shell._vite_entry("/fascicoli")
+
+    assert primo["ready"] is True
+    assert len(letture) == 1
+
+    # Nuova build: la firma (mtime, size) cambia e il manifest viene riletto.
+    stat = manifest_path.stat()
+    import os
+
+    os.utime(manifest_path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+    with app.test_request_context("/fascicoli"):
+        dopo = shell._vite_entry("/fascicoli")
+
+    assert dopo["ready"] is True
+    assert dopo["entry_file"] == primo["entry_file"]
+    assert len(letture) == 2
+
+
+def test_asset_route_react_non_condividono_liste_mutabili(tmp_path: Path):
+    """La cache degli asset per route non deve esporre le liste interne ai chiamanti."""
+
+    from web.blueprints import react_shell as shell
+
+    app = _app(tmp_path)
+    manifest_path = Path(app.static_folder) / "react" / ".vite" / "manifest.json"
+    if not manifest_path.exists():
+        import pytest
+
+        pytest.skip("Build React non presente: manifest Vite non disponibile.")
+
+    with app.test_request_context("/fascicoli"):
+        primo = shell._vite_entry("/fascicoli")
+        attesi = list(primo["preload_js"])
+        primo["preload_js"].append("/static/react/assets/finto.js")
+        secondo = shell._vite_entry("/fascicoli")
+
+    assert secondo["preload_js"] == attesi

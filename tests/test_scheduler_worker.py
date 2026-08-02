@@ -47,6 +47,40 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("operational_crash_midday") is not None
         assert scheduler.get_job("operational_crash_evening") is not None
         assert scheduler.get_job("operational_backup_nightly") is not None
+        assert scheduler.get_job("backup_giornaliero").next_run_time is None
+        assert scheduler.get_job("operational_backup_nightly").next_run_time is None
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+def test_scheduler_backup_jobs_non_creano_archivi_quando_disabilitati(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("IUSENTRA_DISABLE_BACKUP_JOBS", "1")
+    monkeypatch.delenv("PCT_DISABLE_SCHEDULER", raising=False)
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    _write_studio_config(tmp_path / "config" / "studio.json")
+
+    app = start_scheduler_worker(_cfg_web(tmp_path))
+    scheduler = app.config.get("PCT_SCHEDULER")
+    try:
+        assert scheduler is not None
+        giornaliero = scheduler.get_job("backup_giornaliero")
+        notturno = scheduler.get_job("operational_backup_nightly")
+        assert giornaliero is not None
+        assert notturno is not None
+        assert giornaliero.next_run_time is None
+        assert notturno.next_run_time is None
+        assert giornaliero.func() == {
+            "ok": True,
+            "skipped": True,
+            "reason": "backup_jobs_disabled",
+        }
+        assert notturno.func() == {
+            "ok": True,
+            "skipped": True,
+            "reason": "backup_jobs_disabled",
+        }
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)

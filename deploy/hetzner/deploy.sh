@@ -243,14 +243,17 @@ if [ -d "$IUSENTRA_HOME/tmp-backup-snapshot" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Cron backup automatico (aggiornato ad ogni deploy, salvo opt-out)
+# 9. Cron backup automatico (opt-in esplicito)
 # ---------------------------------------------------------------------------
-if [[ "${IUSENTRA_SKIP_BACKUP_CRON:-0}" =~ ^(1|true|yes|on)$ ]]; then
-  echo "Cron backup: non aggiornato (IUSENTRA_SKIP_BACKUP_CRON=1)"
+CRONTAB_MARKER="# iusentra-backup"
+SKIP_BACKUP_CRON_FLAG="${IUSENTRA_SKIP_BACKUP_CRON:-0}"
+DISABLE_BACKUP_JOBS_FLAG="${IUSENTRA_DISABLE_BACKUP_JOBS:-1}"
+if [[ "${SKIP_BACKUP_CRON_FLAG,,}" =~ ^(1|true|yes|on)$ || "${DISABLE_BACKUP_JOBS_FLAG,,}" =~ ^(1|true|yes|on)$ ]]; then
+  ( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" || true ) | crontab -
+  echo "Cron backup: disattivato"
 else
   CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
   CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
-  CRONTAB_MARKER="# iusentra-backup"
   ( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" || true; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
   echo "Cron backup: ${CRON_SCHEDULE}"
 fi

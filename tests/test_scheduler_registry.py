@@ -98,21 +98,42 @@ def test_scheduler_registry_non_accoda_manutenzioni_pesanti_in_parallelo(tmp_pat
 
     assert first["status"] == "requested"
     assert second["status"] == "completed"
-    assert "Backup non avviato" in second["message"]
+    assert second["message"] == "Pianificazione disattivata: esecuzione non avviata."
     assert [run["job_id"] for run in requested] == ["utf8_integrity_nightly"]
     assert recent[0]["job_id"] == "operational_backup_nightly"
     assert recent[0]["status"] == "completed"
-    assert recent[0]["result"]["status"] == "backup_massivo_rinviato"
+    assert recent[0]["result"]["details"][0]["status"] == "disattivata"
 
 
-def test_scheduler_registry_accoda_backup_se_richiesto_da_solo(tmp_path: Path):
+def test_scheduler_registry_blocca_backup_se_richiesto_da_solo(tmp_path: Path):
     repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
     repo.upsert_default_jobs({})
 
     request = repo.request_manual_run("operational_backup_nightly", requested_by="superadmin")
 
-    assert request["status"] == "requested"
-    assert [run["job_id"] for run in repo.list_requested_runs(limit=10)] == ["operational_backup_nightly"]
+    assert request["status"] == "completed"
+    assert request["message"] == "Pianificazione disattivata: esecuzione non avviata."
+    assert repo.list_requested_runs(limit=10) == []
+
+
+def test_scheduler_registry_disattiva_backup_esistente_con_politica_fail_closed(tmp_path: Path):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    templates = {template.key: template for template in default_scheduler_templates({})}
+
+    assert templates["backup_giornaliero"].enabled is False
+    assert templates["operational_backup_nightly"].enabled is False
+
+    repo.upsert_default_jobs({"IUSENTRA_DISABLE_BACKUP_JOBS": "0"})
+    repo.save_job("backup_giornaliero", {"enabled": True}, updated_by="superadmin")
+    repo.save_job("operational_backup_nightly", {"enabled": True}, updated_by="superadmin")
+
+    repo.upsert_default_jobs({})
+
+    for job_id in ("backup_giornaliero", "operational_backup_nightly"):
+        job = repo.get_job(job_id)
+        assert job is not None
+        assert job["enabled"] is False
+        assert job["updated_by"] == "policy:backup-disabled"
 
 
 def test_scheduler_registry_rinvia_crash_test_dentro_avvio_massivo(tmp_path: Path):

@@ -45,6 +45,7 @@ from .backup import (
     TipoBackup,
     StatoBackup,
     FrequenzaBackup,
+    backup_operations_disabled,
 )
 from .auth import (
     GestioneUtenti,
@@ -1106,6 +1107,10 @@ def grp_backup():
 @click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
 def cmd_bk_esegui(tipo, componenti, nota, backup_dir):
     """Esegue un backup."""
+    if backup_operations_disabled():
+        raise click.ClickException(
+            "Creazione copie disattivata dalla politica operativa dello studio."
+        )
     gb = _backup(backup_dir)
     comps = [c.strip() for c in componenti.split(",") if c.strip()] or None
     record = gb.esegui_backup(tipo=TipoBackup(tipo), componenti=comps, nota=nota)

@@ -96,7 +96,9 @@ def backup():
             trigger_source="manual",
             schedule_code="manual",
         )
-        if report.get("success"):
+        if report.get("skipped"):
+            flash("Archivi e copie sono disattivati dalla politica operativa dello studio.", "info")
+        elif report.get("success"):
             flash("Backup blindato completo e incrementale eseguito correttamente.", "success")
         else:
             flash("Backup blindato eseguito con errori: controlla il report operativo.", "warning")

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from pct.backup import backup_operations_disabled
 from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
     LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
@@ -31,6 +32,7 @@ EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS = frozenset(
         "operational_backup_nightly",
     }
 )
+BACKUP_JOB_IDS = ("backup_giornaliero", "operational_backup_nightly")
 
 
 def _utcnow() -> datetime:
@@ -431,6 +433,7 @@ def _legal_source_job_id(source_code: str) -> str:
 
 def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[SchedulerTemplate, ...]:
     cfg = config or {}
+    backups_enabled = not backup_operations_disabled(cfg)
     backup_h, backup_m = _hhmm(cfg.get("BACKUP_ORA") or os.getenv("PCT_BACKUP_ORA"), "02:00")
     wa_h, wa_m = _hhmm(cfg.get("WA_REMINDER_ORA") or os.getenv("PCT_WA_REMINDER_ORA"), "18:00")
     uffici_h, uffici_m = _hhmm(cfg.get("UFFICI_SYNC_ORA") or os.getenv("PCT_UFFICI_SYNC_ORA"), "03:30")
@@ -445,7 +448,17 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         or "sun"
     ).strip() or "sun"
     builtins = (
-        SchedulerTemplate("backup_giornaliero", "Backup giornaliero", "Manutenzione", "Copia operativa giornaliera.", "cron", backup_h, backup_m, built_in=True),
+        SchedulerTemplate(
+            "backup_giornaliero",
+            "Backup giornaliero",
+            "Manutenzione",
+            "Copia operativa giornaliera; disattivata finché lo studio non autorizza espressamente gli archivi.",
+            "cron",
+            backup_h,
+            backup_m,
+            enabled=backups_enabled,
+            built_in=True,
+        ),
         SchedulerTemplate("aggiorna_scadute", "Scadenze scadute", "Agenda e scadenze", "Aggiorna stati delle scadenze scadute.", "cron", "0", "5", built_in=True),
         SchedulerTemplate("wa_reminder", "Promemoria WhatsApp", "Comunicazioni", "Invia promemoria appuntamenti del giorno successivo.", "cron", wa_h, wa_m, built_in=True),
         SchedulerTemplate("aggiorna_parcelle_scadute", "Parcelle scadute", "Economia", "Aggiorna stati delle parcelle scadute.", "cron", "1", "0", built_in=True),
@@ -527,7 +540,17 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("operational_crash_morning", "Controllo operativo mattina", "Manutenzione", "Esegue controllo operativo con riparazione assistita.", "cron", "7", "0", built_in=True),
         SchedulerTemplate("operational_crash_midday", "Controllo operativo pranzo", "Manutenzione", "Esegue controllo operativo intermedio.", "cron", "13", "30", built_in=True),
         SchedulerTemplate("operational_crash_evening", "Controllo operativo sera", "Manutenzione", "Esegue controllo operativo serale.", "cron", "19", "30", built_in=True),
-        SchedulerTemplate("operational_backup_nightly", "Backup blindato notturno", "Manutenzione", "Esegue backup blindato notturno.", "cron", "23", "50", built_in=True),
+        SchedulerTemplate(
+            "operational_backup_nightly",
+            "Backup blindato notturno",
+            "Manutenzione",
+            "Copia blindata notturna; disattivata finché lo studio non autorizza espressamente gli archivi.",
+            "cron",
+            "23",
+            "50",
+            enabled=backups_enabled,
+            built_in=True,
+        ),
         SchedulerTemplate("polling_esiti_deposito", "Esiti deposito", "Depositi telematici", "Controlla esiti deposito e PEC cancelleria.", "cron", "", "*/15", built_in=True),
         SchedulerTemplate("poll_pec_cancelleria", "PEC cancelleria", "Depositi telematici", "Associa comunicazioni PEC ai fascicoli.", "cron", "", "*/30", built_in=True),
         SchedulerTemplate("scheduler_registry_reload", "Console pianificazioni", "Manutenzione", "Applica modifiche pianificazioni e richieste manuali.", "cron", "", "*/1", built_in=True, editable=False),
@@ -672,8 +695,9 @@ class SchedulerRegistryRepository:
 
     def upsert_default_jobs(self, config: dict[str, Any] | None = None) -> None:
         now = _iso()
+        cfg = config or {}
         with self.connect() as conn:
-            for template in default_scheduler_templates(config):
+            for template in default_scheduler_templates(cfg):
                 conn.execute(
                     """
                     INSERT INTO scheduled_jobs (
@@ -709,6 +733,18 @@ class SchedulerRegistryRepository:
                         now,
                     ),
                 )
+            if backup_operations_disabled(cfg):
+                for job_id in BACKUP_JOB_IDS:
+                    conn.execute(
+                        """
+                        UPDATE scheduled_jobs
+                        SET enabled=0, updated_at=?, updated_by='policy:backup-disabled',
+                            last_applied_signature=''
+                        WHERE job_id=? AND built_in=1
+                          AND (enabled<>0 OR updated_by<>'policy:backup-disabled')
+                        """,
+                        (now, job_id),
+                    )
             for job_id in self._DEFAULT_ON_PROMOTIONS:
                 conn.execute(
                     """

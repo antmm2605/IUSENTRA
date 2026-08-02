@@ -8,7 +8,7 @@ from typing import Any
 
 from flask import current_app
 
-from pct.backup import GestioneBackup
+from pct.backup import GestioneBackup, backup_operations_disabled
 from pct.core_storage_backend import is_postgres_core_active
 from pct.operational_resilience import (
     OPERATIONAL_BACKUP_SCHEDULE,
@@ -150,6 +150,28 @@ def _repository(context: dict[str, Any]) -> OperationalResilienceRepository:
     )
 
 
+def _backup_execution_disabled() -> bool:
+    return backup_operations_disabled(current_app.config)
+
+
+def _disabled_backup_report(
+    *,
+    tenant_slug: str = "",
+    trigger_source: str = "manual",
+    schedule_code: str = "",
+) -> dict[str, Any]:
+    return {
+        "success": True,
+        "skipped": True,
+        "reason": "backup_operations_disabled",
+        "message": "Archivi e copie automatiche sono disattivati dalla politica operativa dello studio.",
+        "tenant_slug": str(tenant_slug or ""),
+        "trigger_source": str(trigger_source or "manual"),
+        "schedule_code": str(schedule_code or ""),
+        "runs": [],
+    }
+
+
 def _load_json_report(path_value: str) -> dict[str, Any]:
     path = Path(str(path_value or "").strip())
     if not path.is_file():
@@ -248,6 +270,12 @@ def execute_operational_crash_surface(
     secondary_label = str(current_app.config.get("BACKUP_SECONDARY_LABEL") or "")
 
     def _backup_executor(reason: str) -> dict[str, Any]:
+        if _backup_execution_disabled():
+            return _disabled_backup_report(
+                tenant_slug=context["tenant_slug"],
+                trigger_source=trigger_source,
+                schedule_code=f"{schedule_code or 'manual'}:{reason}",
+            )
         return run_operational_backup_plan(
             tenant_slug=context["tenant_slug"],
             backup_manager=backup_manager,
@@ -287,6 +315,12 @@ def execute_operational_backup_surface(
     trigger_source: str = "manual",
     schedule_code: str = "",
 ) -> dict[str, Any]:
+    if _backup_execution_disabled():
+        return _disabled_backup_report(
+            tenant_slug=selected_slug,
+            trigger_source=trigger_source,
+            schedule_code=schedule_code,
+        )
     context = _resolve_context(selected_slug)
     repository = _repository(context)
     backup_manager = _backup_manager(context["paths"])

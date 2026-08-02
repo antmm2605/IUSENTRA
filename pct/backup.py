@@ -19,9 +19,26 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Mapping
 from dataclasses import dataclass, field, asdict
 from enum import Enum
+
+
+def backup_operations_disabled(config: Mapping[str, Any] | None = None) -> bool:
+    """Restituisce ``True`` finché lo studio non abilita esplicitamente le copie.
+
+    La politica è fail-closed per evitare che un job, una UI o una CLI generino
+    archivi non richiesti. Un valore configurato esplicitamente prevale
+    sull'ambiente; valori assenti o vuoti restano disabilitati.
+    """
+    configured = None
+    if config is not None and "IUSENTRA_DISABLE_BACKUP_JOBS" in config:
+        configured = config.get("IUSENTRA_DISABLE_BACKUP_JOBS")
+    raw = configured if configured is not None else os.getenv("IUSENTRA_DISABLE_BACKUP_JOBS", "1")
+    normalized = str(raw if raw is not None else "1").strip().lower()
+    if not normalized:
+        normalized = "1"
+    return normalized in {"1", "true", "yes", "on"}
 
 
 # ------------------------------------------------------------------ Enums

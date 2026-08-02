@@ -103,11 +103,13 @@ Configurazione guidata sul server:
 ```bash
 cd /opt/iusentra/repo
 bash deploy/hetzner/configure_web_push.sh
-IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh
+IUSENTRA_SKIP_BACKUP_CRON=1 IUSENTRA_DISABLE_BACKUP_JOBS=1 bash deploy/hetzner/deploy.sh
 bash deploy/hetzner/verify_web_push.sh
 ```
 
-`IUSENTRA_SKIP_BACKUP_CRON=1` evita di aggiornare il cron backup durante questa configurazione operativa. Ometterlo per il deploy standard.
+`IUSENTRA_SKIP_BACKUP_CRON=1` e `IUSENTRA_DISABLE_BACKUP_JOBS=1` mantengono
+disattivati il cron e gli archivi automatici. È la configurazione operativa
+predefinita: una nuova copia richiede un'autorizzazione esplicita.
 
 Lo script genera chiavi VAPID EC P-256 se mancanti, abilita il canale, aggiorna `/opt/iusentra/.env.hetzner` con permessi `600` e non stampa la chiave privata nei log normali. Usare `--force` solo quando si vuole rigenerare la coppia di chiavi.
 
@@ -135,11 +137,15 @@ Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e 
 
 Il comando manuale sotto resta valido per esecuzioni fuori banda (es. test della SSH key, deploy da branch alternativo, recovery rapido senza passare da GitHub):
 
-Backup preventivo:
+Backup automatici:
 
 ```bash
-bash /opt/iusentra/repo/deploy/hetzner/backup.sh
+IUSENTRA_DISABLE_BACKUP_JOBS=1 bash /opt/iusentra/repo/deploy/hetzner/backup.sh
 ```
+
+La configurazione corrente è intenzionalmente fail-closed: con
+`IUSENTRA_DISABLE_BACKUP_JOBS=1` il comando non crea archivi e il deploy rimuove
+il cron IUSENTRA. Questa procedura non prevede override temporanei.
 
 ```bash
 cd /opt/iusentra/repo

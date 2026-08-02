@@ -61,6 +61,27 @@ def test_backup_script_applica_tetto_spazio_e_budget_server():
     assert "snapshot best-effort" in script
 
 
+def test_backup_script_resta_noop_con_flag_maiuscolo(tmp_path: Path):
+    if not shutil.which("bash"):
+        pytest.skip("bash non disponibile")
+
+    backup_dir = tmp_path / "backups"
+    script = REPO_ROOT / "deploy" / "hetzner" / "backup.sh"
+    command = " ".join(
+        [
+            "IUSENTRA_BACKUP_LOAD_ENV=0",
+            "IUSENTRA_DISABLE_BACKUP_JOBS=TRUE",
+            f"IUSENTRA_BACKUP_DIR={shlex.quote(_bash_path(backup_dir))}",
+            f"bash {shlex.quote(_bash_path(script))}",
+        ]
+    )
+
+    result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=True)
+
+    assert "Backup disattivato" in result.stdout
+    assert not backup_dir.exists()
+
+
 def test_env_hetzner_documenta_guardrail_backup():
     env_example = (REPO_ROOT / "deploy" / "hetzner" / "env.hetzner.example").read_text(encoding="utf-8")
 
@@ -166,6 +187,7 @@ def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):
     command = " ".join(
         [
             "IUSENTRA_BACKUP_LOAD_ENV=0",
+            "IUSENTRA_DISABLE_BACKUP_JOBS=0",
             f"IUSENTRA_DATA_DIR={shlex.quote(_bash_path(data_dir))}",
             f"IUSENTRA_BACKUP_DIR={shlex.quote(_bash_path(backup_dir))}",
             "IUSENTRA_BACKUP_RETENTION_DAYS=0",

@@ -40,6 +40,13 @@ def _flag_enabled(value: object) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _backup_jobs_disabled(app) -> bool:
+    """Fail closed: gli archivi automatici richiedono un opt-in esplicito."""
+    from pct.backup import backup_operations_disabled
+
+    return backup_operations_disabled(app.config)
+
+
 def _scheduler_bootstrap_allowed(app) -> bool:
     return bool(app.config.get("PCT_SCHEDULER_WORKER")) or _flag_enabled(
         app.config.get("ALLOW_INLINE_SCHEDULER")
@@ -204,6 +211,9 @@ def start_scheduler(app):
     @scheduler.scheduled_job(CronTrigger(hour=h, minute=m), id="backup_giornaliero")
     def _backup():
         with app.app_context():
+            if _backup_jobs_disabled(app):
+                logger.info("[scheduler] Backup giornaliero non eseguito: archivi automatici disattivati.")
+                return {"ok": True, "skipped": True, "reason": "backup_jobs_disabled"}
             try:
                 from pct.database import GestioneDatabase
                 db = GestioneDatabase(app.config)
@@ -1911,6 +1921,12 @@ def start_scheduler(app):
 
     def _run_operational_backup(schedule_code: str):
         with app.app_context():
+            if _backup_jobs_disabled(app):
+                logger.info(
+                    "[scheduler] Backup blindato %s non eseguito: archivi automatici disattivati.",
+                    schedule_code,
+                )
+                return {"ok": True, "skipped": True, "reason": "backup_jobs_disabled"}
             try:
                 from web.services.operational_resilience_surface import execute_operational_backup_surface
 
@@ -1943,7 +1959,7 @@ def start_scheduler(app):
 
     @scheduler.scheduled_job(CronTrigger(hour=23, minute=50), id="operational_backup_nightly")
     def _operational_backup_nightly():
-        _run_operational_backup("nightly")
+        return _run_operational_backup("nightly")
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO -> ACCETTATO_PEC -> CONSEGNATO)

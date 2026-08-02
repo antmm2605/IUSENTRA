@@ -10,6 +10,12 @@ if [[ "${IUSENTRA_BACKUP_LOAD_ENV:-1}" != "0" && -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+BACKUP_DISABLED_FLAG="${IUSENTRA_DISABLE_BACKUP_JOBS:-1}"
+if [[ "${BACKUP_DISABLED_FLAG,,}" =~ ^(1|true|yes|on)$ ]]; then
+  echo "Backup disattivato da IUSENTRA_DISABLE_BACKUP_JOBS=1."
+  exit 0
+fi
+
 IUSENTRA_HOME="${IUSENTRA_HOME:-/opt/iusentra}"
 DATA_DIR="${IUSENTRA_DATA_DIR:-${IUSENTRA_HOME}/data}"
 BACKUP_DIR="${IUSENTRA_BACKUP_DIR:-${IUSENTRA_HOME}/backups}"

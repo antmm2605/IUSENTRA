@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from pct.backup import StatoBackup, TipoBackup
+from pct.backup import StatoBackup, TipoBackup, backup_operations_disabled
 
 
 _COMPONENT_LABELS = {
@@ -35,6 +35,17 @@ def _enum(value: Any) -> str:
 def _can(user: Any, permission: str) -> bool:
     checker = getattr(user, "ha_permesso", None)
     return bool(callable(checker) and checker(permission))
+
+
+def _backup_creation_disabled() -> bool:
+    try:
+        from flask import current_app, has_app_context
+
+        if has_app_context():
+            return backup_operations_disabled(current_app.config)
+    except Exception:
+        pass
+    return backup_operations_disabled()
 
 
 def _safe_number(value: Any) -> int:
@@ -158,13 +169,15 @@ def _contracts() -> dict[str, Any]:
 
 
 def _actions(current_user: Any) -> dict[str, Any]:
-    can_execute = _can(current_user, "backup.esegui")
+    backups_disabled = _backup_creation_disabled()
+    can_execute = _can(current_user, "backup.esegui") and not backups_disabled
     can_read = _can(current_user, "backup.leggi")
     return {
         "canCreate": can_execute,
         "canVerify": can_execute,
         "canDownload": can_read,
         "canRestore": False,
+        "backupDisabled": backups_disabled,
         "createEndpoint": "/api/v1/ui/backup/crea",
         "verifyEndpoint": "/api/v1/ui/backup/verifica",
         "legacyHref": "/backup?_legacy=1",
@@ -275,6 +288,12 @@ def create_react_backup(
     payload: dict[str, Any],
     ip: str = "",
 ) -> dict[str, Any]:
+    if _backup_creation_disabled():
+        return _result(
+            ok=False,
+            message="Creazione copie disattivata dalla politica operativa dello studio.",
+            errors={"_form": "Gli archivi restano disattivati finché lo studio non li autorizza espressamente."},
+        )
     errors = _forbidden_fields(payload, _CREATE_KEYS)
     if payload.get("confirm") is not True:
         errors["confirm"] = "Conferma esplicitamente la creazione della copia."

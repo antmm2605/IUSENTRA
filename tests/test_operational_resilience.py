@@ -13,7 +13,11 @@ from pct.operational_resilience import (
 from pct.operational_resilience_repository import OperationalResilienceRepository
 from tests.test_operational_surfaces import _cfg_web, _seed_runtime, _write_studio_config
 from web.app import create_app
-from web.services.operational_resilience_surface import build_operational_crash_surface
+from web.services.operational_resilience_surface import (
+    build_operational_crash_surface,
+    execute_operational_backup_surface,
+)
+from web.services.react_backup_bridge import create_react_backup
 
 
 def test_run_operational_crash_test_crea_report_ticket_e_persistenza(tmp_path: Path, monkeypatch):
@@ -133,6 +137,7 @@ def test_operational_resilience_writer_redige_segreti(tmp_path: Path):
 
 def test_crash_test_operativo_superficie_admin_renderizza(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
+    cfg["BACKUP_DIR"] = str(tmp_path / "backup")
     _write_studio_config(tmp_path / "config" / "studio.json")
     _seed_runtime(cfg)
     app = create_app(cfg)
@@ -157,6 +162,7 @@ def test_crash_test_operativo_superficie_admin_renderizza(tmp_path: Path):
 
 def test_build_operational_crash_surface_legge_l_ultimo_backup_reale(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
+    cfg["BACKUP_DIR"] = str(tmp_path / "backup")
     _write_studio_config(tmp_path / "config" / "studio.json")
     _seed_runtime(cfg)
     app = create_app(cfg)
@@ -183,8 +189,75 @@ def test_build_operational_crash_surface_legge_l_ultimo_backup_reale(tmp_path: P
     assert report["report_path"] == payload["latest_backup_report"]["report_path"]
 
 
+def test_superficie_backup_operativa_non_crea_archivi_quando_disattivata(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    cfg["IUSENTRA_DISABLE_BACKUP_JOBS"] = "1"
+    cfg["BACKUP_DIR"] = str(tmp_path / "backup")
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    _seed_runtime(cfg)
+    app = create_app(cfg)
+
+    with app.app_context():
+        report = execute_operational_backup_surface(
+            trigger_source="test",
+            schedule_code="no-backup",
+        )
+        backup_dir = Path(app.config["BACKUP_DIR"])
+
+    assert report["success"] is True
+    assert report["skipped"] is True
+    assert report["reason"] == "backup_operations_disabled"
+    assert not (backup_dir / "operational_backups").exists()
+
+
+def test_api_react_backup_blocca_la_creazione_prima_di_accedere_ai_dati(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    cfg["IUSENTRA_DISABLE_BACKUP_JOBS"] = "1"
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    _seed_runtime(cfg)
+    app = create_app(cfg)
+
+    def _should_not_load_backup():
+        raise AssertionError("Il manager backup non deve essere aperto quando gli archivi sono disattivati.")
+
+    with app.app_context():
+        result = create_react_backup(
+            get_backup=_should_not_load_backup,
+            get_utenti=lambda: None,
+            current_user=None,
+            payload={},
+        )
+
+    assert result["ok"] is False
+    assert "disattivata" in result["message"]
+
+
+def test_api_react_backup_mostra_azione_disattivata(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    cfg["IUSENTRA_DISABLE_BACKUP_JOBS"] = "1"
+    cfg["BACKUP_DIR"] = str(tmp_path / "backup")
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    _seed_runtime(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "superadmin-operativo", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+        response = client.get("/api/v1/ui/backup")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["actions"]["canCreate"] is False
+    assert payload["actions"]["backupDisabled"] is True
+
+
 def test_build_operational_crash_surface_non_espone_traceback_pubblici(tmp_path: Path, monkeypatch):
     cfg = _cfg_web(tmp_path)
+    cfg["BACKUP_DIR"] = str(tmp_path / "backup")
     _write_studio_config(tmp_path / "config" / "studio.json")
     _seed_runtime(cfg)
     app = create_app(cfg)

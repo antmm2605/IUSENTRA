@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.265.19 - 2026-08-02
+
+- **Backup disattivati in modo fail-closed**: registro, job automatici, API React, percorsi manuali, CLI e script Hetzner non materializzano archivi; lo stesso presidio rimuove il cron IUSENTRA durante il deploy.
+- **Pulizia spazio autorizzata**: rimossi archivi, snapshot, cache build e registri backup obsoleti; restano esclusi da ogni cancellazione fascicoli, documenti, e-mail e database operativi.
+
 ## 2.265.18 - 2026-08-02
 
 - **Lex Oggi autonomo**: il piano completo viene generato alle 05:30 Europe/Rome per ogni studio e avvocato attivo; se il servizio automatico parte tardi o manca uno snapshot, il recupero autonomo lo ricostruisce senza bloccare la pagina né richiedere un click.

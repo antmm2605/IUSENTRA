@@ -7,7 +7,7 @@ from pathlib import Path
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, url_for
 
-from pct.backup import StatoBackup, TipoBackup
+from pct.backup import StatoBackup, TipoBackup, backup_operations_disabled
 
 
 def register_backup_routes(
@@ -33,6 +33,9 @@ def register_backup_routes(
 
     @app.route("/backup/esegui", methods=["POST"])
     def esegui_backup():
+        if backup_operations_disabled(app.config):
+            flash("Creazione copie disattivata dalla politica operativa dello studio.", "info")
+            return redirect(url_for("lista_backup"))
         gb = get_backup()
         tipo = TipoBackup(request.form.get("tipo", "COMPLETO"))
         nota = request.form.get("nota", "")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.265.21 - 2026-08-02
+
+- **CodeQL calendario**: il content hash remoto non include piu' le categorie tecniche dei provider, evitando persistenza indiretta di valori letti da `extendedProperties.private`.
+
 ## 2.265.20 - 2026-08-02
 
 - **CodeQL notifiche/calendario**: la validazione PEC non usa piu' una regex sensibile a backtracking su input utente e i conflitti calendario salvano solo snapshot remoti normalizzati, senza `raw` provider o metadati `extendedProperties.private`.

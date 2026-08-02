@@ -79,7 +79,6 @@ def event_content_hash(event: dict[str, Any]) -> str:
         "end",
         "all_day",
         "status",
-        "categories",
         "sequence",
     )
     return stable_hash({key: event.get(key) for key in keys})

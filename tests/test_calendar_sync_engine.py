@@ -1,4 +1,5 @@
 from pct.agenda import Appuntamento, TipoAppuntamento
+from pct.calendar_providers.base import event_content_hash
 from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_BUSY, PRIVACY_COMPLETE, PRIVACY_REDUCED, privacy_export_event
 from pct.calendar_providers.google import GoogleCalendarProvider
 from pct.scadenziario import TipoTermine
@@ -252,6 +253,23 @@ def test_google_map_event_espone_categorie_senza_raw_provider():
     assert mapped["categories"] == ["IUSENTRA-SCADENZA", "IUSENTRA-PERENTORIA"]
     assert "raw" not in mapped
     assert "extendedProperties" not in mapped
+
+
+def test_remote_content_hash_ignora_categorie_provider_tecniche():
+    base_event = {
+        "title": "Termine",
+        "description": "Da calendario",
+        "location": "",
+        "start": "2026-06-10",
+        "end": "2026-06-11",
+        "all_day": True,
+        "status": "confirmed",
+        "sequence": 7,
+    }
+
+    assert event_content_hash({**base_event, "categories": ["IUSENTRA-SCADENZA"]}) == event_content_hash(
+        {**base_event, "categories": ["IUSENTRA-AGENDA"]}
+    )
 
 
 def test_privacy_export_levels_hide_sensitive_content():

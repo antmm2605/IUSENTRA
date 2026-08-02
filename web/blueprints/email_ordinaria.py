@@ -30,7 +30,13 @@ from flask import (
 )
 
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
-from web.bootstrap.fascicoli_document_helpers import preview_unavailable_html
+from web.bootstrap.fascicoli_document_helpers import (
+    pdf_mobile_preview_html,
+    pdf_page_count,
+    preview_error_html,
+    preview_unavailable_html,
+    render_pdf_page_png,
+)
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
@@ -98,6 +104,72 @@ def _get_gestore():
             "EMAIL_ORDINARIA_DB",
             os.environ.get("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
         )
+    )
+
+
+def _attachment_pdf_viewer_requested() -> bool:
+    return str(request.args.get("viewer") or "").strip().casefold() in {"mobile", "pages", "reader"}
+
+
+def _serve_attachment_pdf_reader(
+    *,
+    preview_data: bytes,
+    preview_mimetype: str,
+    preview_name: str,
+    download_url: str,
+    id_email: str,
+    indice_allegato: int,
+):
+    mime = str(preview_mimetype or "").split(";", 1)[0].strip().lower()
+    if mime != "application/pdf" or not _attachment_pdf_viewer_requested():
+        return None
+    page_value = str(request.args.get("page") or "").strip()
+    if page_value:
+        try:
+            page_number = int(page_value)
+            png_payload = render_pdf_page_png(preview_data, page_number)
+        except Exception as exc:
+            current_app.logger.warning(
+                "Anteprima pagina allegato email ordinaria non disponibile email=%s allegato=%s page=%s: %s",
+                id_email,
+                indice_allegato,
+                page_value,
+                exc,
+            )
+            return preview_error_html(download_url)
+        response = send_file(
+            BytesIO(png_payload),
+            mimetype="image/png",
+            as_attachment=False,
+            download_name=f"{Path(preview_name).stem}-pagina-{page_number}.png",
+            conditional=False,
+        )
+        response.headers["Cache-Control"] = "private, max-age=3600"
+        return response
+    try:
+        total_pages = pdf_page_count(preview_data)
+        page_urls = [
+            url_for(
+                "email_ordinaria.allegato",
+                id_email=id_email,
+                indice_allegato=indice_allegato,
+                viewer="mobile",
+                page=page,
+            )
+            for page in range(1, total_pages + 1)
+        ]
+    except Exception as exc:
+        current_app.logger.warning(
+            "Lettore PDF allegato email ordinaria non disponibile email=%s allegato=%s: %s",
+            id_email,
+            indice_allegato,
+            exc,
+        )
+        return preview_error_html(download_url)
+    return pdf_mobile_preview_html(
+        nome_documento=preview_name,
+        page_urls=page_urls,
+        scarica_url=download_url,
     )
 
 
@@ -343,14 +415,24 @@ def allegato(id_email: str, indice_allegato: int):
             data=raw_data,
             mime_salvato=mime_salvato,
         )
+        scarica_url = url_for(
+            "email_ordinaria.allegato",
+            id_email=id_email,
+            indice_allegato=indice_allegato,
+            download=1,
+        )
         if preview.unavailable_reason:
-            scarica_url = url_for(
-                "email_ordinaria.allegato",
-                id_email=id_email,
-                indice_allegato=indice_allegato,
-                download=1,
-            )
             return preview_unavailable_html(nome_download, scarica_url)
+        pdf_reader_response = _serve_attachment_pdf_reader(
+            preview_data=preview.data,
+            preview_mimetype=preview.mimetype,
+            preview_name=preview.download_name or nome_download,
+            download_url=scarica_url,
+            id_email=id_email,
+            indice_allegato=indice_allegato,
+        )
+        if pdf_reader_response is not None:
+            return pdf_reader_response
         return send_file(
             BytesIO(preview.data),
             mimetype=preview.mimetype,

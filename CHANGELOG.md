@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.265.25 - 2026-08-02
+
+- **CodeQL workspace snapshot**: `WorkspaceIntelligenteService.save_snapshot()` persiste ora solo aggregati, stati e contatori operativi; i dettagli degli appuntamenti restano nei repository reali e non vengono duplicati nel JSON snapshot.
+- **Allegati PEC/email**: il modal `Fonte dell'informazione` apre gli allegati PDF salvati dalle rotte PEC e posta ordinaria nel lettore interno responsive a pagine, evitando iframe PDF raw vuoti su desktop, tablet e mobile; il download resta invariato.
+- **Guardrail sicurezza e allegati**: aggiunti test reali di salvataggio snapshot che escludono passcode, URL, informazioni di accesso riservate e liste appuntamento dal JSON workspace, più regressioni PEC/email sul viewer mobile degli allegati.
+
 ## 2.265.24 - 2026-08-02
 
 - **CodeQL workspace snapshot**: `WorkspaceIntelligenteService.save_snapshot()` persiste ora una vista sanificata e primitiva di agenda/scadenze/fascicoli, senza oggetti dominio completi né campi riservati di udienza remota.

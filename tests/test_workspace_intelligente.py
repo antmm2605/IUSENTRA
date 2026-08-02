@@ -246,16 +246,15 @@ def test_workspace_intelligente_save_snapshot_persiste_solo_payload_sicuro(tmp_p
     raw = target.read_text(encoding="utf-8")
     stored = json.loads(raw)
 
-    assert snapshot["overview"]["upcoming_appointments"]
-    first = stored["overview"]["upcoming_appointments"][0]
-    assert isinstance(first, dict)
-    assert first["remote_hearing_detected"] is True
-    assert first["remote_hearing_platform"] == "Teams"
-    assert "remote_hearing_passcode" not in first
-    assert "remote_hearing_url" not in first
+    assert snapshot["overview"]["summary"]["appuntamenti_orizzonte"] >= 1
+    assert stored["overview"]["source_counts"]["upcoming_appointments"] >= 1
+    assert stored["overview"]["upcoming_appointments"] == []
+    hot = stored["overview"]["fascicoli_hot"][0]
+    assert hot["appuntamenti_count"] >= 1
+    assert "appuntamenti" not in hot
     assert "PIN-RISERVATO-123" not in raw
     assert "riunione.example.test" not in raw
-    assert isinstance(stored["overview"]["fascicoli_hot"][0]["appuntamenti"][0], dict)
+    assert "Accesso riservato studio" not in raw
 
 
 def test_workspace_intelligente_propone_sentenza_per_fascicolo(tmp_path: Path):

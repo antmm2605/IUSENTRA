@@ -1167,8 +1167,9 @@ def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
     assert payload["emails"] == []
 
 
-def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
+def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path, monkeypatch):
     from web.app import create_app
+    import web.blueprints.email_client as pec_blueprint
 
     cfg = _cfg_web(tmp_path)
     ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
@@ -1195,6 +1196,12 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
     (allegato_dir / "ricevuta.pdf").write_bytes(contenuto)
 
     app = create_app(cfg)
+    monkeypatch.setattr(pec_blueprint, "pdf_page_count", lambda data: 2)
+    monkeypatch.setattr(
+        pec_blueprint,
+        "render_pdf_page_png",
+        lambda data, page_number: f"PNG-PEC-{page_number}".encode(),
+    )
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
@@ -1218,6 +1225,19 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         assert inline.status_code == 200
         assert inline.data == contenuto
         assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
+
+        viewer = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?viewer=mobile")
+        viewer_html = viewer.get_data(as_text=True)
+        assert viewer.status_code == 200
+        assert viewer.headers.get("Content-Type", "").startswith("text/html")
+        assert "ricevuta.pdf" in viewer_html
+        assert "viewer=mobile&amp;page=1" in viewer_html
+        assert "/email/messaggio/MAIL-ATT-1/allegato/0?download=1" in viewer_html
+
+        page = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?viewer=mobile&page=1")
+        assert page.status_code == 200
+        assert page.headers.get("Content-Type", "").startswith("image/png")
+        assert page.data == b"PNG-PEC-1"
 
         download = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?download=1")
         assert download.status_code == 200
@@ -1877,8 +1897,9 @@ def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
         assert download.data == contenuto
 
 
-def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_path):
+def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_path, monkeypatch):
     from web.app import create_app
+    import web.blueprints.email_ordinaria as ordinary_blueprint
 
     cfg = _cfg_web(tmp_path)
     ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
@@ -1905,6 +1926,12 @@ def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_p
     (allegato_dir / "documento.pdf").write_bytes(contenuto)
 
     app = create_app(cfg)
+    monkeypatch.setattr(ordinary_blueprint, "pdf_page_count", lambda data: 1)
+    monkeypatch.setattr(
+        ordinary_blueprint,
+        "render_pdf_page_png",
+        lambda data, page_number: f"PNG-ORD-{page_number}".encode(),
+    )
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
@@ -1927,6 +1954,21 @@ def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_p
         assert inline.status_code == 200
         assert inline.data == contenuto
         assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
+
+        viewer = client.get("/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0?viewer=mobile")
+        viewer_html = viewer.get_data(as_text=True)
+        assert viewer.status_code == 200
+        assert viewer.headers.get("Content-Type", "").startswith("text/html")
+        assert "documento.pdf" in viewer_html
+        assert "viewer=mobile&amp;page=1" in viewer_html
+        assert "/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0?download=1" in viewer_html
+
+        page = client.get(
+            "/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0?viewer=mobile&page=1"
+        )
+        assert page.status_code == 200
+        assert page.headers.get("Content-Type", "").startswith("image/png")
+        assert page.data == b"PNG-ORD-1"
 
 
 def test_parse_message_salva_allegato_message_rfc822(tmp_path):

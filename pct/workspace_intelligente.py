@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from zoneinfo import ZoneInfo
 
 from pct import cache as _cache
-from pct.agenda import Agenda, Appuntamento, StatoAppuntamento
+from pct.agenda import Agenda, StatoAppuntamento
 from pct.calendar_sync import GestioneCalendarSync
 from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
 from pct.fascicolo_document_presidio import duplicate_practice_groups
@@ -113,75 +113,117 @@ def _truncate(text: str, limit: int = 180) -> str:
     return raw[: limit - 1].rstrip() + "…"
 
 
-def _enum_value(value: Any) -> Any:
-    return getattr(value, "value", value)
+def _snapshot_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
-def _snapshot_appuntamento(item: Appuntamento) -> Dict[str, Any]:
-    return {
-        "id": item.id,
-        "titolo": _truncate(item.titolo, 180),
-        "tipo": _enum_value(item.tipo),
-        "stato": _enum_value(item.stato),
-        "data_ora": item.data_ora,
-        "fine": item.fine_dt.isoformat(timespec="seconds"),
-        "durata_minuti": item.durata_minuti,
-        "luogo": _truncate(item.luogo, 140),
-        "cliente": _truncate(item.cliente, 140),
-        "procedimento": _truncate(item.procedimento, 120),
-        "tribunale": _truncate(item.tribunale, 120),
-        "hearing_mode": _truncate(item.hearing_mode, 80),
-        "remote_hearing_detected": bool(item.remote_hearing_detected),
-        "remote_hearing_mode": _truncate(item.remote_hearing_mode, 80),
-        "remote_hearing_verified": bool(item.remote_hearing_verified),
-        "remote_hearing_platform": _truncate(item.remote_hearing_platform, 80),
-    }
-
-
-def _snapshot_scadenza(item: Scadenza) -> Dict[str, Any]:
-    return {
-        "id": item.id,
-        "id_fascicolo": item.id_fascicolo,
-        "titolo": _truncate(item.titolo, 180),
-        "tipo": _enum_value(item.tipo),
-        "priorita": _enum_value(item.priorita),
-        "stato": _enum_value(item.stato),
-        "data_scadenza": item.data_scadenza,
-        "legal_due_at": item.legal_due_at,
-        "operational_due_at": item.operational_due_at,
-        "giorni_alla_scadenza": item.giorni_alla_scadenza,
-        "perentorio": bool(item.perentorio),
-        "deadline_profile_code": item.deadline_profile_code,
-        "judicial_office_name": _truncate(item.judicial_office_name, 140),
-        "judicial_office_type": _truncate(item.judicial_office_type, 80),
-        "judicial_office_city": _truncate(item.judicial_office_city, 80),
-        "office_mode_on_legal_due_date": item.office_mode_on_legal_due_date,
-        "source_event_type": item.source_event_type,
-        "source_event_type_label": item.source_event_type_label,
-    }
-
-
-def _snapshot_safe_value(value: Any) -> Any:
-    if isinstance(value, Appuntamento):
-        return _snapshot_appuntamento(value)
-    if isinstance(value, Scadenza):
-        return _snapshot_scadenza(value)
-    if isinstance(value, dict):
-        return {str(key): _snapshot_safe_value(child) for key, child in value.items()}
+def _snapshot_count(value: Any) -> int:
     if isinstance(value, (list, tuple, set)):
-        return [_snapshot_safe_value(child) for child in value]
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    if hasattr(value, "value"):
-        return value.value
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if hasattr(value, "id") and hasattr(value, "titolo"):
+        return len(value)
+    if isinstance(value, dict):
+        return len(value)
+    return 0
+
+
+def _snapshot_actions(actions: Any) -> List[Dict[str, str]]:
+    allowed_titles = {
+        "Presidiare le scadenze urgenti",
+        "Confermare promemoria imminenti",
+        "Allineare i calendari esterni",
+        "Verificare pratiche doppie",
+        "Lavorare sui fascicoli attenzionati",
+    }
+    safe_actions: List[Dict[str, str]] = []
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, dict):
+            continue
+        title = _truncate(action.get("title", ""), 120)
+        if title not in allowed_titles:
+            title = "Azione operativa"
+        href = str(action.get("href") or "/workspace-intelligente").strip()
+        if href.startswith("/fascicoli/"):
+            href = "/fascicoli"
+        elif not href.startswith("/"):
+            href = "/workspace-intelligente"
+        safe_actions.append(
+            {
+                "tone": _truncate(action.get("tone", "primary"), 30),
+                "title": title,
+                "description": _truncate(action.get("description", ""), 220),
+                "href": href,
+            }
+        )
+        if len(safe_actions) >= 4:
+            break
+    return safe_actions
+
+
+def _snapshot_fascicolo_hot_summary(row: Any) -> Dict[str, Any]:
+    if not isinstance(row, dict):
         return {
-            "id": str(getattr(value, "id", "") or ""),
-            "titolo": _truncate(str(getattr(value, "titolo", "") or ""), 180),
+            "score": 0,
+            "tipo": "",
+            "stato": "",
+            "scadenze_count": 0,
+            "scadenze_scadute_count": 0,
+            "appuntamenti_count": 0,
+            "giurisprudenza_count": 0,
+            "provvedimenti_count": 0,
+            "azioni_count": 0,
         }
-    return _truncate(str(value), 240)
+    return {
+        "score": _snapshot_int(row.get("score")),
+        "tipo": _truncate(row.get("tipo", ""), 60),
+        "stato": _truncate(row.get("stato", ""), 60),
+        "scadenze_count": _snapshot_count(row.get("scadenze")),
+        "scadenze_scadute_count": _snapshot_count(row.get("scadenze_scadute")),
+        "appuntamenti_count": _snapshot_count(row.get("appuntamenti")),
+        "giurisprudenza_count": _snapshot_count(row.get("giurisprudenza")),
+        "provvedimenti_count": _snapshot_count(row.get("provvedimenti")),
+        "azioni_count": _snapshot_count(row.get("azioni")),
+    }
+
+
+def _storage_snapshot_overview(overview: Dict[str, Any]) -> Dict[str, Any]:
+    summary = overview.get("summary") if isinstance(overview, dict) else {}
+    summary = summary if isinstance(summary, dict) else {}
+    source_counts = {
+        "urgent_deadlines": _snapshot_count(overview.get("urgent_deadlines")),
+        "upcoming_deadlines": _snapshot_count(overview.get("upcoming_deadlines")),
+        "upcoming_appointments": _snapshot_count(overview.get("upcoming_appointments")),
+        "fascicoli_hot": _snapshot_count(overview.get("fascicoli_hot")),
+    }
+    fascicoli_hot = [
+        _snapshot_fascicolo_hot_summary(row)
+        for row in overview.get("fascicoli_hot", [])
+        if isinstance(row, dict)
+    ][:8]
+    return {
+        "generated_at": _local_now().replace(microsecond=0).isoformat(),
+        "summary": {
+            "scadenze_urgenti": _snapshot_int(summary.get("scadenze_urgenti")),
+            "scadenze_orizzonte": _snapshot_int(summary.get("scadenze_orizzonte")),
+            "appuntamenti_orizzonte": _snapshot_int(summary.get("appuntamenti_orizzonte")),
+            "profili_sync_attivi": _snapshot_int(summary.get("profili_sync_attivi")),
+            "profili_sync_da_verificare": _snapshot_int(summary.get("profili_sync_da_verificare")),
+            "fascicoli_attenzionati": _snapshot_int(summary.get("fascicoli_attenzionati")),
+            "pratiche_doppie": _snapshot_int(summary.get("pratiche_doppie")),
+            "promemoria_imminenti": _snapshot_int(summary.get("promemoria_imminenti")),
+            "notifiche_scadenze": _snapshot_int(summary.get("notifiche_scadenze")),
+        },
+        "source_counts": source_counts,
+        "actions": _snapshot_actions(overview.get("actions")),
+        "urgent_deadlines": [],
+        "upcoming_deadlines": [],
+        "upcoming_appointments": [],
+        "sync_profiles": [],
+        "fascicoli_hot": fascicoli_hot,
+        "fonti_calcolo": list(FONTI_CALCOLO_PROCESSUALE),
+        "studio_patron": overview.get("studio_patron") if isinstance(overview.get("studio_patron"), dict) else None,
+    }
 
 
 def _provider_label(provider: str) -> str:
@@ -1043,7 +1085,8 @@ class WorkspaceIntelligenteService:
         }
 
     def save_snapshot(self, path: str, overview: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        safe_overview = _snapshot_safe_value(overview or self.panoramica())
+        source_overview = overview if overview is not None else self.panoramica()
+        safe_overview = _storage_snapshot_overview(source_overview)
         payload = {
             "generated_at": _local_now().replace(microsecond=0).isoformat(),
             "overview": safe_overview,

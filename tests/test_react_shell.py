@@ -879,6 +879,9 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "Caricamento documento..." in source_modal
     assert "Documento non visualizzabile nel lettore." in source_modal
     assert "parsed.pathname.includes('/documenti/')" in source_modal
+    assert "parsed.pathname.startsWith('/email/messaggio/')" in source_modal
+    assert "parsed.pathname.startsWith('/email-ordinaria/messaggio/')" in source_modal
+    assert "parsed.pathname.includes('/allegato/')" in source_modal
     assert "preview && mobile" not in source_modal
     assert "source.kind === 'documento'" not in source_modal
     assert "matchMedia('(max-width: 900px)')" not in source_modal
@@ -889,6 +892,8 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "sourceIframeSandbox" in source_modal
     assert "normalizedPath === '/email'" in source_modal
     assert "normalizedPath === '/email-ordinaria'" in source_modal
+    assert "normalizedPath.startsWith('/email/messaggio/')" in source_modal
+    assert "normalizedPath.startsWith('/email-ordinaria/messaggio/')" in source_modal
     assert "normalizedPath.startsWith('/api/v1/ui/email/source/')" in source_modal
     assert "normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza')" in source_modal
     assert "Usa “Apri originale” o “Scarica”" in source_modal

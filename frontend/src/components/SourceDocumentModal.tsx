@@ -13,7 +13,16 @@ function sourceViewerHref(source: SourceDocument, preview = true): string {
   try {
     const parsed = new URL(source.href, window.location.origin)
     if (parsed.origin === window.location.origin) {
-      if (parsed.pathname.startsWith('/api/v1/ui/email/source/')) {
+      const isEmailAttachment = (
+        (
+          parsed.pathname.startsWith('/email/messaggio/')
+          || parsed.pathname.startsWith('/email-ordinaria/messaggio/')
+        )
+        && parsed.pathname.includes('/allegato/')
+      )
+      if (isEmailAttachment) {
+        if (preview) parsed.searchParams.set('viewer', 'mobile')
+      } else if (parsed.pathname.startsWith('/api/v1/ui/email/source/')) {
         if (preview) parsed.searchParams.set('viewer', 'mobile')
       } else if (parsed.pathname.includes('/documenti/') && parsed.pathname.includes('/visualizza')) {
         if (preview) parsed.searchParams.set('viewer', 'mobile')
@@ -36,6 +45,13 @@ function sourceIframeSandbox(href: string): string {
       && (
         normalizedPath === '/email'
         || normalizedPath === '/email-ordinaria'
+        || (
+          (
+            normalizedPath.startsWith('/email/messaggio/')
+            || normalizedPath.startsWith('/email-ordinaria/messaggio/')
+          )
+          && normalizedPath.includes('/allegato/')
+        )
         || normalizedPath.startsWith('/api/v1/ui/email/source/')
         || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
       )

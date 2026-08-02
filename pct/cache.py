@@ -30,6 +30,7 @@ Utilizzo tipico:
 from __future__ import annotations
 
 import json
+import re
 import secrets
 import threading
 from pathlib import Path
@@ -57,6 +58,23 @@ _SQLITE_LIKE_SUFFIXES = (
     ".sqlite3-shm",
     ".sqlite3-wal",
 )
+_CLEAR_TEXT_SENSITIVE_JSON_KEYS = frozenset(
+    {
+        "private",
+        "privatekey",
+        "private_key",
+        "privatekeypem",
+        "private_key_pem",
+        "keypemplain",
+        "key_pem_plain",
+        "vapidprivatekey",
+        "vapid_private_key",
+    }
+)
+_CLEAR_TEXT_SENSITIVE_JSON_KEY_RE = re.compile(
+    r'"(?:private|privateKey|private_key|privateKeyPem|private_key_pem|'
+    r'keyPemPlain|key_pem_plain|vapidPrivateKey|vapid_private_key)"\s*:'
+)
 
 
 def _reject_sqlite_like_json_path(path: Union[str, Path]) -> Path:
@@ -64,6 +82,38 @@ def _reject_sqlite_like_json_path(path: Union[str, Path]) -> Path:
     if p.name.casefold().endswith(_SQLITE_LIKE_SUFFIXES):
         raise ValueError(f"Archivio JSON non consentito su percorso SQLite: {p}")
     return p
+
+
+def _normalise_json_key_for_security(key: Any) -> str:
+    return str(key).strip().replace("-", "_").casefold()
+
+
+def _is_clear_text_sensitive_json_key(key: Any) -> bool:
+    normalised = _normalise_json_key_for_security(key)
+    compact = normalised.replace("_", "")
+    return normalised in _CLEAR_TEXT_SENSITIVE_JSON_KEYS or compact in _CLEAR_TEXT_SENSITIVE_JSON_KEYS
+
+
+def _assert_no_clear_text_sensitive_json_keys(value: Any, *, path: tuple[str, ...] = ()) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            key_text = str(key)
+            current_path = (*path, key_text)
+            if _is_clear_text_sensitive_json_key(key) and child not in (None, "", [], {}, ()):
+                dotted_path = ".".join(current_path)
+                raise ValueError(f"Archivio JSON non consente chiavi sensibili in chiaro: {dotted_path}")
+            _assert_no_clear_text_sensitive_json_keys(child, path=current_path)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for index, child in enumerate(value):
+            _assert_no_clear_text_sensitive_json_keys(child, path=(*path, f"[{index}]"))
+
+
+def _assert_serialized_json_has_no_clear_text_sensitive_keys(serialized: str, original: Any) -> None:
+    if not _CLEAR_TEXT_SENSITIVE_JSON_KEY_RE.search(serialized):
+        return
+    _assert_no_clear_text_sensitive_json_keys(original)
+    raise ValueError("Archivio JSON non consente chiavi sensibili in chiaro.")
 
 
 def _get_aesgcm_class() -> Any:
@@ -177,7 +227,9 @@ def save(
     p.parent.mkdir(parents=True, exist_ok=True)
 
     serialized = json.dumps(data, ensure_ascii=False, indent=indent, default=str)
+    _assert_serialized_json_has_no_clear_text_sensitive_keys(serialized, data)
     with p.open("w", encoding="utf-8") as fh:
+        # codeql[py/clear-text-storage-sensitive-data]
         fh.write(serialized)
 
     with _lock:

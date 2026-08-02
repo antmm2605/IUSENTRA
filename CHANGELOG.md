@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.265.22 - 2026-08-02
+
+- **CodeQL cache JSON**: `cache.save()` ora rifiuta ricorsivamente contenitori `private` e chiavi private in archivi JSON in chiaro; il payload Google Calendar `extendedProperties.private` resta transitorio e non può essere materializzato su disco.
+- **Guardrail sicurezza**: aggiunti test mirati sul writer JSON condiviso per bloccare `extendedProperties.private` e chiavi `private_key` prima della serializzazione.
+
 ## 2.265.21 - 2026-08-02
 
 - **CodeQL calendario**: il content hash remoto non include piu' le categorie tecniche dei provider, evitando persistenza indiretta di valori letti da `extendedProperties.private`.

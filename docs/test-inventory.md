@@ -12,13 +12,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 82 |
+| API contract | 83 |
 | Backend | 66 |
 | E2E | 9 |
 | Frontend static gate | 1 |
 | Frontend/UI | 166 |
 | RBAC | 50 |
-| Security | 38 |
+| Security | 37 |
 | Smoke CLI | 6 |
 | Tenant isolation | 137 |
 
@@ -557,7 +557,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Portale Cliente | Tenant isolation | tests/test_client_portal_repository.py | tenant, feature flag, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Tenant isolation | tests/test_scadenziario.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | API contract | tests/test_backend_security_phase5.py | 401 anonimo, tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Security | Security | tests/test_cache_security.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Security | API contract | tests/test_cache_security.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | Security | tests/test_security_headers.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_security_redaction.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | Security | tests/test_uffici_giudiziari_security.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
